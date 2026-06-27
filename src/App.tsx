@@ -53,11 +53,12 @@ export default function App() {
   );
   const activeFormation = phase === 'setup' ? previewFormation : formation;
 
-  // Mobile: when a player is picked, scroll down to the pitch so the user can
-  // tap an open slot. (Scrolling back up after placing is done in handlePlace.)
+  // Mobile: when a player is picked, scroll the pitch roughly to the middle of
+  // the viewport so the user can tap an open slot, with some breathing room on
+  // top. (Scrolling back up after placing is done in handlePlace.)
   useEffect(() => {
     if (phase === 'draft' && selectedPlayerId && isStackedLayout()) {
-      pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [selectedPlayerId, phase]);
 
