@@ -106,9 +106,11 @@ export default function App() {
 
       dispatch({ type: 'PLACE_PLAYER', slotId });
 
-      // Mobile: jump back up to the squad list (showing the next drawn squad).
-      if (isStackedLayout()) {
-        squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Mobile: jump back up to the squad list (showing the next drawn squad),
+      // leaving a little space above it instead of pinning it to the top edge.
+      if (isStackedLayout() && squadRef.current) {
+        const top = squadRef.current.getBoundingClientRect().top + window.scrollY - 16;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       }
 
       const nextFilled = { ...filled, [slotId]: player };
