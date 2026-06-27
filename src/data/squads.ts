@@ -4334,7 +4334,7 @@ export const SQUADS: Squad[] = [
         [10, 'Giorgian de Arrascaeta', ['AM', 'CM'], 82],
         [8, 'Facundo Pellistri', ['RW', 'RM'], 73],
         [24, 'Agustín Canobbio', ['RW', 'RM'], 70],
-        [20, 'Facundo Torres', ['RW', 'LW', 'AM'], 75],
+        [20, 'Facundo Torres', ['RW', 'LW', 'AM'], 76],
         [9, 'Luis Suárez', ['ST'], 84],
         [11, 'Darwin Núñez', ['ST', 'LW'], 84],
         [18, 'Maxi Gómez', ['ST'], 74],
