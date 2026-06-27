@@ -47,7 +47,7 @@ export function userGroupTeam(players: Player[]): GroupTeam {
   };
 }
 
-function squadGroupTeam(squad: Squad): GroupTeam {
+export function squadGroupTeam(squad: Squad): GroupTeam {
   const bestXI = [...squad.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
   return {
     id: squad.id,

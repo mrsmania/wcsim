@@ -13,6 +13,7 @@ import {
   rollAny,
 } from './domain/draft';
 import { createGroup, pickOpponents, userGroupTeam } from './domain/tournament';
+import { createKnockout } from './domain/knockout';
 import { gameReducer, initialState } from './state/gameReducer';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
@@ -20,6 +21,7 @@ import CompletePanel from './components/CompletePanel';
 import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
 import GroupStageScreen from './components/GroupStageScreen';
+import KnockoutScreen from './components/KnockoutScreen';
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
@@ -42,7 +44,7 @@ export default function App() {
     [],
   );
 
-  const { phase, formationName, style, formation, filled, currentSquad, selectedPlayerId, usedPersonIds, rerollsLeft, rolling, group } =
+  const { phase, formationName, style, formation, filled, currentSquad, selectedPlayerId, usedPersonIds, rerollsLeft, rolling, group, knockout } =
     state;
 
   // During setup the pitch previews the selected formation/style; during the
@@ -145,6 +147,13 @@ export default function App() {
     dispatch({ type: 'START_GROUP', group: createGroup(userGroupTeam(players), pickOpponents(3)) });
   }, [formation, filled]);
 
+  const handleEnterKnockout = useCallback(() => {
+    if (!group) return;
+    const user = group.teams.find((t) => t.isUser)!;
+    const excludeIds = group.teams.filter((t) => !t.isUser).map((t) => t.id);
+    dispatch({ type: 'START_KNOCKOUT', knockout: createKnockout(user, excludeIds) });
+  }, [group]);
+
   const openPositions = useMemo<Set<Position>>(
     () => (activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>()),
     [activeFormation, filled],
@@ -162,11 +171,18 @@ export default function App() {
           <span className="text-sm font-semibold text-stone-500">Draft your most random world cup XI</span>
         </header>
 
-        {phase === 'group' && group ? (
+        {phase === 'knockout' && knockout ? (
+          <KnockoutScreen
+            knockout={knockout}
+            onAdvance={(p) => dispatch({ type: 'KO_RECORD', ...p })}
+            onReset={() => dispatch({ type: 'RESET' })}
+          />
+        ) : phase === 'group' && group ? (
           <GroupStageScreen
             group={group}
             onRecordMatchday={(results) => dispatch({ type: 'RECORD_MATCHDAY', results })}
             onReset={() => dispatch({ type: 'RESET' })}
+            onEnterKnockout={handleEnterKnockout}
           />
         ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)_300px]">

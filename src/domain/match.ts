@@ -92,3 +92,50 @@ export function simulateMatch(home: Side, away: Side): MatchResult {
 
   return { homeGoals, awayGoals, events };
 }
+
+const ET_MINUTES = 30;
+
+/** Simulate a 30-minute extra-time period (a third of a match's scoring rate).
+ *  Goal minutes fall in 91..120 so events read after the regulation feed. */
+export function simulateExtraTime(home: Side, away: Side): MatchResult {
+  const scale = ET_MINUTES / 90;
+  const homeGoals = poisson(expectedGoals(home.strength.attack, away.strength.defense) * scale);
+  const awayGoals = poisson(expectedGoals(away.strength.attack, home.strength.defense) * scale);
+
+  const events: MatchEvent[] = [];
+  const addGoals = (n: number, side: 'home' | 'away', scorers: string[]) => {
+    for (let i = 0; i < n; i++) {
+      events.push({ minute: 91 + Math.floor(Math.random() * ET_MINUTES), side, scorer: pick(scorers) ?? 'Unknown' });
+    }
+  };
+  addGoals(homeGoals, 'home', home.scorers);
+  addGoals(awayGoals, 'away', away.scorers);
+  events.sort((a, b) => a.minute - b.minute || (a.side === b.side ? 0 : a.side === 'home' ? -1 : 1));
+
+  return { homeGoals, awayGoals, events };
+}
+
+/** Per-kick conversion probability, nudged by squad quality. */
+function convProb(overall: number): number {
+  return Math.max(0.6, Math.min(0.92, 0.78 + (overall - 78) * 0.004));
+}
+
+/** A strength-weighted penalty shootout. Always returns a winner. */
+export function penaltyShootout(home: Side, away: Side): { home: number; away: number; homeWon: boolean } {
+  const ph = convProb(home.strength.overall);
+  const pa = convProb(away.strength.overall);
+  let h = 0;
+  let a = 0;
+  for (let i = 0; i < 5; i++) {
+    if (Math.random() < ph) h++;
+    if (Math.random() < pa) a++;
+  }
+  // Sudden death (capped so a freak run can't loop forever).
+  let guard = 0;
+  while (h === a && guard++ < 50) {
+    if (Math.random() < ph) h++;
+    if (Math.random() < pa) a++;
+  }
+  if (h === a) Math.random() < 0.5 ? h++ : a++;
+  return { home: h, away: a, homeWon: h > a };
+}

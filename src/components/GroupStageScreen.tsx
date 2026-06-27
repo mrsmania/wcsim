@@ -10,53 +10,21 @@ import {
   userAdvanced,
   type Fixture,
   type GroupState,
-  type GroupTeam,
   type MatchdayResult,
 } from '../domain/tournament';
 import { ArrowRight, ChevronDown, ChevronRight, FastForward, Pause, Play } from 'lucide-react';
 import Flag from './Flag';
+import GoalList from './GoalList';
 
 interface Props {
   group: GroupState;
   onRecordMatchday: (results: MatchdayResult[]) => void;
   onReset: () => void;
+  onEnterKnockout: () => void;
 }
 
 const ALL_CODES = [...new Set(SQUADS.map((s) => s.code))];
 const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)];
-
-// --- match feed ----------------------------------------------------------
-
-function GoalList({
-  events,
-  home,
-  away,
-  live,
-}: {
-  events: MatchEvent[];
-  home: GroupTeam;
-  away: GroupTeam;
-  /** True while the match is still being played (pre full-time). */
-  live?: boolean;
-}) {
-  if (events.length === 0) {
-    return (
-      <p className="mt-2 text-center text-xs text-stone-400">{live ? 'No goals yet…' : 'No goals'}</p>
-    );
-  }
-  return (
-    <ul className="mt-2 flex flex-col gap-0.5">
-      {events.map((e, i) => (
-        <li key={i} className="flex items-center gap-2 text-xs">
-          <span className="w-7 text-right font-mono text-stone-500">{e.minute}'</span>
-          <span>⚽</span>
-          <span className="font-semibold">{e.scorer}</span>
-          <span className="text-stone-400">({e.side === 'home' ? home.code : away.code})</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 // --- compact fixture row -------------------------------------------------
 
@@ -120,7 +88,7 @@ function FixtureRow({
 
 // --- screen --------------------------------------------------------------
 
-export default function GroupStageScreen({ group, onRecordMatchday, onReset }: Props) {
+export default function GroupStageScreen({ group, onRecordMatchday, onReset, onEnterKnockout }: Props) {
   const opponents = group.teams.filter((t) => !t.isUser);
   const finished = isGroupFinished(group);
 
@@ -417,9 +385,19 @@ export default function GroupStageScreen({ group, onRecordMatchday, onReset }: P
           <p className={`text-xl font-black ${advanced ? 'text-emerald-600' : 'text-stone-700'}`}>
             {advanced ? 'You advanced to the knockouts! 🎉' : 'Eliminated in the group stage.'}
           </p>
-          <p className="mt-1 text-sm text-stone-500">
-            {advanced ? 'Knockout rounds coming soon.' : 'Better luck next time — draft a new XI to try again.'}
-          </p>
+          {advanced ? (
+            <button
+              onClick={onEnterKnockout}
+              className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
+            >
+              Enter the knockouts
+              <ArrowRight size={18} strokeWidth={2.5} />
+            </button>
+          ) : (
+            <p className="mt-1 text-sm text-stone-500">
+              Better luck next time — draft a new XI to try again.
+            </p>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-center gap-3">
