@@ -230,7 +230,7 @@ export default function GroupStageScreen({ group, onRecordMatchday, onReset }: P
           <div className="text-[11px] font-semibold tracking-[0.2em] text-stone-500">GROUP DRAW</div>
           <h2 className="text-2xl font-black">Your group</h2>
         </div>
-        <div className="flex flex-wrap items-start justify-center gap-8">
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-center sm:gap-8">
           <div className="flex w-24 flex-col items-center gap-2">
             <Flag code="" isUser className="h-12 w-[4.5rem]" />
             <span className="text-center text-sm font-black">Your XI</span>
