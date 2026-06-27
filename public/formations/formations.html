@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formations — families x styles</title>
+<style>
+  :root{
+    --beige:#e8e0cf;
+    --line:rgba(255,255,255,0.55);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:28px;
+    background:#11201a;
+    color:#e8e0cf;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  h1{font-size:22px; font-weight:700; margin:0 0 4px;}
+  p.sub{margin:0 0 24px; color:#9fb3a8; font-size:13px;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:96px repeat(3,minmax(180px,1fr));
+    gap:14px;
+    max-width:1180px;
+  }
+  .colhead{
+    text-align:center; font-size:13px; letter-spacing:.12em;
+    font-weight:700; text-transform:uppercase; color:#cfe3d8;
+    padding-bottom:2px;
+  }
+  .colhead.def{color:#7fb6ff;}
+  .colhead.bal{color:#cfe3d8;}
+  .colhead.off{color:#ff9b8a;}
+
+  .famlabel{
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:800; letter-spacing:.02em;
+    color:#f3ecdc;
+  }
+
+  /* pitch */
+  .pitch{
+    position:relative;
+    aspect-ratio:3/4;
+    border-radius:6px;
+    overflow:hidden;
+    container-type:inline-size;
+    background:#2f7a43;
+    box-shadow:0 0 0 4px var(--beige), 0 4px 14px rgba(0,0,0,.35);
+  }
+  .pitch .stripes{
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(
+      to bottom,
+      #2f7a43 0, #2f7a43 8.33%,
+      #36864b 8.33%, #36864b 16.66%);
+  }
+  .pitch svg.marks{
+    position:absolute; inset:0; width:100%; height:100%;
+  }
+  .bubble{
+    position:absolute;
+    width:16cqw; height:16cqw;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    border:2px dashed rgba(255,255,255,0.85);
+    background:rgba(17,33,25,0.55);
+    color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:4.4cqw; font-weight:700; letter-spacing:.02em;
+    text-shadow:0 1px 2px rgba(0,0,0,.6);
+    user-select:none;
+  }
+  .bubble.gk{border-color:#ffd45e;}
+  .bubble.def{border-color:#8fc0ff;}
+  .bubble.att{border-color:#ff9b8a;}
+
+  footer{margin-top:22px; color:#7f968b; font-size:12px; max-width:1180px;}
+</style>
+</head>
+<body>
+  <h1 id="title">Squad formations</h1>
+  <p class="sub">Each family keeps a fixed back line and forward line; the midfield roles shift. Defensive (left) &rarr; balanced (middle) &rarr; offensive (right).</p>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    Mirrors <code>formations_summary.csv</code>. Position depth by role: forwards highest, then CAM, CM/LM/RM, CDM, defenders, GK.
+  </footer>
+
+<script>
+// ---- data: mirrors formations_summary.csv (semicolon-delimited) ----
+const CSV = `formation;style;positions
+5-3-2;defensive;GK, LB, CB, CB, CB, RB, CDM, CM, CDM, ST, ST
+5-3-2;balanced;GK, LB, CB, CB, CB, RB, CM, CDM, CM, ST, ST
+5-3-2;offensive;GK, LB, CB, CB, CB, RB, CM, CAM, CM, ST, ST
+4-5-1;defensive;GK, LB, CB, CB, RB, LM, CM, CDM, CM, RM, ST
+4-5-1;balanced;GK, LB, CB, CB, RB, LM, CM, CM, CM, RM, ST
+4-5-1;offensive;GK, LB, CB, CB, RB, CM, CDM, CM, CAM, CAM, ST
+4-4-2;defensive;GK, LB, CB, CB, RB, LM, CDM, CDM, RM, ST, ST
+4-4-2;balanced;GK, LB, CB, CB, RB, LM, CM, CM, RM, ST, ST
+4-4-2;offensive;GK, LB, CB, CB, RB, CDM, CM, CM, CAM, ST, ST
+4-2-3-1;defensive;GK, LB, CB, CB, RB, CDM, CDM, LM, CM, RM, ST
+4-2-3-1;balanced;GK, LB, CB, CB, RB, CDM, CDM, CAM, LW, RW, ST
+4-2-3-1;offensive;GK, LB, CB, CB, RB, CM, CM, CAM, CAM, CAM, ST
+4-3-3;defensive;GK, LB, CB, CB, RB, CDM, CM, CDM, LW, ST, RW
+4-3-3;balanced;GK, LB, CB, CB, RB, CM, CDM, CM, LW, ST, RW
+4-3-3;offensive;GK, LB, CB, CB, RB, CM, CAM, CM, LW, ST, RW
+3-4-3;defensive;GK, CB, CB, CB, LM, CDM, CM, RM, LW, ST, RW
+3-4-3;balanced;GK, CB, CB, CB, LM, CM, CM, RM, LW, ST, RW
+3-4-3;offensive;GK, CB, CB, CB, LM, CM, CAM, RM, LW, ST, RW
+3-5-2;defensive;GK, CB, CB, CB, LM, CDM, CM, CDM, RM, ST, ST
+3-5-2;balanced;GK, CB, CB, CB, LM, CDM, CM, CM, RM, ST, ST
+3-5-2;offensive;GK, CB, CB, CB, LM, CM, CAM, CM, RM, ST, ST
+4-2-4;defensive;GK, LB, CB, CB, RB, CDM, CDM, LW, ST, ST, RW
+4-2-4;balanced;GK, LB, CB, CB, RB, CM, CM, LW, ST, ST, RW
+4-2-4;offensive;GK, LB, CB, CB, RB, CM, CAM, LW, ST, ST, RW`;
+
+function parseCSV(txt){
+  const lines = txt.trim().split(/\r?\n/);
+  const STYLES = ["defensive","balanced","offensive"];
+  const map = new Map();
+  for(const line of lines){
+    if(!line.trim()) continue;
+    const parts = line.split(";");
+    if(parts.length < 3) continue;
+    const name = parts[0].trim();
+    const style = parts[1].trim().toLowerCase();
+    if(!STYLES.includes(style)) continue; // skip header / stray rows
+    const positions = parts[2].split(",").map(s=>s.trim()).filter(Boolean);
+    if(!map.has(name)) map.set(name,{name});
+    map.get(name)[style] = positions;
+  }
+  return [...map.values()];
+}
+const FAMILIES = parseCSV(CSV);
+
+// vertical band (% from top) by role
+const Y = {
+  ST:15, CF:15, LW:15, RW:15, LF:15, RF:15,
+  CAM:31, LAM:31, RAM:31,
+  CM:47, LM:47, RM:47, LCM:47, RCM:47,
+  CDM:61, LDM:61, RDM:61,
+  LWB:74, RWB:74,
+  LB:79, RB:79, CB:79,
+  GK:93
+};
+function side(code){
+  if(code[0]==="L") return 0;
+  if(code[0]==="R") return 2;
+  return 1;
+}
+const SLOTS = {1:[50],2:[31,69],3:[22,50,78],4:[15,38,62,85],5:[11,30.5,50,69.5,89]};
+function evenSlots(n){const L=11,R=89,a=[];for(let i=0;i<n;i++)a.push(L+(R-L)*i/(n-1));return a;}
+
+function layout(positions){
+  const bands={};
+  positions.forEach((code,i)=>{const y=Y[code]??50;(bands[y]=bands[y]||[]).push({code,i});});
+  const out=[];
+  Object.keys(bands).map(Number).forEach(y=>{
+    const arr=bands[y];
+    arr.sort((a,b)=> side(a.code)-side(b.code) || a.i-b.i);
+    const slots=SLOTS[arr.length]||evenSlots(arr.length);
+    arr.forEach((p,k)=>out.push({code:p.code,x:slots[k],y}));
+  });
+  return out;
+}
+
+function roleClass(code){
+  if(code==="GK") return "gk";
+  if(["LB","RB","CB","LWB","RWB"].includes(code)) return "def";
+  if(["ST","CF","LW","RW","LF","RF"].includes(code)) return "att";
+  return "";
+}
+
+const MARKS = `
+<svg class="marks" viewBox="0 0 100 133" preserveAspectRatio="none">
+  <g fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1" vector-effect="non-scaling-stroke">
+    <rect x="2" y="2" width="96" height="129"/>
+    <line x1="2" y1="66.5" x2="98" y2="66.5"/>
+    <circle cx="50" cy="66.5" r="11"/>
+    <rect x="29" y="2" width="42" height="16"/>
+    <rect x="40" y="2" width="20" height="6"/>
+    <path d="M 41 18 A 10 10 0 0 1 59 18"/>
+    <rect x="29" y="115" width="42" height="16"/>
+    <rect x="40" y="125" width="20" height="6"/>
+    <path d="M 41 115 A 10 10 0 0 0 59 115"/>
+  </g>
+  <g fill="rgba(255,255,255,0.55)">
+    <circle cx="50" cy="66.5" r="0.8"/>
+    <circle cx="50" cy="11" r="0.8"/>
+    <circle cx="50" cy="122" r="0.8"/>
+  </g>
+</svg>`;
+
+function pitchEl(positions){
+  const wrap=document.createElement("div");
+  wrap.className="pitch";
+  if(!positions){ return wrap; }
+  wrap.innerHTML=`<div class="stripes"></div>${MARKS}`;
+  layout(positions).forEach(p=>{
+    const b=document.createElement("div");
+    b.className="bubble "+roleClass(p.code);
+    b.style.left=p.x+"%";
+    b.style.top=p.y+"%";
+    b.textContent=p.code;
+    wrap.appendChild(b);
+  });
+  return wrap;
+}
+
+document.getElementById("title").textContent =
+  `Squad formations — ${FAMILIES.length} families × 3 styles`;
+
+const grid=document.getElementById("grid");
+grid.appendChild(document.createElement("div")); // empty corner
+[["DEFENSIVE","def"],["BALANCED","bal"],["OFFENSIVE","off"]].forEach(([label,cls])=>{
+  const h=document.createElement("div");
+  h.className="colhead "+cls;
+  h.textContent=label;
+  grid.appendChild(h);
+});
+FAMILIES.forEach(f=>{
+  const lbl=document.createElement("div");
+  lbl.className="famlabel";
+  lbl.textContent=f.name;
+  grid.appendChild(lbl);
+  grid.appendChild(pitchEl(f.defensive));
+  grid.appendChild(pitchEl(f.balanced));
+  grid.appendChild(pitchEl(f.offensive));
+});
+</script>
+</body>
+</html>

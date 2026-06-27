@@ -1,0 +1,225 @@
+import { useEffect, useRef, useState } from 'react';
+import type { Player } from '../data/types';
+import type { Formation, Slot } from '../domain/formations';
+import type { Filled } from '../domain/draft';
+
+/** Number of alternating mowing stripes across the pitch. */
+const STRIPES = 18;
+
+// Surname particles kept with the last name (e.g. "Van der Sar", "de Boer").
+const NAME_PARTICLES = new Set([
+  'de', 'del', 'der', 'den', 'van', 'von', 'di', 'da', 'dos', 'das', 'do', 'la', 'le', 'el', 'ter', 'ten', 'bin', 'al',
+]);
+
+/** The display surname: last word, plus any leading particles. */
+function lastName(full: string): string {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length <= 1) return full;
+  let i = parts.length - 1;
+  while (i > 0 && NAME_PARTICLES.has(parts[i - 1].toLowerCase().replace(/\./g, ''))) i--;
+  return parts.slice(i).join(' ');
+}
+
+const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+
+/** Hungarian algorithm: min-cost perfect assignment for a square cost matrix.
+ *  Returns colForRow[i] = the column assigned to row i. */
+function hungarian(cost: number[][]): number[] {
+  const n = cost.length;
+  const u = new Array(n + 1).fill(0);
+  const v = new Array(n + 1).fill(0);
+  const p = new Array(n + 1).fill(0); // p[col] = row matched to col
+  const way = new Array(n + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    p[0] = i;
+    let j0 = 0;
+    const minv = new Array(n + 1).fill(Infinity);
+    const used = new Array(n + 1).fill(false);
+    do {
+      used[j0] = true;
+      const i0 = p[j0];
+      let delta = Infinity;
+      let j1 = -1;
+      for (let j = 1; j <= n; j++) {
+        if (used[j]) continue;
+        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) {
+          minv[j] = cur;
+          way[j] = j0;
+        }
+        if (minv[j] < delta) {
+          delta = minv[j];
+          j1 = j;
+        }
+      }
+      for (let j = 0; j <= n; j++) {
+        if (used[j]) {
+          u[p[j]] += delta;
+          v[j] -= delta;
+        } else {
+          minv[j] -= delta;
+        }
+      }
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do {
+      const j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0);
+  }
+  const colForRow = new Array(n).fill(0);
+  for (let j = 1; j <= n; j++) colForRow[p[j] - 1] = j - 1;
+  return colForRow;
+}
+
+/**
+ * Reassign each existing circle (prev[k]) to a slot in `next` so total movement
+ * is minimised (squared distance, which discourages long cross-pitch jumps), and
+ * the 11 circles persist and slide to their closest new positions rather than
+ * appearing/disappearing. Returns an array aligned to circle index k.
+ */
+function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
+  const cost = prev.map((p) => next.map((q) => slotDist(p, q)));
+  const colForRow = hungarian(cost);
+  return prev.map((_, i) => next[colForRow[i]]);
+}
+
+interface Props {
+    formation: Formation;
+    filled: Filled;
+    /** Player awaiting placement; matching open slots become clickable. */
+    selectedPlayer: Player | null;
+    onPlace: (slotId: string) => void;
+}
+
+function SlotMarker({
+    slot,
+    player,
+    isTarget,
+    onPlace,
+}: {
+    slot: Slot;
+    player: Player | null;
+    isTarget: boolean;
+    onPlace: (slotId: string) => void;
+}) {
+    const wrap =
+        'absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-[left,top] duration-500 ease-out';
+    const style = { left: `${slot.x}%`, top: `${slot.y}%` } as const;
+
+    if (player) {
+        return (
+            <div className={wrap} style={style}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-stone-900 font-mono text-base font-bold text-white shadow-lg">
+                    {player.number}
+                </div>
+                <div className="mt-1 max-w-[88px] truncate rounded bg-white/90 px-1.5 py-0.5 text-center text-[11px] font-bold text-stone-900 shadow">
+                    {lastName(player.name)}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <button
+            className={wrap}
+            style={style}
+            disabled={!isTarget}
+            onClick={() => onPlace(slot.id)}
+        >
+            <div
+                className={[
+                    'flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed text-xs font-bold uppercase tracking-wide transition',
+                    isTarget
+                        ? 'animate-slot-pulse cursor-pointer border-red-400 bg-red-500/40 text-white'
+                        : 'border-white/60 bg-black/10 text-white/80',
+                ].join(' ')}
+            >
+                {slot.label}
+            </div>
+        </button>
+    );
+}
+
+export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Props) {
+    // 11 persistent circles (keyed by index). On a formation change each circle
+    // slides to its nearest new slot instead of mounting/unmounting.
+    const [circles, setCircles] = useState<Slot[]>(() => formation.slots);
+    const formationRef = useRef(formation);
+    useEffect(() => {
+        if (formationRef.current === formation) return;
+        formationRef.current = formation;
+        setCircles((prev) =>
+            prev.length === formation.slots.length ? assignNearest(prev, formation.slots) : formation.slots,
+        );
+    }, [formation]);
+
+    return (
+        <div className="relative mx-auto aspect-[3/4] w-full max-w-xl overflow-hidden rounded-xs border border-stone-400 shadow-md">
+            {/* Mowing stripes */}
+            <div className="absolute inset-0">
+                {Array.from({ length: STRIPES }).map((_, i) => (
+                    <div
+                        key={i}
+                        className={i % 2 === 0 ? 'bg-[#3f7d4e] ' : 'bg-[#458a57]'}
+                        style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            top: `${(i * 100) / STRIPES}%`,
+                            height: `${100 / STRIPES}%`,
+                        }}
+                    />
+                ))}
+            </div>
+            {/* Markings. viewBox matches the 3:4 pitch aspect, so preserveAspectRatio="none"
+          stretches to fill without distorting the line weight. */}
+            <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                viewBox="0 0 300 400"
+                preserveAspectRatio="none"
+                fill="none"
+                stroke="rgba(255,255,255,0.6)"
+                strokeWidth={1.2}
+                aria-hidden="true"
+            >
+                {/* Halfway line + centre circle and spot */}
+                <line x1="0" y1="200" x2="300" y2="200" />
+                <circle cx="150" cy="200" r="46" />
+                <circle cx="150" cy="200" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
+                {/* Top end: penalty box, 6-yard box, penalty spot, "D" arc */}
+                <path d="M62 0 V60 H238 V0" />
+                <path d="M112 0 V22 H188 V0" />
+                <circle cx="150" cy="40" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
+                <path d="M110.8 60 A44 44 0 0 0 189.2 60" />
+                {/* Bottom end: penalty box, 6-yard box, penalty spot, "D" arc */}
+                <path d="M62 400 V340 H238 V400" />
+                <path d="M112 400 V378 H188 V400" />
+                <circle cx="150" cy="360" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
+                <path d="M110.8 340 A44 44 0 0 1 189.2 340" />
+                {/* Corner arcs */}
+                <path d="M0 9 A9 9 0 0 0 9 0" />
+                <path d="M291 0 A9 9 0 0 0 300 9" />
+                <path d="M300 391 A9 9 0 0 0 291 400" />
+                <path d="M9 400 A9 9 0 0 0 0 391" />
+            </svg>
+            {/* Translucent inner frame: layered over the green stripes so the 30% white tints the pitch edge */}
+            <div className="pointer-events-none absolute inset-0 rounded-xs border-3 border-white/30" />
+            {circles.map((slot, k) => {
+                const player = filled[slot.id] ?? null;
+                const isTarget =
+                    !!selectedPlayer && !player && selectedPlayer.positions.includes(slot.position);
+                return (
+                    <SlotMarker
+                        key={k}
+                        slot={slot}
+                        player={player}
+                        isTarget={isTarget}
+                        onPlace={onPlace}
+                    />
+                );
+            })}
+        </div>
+    );
+}

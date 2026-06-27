@@ -1,0 +1,26 @@
+Column1;Column2;Column3
+formation;style;positions
+5-3-2;defensive;GK, LB, CB, CB, CB, RB, CDM, CM, CDM, ST, ST
+5-3-2;balanced;GK, LB, CB, CB, CB, RB, CM, CDM, CM, ST, ST
+5-3-2;offensive;GK, LB, CB, CB, CB, RB, CM, CAM, CM, ST, ST
+4-5-1;defensive;GK, LB, CB, CB, RB, LM, CM, CDM, CM, RM, ST
+4-5-1;balanced;GK, LB, CB, CB, RB, LM, CM, CM, CM, RM, ST
+4-5-1;offensive;GK, LB, CB, CB, RB, CM, CDM, CM, CAM, CAM, ST
+4-4-2;defensive;GK, LB, CB, CB, RB, LM, CDM, CDM, RM, ST, ST
+4-4-2;balanced;GK, LB, CB, CB, RB, LM, CM, CM, RM, ST, ST
+4-4-2;offensive;GK, LB, CB, CB, RB, CDM, CM, CM, CAM, ST, ST
+4-2-3-1;defensive;GK, LB, CB, CB, RB, CDM, CDM, LM, CM, RM, ST
+4-2-3-1;balanced;GK, LB, CB, CB, RB, CDM, CDM, CAM, LW, RW, ST
+4-2-3-1;offensive;GK, LB, CB, CB, RB, CM, CM, CAM, CAM, CAM, ST
+4-3-3;defensive;GK, LB, CB, CB, RB, CDM, CM, CDM, LW, ST, RW
+4-3-3;balanced;GK, LB, CB, CB, RB, CM, CDM, CM, LW, ST, RW
+4-3-3;offensive;GK, LB, CB, CB, RB, CM, CAM, CM, LW, ST, RW
+3-4-3;defensive;GK, CB, CB, CB, LM, CDM, CM, RM, LW, ST, RW
+3-4-3;balanced;GK, CB, CB, CB, LM, CM, CM, RM, LW, ST, RW
+3-4-3;offensive;GK, CB, CB, CB, LM, CM, CAM, RM, LW, ST, RW
+3-5-2;defensive;GK, CB, CB, CB, LM, CDM, CM, CDM, RM, ST, ST
+3-5-2;balanced;GK, CB, CB, CB, LM, CDM, CM, CM, RM, ST, ST
+3-5-2;offensive;GK, CB, CB, CB, LM, CM, CAM, CM, RM, ST, ST
+4-2-4;defensive;GK, LB, CB, CB, RB, CDM, CDM, LW, ST, ST, RW
+4-2-4;balanced;GK, LB, CB, CB, RB, CM, CM, LW, ST, ST, RW
+4-2-4;offensive;GK, LB, CB, CB, RB, CM, CAM, LW, ST, ST, RW
