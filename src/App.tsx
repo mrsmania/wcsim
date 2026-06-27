@@ -21,11 +21,19 @@ import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
 import GroupStageScreen from './components/GroupStageScreen';
 
+/** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
+ *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
+ *  between them; on the wide layout they sit side by side and no scrolling is needed. */
+const isStackedLayout = () =>
+  typeof window !== 'undefined' && !window.matchMedia('(min-width: 1024px)').matches;
+
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
   const timerRef = useRef<number | null>(null);
   const animatingRef = useRef(false);
+  const pitchRef = useRef<HTMLElement | null>(null);
+  const squadRef = useRef<HTMLElement | null>(null);
 
   useEffect(
     () => () => {
@@ -44,6 +52,14 @@ export default function App() {
     [formationName, style],
   );
   const activeFormation = phase === 'setup' ? previewFormation : formation;
+
+  // Mobile: when a player is picked, scroll down to the pitch so the user can
+  // tap an open slot. (Scrolling back up after placing is done in handlePlace.)
+  useEffect(() => {
+    if (phase === 'draft' && selectedPlayerId && isStackedLayout()) {
+      pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedPlayerId, phase]);
 
   // Animate a scramble through random squads, then settle on `target`.
   const runRoll = useCallback((target: Squad | null, isReroll: boolean) => {
@@ -88,6 +104,11 @@ export default function App() {
       if (!formation || !slot || !player || !canPlace(player, slot, filled)) return;
 
       dispatch({ type: 'PLACE_PLAYER', slotId });
+
+      // Mobile: jump back up to the squad list (showing the next drawn squad).
+      if (isStackedLayout()) {
+        squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
 
       const nextFilled = { ...filled, [slotId]: player };
       if (filledCount(formation, nextFilled) >= formation.slots.length) return; // complete
@@ -147,7 +168,7 @@ export default function App() {
         ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)_300px]">
           {/* Left: setup -> drawn squad -> complete */}
-          <aside>
+          <aside ref={squadRef}>
             {phase === 'setup' && (
               <SetupPanel
                 names={FORMATIONS_DATA.names}
@@ -185,7 +206,7 @@ export default function App() {
           </aside>
 
           {/* Center: pitch (shown immediately, previews the chosen formation) */}
-          <main>
+          <main ref={pitchRef}>
             {activeFormation ? (
               <Pitch
                 formation={activeFormation}
