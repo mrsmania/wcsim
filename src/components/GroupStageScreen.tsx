@@ -8,14 +8,14 @@ import {
   standings,
   teamById,
   userAdvanced,
-  type Fixture,
   type GroupState,
   type MatchdayResult,
 } from '../domain/tournament';
-import { ArrowRight, ChevronDown, ChevronRight, FastForward, Pause, Play } from 'lucide-react';
+import { ArrowRight, FastForward, Pause, Play } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import Flag from './Flag';
+import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
 import TournamentSummary from './TournamentSummary';
 
@@ -30,66 +30,6 @@ interface Props {
 
 const ALL_CODES = [...new Set(SQUADS.map((s) => s.code))];
 const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)];
-
-// --- compact fixture row -------------------------------------------------
-
-function FixtureRow({
-  group,
-  f,
-  score,
-  status,
-  expandable,
-  expanded,
-  onToggle,
-}: {
-  group: GroupState;
-  f: Fixture;
-  /** Live/override score shown instead of the recorded result. */
-  score?: { home: number; away: number };
-  /** Small status under the score, e.g. a minute or 'FT'. */
-  status?: string;
-  expandable?: boolean;
-  expanded?: boolean;
-  onToggle?: () => void;
-}) {
-  const home = teamById(group, f.homeId);
-  const away = teamById(group, f.awayId);
-  const tint = home.isUser || away.isUser ? 'bg-red-50' : '';
-  const scoreText = score
-    ? `${score.home}–${score.away}`
-    : f.result
-      ? `${f.result.homeGoals}–${f.result.awayGoals}`
-      : 'v';
-  const inner = (
-    <>
-      <span className={`flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
-        <span className="truncate">{home.name}</span>
-        {home.year && <span className="hidden text-[11px] font-normal text-stone-400 sm:inline">{home.year}</span>}
-        <Flag code={home.code} isUser={home.isUser} className="h-4 w-6 shrink-0" />
-      </span>
-      <span className="flex w-12 shrink-0 flex-col items-center leading-none sm:w-14">
-        <span className="font-mono font-bold">{scoreText}</span>
-        {status && <span className="mt-0.5 text-[9px] font-bold text-red-600">{status}</span>}
-      </span>
-      <span className={`flex flex-1 items-center gap-2 truncate ${away.isUser ? 'font-black' : 'font-medium'}`}>
-        <Flag code={away.code} isUser={away.isUser} className="h-4 w-6 shrink-0" />
-        <span className="truncate">{away.name}</span>
-        {away.year && <span className="hidden text-[11px] font-normal text-stone-400 sm:inline">{away.year}</span>}
-      </span>
-      <span className="flex w-4 items-center justify-center text-stone-400">
-        {expandable ? expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} /> : null}
-      </span>
-    </>
-  );
-  const cls = `flex items-center gap-2 rounded px-2 py-1.5 text-sm ${tint}`;
-  return expandable && onToggle ? (
-    <button onClick={onToggle} className={`${cls} w-full text-left`}>
-      {inner}
-    </button>
-  ) : (
-    <div className={cls}>{inner}</div>
-  );
-}
 
 // --- screen --------------------------------------------------------------
 
@@ -361,9 +301,12 @@ export default function GroupStageScreen({
               </div>
               <div className="rounded-lg border border-stone-200 bg-white p-1">
                 <FixtureRow
-                  group={group}
-                  f={userFx}
-                  score={userScore}
+                  home={userHome}
+                  away={userAway}
+                  score={
+                    userScore ??
+                    (userFx.result ? { home: userFx.result.homeGoals, away: userFx.result.awayGoals } : undefined)
+                  }
                   status={userStatus}
                   expandable={!!userFx.result && !isPlaying}
                   expanded={open}
@@ -384,7 +327,15 @@ export default function GroupStageScreen({
                     />
                   </div>
                 )}
-                <FixtureRow group={group} f={otherFx} score={otherScore} status={isPlaying ? 'FT' : undefined} />
+                <FixtureRow
+                  home={teamById(group, otherFx.homeId)}
+                  away={teamById(group, otherFx.awayId)}
+                  score={
+                    otherScore ??
+                    (otherFx.result ? { home: otherFx.result.homeGoals, away: otherFx.result.awayGoals } : undefined)
+                  }
+                  status={isPlaying ? 'FT' : undefined}
+                />
               </div>
             </div>
           );

@@ -3,7 +3,7 @@ import type { Formation, FormationName, Style } from '../domain/formations';
 import { canPlace, isComplete, type Filled } from '../domain/draft';
 import type { GroupState, GroupTeam, MatchdayResult } from '../domain/tournament';
 import { KO_ROUNDS, type KnockoutState, type KoDecided } from '../domain/knockout';
-import type { MatchResult } from '../domain/match';
+import type { MatchResult, PenKick } from '../domain/match';
 
 export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
 
@@ -45,7 +45,7 @@ export type Action =
       type: 'KO_RECORD';
       result: MatchResult;
       decided: KoDecided;
-      pens?: { user: number; opp: number };
+      pens?: { user: number; opp: number; kicks: PenKick[] };
       userWon: boolean;
       /** Next round's opponent, drawn by the caller; null if the run ends here. */
       nextOpponent: GroupTeam | null;

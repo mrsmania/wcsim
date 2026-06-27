@@ -1,6 +1,13 @@
 import { SQUADS } from '../data/squads';
-import { penaltyShootout, simulateExtraTime, simulateMatch, type MatchResult, type Side } from './match';
-import { squadGroupTeam, type GroupTeam } from './tournament';
+import {
+  simulateExtraTime,
+  simulateMatch,
+  simulateShootout,
+  type MatchResult,
+  type PenKick,
+  type Side,
+} from './match';
+import { squadGroupTeam, squadOverall, type GroupTeam } from './tournament';
 
 /** Knockout rounds the user must win, in order, to be crowned champion. */
 export const KO_ROUNDS = ['Round of 16', 'Quarter-final', 'Semi-final', 'Final'] as const;
@@ -16,8 +23,8 @@ export interface KoTie {
   /** Combined regulation + extra-time result, once the round has been played. */
   result?: MatchResult;
   decided?: KoDecided;
-  /** Shootout tally (user vs opponent), present only when decided by penalties. */
-  pens?: { user: number; opp: number };
+  /** Shootout result (tally + every kick), present only when decided by penalties. */
+  pens?: { user: number; opp: number; kicks: PenKick[] };
   userWon?: boolean;
 }
 
@@ -33,11 +40,19 @@ export interface KnockoutState {
   outcome: 'alive' | 'champion' | 'out';
 }
 
-/** Draw a random squad as the next opponent, avoiding any already faced. */
+/** Draw the next opponent, avoiding any already faced and weighting stronger
+ *  squads higher so better teams turn up more often deeper in the bracket. */
 export function drawOpponent(faced: Set<string>): GroupTeam {
   const pool = SQUADS.filter((s) => !faced.has(s.id));
   const src = pool.length ? pool : SQUADS;
-  return squadGroupTeam(src[Math.floor(Math.random() * src.length)]);
+  const weights = src.map((s) => Math.exp((squadOverall(s) - 78) * 0.12));
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < src.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return squadGroupTeam(src[i]);
+  }
+  return squadGroupTeam(src[src.length - 1]);
 }
 
 /** Start the knockout run: the user enters the Round of 16 against a fresh draw. */
@@ -54,7 +69,7 @@ export function createKnockout(user: GroupTeam, excludeIds: string[]): KnockoutS
 export interface KoResult {
   result: MatchResult;
   decided: KoDecided;
-  pens?: { user: number; opp: number };
+  pens?: { user: number; opp: number; kicks: PenKick[] };
   userWon: boolean;
 }
 
@@ -79,6 +94,11 @@ export function playKnockout(user: GroupTeam, opponent: GroupTeam): KoResult {
     return { result: combined, decided: 'aet', userWon: combined.homeGoals > combined.awayGoals };
   }
 
-  const sh = penaltyShootout(u, o);
-  return { result: combined, decided: 'pens', pens: { user: sh.home, opp: sh.away }, userWon: sh.homeWon };
+  const sh = simulateShootout({ penTakers: user.penTakers }, { penTakers: opponent.penTakers });
+  return {
+    result: combined,
+    decided: 'pens',
+    pens: { user: sh.home, opp: sh.away, kicks: sh.kicks },
+    userWon: sh.homeWon,
+  };
 }

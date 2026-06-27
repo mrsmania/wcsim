@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SQUADS } from '../data/squads';
 import {
   KO_ROUNDS,
@@ -8,12 +8,12 @@ import {
   type KoDecided,
   type KoResult,
 } from '../domain/knockout';
-import type { MatchResult } from '../domain/match';
+import type { MatchResult, PenKick } from '../domain/match';
 import type { GroupState, GroupTeam } from '../domain/tournament';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { FastForward, Pause, Play, Trophy } from 'lucide-react';
-import Flag from './Flag';
+import { Check, FastForward, Pause, Play, Trophy, X } from 'lucide-react';
+import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
 import TournamentSummary from './TournamentSummary';
 
@@ -25,7 +25,7 @@ interface Props {
   onAdvance: (p: {
     result: MatchResult;
     decided: KoDecided;
-    pens?: { user: number; opp: number };
+    pens?: { user: number; opp: number; kicks: PenKick[] };
     userWon: boolean;
     nextOpponent: GroupTeam | null;
   }) => void;
@@ -36,43 +36,60 @@ const ALL_CODES = [...new Set(SQUADS.map((s) => s.code))];
 const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)];
 const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
 
-function TeamChip({ team, scrambleCode }: { team: GroupTeam | null; scrambleCode?: string }) {
-  if (!team) {
-    return (
-      <div className="flex w-24 flex-col items-center gap-1 opacity-50">
-        <div className="flex h-12 w-[4.5rem] items-center justify-center rounded bg-stone-200 text-lg font-black text-stone-400">
-          ?
-        </div>
-        <span className="text-xs font-semibold text-stone-400">TBD</span>
+/** Penalty shootout feed: each side's kicks as scored/missed pips, revealed
+ *  one at a time, with the current taker called out below. */
+function ShootoutFeed({
+  oppName,
+  kicks,
+  shown,
+}: {
+  oppName: string;
+  kicks: PenKick[];
+  shown: number;
+}) {
+  const revealed = kicks.slice(0, shown);
+  const homeKicks = revealed.filter((k) => k.side === 'home');
+  const awayKicks = revealed.filter((k) => k.side === 'away');
+  const last = revealed[revealed.length - 1];
+
+  const Row = ({ label, isUser, list }: { label: string; isUser?: boolean; list: PenKick[] }) => (
+    <div className="flex items-center gap-2">
+      <span className={`w-20 shrink-0 truncate text-xs ${isUser ? 'font-black' : 'font-semibold'}`}>{label}</span>
+      <div className="flex flex-1 flex-wrap gap-1">
+        {list.map((k, i) => (
+          <span
+            key={i}
+            className={`flex h-4 w-4 items-center justify-center rounded-full ${k.scored ? 'bg-emerald-500' : 'bg-red-500'}`}
+            title={`${k.taker} — ${k.scored ? 'scored' : 'missed'}`}
+          >
+            {k.scored ? (
+              <Check size={11} strokeWidth={3.5} className="text-white" />
+            ) : (
+              <X size={11} strokeWidth={3.5} className="text-white" />
+            )}
+          </span>
+        ))}
       </div>
-    );
-  }
-  if (team.isUser) {
-    return (
-      <div className="flex w-24 flex-col items-center gap-1">
-        <Flag code="" isUser className="h-12 w-[4.5rem]" />
-        <span className="text-sm font-black">Your XI</span>
-      </div>
-    );
-  }
-  const scrambling = !!scrambleCode;
-  return (
-    <div className={`flex w-24 flex-col items-center gap-1 ${scrambling ? '' : 'animate-settle'}`}>
-      <Flag code={scrambling ? scrambleCode! : team.code} className="h-12 w-[4.5rem]" />
-      <span className="text-center text-sm font-bold leading-tight">{scrambling ? '…' : team.name}</span>
-      {!scrambling && team.year && <span className="text-xs font-semibold text-red-600">WC {team.year}</span>}
+      <span className="w-5 shrink-0 text-right font-mono text-sm font-black">
+        {list.filter((k) => k.scored).length}
+      </span>
     </div>
   );
-}
 
-function Score({ home, away, status, sub }: { home: number; away: number; status?: string; sub?: string }) {
   return (
-    <div className="flex w-20 flex-col items-center leading-none">
-      <span className="font-mono text-2xl font-black">
-        {home}–{away}
-      </span>
-      {status && <span className="mt-1 text-[11px] font-bold uppercase text-red-600">{status}</span>}
-      {sub && <span className="mt-0.5 text-[10px] font-semibold text-stone-500">{sub}</span>}
+    <div className="mt-2 border-t border-stone-200 pt-2">
+      <div className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-stone-500">
+        Penalty shootout
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Row label="Your XI" isUser list={homeKicks} />
+        <Row label={oppName} list={awayKicks} />
+      </div>
+      {last && (
+        <div className="mt-1.5 text-center text-xs text-stone-600">
+          <span className="font-semibold">{last.taker}</span> {last.scored ? 'scored' : 'missed'}
+        </div>
+      )}
     </div>
   );
 }
@@ -85,10 +102,19 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
   const [revealCode, setRevealCode] = useState(randomCode);
   const [playing, setPlaying] = useState<KoResult | null>(null);
   const [liveMinute, setLiveMinute] = useState(0);
+  const [penShown, setPenShown] = useState(0);
   const [auto, setAuto] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [openRounds, setOpenRounds] = useState<Set<number>>(() => new Set());
 
   const revealed = revealedRound === current;
+
+  const toggleRound = (i: number) =>
+    setOpenRounds((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
 
   // Draw scramble for each new round's opponent, then settle.
   useEffect(() => {
@@ -113,7 +139,7 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
     setPlaying(playKnockout(user, activeOpp));
   }, [user, activeOpp]);
 
-  // Keep latest callback/flags without restarting the clock on every render.
+  // Keep latest callback/flags without restarting timers on every render.
   const advanceRef = useRef(onAdvance);
   const facedRef = useRef(knockout.faced);
   const currentRef = useRef(current);
@@ -125,40 +151,60 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
     autoRef.current = auto;
   });
 
-  // Run the live clock for the playing match, then record + advance.
+  // Run the live clock, then (if drawn level) the shootout, then record + advance.
   useEffect(() => {
     if (!playing) return;
     const res = playing;
     const max = maxMinute(res.decided);
+    const kicks = res.pens?.kicks ?? [];
     setLiveMinute(0);
-    let m = 0;
-    let done: number | undefined;
-    const id = window.setInterval(
-      () => {
-        m += 1;
-        setLiveMinute(m);
-        if (m >= max) {
-          window.clearInterval(id);
-          done = window.setTimeout(() => {
-            const willAdvance = res.userWon && currentRef.current < KO_ROUNDS.length - 1;
-            const nextOpponent = willAdvance ? drawOpponent(new Set(facedRef.current)) : null;
-            advanceRef.current({
-              result: res.result,
-              decided: res.decided,
-              pens: res.pens,
-              userWon: res.userWon,
-              nextOpponent,
-            });
-            setPlaying(null);
-          }, 1200);
-        }
-      },
-      autoRef.current ? 20 : 45,
-    );
-    return () => {
-      window.clearInterval(id);
-      if (done) window.clearTimeout(done);
+    setPenShown(0);
+    const timers: number[] = [];
+    const tickMs = autoRef.current ? 20 : 45;
+    const penMs = autoRef.current ? 220 : 600;
+
+    const advance = () => {
+      const willAdvance = res.userWon && currentRef.current < KO_ROUNDS.length - 1;
+      const nextOpponent = willAdvance ? drawOpponent(new Set(facedRef.current)) : null;
+      advanceRef.current({
+        result: res.result,
+        decided: res.decided,
+        pens: res.pens,
+        userWon: res.userWon,
+        nextOpponent,
+      });
+      setPlaying(null);
     };
+
+    const runShootout = () => {
+      let k = 0;
+      const penId = window.setInterval(() => {
+        k += 1;
+        setPenShown(k);
+        if (k >= kicks.length) {
+          window.clearInterval(penId);
+          timers.push(window.setTimeout(advance, 1500));
+        }
+      }, penMs);
+      timers.push(penId);
+    };
+
+    let m = 0;
+    const clockId = window.setInterval(() => {
+      m += 1;
+      setLiveMinute(m);
+      if (m >= max) {
+        window.clearInterval(clockId);
+        if (res.decided === 'pens' && kicks.length) {
+          timers.push(window.setTimeout(runShootout, 700));
+        } else {
+          timers.push(window.setTimeout(advance, 1200));
+        }
+      }
+    }, tickMs);
+    timers.push(clockId);
+
+    return () => timers.forEach((t) => window.clearTimeout(t));
   }, [playing]);
 
   // Auto mode: play each round once its opponent is revealed.
@@ -208,132 +254,143 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
           const isActive = i === current && outcome === 'alive';
           const isPlaying = isActive && !!playing;
           const played = !!r?.result;
+          const expanded = openRounds.has(i);
 
-          // Centre score / status block.
-          let center: ReactNode;
+          // Score + status shown in the row.
+          let score: { home: number; away: number } | undefined;
+          let status: string | undefined;
           if (isPlaying) {
             const res = playing!;
             const max = maxMinute(res.decided);
             const shown = res.result.events.filter((e) => e.minute <= liveMinute);
-            const h = shown.filter((e) => e.side === 'home').length;
-            const a = shown.filter((e) => e.side === 'away').length;
-            const atEnd = liveMinute >= max;
-            const status = !atEnd
-              ? `${liveMinute}'`
-              : res.decided === 'reg'
-                ? 'FT'
-                : res.decided === 'aet'
-                  ? 'a.e.t.'
-                  : 'pens';
-            const sub = atEnd && res.decided === 'pens' && res.pens ? `${res.pens.user}–${res.pens.opp} pens` : undefined;
-            center = <Score home={h} away={a} status={status} sub={sub} />;
+            score = {
+              home: shown.filter((e) => e.side === 'home').length,
+              away: shown.filter((e) => e.side === 'away').length,
+            };
+            status =
+              liveMinute < max
+                ? `${liveMinute}'`
+                : res.decided === 'reg'
+                  ? 'FT'
+                  : res.decided === 'aet'
+                    ? 'a.e.t.'
+                    : 'pens';
           } else if (played) {
-            const res = r!.result!;
-            const tag = r!.decided === 'aet' ? 'a.e.t.' : r!.decided === 'pens' ? 'pens' : undefined;
-            const sub = r!.decided === 'pens' && r!.pens ? `${r!.pens.user}–${r!.pens.opp} pens` : tag;
-            center = <Score home={res.homeGoals} away={res.awayGoals} sub={sub} />;
-          } else {
-            center = <span className="w-20 text-center text-sm font-bold uppercase text-stone-400">vs</span>;
+            score = { home: r!.result!.homeGoals, away: r!.result!.awayGoals };
+            status = r!.decided === 'aet' ? 'a.e.t.' : r!.decided === 'pens' ? 'pens' : undefined;
           }
 
-          // Right-hand status badge.
-          let badge: ReactNode = null;
-          if (played) {
-            badge = (
-              <span
-                className={`rounded px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
-                  r!.userWon ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                }`}
-              >
-                {r!.userWon ? 'Won' : 'Lost'}
-              </span>
-            );
-          } else if (isActive && !isPlaying && revealed) {
-            badge = <span className="text-[11px] font-bold uppercase text-red-600">Up next</span>;
-          }
+          // Live / recorded match feed (goals, then shootout if any).
+          const showFeed = isPlaying || (played && expanded);
+          const feedEvents = isPlaying
+            ? playing!.result.events.filter((e) => e.minute <= liveMinute)
+            : played
+              ? r!.result!.events
+              : [];
+          const penKicks = isPlaying ? playing!.pens?.kicks : r?.pens?.kicks;
+          const penShownCount = isPlaying ? penShown : penKicks?.length ?? 0;
+          const showShootout =
+            !!penKicks && (isPlaying ? liveMinute >= maxMinute(playing!.decided) : true);
+          const liveMax = isPlaying ? maxMinute(playing!.decided) : 90;
 
-          const scrambleCode = isActive && !revealed && !isPlaying ? revealCode : undefined;
+          // Status label next to the round name.
+          const tag = played ? (
+            <span className={r!.userWon ? 'text-emerald-600' : 'text-red-600'}>
+              · {r!.userWon ? 'won' : 'lost'}
+            </span>
+          ) : isActive && revealed && !isPlaying ? (
+            <span className="text-red-600">· up next</span>
+          ) : null;
 
           return (
-            <div
-              key={name}
-              className={`rounded-lg border p-4 transition ${
-                isActive
-                  ? 'border-stone-900 bg-white shadow-sm'
-                  : played
-                    ? 'border-stone-200 bg-white'
-                    : 'border-dashed border-stone-300 bg-white/40'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold tracking-[0.15em] text-stone-500">
-                  {name.toUpperCase()}
-                </span>
-                {badge}
+            <div key={name}>
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-[0.15em] text-stone-500">
+                <span>{name.toUpperCase()}</span>
+                {tag}
               </div>
+              <div
+                className={`rounded-lg border p-1 ${
+                  isActive
+                    ? 'border-stone-900 bg-white'
+                    : played
+                      ? 'border-stone-200 bg-white'
+                      : 'border-dashed border-stone-300 bg-white/40'
+                }`}
+              >
+                <FixtureRow
+                  home={user}
+                  away={opp ?? { name: '?', code: '' }}
+                  score={score}
+                  status={status}
+                  expandable={played && !isPlaying}
+                  expanded={expanded}
+                  onToggle={() => toggleRound(i)}
+                  scrambleCode={isActive && !revealed && !isPlaying ? revealCode : undefined}
+                  awayUnknown={!opp}
+                />
 
-              <div className="mt-3 flex items-center justify-center gap-4">
-                <TeamChip team={user} />
-                {center}
-                <TeamChip team={opp} scrambleCode={scrambleCode} />
-              </div>
-
-              {isPlaying && (
-                <div className="mt-3 rounded bg-stone-50 p-2">
-                  <div className="mb-2 h-1 w-full overflow-hidden rounded bg-stone-200">
-                    <div
-                      className="h-full bg-red-600 transition-[width] duration-100"
-                      style={{ width: `${(Math.min(liveMinute, maxMinute(playing!.decided)) / maxMinute(playing!.decided)) * 100}%` }}
+                {showFeed && (
+                  <div className="mt-1 rounded bg-stone-50 p-2">
+                    {isPlaying && (
+                      <div className="mb-2 h-1 w-full overflow-hidden rounded bg-stone-200">
+                        <div
+                          className="h-full bg-red-600"
+                          style={{ width: `${(Math.min(liveMinute, liveMax) / liveMax) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                    <GoalList
+                      events={feedEvents}
+                      home={user}
+                      away={opp ?? { code: '' }}
+                      live={isPlaying && liveMinute < liveMax}
                     />
+                    {showShootout && penKicks && (
+                      <ShootoutFeed oppName={opp?.name ?? 'Opponent'} kicks={penKicks} shown={penShownCount} />
+                    )}
                   </div>
-                  <GoalList
-                    events={playing!.result.events.filter((e) => e.minute <= liveMinute)}
-                    home={user}
-                    away={activeOpp ?? { code: '' }}
-                    live={liveMinute < maxMinute(playing!.decided)}
-                  />
-                </div>
-              )}
+                )}
 
-              {isActive && !isPlaying && (
-                <div className="mt-3 flex items-center justify-center gap-3">
-                  {revealed ? (
-                    <>
-                      {!auto && (
-                        <button
-                          onClick={playRound}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
-                        >
-                          <Play size={16} fill="currentColor" strokeWidth={0} />
-                          Play {name}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setAuto((v) => !v)}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-black uppercase tracking-wide transition ${
-                          auto
-                            ? 'border-red-600 bg-red-600 text-white hover:bg-red-500'
-                            : 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
-                        }`}
-                      >
-                        {auto ? (
-                          <>
-                            <Pause size={15} fill="currentColor" strokeWidth={0} />
-                            Stop auto
-                          </>
-                        ) : (
-                          <>
-                            <FastForward size={15} fill="currentColor" strokeWidth={0} />
-                            Automatic
-                          </>
+                {isActive && !isPlaying && (
+                  <div className="flex items-center justify-center gap-3 py-2">
+                    {revealed ? (
+                      <>
+                        {!auto && (
+                          <button
+                            onClick={playRound}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
+                          >
+                            <Play size={16} fill="currentColor" strokeWidth={0} />
+                            Play {name}
+                          </button>
                         )}
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-sm font-semibold text-stone-500">Drawing your opponent…</span>
-                  )}
-                </div>
-              )}
+                        <button
+                          onClick={() => setAuto((v) => !v)}
+                          className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-black uppercase tracking-wide transition ${
+                            auto
+                              ? 'border-red-600 bg-red-600 text-white hover:bg-red-500'
+                              : 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
+                          }`}
+                        >
+                          {auto ? (
+                            <>
+                              <Pause size={15} fill="currentColor" strokeWidth={0} />
+                              Stop auto
+                            </>
+                          ) : (
+                            <>
+                              <FastForward size={15} fill="currentColor" strokeWidth={0} />
+                              Automatic
+                            </>
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-sm font-semibold text-stone-500">Drawing your opponent…</span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -342,7 +399,7 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
       {outcome === 'champion' && (
         <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-6 text-center">
           <Trophy size={48} className="mx-auto text-amber-500" strokeWidth={1.5} />
-          <p className="mt-2 text-2xl font-black text-amber-700">World Cup Champions! 🏆</p>
+          <p className="mt-2 text-2xl font-black text-amber-700">World Cup Champions!</p>
           <p className="mt-1 text-sm font-semibold text-stone-600">
             Your random XI won all four knockout rounds. Legendary.
           </p>

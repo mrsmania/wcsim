@@ -51,11 +51,13 @@ export function scorerPool(players: Player[]): string[] {
   return names.length ? names : players.map((p) => p.name);
 }
 
-const BASE_GOALS = 1.35;
-const PER_RATING_POINT = 0.06;
+const BASE_GOALS = 1.3;
+const PER_RATING_POINT = 0.08;
 
-function expectedGoals(attack: number, defense: number): number {
-  return Math.max(0.15, Math.min(4.5, BASE_GOALS + (attack - defense) * PER_RATING_POINT));
+/** Expected goals for a side, driven by its overall rating vs the opponent's.
+ *  A clear rating edge produces a clear scoreline edge (less coin-flippy). */
+function expectedGoals(myOverall: number, oppOverall: number): number {
+  return Math.max(0.15, Math.min(4.5, BASE_GOALS + (myOverall - oppOverall) * PER_RATING_POINT));
 }
 
 /** Knuth's Poisson sampler. */
@@ -77,8 +79,8 @@ function pick<T>(arr: T[]): T | undefined {
 /** Simulate a 90-minute match. Goals are Poisson-distributed from each side's
  *  attack vs the other's defense; goal minutes and scorers are random. */
 export function simulateMatch(home: Side, away: Side): MatchResult {
-  const homeGoals = poisson(expectedGoals(home.strength.attack, away.strength.defense));
-  const awayGoals = poisson(expectedGoals(away.strength.attack, home.strength.defense));
+  const homeGoals = poisson(expectedGoals(home.strength.overall, away.strength.overall));
+  const awayGoals = poisson(expectedGoals(away.strength.overall, home.strength.overall));
 
   const events: MatchEvent[] = [];
   const addGoals = (n: number, side: 'home' | 'away', scorers: string[]) => {
@@ -99,8 +101,8 @@ const ET_MINUTES = 30;
  *  Goal minutes fall in 91..120 so events read after the regulation feed. */
 export function simulateExtraTime(home: Side, away: Side): MatchResult {
   const scale = ET_MINUTES / 90;
-  const homeGoals = poisson(expectedGoals(home.strength.attack, away.strength.defense) * scale);
-  const awayGoals = poisson(expectedGoals(away.strength.attack, home.strength.defense) * scale);
+  const homeGoals = poisson(expectedGoals(home.strength.overall, away.strength.overall) * scale);
+  const awayGoals = poisson(expectedGoals(away.strength.overall, home.strength.overall) * scale);
 
   const events: MatchEvent[] = [];
   const addGoals = (n: number, side: 'home' | 'away', scorers: string[]) => {
@@ -115,27 +117,73 @@ export function simulateExtraTime(home: Side, away: Side): MatchResult {
   return { homeGoals, awayGoals, events };
 }
 
-/** Per-kick conversion probability, nudged by squad quality. */
-function convProb(overall: number): number {
-  return Math.max(0.6, Math.min(0.92, 0.78 + (overall - 78) * 0.004));
+/** A single penalty kick in a shootout. */
+export interface PenKick {
+  side: 'home' | 'away';
+  taker: string;
+  scored: boolean;
 }
 
-/** A strength-weighted penalty shootout. Always returns a winner. */
-export function penaltyShootout(home: Side, away: Side): { home: number; away: number; homeWon: boolean } {
-  const ph = convProb(home.strength.overall);
-  const pa = convProb(away.strength.overall);
+export interface ShootoutResult {
+  kicks: PenKick[];
+  home: number;
+  away: number;
+  homeWon: boolean;
+}
+
+/** A shootout participant: penalty takers, best first. */
+export interface ShootoutTeam {
+  penTakers: { name: string; elo: number }[];
+}
+
+/** Per-kick conversion probability, nudged by the taker's quality. */
+function penProb(elo: number): number {
+  return Math.max(0.55, Math.min(0.92, 0.74 + (elo - 78) * 0.006));
+}
+
+/** A penalty shootout taken one kick at a time, best takers first (reused in
+ *  order for sudden death). Standard best-of-five with early clinching, then
+ *  sudden death. Always returns a winner, and records every kick for replay. */
+export function simulateShootout(home: ShootoutTeam, away: ShootoutTeam): ShootoutResult {
+  const kicks: PenKick[] = [];
   let h = 0;
   let a = 0;
-  for (let i = 0; i < 5; i++) {
-    if (Math.random() < ph) h++;
-    if (Math.random() < pa) a++;
+
+  const kick = (side: 'home' | 'away') => {
+    const takers = side === 'home' ? home.penTakers : away.penTakers;
+    const taken = kicks.filter((k) => k.side === side).length;
+    const taker = takers.length ? takers[taken % takers.length] : { name: 'Unknown', elo: 75 };
+    const scored = Math.random() < penProb(taker.elo);
+    if (scored) side === 'home' ? h++ : a++;
+    kicks.push({ side, taker: taker.name, scored });
+  };
+
+  // Decided once the trailing side can no longer catch up within the first five.
+  const settled = () => {
+    const hRem = Math.max(0, 5 - kicks.filter((k) => k.side === 'home').length);
+    const aRem = Math.max(0, 5 - kicks.filter((k) => k.side === 'away').length);
+    return h > a + aRem || a > h + hRem;
+  };
+
+  let decidedEarly = false;
+  for (let round = 0; round < 5 && !decidedEarly; round++) {
+    kick('home');
+    if (settled()) { decidedEarly = true; break; }
+    kick('away');
+    if (settled()) decidedEarly = true;
   }
-  // Sudden death (capped so a freak run can't loop forever).
-  let guard = 0;
-  while (h === a && guard++ < 50) {
-    if (Math.random() < ph) h++;
-    if (Math.random() < pa) a++;
+
+  if (!decidedEarly) {
+    let guard = 0;
+    while (h === a && guard++ < 20) {
+      kick('home');
+      kick('away');
+    }
+    if (h === a) {
+      h++;
+      kicks.push({ side: 'home', taker: home.penTakers[0]?.name ?? 'Unknown', scored: true });
+    }
   }
-  if (h === a) Math.random() < 0.5 ? h++ : a++;
-  return { home: h, away: a, homeWon: h > a };
+
+  return { kicks, home: h, away: a, homeWon: h > a };
 }

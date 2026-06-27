@@ -13,6 +13,13 @@ export interface GroupTeam {
   isUser: boolean;
   strength: Strength;
   scorers: string[];
+  /** Penalty takers, best first (used by the knockout shootout). */
+  penTakers: { name: string; elo: number }[];
+}
+
+/** Ranked penalty takers (best elo first). */
+function penTakersFrom(players: Player[]): { name: string; elo: number }[] {
+  return [...players].sort((a, b) => b.elo - a.elo).map((p) => ({ name: p.name, elo: p.elo }));
 }
 
 export interface Fixture {
@@ -44,11 +51,17 @@ export function userGroupTeam(players: Player[]): GroupTeam {
     isUser: true,
     strength: xiStrength(players),
     scorers: scorerPool(players),
+    penTakers: penTakersFrom(players),
   };
 }
 
+/** The best 11 of a squad by elo (used as its match XI). */
+function bestEleven(squad: Squad): Player[] {
+  return [...squad.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
+}
+
 export function squadGroupTeam(squad: Squad): GroupTeam {
-  const bestXI = [...squad.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
+  const bestXI = bestEleven(squad);
   return {
     id: squad.id,
     name: squad.nation,
@@ -57,7 +70,13 @@ export function squadGroupTeam(squad: Squad): GroupTeam {
     isUser: false,
     strength: xiStrength(bestXI),
     scorers: scorerPool(bestXI),
+    penTakers: penTakersFrom(bestXI),
   };
+}
+
+/** A squad's overall rating (avg elo of its best XI). Used to weight draws. */
+export function squadOverall(squad: Squad): number {
+  return xiStrength(bestEleven(squad)).overall;
 }
 
 /** Pick `count` distinct random squads as opponents. */
