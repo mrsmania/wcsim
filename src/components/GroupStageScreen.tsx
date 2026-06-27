@@ -13,11 +13,16 @@ import {
   type MatchdayResult,
 } from '../domain/tournament';
 import { ArrowRight, ChevronDown, ChevronRight, FastForward, Pause, Play } from 'lucide-react';
+import type { Formation } from '../domain/formations';
+import type { Filled } from '../domain/draft';
 import Flag from './Flag';
 import GoalList from './GoalList';
+import TournamentSummary from './TournamentSummary';
 
 interface Props {
   group: GroupState;
+  formation: Formation;
+  filled: Filled;
   onRecordMatchday: (results: MatchdayResult[]) => void;
   onReset: () => void;
   onEnterKnockout: () => void;
@@ -59,17 +64,17 @@ function FixtureRow({
     <>
       <span className={`flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
         <span className="truncate">{home.name}</span>
-        {home.year && <span className="text-[11px] font-normal text-stone-400">{home.year}</span>}
-        <Flag code={home.code} isUser={home.isUser} className="h-4 w-6" />
+        {home.year && <span className="hidden text-[11px] font-normal text-stone-400 sm:inline">{home.year}</span>}
+        <Flag code={home.code} isUser={home.isUser} className="h-4 w-6 shrink-0" />
       </span>
-      <span className="flex w-14 flex-col items-center leading-none">
+      <span className="flex w-12 shrink-0 flex-col items-center leading-none sm:w-14">
         <span className="font-mono font-bold">{scoreText}</span>
         {status && <span className="mt-0.5 text-[9px] font-bold text-red-600">{status}</span>}
       </span>
       <span className={`flex flex-1 items-center gap-2 truncate ${away.isUser ? 'font-black' : 'font-medium'}`}>
-        <Flag code={away.code} isUser={away.isUser} className="h-4 w-6" />
+        <Flag code={away.code} isUser={away.isUser} className="h-4 w-6 shrink-0" />
         <span className="truncate">{away.name}</span>
-        {away.year && <span className="text-[11px] font-normal text-stone-400">{away.year}</span>}
+        {away.year && <span className="hidden text-[11px] font-normal text-stone-400 sm:inline">{away.year}</span>}
       </span>
       <span className="flex w-4 items-center justify-center text-stone-400">
         {expandable ? expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} /> : null}
@@ -88,7 +93,14 @@ function FixtureRow({
 
 // --- screen --------------------------------------------------------------
 
-export default function GroupStageScreen({ group, onRecordMatchday, onReset, onEnterKnockout }: Props) {
+export default function GroupStageScreen({
+  group,
+  formation,
+  filled,
+  onRecordMatchday,
+  onReset,
+  onEnterKnockout,
+}: Props) {
   const opponents = group.teams.filter((t) => !t.isUser);
   const finished = isGroupFinished(group);
 
@@ -267,20 +279,20 @@ export default function GroupStageScreen({ group, onRecordMatchday, onReset, onE
 
       {/* Standings */}
       <div className="overflow-hidden rounded-lg border border-stone-300 bg-white">
-        <div className="grid grid-cols-[24px_1fr_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-stone-200 bg-stone-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-stone-500">
+        <div className="grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-stone-200 bg-stone-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-stone-500">
           <span>#</span>
           <span>Team</span>
-          <span className="text-center">P</span>
-          <span className="text-center">W</span>
-          <span className="text-center">D</span>
-          <span className="text-center">L</span>
+          <span className="hidden text-center sm:block">P</span>
+          <span className="hidden text-center sm:block">W</span>
+          <span className="hidden text-center sm:block">D</span>
+          <span className="hidden text-center sm:block">L</span>
           <span className="text-center">GD</span>
           <span className="text-center">Pts</span>
         </div>
         {table.map((s, i) => (
           <div
             key={s.team.id}
-            className={`grid grid-cols-[24px_1fr_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-stone-100 px-3 py-2 text-sm last:border-b-0 ${
+            className={`grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-stone-100 px-3 py-2 text-sm last:border-b-0 ${
               i < 2 ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-transparent'
             } ${s.team.isUser ? 'bg-red-50' : ''}`}
           >
@@ -288,12 +300,12 @@ export default function GroupStageScreen({ group, onRecordMatchday, onReset, onE
             <span className="flex items-center gap-2 truncate">
               <Flag code={s.team.code} isUser={s.team.isUser} className="h-4 w-6" />
               <span className={`truncate ${s.team.isUser ? 'font-black' : 'font-semibold'}`}>{s.team.name}</span>
-              {s.team.year && <span className="text-[11px] text-stone-400">{s.team.year}</span>}
+              {s.team.year && <span className="shrink-0 text-[11px] text-stone-400">{s.team.year}</span>}
             </span>
-            <span className="text-center font-mono">{s.played}</span>
-            <span className="text-center font-mono">{s.won}</span>
-            <span className="text-center font-mono">{s.drawn}</span>
-            <span className="text-center font-mono">{s.lost}</span>
+            <span className="hidden text-center font-mono sm:block">{s.played}</span>
+            <span className="hidden text-center font-mono sm:block">{s.won}</span>
+            <span className="hidden text-center font-mono sm:block">{s.drawn}</span>
+            <span className="hidden text-center font-mono sm:block">{s.lost}</span>
             <span className="text-center font-mono">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
             <span className="text-center font-mono font-black">{s.points}</span>
           </div>
@@ -381,24 +393,27 @@ export default function GroupStageScreen({ group, onRecordMatchday, onReset, onE
 
       {/* Controls / result */}
       {finished ? (
-        <div className="rounded-xl border border-dashed border-stone-400 bg-white/60 p-5 text-center">
-          <p className={`text-xl font-black ${advanced ? 'text-emerald-600' : 'text-stone-700'}`}>
-            {advanced ? 'You advanced to the knockouts! 🎉' : 'Eliminated in the group stage.'}
-          </p>
-          {advanced ? (
-            <button
-              onClick={onEnterKnockout}
-              className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
-            >
-              Enter the knockouts
-              <ArrowRight size={18} strokeWidth={2.5} />
-            </button>
-          ) : (
-            <p className="mt-1 text-sm text-stone-500">
-              Better luck next time — draft a new XI to try again.
+        <>
+          <div className="rounded-xl border border-dashed border-stone-400 bg-white/60 p-5 text-center">
+            <p className={`text-xl font-black ${advanced ? 'text-emerald-600' : 'text-stone-700'}`}>
+              {advanced ? 'You advanced to the knockouts! 🎉' : 'Eliminated in the group stage.'}
             </p>
-          )}
-        </div>
+            {advanced ? (
+              <button
+                onClick={onEnterKnockout}
+                className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
+              >
+                Enter the knockouts
+                <ArrowRight size={18} strokeWidth={2.5} />
+              </button>
+            ) : (
+              <p className="mt-1 text-sm text-stone-500">
+                Better luck next time — draft a new XI to try again.
+              </p>
+            )}
+          </div>
+          {!advanced && <TournamentSummary formation={formation} filled={filled} />}
+        </>
       ) : (
         <div className="flex items-center justify-center gap-3">
           {!playing && !auto && (

@@ -171,15 +171,20 @@ export default function App() {
           <span className="text-sm font-semibold text-stone-500">Draft your most random world cup XI</span>
         </header>
 
-        {phase === 'knockout' && knockout ? (
+        {phase === 'knockout' && knockout && formation ? (
           <KnockoutScreen
             knockout={knockout}
+            formation={formation}
+            filled={filled}
+            group={group}
             onAdvance={(p) => dispatch({ type: 'KO_RECORD', ...p })}
             onReset={() => dispatch({ type: 'RESET' })}
           />
-        ) : phase === 'group' && group ? (
+        ) : phase === 'group' && group && formation ? (
           <GroupStageScreen
             group={group}
+            formation={formation}
+            filled={filled}
             onRecordMatchday={(results) => dispatch({ type: 'RECORD_MATCHDAY', results })}
             onReset={() => dispatch({ type: 'RESET' })}
             onEnterKnockout={handleEnterKnockout}

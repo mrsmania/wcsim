@@ -6,6 +6,7 @@ import type { Filled } from '../domain/draft';
 interface Props {
   formation: Formation;
   filled: Filled;
+  title?: string;
 }
 
 function avgElo(players: Player[]): number {
@@ -30,7 +31,7 @@ function StatBar({ label, value, color }: { label: string; value: number; color:
   );
 }
 
-export default function BoxScore({ formation, filled }: Props) {
+export default function BoxScore({ formation, filled, title = 'Box Score' }: Props) {
   const placed = formation.slots.filter((s) => filled[s.id]).length;
   const total = formation.slots.length;
 
@@ -49,7 +50,7 @@ export default function BoxScore({ formation, filled }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between border-b-2 border-stone-900 pb-2">
-        <h2 className="text-sm font-black uppercase tracking-[0.15em]">Box Score</h2>
+        <h2 className="text-sm font-black uppercase tracking-[0.15em]">{title}</h2>
         <span className="font-mono text-sm font-bold">
           {placed}
           <span className="text-stone-400">/{total}</span>

@@ -9,13 +9,19 @@ import {
   type KoResult,
 } from '../domain/knockout';
 import type { MatchResult } from '../domain/match';
-import type { GroupTeam } from '../domain/tournament';
+import type { GroupState, GroupTeam } from '../domain/tournament';
+import type { Formation } from '../domain/formations';
+import type { Filled } from '../domain/draft';
 import { FastForward, Pause, Play, Trophy } from 'lucide-react';
 import Flag from './Flag';
 import GoalList from './GoalList';
+import TournamentSummary from './TournamentSummary';
 
 interface Props {
   knockout: KnockoutState;
+  formation: Formation;
+  filled: Filled;
+  group: GroupState | null;
   onAdvance: (p: {
     result: MatchResult;
     decided: KoDecided;
@@ -71,7 +77,7 @@ function Score({ home, away, status, sub }: { home: number; away: number; status
   );
 }
 
-export default function KnockoutScreen({ knockout, onAdvance, onReset }: Props) {
+export default function KnockoutScreen({ knockout, formation, filled, group, onAdvance, onReset }: Props) {
   const { user, current, outcome, rounds } = knockout;
   const activeOpp = rounds[current]?.opponent ?? null;
 
@@ -361,6 +367,8 @@ export default function KnockoutScreen({ knockout, onAdvance, onReset }: Props) 
           </button>
         </div>
       )}
+
+      {outcome !== 'alive' && <TournamentSummary formation={formation} filled={filled} group={group} />}
     </div>
   );
 }
