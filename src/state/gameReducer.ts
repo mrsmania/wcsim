@@ -33,6 +33,7 @@ export type Action =
   | { type: 'SET_FORMATION'; name: FormationName }
   | { type: 'SET_STYLE'; style: Style }
   | { type: 'START_DRAFT'; formation: Formation }
+  | { type: 'AUTOFILL'; formation: Formation; filled: Filled; usedPersonIds: string[] }
   | { type: 'ROLL_START' }
   | { type: 'ROLL_SETTLE'; squad: Squad }
   | { type: 'CONSUME_REROLL' }
@@ -82,6 +83,18 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
     case 'START_DRAFT':
       return { ...state, phase: 'draft', formation: action.formation, filled: {} };
+
+    case 'AUTOFILL':
+      return {
+        ...state,
+        phase: 'complete',
+        formation: action.formation,
+        filled: action.filled,
+        usedPersonIds: action.usedPersonIds,
+        currentSquad: null,
+        selectedPlayerId: null,
+        rolling: false,
+      };
 
     case 'ROLL_START':
       return { ...state, rolling: true, selectedPlayerId: null };

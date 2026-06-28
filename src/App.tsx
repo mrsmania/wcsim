@@ -8,6 +8,7 @@ import {
   hasAnotherCup,
   hasAnotherTeam,
   positionsWithOpenSlot,
+  randomXI,
   rollAnotherCup,
   rollAnotherTeam,
   rollAny,
@@ -99,6 +100,13 @@ export default function App() {
     const open = positionsWithOpenSlot(previewFormation, {});
     runRoll(rollAny(SQUADS, open, new Set(), null), false);
   }, [previewFormation, runRoll]);
+
+  // Testing shortcut: auto-pick a full valid XI and jump straight to "complete".
+  const handleRandomTeam = useCallback(() => {
+    if (!previewFormation) return;
+    const { filled, usedPersonIds } = randomXI(previewFormation, SQUADS);
+    dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
+  }, [previewFormation]);
 
   const handlePlace = useCallback(
     (slotId: string) => {
@@ -203,6 +211,7 @@ export default function App() {
                 onSelectName={(name) => dispatch({ type: 'SET_FORMATION', name })}
                 onSelectStyle={(s) => dispatch({ type: 'SET_STYLE', style: s })}
                 onStart={handleStart}
+                onRandomTeam={handleRandomTeam}
               />
             )}
             {phase === 'draft' && formation && (

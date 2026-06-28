@@ -12,6 +12,8 @@ interface Props {
     onSelectName: (name: FormationName) => void;
     onSelectStyle: (style: Style) => void;
     onStart: () => void;
+    /** Testing shortcut: auto-fill a random valid XI and skip the draft. */
+    onRandomTeam: () => void;
 }
 
 export default function SetupPanel({
@@ -23,6 +25,7 @@ export default function SetupPanel({
     onSelectName,
     onSelectStyle,
     onStart,
+    onRandomTeam,
 }: Props) {
     return (
         <div className="flex flex-col gap-5">
@@ -82,19 +85,34 @@ export default function SetupPanel({
                 </div>
             </div>
 
-            <button
-                onClick={onStart}
-                disabled={!ready}
-                className={[
-                    'inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-black uppercase tracking-wide transition',
-                    ready
-                        ? 'bg-red-600 text-white hover:bg-red-500 active:scale-[0.99]'
-                        : 'cursor-not-allowed bg-stone-200 text-stone-400',
-                ].join(' ')}
-            >
-                {ready ? 'Roll for your first squad' : 'Loading…'}
-                {ready && <ArrowRight size={18} strokeWidth={2.5} />}
-            </button>
+            <div className="flex gap-2">
+                <button
+                    onClick={onStart}
+                    disabled={!ready}
+                    className={[
+                        'inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black uppercase tracking-wide transition',
+                        ready
+                            ? 'bg-red-600 text-white hover:bg-red-500 active:scale-[0.99]'
+                            : 'cursor-not-allowed bg-stone-200 text-stone-400',
+                    ].join(' ')}
+                >
+                    {ready ? 'Roll for your first squad' : 'Loading…'}
+                    {ready && <ArrowRight size={16} strokeWidth={2.5} />}
+                </button>
+                <button
+                    onClick={onRandomTeam}
+                    disabled={!ready}
+                    title="Testing: auto-fill a random valid XI and skip the draft"
+                    className={[
+                        'shrink-0 rounded-xl border px-4 py-3 text-sm font-black uppercase tracking-wide transition',
+                        ready
+                            ? 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
+                            : 'cursor-not-allowed border-stone-200 text-stone-300',
+                    ].join(' ')}
+                >
+                    Random team
+                </button>
+            </div>
         </div>
     );
 }

@@ -45,6 +45,32 @@ export function teamRating(formation: Formation, filled: Filled): number {
   return Math.round(players.reduce((sum, p) => sum + p.elo, 0) / players.length);
 }
 
+/**
+ * Auto-pick a full, valid XI for a formation: a random eligible player per slot,
+ * each a distinct person. Scarce positions (e.g. GK) are filled first to avoid
+ * dead-ends. Used by the "Random team" testing shortcut to skip the draft.
+ */
+export function randomXI(formation: Formation, squads: Squad[]): {
+  filled: Filled;
+  usedPersonIds: string[];
+} {
+  const pool = squads.flatMap((s) => s.players);
+  const candidatesFor = (slot: Slot) => pool.filter((p) => p.positions.includes(slot.position));
+  const order = [...formation.slots].sort(
+    (a, b) => candidatesFor(a).length - candidatesFor(b).length,
+  );
+  const used = new Set<string>();
+  const filled: Filled = {};
+  for (const slot of order) {
+    const cands = candidatesFor(slot).filter((p) => !used.has(p.personId));
+    if (cands.length === 0) continue;
+    const pick = cands[Math.floor(Math.random() * cands.length)];
+    used.add(pick.personId);
+    filled[slot.id] = pick;
+  }
+  return { filled, usedPersonIds: [...used] };
+}
+
 // --- rolling ---------------------------------------------------------------
 
 function squadHasSelectable(squad: Squad, open: Set<Position>, used: Set<string>): boolean {
