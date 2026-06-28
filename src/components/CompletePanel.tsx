@@ -23,7 +23,7 @@ export default function CompletePanel({ formation, filled, onStart, onReset }: P
         <div className="text-[11px] font-semibold tracking-[0.2em] text-stone-500">COMPLETE</div>
         <h2 className="text-2xl font-black leading-tight">Your XI is set ⚽</h2>
         <div className="text-lg font-bold text-red-600">
-          Formation {formation.name} · avg elo {base}
+          Formation {formation.name} · avg rating {base}
           {chem && chem.bonus > 0 && (
             <span className="text-emerald-700"> · chem +{chem.bonus} → {base + chem.bonus}</span>
           )}

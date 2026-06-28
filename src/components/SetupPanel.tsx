@@ -4,10 +4,10 @@ import type { TeamStrength } from '../domain/draft';
 import { ChevronDown, Dices } from 'lucide-react';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
-    { value: 'weak', label: 'Weak', hint: 'elo < 75' },
-    { value: 'medium', label: 'Medium', hint: 'elo 75–80' },
-    { value: 'strong', label: 'Strong', hint: 'elo 80–88' },
-    { value: 'very-strong', label: 'Very strong', hint: 'elo 88+' },
+    { value: 'weak', label: 'Weak', hint: 'rating < 75' },
+    { value: 'medium', label: 'Medium', hint: 'rating 75–80' },
+    { value: 'strong', label: 'Strong', hint: 'rating 80–88' },
+    { value: 'very-strong', label: 'Very strong', hint: 'rating 88+' },
 ];
 
 interface Props {
