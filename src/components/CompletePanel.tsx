@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
@@ -30,26 +30,6 @@ export default function CompletePanel({ formation, filled, onStart, onReset }: P
         </div>
       </div>
 
-      {chem && chem.links.length > 0 && (
-        <div className="rounded-md border border-emerald-600/30 bg-emerald-600/[0.06] p-3">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800">
-            <Sparkles size={13} strokeWidth={2.5} /> Chemistry breakdown
-          </div>
-          <ul className="flex flex-col gap-1">
-            {chem.links.map((l) => (
-              <li key={l.dimension + l.label} className="flex items-center justify-between text-xs">
-                <span className="text-stone-600">{l.label}</span>
-                <span className="ml-2 font-mono font-semibold text-stone-500">+{Math.round(l.points)}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 border-t border-emerald-600/20 pt-1.5 text-[11px] text-stone-500">
-            {chem.bonus > 0
-              ? `Cohesion lifts your overall by +${chem.bonus} in matches.`
-              : 'Not enough links yet for a rating bonus — a more connected XI scores higher.'}
-          </div>
-        </div>
-      )}
 
       <p className="text-sm text-stone-600">
         You'll be drawn into a group of 4. Play all three matchdays — finish in the top two to reach

@@ -123,15 +123,12 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
                     </div>
                     {chem.links.length > 0 && (
                         <ul className="mt-1.5 flex flex-col gap-0.5 border-t border-emerald-600/20 pt-1.5">
-                            {chem.links.slice(0, 4).map((l) => (
+                            {chem.links.map((l) => (
                                 <li
                                     key={l.dimension + l.label}
-                                    className="flex items-center justify-between text-[11px]"
+                                    className="truncate text-[11px] text-stone-600"
                                 >
-                                    <span className="truncate text-stone-600">{l.label}</span>
-                                    <span className="ml-2 font-mono text-stone-400">
-                                        +{Math.round(l.points)}
-                                    </span>
+                                    {l.label}
                                 </li>
                             ))}
                         </ul>
