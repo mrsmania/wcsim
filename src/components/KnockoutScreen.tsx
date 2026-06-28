@@ -346,6 +346,8 @@ export default function KnockoutScreen({
                 <FixtureRow
                   home={user}
                   away={opp ?? { name: '?', code: '' }}
+                  homeElo={user.strength.overall}
+                  awayElo={opp?.strength.overall}
                   score={score}
                   status={status}
                   expandable={played && !isPlaying}
@@ -453,7 +455,9 @@ export default function KnockoutScreen({
         </div>
       )}
 
-      {outcome !== 'alive' && <TournamentSummary formation={formation} filled={filled} group={group} />}
+      {outcome !== 'alive' && (
+        <TournamentSummary formation={formation} filled={filled} group={group} knockout={knockout} />
+      )}
     </div>
   );
 }

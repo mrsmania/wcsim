@@ -45,26 +45,46 @@ export function teamRating(formation: Formation, filled: Filled): number {
   return Math.round(players.reduce((sum, p) => sum + p.elo, 0) / players.length);
 }
 
+/** Strength tiers for the "Random team" shortcut, mapped to elo bands. */
+export type TeamStrength = 'weak' | 'medium' | 'strong' | 'very-strong';
+
+export const STRENGTH_BANDS: Record<TeamStrength, { min: number; max: number }> = {
+  weak: { min: 0, max: 75 },
+  medium: { min: 75, max: 80 },
+  strong: { min: 80, max: 88 },
+  'very-strong': { min: 88, max: 200 },
+};
+
 /**
  * Auto-pick a full, valid XI for a formation: a random eligible player per slot,
- * each a distinct person. Scarce positions (e.g. GK) are filled first to avoid
- * dead-ends. Used by the "Random team" testing shortcut to skip the draft.
+ * each a distinct person. When a `band` is given, prefer players whose elo falls
+ * in that range (falling back to the nearest-rated eligible player so the XI
+ * always completes). Scarce positions are filled first to avoid dead-ends.
  */
-export function randomXI(formation: Formation, squads: Squad[]): {
-  filled: Filled;
-  usedPersonIds: string[];
-} {
+export function randomXI(
+  formation: Formation,
+  squads: Squad[],
+  band?: { min: number; max: number },
+): { filled: Filled; usedPersonIds: string[] } {
   const pool = squads.flatMap((s) => s.players);
+  const inBand = (p: Player) => !band || (p.elo >= band.min && p.elo < band.max);
+  const mid = band ? (band.min + band.max) / 2 : 0;
   const candidatesFor = (slot: Slot) => pool.filter((p) => p.positions.includes(slot.position));
+  // Fill the slots with the fewest in-band candidates first.
   const order = [...formation.slots].sort(
-    (a, b) => candidatesFor(a).length - candidatesFor(b).length,
+    (a, b) => candidatesFor(a).filter(inBand).length - candidatesFor(b).filter(inBand).length,
   );
   const used = new Set<string>();
   const filled: Filled = {};
   for (const slot of order) {
-    const cands = candidatesFor(slot).filter((p) => !used.has(p.personId));
-    if (cands.length === 0) continue;
-    const pick = cands[Math.floor(Math.random() * cands.length)];
+    const eligible = candidatesFor(slot).filter((p) => !used.has(p.personId));
+    let pickPool = eligible.filter(inBand);
+    if (pickPool.length === 0) {
+      // No one in the band for this slot: take from the nearest-rated eligible players.
+      pickPool = [...eligible].sort((a, b) => Math.abs(a.elo - mid) - Math.abs(b.elo - mid)).slice(0, 5);
+    }
+    if (pickPool.length === 0) continue;
+    const pick = pickPool[Math.floor(Math.random() * pickPool.length)];
     used.add(pick.personId);
     filled[slot.id] = pick;
   }

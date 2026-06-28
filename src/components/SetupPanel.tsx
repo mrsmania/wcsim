@@ -1,5 +1,14 @@
+import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
-import { ArrowRight } from 'lucide-react';
+import type { TeamStrength } from '../domain/draft';
+import { ArrowRight, ChevronDown } from 'lucide-react';
+
+const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
+    { value: 'weak', label: 'Weak', hint: 'elo < 75' },
+    { value: 'medium', label: 'Medium', hint: 'elo 75–80' },
+    { value: 'strong', label: 'Strong', hint: 'elo 80–88' },
+    { value: 'very-strong', label: 'Very strong', hint: 'elo 88+' },
+];
 
 interface Props {
     names: FormationName[];
@@ -12,8 +21,8 @@ interface Props {
     onSelectName: (name: FormationName) => void;
     onSelectStyle: (style: Style) => void;
     onStart: () => void;
-    /** Testing shortcut: auto-fill a random valid XI and skip the draft. */
-    onRandomTeam: () => void;
+    /** Testing shortcut: auto-fill a random valid XI of the chosen strength. */
+    onRandomTeam: (tier: TeamStrength) => void;
 }
 
 export default function SetupPanel({
@@ -27,6 +36,7 @@ export default function SetupPanel({
     onStart,
     onRandomTeam,
 }: Props) {
+    const [menuOpen, setMenuOpen] = useState(false);
     return (
         <div className="flex flex-col gap-5">
             {/* Formation */}
@@ -99,19 +109,42 @@ export default function SetupPanel({
                     {ready ? 'Roll for your first squad' : 'Loading…'}
                     {ready && <ArrowRight size={16} strokeWidth={2.5} />}
                 </button>
-                <button
-                    onClick={onRandomTeam}
-                    disabled={!ready}
-                    title="Testing: auto-fill a random valid XI and skip the draft"
-                    className={[
-                        'shrink-0 rounded-xl border px-4 py-3 text-sm font-black uppercase tracking-wide transition',
-                        ready
-                            ? 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
-                            : 'cursor-not-allowed border-stone-200 text-stone-300',
-                    ].join(' ')}
-                >
-                    Random team
-                </button>
+                <div className="relative shrink-0">
+                    <button
+                        onClick={() => setMenuOpen((o) => !o)}
+                        disabled={!ready}
+                        title="Testing: auto-fill a random valid XI of a chosen strength and skip the draft"
+                        className={[
+                            'inline-flex h-full items-center gap-1.5 rounded-xl border px-4 py-3 text-sm font-black uppercase tracking-wide transition',
+                            ready
+                                ? 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
+                                : 'cursor-not-allowed border-stone-200 text-stone-300',
+                        ].join(' ')}
+                    >
+                        Random team
+                        <ChevronDown size={15} strokeWidth={2.5} />
+                    </button>
+                    {menuOpen && ready && (
+                        <>
+                            <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                            <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-stone-300 bg-white shadow-lg">
+                                {STRENGTH_TIERS.map((t) => (
+                                    <button
+                                        key={t.value}
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onRandomTeam(t.value);
+                                        }}
+                                        className="flex w-full items-baseline justify-between gap-2 border-b border-stone-100 px-3 py-2 text-left transition last:border-b-0 hover:bg-stone-100"
+                                    >
+                                        <span className="text-sm font-bold">{t.label}</span>
+                                        <span className="text-[10px] font-medium text-stone-400">{t.hint}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

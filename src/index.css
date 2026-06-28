@@ -41,6 +41,26 @@ button:not(:disabled) {
   transform-origin: left top;
 }
 
+/* Bouncy "blob" pop when a goal appears in the live feed, so it stands out. */
+@keyframes goal-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-goal-pop {
+  animation: goal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: left center;
+}
+
 /* Pulse used to highlight valid, open slots once a player is selected. */
 @keyframes slot-pulse {
   0%,

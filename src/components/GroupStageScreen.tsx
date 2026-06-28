@@ -257,10 +257,13 @@ export default function GroupStageScreen({
             } ${s.team.isUser ? 'bg-red-50' : ''}`}
           >
             <span className="font-mono text-stone-500">{i + 1}</span>
-            <span className="flex items-center gap-2 truncate">
-              <Flag code={s.team.code} isUser={s.team.isUser} className="h-4 w-6" />
+            <span className="group/team flex items-center gap-2 truncate">
+              <Flag code={s.team.code} isUser={s.team.isUser} className="h-4 w-6 shrink-0" />
               <span className={`truncate ${s.team.isUser ? 'font-black' : 'font-semibold'}`}>{s.team.name}</span>
               {s.team.year && <span className="shrink-0 text-[11px] text-stone-400">{s.team.year}</span>}
+              <span className="hidden shrink-0 rounded bg-stone-800 px-1 font-mono text-[10px] font-bold leading-tight text-white group-hover/team:inline-block">
+                {s.team.strength.overall}
+              </span>
             </span>
             <span className="hidden text-center font-mono sm:block">{s.played}</span>
             <span className="hidden text-center font-mono sm:block">{s.won}</span>
@@ -323,6 +326,8 @@ export default function GroupStageScreen({
                 <FixtureRow
                   home={userHome}
                   away={userAway}
+                  homeElo={userHome.strength.overall}
+                  awayElo={userAway.strength.overall}
                   score={
                     userScore ??
                     (userFx.result ? { home: userFx.result.homeGoals, away: userFx.result.awayGoals } : undefined)
@@ -350,6 +355,8 @@ export default function GroupStageScreen({
                 <FixtureRow
                   home={teamById(group, otherFx.homeId)}
                   away={teamById(group, otherFx.awayId)}
+                  homeElo={teamById(group, otherFx.homeId).strength.overall}
+                  awayElo={teamById(group, otherFx.awayId).strength.overall}
                   score={
                     otherScore ??
                     (otherFx.result ? { home: otherFx.result.homeGoals, away: otherFx.result.awayGoals } : undefined)
@@ -378,9 +385,15 @@ export default function GroupStageScreen({
                 <ArrowRight size={18} strokeWidth={2.5} />
               </button>
             ) : (
-              <p className="mt-1 text-sm text-stone-500">
-                Better luck next time — draft a new XI to try again.
-              </p>
+              <>
+                <p className="mt-1 text-sm text-stone-500">So close. Draft a new XI and run it back.</p>
+                <button
+                  onClick={onReset}
+                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-500"
+                >
+                  Draft a new XI
+                </button>
+              </>
             )}
           </div>
           {!advanced && <TournamentSummary formation={formation} filled={filled} />}

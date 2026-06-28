@@ -12,6 +12,8 @@ import {
   rollAnotherCup,
   rollAnotherTeam,
   rollAny,
+  STRENGTH_BANDS,
+  type TeamStrength,
 } from './domain/draft';
 import { createGroup, pickOpponents, userGroupTeam } from './domain/tournament';
 import { createKnockout } from './domain/knockout';
@@ -101,12 +103,16 @@ export default function App() {
     runRoll(rollAny(SQUADS, open, new Set(), null), false);
   }, [previewFormation, runRoll]);
 
-  // Testing shortcut: auto-pick a full valid XI and jump straight to "complete".
-  const handleRandomTeam = useCallback(() => {
-    if (!previewFormation) return;
-    const { filled, usedPersonIds } = randomXI(previewFormation, SQUADS);
-    dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
-  }, [previewFormation]);
+  // Testing shortcut: auto-pick a full valid XI (within a strength band) and
+  // jump straight to "complete".
+  const handleRandomTeam = useCallback(
+    (tier: TeamStrength) => {
+      if (!previewFormation) return;
+      const { filled, usedPersonIds } = randomXI(previewFormation, SQUADS, STRENGTH_BANDS[tier]);
+      dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
+    },
+    [previewFormation],
+  );
 
   const handlePlace = useCallback(
     (slotId: string) => {

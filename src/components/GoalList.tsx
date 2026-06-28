@@ -26,9 +26,9 @@ export default function GoalList({
   return (
     <ul className="mt-2 flex flex-col gap-0.5">
       {events.map((e, i) => (
-        <li key={i} className="flex items-center gap-2 text-xs">
+        <li key={i} className="flex animate-goal-pop items-center gap-2 text-xs">
           <span className="w-7 text-right font-mono text-stone-500">{e.minute}'</span>
-          <span>⚽</span>
+          <span className="text-sm">⚽</span>
           <span className="font-semibold">{e.scorer}</span>
           <span className="text-stone-400">({e.side === 'home' ? home.code : away.code})</span>
         </li>
