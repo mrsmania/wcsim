@@ -41,31 +41,32 @@ function avgElo(players: Player[]): number {
     return Math.round(players.reduce((s, p) => s + p.elo, 0) / players.length);
 }
 
-function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
+function Square({
+    label,
+    title,
+    value,
+    className,
+}: {
+    label: string;
+    title: string;
+    value: number;
+    className: string;
+}) {
     return (
-        <div>
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide">
-                <span className="flex items-center gap-1.5">
-                    <span className={`inline-block h-1.5 w-4 ${color}`} />
-                    {label}
-                </span>
-                <span className="font-mono">{value || '—'}</span>
-            </div>
-            <div className="mt-0.5 h-1.5 w-full bg-stone-200">
-                <div className={`h-full ${color}`} style={{ width: `${value}%` }} />
-            </div>
+        <div
+            title={title}
+            className={`flex aspect-square flex-col items-center justify-center rounded-md text-white ${className}`}
+        >
+            <span className="font-mono text-xl font-black leading-none">{value || '—'}</span>
+            <span className="mt-1 text-[10px] font-bold uppercase tracking-wide opacity-90">{label}</span>
         </div>
     );
 }
 
 export default function BoxScore({ formation, filled, title = 'Team Score', showChemistry = false }: Props) {
-    const placed = formation.slots.filter((s) => filled[s.id]).length;
-    const total = formation.slots.length;
-
     const placedPlayers = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
-    const attack = avgElo(
-        placedPlayers.filter((p) => ['MID', 'FWD'].includes(categoryOf(p.positions[0]))),
-    );
+    const attack = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
+    const midfield = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'MID'));
     const defense = avgElo(
         placedPlayers.filter((p) => ['GK', 'DEF'].includes(categoryOf(p.positions[0]))),
     );
@@ -82,18 +83,15 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
 
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between border-b-2 border-stone-900 pb-2">
+            <div className="border-b-2 border-stone-900 pb-2">
                 <h2 className="text-sm font-black uppercase tracking-[0.15em]">{title}</h2>
-                <span className="font-mono text-sm font-bold">
-                    {placed}
-                    <span className="text-stone-400">/{total}</span>
-                </span>
             </div>
 
-            <div className="flex flex-col gap-2">
-                <StatBar label="Attack" value={attack} color="bg-red-600" />
-                <StatBar label="Defense" value={defense} color="bg-stone-900" />
-                <StatBar label="Overall" value={overall} color="bg-emerald-600" />
+            <div className="grid grid-cols-4 gap-2">
+                <Square label="Att" title="Attack" value={attack} className="bg-red-600" />
+                <Square label="Mid" title="Midfield" value={midfield} className="bg-amber-500" />
+                <Square label="Def" title="Defense (incl. GK)" value={defense} className="bg-stone-900" />
+                <Square label="Ovr" title="Overall" value={overall} className="bg-emerald-600" />
             </div>
 
             {chem && (
