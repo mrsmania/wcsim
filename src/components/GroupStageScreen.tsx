@@ -165,16 +165,20 @@ export default function GroupStageScreen({
             <Flag code="" isUser className="h-12 w-[4.5rem]" />
             <span className="text-center text-sm font-black">Your XI</span>
           </div>
-          {opponents.map((o, i) => (
-            <div
-              key={o.id}
-              className={`flex w-24 flex-col items-center gap-1 ${settled ? 'animate-settle' : ''}`}
-            >
-              <Flag code={revealCodes[i] ?? ''} className="h-12 w-[4.5rem]" />
-              <span className="text-center text-sm font-bold leading-tight">{settled ? o.name : '…'}</span>
-              {settled && o.year && <span className="text-xs font-semibold text-red-600">WC {o.year}</span>}
-            </div>
-          ))}
+          {/* Opponents sit in their own row on mobile (sm:contents dissolves the
+              wrapper on wider screens so all four share one flex row). */}
+          <div className="flex items-start justify-center gap-2 sm:contents">
+            {opponents.map((o, i) => (
+              <div
+                key={o.id}
+                className={`flex w-24 flex-col items-center gap-1 ${settled ? 'animate-settle' : ''}`}
+              >
+                <Flag code={revealCodes[i] ?? ''} className="h-12 w-[4.5rem]" />
+                <span className="text-center text-sm font-bold leading-tight">{settled ? o.name : '…'}</span>
+                {settled && o.year && <span className="text-xs font-semibold text-red-600">WC {o.year}</span>}
+              </div>
+            ))}
+          </div>
         </div>
         {settled ? (
           <button

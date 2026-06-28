@@ -56,7 +56,7 @@ export default function FixtureRow({
     <>
       <Flag code={away.code} isUser={away.isUser} className="h-4 w-6 shrink-0" />
       <span className="truncate">{away.name}</span>
-      {away.year && <span className="hidden text-[11px] font-normal text-stone-400 sm:inline">{away.year}</span>}
+      {away.year && <span className="shrink-0 text-[11px] font-normal text-stone-400">{away.year}</span>}
     </>
   );
 
@@ -64,7 +64,7 @@ export default function FixtureRow({
     <>
       <span className={`flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
         <span className="truncate">{home.name}</span>
-        {home.year && <span className="hidden text-[11px] font-normal text-stone-400 sm:inline">{home.year}</span>}
+        {home.year && <span className="shrink-0 text-[11px] font-normal text-stone-400">{home.year}</span>}
         <Flag code={home.code} isUser={home.isUser} className="h-4 w-6 shrink-0" />
       </span>
       <span className="flex w-12 shrink-0 flex-col items-center leading-none sm:w-14">
