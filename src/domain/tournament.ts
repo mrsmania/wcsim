@@ -43,13 +43,16 @@ export interface GroupState {
   matchday: number;
 }
 
-export function userGroupTeam(players: Player[]): GroupTeam {
+/** Build the user's match team. `chemistryBonus` (0 when the feature is off) is
+ *  added to overall only, so a cohesive draft simulates a touch stronger. */
+export function userGroupTeam(players: Player[], chemistryBonus = 0): GroupTeam {
+  const strength = xiStrength(players);
   return {
     id: USER_ID,
     name: 'Your XI',
     code: 'YOU',
     isUser: true,
-    strength: xiStrength(players),
+    strength: { ...strength, overall: strength.overall + chemistryBonus },
     scorers: scorerPool(players),
     penTakers: penTakersFrom(players),
   };

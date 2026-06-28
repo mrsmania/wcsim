@@ -16,7 +16,9 @@ import {
   type TeamStrength,
 } from './domain/draft';
 import { createGroup, pickOpponents, userGroupTeam } from './domain/tournament';
+import { teamChemistry } from './domain/chemistry';
 import { createKnockout } from './domain/knockout';
+import { FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
@@ -158,7 +160,8 @@ export default function App() {
   const handleStartGroup = useCallback(() => {
     if (!formation) return;
     const players = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
-    dispatch({ type: 'START_GROUP', group: createGroup(userGroupTeam(players), pickOpponents(3)) });
+    const bonus = FEATURES.chemistry ? teamChemistry(formation, filled).bonus : 0;
+    dispatch({ type: 'START_GROUP', group: createGroup(userGroupTeam(players, bonus), pickOpponents(3)) });
   }, [formation, filled]);
 
   const handleEnterKnockout = useCallback(() => {
@@ -267,7 +270,7 @@ export default function App() {
           {/* Right: box score */}
           <aside>
             {activeFormation ? (
-              <BoxScore formation={activeFormation} filled={filled} />
+              <BoxScore formation={activeFormation} filled={filled} showChemistry />
             ) : (
               <div className="text-sm text-stone-400">Box score appears once formations load.</div>
             )}
