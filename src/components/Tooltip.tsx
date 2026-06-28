@@ -8,6 +8,8 @@ interface Props {
     children: ReactNode;
     /** Classes applied to the trigger wrapper (e.g. the chip styling). */
     className?: string;
+    /** Wider bubble with more padding, for multi-line content like rules. */
+    wide?: boolean;
 }
 
 /**
@@ -16,7 +18,7 @@ interface Props {
  * scrollable/overflow ancestors. Hover-only (the trigger stays non-focusable so
  * it is valid inside an existing button row).
  */
-export default function Tooltip({ label, children, className }: Props) {
+export default function Tooltip({ label, children, className, wide = false }: Props) {
     const ref = useRef<HTMLSpanElement>(null);
     const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
     const id = useId();
@@ -28,7 +30,8 @@ export default function Tooltip({ label, children, className }: Props) {
     const hide = () => setPos(null);
 
     // Keep the bubble within the viewport (it is centered on the trigger).
-    const left = pos ? Math.min(Math.max(pos.x, 124), window.innerWidth - 124) : 0;
+    const margin = wide ? 150 : 124;
+    const left = pos ? Math.min(Math.max(pos.x, margin), window.innerWidth - margin) : 0;
 
     return (
         <span
@@ -45,7 +48,9 @@ export default function Tooltip({ label, children, className }: Props) {
                         id={id}
                         role="tooltip"
                         style={{ position: 'fixed', left, top: pos.y - 8, transform: 'translate(-50%, -100%)' }}
-                        className="pointer-events-none z-50 block max-w-[220px] rounded-md bg-stone-900 px-2 py-1 text-[11px] font-medium leading-snug text-white shadow-lg"
+                        className={`pointer-events-none z-50 block rounded-md bg-stone-900 text-[11px] font-medium leading-snug text-white shadow-lg ${
+                            wide ? 'max-w-[280px] px-2.5 py-2' : 'max-w-[220px] px-2 py-1'
+                        }`}
                     >
                         {label}
                     </span>,

@@ -1,10 +1,30 @@
-import { Sparkles } from 'lucide-react';
+import { HelpCircle, Sparkles } from 'lucide-react';
 import type { Player } from '../data/types';
 import { CATEGORY_ORDER, categoryOf } from '../data/types';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
+import Tooltip from './Tooltip';
+
+/** Full rules shown when hovering the chemistry "?" help icon. */
+const CHEMISTRY_RULES = (
+    <div className="space-y-1">
+        <div className="font-bold">Chemistry — a boost to your XI's overall (max +6)</div>
+        <ul className="list-disc space-y-0.5 pl-4 marker:text-stone-400">
+            <li><span className="font-semibold">Same squad</span> — real teammates (same nation &amp; year). Strongest link.</li>
+            <li><span className="font-semibold">Same nation</span> — countrymen across different cups.</li>
+            <li><span className="font-semibold">Same tournament</span> — players from one World Cup.</li>
+            <li><span className="font-semibold">Same continent</span> — players from one confederation.</li>
+            <li><span className="font-semibold">Same era</span> — tournaments close together in time.</li>
+            <li><span className="font-semibold">In position</span> — players in their natural (underlined) role.</li>
+        </ul>
+        <div className="text-stone-300">
+            More links and tighter themes mean a bigger boost. Opponents are real national teams, so
+            chemistry helps your mixed XI compete.
+        </div>
+    </div>
+);
 
 interface Props {
     formation: Formation;
@@ -49,7 +69,7 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
     );
     const overall = avgElo(placedPlayers);
 
-    const chem = FEATURES.chemistry && showChemistry && placed > 0 ? teamChemistry(formation, filled) : null;
+    const chem = FEATURES.chemistry && showChemistry ? teamChemistry(formation, filled) : null;
 
     // Slots ordered back-to-front: GK, DEF, MID, FWD.
     const ordered = [...formation.slots].sort(
@@ -79,6 +99,13 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
                     <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800">
                             <Sparkles size={13} strokeWidth={2.5} /> Chemistry
+                            <Tooltip
+                                wide
+                                label={CHEMISTRY_RULES}
+                                className="cursor-help text-emerald-700/60 transition hover:text-emerald-800"
+                            >
+                                <HelpCircle size={13} strokeWidth={2.5} />
+                            </Tooltip>
                         </span>
                         <span className="font-mono text-sm font-black text-emerald-700">
                             {chem.bonus > 0 ? `+${chem.bonus}` : '—'}
@@ -88,7 +115,9 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
                         <span className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
                             Effective overall
                         </span>
-                        <span className="font-mono text-base font-black">{overall + chem.bonus}</span>
+                        <span className="font-mono text-base font-black">
+                            {chem.placed > 0 ? overall + chem.bonus : '—'}
+                        </span>
                     </div>
                     {chem.links.length > 0 && (
                         <ul className="mt-1.5 flex flex-col gap-0.5 border-t border-emerald-600/20 pt-1.5">
