@@ -12,18 +12,21 @@ import {
   type MatchdayResult,
 } from '../domain/tournament';
 import { ArrowRight, FastForward, Pause, Play } from 'lucide-react';
-import { buildMatchSteps } from '../domain/clock';
+import { buildMatchSteps, HALF_TIME_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import Flag from './Flag';
 import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
+import SpeedControl from './SpeedControl';
 import TournamentSummary from './TournamentSummary';
 
 interface Props {
   group: GroupState;
   formation: Formation;
   filled: Filled;
+  speed: MatchSpeed;
+  onSetSpeed: (s: MatchSpeed) => void;
   onRecordMatchday: (results: MatchdayResult[]) => void;
   onReset: () => void;
   onEnterKnockout: () => void;
@@ -38,6 +41,8 @@ export default function GroupStageScreen({
   group,
   formation,
   filled,
+  speed,
+  onSetSpeed,
   onRecordMatchday,
   onReset,
   onEnterKnockout,
@@ -105,9 +110,11 @@ export default function GroupStageScreen({
   // Keep latest callback/flag without restarting the clock on every render.
   const recordRef = useRef(onRecordMatchday);
   const autoRef = useRef(auto);
+  const speedRef = useRef(speed);
   useEffect(() => {
     recordRef.current = onRecordMatchday;
     autoRef.current = auto;
+    speedRef.current = speed;
   });
 
   // Run the live clock (with stoppage time + a half-time break) for the playing
@@ -115,15 +122,14 @@ export default function GroupStageScreen({
   useEffect(() => {
     if (!playing) return;
     const current = playing;
-    const base = autoRef.current ? 22 : 50;
-    const steps = buildMatchSteps(90, autoRef.current ? 250 : 650);
+    const steps = buildMatchSteps(90, HALF_TIME_MS[speedRef.current]);
     let idx = 0;
     let timer: number | undefined;
     const tick = () => {
       const step = steps[idx];
       setLiveMinute(step.reveal);
       setClockLabel(step.label);
-      const delay = base + (step.hold ?? 0);
+      const delay = STEP_MS[speedRef.current] + (step.hold ?? 0);
       if (idx >= steps.length - 1) {
         timer = window.setTimeout(() => {
           setClockLabel('FT');
@@ -380,7 +386,8 @@ export default function GroupStageScreen({
           {!advanced && <TournamentSummary formation={formation} filled={filled} />}
         </>
       ) : (
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center justify-center gap-3">
           {!playing && !auto && (
             <button
               onClick={() => play(group.matchday)}
@@ -411,6 +418,8 @@ export default function GroupStageScreen({
               </>
             )}
           </button>
+          </div>
+          <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
         </div>
       )}
     </div>

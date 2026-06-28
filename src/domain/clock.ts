@@ -1,3 +1,13 @@
+/** Match simulation playback speed. */
+export type MatchSpeed = 'slow' | 'normal' | 'fast';
+
+/** Milliseconds per minute-tick of the live clock, by speed. */
+export const STEP_MS: Record<MatchSpeed, number> = { slow: 90, normal: 45, fast: 18 };
+/** Half-time hold (ms) by speed. */
+export const HALF_TIME_MS: Record<MatchSpeed, number> = { slow: 900, normal: 550, fast: 250 };
+/** Per-kick interval (ms) of a penalty shootout, by speed. */
+export const PEN_MS: Record<MatchSpeed, number> = { slow: 900, normal: 550, fast: 240 };
+
 /** One tick of the live match clock. */
 export interface ClockStep {
   /** Minute threshold for revealing goals (events with minute <= reveal show). */

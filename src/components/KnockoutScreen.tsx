@@ -12,10 +12,11 @@ import type { MatchResult, PenKick } from '../domain/match';
 import type { GroupState, GroupTeam } from '../domain/tournament';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { buildMatchSteps } from '../domain/clock';
+import { buildMatchSteps, HALF_TIME_MS, PEN_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
 import { Check, FastForward, Pause, Play, Trophy, X } from 'lucide-react';
 import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
+import SpeedControl from './SpeedControl';
 import TournamentSummary from './TournamentSummary';
 
 interface Props {
@@ -23,6 +24,8 @@ interface Props {
   formation: Formation;
   filled: Filled;
   group: GroupState | null;
+  speed: MatchSpeed;
+  onSetSpeed: (s: MatchSpeed) => void;
   onAdvance: (p: {
     result: MatchResult;
     decided: KoDecided;
@@ -95,7 +98,16 @@ function ShootoutFeed({
   );
 }
 
-export default function KnockoutScreen({ knockout, formation, filled, group, onAdvance, onReset }: Props) {
+export default function KnockoutScreen({
+  knockout,
+  formation,
+  filled,
+  group,
+  speed,
+  onSetSpeed,
+  onAdvance,
+  onReset,
+}: Props) {
   const { user, current, outcome, rounds } = knockout;
   const activeOpp = rounds[current]?.opponent ?? null;
 
@@ -146,11 +158,13 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
   const facedRef = useRef(knockout.faced);
   const currentRef = useRef(current);
   const autoRef = useRef(auto);
+  const speedRef = useRef(speed);
   useEffect(() => {
     advanceRef.current = onAdvance;
     facedRef.current = knockout.faced;
     currentRef.current = current;
     autoRef.current = auto;
+    speedRef.current = speed;
   });
 
   // Run the live clock (stoppage time + half-time), then (if drawn level) the
@@ -160,9 +174,8 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
     const res = playing;
     const max = maxMinute(res.decided);
     const kicks = res.pens?.kicks ?? [];
-    const base = autoRef.current ? 20 : 45;
-    const penMs = autoRef.current ? 220 : 600;
-    const steps = buildMatchSteps(max, autoRef.current ? 220 : 600);
+    const penMs = PEN_MS[speedRef.current];
+    const steps = buildMatchSteps(max, HALF_TIME_MS[speedRef.current]);
     const endLabel = res.decided === 'reg' ? 'FT' : res.decided === 'aet' ? 'a.e.t.' : 'pens';
     let idx = 0;
     let timer: number | undefined;
@@ -206,7 +219,7 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
       const step = steps[idx];
       setLiveMinute(step.reveal);
       setClockLabel(step.label);
-      const delay = base + (step.hold ?? 0);
+      const delay = STEP_MS[speedRef.current] + (step.hold ?? 0);
       if (idx >= steps.length - 1) {
         timer = window.setTimeout(finishClock, delay);
         return;
@@ -364,43 +377,45 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
                   </div>
                 )}
 
-                {isActive && !isPlaying && (
-                  <div className="flex items-center justify-center gap-3 py-2">
-                    {revealed ? (
-                      <>
-                        {!auto && (
-                          <button
-                            onClick={playRound}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
-                          >
-                            <Play size={16} fill="currentColor" strokeWidth={0} />
-                            Play {name}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setAuto((v) => !v)}
-                          className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-black uppercase tracking-wide transition ${
-                            auto
-                              ? 'border-red-600 bg-red-600 text-white hover:bg-red-500'
-                              : 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
-                          }`}
-                        >
-                          {auto ? (
-                            <>
-                              <Pause size={15} fill="currentColor" strokeWidth={0} />
-                              Stop auto
-                            </>
-                          ) : (
-                            <>
-                              <FastForward size={15} fill="currentColor" strokeWidth={0} />
-                              Automatic
-                            </>
+                {isActive && (
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    {!isPlaying &&
+                      (revealed ? (
+                        <div className="flex items-center justify-center gap-3">
+                          {!auto && (
+                            <button
+                              onClick={playRound}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
+                            >
+                              <Play size={16} fill="currentColor" strokeWidth={0} />
+                              Play {name}
+                            </button>
                           )}
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-sm font-semibold text-stone-500">Drawing your opponent…</span>
-                    )}
+                          <button
+                            onClick={() => setAuto((v) => !v)}
+                            className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-black uppercase tracking-wide transition ${
+                              auto
+                                ? 'border-red-600 bg-red-600 text-white hover:bg-red-500'
+                                : 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
+                            }`}
+                          >
+                            {auto ? (
+                              <>
+                                <Pause size={15} fill="currentColor" strokeWidth={0} />
+                                Stop auto
+                              </>
+                            ) : (
+                              <>
+                                <FastForward size={15} fill="currentColor" strokeWidth={0} />
+                                Automatic
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-semibold text-stone-500">Drawing your opponent…</span>
+                      ))}
+                    <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
                   </div>
                 )}
               </div>

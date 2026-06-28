@@ -4,6 +4,7 @@ import { canPlace, isComplete, type Filled } from '../domain/draft';
 import type { GroupState, GroupTeam, MatchdayResult } from '../domain/tournament';
 import { KO_ROUNDS, type KnockoutState, type KoDecided } from '../domain/knockout';
 import type { MatchResult, PenKick } from '../domain/match';
+import type { MatchSpeed } from '../domain/clock';
 
 export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
 
@@ -27,6 +28,8 @@ export interface GameState {
   group: GroupState | null;
   /** Knockout run, set once the user advances out of the group. */
   knockout: KnockoutState | null;
+  /** Match simulation playback speed. */
+  speed: MatchSpeed;
 }
 
 export type Action =
@@ -51,6 +54,7 @@ export type Action =
       /** Next round's opponent, drawn by the caller; null if the run ends here. */
       nextOpponent: GroupTeam | null;
     }
+  | { type: 'SET_SPEED'; speed: MatchSpeed }
   | { type: 'RESET' };
 
 export const initialState: GameState = {
@@ -66,6 +70,7 @@ export const initialState: GameState = {
   rerollsLeft: INITIAL_REROLLS,
   group: null,
   knockout: null,
+  speed: 'fast',
 };
 
 function currentPlayer(squad: Squad | null, playerId: string | null): Player | null {
@@ -168,8 +173,11 @@ export function gameReducer(state: GameState, action: Action): GameState {
       };
     }
 
+    case 'SET_SPEED':
+      return { ...state, speed: action.speed };
+
     case 'RESET':
-      return initialState;
+      return { ...initialState, speed: state.speed };
 
     default:
       return state;

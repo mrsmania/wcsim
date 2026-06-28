@@ -45,7 +45,7 @@ export default function App() {
     [],
   );
 
-  const { phase, formationName, style, formation, filled, currentSquad, selectedPlayerId, usedPersonIds, rerollsLeft, rolling, group, knockout } =
+  const { phase, formationName, style, formation, filled, currentSquad, selectedPlayerId, usedPersonIds, rerollsLeft, rolling, group, knockout, speed } =
     state;
 
   // During setup the pitch previews the selected formation/style; during the
@@ -185,6 +185,8 @@ export default function App() {
             formation={formation}
             filled={filled}
             group={group}
+            speed={speed}
+            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
             onAdvance={(p) => dispatch({ type: 'KO_RECORD', ...p })}
             onReset={() => dispatch({ type: 'RESET' })}
           />
@@ -193,6 +195,8 @@ export default function App() {
             group={group}
             formation={formation}
             filled={filled}
+            speed={speed}
+            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
             onRecordMatchday={(results) => dispatch({ type: 'RECORD_MATCHDAY', results })}
             onReset={() => dispatch({ type: 'RESET' })}
             onEnterKnockout={handleEnterKnockout}
