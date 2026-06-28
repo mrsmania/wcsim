@@ -12,3 +12,6 @@ dist-ssr
 # Playwright verification artifacts
 .playwright-mcp
 *.png
+
+# Local scratch files
+tmp_*
