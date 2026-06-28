@@ -3,14 +3,11 @@ import type { Filled } from '../domain/draft';
 import { standings, teamById, type GroupState } from '../domain/tournament';
 import type { KnockoutState } from '../domain/knockout';
 import { CATEGORY_ORDER, categoryOf } from '../data/types';
-import { SQUADS } from '../data/squads';
+import { SQUAD_BY_ID } from '../data/squads';
 import Flag from './Flag';
 
 const ordinal = (n: number) => (n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`);
 const KO_ABBR = ['R16', 'QF', 'SF', 'Final'];
-
-/** squadId -> squad, for a player's nationality + year on the summary. */
-const SQUAD_BY_ID = new Map(SQUADS.map((s) => [s.id, s]));
 
 function ResultBadge({ won }: { won?: boolean }) {
   return (
@@ -110,7 +107,7 @@ function SquadList({ formation, filled }: { formation: Formation; filled: Filled
       <ul className="flex flex-col">
         {ordered.map((slot) => {
           const player = filled[slot.id];
-          const squad = player ? SQUAD_BY_ID.get(player.squadId) : undefined;
+          const squad = player ? SQUAD_BY_ID[player.squadId] : undefined;
           return (
             <li key={slot.id} className="flex items-center gap-2 border-b border-stone-100 py-1.5 text-sm last:border-b-0">
               <span className="w-8 shrink-0 text-[11px] font-bold uppercase text-stone-500">{slot.label}</span>
