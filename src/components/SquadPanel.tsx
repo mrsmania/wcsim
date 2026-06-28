@@ -4,6 +4,7 @@ import { isSelectable } from '../domain/draft';
 import { RotateCcw } from 'lucide-react';
 import { chipFor } from './positionStyle';
 import Flag from './Flag';
+import { FEATURES } from '../config';
 
 export type RerollKind = 'team' | 'cup' | 'any';
 
@@ -142,8 +143,24 @@ export default function SquadPanel({
                                     )}
                                     <span
                                         className={`rounded px-1 text-[10px] font-bold ${chipFor(p.positions[0])}`}
+                                        title={
+                                            FEATURES.chemistry
+                                                ? 'Underlined = natural position; only placing the player there earns positional chemistry'
+                                                : undefined
+                                        }
                                     >
-                                        {formatPositions(p.positions)}
+                                        {FEATURES.chemistry ? (
+                                            <>
+                                                <span className="underline underline-offset-2">
+                                                    {p.positions[0]}
+                                                </span>
+                                                {p.positions.length > 1
+                                                    ? `/${p.positions.slice(1).join('/')}`
+                                                    : ''}
+                                            </>
+                                        ) : (
+                                            formatPositions(p.positions)
+                                        )}
                                     </span>
                                     <span className="w-8 text-right font-mono font-black">
                                         {p.elo}
