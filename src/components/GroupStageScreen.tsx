@@ -12,6 +12,7 @@ import {
   type MatchdayResult,
 } from '../domain/tournament';
 import { ArrowRight, FastForward, Pause, Play } from 'lucide-react';
+import { buildMatchSteps } from '../domain/clock';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import Flag from './Flag';
@@ -70,6 +71,7 @@ export default function GroupStageScreen({
   const [openMatchdays, setOpenMatchdays] = useState<Set<number>>(() => new Set());
   const [auto, setAuto] = useState(false);
   const [liveMinute, setLiveMinute] = useState(0);
+  const [clockLabel, setClockLabel] = useState('');
 
   const toggleOpen = (md: number) =>
     setOpenMatchdays((prev) => {
@@ -108,30 +110,38 @@ export default function GroupStageScreen({
     autoRef.current = auto;
   });
 
-  // Run the live clock for the playing matchday, then record results + advance.
+  // Run the live clock (with stoppage time + a half-time break) for the playing
+  // matchday, then record results + advance.
   useEffect(() => {
     if (!playing) return;
     const current = playing;
-    setLiveMinute(0);
-    let m = 0;
-    let done: number | undefined;
-    const id = window.setInterval(
-      () => {
-        m += 1;
-        setLiveMinute(m);
-        if (m >= 90) {
-          window.clearInterval(id);
-          done = window.setTimeout(() => {
+    const base = autoRef.current ? 22 : 50;
+    const steps = buildMatchSteps(90, autoRef.current ? 250 : 650);
+    let idx = 0;
+    let timer: number | undefined;
+    const tick = () => {
+      const step = steps[idx];
+      setLiveMinute(step.reveal);
+      setClockLabel(step.label);
+      const delay = base + (step.hold ?? 0);
+      if (idx >= steps.length - 1) {
+        timer = window.setTimeout(() => {
+          setClockLabel('FT');
+          timer = window.setTimeout(() => {
             recordRef.current(current.results);
             setPlaying(null);
           }, 700);
-        }
-      },
-      autoRef.current ? 22 : 50,
-    );
+        }, delay);
+        return;
+      }
+      idx += 1;
+      timer = window.setTimeout(tick, delay);
+    };
+    setLiveMinute(0);
+    setClockLabel('');
+    tick();
     return () => {
-      window.clearInterval(id);
-      if (done) window.clearTimeout(done);
+      if (timer) window.clearTimeout(timer);
     };
   }, [playing]);
 
@@ -283,7 +293,7 @@ export default function GroupStageScreen({
               home: shown.filter((e) => e.side === 'home').length,
               away: shown.filter((e) => e.side === 'away').length,
             };
-            userStatus = liveMinute >= 90 ? 'FT' : `${liveMinute}'`;
+            userStatus = clockLabel;
           } else if (open && userFx.result) {
             feedEvents = userFx.result.events;
           }

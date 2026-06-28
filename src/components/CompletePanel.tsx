@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 
@@ -29,9 +30,10 @@ export default function CompletePanel({ formation, filled, onStart, onReset }: P
 
       <button
         onClick={onStart}
-        className="rounded-xl bg-red-600 px-5 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
       >
-        ⚽ Start the World Cup
+        Start the World Cup
+        <ArrowRight size={18} strokeWidth={2.5} />
       </button>
 
       {confirmReset ? (

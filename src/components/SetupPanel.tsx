@@ -1,4 +1,5 @@
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
+import { ArrowRight } from 'lucide-react';
 
 interface Props {
     names: FormationName[];
@@ -85,13 +86,14 @@ export default function SetupPanel({
                 onClick={onStart}
                 disabled={!ready}
                 className={[
-                    'rounded px-4 py-3 text-base font-black uppercase tracking-wide transition',
+                    'inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-black uppercase tracking-wide transition',
                     ready
                         ? 'bg-red-600 text-white hover:bg-red-500 active:scale-[0.99]'
                         : 'cursor-not-allowed bg-stone-200 text-stone-400',
                 ].join(' ')}
             >
-                {ready ? '🎲 Roll for your first squad' : 'Loading…'}
+                {ready ? 'Roll for your first squad' : 'Loading…'}
+                {ready && <ArrowRight size={18} strokeWidth={2.5} />}
             </button>
         </div>
     );

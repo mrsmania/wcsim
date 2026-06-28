@@ -111,10 +111,10 @@ function SlotMarker({
     if (player) {
         return (
             <div className={wrap} style={style}>
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-stone-900 font-mono text-base font-bold text-white shadow-lg">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-stone-900 font-mono text-sm font-bold text-white shadow-lg">
                     {player.number}
                 </div>
-                <div className="mt-1 max-w-[88px] truncate rounded bg-white/90 px-1.5 py-0.5 text-center text-[11px] font-bold text-stone-900 shadow">
+                <div className="mt-1 max-w-[72px] truncate rounded bg-white/90 px-1 py-0.5 text-center text-[10px] font-bold leading-tight text-stone-900 shadow">
                     {lastName(player.name)}
                 </div>
             </div>
@@ -130,7 +130,7 @@ function SlotMarker({
         >
             <div
                 className={[
-                    'flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed text-xs font-bold uppercase tracking-wide transition',
+                    'flex h-9 w-9 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-bold uppercase tracking-wide transition',
                     isTarget
                         ? 'animate-slot-pulse cursor-pointer border-red-400 bg-red-500/40 text-white'
                         : 'border-white/60 bg-black/10 text-white/80',

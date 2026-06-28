@@ -12,6 +12,7 @@ import type { MatchResult, PenKick } from '../domain/match';
 import type { GroupState, GroupTeam } from '../domain/tournament';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
+import { buildMatchSteps } from '../domain/clock';
 import { Check, FastForward, Pause, Play, Trophy, X } from 'lucide-react';
 import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
@@ -102,6 +103,7 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
   const [revealCode, setRevealCode] = useState(randomCode);
   const [playing, setPlaying] = useState<KoResult | null>(null);
   const [liveMinute, setLiveMinute] = useState(0);
+  const [clockLabel, setClockLabel] = useState('');
   const [penShown, setPenShown] = useState(0);
   const [auto, setAuto] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -151,17 +153,19 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
     autoRef.current = auto;
   });
 
-  // Run the live clock, then (if drawn level) the shootout, then record + advance.
+  // Run the live clock (stoppage time + half-time), then (if drawn level) the
+  // shootout, then record + advance.
   useEffect(() => {
     if (!playing) return;
     const res = playing;
     const max = maxMinute(res.decided);
     const kicks = res.pens?.kicks ?? [];
-    setLiveMinute(0);
-    setPenShown(0);
-    const timers: number[] = [];
-    const tickMs = autoRef.current ? 20 : 45;
+    const base = autoRef.current ? 20 : 45;
     const penMs = autoRef.current ? 220 : 600;
+    const steps = buildMatchSteps(max, autoRef.current ? 220 : 600);
+    const endLabel = res.decided === 'reg' ? 'FT' : res.decided === 'aet' ? 'a.e.t.' : 'pens';
+    let idx = 0;
+    let timer: number | undefined;
 
     const advance = () => {
       const willAdvance = res.userWon && currentRef.current < KO_ROUNDS.length - 1;
@@ -183,28 +187,44 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
         setPenShown(k);
         if (k >= kicks.length) {
           window.clearInterval(penId);
-          timers.push(window.setTimeout(advance, 1500));
+          timer = window.setTimeout(advance, 1500);
         }
       }, penMs);
-      timers.push(penId);
+      timer = penId;
     };
 
-    let m = 0;
-    const clockId = window.setInterval(() => {
-      m += 1;
-      setLiveMinute(m);
-      if (m >= max) {
-        window.clearInterval(clockId);
-        if (res.decided === 'pens' && kicks.length) {
-          timers.push(window.setTimeout(runShootout, 700));
-        } else {
-          timers.push(window.setTimeout(advance, 1200));
-        }
+    const finishClock = () => {
+      setClockLabel(endLabel);
+      if (res.decided === 'pens' && kicks.length) {
+        timer = window.setTimeout(runShootout, 700);
+      } else {
+        timer = window.setTimeout(advance, 1200);
       }
-    }, tickMs);
-    timers.push(clockId);
+    };
 
-    return () => timers.forEach((t) => window.clearTimeout(t));
+    const tick = () => {
+      const step = steps[idx];
+      setLiveMinute(step.reveal);
+      setClockLabel(step.label);
+      const delay = base + (step.hold ?? 0);
+      if (idx >= steps.length - 1) {
+        timer = window.setTimeout(finishClock, delay);
+        return;
+      }
+      idx += 1;
+      timer = window.setTimeout(tick, delay);
+    };
+
+    setLiveMinute(0);
+    setClockLabel('');
+    setPenShown(0);
+    tick();
+    return () => {
+      if (timer) {
+        window.clearTimeout(timer);
+        window.clearInterval(timer);
+      }
+    };
   }, [playing]);
 
   // Auto mode: play each round once its opponent is revealed.
@@ -248,7 +268,8 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
       </div>
 
       <div className="flex flex-col gap-3">
-        {KO_ROUNDS.map((name, i) => {
+        {rounds.map((_round, i) => {
+          const name = KO_ROUNDS[i];
           const r = rounds[i];
           const opp = r?.opponent ?? null;
           const isActive = i === current && outcome === 'alive';
@@ -261,20 +282,12 @@ export default function KnockoutScreen({ knockout, formation, filled, group, onA
           let status: string | undefined;
           if (isPlaying) {
             const res = playing!;
-            const max = maxMinute(res.decided);
             const shown = res.result.events.filter((e) => e.minute <= liveMinute);
             score = {
               home: shown.filter((e) => e.side === 'home').length,
               away: shown.filter((e) => e.side === 'away').length,
             };
-            status =
-              liveMinute < max
-                ? `${liveMinute}'`
-                : res.decided === 'reg'
-                  ? 'FT'
-                  : res.decided === 'aet'
-                    ? 'a.e.t.'
-                    : 'pens';
+            status = clockLabel;
           } else if (played) {
             score = { home: r!.result!.homeGoals, away: r!.result!.awayGoals };
             status = r!.decided === 'aet' ? 'a.e.t.' : r!.decided === 'pens' ? 'pens' : undefined;
