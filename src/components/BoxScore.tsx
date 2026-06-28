@@ -3,27 +3,27 @@ import type { Player } from '../data/types';
 import { CATEGORY_ORDER, categoryOf } from '../data/types';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { teamChemistry } from '../domain/chemistry';
+import { teamChemistry, MAX_BONUS } from '../domain/chemistry';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
 import Flag from './Flag';
 
-/** Full rules shown when hovering the chemistry "?" help icon. */
+/** Full rules shown when hovering the chemistry "?" help icon. Category names and
+ *  point tiers match exactly what the breakdown below shows. */
 const CHEMISTRY_RULES = (
-    <div className="space-y-1">
-        <div className="font-bold">Chemistry — a boost to your XI's overall (max +6)</div>
-        <ul className="list-disc space-y-0.5 pl-4 marker:text-stone-400">
-            <li><span className="font-semibold">Same squad</span> — real teammates (same nation &amp; year). Strongest link.</li>
-            <li><span className="font-semibold">Same nation</span> — countrymen across different cups.</li>
-            <li><span className="font-semibold">Same tournament</span> — players from one World Cup.</li>
-            <li><span className="font-semibold">Same continent</span> — players from one confederation.</li>
-            <li><span className="font-semibold">Same era</span> — tournaments close together in time.</li>
-            <li><span className="font-semibold">In position</span> — players in their natural (underlined) role.</li>
+    <div className="space-y-1.5">
+        <div className="font-bold">Chemistry — added to your XI's overall. Points add up (max +{MAX_BONUS}):</div>
+        <ul className="space-y-1">
+            <li><span className="font-semibold">Same squad</span> — real teammates (same nation &amp; year): 2+ → +1, 4+ → +2, 7+ → +3, all 11 → +4</li>
+            <li><span className="font-semibold">Same nation</span> — across any years: 3+ → +1, 5+ → +2, 8+ → +3</li>
+            <li><span className="font-semibold">Same tournament</span> — one World Cup: 3+ → +1, 5+ → +2, 8+ → +3</li>
+            <li><span className="font-semibold">Same continent</span> — one confederation: 6+ → +1, 9+ → +2</li>
+            <li><span className="font-semibold">Same era</span> — all within 4 years: +1</li>
+            <li><span className="font-semibold">In position</span> — 10+ in their natural (underlined) role: +1</li>
         </ul>
         <div className="text-stone-300">
-            More links and tighter themes mean a bigger boost. Opponents are real national teams, so
-            chemistry helps your mixed XI compete.
+            The largest group in each row counts. Add the rows up; the total is capped at +{MAX_BONUS}.
         </div>
     </div>
 );
@@ -121,16 +121,32 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
                             {chem.placed > 0 ? overall + chem.bonus : '—'}
                         </span>
                     </div>
-                    {chem.links.length > 0 && (
+                    {chem.categories.length > 0 && (
                         <ul className="mt-1.5 flex flex-col gap-0.5 border-t border-emerald-600/20 pt-1.5">
-                            {chem.links.map((l) => (
+                            {chem.categories.map((c) => (
                                 <li
-                                    key={l.dimension + l.label}
-                                    className="truncate text-[11px] text-stone-600"
+                                    key={c.key}
+                                    className="flex items-baseline justify-between gap-2 text-[11px]"
                                 >
-                                    {l.label}
+                                    <span className="min-w-0 truncate">
+                                        <span className="font-semibold text-stone-700">{c.name}</span>{' '}
+                                        <span className="text-stone-400">{c.detail}</span>
+                                    </span>
+                                    <span className="shrink-0 font-mono text-emerald-700">
+                                        +{c.points}
+                                    </span>
                                 </li>
                             ))}
+                            <li className="mt-0.5 flex items-baseline justify-between gap-2 border-t border-emerald-600/20 pt-1 text-[11px]">
+                                <span className="font-semibold text-stone-500">
+                                    {chem.capped
+                                        ? `Total +${chem.rawTotal}, capped at +${MAX_BONUS}`
+                                        : 'Total'}
+                                </span>
+                                <span className="shrink-0 font-mono font-black text-emerald-700">
+                                    +{chem.bonus}
+                                </span>
+                            </li>
                         </ul>
                     )}
                 </div>

@@ -89,17 +89,10 @@ export default function Flag({ code, isUser = false, className = 'h-4 w-6' }: Pr
     );
   }
   const F = BY_FIFA[code];
-  if (!F) {
-    return (
-      <span
-        className={`inline-flex shrink-0 items-center justify-center rounded bg-stone-600 text-[9px] font-black leading-none text-white ${className}`}
-      >
-        {code}
-      </span>
-    );
-  }
+  // Only ever display real flags — no code-box fallback.
+  if (!F) return null;
   return (
-    <span className={`inline-flex shrink-0 overflow-hidden rounded-[3px] shadow-sm ring-1 ring-black/10 ${className}`}>
+    <span className={`inline-flex shrink-0 overflow-hidden rounded-[2px] ${className}`}>
       <F title={code} className="block h-full w-full" />
     </span>
   );
