@@ -11,7 +11,6 @@ import { squadGroupTeam, squadOverall, type GroupTeam } from './tournament';
 
 /** Knockout rounds the user must win, in order, to be crowned champion. */
 export const KO_ROUNDS = ['Round of 16', 'Quarter-final', 'Semi-final', 'Final'] as const;
-export type KoRoundName = (typeof KO_ROUNDS)[number];
 
 /** How a tie was settled. */
 export type KoDecided = 'reg' | 'aet' | 'pens';
