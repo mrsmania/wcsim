@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
 import type { TeamStrength } from '../domain/draft';
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { ChevronDown, Dices } from 'lucide-react';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'weak', label: 'Weak', hint: 'elo < 75' },
@@ -106,8 +106,8 @@ export default function SetupPanel({
                             : 'cursor-not-allowed bg-stone-200 text-stone-400',
                     ].join(' ')}
                 >
-                    {ready ? 'Roll for your first squad' : 'Loading…'}
-                    {ready && <ArrowRight size={16} strokeWidth={2.5} />}
+                    {ready ? 'Roll' : 'Loading…'}
+                    {ready && <Dices size={18} strokeWidth={2.5} />}
                 </button>
                 <div className="relative shrink-0">
                     <button
@@ -126,7 +126,10 @@ export default function SetupPanel({
                     </button>
                     {menuOpen && ready && (
                         <>
-                            <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                            <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setMenuOpen(false)}
+                            />
                             <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-stone-300 bg-white shadow-lg">
                                 {STRENGTH_TIERS.map((t) => (
                                     <button
@@ -138,7 +141,9 @@ export default function SetupPanel({
                                         className="flex w-full items-baseline justify-between gap-2 border-b border-stone-100 px-3 py-2 text-left transition last:border-b-0 hover:bg-stone-100"
                                     >
                                         <span className="text-sm font-bold">{t.label}</span>
-                                        <span className="text-[10px] font-medium text-stone-400">{t.hint}</span>
+                                        <span className="text-[10px] font-medium text-stone-400">
+                                            {t.hint}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
