@@ -4,8 +4,10 @@ import { CATEGORY_ORDER, categoryOf } from '../data/types';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
+import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
+import Flag from './Flag';
 
 /** Full rules shown when hovering the chemistry "?" help icon. */
 const CHEMISTRY_RULES = (
@@ -140,6 +142,7 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
             <ul className="flex flex-col">
                 {ordered.map((slot) => {
                     const player = filled[slot.id];
+                    const sq = player ? SQUAD_BY_ID[player.squadId] : null;
                     return (
                         <li
                             key={slot.id}
@@ -153,6 +156,14 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
                             >
                                 {player ? player.name : '—'}
                             </span>
+                            {chem && sq && (
+                                <span className="flex shrink-0 items-center gap-1 text-stone-400">
+                                    <Flag code={sq.code} className="h-3 w-5" />
+                                    <span className="w-7 font-mono text-[10px] tabular-nums">
+                                        ’{String(sq.year).slice(2)}
+                                    </span>
+                                </span>
+                            )}
                             <span className="w-7 text-right font-mono text-sm font-black">
                                 {player ? player.elo : '—'}
                             </span>
