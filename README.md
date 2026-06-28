@@ -40,10 +40,16 @@ npm run typecheck
 ```
 src/
   data/        types.ts (domain types + position/category model) + squads.ts (the dataset)
-  domain/      formations.ts (hardcoded formations -> pitch coordinates), draft.ts (pure draft logic)
-  state/       gameReducer.ts (phase machine: setup -> draft -> complete)
-  components/  SetupPanel, SquadPanel, Pitch, BoxScore, CompletePanel
+  domain/      pure logic: formations, draft, match (sim + shootout),
+               tournament (group/standings), knockout, clock (playback), chemistry
+  state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group -> knockout)
+  components/  SetupPanel, SquadPanel, Pitch, BoxScore, CompletePanel, GroupStageScreen,
+               KnockoutScreen, TournamentSummary + shared atoms (Flag, Tooltip,
+               FixtureRow, GoalList, SpeedControl)
+  config.ts    FEATURES flags
 ```
+
+See `CLAUDE.md` for an architecture / onboarding overview.
 
 Players carry an array of specific positions (e.g. `['RB','RM']`); a slot only
 accepts a player whose positions include the slot's role. Each real person has a
@@ -70,7 +76,8 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Group stage: draw 3 opponents, round-robin, group table, top 2 advance
 - [x] Match engine: team strength (attack/defense from elo) -> Poisson goals, with scorers
 - [x] Animated play-by-play match overlay (running clock, goal feed)
-- [ ] Knockout rounds through to the final
+- [x] Knockout rounds through to the final (extra time + penalty shootout) and a tournament summary
+- [x] Team chemistry: cohesion bonus to the user XI, feature-flagged in `src/config.ts`
 
 ## Hosting
 
