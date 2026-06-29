@@ -231,17 +231,23 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
         <div
             ref={stageRef}
             className={[
-                'relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-line shadow-soft',
-                tilt ? 'pitch-stage aspect-6/5' : 'aspect-3/4',
+                'relative mx-auto w-full max-w-2xl overflow-hidden',
+                tilt ? 'pitch-stage aspect-square' : 'aspect-3/4',
             ].join(' ')}
-            style={tilt ? { background: 'linear-gradient(180deg,#cfe9d5,#bfe1c7 32%,#aed7b6)' } : undefined}
+            // Soft green haze behind the pitch (fades to the page, no hard edges, so
+            // it reads as distance rather than a box).
+            style={
+                tilt
+                    ? { background: 'radial-gradient(115% 80% at 50% 44%, rgba(47,156,93,0.16), rgba(47,156,93,0) 72%)' }
+                    : undefined
+            }
         >
             {/* Pitch surface: tilts back in 3D (stripes + markings recede); flat fills the frame.
           The top of the field is cropped above the container so the attacking third
-          does not leave a band of empty grass over the forwards. */}
+          does not leave a band of empty grass over the forwards. No box around it. */}
             <div
                 className={tilt ? 'pitch-field absolute overflow-hidden rounded-lg' : 'absolute inset-0'}
-                style={tilt ? { left: '5%', right: '5%', top: '-12%', bottom: '1%' } : undefined}
+                style={tilt ? { left: '2%', right: '2%', top: '-4%', bottom: '1%' } : undefined}
             >
                 {/* Mowing stripes */}
                 <div className="absolute inset-0">

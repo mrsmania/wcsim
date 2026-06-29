@@ -111,6 +111,6 @@ button:not(:disabled) {
   perspective-origin: 50% 24%;
 }
 .pitch-field {
-  transform: rotateX(46deg);
-  transform-origin: 50% 92%;
+  transform: rotateX(38deg);
+  transform-origin: 50% 88%;
 }
