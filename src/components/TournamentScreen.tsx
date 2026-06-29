@@ -467,10 +467,12 @@ export default function TournamentScreen({
   useEffect(() => {
     if (nextAnchorKey) nextButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [nextAnchorKey]);
-  // Follow the live feed (each goal, then each shootout kick) so the latest line stays in view.
+  // Follow the live feed: when a goal (or shootout kick) extends the box, scroll so
+  // the bottom of the feed sits just above the viewport bottom (block: 'end' keeps
+  // it pinned consistently instead of jumping around like 'nearest' does).
   useEffect(() => {
     if (liveRevealed > 0 || penShown > 0) {
-      liveFeedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      liveFeedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [liveRevealed, penShown]);
   useEffect(() => {
@@ -754,7 +756,7 @@ export default function TournamentScreen({
                       live={isPlayingMd && liveMinute < 90}
                     />
                     {/* Scroll anchor so the page follows the feed as goals appear. */}
-                    <div ref={isPlayingMd ? liveFeedRef : undefined} className="scroll-mb-24" />
+                    <div ref={isPlayingMd ? liveFeedRef : undefined} className="scroll-mb-8" />
                   </div>
                 )}
               </div>
@@ -852,7 +854,7 @@ export default function TournamentScreen({
                         <ShootoutFeed oppName={opp?.name ?? 'Opponent'} kicks={penKicks} shown={penShownCount} />
                       )}
                       {/* Scroll anchor so each new penalty line stays in view. */}
-                      <div ref={isPlayingRound ? liveFeedRef : undefined} className="scroll-mb-24" />
+                      <div ref={isPlayingRound ? liveFeedRef : undefined} className="scroll-mb-8" />
                     </div>
                   )}
                 </div>
