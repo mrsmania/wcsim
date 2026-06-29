@@ -30,6 +30,8 @@ export interface GameState {
   knockout: KnockoutState | null;
   /** Match simulation playback speed. */
   speed: MatchSpeed;
+  /** "Automatic" playback toggle, shared across group + knockout so it carries over. */
+  auto: boolean;
 }
 
 export type Action =
@@ -55,6 +57,7 @@ export type Action =
       nextOpponent: GroupTeam | null;
     }
   | { type: 'SET_SPEED'; speed: MatchSpeed }
+  | { type: 'SET_AUTO'; auto: boolean }
   | { type: 'RESET' };
 
 export const initialState: GameState = {
@@ -71,6 +74,7 @@ export const initialState: GameState = {
   group: null,
   knockout: null,
   speed: 'fast',
+  auto: false,
 };
 
 function currentPlayer(squad: Squad | null, playerId: string | null): Player | null {
@@ -175,6 +179,9 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
     case 'SET_SPEED':
       return { ...state, speed: action.speed };
+
+    case 'SET_AUTO':
+      return { ...state, auto: action.auto };
 
     case 'RESET':
       return { ...initialState, speed: state.speed };

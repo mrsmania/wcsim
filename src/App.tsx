@@ -15,7 +15,7 @@ import {
   STRENGTH_BANDS,
   type TeamStrength,
 } from './domain/draft';
-import { createGroup, pickOpponents, userGroupTeam } from './domain/tournament';
+import { createGroup, isGroupFinished, pickOpponents, userAdvanced, userGroupTeam } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
 import { createKnockout } from './domain/knockout';
 import { FEATURES } from './config';
@@ -25,8 +25,7 @@ import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import CompletePanel from './components/CompletePanel';
 import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
-import GroupStageScreen from './components/GroupStageScreen';
-import KnockoutScreen from './components/KnockoutScreen';
+import TournamentScreen from './components/TournamentScreen';
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
@@ -49,7 +48,7 @@ export default function App() {
     [],
   );
 
-  const { phase, formationName, style, formation, filled, currentSquad, selectedPlayerId, usedPersonIds, rerollsLeft, rolling, group, knockout, speed } =
+  const { phase, formationName, style, formation, filled, currentSquad, selectedPlayerId, usedPersonIds, rerollsLeft, rolling, group, knockout, speed, auto } =
     state;
 
   // During setup the pitch previews the selected formation/style; during the
@@ -171,6 +170,15 @@ export default function App() {
     dispatch({ type: 'START_KNOCKOUT', knockout: createKnockout(user, excludeIds) });
   }, [group]);
 
+  // Group and knockout share one screen. As soon as the user clears the group,
+  // create the knockout so the Round of 16 shows up as the next game section
+  // (no manual "Enter the knockouts" step), then it plays like any other game.
+  useEffect(() => {
+    if (phase === 'group' && group && !knockout && isGroupFinished(group) && userAdvanced(group)) {
+      handleEnterKnockout();
+    }
+  }, [phase, group, knockout, handleEnterKnockout]);
+
   const openPositions = useMemo<Set<Position>>(
     () => (activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>()),
     [activeFormation, filled],
@@ -188,27 +196,19 @@ export default function App() {
           <span className="text-sm font-semibold text-stone-500">Draft your most random world cup XI</span>
         </header>
 
-        {phase === 'knockout' && knockout && formation ? (
-          <KnockoutScreen
+        {(phase === 'group' || phase === 'knockout') && group && formation ? (
+          <TournamentScreen
+            group={group}
             knockout={knockout}
             formation={formation}
             filled={filled}
-            group={group}
             speed={speed}
-            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-            onAdvance={(p) => dispatch({ type: 'KO_RECORD', ...p })}
-            onReset={() => dispatch({ type: 'RESET' })}
-          />
-        ) : phase === 'group' && group && formation ? (
-          <GroupStageScreen
-            group={group}
-            formation={formation}
-            filled={filled}
-            speed={speed}
+            auto={auto}
+            onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
             onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
             onRecordMatchday={(results) => dispatch({ type: 'RECORD_MATCHDAY', results })}
+            onAdvanceKo={(p) => dispatch({ type: 'KO_RECORD', ...p })}
             onReset={() => dispatch({ type: 'RESET' })}
-            onEnterKnockout={handleEnterKnockout}
           />
         ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)_300px]">

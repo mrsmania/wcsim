@@ -43,9 +43,9 @@ src/
   domain/      pure logic: formations, draft, match (sim + shootout),
                tournament (group/standings), knockout, clock (playback), chemistry
   state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group -> knockout)
-  components/  SetupPanel, SquadPanel, Pitch, BoxScore, CompletePanel, GroupStageScreen,
-               KnockoutScreen, TournamentSummary + shared atoms (Flag, Tooltip,
-               FixtureRow, GoalList, SpeedControl)
+  components/  SetupPanel, SquadPanel, Pitch, BoxScore, CompletePanel, TournamentScreen
+               (group + knockout on one screen), TournamentSummary + shared atoms
+               (Flag, Tooltip, FixtureRow, GoalList, SpeedControl)
   config.ts    FEATURES flags
 ```
 
