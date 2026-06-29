@@ -32,7 +32,7 @@ interface Props {
 function EloPill({ elo, group }: { elo: number; group: 'home' | 'away' }) {
   return (
     <span
-      className={`hidden shrink-0 rounded bg-stone-800 px-1 font-mono text-[10px] font-bold leading-tight text-white ${
+      className={`hidden shrink-0 rounded-full bg-pitch px-1.5 font-mono text-[10px] font-bold leading-tight text-white ${
         group === 'home' ? 'group-hover/home:inline-block' : 'group-hover/away:inline-block'
       }`}
     >
@@ -55,15 +55,15 @@ export default function FixtureRow({
   homeElo,
   awayElo,
 }: Props) {
-  const tint = home.isUser || away.isUser ? 'bg-red-50' : '';
+  const tint = home.isUser || away.isUser ? 'bg-pitch/[0.06]' : '';
   const scoreText = score ? `${score.home}–${score.away}` : 'v';
 
   const awayContent = awayUnknown ? (
     <>
-      <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded-[3px] bg-stone-200 text-[10px] font-black text-stone-400">
+      <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded-[3px] bg-line text-[10px] font-black text-muted">
         ?
       </span>
-      <span className="truncate text-stone-400">?</span>
+      <span className="truncate text-muted">?</span>
     </>
   ) : scrambleCode !== undefined ? (
     <>
@@ -74,7 +74,7 @@ export default function FixtureRow({
     <>
       <Flag code={away.code} isUser={away.isUser} className="h-4 w-6 shrink-0" />
       <span className="truncate">{away.name}</span>
-      {away.year && <span className="shrink-0 text-[11px] font-normal text-stone-400">{away.year}</span>}
+      {away.year && <span className="shrink-0 text-[11px] font-normal text-muted">{away.year}</span>}
     </>
   );
 
@@ -85,24 +85,24 @@ export default function FixtureRow({
       <span className={`group/home flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
         {homeElo != null && <EloPill elo={homeElo} group="home" />}
         <span className="truncate">{home.name}</span>
-        {home.year && <span className="shrink-0 text-[11px] font-normal text-stone-400">{home.year}</span>}
+        {home.year && <span className="shrink-0 text-[11px] font-normal text-muted">{home.year}</span>}
         <Flag code={home.code} isUser={home.isUser} className="h-4 w-6 shrink-0" />
       </span>
-      <span className="flex w-12 shrink-0 flex-col items-center leading-none sm:w-14">
-        <span className="font-mono font-bold">{scoreText}</span>
-        {status && <span className="mt-0.5 text-[9px] font-bold uppercase text-red-600">{status}</span>}
+      <span className="flex w-14 shrink-0 flex-col items-center leading-none sm:w-16">
+        <span className="rounded-lg bg-pitch/5 px-2.5 py-1 font-mono font-bold text-ink">{scoreText}</span>
+        {status && <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.08em] text-amber">{status}</span>}
       </span>
       <span className={`group/away flex flex-1 items-center gap-2 truncate ${away.isUser ? 'font-black' : 'font-medium'}`}>
         {awayContent}
         {showAwayElo && <EloPill elo={awayElo} group="away" />}
       </span>
-      <span className="flex w-4 items-center justify-center text-stone-400">
+      <span className="flex w-4 items-center justify-center text-muted">
         {expandable ? expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} /> : null}
       </span>
     </>
   );
 
-  const cls = `flex items-center gap-2 rounded px-2 py-1.5 text-sm ${tint}`;
+  const cls = `flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm ${tint}`;
   return expandable && onToggle ? (
     <button onClick={onToggle} className={`${cls} w-full text-left`}>
       {inner}

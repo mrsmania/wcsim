@@ -12,12 +12,12 @@ const KO_ABBR = ['R16', 'QF', 'SF', 'Final'];
 function ResultBadge({ won }: { won?: boolean }) {
   return (
     <span
-      className={`w-5 shrink-0 rounded text-center text-[10px] font-black ${
+      className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-center text-[10px] font-black ${
         won === undefined
-          ? 'bg-stone-200 text-stone-600'
+          ? 'bg-line text-muted'
           : won
-            ? 'bg-emerald-100 text-emerald-700'
-            : 'bg-red-100 text-red-700'
+            ? 'bg-win/15 text-win'
+            : 'bg-loss/15 text-loss'
       }`}
     >
       {won === undefined ? 'D' : won ? 'W' : 'L'}
@@ -42,7 +42,7 @@ function GroupRecap({ group }: { group: GroupState }) {
 
   return (
     <div>
-      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-stone-500">
+      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">
         Group stage · finished {ordinal(position)} of {table.length}
       </div>
       <ul className="flex flex-col gap-1">
@@ -50,9 +50,9 @@ function GroupRecap({ group }: { group: GroupState }) {
           <li key={i} className="flex items-center gap-2 text-sm">
             <ResultBadge won={r.won} />
             <Flag code={r.opponent.code} className="h-4 w-6 shrink-0" />
-            <span className="flex-1 truncate font-semibold">{r.opponent.name}</span>
-            {r.opponent.year && <span className="shrink-0 text-[11px] text-stone-400">{r.opponent.year}</span>}
-            <span className="shrink-0 font-mono font-bold">
+            <span className="flex-1 truncate font-semibold text-ink">{r.opponent.name}</span>
+            {r.opponent.year && <span className="shrink-0 text-[11px] text-muted">{r.opponent.year}</span>}
+            <span className="shrink-0 font-mono font-bold text-ink">
               {r.gf}–{r.ga}
             </span>
           </li>
@@ -68,7 +68,7 @@ function KnockoutRecap({ knockout }: { knockout: KnockoutState }) {
   if (rounds.length === 0) return null;
   return (
     <div>
-      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-stone-500">Knockouts</div>
+      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Knockouts</div>
       <ul className="flex flex-col gap-1">
         {rounds.map((r, i) => {
           const extra =
@@ -80,13 +80,13 @@ function KnockoutRecap({ knockout }: { knockout: KnockoutState }) {
           return (
             <li key={i} className="flex items-center gap-2 text-sm">
               <ResultBadge won={r.userWon} />
-              <span className="w-9 shrink-0 text-[10px] font-bold uppercase text-stone-400">{KO_ABBR[i]}</span>
+              <span className="w-9 shrink-0 text-[10px] font-bold uppercase text-muted">{KO_ABBR[i]}</span>
               <Flag code={r.opponent.code} className="h-4 w-6 shrink-0" />
-              <span className="flex-1 truncate font-semibold">{r.opponent.name}</span>
-              {r.opponent.year && <span className="shrink-0 text-[11px] text-stone-400">{r.opponent.year}</span>}
-              <span className="shrink-0 font-mono font-bold">
+              <span className="flex-1 truncate font-semibold text-ink">{r.opponent.name}</span>
+              {r.opponent.year && <span className="shrink-0 text-[11px] text-muted">{r.opponent.year}</span>}
+              <span className="shrink-0 font-mono font-bold text-ink">
                 {r.result!.homeGoals}–{r.result!.awayGoals}
-                <span className="font-normal text-stone-400">{extra}</span>
+                <span className="font-normal text-muted">{extra}</span>
               </span>
             </li>
           );
@@ -103,20 +103,20 @@ function SquadList({ formation, filled }: { formation: Formation; filled: Filled
   );
   return (
     <div>
-      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-stone-500">Your XI</div>
+      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">Your XI</div>
       <ul className="flex flex-col">
         {ordered.map((slot) => {
           const player = filled[slot.id];
           const squad = player ? SQUAD_BY_ID[player.squadId] : undefined;
           return (
-            <li key={slot.id} className="flex items-center gap-2 border-b border-stone-100 py-1.5 text-sm last:border-b-0">
-              <span className="w-8 shrink-0 text-[11px] font-bold uppercase text-stone-500">{slot.label}</span>
-              <span className={`flex-1 truncate ${player ? 'font-semibold' : 'text-stone-400'}`}>
+            <li key={slot.id} className="flex items-center gap-2 border-b border-line py-1.5 text-sm last:border-b-0">
+              <span className="w-8 shrink-0 text-[11px] font-bold uppercase text-muted">{slot.label}</span>
+              <span className={`flex-1 truncate ${player ? 'font-semibold text-ink' : 'text-muted'}`}>
                 {player ? player.name : '—'}
               </span>
               <Flag code={squad?.code ?? ''} className="h-4 w-6 shrink-0" />
-              {squad?.year && <span className="shrink-0 text-[11px] text-stone-400">{squad.year}</span>}
-              <span className="w-7 shrink-0 text-right font-mono font-black">{player ? player.elo : '—'}</span>
+              {squad?.year && <span className="shrink-0 text-[11px] text-muted">{squad.year}</span>}
+              <span className="w-7 shrink-0 text-right font-mono font-black text-ink">{player ? player.elo : '—'}</span>
             </li>
           );
         })}
@@ -137,8 +137,8 @@ interface Props {
 /** End-of-tournament recap: results (group + knockouts) and the drafted XI. */
 export default function TournamentSummary({ formation, filled, group, knockout }: Props) {
   return (
-    <div className="mt-4 flex flex-col gap-5 rounded-xl border border-stone-300 bg-white p-4 text-left">
-      <div className="text-[11px] font-semibold tracking-[0.2em] text-stone-500">TOURNAMENT SUMMARY</div>
+    <div className="mt-4 flex flex-col gap-5 rounded-2xl border border-line bg-panel p-5 text-left shadow-soft">
+      <div className="text-[11px] font-bold tracking-[0.2em] text-muted">TOURNAMENT SUMMARY</div>
       {group && <GroupRecap group={group} />}
       {knockout && <KnockoutRecap knockout={knockout} />}
       <SquadList formation={formation} filled={filled} />

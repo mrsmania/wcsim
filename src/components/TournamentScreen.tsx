@@ -58,8 +58,8 @@ const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
 function PenPip({ scored }: { scored: boolean }) {
   return (
     <span
-      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
-        scored ? 'bg-emerald-500' : 'bg-red-500'
+      className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full ${
+        scored ? 'bg-win' : 'bg-loss'
       }`}
     >
       {scored ? (
@@ -84,37 +84,37 @@ function ShootoutFeed({ oppName, kicks, shown }: { oppName: string; kicks: PenKi
   const rounds = Math.max(homeKicks.length, awayKicks.length);
 
   return (
-    <div className="mt-2 border-t border-stone-200 pt-2">
-      <div className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-stone-500">
+    <div className="mt-2 border-t border-line pt-3">
+      <div className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
         Penalty shootout
       </div>
-      <div className="mb-2 flex items-center justify-center gap-3 text-sm">
-        <span className="flex-1 truncate text-right font-black">Your XI</span>
-        <span className="shrink-0 font-mono font-black">
+      <div className="mb-2.5 flex items-center justify-center gap-3 text-sm">
+        <span className="flex-1 truncate text-right font-black text-ink">Your XI</span>
+        <span className="shrink-0 rounded-lg bg-pitch/5 px-2.5 py-1 font-mono font-black text-ink">
           {homeScore}–{awayScore}
         </span>
-        <span className="flex-1 truncate font-semibold">{oppName}</span>
+        <span className="flex-1 truncate font-semibold text-ink">{oppName}</span>
       </div>
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1.5">
         {Array.from({ length: rounds }, (_, i) => {
           const h = homeKicks[i];
           const a = awayKicks[i];
           return (
-            <li key={i} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-xs">
-              <span className="flex min-w-0 items-center justify-end gap-1.5">
+            <li key={i} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 text-[13px]">
+              <span className="flex min-w-0 items-center justify-end gap-2">
                 {h ? (
                   <>
-                    <span className="truncate font-semibold">{h.taker}</span>
+                    <span className="truncate font-bold text-ink">{h.taker}</span>
                     <PenPip scored={h.scored} />
                   </>
                 ) : null}
               </span>
-              <span className="w-4 text-center font-mono text-[10px] text-stone-400">{i + 1}</span>
-              <span className="flex min-w-0 items-center justify-start gap-1.5">
+              <span className="w-6 text-center font-mono text-[10px] text-muted">{i + 1}</span>
+              <span className="flex min-w-0 items-center justify-start gap-2">
                 {a ? (
                   <>
                     <PenPip scored={a.scored} />
-                    <span className="truncate font-semibold">{a.taker}</span>
+                    <span className="truncate font-bold text-ink">{a.taker}</span>
                   </>
                 ) : null}
               </span>
@@ -146,15 +146,15 @@ function MenuSelect<T extends string>({
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={ariaLabel}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-stone-400 px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition hover:border-stone-900 hover:bg-stone-900 hover:text-white"
+        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-3.5 py-2 text-xs font-bold text-ink shadow-soft transition hover:border-pitch/40"
       >
         {current}
-        <ChevronDown size={14} strokeWidth={2.5} />
+        <ChevronDown size={14} strokeWidth={2.5} className="text-muted" />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-xl border border-stone-300 bg-white shadow-lg">
+          <div className="absolute right-0 z-20 mt-1.5 w-40 overflow-hidden rounded-2xl border border-line bg-panel shadow-soft">
             {options.map((o) => (
               <button
                 key={o.value}
@@ -162,12 +162,12 @@ function MenuSelect<T extends string>({
                   setOpen(false);
                   onSelect(o.value);
                 }}
-                className={`flex w-full items-center justify-between gap-2 border-b border-stone-100 px-3 py-2 text-left text-sm font-bold transition last:border-b-0 hover:bg-stone-100 ${
-                  o.value === value ? 'text-stone-900' : 'text-stone-500'
+                className={`flex w-full items-center justify-between gap-2 border-b border-line px-3.5 py-2.5 text-left text-sm font-bold transition last:border-b-0 hover:bg-pitch/[0.06] ${
+                  o.value === value ? 'text-ink' : 'text-muted'
                 }`}
               >
                 {o.label}
-                {o.value === value && <Check size={14} strokeWidth={3} className="text-emerald-600" />}
+                {o.value === value && <Check size={14} strokeWidth={3} className="text-pitch" />}
               </button>
             ))}
           </div>
@@ -466,8 +466,8 @@ export default function TournamentScreen({
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-8 py-12">
         <div className="text-center">
-          <div className="text-[11px] font-semibold tracking-[0.2em] text-stone-500">GROUP DRAW</div>
-          <h2 className="text-2xl font-black">Your group</h2>
+          <div className="text-[11px] font-bold tracking-[0.2em] text-muted">GROUP DRAW</div>
+          <h2 className="text-2xl font-black text-ink">Your group</h2>
         </div>
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-center sm:gap-8">
           <div className="flex w-24 flex-col items-center gap-2">
@@ -481,8 +481,8 @@ export default function TournamentScreen({
                 className={`flex w-24 flex-col items-center gap-1 ${settled ? 'animate-settle' : ''}`}
               >
                 <Flag code={revealCodes[i] ?? ''} className="h-12 w-[4.5rem]" />
-                <span className="text-center text-sm font-bold leading-tight">{settled ? o.name : '…'}</span>
-                {settled && o.year && <span className="text-xs font-semibold text-red-600">WC {o.year}</span>}
+                <span className="text-center text-sm font-bold leading-tight text-ink">{settled ? o.name : '…'}</span>
+                {settled && o.year && <span className="text-xs font-bold text-amber">WC {o.year}</span>}
               </div>
             ))}
           </div>
@@ -490,13 +490,13 @@ export default function TournamentScreen({
         {settled ? (
           <button
             onClick={() => setRevealing(false)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-pitch px-6 py-3 text-base font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark active:scale-[0.99]"
           >
             Continue to group stage
             <ArrowRight size={18} strokeWidth={2.5} />
           </button>
         ) : (
-          <p className="text-sm font-semibold text-stone-500">Drawing opponents…</p>
+          <p className="text-sm font-semibold text-muted">Drawing opponents…</p>
         )}
       </div>
     );
@@ -516,7 +516,7 @@ export default function TournamentScreen({
     <div ref={nextButtonRef} className="mt-2 flex scroll-mb-24 justify-center">
       <button
         onClick={playNext}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
+        className="inline-flex items-center justify-center gap-2 rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark active:scale-[0.99]"
       >
         <Play size={15} fill="currentColor" strokeWidth={0} />
         Next game
@@ -528,12 +528,12 @@ export default function TournamentScreen({
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       {/* Header: title + playback selectors */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-stone-900 pb-2">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div>
-          <div className="text-[11px] font-semibold tracking-[0.2em] text-stone-500">
+          <div className="text-[11px] font-bold tracking-[0.2em] text-pitch">
             {inKnockout ? 'KNOCKOUTS' : 'GROUP STAGE'}
           </div>
-          <h2 className="text-2xl font-black leading-tight">
+          <h2 className="mt-0.5 text-2xl font-black leading-tight text-ink">
             {inKnockout ? 'Win 4 to lift the trophy' : 'Group of 4 · top 2 advance'}
           </h2>
         </div>
@@ -563,8 +563,8 @@ export default function TournamentScreen({
       </div>
 
       {/* Standings */}
-      <div className="overflow-hidden rounded-lg border border-stone-300 bg-white">
-        <div className="grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-stone-200 bg-stone-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-stone-500">
+      <div className="overflow-hidden rounded-2xl border border-line bg-panel shadow-soft">
+        <div className="grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-line bg-pitch/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">
           <span>#</span>
           <span>Team</span>
           <span className="hidden text-center sm:block">P</span>
@@ -577,24 +577,35 @@ export default function TournamentScreen({
         {table.map((s, i) => (
           <div
             key={s.team.id}
-            className={`grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-stone-100 px-3 py-2 text-sm last:border-b-0 ${
-              i < 2 ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-transparent'
-            } ${s.team.isUser ? 'bg-red-50' : ''}`}
+            className={`grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-line px-3 py-2.5 text-sm text-ink last:border-b-0 ${
+              i < 2 ? 'border-l-4 border-l-pitch' : 'border-l-4 border-l-transparent'
+            } ${s.team.isUser ? 'bg-pitch/[0.06]' : ''}`}
           >
-            <span className="font-mono text-stone-500">{i + 1}</span>
+            {i < 2 ? (
+              <span className="grid h-[22px] w-[22px] place-items-center rounded-lg bg-pitch font-mono text-xs font-bold text-white">
+                {i + 1}
+              </span>
+            ) : (
+              <span className="font-mono text-muted">{i + 1}</span>
+            )}
             <span className="group/team flex items-center gap-2 truncate">
               <Flag code={s.team.code} isUser={s.team.isUser} className="h-4 w-6 shrink-0" />
               <span className={`truncate ${s.team.isUser ? 'font-black' : 'font-semibold'}`}>{s.team.name}</span>
-              {s.team.year && <span className="shrink-0 text-[11px] text-stone-400">{s.team.year}</span>}
-              <span className="hidden shrink-0 rounded bg-stone-800 px-1 font-mono text-[10px] font-bold leading-tight text-white group-hover/team:inline-block">
+              {s.team.year && <span className="shrink-0 text-[11px] text-muted">{s.team.year}</span>}
+              {s.team.isUser && (
+                <span className="shrink-0 rounded-full bg-pitch px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.04em] leading-none text-white">
+                  You
+                </span>
+              )}
+              <span className="hidden shrink-0 rounded-full bg-pitch px-1.5 font-mono text-[10px] font-bold leading-tight text-white group-hover/team:inline-block">
                 {s.team.strength.overall}
               </span>
             </span>
-            <span className="hidden text-center font-mono sm:block">{s.played}</span>
-            <span className="hidden text-center font-mono sm:block">{s.won}</span>
-            <span className="hidden text-center font-mono sm:block">{s.drawn}</span>
-            <span className="hidden text-center font-mono sm:block">{s.lost}</span>
-            <span className="text-center font-mono">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
+            <span className="hidden text-center font-mono text-muted sm:block">{s.played}</span>
+            <span className="hidden text-center font-mono text-muted sm:block">{s.won}</span>
+            <span className="hidden text-center font-mono text-muted sm:block">{s.drawn}</span>
+            <span className="hidden text-center font-mono text-muted sm:block">{s.lost}</span>
+            <span className="text-center font-mono text-muted">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
             <span className="text-center font-mono font-black">{s.points}</span>
           </div>
         ))}
@@ -602,16 +613,16 @@ export default function TournamentScreen({
         {/* All group results (every fixture, including Your XI), collapsible */}
         <button
           onClick={() => setShowResults((v) => !v)}
-          className="flex w-full items-center justify-center gap-1.5 border-t border-stone-200 bg-stone-50 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-stone-500 transition hover:bg-stone-100"
+          className="flex w-full items-center justify-center gap-1.5 border-t border-line bg-pitch/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted transition hover:bg-pitch/10"
         >
           All results
           {showResults ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         {showResults && (
-          <div className="border-t border-stone-200 px-2 py-2">
+          <div className="border-t border-line px-2 py-2">
             {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => (
               <div key={md} className="mb-2 last:mb-0">
-                <div className="mb-0.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">
+                <div className="mb-0.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
                   Matchday {md}
                 </div>
                 {fixturesForMatchday(group, md).map((f) => {
@@ -669,21 +680,27 @@ export default function TournamentScreen({
           const mdTag =
             userFx.result && !isPlayingMd ? (
               <span
-                className={mdGf > mdGa ? 'text-emerald-600' : mdGf < mdGa ? 'text-red-600' : 'text-stone-500'}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.04em] ${
+                  mdGf > mdGa
+                    ? 'bg-win/15 text-win'
+                    : mdGf < mdGa
+                      ? 'bg-loss/15 text-loss'
+                      : 'bg-line text-muted'
+                }`}
               >
-                · {mdGf > mdGa ? 'won' : mdGf < mdGa ? 'lost' : 'draw'}
+                {mdGf > mdGa ? 'Won' : mdGf < mdGa ? 'Lost' : 'Draw'}
               </span>
             ) : md === group.matchday && !groupFinished && !isPlayingMd ? (
-              <span className="text-red-600">· up next</span>
+              <span className="text-amber">· up next</span>
             ) : null;
 
           return (
             <div key={`md-${md}`}>
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-[0.15em] text-stone-500">
+              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">
                 <span>MATCHDAY {md}</span>
                 {mdTag}
               </div>
-              <div className="rounded-lg border border-stone-200 bg-white p-1">
+              <div className="rounded-2xl border border-line bg-panel p-1.5 shadow-soft">
                 <FixtureRow
                   home={userHome}
                   away={userAway}
@@ -699,10 +716,10 @@ export default function TournamentScreen({
                   onToggle={() => toggle(`md-${md}`)}
                 />
                 {feedEvents && (
-                  <div className="mt-1 rounded bg-stone-50 p-2">
+                  <div className="mt-1.5 rounded-xl border-t border-line bg-pitch/5 p-3">
                     {isPlayingMd && (
-                      <div className="mb-2 h-1 w-full overflow-hidden rounded bg-stone-200">
-                        <div className="h-full bg-red-600" style={{ width: `${(liveMinute / 90) * 100}%` }} />
+                      <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-line">
+                        <div className="h-full bg-pitch" style={{ width: `${(liveMinute / 90) * 100}%` }} />
                       </div>
                     )}
                     <GoalList
@@ -757,20 +774,24 @@ export default function TournamentScreen({
             const liveMax = isPlayingRound ? maxMinute(playingKo!.decided) : 90;
 
             const tag = played ? (
-              <span className={r!.userWon ? 'text-emerald-600' : 'text-red-600'}>
-                · {r!.userWon ? 'won' : 'lost'}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.04em] ${
+                  r!.userWon ? 'bg-win/15 text-win' : 'bg-loss/15 text-loss'
+                }`}
+              >
+                {r!.userWon ? 'Won' : 'Lost'}
               </span>
             ) : isActive && koRevealed && !isPlayingRound ? (
-              <span className="text-red-600">· up next</span>
+              <span className="text-amber">· up next</span>
             ) : null;
 
             return (
               <div key={`ko-${i}`}>
-                <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-[0.15em] text-stone-500">
+                <div className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">
                   <span>{name.toUpperCase()}</span>
                   {tag}
                 </div>
-                <div className="rounded-lg border border-stone-200 bg-white p-1">
+                <div className="rounded-2xl border border-line bg-panel p-1.5 shadow-soft">
                   <FixtureRow
                     home={knockout.user}
                     away={opp ?? { name: '?', code: '' }}
@@ -785,11 +806,11 @@ export default function TournamentScreen({
                     awayUnknown={!opp}
                   />
                   {showFeed && (
-                    <div className="mt-1 rounded bg-stone-50 p-2">
+                    <div className="mt-1.5 rounded-xl border-t border-line bg-pitch/5 p-3">
                       {isPlayingRound && (
-                        <div className="mb-2 h-1 w-full overflow-hidden rounded bg-stone-200">
+                        <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-line">
                           <div
-                            className="h-full bg-red-600"
+                            className="h-full bg-pitch"
                             style={{ width: `${(Math.min(liveMinute, liveMax) / liveMax) * 100}%` }}
                           />
                         </div>
@@ -817,12 +838,12 @@ export default function TournamentScreen({
       {/* Outcome banners + end-of-run summary */}
       {groupFinished && !advanced && (
         <>
-          <div className="rounded-xl border border-dashed border-stone-400 bg-white/60 p-5 text-center">
-            <p className="text-xl font-black text-stone-700">Eliminated in the group stage.</p>
-            <p className="mt-1 text-sm text-stone-500">So close. Draft a new XI and run it back.</p>
+          <div className="rounded-2xl border border-dashed border-line bg-panel p-5 text-center shadow-soft">
+            <p className="text-xl font-black text-loss">Eliminated in the group stage.</p>
+            <p className="mt-1 text-sm text-muted">So close. Draft a new XI and run it back.</p>
             <button
               onClick={onReset}
-              className="mt-4 inline-flex items-center justify-center rounded-xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-500"
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark"
             >
               Draft a new XI
             </button>
@@ -832,15 +853,15 @@ export default function TournamentScreen({
       )}
 
       {koOutcome === 'champion' && (
-        <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-6 text-center">
-          <Trophy size={48} className="mx-auto text-amber-500" strokeWidth={1.5} />
-          <p className="mt-2 text-2xl font-black text-amber-700">World Cup Champions!</p>
-          <p className="mt-1 text-sm font-semibold text-stone-600">
+        <div className="rounded-2xl border-2 border-amber bg-amber/10 p-6 text-center shadow-soft">
+          <Trophy size={48} className="mx-auto text-amber" strokeWidth={1.5} />
+          <p className="mt-2 text-2xl font-black text-amber">World Cup Champions!</p>
+          <p className="mt-1 text-sm font-semibold text-muted">
             Your random XI won all four knockout rounds. Legendary.
           </p>
           <button
             onClick={onReset}
-            className="mt-4 inline-flex items-center justify-center rounded-xl bg-stone-900 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-stone-700"
+            className="mt-4 inline-flex items-center justify-center rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark"
           >
             Draft a new XI
           </button>
@@ -848,12 +869,12 @@ export default function TournamentScreen({
       )}
 
       {koOutcome === 'out' && (
-        <div className="rounded-xl border border-dashed border-stone-400 bg-white/60 p-5 text-center">
-          <p className="text-xl font-black text-stone-700">Knocked out in the {KO_ROUNDS[koCurrent]}.</p>
-          <p className="mt-1 text-sm text-stone-500">So close. Draft a new XI and run it back.</p>
+        <div className="rounded-2xl border border-dashed border-line bg-panel p-5 text-center shadow-soft">
+          <p className="text-xl font-black text-loss">Knocked out in the {KO_ROUNDS[koCurrent]}.</p>
+          <p className="mt-1 text-sm text-muted">So close. Draft a new XI and run it back.</p>
           <button
             onClick={onReset}
-            className="mt-4 inline-flex items-center justify-center rounded-xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-500"
+            className="mt-4 inline-flex items-center justify-center rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark"
           >
             Draft a new XI
           </button>
