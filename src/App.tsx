@@ -218,7 +218,7 @@ export default function App() {
   const availableStyles = FORMATIONS_DATA.stylesByName[formationName] ?? STYLES;
 
   return (
-    <div className="min-h-full bg-[#ece5d8] text-stone-900">
+    <div className="min-h-full text-ink">
       <div className="mx-auto max-w-[1400px] px-4 py-5">
         <header className="mb-5 flex items-baseline gap-3 border-b-2 border-stone-900 pb-2">
           <h1 className="text-2xl font-black tracking-tight">World Cup Simulator</h1>

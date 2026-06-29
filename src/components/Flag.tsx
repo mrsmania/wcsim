@@ -73,16 +73,21 @@ interface Props {
   /** FIFA 3-letter code (ignored when isUser). */
   code: string;
   isUser?: boolean;
-  /** Sizing classes; should keep a 3:2 ratio (e.g. h-4 w-6). */
+  /** Sizing classes; a 3:2 ratio (e.g. h-4 w-6) normally, or a square (e.g.
+   *  h-5 w-5) when `round` so the circular crop stays centred. */
   className?: string;
+  /** Render as a circle (the 3:2 flag is scaled to cover a square crop). */
+  round?: boolean;
 }
 
 /** A nation flag (SVG) for the given code, or a "YOU" badge for the user team. */
-export default function Flag({ code, isUser = false, className = 'h-4 w-6' }: Props) {
+export default function Flag({ code, isUser = false, className = 'h-4 w-6', round = false }: Props) {
   if (isUser) {
     return (
       <span
-        className={`inline-flex shrink-0 items-center justify-center rounded bg-red-600 text-[9px] font-black leading-none text-white ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center bg-red-600 text-[9px] font-black leading-none text-white ${
+          round ? 'rounded-full' : 'rounded'
+        } ${className}`}
       >
         YOU
       </span>
@@ -91,6 +96,14 @@ export default function Flag({ code, isUser = false, className = 'h-4 w-6' }: Pr
   const F = BY_FIFA[code];
   // Only ever display real flags — no code-box fallback.
   if (!F) return null;
+  if (round) {
+    // Square box, flag scaled to 150% width so the 3:2 art covers the circle.
+    return (
+      <span className={`relative inline-flex shrink-0 overflow-hidden rounded-full ${className}`}>
+        <F title={code} className="absolute left-1/2 top-0 h-full w-[150%] max-w-none -translate-x-1/2" />
+      </span>
+    );
+  }
   return (
     <span className={`inline-flex shrink-0 overflow-hidden rounded-[2px] ${className}`}>
       <F title={code} className="block h-full w-full" />
