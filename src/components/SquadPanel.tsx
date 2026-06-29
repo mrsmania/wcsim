@@ -1,7 +1,6 @@
 import type { Player, Position, Squad } from '../data/types';
 import { CATEGORY_ORDER, formatPositions, primaryCategory } from '../data/types';
 import { isSelectable } from '../domain/draft';
-import { FaceAvatar } from './PlayerBadge';
 import Flag from './Flag';
 import Tooltip from './Tooltip';
 import { FEATURES } from '../config';
@@ -81,61 +80,46 @@ export default function SquadPanel({
         <div className="flex flex-col gap-3 rounded-2xl border border-line bg-panel pt-3 shadow-soft">
             <Header squad={squad} scrambling={false} />
 
-            {/* Player list (scrolls; capped near the pitch height) */}
-            <ul className="flex max-h-[49vh] flex-col gap-1.5 overflow-y-auto px-3">
+            {/* Player list (scrolls; capped near the pitch height). Rows are split by
+          dividers so each reads as a tappable line: number, name, positions, elo. */}
+            <ul className="flex max-h-[49vh] flex-col overflow-y-auto border-t border-line">
                 {sortSquad(squad.players).map((p) => {
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);
                     const selected = p.id === selectedPlayerId;
                     return (
-                        <li key={p.id}>
+                        <li key={p.id} className="border-b border-line last:border-b-0">
                             <button
                                 disabled={!selectable}
                                 onClick={() => onSelectPlayer(p.id)}
                                 className={[
-                                    'flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition',
-                                    selectable
-                                        ? 'cursor-pointer border-pitch bg-white shadow-[0_6px_16px_rgba(19,146,76,0.14)] hover:bg-pitch/5'
-                                        : 'cursor-not-allowed border-transparent bg-pitch/5 opacity-40',
-                                    selected ? 'ring-2 ring-pitch ring-offset-1' : '',
+                                    'flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition',
+                                    selectable ? 'cursor-pointer hover:bg-pitch/5' : 'cursor-not-allowed opacity-40',
+                                    selected ? 'bg-pitch/10' : '',
                                 ].join(' ')}
                             >
-                                <FaceAvatar
-                                    name={p.name}
-                                    className="h-[34px] w-[34px] border-2 border-white shadow-[0_2px_6px_rgba(21,36,27,0.16)]"
-                                />
-                                <span className="min-w-0 flex-1">
-                                    <span
-                                        className={`block truncate text-sm font-bold ${used ? 'line-through' : ''}`}
-                                    >
-                                        {p.name}
-                                    </span>
-                                    {FEATURES.chemistry ? (
-                                        <Tooltip
-                                            className="block text-[11px] text-muted"
-                                            label="Underlined = natural position; only placing the player there earns positional chemistry"
-                                        >
-                                            <span className="underline underline-offset-2">
-                                                {p.positions[0]}
-                                            </span>
-                                            {p.positions.length > 1
-                                                ? ` · ${p.positions.slice(1).join(' · ')}`
-                                                : ''}
-                                            {used ? ' · already drafted' : ''}
-                                        </Tooltip>
-                                    ) : (
-                                        <span className="block text-[11px] text-muted">
-                                            {formatPositions(p.positions)}
-                                            {used ? ' · already drafted' : ''}
-                                        </span>
-                                    )}
+                                <span className="w-5 shrink-0 text-center font-mono text-xs text-muted">
+                                    {p.number}
                                 </span>
-                                {selectable && (
-                                    <span className="shrink-0 rounded-full bg-pitch/12 px-2 py-[3px] text-[10px] font-extrabold uppercase tracking-[0.06em] text-pitch">
-                                        Pick
+                                <span
+                                    className={`min-w-0 flex-1 truncate text-sm font-bold ${used ? 'text-muted line-through' : ''}`}
+                                >
+                                    {p.name}
+                                </span>
+                                {FEATURES.chemistry ? (
+                                    <Tooltip
+                                        className="shrink-0 text-[11px] text-muted"
+                                        label="Underlined = natural position; only placing the player there earns positional chemistry"
+                                    >
+                                        <span className="underline underline-offset-2">{p.positions[0]}</span>
+                                        {p.positions.length > 1 ? ` · ${p.positions.slice(1).join(' · ')}` : ''}
+                                    </Tooltip>
+                                ) : (
+                                    <span className="shrink-0 text-[11px] text-muted">
+                                        {formatPositions(p.positions)}
                                     </span>
                                 )}
-                                <span className="shrink-0 font-mono text-[15px] font-extrabold">
+                                <span className="w-7 shrink-0 text-right font-mono text-[15px] font-extrabold">
                                     {p.elo}
                                 </span>
                             </button>
