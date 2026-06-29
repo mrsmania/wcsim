@@ -21,7 +21,7 @@ import {
   type KoResult,
 } from '../domain/knockout';
 import { buildMatchSteps, HALF_TIME_MS, PEN_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
-import { ArrowRight, Check, ChevronDown, Play, Trophy, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, ChevronRight, Play, Trophy, X } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import Flag from './Flag';
@@ -206,12 +206,13 @@ export default function TournamentScreen({
   // --- single-open accordion across every game section ---
   const [openKey, setOpenKey] = useState<string | null>(null);
   const toggle = (key: string) => setOpenKey((k) => (k === key ? null : key));
+  // Collapsible "all results" overview attached to the group table.
+  const [showResults, setShowResults] = useState(false);
 
   // --- shared live-clock display ---
   const [liveMinute, setLiveMinute] = useState(0);
   const [clockLabel, setClockLabel] = useState('');
   const [penShown, setPenShown] = useState(0);
-  const [confirmReset, setConfirmReset] = useState(false);
 
   // --- playback (only one of these is ever active at a time) ---
   const [playingGroup, setPlayingGroup] = useState<{ matchday: number; results: MatchdayResult[] } | null>(null);
@@ -454,19 +455,11 @@ export default function TournamentScreen({
       ? { kind: 'ko' }
       : null;
 
-  // In game-by-game mode, the "Next game" button sits under the most recently
-  // finished game (or under matchday 1 to kick the whole thing off).
+  // In game-by-game mode, the "Next game" button sits directly under the card of
+  // the game it will play (the up-next matchday, or the active knockout round).
   let nextAnchorKey: string | null = null;
   if (nextGame && !auto && !isPlaying) {
-    if (knockout && knockout.rounds.some((r) => r.result)) {
-      let lastKo = 0;
-      knockout.rounds.forEach((r, i) => {
-        if (r.result) lastKo = i;
-      });
-      nextAnchorKey = `ko-${lastKo}`;
-    } else {
-      nextAnchorKey = `md-${group.matchday > 1 ? group.matchday - 1 : 1}`;
-    }
+    nextAnchorKey = nextGame.kind === 'md' ? `md-${nextGame.md}` : `ko-${koCurrent}`;
   }
 
   const playNext = () => {
@@ -490,7 +483,7 @@ export default function TournamentScreen({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      {/* Header: title + playback selectors + reset */}
+      {/* Header: title + playback selectors */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-stone-900 pb-2">
         <div>
           <div className="text-[11px] font-semibold tracking-[0.2em] text-stone-500">
@@ -500,55 +493,29 @@ export default function TournamentScreen({
             {inKnockout ? 'Win 4 to lift the trophy' : 'Group of 4 · top 2 advance'}
           </h2>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {!tournamentOver && (
-            <>
-              <MenuSelect
-                ariaLabel="Playback mode"
-                value={auto ? 'auto' : 'manual'}
-                onSelect={(v) => onSetAuto(v === 'auto')}
-                options={[
-                  { value: 'manual', label: 'Game by game' },
-                  { value: 'auto', label: 'Automatic' },
-                ]}
-              />
-              <MenuSelect
-                ariaLabel="Match speed"
-                value={speed}
-                onSelect={onSetSpeed}
-                options={[
-                  { value: 'slow', label: 'Slow' },
-                  { value: 'normal', label: 'Normal' },
-                  { value: 'fast', label: 'Fast' },
-                ]}
-              />
-            </>
-          )}
-          {confirmReset ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-stone-600">Lose all progress?</span>
-              <button
-                onClick={onReset}
-                className="rounded bg-red-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-red-500"
-              >
-                Yes, reset
-              </button>
-              <button
-                onClick={() => setConfirmReset(false)}
-                className="rounded border border-stone-400 px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition hover:border-stone-900"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmReset(true)}
-              className="rounded border border-stone-400 px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition hover:border-stone-900 hover:bg-stone-900 hover:text-white"
-            >
-              Start over
-            </button>
-          )}
-        </div>
+        {!tournamentOver && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <MenuSelect
+              ariaLabel="Playback mode"
+              value={auto ? 'auto' : 'manual'}
+              onSelect={(v) => onSetAuto(v === 'auto')}
+              options={[
+                { value: 'manual', label: 'Game by game' },
+                { value: 'auto', label: 'Automatic' },
+              ]}
+            />
+            <MenuSelect
+              ariaLabel="Match speed"
+              value={speed}
+              onSelect={onSetSpeed}
+              options={[
+                { value: 'slow', label: 'Slow' },
+                { value: 'normal', label: 'Normal' },
+                { value: 'fast', label: 'Fast' },
+              ]}
+            />
+          </div>
+        )}
       </div>
 
       {/* Standings */}
@@ -587,6 +554,38 @@ export default function TournamentScreen({
             <span className="text-center font-mono font-black">{s.points}</span>
           </div>
         ))}
+
+        {/* All group results (every fixture, including Your XI), collapsible */}
+        <button
+          onClick={() => setShowResults((v) => !v)}
+          className="flex w-full items-center justify-center gap-1.5 border-t border-stone-200 bg-stone-50 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-stone-500 transition hover:bg-stone-100"
+        >
+          All results
+          {showResults ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+        {showResults && (
+          <div className="border-t border-stone-200 px-2 py-2">
+            {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => (
+              <div key={md} className="mb-2 last:mb-0">
+                <div className="mb-0.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">
+                  Matchday {md}
+                </div>
+                {fixturesForMatchday(group, md).map((f) => {
+                  const h = teamById(group, f.homeId);
+                  const a = teamById(group, f.awayId);
+                  return (
+                    <FixtureRow
+                      key={`${f.homeId}-${f.awayId}`}
+                      home={h}
+                      away={a}
+                      score={f.result ? { home: f.result.homeGoals, away: f.result.awayGoals } : undefined}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Game sections: group matchdays, then knockout rounds, one uniform list */}
@@ -594,7 +593,6 @@ export default function TournamentScreen({
         {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => {
           const fx = fixturesForMatchday(group, md);
           const userFx = fx.find((f) => teamById(group, f.homeId).isUser || teamById(group, f.awayId).isUser)!;
-          const otherFx = fx.find((f) => f !== userFx)!;
           const isPlayingMd = playingGroup?.matchday === md;
           const open = openKey === `md-${md}`;
           const userHome = teamById(group, userFx.homeId);
@@ -604,9 +602,6 @@ export default function TournamentScreen({
           const userResult =
             live?.results.find((r) => r.homeId === userFx.homeId && r.awayId === userFx.awayId)?.result ??
             userFx.result;
-          const otherResult =
-            live?.results.find((r) => r.homeId === otherFx.homeId && r.awayId === otherFx.awayId)?.result ??
-            otherFx.result;
 
           let feedEvents: MatchEvent[] | null = null;
           let userScore: { home: number; away: number } | undefined;
@@ -622,9 +617,6 @@ export default function TournamentScreen({
           } else if (open && userFx.result) {
             feedEvents = userFx.result.events;
           }
-
-          const otherScore =
-            isPlayingMd && otherResult ? { home: otherResult.homeGoals, away: otherResult.awayGoals } : undefined;
 
           return (
             <div key={`md-${md}`}>
@@ -664,17 +656,6 @@ export default function TournamentScreen({
                     />
                   </div>
                 )}
-                <FixtureRow
-                  home={teamById(group, otherFx.homeId)}
-                  away={teamById(group, otherFx.awayId)}
-                  homeElo={teamById(group, otherFx.homeId).strength.overall}
-                  awayElo={teamById(group, otherFx.awayId).strength.overall}
-                  score={
-                    otherScore ??
-                    (otherFx.result ? { home: otherFx.result.homeGoals, away: otherFx.result.awayGoals } : undefined)
-                  }
-                  status={isPlayingMd ? 'FT' : undefined}
-                />
               </div>
               {`md-${md}` === nextAnchorKey && nextGameButton}
             </div>
