@@ -507,7 +507,7 @@ export default function TournamentScreen({
   };
 
   const nextGameButton = (
-    <div ref={nextButtonRef} className="mt-2 flex justify-center">
+    <div ref={nextButtonRef} className="mt-2 flex scroll-mb-24 justify-center">
       <button
         onClick={playNext}
         className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
