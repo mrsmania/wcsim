@@ -13,17 +13,37 @@ import Flag from './Flag';
  *  point tiers match exactly what the breakdown below shows. */
 const CHEMISTRY_RULES = (
     <div className="space-y-1.5">
-        <div className="font-bold">Chemistry — added to your XI's overall. Points add up (max +{MAX_BONUS}):</div>
+        <div className="font-bold">
+            Chemistry — added to your XI's overall. Points add up (max +{MAX_BONUS}):
+        </div>
         <ul className="space-y-1">
-            <li><span className="font-semibold">Same squad</span> — real teammates (same nation &amp; year): 2+ → +1, 4+ → +2, 7+ → +3, all 11 → +4</li>
-            <li><span className="font-semibold">Same nation</span> — across any years: 3+ → +1, 5+ → +2, 8+ → +3</li>
-            <li><span className="font-semibold">Same tournament</span> — one World Cup: 3+ → +1, 5+ → +2, 8+ → +3</li>
-            <li><span className="font-semibold">Same continent</span> — one confederation: 6+ → +1, 9+ → +2</li>
-            <li><span className="font-semibold">Same era</span> — all within 4 years: +1</li>
-            <li><span className="font-semibold">In position</span> — 10+ in their natural (underlined) role: +1</li>
+            <li>
+                <span className="font-semibold">Same squad</span> — real teammates (same nation
+                &amp; year): 2+ → +1, 4+ → +2, 7+ → +3, all 11 → +4
+            </li>
+            <li>
+                <span className="font-semibold">Same nation</span> — across any years: 3+ → +1, 5+ →
+                +2, 8+ → +3
+            </li>
+            <li>
+                <span className="font-semibold">Same tournament</span> — one World Cup: 3+ → +1, 5+
+                → +2, 8+ → +3
+            </li>
+            <li>
+                <span className="font-semibold">Same continent</span> — one confederation: 6+ → +1,
+                9+ → +2
+            </li>
+            <li>
+                <span className="font-semibold">Same era</span> — all within 4 years: +1
+            </li>
+            <li>
+                <span className="font-semibold">In position</span> — 10+ in their natural
+                (underlined) role: +1
+            </li>
         </ul>
         <div className="text-stone-300">
-            The largest group in each row counts. Add the rows up; the total is capped at +{MAX_BONUS}.
+            The largest group in each row counts. Add the rows up; the total is capped at +
+            {MAX_BONUS}.
         </div>
     </div>
 );
@@ -58,12 +78,19 @@ function Square({
             className={`flex aspect-square flex-col items-center justify-center rounded-md text-white ${className}`}
         >
             <span className="font-mono text-xl font-black leading-none">{value || '—'}</span>
-            <span className="mt-1 text-[10px] font-bold uppercase tracking-wide opacity-90">{label}</span>
+            <span className="mt-1 text-[10px] font-bold uppercase tracking-wide opacity-90">
+                {label}
+            </span>
         </div>
     );
 }
 
-export default function BoxScore({ formation, filled, title = 'Team Score', showChemistry = false }: Props) {
+export default function BoxScore({
+    formation,
+    filled,
+    title = 'Team Score',
+    showChemistry = false,
+}: Props) {
     const placedPlayers = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
     const attack = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
     const midfield = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'MID'));
@@ -88,14 +115,19 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
             </div>
 
             <div className="grid grid-cols-4 gap-2">
-                <Square label="Att" title="Attack" value={attack} className="bg-red-600" />
-                <Square label="Mid" title="Midfield" value={midfield} className="bg-amber-500" />
-                <Square label="Def" title="Defense (incl. GK)" value={defense} className="bg-stone-900" />
-                <Square label="Ovr" title="Overall" value={overall} className="bg-emerald-600" />
+                <Square label="Att" title="Attack" value={attack} className="bg-stone-900" />
+                <Square label="Mid" title="Midfield" value={midfield} className="bg-stone-900" />
+                <Square
+                    label="Def"
+                    title="Defense (incl. GK)"
+                    value={defense}
+                    className="bg-stone-900"
+                />
+                <Square label="Ovr" title="Overall" value={overall} className="bg-stone-900" />
             </div>
 
             {chem && (
-                <div className="rounded-md border border-emerald-600/30 bg-emerald-600/[0.06] p-2.5">
+                <div className="rounded-md border border-emerald-600/30 bg-emerald-600/6 p-2.5">
                     <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800">
                             <Sparkles size={13} strokeWidth={2.5} /> Chemistry
@@ -127,7 +159,9 @@ export default function BoxScore({ formation, filled, title = 'Team Score', show
                                     className="flex items-baseline justify-between gap-2 text-[11px]"
                                 >
                                     <span className="min-w-0 truncate">
-                                        <span className="font-semibold text-stone-700">{c.name}</span>{' '}
+                                        <span className="font-semibold text-stone-700">
+                                            {c.name}
+                                        </span>{' '}
                                         <span className="text-stone-400">{c.detail}</span>
                                     </span>
                                     <span className="shrink-0 font-mono text-emerald-700">

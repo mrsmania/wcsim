@@ -8,16 +8,33 @@ const STRIPES = 18;
 
 // Surname particles kept with the last name (e.g. "Van der Sar", "de Boer").
 const NAME_PARTICLES = new Set([
-  'de', 'del', 'der', 'den', 'van', 'von', 'di', 'da', 'dos', 'das', 'do', 'la', 'le', 'el', 'ter', 'ten', 'bin', 'al',
+    'de',
+    'del',
+    'der',
+    'den',
+    'van',
+    'von',
+    'di',
+    'da',
+    'dos',
+    'das',
+    'do',
+    'la',
+    'le',
+    'el',
+    'ter',
+    'ten',
+    'bin',
+    'al',
 ]);
 
 /** The display surname: last word, plus any leading particles. */
 function lastName(full: string): string {
-  const parts = full.trim().split(/\s+/);
-  if (parts.length <= 1) return full;
-  let i = parts.length - 1;
-  while (i > 0 && NAME_PARTICLES.has(parts[i - 1].toLowerCase().replace(/\./g, ''))) i--;
-  return parts.slice(i).join(' ');
+    const parts = full.trim().split(/\s+/);
+    if (parts.length <= 1) return full;
+    let i = parts.length - 1;
+    while (i > 0 && NAME_PARTICLES.has(parts[i - 1].toLowerCase().replace(/\./g, ''))) i--;
+    return parts.slice(i).join(' ');
 }
 
 const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
@@ -25,52 +42,52 @@ const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 /** Hungarian algorithm: min-cost perfect assignment for a square cost matrix.
  *  Returns colForRow[i] = the column assigned to row i. */
 function hungarian(cost: number[][]): number[] {
-  const n = cost.length;
-  const u = new Array(n + 1).fill(0);
-  const v = new Array(n + 1).fill(0);
-  const p = new Array(n + 1).fill(0); // p[col] = row matched to col
-  const way = new Array(n + 1).fill(0);
-  for (let i = 1; i <= n; i++) {
-    p[0] = i;
-    let j0 = 0;
-    const minv = new Array(n + 1).fill(Infinity);
-    const used = new Array(n + 1).fill(false);
-    do {
-      used[j0] = true;
-      const i0 = p[j0];
-      let delta = Infinity;
-      let j1 = -1;
-      for (let j = 1; j <= n; j++) {
-        if (used[j]) continue;
-        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
-        if (cur < minv[j]) {
-          minv[j] = cur;
-          way[j] = j0;
-        }
-        if (minv[j] < delta) {
-          delta = minv[j];
-          j1 = j;
-        }
-      }
-      for (let j = 0; j <= n; j++) {
-        if (used[j]) {
-          u[p[j]] += delta;
-          v[j] -= delta;
-        } else {
-          minv[j] -= delta;
-        }
-      }
-      j0 = j1;
-    } while (p[j0] !== 0);
-    do {
-      const j1 = way[j0];
-      p[j0] = p[j1];
-      j0 = j1;
-    } while (j0);
-  }
-  const colForRow = new Array(n).fill(0);
-  for (let j = 1; j <= n; j++) colForRow[p[j] - 1] = j - 1;
-  return colForRow;
+    const n = cost.length;
+    const u = new Array(n + 1).fill(0);
+    const v = new Array(n + 1).fill(0);
+    const p = new Array(n + 1).fill(0); // p[col] = row matched to col
+    const way = new Array(n + 1).fill(0);
+    for (let i = 1; i <= n; i++) {
+        p[0] = i;
+        let j0 = 0;
+        const minv = new Array(n + 1).fill(Infinity);
+        const used = new Array(n + 1).fill(false);
+        do {
+            used[j0] = true;
+            const i0 = p[j0];
+            let delta = Infinity;
+            let j1 = -1;
+            for (let j = 1; j <= n; j++) {
+                if (used[j]) continue;
+                const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+                if (cur < minv[j]) {
+                    minv[j] = cur;
+                    way[j] = j0;
+                }
+                if (minv[j] < delta) {
+                    delta = minv[j];
+                    j1 = j;
+                }
+            }
+            for (let j = 0; j <= n; j++) {
+                if (used[j]) {
+                    u[p[j]] += delta;
+                    v[j] -= delta;
+                } else {
+                    minv[j] -= delta;
+                }
+            }
+            j0 = j1;
+        } while (p[j0] !== 0);
+        do {
+            const j1 = way[j0];
+            p[j0] = p[j1];
+            j0 = j1;
+        } while (j0);
+    }
+    const colForRow = new Array(n).fill(0);
+    for (let j = 1; j <= n; j++) colForRow[p[j] - 1] = j - 1;
+    return colForRow;
 }
 
 /**
@@ -80,9 +97,9 @@ function hungarian(cost: number[][]): number[] {
  * appearing/disappearing. Returns an array aligned to circle index k.
  */
 function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
-  const cost = prev.map((p) => next.map((q) => slotDist(p, q)));
-  const colForRow = hungarian(cost);
-  return prev.map((_, i) => next[colForRow[i]]);
+    const cost = prev.map((p) => next.map((q) => slotDist(p, q)));
+    const colForRow = hungarian(cost);
+    return prev.map((_, i) => next[colForRow[i]]);
 }
 
 interface Props {
@@ -114,7 +131,7 @@ function SlotMarker({
                 <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-stone-900 font-mono text-sm font-bold text-white shadow-lg">
                     {player.number}
                 </div>
-                <div className="mt-1 max-w-[72px] truncate rounded bg-white/90 px-1 py-0.5 text-center text-[10px] font-bold leading-tight text-stone-900 shadow">
+                <div className="mt-1 max-w-18 truncate rounded bg-white/90 px-1 py-0.5 text-center text-[10px] font-bold leading-tight text-stone-900 shadow">
                     {lastName(player.name)}
                 </div>
             </div>
@@ -151,12 +168,14 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
         if (formationRef.current === formation) return;
         formationRef.current = formation;
         setCircles((prev) =>
-            prev.length === formation.slots.length ? assignNearest(prev, formation.slots) : formation.slots,
+            prev.length === formation.slots.length
+                ? assignNearest(prev, formation.slots)
+                : formation.slots,
         );
     }, [formation]);
 
     return (
-        <div className="relative mx-auto aspect-[3/4] w-full max-w-xl overflow-hidden rounded-xs border border-stone-400 shadow-md">
+        <div className="relative mx-auto aspect-3/4 w-full max-w-xl overflow-hidden rounded-xs border border-stone-400 shadow-md">
             {/* Mowing stripes */}
             <div className="absolute inset-0">
                 {Array.from({ length: STRIPES }).map((_, i) => (
