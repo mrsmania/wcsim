@@ -54,52 +54,74 @@ const ALL_CODES = [...new Set(SQUADS.map((s) => s.code))];
 const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)];
 const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
 
-/** Penalty shootout feed: each side's kicks as scored/missed pips, revealed
- *  one at a time, with the current taker called out below. */
+/** A scored/missed pip (green check / red cross) for one penalty. */
+function PenPip({ scored }: { scored: boolean }) {
+  return (
+    <span
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
+        scored ? 'bg-emerald-500' : 'bg-red-500'
+      }`}
+    >
+      {scored ? (
+        <Check size={11} strokeWidth={3.5} className="text-white" />
+      ) : (
+        <X size={11} strokeWidth={3.5} className="text-white" />
+      )}
+    </span>
+  );
+}
+
+/** Penalty shootout sheet: every taker listed one by one, Your XI on the left
+ *  versus the opponent on the right, each with their name and result, so the
+ *  whole shootout stays readable in the accordion. Kicks alternate home/away
+ *  per round, so pairing them by index gives a head-to-head row per round. */
 function ShootoutFeed({ oppName, kicks, shown }: { oppName: string; kicks: PenKick[]; shown: number }) {
   const revealed = kicks.slice(0, shown);
   const homeKicks = revealed.filter((k) => k.side === 'home');
   const awayKicks = revealed.filter((k) => k.side === 'away');
-  const last = revealed[revealed.length - 1];
-
-  const Row = ({ label, isUser, list }: { label: string; isUser?: boolean; list: PenKick[] }) => (
-    <div className="flex items-center gap-2">
-      <span className={`w-20 shrink-0 truncate text-xs ${isUser ? 'font-black' : 'font-semibold'}`}>{label}</span>
-      <div className="flex flex-1 flex-wrap gap-1">
-        {list.map((k, i) => (
-          <span
-            key={i}
-            className={`flex h-4 w-4 items-center justify-center rounded-full ${k.scored ? 'bg-emerald-500' : 'bg-red-500'}`}
-            title={`${k.taker} — ${k.scored ? 'scored' : 'missed'}`}
-          >
-            {k.scored ? (
-              <Check size={11} strokeWidth={3.5} className="text-white" />
-            ) : (
-              <X size={11} strokeWidth={3.5} className="text-white" />
-            )}
-          </span>
-        ))}
-      </div>
-      <span className="w-5 shrink-0 text-right font-mono text-sm font-black">
-        {list.filter((k) => k.scored).length}
-      </span>
-    </div>
-  );
+  const homeScore = homeKicks.filter((k) => k.scored).length;
+  const awayScore = awayKicks.filter((k) => k.scored).length;
+  const rounds = Math.max(homeKicks.length, awayKicks.length);
 
   return (
     <div className="mt-2 border-t border-stone-200 pt-2">
       <div className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-stone-500">
         Penalty shootout
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Row label="Your XI" isUser list={homeKicks} />
-        <Row label={oppName} list={awayKicks} />
+      <div className="mb-2 flex items-center justify-center gap-3 text-sm">
+        <span className="flex-1 truncate text-right font-black">Your XI</span>
+        <span className="shrink-0 font-mono font-black">
+          {homeScore}–{awayScore}
+        </span>
+        <span className="flex-1 truncate font-semibold">{oppName}</span>
       </div>
-      {last && (
-        <div className="mt-1.5 text-center text-xs text-stone-600">
-          <span className="font-semibold">{last.taker}</span> {last.scored ? 'scored' : 'missed'}
-        </div>
-      )}
+      <ul className="flex flex-col gap-1">
+        {Array.from({ length: rounds }, (_, i) => {
+          const h = homeKicks[i];
+          const a = awayKicks[i];
+          return (
+            <li key={i} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-xs">
+              <span className="flex min-w-0 items-center justify-end gap-1.5">
+                {h ? (
+                  <>
+                    <span className="truncate font-semibold">{h.taker}</span>
+                    <PenPip scored={h.scored} />
+                  </>
+                ) : null}
+              </span>
+              <span className="w-4 text-center font-mono text-[10px] text-stone-400">{i + 1}</span>
+              <span className="flex min-w-0 items-center justify-start gap-1.5">
+                {a ? (
+                  <>
+                    <PenPip scored={a.scored} />
+                    <span className="truncate font-semibold">{a.taker}</span>
+                  </>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -618,13 +640,26 @@ export default function TournamentScreen({
             feedEvents = userFx.result.events;
           }
 
+          // Win/loss/draw tag (from Your XI's perspective), same as the knockouts.
+          const userIsHome = userHome.isUser;
+          const mdGf = userFx.result ? (userIsHome ? userFx.result.homeGoals : userFx.result.awayGoals) : 0;
+          const mdGa = userFx.result ? (userIsHome ? userFx.result.awayGoals : userFx.result.homeGoals) : 0;
+          const mdTag =
+            userFx.result && !isPlayingMd ? (
+              <span
+                className={mdGf > mdGa ? 'text-emerald-600' : mdGf < mdGa ? 'text-red-600' : 'text-stone-500'}
+              >
+                · {mdGf > mdGa ? 'won' : mdGf < mdGa ? 'lost' : 'draw'}
+              </span>
+            ) : md === group.matchday && !groupFinished && !isPlayingMd ? (
+              <span className="text-red-600">· up next</span>
+            ) : null;
+
           return (
             <div key={`md-${md}`}>
-              <div className="mb-1 text-[11px] font-semibold tracking-[0.15em] text-stone-500">
-                MATCHDAY {md}
-                {md === group.matchday && !groupFinished && !isPlayingMd && (
-                  <span className="ml-2 text-red-600">· up next</span>
-                )}
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-[0.15em] text-stone-500">
+                <span>MATCHDAY {md}</span>
+                {mdTag}
               </div>
               <div className="rounded-lg border border-stone-200 bg-white p-1">
                 <FixtureRow
