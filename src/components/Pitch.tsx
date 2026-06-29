@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
+import { SQUAD_BY_ID } from '../data/squads';
+import { FEATURES } from '../config';
+import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
 const STRIPES = 18;
@@ -114,25 +117,40 @@ function SlotMarker({
     slot,
     player,
     isTarget,
+    tilt,
     onPlace,
 }: {
     slot: Slot;
     player: Player | null;
     isTarget: boolean;
+    /** True when the pitch is rendered in 3D (badges billboard, anchored at base). */
+    tilt: boolean;
     onPlace: (slotId: string) => void;
 }) {
-    const wrap =
-        'absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-[left,top] duration-500 ease-out';
+    // In 3D the slot's base sits on the tilted plane (anchor bottom-centre); flat
+    // keeps the old centre anchor. transform-style must survive into children.
+    const wrap = [
+        'absolute flex flex-col items-center transition-[left,top] duration-500 ease-out',
+        tilt ? '-translate-x-1/2 -translate-y-full [transform-style:preserve-3d]' : '-translate-x-1/2 -translate-y-1/2',
+    ].join(' ');
     const style = { left: `${slot.x}%`, top: `${slot.y}%` } as const;
+    const billboard = tilt ? 'pitch-billboard' : '';
 
     if (player) {
+        const squad = SQUAD_BY_ID[player.squadId];
         return (
             <div className={wrap} style={style}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-stone-900 font-mono text-sm font-bold text-white shadow-lg">
-                    {player.number}
-                </div>
-                <div className="mt-1 max-w-18 truncate rounded bg-white/90 px-1 py-0.5 text-center text-[10px] font-bold leading-tight text-stone-900 shadow">
-                    {lastName(player.name)}
+                {tilt && (
+                    <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(0,0,0,0.34),transparent)]" />
+                )}
+                <div className={billboard}>
+                    <PlayerBadge
+                        name={lastName(player.name)}
+                        position={slot.label}
+                        code={squad?.code ?? ''}
+                        elo={player.elo}
+                        year={squad?.year}
+                    />
                 </div>
             </div>
         );
@@ -145,15 +163,20 @@ function SlotMarker({
             disabled={!isTarget}
             onClick={() => onPlace(slot.id)}
         >
-            <div
-                className={[
-                    'flex h-9 w-9 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-bold uppercase tracking-wide transition',
-                    isTarget
-                        ? 'animate-slot-pulse cursor-pointer border-red-400 bg-red-500/40 text-white'
-                        : 'border-white/60 bg-black/10 text-white/80',
-                ].join(' ')}
-            >
-                {slot.label}
+            {tilt && (
+                <span className="absolute bottom-0 left-1/2 h-3 w-9 -translate-x-1/2 translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(0,0,0,0.25),transparent)]" />
+            )}
+            <div className={`${billboard} flex flex-col items-center gap-1`}>
+                <div
+                    className={[
+                        'flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-bold uppercase tracking-wide transition',
+                        isTarget
+                            ? 'animate-slot-pulse cursor-pointer border-amber bg-amber/30 text-white'
+                            : 'border-white/70 bg-black/10 text-white/85',
+                    ].join(' ')}
+                >
+                    {slot.label}
+                </div>
             </div>
         </button>
     );
@@ -174,71 +197,91 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
         );
     }, [formation]);
 
+    const tilt = FEATURES.pitch3d;
+
     return (
-        <div className="relative mx-auto aspect-3/4 w-full max-w-xl overflow-hidden rounded-xs border border-stone-400 shadow-md">
-            {/* Mowing stripes */}
-            <div className="absolute inset-0">
-                {Array.from({ length: STRIPES }).map((_, i) => (
-                    <div
-                        key={i}
-                        className={i % 2 === 0 ? 'bg-[#3f7d4e] ' : 'bg-[#458a57]'}
-                        style={{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            top: `${(i * 100) / STRIPES}%`,
-                            height: `${100 / STRIPES}%`,
-                        }}
-                    />
-                ))}
-            </div>
-            {/* Markings. viewBox matches the 3:4 pitch aspect, so preserveAspectRatio="none"
-          stretches to fill without distorting the line weight. */}
-            <svg
-                className="pointer-events-none absolute inset-0 h-full w-full"
-                viewBox="0 0 300 400"
-                preserveAspectRatio="none"
-                fill="none"
-                stroke="rgba(255,255,255,0.6)"
-                strokeWidth={1.2}
-                aria-hidden="true"
+        <div
+            className={[
+                'relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-line shadow-soft',
+                tilt ? 'pitch-stage aspect-4/5' : 'aspect-3/4',
+            ].join(' ')}
+            style={
+                tilt
+                    ? { background: 'linear-gradient(180deg,#cfe9d5,#bfe1c7 30%,#aed7b6)' }
+                    : undefined
+            }
+        >
+            {/* The pitch surface. In 3D it tilts back (and the slots, stripes and
+          markings tilt with it); flat keeps it filling the frame. */}
+            <div
+                className={tilt ? 'pitch-field absolute overflow-hidden rounded-lg' : 'absolute inset-0'}
+                style={tilt ? { left: '6%', right: '6%', top: '1%', bottom: '1%' } : undefined}
             >
-                {/* Halfway line + centre circle and spot */}
-                <line x1="0" y1="200" x2="300" y2="200" />
-                <circle cx="150" cy="200" r="46" />
-                <circle cx="150" cy="200" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
-                {/* Top end: penalty box, 6-yard box, penalty spot, "D" arc */}
-                <path d="M62 0 V60 H238 V0" />
-                <path d="M112 0 V22 H188 V0" />
-                <circle cx="150" cy="40" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
-                <path d="M110.8 60 A44 44 0 0 0 189.2 60" />
-                {/* Bottom end: penalty box, 6-yard box, penalty spot, "D" arc */}
-                <path d="M62 400 V340 H238 V400" />
-                <path d="M112 400 V378 H188 V400" />
-                <circle cx="150" cy="360" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
-                <path d="M110.8 340 A44 44 0 0 1 189.2 340" />
-                {/* Corner arcs */}
-                <path d="M0 9 A9 9 0 0 0 9 0" />
-                <path d="M291 0 A9 9 0 0 0 300 9" />
-                <path d="M300 391 A9 9 0 0 0 291 400" />
-                <path d="M9 400 A9 9 0 0 0 0 391" />
-            </svg>
-            {/* Translucent inner frame: layered over the green stripes so the 30% white tints the pitch edge */}
-            <div className="pointer-events-none absolute inset-0 rounded-xs border-3 border-white/30" />
-            {circles.map((slot, k) => {
-                const player = filled[slot.id] ?? null;
-                const isTarget =
-                    !!selectedPlayer && !player && selectedPlayer.positions.includes(slot.position);
-                return (
-                    <SlotMarker
-                        key={k}
-                        slot={slot}
-                        player={player}
-                        isTarget={isTarget}
-                        onPlace={onPlace}
-                    />
-                );
-            })}
+                {/* Mowing stripes */}
+                <div className="absolute inset-0">
+                    {Array.from({ length: STRIPES }).map((_, i) => (
+                        <div
+                            key={i}
+                            className={i % 2 === 0 ? 'bg-[#3f7d4e] ' : 'bg-[#458a57]'}
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                top: `${(i * 100) / STRIPES}%`,
+                                height: `${100 / STRIPES}%`,
+                            }}
+                        />
+                    ))}
+                </div>
+                {/* Markings. viewBox matches the 3:4 pitch aspect, so preserveAspectRatio="none"
+            stretches to fill without distorting the line weight. */}
+                <svg
+                    className="pointer-events-none absolute inset-0 h-full w-full"
+                    viewBox="0 0 300 400"
+                    preserveAspectRatio="none"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.6)"
+                    strokeWidth={1.2}
+                    aria-hidden="true"
+                >
+                    {/* Halfway line + centre circle and spot */}
+                    <line x1="0" y1="200" x2="300" y2="200" />
+                    <circle cx="150" cy="200" r="46" />
+                    <circle cx="150" cy="200" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
+                    {/* Top end: penalty box, 6-yard box, penalty spot, "D" arc */}
+                    <path d="M62 0 V60 H238 V0" />
+                    <path d="M112 0 V22 H188 V0" />
+                    <circle cx="150" cy="40" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
+                    <path d="M110.8 60 A44 44 0 0 0 189.2 60" />
+                    {/* Bottom end: penalty box, 6-yard box, penalty spot, "D" arc */}
+                    <path d="M62 400 V340 H238 V400" />
+                    <path d="M112 400 V378 H188 V400" />
+                    <circle cx="150" cy="360" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
+                    <path d="M110.8 340 A44 44 0 0 1 189.2 340" />
+                    {/* Corner arcs */}
+                    <path d="M0 9 A9 9 0 0 0 9 0" />
+                    <path d="M291 0 A9 9 0 0 0 300 9" />
+                    <path d="M300 391 A9 9 0 0 0 291 400" />
+                    <path d="M9 400 A9 9 0 0 0 0 391" />
+                </svg>
+                {/* Translucent inner frame: layered over the green stripes so the 30% white tints the pitch edge */}
+                <div className="pointer-events-none absolute inset-0 rounded-lg border-3 border-white/30" />
+                {circles.map((slot, k) => {
+                    const player = filled[slot.id] ?? null;
+                    const isTarget =
+                        !!selectedPlayer && !player && selectedPlayer.positions.includes(slot.position);
+                    return (
+                        <SlotMarker
+                            key={k}
+                            slot={slot}
+                            player={player}
+                            isTarget={isTarget}
+                            tilt={tilt}
+                            onPlace={onPlace}
+                        />
+                    );
+                })}
+            </div>
         </div>
     );
 }

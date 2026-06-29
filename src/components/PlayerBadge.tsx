@@ -46,12 +46,12 @@ interface Props {
 export default function PlayerBadge({ name, position, code, elo, year, photoUrl, open }: Props) {
     if (open) {
         return (
-            <div className="flex w-[62px] flex-col items-center">
+            <div className="flex w-[68px] flex-col items-center">
                 <span className="grid h-[46px] w-[46px] place-items-center rounded-full border-2 border-dashed border-amber bg-amber/10 text-2xl font-light leading-none text-amber">
                     +
                 </span>
-                <div className="mt-1.5 max-w-[64px] rounded-lg bg-panel px-2 py-0.5 text-center shadow-soft outline outline-2 outline-amber">
-                    <div className="truncate text-[11px] font-extrabold leading-tight">
+                <div className="mt-1.5 max-w-[72px] rounded-lg bg-panel px-1.5 py-0.5 text-center shadow-soft outline outline-2 outline-amber">
+                    <div className="truncate text-[10px] font-extrabold leading-tight">
                         Pick a {position}
                     </div>
                     <div className="flex items-baseline justify-center">
@@ -65,7 +65,7 @@ export default function PlayerBadge({ name, position, code, elo, year, photoUrl,
     }
 
     return (
-        <div className="flex w-[62px] flex-col items-center">
+        <div className="flex w-[68px] flex-col items-center">
             <span className="relative block h-[46px] w-[46px]">
                 <FaceAvatar
                     photoUrl={photoUrl}
@@ -81,8 +81,8 @@ export default function PlayerBadge({ name, position, code, elo, year, photoUrl,
                     {elo}
                 </span>
             </span>
-            <div className="mt-1.5 max-w-[64px] rounded-lg bg-panel px-2 py-0.5 text-center shadow-soft">
-                <div className="truncate text-[11px] font-extrabold leading-tight">{name}</div>
+            <div className="mt-1.5 max-w-[72px] rounded-lg bg-panel px-1.5 py-0.5 text-center shadow-soft">
+                <div className="truncate text-[10px] font-extrabold leading-tight">{name}</div>
                 <div className="flex items-baseline justify-center gap-1">
                     <span className="text-[8px] font-extrabold uppercase tracking-wider text-pitch">
                         {position}
