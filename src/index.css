@@ -103,9 +103,9 @@ button:not(:disabled) {
   animation: slot-pulse 1.1s ease-out infinite;
 }
 
-/* 3D tilted pitch (Turf). The field tilts back; each player "stands up" via the
-   inverse rotation (billboard), so it faces the camera while sitting on the
-   plane. Field and billboard angles must stay in sync. */
+/* 3D tilted pitch (Turf). Only the pitch surface (grass, stripes, markings) is
+   tilted; player badges render flat in a 2D overlay positioned from measured
+   anchor points, so they stay crisp and readable. */
 .pitch-stage {
   perspective: 1100px;
   perspective-origin: 50% 24%;
@@ -113,9 +113,4 @@ button:not(:disabled) {
 .pitch-field {
   transform: rotateX(46deg);
   transform-origin: 50% 92%;
-  transform-style: preserve-3d;
-}
-.pitch-billboard {
-  transform: rotateX(-46deg);
-  transform-origin: 50% 100%;
 }

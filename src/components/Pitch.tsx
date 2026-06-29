@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
@@ -113,70 +113,70 @@ interface Props {
     onPlace: (slotId: string) => void;
 }
 
-function SlotMarker({
+/** Width (px, in field space) of the invisible measurement anchors. Their
+ *  rendered width after the 3D transform gives the perspective scale at a point. */
+const ANCHOR_W = 90;
+
+/** One placed player or open slot, rendered flat in the 2D overlay at a measured
+ *  screen position so it stays crisp and upright over the tilted pitch. */
+function OverlayMarker({
     slot,
     player,
     isTarget,
+    pos,
     tilt,
     onPlace,
 }: {
     slot: Slot;
     player: Player | null;
     isTarget: boolean;
-    /** True when the pitch is rendered in 3D (badges billboard, anchored at base). */
+    pos: { x: number; y: number; s: number };
     tilt: boolean;
     onPlace: (slotId: string) => void;
 }) {
-    // In 3D the slot's base sits on the tilted plane (anchor bottom-centre); flat
-    // keeps the old centre anchor. transform-style must survive into children.
-    const wrap = [
-        'absolute flex flex-col items-center transition-[left,top] duration-500 ease-out',
-        tilt ? '-translate-x-1/2 -translate-y-full [transform-style:preserve-3d]' : '-translate-x-1/2 -translate-y-1/2',
-    ].join(' ');
-    const style = { left: `${slot.x}%`, top: `${slot.y}%` } as const;
-    const billboard = tilt ? 'pitch-billboard' : '';
+    const transform = `translate(-50%, ${tilt ? '-100%' : '-50%'}) scale(${pos.s})`;
+    // Slide to the new measured spot when the formation changes.
+    const transition = 'left 0.45s ease-out, top 0.45s ease-out, transform 0.45s ease-out';
+    const shadow = tilt ? (
+        <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(0,0,0,0.33),transparent)]" />
+    ) : null;
 
     if (player) {
         const squad = SQUAD_BY_ID[player.squadId];
         return (
-            <div className={wrap} style={style}>
-                {tilt && (
-                    <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(0,0,0,0.34),transparent)]" />
-                )}
-                <div className={billboard}>
-                    <PlayerBadge
-                        name={lastName(player.name)}
-                        position={slot.label}
-                        code={squad?.code ?? ''}
-                        elo={player.elo}
-                        year={squad?.year}
-                    />
-                </div>
+            <div
+                className="absolute flex flex-col items-center"
+                style={{ left: pos.x, top: pos.y, transform, transformOrigin: 'bottom center', transition }}
+            >
+                {shadow}
+                <PlayerBadge
+                    name={lastName(player.name)}
+                    position={slot.label}
+                    code={squad?.code ?? ''}
+                    elo={player.elo}
+                    year={squad?.year}
+                />
             </div>
         );
     }
 
     return (
         <button
-            className={wrap}
-            style={style}
+            className="absolute flex flex-col items-center"
+            style={{ left: pos.x, top: pos.y, transform, transformOrigin: 'bottom center', transition }}
             disabled={!isTarget}
             onClick={() => onPlace(slot.id)}
         >
-            {tilt && (
-                <span className="absolute bottom-0 left-1/2 h-3 w-9 -translate-x-1/2 translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(0,0,0,0.25),transparent)]" />
-            )}
-            <div className={`${billboard} flex flex-col items-center gap-1`}>
-                <div
-                    className={[
-                        'flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-bold uppercase tracking-wide transition',
-                        isTarget
-                            ? 'animate-slot-pulse cursor-pointer border-amber bg-amber/30 text-white'
-                            : 'border-white/70 bg-black/10 text-white/85',
-                    ].join(' ')}
-                >
-                    {slot.label}
-                </div>
+            {shadow}
+            <div
+                className={[
+                    'flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-bold uppercase tracking-wide transition',
+                    isTarget
+                        ? 'animate-slot-pulse cursor-pointer border-amber bg-amber/30 text-white'
+                        : 'border-white/70 bg-black/10 text-white/85',
+                ].join(' ')}
+            >
+                {slot.label}
             </div>
         </button>
     );
@@ -199,23 +199,49 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
 
     const tilt = FEATURES.pitch3d;
 
+    // Player badges render flat in a 2D overlay (never inside the 3D transform, so
+    // they stay readable). Invisible anchors sit on the tilted surface; we measure
+    // where each lands on screen and place its badge there.
+    const stageRef = useRef<HTMLDivElement | null>(null);
+    const anchorRefs = useRef<(HTMLSpanElement | null)[]>([]);
+    const [positions, setPositions] = useState<{ x: number; y: number; s: number }[]>([]);
+
+    useLayoutEffect(() => {
+        const stage = stageRef.current;
+        if (!stage) return;
+        const measure = () => {
+            const sr = stage.getBoundingClientRect();
+            setPositions(
+                circles.map((_, k) => {
+                    const a = anchorRefs.current[k];
+                    if (!a) return { x: 0, y: 0, s: 1 };
+                    const r = a.getBoundingClientRect();
+                    const s = tilt ? Math.max(0.84, Math.min(1, r.width / ANCHOR_W)) : 1;
+                    return { x: r.left - sr.left + r.width / 2, y: r.top - sr.top + r.height / 2, s };
+                }),
+            );
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(stage);
+        return () => ro.disconnect();
+    }, [circles, tilt]);
+
     return (
         <div
+            ref={stageRef}
             className={[
                 'relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-line shadow-soft',
-                tilt ? 'pitch-stage aspect-4/5' : 'aspect-3/4',
+                tilt ? 'pitch-stage aspect-6/5' : 'aspect-3/4',
             ].join(' ')}
-            style={
-                tilt
-                    ? { background: 'linear-gradient(180deg,#cfe9d5,#bfe1c7 30%,#aed7b6)' }
-                    : undefined
-            }
+            style={tilt ? { background: 'linear-gradient(180deg,#cfe9d5,#bfe1c7 32%,#aed7b6)' } : undefined}
         >
-            {/* The pitch surface. In 3D it tilts back (and the slots, stripes and
-          markings tilt with it); flat keeps it filling the frame. */}
+            {/* Pitch surface: tilts back in 3D (stripes + markings recede); flat fills the frame.
+          The top of the field is cropped above the container so the attacking third
+          does not leave a band of empty grass over the forwards. */}
             <div
                 className={tilt ? 'pitch-field absolute overflow-hidden rounded-lg' : 'absolute inset-0'}
-                style={tilt ? { left: '6%', right: '6%', top: '1%', bottom: '1%' } : undefined}
+                style={tilt ? { left: '5%', right: '5%', top: '-12%', bottom: '1%' } : undefined}
             >
                 {/* Mowing stripes */}
                 <div className="absolute inset-0">
@@ -266,16 +292,35 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                 </svg>
                 {/* Translucent inner frame: layered over the green stripes so the 30% white tints the pitch edge */}
                 <div className="pointer-events-none absolute inset-0 rounded-lg border-3 border-white/30" />
+                {/* Invisible anchors, one per slot, measured to place the flat badges. */}
+                {circles.map((slot, k) => (
+                    <span
+                        key={k}
+                        ref={(el) => {
+                            anchorRefs.current[k] = el;
+                        }}
+                        aria-hidden="true"
+                        className="absolute -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: ANCHOR_W, height: 0 }}
+                    />
+                ))}
+            </div>
+
+            {/* Flat 2D player overlay, positioned from the measured anchors. */}
+            <div className="absolute inset-0">
                 {circles.map((slot, k) => {
                     const player = filled[slot.id] ?? null;
                     const isTarget =
                         !!selectedPlayer && !player && selectedPlayer.positions.includes(slot.position);
+                    const pos = positions[k];
+                    if (!pos) return null;
                     return (
-                        <SlotMarker
+                        <OverlayMarker
                             key={k}
                             slot={slot}
                             player={player}
                             isTarget={isTarget}
+                            pos={pos}
                             tilt={tilt}
                             onPlace={onPlace}
                         />
