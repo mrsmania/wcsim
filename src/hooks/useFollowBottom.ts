@@ -118,12 +118,24 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
       const bottom = marker.getBoundingClientRect().bottom; // viewport-relative
       const docBottom = bottom + window.scrollY; // absolute, scroll-independent
 
-      if (marker !== lastMarker || lastDocBottom === null) {
-        // First sight, or the active region changed: baseline + follow, no scroll.
+      if (lastDocBottom === null) {
+        // Very first tail we ever see (the screen just mounted): baseline only,
+        // never scroll, so arriving never jumps.
+        lastMarker = marker;
+        lastDocBottom = docBottom;
+        return;
+      }
+
+      if (marker !== lastMarker) {
+        // The active region changed: a new game/round card or the end-of-match
+        // result appeared. Follow to it so it is visible even before any goals,
+        // then track it for further growth. (Down only, like everything else.)
         lastMarker = marker;
         lastDocBottom = docBottom;
         stuck = true;
         stopAnim();
+        const newDesired = window.scrollY + bottom - (window.innerHeight - marginRef.current);
+        if (newDesired > window.scrollY + 0.5) scrollDownTo(newDesired);
         return;
       }
 
