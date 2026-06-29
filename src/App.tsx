@@ -62,7 +62,7 @@ export default function App() {
   const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
   const timerRef = useRef<number | null>(null);
   const animatingRef = useRef(false);
-  const pitchRef = useRef<HTMLElement | null>(null);
+  const pitchRef = useRef<HTMLDivElement | null>(null);
   const squadRef = useRef<HTMLElement | null>(null);
 
   useEffect(
@@ -88,12 +88,12 @@ export default function App() {
   );
   const activeFormation = phase === 'setup' ? previewFormation : formation;
 
-  // Mobile: when a player is picked, scroll the pitch roughly to the middle of
-  // the viewport so the user can tap an open slot, with some breathing room on
-  // top. (Scrolling back up after placing is done in handlePlace.)
+  // Mobile: when a player is picked, scroll the pitch to the top (with a little
+  // margin via scroll-mt) so the user can tap an open slot. Scrolling back up to
+  // the squad after placing is done in handlePlace.
   useEffect(() => {
     if (phase === 'draft' && selectedPlayerId && isStackedLayout()) {
-      pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [selectedPlayerId, phase]);
 
@@ -152,11 +152,10 @@ export default function App() {
 
       dispatch({ type: 'PLACE_PLAYER', slotId });
 
-      // Mobile: jump back up to the squad list (showing the next drawn squad),
-      // leaving a little space above it instead of pinning it to the top edge.
-      if (isStackedLayout() && squadRef.current) {
-        const top = squadRef.current.getBoundingClientRect().top + window.scrollY - 16;
-        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      // Mobile: jump back up to the squad list (showing the next drawn squad); the
+      // panel's scroll-mt keeps a little margin above it.
+      if (isStackedLayout()) {
+        squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
       const nextFilled = { ...filled, [slotId]: player };
@@ -242,7 +241,7 @@ export default function App() {
         ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[330px_minmax(0,1fr)] lg:items-start">
           {/* Left: setup -> drawn squad -> complete */}
-          <aside ref={squadRef} className="lg:h-[80vh]">
+          <aside ref={squadRef} className="scroll-mt-6 lg:h-[80vh]">
             {phase === 'setup' && (
               <SetupPanel
                 names={FORMATIONS_DATA.names}
@@ -282,11 +281,18 @@ export default function App() {
 
           {/* Center: team-rating totals on top, then the pitch filling the rest so
               the column matches the squad panel's height. */}
-          <main ref={pitchRef} className="flex flex-col gap-4 lg:h-[80vh]">
+          <main className="flex flex-col gap-4 lg:h-[80vh]">
             {activeFormation ? (
               <>
-                <BoxScore formation={activeFormation} filled={filled} showChemistry />
-                <div className="min-h-0 flex-1 max-lg:min-h-[440px]">
+                {/* On mobile the pitch sits between the two tables (squad above,
+                    totals + XI table below); on desktop the totals stay on top. */}
+                <div className="max-lg:order-2">
+                  <BoxScore formation={activeFormation} filled={filled} showChemistry />
+                </div>
+                <div
+                  ref={pitchRef}
+                  className="min-h-0 flex-1 scroll-mt-6 max-lg:order-1 max-lg:min-h-[440px]"
+                >
                   <Pitch
                     formation={activeFormation}
                     filled={filled}
