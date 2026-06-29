@@ -1,11 +1,13 @@
 import { HelpCircle, Sparkles } from 'lucide-react';
 import type { Player } from '../data/types';
-import { categoryOf } from '../data/types';
+import { categoryOf, CATEGORY_ORDER, lastName } from '../data/types';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { teamChemistry, MAX_BONUS } from '../domain/chemistry';
+import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
+import Flag from './Flag';
 
 /** Full rules shown when hovering the chemistry "?" help icon. Category names and
  *  point tiers match exactly what the breakdown below shows. */
@@ -84,6 +86,13 @@ export default function BoxScore({ formation, filled, showChemistry = false }: P
     const chem = FEATURES.chemistry && showChemistry ? teamChemistry(formation, filled) : null;
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;
 
+    // Slots ordered back-to-front for the mobile table (GK, DEF, MID, FWD).
+    const ordered = [...formation.slots].sort(
+        (a, b) =>
+            CATEGORY_ORDER.indexOf(categoryOf(a.position)) -
+            CATEGORY_ORDER.indexOf(categoryOf(b.position)),
+    );
+
     return (
         <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-panel p-3 shadow-soft">
             <div className="flex flex-wrap items-stretch gap-2.5">
@@ -160,6 +169,44 @@ export default function BoxScore({ formation, filled, showChemistry = false }: P
                     </span>
                 </div>
             )}
+
+            {/* Mobile only: the full XI with details (on desktop these live on the
+          pitch badges, which mobile keeps minimal). Position, last name, flag +
+          year, elo. */}
+            <ul className="flex flex-col border-t border-line lg:hidden">
+                {ordered.map((slot) => {
+                    const player = filled[slot.id];
+                    const sq = player ? SQUAD_BY_ID[player.squadId] : null;
+                    return (
+                        <li
+                            key={slot.id}
+                            className="flex items-center gap-2 border-b border-line py-2 text-sm last:border-b-0"
+                        >
+                            <span className="w-8 shrink-0 text-[11px] font-bold uppercase text-muted">
+                                {slot.label}
+                            </span>
+                            <span
+                                className={`flex-1 truncate ${player ? 'font-bold' : 'text-muted'}`}
+                            >
+                                {player ? lastName(player.name) : '—'}
+                            </span>
+                            <span className="flex w-[60px] shrink-0 items-center gap-1.5 text-muted">
+                                {sq && (
+                                    <>
+                                        <Flag code={sq.code} className="h-3.5 w-5" />
+                                        <span className="font-mono text-[11px] tabular-nums">
+                                            {sq.year}
+                                        </span>
+                                    </>
+                                )}
+                            </span>
+                            <span className="w-7 shrink-0 text-right font-mono text-sm font-extrabold">
+                                {player ? player.elo : '—'}
+                            </span>
+                        </li>
+                    );
+                })}
+            </ul>
         </div>
     );
 }

@@ -73,6 +73,21 @@ export function formatPositions(positions: Position[]): string {
   return positions.join('/');
 }
 
+/** Surname particles kept with the last name (e.g. "Van der Sar", "de Boer"). */
+const NAME_PARTICLES = new Set([
+  'de', 'del', 'der', 'den', 'van', 'von', 'di', 'da', 'dos', 'das',
+  'do', 'la', 'le', 'el', 'ter', 'ten', 'bin', 'al',
+]);
+
+/** Display surname: the last word, plus any leading particles. */
+export function lastName(full: string): string {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length <= 1) return full;
+  let i = parts.length - 1;
+  while (i > 0 && NAME_PARTICLES.has(parts[i - 1].toLowerCase().replace(/\./g, ''))) i--;
+  return parts.slice(i).join(' ');
+}
+
 /** Category ordering for sorting a squad list GK -> DEF -> MID -> FWD. */
 export const CATEGORY_ORDER: PositionCategory[] = ['GK', 'DEF', 'MID', 'FWD'];
 

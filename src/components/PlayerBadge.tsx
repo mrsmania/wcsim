@@ -36,14 +36,30 @@ interface Props {
     code: string;
     elo: number;
     year?: number;
+    number?: number;
     photoUrl?: string;
     /** Render an empty "pick" slot (dashed + face, amber accent) instead of a player. */
     open?: boolean;
+    /** Minimal badge for the flat mobile pitch: jersey number + last name only. */
+    compact?: boolean;
 }
 
 /** Compact vertical player badge (the Turf pitch badge). Self-contained: it carries
  *  no absolute positioning of its own, so a parent can place it freely. */
-export default function PlayerBadge({ name, position, code, elo, year, photoUrl, open }: Props) {
+export default function PlayerBadge({ name, position, code, elo, year, number, photoUrl, open, compact }: Props) {
+    // Mobile pitch: a small pill with just the shirt number and surname; the full
+    // details live in the players table beneath the pitch.
+    if (compact && !open) {
+        return (
+            <span className="flex items-center gap-1.5 rounded-full bg-panel px-2.5 py-1 shadow-soft">
+                <span className="font-mono text-[11px] font-bold text-muted">{number}</span>
+                <span className="max-w-[88px] truncate text-[13px] font-extrabold leading-none text-ink">
+                    {name}
+                </span>
+            </span>
+        );
+    }
+
     if (open) {
         return (
             <div className="flex w-[88px] flex-col items-center">

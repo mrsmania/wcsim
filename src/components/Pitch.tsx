@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
+import { lastName } from '../data/types';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { SQUAD_BY_ID } from '../data/squads';
@@ -8,37 +9,6 @@ import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
 const STRIPES = 18;
-
-// Surname particles kept with the last name (e.g. "Van der Sar", "de Boer").
-const NAME_PARTICLES = new Set([
-    'de',
-    'del',
-    'der',
-    'den',
-    'van',
-    'von',
-    'di',
-    'da',
-    'dos',
-    'das',
-    'do',
-    'la',
-    'le',
-    'el',
-    'ter',
-    'ten',
-    'bin',
-    'al',
-]);
-
-/** The display surname: last word, plus any leading particles. */
-function lastName(full: string): string {
-    const parts = full.trim().split(/\s+/);
-    if (parts.length <= 1) return full;
-    let i = parts.length - 1;
-    while (i > 0 && NAME_PARTICLES.has(parts[i - 1].toLowerCase().replace(/\./g, ''))) i--;
-    return parts.slice(i).join(' ');
-}
 
 const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 
@@ -125,6 +95,7 @@ function OverlayMarker({
     target,
     pos,
     tilt,
+    compact,
     onPlace,
 }: {
     slot: Slot;
@@ -134,6 +105,8 @@ function OverlayMarker({
     target: 'none' | 'primary' | 'secondary';
     pos: { x: number; y: number; s: number };
     tilt: boolean;
+    /** Mobile: show a minimal badge (number + last name only). */
+    compact: boolean;
     onPlace: (slotId: string) => void;
 }) {
     const transform = `translate(-50%, ${tilt ? '-100%' : '-50%'}) scale(${pos.s})`;
@@ -159,10 +132,12 @@ function OverlayMarker({
                 {shadow}
                 <PlayerBadge
                     name={lastName(player.name)}
+                    number={player.number}
                     position={slot.label}
                     code={squad?.code ?? ''}
                     elo={player.elo}
                     year={squad?.year}
+                    compact={compact}
                 />
             </div>
         );
@@ -213,7 +188,19 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
         );
     }, [formation]);
 
-    const tilt = FEATURES.pitch3d;
+    // Below lg the 3D tilt wastes too much vertical space, so the pitch is flat
+    // (and badges are minimal); the tilted 3D pitch is desktop-only.
+    const [isMobile, setIsMobile] = useState(
+        () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+    );
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 1023px)');
+        const onChange = () => setIsMobile(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+
+    const tilt = FEATURES.pitch3d && !isMobile;
 
     // Player badges render flat in a 2D overlay (never inside the 3D transform, so
     // they stay readable). Invisible anchors sit on the tilted surface; we measure
@@ -353,6 +340,7 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                             target={target}
                             pos={pos}
                             tilt={tilt}
+                            compact={isMobile}
                             onPlace={onPlace}
                         />
                     );
