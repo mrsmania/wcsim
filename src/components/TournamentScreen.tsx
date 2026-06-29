@@ -447,15 +447,32 @@ export default function TournamentScreen({
     nextAnchorKey = nextGame.kind === 'md' ? `md-${nextGame.md}` : `ko-${koCurrent}`;
   }
 
+  // Goals currently revealed in the live feed, so the page can follow the feed
+  // down as it grows during a match.
+  let liveRevealed = 0;
+  if (playingGroup) {
+    const fx = fixturesForMatchday(group, playingGroup.matchday).find(
+      (f) => teamById(group, f.homeId).isUser || teamById(group, f.awayId).isUser,
+    );
+    const r = fx
+      ? playingGroup.results.find((x) => x.homeId === fx.homeId && x.awayId === fx.awayId)?.result
+      : undefined;
+    liveRevealed = r ? r.events.filter((e) => e.minute <= liveMinute).length : 0;
+  } else if (playingKo) {
+    liveRevealed = playingKo.result.events.filter((e) => e.minute <= liveMinute).length;
+  }
+
   // Keep freshly added bottom content in view: scroll the "Next game" button into
   // view as soon as it appears, and scroll to the end when the run finishes.
   useEffect(() => {
     if (nextAnchorKey) nextButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [nextAnchorKey]);
-  // Follow the penalty shootout as each kick is revealed so the takers stay visible.
+  // Follow the live feed (each goal, then each shootout kick) so the latest line stays in view.
   useEffect(() => {
-    if (penShown > 0) liveFeedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [penShown]);
+    if (liveRevealed > 0 || penShown > 0) {
+      liveFeedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [liveRevealed, penShown]);
   useEffect(() => {
     if ((groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out') {
       endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -736,6 +753,8 @@ export default function TournamentScreen({
                       away={userAway}
                       live={isPlayingMd && liveMinute < 90}
                     />
+                    {/* Scroll anchor so the page follows the feed as goals appear. */}
+                    <div ref={isPlayingMd ? liveFeedRef : undefined} className="scroll-mb-24" />
                   </div>
                 )}
               </div>
