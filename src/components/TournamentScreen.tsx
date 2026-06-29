@@ -28,7 +28,6 @@ import Flag from './Flag';
 import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
 import TournamentSummary from './TournamentSummary';
-import { useFollowBottom } from '../hooks/useFollowBottom';
 
 interface Props {
   group: GroupState;
@@ -231,12 +230,6 @@ export default function TournamentScreen({
   const toggle = (key: string) => setOpenKey((k) => (k === key ? null : key));
   // Collapsible "all results" overview attached to the group table.
   const [showResults, setShowResults] = useState(false);
-
-  // Single scroll authority: a lone tail marker, rendered at the bottom of the
-  // currently-active region, that the page keeps pinned just above the viewport
-  // bottom as content grows (goals, penalty lines, new rounds, end banners).
-  // rootRef wraps the growing content so the hook can detect that growth.
-  const { tailRef, rootRef } = useFollowBottom();
 
   // --- shared live-clock display ---
   const [liveMinute, setLiveMinute] = useState(0);
@@ -446,10 +439,6 @@ export default function TournamentScreen({
     nextAnchorKey = nextGame.kind === 'md' ? `md-${nextGame.md}` : `ko-${koCurrent}`;
   }
 
-  // Following the growing feed/rounds/banners is handled entirely by
-  // useFollowBottom watching the single tail marker rendered below; there are no
-  // per-trigger scroll effects here anymore (they used to compete and jump).
-
   // --- opening group draw view (full takeover, shown once) ---
   if (revealing) {
     return (
@@ -515,7 +504,7 @@ export default function TournamentScreen({
   );
 
   return (
-    <div ref={rootRef} className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
       {/* Header: title + playback selectors */}
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div>
@@ -717,9 +706,6 @@ export default function TournamentScreen({
                       away={userAway}
                       live={isPlayingMd && liveMinute < 90}
                     />
-                    {/* Tail marker: the page follows this as goals appear. Only the
-                        active matchday renders it, so exactly one tail exists. */}
-                    {isPlayingMd && <div ref={tailRef} aria-hidden className="h-0" />}
                   </div>
                 )}
               </div>
@@ -816,9 +802,6 @@ export default function TournamentScreen({
                       {showShootout && penKicks && (
                         <ShootoutFeed oppName={opp?.name ?? 'Opponent'} kicks={penKicks} shown={penShownCount} />
                       )}
-                      {/* Tail marker: follows goals and each new penalty line. Only
-                          the active round renders it, so exactly one tail exists. */}
-                      {isPlayingRound && <div ref={tailRef} aria-hidden className="h-0" />}
                     </div>
                   )}
                 </div>
@@ -877,17 +860,6 @@ export default function TournamentScreen({
       {knockout && koOutcome !== 'alive' && (
         <TournamentSummary formation={formation} filled={filled} group={group} knockout={knockout} />
       )}
-
-      {/* Bottom spacer so the document-end case still keeps a margin: scrollTo
-          clamps to max scroll, so without this the very last content would sit
-          flush against the viewport bottom. */}
-      <div aria-hidden className="h-6" />
-
-      {/* Tail marker for everything that grows at the document bottom (a newly
-          appended knockout round, the end-of-run banners). While a match is
-          playing, the tail lives inside that match's feed box instead, so only
-          one tail is ever mounted. */}
-      {!isPlaying && <div ref={tailRef} aria-hidden className="h-0" />}
     </div>
   );
 }
