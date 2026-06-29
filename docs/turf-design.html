@@ -1,0 +1,311 @@
+<style>
+  :root{
+    --ground:#EEF5EE; --panel:#FFFFFF; --ink:#15241B; --muted:#5E6F63;
+    --line:#E1EAE2; --green:#13924C; --green-d:#0c6f39; --amber:#F2A93B;
+    --win:#13924C; --loss:#E2554F;
+    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+    --r:18px; --sh:0 1px 2px rgba(21,36,27,.05),0 12px 30px rgba(21,36,27,.07);
+  }
+  *{box-sizing:border-box}
+  body{
+    background-color:var(--ground);
+    /* soft green wash: a little colour up top fading to clear, plus a faint
+       lift in the lower corners, so the page has depth without any texture */
+    background-image:
+      radial-gradient(1200px 620px at 50% -260px, rgba(19,146,76,.16), transparent 72%),
+      radial-gradient(900px 600px at 110% 105%, rgba(19,146,76,.07), transparent 60%),
+      linear-gradient(180deg, rgba(19,146,76,.05), transparent 320px);
+    background-attachment:fixed;
+    background-repeat:no-repeat;
+    color:var(--ink);font-family:var(--sans);line-height:1.45;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:26px 20px 64px;}
+
+  .optban{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(180deg,#fff,#fbfdfb);
+    border:1px solid var(--line);border-radius:999px;padding:12px 22px;box-shadow:var(--sh);margin-bottom:30px;}
+  .optban .num{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:var(--green);border-radius:999px;padding:5px 11px;font-weight:700;}
+  .optban b{font-size:20px;font-weight:800;letter-spacing:-.2px;}
+  .optban .desc{color:var(--muted);font-size:13px;}
+
+  .pagelabel{display:flex;align-items:center;gap:13px;margin:46px 0 18px;}
+  .pagelabel .n{font-size:14px;font-weight:800;color:#fff;background:var(--green);width:30px;height:30px;border-radius:10px;display:grid;place-items:center;box-shadow:0 6px 16px rgba(19,146,76,.32);}
+  .pagelabel h2{font-size:25px;font-weight:800;letter-spacing:-.4px;}
+  .pagelabel .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);}
+
+  .hd{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+  .hd .brand{font-size:27px;font-weight:800;letter-spacing:-.5px;}
+  .hd .brand em{color:var(--green);font-style:normal;}
+  .hd .sub{color:var(--muted);font-size:13.5px;margin-top:3px;}
+  .chiprow{display:flex;gap:8px;}
+  .ghost{font-size:12.5px;font-weight:700;border:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfdfb);border-radius:999px;padding:9px 15px;box-shadow:var(--sh);}
+  .ghost .k{color:var(--muted);font-weight:600;font-size:11px;margin-right:5px;}
+
+  /* rectangular flags (tables / squad rows) */
+  .flag{width:24px;height:16px;border-radius:4px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(21,36,27,.12) inset;overflow:hidden;position:relative;background:#ccc;}
+  .f-ita{background:linear-gradient(90deg,#009246 33.3%,#fff 33.3% 66.6%,#ce2b37 66.6%);}
+  .f-fra{background:linear-gradient(90deg,#0055A4 33.3%,#fff 33.3% 66.6%,#EF4135 66.6%);}
+  .f-esp{background:linear-gradient(180deg,#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%);}
+  .f-arg{background:linear-gradient(180deg,#75AADB 33.3%,#fff 33.3% 66.6%,#75AADB 66.6%);}
+  .f-cro{background:linear-gradient(180deg,#FF0000 34%,#fff 34% 66%,#171796 66%);}
+  .f-ned{background:linear-gradient(180deg,#AE1C28 33.3%,#fff 33.3% 66.6%,#21468B 66.6%);}
+  .f-ger{background:linear-gradient(180deg,#111 33.3%,#DD0000 33.3% 66.6%,#FFCE00 66.6%);}
+  .f-nga{background:linear-gradient(90deg,#008751 33.3%,#fff 33.3% 66.6%,#008751 66.6%);}
+  .f-bra{background:#009C3B;}
+  .f-bra::before{content:"";position:absolute;inset:0;margin:auto;width:62%;height:62%;background:#FFDF00;transform:rotate(45deg);}
+  .f-bra::after{content:"";position:absolute;inset:0;margin:auto;width:26%;height:26%;border-radius:50%;background:#3E4095;}
+  .f-you{background:linear-gradient(135deg,var(--green),var(--green-d));}
+
+  /* face placeholder (where a real photo drops in) */
+  .face{border-radius:50%;overflow:hidden;background:linear-gradient(165deg,#dceae0,#a7c8af);position:relative;flex:0 0 auto;}
+  .face::before{content:"";position:absolute;left:50%;top:23%;width:38%;aspect-ratio:1;border-radius:50%;background:rgba(21,36,27,.30);transform:translateX(-50%);}
+  .face::after{content:"";position:absolute;left:50%;bottom:-5%;width:72%;height:50%;border-radius:46% 46% 0 0;background:rgba(21,36,27,.30);transform:translateX(-50%);}
+
+  .draft{display:grid;grid-template-columns:288px minmax(0,1fr) 218px;gap:20px;align-items:start;}
+  .panel{background:linear-gradient(180deg,#fff,#fbfdfb);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);}
+  .ph{padding:15px 17px 0;}
+  .ph .lbl{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .ph .team{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;margin-top:4px;}
+  .ph .team .yr{color:var(--muted);font-weight:600;font-size:12px;}
+
+  /* drawn squad rows (now with mini face) */
+  .squad{padding:12px;display:flex;flex-direction:column;gap:7px;}
+  .prow{display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:13px;background:#F5FAF6;border:1px solid transparent;}
+  .prow .mini{width:34px;height:34px;border:2px solid #fff;box-shadow:0 2px 6px rgba(21,36,27,.16);}
+  .prow .nm{flex:1;min-width:0;}
+  .prow .nm b{display:block;font-weight:700;font-size:14px;}
+  .prow .nm .pp{font-size:11px;color:var(--muted);}
+  .prow .rt{font-family:var(--mono);font-weight:800;font-size:15px;}
+  .prow.elig{background:#fff;border-color:var(--green);box-shadow:0 6px 16px rgba(19,146,76,.14);}
+  .prow.elig .pick{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--green);background:rgba(19,146,76,.12);border-radius:999px;padding:3px 8px;}
+  .prow.dim{opacity:.42;}
+  .rerolls{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 14px;}
+  .rr{font-size:12.5px;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;text-align:center;}
+  .rr.wide{grid-column:1/3;background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 6px 16px rgba(19,146,76,.25);}
+  .rrhint{grid-column:1/3;text-align:center;font-size:11px;color:var(--muted);}
+
+  /* ====== 3D tilted pitch ====== */
+  .pitchwrap{padding:16px 16px 22px;}
+  .pitch3d{position:relative;height:472px;border-radius:18px;overflow:hidden;
+    perspective:1000px;perspective-origin:50% 24%;
+    background:linear-gradient(180deg,#cfe9d5 0%,#bfe1c7 26%,#b0d9b8 60%,#a7d3b0 100%);
+    box-shadow:inset 0 0 0 1px var(--line);}
+  /* faint far-end haze for depth */
+  .pitch3d::after{content:"";position:absolute;left:0;right:0;top:0;height:42%;background:linear-gradient(180deg,rgba(255,255,255,.55),transparent);pointer-events:none;}
+  .field{position:absolute;left:7%;right:7%;top:1%;bottom:1%;transform-style:preserve-3d;
+    transform:rotateX(41deg);transform-origin:50% 90%;border-radius:10px;
+    background:repeating-linear-gradient(0deg,#36a868 0 9.09%,#2f9c5e 9.09% 18.18%);
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.6),inset 0 -30px 60px rgba(0,0,0,.22),inset 0 24px 50px rgba(255,255,255,.14);}
+  .ln{position:absolute;border:2px solid rgba(255,255,255,.62);}
+  .ln.mid{left:4%;right:4%;top:50%;height:0;border-width:0 0 2px 0;}
+  .ln.circ{left:50%;top:50%;width:23%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);}
+  .ln.spot{left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.75);border:0;transform:translate(-50%,-50%);}
+  .ln.boxT{left:28%;right:28%;top:0;height:13%;border-top:0;}
+  .ln.boxB{left:28%;right:28%;bottom:0;height:13%;border-bottom:0;}
+
+  .slot{position:absolute;transform:translate(-50%,-100%);transform-style:preserve-3d;width:62px;}
+  .shadow{position:absolute;left:50%;bottom:0;width:40px;height:13px;border-radius:50%;
+    background:radial-gradient(closest-side,rgba(0,0,0,.34),transparent);transform:translate(-50%,55%);}
+  .badge{display:flex;flex-direction:column;align-items:center;transform:rotateX(-41deg);transform-origin:50% 100%;}
+  .ava{position:relative;width:46px;height:46px;}
+  .ava .ph{width:46px;height:46px;border:2.5px solid #fff;box-shadow:0 6px 13px rgba(0,0,0,.3);}
+  .ava .fl{position:absolute;bottom:-3px;left:-3px;width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .ava .elo{position:absolute;top:-5px;right:-8px;background:var(--green);color:#fff;border-radius:999px;font-family:var(--mono);font-weight:800;font-size:10px;line-height:1;padding:3px 5px;border:1.5px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.28);}
+  .lab{margin-top:6px;background:#fff;border-radius:9px;padding:3px 8px;box-shadow:0 4px 10px rgba(0,0,0,.22);text-align:center;max-width:64px;}
+  .lab .nm{font-size:11px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lab .meta{display:flex;gap:4px;justify-content:center;align-items:baseline;}
+  .lab .pos{font-size:8px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--green);}
+  .lab .yr{font-size:8px;font-weight:700;color:var(--muted);font-family:var(--mono);}
+  .slot.open .ph{background:rgba(255,255,255,.28);border:2px dashed #fff;box-shadow:none;display:grid;place-items:center;}
+  .slot.open .ph::before,.slot.open .ph::after{display:none;}
+  .slot.open .plus{color:#fff;font-size:22px;font-weight:300;line-height:1;}
+  .slot.open .lab{outline:2px solid var(--amber);}
+  .slot.open .lab .pos{color:var(--amber);}
+
+  /* box score */
+  .scorebox{padding:16px;}
+  .ovr{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;background:linear-gradient(135deg,#13924C,#0c6f39);color:#fff;margin-bottom:14px;box-shadow:0 10px 22px rgba(12,111,57,.28);}
+  .ovr .big{font-family:var(--mono);font-weight:800;font-size:38px;line-height:1;}
+  .ovr .lab2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;}
+  .ovr .lab2 b{display:block;font-size:14px;letter-spacing:0;text-transform:none;opacity:1;font-weight:700;margin-top:2px;}
+  .trip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+  .tcell{text-align:center;background:#F5FAF6;border-radius:12px;padding:11px 4px;}
+  .tcell .k{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .tcell .v{font-family:var(--mono);font-weight:800;font-size:20px;margin-top:2px;}
+  .chem{margin-top:14px;display:flex;align-items:center;gap:13px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#fff;}
+  .donut{width:54px;height:54px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;background:conic-gradient(var(--amber) 0 83%,var(--line) 83% 100%);}
+  .donut span{width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center;font-family:var(--mono);font-weight:800;color:var(--amber);}
+  .chem .ct .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .chem .ct .d{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* simulation */
+  .controls{display:flex;gap:9px;flex-wrap:wrap;}
+  .sel{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfdfb);border-radius:999px;padding:9px 15px;font-size:12.5px;font-weight:700;box-shadow:var(--sh);}
+  .sel .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .standings{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel);box-shadow:var(--sh);}
+  .strow{display:grid;grid-template-columns:28px 1fr 40px 40px 44px;gap:10px;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line);font-size:14px;}
+  .strow.head{background:#F5FAF6;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .strow:last-child{border-bottom:0;}
+  .strow .rk{font-family:var(--mono);color:var(--muted);font-weight:700;}
+  .strow.adv .rk{color:#fff;background:var(--green);width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:12px;}
+  .strow.you{background:rgba(19,146,76,.05);}
+  .strow .tm{display:flex;align-items:center;gap:10px;font-weight:700;min-width:0;}
+  .strow .tm .yr{color:var(--muted);font-weight:600;font-size:11px;}
+  .strow .num{font-family:var(--mono);text-align:center;color:var(--muted);}
+  .strow .pts{font-family:var(--mono);text-align:center;font-weight:800;}
+  .youtag{font-size:9px;font-weight:800;background:var(--green);color:#fff;border-radius:6px;padding:2px 6px;letter-spacing:.04em;text-transform:uppercase;}
+
+  .matches{margin-top:18px;display:flex;flex-direction:column;gap:14px;}
+  .mdlbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px;display:flex;gap:9px;align-items:center;}
+  .pillres{font-size:10px;font-weight:800;border-radius:999px;padding:2px 9px;text-transform:uppercase;letter-spacing:.04em;}
+  .pillres.w{background:rgba(19,146,76,.13);color:var(--win);} .pillres.l{background:rgba(226,85,79,.13);color:var(--loss);} .pillres.d{background:var(--line);color:var(--muted);}
+  .fix{background:linear-gradient(180deg,#fff,#fbfdfb);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden;}
+  .frow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:15px 18px;}
+  .frow .side{display:flex;align-items:center;gap:10px;font-weight:700;}
+  .frow .side.h{justify-content:flex-end;text-align:right;}
+  .frow .side .yr{color:var(--muted);font-weight:600;font-size:11px;}
+  .score{display:flex;flex-direction:column;align-items:center;}
+  .score .n{font-family:var(--mono);font-weight:800;font-size:22px;background:#F5FAF6;border-radius:12px;padding:5px 16px;}
+  .score .st{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);font-weight:800;margin-top:4px;}
+  .feed{border-top:1px solid var(--line);padding:13px 18px;display:flex;flex-direction:column;gap:7px;}
+  .goal{display:flex;align-items:center;gap:10px;font-size:13px;}
+  .goal .min{font-family:var(--mono);color:var(--muted);width:32px;}
+  .goal .b{width:20px;height:20px;border-radius:50%;background:rgba(19,146,76,.13);display:grid;place-items:center;font-size:11px;}
+  .shoot{border-top:1px solid var(--line);padding:14px 18px 6px;}
+  .shoot .t{text-align:center;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:11px;}
+  .pkline{display:grid;grid-template-columns:1fr 24px 1fr;align-items:center;gap:10px;font-size:13px;margin-bottom:7px;}
+  .pkline .hh{display:flex;justify-content:flex-end;align-items:center;gap:8px;font-weight:700;}
+  .pkline .aa{display:flex;align-items:center;gap:8px;font-weight:700;}
+  .pkline .rn{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;}
+  .pip{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:900;flex:0 0 auto;}
+  .pip.ok{background:var(--win)} .pip.no{background:var(--loss)}
+  @media(max-width:880px){.draft{grid-template-columns:1fr}.pitch3d{height:420px}}
+</style>
+
+<div class="wrap">
+  <div class="optban">
+    <span class="num">Option 3</span><b>Turf</b>
+    <span class="desc">v2 · 3D tilted pitch, compact face badges, textured background</span>
+  </div>
+
+  <!-- ====== PAGE 1: DRAFT ====== -->
+  <div class="pagelabel"><span class="n">1</span><h2>Draft your XI</h2><span class="rule"></span></div>
+  <div class="hd">
+    <div>
+      <div class="brand">World Cup <em>Simulator</em></div>
+      <div class="sub">Build your most random World Cup XI</div>
+    </div>
+    <div class="chiprow"><span class="ghost"><span class="k">Formation</span>4-3-3</span><span class="ghost"><span class="k">Style</span>Balanced</span></div>
+  </div>
+
+  <div class="draft">
+    <section class="panel">
+      <div class="ph"><div class="lbl">Drawn squad</div><div class="team"><span class="flag f-bra"></span>Brazil <span class="yr">2002</span></div></div>
+      <div class="squad">
+        <div class="prow elig"><span class="face mini"></span><span class="nm"><b>Ronaldinho</b><span class="pp">AM · LW</span></span><span class="pick">Pick</span><span class="rt">92</span></div>
+        <div class="prow elig"><span class="face mini"></span><span class="nm"><b>Rivaldo</b><span class="pp">AM · LW</span></span><span class="pick">Pick</span><span class="rt">91</span></div>
+        <div class="prow elig"><span class="face mini"></span><span class="nm"><b>Denílson</b><span class="pp">LW</span></span><span class="pick">Pick</span><span class="rt">80</span></div>
+        <div class="prow dim"><span class="face mini"></span><span class="nm"><b>Ronaldo</b><span class="pp">ST · already drafted</span></span><span class="rt">95</span></div>
+        <div class="prow dim"><span class="face mini"></span><span class="nm"><b>Lúcio</b><span class="pp">CB</span></span><span class="rt">86</span></div>
+        <div class="prow dim"><span class="face mini"></span><span class="nm"><b>Gilberto Silva</b><span class="pp">DM</span></span><span class="rt">83</span></div>
+      </div>
+      <div class="rerolls">
+        <div class="rr">Another team</div><div class="rr">Another cup</div>
+        <div class="rr wide">Re-roll anything</div><div class="rrhint">2 re-rolls left</div>
+      </div>
+    </section>
+
+    <section class="panel pitchwrap">
+      <div class="pitch3d">
+        <div class="field">
+          <div class="ln mid"></div><div class="ln circ"></div><div class="ln spot"></div><div class="ln boxT"></div><div class="ln boxB"></div>
+
+          <div class="slot open" style="left:20%;top:14%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"><span class="plus">+</span></div></div><div class="lab"><div class="nm">Pick a LW</div><div class="meta"><span class="pos">Left wing</span></div></div></div></div>
+          <div class="slot" style="left:50%;top:8%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-bra fl"></div><div class="elo">95</div></div><div class="lab"><div class="nm">Ronaldo</div><div class="meta"><span class="pos">ST</span><span class="yr">2002</span></div></div></div></div>
+          <div class="slot" style="left:80%;top:14%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-arg fl"></div><div class="elo">96</div></div><div class="lab"><div class="nm">Messi</div><div class="meta"><span class="pos">RW</span><span class="yr">2022</span></div></div></div></div>
+
+          <div class="slot" style="left:30%;top:40%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-esp fl"></div><div class="elo">90</div></div><div class="lab"><div class="nm">Iniesta</div><div class="meta"><span class="pos">CM</span><span class="yr">2010</span></div></div></div></div>
+          <div class="slot" style="left:50%;top:35%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-fra fl"></div><div class="elo">94</div></div><div class="lab"><div class="nm">Zidane</div><div class="meta"><span class="pos">CM</span><span class="yr">2006</span></div></div></div></div>
+          <div class="slot" style="left:70%;top:40%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-cro fl"></div><div class="elo">91</div></div><div class="lab"><div class="nm">Modrić</div><div class="meta"><span class="pos">CM</span><span class="yr">2018</span></div></div></div></div>
+
+          <div class="slot" style="left:15%;top:64%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-bra fl"></div><div class="elo">89</div></div><div class="lab"><div class="nm">R. Carlos</div><div class="meta"><span class="pos">LB</span><span class="yr">2002</span></div></div></div></div>
+          <div class="slot" style="left:38%;top:68%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-ita fl"></div><div class="elo">90</div></div><div class="lab"><div class="nm">Cannavaro</div><div class="meta"><span class="pos">CB</span><span class="yr">2006</span></div></div></div></div>
+          <div class="slot" style="left:62%;top:68%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-esp fl"></div><div class="elo">88</div></div><div class="lab"><div class="nm">Ramos</div><div class="meta"><span class="pos">CB</span><span class="yr">2010</span></div></div></div></div>
+          <div class="slot" style="left:85%;top:64%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-bra fl"></div><div class="elo">88</div></div><div class="lab"><div class="nm">Cafu</div><div class="meta"><span class="pos">RB</span><span class="yr">2002</span></div></div></div></div>
+
+          <div class="slot" style="left:50%;top:91%"><div class="shadow"></div><div class="badge"><div class="ava"><div class="face ph"></div><div class="flag f-ita fl"></div><div class="elo">92</div></div><div class="lab"><div class="nm">Buffon</div><div class="meta"><span class="pos">GK</span><span class="yr">2006</span></div></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel scorebox">
+      <div class="ovr"><div class="big">91</div><div class="lab2">Overall<b>Your XI</b></div></div>
+      <div class="trip">
+        <div class="tcell"><div class="k">Att</div><div class="v">94</div></div>
+        <div class="tcell"><div class="k">Mid</div><div class="v">92</div></div>
+        <div class="tcell"><div class="k">Def</div><div class="v">89</div></div>
+      </div>
+      <div class="chem">
+        <div class="donut"><span>+5</span></div>
+        <div class="ct"><div class="k">Chemistry</div><div class="d">Same nation, era &amp; position</div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ====== PAGE 2: SIMULATION ====== -->
+  <div class="pagelabel"><span class="n">2</span><h2>Play the tournament</h2><span class="rule"></span></div>
+  <div class="hd">
+    <div>
+      <div class="brand">Group <em>stage</em></div>
+      <div class="sub">Group of 4 · top two advance</div>
+    </div>
+    <div class="controls">
+      <div class="sel"><span class="k">Mode</span> Game by game ▾</div>
+      <div class="sel"><span class="k">Speed</span> Fast ▾</div>
+    </div>
+  </div>
+
+  <div class="standings">
+    <div class="strow head"><span>#</span><span>Team</span><span class="num">GD</span><span class="num">Pld</span><span class="pts">Pts</span></div>
+    <div class="strow adv you"><span class="rk">1</span><span class="tm"><span class="flag f-you"></span>Your XI <span class="youtag">You</span></span><span class="num">+5</span><span class="num">3</span><span class="pts">7</span></div>
+    <div class="strow adv"><span class="rk">2</span><span class="tm"><span class="flag f-ned"></span>Netherlands <span class="yr">2010</span></span><span class="num">+2</span><span class="num">3</span><span class="pts">6</span></div>
+    <div class="strow"><span class="rk">3</span><span class="tm"><span class="flag f-ger"></span>Germany <span class="yr">2014</span></span><span class="num">0</span><span class="num">3</span><span class="pts">3</span></div>
+    <div class="strow"><span class="rk">4</span><span class="tm"><span class="flag f-nga"></span>Nigeria <span class="yr">1994</span></span><span class="num">-7</span><span class="num">3</span><span class="pts">1</span></div>
+  </div>
+
+  <div class="matches">
+    <div>
+      <div class="mdlbl">Matchday 3 <span class="pillres w">Won</span></div>
+      <div class="fix">
+        <div class="frow">
+          <div class="side h">Your XI <span class="flag f-you"></span></div>
+          <div class="score"><span class="n">2 – 0</span><span class="st">Full time</span></div>
+          <div class="side"><span class="flag f-ned"></span>Netherlands <span class="yr">2010</span></div>
+        </div>
+        <div class="feed">
+          <div class="goal"><span class="min">23'</span><span class="b">⚽</span><b>Ronaldo</b></div>
+          <div class="goal"><span class="min">67'</span><span class="b">⚽</span><b>Messi</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="mdlbl">Round of 16 <span class="pillres w">Won</span></div>
+      <div class="fix">
+        <div class="frow">
+          <div class="side h">Your XI <span class="flag f-you"></span></div>
+          <div class="score"><span class="n">1 – 1</span><span class="st">Penalties</span></div>
+          <div class="side"><span class="flag f-arg"></span>Argentina <span class="yr">1986</span></div>
+        </div>
+        <div class="shoot">
+          <div class="t">Penalty shootout · 4–3</div>
+          <div class="pkline"><span class="hh">Messi <span class="pip ok">✓</span></span><span class="rn">1</span><span class="aa"><span class="pip ok">✓</span> Maradona</span></div>
+          <div class="pkline"><span class="hh">Zidane <span class="pip ok">✓</span></span><span class="rn">2</span><span class="aa"><span class="pip ok">✓</span> Valdano</span></div>
+          <div class="pkline"><span class="hh">Iniesta <span class="pip ok">✓</span></span><span class="rn">3</span><span class="aa"><span class="pip no">✕</span> Burruchaga</span></div>
+          <div class="pkline"><span class="hh">Modrić <span class="pip no">✕</span></span><span class="rn">4</span><span class="aa"><span class="pip ok">✓</span> Giusti</span></div>
+          <div class="pkline"><span class="hh">Ronaldo <span class="pip ok">✓</span></span><span class="rn">5</span><span class="aa"><span class="pip no">✕</span> Enrique</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
