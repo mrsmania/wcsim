@@ -1,46 +1,56 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Turf design tokens. Tailwind v4 generates utilities from these (bg-pitch,
    text-ink, border-line, shadow-soft, ...). Single source of truth for the
    palette; see docs/turf-design.html for the visual target. */
 @theme {
-  --color-ground: #eef5ee;
-  --color-panel: #ffffff;
-  --color-ink: #15241b;
-  --color-muted: #5e6f63;
-  --color-line: #e1eae2;
-  --color-pitch: #13924c;
-  --color-pitch-dark: #0c6f39;
-  --color-amber: #f2a93b;
-  --color-win: #13924c;
-  --color-loss: #e2554f;
-  --shadow-soft: 0 1px 2px rgba(21, 36, 27, 0.05), 0 12px 30px rgba(21, 36, 27, 0.07);
+    --color-ground: #eef5ee;
+    --color-panel: #ffffff;
+    --color-ink: #15241b;
+    --color-muted: #5e6f63;
+    --color-line: #e1eae2;
+    --color-pitch: #13924c;
+    --color-pitch-dark: #0c6f39;
+    --color-amber: #f2a93b;
+    --color-win: #13924c;
+    --color-loss: #e2554f;
+    --shadow-soft: 0 1px 2px rgba(21, 36, 27, 0.05), 0 12px 30px rgba(21, 36, 27, 0.07);
 }
 
 html,
 body,
 #root {
-  height: 100%;
+    height: 100%;
 }
 
 body {
-  margin: 0;
-  color: var(--color-ink);
-  background-color: var(--color-ground);
-  /* Soft green wash: colour pooled up top fading to clear, plus a faint lift in
-     the lower-right corner. No texture. */
-  background-image:
-    radial-gradient(1200px 620px at 50% -260px, rgba(19, 146, 76, 0.16), transparent 72%),
-    radial-gradient(900px 600px at 110% 105%, rgba(19, 146, 76, 0.07), transparent 60%),
-    linear-gradient(180deg, rgba(19, 146, 76, 0.05), transparent 320px);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+    margin: 0;
+    color: var(--color-ink);
+    background-color: var(--color-ground);
+}
+
+/* Soft green wash: colour pooled up top fading to clear, plus a faint lift in
+   the lower-right corner. No texture. Painted in a fixed, composited layer via
+   a pseudo-element instead of background-attachment: fixed on body, which forces
+   the background to repaint on every scroll frame and makes mobile scrolling
+   stutter. Same look, no per-frame paint cost. */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+        radial-gradient(1200px 620px at 50% -260px, rgba(19, 146, 76, 0.16), transparent 72%),
+        radial-gradient(900px 600px at 110% 105%, rgba(19, 146, 76, 0.07), transparent 60%),
+        linear-gradient(180deg, rgba(19, 146, 76, 0.05), transparent 320px);
+    background-repeat: no-repeat;
 }
 
 /* Tailwind v4's reset leaves buttons with the default cursor; make all
    enabled buttons show the pointer. */
 button:not(:disabled) {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 /* The team roll scramble is just the squad text cycling rapidly (driven in
@@ -48,82 +58,82 @@ button:not(:disabled) {
 
 /* One-shot "blob" pop when the roll settles on the final team. */
 @keyframes settle-pop {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.4;
-  }
-  55% {
-    transform: scale(1.05);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-  }
+    0% {
+        transform: scale(0.85);
+        opacity: 0.4;
+    }
+    55% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* Scale from the top-left corner so both stacked lines move together as one
    block (a centre origin made them splay apart in opposite directions). */
 .animate-settle {
-  animation: settle-pop 0.35s ease-out;
-  transform-origin: left top;
+    animation: settle-pop 0.35s ease-out;
+    transform-origin: left top;
 }
 
 /* Bouncy "blob" pop when a goal appears in the live feed, so it stands out. */
 @keyframes goal-pop {
-  0% {
-    transform: scale(0.5);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.18);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-  }
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.18);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .animate-goal-pop {
-  animation: goal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform-origin: left center;
+    animation: goal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: left center;
 }
 
 /* Pulse used to highlight valid, open slots once a player is selected. Two
    colours: green for the player's natural (primary) position, amber for a
    secondary position they can also fill. */
 @keyframes slot-pulse-primary {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(19, 146, 76, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 0 9px rgba(19, 146, 76, 0);
-  }
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(19, 146, 76, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 0 9px rgba(19, 146, 76, 0);
+    }
 }
 @keyframes slot-pulse-secondary {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(242, 169, 59, 0.65);
-  }
-  50% {
-    box-shadow: 0 0 0 9px rgba(242, 169, 59, 0);
-  }
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(242, 169, 59, 0.65);
+    }
+    50% {
+        box-shadow: 0 0 0 9px rgba(242, 169, 59, 0);
+    }
 }
 .animate-slot-pulse-primary {
-  animation: slot-pulse-primary 1.15s ease-out infinite;
+    animation: slot-pulse-primary 1.15s ease-out infinite;
 }
 .animate-slot-pulse-secondary {
-  animation: slot-pulse-secondary 1.15s ease-out infinite;
+    animation: slot-pulse-secondary 1.15s ease-out infinite;
 }
 
 /* 3D tilted pitch (Turf). Only the pitch surface (grass, stripes, markings) is
    tilted; player badges render flat in a 2D overlay positioned from measured
    anchor points, so they stay crisp and readable. */
 .pitch-stage {
-  perspective: 1100px;
-  perspective-origin: 50% 24%;
+    perspective: 1100px;
+    perspective-origin: 50% 24%;
 }
 .pitch-field {
-  transform: rotateX(38deg);
-  transform-origin: 50% 88%;
+    transform: rotateX(38deg);
+    transform-origin: 80% 88%;
 }
