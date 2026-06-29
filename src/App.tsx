@@ -240,9 +240,9 @@ export default function App() {
             onReset={() => dispatch({ type: 'RESET' })}
           />
         ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)_300px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[330px_minmax(0,1fr)] lg:items-start">
           {/* Left: setup -> drawn squad -> complete */}
-          <aside ref={squadRef}>
+          <aside ref={squadRef} className="lg:h-[80vh]">
             {phase === 'setup' && (
               <SetupPanel
                 names={FORMATIONS_DATA.names}
@@ -280,30 +280,27 @@ export default function App() {
             )}
           </aside>
 
-          {/* Center: pitch (shown immediately, previews the chosen formation) */}
-          <main ref={pitchRef}>
+          {/* Center: team-rating totals on top, then the pitch filling the rest so
+              the column matches the squad panel's height. */}
+          <main ref={pitchRef} className="flex flex-col gap-4 lg:h-[80vh]">
             {activeFormation ? (
-              <Pitch
-                formation={activeFormation}
-                filled={filled}
-                selectedPlayer={selectedPlayer}
-                onPlace={handlePlace}
-              />
+              <>
+                <BoxScore formation={activeFormation} filled={filled} showChemistry />
+                <div className="min-h-0 flex-1 max-lg:min-h-[440px]">
+                  <Pitch
+                    formation={activeFormation}
+                    filled={filled}
+                    selectedPlayer={selectedPlayer}
+                    onPlace={handlePlace}
+                  />
+                </div>
+              </>
             ) : (
-              <div className="flex aspect-[3/4] max-w-xl items-center justify-center rounded-lg border border-dashed border-stone-400 text-stone-400">
+              <div className="flex aspect-[3/4] max-w-xl items-center justify-center rounded-lg border border-dashed border-line text-muted">
                 Loading formations…
               </div>
             )}
           </main>
-
-          {/* Right: box score */}
-          <aside>
-            {activeFormation ? (
-              <BoxScore formation={activeFormation} filled={filled} showChemistry />
-            ) : (
-              <div className="text-sm text-stone-400">Box score appears once formations load.</div>
-            )}
-          </aside>
         </div>
         )}
       </div>

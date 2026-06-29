@@ -88,19 +88,32 @@ button:not(:disabled) {
   transform-origin: left center;
 }
 
-/* Pulse used to highlight valid, open slots once a player is selected. */
-@keyframes slot-pulse {
+/* Pulse used to highlight valid, open slots once a player is selected. Two
+   colours: green for the player's natural (primary) position, amber for a
+   secondary position they can also fill. */
+@keyframes slot-pulse-primary {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7);
+    box-shadow: 0 0 0 0 rgba(19, 146, 76, 0.6);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(250, 204, 21, 0);
+    box-shadow: 0 0 0 9px rgba(19, 146, 76, 0);
   }
 }
-
-.animate-slot-pulse {
-  animation: slot-pulse 1.1s ease-out infinite;
+@keyframes slot-pulse-secondary {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(242, 169, 59, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(242, 169, 59, 0);
+  }
+}
+.animate-slot-pulse-primary {
+  animation: slot-pulse-primary 1.15s ease-out infinite;
+}
+.animate-slot-pulse-secondary {
+  animation: slot-pulse-secondary 1.15s ease-out infinite;
 }
 
 /* 3D tilted pitch (Turf). Only the pitch surface (grass, stripes, markings) is

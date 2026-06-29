@@ -1,6 +1,7 @@
 import type { Player, Position, Squad } from '../data/types';
 import { CATEGORY_ORDER, formatPositions, primaryCategory } from '../data/types';
 import { isSelectable } from '../domain/draft';
+import { RotateCcw } from 'lucide-react';
 import Flag from './Flag';
 import Tooltip from './Tooltip';
 import { FEATURES } from '../config';
@@ -22,7 +23,7 @@ interface Props {
 
 function Header({ squad, scrambling }: { squad: Squad; scrambling: boolean }) {
     return (
-        <div className="px-1 pt-1">
+        <div className="px-3 pt-1">
             <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted">
                 Drawn squad
             </div>
@@ -77,12 +78,12 @@ export default function SquadPanel({
     const rerollDisabled = rerollsLeft <= 0;
 
     return (
-        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-panel pt-3 shadow-soft">
+        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-panel pt-3 shadow-soft lg:h-full">
             <Header squad={squad} scrambling={false} />
 
-            {/* Player list (scrolls; capped near the pitch height). Rows are split by
-          dividers so each reads as a tappable line: number, name, positions, elo. */}
-            <ul className="flex max-h-[49vh] flex-col overflow-y-auto border-t border-line">
+            {/* Player list fills the panel and scrolls. Rows are split by dividers so
+          each reads as a tappable line: number, name, positions, elo. */}
+            <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line max-lg:max-h-[55vh]">
                 {sortSquad(squad.players).map((p) => {
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);
@@ -94,7 +95,9 @@ export default function SquadPanel({
                                 onClick={() => onSelectPlayer(p.id)}
                                 className={[
                                     'flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition',
-                                    selectable ? 'cursor-pointer hover:bg-pitch/5' : 'cursor-not-allowed opacity-40',
+                                    selectable
+                                        ? 'cursor-pointer hover:bg-pitch/5'
+                                        : 'cursor-not-allowed opacity-40',
                                     selected ? 'bg-pitch/10' : '',
                                 ].join(' ')}
                             >
@@ -111,8 +114,12 @@ export default function SquadPanel({
                                         className="shrink-0 text-[11px] text-muted"
                                         label="Underlined = natural position; only placing the player there earns positional chemistry"
                                     >
-                                        <span className="underline underline-offset-2">{p.positions[0]}</span>
-                                        {p.positions.length > 1 ? ` · ${p.positions.slice(1).join(' · ')}` : ''}
+                                        <span className="underline underline-offset-2">
+                                            {p.positions[0]}
+                                        </span>
+                                        {p.positions.length > 1
+                                            ? ` · ${p.positions.slice(1).join(' · ')}`
+                                            : ''}
                                     </Tooltip>
                                 ) : (
                                     <span className="shrink-0 text-[11px] text-muted">
@@ -128,8 +135,8 @@ export default function SquadPanel({
                 })}
             </ul>
 
-            {/* Re-roll controls */}
-            <div className="grid grid-cols-2 gap-2 px-3 pb-3.5">
+            {/* Re-roll controls (one row of three) */}
+            <div className="grid grid-cols-3 gap-2 px-3 pb-3.5">
                 <RerollButton
                     label="Another team"
                     disabled={rerollDisabled || !canAnotherTeam}
@@ -141,12 +148,12 @@ export default function SquadPanel({
                     onClick={() => onReroll('cup')}
                 />
                 <RerollButton
-                    label="Re-roll anything"
-                    wide
+                    label="Anything"
+                    primary
                     disabled={rerollDisabled}
                     onClick={() => onReroll('any')}
                 />
-                <div className="col-span-2 text-center text-[11px] text-muted">
+                <div className="col-span-3 text-center text-[11px] text-muted">
                     {rerollsLeft} re-rolls left
                 </div>
             </div>
@@ -156,12 +163,12 @@ export default function SquadPanel({
 
 function RerollButton({
     label,
-    wide = false,
+    primary = false,
     disabled,
     onClick,
 }: {
     label: string;
-    wide?: boolean;
+    primary?: boolean;
     disabled: boolean;
     onClick: () => void;
 }) {
@@ -170,17 +177,17 @@ function RerollButton({
             disabled={disabled}
             onClick={onClick}
             className={[
-                'rounded-xl px-2 py-2.5 text-center text-[12.5px] font-bold transition',
-                wide ? 'col-span-2' : '',
+                'flex flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2.5 text-center text-[11px] font-bold leading-tight transition',
                 disabled
-                    ? wide
+                    ? primary
                         ? 'cursor-not-allowed bg-pitch/30 text-white'
                         : 'cursor-not-allowed border border-line bg-white text-muted/40'
-                    : wide
+                    : primary
                       ? 'bg-pitch text-white shadow-[0_6px_16px_rgba(19,146,76,0.25)] hover:bg-pitch-dark'
                       : 'border border-line bg-white hover:border-pitch hover:text-pitch',
             ].join(' ')}
         >
+            <RotateCcw size={15} strokeWidth={2.5} />
             {label}
         </button>
     );

@@ -46,16 +46,16 @@ interface Props {
 export default function PlayerBadge({ name, position, code, elo, year, photoUrl, open }: Props) {
     if (open) {
         return (
-            <div className="flex w-[68px] flex-col items-center">
-                <span className="grid h-[46px] w-[46px] place-items-center rounded-full border-2 border-dashed border-amber bg-amber/10 text-2xl font-light leading-none text-amber">
+            <div className="flex w-[88px] flex-col items-center">
+                <span className="grid h-[58px] w-[58px] place-items-center rounded-full border-2 border-dashed border-amber bg-amber/10 text-3xl font-light leading-none text-amber">
                     +
                 </span>
-                <div className="mt-1.5 max-w-[72px] rounded-lg bg-panel px-1.5 py-0.5 text-center shadow-soft outline outline-2 outline-amber">
-                    <div className="truncate text-[10px] font-extrabold leading-tight">
+                <div className="mt-1.5 max-w-[94px] rounded-lg bg-panel px-2 py-1 text-center shadow-soft outline outline-2 outline-amber">
+                    <div className="truncate text-[12px] font-extrabold leading-tight">
                         Pick a {position}
                     </div>
                     <div className="flex items-baseline justify-center">
-                        <span className="text-[8px] font-extrabold uppercase tracking-wider text-amber">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber">
                             {position}
                         </span>
                     </div>
@@ -65,30 +65,30 @@ export default function PlayerBadge({ name, position, code, elo, year, photoUrl,
     }
 
     return (
-        <div className="flex w-[68px] flex-col items-center">
-            <span className="relative block h-[46px] w-[46px]">
+        <div className="flex w-[88px] flex-col items-center">
+            <span className="relative block h-[58px] w-[58px]">
                 <FaceAvatar
                     photoUrl={photoUrl}
                     name={name}
-                    className="h-full w-full border-[2.5px] border-white shadow-[0_6px_13px_rgba(0,0,0,0.3)]"
+                    className="h-full w-full border-[3px] border-white shadow-[0_6px_14px_rgba(0,0,0,0.32)]"
                 />
                 <Flag
                     round
                     code={code}
-                    className="absolute -bottom-[3px] -left-[3px] h-[18px] w-[18px] border-2 border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
+                    className="absolute -bottom-[3px] -left-[3px] h-[24px] w-[24px] border-2 border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
                 />
-                <span className="absolute -top-[5px] -right-[8px] rounded-full border-[1.5px] border-white bg-pitch px-[5px] py-[3px] font-mono text-[10px] font-extrabold leading-none text-white shadow-[0_2px_5px_rgba(0,0,0,0.28)]">
+                <span className="absolute -top-[6px] -right-[9px] rounded-full border-2 border-white bg-pitch px-1.5 py-0.5 font-mono text-[11px] font-extrabold leading-none text-white shadow-[0_2px_5px_rgba(0,0,0,0.28)]">
                     {elo}
                 </span>
             </span>
-            <div className="mt-1.5 max-w-[72px] rounded-lg bg-panel px-1.5 py-0.5 text-center shadow-soft">
-                <div className="truncate text-[10px] font-extrabold leading-tight">{name}</div>
+            <div className="mt-1.5 max-w-[94px] rounded-lg bg-panel px-2 py-1 text-center shadow-soft">
+                <div className="truncate text-[12px] font-extrabold leading-tight">{name}</div>
                 <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-[8px] font-extrabold uppercase tracking-wider text-pitch">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-pitch">
                         {position}
                     </span>
                     {year !== undefined && (
-                        <span className="font-mono text-[8px] font-bold text-muted">{year}</span>
+                        <span className="font-mono text-[10px] font-bold text-muted">{year}</span>
                     )}
                 </div>
             </div>

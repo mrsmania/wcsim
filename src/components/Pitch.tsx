@@ -122,14 +122,16 @@ const ANCHOR_W = 90;
 function OverlayMarker({
     slot,
     player,
-    isTarget,
+    target,
     pos,
     tilt,
     onPlace,
 }: {
     slot: Slot;
     player: Player | null;
-    isTarget: boolean;
+    /** Whether this open slot matches the selected player's natural (primary) or a
+     *  secondary position, so the pulse can be colour-coded; 'none' = not a target. */
+    target: 'none' | 'primary' | 'secondary';
     pos: { x: number; y: number; s: number };
     tilt: boolean;
     onPlace: (slotId: string) => void;
@@ -138,7 +140,7 @@ function OverlayMarker({
     // Slide to the new measured spot when the formation changes.
     const transition = 'left 0.45s ease-out, top 0.45s ease-out, transform 0.45s ease-out';
     const shadow = tilt ? (
-        <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(0,0,0,0.33),transparent)]" />
+        <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 bg-[radial-gradient(closest-side,rgba(0,0,0,0.33),transparent)]" />
     ) : null;
 
     if (player) {
@@ -146,7 +148,13 @@ function OverlayMarker({
         return (
             <div
                 className="absolute flex flex-col items-center"
-                style={{ left: pos.x, top: pos.y, transform, transformOrigin: 'bottom center', transition }}
+                style={{
+                    left: pos.x,
+                    top: pos.y,
+                    transform,
+                    transformOrigin: 'bottom center',
+                    transition,
+                }}
             >
                 {shadow}
                 <PlayerBadge
@@ -163,17 +171,25 @@ function OverlayMarker({
     return (
         <button
             className="absolute flex flex-col items-center"
-            style={{ left: pos.x, top: pos.y, transform, transformOrigin: 'bottom center', transition }}
-            disabled={!isTarget}
+            style={{
+                left: pos.x,
+                top: pos.y,
+                transform,
+                transformOrigin: 'bottom center',
+                transition,
+            }}
+            disabled={target === 'none'}
             onClick={() => onPlace(slot.id)}
         >
             {shadow}
             <div
                 className={[
-                    'flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-bold uppercase tracking-wide transition',
-                    isTarget
-                        ? 'animate-slot-pulse cursor-pointer border-amber bg-amber/30 text-white'
-                        : 'border-white/70 bg-black/10 text-white/85',
+                    'flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed text-xs font-extrabold uppercase tracking-wide transition',
+                    target === 'primary'
+                        ? 'animate-slot-pulse-primary cursor-pointer border-pitch bg-pitch/25 text-white'
+                        : target === 'secondary'
+                          ? 'animate-slot-pulse-secondary cursor-pointer border-amber bg-amber/25 text-white'
+                          : 'border-white/70 bg-black/10 text-white/85',
                 ].join(' ')}
             >
                 {slot.label}
@@ -217,7 +233,11 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                     if (!a) return { x: 0, y: 0, s: 1 };
                     const r = a.getBoundingClientRect();
                     const s = tilt ? Math.max(0.84, Math.min(1, r.width / ANCHOR_W)) : 1;
-                    return { x: r.left - sr.left + r.width / 2, y: r.top - sr.top + r.height / 2, s };
+                    return {
+                        x: r.left - sr.left + r.width / 2,
+                        y: r.top - sr.top + r.height / 2,
+                        s,
+                    };
                 }),
             );
         };
@@ -231,22 +251,15 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
         <div
             ref={stageRef}
             className={[
-                'relative mx-auto w-full max-w-2xl overflow-hidden',
-                tilt ? 'pitch-stage aspect-square' : 'aspect-3/4',
+                'relative mx-auto h-full w-full max-w-2xl overflow-hidden',
+                tilt ? 'pitch-stage' : '',
             ].join(' ')}
-            // Soft green haze behind the pitch (fades to the page, no hard edges, so
-            // it reads as distance rather than a box).
-            style={
-                tilt
-                    ? { background: 'radial-gradient(115% 80% at 50% 44%, rgba(47,156,93,0.16), rgba(47,156,93,0) 72%)' }
-                    : undefined
-            }
         >
             {/* Pitch surface: tilts back in 3D (stripes + markings recede); flat fills the frame.
           The top of the field is cropped above the container so the attacking third
           does not leave a band of empty grass over the forwards. No box around it. */}
             <div
-                className={tilt ? 'pitch-field absolute overflow-hidden rounded-lg' : 'absolute inset-0'}
+                className={tilt ? 'pitch-field absolute overflow-hidden' : 'absolute inset-0'}
                 style={tilt ? { left: '2%', right: '2%', top: '-4%', bottom: '1%' } : undefined}
             >
                 {/* Mowing stripes */}
@@ -297,7 +310,7 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                     <path d="M9 400 A9 9 0 0 0 0 391" />
                 </svg>
                 {/* Translucent inner frame: layered over the green stripes so the 30% white tints the pitch edge */}
-                <div className="pointer-events-none absolute inset-0 rounded-lg border-3 border-white/30" />
+                <div className="pointer-events-none absolute inset-0 border-3 border-white/30" />
                 {/* Invisible anchors, one per slot, measured to place the flat badges. */}
                 {circles.map((slot, k) => (
                     <span
@@ -307,7 +320,12 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                         }}
                         aria-hidden="true"
                         className="absolute -translate-x-1/2 -translate-y-1/2"
-                        style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: ANCHOR_W, height: 0 }}
+                        style={{
+                            left: `${slot.x}%`,
+                            top: `${slot.y}%`,
+                            width: ANCHOR_W,
+                            height: 0,
+                        }}
                     />
                 ))}
             </div>
@@ -316,8 +334,15 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
             <div className="absolute inset-0">
                 {circles.map((slot, k) => {
                     const player = filled[slot.id] ?? null;
-                    const isTarget =
-                        !!selectedPlayer && !player && selectedPlayer.positions.includes(slot.position);
+                    const matches =
+                        !!selectedPlayer &&
+                        !player &&
+                        selectedPlayer.positions.includes(slot.position);
+                    const target: 'none' | 'primary' | 'secondary' = !matches
+                        ? 'none'
+                        : selectedPlayer!.positions[0] === slot.position
+                          ? 'primary'
+                          : 'secondary';
                     const pos = positions[k];
                     if (!pos) return null;
                     return (
@@ -325,7 +350,7 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                             key={k}
                             slot={slot}
                             player={player}
-                            isTarget={isTarget}
+                            target={target}
                             pos={pos}
                             tilt={tilt}
                             onPlace={onPlace}
