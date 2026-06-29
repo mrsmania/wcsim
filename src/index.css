@@ -4,7 +4,7 @@
    text-ink, border-line, shadow-soft, ...). Single source of truth for the
    palette; see docs/turf-design.html for the visual target. */
 @theme {
-    --color-ground: #eef5ee;
+    --color-ground: #f0eee9;
     --color-panel: #ffffff;
     --color-ink: #15241b;
     --color-muted: #5e6f63;
@@ -35,16 +35,11 @@ body {
    the background to repaint on every scroll frame and makes mobile scrolling
    stutter. Same look, no per-frame paint cost. */
 body::before {
-    content: "";
+    content: '';
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background-image:
-        radial-gradient(1200px 620px at 50% -260px, rgba(19, 146, 76, 0.16), transparent 72%),
-        radial-gradient(900px 600px at 110% 105%, rgba(19, 146, 76, 0.07), transparent 60%),
-        linear-gradient(180deg, rgba(19, 146, 76, 0.05), transparent 320px);
-    background-repeat: no-repeat;
 }
 
 /* Tailwind v4's reset leaves buttons with the default cursor; make all
@@ -78,23 +73,24 @@ button:not(:disabled) {
     transform-origin: left top;
 }
 
-/* Bouncy "blob" pop when a goal appears in the live feed, so it stands out. */
+/* Pop a goal in when it appears in the live feed. Grows from small to full size
+   but never past scale 1.0: an overshoot (e.g. 1.18) visually overflows the box,
+   and when the feed sits at the bottom of the screen that transient overflow
+   changes the page height and makes the auto-scroll wobble. Capping at 1.0 keeps
+   a clean grow-in pop with no scroll side effects. */
 @keyframes goal-pop {
     0% {
-        transform: scale(0.5);
+        transform: scale(0.6);
         opacity: 0;
-    }
-    60% {
-        transform: scale(1.18);
-        opacity: 1;
     }
     100% {
         transform: scale(1);
+        opacity: 1;
     }
 }
 
 .animate-goal-pop {
-    animation: goal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: goal-pop 0.3s ease-out;
     transform-origin: left center;
 }
 

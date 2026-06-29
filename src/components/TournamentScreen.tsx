@@ -28,6 +28,7 @@ import Flag from './Flag';
 import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
 import TournamentSummary from './TournamentSummary';
+import { useFollowBottom } from '../hooks/useFollowBottom';
 
 interface Props {
   group: GroupState;
@@ -240,6 +241,11 @@ export default function TournamentScreen({
   const [playingGroup, setPlayingGroup] = useState<{ matchday: number; results: MatchdayResult[] } | null>(null);
   const [playingKo, setPlayingKo] = useState<KoResult | null>(null);
   const isPlaying = !!playingGroup || !!playingKo;
+
+  // Auto-scroll: a single tail marker (rendered below at the bottom of the active
+  // region) that the page follows down as content is appended. rootRef wraps the
+  // growing content so the hook can observe it for growth.
+  const { tailRef, rootRef } = useFollowBottom();
 
   // --- per-round knockout opponent draw ---
   const [revealedRound, setRevealedRound] = useState(-1);
@@ -504,7 +510,7 @@ export default function TournamentScreen({
   );
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div ref={rootRef} className="mx-auto flex max-w-3xl flex-col gap-6">
       {/* Header: title + playback selectors */}
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div>
@@ -706,6 +712,8 @@ export default function TournamentScreen({
                       away={userAway}
                       live={isPlayingMd && liveMinute < 90}
                     />
+                    {/* Tail the page follows while this matchday is playing. */}
+                    {isPlayingMd && <div ref={tailRef} aria-hidden className="h-0" />}
                   </div>
                 )}
               </div>
@@ -802,6 +810,8 @@ export default function TournamentScreen({
                       {showShootout && penKicks && (
                         <ShootoutFeed oppName={opp?.name ?? 'Opponent'} kicks={penKicks} shown={penShownCount} />
                       )}
+                      {/* Tail the page follows while this round is playing. */}
+                      {isPlayingRound && <div ref={tailRef} aria-hidden className="h-0" />}
                     </div>
                   )}
                 </div>
@@ -859,6 +869,15 @@ export default function TournamentScreen({
 
       {knockout && koOutcome !== 'alive' && (
         <TournamentSummary formation={formation} filled={filled} group={group} knockout={knockout} />
+      )}
+
+      {/* Tail for content that grows at the document bottom while no match is
+          playing: a newly reached knockout round, the end-of-run banners. Not
+          used between group matchdays (the next-game button is mid-document
+          there), so it mounts only once the knockout exists or the group is
+          finished. */}
+      {!isPlaying && (knockout || groupFinished) && (
+        <div ref={tailRef} aria-hidden className="h-0" />
       )}
     </div>
   );
