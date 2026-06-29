@@ -497,16 +497,22 @@ export default function TournamentScreen({
   };
 
   const nextGameButton = (
-    <div className="mt-2 flex justify-center">
-      <button
-        onClick={playNext}
-        className="inline-flex items-center justify-center gap-2 rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark active:scale-[0.99]"
-      >
-        <Play size={15} fill="currentColor" strokeWidth={0} />
-        Next game
-        <ArrowRight size={16} strokeWidth={2.5} />
-      </button>
-    </div>
+    <>
+      <div className="mt-2 flex justify-center">
+        <button
+          onClick={playNext}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark active:scale-[0.99]"
+        >
+          <Play size={15} fill="currentColor" strokeWidth={0} />
+          Next game
+          <ArrowRight size={16} strokeWidth={2.5} />
+        </button>
+      </div>
+      {/* Tail so the page follows to the next-game button when it appears. It can
+          be mid-document in the group phase, so the tail lives here rather than at
+          the document end. */}
+      <div ref={tailRef} aria-hidden className="h-0" />
+    </>
   );
 
   return (
@@ -871,12 +877,11 @@ export default function TournamentScreen({
         <TournamentSummary formation={formation} filled={filled} group={group} knockout={knockout} />
       )}
 
-      {/* Tail for content that grows at the document bottom while no match is
-          playing: a newly reached knockout round, the end-of-run banners. Not
-          used between group matchdays (the next-game button is mid-document
-          there), so it mounts only once the knockout exists or the group is
-          finished. */}
-      {!isPlaying && (knockout || groupFinished) && (
+      {/* Tail for content at the document bottom when no match is playing AND
+          there is no next-game button to follow instead (automatic mode between
+          matches, or the end-of-run banners). When a next-game button is shown
+          the tail lives next to it (see nextGameButton). */}
+      {!isPlaying && !nextAnchorKey && (knockout || groupFinished) && (
         <div ref={tailRef} aria-hidden className="h-0" />
       )}
     </div>
