@@ -246,6 +246,24 @@ export default function TournamentScreen({
   // region) that the page follows down as content is appended. rootRef wraps the
   // growing content so the hook can observe it for growth.
   const { tailRef, rootRef } = useFollowBottom();
+  // Heading of the stage the run ended in; scrolled near the top when it's over.
+  const stageTopRef = useRef<HTMLDivElement | null>(null);
+
+  // When the run ends (knocked out or champions), scroll so the current stage's
+  // heading sits just below the top of the screen, so the final result reads
+  // downward from there (instead of following content to the bottom).
+  useEffect(() => {
+    const over = (groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out';
+    if (!over) return;
+    const id = requestAnimationFrame(() => {
+      const el = stageTopRef.current;
+      if (!el) return;
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      const top = el.getBoundingClientRect().top + window.scrollY - 16; // shy of the top
+      window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [groupFinished, advanced, koOutcome]);
 
   // --- per-round knockout opponent draw ---
   const [revealedRound, setRevealedRound] = useState(-1);
@@ -488,6 +506,10 @@ export default function TournamentScreen({
 
   const table = standings(group);
   const inKnockout = !!knockout;
+  // Index of the last knockout round that has a result (where the run ended).
+  const lastPlayedKoRound = knockout
+    ? knockout.rounds.reduce((acc, r, i) => (r?.result ? i : acc), -1)
+    : -1;
   const tournamentOver = (groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out';
 
   const playNext = () => {
@@ -518,7 +540,10 @@ export default function TournamentScreen({
   return (
     <div ref={rootRef} className="mx-auto flex max-w-3xl flex-col gap-6">
       {/* Header: title + playback selectors */}
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
+      <div
+        ref={!inKnockout ? stageTopRef : undefined}
+        className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3"
+      >
         <div>
           <div className="text-[11px] font-bold tracking-[0.2em] text-pitch">
             {inKnockout ? 'KNOCKOUTS' : 'GROUP STAGE'}
@@ -779,7 +804,10 @@ export default function TournamentScreen({
 
             return (
               <div key={`ko-${i}`}>
-                <div className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">
+                <div
+                  ref={i === lastPlayedKoRound ? stageTopRef : undefined}
+                  className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-muted"
+                >
                   <span>{name.toUpperCase()}</span>
                   {tag}
                 </div>
@@ -881,7 +909,7 @@ export default function TournamentScreen({
           there is no next-game button to follow instead (automatic mode between
           matches, or the end-of-run banners). When a next-game button is shown
           the tail lives next to it (see nextGameButton). */}
-      {!isPlaying && !nextAnchorKey && (knockout || groupFinished) && (
+      {!isPlaying && !nextAnchorKey && !tournamentOver && (knockout || groupFinished) && (
         <div ref={tailRef} aria-hidden className="h-0" />
       )}
     </div>
