@@ -184,7 +184,7 @@ export function gameReducer(state: GameState, action: Action): GameState {
       return { ...state, auto: action.auto };
 
     case 'RESET':
-      return { ...initialState, speed: state.speed };
+      return { ...initialState, speed: state.speed, auto: state.auto };
 
     default:
       return state;

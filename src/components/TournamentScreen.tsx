@@ -231,6 +231,11 @@ export default function TournamentScreen({
   // Collapsible "all results" overview attached to the group table.
   const [showResults, setShowResults] = useState(false);
 
+  // Auto-scroll targets: the "Next game" button (so it is never left below the
+  // fold) and the very bottom of the screen (for the end-of-run banners).
+  const nextButtonRef = useRef<HTMLDivElement | null>(null);
+  const endRef = useRef<HTMLDivElement | null>(null);
+
   // --- shared live-clock display ---
   const [liveMinute, setLiveMinute] = useState(0);
   const [clockLabel, setClockLabel] = useState('');
@@ -424,6 +429,32 @@ export default function TournamentScreen({
     return () => window.clearTimeout(t);
   }, [auto, koAlive, isPlaying, koRevealed, playRound]);
 
+  // The next game to play (null while a knockout draw is mid-scramble, or once
+  // the run is over).
+  const nextGame: { kind: 'md'; md: number } | { kind: 'ko' } | null = !groupFinished
+    ? { kind: 'md', md: group.matchday }
+    : koAlive && koRevealed
+      ? { kind: 'ko' }
+      : null;
+
+  // In game-by-game mode, the "Next game" button sits directly under the card of
+  // the game it will play (the up-next matchday, or the active knockout round).
+  let nextAnchorKey: string | null = null;
+  if (nextGame && !auto && !isPlaying) {
+    nextAnchorKey = nextGame.kind === 'md' ? `md-${nextGame.md}` : `ko-${koCurrent}`;
+  }
+
+  // Keep freshly added bottom content in view: scroll the "Next game" button into
+  // view as soon as it appears, and scroll to the end when the run finishes.
+  useEffect(() => {
+    if (nextAnchorKey) nextButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [nextAnchorKey]);
+  useEffect(() => {
+    if ((groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out') {
+      endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [groupFinished, advanced, koOutcome]);
+
   // --- opening group draw view (full takeover, shown once) ---
   if (revealing) {
     return (
@@ -469,21 +500,6 @@ export default function TournamentScreen({
   const inKnockout = !!knockout;
   const tournamentOver = (groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out';
 
-  // The next game to play (null while a knockout draw is mid-scramble, or once
-  // the run is over).
-  const nextGame: { kind: 'md'; md: number } | { kind: 'ko' } | null = !groupFinished
-    ? { kind: 'md', md: group.matchday }
-    : koAlive && koRevealed
-      ? { kind: 'ko' }
-      : null;
-
-  // In game-by-game mode, the "Next game" button sits directly under the card of
-  // the game it will play (the up-next matchday, or the active knockout round).
-  let nextAnchorKey: string | null = null;
-  if (nextGame && !auto && !isPlaying) {
-    nextAnchorKey = nextGame.kind === 'md' ? `md-${nextGame.md}` : `ko-${koCurrent}`;
-  }
-
   const playNext = () => {
     if (!nextGame) return;
     if (nextGame.kind === 'md') play(nextGame.md);
@@ -491,7 +507,7 @@ export default function TournamentScreen({
   };
 
   const nextGameButton = (
-    <div className="mt-2 flex justify-center">
+    <div ref={nextButtonRef} className="mt-2 flex justify-center">
       <button
         onClick={playNext}
         className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.99]"
@@ -839,6 +855,9 @@ export default function TournamentScreen({
       {knockout && koOutcome !== 'alive' && (
         <TournamentSummary formation={formation} filled={filled} group={group} knockout={knockout} />
       )}
+
+      {/* Scroll anchor for newly added bottom content (end-of-run banners). */}
+      <div ref={endRef} />
     </div>
   );
 }

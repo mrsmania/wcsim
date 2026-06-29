@@ -20,6 +20,7 @@ import { teamChemistry } from './domain/chemistry';
 import { createKnockout } from './domain/knockout';
 import { FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
+import type { MatchSpeed } from './domain/clock';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import CompletePanel from './components/CompletePanel';
@@ -33,8 +34,31 @@ import TournamentScreen from './components/TournamentScreen';
 const isStackedLayout = () =>
   typeof window !== 'undefined' && !window.matchMedia('(min-width: 1024px)').matches;
 
+/** Playback preferences (speed + auto/game-by-game) persisted across runs. */
+const SETTINGS_KEY = 'wcsim:settings';
+
+function loadSettings(): { speed?: MatchSpeed; auto?: boolean } {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}');
+    const out: { speed?: MatchSpeed; auto?: boolean } = {};
+    if (parsed.speed === 'slow' || parsed.speed === 'normal' || parsed.speed === 'fast') out.speed = parsed.speed;
+    if (typeof parsed.auto === 'boolean') out.auto = parsed.auto;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function saveSettings(speed: MatchSpeed, auto: boolean) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ speed, auto }));
+  } catch {
+    /* localStorage unavailable (e.g. private mode); preferences just won't persist */
+  }
+}
+
 export default function App() {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [state, dispatch] = useReducer(gameReducer, initialState, (base) => ({ ...base, ...loadSettings() }));
   const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
   const timerRef = useRef<number | null>(null);
   const animatingRef = useRef(false);
@@ -50,6 +74,11 @@ export default function App() {
 
   const { phase, formationName, style, formation, filled, currentSquad, selectedPlayerId, usedPersonIds, rerollsLeft, rolling, group, knockout, speed, auto } =
     state;
+
+  // Persist playback preferences so speed + mode carry across runs and reloads.
+  useEffect(() => {
+    saveSettings(speed, auto);
+  }, [speed, auto]);
 
   // During setup the pitch previews the selected formation/style; during the
   // draft it uses the locked formation stored in state.
