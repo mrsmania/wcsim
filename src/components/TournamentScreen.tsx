@@ -232,8 +232,10 @@ export default function TournamentScreen({
   const [showResults, setShowResults] = useState(false);
 
   // Auto-scroll targets: the "Next game" button (so it is never left below the
-  // fold) and the very bottom of the screen (for the end-of-run banners).
+  // fold), the bottom of the live feed (to follow penalty lines as they reveal),
+  // and the very bottom of the screen (for the end-of-run banners).
   const nextButtonRef = useRef<HTMLDivElement | null>(null);
+  const liveFeedRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   // --- shared live-clock display ---
@@ -449,6 +451,10 @@ export default function TournamentScreen({
   useEffect(() => {
     if (nextAnchorKey) nextButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [nextAnchorKey]);
+  // Follow the penalty shootout as each kick is revealed so the takers stay visible.
+  useEffect(() => {
+    if (penShown > 0) liveFeedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [penShown]);
   useEffect(() => {
     if ((groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out') {
       endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -797,6 +803,8 @@ export default function TournamentScreen({
                       {showShootout && penKicks && (
                         <ShootoutFeed oppName={opp?.name ?? 'Opponent'} kicks={penKicks} shown={penShownCount} />
                       )}
+                      {/* Scroll anchor so each new penalty line stays in view. */}
+                      <div ref={isPlayingRound ? liveFeedRef : undefined} className="scroll-mb-24" />
                     </div>
                   )}
                 </div>
