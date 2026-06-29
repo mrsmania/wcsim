@@ -38,11 +38,11 @@ export default function SetupPanel({
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 rounded-2xl border border-line bg-panel p-4 shadow-soft">
             {/* Formation */}
             <div className="flex flex-col gap-1.5">
-                <div className="text-[11px] font-semibold tracking-[0.15em] text-stone-500">
-                    SELECT YOUR FORMATION
+                <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted">
+                    Select your formation
                 </div>
                 <div className="grid grid-cols-4 gap-1.5">
                     {names.map((name) => {
@@ -52,10 +52,10 @@ export default function SetupPanel({
                                 key={name}
                                 onClick={() => onSelectName(name)}
                                 className={[
-                                    'rounded border px-1 py-2 text-center text-sm font-black transition',
+                                    'rounded-xl border px-1 py-2 text-center text-sm font-extrabold transition',
                                     active
-                                        ? 'border-stone-900 bg-stone-900 text-white'
-                                        : 'border-stone-300 bg-white hover:bg-stone-100',
+                                        ? 'border-pitch bg-pitch text-white shadow-soft'
+                                        : 'border-line bg-white hover:border-pitch hover:text-pitch',
                                 ].join(' ')}
                             >
                                 {name}
@@ -67,8 +67,8 @@ export default function SetupPanel({
 
             {/* Style */}
             <div className="flex flex-col gap-1.5">
-                <div className="text-[11px] font-semibold tracking-[0.15em] text-stone-500">
-                    SELECT YOUR STYLE
+                <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted">
+                    Select your style
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
                     {STYLES.map((style) => {
@@ -80,12 +80,12 @@ export default function SetupPanel({
                                 disabled={!enabled}
                                 onClick={() => onSelectStyle(style)}
                                 className={[
-                                    'rounded border px-1 py-2 text-center text-xs font-bold uppercase tracking-wide transition',
+                                    'rounded-xl border px-1 py-2 text-center text-xs font-bold uppercase tracking-wide transition',
                                     active
-                                        ? 'border-stone-900 bg-stone-900 text-white'
+                                        ? 'border-pitch bg-pitch text-white shadow-soft'
                                         : enabled
-                                          ? 'border-stone-300 bg-white hover:bg-stone-100'
-                                          : 'cursor-not-allowed border-stone-200 bg-stone-50 text-stone-300',
+                                          ? 'border-line bg-white hover:border-pitch hover:text-pitch'
+                                          : 'cursor-not-allowed border-line bg-pitch/5 text-muted/40',
                                 ].join(' ')}
                             >
                                 {STYLE_LABEL[style]}
@@ -100,10 +100,10 @@ export default function SetupPanel({
                     onClick={onStart}
                     disabled={!ready}
                     className={[
-                        'inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black uppercase tracking-wide transition',
+                        'inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition',
                         ready
-                            ? 'bg-red-600 text-white hover:bg-red-500 active:scale-[0.99]'
-                            : 'cursor-not-allowed bg-stone-200 text-stone-400',
+                            ? 'bg-pitch text-white shadow-soft hover:bg-pitch-dark active:scale-[0.99]'
+                            : 'cursor-not-allowed bg-pitch/15 text-muted',
                     ].join(' ')}
                 >
                     {ready ? 'Roll' : 'Loading…'}
@@ -115,10 +115,10 @@ export default function SetupPanel({
                         disabled={!ready}
                         title="Testing: auto-fill a random valid XI of a chosen strength and skip the draft"
                         className={[
-                            'inline-flex h-full items-center gap-1.5 rounded-xl border px-4 py-3 text-sm font-black uppercase tracking-wide transition',
+                            'inline-flex h-full items-center gap-1.5 rounded-xl border px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition',
                             ready
-                                ? 'border-stone-400 hover:border-stone-900 hover:bg-stone-900 hover:text-white'
-                                : 'cursor-not-allowed border-stone-200 text-stone-300',
+                                ? 'border-line bg-white hover:border-pitch hover:text-pitch'
+                                : 'cursor-not-allowed border-line text-muted/40',
                         ].join(' ')}
                     >
                         Random team
@@ -130,7 +130,7 @@ export default function SetupPanel({
                                 className="fixed inset-0 z-10"
                                 onClick={() => setMenuOpen(false)}
                             />
-                            <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-stone-300 bg-white shadow-lg">
+                            <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-line bg-white shadow-soft">
                                 {STRENGTH_TIERS.map((t) => (
                                     <button
                                         key={t.value}
@@ -138,10 +138,10 @@ export default function SetupPanel({
                                             setMenuOpen(false);
                                             onRandomTeam(t.value);
                                         }}
-                                        className="flex w-full items-baseline justify-between gap-2 border-b border-stone-100 px-3 py-2 text-left transition last:border-b-0 hover:bg-stone-100"
+                                        className="flex w-full items-baseline justify-between gap-2 border-b border-line px-3 py-2 text-left transition last:border-b-0 hover:bg-pitch/5"
                                     >
                                         <span className="text-sm font-bold">{t.label}</span>
-                                        <span className="text-[10px] font-medium text-stone-400">
+                                        <span className="text-[10px] font-medium text-muted">
                                             {t.hint}
                                         </span>
                                     </button>
