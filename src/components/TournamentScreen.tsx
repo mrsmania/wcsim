@@ -237,6 +237,7 @@ export default function TournamentScreen({
   const nextButtonRef = useRef<HTMLDivElement | null>(null);
   const liveFeedRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const activeRoundRef = useRef<HTMLDivElement | null>(null);
 
   // --- shared live-clock display ---
   const [liveMinute, setLiveMinute] = useState(0);
@@ -460,6 +461,13 @@ export default function TournamentScreen({
       endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [groupFinished, advanced, koOutcome]);
+  // Each new knockout round is appended at the bottom; scroll it into view as soon
+  // as the round is reached (covers Automatic mode, where there is no Next button).
+  useEffect(() => {
+    if (knockout && koOutcome === 'alive') {
+      activeRoundRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [koCurrent, knockout, koOutcome]);
 
   // --- opening group draw view (full takeover, shown once) ---
   if (revealing) {
@@ -786,7 +794,7 @@ export default function TournamentScreen({
             ) : null;
 
             return (
-              <div key={`ko-${i}`}>
+              <div key={`ko-${i}`} ref={isActive ? activeRoundRef : undefined} className={isActive ? 'scroll-mb-28' : undefined}>
                 <div className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">
                   <span>{name.toUpperCase()}</span>
                   {tag}
