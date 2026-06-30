@@ -273,17 +273,43 @@ export default function App() {
     const panelSquad = rolling ? displaySquad : currentSquad;
     const availableStyles = FORMATIONS_DATA.stylesByName[formationName] ?? STYLES;
 
+    // Page section header (eyebrow + heading) and the masthead status stamp, both
+    // phase-dependent. The stamp is null on the tournament screens (their own header).
+    const placed = activeFormation ? filledCount(activeFormation, filled) : 0;
+    const sectionEyebrow = phase === 'complete' ? 'Confirmed line-up' : 'Team sheet';
+    const sectionTitle =
+        phase === 'setup'
+            ? 'Set your formation'
+            : phase === 'draft'
+              ? 'Build your XI'
+              : 'Your XI is set';
+    const stampText =
+        phase === 'setup'
+            ? 'Set up · 11 to pick'
+            : phase === 'draft'
+              ? `Drafting · ${placed}/11`
+              : phase === 'complete'
+                ? 'Team sheet · locked'
+                : null;
+
     return (
         <div className="min-h-full text-ink">
             <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5">
-                <header className="mb-5 flex items-center gap-3 border-b-2 border-ink pb-3">
-                    <span className="h-9 w-9 shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)]" />
-                    <h1 className="font-display text-2xl font-extrabold tracking-tight">
-                        WORLD CUP <span className="text-pitch">SIMULATOR</span>
+                <header className="flex items-center gap-4 border-b-2 border-ink pb-4">
+                    <span className="relative h-[38px] w-[38px] shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.9)]">
+                        <span className="absolute inset-[7px] rounded-[1px] border-[1.5px] border-white/90" />
+                    </span>
+                    <h1 className="font-display text-[23px] font-black uppercase leading-none tracking-[-0.02em]">
+                        World Cup <span className="text-pitch">Simulator</span>
                     </h1>
-                    <span className="text-sm font-medium text-muted max-sm:hidden">
+                    <span className="border-l border-line pl-3.5 text-[12.5px] text-muted max-sm:hidden">
                         Draft a random XI. Win the cup.
                     </span>
+                    {stampText && (
+                        <span className="ml-auto rounded-[3px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted max-sm:hidden">
+                            {stampText}
+                        </span>
+                    )}
                 </header>
 
                 {(phase === 'group' || phase === 'knockout') && group && formation ? (
@@ -303,6 +329,20 @@ export default function App() {
                         onReset={() => dispatch({ type: 'RESET' })}
                     />
                 ) : (
+                    <>
+                    <div className="mb-5 mt-7 flex items-center gap-4">
+                        <div>
+                            <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                                {sectionEyebrow}
+                            </div>
+                            <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
+                                {sectionTitle}
+                            </h2>
+                        </div>
+                        <div className="relative h-0 flex-1 border-t-2 border-line">
+                            <span className="absolute -top-[5px] left-0 h-2 w-2 rounded-full border-2 border-line bg-panel" />
+                        </div>
+                    </div>
                     <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
                         {/* Col 1: setup -> drawn squad -> complete */}
                         <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
@@ -345,6 +385,7 @@ export default function App() {
                                 <CompletePanel
                                     formation={formation}
                                     filled={filled}
+                                    style={style}
                                     onStart={handleStartGroup}
                                     onReset={() => dispatch({ type: 'RESET' })}
                                 />
@@ -380,6 +421,7 @@ export default function App() {
                             </div>
                         )}
                     </div>
+                    </>
                 )}
             </div>
         </div>
