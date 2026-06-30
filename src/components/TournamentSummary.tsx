@@ -137,7 +137,7 @@ interface Props {
 /** End-of-tournament recap: results (group + knockouts) and the drafted XI. */
 export default function TournamentSummary({ formation, filled, group, knockout }: Props) {
   return (
-    <div className="mt-4 flex flex-col gap-5 rounded-2xl border border-line bg-panel p-5 text-left shadow-soft">
+    <div className="mt-4 flex flex-col gap-5 rounded-md border border-line bg-panel p-5 text-left shadow-hard">
       <div className="text-[11px] font-bold tracking-[0.2em] text-muted">TOURNAMENT SUMMARY</div>
       {group && <GroupRecap group={group} />}
       {knockout && <KnockoutRecap knockout={knockout} />}

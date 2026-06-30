@@ -66,7 +66,7 @@ export default function SquadPanel({
 
     if (rolling) {
         return (
-            <div className="flex flex-col gap-4 rounded-2xl border border-line bg-panel p-3 shadow-soft">
+            <div className="flex flex-col gap-4 rounded-md border border-line bg-panel p-3 shadow-hard">
                 <Header squad={squad} scrambling />
                 <p className="px-1 text-sm font-semibold uppercase tracking-wide text-muted">
                     Drawing a squad…
@@ -78,7 +78,7 @@ export default function SquadPanel({
     const rerollDisabled = rerollsLeft <= 0;
 
     return (
-        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-panel pt-3 shadow-soft lg:h-full">
+        <div className="flex flex-col gap-3 rounded-md border border-line bg-panel pt-3 shadow-hard lg:h-full">
             <Header squad={squad} scrambling={false} />
 
             {/* Player list fills the panel and scrolls. Rows are split by dividers so

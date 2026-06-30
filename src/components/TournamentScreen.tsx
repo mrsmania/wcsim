@@ -997,7 +997,7 @@ export default function TournamentScreen({
             )}
 
             {koOutcome === 'out' && (
-                <div className="rounded-2xl border border-dashed border-line bg-panel p-5 text-center shadow-soft">
+                <div className="rounded-md border border-dashed border-line bg-panel p-5 text-center shadow-hard">
                     <p className="text-xl font-black text-loss">
                         Knocked out in the {KO_ROUNDS[koCurrent]}.
                     </p>
