@@ -32,6 +32,7 @@ import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import CompletePanel from './components/CompletePanel';
 import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
+import XiTable from './components/XiTable';
 import TournamentScreen from './components/TournamentScreen';
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
@@ -347,14 +348,13 @@ export default function App() {
                             )}
                         </aside>
 
-                        {/* Center: team-rating totals on top, then the pitch filling the rest so
-              the column matches the squad panel's height. */}
-                        <main className="flex flex-col gap-4 lg:h-[80vh]">
+                        {/* Center: totals across the top, then the pitch with the XI detail
+              table beside it (desktop) or stacked under it (mobile). Order on
+              mobile: pitch, totals, table (the squad panel sits above in the aside). */}
+                        <main className="grid gap-4 lg:h-[80vh] lg:grid-cols-[minmax(0,1fr)_15rem] lg:grid-rows-[auto_minmax(0,1fr)]">
                             {activeFormation ? (
                                 <>
-                                    {/* On mobile the pitch sits between the two tables (squad above,
-                    totals + XI table below); on desktop the totals stay on top. */}
-                                    <div className="max-lg:order-2">
+                                    <div className="order-2 lg:order-none lg:col-span-2">
                                         <BoxScore
                                             formation={activeFormation}
                                             filled={filled}
@@ -363,7 +363,7 @@ export default function App() {
                                     </div>
                                     <div
                                         ref={pitchRef}
-                                        className="min-h-0 flex-1 scroll-mt-6 max-lg:order-1 max-lg:min-h-[440px]"
+                                        className="order-1 min-h-0 scroll-mt-6 max-lg:min-h-[440px] lg:order-none"
                                     >
                                         <Pitch
                                             formation={activeFormation}
@@ -375,9 +375,12 @@ export default function App() {
                                             }
                                         />
                                     </div>
+                                    <div className="order-3 min-h-0 lg:order-none lg:overflow-auto">
+                                        <XiTable formation={activeFormation} filled={filled} />
+                                    </div>
                                 </>
                             ) : (
-                                <div className="flex aspect-[3/4] max-w-xl items-center justify-center rounded-lg border border-dashed border-line text-muted">
+                                <div className="flex aspect-[3/4] max-w-xl items-center justify-center rounded-lg border border-dashed border-line text-muted lg:col-span-2">
                                     Loading formations…
                                 </div>
                             )}

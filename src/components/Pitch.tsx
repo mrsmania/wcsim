@@ -3,7 +3,6 @@ import type { Player } from '../data/types';
 import { lastName } from '../data/types';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import PlayerBadge from './PlayerBadge';
 
@@ -176,7 +175,6 @@ function OverlayMarker({
     top,
     scale,
     tilt,
-    compact,
     onPlace,
     onRemove,
 }: {
@@ -189,8 +187,6 @@ function OverlayMarker({
     top: string;
     scale: number;
     tilt: boolean;
-    /** Mobile: show a minimal badge (number + last name only). */
-    compact: boolean;
     onPlace: (slotId: string) => void;
     /** Testing aid: clear this slot (only shown for placed players). */
     onRemove?: () => void;
@@ -204,18 +200,12 @@ function OverlayMarker({
     ) : null;
 
     if (player) {
-        const squad = SQUAD_BY_ID[player.squadId];
         return (
             <div className="absolute flex flex-col items-center" style={style}>
                 {shadow}
                 <PlayerBadge
                     name={lastName(player.name)}
                     number={player.number}
-                    position={slot.label}
-                    code={squad?.code ?? ''}
-                    elo={player.elo}
-                    year={squad?.year}
-                    compact={compact}
                     onRemove={onRemove}
                 />
             </div>
@@ -378,7 +368,6 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                                 top={tilt ? `${oy + q.y * fit}px` : `${(q.y / VBH) * 100}%`}
                                 scale={tilt ? Math.min(fit, 1) * depth : depth}
                                 tilt={tilt}
-                                compact={isMobile}
                                 onPlace={onPlace}
                                 onRemove={
                                     player && onRemove ? () => onRemove(slot.id) : undefined
