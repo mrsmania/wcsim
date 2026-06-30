@@ -6,7 +6,7 @@ import type { Filled } from '../domain/draft';
 import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
-const STRIPES = 20;
+const STRIPES = 11;
 
 const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 
@@ -121,13 +121,44 @@ const circlePts = (cx: number, cy: number, r: number, n: number) => arcPts(cx, c
 /** All pitch markings, authored in 300x400 space and scaled into the box. */
 function markingsPath(): string {
     return [
-        pathOf([[0, 0], [300, 0], [300, 400], [0, 400]], true), // touchlines
-        pathOf([[0, 200], [300, 200]]), // halfway line
+        pathOf(
+            [
+                [0, 0],
+                [300, 0],
+                [300, 400],
+                [0, 400],
+            ],
+            true,
+        ), // touchlines
+        pathOf([
+            [0, 200],
+            [300, 200],
+        ]), // halfway line
         pathOf(circlePts(150, 200, 46, 64), true), // centre circle
-        pathOf([[62, 0], [62, 60], [238, 60], [238, 0]]), // top penalty box
-        pathOf([[112, 0], [112, 22], [188, 22], [188, 0]]), // top 6-yard box
-        pathOf([[62, 400], [62, 340], [238, 340], [238, 400]]), // bottom penalty box
-        pathOf([[112, 400], [112, 378], [188, 378], [188, 400]]), // bottom 6-yard box
+        pathOf([
+            [62, 0],
+            [62, 60],
+            [238, 60],
+            [238, 0],
+        ]), // top penalty box
+        pathOf([
+            [112, 0],
+            [112, 22],
+            [188, 22],
+            [188, 0],
+        ]), // top 6-yard box
+        pathOf([
+            [62, 400],
+            [62, 340],
+            [238, 340],
+            [238, 400],
+        ]), // bottom penalty box
+        pathOf([
+            [112, 400],
+            [112, 378],
+            [188, 378],
+            [188, 400],
+        ]), // bottom 6-yard box
         pathOf(arcPts(150, 40, 44, 27, 153, 20)), // top "D"
         pathOf(arcPts(150, 360, 44, 207, 333, 20)), // bottom "D"
         pathOf(arcPts(0, 0, 9, 90, 0, 6)), // corner arcs
@@ -267,30 +298,37 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                 preserveAspectRatio="xMidYMid meet"
                 aria-hidden="true"
             >
-                {Array.from({ length: STRIPES }, (_, i) => {
-                    const y0 = (i / STRIPES) * VBH;
-                    const y1 = ((i + 1) / STRIPES) * VBH;
-                    return (
-                        <rect
-                            key={i}
-                            x={0}
-                            y={d2(y0)}
-                            width={VBW}
-                            height={d2(y1 - y0)}
-                            fill={i % 2 === 0 ? '#1f8a4d' : '#1a7d45'}
-                        />
-                    );
-                })}
+                {/* Grass mowing stripes. A full-board base sits behind, and each
+                  stripe is drawn a hair taller than its slot so consecutive stripes
+                  overlap: that removes the sub-pixel seams (the page showing through)
+                  the user would otherwise see between stripes. */}
+                <rect x={0} y={0} width={VBW} height={VBH} fill="#1a7d45" />
+                {Array.from({ length: STRIPES }, (_, i) => (
+                    <rect
+                        key={i}
+                        x={0}
+                        y={d2((i / STRIPES) * VBH)}
+                        width={VBW}
+                        height={d2(VBH / STRIPES) + 1}
+                        fill={i % 2 === 0 ? '#1f8a4d' : '#1a7d45'}
+                    />
+                ))}
                 <path
                     d={marks}
                     fill="none"
                     stroke="rgba(255,255,255,0.82)"
-                    strokeWidth={1.4}
+                    strokeWidth={1.8}
                     strokeLinejoin="round"
                     vectorEffect="non-scaling-stroke"
                 />
                 {spots.map((q, k) => (
-                    <circle key={k} cx={d2(q.x)} cy={d2(q.y)} r={2.6} fill="rgba(255,255,255,0.82)" />
+                    <circle
+                        key={k}
+                        cx={d2(q.x)}
+                        cy={d2(q.y)}
+                        r={2.6}
+                        fill="rgba(255,255,255,0.82)"
+                    />
                 ))}
             </svg>
 
@@ -321,9 +359,7 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                                 top={`${oy + qy * fit}px`}
                                 scale={Math.min(fit, 1)}
                                 onPlace={onPlace}
-                                onRemove={
-                                    player && onRemove ? () => onRemove(slot.id) : undefined
-                                }
+                                onRemove={player && onRemove ? () => onRemove(slot.id) : undefined}
                             />
                         );
                     })}
