@@ -44,6 +44,7 @@ export type Action =
   | { type: 'CONSUME_REROLL' }
   | { type: 'SELECT_PLAYER'; playerId: string }
   | { type: 'PLACE_PLAYER'; slotId: string }
+  | { type: 'REMOVE_PLAYER'; slotId: string }
   | { type: 'START_GROUP'; group: GroupState }
   | { type: 'RECORD_MATCHDAY'; results: MatchdayResult[] }
   | { type: 'START_KNOCKOUT'; knockout: KnockoutState }
@@ -133,6 +134,22 @@ export function gameReducer(state: GameState, action: Action): GameState {
         currentSquad: null, // component draws the next squad unless complete
         selectedPlayerId: null,
         phase: done ? 'complete' : 'draft',
+      };
+    }
+
+    case 'REMOVE_PLAYER': {
+      // Testing aid: clear a placed slot, free the person to be drafted again, and
+      // drop back to drafting (the XI is no longer complete).
+      if (state.phase !== 'draft' && state.phase !== 'complete') return state;
+      const player = state.filled[action.slotId];
+      if (!player) return state;
+      const nextFilled: Filled = { ...state.filled };
+      delete nextFilled[action.slotId];
+      return {
+        ...state,
+        filled: nextFilled,
+        usedPersonIds: state.usedPersonIds.filter((id) => id !== player.personId),
+        phase: 'draft',
       };
     }
 

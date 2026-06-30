@@ -162,6 +162,8 @@ interface Props {
     /** Player awaiting placement; matching open slots become clickable. */
     selectedPlayer: Player | null;
     onPlace: (slotId: string) => void;
+    /** Testing aid: clear a placed slot via the x on its badge. */
+    onRemove?: (slotId: string) => void;
 }
 
 /** One placed player or open slot, rendered flat over the pitch at a projected
@@ -176,6 +178,7 @@ function OverlayMarker({
     tilt,
     compact,
     onPlace,
+    onRemove,
 }: {
     slot: Slot;
     player: Player | null;
@@ -189,6 +192,8 @@ function OverlayMarker({
     /** Mobile: show a minimal badge (number + last name only). */
     compact: boolean;
     onPlace: (slotId: string) => void;
+    /** Testing aid: clear this slot (only shown for placed players). */
+    onRemove?: () => void;
 }) {
     const transform = `translate(-50%, ${tilt ? '-100%' : '-50%'}) scale(${scale})`;
     // Slide to the new spot when the formation changes.
@@ -211,6 +216,7 @@ function OverlayMarker({
                     elo={player.elo}
                     year={squad?.year}
                     compact={compact}
+                    onRemove={onRemove}
                 />
             </div>
         );
@@ -240,7 +246,7 @@ function OverlayMarker({
     );
 }
 
-export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Props) {
+export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRemove }: Props) {
     // 11 persistent circles (keyed by index). On a formation change each circle
     // slides to its nearest new slot instead of mounting/unmounting.
     const [circles, setCircles] = useState<Slot[]>(() => formation.slots);
@@ -374,6 +380,9 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                                 tilt={tilt}
                                 compact={isMobile}
                                 onPlace={onPlace}
+                                onRemove={
+                                    player && onRemove ? () => onRemove(slot.id) : undefined
+                                }
                             />
                         );
                     })}
