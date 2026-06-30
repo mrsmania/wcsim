@@ -83,7 +83,7 @@ export default function SquadPanel({
 
             {/* Player list fills the panel and scrolls. Rows are split by dividers so
           each reads as a tappable line: number, name, positions, elo. */}
-            <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line max-h-[60vh]">
+            <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line max-h-[40vh]">
                 {sortSquad(squad.players).map((p) => {
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);

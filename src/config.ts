@@ -6,5 +6,5 @@ export const FEATURES = {
     chemistry: true,
     /** Remove placed players from the pitch via an x on the badge (testing aid).
      *  Set to false to hide the control and disable removal. */
-    removePlayers: false,
+    removePlayers: true,
 } as const;
