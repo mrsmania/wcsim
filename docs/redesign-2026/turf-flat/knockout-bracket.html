@@ -209,8 +209,9 @@ a{color:inherit}
   /* connector colour: a touch stronger than --line so the thin lines read crisply */
   --conn:color-mix(in srgb,var(--muted) 40%,var(--line))}
 .mband{position:relative;display:flex;justify-content:space-around;align-items:stretch}
-.mband .lbl{position:absolute;left:0;top:-17px;font-family:var(--mono);font-size:9px;font-weight:600;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+/* round labels intentionally hidden on the mobile tree (the converging shape
+   already reads the rounds: outermost = R16, centre = the final/cup) */
+.mband .lbl{display:none}
 .vpair{position:relative;flex:1 1 0;display:flex;justify-content:space-around;min-width:0}
 .mtree .match{width:70px;font-size:10px}
 /* each team: flag (line 1) over 3-letter code + year (line 2) as a centred
