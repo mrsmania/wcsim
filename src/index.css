@@ -123,3 +123,322 @@ button:not(:disabled) {
 .animate-slot-pulse-secondary {
     animation: slot-pulse-secondary 1.15s ease-out infinite;
 }
+
+/* ============================================================================
+   KNOCKOUT BRACKET (KnockoutScreen). Layout + connectors only; seed text styling
+   lives in the component via Tailwind utilities. Ported from the turf-flat comp
+   (docs/redesign-2026/turf-flat/knockout-bracket.html), prefixed `bkt-` and
+   mapped to the app's @theme tokens. Two layouts toggle at 900px:
+     - `.bkt-wide`   : left-to-right tree (>=901px)
+     - `.bkt-narrow` : two-sided vertical tree converging on the cup (<=900px)
+   Connectors are a slightly stronger grey than --color-line so the thin lines
+   read crisply; desktop connectors are scoped to `.bkt` and mobile ones to
+   `.bkt-mband` so the two layouts never cross-contaminate. ============ */
+.bkt-wrap {
+    --bkt-conn: color-mix(in srgb, var(--color-muted) 40%, var(--color-line));
+}
+.bkt-narrow {
+    display: none;
+}
+@media (max-width: 900px) {
+    .bkt-wide {
+        display: none;
+    }
+    .bkt-narrow {
+        display: block;
+    }
+}
+
+/* ---- wide (left-to-right) ---- */
+.bkt-scroll {
+    overflow-x: auto;
+    padding-bottom: 6px;
+}
+.bkt-heads,
+.bkt {
+    display: flex;
+    gap: 30px;
+    min-width: 840px;
+}
+.bkt-heads {
+    margin-bottom: 10px;
+}
+.bkt-h {
+    flex: 1 1 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+.bkt-h.now {
+    color: var(--color-amber);
+}
+.bkt {
+    height: 560px;
+}
+.bkt-round {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 0;
+}
+.bkt-round.bkt-final,
+.bkt-round.bkt-champ {
+    justify-content: center;
+}
+.bkt-pair {
+    position: relative;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 0;
+}
+
+/* ---- match box + seeds (shared by both layouts) ---- */
+.bkt-match {
+    position: relative;
+    width: 100%;
+    background: var(--color-panel);
+    border: 1px solid var(--color-line);
+    border-radius: 5px;
+}
+.bkt-seed {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    font-size: 11.5px;
+    font-weight: 500;
+    min-width: 0;
+}
+.bkt-seed:first-child {
+    border-radius: 4px 4px 0 0;
+}
+.bkt-seed:last-child {
+    border-radius: 0 0 4px 4px;
+}
+.bkt-seed + .bkt-seed {
+    border-top: 1px solid var(--color-line);
+}
+.bkt-nm {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.bkt-yr {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--color-muted);
+    flex: 0 0 auto;
+}
+.bkt-sc {
+    margin-left: auto;
+    padding-left: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-muted);
+    flex: 0 0 auto;
+}
+.bkt-seed.bkt-win {
+    color: var(--color-ink);
+}
+.bkt-seed.bkt-win .bkt-sc {
+    color: var(--color-ink);
+}
+.bkt-seed.bkt-out {
+    color: var(--color-muted);
+}
+.bkt-seed.bkt-out .bkt-nm {
+    text-decoration: line-through;
+}
+.bkt-seed.bkt-you .bkt-nm {
+    color: var(--color-loss);
+}
+.bkt-tbd {
+    color: var(--color-muted);
+}
+
+/* ---- wide connectors (scoped to .bkt) ---- */
+.bkt .bkt-match::after {
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    width: 15px;
+    border-top: 2px solid var(--bkt-conn);
+    transform: translateY(-1px);
+}
+.bkt .bkt-final .bkt-match::after {
+    width: 30px;
+}
+.bkt .bkt-pair::before {
+    content: '';
+    position: absolute;
+    left: calc(100% + 15px);
+    top: 25%;
+    height: 50%;
+    border-left: 2px solid var(--bkt-conn);
+}
+.bkt .bkt-pair::after {
+    content: '';
+    position: absolute;
+    left: calc(100% + 15px);
+    top: 50%;
+    width: 15px;
+    border-top: 2px solid var(--bkt-conn);
+    transform: translateY(-1px);
+}
+
+/* ---- champion node (the cup), used by both layouts ---- */
+.bkt-cup {
+    align-self: center;
+    text-align: center;
+    border: 1px solid var(--color-pitch-dark);
+    background: var(--color-pitch-dark);
+    color: #fff;
+    border-radius: 7px;
+    padding: 12px 16px;
+    box-shadow: 3px 3px 0 var(--color-pitch);
+}
+.bkt-cup .bkt-cup-lbl {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-amber);
+}
+.bkt-cup .bkt-cup-nm {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1.1;
+    margin-top: 6px;
+}
+
+/* ---- narrow (two-sided vertical) ---- */
+.bkt-mtree {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin-top: 8px;
+}
+.bkt-mband {
+    position: relative;
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+}
+.bkt-vpair {
+    position: relative;
+    flex: 1 1 0;
+    display: flex;
+    justify-content: space-around;
+    min-width: 0;
+}
+.bkt-mtree .bkt-match {
+    width: 70px;
+    font-size: 10px;
+}
+.bkt-mtree .bkt-seed {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 6px;
+}
+.bkt-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+}
+.bkt-mtree .bkt-lab {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 3px;
+    line-height: 1;
+}
+.bkt-mtree .bkt-nm {
+    overflow: visible;
+    text-overflow: clip;
+}
+.bkt-mtree .bkt-yr {
+    font-size: 8px;
+}
+.bkt-mtree .bkt-sc {
+    font-size: 12.5px;
+    font-weight: 700;
+    padding-left: 3px;
+}
+.bkt-mcenter {
+    display: flex;
+    justify-content: center;
+}
+/* narrow connectors — top half flows DOWN */
+.bkt-mband:not(.bkt-up) .bkt-match::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: calc(50% - 1px);
+    height: 15px;
+    border-left: 2px solid var(--bkt-conn);
+}
+.bkt-mband:not(.bkt-up) .bkt-vpair::before {
+    content: '';
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 25%;
+    width: 50%;
+    border-top: 2px solid var(--bkt-conn);
+}
+.bkt-mband:not(.bkt-up) .bkt-vpair::after {
+    content: '';
+    position: absolute;
+    top: calc(100% + 15px);
+    left: calc(50% - 1px);
+    height: 15px;
+    border-left: 2px solid var(--bkt-conn);
+}
+.bkt-mband.bkt-sf:not(.bkt-up) .bkt-match::after {
+    height: 30px;
+}
+/* narrow connectors — bottom half flows UP */
+.bkt-mband.bkt-up .bkt-match::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: calc(50% - 1px);
+    height: 15px;
+    border-left: 2px solid var(--bkt-conn);
+}
+.bkt-mband.bkt-up .bkt-vpair::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 14px);
+    left: 25%;
+    width: 50%;
+    border-top: 2px solid var(--bkt-conn);
+}
+.bkt-mband.bkt-up .bkt-vpair::after {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 15px);
+    left: calc(50% - 1px);
+    height: 15px;
+    border-left: 2px solid var(--bkt-conn);
+}
+.bkt-mband.bkt-sf.bkt-up .bkt-match::after {
+    height: 30px;
+}

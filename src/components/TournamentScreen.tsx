@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SQUADS } from '../data/squads';
-import { simulateMatch, type MatchEvent, type MatchResult, type PenKick } from '../domain/match';
+import { simulateMatch, type MatchEvent } from '../domain/match';
 import {
     GROUP_MATCHDAYS,
     fixturesForMatchday,
@@ -9,19 +9,10 @@ import {
     teamById,
     userAdvanced,
     type GroupState,
-    type GroupTeam,
     type MatchdayResult,
 } from '../domain/tournament';
-import {
-    KO_ROUNDS,
-    drawOpponent,
-    playKnockout,
-    type KnockoutState,
-    type KoDecided,
-    type KoResult,
-} from '../domain/knockout';
-import { buildMatchSteps, HALF_TIME_MS, PEN_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
-import { ArrowRight, Check, ChevronDown, ChevronRight, Play, X } from 'lucide-react';
+import { buildMatchSteps, HALF_TIME_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
+import { ArrowRight, ChevronDown, ChevronRight, Play } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import Flag from './Flag';
@@ -29,11 +20,19 @@ import FixtureRow from './FixtureRow';
 import GoalList from './GoalList';
 import TournamentSummary from './TournamentSummary';
 import { useFollowBottom } from '../hooks/useFollowBottom';
+import {
+    Banner,
+    FixtureHead,
+    LiveLine,
+    ordinal,
+    PlaybackControls,
+    PRIMARY_BTN,
+    ResultTag,
+    StageHeader,
+} from './matchUi';
 
 interface Props {
     group: GroupState;
-    /** Set once the user advances out of the group; null during the group stage. */
-    knockout: KnockoutState | null;
     formation: Formation;
     filled: Filled;
     speed: MatchSpeed;
@@ -41,372 +40,20 @@ interface Props {
     onSetAuto: (a: boolean) => void;
     onSetSpeed: (s: MatchSpeed) => void;
     onRecordMatchday: (results: MatchdayResult[]) => void;
-    onAdvanceKo: (p: {
-        result: MatchResult;
-        decided: KoDecided;
-        pens?: { user: number; opp: number; kicks: PenKick[] };
-        userWon: boolean;
-        nextOpponent: GroupTeam | null;
-    }) => void;
+    /** Build the bracket and move to the knockout screen (qualified only). */
+    onEnterKnockout: () => void;
     onReset: () => void;
 }
 
 const ALL_CODES = [...new Set(SQUADS.map((s) => s.code))];
 const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)];
-const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
-const ordinal = (n: number) => (n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`);
 
-/** Shared rectangular primary action button (the turf-flat `.btn.primary`). */
-const PRIMARY_BTN =
-    'inline-flex items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-5 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99]';
-
-/** A scored/missed pip (green check / red cross) for one penalty. */
-function PenPip({ scored }: { scored: boolean }) {
-    return (
-        <span
-            className={`grid h-[17px] w-[17px] shrink-0 place-items-center rounded-full ${
-                scored ? 'bg-pitch' : 'bg-loss'
-            }`}
-        >
-            {scored ? (
-                <Check size={10} strokeWidth={3.5} className="text-white" />
-            ) : (
-                <X size={10} strokeWidth={3.5} className="text-white" />
-            )}
-        </span>
-    );
-}
-
-/** Penalty shootout sheet (the turf-flat `.shoot`): every taker listed one by one,
- *  Your XI on the left versus the opponent on the right. Kicks alternate home/away
- *  per round, so pairing them by index gives a head-to-head row per round. */
-function ShootoutFeed({ kicks, shown }: { kicks: PenKick[]; shown: number }) {
-    const revealed = kicks.slice(0, shown);
-    const homeKicks = revealed.filter((k) => k.side === 'home');
-    const awayKicks = revealed.filter((k) => k.side === 'away');
-    const homeScore = homeKicks.filter((k) => k.scored).length;
-    const awayScore = awayKicks.filter((k) => k.scored).length;
-    const rounds = Math.max(homeKicks.length, awayKicks.length);
-
-    return (
-        <div className="mt-3 border-t border-line pt-3.5">
-            <div className="mb-3 text-center font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                Penalty shootout &middot;{' '}
-                <b className="text-ink">
-                    {homeScore}–{awayScore}
-                </b>
-            </div>
-            <ul className="flex flex-col gap-2">
-                {Array.from({ length: rounds }, (_, i) => {
-                    const h = homeKicks[i];
-                    const a = awayKicks[i];
-                    return (
-                        <li
-                            key={i}
-                            className="grid grid-cols-[1fr_22px_1fr] items-center gap-2.5 text-[13px]"
-                        >
-                            <span className="flex min-w-0 items-center justify-end gap-2 font-semibold">
-                                {h ? (
-                                    <>
-                                        <span className="truncate text-ink">{h.taker}</span>
-                                        <PenPip scored={h.scored} />
-                                    </>
-                                ) : null}
-                            </span>
-                            <span className="text-center font-mono text-[10px] text-muted">
-                                {i + 1}
-                            </span>
-                            <span className="flex min-w-0 items-center justify-start gap-2 font-semibold">
-                                {a ? (
-                                    <>
-                                        <PenPip scored={a.scored} />
-                                        <span className="truncate text-ink">{a.taker}</span>
-                                    </>
-                                ) : null}
-                            </span>
-                        </li>
-                    );
-                })}
-            </ul>
-        </div>
-    );
-}
-
-/** A labelled segmented control (the turf-flat `.ctl`): a mono caption followed by
- *  inline option buttons, the active one filled ink. Stacks full-width on mobile. */
-function SegControl<T extends string>({
-    label,
-    value,
-    options,
-    onSelect,
-    ariaLabel,
-}: {
-    label: string;
-    value: T;
-    options: { value: T; label: string }[];
-    onSelect: (v: T) => void;
-    ariaLabel: string;
-}) {
-    return (
-        <div
-            role="group"
-            aria-label={ariaLabel}
-            className="flex items-center overflow-hidden rounded-[5px] border border-line bg-panel max-sm:w-full"
-        >
-            <span className="shrink-0 pl-[11px] pr-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted">
-                {label}
-            </span>
-            <div className="flex max-sm:flex-1">
-                {options.map((o) => (
-                    <button
-                        key={o.value}
-                        onClick={() => onSelect(o.value)}
-                        aria-pressed={o.value === value}
-                        className={`whitespace-nowrap border-l border-line px-[11px] py-[9px] text-xs font-semibold transition max-sm:flex-1 ${
-                            o.value === value
-                                ? 'bg-ink text-ground'
-                                : 'bg-panel text-muted hover:text-ink'
-                        }`}
-                    >
-                        {o.label}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-/** The two playback selectors (mode + speed), shown in the active stage header. */
-function PlaybackControls({
-    auto,
-    speed,
-    onSetAuto,
-    onSetSpeed,
-}: {
-    auto: boolean;
-    speed: MatchSpeed;
-    onSetAuto: (a: boolean) => void;
-    onSetSpeed: (s: MatchSpeed) => void;
-}) {
-    return (
-        <div className="flex flex-wrap items-center justify-end gap-2 max-sm:w-full">
-            <SegControl
-                ariaLabel="Playback mode"
-                label="Mode"
-                value={auto ? 'auto' : 'manual'}
-                onSelect={(v) => onSetAuto(v === 'auto')}
-                options={[
-                    { value: 'manual', label: 'Game by game' },
-                    { value: 'auto', label: 'Automatic' },
-                ]}
-            />
-            <SegControl
-                ariaLabel="Match speed"
-                label="Speed"
-                value={speed}
-                onSelect={onSetSpeed}
-                options={[
-                    { value: 'slow', label: 'Slow' },
-                    { value: 'normal', label: 'Normal' },
-                    { value: 'fast', label: 'Fast' },
-                ]}
-            />
-        </div>
-    );
-}
-
-/** A stage header (eyebrow + display heading), optionally carrying the controls. */
-function StageHeader({
-    eyebrow,
-    title,
-    controls,
-    headingRef,
-}: {
-    eyebrow: string;
-    title: string;
-    controls?: React.ReactNode;
-    headingRef?: React.Ref<HTMLDivElement>;
-}) {
-    return (
-        <div
-            ref={headingRef}
-            className="mb-[18px] mt-[30px] flex flex-wrap items-end justify-between gap-4"
-        >
-            <div>
-                <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-                    {eyebrow}
-                </div>
-                <h2 className="mt-0.5 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
-                    {title}
-                </h2>
-            </div>
-            {controls}
-        </div>
-    );
-}
-
-/** Win / loss / draw or "live"/"up next" tag shown beside a matchday/round label. */
-function ResultTag({ kind, label }: { kind: 'w' | 'l' | 'd' | 'next'; label: string }) {
-    if (kind === 'next') {
-        return (
-            <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber">
-                {label}
-            </span>
-        );
-    }
-    const tone =
-        kind === 'w'
-            ? 'bg-pitch/[0.13] text-pitch'
-            : kind === 'l'
-              ? 'bg-loss/[0.13] text-loss'
-              : 'bg-chalk text-muted';
-    return (
-        <span
-            className={`rounded-[3px] px-2 py-[3px] font-mono text-[9.5px] font-bold uppercase tracking-[0.06em] ${tone}`}
-        >
-            {label}
-        </span>
-    );
-}
-
-/** The big fixture header for one game card (the turf-flat `.fx-top`): Your XI on
- *  the home/left side, a dark score pill in the middle, the opponent on the right.
- *  The user is always rendered as home, with the score from their perspective. */
-function FixtureHead({
-    oppName,
-    oppCode,
-    oppYear,
-    score,
-    status,
-    statusDim,
-    scrambleCode,
-}: {
-    oppName?: string;
-    oppCode?: string;
-    oppYear?: number;
-    /** User-perspective score; omitted renders the pending "v" pill. */
-    score?: { user: number; opp: number };
-    status?: string;
-    statusDim?: boolean;
-    /** Render the away side as a scrambling mystery: this flag code + "…". */
-    scrambleCode?: string;
-}) {
-    return (
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-[18px] py-[14px] max-sm:gap-1.5 max-sm:px-3 max-sm:text-[13px] sm:text-[14.5px]">
-            <div className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5">
-                <span className="truncate">Your XI</span>
-                <Flag isUser code="" className="h-[15px] w-[22px]" />
-            </div>
-            <div className="flex flex-col items-center gap-[3px] max-sm:min-w-[58px] sm:min-w-[74px]">
-                {score ? (
-                    <span className="rounded-[4px] bg-ink px-3.5 py-[3px] font-mono text-xl font-bold tracking-[0.02em] text-ground">
-                        {score.user}–{score.opp}
-                    </span>
-                ) : (
-                    <span className="rounded-[4px] border border-line px-3.5 py-[3px] font-mono text-xl font-bold tracking-[0.02em] text-muted">
-                        v
-                    </span>
-                )}
-                {status && (
-                    <span
-                        className={`font-mono text-[8.5px] font-semibold uppercase tracking-[0.1em] ${
-                            statusDim ? 'text-muted' : 'text-amber'
-                        }`}
-                    >
-                        {status}
-                    </span>
-                )}
-            </div>
-            <div className="flex min-w-0 items-center gap-[9px] font-semibold text-ink max-sm:gap-1.5">
-                {scrambleCode !== undefined ? (
-                    <>
-                        <Flag code={scrambleCode} className="h-[15px] w-[22px]" />
-                        <span className="truncate">…</span>
-                    </>
-                ) : (
-                    <>
-                        <Flag code={oppCode ?? ''} className="h-[15px] w-[22px]" />
-                        <span className="truncate">{oppName}</span>
-                        {oppYear && (
-                            <span className="shrink-0 font-mono text-[11px] font-medium text-muted">
-                                {oppYear}
-                            </span>
-                        )}
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
-
-/** The amber "live" line shown at the foot of a feed while a match plays. */
-function LiveLine({ label }: { label: string }) {
-    return (
-        <div className="flex items-center gap-[7px] pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-amber">
-            <span className="h-[7px] w-[7px] rounded-full bg-amber" />
-            {label}
-        </div>
-    );
-}
-
-/** A full-bleed end-of-run banner: deep-green for champions, flat white otherwise. */
-function Banner({
-    champion,
-    eyebrow,
-    heading,
-    body,
-    onReset,
-}: {
-    champion: boolean;
-    eyebrow: string;
-    heading: string;
-    body: string;
-    onReset: () => void;
-}) {
-    const arc = champion ? 'border-white/15' : 'border-line';
-    return (
-        <div
-            className={`relative mt-[30px] overflow-hidden rounded-lg border p-8 text-center ${
-                champion ? 'border-pitch-dark bg-pitch-dark text-white' : 'border-line bg-panel'
-            }`}
-        >
-            <span
-                className={`pointer-events-none absolute -bottom-[60px] -left-[60px] h-40 w-40 rounded-full border-2 ${arc}`}
-            />
-            <span
-                className={`pointer-events-none absolute -right-[60px] -top-[60px] h-40 w-40 rounded-full border-2 ${arc}`}
-            />
-            <div
-                className={`relative font-mono text-[11px] font-semibold uppercase tracking-[0.24em] ${
-                    champion ? 'text-amber' : 'text-loss'
-                }`}
-            >
-                {eyebrow}
-            </div>
-            <h3 className="relative mt-2 font-display text-[40px] font-black leading-none tracking-[-0.02em] max-sm:text-3xl">
-                {heading}
-            </h3>
-            <p
-                className={`relative mx-auto mb-[18px] mt-3 max-w-[420px] text-sm ${
-                    champion ? 'text-white/80' : 'text-muted'
-                }`}
-            >
-                {body}
-            </p>
-            <button onClick={onReset} className={`relative ${PRIMARY_BTN}`}>
-                Draft a new XI <ArrowRight size={16} strokeWidth={2.5} />
-            </button>
-        </div>
-    );
-}
-
-/** The whole tournament on one screen: a group-stage section (standings + the
- *  three matchdays) followed, once the user advances, by the knockout rounds. Each
- *  game shows a fixture card with its goal feed. In game-by-game mode a "Next game"
- *  button sits under the up-next game. */
+/** The group-stage screen: the opening draw, the standings + all results, and the
+ *  three matchdays played one at a time with live goal feeds. Once the user has
+ *  played all three games it shows either a "qualified -> enter the knockouts"
+ *  call to action or the group-stage elimination banner + summary. */
 export default function TournamentScreen({
     group,
-    knockout,
     formation,
     filled,
     speed,
@@ -414,18 +61,13 @@ export default function TournamentScreen({
     onSetAuto,
     onSetSpeed,
     onRecordMatchday,
-    onAdvanceKo,
+    onEnterKnockout,
     onReset,
 }: Props) {
     const opponents = group.teams.filter((t) => !t.isUser);
     const groupFinished = isGroupFinished(group);
     const advanced = groupFinished && userAdvanced(group);
-
-    // Knockout-derived locals (safe when there is no knockout yet).
-    const koCurrent = knockout?.current ?? -1;
-    const koOutcome = knockout?.outcome ?? 'alive';
-    const activeOpp = knockout?.rounds[koCurrent]?.opponent ?? null;
-    const koAlive = !!knockout && koOutcome === 'alive';
+    const eliminated = groupFinished && !advanced;
 
     // --- opening group draw: flags scramble, then settle on the real opponents ---
     const [revealing, setRevealing] = useState(true);
@@ -453,33 +95,22 @@ export default function TournamentScreen({
     // Collapsible "all results" overview attached to the group table.
     const [showResults, setShowResults] = useState(false);
 
-    // --- shared live-clock display ---
+    // --- live-clock display + playback (one matchday at a time) ---
     const [liveMinute, setLiveMinute] = useState(0);
     const [clockLabel, setClockLabel] = useState('');
-    const [penShown, setPenShown] = useState(0);
-
-    // --- playback (only one of these is ever active at a time) ---
     const [playingGroup, setPlayingGroup] = useState<{
         matchday: number;
         results: MatchdayResult[];
     } | null>(null);
-    const [playingKo, setPlayingKo] = useState<KoResult | null>(null);
-    const isPlaying = !!playingGroup || !!playingKo;
+    const isPlaying = !!playingGroup;
 
-    // Auto-scroll: a single tail marker (rendered below at the bottom of the active
-    // region) that the page follows down as content is appended. rootRef wraps the
-    // growing content so the hook can observe it for growth.
+    // Auto-scroll: a tail marker the page follows down as content is appended.
     const { tailRef, rootRef } = useFollowBottom();
-    // Heading of the stage the run ended in; scrolled near the top when it's over.
+    // Group header; scrolled near the top when the run ends in group elimination.
     const stageTopRef = useRef<HTMLDivElement | null>(null);
 
-    // When the run ends (knocked out or champions), scroll so the current stage's
-    // heading sits just below the top of the screen, so the final result reads
-    // downward from there (instead of following content to the bottom).
     useEffect(() => {
-        const over =
-            (groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out';
-        if (!over) return;
+        if (!eliminated) return;
         const id = requestAnimationFrame(() => {
             const el = stageTopRef.current;
             if (!el) return;
@@ -488,29 +119,7 @@ export default function TournamentScreen({
             window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' });
         });
         return () => cancelAnimationFrame(id);
-    }, [groupFinished, advanced, koOutcome]);
-
-    // --- per-round knockout opponent draw ---
-    const [revealedRound, setRevealedRound] = useState(-1);
-    const [revealCode, setRevealCode] = useState(randomCode);
-    const koRevealed = revealedRound === koCurrent;
-
-    useEffect(() => {
-        if (!koAlive || !activeOpp || revealedRound === koCurrent) return;
-        let elapsed = 0;
-        const step = 90;
-        const id = window.setInterval(() => {
-            elapsed += step;
-            if (elapsed >= 1200) {
-                window.clearInterval(id);
-                setRevealCode(activeOpp.code);
-                setRevealedRound(koCurrent);
-            } else {
-                setRevealCode(randomCode());
-            }
-        }, step);
-        return () => window.clearInterval(id);
-    }, [koAlive, koCurrent, revealedRound, activeOpp]);
+    }, [eliminated]);
 
     const play = useCallback(
         (md: number) => {
@@ -531,22 +140,11 @@ export default function TournamentScreen({
         [group],
     );
 
-    const playRound = useCallback(() => {
-        if (!knockout || !activeOpp) return;
-        setPlayingKo(playKnockout(knockout.user, activeOpp));
-    }, [knockout, activeOpp]);
-
-    // Keep latest callbacks/flags without restarting timers on every render.
+    // Keep latest callback/speed without restarting the clock timer each render.
     const recordRef = useRef(onRecordMatchday);
-    const advanceRef = useRef(onAdvanceKo);
-    const facedRef = useRef<string[]>(knockout?.faced ?? []);
-    const currentRef = useRef(koCurrent);
     const speedRef = useRef(speed);
     useEffect(() => {
         recordRef.current = onRecordMatchday;
-        advanceRef.current = onAdvanceKo;
-        facedRef.current = knockout?.faced ?? [];
-        currentRef.current = koCurrent;
         speedRef.current = speed;
     });
 
@@ -584,107 +182,17 @@ export default function TournamentScreen({
         };
     }, [playingGroup]);
 
-    // Knockout clock: run to 90/120', then (if level) the shootout, then record
-    // the result and advance to the next round (or end the run).
-    useEffect(() => {
-        if (!playingKo) return;
-        const res = playingKo;
-        const max = maxMinute(res.decided);
-        const kicks = res.pens?.kicks ?? [];
-        const penMs = PEN_MS[speedRef.current];
-        const steps = buildMatchSteps(max, HALF_TIME_MS[speedRef.current]);
-        const endLabel = res.decided === 'reg' ? 'FT' : res.decided === 'aet' ? 'a.e.t.' : 'pens';
-        let idx = 0;
-        let timer: number | undefined;
-
-        const advance = () => {
-            const willAdvance = res.userWon && currentRef.current < KO_ROUNDS.length - 1;
-            const nextOpponent = willAdvance ? drawOpponent(new Set(facedRef.current)) : null;
-            advanceRef.current({
-                result: res.result,
-                decided: res.decided,
-                pens: res.pens,
-                userWon: res.userWon,
-                nextOpponent,
-            });
-            setPlayingKo(null);
-        };
-
-        const runShootout = () => {
-            let k = 0;
-            const penId = window.setInterval(() => {
-                k += 1;
-                setPenShown(k);
-                if (k >= kicks.length) {
-                    window.clearInterval(penId);
-                    timer = window.setTimeout(advance, 1500);
-                }
-            }, penMs);
-            timer = penId;
-        };
-
-        const finishClock = () => {
-            setClockLabel(endLabel);
-            if (res.decided === 'pens' && kicks.length) {
-                timer = window.setTimeout(runShootout, 700);
-            } else {
-                timer = window.setTimeout(advance, 1200);
-            }
-        };
-
-        const tick = () => {
-            const step = steps[idx];
-            setLiveMinute(step.reveal);
-            setClockLabel(step.label);
-            const delay = STEP_MS[speedRef.current] + (step.hold ?? 0);
-            if (idx >= steps.length - 1) {
-                timer = window.setTimeout(finishClock, delay);
-                return;
-            }
-            idx += 1;
-            timer = window.setTimeout(tick, delay);
-        };
-
-        setLiveMinute(0);
-        setClockLabel('');
-        setPenShown(0);
-        tick();
-        return () => {
-            if (timer) {
-                window.clearTimeout(timer);
-                window.clearInterval(timer);
-            }
-        };
-    }, [playingKo]);
-
-    // Auto mode, group: play the next matchday whenever idle.
+    // Auto mode: play the next matchday whenever idle.
     useEffect(() => {
         if (!auto || revealing || isPlaying || groupFinished) return;
         const t = window.setTimeout(() => play(group.matchday), 700);
         return () => window.clearTimeout(t);
     }, [auto, revealing, isPlaying, groupFinished, group.matchday, play]);
 
-    // Auto mode, knockout: play each round once its opponent is revealed.
-    useEffect(() => {
-        if (!auto || !koAlive || isPlaying || !koRevealed) return;
-        const t = window.setTimeout(() => playRound(), 600);
-        return () => window.clearTimeout(t);
-    }, [auto, koAlive, isPlaying, koRevealed, playRound]);
-
-    // The next game to play (null while a knockout draw is mid-scramble, or once
-    // the run is over).
-    const nextGame: { kind: 'md'; md: number } | { kind: 'ko' } | null = !groupFinished
-        ? { kind: 'md', md: group.matchday }
-        : koAlive && koRevealed
-          ? { kind: 'ko' }
-          : null;
-
-    // In game-by-game mode, the "Next game" button sits directly under the card of
-    // the game it will play (the up-next matchday, or the active knockout round).
-    let nextAnchorKey: string | null = null;
-    if (nextGame && !auto && !isPlaying) {
-        nextAnchorKey = nextGame.kind === 'md' ? `md-${nextGame.md}` : `ko-${koCurrent}`;
-    }
+    // The next matchday to play (null once the group is done).
+    const nextMatchday = groupFinished ? null : group.matchday;
+    const nextAnchorKey =
+        nextMatchday !== null && !auto && !isPlaying ? `md-${nextMatchday}` : null;
 
     // --- opening group draw view (full takeover, shown once) ---
     if (revealing) {
@@ -738,18 +246,9 @@ export default function TournamentScreen({
 
     const table = standings(group);
     const userPosition = table.findIndex((s) => s.team.isUser) + 1;
-    const inKnockout = !!knockout;
-    // Index of the last knockout round that has a result (where the run ended).
-    const lastPlayedKoRound = knockout
-        ? knockout.rounds.reduce((acc, r, i) => (r?.result ? i : acc), -1)
-        : -1;
-    const tournamentOver =
-        (groupFinished && !advanced) || koOutcome === 'champion' || koOutcome === 'out';
 
     const playNext = () => {
-        if (!nextGame) return;
-        if (nextGame.kind === 'md') play(nextGame.md);
-        else playRound();
+        if (nextMatchday !== null) play(nextMatchday);
     };
 
     const nextGameButton = (
@@ -761,20 +260,13 @@ export default function TournamentScreen({
                     <ArrowRight size={15} strokeWidth={2.5} />
                 </button>
             </div>
-            {/* Tail so the page follows to the next-game button when it appears. It can
-          be mid-document in the group phase, so the tail lives here rather than at
-          the document end. */}
+            {/* Tail so the page follows to the next-game button when it appears. */}
             <div ref={tailRef} aria-hidden className="h-0" />
         </>
     );
 
-    const controls = !tournamentOver ? (
-        <PlaybackControls
-            auto={auto}
-            speed={speed}
-            onSetAuto={onSetAuto}
-            onSetSpeed={onSetSpeed}
-        />
+    const controls = !groupFinished ? (
+        <PlaybackControls auto={auto} speed={speed} onSetAuto={onSetAuto} onSetSpeed={onSetSpeed} />
     ) : undefined;
 
     const stGrid =
@@ -783,12 +275,11 @@ export default function TournamentScreen({
 
     return (
         <div ref={rootRef} className="mx-auto max-w-[780px]">
-            {/* ===== GROUP STAGE ===== */}
             <StageHeader
                 eyebrow="Group stage"
                 title="Group of 4 · top 2 advance"
-                controls={!inKnockout ? controls : undefined}
-                headingRef={!inKnockout ? stageTopRef : undefined}
+                controls={controls}
+                headingRef={stageTopRef}
             />
 
             {/* Standings */}
@@ -1008,7 +499,6 @@ export default function TournamentScreen({
                                         live={live}
                                     />
                                     {live && <LiveLine label={liveLabel} />}
-                                    {/* Tail the page follows while this matchday is playing. */}
                                     {isPlayingMd && <div ref={tailRef} aria-hidden className="h-0" />}
                                 </div>
                             )}
@@ -1018,144 +508,28 @@ export default function TournamentScreen({
                 );
             })}
 
-            {/* ===== KNOCKOUTS ===== */}
-            {inKnockout && (
-                <>
-                    <div className="relative mt-9 border-t-2 border-line">
-                        <span className="absolute -top-[11px] left-1/2 -translate-x-1/2 bg-ground px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-                            Knockouts
-                        </span>
+            {/* Qualified: call to action to enter the knockout bracket. */}
+            {advanced && (
+                <div className="mt-[30px] rounded-md border border-line bg-panel p-7 text-center shadow-hard">
+                    <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                        Through to the knockouts
                     </div>
-                    <StageHeader
-                        eyebrow="Knockouts"
-                        title="Win 4 to lift the trophy"
-                        controls={controls}
-                    />
-                </>
+                    <h3 className="mt-1.5 font-display text-[26px] font-extrabold leading-none tracking-[-0.02em]">
+                        You qualified.
+                    </h3>
+                    <p className="mx-auto mb-5 mt-2.5 max-w-[420px] text-sm text-muted">
+                        Finished {ordinal(userPosition)} in the group. Sixteen teams enter the
+                        bracket - win four to lift the cup.
+                    </p>
+                    <button onClick={onEnterKnockout} className={PRIMARY_BTN}>
+                        Enter the knockouts
+                        <ArrowRight size={16} strokeWidth={2.5} />
+                    </button>
+                </div>
             )}
 
-            {knockout &&
-                knockout.rounds.map((_round, i) => {
-                    const name = KO_ROUNDS[i];
-                    const r = knockout.rounds[i];
-                    const opp = r?.opponent ?? null;
-                    const isActive = i === koCurrent && koOutcome === 'alive';
-                    const isPlayingRound = isActive && !!playingKo;
-                    const played = !!r?.result;
-                    const isFinal = i === KO_ROUNDS.length - 1;
-                    const liveMax = isPlayingRound ? maxMinute(playingKo!.decided) : 90;
-
-                    let score: { user: number; opp: number } | undefined;
-                    let status: string | undefined;
-                    let statusDim = false;
-                    if (isPlayingRound) {
-                        const shown = playingKo!.result.events.filter((e) => e.minute <= liveMinute);
-                        const userGoals = shown.filter((e) => e.side === 'home').length;
-                        score = { user: userGoals, opp: shown.length - userGoals };
-                        status = clockLabel || undefined;
-                    } else if (played) {
-                        score = { user: r!.result!.homeGoals, opp: r!.result!.awayGoals };
-                        if (r!.decided === 'aet') status = 'a.e.t.';
-                        else if (r!.decided === 'pens') status = 'Penalties';
-                        else {
-                            status = 'Full time';
-                            statusDim = true;
-                        }
-                    }
-
-                    const showFeed = isPlayingRound || played;
-                    const feedEvents = isPlayingRound
-                        ? playingKo!.result.events.filter((e) => e.minute <= liveMinute)
-                        : played
-                          ? r!.result!.events
-                          : [];
-                    const penKicks = isPlayingRound ? playingKo!.pens?.kicks : r?.pens?.kicks;
-                    const penShownCount = isPlayingRound ? penShown : (penKicks?.length ?? 0);
-                    const showShootout =
-                        !!penKicks &&
-                        (isPlayingRound ? liveMinute >= maxMinute(playingKo!.decided) : true);
-                    const scrambling = isActive && !koRevealed && !isPlayingRound;
-
-                    let tag: React.ReactNode = null;
-                    if (isPlayingRound) {
-                        tag = <ResultTag kind="next" label="Live now" />;
-                    } else if (played) {
-                        const dec = r!.decided;
-                        tag = r!.userWon ? (
-                            <ResultTag
-                                kind="w"
-                                label={
-                                    dec === 'pens'
-                                        ? 'Won on penalties'
-                                        : dec === 'aet'
-                                          ? 'Won a.e.t.'
-                                          : 'Won'
-                                }
-                            />
-                        ) : (
-                            <ResultTag
-                                kind="l"
-                                label={dec === 'pens' ? 'Lost on penalties' : 'Lost'}
-                            />
-                        );
-                    } else if (isActive && koRevealed) {
-                        tag = <ResultTag kind="next" label="Up next" />;
-                    }
-
-                    const live = isPlayingRound && liveMinute < liveMax;
-                    const liveLabel = clockLabel === 'HT' ? 'Half time' : `Live · ${clockLabel}`;
-
-                    return (
-                        <div key={`ko-${i}`} className="mt-[26px]">
-                            <div
-                                ref={i === lastPlayedKoRound ? stageTopRef : undefined}
-                                className="mb-[9px] flex items-center gap-2.5"
-                            >
-                                <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                                    {name}
-                                </span>
-                                {tag}
-                            </div>
-                            <div
-                                className={`overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
-                                    isPlayingRound || isFinal ? 'border-t-[3px] border-t-pitch' : ''
-                                }`}
-                            >
-                                <FixtureHead
-                                    oppName={opp?.name}
-                                    oppCode={opp?.code}
-                                    oppYear={opp?.year}
-                                    score={score}
-                                    status={status}
-                                    statusDim={statusDim}
-                                    scrambleCode={scrambling ? revealCode : undefined}
-                                />
-                                {showFeed && (
-                                    <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
-                                        <GoalList
-                                            events={feedEvents}
-                                            userSide="home"
-                                            oppCode={opp?.code ?? ''}
-                                            live={live}
-                                        />
-                                        {showShootout && penKicks && (
-                                            <ShootoutFeed kicks={penKicks} shown={penShownCount} />
-                                        )}
-                                        {live && <LiveLine label={liveLabel} />}
-                                        {/* Tail the page follows while this round is playing. */}
-                                        {isPlayingRound && (
-                                            <div ref={tailRef} aria-hidden className="h-0" />
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            {`ko-${i}` === nextAnchorKey && nextGameButton}
-                        </div>
-                    );
-                })}
-
-            {/* Outcome banners + end-of-run summary */}
-            {groupFinished && !advanced && (
+            {/* Eliminated in the group: banner + end-of-run summary. */}
+            {eliminated && (
                 <>
                     <Banner
                         champion={false}
@@ -1168,40 +542,8 @@ export default function TournamentScreen({
                 </>
             )}
 
-            {koOutcome === 'champion' && (
-                <Banner
-                    champion
-                    eyebrow="Full time · the Final"
-                    heading="World Champions."
-                    body="Your randomly drafted XI lifted the cup. All four knockout rounds won, the trophy is yours."
-                    onReset={onReset}
-                />
-            )}
-
-            {koOutcome === 'out' && (
-                <Banner
-                    champion={false}
-                    eyebrow={`Knocked out · ${KO_ROUNDS[koCurrent]}`}
-                    heading="Knocked out."
-                    body={`Beaten in the ${KO_ROUNDS[koCurrent]}. So close - draft a new XI and run it back.`}
-                    onReset={onReset}
-                />
-            )}
-
-            {knockout && koOutcome !== 'alive' && (
-                <TournamentSummary
-                    formation={formation}
-                    filled={filled}
-                    group={group}
-                    knockout={knockout}
-                />
-            )}
-
-            {/* Tail for content at the document bottom when no match is playing AND
-          there is no next-game button to follow instead (automatic mode between
-          matches, or the end-of-run banners). When a next-game button is shown
-          the tail lives next to it (see nextGameButton). */}
-            {!isPlaying && !nextAnchorKey && !tournamentOver && (knockout || groupFinished) && (
+            {/* Tail the page follows toward the qualify CTA / between auto matches. */}
+            {!isPlaying && !nextAnchorKey && advanced && (
                 <div ref={tailRef} aria-hidden className="h-0" />
             )}
         </div>

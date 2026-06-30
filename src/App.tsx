@@ -15,15 +15,9 @@ import {
     STRENGTH_BANDS,
     type TeamStrength,
 } from './domain/draft';
-import {
-    createGroup,
-    isGroupFinished,
-    pickOpponents,
-    userAdvanced,
-    userGroupTeam,
-} from './domain/tournament';
+import { createGroup, pickOpponents, userGroupTeam } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
-import { createKnockout, KO_ROUNDS } from './domain/knockout';
+import { buildBracket, BRACKET_ROUNDS } from './domain/bracket';
 import { FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import type { MatchSpeed } from './domain/clock';
@@ -34,6 +28,7 @@ import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
 import XiTable from './components/XiTable';
 import TournamentScreen from './components/TournamentScreen';
+import KnockoutScreen from './components/KnockoutScreen';
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
@@ -95,7 +90,7 @@ export default function App() {
         rerollsLeft,
         rolling,
         group,
-        knockout,
+        bracket,
         speed,
         auto,
     } = state;
@@ -245,23 +240,8 @@ export default function App() {
         if (!group) return;
         const user = group.teams.find((t) => t.isUser)!;
         const excludeIds = group.teams.filter((t) => !t.isUser).map((t) => t.id);
-        dispatch({ type: 'START_KNOCKOUT', knockout: createKnockout(user, excludeIds) });
+        dispatch({ type: 'START_BRACKET', bracket: buildBracket(user, excludeIds) });
     }, [group]);
-
-    // Group and knockout share one screen. As soon as the user clears the group,
-    // create the knockout so the Round of 16 shows up as the next game section
-    // (no manual "Enter the knockouts" step), then it plays like any other game.
-    useEffect(() => {
-        if (
-            phase === 'group' &&
-            group &&
-            !knockout &&
-            isGroupFinished(group) &&
-            userAdvanced(group)
-        ) {
-            handleEnterKnockout();
-        }
-    }, [phase, group, knockout, handleEnterKnockout]);
 
     const openPositions = useMemo<Set<Position>>(
         () =>
@@ -284,11 +264,11 @@ export default function App() {
               ? 'Build your XI'
               : 'Your XI is set';
     const koStamp =
-        knockout?.outcome === 'champion'
+        bracket?.outcome === 'champion'
             ? 'Champions'
-            : knockout?.outcome === 'out'
+            : bracket?.outcome === 'out'
               ? 'Eliminated'
-              : KO_ROUNDS[knockout?.current ?? 0];
+              : BRACKET_ROUNDS[bracket?.played ?? 0];
     const stampText =
         phase === 'setup'
             ? 'Set up · 11 to pick'
@@ -322,10 +302,9 @@ export default function App() {
                     )}
                 </header>
 
-                {(phase === 'group' || phase === 'knockout') && group && formation ? (
+                {phase === 'group' && group && formation ? (
                     <TournamentScreen
                         group={group}
-                        knockout={knockout}
                         formation={formation}
                         filled={filled}
                         speed={speed}
@@ -335,7 +314,20 @@ export default function App() {
                         onRecordMatchday={(results) =>
                             dispatch({ type: 'RECORD_MATCHDAY', results })
                         }
-                        onAdvanceKo={(p) => dispatch({ type: 'KO_RECORD', ...p })}
+                        onEnterKnockout={handleEnterKnockout}
+                        onReset={() => dispatch({ type: 'RESET' })}
+                    />
+                ) : phase === 'knockout' && bracket && group && formation ? (
+                    <KnockoutScreen
+                        bracket={bracket}
+                        group={group}
+                        formation={formation}
+                        filled={filled}
+                        speed={speed}
+                        auto={auto}
+                        onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
+                        onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                        onAdvance={() => dispatch({ type: 'BRACKET_ADVANCE' })}
                         onReset={() => dispatch({ type: 'RESET' })}
                     />
                 ) : (

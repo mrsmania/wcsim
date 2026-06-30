@@ -1,9 +1,8 @@
 import type { Player, Squad } from '../data/types';
 import type { Formation, FormationName, Style } from '../domain/formations';
 import { canPlace, isComplete, type Filled } from '../domain/draft';
-import type { GroupState, GroupTeam, MatchdayResult } from '../domain/tournament';
-import { KO_ROUNDS, type KnockoutState, type KoDecided } from '../domain/knockout';
-import type { MatchResult, PenKick } from '../domain/match';
+import type { GroupState, MatchdayResult } from '../domain/tournament';
+import { advanceBracket, type BracketState } from '../domain/bracket';
 import type { MatchSpeed } from '../domain/clock';
 
 export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
@@ -26,8 +25,8 @@ export interface GameState {
   rerollsLeft: number;
   /** Group stage, set once the World Cup starts. */
   group: GroupState | null;
-  /** Knockout run, set once the user advances out of the group. */
-  knockout: KnockoutState | null;
+  /** Knockout bracket, built when the user enters the knockouts. */
+  bracket: BracketState | null;
   /** Match simulation playback speed. */
   speed: MatchSpeed;
   /** "Automatic" playback toggle, shared across group + knockout so it carries over. */
@@ -47,16 +46,8 @@ export type Action =
   | { type: 'REMOVE_PLAYER'; slotId: string }
   | { type: 'START_GROUP'; group: GroupState }
   | { type: 'RECORD_MATCHDAY'; results: MatchdayResult[] }
-  | { type: 'START_KNOCKOUT'; knockout: KnockoutState }
-  | {
-      type: 'KO_RECORD';
-      result: MatchResult;
-      decided: KoDecided;
-      pens?: { user: number; opp: number; kicks: PenKick[] };
-      userWon: boolean;
-      /** Next round's opponent, drawn by the caller; null if the run ends here. */
-      nextOpponent: GroupTeam | null;
-    }
+  | { type: 'START_BRACKET'; bracket: BracketState }
+  | { type: 'BRACKET_ADVANCE' }
   | { type: 'SET_SPEED'; speed: MatchSpeed }
   | { type: 'SET_AUTO'; auto: boolean }
   | { type: 'RESET' };
@@ -73,7 +64,7 @@ export const initialState: GameState = {
   usedPersonIds: [],
   rerollsLeft: INITIAL_REROLLS,
   group: null,
-  knockout: null,
+  bracket: null,
   speed: 'fast',
   auto: false,
 };
@@ -167,32 +158,11 @@ export function gameReducer(state: GameState, action: Action): GameState {
       return { ...state, group: { ...state.group, fixtures, matchday: md + 1 } };
     }
 
-    case 'START_KNOCKOUT':
-      return { ...state, phase: 'knockout', knockout: action.knockout };
+    case 'START_BRACKET':
+      return { ...state, phase: 'knockout', bracket: action.bracket };
 
-    case 'KO_RECORD': {
-      const ko = state.knockout;
-      if (!ko) return state;
-      const rounds = ko.rounds.map((r, i) =>
-        i === ko.current
-          ? { ...r, result: action.result, decided: action.decided, pens: action.pens, userWon: action.userWon }
-          : r,
-      );
-      if (!action.userWon) return { ...state, knockout: { ...ko, rounds, outcome: 'out' } };
-      if (ko.current >= KO_ROUNDS.length - 1) {
-        return { ...state, knockout: { ...ko, rounds, outcome: 'champion' } };
-      }
-      const next = action.nextOpponent!;
-      return {
-        ...state,
-        knockout: {
-          ...ko,
-          rounds: [...rounds, { opponent: next }],
-          faced: [...ko.faced, next.id],
-          current: ko.current + 1,
-        },
-      };
-    }
+    case 'BRACKET_ADVANCE':
+      return state.bracket ? { ...state, bracket: advanceBracket(state.bracket) } : state;
 
     case 'SET_SPEED':
       return { ...state, speed: action.speed };

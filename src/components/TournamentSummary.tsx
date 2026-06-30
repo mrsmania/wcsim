@@ -1,7 +1,8 @@
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { standings, teamById, type GroupState } from '../domain/tournament';
-import type { KnockoutState } from '../domain/knockout';
+import { standings, teamById, USER_ID, type GroupState, type GroupTeam } from '../domain/tournament';
+import { BRACKET_ROUNDS, type BracketState } from '../domain/bracket';
+import type { KoDecided } from '../domain/knockout';
 import { CATEGORY_ORDER, categoryOf } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import Flag from './Flag';
@@ -77,37 +78,57 @@ function GroupRecap({ group }: { group: GroupState }) {
   );
 }
 
-/** The user's knockout path with results. */
-function KnockoutRecap({ knockout }: { knockout: KnockoutState }) {
-  const rounds = knockout.rounds.filter((r) => r.result);
-  if (rounds.length === 0) return null;
-  const champions = knockout.outcome === 'champion';
+/** The user's knockout path with results, read off the bracket. The user is
+ *  always the home side of their own games (round index 0). */
+function KnockoutRecap({ bracket }: { bracket: BracketState }) {
+  const champions = bracket.outcome === 'champion';
+  const lastRound = champions ? BRACKET_ROUNDS.length - 1 : bracket.played;
+  const rows: {
+    opp: GroupTeam;
+    userGoals: number;
+    oppGoals: number;
+    won: boolean;
+    round: number;
+    decided: KoDecided;
+  }[] = [];
+  for (let r = 0; r <= lastRound; r++) {
+    const g = bracket.rounds[r]?.[0];
+    if (!g || !g.hasUser) break;
+    const userIsHome = g.homeId === USER_ID;
+    rows.push({
+      opp: bracket.teams[userIsHome ? g.awayId : g.homeId],
+      userGoals: userIsHome ? g.homeGoals : g.awayGoals,
+      oppGoals: userIsHome ? g.awayGoals : g.homeGoals,
+      won: g.winnerId === USER_ID,
+      round: r,
+      decided: g.decided,
+    });
+  }
+  if (rows.length === 0) return null;
   return (
     <Section label={`Knockouts · ${champions ? 'champions' : 'eliminated'}`}>
       <ul className="flex flex-col">
-        {rounds.map((r, i) => {
-          const extra = r.decided === 'pens' && r.pens ? ' · pens' : r.decided === 'aet' ? ' · a.e.t.' : '';
+        {rows.map((r) => {
+          const extra = r.decided === 'pens' ? ' · pens' : r.decided === 'aet' ? ' · a.e.t.' : '';
           return (
             <li
-              key={i}
+              key={r.round}
               className="grid grid-cols-[18px_minmax(0,1fr)_auto_auto] items-center gap-2.5 py-[5px] text-[13.5px]"
             >
-              <ResultBadge won={r.userWon} />
+              <ResultBadge won={r.won} />
               <span className="flex min-w-0 items-center gap-[9px] font-semibold text-ink">
-                <Flag code={r.opponent.code} className="h-[15px] w-[22px]" />
-                <span className="truncate">{r.opponent.name}</span>
-                {r.opponent.year && (
-                  <span className="shrink-0 font-mono text-[11px] text-muted">
-                    {r.opponent.year}
-                  </span>
+                <Flag code={r.opp.code} className="h-[15px] w-[22px]" />
+                <span className="truncate">{r.opp.name}</span>
+                {r.opp.year && (
+                  <span className="shrink-0 font-mono text-[11px] text-muted">{r.opp.year}</span>
                 )}
               </span>
               <span className="shrink-0 font-mono text-[11px] text-muted">
-                {KO_ABBR[i]}
+                {KO_ABBR[r.round]}
                 {extra}
               </span>
               <span className="shrink-0 font-mono text-[13px] font-bold text-ink">
-                {r.result!.homeGoals}–{r.result!.awayGoals}
+                {r.userGoals}–{r.oppGoals}
               </span>
             </li>
           );
@@ -163,19 +184,19 @@ interface Props {
   filled: Filled;
   /** Group-stage recap (shown on the knockout screen, where the table isn't visible). */
   group?: GroupState | null;
-  /** Knockout path recap. */
-  knockout?: KnockoutState | null;
+  /** Knockout path recap, read from the bracket. */
+  bracket?: BracketState | null;
 }
 
 /** End-of-tournament recap: results (group + knockouts) and the drafted XI. */
-export default function TournamentSummary({ formation, filled, group, knockout }: Props) {
+export default function TournamentSummary({ formation, filled, group, bracket }: Props) {
   return (
     <div className="mt-[30px] overflow-hidden rounded-md border border-line bg-panel text-left shadow-hard">
       <div className="border-b-2 border-ink px-[18px] py-[13px] font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted">
         Tournament summary
       </div>
       {group && <GroupRecap group={group} />}
-      {knockout && <KnockoutRecap knockout={knockout} />}
+      {bracket && <KnockoutRecap bracket={bracket} />}
       <SquadList formation={formation} filled={filled} />
     </div>
   );
