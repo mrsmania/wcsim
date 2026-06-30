@@ -63,13 +63,16 @@ interface Band {
 
 // Bands ordered front (forwards) to back (keeper). baseY is the balanced
 // placement; def/off shift outfield bands deeper / more advanced up the pitch.
+// The bands are spread on an even ~14-unit pitch so adjacent rows never overlap
+// (a badge is taller than a 12-unit gap), with the striker pushed higher and the
+// keeper deeper.
 const BANDS: Band[] = [
-    { baseY: 24, members: [mem('lw', 'LW'), mem('st', 'ST'), mem('rw', 'RW')] },
-    { baseY: 38, members: [mem('am', 'AM')] },
-    { baseY: 51, members: [mem('lm', 'LM'), mem('cm', 'CM'), mem('rm', 'RM')] },
-    { baseY: 66, members: [mem('dm', 'DM')] },
-    { baseY: 78, members: [mem('lb', 'LB'), mem('cb', 'CB'), mem('rb', 'RB')] },
-    { baseY: 90, fixed: true, members: [mem('gk', 'GK')] },
+    { baseY: 22, members: [mem('lw', 'LW'), mem('st', 'ST'), mem('rw', 'RW')] },
+    { baseY: 36, members: [mem('am', 'AM')] },
+    { baseY: 49, members: [mem('lm', 'LM'), mem('cm', 'CM'), mem('rm', 'RM')] },
+    { baseY: 62, members: [mem('dm', 'DM')] },
+    { baseY: 76, members: [mem('lb', 'LB'), mem('cb', 'CB'), mem('rb', 'RB')] },
+    { baseY: 94, fixed: true, members: [mem('gk', 'GK')] },
 ];
 
 /** Vertical shift per style: defensive sits deeper (higher y), offensive higher up. */
@@ -177,7 +180,11 @@ const CODE_TO_POS: Record<string, CsvPos> = {
 };
 
 type RawStyle = 'defensive' | 'balanced' | 'offensive';
-const STYLE_FROM_RAW: Record<RawStyle, Style> = { defensive: 'def', balanced: 'bal', offensive: 'off' };
+const STYLE_FROM_RAW: Record<RawStyle, Style> = {
+    defensive: 'def',
+    balanced: 'bal',
+    offensive: 'off',
+};
 
 // Hardcoded formations (mirrors public/formations/formations_summary.csv). Each
 // row lists the 11 on-pitch roles; order is irrelevant since the layout is
