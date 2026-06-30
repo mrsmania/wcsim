@@ -4,17 +4,27 @@
    text-ink, border-line, shadow-soft, ...). Single source of truth for the
    palette; see docs/turf-design.html for the visual target. */
 @theme {
-    --color-ground: #f0eee9;
+    /* Turf-flat palette (ported from docs/redesign-2026/turf-flat). Single source of
+       truth; Tailwind v4 generates utilities (bg-pitch, text-ink, font-display,
+       shadow-hard, ...). The app ships the default "pitch" green scheme only; the
+       comps' live theme switcher is intentionally not carried into the app. */
+    --color-ground: #f4f2ec;
     --color-panel: #ffffff;
-    --color-ink: #15241b;
-    --color-muted: #5e6f63;
-    --color-line: #e1eae2;
-    --color-pitch: #13924c;
-    --color-pitch-dark: #0c6f39;
-    --color-amber: #f2a93b;
-    --color-win: #13924c;
-    --color-loss: #e2554f;
-    --shadow-soft: 0 1px 2px rgba(21, 36, 27, 0.05), 0 12px 30px rgba(21, 36, 27, 0.07);
+    --color-chalk: #e8f0e8;
+    --color-ink: #13211a;
+    --color-muted: #5c6a60;
+    --color-line: #d4ded5;
+    --color-pitch: #15924c;
+    --color-pitch-dark: #0e5c34;
+    --color-amber: #e4922b;
+    --color-win: #15924c;
+    --color-loss: #c8453c;
+    --shadow-soft: 0 1px 2px rgba(19, 33, 26, 0.05), 0 12px 30px rgba(19, 33, 26, 0.07);
+    /* Tifo-style hard drop shadow for cards: solid colour, zero blur, offset. */
+    --shadow-hard: 6px 6px 0 var(--color-pitch-dark);
+    --font-sans: 'Schibsted Grotesk', system-ui, sans-serif;
+    --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
+    --font-display: 'Archivo', system-ui, sans-serif;
 }
 
 html,
@@ -27,19 +37,11 @@ body {
     margin: 0;
     color: var(--color-ink);
     background-color: var(--color-ground);
-}
-
-/* Soft green wash: colour pooled up top fading to clear, plus a faint lift in
-   the lower-right corner. No texture. Painted in a fixed, composited layer via
-   a pseudo-element instead of background-attachment: fixed on body, which forces
-   the background to repaint on every scroll frame and makes mobile scrolling
-   stutter. Same look, no per-frame paint cost. */
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
+    /* Faint chalk wash pooled at the top, fading to clear. Non-fixed so it scrolls
+       with the page (only visible up top), avoiding the per-frame repaint a fixed
+       background forces (which made mobile scrolling stutter). */
+    background-image: linear-gradient(180deg, rgba(14, 92, 52, 0.05), transparent 220px);
+    background-repeat: no-repeat;
 }
 
 /* Tailwind v4's reset leaves buttons with the default cursor; make all

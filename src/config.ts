@@ -6,7 +6,7 @@ export const FEATURES = {
     chemistry: true,
     /** 3D tilted pitch: render the draft pitch in perspective with billboarded
      *  player badges. Set to false to fall back to the flat top-down pitch. */
-    pitch3d: true,
+    pitch3d: false,
     /** Remove placed players from the pitch via an x on the badge (testing aid).
      *  Set to false to hide the control and disable removal. */
     removePlayers: true,

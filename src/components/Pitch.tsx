@@ -314,20 +314,20 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                         <polygon
                             key={i}
                             points={`${d2(a.x)},${d2(a.y)} ${d2(b.x)},${d2(b.y)} ${d2(c.x)},${d2(c.y)} ${d2(e.x)},${d2(e.y)}`}
-                            fill={i % 2 === 0 ? '#3f7d4e' : '#458a57'}
+                            fill={i % 2 === 0 ? '#1f8a4d' : '#1a7d45'}
                         />
                     );
                 })}
                 <path
                     d={marks}
                     fill="none"
-                    stroke="rgba(255,255,255,0.6)"
+                    stroke="rgba(255,255,255,0.82)"
                     strokeWidth={1.4}
                     strokeLinejoin="round"
                     vectorEffect="non-scaling-stroke"
                 />
                 {spots.map((q, k) => (
-                    <circle key={k} cx={d2(q.x)} cy={d2(q.y)} r={2.6} fill="rgba(255,255,255,0.6)" />
+                    <circle key={k} cx={d2(q.x)} cy={d2(q.y)} r={2.6} fill="rgba(255,255,255,0.82)" />
                 ))}
                 {/* Translucent inner frame: tints the very edge of the pitch. */}
                 <path

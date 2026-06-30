@@ -60,7 +60,7 @@ interface Props {
 export default function PlayerBadge({ name, number, onRemove }: Props) {
     return (
         <div className="flex w-20 flex-col items-center">
-            <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white bg-linear-to-b from-[#dceae0] to-[#a7c8af] font-mono text-[15px] font-extrabold text-ink shadow-[0_4px_10px_rgba(0,0,0,0.28)]">
+            <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white bg-pitch-dark font-mono text-[15px] font-extrabold text-white shadow-[0_3px_8px_rgba(0,0,0,0.25),inset_0_0_0_1px_rgba(255,255,255,0.35)]">
                 {number}
             </span>
             <div className="relative mt-1.5 max-w-22 rounded-md bg-panel px-2 py-0.5 text-center shadow-soft">
