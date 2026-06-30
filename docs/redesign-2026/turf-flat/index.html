@@ -1,0 +1,288 @@
+<!--
+  TURF FLAT — World Cup Simulator redesign (launcher / contents)
+  POV: the pitch as a flat top-down TACTICS BOARD + matchday programme.
+
+  PALETTE (pinned)
+    #0E5C34 pitch deep green | #15924C pitch green | #E8F0E8 chalk tint
+    #F4F2EC paper ground | #13211A ink | #E4922B amber | #C8453C loss red
+  TYPE
+    Display: Archivo | Body: Schibsted Grotesk | Data: Spline Sans Mono
+-->
+<script>
+/* Apply the saved theme before paint to avoid a flash, shared key across all pages. */
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+/* ============ THEMEABLE PALETTE (shared, identical across all 4 files) ============
+   Each theme overrides the same variable names. Default = "pitch" (the green).
+   Switch live via the swatch row (top-right); choice persists in localStorage
+   under "turf-flat-theme" and re-applies on load across all linked pages. */
+:root,:root[data-theme="pitch"]{
+  --pitch-deep:#0E5C34; --pitch:#15924C; --chalk:#E8F0E8; --paper:#F4F2EC;
+  --ink:#13211A; --muted:#5C6A60; --line:#D4DED5; --amber:#E4922B; --loss:#C8453C;
+  --grass-a:#1f8a4d; --grass-b:#1a7d45; --white:#ffffff;
+  --wash:rgba(14,92,52,.05); --mk-line:rgba(255,255,255,.78);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(21,146,76,.13); --loss-tint:rgba(200,69,60,.13);
+  --you-row:rgba(21,146,76,.06); --flag-edge:rgba(19,33,26,.18);
+  --plate:#ffffff; --plate-ink:#13211A; --puck:#ffffff;
+}
+/* COBALT — royal/cobalt blue brand, navy dark, warm amber accent, light ground */
+:root[data-theme="cobalt"]{
+  --pitch-deep:#16356E; --pitch:#2356C8; --chalk:#E4ECFA; --paper:#F2F4F9;
+  --ink:#141C2B; --muted:#5A6480; --line:#D2DAEA; --amber:#E8902A; --loss:#D6453E;
+  --grass-a:#2356C8; --grass-b:#1E4BB0; --white:#ffffff;
+  --wash:rgba(22,53,110,.06); --mk-line:rgba(255,255,255,.82);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(35,86,200,.12); --loss-tint:rgba(214,69,62,.13);
+  --you-row:rgba(35,86,200,.06); --flag-edge:rgba(20,28,43,.18);
+  --plate:#ffffff; --plate-ink:#141C2B; --puck:#ffffff;
+}
+/* CLARET — deep claret/burgundy brand, brass/gold accent, shifted scarlet loss, light ground */
+:root[data-theme="claret"]{
+  --pitch-deep:#5A1230; --pitch:#7C1F3E; --chalk:#F3E6EA; --paper:#F6F1ED;
+  --ink:#241318; --muted:#7A5C63; --line:#E5D3D6; --amber:#C8962F; --loss:#E2683A;
+  --grass-a:#7C1F3E; --grass-b:#6E1838; --white:#ffffff;
+  --wash:rgba(90,18,48,.05); --mk-line:rgba(255,255,255,.8);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.88);
+  --win-tint:rgba(124,31,62,.12); --loss-tint:rgba(226,104,58,.15);
+  --you-row:rgba(124,31,62,.06); --flag-edge:rgba(36,19,24,.18);
+  --plate:#ffffff; --plate-ink:#241318; --puck:#ffffff;
+}
+/* PETROL — dark teal/petrol brand, warm orange accent, light ground */
+:root[data-theme="petrol"]{
+  --pitch-deep:#0C3B3F; --pitch:#136A6E; --chalk:#E0EEEC; --paper:#F1F4F2;
+  --ink:#0F2123; --muted:#577173; --line:#CFE0DD; --amber:#E2792A; --loss:#CF4B3C;
+  --grass-a:#136A6E; --grass-b:#0F5C60; --white:#ffffff;
+  --wash:rgba(12,59,63,.06); --mk-line:rgba(255,255,255,.8);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(19,106,110,.13); --loss-tint:rgba(207,75,60,.13);
+  --you-row:rgba(19,106,110,.07); --flag-edge:rgba(15,33,35,.18);
+  --plate:#ffffff; --plate-ink:#0F2123; --puck:#ffffff;
+}
+/* FLOODLIGHT — night-match dark scheme: deep green-tinted charcoal ground,
+   light ink, green identity + amber kept as accents. */
+:root[data-theme="floodlight"]{
+  --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+  --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+  --grass-a:#15663C; --grass-b:#125735; --white:#16231D;
+  --wash:rgba(47,180,106,.07); --mk-line:rgba(232,242,234,.42);
+  --on-pitch:#ffffff; --ring:rgba(232,242,234,.28);
+  --win-tint:rgba(47,180,106,.18); --loss-tint:rgba(231,108,92,.2);
+  --you-row:rgba(47,180,106,.1); --flag-edge:rgba(232,242,234,.22);
+  --plate:#1C2C25; --plate-ink:#E8F2EA; --puck:#D8E6DC;
+}
+:root{
+  --disp:'Archivo',system-ui,sans-serif;
+  --body:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(180deg,var(--wash),transparent 220px);
+  background-repeat:no-repeat;
+}
+img{max-width:100%}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 80px}
+
+.mast{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:2px solid var(--ink)}
+.mast .crest{width:38px;height:38px;flex:0 0 auto;border-radius:3px;
+  background:repeating-linear-gradient(90deg,var(--pitch-deep) 0 5px,var(--pitch) 5px 10px);
+  position:relative;box-shadow:inset 0 0 0 2px var(--ring)}
+.mast .crest::after{content:"";position:absolute;inset:7px;border:1.5px solid var(--ring);border-radius:1px}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:23px;letter-spacing:-.02em;margin:0;text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12.5px;color:var(--muted);margin-left:2px;border-left:1px solid var(--line);padding-left:14px}
+.mast .stamp{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:6px 10px;background:var(--white)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+
+.card{background:var(--white);border:1px solid var(--line);border-radius:6px}
+.card.field-edge{border-top:3px solid var(--pitch)}
+/* TIFO-STYLE HARD DROP SHADOW: solid colour, zero blur, offset bottom-right, themed deep brand colour. */
+.card,.board,.ratings{box-shadow:6px 6px 0 var(--pitch-deep)}
+
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ============ INDEX SPECIFIC ============ */
+.hero{margin:46px 0 8px}
+.hero .kick{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--pitch)}
+.hero h2{font-family:var(--disp);font-weight:900;font-size:clamp(34px,6vw,58px);letter-spacing:-.025em;line-height:.98;margin:12px 0 0;max-width:14ch}
+.hero h2 .amb{color:var(--amber)}
+.hero p{font-size:15px;color:var(--muted);max-width:52ch;margin:18px 0 0}
+.hero .meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hero .meta b{color:var(--ink)}
+
+.contents-lbl{display:flex;align-items:center;gap:14px;margin:46px 0 18px}
+.contents-lbl h3{font-family:var(--disp);font-weight:800;font-size:18px;letter-spacing:-.01em;margin:0;text-transform:uppercase}
+.contents-lbl .chalk{flex:1;height:0;border-top:2px solid var(--line)}
+
+/* numbered screen cards — the number IS the matchday/step order (meaningful) */
+.screens{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.scr{display:flex;flex-direction:column;overflow:hidden;transition:transform .15s ease,border-color .15s ease}
+.scr:hover{transform:translateY(-3px);border-color:var(--pitch)}
+.scr .top{position:relative;aspect-ratio:16/10;border-bottom:1px solid var(--line);overflow:hidden;
+  background:repeating-linear-gradient(0deg,var(--grass-a) 0 16.66%,var(--grass-b) 16.66% 33.33%)}
+/* thumbnail pitch markings */
+.scr .top .mk{position:absolute;border:1.5px solid var(--mk-line)}
+.scr .top .mid{left:8%;right:8%;top:50%;border-width:0 0 1.5px 0}
+.scr .top .circ{left:50%;top:50%;width:24%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%)}
+.scr .top .num{position:absolute;left:14px;top:12px;font-family:var(--disp);font-weight:900;font-size:34px;color:var(--on-pitch);line-height:1;
+  text-shadow:0 2px 0 rgba(0,0,0,.3)}
+/* little tokens to hint the screen content */
+.dotrow{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:9px}
+.dotrow i{width:13px;height:13px;border-radius:50%;background:var(--puck);box-shadow:inset 0 0 0 2px var(--pitch-deep)}
+.dotrow i.amb{box-shadow:inset 0 0 0 2px var(--amber);background:var(--puck)}
+.dotrow i.open{background:rgba(255,255,255,.2);box-shadow:inset 0 0 0 1.5px var(--mk-line)}
+.scr .body{padding:16px 16px 18px;flex:1;display:flex;flex-direction:column}
+.scr .body .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--pitch)}
+.scr .body h4{font-family:var(--disp);font-weight:800;font-size:19px;letter-spacing:-.01em;margin:5px 0 0}
+.scr .body p{font-size:13px;color:var(--muted);margin:8px 0 0;flex:1}
+.scr .go{margin-top:14px;font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12px;color:var(--ink);
+  display:inline-flex;align-items:center;gap:7px}
+.scr .go .arw{font-family:var(--body)}
+
+.foot{margin-top:34px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+
+@media (max-width:760px){
+  .screens{grid-template-columns:1fr}
+  .mast .tag{display:none}
+}
+@media (max-width:430px){
+  .wrap{padding:0 14px 60px}
+  .mast .stamp{display:none}
+  .mast h1{font-size:19px}
+}
+
+/* ============ THEME SWITCHER (fixed top-right pill; themed from variables) ============ */
+.themer{position:fixed;top:64px;right:14px;z-index:50;display:flex;align-items:center;gap:9px;
+  background:var(--white);border:1px solid var(--line);border-radius:30px;padding:6px 10px 6px 13px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);max-width:calc(100vw - 28px)}
+.themer .tlbl{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);flex:0 0 auto}
+.themer .sw-row{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.themer .sw{position:relative;width:22px;height:22px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  border:1px solid var(--flag-edge);padding:0;overflow:hidden;
+  background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%)}
+.themer .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--ink)}
+.themer .sw .nm{position:absolute;left:-9999px}
+.themer .sw.t-pitch{--c1:#15924C;--c2:#0E5C34}
+.themer .sw.t-cobalt{--c1:#2356C8;--c2:#16356E}
+.themer .sw.t-claret{--c1:#7C1F3E;--c2:#C8962F}
+.themer .sw.t-petrol{--c1:#136A6E;--c2:#E2792A}
+.themer .sw.t-floodlight{--c1:#0E1714;--c2:#2FB46A}
+@media (max-width:560px){
+  .themer{top:58px;right:10px;gap:7px;padding:5px 8px 5px 10px;max-width:calc(100vw - 16px)}
+  .themer .tlbl{display:none}
+  .themer .sw{width:20px;height:20px}
+}
+</style>
+
+<nav class="themer" aria-label="Colour theme">
+  <span class="tlbl">Theme</span>
+  <div class="sw-row">
+    <button class="sw t-pitch" data-theme="pitch" title="Pitch" aria-pressed="true"><span class="nm">Pitch</span></button>
+    <button class="sw t-cobalt" data-theme="cobalt" title="Cobalt" aria-pressed="false"><span class="nm">Cobalt</span></button>
+    <button class="sw t-claret" data-theme="claret" title="Claret" aria-pressed="false"><span class="nm">Claret</span></button>
+    <button class="sw t-petrol" data-theme="petrol" title="Petrol" aria-pressed="false"><span class="nm">Petrol</span></button>
+    <button class="sw t-floodlight" data-theme="floodlight" title="Floodlight" aria-pressed="false"><span class="nm">Floodlight</span></button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="crest" aria-hidden="true"></div>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Turf Flat &middot; redesign comps</span>
+    <span class="stamp">Programme &middot; 2026</span>
+  </header>
+
+  <section class="hero">
+    <div class="kick">Turf Flat &middot; one design, three screens</div>
+    <h2>Draft a random XI.<br><span class="amb">Win</span> the cup.</h2>
+    <p>A flatter, modern take on the football-green identity: the pitch becomes a top-down tactics board, with crisp chalk lines doing the structural work and a scoreboard mono for every number.</p>
+    <div class="meta">
+      <span>Display <b>Archivo</b></span>
+      <span>Text <b>Schibsted Grotesk</b></span>
+      <span>Data <b>Spline Sans Mono</b></span>
+    </div>
+  </section>
+
+  <div class="contents-lbl">
+    <h3>The screens</h3>
+    <div class="chalk" aria-hidden="true"></div>
+  </div>
+
+  <div class="screens">
+    <a class="card scr" href="home.html">
+      <div class="top">
+        <div class="mk mid"></div><div class="mk circ"></div>
+        <span class="num">1</span>
+        <div class="dotrow"><i class="open"></i><i class="open"></i><i class="open"></i><i class="open"></i></div>
+      </div>
+      <div class="body">
+        <div class="k">Set up</div>
+        <h4>Home</h4>
+        <p>Pick a formation and style, then roll squads to fill an empty pitch one position at a time.</p>
+        <span class="go">Open screen <span class="arw">&rarr;</span></span>
+      </div>
+    </a>
+
+    <a class="card scr" href="selected-xi.html">
+      <div class="top">
+        <div class="mk mid"></div><div class="mk circ"></div>
+        <span class="num">2</span>
+        <div class="dotrow"><i></i><i></i><i class="amb"></i><i></i></div>
+      </div>
+      <div class="body">
+        <div class="k">Line-up</div>
+        <h4>Selected XI</h4>
+        <p>The full team sheet: pitch, team ratings, chemistry, and the per-slot detail table side by side.</p>
+        <span class="go">Open screen <span class="arw">&rarr;</span></span>
+      </div>
+    </a>
+
+    <a class="card scr" href="tournament.html">
+      <div class="top">
+        <div class="mk mid"></div><div class="mk circ"></div>
+        <span class="num">3</span>
+        <div class="dotrow"><i></i><i class="amb"></i><i></i></div>
+      </div>
+      <div class="body">
+        <div class="k">Matchday</div>
+        <h4>Tournament</h4>
+        <p>Group stage and knockouts on one page: standings, live goal feeds, shootouts, and the final.</p>
+        <span class="go">Open screen <span class="arw">&rarr;</span></span>
+      </div>
+    </a>
+  </div>
+
+  <p class="foot">Static mockups &middot; non-clickable comps &middot; self-contained HTML/CSS</p>
+</div>
+
+<script>
+/* Theme switcher: set data-theme on <html>, persist, mark the active swatch. */
+(function(){
+  var KEY='turf-flat-theme';
+  var swatches=Array.prototype.slice.call(document.querySelectorAll('.themer .sw'));
+  function mark(theme){swatches.forEach(function(b){
+    b.setAttribute('aria-pressed',b.getAttribute('data-theme')===theme?'true':'false');});}
+  var current=document.documentElement.getAttribute('data-theme')||'pitch';
+  mark(current);
+  swatches.forEach(function(b){b.addEventListener('click',function(){
+    var theme=b.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme',theme);
+    try{localStorage.setItem(KEY,theme);}catch(e){}
+    mark(theme);});});
+})();
+</script>

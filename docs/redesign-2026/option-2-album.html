@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<!--
+  OPTION 2 — "ALBUM"  (selected-XI screen, 2026 redesign)
+  Direction: the printed sticker / trading-card album. Completing an XI is filling
+  the page of your collection, so the screen is laid out like a collector's spread:
+  the eleven are foil-edged die-cut stickers, the pitch is a tactical board inset,
+  and the panel reads like the album's title plate.
+
+  BOLD MOVE: tactile collectible stickers with real depth + holographic foil.
+  Each token is a physical card with a peel highlight, a foil-gradient jersey
+  number, and a soft drop shadow as if pressed onto the page. The risk is the
+  material itself; the layout grid around it is calm and orderly like an album page.
+
+  Deliberately NOT the cream-serif cliche: this is a printed-album palette
+  (kraft board, deep navy ink, foil gold, pitch green), chunky poster type.
+
+  PALETTE
+    --kraft  #ECE3D2  (album board / paper)
+    --board  #F7F2E7  (lighter card paper)
+    --ink    #14223A  (deep navy print ink)
+    --gold   #D9A441  (foil gold)
+    --pitch  #1C7A4A  (album green)
+    --red    #C8412F  (collector red accent)
+
+  TYPE
+    Display / poster : "Archivo Black"     (chunky printed poster face)
+    Body / labels    : "Archivo"           (its companion grotesque)
+    Data / numerals  : "DM Mono"           (ledger numerals, ratings & years)
+-->
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root{
+  --kraft:#ECE3D2; --board:#F7F2E7; --ink:#14223A; --gold:#D9A441;
+  --pitch:#1C7A4A; --red:#C8412F; --muted:#6C6453; --line:#DDD2BC;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--kraft);
+  color:var(--ink);
+  font-family:'Archivo',system-ui,sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  padding:0 0 64px;
+  /* faint paper speckle */
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(20,34,58,.025) 0 1px, transparent 1px),
+    radial-gradient(circle at 72% 64%, rgba(20,34,58,.02) 0 1px, transparent 1px);
+  background-size:9px 9px, 13px 13px;
+}
+.wrap{max-width:1160px;margin:0 auto;padding:0 22px}
+
+/* foil utility used by stickers and the title plate seam */
+.foil{
+  background:linear-gradient(115deg,#f6e3a8 0%,#caa23e 22%,#fff4cf 40%,#b78a2c 58%,#ecd488 78%,#caa23e 100%);
+}
+
+/* ---------- masthead ---------- */
+.mast{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:22px 0 18px;border-bottom:3px solid var(--ink);
+}
+.crest{
+  width:42px;height:48px;flex:0 0 auto;border-radius:6px 6px 14px 14px;
+  background:var(--ink);display:grid;place-items:center;color:var(--gold);
+  font:400 20px/1 'DM Mono';box-shadow:0 4px 0 rgba(20,34,58,.18);
+}
+.mast .t{font:400 24px/1 'Archivo Black';letter-spacing:.01em;text-transform:uppercase}
+.mast .t span{color:var(--pitch)}
+.mast .sub{font-size:12.5px;color:var(--muted)}
+.mast .pageno{
+  margin-left:auto;font:500 12px/1 'DM Mono';letter-spacing:.08em;color:var(--muted);
+  border:1.5px dashed var(--line);padding:8px 11px;border-radius:8px;text-transform:uppercase;
+}
+
+/* ---------- title plate ---------- */
+.plate{
+  margin-top:24px;position:relative;background:var(--board);
+  border:1.5px solid var(--line);border-radius:18px;
+  box-shadow:0 1px 0 #fff inset, 0 18px 34px rgba(20,34,58,.10);
+  padding:26px 28px;
+  display:grid;grid-template-columns:1.15fr .85fr;gap:26px;align-items:center;
+}
+.plate::before{ /* foil seam at top */
+  content:"";position:absolute;left:24px;right:24px;top:0;height:5px;border-radius:0 0 6px 6px;
+}
+.eyebrow{font:500 11px/1 'DM Mono';letter-spacing:.22em;color:var(--red);text-transform:uppercase}
+.title{font:400 clamp(34px,5vw,54px)/.95 'Archivo Black';text-transform:uppercase;margin:12px 0 0;letter-spacing:.005em}
+.title em{font-style:normal;color:var(--pitch)}
+.stats{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:16px}
+.tag{display:inline-flex;align-items:baseline;gap:7px;font-size:13px;color:var(--muted);
+  background:#fff;border:1.5px solid var(--line);padding:7px 12px;border-radius:999px}
+.tag b{font:400 15px/1 'Archivo Black';color:var(--ink);text-transform:uppercase}
+.tag.form b{color:var(--pitch)}
+.tag .chem{color:var(--gold)}
+.brief{margin:16px 0 0;font-size:13.5px;line-height:1.55;color:var(--muted);max-width:44ch}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+.go{
+  display:inline-flex;align-items:center;gap:10px;justify-content:center;
+  font:400 16px/1 'Archivo Black';letter-spacing:.04em;text-transform:uppercase;
+  color:#fff;background:var(--pitch);border:none;border-radius:12px;padding:15px 24px;cursor:pointer;
+  box-shadow:0 5px 0 #14583a, 0 12px 20px rgba(28,122,74,.28);
+  transition:transform .05s ease, box-shadow .05s ease;
+}
+.go:active{transform:translateY(3px);box-shadow:0 2px 0 #14583a,0 8px 14px rgba(28,122,74,.28)}
+.go svg{width:18px;height:18px}
+.over{
+  font:600 13px/1 'Archivo';letter-spacing:.04em;text-transform:uppercase;color:var(--ink);
+  background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:0 20px;cursor:pointer;
+}
+
+/* overall medallion on the right of the plate */
+.medal{justify-self:center;text-align:center}
+.medal .disc{
+  width:148px;height:148px;border-radius:50%;display:grid;place-items:center;position:relative;
+  background:radial-gradient(circle at 38% 32%, #2a8f5b, #14583a);
+  box-shadow:0 0 0 5px #fff, 0 0 0 8px var(--gold), 0 16px 30px rgba(20,34,58,.28);
+}
+.medal .disc::after{content:"";position:absolute;inset:14px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.4)}
+.medal .disc .n{font:400 58px/1 'Archivo Black';color:#fff}
+.medal .disc .l{font:500 10px/1 'DM Mono';letter-spacing:.22em;color:#cdeedd;margin-top:6px;text-transform:uppercase}
+.medal .cap{margin-top:12px;font:500 11px/1 'DM Mono';letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+
+/* ---------- ratings strip ---------- */
+.ratings{margin-top:20px;display:grid;grid-template-columns:repeat(3,1fr) 1.5fr;gap:14px}
+.stat{background:var(--board);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;
+  box-shadow:0 1px 0 #fff inset}
+.stat .k{font:500 10px/1 'DM Mono';letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.stat .v{font:400 34px/1 'Archivo Black';margin-top:8px}
+.stat .bar{height:6px;border-radius:4px;background:var(--line);margin-top:10px;overflow:hidden}
+.stat .bar i{display:block;height:100%;background:var(--pitch);border-radius:4px}
+.chemcard{background:var(--ink);border:1.5px solid var(--ink);border-radius:14px;padding:14px 16px;color:#fff;
+  display:flex;align-items:center;gap:14px}
+.chemcard .badge{
+  width:62px;height:62px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;position:relative;
+  box-shadow:0 0 0 3px var(--ink), 0 0 0 5px var(--gold)}
+.chemcard .badge .hole{width:42px;height:42px;border-radius:50%;background:var(--ink);display:grid;place-items:center;
+  font:400 17px/1 'Archivo Black';color:var(--gold)}
+.chemcard .info .k{font:500 10px/1 'DM Mono';letter-spacing:.2em;color:#a9b6cb;text-transform:uppercase}
+.chemcard .info .eff{margin-top:5px;font-size:12.5px;color:#d7deea}
+.chemcard .info .eff b{font:400 16px/1 'Archivo Black';color:#fff}
+.chemcard .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.chemcard .chips span{font:500 10.5px/1 'DM Mono';color:#fff;background:rgba(217,164,65,.16);
+  border:1px solid rgba(217,164,65,.4);padding:4px 7px;border-radius:6px}
+
+/* ---------- album spread: pitch + sticker list ---------- */
+.spread{margin-top:20px;display:grid;grid-template-columns:1.25fr .9fr;gap:20px;align-items:start}
+
+.fieldwrap{position:relative;background:var(--board);border:1.5px solid var(--line);border-radius:18px;
+  padding:14px;box-shadow:0 18px 34px rgba(20,34,58,.10)}
+.fieldwrap .hd{display:flex;align-items:center;justify-content:space-between;margin:2px 4px 12px}
+.fieldwrap .hd .k{font:500 11px/1 'DM Mono';letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.fieldwrap .hd .f{font:400 14px/1 'Archivo Black';color:var(--pitch);text-transform:uppercase}
+.board{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:5/6;min-height:420px;
+  background:repeating-linear-gradient(180deg,#1f8350 0 28px,#1c7a4a 28px 56px)}
+.board svg{position:absolute;inset:0;width:100%;height:100%}
+.stk{position:absolute;transform:translate(-50%,-50%);width:74px;text-align:center}
+.stk .card{
+  width:54px;height:54px;margin:0 auto;border-radius:13px;position:relative;
+  background:linear-gradient(160deg,#fffdf6,#efe7d4);
+  border:1px solid #fff;
+  box-shadow:0 6px 12px rgba(20,34,58,.34), 0 1px 0 #fff inset;
+  display:grid;place-items:center;transform:rotate(-3deg);
+}
+.stk:nth-child(even) .card{transform:rotate(3deg)}
+.stk .card::before{ /* foil corner peel */
+  content:"";position:absolute;top:0;right:0;width:18px;height:18px;border-radius:0 13px 0 13px;
+  background:linear-gradient(135deg,#fff4cf,#caa23e);opacity:.9}
+.stk .card .num{font:400 22px/1 'Archivo Black';
+  background:linear-gradient(115deg,#caa23e,#7a5c18 40%,#e7c862 60%,#9a7521);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.stk.gk .card{background:linear-gradient(160deg,#eaf6ff,#cfe6f5)}
+.stk .nm{margin-top:6px;display:inline-block;font:400 10.5px/1.05 'Archivo Black';text-transform:uppercase;
+  color:var(--ink);background:#fff;border:1px solid var(--line);padding:4px 6px;border-radius:6px;
+  box-shadow:0 2px 4px rgba(20,34,58,.15)}
+
+/* sticker checklist */
+.checklist{background:var(--board);border:1.5px solid var(--line);border-radius:18px;overflow:hidden;
+  box-shadow:0 18px 34px rgba(20,34,58,.10)}
+.checklist h3{margin:0;padding:15px 18px;font:400 13px/1 'Archivo Black';text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink);border-bottom:1.5px solid var(--line);background:#fff;
+  display:flex;justify-content:space-between;align-items:center}
+.checklist h3 small{font:500 10px/1 'DM Mono';letter-spacing:.14em;color:var(--muted)}
+.crow{display:flex;align-items:center;gap:11px;padding:9px 16px;border-bottom:1px dashed var(--line)}
+.crow:last-child{border-bottom:none}
+.crow .no{width:24px;font:500 11px/1 'DM Mono';color:var(--muted)}
+.crow .pos{width:30px;font:400 11px/1 'Archivo Black';color:var(--pitch);text-transform:uppercase}
+.crow.gk .pos{color:#2f7fb0}
+.crow .name{flex:1;font:600 14.5px/1 'Archivo';text-transform:uppercase;letter-spacing:.01em}
+.crow .flag{font-size:15px}
+.crow .yr{width:30px;text-align:right;font:500 11px/1 'DM Mono';color:var(--muted)}
+.crow .rate{width:30px;text-align:right;font:400 15px/1 'Archivo Black'}
+.crow .rate.hi{color:var(--gold)}
+
+/* responsive */
+@media (max-width:900px){
+  .plate{grid-template-columns:1fr;gap:18px}
+  .medal{justify-self:start;display:flex;align-items:center;gap:16px}
+  .medal .cap{margin-top:0}
+  .ratings{grid-template-columns:repeat(3,1fr);}
+  .chemcard{grid-column:1 / -1}
+  .spread{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .wrap{padding:0 14px}
+  .mast .sub{display:none}
+  .ratings{grid-template-columns:repeat(3,1fr);gap:9px}
+  .stat{padding:11px 11px}
+  .stat .v{font-size:26px}
+  .medal .disc{width:120px;height:120px}
+  .medal .disc .n{font-size:46px}
+  .go{width:100%}
+  .board{min-height:360px}
+  .stk{width:58px}
+  .stk .card{width:42px;height:42px;border-radius:11px}
+  .stk .card .num{font-size:17px}
+  .stk .nm{font-size:8.5px}
+}
+
+/* self-contained CSS flag chips (no external assets / emoji-font dependency) */
+.fl{display:inline-block;width:20px;height:14px;border-radius:2px;flex:0 0 auto;
+  box-shadow:0 0 0 1px rgba(20,34,58,.22);background-size:cover}
+.fl-de{background:linear-gradient(180deg,#111 0 33.3%,#D00 0 66.6%,#FFCE00 0)}
+.fl-br{background:#009C3B}
+.fl-es{background:linear-gradient(180deg,#AA151B 0 25%,#F1BF00 0 75%,#AA151B 0)}
+.fl-nl{background:linear-gradient(180deg,#AE1C28 0 33.3%,#fff 0 66.6%,#21468B 0)}
+.fl-pt{background:linear-gradient(90deg,#006600 0 40%,#FF0000 0)}
+.fl-ar{background:linear-gradient(180deg,#74ACDF 0 33.3%,#fff 0 66.6%,#74ACDF 0)}
+</style>
+
+<div class="wrap">
+
+  <!-- masthead -->
+  <header class="mast">
+    <span class="crest">★</span>
+    <div>
+      <div class="t">World Cup <span>Simulator</span></div>
+      <div class="sub">Draft your randomized dream World Cup XI</div>
+    </div>
+    <span class="pageno">Album &middot; page 11 / 11 complete</span>
+  </header>
+
+  <!-- title plate -->
+  <section class="plate">
+    <span class="foil" style="position:absolute;left:24px;right:24px;top:0;height:5px;border-radius:0 0 6px 6px"></span>
+    <div>
+      <div class="eyebrow">Collection complete</div>
+      <h1 class="title">Your <em>eleven</em> is<br>pasted in</h1>
+      <div class="stats">
+        <span class="tag form">Formation <b>4&ndash;3&ndash;3</b></span>
+        <span class="tag">Avg rating <b>90</b></span>
+        <span class="tag">Chemistry <b class="chem">+4 &rarr; 94</b></span>
+      </div>
+      <p class="brief">You'll be drawn into a group of four. Play all three matchdays and finish in the top two to reach the knockouts.</p>
+      <div class="cta">
+        <button class="go">Start the World Cup
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <button class="over">Start over</button>
+      </div>
+    </div>
+    <div class="medal">
+      <div class="disc"><div><div class="n">90</div><div class="l">Overall</div></div></div>
+      <div class="cap">Your XI rating</div>
+    </div>
+  </section>
+
+  <!-- ratings strip -->
+  <section class="ratings">
+    <div class="stat"><div class="k">Attack</div><div class="v">90</div><div class="bar"><i style="width:90%"></i></div></div>
+    <div class="stat"><div class="k">Midfield</div><div class="v">90</div><div class="bar"><i style="width:90%"></i></div></div>
+    <div class="stat"><div class="k">Defense</div><div class="v">90</div><div class="bar"><i style="width:90%"></i></div></div>
+    <div class="chemcard">
+      <div class="badge foil"><div class="hole">+4</div></div>
+      <div class="info">
+        <div class="k">Chemistry &middot; effective 94</div>
+        <div class="eff">Cohesion bonus on your XI <b>&rarr; 94</b></div>
+        <div class="chips">
+          <span>Same tournament +2</span><span>Same nation +1</span><span>Same continent +1</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- album spread -->
+  <section class="spread">
+    <div class="fieldwrap">
+      <div class="hd"><span class="k">Tactical board</span><span class="f">4-3-3</span></div>
+      <div class="board">
+        <svg viewBox="0 0 500 600" preserveAspectRatio="none" aria-hidden="true">
+          <g stroke="rgba(255,255,255,.45)" stroke-width="2" fill="none">
+            <rect x="20" y="18" width="460" height="564" rx="4"/>
+            <line x1="20" y1="300" x2="480" y2="300"/>
+            <circle cx="250" cy="300" r="62"/>
+            <circle cx="250" cy="300" r="3" fill="rgba(255,255,255,.6)"/>
+            <rect x="150" y="18" width="200" height="84"/>
+            <rect x="205" y="18" width="90" height="34"/>
+            <rect x="150" y="498" width="200" height="84"/>
+            <rect x="205" y="548" width="90" height="34"/>
+          </g>
+        </svg>
+        <!-- 4-3-3, GK at bottom -->
+        <div class="stk gk" style="left:50%;top:90%"><div class="card"><span class="num">1</span></div><div class="nm">Neuer</div></div>
+        <div class="stk" style="left:16%;top:74%"><div class="card"><span class="num">6</span></div><div class="nm">Carlos</div></div>
+        <div class="stk" style="left:39%;top:78%"><div class="card"><span class="num">15</span></div><div class="nm">Ramos</div></div>
+        <div class="stk" style="left:61%;top:78%"><div class="card"><span class="num">4</span></div><div class="nm">van&nbsp;Dijk</div></div>
+        <div class="stk" style="left:84%;top:74%"><div class="card"><span class="num">20</span></div><div class="nm">Cancelo</div></div>
+        <div class="stk" style="left:50%;top:56%"><div class="card"><span class="num">8</span></div><div class="nm">Kroos</div></div>
+        <div class="stk" style="left:28%;top:48%"><div class="card"><span class="num">11</span></div><div class="nm">Coutinho</div></div>
+        <div class="stk" style="left:72%;top:48%"><div class="card"><span class="num">5</span></div><div class="nm">Casemiro</div></div>
+        <div class="stk" style="left:18%;top:26%"><div class="card"><span class="num">7</span></div><div class="nm">Ronaldo</div></div>
+        <div class="stk" style="left:50%;top:19%"><div class="card"><span class="num">19</span></div><div class="nm">Ag&uuml;ero</div></div>
+        <div class="stk" style="left:82%;top:26%"><div class="card"><span class="num">11</span></div><div class="nm">Robben</div></div>
+      </div>
+    </div>
+
+    <div class="checklist">
+      <h3>Squad checklist <small>11 / 11</small></h3>
+      <div class="crow gk"><span class="no">01</span><span class="pos">GK</span><span class="name">Neuer</span><span class="fl fl-de"></span><span class="yr">'14</span><span class="rate hi">91</span></div>
+      <div class="crow"><span class="no">02</span><span class="pos">LB</span><span class="name">Carlos</span><span class="fl fl-br"></span><span class="yr">'98</span><span class="rate">89</span></div>
+      <div class="crow"><span class="no">03</span><span class="pos">CB</span><span class="name">Ramos</span><span class="fl fl-es"></span><span class="yr">'18</span><span class="rate hi">92</span></div>
+      <div class="crow"><span class="no">04</span><span class="pos">CB</span><span class="name">van Dijk</span><span class="fl fl-nl"></span><span class="yr">'22</span><span class="rate">90</span></div>
+      <div class="crow"><span class="no">05</span><span class="pos">RB</span><span class="name">Cancelo</span><span class="fl fl-pt"></span><span class="yr">'22</span><span class="rate">88</span></div>
+      <div class="crow"><span class="no">06</span><span class="pos">DM</span><span class="name">Kroos</span><span class="fl fl-de"></span><span class="yr">'18</span><span class="rate hi">92</span></div>
+      <div class="crow"><span class="no">07</span><span class="pos">CM</span><span class="name">Coutinho</span><span class="fl fl-br"></span><span class="yr">'18</span><span class="rate">88</span></div>
+      <div class="crow"><span class="no">08</span><span class="pos">CM</span><span class="name">Casemiro</span><span class="fl fl-br"></span><span class="yr">'22</span><span class="rate">89</span></div>
+      <div class="crow"><span class="no">09</span><span class="pos">LW</span><span class="name">Ronaldo</span><span class="fl fl-pt"></span><span class="yr">'18</span><span class="rate hi">93</span></div>
+      <div class="crow"><span class="no">10</span><span class="pos">ST</span><span class="name">Ag&uuml;ero</span><span class="fl fl-ar"></span><span class="yr">'18</span><span class="rate">89</span></div>
+      <div class="crow"><span class="no">11</span><span class="pos">RW</span><span class="name">Robben</span><span class="fl fl-nl"></span><span class="yr">'10</span><span class="rate">89</span></div>
+    </div>
+  </section>
+
+</div>

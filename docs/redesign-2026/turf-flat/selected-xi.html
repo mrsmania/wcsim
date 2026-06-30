@@ -1,0 +1,414 @@
+<!--
+  TURF FLAT — World Cup Simulator redesign (2 of 4): selected XI (three columns)
+  POV: the pitch as a flat top-down TACTICS BOARD + matchday programme.
+
+  PALETTE (pinned)
+    #0E5C34 pitch deep green | #15924C pitch green | #E8F0E8 chalk tint
+    #F4F2EC paper ground | #13211A ink | #E4922B amber | #C8453C loss red
+  TYPE
+    Display: Archivo | Body: Schibsted Grotesk | Data: Spline Sans Mono
+-->
+<script>
+/* Apply the saved theme before paint to avoid a flash, shared key across all pages. */
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+/* ============ THEMEABLE PALETTE (shared, identical across all 4 files) ============
+   Each theme overrides the same variable names. Default = "pitch" (the green).
+   Switch live via the swatch row (top-right); choice persists in localStorage
+   under "turf-flat-theme" and re-applies on load across all linked pages. */
+:root,:root[data-theme="pitch"]{
+  --pitch-deep:#0E5C34; --pitch:#15924C; --chalk:#E8F0E8; --paper:#F4F2EC;
+  --ink:#13211A; --muted:#5C6A60; --line:#D4DED5; --amber:#E4922B; --loss:#C8453C;
+  --grass-a:#1f8a4d; --grass-b:#1a7d45; --white:#ffffff;
+  --wash:rgba(14,92,52,.05); --mk-line:rgba(255,255,255,.78);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(21,146,76,.13); --loss-tint:rgba(200,69,60,.13);
+  --you-row:rgba(21,146,76,.06); --flag-edge:rgba(19,33,26,.18);
+  --plate:#ffffff; --plate-ink:#13211A; --puck:#ffffff;
+}
+/* COBALT — royal/cobalt blue brand, navy dark, warm amber accent, light ground */
+:root[data-theme="cobalt"]{
+  --pitch-deep:#16356E; --pitch:#2356C8; --chalk:#E4ECFA; --paper:#F2F4F9;
+  --ink:#141C2B; --muted:#5A6480; --line:#D2DAEA; --amber:#E8902A; --loss:#D6453E;
+  --grass-a:#2356C8; --grass-b:#1E4BB0; --white:#ffffff;
+  --wash:rgba(22,53,110,.06); --mk-line:rgba(255,255,255,.82);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(35,86,200,.12); --loss-tint:rgba(214,69,62,.13);
+  --you-row:rgba(35,86,200,.06); --flag-edge:rgba(20,28,43,.18);
+  --plate:#ffffff; --plate-ink:#141C2B; --puck:#ffffff;
+}
+/* CLARET — deep claret/burgundy brand, brass/gold accent, shifted scarlet loss, light ground */
+:root[data-theme="claret"]{
+  --pitch-deep:#5A1230; --pitch:#7C1F3E; --chalk:#F3E6EA; --paper:#F6F1ED;
+  --ink:#241318; --muted:#7A5C63; --line:#E5D3D6; --amber:#C8962F; --loss:#E2683A;
+  --grass-a:#7C1F3E; --grass-b:#6E1838; --white:#ffffff;
+  --wash:rgba(90,18,48,.05); --mk-line:rgba(255,255,255,.8);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.88);
+  --win-tint:rgba(124,31,62,.12); --loss-tint:rgba(226,104,58,.15);
+  --you-row:rgba(124,31,62,.06); --flag-edge:rgba(36,19,24,.18);
+  --plate:#ffffff; --plate-ink:#241318; --puck:#ffffff;
+}
+/* PETROL — dark teal/petrol brand, warm orange accent, light ground */
+:root[data-theme="petrol"]{
+  --pitch-deep:#0C3B3F; --pitch:#136A6E; --chalk:#E0EEEC; --paper:#F1F4F2;
+  --ink:#0F2123; --muted:#577173; --line:#CFE0DD; --amber:#E2792A; --loss:#CF4B3C;
+  --grass-a:#136A6E; --grass-b:#0F5C60; --white:#ffffff;
+  --wash:rgba(12,59,63,.06); --mk-line:rgba(255,255,255,.8);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(19,106,110,.13); --loss-tint:rgba(207,75,60,.13);
+  --you-row:rgba(19,106,110,.07); --flag-edge:rgba(15,33,35,.18);
+  --plate:#ffffff; --plate-ink:#0F2123; --puck:#ffffff;
+}
+/* FLOODLIGHT — night-match dark scheme: deep green-tinted charcoal ground,
+   light ink, green identity + amber kept as accents. */
+:root[data-theme="floodlight"]{
+  --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+  --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+  --grass-a:#15663C; --grass-b:#125735; --white:#16231D;
+  --wash:rgba(47,180,106,.07); --mk-line:rgba(232,242,234,.42);
+  --on-pitch:#ffffff; --ring:rgba(232,242,234,.28);
+  --win-tint:rgba(47,180,106,.18); --loss-tint:rgba(231,108,92,.2);
+  --you-row:rgba(47,180,106,.1); --flag-edge:rgba(232,242,234,.22);
+  --plate:#1C2C25; --plate-ink:#E8F2EA; --puck:#D8E6DC;
+}
+:root{
+  /* The pitch field is always green, regardless of the colour scheme (a football
+     field is green); only the chrome and the player discs take the scheme colour. */
+  --turf-a:#1f8a4d; --turf-b:#1a7d45; --turf-line:rgba(255,255,255,.82);
+  --disp:'Archivo',system-ui,sans-serif;
+  --body:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(180deg,var(--wash),transparent 220px);
+  background-repeat:no-repeat;
+}
+img{max-width:100%}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 80px}
+
+.mast{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:2px solid var(--ink)}
+.mast .crest{width:38px;height:38px;flex:0 0 auto;border-radius:3px;
+  background:repeating-linear-gradient(90deg,var(--pitch-deep) 0 5px,var(--pitch) 5px 10px);
+  position:relative;box-shadow:inset 0 0 0 2px var(--ring)}
+.mast .crest::after{content:"";position:absolute;inset:7px;border:1.5px solid var(--ring);border-radius:1px}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:23px;letter-spacing:-.02em;margin:0;text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12.5px;color:var(--muted);margin-left:2px;border-left:1px solid var(--line);padding-left:14px}
+.mast .stamp{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:6px 10px;background:var(--white)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+.sec-h{display:flex;align-items:center;gap:16px;margin:30px 0 20px}
+.sec-h .txt h2{font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:2px 0 0;line-height:1}
+.sec-h .chalk{flex:1;height:0;border-top:2px solid var(--line);position:relative}
+.sec-h .chalk::before{content:"";position:absolute;left:0;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--white);border:2px solid var(--line)}
+
+.card{background:var(--white);border:1px solid var(--line);border-radius:6px}
+.card.field-edge{border-top:3px solid var(--pitch)}
+/* TIFO-STYLE HARD DROP SHADOW: solid colour, zero blur, offset bottom-right, themed deep brand colour. */
+.card,.board,.ratings{box-shadow:6px 6px 0 var(--pitch-deep)}
+
+.btn{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:13px;
+  border:1px solid var(--ink);background:var(--white);color:var(--ink);border-radius:5px;padding:11px 16px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--pitch);border-color:var(--pitch-deep);color:var(--on-pitch)}
+.btn.block{width:100%;justify-content:center}
+.btn .arw{font-family:var(--body);font-weight:700}
+
+.seglbl{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+
+.flag{width:22px;height:15px;border-radius:2px;flex:0 0 auto;display:inline-block;
+  box-shadow:inset 0 0 0 1px var(--flag-edge);background:#bbb;overflow:hidden;position:relative;vertical-align:middle}
+.flag.lg{width:30px;height:20px}
+.f-bra{background:#1B9E3E}.f-bra::before{content:"";position:absolute;inset:0;margin:auto;width:62%;height:62%;background:#FFD500;transform:rotate(45deg)}
+.f-bra::after{content:"";position:absolute;inset:0;margin:auto;width:24%;height:24%;border-radius:50%;background:#2A3A8C}
+.f-esp{background:linear-gradient(180deg,#AA151B 0 25%,#F1BF00 25% 75%,#AA151B 75%)}
+.f-por{background:linear-gradient(90deg,#046A38 0 40%,#DA251D 40%)}
+.f-por::after{content:"";position:absolute;left:40%;top:50%;width:7px;height:7px;border-radius:50%;background:#FFE000;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px #046A38}
+.f-eng{background:#fff}.f-eng::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:18%;background:#CE1124;transform:translateX(-50%)}.f-eng::after{content:"";position:absolute;top:50%;left:0;right:0;height:24%;background:#CE1124;transform:translateY(-50%)}
+.f-cro{background:linear-gradient(180deg,#FF0000 0 34%,#fff 34% 66%,#171796 66%)}
+.f-ger{background:linear-gradient(180deg,#111 0 33.3%,#DD0000 33.3% 66.6%,#FFCE00 66.6%)}
+.f-arg{background:linear-gradient(180deg,#74ACDF 0 33.3%,#fff 33.3% 66.6%,#74ACDF 66.6%)}.f-arg::after{content:"";position:absolute;inset:0;margin:auto;width:6px;height:6px;border-radius:50%;background:#F6B40E}
+.f-gha{background:linear-gradient(180deg,#CE1126 0 33.3%,#FCD116 33.3% 66.6%,#006B3F 66.6%)}.f-gha::after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;background:#111;transform:translate(-50%,-50%);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.f-ita{background:linear-gradient(90deg,#008C45 0 33.3%,#fff 33.3% 66.6%,#CD212A 66.6%)}
+.f-you{background:var(--loss);position:relative}
+.f-you::after{content:"YOU";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:7px;color:#fff;letter-spacing:.02em}
+
+.board{position:relative;border-radius:6px;overflow:hidden;border:1px solid var(--line);
+  aspect-ratio:68/80;width:100%;max-width:560px;
+  background:repeating-linear-gradient(0deg,var(--turf-a) 0 9.09%,var(--turf-b) 9.09% 18.18%)}
+.board .mk{position:absolute;border:2px solid var(--turf-line)}
+.board .out{inset:3.5%;border-radius:3px}
+.board .mid{left:3.5%;right:3.5%;top:50%;height:0;border-width:0 0 2px 0}
+.board .circ{left:50%;top:50%;width:30%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%)}
+.board .spot{left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:var(--turf-line);border:0;transform:translate(-50%,-50%)}
+.board .boxT{left:24%;right:24%;top:3.5%;height:14%;border-top:0}
+.board .boxB{left:24%;right:24%;bottom:3.5%;height:14%;border-bottom:0}
+.board .sixT{left:36%;right:36%;top:3.5%;height:6%;border-top:0}
+.board .sixB{left:36%;right:36%;bottom:3.5%;height:6%;border-bottom:0}
+/* penalty spots + penalty arcs (the "D", shown only outside each box) */
+.board .pspot{position:absolute;left:50%;width:5px;height:5px;border-radius:50%;background:var(--turf-line);transform:translate(-50%,-50%)}
+.board .pspot.t{top:12%}.board .pspot.b{top:88%}
+.board .parc{position:absolute;left:50%;width:30%;aspect-ratio:1;border:2px solid var(--turf-line);border-radius:50%;transform:translate(-50%,-50%)}
+.board .parc.t{top:12%;clip-path:inset(72% 0 0 0)}
+.board .parc.b{top:88%;clip-path:inset(0 0 72% 0)}
+/* corner quadrants (a quarter-circle ring clipped to the field-side corner) */
+.board .corn{position:absolute;width:6%;aspect-ratio:1;border:2px solid var(--turf-line);border-radius:50%;transform:translate(-50%,-50%)}
+.board .corn.tl{top:3.5%;left:3.5%;clip-path:inset(50% 0 0 50%)}
+.board .corn.tr{top:3.5%;left:96.5%;clip-path:inset(50% 50% 0 0)}
+.board .corn.bl{top:96.5%;left:3.5%;clip-path:inset(0 0 50% 50%)}
+.board .corn.br{top:96.5%;left:96.5%;clip-path:inset(0 50% 50% 0)}
+
+.tok{position:absolute;transform:translate(-50%,-50%);width:64px;text-align:center}
+.disc{width:38px;height:38px;border-radius:50%;margin:0 auto;display:grid;place-items:center;
+  font-family:var(--mono);font-weight:700;font-size:14px;color:var(--on-pitch);background:var(--pitch-deep);border:2px solid var(--on-pitch)}
+.disc.filled{background:var(--pitch-deep);color:var(--on-pitch);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.disc.open{background:rgba(255,255,255,.16);border:2px dashed var(--turf-line);color:var(--on-pitch);font-weight:600}
+.plate{margin-top:5px;display:inline-block;background:var(--plate);border-radius:3px;padding:3px 7px;max-width:66px}
+.plate .nm{display:block;font-weight:700;font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:54px;color:var(--plate-ink)}
+.plate .pos{display:block;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--pitch);line-height:1.2;margin-top:1px}
+.tok.open .disc{font-size:18px;line-height:1}
+.tok.open .plate{background:rgba(19,33,26,.6);padding:3px 8px}
+.tok.open .plate .pos{color:#fff;font-size:10px;letter-spacing:.1em}
+
+.ratings{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.rt{padding:14px 12px;border-right:1px solid var(--line);background:var(--white)}
+.rt:last-child{border-right:0}
+.rt.ovr{background:var(--pitch-deep);color:var(--on-pitch);border-right-color:var(--pitch-deep)}
+.rt .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.rt.ovr .k{color:rgba(255,255,255,.72)}
+.rt .v{font-family:var(--mono);font-weight:700;font-size:30px;line-height:1;margin-top:6px}
+.rt .v.dash{color:var(--line)}
+.rt.ovr .sub{font-size:11px;color:rgba(255,255,255,.8);margin-top:3px}
+
+a{color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ============ SELECTED-XI SPECIFIC ============ */
+.xi-grid{display:grid;grid-template-columns:300px minmax(0,1fr) 320px;gap:22px;align-items:start}
+
+/* col 1: summary + CTA */
+.summary{padding:0}
+.summary .head{padding:18px;border-bottom:1px solid var(--line)}
+.summary .status{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--pitch)}
+.summary .big{font-family:var(--disp);font-weight:900;font-size:26px;letter-spacing:-.02em;line-height:1.05;margin:6px 0 0}
+.summary .meta{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+.summary .meta b{color:var(--ink)}
+.summary .meta .amb{color:var(--amber);font-weight:700}
+.summary .body{padding:18px}
+.summary p.brief{font-size:13px;color:var(--muted);margin:0 0 16px}
+.summary .actions{display:flex;flex-direction:column;gap:9px}
+
+/* col 3: chemistry + table */
+.stack{display:flex;flex-direction:column;gap:18px}
+.chem{padding:16px}
+.chem .row{display:flex;align-items:center;gap:14px}
+.donut{width:58px;height:58px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  background:conic-gradient(var(--amber) 0 66%,var(--chalk) 66% 100%)}
+.donut span{width:42px;height:42px;border-radius:50%;background:var(--white);display:grid;place-items:center;
+  font-family:var(--mono);font-weight:700;font-size:16px;color:var(--amber)}
+.chem .ct .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.chem .ct .v{font-family:var(--disp);font-weight:800;font-size:18px;margin-top:2px}
+.chem .ct .v em{font-style:normal;color:var(--amber)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.chip{font-family:var(--mono);font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:3px;padding:4px 8px;color:var(--muted)}
+.chip b{color:var(--pitch);font-weight:700}
+
+.sheet{overflow:hidden}
+.sheet .cap{padding:13px 16px;border-bottom:2px solid var(--ink);
+  font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  display:flex;justify-content:space-between}
+.prow{display:grid;grid-template-columns:30px 1fr auto auto;gap:10px;align-items:center;
+  padding:9px 16px;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow .pos{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pitch);letter-spacing:.04em}
+.prow .nm{font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .fy{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.prow .rt-n{font-family:var(--mono);font-weight:700;font-size:14px;text-align:right;min-width:24px}
+.prow.gk{background:var(--chalk)}
+.board-col{display:flex;flex-direction:column;align-items:center}
+
+@media (max-width:1080px){
+  .xi-grid{grid-template-columns:1fr 1fr;grid-template-areas:"sum chem" "board board"}
+  .summary{grid-area:sum}.stack{grid-area:chem}.board-col{grid-area:board}
+}
+@media (max-width:760px){
+  .xi-grid{grid-template-columns:1fr;grid-template-areas:"sum" "board" "chem"}
+  .mast .tag{display:none}
+}
+@media (max-width:430px){
+  .wrap{padding:0 14px 60px}
+  .mast .stamp{display:none}
+  .mast h1{font-size:19px}
+  .sec-h .txt h2{font-size:24px}
+  .tok{width:54px}.disc{width:32px;height:32px;font-size:12px}
+  .plate .nm{font-size:10px}
+}
+
+/* ============ THEME SWITCHER (fixed top-right pill; themed from variables) ============ */
+.themer{position:fixed;top:64px;right:14px;z-index:50;display:flex;align-items:center;gap:9px;
+  background:var(--white);border:1px solid var(--line);border-radius:30px;padding:6px 10px 6px 13px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);max-width:calc(100vw - 28px)}
+.themer .tlbl{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);flex:0 0 auto}
+.themer .sw-row{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.themer .sw{position:relative;width:22px;height:22px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  border:1px solid var(--flag-edge);padding:0;overflow:hidden;
+  background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%)}
+.themer .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--ink)}
+.themer .sw .nm{position:absolute;left:-9999px}
+.themer .sw.t-pitch{--c1:#15924C;--c2:#0E5C34}
+.themer .sw.t-cobalt{--c1:#2356C8;--c2:#16356E}
+.themer .sw.t-claret{--c1:#7C1F3E;--c2:#C8962F}
+.themer .sw.t-petrol{--c1:#136A6E;--c2:#E2792A}
+.themer .sw.t-floodlight{--c1:#0E1714;--c2:#2FB46A}
+@media (max-width:560px){
+  .themer{top:58px;right:10px;gap:7px;padding:5px 8px 5px 10px;max-width:calc(100vw - 16px)}
+  .themer .tlbl{display:none}
+  .themer .sw{width:20px;height:20px}
+}
+</style>
+
+<nav class="themer" aria-label="Colour theme">
+  <span class="tlbl">Theme</span>
+  <div class="sw-row">
+    <button class="sw t-pitch" data-theme="pitch" title="Pitch" aria-pressed="true"><span class="nm">Pitch</span></button>
+    <button class="sw t-cobalt" data-theme="cobalt" title="Cobalt" aria-pressed="false"><span class="nm">Cobalt</span></button>
+    <button class="sw t-claret" data-theme="claret" title="Claret" aria-pressed="false"><span class="nm">Claret</span></button>
+    <button class="sw t-petrol" data-theme="petrol" title="Petrol" aria-pressed="false"><span class="nm">Petrol</span></button>
+    <button class="sw t-floodlight" data-theme="floodlight" title="Floodlight" aria-pressed="false"><span class="nm">Floodlight</span></button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="crest" aria-hidden="true"></div>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <span class="stamp">Team sheet &middot; locked</span>
+  </header>
+
+  <div class="sec-h">
+    <div class="txt">
+      <div class="eyebrow">Confirmed line-up</div>
+      <h2>Your XI is set</h2>
+    </div>
+    <div class="chalk" aria-hidden="true"></div>
+  </div>
+
+  <div class="xi-grid">
+    <!-- COLUMN 1 — summary + settings + CTA -->
+    <section class="card summary">
+      <div class="head">
+        <div class="status">Complete</div>
+        <div class="big">11 of 11<br>drafted</div>
+        <div class="meta">
+          Formation <b>4-3-3</b><br>
+          Style <b>Balanced</b><br>
+          Avg rating <b>89</b><br>
+          Chemistry <span class="amb">+4 &rarr; 93</span>
+        </div>
+      </div>
+      <div class="body">
+        <p class="brief">You'll be drawn into a group of four. Play all three matchdays, finish in the top two, and reach the knockouts.</p>
+        <div class="actions">
+          <a class="btn primary block" href="tournament.html">Start the World Cup <span class="arw">&rarr;</span></a>
+          <button class="btn block">Start over</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMN 2 — the pitch board -->
+    <section class="board-col">
+      <div class="board" role="img" aria-label="Starting XI in a 4-3-3 formation">
+        <div class="mk out"></div><div class="mk mid"></div><div class="mk circ"></div><div class="mk spot"></div>
+        <div class="mk boxT"></div><div class="mk boxB"></div><div class="mk sixT"></div><div class="mk sixB"></div>
+        <div class="parc t"></div><div class="parc b"></div><div class="pspot t"></div><div class="pspot b"></div>
+        <div class="corn tl"></div><div class="corn tr"></div><div class="corn bl"></div><div class="corn br"></div>
+
+        <!-- forwards -->
+        <div class="tok" style="left:22%;top:16%"><div class="disc filled">11</div><span class="plate"><span class="nm">Coutinho</span></span></div>
+        <div class="tok" style="left:50%;top:11%"><div class="disc filled">9</div><span class="plate"><span class="nm">Kane</span></span></div>
+        <div class="tok" style="left:78%;top:16%"><div class="disc filled">7</div><span class="plate"><span class="nm">Ronaldo</span></span></div>
+        <!-- midfield -->
+        <div class="tok" style="left:30%;top:40%"><div class="disc filled">8</div><span class="plate"><span class="nm">Lampard</span></span></div>
+        <div class="tok" style="left:70%;top:40%"><div class="disc filled">10</div><span class="plate"><span class="nm">Modri&#263;</span></span></div>
+        <div class="tok" style="left:50%;top:56%"><div class="disc filled">18</div><span class="plate"><span class="nm">Kroos</span></span></div>
+        <!-- defense -->
+        <div class="tok" style="left:15%;top:73%"><div class="disc filled">6</div><span class="plate"><span class="nm">Carlos</span></span></div>
+        <div class="tok" style="left:38%;top:77%"><div class="disc filled">3</div><span class="plate"><span class="nm">Piqu&eacute;</span></span></div>
+        <div class="tok" style="left:62%;top:77%"><div class="disc filled">15</div><span class="plate"><span class="nm">Ramos</span></span></div>
+        <div class="tok" style="left:85%;top:73%"><div class="disc filled">20</div><span class="plate"><span class="nm">Cancelo</span></span></div>
+        <!-- keeper -->
+        <div class="tok" style="left:50%;top:92%"><div class="disc filled">23</div><span class="plate"><span class="nm">Ederson</span></span></div>
+      </div>
+    </section>
+
+    <!-- COLUMN 3 — ratings + chemistry + XI table -->
+    <section class="stack">
+      <div class="ratings">
+        <div class="rt ovr"><div class="k">Ovr</div><div class="v">89</div></div>
+        <div class="rt"><div class="k">Att</div><div class="v">90</div></div>
+        <div class="rt"><div class="k">Mid</div><div class="v">89</div></div>
+        <div class="rt"><div class="k">Def</div><div class="v">89</div></div>
+      </div>
+
+      <div class="card chem">
+        <div class="row">
+          <div class="donut" aria-hidden="true"><span>+4</span></div>
+          <div class="ct">
+            <div class="k">Chemistry bonus</div>
+            <div class="v">Effective overall <em>93</em></div>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="chip">Same squad <b>+1</b></span>
+          <span class="chip">Same nation <b>+1</b></span>
+          <span class="chip">Same tournament <b>+1</b></span>
+          <span class="chip">Same continent <b>+1</b></span>
+        </div>
+      </div>
+
+      <div class="card sheet">
+        <div class="cap"><span>Line-up</span><span>Rating</span></div>
+        <div class="prow gk"><span class="pos">GK</span><span class="nm">Ederson</span><span class="fy"><span class="flag f-bra"></span>2022</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">LB</span><span class="nm">Roberto Carlos</span><span class="fy"><span class="flag f-bra"></span>2002</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">CB</span><span class="nm">Gerard Piqu&eacute;</span><span class="fy"><span class="flag f-esp"></span>2018</span><span class="rt-n">90</span></div>
+        <div class="prow"><span class="pos">CB</span><span class="nm">Sergio Ramos</span><span class="fy"><span class="flag f-esp"></span>2018</span><span class="rt-n">92</span></div>
+        <div class="prow"><span class="pos">RB</span><span class="nm">Jo&atilde;o Cancelo</span><span class="fy"><span class="flag f-por"></span>2022</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">CM</span><span class="nm">Frank Lampard</span><span class="fy"><span class="flag f-eng"></span>2006</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">CM</span><span class="nm">Luka Modri&#263;</span><span class="fy"><span class="flag f-cro"></span>2014</span><span class="rt-n">89</span></div>
+        <div class="prow"><span class="pos">DM</span><span class="nm">Toni Kroos</span><span class="fy"><span class="flag f-ger"></span>2014</span><span class="rt-n">89</span></div>
+        <div class="prow"><span class="pos">LW</span><span class="nm">Philippe Coutinho</span><span class="fy"><span class="flag f-bra"></span>2018</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">ST</span><span class="nm">Harry Kane</span><span class="fy"><span class="flag f-eng"></span>2022</span><span class="rt-n">91</span></div>
+        <div class="prow"><span class="pos">RW</span><span class="nm">Cristiano Ronaldo</span><span class="fy"><span class="flag f-por"></span>2010</span><span class="rt-n">89</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* Theme switcher: set data-theme on <html>, persist, mark the active swatch. */
+(function(){
+  var KEY='turf-flat-theme';
+  var swatches=Array.prototype.slice.call(document.querySelectorAll('.themer .sw'));
+  function mark(theme){swatches.forEach(function(b){
+    b.setAttribute('aria-pressed',b.getAttribute('data-theme')===theme?'true':'false');});}
+  var current=document.documentElement.getAttribute('data-theme')||'pitch';
+  mark(current);
+  swatches.forEach(function(b){b.addEventListener('click',function(){
+    var theme=b.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme',theme);
+    try{localStorage.setItem(KEY,theme);}catch(e){}
+    mark(theme);});});
+})();
+</script>

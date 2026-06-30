@@ -24,12 +24,15 @@ TypeScript objects under `src/data/`.
 - **Vite** + **React** + **TypeScript**
 - **Tailwind CSS v4** (via the `@tailwindcss/vite` plugin)
 - State as a single `useReducer` game machine; pure game logic in `src/domain/`
+- **Design:** the flat "turf-flat" look (top-down tactics-board pitch, hard-shadow
+  cards) with Archivo / Schibsted Grotesk / Spline Sans Mono web fonts. Tokens live
+  in `src/index.css`; reference mockups in `docs/redesign-2026/turf-flat/`.
 
 ## Develop
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5173 (bumps to 5174 if the port is busy)
 npm run build      # type-check + production build into dist/
 npm run preview    # serve the production build locally
 npm run typecheck
@@ -43,7 +46,8 @@ src/
   domain/      pure logic: formations, draft, match (sim + shootout),
                tournament (group/standings), knockout, clock (playback), chemistry
   state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group -> knockout)
-  components/  SetupPanel, SquadPanel, Pitch, BoxScore, CompletePanel, TournamentScreen
+  components/  SetupPanel, SquadPanel, Pitch (+ PlayerBadge), BoxScore (ratings +
+               chemistry), XiTable (line-up sheet), CompletePanel, TournamentScreen
                (group + knockout on one screen), TournamentSummary + shared atoms
                (Flag, Tooltip, FixtureRow, GoalList, SpeedControl)
   config.ts    FEATURES flags
@@ -64,7 +68,7 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 
 ## Current status
 
-- [x] Single page: setup/squad panel (left), pitch (center), box score (right)
+- [x] Three-column team sheet (flat "turf-flat" design): settings/squad/summary (left), pitch (center), ratings + chemistry + line-up (right)
 - [x] Pitch previews the chosen formation instantly; pick formation + style (Defensive / Balanced / Offensive)
 - [x] Style changes both shape (def adds a DM, off adds an AM) and vertical placement (def deeper, off higher)
 - [x] A Roll button starts the draft (selection only begins then, not on formation pick)

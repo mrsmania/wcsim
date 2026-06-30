@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!--
+  TIFO screen set — SELECTED XI  (ported from option-3-tifo.html, refined for the set)
+  PALETTE  paper #F3EEE3 · cobalt #1F3CC4 · orange #FF5A1F · ink #16131C · halftone #DDB7A4
+  TYPE     Anton (poster) · Bebas Neue (labels) · Spline Sans Mono (body/data)
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tifo · Selected XI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --paper:#F3EEE3; --cobalt:#1F3CC4; --orange:#FF5A1F; --ink:#16131C; --halft:#DDB7A4;
+  --line:#16131C;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:'Spline Sans Mono',monospace;
+  min-height:100vh;-webkit-font-smoothing:antialiased;padding:0 0 60px;overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:radial-gradient(var(--halft) 22%, transparent 23%);
+  background-size:6px 6px;mix-blend-mode:multiply;
+}
+.wrap{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:0 22px}
+
+/* register bar */
+.reg{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:3px solid var(--ink);flex-wrap:wrap}
+.reg .mark{width:24px;height:24px;border-radius:50%;background:conic-gradient(var(--cobalt) 0 50%, var(--orange) 0);border:2px solid var(--ink)}
+.reg .name{font:400 26px/1 'Bebas Neue';letter-spacing:.06em}
+.reg .tag{font-size:11.5px;letter-spacing:.04em;color:#5b5560}
+.reg .ed{margin-left:auto;font:400 13px/1 'Bebas Neue';letter-spacing:.14em;color:var(--cobalt)}
+
+/* hero poster */
+.poster{position:relative;padding:30px 0 8px;overflow:hidden}
+.ghost{position:absolute;right:-2%;top:-6%;font:400 clamp(220px,40vw,460px)/.78 'Anton';
+  color:transparent;-webkit-text-stroke:3px rgba(31,60,196,.16);text-stroke:3px rgba(31,60,196,.16);
+  pointer-events:none;user-select:none;z-index:0;letter-spacing:-.02em;}
+.kick{position:relative;z-index:2;display:inline-block;font:400 14px/1 'Bebas Neue';letter-spacing:.3em;
+  color:#fff;background:var(--orange);padding:7px 12px 5px;transform:rotate(-1.5deg)}
+/* standardized two-line poster headline (shared across all screens) */
+.bighead{position:relative;z-index:2;margin:14px 0 0;font:400 clamp(46px,8.4vw,104px)/.84 'Anton';
+  text-transform:uppercase;letter-spacing:.005em;text-shadow:3px 2px 0 rgba(255,90,31,.55);
+  min-height:calc(2 * .84 * clamp(46px,8.4vw,104px))}
+.bighead .blue{color:var(--cobalt)}
+.headmeta{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:20px}
+.fpill{font:400 20px/1 'Bebas Neue';letter-spacing:.12em;color:#fff;background:var(--cobalt);padding:8px 14px 5px}
+.headmeta .m{font-size:13px;letter-spacing:.02em}
+.headmeta .m b{font-weight:700}
+.headmeta .chemv{color:var(--orange);font-weight:700}
+
+/* scoreline ratings */
+.score{position:relative;z-index:2;margin-top:26px;border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);display:grid;grid-template-columns:repeat(4,1fr)}
+.score>div{padding:16px 18px;border-right:1.5px solid rgba(22,19,28,.3)}
+.score>div:last-child{border-right:none}
+.score .k{font:400 16px/1 'Bebas Neue';letter-spacing:.16em;color:#5b5560}
+.score .v{font:400 clamp(40px,6vw,64px)/.85 'Anton';margin-top:6px}
+.score .ovr .v{color:var(--cobalt)}
+.score .ovr .k{color:var(--cobalt)}
+
+/* chem banner */
+.chem{position:relative;z-index:2;margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:16px;background:var(--cobalt);color:#fff;padding:16px 20px}
+.chem .big{font:400 46px/1 'Anton';color:#fff}
+.chem .lab{font:400 18px/1 'Bebas Neue';letter-spacing:.14em}
+.chem .eff{font-size:12.5px;color:#cdd5ff}
+.chem .eff b{color:#fff}
+.chem .chips{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+.chem .chips span{font:600 12px/1 'Spline Sans Mono';background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.5);padding:6px 9px;color:#fff}
+.chem .chips span b{color:var(--orange);background:#fff;padding:0 4px;margin-left:4px}
+
+/* formation + lineup */
+.body{position:relative;z-index:2;margin-top:26px;display:grid;grid-template-columns:1.15fr .9fr;gap:24px;align-items:start}
+.field{border:3px solid var(--ink);background:var(--paper);position:relative;aspect-ratio:5/6;min-height:440px;overflow:hidden}
+.field .tag{position:absolute;top:0;left:0;z-index:3;font:400 14px/1 'Bebas Neue';letter-spacing:.16em;color:#fff;background:var(--ink);padding:7px 11px 4px}
+.field svg{position:absolute;inset:0;width:100%;height:100%}
+.tk{position:absolute;transform:translate(-50%,-50%);width:80px;text-align:center}
+.tk .n{width:50px;height:50px;margin:0 auto;border-radius:50%;display:grid;place-items:center;
+  font:400 22px/1 'Anton';color:#fff;background:var(--cobalt);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--orange)}
+.tk.gk .n{background:var(--orange);box-shadow:4px 4px 0 var(--cobalt)}
+.tk .nm{margin-top:7px;display:inline-block;font:400 13px/1 'Bebas Neue';letter-spacing:.06em;background:var(--ink);color:var(--paper);padding:3px 7px 1px}
+
+/* lineup sheet */
+.sheet{border:3px solid var(--ink);background:var(--paper)}
+.sheet h3{margin:0;font:400 24px/1 'Bebas Neue';letter-spacing:.1em;padding:12px 16px;background:var(--ink);color:var(--paper);display:flex;justify-content:space-between;align-items:baseline}
+.sheet h3 small{font:600 11px/1 'Spline Sans Mono';letter-spacing:.08em;color:var(--halft)}
+.lr{display:flex;align-items:center;gap:11px;padding:9px 16px;border-bottom:1.5px solid rgba(22,19,28,.18)}
+.lr:last-child{border-bottom:none}
+.lr .pos{width:30px;font:400 17px/1 'Bebas Neue';letter-spacing:.04em;color:var(--cobalt)}
+.lr.gk .pos{color:var(--orange)}
+.lr .name{flex:1;font:400 20px/1 'Bebas Neue';letter-spacing:.04em}
+.lr .yr{width:34px;text-align:right;font:600 11px/1 'Spline Sans Mono';color:#5b5560}
+.lr .rate{width:34px;text-align:right;font:400 22px/1 'Anton'}
+.lr .rate.hi{color:var(--orange)}
+
+/* kickoff CTA */
+.kickoff{position:relative;z-index:2;margin-top:26px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.brief{flex:1;min-width:240px;font-size:13px;line-height:1.5;color:#3a3640;max-width:48ch}
+.go{font:400 26px/1 'Anton';text-transform:uppercase;letter-spacing:.02em;color:var(--paper);background:var(--orange);border:3px solid var(--ink);padding:16px 26px 13px;cursor:pointer;box-shadow:6px 6px 0 var(--cobalt);transition:transform .05s, box-shadow .05s;display:inline-flex;gap:12px;align-items:center}
+.go:active{transform:translate(4px,4px);box-shadow:2px 2px 0 var(--cobalt)}
+.go svg{width:24px;height:24px}
+.over{font:400 18px/1 'Bebas Neue';letter-spacing:.1em;color:var(--ink);background:transparent;border:3px solid var(--ink);padding:18px 20px 15px;cursor:pointer}
+
+@media (max-width:900px){
+  .body{grid-template-columns:1fr}
+  .chem .chips{margin-left:0;width:100%}
+}
+@media (max-width:520px){
+  .wrap{padding:0 14px}
+  .reg .tag{display:none}
+  .reg .name{font-size:22px}
+  .reg .ed{font-size:11px;flex-basis:100%;margin-left:0;text-align:left}
+  .score{grid-template-columns:repeat(2,1fr)}
+  .score>div:nth-child(2){border-right:none}
+  .score>div:nth-child(1),.score>div:nth-child(2){border-bottom:1.5px solid rgba(22,19,28,.3)}
+  .bighead{text-shadow:2px 1px 0 rgba(255,90,31,.55)}
+  .chem .big{font-size:38px}
+  .field{min-height:380px}
+  .tk{width:62px}
+  .tk .n{width:40px;height:40px;font-size:17px;box-shadow:3px 3px 0 var(--orange)}
+  .tk .nm{font-size:11px}
+  .go{width:100%;justify-content:center}
+  .over{width:100%}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+
+/* CSS flag chips */
+.fl{display:inline-block;width:21px;height:14px;flex:0 0 auto;box-shadow:0 0 0 1.5px var(--ink);background-size:cover}
+.fl-es{background:linear-gradient(180deg,#AA151B 0 25%,#F1BF00 0 75%,#AA151B 0)}
+.fl-it{background:linear-gradient(90deg,#008C45 0 33.3%,#fff 0 66.6%,#CD212A 0)}
+.fl-br{background:#009C3B}
+.fl-nl{background:linear-gradient(180deg,#AE1C28 0 33.3%,#fff 0 66.6%,#21468B 0)}
+.fl-de{background:linear-gradient(180deg,#111 0 33.3%,#D00 0 66.6%,#FFCE00 0)}
+.fl-ci{background:linear-gradient(90deg,#F77F00 0 33.3%,#fff 0 66.6%,#009E60 0)}
+.fl-fr{background:linear-gradient(90deg,#002395 0 33.3%,#fff 0 66.6%,#ED2939 0)}
+.fl-eg{background:linear-gradient(180deg,#CE1126 0 33.3%,#fff 0 66.6%,#000 0)}
+</style>
+
+<div class="wrap">
+
+  <header class="reg">
+    <span class="mark"></span>
+    <span class="name">World Cup Simulator</span>
+    <span class="tag">Draft your randomized dream World Cup XI</span>
+    <span class="ed">Squad sheet locked</span>
+  </header>
+
+  <section class="poster">
+    <div class="ghost" aria-hidden="true">11</div>
+    <span class="kick">Squad sheet &middot; locked</span>
+    <h1 class="bighead">Eleven <span class="blue">picked.</span><br>One cup to chase.</h1>
+    <div class="headmeta">
+      <span class="fpill">4&ndash;3&ndash;3</span>
+      <span class="m">Avg rating <b>90</b></span>
+      <span class="m">Chemistry <b class="chemv">+2 &rarr; 92 effective</b></span>
+    </div>
+  </section>
+
+  <section class="score">
+    <div class="ovr"><div class="k">Overall</div><div class="v">90</div></div>
+    <div><div class="k">Attack</div><div class="v">90</div></div>
+    <div><div class="k">Midfield</div><div class="v">90</div></div>
+    <div><div class="k">Defense</div><div class="v">89</div></div>
+  </section>
+
+  <section class="chem">
+    <span class="big">+2</span>
+    <div>
+      <div class="lab">Chemistry</div>
+      <div class="eff">Cohesion bonus on your XI &middot; effective overall <b>92</b></div>
+    </div>
+    <div class="chips">
+      <span>SAME TOURNAMENT<b>+1</b></span>
+      <span>SAME CONTINENT<b>+1</b></span>
+    </div>
+  </section>
+
+  <section class="body">
+    <div class="field">
+      <span class="tag">4-3-3 / KICKOFF SHAPE</span>
+      <svg viewBox="0 0 500 600" preserveAspectRatio="none" aria-hidden="true">
+        <g stroke="var(--ink)" stroke-width="2" fill="none" opacity=".42">
+          <rect x="16" y="14" width="468" height="572"/>
+          <line x1="16" y1="300" x2="484" y2="300"/>
+          <circle cx="250" cy="300" r="62"/>
+          <circle cx="250" cy="300" r="3" fill="var(--ink)"/>
+          <rect x="150" y="14" width="200" height="84"/>
+          <rect x="205" y="14" width="90" height="34"/>
+          <rect x="150" y="502" width="200" height="84"/>
+          <rect x="205" y="552" width="90" height="34"/>
+        </g>
+      </svg>
+      <div class="tk gk" style="left:50%;top:90%"><div class="n">1</div><div class="nm">Casillas</div></div>
+      <div class="tk" style="left:16%;top:74%"><div class="n">3</div><div class="nm">Maldini</div></div>
+      <div class="tk" style="left:39%;top:78%"><div class="n">3</div><div class="nm">Silva</div></div>
+      <div class="tk" style="left:61%;top:78%"><div class="n">5</div><div class="nm">Cannavaro</div></div>
+      <div class="tk" style="left:84%;top:74%"><div class="n">15</div><div class="nm">Ramos</div></div>
+      <div class="tk" style="left:28%;top:50%"><div class="n">10</div><div class="nm">Sneijder</div></div>
+      <div class="tk" style="left:72%;top:50%"><div class="n">13</div><div class="nm">Ballack</div></div>
+      <div class="tk" style="left:50%;top:58%"><div class="n">19</div><div class="nm">Tour&eacute;</div></div>
+      <div class="tk" style="left:18%;top:26%"><div class="n">10</div><div class="nm">Neymar</div></div>
+      <div class="tk" style="left:50%;top:19%"><div class="n">10</div><div class="nm">Mbapp&eacute;</div></div>
+      <div class="tk" style="left:82%;top:26%"><div class="n">10</div><div class="nm">Salah</div></div>
+    </div>
+
+    <div class="sheet">
+      <h3>Team sheet <small>GK &rarr; FWD</small></h3>
+      <div class="lr gk"><span class="pos">GK</span><span class="name">Casillas</span><span class="fl fl-es"></span><span class="yr">'06</span><span class="rate">88</span></div>
+      <div class="lr"><span class="pos">LB</span><span class="name">Maldini</span><span class="fl fl-it"></span><span class="yr">'98</span><span class="rate">88</span></div>
+      <div class="lr"><span class="pos">CB</span><span class="name">Silva</span><span class="fl fl-br"></span><span class="yr">'14</span><span class="rate hi">90</span></div>
+      <div class="lr"><span class="pos">CB</span><span class="name">Cannavaro</span><span class="fl fl-it"></span><span class="yr">'06</span><span class="rate">89</span></div>
+      <div class="lr"><span class="pos">RB</span><span class="name">Ramos</span><span class="fl fl-es"></span><span class="yr">'14</span><span class="rate hi">91</span></div>
+      <div class="lr"><span class="pos">CM</span><span class="name">Sneijder</span><span class="fl fl-nl"></span><span class="yr">'10</span><span class="rate hi">90</span></div>
+      <div class="lr"><span class="pos">CM</span><span class="name">Ballack</span><span class="fl fl-de"></span><span class="yr">'06</span><span class="rate">89</span></div>
+      <div class="lr"><span class="pos">DM</span><span class="name">Tour&eacute;</span><span class="fl fl-ci"></span><span class="yr">'14</span><span class="rate">89</span></div>
+      <div class="lr"><span class="pos">LW</span><span class="name">Neymar</span><span class="fl fl-br"></span><span class="yr">'22</span><span class="rate hi">93</span></div>
+      <div class="lr"><span class="pos">ST</span><span class="name">Mbapp&eacute;</span><span class="fl fl-fr"></span><span class="yr">'18</span><span class="rate hi">90</span></div>
+      <div class="lr"><span class="pos">RW</span><span class="name">Salah</span><span class="fl fl-eg"></span><span class="yr">'18</span><span class="rate">89</span></div>
+    </div>
+  </section>
+
+  <section class="kickoff">
+    <p class="brief">You'll be drawn into a group of four. Play all three matchdays and finish in the top two to reach the knockouts.</p>
+    <button class="go">Start the World Cup
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <button class="over">Start over</button>
+  </section>
+
+</div>

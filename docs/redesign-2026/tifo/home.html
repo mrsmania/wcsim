@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<!--
+  TIFO screen set — HOME / SETUP
+  Risograph matchday-poster system shared verbatim across the set.
+  PALETTE  paper #F3EEE3 · cobalt #1F3CC4 · orange #FF5A1F · ink #16131C · halftone #DDB7A4
+  TYPE     Anton (poster) · Bebas Neue (labels) · Spline Sans Mono (body/data)
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tifo · Home</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --paper:#F3EEE3; --cobalt:#1F3CC4; --orange:#FF5A1F; --ink:#16131C; --halft:#DDB7A4;
+  --line:#16131C;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Spline Sans Mono',monospace;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  padding:0 0 60px;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:radial-gradient(var(--halft) 22%, transparent 23%);
+  background-size:6px 6px;mix-blend-mode:multiply;
+}
+.wrap{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:0 22px}
+
+/* ---------- top register bar ---------- */
+.reg{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:3px solid var(--ink);flex-wrap:wrap}
+.reg .mark{width:24px;height:24px;border-radius:50%;
+  background:conic-gradient(var(--cobalt) 0 50%, var(--orange) 0);border:2px solid var(--ink)}
+.reg .name{font:400 26px/1 'Bebas Neue';letter-spacing:.06em}
+.reg .tag{font-size:11.5px;letter-spacing:.04em;color:#5b5560}
+.reg .ed{margin-left:auto;font:400 13px/1 'Bebas Neue';letter-spacing:.14em;color:var(--cobalt)}
+
+/* ---------- hero poster ---------- */
+.poster{position:relative;padding:30px 0 8px;overflow:hidden}
+.ghost{
+  position:absolute;right:-2%;top:-6%;font:400 clamp(180px,34vw,420px)/.78 'Anton';
+  color:transparent;-webkit-text-stroke:3px rgba(31,60,196,.16);text-stroke:3px rgba(31,60,196,.16);
+  pointer-events:none;user-select:none;z-index:0;letter-spacing:-.02em;
+}
+.kick{position:relative;z-index:2;display:inline-block;font:400 14px/1 'Bebas Neue';letter-spacing:.3em;
+  color:#fff;background:var(--orange);padding:7px 12px 5px;transform:rotate(-1.5deg)}
+/* standardized two-line poster headline (shared across all screens) */
+.bighead{position:relative;z-index:2;margin:14px 0 0;font:400 clamp(46px,8.4vw,104px)/.84 'Anton';
+  text-transform:uppercase;letter-spacing:.005em;text-shadow:3px 2px 0 rgba(255,90,31,.55);
+  min-height:calc(2 * .84 * clamp(46px,8.4vw,104px))}
+.bighead .blue{color:var(--cobalt)}
+.headmeta{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:20px}
+.headmeta .m{font-size:13px;letter-spacing:.02em}
+.headmeta .m b{font-weight:700;color:var(--cobalt)}
+
+/* ---------- setup grid ---------- */
+.setup{position:relative;z-index:2;margin-top:30px;display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:start}
+
+.panel{border:3px solid var(--ink);background:var(--paper)}
+.panel h3{margin:0;font:400 22px/1 'Bebas Neue';letter-spacing:.1em;padding:12px 16px;
+  background:var(--ink);color:var(--paper);display:flex;justify-content:space-between;align-items:baseline}
+.panel h3 small{font:600 11px/1 'Spline Sans Mono';letter-spacing:.06em;color:var(--halft)}
+.panel .pad{padding:16px}
+
+.sublab{font:400 16px/1 'Bebas Neue';letter-spacing:.16em;color:#5b5560;margin:0 0 10px}
+.sublab.two{margin-top:20px}
+
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font:400 17px/1 'Bebas Neue';letter-spacing:.06em;color:var(--ink);background:var(--paper);
+  border:2.5px solid var(--ink);padding:9px 13px 6px;cursor:pointer}
+.opt.on{background:var(--cobalt);color:#fff;box-shadow:3px 3px 0 var(--orange)}
+.opt.style{flex:1;text-align:center;text-transform:uppercase;letter-spacing:.1em}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;padding-top:18px;border-top:2px dashed rgba(22,19,28,.3)}
+.roll{font:400 24px/1 'Anton';text-transform:uppercase;letter-spacing:.02em;color:var(--paper);
+  background:var(--orange);border:3px solid var(--ink);padding:14px 22px 11px;cursor:pointer;
+  box-shadow:5px 5px 0 var(--cobalt);display:inline-flex;gap:10px;align-items:center}
+.roll svg{width:22px;height:22px}
+.rand{font:400 18px/1 'Bebas Neue';letter-spacing:.1em;color:var(--ink);background:transparent;
+  border:3px solid var(--ink);padding:15px 18px 12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.rand .tiers{font:600 10px/1 'Spline Sans Mono';color:#5b5560;letter-spacing:.02em}
+
+/* ---------- empty pitch ---------- */
+.field{border:3px solid var(--ink);background:var(--paper);position:relative;aspect-ratio:5/6;min-height:440px;overflow:hidden}
+.field .tag{position:absolute;top:0;left:0;z-index:3;font:400 14px/1 'Bebas Neue';letter-spacing:.16em;
+  color:#fff;background:var(--ink);padding:7px 11px 4px}
+.field svg.pitch{position:absolute;inset:0;width:100%;height:100%}
+.slot{position:absolute;transform:translate(-50%,-50%);width:78px;text-align:center}
+.slot .ring{width:50px;height:50px;margin:0 auto;border-radius:50%;display:grid;place-items:center;
+  font:400 15px/1 'Bebas Neue';letter-spacing:.06em;color:var(--cobalt);
+  background:var(--paper);border:2.5px dashed var(--cobalt)}
+.slot.gk .ring{color:var(--orange);border-color:var(--orange)}
+.slot .lab{margin-top:6px;display:inline-block;font:400 11px/1 'Bebas Neue';letter-spacing:.08em;color:#5b5560}
+
+/* ---------- scoreline ratings (empty) ---------- */
+.score{position:relative;z-index:2;margin-top:26px;border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);
+  display:grid;grid-template-columns:repeat(4,1fr);}
+.score>div{padding:16px 18px;border-right:1.5px solid rgba(22,19,28,.3)}
+.score>div:last-child{border-right:none}
+.score .k{font:400 16px/1 'Bebas Neue';letter-spacing:.16em;color:#5b5560}
+.score .v{font:400 clamp(40px,6vw,64px)/.85 'Anton';margin-top:6px;color:#b9b2a6}
+.score .ovr .v{color:var(--cobalt);opacity:.4}
+.score .ovr .k{color:var(--cobalt)}
+
+@media (max-width:900px){
+  .setup{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .wrap{padding:0 14px}
+  .reg .tag{display:none}
+  .reg .name{font-size:22px}
+  .reg .ed{font-size:11px;flex-basis:100%;margin-left:0;text-align:left}
+  .score{grid-template-columns:repeat(2,1fr)}
+  .score>div:nth-child(2){border-right:none}
+  .score>div:nth-child(1),.score>div:nth-child(2){border-bottom:1.5px solid rgba(22,19,28,.3)}
+  .bighead{text-shadow:2px 1px 0 rgba(255,90,31,.55)}
+  .field{min-height:380px}
+  .slot{width:60px}
+  .slot .ring{width:42px;height:42px}
+  .roll,.rand{width:100%;justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+
+/* self-contained CSS flag chips */
+.fl{display:inline-block;width:21px;height:14px;flex:0 0 auto;box-shadow:0 0 0 1.5px var(--ink);background-size:cover}
+</style>
+
+<div class="wrap">
+
+  <header class="reg">
+    <span class="mark"></span>
+    <span class="name">World Cup Simulator</span>
+    <span class="tag">Draft your randomized dream World Cup XI</span>
+    <span class="ed">Matchday edition</span>
+  </header>
+
+  <section class="poster">
+    <div class="ghost" aria-hidden="true">XI</div>
+    <span class="kick">New draft &middot; kickoff</span>
+    <h1 class="bighead">Build your<br><span class="blue">dream</span> eleven.</h1>
+    <div class="headmeta">
+      <span class="m">Roll a squad, place a player, repeat <b>&times;11</b></span>
+      <span class="m">Three re-rolls a position</span>
+    </div>
+  </section>
+
+  <section class="setup">
+    <!-- left: controls -->
+    <div class="panel">
+      <h3>Set up <small>FORMATION + STYLE</small></h3>
+      <div class="pad">
+        <p class="sublab">Select your formation</p>
+        <div class="opts">
+          <span class="opt">5-3-2</span>
+          <span class="opt">4-5-1</span>
+          <span class="opt">4-4-2</span>
+          <span class="opt">4-2-3-1</span>
+          <span class="opt on">4-3-3</span>
+          <span class="opt">3-4-3</span>
+          <span class="opt">3-5-2</span>
+          <span class="opt">4-2-4</span>
+        </div>
+
+        <p class="sublab two">Select your style</p>
+        <div class="opts">
+          <span class="opt style">Defensive</span>
+          <span class="opt style on">Balanced</span>
+          <span class="opt style">Offensive</span>
+        </div>
+
+        <div class="actions">
+          <button class="roll">Roll
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/><circle cx="16" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="16" r="1.2" fill="currentColor"/></svg>
+          </button>
+          <button class="rand">Random team
+            <span class="tiers">WEAK / MED / STRONG / V.STRONG</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- right: empty pitch preview -->
+    <div class="field">
+      <span class="tag">4-3-3 / KICKOFF SHAPE</span>
+      <svg class="pitch" viewBox="0 0 500 600" preserveAspectRatio="none" aria-hidden="true">
+        <g stroke="var(--ink)" stroke-width="2" fill="none" opacity=".42">
+          <rect x="16" y="14" width="468" height="572"/>
+          <line x1="16" y1="300" x2="484" y2="300"/>
+          <circle cx="250" cy="300" r="62"/>
+          <circle cx="250" cy="300" r="3" fill="var(--ink)"/>
+          <rect x="150" y="14" width="200" height="84"/>
+          <rect x="205" y="14" width="90" height="34"/>
+          <rect x="150" y="502" width="200" height="84"/>
+          <rect x="205" y="552" width="90" height="34"/>
+        </g>
+      </svg>
+      <div class="slot gk" style="left:50%;top:90%"><div class="ring">GK</div><div class="lab">Goalkeeper</div></div>
+      <div class="slot" style="left:16%;top:74%"><div class="ring">LB</div><div class="lab">Left back</div></div>
+      <div class="slot" style="left:39%;top:78%"><div class="ring">CB</div></div>
+      <div class="slot" style="left:61%;top:78%"><div class="ring">CB</div></div>
+      <div class="slot" style="left:84%;top:74%"><div class="ring">RB</div><div class="lab">Right back</div></div>
+      <div class="slot" style="left:28%;top:50%"><div class="ring">CM</div></div>
+      <div class="slot" style="left:72%;top:50%"><div class="ring">CM</div></div>
+      <div class="slot" style="left:50%;top:58%"><div class="ring">DM</div></div>
+      <div class="slot" style="left:18%;top:26%"><div class="ring">LW</div></div>
+      <div class="slot" style="left:50%;top:19%"><div class="ring">ST</div></div>
+      <div class="slot" style="left:82%;top:26%"><div class="ring">RW</div></div>
+    </div>
+  </section>
+
+  <!-- empty scoreline totals -->
+  <section class="score">
+    <div class="ovr"><div class="k">Overall</div><div class="v">&ndash;</div></div>
+    <div><div class="k">Attack</div><div class="v">&ndash;</div></div>
+    <div><div class="k">Midfield</div><div class="v">&ndash;</div></div>
+    <div><div class="k">Defense</div><div class="v">&ndash;</div></div>
+  </section>
+
+</div>

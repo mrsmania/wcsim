@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<!--
+  TIFO screen set — GROUP STAGE  (mid-match, live goal feed)
+  PALETTE  paper #F3EEE3 · cobalt #1F3CC4 · orange #FF5A1F · ink #16131C · halftone #DDB7A4
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tifo · Group Stage</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --paper:#F3EEE3; --cobalt:#1F3CC4; --orange:#FF5A1F; --ink:#16131C; --halft:#DDB7A4;
+  --green:#1f7a3d; --line:#16131C;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:'Spline Sans Mono',monospace;
+  min-height:100vh;-webkit-font-smoothing:antialiased;padding:0 0 60px;overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:radial-gradient(var(--halft) 22%, transparent 23%);
+  background-size:6px 6px;mix-blend-mode:multiply;
+}
+.wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:0 22px}
+
+/* register bar */
+.reg{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:3px solid var(--ink);flex-wrap:wrap}
+.reg .mark{width:24px;height:24px;border-radius:50%;background:conic-gradient(var(--cobalt) 0 50%, var(--orange) 0);border:2px solid var(--ink)}
+.reg .name{font:400 26px/1 'Bebas Neue';letter-spacing:.06em}
+.reg .tag{font-size:11.5px;letter-spacing:.04em;color:#5b5560}
+.reg .ed{margin-left:auto;font:400 13px/1 'Bebas Neue';letter-spacing:.14em;color:var(--cobalt)}
+
+/* hero header + controls */
+.poster{position:relative;padding:24px 0 6px;overflow:hidden}
+.ghost{position:absolute;right:-1%;top:-40%;font:400 clamp(150px,30vw,340px)/.78 'Anton';
+  color:transparent;-webkit-text-stroke:3px rgba(31,60,196,.16);text-stroke:3px rgba(31,60,196,.16);
+  pointer-events:none;user-select:none;z-index:0;letter-spacing:-.02em;}
+.kick{position:relative;z-index:2;display:inline-block;font:400 13px/1 'Bebas Neue';letter-spacing:.3em;
+  color:#fff;background:var(--orange);padding:6px 11px 4px;transform:rotate(-1.5deg)}
+.headrow{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin-top:14px}
+/* standardized two-line poster headline (shared across all screens) */
+.bighead{margin:0;font:400 clamp(46px,8.4vw,104px)/.84 'Anton';text-transform:uppercase;letter-spacing:.005em;text-shadow:3px 2px 0 rgba(255,90,31,.55);
+  min-height:calc(2 * .84 * clamp(46px,8.4vw,104px))}
+.bighead .blue{color:var(--cobalt)}
+.ctrls{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.ctrl{font:400 14px/1 'Bebas Neue';letter-spacing:.08em;color:var(--ink);background:var(--paper);
+  border:2.5px solid var(--ink);padding:9px 12px 6px;display:inline-flex;gap:7px;align-items:center;cursor:pointer}
+.ctrl svg{width:13px;height:13px}
+.sub{position:relative;z-index:2;margin-top:10px;font-size:13px;color:#3a3640}
+
+/* standings table */
+.standings{position:relative;z-index:2;margin-top:22px;border:3px solid var(--ink);background:var(--paper);overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px}
+thead th{font:400 14px/1 'Bebas Neue';letter-spacing:.1em;color:var(--paper);background:var(--ink);
+  text-align:right;padding:10px 10px 7px}
+thead th.l{text-align:left}
+tbody td{padding:11px 10px;border-bottom:1.5px solid rgba(22,19,28,.16);text-align:right;font:600 14px/1 'Spline Sans Mono'}
+tbody tr:last-child td{border-bottom:none}
+td.rank{text-align:center;width:42px}
+td.rank .b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;
+  font:400 15px/1 'Anton';color:#5b5560}
+tr.adv td.rank .b{color:#fff;background:var(--cobalt)}
+tr.adv td{box-shadow:none}
+tr.adv{position:relative}
+tr.adv td:first-child{box-shadow:inset 4px 0 0 var(--orange)}
+td.team{text-align:left;width:auto}
+td.team .row{display:flex;align-items:center;gap:9px}
+td.team .nm{font:400 19px/1 'Bebas Neue';letter-spacing:.03em}
+td.team .yr{font:600 10px/1 'Spline Sans Mono';color:#5b5560}
+td.team .you{font:600 9px/1 'Spline Sans Mono';color:#fff;background:#c81e1e;padding:4px 5px 3px;letter-spacing:.06em;border:1.5px solid var(--ink)}
+td.pts{font:400 18px/1 'Anton';width:48px}
+.standings .foot{padding:10px;text-align:center;font:400 13px/1 'Bebas Neue';letter-spacing:.12em;color:var(--cobalt);border-top:1.5px solid rgba(22,19,28,.16);background:rgba(31,60,196,.05)}
+
+/* matchday sections */
+.md{position:relative;z-index:2;margin-top:24px}
+.mdlab{display:flex;align-items:center;gap:10px;font:400 16px/1 'Bebas Neue';letter-spacing:.18em;color:#5b5560;margin-bottom:8px}
+.mdlab .up{font:600 10px/1 'Spline Sans Mono';letter-spacing:.1em;color:var(--orange)}
+.tag-won{font:600 10px/1 'Spline Sans Mono';letter-spacing:.1em;color:#fff;background:var(--green);padding:4px 7px 3px;border:1.5px solid var(--ink)}
+.tag-lost{font:600 10px/1 'Spline Sans Mono';letter-spacing:.1em;color:#fff;background:#c81e1e;padding:4px 7px 3px;border:1.5px solid var(--ink)}
+.tag-draw{font:600 10px/1 'Spline Sans Mono';letter-spacing:.1em;color:var(--ink);background:var(--halft);padding:4px 7px 3px;border:1.5px solid var(--ink)}
+
+.fix{border:3px solid var(--ink);background:var(--paper)}
+.fix .top{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.fix .side{flex:1;display:flex;align-items:center;gap:9px}
+.fix .side.r{justify-content:flex-end;text-align:right}
+.fix .tn{font:400 22px/1 'Bebas Neue';letter-spacing:.03em}
+.fix .yr{font:600 10px/1 'Spline Sans Mono';color:#5b5560}
+.fix .you{font:600 9px/1 'Spline Sans Mono';color:#fff;background:#c81e1e;padding:4px 5px 3px;letter-spacing:.06em;border:1.5px solid var(--ink)}
+.fix .sc{font:400 34px/1 'Anton';color:var(--ink);background:var(--paper);border:2.5px solid var(--ink);padding:5px 12px 2px;min-width:78px;text-align:center;letter-spacing:.04em}
+.fix .sc.live{color:#fff;background:var(--cobalt);box-shadow:3px 3px 0 var(--orange)}
+.fix .v{font:400 18px/1 'Bebas Neue';color:#5b5560;letter-spacing:.1em}
+
+/* live feed inside a fixture */
+.feed{border-top:1.5px solid rgba(22,19,28,.18);padding:6px 16px 12px;max-height:230px;overflow-y:auto}
+.feed .clk{display:flex;align-items:center;gap:9px;justify-content:center;padding:8px 0 10px;margin-bottom:4px;
+  border-bottom:1.5px dashed rgba(22,19,28,.25)}
+.feed .clk .min{font:400 28px/1 'Anton';color:var(--cobalt)}
+.feed .clk .liv{font:600 10px/1 'Spline Sans Mono';letter-spacing:.12em;color:#fff;background:var(--cobalt);padding:5px 8px 4px;
+  display:inline-flex;align-items:center;gap:6px}
+.feed .clk .liv .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);animation:blink 1s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.25}}
+.ev{display:flex;align-items:center;gap:11px;padding:8px 2px;border-bottom:1.5px solid rgba(22,19,28,.1)}
+.ev:last-child{border-bottom:none}
+.ev .min{width:38px;font:400 18px/1 'Anton';color:#5b5560;text-align:right}
+.ev .ball{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--ink);flex:0 0 auto}
+.ev .ball svg{width:13px;height:13px;color:var(--paper)}
+.ev .who{flex:1;font:400 19px/1 'Bebas Neue';letter-spacing:.03em}
+.ev .for{font:600 10px/1 'Spline Sans Mono';letter-spacing:.06em;padding:4px 6px 3px;border:1.5px solid var(--ink)}
+.ev .for.you{color:#fff;background:#c81e1e}
+.ev .for.opp{color:var(--ink);background:var(--halft)}
+
+/* next game CTA */
+.next{display:flex;justify-content:center;margin:20px 0}
+.go{font:400 22px/1 'Anton';text-transform:uppercase;letter-spacing:.02em;color:var(--paper);background:var(--orange);
+  border:3px solid var(--ink);padding:14px 26px 11px;cursor:pointer;box-shadow:5px 5px 0 var(--cobalt);display:inline-flex;gap:11px;align-items:center}
+.go svg{width:20px;height:20px}
+
+@media (max-width:520px){
+  .wrap{padding:0 14px}
+  .reg .tag{display:none}
+  .reg .name{font-size:22px}
+  .reg .ed{font-size:11px;flex-basis:100%;margin-left:0;text-align:left}
+  .ctrls{margin-left:0;width:100%}
+  .bighead{text-shadow:2px 1px 0 rgba(255,90,31,.55)}
+  .fix .sc{font-size:28px;min-width:66px}
+  .fix .tn{font-size:18px}
+  .go{width:100%;justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+
+/* CSS flag chips */
+.fl{display:inline-block;width:21px;height:14px;flex:0 0 auto;box-shadow:0 0 0 1.5px var(--ink);background-size:cover}
+.fl-eng{background:#fff;position:relative}
+.fl-eng::before{content:"";position:absolute;inset:0;background:
+  linear-gradient(#c8102e,#c8102e) center/100% 3px no-repeat,
+  linear-gradient(#c8102e,#c8102e) center/3px 100% no-repeat}
+.fl-dz{background:linear-gradient(90deg,#006233 0 50%,#fff 0)}
+.fl-ma{background:#c1272d}
+.fl-you{background:#c81e1e}
+</style>
+
+<div class="wrap">
+
+  <header class="reg">
+    <span class="mark"></span>
+    <span class="name">World Cup Simulator</span>
+    <span class="tag">Draft your randomized dream World Cup XI</span>
+    <span class="ed">Group stage &middot; live</span>
+  </header>
+
+  <section class="poster">
+    <div class="ghost" aria-hidden="true">MD2</div>
+    <span class="kick">Group of four &middot; top two advance</span>
+    <div class="headrow">
+      <h1 class="bighead">Into the<br><span class="blue">group stage.</span></h1>
+      <div class="ctrls">
+        <span class="ctrl">Game by game
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
+        <span class="ctrl">Slow
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
+      </div>
+    </div>
+    <p class="sub">Win or draw to climb the table. Finish first or second and you're into the knockouts.</p>
+  </section>
+
+  <!-- standings -->
+  <section class="standings">
+    <table>
+      <thead>
+        <tr><th class="l">#</th><th class="l">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr>
+      </thead>
+      <tbody>
+        <tr class="adv">
+          <td class="rank"><span class="b">1</span></td>
+          <td class="team"><span class="row"><span class="fl fl-you"></span><span class="nm">Your XI</span><span class="you">YOU</span></span></td>
+          <td>1</td><td>1</td><td>0</td><td>0</td><td>+2</td><td class="pts">3</td>
+        </tr>
+        <tr class="adv">
+          <td class="rank"><span class="b">2</span></td>
+          <td class="team"><span class="row"><span class="fl fl-ma"></span><span class="nm">Morocco</span><span class="yr">2022</span></span></td>
+          <td>1</td><td>1</td><td>0</td><td>0</td><td>+1</td><td class="pts">3</td>
+        </tr>
+        <tr>
+          <td class="rank"><span class="b">3</span></td>
+          <td class="team"><span class="row"><span class="fl fl-dz"></span><span class="nm">Algeria</span><span class="yr">2010</span></span></td>
+          <td>1</td><td>0</td><td>0</td><td>1</td><td>-1</td><td class="pts">0</td>
+        </tr>
+        <tr>
+          <td class="rank"><span class="b">4</span></td>
+          <td class="team"><span class="row"><span class="fl fl-eng"></span><span class="nm">England</span><span class="yr">2018</span></span></td>
+          <td>1</td><td>0</td><td>0</td><td>1</td><td>-2</td><td class="pts">0</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="foot">All results &rsaquo;</div>
+  </section>
+
+  <!-- MD1: played, WON -->
+  <div class="md">
+    <div class="mdlab">Matchday 1 <span class="tag-won">WON</span></div>
+    <div class="fix">
+      <div class="top">
+        <div class="side"><span class="fl fl-you"></span><span class="tn">Your XI</span><span class="you">YOU</span></div>
+        <div class="sc">2&ndash;0</div>
+        <div class="side r"><span class="tn">England</span><span class="yr">2018</span><span class="fl fl-eng"></span></div>
+      </div>
+      <div class="feed">
+        <div class="ev"><span class="min">14'</span><span class="ball"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg></span><span class="who">Wesley Sneijder</span><span class="for you">YOU</span></div>
+        <div class="ev"><span class="min">20'</span><span class="ball"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg></span><span class="who">Neymar</span><span class="for you">YOU</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MD2: in progress, LIVE feed -->
+  <div class="md">
+    <div class="mdlab">Matchday 2 <span class="up">&middot; LIVE NOW</span></div>
+    <div class="fix">
+      <div class="top">
+        <div class="side"><span class="fl fl-you"></span><span class="tn">Your XI</span><span class="you">YOU</span></div>
+        <div class="sc live">1&ndash;1</div>
+        <div class="side r"><span class="tn">Algeria</span><span class="yr">2010</span><span class="fl fl-dz"></span></div>
+      </div>
+      <div class="feed">
+        <div class="clk"><span class="min">67'</span><span class="liv"><span class="dot"></span>SECOND HALF</span></div>
+        <div class="ev"><span class="min">9'</span><span class="ball"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg></span><span class="who">Kylian Mbapp&eacute;</span><span class="for you">YOU</span></div>
+        <div class="ev"><span class="min">41'</span><span class="ball"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg></span><span class="who">Karim Ziani</span><span class="for opp">DZA</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="next">
+    <button class="go">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      Next game
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+
+  <!-- MD3: upcoming -->
+  <div class="md">
+    <div class="mdlab">Matchday 3</div>
+    <div class="fix">
+      <div class="top">
+        <div class="side"><span class="fl fl-you"></span><span class="tn">Your XI</span><span class="you">YOU</span></div>
+        <div class="v">v</div>
+        <div class="side r"><span class="tn">Morocco</span><span class="yr">2022</span><span class="fl fl-ma"></span></div>
+      </div>
+    </div>
+  </div>
+
+</div>

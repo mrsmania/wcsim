@@ -18,6 +18,36 @@ Pure client-side: no backend, no database. All player data is hardcoded in
 - State is a single `useReducer` phase machine; all game logic is pure functions in
   `src/domain/`. No state-management library, no router.
 - Flags from `country-flag-icons`; icons from `lucide-react`.
+- Fonts: **Archivo** (display), **Schibsted Grotesk** (body), **Spline Sans Mono**
+  (data/numerals), loaded via a Google Fonts `<link>` in `index.html`.
+
+## Visual design (turf-flat)
+
+The UI was redesigned in 2026 to the **"turf-flat"** look: a flat matchday-programme
+take on the football-green identity, with a top-down tactics-board pitch. The app
+matches the static mockups in `docs/redesign-2026/turf-flat/`.
+
+- **Tokens** live in `src/index.css` `@theme` (single source of truth; Tailwind v4
+  generates the utilities). Palette: `--color-ground` (paper), `--color-panel`,
+  `--color-chalk`, `--color-ink`, `--color-muted`, `--color-line`, `--color-pitch`,
+  `--color-pitch-dark`, `--color-amber`, `--color-loss`. Shadows: `--shadow-hard`
+  (the signature tifo hard offset card shadow, used via `shadow-hard`) + a soft one.
+- **Cards** are flat: `rounded-md` (6px) + 1px `border-line` + `shadow-hard`.
+- **Pitch** (`Pitch.tsx`) is **2D only** (the old 3D/perspective pitch and its
+  `pitch3d` flag were removed). It draws an SVG board in a fixed 480x640 box, markings
+  inset 3.5% for a grass margin, grass stripes over a solid base, white markings
+  (centre circle, penalty boxes/arcs/spots, corner arcs), and HTML player badges
+  placed over the "meet"-fitted board. Open slots show a "+" only when the selected
+  player can fill them (amber = natural/best position, white = a secondary one).
+- **Layout** (`App.tsx`): a 3-column grid (settings/squad/complete | pitch |
+  ratings+chemistry+line-up) using the comps' breakpoints (1 col < 760px, 2 col
+  760-1080, 3 col >= 1080). A masthead (crest + WORLD CUP SIMULATOR wordmark + tagline
+  + phase status stamp) and a phase-aware section header sit above it.
+
+The comps (`home`, `selected-xi`, `tournament`, `index` launcher) carry a live
+5-scheme colour switcher that is deliberately **comp-only**; the app ships the single
+default green scheme. Earlier explorations live alongside: `option-{1,2,3}-*.html`
+and the brutalist `tifo/` set (the hard-shadow idea came from there).
 
 ## Commands
 
@@ -79,7 +109,10 @@ simulation is separate from playback.
   like Amadou Onana vs Andre Onana, Marcus Thuram vs Lilian Thuram).
 - **Formations**: `RAW_FORMATIONS` in `formations.ts`; the layout engine derives
   pitch coordinates from role counts. Style (`def | bal | off`) changes shape (def
-  adds a DM, off adds an AM) and vertical placement.
+  adds a DM, off adds an AM) and vertical placement. Vertical `BANDS` run forwards to
+  keeper on even spacing; each row spreads horizontally - rows with flanking wide
+  roles (e.g. a back 5) distribute evenly between the touchline anchors, purely
+  central lines cluster around the middle.
 - **Draft**: roll a squad -> pick an eligible player -> place into a position-matching
   open slot. `canPlace` allows any slot whose role is in `positions`; re-rolls are
   "another team" (same year), "another cup" (same nation), or "any".
@@ -141,8 +174,11 @@ intact squads with innate chemistry). Lives in `domain/chemistry.ts`; surfaced i
   dismisses on scroll/resize. Hover-only by design.
 - `Flag.tsx` renders **only real flags** (no code-box fallback; returns `null` if a
   code is unmapped). The red "YOU" badge marks the user's own team in match screens.
-- `BoxScore` shows four rating squares (Att = FWD, Mid = MID, Def = GK+DEF, Ovr =
-  all) plus the chemistry box.
+- `BoxScore` (right column) renders the **ratings strip** (Ovr = all, Att = FWD,
+  Mid = MID, Def = GK+DEF; Ovr is the deep-green hero cell) and, below it, the
+  **chemistry card** (donut + effective overall + per-category breakdown chips).
+  `XiTable` is the **line-up sheet** below them (pos / name / flag+year / rating,
+  GK row on chalk).
 
 ## Hosting
 
