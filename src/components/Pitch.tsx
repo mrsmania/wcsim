@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/types';
 import type { Formation, Slot } from '../domain/formations';
@@ -8,7 +8,7 @@ import { FEATURES } from '../config';
 import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
-const STRIPES = 18;
+const STRIPES = 20;
 
 const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 
@@ -75,6 +75,84 @@ function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
     return prev.map((_, i) => next[colForRow[i]]);
 }
 
+// --- Perspective projection --------------------------------------------------
+// One pure function maps pitch coords to a 600x400-ish drawing space; the SVG and
+// the (flat HTML) badges both use it, so badge positions are exact and need no
+// DOM measurement. The SVG stretches its viewBox to the container and badges are
+// placed as a percentage of the same box, so the two always line up.
+const VBW = 600;
+const VBH = 680;
+const PAD_TOP = 64; // empty space above the far goal line so forward badges fit
+const PAD_BOT = 20;
+const TOP_RATIO = 0.6; // far edge width as a fraction of the near (bottom) edge
+const BADGE_MIN_SCALE = 1; // far badges this fraction of near size (1 = constant)
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+interface Proj {
+    x: number;
+    y: number;
+    s: number;
+    yf: number;
+}
+type Project = (u: number, v: number) => Proj;
+
+/** (u,v) in 0..1, v: 0 = far (top) .. 1 = near (bottom). Tilt = a receding-plane
+ *  perspective (full foreshortening); flat = a plain rectangle (mobile). */
+function makeProject(tilt: boolean): Project {
+    if (!tilt) return (u, v) => ({ x: u * VBW, y: v * VBH, s: 1, yf: v });
+    const D = 1 / TOP_RATIO;
+    const planeH = VBH - PAD_TOP - PAD_BOT;
+    return (u, v) => {
+        const d = 1 + (D - 1) * (1 - v); // depth: near (v=1) = 1, far (v=0) = D
+        const yf = (1 / d - TOP_RATIO) / (1 - TOP_RATIO); // screen fraction (0 far .. 1 near)
+        const s = lerp(TOP_RATIO, 1, yf); // width grows linearly with screen depth
+        return { x: VBW / 2 + (u - 0.5) * s * VBW, y: PAD_TOP + yf * planeH, s, yf };
+    };
+}
+
+const d2 = (n: number) => Math.round(n * 100) / 100;
+/** Project a point given in the classic 300x400 pitch space. */
+const vb = (P: Project, vx: number, vy: number) => P(vx / 300, vy / 400);
+
+function pathOf(P: Project, pts: [number, number][], close = false): string {
+    let s = '';
+    pts.forEach((pt, i) => {
+        const q = vb(P, pt[0], pt[1]);
+        s += `${i ? 'L' : 'M'}${d2(q.x)} ${d2(q.y)} `;
+    });
+    return s + (close ? 'Z' : '');
+}
+
+/** Sample an arc (angles in degrees, in 300x400 pitch space) as points. */
+function arcPts(cx: number, cy: number, r: number, a0: number, a1: number, n: number): [number, number][] {
+    const out: [number, number][] = [];
+    for (let i = 0; i <= n; i++) {
+        const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+        out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    return out;
+}
+const circlePts = (cx: number, cy: number, r: number, n: number) => arcPts(cx, cy, r, 0, 360, n);
+
+/** All pitch markings, authored in 300x400 space and projected, as one path. */
+function markingsPath(P: Project): string {
+    return [
+        pathOf(P, [[0, 0], [300, 0], [300, 400], [0, 400]], true), // touchlines
+        pathOf(P, [[0, 200], [300, 200]]), // halfway line
+        pathOf(P, circlePts(150, 200, 46, 64), true), // centre circle
+        pathOf(P, [[62, 0], [62, 60], [238, 60], [238, 0]]), // top penalty box
+        pathOf(P, [[112, 0], [112, 22], [188, 22], [188, 0]]), // top 6-yard box
+        pathOf(P, [[62, 400], [62, 340], [238, 340], [238, 400]]), // bottom penalty box
+        pathOf(P, [[112, 400], [112, 378], [188, 378], [188, 400]]), // bottom 6-yard box
+        pathOf(P, arcPts(150, 40, 44, 27, 153, 20)), // top "D"
+        pathOf(P, arcPts(150, 360, 44, 207, 333, 20)), // bottom "D"
+        pathOf(P, arcPts(0, 0, 9, 90, 0, 6)), // corner arcs
+        pathOf(P, arcPts(300, 0, 9, 180, 90, 6)),
+        pathOf(P, arcPts(300, 400, 9, 270, 180, 6)),
+        pathOf(P, arcPts(0, 400, 9, 360, 270, 6)),
+    ].join(' ');
+}
+
 interface Props {
     formation: Formation;
     filled: Filled;
@@ -83,17 +161,15 @@ interface Props {
     onPlace: (slotId: string) => void;
 }
 
-/** Width (px, in field space) of the invisible measurement anchors. Their
- *  rendered width after the 3D transform gives the perspective scale at a point. */
-const ANCHOR_W = 90;
-
-/** One placed player or open slot, rendered flat in the 2D overlay at a measured
- *  screen position so it stays crisp and upright over the tilted pitch. */
+/** One placed player or open slot, rendered flat over the pitch at a projected
+ *  position (a percentage of the stage) so it stays crisp and upright. */
 function OverlayMarker({
     slot,
     player,
     target,
-    pos,
+    leftPct,
+    topPct,
+    scale,
     tilt,
     compact,
     onPlace,
@@ -103,15 +179,18 @@ function OverlayMarker({
     /** Whether this open slot matches the selected player's natural (primary) or a
      *  secondary position, so the pulse can be colour-coded; 'none' = not a target. */
     target: 'none' | 'primary' | 'secondary';
-    pos: { x: number; y: number; s: number };
+    leftPct: number;
+    topPct: number;
+    scale: number;
     tilt: boolean;
     /** Mobile: show a minimal badge (number + last name only). */
     compact: boolean;
     onPlace: (slotId: string) => void;
 }) {
-    const transform = `translate(-50%, ${tilt ? '-100%' : '-50%'}) scale(${pos.s})`;
-    // Slide to the new measured spot when the formation changes.
+    const transform = `translate(-50%, ${tilt ? '-100%' : '-50%'}) scale(${scale})`;
+    // Slide to the new spot when the formation changes.
     const transition = 'left 0.45s ease-out, top 0.45s ease-out, transform 0.45s ease-out';
+    const style = { left: `${leftPct}%`, top: `${topPct}%`, transform, transformOrigin: 'bottom center', transition };
     const shadow = tilt ? (
         <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 bg-[radial-gradient(closest-side,rgba(0,0,0,0.33),transparent)]" />
     ) : null;
@@ -119,16 +198,7 @@ function OverlayMarker({
     if (player) {
         const squad = SQUAD_BY_ID[player.squadId];
         return (
-            <div
-                className="absolute flex flex-col items-center"
-                style={{
-                    left: pos.x,
-                    top: pos.y,
-                    transform,
-                    transformOrigin: 'bottom center',
-                    transition,
-                }}
-            >
+            <div className="absolute flex flex-col items-center" style={style}>
                 {shadow}
                 <PlayerBadge
                     name={lastName(player.name)}
@@ -146,13 +216,7 @@ function OverlayMarker({
     return (
         <button
             className="absolute flex flex-col items-center"
-            style={{
-                left: pos.x,
-                top: pos.y,
-                transform,
-                transformOrigin: 'bottom center',
-                transition,
-            }}
+            style={style}
             disabled={target === 'none'}
             onClick={() => onPlace(slot.id)}
         >
@@ -189,7 +253,7 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
     }, [formation]);
 
     // Below lg the 3D tilt wastes too much vertical space, so the pitch is flat
-    // (and badges are minimal); the tilted 3D pitch is desktop-only.
+    // (and badges are minimal); the tilted pitch is desktop-only.
     const [isMobile, setIsMobile] = useState(
         () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
     );
@@ -201,123 +265,61 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
     }, []);
 
     const tilt = FEATURES.pitch3d && !isMobile;
-
-    // Player badges render flat in a 2D overlay (never inside the 3D transform, so
-    // they stay readable). Invisible anchors sit on the tilted surface; we measure
-    // where each lands on screen and place its badge there.
-    const stageRef = useRef<HTMLDivElement | null>(null);
-    const anchorRefs = useRef<(HTMLSpanElement | null)[]>([]);
-    const [positions, setPositions] = useState<{ x: number; y: number; s: number }[]>([]);
-
-    useLayoutEffect(() => {
-        const stage = stageRef.current;
-        if (!stage) return;
-        const measure = () => {
-            const sr = stage.getBoundingClientRect();
-            setPositions(
-                circles.map((_, k) => {
-                    const a = anchorRefs.current[k];
-                    if (!a) return { x: 0, y: 0, s: 1 };
-                    const r = a.getBoundingClientRect();
-                    const s = tilt ? Math.max(0.84, Math.min(1, r.width / ANCHOR_W)) : 1;
-                    return {
-                        x: r.left - sr.left + r.width / 2,
-                        y: r.top - sr.top + r.height / 2,
-                        s,
-                    };
-                }),
-            );
-        };
-        measure();
-        const ro = new ResizeObserver(measure);
-        ro.observe(stage);
-        return () => ro.disconnect();
-    }, [circles, tilt]);
+    const P = makeProject(tilt);
+    const marks = markingsPath(P);
+    const spots = [
+        [150, 200],
+        [150, 40],
+        [150, 360],
+    ].map(([vx, vy]) => vb(P, vx, vy));
 
     return (
-        <div
-            ref={stageRef}
-            className={[
-                'relative mx-auto h-full w-full max-w-2xl overflow-hidden',
-                tilt ? 'pitch-stage' : '',
-            ].join(' ')}
-        >
-            {/* Pitch surface: tilts back in 3D (stripes + markings recede); flat fills the frame.
-          The top of the field is cropped above the container so the attacking third
-          does not leave a band of empty grass over the forwards. No box around it. */}
-            <div
-                className={tilt ? 'pitch-field absolute overflow-hidden' : 'absolute inset-0'}
-                style={tilt ? { left: '2%', right: '2%', top: '-4%', bottom: '1%' } : undefined}
+        <div className="relative mx-auto h-full w-full max-w-3xl overflow-hidden">
+            {/* Pitch surface: grass stripes + markings, drawn in perspective (or flat
+          on mobile) from the projection. The viewBox stretches to fill the frame. */}
+            <svg
+                className="absolute inset-0 h-full w-full"
+                viewBox={`0 0 ${VBW} ${VBH}`}
+                preserveAspectRatio="none"
+                aria-hidden="true"
             >
-                {/* Mowing stripes */}
-                <div className="absolute inset-0">
-                    {Array.from({ length: STRIPES }).map((_, i) => (
-                        <div
+                {Array.from({ length: STRIPES }, (_, i) => {
+                    const v0 = i / STRIPES;
+                    const v1 = (i + 1) / STRIPES;
+                    const a = P(0, v0);
+                    const b = P(1, v0);
+                    const c = P(1, v1);
+                    const e = P(0, v1);
+                    return (
+                        <polygon
                             key={i}
-                            className={i % 2 === 0 ? 'bg-[#3f7d4e] ' : 'bg-[#458a57]'}
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                right: 0,
-                                top: `${(i * 100) / STRIPES}%`,
-                                height: `${100 / STRIPES}%`,
-                            }}
+                            points={`${d2(a.x)},${d2(a.y)} ${d2(b.x)},${d2(b.y)} ${d2(c.x)},${d2(c.y)} ${d2(e.x)},${d2(e.y)}`}
+                            fill={i % 2 === 0 ? '#3f7d4e' : '#458a57'}
                         />
-                    ))}
-                </div>
-                {/* Markings. viewBox matches the 3:4 pitch aspect, so preserveAspectRatio="none"
-            stretches to fill without distorting the line weight. */}
-                <svg
-                    className="pointer-events-none absolute inset-0 h-full w-full"
-                    viewBox="0 0 300 400"
-                    preserveAspectRatio="none"
+                    );
+                })}
+                <path
+                    d={marks}
                     fill="none"
                     stroke="rgba(255,255,255,0.6)"
-                    strokeWidth={1.2}
-                    aria-hidden="true"
-                >
-                    {/* Halfway line + centre circle and spot */}
-                    <line x1="0" y1="200" x2="300" y2="200" />
-                    <circle cx="150" cy="200" r="46" />
-                    <circle cx="150" cy="200" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
-                    {/* Top end: penalty box, 6-yard box, penalty spot, "D" arc */}
-                    <path d="M62 0 V60 H238 V0" />
-                    <path d="M112 0 V22 H188 V0" />
-                    <circle cx="150" cy="40" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
-                    <path d="M110.8 60 A44 44 0 0 0 189.2 60" />
-                    {/* Bottom end: penalty box, 6-yard box, penalty spot, "D" arc */}
-                    <path d="M62 400 V340 H238 V400" />
-                    <path d="M112 400 V378 H188 V400" />
-                    <circle cx="150" cy="360" r="2.4" fill="rgba(255,255,255,0.6)" stroke="none" />
-                    <path d="M110.8 340 A44 44 0 0 1 189.2 340" />
-                    {/* Corner arcs */}
-                    <path d="M0 9 A9 9 0 0 0 9 0" />
-                    <path d="M291 0 A9 9 0 0 0 300 9" />
-                    <path d="M300 391 A9 9 0 0 0 291 400" />
-                    <path d="M9 400 A9 9 0 0 0 0 391" />
-                </svg>
-                {/* Translucent inner frame: layered over the green stripes so the 30% white tints the pitch edge */}
-                <div className="pointer-events-none absolute inset-0 border-3 border-white/30" />
-                {/* Invisible anchors, one per slot, measured to place the flat badges. */}
-                {circles.map((slot, k) => (
-                    <span
-                        key={k}
-                        ref={(el) => {
-                            anchorRefs.current[k] = el;
-                        }}
-                        aria-hidden="true"
-                        className="absolute -translate-x-1/2 -translate-y-1/2"
-                        style={{
-                            left: `${slot.x}%`,
-                            top: `${slot.y}%`,
-                            width: ANCHOR_W,
-                            height: 0,
-                        }}
-                    />
+                    strokeWidth={1.4}
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                />
+                {spots.map((q, k) => (
+                    <circle key={k} cx={d2(q.x)} cy={d2(q.y)} r={2.6} fill="rgba(255,255,255,0.6)" />
                 ))}
-            </div>
+                {/* Translucent inner frame: tints the very edge of the pitch. */}
+                <path
+                    d={pathOf(P, [[0, 0], [300, 0], [300, 400], [0, 400]], true)}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth={4}
+                    vectorEffect="non-scaling-stroke"
+                />
+            </svg>
 
-            {/* Flat 2D player overlay, positioned from the measured anchors. */}
+            {/* Flat player overlay, positioned from the same projection (no measuring). */}
             <div className="absolute inset-0">
                 {circles.map((slot, k) => {
                     const player = filled[slot.id] ?? null;
@@ -330,15 +332,16 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                         : selectedPlayer!.positions[0] === slot.position
                           ? 'primary'
                           : 'secondary';
-                    const pos = positions[k];
-                    if (!pos) return null;
+                    const q = P(slot.x / 100, slot.y / 100);
                     return (
                         <OverlayMarker
                             key={k}
                             slot={slot}
                             player={player}
                             target={target}
-                            pos={pos}
+                            leftPct={(q.x / VBW) * 100}
+                            topPct={(q.y / VBH) * 100}
+                            scale={lerp(BADGE_MIN_SCALE, 1, q.yf)}
                             tilt={tilt}
                             compact={isMobile}
                             onPlace={onPlace}
