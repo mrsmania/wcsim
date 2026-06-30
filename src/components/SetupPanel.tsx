@@ -40,7 +40,7 @@ export default function SetupPanel({
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
-        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <div className="rounded-md border border-line bg-panel shadow-hard">
             {/* Formation */}
             <div className="p-[18px]">
                 <p className={SEGLBL}>Formation</p>
