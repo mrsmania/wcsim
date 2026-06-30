@@ -148,7 +148,7 @@ export default function SquadPanel({
                     onClick={() => onReroll('cup')}
                 />
                 <RerollButton
-                    label="Anything"
+                    label="Roll again"
                     primary
                     disabled={rerollDisabled}
                     onClick={() => onReroll('any')}

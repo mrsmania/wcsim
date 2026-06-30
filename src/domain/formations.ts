@@ -79,12 +79,13 @@ const BANDS: Band[] = [
 const SHIFT: Record<Style, number> = { def: 2, bal: 0, off: -2 };
 
 // --- Horizontal layout (0 = left touchline, 100 = right). EDIT THESE to move
-// players sideways. Wide roles (lb/lm/lw and rb/rm/rw) hug the touchlines;
-// central roles fan out symmetrically around the middle, CENTER_GAP apart. ---
-const LEFT_WIDE = 12; // x for the leftmost wide role
-const RIGHT_WIDE = 88; // x for the rightmost wide role
-const CENTER_GAP = 25; // spacing between adjacent central players
-const WIDE_GAP = 9; // spacing if a side ever holds 2+ players
+// players sideways. A line with flanking wide roles (lb/lm/lw and rb/rm/rw) is
+// spread evenly between the touchline anchors, so a back 5 or a five-man midfield
+// gets equal gaps; a purely central line fans out around the middle CENTER_GAP
+// apart. ---
+const LEFT_WIDE = 10; // x for the leftmost wide role
+const RIGHT_WIDE = 90; // x for the rightmost wide role
+const CENTER_GAP = 25; // spacing between adjacent players in a purely central line
 
 // Per-role depth nudge relative to the band line: negative = more advanced
 // (toward the opponent goal), positive = deeper. Staggers each line so it is
@@ -138,15 +139,25 @@ function buildFormation(name: string, style: Style, counts: Record<CsvPos, numbe
         const arc = (k: number, n: number) =>
             n >= 3 ? CENTER_ARC * (1 - (2 * Math.abs(k - (n - 1) / 2)) / (n - 1)) : 0;
 
-        const placed: { m: Member; x: number; dy: number }[] = [
-            ...lefts.map((m, k) => ({ m, x: LEFT_WIDE + k * WIDE_GAP, dy: 0 })),
-            ...centers.map((m, k) => ({
-                m,
-                x: 50 + (k - (centers.length - 1) / 2) * CENTER_GAP,
-                dy: arc(k, centers.length),
-            })),
-            ...rights.map((m, k) => ({ m, x: RIGHT_WIDE - k * WIDE_GAP, dy: 0 })),
+        // Left -> centre -> right order, tagged with the vertical bow on central runs.
+        const ordered: { m: Member; dy: number }[] = [
+            ...lefts.map((m) => ({ m, dy: 0 })),
+            ...centers.map((m, k) => ({ m, dy: arc(k, centers.length) })),
+            ...rights.map((m) => ({ m, dy: 0 })),
         ];
+        const rowLen = ordered.length;
+        const hasWide = lefts.length > 0 || rights.length > 0;
+        // With flanking wide players, spread the whole row evenly between the touchline
+        // anchors so the outer gaps match the inner ones (a back 5, a five-man
+        // midfield); a purely central line clusters around the middle.
+        const placed = ordered.map((e, i) => ({
+            m: e.m,
+            x:
+                hasWide && rowLen > 1
+                    ? LEFT_WIDE + ((RIGHT_WIDE - LEFT_WIDE) * i) / (rowLen - 1)
+                    : 50 + (i - (rowLen - 1) / 2) * CENTER_GAP,
+            dy: e.dy,
+        }));
 
         const labelCount: Record<string, number> = {};
         for (const { m, x, dy } of placed) {

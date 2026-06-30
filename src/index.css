@@ -97,24 +97,24 @@ button:not(:disabled) {
 }
 
 /* Pulse used to highlight valid, open slots once a player is selected. Two
-   colours: green for the player's natural (primary) position, amber for a
-   secondary position they can also fill. */
+   colours, both clearly readable on the green pitch: amber for the player's
+   natural (primary) position, white for a secondary position they can also fill. */
 @keyframes slot-pulse-primary {
     0%,
     100% {
-        box-shadow: 0 0 0 0 rgba(19, 146, 76, 0.6);
+        box-shadow: 0 0 0 0 rgba(228, 146, 43, 0.7);
     }
     50% {
-        box-shadow: 0 0 0 9px rgba(19, 146, 76, 0);
+        box-shadow: 0 0 0 9px rgba(228, 146, 43, 0);
     }
 }
 @keyframes slot-pulse-secondary {
     0%,
     100% {
-        box-shadow: 0 0 0 0 rgba(242, 169, 59, 0.65);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.75);
     }
     50% {
-        box-shadow: 0 0 0 9px rgba(242, 169, 59, 0);
+        box-shadow: 0 0 0 9px rgba(255, 255, 255, 0);
     }
 }
 .animate-slot-pulse-primary {

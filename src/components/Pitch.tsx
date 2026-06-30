@@ -228,15 +228,15 @@ function OverlayMarker({
         >
             <div
                 className={[
-                    'grid h-12 w-12 place-items-center rounded-full border-2 border-dashed text-lg font-semibold leading-none transition',
+                    'grid h-12 w-12 place-items-center rounded-full border-2 text-lg font-semibold leading-none transition',
                     target === 'primary'
-                        ? 'animate-slot-pulse-primary cursor-pointer border-pitch bg-pitch/25 text-white'
+                        ? 'animate-slot-pulse-primary cursor-pointer border-amber bg-amber/90 text-ink'
                         : target === 'secondary'
-                          ? 'animate-slot-pulse-secondary cursor-pointer border-amber bg-amber/25 text-white'
-                          : 'border-white/80 bg-white/15 text-white',
+                          ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
+                          : 'border-dashed border-white/55 bg-white/10 text-white',
                 ].join(' ')}
             >
-                +
+                {target !== 'none' ? '+' : null}
             </div>
             <span className="mt-1.5 rounded-[3px] bg-ink/60 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
                 {slot.label}
