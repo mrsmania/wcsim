@@ -276,10 +276,13 @@ export default function App() {
     return (
         <div className="min-h-full text-ink">
             <div className="mx-auto max-w-[1400px] px-4 py-5">
-                <header className="mb-5 flex items-baseline gap-3 border-b-2 border-stone-900 pb-2">
-                    <h1 className="text-2xl font-black tracking-tight">World Cup Simulator</h1>
-                    <span className="text-sm font-semibold text-stone-500">
-                        Draft your randomized dream world cup XI
+                <header className="mb-5 flex items-center gap-3 border-b-2 border-ink pb-3">
+                    <span className="h-9 w-9 shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)]" />
+                    <h1 className="font-display text-2xl font-extrabold tracking-tight">
+                        WORLD CUP <span className="text-pitch">SIMULATOR</span>
+                    </h1>
+                    <span className="text-sm font-medium text-muted max-sm:hidden">
+                        Draft a random XI. Win the cup.
                     </span>
                 </header>
 

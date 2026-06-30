@@ -85,7 +85,7 @@ export default function BoxScore({ formation, filled, showChemistry = false }: P
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;
 
     return (
-        <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-panel p-3 shadow-soft">
+        <div className="flex flex-col gap-2.5 rounded-md border border-line bg-panel p-3 shadow-hard">
             <div className="flex flex-wrap items-stretch gap-2.5">
                 {/* Overall hero */}
                 <div className="flex items-center gap-3 rounded-xl bg-gradient-to-br from-pitch to-pitch-dark px-4 py-2.5 text-white shadow-[0_8px_18px_rgba(12,111,57,0.26)]">

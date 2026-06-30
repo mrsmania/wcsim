@@ -18,10 +18,10 @@ export default function CompletePanel({ formation, filled, onStart, onReset }: P
   const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-line bg-panel p-4 shadow-soft">
+    <div className="flex flex-col gap-4 rounded-md border border-line bg-panel p-4 shadow-hard">
       <div className="border-b border-line pb-3">
         <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted">Complete</div>
-        <h2 className="text-2xl font-extrabold leading-tight">Your XI is set ⚽</h2>
+        <h2 className="font-display text-2xl font-extrabold leading-tight">Your XI is set ⚽</h2>
         <div className="text-lg font-bold text-pitch">
           Formation {formation.name} · avg rating {base}
           {chem && chem.bonus > 0 && (

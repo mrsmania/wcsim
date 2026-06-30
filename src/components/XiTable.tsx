@@ -15,7 +15,7 @@ export default function XiTable({ formation, filled }: { formation: Formation; f
     );
 
     return (
-        <ul className="flex flex-col rounded-2xl border border-line bg-panel px-3 shadow-soft">
+        <ul className="flex flex-col rounded-md border border-line bg-panel px-3 shadow-hard">
             {ordered.map((slot) => {
                 const player = filled[slot.id];
                 const sq = player ? SQUAD_BY_ID[player.squadId] : null;

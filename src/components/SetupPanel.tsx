@@ -38,7 +38,7 @@ export default function SetupPanel({
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
-        <div className="flex flex-col gap-5 rounded-2xl border border-line bg-panel p-4 shadow-soft">
+        <div className="flex flex-col gap-5 rounded-md border border-line bg-panel p-4 shadow-hard">
             {/* Formation */}
             <div className="flex flex-col gap-1.5">
                 <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted">

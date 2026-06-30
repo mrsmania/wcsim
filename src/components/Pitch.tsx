@@ -84,6 +84,11 @@ function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
 // constant regardless of how tall or wide the container is.
 const VBW = 720;
 const VBH = 640;
+// Flat (top-down) drawing box. 480x640 maps the 300x400 authored markings at a
+// uniform 1.6x scale, so circles stay round (no stretch); the SVG fits this box
+// with "meet" and the badges sit over the fitted, centred box.
+const FLAT_W = 480;
+const FLAT_H = 640;
 const PAD_TOP = 64; // empty space above the far goal line so forward badges fit
 const PAD_BOT = 20;
 const TOP_RATIO = 0.55; // far edge width as a fraction of the near (bottom) edge
@@ -101,7 +106,7 @@ type Project = (u: number, v: number) => Proj;
 /** (u,v) in 0..1, v: 0 = far (top) .. 1 = near (bottom). Tilt = a receding-plane
  *  perspective (full foreshortening); flat = a plain rectangle (mobile). */
 function makeProject(tilt: boolean): Project {
-    if (!tilt) return (u, v) => ({ x: u * VBW, y: v * VBH, s: 1, yf: v });
+    if (!tilt) return (u, v) => ({ x: u * FLAT_W, y: v * FLAT_H, s: 1, yf: v });
     const D = 1 / TOP_RATIO;
     const planeH = VBH - PAD_TOP - PAD_BOT;
     return (u, v) => {
@@ -279,10 +284,12 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
         ro.observe(el);
         return () => ro.disconnect();
     }, []);
-    // "meet" fit: scale the VBW x VBH box to fit, then centre it in the stage.
-    const fit = box.w > 0 && box.h > 0 ? Math.min(box.w / VBW, box.h / VBH) : 0;
-    const ox = (box.w - VBW * fit) / 2;
-    const oy = (box.h - VBH * fit) / 2;
+    // "meet" fit: scale the drawing box to fit, then centre it in the stage.
+    const W = tilt ? VBW : FLAT_W;
+    const H = tilt ? VBH : FLAT_H;
+    const fit = box.w > 0 && box.h > 0 ? Math.min(box.w / W, box.h / H) : 0;
+    const ox = (box.w - W * fit) / 2;
+    const oy = (box.h - H * fit) / 2;
 
     const P = makeProject(tilt);
     const marks = markingsPath(P);
@@ -293,14 +300,17 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
     ].map(([vx, vy]) => vb(P, vx, vy));
 
     return (
-        <div ref={stageRef} className="relative mx-auto h-full w-full max-w-3xl overflow-hidden">
+        <div
+            ref={stageRef}
+            className="relative mx-auto aspect-[3/4] h-full max-h-full max-w-full overflow-hidden rounded-md border border-line shadow-hard"
+        >
             {/* Pitch surface: grass stripes + markings, drawn in perspective (or flat
           on mobile) from the projection. "meet" keeps a constant shape/angle and
           centres the pitch; the badges are positioned over the same fitted box. */}
             <svg
                 className="absolute inset-0 h-full w-full"
-                viewBox={`0 0 ${VBW} ${VBH}`}
-                preserveAspectRatio={tilt ? 'xMidYMid meet' : 'none'}
+                viewBox={`0 0 ${W} ${H}`}
+                preserveAspectRatio="xMidYMid meet"
                 aria-hidden="true"
             >
                 {Array.from({ length: STRIPES }, (_, i) => {
@@ -344,7 +354,7 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
           stretched to fill, so badges sit at a percentage and keep a readable,
           constant size. */}
             <div className="absolute inset-0">
-                {(!tilt || fit > 0) &&
+                {fit > 0 &&
                     circles.map((slot, k) => {
                         const player = filled[slot.id] ?? null;
                         const matches =
@@ -364,9 +374,9 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                                 slot={slot}
                                 player={player}
                                 target={target}
-                                left={tilt ? `${ox + q.x * fit}px` : `${(q.x / VBW) * 100}%`}
-                                top={tilt ? `${oy + q.y * fit}px` : `${(q.y / VBH) * 100}%`}
-                                scale={tilt ? Math.min(fit, 1) * depth : depth}
+                                left={`${ox + q.x * fit}px`}
+                                top={`${oy + q.y * fit}px`}
+                                scale={Math.min(fit, 1) * depth}
                                 tilt={tilt}
                                 onPlace={onPlace}
                                 onRemove={
