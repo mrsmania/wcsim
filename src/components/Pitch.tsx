@@ -78,13 +78,19 @@ function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
 // and the badges sit over the fitted, centred box.
 const VBW = 480;
 const VBH = 640;
-const SX = VBW / 300;
-const SY = VBH / 400;
+// Inset the markings from the board edge by this fraction, leaving a grass margin
+// around the touchlines (matches the comp's .out inset of 3.5%). The same fraction
+// of each side keeps the x/y scale equal, so circles stay round.
+const PAD = 0.035;
+const PADX = PAD * VBW;
+const PADY = PAD * VBH;
+const SX = (VBW - 2 * PADX) / 300;
+const SY = (VBH - 2 * PADY) / 400;
 
 const d2 = (n: number) => Math.round(n * 100) / 100;
-/** Map a point given in the classic 300x400 pitch space into the drawing box. */
-const px = (vx: number) => vx * SX;
-const py = (vy: number) => vy * SY;
+/** Map a point given in the classic 300x400 pitch space into the inset board. */
+const px = (vx: number) => PADX + vx * SX;
+const py = (vy: number) => PADY + vy * SY;
 
 function pathOf(pts: [number, number][], close = false): string {
     let s = '';
@@ -191,16 +197,19 @@ function OverlayMarker({
         >
             <div
                 className={[
-                    'flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed text-xs font-extrabold uppercase tracking-wide transition',
+                    'grid h-12 w-12 place-items-center rounded-full border-2 border-dashed text-lg font-semibold leading-none transition',
                     target === 'primary'
                         ? 'animate-slot-pulse-primary cursor-pointer border-pitch bg-pitch/25 text-white'
                         : target === 'secondary'
                           ? 'animate-slot-pulse-secondary cursor-pointer border-amber bg-amber/25 text-white'
-                          : 'border-white/70 bg-black/10 text-white/85',
+                          : 'border-white/80 bg-white/15 text-white',
                 ].join(' ')}
             >
-                {slot.label}
+                +
             </div>
+            <span className="mt-1.5 rounded-[3px] bg-ink/60 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
+                {slot.label}
+            </span>
         </button>
     );
 }
@@ -300,8 +309,8 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                             : selectedPlayer!.positions[0] === slot.position
                               ? 'primary'
                               : 'secondary';
-                        const qx = (slot.x / 100) * VBW;
-                        const qy = (slot.y / 100) * VBH;
+                        const qx = px((slot.x / 100) * 300);
+                        const qy = py((slot.y / 100) * 400);
                         return (
                             <OverlayMarker
                                 key={k}
