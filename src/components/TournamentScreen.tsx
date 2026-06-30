@@ -21,7 +21,7 @@ import {
     type KoResult,
 } from '../domain/knockout';
 import { buildMatchSteps, HALF_TIME_MS, PEN_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
-import { ArrowRight, Check, ChevronDown, ChevronRight, Play, Trophy, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, ChevronRight, Play, X } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import Flag from './Flag';
@@ -54,37 +54,33 @@ interface Props {
 const ALL_CODES = [...new Set(SQUADS.map((s) => s.code))];
 const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)];
 const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
+const ordinal = (n: number) => (n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`);
+
+/** Shared rectangular primary action button (the turf-flat `.btn.primary`). */
+const PRIMARY_BTN =
+    'inline-flex items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-5 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99]';
 
 /** A scored/missed pip (green check / red cross) for one penalty. */
 function PenPip({ scored }: { scored: boolean }) {
     return (
         <span
-            className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full ${
-                scored ? 'bg-win' : 'bg-loss'
+            className={`grid h-[17px] w-[17px] shrink-0 place-items-center rounded-full ${
+                scored ? 'bg-pitch' : 'bg-loss'
             }`}
         >
             {scored ? (
-                <Check size={11} strokeWidth={3.5} className="text-white" />
+                <Check size={10} strokeWidth={3.5} className="text-white" />
             ) : (
-                <X size={11} strokeWidth={3.5} className="text-white" />
+                <X size={10} strokeWidth={3.5} className="text-white" />
             )}
         </span>
     );
 }
 
-/** Penalty shootout sheet: every taker listed one by one, Your XI on the left
- *  versus the opponent on the right, each with their name and result, so the
- *  whole shootout stays readable in the accordion. Kicks alternate home/away
+/** Penalty shootout sheet (the turf-flat `.shoot`): every taker listed one by one,
+ *  Your XI on the left versus the opponent on the right. Kicks alternate home/away
  *  per round, so pairing them by index gives a head-to-head row per round. */
-function ShootoutFeed({
-    oppName,
-    kicks,
-    shown,
-}: {
-    oppName: string;
-    kicks: PenKick[];
-    shown: number;
-}) {
+function ShootoutFeed({ kicks, shown }: { kicks: PenKick[]; shown: number }) {
     const revealed = kicks.slice(0, shown);
     const homeKicks = revealed.filter((k) => k.side === 'home');
     const awayKicks = revealed.filter((k) => k.side === 'away');
@@ -93,46 +89,38 @@ function ShootoutFeed({
     const rounds = Math.max(homeKicks.length, awayKicks.length);
 
     return (
-        <div className="mt-2 border-t border-line pt-3">
-            <div className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
-                Penalty shootout
-            </div>
-            <div className="mb-2.5 flex items-center justify-center gap-3 text-sm">
-                <span className="flex-1 truncate text-right font-black text-ink">Your XI</span>
-                <span className="shrink-0 rounded-lg bg-pitch/5 px-2.5 py-1 font-mono font-black text-ink">
+        <div className="mt-3 border-t border-line pt-3.5">
+            <div className="mb-3 text-center font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Penalty shootout &middot;{' '}
+                <b className="text-ink">
                     {homeScore}–{awayScore}
-                </span>
-                <span className="flex-1 truncate font-semibold text-ink">{oppName}</span>
+                </b>
             </div>
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col gap-2">
                 {Array.from({ length: rounds }, (_, i) => {
                     const h = homeKicks[i];
                     const a = awayKicks[i];
                     return (
                         <li
                             key={i}
-                            className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 text-[13px]"
+                            className="grid grid-cols-[1fr_22px_1fr] items-center gap-2.5 text-[13px]"
                         >
-                            <span className="flex min-w-0 items-center justify-end gap-2">
+                            <span className="flex min-w-0 items-center justify-end gap-2 font-semibold">
                                 {h ? (
                                     <>
-                                        <span className="truncate font-bold text-ink">
-                                            {h.taker}
-                                        </span>
+                                        <span className="truncate text-ink">{h.taker}</span>
                                         <PenPip scored={h.scored} />
                                     </>
                                 ) : null}
                             </span>
-                            <span className="w-6 text-center font-mono text-[10px] text-muted">
+                            <span className="text-center font-mono text-[10px] text-muted">
                                 {i + 1}
                             </span>
-                            <span className="flex min-w-0 items-center justify-start gap-2">
+                            <span className="flex min-w-0 items-center justify-start gap-2 font-semibold">
                                 {a ? (
                                     <>
                                         <PenPip scored={a.scored} />
-                                        <span className="truncate font-bold text-ink">
-                                            {a.taker}
-                                        </span>
+                                        <span className="truncate text-ink">{a.taker}</span>
                                     </>
                                 ) : null}
                             </span>
@@ -144,63 +132,278 @@ function ShootoutFeed({
     );
 }
 
-/** A compact label + chevron button that opens a small single-choice menu.
- *  Used in the header for the playback mode and speed selectors. */
-function MenuSelect<T extends string>({
+/** A labelled segmented control (the turf-flat `.ctl`): a mono caption followed by
+ *  inline option buttons, the active one filled ink. Stacks full-width on mobile. */
+function SegControl<T extends string>({
+    label,
     value,
     options,
     onSelect,
     ariaLabel,
 }: {
+    label: string;
     value: T;
     options: { value: T; label: string }[];
     onSelect: (v: T) => void;
     ariaLabel: string;
 }) {
-    const [open, setOpen] = useState(false);
-    const current = options.find((o) => o.value === value)?.label ?? '';
     return (
-        <div className="relative">
-            <button
-                onClick={() => setOpen((o) => !o)}
-                aria-label={ariaLabel}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-3.5 py-2 text-xs font-bold text-ink shadow-soft transition hover:border-pitch/40"
-            >
-                {current}
-                <ChevronDown size={14} strokeWidth={2.5} className="text-muted" />
-            </button>
-            {open && (
-                <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-                    <div className="absolute right-0 z-20 mt-1.5 w-40 overflow-hidden rounded-2xl border border-line bg-panel shadow-soft">
-                        {options.map((o) => (
-                            <button
-                                key={o.value}
-                                onClick={() => {
-                                    setOpen(false);
-                                    onSelect(o.value);
-                                }}
-                                className={`flex w-full items-center justify-between gap-2 border-b border-line px-3.5 py-2.5 text-left text-sm font-bold transition last:border-b-0 hover:bg-pitch/[0.06] ${
-                                    o.value === value ? 'text-ink' : 'text-muted'
-                                }`}
-                            >
-                                {o.label}
-                                {o.value === value && (
-                                    <Check size={14} strokeWidth={3} className="text-pitch" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </>
-            )}
+        <div
+            role="group"
+            aria-label={ariaLabel}
+            className="flex items-center overflow-hidden rounded-[5px] border border-line bg-panel max-sm:w-full"
+        >
+            <span className="shrink-0 pl-[11px] pr-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted">
+                {label}
+            </span>
+            <div className="flex max-sm:flex-1">
+                {options.map((o) => (
+                    <button
+                        key={o.value}
+                        onClick={() => onSelect(o.value)}
+                        aria-pressed={o.value === value}
+                        className={`whitespace-nowrap border-l border-line px-[11px] py-[9px] text-xs font-semibold transition max-sm:flex-1 ${
+                            o.value === value
+                                ? 'bg-ink text-ground'
+                                : 'bg-panel text-muted hover:text-ink'
+                        }`}
+                    >
+                        {o.label}
+                    </button>
+                ))}
+            </div>
         </div>
     );
 }
 
-/** The whole tournament on one screen: the header carries the playback mode and
- *  speed selectors, and the group matchdays + knockout rounds render below as one
- *  uniform, single-open accordion of game sections. In game-by-game mode a "Next
- *  game" button appears under the most recently finished game. */
+/** The two playback selectors (mode + speed), shown in the active stage header. */
+function PlaybackControls({
+    auto,
+    speed,
+    onSetAuto,
+    onSetSpeed,
+}: {
+    auto: boolean;
+    speed: MatchSpeed;
+    onSetAuto: (a: boolean) => void;
+    onSetSpeed: (s: MatchSpeed) => void;
+}) {
+    return (
+        <div className="flex flex-wrap items-center justify-end gap-2 max-sm:w-full">
+            <SegControl
+                ariaLabel="Playback mode"
+                label="Mode"
+                value={auto ? 'auto' : 'manual'}
+                onSelect={(v) => onSetAuto(v === 'auto')}
+                options={[
+                    { value: 'manual', label: 'Game by game' },
+                    { value: 'auto', label: 'Automatic' },
+                ]}
+            />
+            <SegControl
+                ariaLabel="Match speed"
+                label="Speed"
+                value={speed}
+                onSelect={onSetSpeed}
+                options={[
+                    { value: 'slow', label: 'Slow' },
+                    { value: 'normal', label: 'Normal' },
+                    { value: 'fast', label: 'Fast' },
+                ]}
+            />
+        </div>
+    );
+}
+
+/** A stage header (eyebrow + display heading), optionally carrying the controls. */
+function StageHeader({
+    eyebrow,
+    title,
+    controls,
+    headingRef,
+}: {
+    eyebrow: string;
+    title: string;
+    controls?: React.ReactNode;
+    headingRef?: React.Ref<HTMLDivElement>;
+}) {
+    return (
+        <div
+            ref={headingRef}
+            className="mb-[18px] mt-[30px] flex flex-wrap items-end justify-between gap-4"
+        >
+            <div>
+                <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                    {eyebrow}
+                </div>
+                <h2 className="mt-0.5 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
+                    {title}
+                </h2>
+            </div>
+            {controls}
+        </div>
+    );
+}
+
+/** Win / loss / draw or "live"/"up next" tag shown beside a matchday/round label. */
+function ResultTag({ kind, label }: { kind: 'w' | 'l' | 'd' | 'next'; label: string }) {
+    if (kind === 'next') {
+        return (
+            <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber">
+                {label}
+            </span>
+        );
+    }
+    const tone =
+        kind === 'w'
+            ? 'bg-pitch/[0.13] text-pitch'
+            : kind === 'l'
+              ? 'bg-loss/[0.13] text-loss'
+              : 'bg-chalk text-muted';
+    return (
+        <span
+            className={`rounded-[3px] px-2 py-[3px] font-mono text-[9.5px] font-bold uppercase tracking-[0.06em] ${tone}`}
+        >
+            {label}
+        </span>
+    );
+}
+
+/** The big fixture header for one game card (the turf-flat `.fx-top`): Your XI on
+ *  the home/left side, a dark score pill in the middle, the opponent on the right.
+ *  The user is always rendered as home, with the score from their perspective. */
+function FixtureHead({
+    oppName,
+    oppCode,
+    oppYear,
+    score,
+    status,
+    statusDim,
+    scrambleCode,
+}: {
+    oppName?: string;
+    oppCode?: string;
+    oppYear?: number;
+    /** User-perspective score; omitted renders the pending "v" pill. */
+    score?: { user: number; opp: number };
+    status?: string;
+    statusDim?: boolean;
+    /** Render the away side as a scrambling mystery: this flag code + "…". */
+    scrambleCode?: string;
+}) {
+    return (
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-[18px] py-[14px] max-sm:gap-1.5 max-sm:px-3 max-sm:text-[13px] sm:text-[14.5px]">
+            <div className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5">
+                <span className="truncate">Your XI</span>
+                <Flag isUser code="" className="h-[15px] w-[22px]" />
+            </div>
+            <div className="flex flex-col items-center gap-[3px] max-sm:min-w-[58px] sm:min-w-[74px]">
+                {score ? (
+                    <span className="rounded-[4px] bg-ink px-3.5 py-[3px] font-mono text-xl font-bold tracking-[0.02em] text-ground">
+                        {score.user}–{score.opp}
+                    </span>
+                ) : (
+                    <span className="rounded-[4px] border border-line px-3.5 py-[3px] font-mono text-xl font-bold tracking-[0.02em] text-muted">
+                        v
+                    </span>
+                )}
+                {status && (
+                    <span
+                        className={`font-mono text-[8.5px] font-semibold uppercase tracking-[0.1em] ${
+                            statusDim ? 'text-muted' : 'text-amber'
+                        }`}
+                    >
+                        {status}
+                    </span>
+                )}
+            </div>
+            <div className="flex min-w-0 items-center gap-[9px] font-semibold text-ink max-sm:gap-1.5">
+                {scrambleCode !== undefined ? (
+                    <>
+                        <Flag code={scrambleCode} className="h-[15px] w-[22px]" />
+                        <span className="truncate">…</span>
+                    </>
+                ) : (
+                    <>
+                        <Flag code={oppCode ?? ''} className="h-[15px] w-[22px]" />
+                        <span className="truncate">{oppName}</span>
+                        {oppYear && (
+                            <span className="shrink-0 font-mono text-[11px] font-medium text-muted">
+                                {oppYear}
+                            </span>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/** The amber "live" line shown at the foot of a feed while a match plays. */
+function LiveLine({ label }: { label: string }) {
+    return (
+        <div className="flex items-center gap-[7px] pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-amber">
+            <span className="h-[7px] w-[7px] rounded-full bg-amber" />
+            {label}
+        </div>
+    );
+}
+
+/** A full-bleed end-of-run banner: deep-green for champions, flat white otherwise. */
+function Banner({
+    champion,
+    eyebrow,
+    heading,
+    body,
+    onReset,
+}: {
+    champion: boolean;
+    eyebrow: string;
+    heading: string;
+    body: string;
+    onReset: () => void;
+}) {
+    const arc = champion ? 'border-white/15' : 'border-line';
+    return (
+        <div
+            className={`relative mt-[30px] overflow-hidden rounded-lg border p-8 text-center ${
+                champion ? 'border-pitch-dark bg-pitch-dark text-white' : 'border-line bg-panel'
+            }`}
+        >
+            <span
+                className={`pointer-events-none absolute -bottom-[60px] -left-[60px] h-40 w-40 rounded-full border-2 ${arc}`}
+            />
+            <span
+                className={`pointer-events-none absolute -right-[60px] -top-[60px] h-40 w-40 rounded-full border-2 ${arc}`}
+            />
+            <div
+                className={`relative font-mono text-[11px] font-semibold uppercase tracking-[0.24em] ${
+                    champion ? 'text-amber' : 'text-loss'
+                }`}
+            >
+                {eyebrow}
+            </div>
+            <h3 className="relative mt-2 font-display text-[40px] font-black leading-none tracking-[-0.02em] max-sm:text-3xl">
+                {heading}
+            </h3>
+            <p
+                className={`relative mx-auto mb-[18px] mt-3 max-w-[420px] text-sm ${
+                    champion ? 'text-white/80' : 'text-muted'
+                }`}
+            >
+                {body}
+            </p>
+            <button onClick={onReset} className={`relative ${PRIMARY_BTN}`}>
+                Draft a new XI <ArrowRight size={16} strokeWidth={2.5} />
+            </button>
+        </div>
+    );
+}
+
+/** The whole tournament on one screen: a group-stage section (standings + the
+ *  three matchdays) followed, once the user advances, by the knockout rounds. Each
+ *  game shows a fixture card with its goal feed. In game-by-game mode a "Next game"
+ *  button sits under the up-next game. */
 export default function TournamentScreen({
     group,
     knockout,
@@ -247,9 +450,6 @@ export default function TournamentScreen({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // --- single-open accordion across every game section ---
-    const [openKey, setOpenKey] = useState<string | null>(null);
-    const toggle = (key: string) => setOpenKey((k) => (k === key ? null : key));
     // Collapsible "all results" overview attached to the group table.
     const [showResults, setShowResults] = useState(false);
 
@@ -326,7 +526,6 @@ export default function TournamentScreen({
                     ),
                 };
             });
-            setOpenKey(`md-${md}`);
             setPlayingGroup({ matchday: md, results });
         },
         [group],
@@ -334,7 +533,6 @@ export default function TournamentScreen({
 
     const playRound = useCallback(() => {
         if (!knockout || !activeOpp) return;
-        setOpenKey(`ko-${knockout.current}`);
         setPlayingKo(playKnockout(knockout.user, activeOpp));
     }, [knockout, activeOpp]);
 
@@ -491,30 +689,30 @@ export default function TournamentScreen({
     // --- opening group draw view (full takeover, shown once) ---
     if (revealing) {
         return (
-            <div className="mx-auto flex max-w-2xl flex-col items-center gap-8 py-12">
-                <div className="text-center">
-                    <div className="text-[11px] font-bold tracking-[0.2em] text-muted">
-                        GROUP DRAW
-                    </div>
-                    <h2 className="font-display text-2xl font-black text-ink">Your group</h2>
-                </div>
-                <div className="flex flex-col items-center gap-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-center sm:gap-8">
-                    <div className="flex w-24 flex-col items-center gap-2">
-                        <Flag code="" isUser className="h-12 w-[4.5rem]" />
-                        <span className="text-center text-sm font-black">Your XI</span>
-                    </div>
-                    <div className="flex items-start justify-center gap-2 sm:contents">
+            <div className="mx-auto max-w-[780px]">
+                <StageHeader eyebrow="Group draw" title="Your group" />
+                <div className="rounded-md border border-line bg-panel p-6 shadow-hard">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div className="flex flex-col items-center gap-2 rounded-[5px] border border-pitch/40 bg-pitch/[0.06] px-3 py-5 text-center">
+                            <Flag isUser code="" className="h-6 w-9" />
+                            <span className="text-sm font-bold text-ink">Your XI</span>
+                            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-loss">
+                                You
+                            </span>
+                        </div>
                         {opponents.map((o, i) => (
                             <div
                                 key={o.id}
-                                className={`flex w-24 flex-col items-center gap-1 ${settled ? 'animate-settle' : ''}`}
+                                className={`flex flex-col items-center gap-2 rounded-[5px] border border-line bg-ground px-3 py-5 text-center ${
+                                    settled ? 'animate-settle' : ''
+                                }`}
                             >
-                                <Flag code={revealCodes[i] ?? ''} className="h-12 w-[4.5rem]" />
-                                <span className="text-center text-sm font-bold leading-tight text-ink">
+                                <Flag code={revealCodes[i] ?? ''} className="h-6 w-9" />
+                                <span className="text-sm font-semibold leading-tight text-ink">
                                     {settled ? o.name : '…'}
                                 </span>
                                 {settled && o.year && (
-                                    <span className="text-xs font-bold text-amber">
+                                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-amber">
                                         WC {o.year}
                                     </span>
                                 )}
@@ -522,22 +720,24 @@ export default function TournamentScreen({
                         ))}
                     </div>
                 </div>
-                {settled ? (
-                    <button
-                        onClick={() => setRevealing(false)}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-pitch px-6 py-3 text-base font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark active:scale-[0.99]"
-                    >
-                        Continue to group stage
-                        <ArrowRight size={18} strokeWidth={2.5} />
-                    </button>
-                ) : (
-                    <p className="text-sm font-semibold text-muted">Drawing opponents…</p>
-                )}
+                <div className="mt-[22px] flex justify-center">
+                    {settled ? (
+                        <button onClick={() => setRevealing(false)} className={PRIMARY_BTN}>
+                            Continue to group stage
+                            <ArrowRight size={16} strokeWidth={2.5} />
+                        </button>
+                    ) : (
+                        <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                            Drawing opponents…
+                        </p>
+                    )}
+                </div>
             </div>
         );
     }
 
     const table = standings(group);
+    const userPosition = table.findIndex((s) => s.team.isUser) + 1;
     const inKnockout = !!knockout;
     // Index of the last knockout round that has a result (where the run ended).
     const lastPlayedKoRound = knockout
@@ -554,14 +754,11 @@ export default function TournamentScreen({
 
     const nextGameButton = (
         <>
-            <div className="mt-2 flex justify-center">
-                <button
-                    onClick={playNext}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark active:scale-[0.99]"
-                >
-                    <Play size={15} fill="currentColor" strokeWidth={0} />
+            <div className="mt-[22px] flex justify-center">
+                <button onClick={playNext} className={PRIMARY_BTN}>
+                    <Play size={13} fill="currentColor" strokeWidth={0} />
                     Next game
-                    <ArrowRight size={16} strokeWidth={2.5} />
+                    <ArrowRight size={15} strokeWidth={2.5} />
                 </button>
             </div>
             {/* Tail so the page follows to the next-game button when it appears. It can
@@ -571,131 +768,129 @@ export default function TournamentScreen({
         </>
     );
 
+    const controls = !tournamentOver ? (
+        <PlaybackControls
+            auto={auto}
+            speed={speed}
+            onSetAuto={onSetAuto}
+            onSetSpeed={onSetSpeed}
+        />
+    ) : undefined;
+
+    const stGrid =
+        'grid grid-cols-[28px_minmax(0,1fr)_26px_26px_32px_38px] sm:grid-cols-[34px_minmax(0,1fr)_30px_30px_30px_34px_38px] items-center gap-1 px-4 py-[11px]';
+    const stNum = 'text-center font-mono text-[13px] text-muted';
+
     return (
-        <div ref={rootRef} className="mx-auto flex max-w-3xl flex-col gap-6">
-            {/* Header: title + playback selectors */}
-            <div
-                ref={!inKnockout ? stageTopRef : undefined}
-                className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3"
-            >
-                <div>
-                    <div className="text-[11px] font-bold tracking-[0.2em] text-pitch">
-                        {inKnockout ? 'KNOCKOUTS' : 'GROUP STAGE'}
-                    </div>
-                    <h2 className="mt-0.5 font-display text-2xl font-black leading-tight text-ink">
-                        {inKnockout ? 'Win 4 to lift the trophy' : 'Group of 4 · top 2 advance'}
-                    </h2>
-                </div>
-                {!tournamentOver && (
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                        <MenuSelect
-                            ariaLabel="Playback mode"
-                            value={auto ? 'auto' : 'manual'}
-                            onSelect={(v) => onSetAuto(v === 'auto')}
-                            options={[
-                                { value: 'manual', label: 'Game by game' },
-                                { value: 'auto', label: 'Automatic' },
-                            ]}
-                        />
-                        <MenuSelect
-                            ariaLabel="Match speed"
-                            value={speed}
-                            onSelect={onSetSpeed}
-                            options={[
-                                { value: 'slow', label: 'Slow' },
-                                { value: 'normal', label: 'Normal' },
-                                { value: 'fast', label: 'Fast' },
-                            ]}
-                        />
-                    </div>
-                )}
-            </div>
+        <div ref={rootRef} className="mx-auto max-w-[780px]">
+            {/* ===== GROUP STAGE ===== */}
+            <StageHeader
+                eyebrow="Group stage"
+                title="Group of 4 · top 2 advance"
+                controls={!inKnockout ? controls : undefined}
+                headingRef={!inKnockout ? stageTopRef : undefined}
+            />
 
             {/* Standings */}
-            <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
-                <div className="grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-line bg-pitch/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">
-                    <span>#</span>
-                    <span>Team</span>
-                    <span className="hidden text-center sm:block">P</span>
-                    <span className="hidden text-center sm:block">W</span>
-                    <span className="hidden text-center sm:block">D</span>
-                    <span className="hidden text-center sm:block">L</span>
-                    <span className="text-center">GD</span>
-                    <span className="text-center">Pts</span>
+            <div className="mt-1.5 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+                <div className={`${stGrid} border-b-2 border-ink bg-chalk`}>
+                    <span className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                        #
+                    </span>
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                        Team
+                    </span>
+                    <span className="hidden text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted sm:block">
+                        P
+                    </span>
+                    <span className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                        W
+                    </span>
+                    <span className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                        D
+                    </span>
+                    <span className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                        GD
+                    </span>
+                    <span className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                        Pts
+                    </span>
                 </div>
-                {table.map((s, i) => (
-                    <div
-                        key={s.team.id}
-                        className={`grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-line px-3 py-2.5 text-sm text-ink last:border-b-0 ${
-                            i < 2 ? 'border-l-4 border-l-pitch' : 'border-l-4 border-l-transparent'
-                        } ${s.team.isUser ? 'bg-pitch/[0.06]' : ''}`}
-                    >
-                        {i < 2 ? (
-                            <span className="grid h-[22px] w-[22px] place-items-center rounded-lg bg-pitch font-mono text-xs font-bold text-white">
-                                {i + 1}
+                {table.map((s, i) => {
+                    const adv = i < 2;
+                    return (
+                        <div
+                            key={s.team.id}
+                            className={`${stGrid} border-b border-line last:border-b-0 ${
+                                s.team.isUser ? 'bg-pitch/[0.06]' : ''
+                            }`}
+                        >
+                            <span className="flex justify-center">
+                                {adv ? (
+                                    <span className="grid h-[22px] w-[22px] place-items-center rounded-[4px] bg-pitch font-mono text-xs font-semibold text-white">
+                                        {i + 1}
+                                    </span>
+                                ) : (
+                                    <span className="font-mono text-[13px] font-semibold text-muted">
+                                        {i + 1}
+                                    </span>
+                                )}
                             </span>
-                        ) : (
-                            <span className="grid h-[22px] w-[22px] place-items-center rounded-lg font-mono text-xs font-bold text-muted">
-                                {i + 1}
-                            </span>
-                        )}
-                        <span className="group/team flex items-center gap-2 truncate">
-                            <Flag
-                                code={s.team.code}
-                                isUser={s.team.isUser}
-                                className="h-4 w-6 shrink-0"
-                            />
-                            <span
-                                className={`truncate ${s.team.isUser ? 'font-black' : 'font-semibold'}`}
-                            >
-                                {s.team.name}
-                            </span>
-                            {s.team.year && (
-                                <span className="shrink-0 text-[11px] text-muted">
-                                    {s.team.year}
+                            <span className="flex min-w-0 items-center gap-[9px]">
+                                <Flag
+                                    code={s.team.code}
+                                    isUser={s.team.isUser}
+                                    className="h-[15px] w-[22px]"
+                                />
+                                <span
+                                    className={`truncate text-sm ${
+                                        s.team.isUser ? 'font-bold' : 'font-semibold'
+                                    }`}
+                                >
+                                    {s.team.name}
                                 </span>
-                            )}
-                            {s.team.isUser && (
-                                <span className="shrink-0 rounded-full bg-pitch px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.04em] leading-none text-white">
-                                    You
-                                </span>
-                            )}
-                            <span className="hidden shrink-0 rounded-full bg-pitch px-1.5 font-mono text-[10px] font-bold leading-tight text-white group-hover/team:inline-block">
-                                {s.team.strength.overall}
+                                {s.team.year && (
+                                    <span className="shrink-0 font-mono text-[11px] font-medium text-muted">
+                                        {s.team.year}
+                                    </span>
+                                )}
+                                {s.team.isUser && (
+                                    <span className="shrink-0 rounded-[3px] bg-loss px-[5px] py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.06em] leading-none text-white">
+                                        You
+                                    </span>
+                                )}
                             </span>
-                        </span>
-                        <span className="hidden text-center font-mono text-muted sm:block">
-                            {s.played}
-                        </span>
-                        <span className="hidden text-center font-mono text-muted sm:block">
-                            {s.won}
-                        </span>
-                        <span className="hidden text-center font-mono text-muted sm:block">
-                            {s.drawn}
-                        </span>
-                        <span className="hidden text-center font-mono text-muted sm:block">
-                            {s.lost}
-                        </span>
-                        <span className="text-center font-mono text-muted">
-                            {s.gd > 0 ? `+${s.gd}` : s.gd}
-                        </span>
-                        <span className="text-center font-mono font-black">{s.points}</span>
+                            <span className={`hidden sm:block ${stNum}`}>{s.played}</span>
+                            <span className={stNum}>{s.won}</span>
+                            <span className={stNum}>{s.drawn}</span>
+                            <span className={stNum}>{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
+                            <span className="text-center font-mono text-sm font-bold text-ink">
+                                {s.points}
+                            </span>
+                        </div>
+                    );
+                })}
+
+                {groupFinished && (
+                    <div className="border-t border-line bg-chalk px-4 py-[10px] text-center font-mono text-[11px] tracking-[0.04em] text-muted">
+                        Finished {ordinal(userPosition)} of {table.length} ·{' '}
+                        {advanced ? 'through to the knockouts' : 'eliminated'}
                     </div>
-                ))}
+                )}
 
                 {/* All group results (every fixture, including Your XI), collapsible */}
                 <button
                     onClick={() => setShowResults((v) => !v)}
-                    className="flex w-full items-center justify-center gap-1.5 border-t border-line bg-pitch/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted transition hover:bg-pitch/10"
+                    className="flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 py-[10px] font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted transition hover:text-pitch"
                 >
                     All results
-                    {showResults ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    {showResults ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                 </button>
                 {showResults && (
                     <div className="border-t border-line px-2 py-2">
                         {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => (
                             <div key={md} className="mb-2 last:mb-0">
-                                <div className="mb-0.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
+                                <div className="mb-0.5 px-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                                     Matchday {md}
                                 </div>
                                 {fixturesForMatchday(group, md).map((f) => {
@@ -723,294 +918,274 @@ export default function TournamentScreen({
                 )}
             </div>
 
-            {/* Game sections: group matchdays, then knockout rounds, one uniform list */}
-            <div className="flex flex-col gap-3">
-                {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => {
-                    const fx = fixturesForMatchday(group, md);
-                    const userFx = fx.find(
-                        (f) => teamById(group, f.homeId).isUser || teamById(group, f.awayId).isUser,
-                    )!;
-                    const isPlayingMd = playingGroup?.matchday === md;
-                    const open = openKey === `md-${md}`;
-                    const userHome = teamById(group, userFx.homeId);
-                    const userAway = teamById(group, userFx.awayId);
+            {/* Group matchdays */}
+            {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => {
+                const fx = fixturesForMatchday(group, md);
+                const userFx = fx.find(
+                    (f) => teamById(group, f.homeId).isUser || teamById(group, f.awayId).isUser,
+                )!;
+                const userIsHome = teamById(group, userFx.homeId).isUser;
+                const userSide = userIsHome ? 'home' : 'away';
+                const opp = teamById(group, userIsHome ? userFx.awayId : userFx.homeId);
+                const isPlayingMd = playingGroup?.matchday === md;
 
-                    const live = isPlayingMd ? playingGroup! : null;
-                    const userResult =
-                        live?.results.find(
-                            (r) => r.homeId === userFx.homeId && r.awayId === userFx.awayId,
-                        )?.result ?? userFx.result;
+                const playingResult = isPlayingMd
+                    ? (playingGroup!.results.find(
+                          (r) => r.homeId === userFx.homeId && r.awayId === userFx.awayId,
+                      )?.result ?? null)
+                    : null;
 
-                    let feedEvents: MatchEvent[] | null = null;
-                    let userScore: { home: number; away: number } | undefined;
-                    let userStatus: string | undefined;
-                    if (isPlayingMd && userResult) {
-                        const shown = userResult.events.filter((e) => e.minute <= liveMinute);
-                        feedEvents = shown;
-                        userScore = {
-                            home: shown.filter((e) => e.side === 'home').length,
-                            away: shown.filter((e) => e.side === 'away').length,
-                        };
-                        userStatus = clockLabel;
-                    } else if (open && userFx.result) {
-                        feedEvents = userFx.result.events;
+                let score: { user: number; opp: number } | undefined;
+                let status: string | undefined;
+                let statusDim = false;
+                let feedEvents: MatchEvent[] | null = null;
+                if (isPlayingMd && playingResult) {
+                    const shown = playingResult.events.filter((e) => e.minute <= liveMinute);
+                    const userGoals = shown.filter((e) => e.side === userSide).length;
+                    score = { user: userGoals, opp: shown.length - userGoals };
+                    status = clockLabel || undefined;
+                    feedEvents = shown;
+                } else if (userFx.result) {
+                    const userGoals = userIsHome
+                        ? userFx.result.homeGoals
+                        : userFx.result.awayGoals;
+                    const oppGoals = userIsHome
+                        ? userFx.result.awayGoals
+                        : userFx.result.homeGoals;
+                    score = { user: userGoals, opp: oppGoals };
+                    status = 'Full time';
+                    statusDim = true;
+                    feedEvents = userFx.result.events;
+                }
+
+                // Matchday label tag (from Your XI's perspective).
+                let tag: React.ReactNode = null;
+                if (isPlayingMd) {
+                    tag = <ResultTag kind="next" label="Live now" />;
+                } else if (score && userFx.result) {
+                    tag =
+                        score.user > score.opp ? (
+                            <ResultTag kind="w" label="Won" />
+                        ) : score.user < score.opp ? (
+                            <ResultTag kind="l" label="Lost" />
+                        ) : (
+                            <ResultTag kind="d" label="Draw" />
+                        );
+                } else if (md === group.matchday && !groupFinished) {
+                    tag = <ResultTag kind="next" label="Up next" />;
+                }
+
+                const live = isPlayingMd && liveMinute < 90;
+                const liveLabel = clockLabel === 'HT' ? 'Half time' : `Live · ${clockLabel}`;
+
+                return (
+                    <div key={`md-${md}`} className="mt-[26px]">
+                        <div className="mb-[9px] flex items-center gap-2.5">
+                            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                                Matchday {md}
+                            </span>
+                            {tag}
+                        </div>
+                        <div
+                            className={`overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
+                                isPlayingMd ? 'border-t-[3px] border-t-pitch' : ''
+                            }`}
+                        >
+                            <FixtureHead
+                                oppName={opp.name}
+                                oppCode={opp.code}
+                                oppYear={opp.year}
+                                score={score}
+                                status={status}
+                                statusDim={statusDim}
+                            />
+                            {feedEvents && (
+                                <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
+                                    <GoalList
+                                        events={feedEvents}
+                                        userSide={userSide}
+                                        oppCode={opp.code}
+                                        live={live}
+                                    />
+                                    {live && <LiveLine label={liveLabel} />}
+                                    {/* Tail the page follows while this matchday is playing. */}
+                                    {isPlayingMd && <div ref={tailRef} aria-hidden className="h-0" />}
+                                </div>
+                            )}
+                        </div>
+                        {`md-${md}` === nextAnchorKey && nextGameButton}
+                    </div>
+                );
+            })}
+
+            {/* ===== KNOCKOUTS ===== */}
+            {inKnockout && (
+                <>
+                    <div className="relative mt-9 border-t-2 border-line">
+                        <span className="absolute -top-[11px] left-1/2 -translate-x-1/2 bg-ground px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                            Knockouts
+                        </span>
+                    </div>
+                    <StageHeader
+                        eyebrow="Knockouts"
+                        title="Win 4 to lift the trophy"
+                        controls={controls}
+                    />
+                </>
+            )}
+
+            {knockout &&
+                knockout.rounds.map((_round, i) => {
+                    const name = KO_ROUNDS[i];
+                    const r = knockout.rounds[i];
+                    const opp = r?.opponent ?? null;
+                    const isActive = i === koCurrent && koOutcome === 'alive';
+                    const isPlayingRound = isActive && !!playingKo;
+                    const played = !!r?.result;
+                    const isFinal = i === KO_ROUNDS.length - 1;
+                    const liveMax = isPlayingRound ? maxMinute(playingKo!.decided) : 90;
+
+                    let score: { user: number; opp: number } | undefined;
+                    let status: string | undefined;
+                    let statusDim = false;
+                    if (isPlayingRound) {
+                        const shown = playingKo!.result.events.filter((e) => e.minute <= liveMinute);
+                        const userGoals = shown.filter((e) => e.side === 'home').length;
+                        score = { user: userGoals, opp: shown.length - userGoals };
+                        status = clockLabel || undefined;
+                    } else if (played) {
+                        score = { user: r!.result!.homeGoals, opp: r!.result!.awayGoals };
+                        if (r!.decided === 'aet') status = 'a.e.t.';
+                        else if (r!.decided === 'pens') status = 'Penalties';
+                        else {
+                            status = 'Full time';
+                            statusDim = true;
+                        }
                     }
 
-                    // Win/loss/draw tag (from Your XI's perspective), same as the knockouts.
-                    const userIsHome = userHome.isUser;
-                    const mdGf = userFx.result
-                        ? userIsHome
-                            ? userFx.result.homeGoals
-                            : userFx.result.awayGoals
-                        : 0;
-                    const mdGa = userFx.result
-                        ? userIsHome
-                            ? userFx.result.awayGoals
-                            : userFx.result.homeGoals
-                        : 0;
-                    const mdTag =
-                        userFx.result && !isPlayingMd ? (
-                            <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.04em] ${
-                                    mdGf > mdGa
-                                        ? 'bg-win/15 text-win'
-                                        : mdGf < mdGa
-                                          ? 'bg-loss/15 text-loss'
-                                          : 'bg-line text-muted'
-                                }`}
-                            >
-                                {mdGf > mdGa ? 'Won' : mdGf < mdGa ? 'Lost' : 'Draw'}
-                            </span>
-                        ) : md === group.matchday && !groupFinished && !isPlayingMd ? (
-                            <span className="text-amber">· up next</span>
-                        ) : null;
+                    const showFeed = isPlayingRound || played;
+                    const feedEvents = isPlayingRound
+                        ? playingKo!.result.events.filter((e) => e.minute <= liveMinute)
+                        : played
+                          ? r!.result!.events
+                          : [];
+                    const penKicks = isPlayingRound ? playingKo!.pens?.kicks : r?.pens?.kicks;
+                    const penShownCount = isPlayingRound ? penShown : (penKicks?.length ?? 0);
+                    const showShootout =
+                        !!penKicks &&
+                        (isPlayingRound ? liveMinute >= maxMinute(playingKo!.decided) : true);
+                    const scrambling = isActive && !koRevealed && !isPlayingRound;
+
+                    let tag: React.ReactNode = null;
+                    if (isPlayingRound) {
+                        tag = <ResultTag kind="next" label="Live now" />;
+                    } else if (played) {
+                        const dec = r!.decided;
+                        tag = r!.userWon ? (
+                            <ResultTag
+                                kind="w"
+                                label={
+                                    dec === 'pens'
+                                        ? 'Won on penalties'
+                                        : dec === 'aet'
+                                          ? 'Won a.e.t.'
+                                          : 'Won'
+                                }
+                            />
+                        ) : (
+                            <ResultTag
+                                kind="l"
+                                label={dec === 'pens' ? 'Lost on penalties' : 'Lost'}
+                            />
+                        );
+                    } else if (isActive && koRevealed) {
+                        tag = <ResultTag kind="next" label="Up next" />;
+                    }
+
+                    const live = isPlayingRound && liveMinute < liveMax;
+                    const liveLabel = clockLabel === 'HT' ? 'Half time' : `Live · ${clockLabel}`;
 
                     return (
-                        <div key={`md-${md}`}>
-                            <div className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-muted">
-                                <span>MATCHDAY {md}</span>
-                                {mdTag}
+                        <div key={`ko-${i}`} className="mt-[26px]">
+                            <div
+                                ref={i === lastPlayedKoRound ? stageTopRef : undefined}
+                                className="mb-[9px] flex items-center gap-2.5"
+                            >
+                                <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                                    {name}
+                                </span>
+                                {tag}
                             </div>
-                            <div className="rounded-md border border-line bg-panel p-1.5 shadow-hard">
-                                <FixtureRow
-                                    home={userHome}
-                                    away={userAway}
-                                    homeElo={userHome.strength.overall}
-                                    awayElo={userAway.strength.overall}
-                                    score={
-                                        userScore ??
-                                        (userFx.result
-                                            ? {
-                                                  home: userFx.result.homeGoals,
-                                                  away: userFx.result.awayGoals,
-                                              }
-                                            : undefined)
-                                    }
-                                    status={userStatus}
-                                    expandable={!!userFx.result && !isPlayingMd}
-                                    expanded={open}
-                                    onToggle={() => toggle(`md-${md}`)}
+                            <div
+                                className={`overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
+                                    isPlayingRound || isFinal ? 'border-t-[3px] border-t-pitch' : ''
+                                }`}
+                            >
+                                <FixtureHead
+                                    oppName={opp?.name}
+                                    oppCode={opp?.code}
+                                    oppYear={opp?.year}
+                                    score={score}
+                                    status={status}
+                                    statusDim={statusDim}
+                                    scrambleCode={scrambling ? revealCode : undefined}
                                 />
-                                {feedEvents && (
-                                    <div className="mt-1.5 rounded-xl border-t border-line bg-pitch/5 p-3">
-                                        {isPlayingMd && (
-                                            <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-line">
-                                                <div
-                                                    className="h-full bg-pitch"
-                                                    style={{ width: `${(liveMinute / 90) * 100}%` }}
-                                                />
-                                            </div>
-                                        )}
+                                {showFeed && (
+                                    <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
                                         <GoalList
                                             events={feedEvents}
-                                            home={userHome}
-                                            away={userAway}
-                                            live={isPlayingMd && liveMinute < 90}
+                                            userSide="home"
+                                            oppCode={opp?.code ?? ''}
+                                            live={live}
                                         />
-                                        {/* Tail the page follows while this matchday is playing. */}
-                                        {isPlayingMd && (
+                                        {showShootout && penKicks && (
+                                            <ShootoutFeed kicks={penKicks} shown={penShownCount} />
+                                        )}
+                                        {live && <LiveLine label={liveLabel} />}
+                                        {/* Tail the page follows while this round is playing. */}
+                                        {isPlayingRound && (
                                             <div ref={tailRef} aria-hidden className="h-0" />
                                         )}
                                     </div>
                                 )}
                             </div>
-                            {`md-${md}` === nextAnchorKey && nextGameButton}
+                            {`ko-${i}` === nextAnchorKey && nextGameButton}
                         </div>
                     );
                 })}
 
-                {knockout &&
-                    knockout.rounds.map((_round, i) => {
-                        const name = KO_ROUNDS[i];
-                        const r = knockout.rounds[i];
-                        const opp = r?.opponent ?? null;
-                        const isActive = i === koCurrent && koOutcome === 'alive';
-                        const isPlayingRound = isActive && !!playingKo;
-                        const played = !!r?.result;
-                        const open = openKey === `ko-${i}`;
-
-                        let score: { home: number; away: number } | undefined;
-                        let status: string | undefined;
-                        if (isPlayingRound) {
-                            const res = playingKo!;
-                            const shown = res.result.events.filter((e) => e.minute <= liveMinute);
-                            score = {
-                                home: shown.filter((e) => e.side === 'home').length,
-                                away: shown.filter((e) => e.side === 'away').length,
-                            };
-                            status = clockLabel;
-                        } else if (played) {
-                            score = { home: r!.result!.homeGoals, away: r!.result!.awayGoals };
-                            status =
-                                r!.decided === 'aet'
-                                    ? 'a.e.t.'
-                                    : r!.decided === 'pens'
-                                      ? 'pens'
-                                      : undefined;
-                        }
-
-                        const showFeed = isPlayingRound || (played && open);
-                        const feedEvents = isPlayingRound
-                            ? playingKo!.result.events.filter((e) => e.minute <= liveMinute)
-                            : played
-                              ? r!.result!.events
-                              : [];
-                        const penKicks = isPlayingRound ? playingKo!.pens?.kicks : r?.pens?.kicks;
-                        const penShownCount = isPlayingRound ? penShown : (penKicks?.length ?? 0);
-                        const showShootout =
-                            !!penKicks &&
-                            (isPlayingRound ? liveMinute >= maxMinute(playingKo!.decided) : true);
-                        const liveMax = isPlayingRound ? maxMinute(playingKo!.decided) : 90;
-
-                        const tag = played ? (
-                            <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.04em] ${
-                                    r!.userWon ? 'bg-win/15 text-win' : 'bg-loss/15 text-loss'
-                                }`}
-                            >
-                                {r!.userWon ? 'Won' : 'Lost'}
-                            </span>
-                        ) : isActive && koRevealed && !isPlayingRound ? (
-                            <span className="text-amber">· up next</span>
-                        ) : null;
-
-                        return (
-                            <div key={`ko-${i}`}>
-                                <div
-                                    ref={i === lastPlayedKoRound ? stageTopRef : undefined}
-                                    className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-muted"
-                                >
-                                    <span>{name.toUpperCase()}</span>
-                                    {tag}
-                                </div>
-                                <div className="rounded-md border border-line bg-panel p-1.5 shadow-hard">
-                                    <FixtureRow
-                                        home={knockout.user}
-                                        away={opp ?? { name: '?', code: '' }}
-                                        homeElo={knockout.user.strength.overall}
-                                        awayElo={opp?.strength.overall}
-                                        score={score}
-                                        status={status}
-                                        expandable={played && !isPlayingRound}
-                                        expanded={open}
-                                        onToggle={() => toggle(`ko-${i}`)}
-                                        scrambleCode={
-                                            isActive && !koRevealed && !isPlayingRound
-                                                ? revealCode
-                                                : undefined
-                                        }
-                                        awayUnknown={!opp}
-                                    />
-                                    {showFeed && (
-                                        <div className="mt-1.5 rounded-xl border-t border-line bg-pitch/5 p-3">
-                                            {isPlayingRound && (
-                                                <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-line">
-                                                    <div
-                                                        className="h-full bg-pitch"
-                                                        style={{
-                                                            width: `${(Math.min(liveMinute, liveMax) / liveMax) * 100}%`,
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
-                                            <GoalList
-                                                events={feedEvents}
-                                                home={knockout.user}
-                                                away={opp ?? { code: '' }}
-                                                live={isPlayingRound && liveMinute < liveMax}
-                                            />
-                                            {showShootout && penKicks && (
-                                                <ShootoutFeed
-                                                    oppName={opp?.name ?? 'Opponent'}
-                                                    kicks={penKicks}
-                                                    shown={penShownCount}
-                                                />
-                                            )}
-                                            {/* Tail the page follows while this round is playing. */}
-                                            {isPlayingRound && (
-                                                <div ref={tailRef} aria-hidden className="h-0" />
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                {`ko-${i}` === nextAnchorKey && nextGameButton}
-                            </div>
-                        );
-                    })}
-            </div>
-
             {/* Outcome banners + end-of-run summary */}
             {groupFinished && !advanced && (
                 <>
-                    <div className="rounded-md border border-dashed border-line bg-panel p-5 text-center shadow-hard">
-                        <p className="text-xl font-black text-loss">
-                            Eliminated in the group stage.
-                        </p>
-                        <p className="mt-1 text-sm text-muted">
-                            So close. Draft a new XI and run it back.
-                        </p>
-                        <button
-                            onClick={onReset}
-                            className="mt-4 inline-flex items-center justify-center rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark"
-                        >
-                            Draft a new XI
-                        </button>
-                    </div>
-                    <TournamentSummary formation={formation} filled={filled} />
+                    <Banner
+                        champion={false}
+                        eyebrow={`Group stage · finished ${ordinal(userPosition)}`}
+                        heading="Eliminated."
+                        body="Knocked out in the group stage. So close - draft a new XI and run it back."
+                        onReset={onReset}
+                    />
+                    <TournamentSummary formation={formation} filled={filled} group={group} />
                 </>
             )}
 
             {koOutcome === 'champion' && (
-                <div className="rounded-md border-2 border-amber bg-amber/10 p-6 text-center shadow-hard">
-                    <Trophy size={48} className="mx-auto text-amber" strokeWidth={1.5} />
-                    <p className="mt-2 text-2xl font-black text-amber">World Cup Champions!</p>
-                    <p className="mt-1 text-sm font-semibold text-muted">
-                        Your random XI won all four knockout rounds. Legendary.
-                    </p>
-                    <button
-                        onClick={onReset}
-                        className="mt-4 inline-flex items-center justify-center rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark"
-                    >
-                        Draft a new XI
-                    </button>
-                </div>
+                <Banner
+                    champion
+                    eyebrow="Full time · the Final"
+                    heading="World Champions."
+                    body="Your randomly drafted XI lifted the cup. All four knockout rounds won, the trophy is yours."
+                    onReset={onReset}
+                />
             )}
 
             {koOutcome === 'out' && (
-                <div className="rounded-md border border-dashed border-line bg-panel p-5 text-center shadow-hard">
-                    <p className="text-xl font-black text-loss">
-                        Knocked out in the {KO_ROUNDS[koCurrent]}.
-                    </p>
-                    <p className="mt-1 text-sm text-muted">
-                        So close. Draft a new XI and run it back.
-                    </p>
-                    <button
-                        onClick={onReset}
-                        className="mt-4 inline-flex items-center justify-center rounded-full bg-pitch px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-soft transition hover:bg-pitch-dark"
-                    >
-                        Draft a new XI
-                    </button>
-                </div>
+                <Banner
+                    champion={false}
+                    eyebrow={`Knocked out · ${KO_ROUNDS[koCurrent]}`}
+                    heading="Knocked out."
+                    body={`Beaten in the ${KO_ROUNDS[koCurrent]}. So close - draft a new XI and run it back.`}
+                    onReset={onReset}
+                />
             )}
 
             {knockout && koOutcome !== 'alive' && (

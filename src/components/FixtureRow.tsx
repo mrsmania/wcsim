@@ -57,6 +57,7 @@ export default function FixtureRow({
 }: Props) {
   const tint = home.isUser || away.isUser ? 'bg-pitch/[0.06]' : '';
   const scoreText = score ? `${score.home}–${score.away}` : 'v';
+  const yr = 'shrink-0 font-mono text-[11px] font-medium text-muted';
 
   const awayContent = awayUnknown ? (
     <>
@@ -74,7 +75,7 @@ export default function FixtureRow({
     <>
       <Flag code={away.code} isUser={away.isUser} className="h-4 w-6 shrink-0" />
       <span className="truncate">{away.name}</span>
-      {away.year && <span className="shrink-0 text-[11px] font-normal text-muted">{away.year}</span>}
+      {away.year && <span className={yr}>{away.year}</span>}
     </>
   );
 
@@ -85,11 +86,11 @@ export default function FixtureRow({
       <span className={`group/home flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
         {homeElo != null && <EloPill elo={homeElo} group="home" />}
         <span className="truncate">{home.name}</span>
-        {home.year && <span className="shrink-0 text-[11px] font-normal text-muted">{home.year}</span>}
+        {home.year && <span className={yr}>{home.year}</span>}
         <Flag code={home.code} isUser={home.isUser} className="h-4 w-6 shrink-0" />
       </span>
       <span className="flex w-14 shrink-0 flex-col items-center leading-none sm:w-16">
-        <span className="rounded-lg bg-pitch/5 px-2.5 py-1 font-mono font-bold text-ink">{scoreText}</span>
+        <span className="rounded-[5px] bg-chalk px-2.5 py-1 font-mono font-bold text-ink">{scoreText}</span>
         {status && <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.08em] text-amber">{status}</span>}
       </span>
       <span className={`group/away flex flex-1 items-center gap-2 truncate ${away.isUser ? 'font-black' : 'font-medium'}`}>
@@ -102,7 +103,7 @@ export default function FixtureRow({
     </>
   );
 
-  const cls = `flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm ${tint}`;
+  const cls = `flex items-center gap-2 rounded-[5px] px-2.5 py-2 text-sm ${tint}`;
   return expandable && onToggle ? (
     <button onClick={onToggle} className={`${cls} w-full text-left`}>
       {inner}

@@ -23,7 +23,7 @@ import {
     userGroupTeam,
 } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
-import { createKnockout } from './domain/knockout';
+import { createKnockout, KO_ROUNDS } from './domain/knockout';
 import { FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import type { MatchSpeed } from './domain/clock';
@@ -283,6 +283,12 @@ export default function App() {
             : phase === 'draft'
               ? 'Build your XI'
               : 'Your XI is set';
+    const koStamp =
+        knockout?.outcome === 'champion'
+            ? 'Champions'
+            : knockout?.outcome === 'out'
+              ? 'Eliminated'
+              : KO_ROUNDS[knockout?.current ?? 0];
     const stampText =
         phase === 'setup'
             ? 'Set up · 11 to pick'
@@ -290,7 +296,11 @@ export default function App() {
               ? `Drafting · ${placed}/11`
               : phase === 'complete'
                 ? 'Team sheet · locked'
-                : null;
+                : phase === 'group'
+                  ? 'Group stage'
+                  : phase === 'knockout'
+                    ? koStamp
+                    : null;
 
     return (
         <div className="min-h-full text-ink">
