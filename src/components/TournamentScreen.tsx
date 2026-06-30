@@ -496,7 +496,7 @@ export default function TournamentScreen({
                     <div className="text-[11px] font-bold tracking-[0.2em] text-muted">
                         GROUP DRAW
                     </div>
-                    <h2 className="text-2xl font-black text-ink">Your group</h2>
+                    <h2 className="font-display text-2xl font-black text-ink">Your group</h2>
                 </div>
                 <div className="flex flex-col items-center gap-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-center sm:gap-8">
                     <div className="flex w-24 flex-col items-center gap-2">
@@ -582,7 +582,7 @@ export default function TournamentScreen({
                     <div className="text-[11px] font-bold tracking-[0.2em] text-pitch">
                         {inKnockout ? 'KNOCKOUTS' : 'GROUP STAGE'}
                     </div>
-                    <h2 className="mt-0.5 text-2xl font-black leading-tight text-ink">
+                    <h2 className="mt-0.5 font-display text-2xl font-black leading-tight text-ink">
                         {inKnockout ? 'Win 4 to lift the trophy' : 'Group of 4 · top 2 advance'}
                     </h2>
                 </div>
@@ -612,7 +612,7 @@ export default function TournamentScreen({
             </div>
 
             {/* Standings */}
-            <div className="overflow-hidden rounded-2xl border border-line bg-panel shadow-soft">
+            <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
                 <div className="grid grid-cols-[20px_minmax(0,1fr)_34px_38px] sm:grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_28px_36px_36px] items-center gap-1 border-b border-line bg-pitch/[0.06] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">
                     <span>#</span>
                     <span>Team</span>
@@ -791,7 +791,7 @@ export default function TournamentScreen({
                                 <span>MATCHDAY {md}</span>
                                 {mdTag}
                             </div>
-                            <div className="rounded-2xl border border-line bg-panel p-1.5 shadow-soft">
+                            <div className="rounded-md border border-line bg-panel p-1.5 shadow-hard">
                                 <FixtureRow
                                     home={userHome}
                                     away={userAway}
@@ -903,7 +903,7 @@ export default function TournamentScreen({
                                     <span>{name.toUpperCase()}</span>
                                     {tag}
                                 </div>
-                                <div className="rounded-2xl border border-line bg-panel p-1.5 shadow-soft">
+                                <div className="rounded-md border border-line bg-panel p-1.5 shadow-hard">
                                     <FixtureRow
                                         home={knockout.user}
                                         away={opp ?? { name: '?', code: '' }}
@@ -962,7 +962,7 @@ export default function TournamentScreen({
             {/* Outcome banners + end-of-run summary */}
             {groupFinished && !advanced && (
                 <>
-                    <div className="rounded-2xl border border-dashed border-line bg-panel p-5 text-center shadow-soft">
+                    <div className="rounded-md border border-dashed border-line bg-panel p-5 text-center shadow-hard">
                         <p className="text-xl font-black text-loss">
                             Eliminated in the group stage.
                         </p>
@@ -981,7 +981,7 @@ export default function TournamentScreen({
             )}
 
             {koOutcome === 'champion' && (
-                <div className="rounded-2xl border-2 border-amber bg-amber/10 p-6 text-center shadow-soft">
+                <div className="rounded-md border-2 border-amber bg-amber/10 p-6 text-center shadow-hard">
                     <Trophy size={48} className="mx-auto text-amber" strokeWidth={1.5} />
                     <p className="mt-2 text-2xl font-black text-amber">World Cup Champions!</p>
                     <p className="mt-1 text-sm font-semibold text-muted">
