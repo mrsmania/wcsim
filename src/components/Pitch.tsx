@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/types';
 import type { Formation, Slot } from '../domain/formations';
@@ -80,11 +80,14 @@ function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
 // the (flat HTML) badges both use it, so badge positions are exact and need no
 // DOM measurement. The SVG stretches its viewBox to the container and badges are
 // placed as a percentage of the same box, so the two always line up.
-const VBW = 600;
-const VBH = 680;
+// The drawing box. Its aspect ratio (not the viewport's) sets the pitch shape and
+// tilt: the SVG fits this box with preserveAspectRatio "meet", so the angle is
+// constant regardless of how tall or wide the container is.
+const VBW = 720;
+const VBH = 640;
 const PAD_TOP = 64; // empty space above the far goal line so forward badges fit
 const PAD_BOT = 20;
-const TOP_RATIO = 0.6; // far edge width as a fraction of the near (bottom) edge
+const TOP_RATIO = 0.55; // far edge width as a fraction of the near (bottom) edge
 const BADGE_MIN_SCALE = 1; // far badges this fraction of near size (1 = constant)
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -167,8 +170,8 @@ function OverlayMarker({
     slot,
     player,
     target,
-    leftPct,
-    topPct,
+    left,
+    top,
     scale,
     tilt,
     compact,
@@ -179,8 +182,8 @@ function OverlayMarker({
     /** Whether this open slot matches the selected player's natural (primary) or a
      *  secondary position, so the pulse can be colour-coded; 'none' = not a target. */
     target: 'none' | 'primary' | 'secondary';
-    leftPct: number;
-    topPct: number;
+    left: string;
+    top: string;
     scale: number;
     tilt: boolean;
     /** Mobile: show a minimal badge (number + last name only). */
@@ -190,7 +193,7 @@ function OverlayMarker({
     const transform = `translate(-50%, ${tilt ? '-100%' : '-50%'}) scale(${scale})`;
     // Slide to the new spot when the formation changes.
     const transition = 'left 0.45s ease-out, top 0.45s ease-out, transform 0.45s ease-out';
-    const style = { left: `${leftPct}%`, top: `${topPct}%`, transform, transformOrigin: 'bottom center', transition };
+    const style = { left, top, transform, transformOrigin: 'bottom center', transition };
     const shadow = tilt ? (
         <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 bg-[radial-gradient(closest-side,rgba(0,0,0,0.33),transparent)]" />
     ) : null;
@@ -265,6 +268,26 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
     }, []);
 
     const tilt = FEATURES.pitch3d && !isMobile;
+
+    // Measure the stage once so we can fit the fixed-aspect pitch inside it and
+    // place the badges over the (centred) drawing. One container measurement, not
+    // the old per-anchor measuring.
+    const stageRef = useRef<HTMLDivElement | null>(null);
+    const [box, setBox] = useState({ w: 0, h: 0 });
+    useLayoutEffect(() => {
+        const el = stageRef.current;
+        if (!el) return;
+        const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+    // "meet" fit: scale the VBW x VBH box to fit, then centre it in the stage.
+    const fit = box.w > 0 && box.h > 0 ? Math.min(box.w / VBW, box.h / VBH) : 0;
+    const ox = (box.w - VBW * fit) / 2;
+    const oy = (box.h - VBH * fit) / 2;
+
     const P = makeProject(tilt);
     const marks = markingsPath(P);
     const spots = [
@@ -274,13 +297,14 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
     ].map(([vx, vy]) => vb(P, vx, vy));
 
     return (
-        <div className="relative mx-auto h-full w-full max-w-3xl overflow-hidden">
+        <div ref={stageRef} className="relative mx-auto h-full w-full max-w-3xl overflow-hidden">
             {/* Pitch surface: grass stripes + markings, drawn in perspective (or flat
-          on mobile) from the projection. The viewBox stretches to fill the frame. */}
+          on mobile) from the projection. "meet" keeps a constant shape/angle and
+          centres the pitch; the badges are positioned over the same fitted box. */}
             <svg
                 className="absolute inset-0 h-full w-full"
                 viewBox={`0 0 ${VBW} ${VBH}`}
-                preserveAspectRatio="none"
+                preserveAspectRatio={tilt ? 'xMidYMid meet' : 'none'}
                 aria-hidden="true"
             >
                 {Array.from({ length: STRIPES }, (_, i) => {
@@ -319,35 +343,40 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace }: Pr
                 />
             </svg>
 
-            {/* Flat player overlay, positioned from the same projection (no measuring). */}
+            {/* Player overlay. Desktop (tilt): positioned in px over the fitted,
+          centred pitch and scaled with it. Mobile (flat): the rectangle is
+          stretched to fill, so badges sit at a percentage and keep a readable,
+          constant size. */}
             <div className="absolute inset-0">
-                {circles.map((slot, k) => {
-                    const player = filled[slot.id] ?? null;
-                    const matches =
-                        !!selectedPlayer &&
-                        !player &&
-                        selectedPlayer.positions.includes(slot.position);
-                    const target: 'none' | 'primary' | 'secondary' = !matches
-                        ? 'none'
-                        : selectedPlayer!.positions[0] === slot.position
-                          ? 'primary'
-                          : 'secondary';
-                    const q = P(slot.x / 100, slot.y / 100);
-                    return (
-                        <OverlayMarker
-                            key={k}
-                            slot={slot}
-                            player={player}
-                            target={target}
-                            leftPct={(q.x / VBW) * 100}
-                            topPct={(q.y / VBH) * 100}
-                            scale={lerp(BADGE_MIN_SCALE, 1, q.yf)}
-                            tilt={tilt}
-                            compact={isMobile}
-                            onPlace={onPlace}
-                        />
-                    );
-                })}
+                {(!tilt || fit > 0) &&
+                    circles.map((slot, k) => {
+                        const player = filled[slot.id] ?? null;
+                        const matches =
+                            !!selectedPlayer &&
+                            !player &&
+                            selectedPlayer.positions.includes(slot.position);
+                        const target: 'none' | 'primary' | 'secondary' = !matches
+                            ? 'none'
+                            : selectedPlayer!.positions[0] === slot.position
+                              ? 'primary'
+                              : 'secondary';
+                        const q = P(slot.x / 100, slot.y / 100);
+                        const depth = lerp(BADGE_MIN_SCALE, 1, q.yf);
+                        return (
+                            <OverlayMarker
+                                key={k}
+                                slot={slot}
+                                player={player}
+                                target={target}
+                                left={tilt ? `${ox + q.x * fit}px` : `${(q.x / VBW) * 100}%`}
+                                top={tilt ? `${oy + q.y * fit}px` : `${(q.y / VBH) * 100}%`}
+                                scale={tilt ? Math.min(fit, 1) * depth : depth}
+                                tilt={tilt}
+                                compact={isMobile}
+                                onPlace={onPlace}
+                            />
+                        );
+                    })}
             </div>
         </div>
     );
