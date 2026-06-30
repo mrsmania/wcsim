@@ -1,0 +1,509 @@
+<!--
+  TURF FLAT — World Cup Simulator redesign: knockout bracket (own page)
+  POV: the pitch as a flat top-down TACTICS BOARD + matchday programme.
+
+  A 16-team single-elimination tree (Round of 16 -> Final -> Champion). Teams are
+  drawn at random; stronger sides (higher rating) tend to advance, so the bracket
+  fills with mostly favourites plus the odd upset. "Your XI" is highlighted in
+  every round it survives and carries the signature hard shadow. Below the tree,
+  Your XI's run is shown match-by-match exactly like the group stage (a fixture
+  card + goal feed per round).
+
+  PALETTE (pinned)
+    #0E5C34 pitch deep green | #15924C pitch green | #E8F0E8 chalk tint
+    #F4F2EC paper ground | #13211A ink | #E4922B amber | #C8453C loss red
+  TYPE
+    Display: Archivo | Body: Schibsted Grotesk | Data: Spline Sans Mono
+-->
+<script>
+/* Apply the saved theme before paint to avoid a flash, shared key across all pages. */
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+/* ============ THEMEABLE PALETTE (shared, identical across all files) ============ */
+:root,:root[data-theme="pitch"]{
+  --pitch-deep:#0E5C34; --pitch:#15924C; --chalk:#E8F0E8; --paper:#F4F2EC;
+  --ink:#13211A; --muted:#5C6A60; --line:#D4DED5; --amber:#E4922B; --loss:#C8453C;
+  --grass-a:#1f8a4d; --grass-b:#1a7d45; --white:#ffffff;
+  --wash:rgba(14,92,52,.05); --mk-line:rgba(255,255,255,.78);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(21,146,76,.13); --loss-tint:rgba(200,69,60,.13);
+  --you-row:rgba(21,146,76,.06); --flag-edge:rgba(19,33,26,.18);
+  --plate:#ffffff; --plate-ink:#13211A; --puck:#ffffff;
+}
+:root[data-theme="cobalt"]{
+  --pitch-deep:#16356E; --pitch:#2356C8; --chalk:#E4ECFA; --paper:#F2F4F9;
+  --ink:#141C2B; --muted:#5A6480; --line:#D2DAEA; --amber:#E8902A; --loss:#D6453E;
+  --grass-a:#2356C8; --grass-b:#1E4BB0; --white:#ffffff;
+  --wash:rgba(22,53,110,.06); --mk-line:rgba(255,255,255,.82);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(35,86,200,.12); --loss-tint:rgba(214,69,62,.13);
+  --you-row:rgba(35,86,200,.06); --flag-edge:rgba(20,28,43,.18);
+  --plate:#ffffff; --plate-ink:#141C2B; --puck:#ffffff;
+}
+:root[data-theme="claret"]{
+  --pitch-deep:#5A1230; --pitch:#7C1F3E; --chalk:#F3E6EA; --paper:#F6F1ED;
+  --ink:#241318; --muted:#7A5C63; --line:#E5D3D6; --amber:#C8962F; --loss:#E2683A;
+  --grass-a:#7C1F3E; --grass-b:#6E1838; --white:#ffffff;
+  --wash:rgba(90,18,48,.05); --mk-line:rgba(255,255,255,.8);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.88);
+  --win-tint:rgba(124,31,62,.12); --loss-tint:rgba(226,104,58,.15);
+  --you-row:rgba(124,31,62,.06); --flag-edge:rgba(36,19,24,.18);
+  --plate:#ffffff; --plate-ink:#241318; --puck:#ffffff;
+}
+:root[data-theme="petrol"]{
+  --pitch-deep:#0C3B3F; --pitch:#136A6E; --chalk:#E0EEEC; --paper:#F1F4F2;
+  --ink:#0F2123; --muted:#577173; --line:#CFE0DD; --amber:#E2792A; --loss:#CF4B3C;
+  --grass-a:#136A6E; --grass-b:#0F5C60; --white:#ffffff;
+  --wash:rgba(12,59,63,.06); --mk-line:rgba(255,255,255,.8);
+  --on-pitch:#ffffff; --ring:rgba(255,255,255,.9);
+  --win-tint:rgba(19,106,110,.13); --loss-tint:rgba(207,75,60,.13);
+  --you-row:rgba(19,106,110,.07); --flag-edge:rgba(15,33,35,.18);
+  --plate:#ffffff; --plate-ink:#0F2123; --puck:#ffffff;
+}
+:root[data-theme="floodlight"]{
+  --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+  --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+  --grass-a:#15663C; --grass-b:#125735; --white:#16231D;
+  --wash:rgba(47,180,106,.07); --mk-line:rgba(232,242,234,.42);
+  --on-pitch:#ffffff; --ring:rgba(232,242,234,.28);
+  --win-tint:rgba(47,180,106,.18); --loss-tint:rgba(231,108,92,.2);
+  --you-row:rgba(47,180,106,.1); --flag-edge:rgba(232,242,234,.22);
+  --plate:#1C2C25; --plate-ink:#E8F2EA; --puck:#D8E6DC;
+}
+:root{
+  --disp:'Archivo',system-ui,sans-serif;
+  --body:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(180deg,var(--wash),transparent 220px);
+  background-repeat:no-repeat;
+}
+img{max-width:100%}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 80px}
+
+.mast{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:2px solid var(--ink)}
+.mast .crest{width:38px;height:38px;flex:0 0 auto;border-radius:3px;
+  background:repeating-linear-gradient(90deg,var(--pitch-deep) 0 5px,var(--pitch) 5px 10px);
+  position:relative;box-shadow:inset 0 0 0 2px var(--ring)}
+.mast .crest::after{content:"";position:absolute;inset:7px;border:1.5px solid var(--ring);border-radius:1px}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:23px;letter-spacing:-.02em;margin:0;text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12.5px;color:var(--muted);margin-left:2px;border-left:1px solid var(--line);padding-left:14px}
+.mast .stamp{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:6px 10px;background:var(--white)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+
+.card{background:var(--white);border:1px solid var(--line);border-radius:6px}
+.card.field-edge{border-top:3px solid var(--pitch)}
+/* TIFO-STYLE HARD DROP SHADOW */
+.card{box-shadow:6px 6px 0 var(--pitch-deep)}
+
+.btn{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:13px;
+  border:1px solid var(--ink);background:var(--white);color:var(--ink);border-radius:5px;padding:11px 16px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--pitch);border-color:var(--pitch-deep);color:var(--on-pitch)}
+.btn .arw{font-family:var(--body);font-weight:700}
+
+/* ---- CSS flag chips (render anywhere, no emoji) ---- */
+.flag{width:22px;height:15px;border-radius:2px;flex:0 0 auto;display:inline-block;
+  box-shadow:inset 0 0 0 1px var(--flag-edge);background:#bbb;overflow:hidden;position:relative;vertical-align:middle}
+.f-bra{background:#1B9E3E}.f-bra::before{content:"";position:absolute;inset:0;margin:auto;width:62%;height:62%;background:#FFD500;transform:rotate(45deg)}
+.f-bra::after{content:"";position:absolute;inset:0;margin:auto;width:24%;height:24%;border-radius:50%;background:#2A3A8C}
+.f-esp{background:linear-gradient(180deg,#AA151B 0 25%,#F1BF00 25% 75%,#AA151B 75%)}
+.f-por{background:linear-gradient(90deg,#046A38 0 40%,#DA251D 40%)}
+.f-por::after{content:"";position:absolute;left:40%;top:50%;width:7px;height:7px;border-radius:50%;background:#FFE000;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px #046A38}
+.f-eng{background:#fff}.f-eng::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:18%;background:#CE1124;transform:translateX(-50%)}.f-eng::after{content:"";position:absolute;top:50%;left:0;right:0;height:24%;background:#CE1124;transform:translateY(-50%)}
+.f-cro{background:linear-gradient(180deg,#FF0000 0 34%,#fff 34% 66%,#171796 66%)}
+.f-ger{background:linear-gradient(180deg,#111 0 33.3%,#DD0000 33.3% 66.6%,#FFCE00 66.6%)}
+.f-arg{background:linear-gradient(180deg,#74ACDF 0 33.3%,#fff 33.3% 66.6%,#74ACDF 66.6%)}.f-arg::after{content:"";position:absolute;inset:0;margin:auto;width:6px;height:6px;border-radius:50%;background:#F6B40E}
+.f-gha{background:linear-gradient(180deg,#CE1126 0 33.3%,#FCD116 33.3% 66.6%,#006B3F 66.6%)}.f-gha::after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;background:#111;transform:translate(-50%,-50%);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.f-ita{background:linear-gradient(90deg,#008C45 0 33.3%,#fff 33.3% 66.6%,#CD212A 66.6%)}
+/* added for the 16-team field */
+.f-fra{background:linear-gradient(90deg,#0055A4 0 33.3%,#fff 33.3% 66.6%,#EF4135 66.6%)}
+.f-ned{background:linear-gradient(180deg,#AE1C28 0 33.3%,#fff 33.3% 66.6%,#21468B 66.6%)}
+.f-bel{background:linear-gradient(90deg,#2D2926 0 33.3%,#FAE042 33.3% 66.6%,#ED2939 66.6%)}
+.f-pol{background:linear-gradient(180deg,#fff 0 50%,#DC143C 50%)}
+.f-jpn{background:#fff}.f-jpn::after{content:"";position:absolute;inset:0;margin:auto;width:9px;height:9px;border-radius:50%;background:#BC002D}
+.f-den{background:#C8102E}.f-den::before{content:"";position:absolute;left:38%;top:0;bottom:0;width:16%;background:#fff;transform:translateX(-50%)}.f-den::after{content:"";position:absolute;top:50%;left:0;right:0;height:24%;background:#fff;transform:translateY(-50%)}
+.f-you{background:var(--loss);position:relative}
+.f-you::after{content:"YOU";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:7px;color:#fff;letter-spacing:.02em}
+
+a{color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* stage header */
+.stage-h{margin:30px 0 18px}
+.stage-h h2{font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:2px 0 0;line-height:1}
+.stage-h .sub{font-size:13px;color:var(--muted);margin-top:6px}
+
+/* ============ BRACKET TREE ============ */
+.bracket-scroll{overflow-x:auto;padding-bottom:6px}
+.heads,.bracket{display:flex;gap:30px;min-width:1010px}
+.heads{margin-bottom:10px}
+.heads .h{flex:1 1 0;text-align:center;font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.heads .h.now{color:var(--amber)}
+.bracket{height:560px}
+.round{flex:1 1 0;display:flex;flex-direction:column;justify-content:space-around;min-width:0}
+.round.r-final,.round.r-champ{justify-content:center}
+.pair{flex:1 1 0;display:flex;flex-direction:column;justify-content:space-around;position:relative;min-width:0}
+
+/* match cell */
+.match{position:relative;width:100%;background:var(--white);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.match.mine{border-color:var(--pitch);box-shadow:3px 3px 0 var(--pitch-deep)}
+.seed{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:11.5px;font-weight:500;min-width:0}
+.seed + .seed{border-top:1px solid var(--line)}
+.seed .flag{width:18px;height:12px}
+.seed .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seed .yr{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--muted);flex:0 0 auto}
+.seed .sc{margin-left:auto;padding-left:6px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted);flex:0 0 auto}
+.seed.win{font-weight:800;color:var(--ink);box-shadow:inset 3px 0 0 var(--pitch)}
+.seed.win .sc{color:var(--ink)}
+.seed.out{color:var(--muted)}
+.seed.out .flag{opacity:.5}
+.seed .pen{font-family:var(--mono);font-size:8px;font-weight:700;color:var(--muted);flex:0 0 auto}
+
+/* connectors (chalk lines). Vertical bars sit at the mid-gutter; horizontal stubs
+   reach them from each feeder, then carry on into the next round's match. The flex
+   space-around layout puts every pair's midpoint exactly on the next match centre. */
+.r16 .match::after,.qf .match::after,.sf .match::after,.r-final .match::after{
+  content:"";position:absolute;left:100%;top:50%;width:15px;border-top:2px solid var(--line);transform:translateY(-1px)}
+.r-final .match::after{width:30px}
+.pair::before{content:"";position:absolute;left:calc(100% + 15px);top:25%;height:50%;border-left:2px solid var(--line)}
+.pair::after{content:"";position:absolute;left:calc(100% + 15px);top:50%;width:15px;border-top:2px solid var(--line);transform:translateY(-1px)}
+
+/* champion node */
+.champ{align-self:center;text-align:center;border:1px solid var(--pitch-deep);background:var(--pitch-deep);
+  color:var(--on-pitch);border-radius:7px;padding:14px 16px;box-shadow:3px 3px 0 var(--pitch);position:relative}
+.champ .lbl{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--amber)}
+.champ .flag{width:30px;height:20px;margin:8px auto 6px;display:block}
+.champ .nm{font-family:var(--disp);font-weight:800;font-size:14px;line-height:1.1}
+
+/* chalk divider */
+.chalk-rule{height:0;border-top:2px solid var(--line);margin:40px 0 0;position:relative}
+.chalk-rule .lab{position:absolute;left:50%;top:-11px;transform:translateX(-50%);background:var(--paper);padding:0 14px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+
+/* ============ MATCH DETAIL (mirrors the group-stage cards) ============ */
+.stage{max-width:780px;margin:0 auto}
+.md{margin-top:26px}
+.md-lbl{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.md-lbl .n{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tag-res{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:3px;padding:3px 8px}
+.tag-res.w{background:var(--win-tint);color:var(--pitch)}
+.tag-res.l{background:var(--loss-tint);color:var(--loss)}
+
+.fix{overflow:hidden}
+.fx-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px 18px}
+.fx-side{display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;min-width:0}
+.fx-side.home{justify-content:flex-end;text-align:right}
+.fx-side .yr{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:500}
+.fx-score{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:74px}
+.fx-score .sc{font-family:var(--mono);font-weight:700;font-size:20px;background:var(--ink);color:var(--paper);border-radius:4px;padding:3px 14px;letter-spacing:.02em}
+.fx-score .st{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.feed{border-top:1px solid var(--line);padding:12px 18px;display:flex;flex-direction:column;gap:8px;max-height:230px;overflow-y:auto}
+.goal{display:flex;align-items:center;gap:11px;font-size:13.5px}
+.goal .min{font-family:var(--mono);font-size:12px;color:var(--muted);width:30px;flex:0 0 auto}
+.goal .ic{width:18px;height:18px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;background:var(--chalk);position:relative}
+.goal .ic::after{content:"";width:9px;height:9px;border-radius:50%;
+  background:repeating-conic-gradient(var(--ink) 0 25%,var(--white) 0 50%);background-size:5px 5px;box-shadow:inset 0 0 0 1px var(--ink)}
+.goal .who{font-weight:600}
+.goal .own{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:2px}
+.goal .own.you{color:var(--pitch)}
+
+/* champion banner */
+.banner{margin-top:30px;text-align:center;padding:34px 22px;border-radius:8px;position:relative;overflow:hidden;
+  background:var(--pitch-deep);color:var(--on-pitch);border:1px solid var(--pitch-deep)}
+.banner::before{content:"";position:absolute;left:-60px;bottom:-60px;width:160px;height:160px;border-radius:50%;border:2px solid rgba(255,255,255,.16)}
+.banner::after{content:"";position:absolute;right:-60px;top:-60px;width:160px;height:160px;border-radius:50%;border:2px solid rgba(255,255,255,.16)}
+.banner .eb{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--amber);position:relative}
+.banner h3{font-family:var(--disp);font-weight:900;font-size:40px;letter-spacing:-.02em;margin:8px 0 0;line-height:1;position:relative}
+.banner p{margin:12px auto 18px;color:rgba(255,255,255,.82);font-size:14px;max-width:420px;position:relative}
+.banner .btn{position:relative}
+
+@media (max-width:560px){
+  .mast .tag{display:none}
+  .stage-h h2{font-size:24px}
+  .banner h3{font-size:30px}
+}
+@media (max-width:430px){
+  .wrap{padding:0 14px 60px}
+  .mast .stamp{display:none}
+  .mast h1{font-size:19px}
+  .fx-side{font-size:13px}
+}
+
+/* ============ THEME SWITCHER ============ */
+.themer{position:fixed;top:64px;right:14px;z-index:50;display:flex;align-items:center;gap:9px;
+  background:var(--white);border:1px solid var(--line);border-radius:30px;padding:6px 10px 6px 13px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);max-width:calc(100vw - 28px)}
+.themer .tlbl{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);flex:0 0 auto}
+.themer .sw-row{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.themer .sw{position:relative;width:22px;height:22px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  border:1px solid var(--flag-edge);padding:0;overflow:hidden;
+  background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%)}
+.themer .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--ink)}
+.themer .sw .nm{position:absolute;left:-9999px}
+.themer .sw.t-pitch{--c1:#15924C;--c2:#0E5C34}
+.themer .sw.t-cobalt{--c1:#2356C8;--c2:#16356E}
+.themer .sw.t-claret{--c1:#7C1F3E;--c2:#C8962F}
+.themer .sw.t-petrol{--c1:#136A6E;--c2:#E2792A}
+.themer .sw.t-floodlight{--c1:#0E1714;--c2:#2FB46A}
+@media (max-width:560px){
+  .themer{top:58px;right:10px;gap:7px;padding:5px 8px 5px 10px;max-width:calc(100vw - 16px)}
+  .themer .tlbl{display:none}
+  .themer .sw{width:20px;height:20px}
+}
+</style>
+
+<nav class="themer" aria-label="Colour theme">
+  <span class="tlbl">Theme</span>
+  <div class="sw-row">
+    <button class="sw t-pitch" data-theme="pitch" title="Pitch" aria-pressed="true"><span class="nm">Pitch</span></button>
+    <button class="sw t-cobalt" data-theme="cobalt" title="Cobalt" aria-pressed="false"><span class="nm">Cobalt</span></button>
+    <button class="sw t-claret" data-theme="claret" title="Claret" aria-pressed="false"><span class="nm">Claret</span></button>
+    <button class="sw t-petrol" data-theme="petrol" title="Petrol" aria-pressed="false"><span class="nm">Petrol</span></button>
+    <button class="sw t-floodlight" data-theme="floodlight" title="Floodlight" aria-pressed="false"><span class="nm">Floodlight</span></button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="crest" aria-hidden="true"></div>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <span class="stamp">Knockouts &middot; bracket</span>
+  </header>
+
+  <!-- ===== STAGE HEADER ===== -->
+  <div class="stage-h">
+    <div class="eyebrow">Knockouts</div>
+    <h2>The bracket &middot; 16 teams, 4 wins to glory</h2>
+    <p class="sub">Sixteen sides drawn at random; the stronger the rating, the likelier the result. Your XI is highlighted at every round it survives.</p>
+  </div>
+
+  <!-- ===== BRACKET TREE ===== -->
+  <div class="bracket-scroll">
+    <div class="heads">
+      <div class="h">Round of 16</div>
+      <div class="h">Quarter-finals</div>
+      <div class="h">Semi-finals</div>
+      <div class="h">Final</div>
+      <div class="h now">Champion</div>
+    </div>
+
+    <div class="bracket">
+      <!-- ROUND OF 16 (8 matches in 4 pairs) -->
+      <div class="round r16">
+        <div class="pair">
+          <div class="match mine">
+            <div class="seed win you"><span class="flag f-you"></span><span class="nm">Your XI</span><span class="sc">3</span></div>
+            <div class="seed out"><span class="flag f-gha"></span><span class="nm">Ghana</span><span class="yr">'06</span><span class="sc">0</span></div>
+          </div>
+          <div class="match">
+            <div class="seed win"><span class="flag f-bra"></span><span class="nm">Brazil</span><span class="yr">'02</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-jpn"></span><span class="nm">Japan</span><span class="yr">'22</span><span class="sc">1</span></div>
+          </div>
+        </div>
+        <div class="pair">
+          <div class="match">
+            <div class="seed win"><span class="flag f-esp"></span><span class="nm">Spain</span><span class="yr">'10</span><span class="sc">1</span></div>
+            <div class="seed out"><span class="flag f-cro"></span><span class="nm">Croatia</span><span class="yr">'18</span><span class="sc">0</span></div>
+          </div>
+          <div class="match">
+            <div class="seed win"><span class="flag f-ger"></span><span class="nm">Germany</span><span class="yr">'14</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-pol"></span><span class="nm">Poland</span><span class="yr">'18</span><span class="sc">0</span></div>
+          </div>
+        </div>
+        <div class="pair">
+          <div class="match">
+            <div class="seed win"><span class="flag f-arg"></span><span class="nm">Argentina</span><span class="yr">'22</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-den"></span><span class="nm">Denmark</span><span class="yr">'18</span><span class="sc">1</span></div>
+          </div>
+          <div class="match">
+            <div class="seed win"><span class="flag f-fra"></span><span class="nm">France</span><span class="yr">'18</span><span class="sc">3</span></div>
+            <div class="seed out"><span class="flag f-bel"></span><span class="nm">Belgium</span><span class="yr">'18</span><span class="sc">1</span></div>
+          </div>
+        </div>
+        <div class="pair">
+          <div class="match">
+            <div class="seed win"><span class="flag f-por"></span><span class="nm">Portugal</span><span class="yr">'22</span><span class="sc">1</span></div>
+            <div class="seed out"><span class="flag f-ned"></span><span class="nm">Netherlands</span><span class="yr">'10</span><span class="sc">0</span></div>
+          </div>
+          <div class="match">
+            <div class="seed win"><span class="flag f-eng"></span><span class="nm">England</span><span class="yr">'18</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-ita"></span><span class="nm">Italy</span><span class="yr">'06</span><span class="sc">1</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUARTER-FINALS (4 matches in 2 pairs) -->
+      <div class="round qf">
+        <div class="pair">
+          <div class="match mine">
+            <div class="seed win you"><span class="flag f-you"></span><span class="nm">Your XI</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-bra"></span><span class="nm">Brazil</span><span class="yr">'02</span><span class="sc">1</span></div>
+          </div>
+          <div class="match">
+            <div class="seed win"><span class="flag f-ger"></span><span class="nm">Germany</span><span class="yr">'14</span><span class="sc">1</span></div>
+            <div class="seed out"><span class="flag f-esp"></span><span class="nm">Spain</span><span class="yr">'10</span><span class="sc">0</span></div>
+          </div>
+        </div>
+        <div class="pair">
+          <div class="match">
+            <div class="seed win"><span class="flag f-fra"></span><span class="nm">France</span><span class="yr">'18</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-arg"></span><span class="nm">Argentina</span><span class="yr">'22</span><span class="sc">0</span></div>
+          </div>
+          <div class="match">
+            <div class="seed win"><span class="flag f-eng"></span><span class="nm">England</span><span class="yr">'18</span><span class="sc">1</span><span class="pen">4p</span></div>
+            <div class="seed out"><span class="flag f-por"></span><span class="nm">Portugal</span><span class="yr">'22</span><span class="sc">1</span><span class="pen">3p</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEMI-FINALS (2 matches in 1 pair) -->
+      <div class="round sf">
+        <div class="pair">
+          <div class="match mine">
+            <div class="seed win you"><span class="flag f-you"></span><span class="nm">Your XI</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-ger"></span><span class="nm">Germany</span><span class="yr">'14</span><span class="sc">1</span></div>
+          </div>
+          <div class="match">
+            <div class="seed win"><span class="flag f-fra"></span><span class="nm">France</span><span class="yr">'18</span><span class="sc">2</span></div>
+            <div class="seed out"><span class="flag f-eng"></span><span class="nm">England</span><span class="yr">'18</span><span class="sc">1</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINAL (1 match) -->
+      <div class="round r-final">
+        <div class="match mine">
+          <div class="seed win you"><span class="flag f-you"></span><span class="nm">Your XI</span><span class="sc">2</span></div>
+          <div class="seed out"><span class="flag f-fra"></span><span class="nm">France</span><span class="yr">'18</span><span class="sc">1</span></div>
+        </div>
+      </div>
+
+      <!-- CHAMPION -->
+      <div class="round r-champ">
+        <div class="champ">
+          <div class="lbl">Champion</div>
+          <span class="flag f-you"></span>
+          <div class="nm">Your XI</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== YOUR RUN (match detail, same as the group stage) ===== -->
+  <div class="chalk-rule"><span class="lab">Your run</span></div>
+
+  <div class="stage">
+
+    <!-- R16 -->
+    <div class="md">
+      <div class="md-lbl"><span class="n">Round of 16</span><span class="tag-res w">Won</span></div>
+      <div class="card fix">
+        <div class="fx-top">
+          <div class="fx-side home">Your XI <span class="flag f-you"></span></div>
+          <div class="fx-score"><span class="sc">3&ndash;0</span><span class="st">Full time</span></div>
+          <div class="fx-side"><span class="flag f-gha"></span>Ghana <span class="yr">2006</span></div>
+        </div>
+        <div class="feed">
+          <div class="goal"><span class="min">22'</span><span class="ic"></span><span class="who">Kane</span><span class="own you">You</span></div>
+          <div class="goal"><span class="min">49'</span><span class="ic"></span><span class="who">Hazard</span><span class="own you">You</span></div>
+          <div class="goal"><span class="min">84'</span><span class="ic"></span><span class="who">Ronaldo</span><span class="own you">You</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QF -->
+    <div class="md">
+      <div class="md-lbl"><span class="n">Quarter-final</span><span class="tag-res w">Won</span></div>
+      <div class="card fix">
+        <div class="fx-top">
+          <div class="fx-side home">Your XI <span class="flag f-you"></span></div>
+          <div class="fx-score"><span class="sc">2&ndash;1</span><span class="st">Full time</span></div>
+          <div class="fx-side"><span class="flag f-bra"></span>Brazil <span class="yr">2002</span></div>
+        </div>
+        <div class="feed">
+          <div class="goal"><span class="min">18'</span><span class="ic"></span><span class="who">Kane</span><span class="own you">You</span></div>
+          <div class="goal"><span class="min">55'</span><span class="ic"></span><span class="who">Ronaldo</span><span class="own">Bra</span></div>
+          <div class="goal"><span class="min">80'</span><span class="ic"></span><span class="who">Modri&#263;</span><span class="own you">You</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SF -->
+    <div class="md">
+      <div class="md-lbl"><span class="n">Semi-final</span><span class="tag-res w">Won</span></div>
+      <div class="card fix">
+        <div class="fx-top">
+          <div class="fx-side home">Your XI <span class="flag f-you"></span></div>
+          <div class="fx-score"><span class="sc">2&ndash;1</span><span class="st">Full time</span></div>
+          <div class="fx-side"><span class="flag f-ger"></span>Germany <span class="yr">2014</span></div>
+        </div>
+        <div class="feed">
+          <div class="goal"><span class="min">27'</span><span class="ic"></span><span class="who">M&uuml;ller</span><span class="own">Ger</span></div>
+          <div class="goal"><span class="min">61'</span><span class="ic"></span><span class="who">Hazard</span><span class="own you">You</span></div>
+          <div class="goal"><span class="min">88'</span><span class="ic"></span><span class="who">Kane</span><span class="own you">You</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINAL -->
+    <div class="md">
+      <div class="md-lbl"><span class="n">Final</span><span class="tag-res w">Won</span></div>
+      <div class="card fix field-edge">
+        <div class="fx-top">
+          <div class="fx-side home">Your XI <span class="flag f-you"></span></div>
+          <div class="fx-score"><span class="sc">2&ndash;1</span><span class="st">Full time</span></div>
+          <div class="fx-side"><span class="flag f-fra"></span>France <span class="yr">2018</span></div>
+        </div>
+        <div class="feed">
+          <div class="goal"><span class="min">23'</span><span class="ic"></span><span class="who">Ronaldo</span><span class="own you">You</span></div>
+          <div class="goal"><span class="min">61'</span><span class="ic"></span><span class="who">Mbapp&eacute;</span><span class="own">Fra</span></div>
+          <div class="goal"><span class="min">79'</span><span class="ic"></span><span class="who">Kane</span><span class="own you">You</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- champion banner -->
+    <div class="banner">
+      <div class="eb">Full time &middot; the Final</div>
+      <h3>World Champions.</h3>
+      <p>Your randomly drafted XI ran the bracket: Ghana, Brazil, Germany and France, four wins, the trophy lifted.</p>
+      <a class="btn primary" href="home.html">Draft a new XI <span class="arw">&rarr;</span></a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* Theme switcher: set data-theme on <html>, persist, mark the active swatch. */
+(function(){
+  var KEY='turf-flat-theme';
+  var swatches=Array.prototype.slice.call(document.querySelectorAll('.themer .sw'));
+  function mark(theme){swatches.forEach(function(b){
+    b.setAttribute('aria-pressed',b.getAttribute('data-theme')===theme?'true':'false');});}
+  var current=document.documentElement.getAttribute('data-theme')||'pitch';
+  mark(current);
+  swatches.forEach(function(b){b.addEventListener('click',function(){
+    var theme=b.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme',theme);
+    try{localStorage.setItem(KEY,theme);}catch(e){}
+    mark(theme);});});
+})();
+</script>
