@@ -203,28 +203,33 @@ a{color:inherit}
    at the cup in the middle, so the whole tree fits the width (no scrolling).
    Teams use 3-letter codes here to save space; the year stays visible. */
 .only-narrow{display:none}
-.mtree{flex-direction:column;gap:30px;margin-top:34px}
+.mtree{flex-direction:column;gap:30px;margin-top:34px;
+  /* connector colour: a touch stronger than --line so the thin lines read crisply */
+  --conn:color-mix(in srgb,var(--muted) 40%,var(--line))}
 .mband{position:relative;display:flex;justify-content:space-around;align-items:stretch}
 .mband .lbl{position:absolute;left:0;top:-17px;font-family:var(--mono);font-size:9px;font-weight:600;
   letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .vpair{position:relative;flex:1 1 0;display:flex;justify-content:space-around;min-width:0}
-.mtree .match{width:58px;font-size:10px}
-/* each team stacks: flag on the first line, 3-letter code + year on the second */
-.mtree .seed{flex-direction:column;align-items:center;gap:3px;padding:5px 4px}
+.mtree .match{width:70px;font-size:10px}
+/* each team: flag (line 1) over 3-letter code + year (line 2) as a centred
+   stack, with the score to the right, vertically centred across both lines */
+.mtree .seed{flex-direction:row;align-items:center;gap:4px;padding:5px 6px}
+.mtree .seed .stack{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
 .mtree .seed .flag{width:20px;height:13px}
 .mtree .seed .lab{display:flex;align-items:baseline;justify-content:center;gap:3px;line-height:1}
 .mtree .seed .nm{flex:0 0 auto;overflow:visible;text-overflow:clip;font-weight:700;letter-spacing:.02em}
 .mtree .seed .yr{font-size:8px}
+.mtree .seed .sc{font-size:12.5px;font-weight:700;padding-left:3px}
 .mcenter{display:flex;justify-content:center}
 /* connectors — top half flows DOWN */
-.mband:not(.up) .match::after{content:"";position:absolute;top:100%;left:calc(50% - 1px);height:15px;border-left:2px solid var(--line)}
-.mband:not(.up) .vpair::before{content:"";position:absolute;top:calc(100% + 15px);left:25%;width:50%;border-top:2px solid var(--line)}
-.mband:not(.up) .vpair::after{content:"";position:absolute;top:calc(100% + 15px);left:calc(50% - 1px);height:15px;border-left:2px solid var(--line)}
+.mband:not(.up) .match::after{content:"";position:absolute;top:100%;left:calc(50% - 1px);height:15px;border-left:2px solid var(--conn)}
+.mband:not(.up) .vpair::before{content:"";position:absolute;top:calc(100% + 14px);left:25%;width:50%;border-top:2px solid var(--conn)}
+.mband:not(.up) .vpair::after{content:"";position:absolute;top:calc(100% + 15px);left:calc(50% - 1px);height:15px;border-left:2px solid var(--conn)}
 .mband.sf:not(.up) .match::after{height:30px}
 /* connectors — bottom half flows UP */
-.mband.up .match::after{content:"";position:absolute;bottom:100%;left:calc(50% - 1px);height:15px;border-left:2px solid var(--line)}
-.mband.up .vpair::before{content:"";position:absolute;bottom:calc(100% + 15px);left:25%;width:50%;border-top:2px solid var(--line)}
-.mband.up .vpair::after{content:"";position:absolute;bottom:calc(100% + 15px);left:calc(50% - 1px);height:15px;border-left:2px solid var(--line)}
+.mband.up .match::after{content:"";position:absolute;bottom:100%;left:calc(50% - 1px);height:15px;border-left:2px solid var(--conn)}
+.mband.up .vpair::before{content:"";position:absolute;bottom:calc(100% + 14px);left:25%;width:50%;border-top:2px solid var(--conn)}
+.mband.up .vpair::after{content:"";position:absolute;bottom:calc(100% + 15px);left:calc(50% - 1px);height:15px;border-left:2px solid var(--conn)}
 .mband.sf.up .match::after{height:30px}
 @media (max-width:900px){
   .only-wide{display:none}
@@ -451,27 +456,28 @@ a{color:inherit}
   <!-- ===== BRACKET TREE (narrow screens: two-sided, converging to the cup) ===== -->
   <div class="mtree only-narrow">
     <!-- TOP HALF: flows down toward the cup. Each team: flag (line 1) over
-         3-letter code + year (line 2); the knocked-out code is struck through. -->
+         3-letter code + year (line 2), with the score to the right; the
+         knocked-out code is struck through. -->
     <div class="mband r16">
       <div class="lbl">Round of 16</div>
       <div class="vpair">
         <div class="match mine">
-          <div class="seed win you"><span class="flag f-you"></span><span class="lab"><span class="nm">YOU</span></span></div>
-          <div class="seed out"><span class="flag f-gha"></span><span class="lab"><span class="nm">GHA</span><span class="yr">'06</span></span></div>
+          <div class="seed win you"><span class="stack"><span class="flag f-you"></span><span class="lab"><span class="nm">YOU</span></span></span><span class="sc">3</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-gha"></span><span class="lab"><span class="nm">GHA</span><span class="yr">'06</span></span></span><span class="sc">0</span></div>
         </div>
         <div class="match">
-          <div class="seed win"><span class="flag f-bra"></span><span class="lab"><span class="nm">BRA</span><span class="yr">'02</span></span></div>
-          <div class="seed out"><span class="flag f-jpn"></span><span class="lab"><span class="nm">JPN</span><span class="yr">'22</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-bra"></span><span class="lab"><span class="nm">BRA</span><span class="yr">'02</span></span></span><span class="sc">2</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-jpn"></span><span class="lab"><span class="nm">JPN</span><span class="yr">'22</span></span></span><span class="sc">1</span></div>
         </div>
       </div>
       <div class="vpair">
         <div class="match">
-          <div class="seed win"><span class="flag f-esp"></span><span class="lab"><span class="nm">ESP</span><span class="yr">'10</span></span></div>
-          <div class="seed out"><span class="flag f-cro"></span><span class="lab"><span class="nm">CRO</span><span class="yr">'18</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-esp"></span><span class="lab"><span class="nm">ESP</span><span class="yr">'10</span></span></span><span class="sc">1</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-cro"></span><span class="lab"><span class="nm">CRO</span><span class="yr">'18</span></span></span><span class="sc">0</span></div>
         </div>
         <div class="match">
-          <div class="seed win"><span class="flag f-ger"></span><span class="lab"><span class="nm">GER</span><span class="yr">'14</span></span></div>
-          <div class="seed out"><span class="flag f-pol"></span><span class="lab"><span class="nm">POL</span><span class="yr">'18</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-ger"></span><span class="lab"><span class="nm">GER</span><span class="yr">'14</span></span></span><span class="sc">2</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-pol"></span><span class="lab"><span class="nm">POL</span><span class="yr">'18</span></span></span><span class="sc">0</span></div>
         </div>
       </div>
     </div>
@@ -480,12 +486,12 @@ a{color:inherit}
       <div class="lbl">Quarter-finals</div>
       <div class="vpair">
         <div class="match mine">
-          <div class="seed win you"><span class="flag f-you"></span><span class="lab"><span class="nm">YOU</span></span></div>
-          <div class="seed out"><span class="flag f-bra"></span><span class="lab"><span class="nm">BRA</span><span class="yr">'02</span></span></div>
+          <div class="seed win you"><span class="stack"><span class="flag f-you"></span><span class="lab"><span class="nm">YOU</span></span></span><span class="sc">2</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-bra"></span><span class="lab"><span class="nm">BRA</span><span class="yr">'02</span></span></span><span class="sc">1</span></div>
         </div>
         <div class="match">
-          <div class="seed win"><span class="flag f-ger"></span><span class="lab"><span class="nm">GER</span><span class="yr">'14</span></span></div>
-          <div class="seed out"><span class="flag f-esp"></span><span class="lab"><span class="nm">ESP</span><span class="yr">'10</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-ger"></span><span class="lab"><span class="nm">GER</span><span class="yr">'14</span></span></span><span class="sc">1</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-esp"></span><span class="lab"><span class="nm">ESP</span><span class="yr">'10</span></span></span><span class="sc">0</span></div>
         </div>
       </div>
     </div>
@@ -493,8 +499,8 @@ a{color:inherit}
     <div class="mband sf">
       <div class="lbl">Semi-final</div>
       <div class="match mine">
-        <div class="seed win you"><span class="flag f-you"></span><span class="lab"><span class="nm">YOU</span></span></div>
-        <div class="seed out"><span class="flag f-ger"></span><span class="lab"><span class="nm">GER</span><span class="yr">'14</span></span></div>
+        <div class="seed win you"><span class="stack"><span class="flag f-you"></span><span class="lab"><span class="nm">YOU</span></span></span><span class="sc">2</span></div>
+        <div class="seed out"><span class="stack"><span class="flag f-ger"></span><span class="lab"><span class="nm">GER</span><span class="yr">'14</span></span></span><span class="sc">1</span></div>
       </div>
     </div>
 
@@ -512,8 +518,8 @@ a{color:inherit}
     <div class="mband sf up">
       <div class="lbl">Semi-final</div>
       <div class="match">
-        <div class="seed win"><span class="flag f-fra"></span><span class="lab"><span class="nm">FRA</span><span class="yr">'18</span></span></div>
-        <div class="seed out"><span class="flag f-eng"></span><span class="lab"><span class="nm">ENG</span><span class="yr">'18</span></span></div>
+        <div class="seed win"><span class="stack"><span class="flag f-fra"></span><span class="lab"><span class="nm">FRA</span><span class="yr">'18</span></span></span><span class="sc">2</span></div>
+        <div class="seed out"><span class="stack"><span class="flag f-eng"></span><span class="lab"><span class="nm">ENG</span><span class="yr">'18</span></span></span><span class="sc">1</span></div>
       </div>
     </div>
 
@@ -521,12 +527,12 @@ a{color:inherit}
       <div class="lbl">Quarter-finals</div>
       <div class="vpair">
         <div class="match">
-          <div class="seed win"><span class="flag f-fra"></span><span class="lab"><span class="nm">FRA</span><span class="yr">'18</span></span></div>
-          <div class="seed out"><span class="flag f-arg"></span><span class="lab"><span class="nm">ARG</span><span class="yr">'22</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-fra"></span><span class="lab"><span class="nm">FRA</span><span class="yr">'18</span></span></span><span class="sc">2</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-arg"></span><span class="lab"><span class="nm">ARG</span><span class="yr">'22</span></span></span><span class="sc">0</span></div>
         </div>
         <div class="match">
-          <div class="seed win"><span class="flag f-eng"></span><span class="lab"><span class="nm">ENG</span><span class="yr">'18</span></span></div>
-          <div class="seed out"><span class="flag f-por"></span><span class="lab"><span class="nm">POR</span><span class="yr">'22</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-eng"></span><span class="lab"><span class="nm">ENG</span><span class="yr">'18</span></span></span><span class="sc">1</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-por"></span><span class="lab"><span class="nm">POR</span><span class="yr">'22</span></span></span><span class="sc">1</span></div>
         </div>
       </div>
     </div>
@@ -535,22 +541,22 @@ a{color:inherit}
       <div class="lbl">Round of 16</div>
       <div class="vpair">
         <div class="match">
-          <div class="seed win"><span class="flag f-arg"></span><span class="lab"><span class="nm">ARG</span><span class="yr">'22</span></span></div>
-          <div class="seed out"><span class="flag f-den"></span><span class="lab"><span class="nm">DEN</span><span class="yr">'18</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-arg"></span><span class="lab"><span class="nm">ARG</span><span class="yr">'22</span></span></span><span class="sc">2</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-den"></span><span class="lab"><span class="nm">DEN</span><span class="yr">'18</span></span></span><span class="sc">1</span></div>
         </div>
         <div class="match">
-          <div class="seed win"><span class="flag f-fra"></span><span class="lab"><span class="nm">FRA</span><span class="yr">'18</span></span></div>
-          <div class="seed out"><span class="flag f-bel"></span><span class="lab"><span class="nm">BEL</span><span class="yr">'18</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-fra"></span><span class="lab"><span class="nm">FRA</span><span class="yr">'18</span></span></span><span class="sc">3</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-bel"></span><span class="lab"><span class="nm">BEL</span><span class="yr">'18</span></span></span><span class="sc">1</span></div>
         </div>
       </div>
       <div class="vpair">
         <div class="match">
-          <div class="seed win"><span class="flag f-por"></span><span class="lab"><span class="nm">POR</span><span class="yr">'22</span></span></div>
-          <div class="seed out"><span class="flag f-ned"></span><span class="lab"><span class="nm">NED</span><span class="yr">'10</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-por"></span><span class="lab"><span class="nm">POR</span><span class="yr">'22</span></span></span><span class="sc">1</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-ned"></span><span class="lab"><span class="nm">NED</span><span class="yr">'10</span></span></span><span class="sc">0</span></div>
         </div>
         <div class="match">
-          <div class="seed win"><span class="flag f-eng"></span><span class="lab"><span class="nm">ENG</span><span class="yr">'18</span></span></div>
-          <div class="seed out"><span class="flag f-ita"></span><span class="lab"><span class="nm">ITA</span><span class="yr">'06</span></span></div>
+          <div class="seed win"><span class="stack"><span class="flag f-eng"></span><span class="lab"><span class="nm">ENG</span><span class="yr">'18</span></span></span><span class="sc">2</span></div>
+          <div class="seed out"><span class="stack"><span class="flag f-ita"></span><span class="lab"><span class="nm">ITA</span><span class="yr">'06</span></span></span><span class="sc">1</span></div>
         </div>
       </div>
     </div>
