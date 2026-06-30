@@ -1,4 +1,4 @@
-import { HelpCircle, Sparkles } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import type { Player } from '../data/types';
 import { categoryOf } from '../data/types';
 import type { Formation } from '../domain/formations';
@@ -16,26 +16,26 @@ const CHEMISTRY_RULES = (
         </div>
         <ul className="space-y-1">
             <li>
-                <span className="font-semibold">Same squad</span> — real teammates (same nation
-                &amp; year): 2+ → +1, 4+ → +2, 7+ → +3, all 11 → +4
+                <span className="font-semibold">Same squad</span> - real teammates (same nation
+                &amp; year): 2+ &rarr; +1, 4+ &rarr; +2, 7+ &rarr; +3, all 11 &rarr; +4
             </li>
             <li>
-                <span className="font-semibold">Same nation</span> — across any years: 3+ → +1, 5+ →
-                +2, 8+ → +3
+                <span className="font-semibold">Same nation</span> - across any years: 3+ &rarr; +1,
+                5+ &rarr; +2, 8+ &rarr; +3
             </li>
             <li>
-                <span className="font-semibold">Same tournament</span> — one World Cup: 3+ → +1, 5+
-                → +2, 8+ → +3
+                <span className="font-semibold">Same tournament</span> - one World Cup: 3+ &rarr; +1,
+                5+ &rarr; +2, 8+ &rarr; +3
             </li>
             <li>
-                <span className="font-semibold">Same continent</span> — one confederation: 6+ → +1,
-                9+ → +2
+                <span className="font-semibold">Same continent</span> - one confederation: 6+ &rarr;
+                +1, 9+ &rarr; +2
             </li>
             <li>
-                <span className="font-semibold">Same era</span> — all within 4 years: +1
+                <span className="font-semibold">Same era</span> - all within 4 years: +1
             </li>
             <li>
-                <span className="font-semibold">In position</span> — 10+ in their natural
+                <span className="font-semibold">In position</span> - 10+ in their natural
                 (underlined) role: +1
             </li>
         </ul>
@@ -58,20 +58,27 @@ function avgElo(players: Player[]): number {
     return Math.round(players.reduce((s, p) => s + p.elo, 0) / players.length);
 }
 
-function Cell({ label, title, value }: { label: string; title: string; value: number }) {
+/** One scoreboard cell in the ratings strip. The Ovr cell is the deep-green hero. */
+function Cell({ label, value, ovr = false }: { label: string; value: number; ovr?: boolean }) {
     return (
-        <div
-            title={title}
-            className="flex flex-1 flex-col items-center justify-center rounded-xl bg-pitch/5 px-2 py-2"
-        >
-            <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted">{label}</div>
-            <div className="font-mono text-xl font-extrabold leading-none">{value || '—'}</div>
+        <div className={`border-r border-line px-3 py-3.5 last:border-r-0 ${ovr ? 'bg-pitch-dark' : 'bg-panel'}`}>
+            <div
+                className={`font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${ovr ? 'text-white/70' : 'text-muted'}`}
+            >
+                {label}
+            </div>
+            <div
+                className={`mt-1.5 font-mono text-3xl font-bold leading-none ${value ? (ovr ? 'text-white' : 'text-ink') : 'text-line'}`}
+            >
+                {value || '–'}
+            </div>
         </div>
     );
 }
 
-/** Compact team-rating bar shown above the pitch: overall, att/mid/def and the
- *  chemistry readout in one row, with the per-category breakdown below. */
+/** The right-column readout: a 4-cell ratings strip (Ovr/Att/Mid/Def) and, below
+ *  it, the chemistry card (donut + effective overall + the per-category breakdown).
+ *  Both render as siblings so the surrounding stack spaces them. */
 export default function BoxScore({ formation, filled, showChemistry = false }: Props) {
     const placedPlayers = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
     const attack = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
@@ -85,44 +92,30 @@ export default function BoxScore({ formation, filled, showChemistry = false }: P
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;
 
     return (
-        <div className="flex flex-col gap-2.5 rounded-md border border-line bg-panel p-3 shadow-hard">
-            <div className="flex flex-wrap items-stretch gap-2.5">
-                {/* Overall hero */}
-                <div className="flex items-center gap-3 rounded-xl bg-gradient-to-br from-pitch to-pitch-dark px-4 py-2.5 text-white shadow-[0_8px_18px_rgba(12,111,57,0.26)]">
-                    <div className="font-mono text-[34px] font-extrabold leading-none">
-                        {overall || '—'}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-[0.1em] text-white/85">
-                        Overall
-                        <b className="mt-0.5 block text-sm font-bold normal-case tracking-normal text-white">
-                            Your XI
-                        </b>
-                    </div>
-                </div>
+        <>
+            <div className="grid grid-cols-4 overflow-hidden rounded-md border border-line shadow-hard">
+                <Cell label="Ovr" value={overall} ovr />
+                <Cell label="Att" value={attack} />
+                <Cell label="Mid" value={midfield} />
+                <Cell label="Def" value={defense} />
+            </div>
 
-                {/* Att / Mid / Def */}
-                <div className="flex flex-1 gap-2.5">
-                    <Cell label="Att" title="Attack" value={attack} />
-                    <Cell label="Mid" title="Midfield" value={midfield} />
-                    <Cell label="Def" title="Defense (incl. GK)" value={defense} />
-                </div>
-
-                {/* Chemistry */}
-                {chem && (
-                    <div className="flex items-center gap-3 rounded-xl border border-line bg-white px-3.5 py-2">
+            {chem && (
+                <div className="rounded-md border border-line bg-panel p-4 shadow-hard">
+                    <div className="flex items-center gap-3.5">
                         <span
-                            className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full"
+                            className="grid h-[58px] w-[58px] shrink-0 place-items-center rounded-full"
                             style={{
-                                background: `conic-gradient(var(--color-amber) 0 ${donutPct}%, var(--color-line) ${donutPct}% 100%)`,
+                                background: `conic-gradient(var(--color-amber) 0 ${donutPct}%, var(--color-chalk) ${donutPct}% 100%)`,
                             }}
                         >
-                            <span className="grid h-[38px] w-[38px] place-items-center rounded-full bg-white font-mono font-extrabold text-amber">
-                                {chem.bonus > 0 ? `+${chem.bonus}` : '—'}
+                            <span className="grid h-[42px] w-[42px] place-items-center rounded-full bg-panel font-mono text-base font-bold text-amber">
+                                {chem.bonus > 0 ? `+${chem.bonus}` : '–'}
                             </span>
                         </span>
                         <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
-                                <Sparkles size={13} strokeWidth={2.5} /> Chemistry
+                            <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                                Chemistry bonus
                                 <Tooltip
                                     wide
                                     label={CHEMISTRY_RULES}
@@ -131,35 +124,30 @@ export default function BoxScore({ formation, filled, showChemistry = false }: P
                                     <HelpCircle size={13} strokeWidth={2.5} />
                                 </Tooltip>
                             </div>
-                            <div className="mt-1 text-xs text-muted">
+                            <div className="mt-0.5 font-display text-lg font-extrabold leading-tight">
                                 Effective overall{' '}
-                                <b className="font-mono text-sm font-extrabold text-ink">
-                                    {chem.placed > 0 ? overall + chem.bonus : '—'}
-                                </b>
+                                <span className="text-amber">
+                                    {chem.placed > 0 ? overall + chem.bonus : '–'}
+                                </span>
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
 
-            {/* Per-category breakdown (kept visible: the points add up to the bonus). */}
-            {chem && chem.categories.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 border-t border-line pt-2.5 text-[11px]">
-                    {chem.categories.map((c) => (
-                        <span
-                            key={c.key}
-                            className="rounded-full bg-pitch/8 px-2 py-0.5"
-                            title={c.detail}
-                        >
-                            <span className="font-semibold text-ink">{c.name}</span>{' '}
-                            <span className="font-mono text-pitch">+{c.points}</span>
-                        </span>
-                    ))}
-                    <span className="ml-auto font-mono font-extrabold text-pitch">
-                        {chem.capped ? `+${chem.rawTotal} capped +${chem.bonus}` : `Total +${chem.bonus}`}
-                    </span>
+                    {chem.categories.length > 0 && (
+                        <div className="mt-3.5 flex flex-wrap gap-1.5 border-t border-line pt-3.5">
+                            {chem.categories.map((c) => (
+                                <span
+                                    key={c.key}
+                                    className="rounded-[3px] border border-line px-2 py-1 font-mono text-[11px] font-semibold text-muted"
+                                    title={c.detail}
+                                >
+                                    {c.name} <b className="font-bold text-pitch">+{c.points}</b>
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
-        </div>
+        </>
     );
 }

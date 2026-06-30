@@ -39,7 +39,7 @@ import TournamentScreen from './components/TournamentScreen';
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
  *  between them; on the wide layout they sit side by side and no scrolling is needed. */
 const isStackedLayout = () =>
-    typeof window !== 'undefined' && !window.matchMedia('(min-width: 1024px)').matches;
+    typeof window !== 'undefined' && !window.matchMedia('(min-width: 1080px)').matches;
 
 /** Playback preferences (speed + auto/game-by-game) persisted across runs. */
 const SETTINGS_KEY = 'wcsim:settings';
@@ -275,7 +275,7 @@ export default function App() {
 
     return (
         <div className="min-h-full text-ink">
-            <div className="mx-auto max-w-[1400px] px-4 py-5">
+            <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5">
                 <header className="mb-5 flex items-center gap-3 border-b-2 border-ink pb-3">
                     <span className="h-9 w-9 shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)]" />
                     <h1 className="font-display text-2xl font-extrabold tracking-tight">
@@ -303,9 +303,9 @@ export default function App() {
                         onReset={() => dispatch({ type: 'RESET' })}
                     />
                 ) : (
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[330px_minmax(0,1fr)] lg:items-start">
-                        {/* Left: setup -> drawn squad -> complete */}
-                        <aside ref={squadRef} className="scroll-mt-6 lg:h-[80vh]">
+                    <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
+                        {/* Col 1: setup -> drawn squad -> complete */}
+                        <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
                             {phase === 'setup' && (
                                 <SetupPanel
                                     names={FORMATIONS_DATA.names}
@@ -351,43 +351,34 @@ export default function App() {
                             )}
                         </aside>
 
-                        {/* Center: totals across the top, then the pitch with the XI detail
-              table beside it (desktop) or stacked under it (mobile). Order on
-              mobile: pitch, totals, table (the squad panel sits above in the aside). */}
-                        <main className="grid gap-4 lg:h-[80vh] lg:grid-cols-[minmax(0,1fr)_15rem] lg:grid-rows-[auto_minmax(0,1fr)]">
-                            {activeFormation ? (
-                                <>
-                                    <div className="order-2 lg:order-none lg:col-span-2">
-                                        <BoxScore
-                                            formation={activeFormation}
-                                            filled={filled}
-                                            showChemistry
-                                        />
-                                    </div>
-                                    <div
-                                        ref={pitchRef}
-                                        className="order-1 min-h-0 scroll-mt-6 max-lg:min-h-[440px] lg:order-none"
-                                    >
-                                        <Pitch
-                                            formation={activeFormation}
-                                            filled={filled}
-                                            selectedPlayer={selectedPlayer}
-                                            onPlace={handlePlace}
-                                            onRemove={
-                                                FEATURES.removePlayers ? handleRemove : undefined
-                                            }
-                                        />
-                                    </div>
-                                    <div className="order-3 min-h-0 lg:order-none lg:overflow-auto">
-                                        <XiTable formation={activeFormation} filled={filled} />
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex aspect-[3/4] max-w-xl items-center justify-center rounded-lg border border-dashed border-line text-muted lg:col-span-2">
-                                    Loading formations…
-                                </div>
-                            )}
-                        </main>
+                        {/* Col 2: the pitch. Col 3: ratings + chemistry + line-up sheet
+              stacked, matching the turf-flat comp. On narrow widths the grid
+              areas restack to settings, pitch, then the stack. */}
+                        {activeFormation ? (
+                            <>
+                                <section ref={pitchRef} className="scroll-mt-6 [grid-area:board]">
+                                    <Pitch
+                                        formation={activeFormation}
+                                        filled={filled}
+                                        selectedPlayer={selectedPlayer}
+                                        onPlace={handlePlace}
+                                        onRemove={FEATURES.removePlayers ? handleRemove : undefined}
+                                    />
+                                </section>
+                                <section className="flex flex-col gap-[18px] [grid-area:stack]">
+                                    <BoxScore
+                                        formation={activeFormation}
+                                        filled={filled}
+                                        showChemistry
+                                    />
+                                    <XiTable formation={activeFormation} filled={filled} />
+                                </section>
+                            </>
+                        ) : (
+                            <div className="mx-auto flex aspect-[3/4] w-full max-w-[560px] items-center justify-center rounded-md border border-dashed border-line text-muted [grid-area:board]">
+                                Loading formations…
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

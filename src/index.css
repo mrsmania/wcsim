@@ -123,15 +123,3 @@ button:not(:disabled) {
 .animate-slot-pulse-secondary {
     animation: slot-pulse-secondary 1.15s ease-out infinite;
 }
-
-/* 3D tilted pitch (Turf). Only the pitch surface (grass, stripes, markings) is
-   tilted; player badges render flat in a 2D overlay positioned from measured
-   anchor points, so they stay crisp and readable. */
-.pitch-stage {
-    perspective: 1100px;
-    perspective-origin: 50% 24%;
-}
-.pitch-field {
-    transform: rotateX(38deg);
-    transform-origin: 80% 88%;
-}

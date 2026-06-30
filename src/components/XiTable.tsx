@@ -4,48 +4,61 @@ import type { Filled } from '../domain/draft';
 import { SQUAD_BY_ID } from '../data/squads';
 import Flag from './Flag';
 
-/** The placed XI as a details table: position, last name, flag + year, elo,
- *  ordered back to front (GK, DEF, MID, FWD). Shown beside the pitch on desktop
- *  and below it on mobile, so the pitch badges themselves can stay minimal. */
+/** The placed XI as a line-up sheet: position, last name, flag + year, rating,
+ *  ordered back to front (GK, DEF, MID, FWD). Sits in the right column beside the
+ *  pitch (and below it when stacked), so the pitch badges can stay minimal. */
 export default function XiTable({ formation, filled }: { formation: Formation; filled: Filled }) {
     const ordered = [...formation.slots].sort(
         (a, b) =>
             CATEGORY_ORDER.indexOf(categoryOf(a.position)) -
             CATEGORY_ORDER.indexOf(categoryOf(b.position)),
     );
+    const placed = ordered.filter((s) => filled[s.id]).length;
 
     return (
-        <ul className="flex flex-col rounded-md border border-line bg-panel px-3 shadow-hard">
+        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+            <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3 font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted">
+                <span>
+                    Line-up{' '}
+                    <span className="tracking-[0.1em] text-pitch">
+                        &middot; {placed}/{formation.slots.length}
+                    </span>
+                </span>
+                <span>Rating</span>
+            </div>
             {ordered.map((slot) => {
                 const player = filled[slot.id];
                 const sq = player ? SQUAD_BY_ID[player.squadId] : null;
+                const isGk = slot.position === 'GK';
                 return (
-                    <li
+                    <div
                         key={slot.id}
-                        className="flex items-center gap-2 border-b border-line py-2 text-sm last:border-b-0"
+                        className={`grid grid-cols-[30px_1fr_auto_auto] items-center gap-2.5 border-b border-line px-4 py-2.5 last:border-b-0 ${isGk ? 'bg-chalk' : ''}`}
                     >
-                        <span className="w-8 shrink-0 text-[11px] font-bold uppercase text-muted">
+                        <span className="font-mono text-[11px] font-semibold tracking-[0.04em] text-pitch">
                             {slot.label}
                         </span>
-                        <span className={`flex-1 truncate ${player ? 'font-bold' : 'text-muted'}`}>
-                            {player ? lastName(player.name) : '—'}
+                        <span
+                            className={`truncate text-[13.5px] ${player ? 'font-semibold' : 'text-muted'}`}
+                        >
+                            {player ? lastName(player.name) : '–'}
                         </span>
-                        <span className="flex w-[60px] shrink-0 items-center gap-1.5 text-muted">
-                            {sq && (
+                        <span className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
+                            {sq ? (
                                 <>
                                     <Flag code={sq.code} className="h-3.5 w-5" />
-                                    <span className="font-mono text-[11px] tabular-nums">
-                                        {sq.year}
-                                    </span>
+                                    <span className="tabular-nums">{sq.year}</span>
                                 </>
+                            ) : (
+                                '–'
                             )}
                         </span>
-                        <span className="w-7 shrink-0 text-right font-mono text-sm font-extrabold">
-                            {player ? player.elo : '—'}
+                        <span className="min-w-[24px] text-right font-mono text-sm font-bold">
+                            {player ? player.elo : '–'}
                         </span>
-                    </li>
+                    </div>
                 );
             })}
-        </ul>
+        </div>
     );
 }

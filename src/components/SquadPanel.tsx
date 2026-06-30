@@ -78,12 +78,12 @@ export default function SquadPanel({
     const rerollDisabled = rerollsLeft <= 0;
 
     return (
-        <div className="flex flex-col gap-3 rounded-md border border-line bg-panel pt-3 shadow-hard lg:h-full">
+        <div className="flex flex-col gap-3 rounded-md border border-line bg-panel pt-3 shadow-hard">
             <Header squad={squad} scrambling={false} />
 
             {/* Player list fills the panel and scrolls. Rows are split by dividers so
           each reads as a tappable line: number, name, positions, elo. */}
-            <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line max-lg:max-h-[55vh]">
+            <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line max-h-[60vh]">
                 {sortSquad(squad.players).map((p) => {
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);

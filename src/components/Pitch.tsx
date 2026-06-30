@@ -3,7 +3,6 @@ import type { Player } from '../data/types';
 import { lastName } from '../data/types';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { FEATURES } from '../config';
 import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
@@ -74,64 +73,36 @@ function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
     return prev.map((_, i) => next[colForRow[i]]);
 }
 
-// --- Perspective projection --------------------------------------------------
-// One pure function maps pitch coords to a 600x400-ish drawing space; the SVG and
-// the (flat HTML) badges both use it, so badge positions are exact and need no
-// DOM measurement. The SVG stretches its viewBox to the container and badges are
-// placed as a percentage of the same box, so the two always line up.
-// The drawing box. Its aspect ratio (not the viewport's) sets the pitch shape and
-// tilt: the SVG fits this box with preserveAspectRatio "meet", so the angle is
-// constant regardless of how tall or wide the container is.
-const VBW = 720;
+// Flat top-down drawing box. 480x640 maps the 300x400 authored markings at a
+// uniform 1.6x scale, so circles stay round; the SVG fits this box with "meet"
+// and the badges sit over the fitted, centred box.
+const VBW = 480;
 const VBH = 640;
-// Flat (top-down) drawing box. 480x640 maps the 300x400 authored markings at a
-// uniform 1.6x scale, so circles stay round (no stretch); the SVG fits this box
-// with "meet" and the badges sit over the fitted, centred box.
-const FLAT_W = 480;
-const FLAT_H = 640;
-const PAD_TOP = 64; // empty space above the far goal line so forward badges fit
-const PAD_BOT = 20;
-const TOP_RATIO = 0.55; // far edge width as a fraction of the near (bottom) edge
-const BADGE_MIN_SCALE = 1; // far badges this fraction of near size (1 = constant)
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-interface Proj {
-    x: number;
-    y: number;
-    s: number;
-    yf: number;
-}
-type Project = (u: number, v: number) => Proj;
-
-/** (u,v) in 0..1, v: 0 = far (top) .. 1 = near (bottom). Tilt = a receding-plane
- *  perspective (full foreshortening); flat = a plain rectangle (mobile). */
-function makeProject(tilt: boolean): Project {
-    if (!tilt) return (u, v) => ({ x: u * FLAT_W, y: v * FLAT_H, s: 1, yf: v });
-    const D = 1 / TOP_RATIO;
-    const planeH = VBH - PAD_TOP - PAD_BOT;
-    return (u, v) => {
-        const d = 1 + (D - 1) * (1 - v); // depth: near (v=1) = 1, far (v=0) = D
-        const yf = (1 / d - TOP_RATIO) / (1 - TOP_RATIO); // screen fraction (0 far .. 1 near)
-        const s = lerp(TOP_RATIO, 1, yf); // width grows linearly with screen depth
-        return { x: VBW / 2 + (u - 0.5) * s * VBW, y: PAD_TOP + yf * planeH, s, yf };
-    };
-}
+const SX = VBW / 300;
+const SY = VBH / 400;
 
 const d2 = (n: number) => Math.round(n * 100) / 100;
-/** Project a point given in the classic 300x400 pitch space. */
-const vb = (P: Project, vx: number, vy: number) => P(vx / 300, vy / 400);
+/** Map a point given in the classic 300x400 pitch space into the drawing box. */
+const px = (vx: number) => vx * SX;
+const py = (vy: number) => vy * SY;
 
-function pathOf(P: Project, pts: [number, number][], close = false): string {
+function pathOf(pts: [number, number][], close = false): string {
     let s = '';
     pts.forEach((pt, i) => {
-        const q = vb(P, pt[0], pt[1]);
-        s += `${i ? 'L' : 'M'}${d2(q.x)} ${d2(q.y)} `;
+        s += `${i ? 'L' : 'M'}${d2(px(pt[0]))} ${d2(py(pt[1]))} `;
     });
     return s + (close ? 'Z' : '');
 }
 
 /** Sample an arc (angles in degrees, in 300x400 pitch space) as points. */
-function arcPts(cx: number, cy: number, r: number, a0: number, a1: number, n: number): [number, number][] {
+function arcPts(
+    cx: number,
+    cy: number,
+    r: number,
+    a0: number,
+    a1: number,
+    n: number,
+): [number, number][] {
     const out: [number, number][] = [];
     for (let i = 0; i <= n; i++) {
         const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
@@ -141,22 +112,22 @@ function arcPts(cx: number, cy: number, r: number, a0: number, a1: number, n: nu
 }
 const circlePts = (cx: number, cy: number, r: number, n: number) => arcPts(cx, cy, r, 0, 360, n);
 
-/** All pitch markings, authored in 300x400 space and projected, as one path. */
-function markingsPath(P: Project): string {
+/** All pitch markings, authored in 300x400 space and scaled into the box. */
+function markingsPath(): string {
     return [
-        pathOf(P, [[0, 0], [300, 0], [300, 400], [0, 400]], true), // touchlines
-        pathOf(P, [[0, 200], [300, 200]]), // halfway line
-        pathOf(P, circlePts(150, 200, 46, 64), true), // centre circle
-        pathOf(P, [[62, 0], [62, 60], [238, 60], [238, 0]]), // top penalty box
-        pathOf(P, [[112, 0], [112, 22], [188, 22], [188, 0]]), // top 6-yard box
-        pathOf(P, [[62, 400], [62, 340], [238, 340], [238, 400]]), // bottom penalty box
-        pathOf(P, [[112, 400], [112, 378], [188, 378], [188, 400]]), // bottom 6-yard box
-        pathOf(P, arcPts(150, 40, 44, 27, 153, 20)), // top "D"
-        pathOf(P, arcPts(150, 360, 44, 207, 333, 20)), // bottom "D"
-        pathOf(P, arcPts(0, 0, 9, 90, 0, 6)), // corner arcs
-        pathOf(P, arcPts(300, 0, 9, 180, 90, 6)),
-        pathOf(P, arcPts(300, 400, 9, 270, 180, 6)),
-        pathOf(P, arcPts(0, 400, 9, 360, 270, 6)),
+        pathOf([[0, 0], [300, 0], [300, 400], [0, 400]], true), // touchlines
+        pathOf([[0, 200], [300, 200]]), // halfway line
+        pathOf(circlePts(150, 200, 46, 64), true), // centre circle
+        pathOf([[62, 0], [62, 60], [238, 60], [238, 0]]), // top penalty box
+        pathOf([[112, 0], [112, 22], [188, 22], [188, 0]]), // top 6-yard box
+        pathOf([[62, 400], [62, 340], [238, 340], [238, 400]]), // bottom penalty box
+        pathOf([[112, 400], [112, 378], [188, 378], [188, 400]]), // bottom 6-yard box
+        pathOf(arcPts(150, 40, 44, 27, 153, 20)), // top "D"
+        pathOf(arcPts(150, 360, 44, 207, 333, 20)), // bottom "D"
+        pathOf(arcPts(0, 0, 9, 90, 0, 6)), // corner arcs
+        pathOf(arcPts(300, 0, 9, 180, 90, 6)),
+        pathOf(arcPts(300, 400, 9, 270, 180, 6)),
+        pathOf(arcPts(0, 400, 9, 360, 270, 6)),
     ].join(' ');
 }
 
@@ -170,8 +141,8 @@ interface Props {
     onRemove?: (slotId: string) => void;
 }
 
-/** One placed player or open slot, rendered flat over the pitch at a projected
- *  position (a percentage of the stage) so it stays crisp and upright. */
+/** One placed player or open slot, rendered flat over the pitch at a position
+ *  (a px offset over the fitted board) so it stays crisp and upright. */
 function OverlayMarker({
     slot,
     player,
@@ -179,7 +150,6 @@ function OverlayMarker({
     left,
     top,
     scale,
-    tilt,
     onPlace,
     onRemove,
 }: {
@@ -191,23 +161,18 @@ function OverlayMarker({
     left: string;
     top: string;
     scale: number;
-    tilt: boolean;
     onPlace: (slotId: string) => void;
     /** Testing aid: clear this slot (only shown for placed players). */
     onRemove?: () => void;
 }) {
-    const transform = `translate(-50%, ${tilt ? '-100%' : '-50%'}) scale(${scale})`;
+    const transform = `translate(-50%, -50%) scale(${scale})`;
     // Slide to the new spot when the formation changes.
     const transition = 'left 0.45s ease-out, top 0.45s ease-out, transform 0.45s ease-out';
-    const style = { left, top, transform, transformOrigin: 'bottom center', transition };
-    const shadow = tilt ? (
-        <span className="absolute bottom-0 left-1/2 h-3 w-10 -translate-x-1/2 translate-y-1/2 bg-[radial-gradient(closest-side,rgba(0,0,0,0.33),transparent)]" />
-    ) : null;
+    const style = { left, top, transform, transformOrigin: 'center', transition };
 
     if (player) {
         return (
             <div className="absolute flex flex-col items-center" style={style}>
-                {shadow}
                 <PlayerBadge
                     name={lastName(player.name)}
                     number={player.number}
@@ -224,7 +189,6 @@ function OverlayMarker({
             disabled={target === 'none'}
             onClick={() => onPlace(slot.id)}
         >
-            {shadow}
             <div
                 className={[
                     'flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed text-xs font-extrabold uppercase tracking-wide transition',
@@ -256,23 +220,8 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
         );
     }, [formation]);
 
-    // Below lg the 3D tilt wastes too much vertical space, so the pitch is flat
-    // (and badges are minimal); the tilted pitch is desktop-only.
-    const [isMobile, setIsMobile] = useState(
-        () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
-    );
-    useEffect(() => {
-        const mq = window.matchMedia('(max-width: 1023px)');
-        const onChange = () => setIsMobile(mq.matches);
-        mq.addEventListener('change', onChange);
-        return () => mq.removeEventListener('change', onChange);
-    }, []);
-
-    const tilt = FEATURES.pitch3d && !isMobile;
-
-    // Measure the stage once so we can fit the fixed-aspect pitch inside it and
-    // place the badges over the (centred) drawing. One container measurement, not
-    // the old per-anchor measuring.
+    // Measure the stage so we can fit the fixed-aspect board inside it and place
+    // the badges over the (centred) drawing.
     const stageRef = useRef<HTMLDivElement | null>(null);
     const [box, setBox] = useState({ w: 0, h: 0 });
     useLayoutEffect(() => {
@@ -285,45 +234,40 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
         return () => ro.disconnect();
     }, []);
     // "meet" fit: scale the drawing box to fit, then centre it in the stage.
-    const W = tilt ? VBW : FLAT_W;
-    const H = tilt ? VBH : FLAT_H;
-    const fit = box.w > 0 && box.h > 0 ? Math.min(box.w / W, box.h / H) : 0;
-    const ox = (box.w - W * fit) / 2;
-    const oy = (box.h - H * fit) / 2;
+    const fit = box.w > 0 && box.h > 0 ? Math.min(box.w / VBW, box.h / VBH) : 0;
+    const ox = (box.w - VBW * fit) / 2;
+    const oy = (box.h - VBH * fit) / 2;
 
-    const P = makeProject(tilt);
-    const marks = markingsPath(P);
+    const marks = markingsPath();
     const spots = [
         [150, 200],
         [150, 40],
         [150, 360],
-    ].map(([vx, vy]) => vb(P, vx, vy));
+    ].map(([vx, vy]) => ({ x: px(vx), y: py(vy) }));
 
     return (
         <div
             ref={stageRef}
-            className="relative mx-auto aspect-[3/4] h-full max-h-full max-w-full overflow-hidden rounded-md border border-line shadow-hard"
+            className="relative mx-auto aspect-[3/4] w-full max-w-[560px] overflow-hidden rounded-md border border-line shadow-hard"
         >
-            {/* Pitch surface: grass stripes + markings, drawn in perspective (or flat
-          on mobile) from the projection. "meet" keeps a constant shape/angle and
-          centres the pitch; the badges are positioned over the same fitted box. */}
+            {/* Pitch surface: grass stripes + markings, drawn flat from the box and
+          fitted with "meet" so the board keeps its shape and the badges line up. */}
             <svg
                 className="absolute inset-0 h-full w-full"
-                viewBox={`0 0 ${W} ${H}`}
+                viewBox={`0 0 ${VBW} ${VBH}`}
                 preserveAspectRatio="xMidYMid meet"
                 aria-hidden="true"
             >
                 {Array.from({ length: STRIPES }, (_, i) => {
-                    const v0 = i / STRIPES;
-                    const v1 = (i + 1) / STRIPES;
-                    const a = P(0, v0);
-                    const b = P(1, v0);
-                    const c = P(1, v1);
-                    const e = P(0, v1);
+                    const y0 = (i / STRIPES) * VBH;
+                    const y1 = ((i + 1) / STRIPES) * VBH;
                     return (
-                        <polygon
+                        <rect
                             key={i}
-                            points={`${d2(a.x)},${d2(a.y)} ${d2(b.x)},${d2(b.y)} ${d2(c.x)},${d2(c.y)} ${d2(e.x)},${d2(e.y)}`}
+                            x={0}
+                            y={d2(y0)}
+                            width={VBW}
+                            height={d2(y1 - y0)}
                             fill={i % 2 === 0 ? '#1f8a4d' : '#1a7d45'}
                         />
                     );
@@ -339,20 +283,10 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                 {spots.map((q, k) => (
                     <circle key={k} cx={d2(q.x)} cy={d2(q.y)} r={2.6} fill="rgba(255,255,255,0.82)" />
                 ))}
-                {/* Translucent inner frame: tints the very edge of the pitch. */}
-                <path
-                    d={pathOf(P, [[0, 0], [300, 0], [300, 400], [0, 400]], true)}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.3)"
-                    strokeWidth={4}
-                    vectorEffect="non-scaling-stroke"
-                />
             </svg>
 
-            {/* Player overlay. Desktop (tilt): positioned in px over the fitted,
-          centred pitch and scaled with it. Mobile (flat): the rectangle is
-          stretched to fill, so badges sit at a percentage and keep a readable,
-          constant size. */}
+            {/* Player overlay: positioned in px over the fitted, centred board and
+          scaled with it (capped at 1 so badges never grow past native size). */}
             <div className="absolute inset-0">
                 {fit > 0 &&
                     circles.map((slot, k) => {
@@ -366,18 +300,17 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                             : selectedPlayer!.positions[0] === slot.position
                               ? 'primary'
                               : 'secondary';
-                        const q = P(slot.x / 100, slot.y / 100);
-                        const depth = lerp(BADGE_MIN_SCALE, 1, q.yf);
+                        const qx = (slot.x / 100) * VBW;
+                        const qy = (slot.y / 100) * VBH;
                         return (
                             <OverlayMarker
                                 key={k}
                                 slot={slot}
                                 player={player}
                                 target={target}
-                                left={`${ox + q.x * fit}px`}
-                                top={`${oy + q.y * fit}px`}
-                                scale={Math.min(fit, 1) * depth}
-                                tilt={tilt}
+                                left={`${ox + qx * fit}px`}
+                                top={`${oy + qy * fit}px`}
+                                scale={Math.min(fit, 1)}
                                 onPlace={onPlace}
                                 onRemove={
                                     player && onRemove ? () => onRemove(slot.id) : undefined
