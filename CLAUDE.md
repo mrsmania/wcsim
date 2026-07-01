@@ -223,9 +223,10 @@ tournament is preserved while browsing.
   **Display** toggle picks the entry point: *By World Cup* (a year's nation grid, cards
   sorted by rating, `< 32`-team years flagged as approximate placeholders) or *By Team*
   (every nation with its participation count = occurrences in the dataset, drilling into
-  the World Cups it played via the `TeamCups` list). Both land on a squad roster. A
-  cross-tournament search (diacritic-insensitive over player name + nation/code/year,
-  capped at 80 rows) overrides either mode.
+  the World Cups it played via the `TeamCups` list, which also shows a "Legends of
+  <nation>" top-10 ranked by each player's single best rating across appearances). Both
+  land on a squad roster. A cross-tournament search (diacritic-insensitive over player
+  name + nation/code/year, capped at 80 rows) overrides either mode.
 - **`TeamRoster.tsx`** renders one squad grouped GK -> DEF -> MID -> FWD (styled like
   `XiTable`, GK on `bg-chalk`), each row showing the four required fields: jersey number,
   full name, **main position only** (`primaryPosition` = `positions[0]`), and rating.

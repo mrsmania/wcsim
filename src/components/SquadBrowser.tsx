@@ -296,35 +296,109 @@ export default function SquadBrowser() {
     );
 }
 
-/** A team's World Cups (newest first); each row opens that squad's roster. */
+/** One player's all-time standing for a team: their single best rating (the
+ *  ranking key) plus every World Cup they appeared in with the rating they held
+ *  then, newest first. */
+interface Legend {
+    personId: string;
+    name: string;
+    best: number;
+    apps: { year: number; elo: number }[];
+}
+
+/** The team's top `n` players of all time, ranked by their single best rating
+ *  (not an average). Same human across tournaments (`personId`) is one entry. */
+function topLegends(team: TeamGroup, n = 10): Legend[] {
+    const byPerson = new Map<string, Legend>();
+    for (const sq of team.squads) {
+        for (const p of sq.players) {
+            const e =
+                byPerson.get(p.personId) ??
+                ({ personId: p.personId, name: p.name, best: 0, apps: [] } as Legend);
+            e.apps.push({ year: sq.year, elo: p.elo });
+            e.best = Math.max(e.best, p.elo);
+            byPerson.set(p.personId, e);
+        }
+    }
+    const arr = [...byPerson.values()];
+    for (const l of arr) l.apps.sort((a, b) => b.year - a.year);
+    arr.sort(
+        (a, b) => b.best - a.best || b.apps.length - a.apps.length || a.name.localeCompare(b.name),
+    );
+    return arr.slice(0, n);
+}
+
+/** A team's detail page: the World Cups it played (newest first, each opening that
+ *  squad's roster), and its all-time legends. */
 function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string) => void }) {
+    const legends = topLegends(team);
     return (
-        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-ink px-4 py-3.5">
-                <Flag code={team.code} className="h-6 w-9" />
-                <span className="font-display text-lg font-extrabold uppercase leading-none tracking-[-0.01em]">
-                    {team.nation}
-                </span>
-                <span className="ml-auto font-mono text-[11px] font-semibold text-muted">
-                    {team.squads.length} World Cup{team.squads.length === 1 ? '' : 's'}
-                </span>
-            </div>
-            {team.squads.map((s) => (
-                <button
-                    key={s.id}
-                    onClick={() => onOpen(s.id)}
-                    className="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition last:border-b-0 hover:bg-pitch/5"
-                >
-                    <span className="font-mono text-[15px] font-bold tabular-nums">{s.year}</span>
-                    <span className="ml-auto flex items-center gap-3 font-mono text-[11px] text-muted">
-                        <span>
-                            Rating <span className="font-bold text-ink">{s.rating}</span>
-                        </span>
-                        <span>{s.players.length}p</span>
-                        <ArrowRight size={14} strokeWidth={2.5} className="text-pitch" />
+        <div className="flex flex-col gap-4">
+            {/* World Cups played */}
+            <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-ink px-4 py-3.5">
+                    <Flag code={team.code} className="h-6 w-9" />
+                    <span className="font-display text-lg font-extrabold uppercase leading-none tracking-[-0.01em]">
+                        {team.nation}
                     </span>
-                </button>
-            ))}
+                    <span className="ml-auto font-mono text-[11px] font-semibold text-muted">
+                        {team.squads.length} World Cup{team.squads.length === 1 ? '' : 's'}
+                    </span>
+                </div>
+                {team.squads.map((s) => (
+                    <button
+                        key={s.id}
+                        onClick={() => onOpen(s.id)}
+                        className="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition last:border-b-0 hover:bg-pitch/5"
+                    >
+                        <span className="font-mono text-[15px] font-bold tabular-nums">{s.year}</span>
+                        <span className="ml-auto flex items-center gap-3 font-mono text-[11px] text-muted">
+                            <span>
+                                Rating <span className="font-bold text-ink">{s.rating}</span>
+                            </span>
+                            <span>{s.players.length}p</span>
+                            <ArrowRight size={14} strokeWidth={2.5} className="text-pitch" />
+                        </span>
+                    </button>
+                ))}
+            </div>
+
+            {/* All-time legends (ranked by single best rating) */}
+            <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+                <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3.5">
+                    <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
+                        Legends of {team.nation}
+                    </span>
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                        Best
+                    </span>
+                </div>
+                {legends.map((l, i) => (
+                    <div
+                        key={l.personId}
+                        className="flex items-center gap-3 border-b border-line px-4 py-2.5 last:border-b-0"
+                    >
+                        <span className="w-5 shrink-0 text-center font-mono text-[12px] font-bold tabular-nums text-pitch">
+                            {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <div className="truncate text-[13.5px] font-semibold">{l.name}</div>
+                            <div className="font-mono text-[11px] text-muted">
+                                {l.apps.map((a, j) => (
+                                    <span key={a.year}>
+                                        {j > 0 && ' · '}
+                                        {a.year}{' '}
+                                        <span className="font-bold text-ink">{a.elo}</span>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                        <span className="shrink-0 text-right font-mono text-sm font-bold tabular-nums">
+                            {l.best}
+                        </span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
