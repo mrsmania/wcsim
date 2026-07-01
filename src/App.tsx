@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Trophy } from 'lucide-react';
 import { SQUADS } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -360,8 +361,8 @@ export default function App() {
                         aria-label="World Cup Simulator - home"
                         className="flex items-center gap-3 transition hover:opacity-90"
                     >
-                        <span className="relative h-[38px] w-[38px] shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.9)]">
-                            <span className="absolute inset-[7px] rounded-[1px] border-[1.5px] border-white/90" />
+                        <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
+                            <Trophy size={21} strokeWidth={2} className="text-amber" />
                         </span>
                         <h1 className="font-display text-[23px] font-black uppercase leading-none tracking-[-0.02em]">
                             World Cup <span className="text-pitch">Simulator</span>

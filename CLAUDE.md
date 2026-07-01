@@ -44,7 +44,9 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
   player can fill them (amber = natural/best position, white = a secondary one).
 - **Layout** (`App.tsx`): a 3-column grid (settings/squad/complete | pitch |
   ratings+chemistry+line-up) using the comps' breakpoints (1 col < 760px, 2 col
-  760-1080, 3 col >= 1080). A masthead (crest + WORLD CUP SIMULATOR wordmark + tagline
+  760-1080, 3 col >= 1080). A masthead (gold-trophy logo, the amber `lucide` `Trophy` on
+  a pitch-dark tile matching the champion node, doubling as the favicon in `index.html` +
+  WORLD CUP SIMULATOR wordmark + tagline
   + phase status stamp) and a phase-aware section header sit above it.
 
 The comps (`home`, `selected-xi`, `tournament`, `index` launcher) carry a live
