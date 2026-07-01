@@ -58,5 +58,8 @@ export default function Confetti({ durationMs = 9000 }: { durationMs?: number })
     };
   }, [durationMs]);
 
-  return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-50" />;
+  // h-full w-full is load-bearing: a <canvas> is a replaced element, so fixed
+  // inset-0 alone leaves it at its intrinsic 300x150 (pinned top-left) and the
+  // confetti draws only inside that box. A definite size stretches it full-viewport.
+  return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-50 h-full w-full" />;
 }
