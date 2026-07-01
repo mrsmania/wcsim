@@ -14,6 +14,7 @@ import type { Filled } from '../domain/draft';
 import { ArrowRight, Play } from 'lucide-react';
 import GoalList from './GoalList';
 import Bracket from './Bracket';
+import Confetti from './Confetti';
 import TournamentSummary from './TournamentSummary';
 import { useFollowBottom } from '../hooks/useFollowBottom';
 import {
@@ -183,6 +184,7 @@ export default function KnockoutScreen({
 
     return (
         <div ref={rootRef}>
+            {champion && <Confetti />}
             <StageHeader
                 eyebrow="Knockouts"
                 title="Win 4 to lift the trophy"
