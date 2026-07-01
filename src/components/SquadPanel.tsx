@@ -1,5 +1,6 @@
 import type { Player, Position, Squad } from '../data/types';
-import { CATEGORY_ORDER, formatPositions, primaryCategory } from '../data/types';
+import { CATEGORY_ORDER, primaryCategory } from '../data/types';
+import { formatPositions } from '../data/format';
 import { isSelectable } from '../domain/draft';
 import { RotateCcw } from 'lucide-react';
 import Flag from './Flag';

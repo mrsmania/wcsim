@@ -1,4 +1,5 @@
-import { categoryOf, CATEGORY_ORDER, lastName } from '../data/types';
+import { categoryOf, CATEGORY_ORDER } from '../data/types';
+import { lastName } from '../data/format';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { SQUAD_BY_ID } from '../data/squads';

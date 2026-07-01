@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
-import { lastName } from '../data/types';
+import { lastName } from '../data/format';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import PlayerBadge from './PlayerBadge';
