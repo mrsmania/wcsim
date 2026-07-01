@@ -73,17 +73,22 @@ export default function KnockoutScreen({
     const [playing, setPlaying] = useState<{ round: number; games: BracketGame[] } | null>(null);
     const isPlaying = !!playing;
 
-    const { tailRef, rootRef } = useFollowBottom();
+    // Follow the live feed down while a round plays; once the run ends we take over
+    // the scroll ourselves (below), so the follow must stop rather than trail the
+    // tail all the way down to the tournament summary.
+    const { tailRef, rootRef } = useFollowBottom({ active: !over });
     const bannerRef = useRef<HTMLDivElement | null>(null);
+    const lastMatchRef = useRef<HTMLDivElement | null>(null);
 
-    // When the run ends, bring the champion / knocked-out banner into view.
+    // When the run ends, put the last played match at the top of the viewport with
+    // the champion / knocked-out banner beneath it (not scrolled to the very bottom).
     useEffect(() => {
         if (!over) return;
         const id = requestAnimationFrame(() => {
-            const el = bannerRef.current;
+            const el = lastMatchRef.current ?? bannerRef.current;
             if (!el) return;
             const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-            el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+            el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
         });
         return () => cancelAnimationFrame(id);
     }, [over]);
@@ -234,8 +239,13 @@ export default function KnockoutScreen({
                         !!penKicks && (isPlayingRound ? liveMinute >= liveMax : true);
                     const upNext = !isPlayingRound && !g.result;
 
+                    const isLastRun = r === lastRunRound;
                     return (
-                        <div key={`ko-${r}`}>
+                        <div
+                            key={`ko-${r}`}
+                            ref={isLastRun ? lastMatchRef : undefined}
+                            className={isLastRun ? 'scroll-mt-4' : undefined}
+                        >
                             <MatchdayCard
                                 label={BRACKET_ROUNDS[r]}
                                 tag={tag}

@@ -7,6 +7,11 @@ interface FollowBottomOpts {
   /** How far (px) the tail may sit below the fold before we treat the user as
    *  having scrolled away (which pauses following until they return). */
   threshold?: number;
+  /** When false, the observers stay attached but the hook never scrolls (and halts
+   *  any in-flight ease), so the caller can own the scroll position - e.g. once a
+   *  run ends and the screen scrolls the last match to the top itself instead of
+   *  trailing the tail down to the tournament summary. Defaults to true. */
+  active?: boolean;
 }
 
 /**
@@ -51,12 +56,15 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
 } {
   const margin = opts?.margin ?? 24;
   const threshold = opts?.threshold ?? 120;
+  const active = opts?.active ?? true;
 
   const tailRef = useRef<HTMLDivElement | null>(null);
   const marginRef = useRef(margin);
   const thresholdRef = useRef(threshold);
+  const activeRef = useRef(active);
   marginRef.current = margin;
   thresholdRef.current = threshold;
+  activeRef.current = active;
 
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
   const rootRef = useCallback((node: HTMLDivElement | null) => setRootEl(node), []);
@@ -90,7 +98,7 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
 
     const tick = () => {
       animRaf = null;
-      if (animTarget === null || !stuck) {
+      if (animTarget === null || !stuck || !activeRef.current) {
         animTarget = null;
         return;
       }
@@ -112,6 +120,7 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
 
     // Ease the page down to `y` (down only; target only ever grows).
     const scrollDownTo = (y: number) => {
+      if (!activeRef.current) return;
       if (reduced?.matches) {
         window.scrollTo(0, y);
         return;
@@ -123,6 +132,7 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
     // --- follow on content growth -----------------------------------------
     const follow = () => {
       scheduleRaf = null;
+      if (!activeRef.current) return;
       const marker = tailRef.current;
       if (!marker) return;
       const bottom = marker.getBoundingClientRect().bottom; // viewport-relative
@@ -180,6 +190,7 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
     // the user interrupts it; when idle, engage near the bottom and pause once the
     // user has scrolled away.
     const onScroll = () => {
+      if (!activeRef.current) return;
       const marker = tailRef.current;
       if (!marker) return;
       const y = window.scrollY;
