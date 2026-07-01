@@ -2,6 +2,10 @@ import { BRACKET_ROUNDS, type BracketState } from '../domain/bracket';
 import { USER_ID, type GroupTeam } from '../domain/tournament';
 import Flag from './Flag';
 
+/** Games per round, longest to the final — the fixed shape the tree always draws
+ *  (later rounds show as "?" until their feeder round is played). */
+const ROUND_GAMES = [8, 4, 2, 1];
+
 /** One side of a game as it should be displayed: a team, or null for a still
  *  undecided slot ("?"), plus whether its code should be struck (knocked out). */
 interface SideView {
@@ -16,34 +20,27 @@ interface GameView {
 }
 
 /**
- * Decide how a game should appear given the user's hidden-results progress.
- *  - games off the user's path (index > 0) are always fully resolved;
- *  - once the run ends, everything is resolved;
- *  - while the user is alive, their path (index 0) is hidden ahead of where they
- *    have played: the current round shows "Your XI vs <known opponent>" pending,
- *    and rounds beyond it show "? vs <known opponent>".
+ * How a game appears: resolved (both teams + score, loser struck) once it has been
+ * played; its two known participants without a score while it is the pending
+ * current round; or "?" vs "?" for a round that has not been reached yet.
  */
 function gameView(b: BracketState, round: number, g: number): GameView {
-  const game = b.rounds[round][g];
-  const userPath = g === 0;
-  const runOver = b.outcome !== 'alive';
-  const revealed = !userPath || runOver || round < b.played;
-
-  if (revealed) {
-    const homeWon = game.winnerId === game.homeId;
+  const game = b.rounds[round]?.[g];
+  if (!game) return { home: { team: null, struck: false }, away: { team: null, struck: false } };
+  const r = game.result;
+  if (r) {
+    const homeWon = r.winnerId === game.homeId;
     return {
       home: { team: b.teams[game.homeId], struck: !homeWon },
       away: { team: b.teams[game.awayId], struck: homeWon },
-      homeScore: game.homeGoals,
-      awayScore: game.awayGoals,
+      homeScore: r.homeGoals,
+      awayScore: r.awayGoals,
     };
   }
-  // user path, still alive, at or ahead of the current round (scores hidden)
-  const home: SideView =
-    round === b.played
-      ? { team: b.teams[game.homeId], struck: false } // current game: home is the user
-      : { team: null, struck: false }; // further ahead: "?"
-  return { home, away: { team: b.teams[game.awayId], struck: false } };
+  return {
+    home: { team: b.teams[game.homeId], struck: false },
+    away: { team: b.teams[game.awayId], struck: false },
+  };
 }
 
 const code = (t: GroupTeam) => t.code.toUpperCase();
@@ -52,15 +49,7 @@ const yr = (t: GroupTeam) => (t.year ? `'${String(t.year).slice(2)}` : '');
 /** One team line in a match box. `stacked` switches between the wide layout
  *  (flag + code + year + score on one row) and the narrow layout (flag over
  *  code+year, score to the right). */
-function Seed({
-  side,
-  score,
-  stacked,
-}: {
-  side: SideView;
-  score?: number;
-  stacked: boolean;
-}) {
+function Seed({ side, score, stacked }: { side: SideView; score?: number; stacked: boolean }) {
   const team = side.team;
   const isUser = team?.id === USER_ID;
   const cls = [
@@ -109,36 +98,31 @@ function pairs<T>(arr: T[]): T[][] {
   return out;
 }
 
-/** The champion node ("the cup"): the user when they win it, the bracket's final
- *  winner once the user is out, or "?" while the run is still alive. */
+/** The champion node ("the cup"): the user once they win the final, otherwise
+ *  "?" (the rest of the bracket is only played as the user advances). */
 function Cup({ b }: { b: BracketState }) {
-  const finalGame = b.rounds[BRACKET_ROUNDS.length - 1][0];
-  const champ =
-    b.outcome === 'champion'
-      ? b.teams[USER_ID]
-      : b.outcome === 'out'
-        ? b.teams[finalGame.winnerId]
-        : null;
+  const champ = b.outcome === 'champion' ? b.teams[USER_ID] : null;
+  const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
+  const r = finalGame?.result;
   const score =
-    champ &&
-    (finalGame.winnerId === finalGame.homeId
-      ? `${finalGame.homeGoals}–${finalGame.awayGoals}`
-      : `${finalGame.awayGoals}–${finalGame.homeGoals}`);
+    champ && r
+      ? r.winnerId === finalGame!.homeId
+        ? `${r.homeGoals}–${r.awayGoals}`
+        : `${r.awayGoals}–${r.homeGoals}`
+      : null;
 
   return (
     <div className="bkt-cup">
       <div className="bkt-cup-lbl">{champ ? 'World Champion' : 'Champion'}</div>
       {champ ? (
         <>
-          <Flag
-            code={champ.code}
-            isUser={champ.id === USER_ID}
-            className="mx-auto my-1.5 block h-5 w-[30px]"
-          />
+          <Flag code={champ.code} isUser className="mx-auto my-1.5 block h-5 w-[30px]" />
           <div className="bkt-cup-nm">{champ.name}</div>
-          <div className="mt-1.5 font-mono text-[9px] font-semibold tracking-[0.04em] text-white/70">
-            Final &middot; {score}
-          </div>
+          {score && (
+            <div className="mt-1.5 font-mono text-[9px] font-semibold tracking-[0.04em] text-white/70">
+              Final &middot; {score}
+            </div>
+          )}
         </>
       ) : (
         <div className="bkt-cup-nm mt-2">?</div>
@@ -153,7 +137,7 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
   const b = bracket;
   const v = (round: number, g: number) => gameView(b, round, g);
   const heads = [...BRACKET_ROUNDS, 'Champion'];
-  const nowIdx = b.outcome === 'champion' ? heads.length - 1 : b.outcome === 'out' ? -1 : b.played;
+  const nowIdx = b.outcome === 'champion' ? heads.length - 1 : b.outcome === 'out' ? -1 : b.current;
 
   return (
     <div className="bkt-wrap">
@@ -168,7 +152,7 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
         </div>
         <div className="bkt">
           {[0, 1, 2].map((round) => {
-            const views = b.rounds[round].map((_, g) => v(round, g));
+            const views = Array.from({ length: ROUND_GAMES[round] }, (_, g) => v(round, g));
             return (
               <div className="bkt-round" key={round}>
                 {pairs(views).map((pv, pi) => (

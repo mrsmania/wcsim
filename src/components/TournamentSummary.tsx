@@ -1,7 +1,7 @@
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { standings, teamById, USER_ID, type GroupState, type GroupTeam } from '../domain/tournament';
-import { BRACKET_ROUNDS, type BracketState } from '../domain/bracket';
+import type { BracketState } from '../domain/bracket';
 import type { KoDecided } from '../domain/knockout';
 import { CATEGORY_ORDER, categoryOf } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
@@ -82,7 +82,6 @@ function GroupRecap({ group }: { group: GroupState }) {
  *  always the home side of their own games (round index 0). */
 function KnockoutRecap({ bracket }: { bracket: BracketState }) {
   const champions = bracket.outcome === 'champion';
-  const lastRound = champions ? BRACKET_ROUNDS.length - 1 : bracket.played;
   const rows: {
     opp: GroupTeam;
     userGoals: number;
@@ -91,17 +90,18 @@ function KnockoutRecap({ bracket }: { bracket: BracketState }) {
     round: number;
     decided: KoDecided;
   }[] = [];
-  for (let r = 0; r <= lastRound; r++) {
-    const g = bracket.rounds[r]?.[0];
-    if (!g || !g.hasUser) break;
+  for (let r = 0; r < bracket.rounds.length; r++) {
+    const g = bracket.rounds[r][0];
+    if (!g.hasUser || !g.result) break;
     const userIsHome = g.homeId === USER_ID;
+    const res = g.result;
     rows.push({
       opp: bracket.teams[userIsHome ? g.awayId : g.homeId],
-      userGoals: userIsHome ? g.homeGoals : g.awayGoals,
-      oppGoals: userIsHome ? g.awayGoals : g.homeGoals,
-      won: g.winnerId === USER_ID,
+      userGoals: userIsHome ? res.homeGoals : res.awayGoals,
+      oppGoals: userIsHome ? res.awayGoals : res.homeGoals,
+      won: res.winnerId === USER_ID,
       round: r,
-      decided: g.decided,
+      decided: res.decided,
     });
   }
   if (rows.length === 0) return null;

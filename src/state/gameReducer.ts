@@ -2,7 +2,7 @@ import type { Player, Squad } from '../data/types';
 import type { Formation, FormationName, Style } from '../domain/formations';
 import { canPlace, isComplete, type Filled } from '../domain/draft';
 import type { GroupState, MatchdayResult } from '../domain/tournament';
-import { advanceBracket, type BracketState } from '../domain/bracket';
+import { recordRound, type BracketGame, type BracketState } from '../domain/bracket';
 import type { MatchSpeed } from '../domain/clock';
 
 export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
@@ -47,7 +47,7 @@ export type Action =
   | { type: 'START_GROUP'; group: GroupState }
   | { type: 'RECORD_MATCHDAY'; results: MatchdayResult[] }
   | { type: 'START_BRACKET'; bracket: BracketState }
-  | { type: 'BRACKET_ADVANCE' }
+  | { type: 'RECORD_BRACKET_ROUND'; games: BracketGame[] }
   | { type: 'SET_SPEED'; speed: MatchSpeed }
   | { type: 'SET_AUTO'; auto: boolean }
   | { type: 'RESET' };
@@ -161,8 +161,10 @@ export function gameReducer(state: GameState, action: Action): GameState {
     case 'START_BRACKET':
       return { ...state, phase: 'knockout', bracket: action.bracket };
 
-    case 'BRACKET_ADVANCE':
-      return state.bracket ? { ...state, bracket: advanceBracket(state.bracket) } : state;
+    case 'RECORD_BRACKET_ROUND':
+      return state.bracket
+        ? { ...state, bracket: recordRound(state.bracket, action.games) }
+        : state;
 
     case 'SET_SPEED':
       return { ...state, speed: action.speed };

@@ -15,7 +15,7 @@ import {
     STRENGTH_BANDS,
     type TeamStrength,
 } from './domain/draft';
-import { createGroup, pickOpponents, userGroupTeam } from './domain/tournament';
+import { createGroup, pickOpponents, standings, userGroupTeam } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
 import { buildBracket, BRACKET_ROUNDS } from './domain/bracket';
 import { FEATURES } from './config';
@@ -238,9 +238,18 @@ export default function App() {
 
     const handleEnterKnockout = useCallback(() => {
         if (!group) return;
-        const user = group.teams.find((t) => t.isUser)!;
+        const table = standings(group);
+        const user = table.find((s) => s.team.isUser)!.team;
+        // The team that qualified alongside the user (the other side of the top two).
+        const coQualifier = table
+            .slice(0, 2)
+            .map((s) => s.team)
+            .find((t) => !t.isUser)!;
         const excludeIds = group.teams.filter((t) => !t.isUser).map((t) => t.id);
-        dispatch({ type: 'START_BRACKET', bracket: buildBracket(user, excludeIds) });
+        dispatch({
+            type: 'START_BRACKET',
+            bracket: buildBracket(user, coQualifier, excludeIds),
+        });
     }, [group]);
 
     const openPositions = useMemo<Set<Position>>(
@@ -268,7 +277,7 @@ export default function App() {
             ? 'Champions'
             : bracket?.outcome === 'out'
               ? 'Eliminated'
-              : BRACKET_ROUNDS[bracket?.played ?? 0];
+              : BRACKET_ROUNDS[bracket?.current ?? 0];
     const stampText =
         phase === 'setup'
             ? 'Set up · 11 to pick'
@@ -327,7 +336,9 @@ export default function App() {
                         auto={auto}
                         onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
                         onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                        onAdvance={() => dispatch({ type: 'BRACKET_ADVANCE' })}
+                        onRecordRound={(games) =>
+                            dispatch({ type: 'RECORD_BRACKET_ROUND', games })
+                        }
                         onReset={() => dispatch({ type: 'RESET' })}
                     />
                 ) : (

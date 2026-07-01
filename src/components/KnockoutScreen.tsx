@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildMatchSteps, HALF_TIME_MS, PEN_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
-import { BRACKET_ROUNDS, currentGame, type BracketGame, type BracketState } from '../domain/bracket';
+import type { MatchEvent } from '../domain/match';
+import {
+    BRACKET_ROUNDS,
+    currentGame,
+    playRound,
+    type BracketGame,
+    type BracketState,
+} from '../domain/bracket';
 import { USER_ID, type GroupState } from '../domain/tournament';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
@@ -30,14 +37,14 @@ interface Props {
     auto: boolean;
     onSetAuto: (a: boolean) => void;
     onSetSpeed: (s: MatchSpeed) => void;
-    /** Reveal/advance the user's current game once it finishes animating. */
-    onAdvance: () => void;
+    /** Store the played round's results (all its games) once the user's match ends. */
+    onRecordRound: (games: BracketGame[]) => void;
     onReset: () => void;
 }
 
 /** The knockout page: the 16-team bracket tree, then the user's run played one
- *  round at a time with live goal feeds (revealing the pre-simulated results),
- *  ending in a champion / knocked-out banner and the tournament summary. */
+ *  round at a time with live goal feeds. Each round is only simulated when the
+ *  user plays it (like the group stage), so later rounds stay "?" until reached. */
 export default function KnockoutScreen({
     bracket,
     group,
@@ -47,28 +54,30 @@ export default function KnockoutScreen({
     auto,
     onSetAuto,
     onSetSpeed,
-    onAdvance,
+    onRecordRound,
     onReset,
 }: Props) {
     const b = bracket;
     const champion = b.outcome === 'champion';
     const over = b.outcome !== 'alive';
-    const maxRound = champion ? BRACKET_ROUNDS.length - 1 : b.played;
+    const lastRunRound = champion ? BRACKET_ROUNDS.length - 1 : b.current;
     const cur = currentGame(b);
 
     const [liveMinute, setLiveMinute] = useState(0);
     const [clockLabel, setClockLabel] = useState('');
     const [penShown, setPenShown] = useState(0);
-    const [playing, setPlaying] = useState<BracketGame | null>(null);
+    // The round currently being revealed: its round index + the freshly simulated
+    // games (games[0] is the user's, driving the clock).
+    const [playing, setPlaying] = useState<{ round: number; games: BracketGame[] } | null>(null);
     const isPlaying = !!playing;
 
     const { tailRef, rootRef } = useFollowBottom();
     const bannerRef = useRef<HTMLDivElement | null>(null);
 
-    const onAdvanceRef = useRef(onAdvance);
+    const onRecordRef = useRef(onRecordRound);
     const speedRef = useRef(speed);
     useEffect(() => {
-        onAdvanceRef.current = onAdvance;
+        onRecordRef.current = onRecordRound;
         speedRef.current = speed;
     });
 
@@ -84,25 +93,27 @@ export default function KnockoutScreen({
         return () => cancelAnimationFrame(id);
     }, [over]);
 
-    const playCurrent = useCallback(() => {
-        if (cur) setPlaying(cur);
-    }, [cur]);
+    const startPlay = useCallback(() => {
+        if (b.outcome !== 'alive') return;
+        setPlaying({ round: b.current, games: playRound(b) });
+    }, [b]);
 
-    // Match clock: animate the (pre-computed) current game to its end, run the
-    // shootout if it went to penalties, then advance the bracket.
+    // Match clock: animate the user's game to its end, run the shootout if it went
+    // to penalties, then record the whole round's results.
     useEffect(() => {
         if (!playing) return;
-        const g = playing;
-        const max = maxMinute(g.decided);
-        const kicks = g.pens?.kicks ?? [];
+        const games = playing.games;
+        const res = games[0].result!;
+        const max = maxMinute(res.decided);
+        const kicks = res.pens?.kicks ?? [];
         const penMs = PEN_MS[speedRef.current];
         const steps = buildMatchSteps(max, HALF_TIME_MS[speedRef.current]);
-        const endLabel = g.decided === 'reg' ? 'FT' : g.decided === 'aet' ? 'a.e.t.' : 'pens';
+        const endLabel = res.decided === 'reg' ? 'FT' : res.decided === 'aet' ? 'a.e.t.' : 'pens';
         let idx = 0;
         let timer: number | undefined;
 
         const advance = () => {
-            onAdvanceRef.current();
+            onRecordRef.current(games);
             setPlaying(null);
         };
         const runShootout = () => {
@@ -119,7 +130,7 @@ export default function KnockoutScreen({
         };
         const finishClock = () => {
             setClockLabel(endLabel);
-            if (g.decided === 'pens' && kicks.length) timer = window.setTimeout(runShootout, 700);
+            if (res.decided === 'pens' && kicks.length) timer = window.setTimeout(runShootout, 700);
             else timer = window.setTimeout(advance, 1200);
         };
         const tick = () => {
@@ -150,9 +161,8 @@ export default function KnockoutScreen({
     // Auto mode: play each round as it becomes current.
     useEffect(() => {
         if (!auto || playing) return;
-        const c = currentGame(b);
-        if (!c) return;
-        const t = window.setTimeout(() => setPlaying(c), 700);
+        if (!currentGame(b)) return;
+        const t = window.setTimeout(() => setPlaying({ round: b.current, games: playRound(b) }), 700);
         return () => window.clearTimeout(t);
     }, [auto, playing, b]);
 
@@ -161,7 +171,7 @@ export default function KnockoutScreen({
     const nextGameButton = (
         <>
             <div className="mt-[22px] flex justify-center">
-                <button onClick={playCurrent} className={PRIMARY_BTN}>
+                <button onClick={startPlay} className={PRIMARY_BTN}>
                     <Play size={13} fill="currentColor" strokeWidth={0} />
                     Next game
                     <ArrowRight size={15} strokeWidth={2.5} />
@@ -198,51 +208,48 @@ export default function KnockoutScreen({
             </div>
 
             <div className="mx-auto max-w-[780px]">
-                {Array.from({ length: maxRound + 1 }, (_, r) => r).map((r) => {
-                    const g = b.rounds[r][0];
-                    const userIsHome = g.homeId === USER_ID;
-                    const userSide = userIsHome ? 'home' : 'away';
-                    const opp = b.teams[userIsHome ? g.awayId : g.homeId];
+                {Array.from({ length: lastRunRound + 1 }, (_, r) => r).map((r) => {
+                    const g = b.rounds[r]?.[0];
+                    if (!g) return null;
+                    const opp = b.teams[g.homeId === USER_ID ? g.awayId : g.homeId];
                     const isPlayingRound = playing?.round === r;
-                    const revealed =
-                        !isPlayingRound &&
-                        (r < b.played || champion || (b.outcome === 'out' && r === b.played));
-                    const upNext = !isPlayingRound && !revealed; // current, not yet played
+                    const playRes = isPlayingRound ? playing!.games[0].result! : undefined;
+                    const decided = playRes?.decided ?? g.result?.decided;
                     const isFinal = r === BRACKET_ROUNDS.length - 1;
-                    const liveMax = maxMinute(g.decided);
+                    const liveMax = decided ? maxMinute(decided) : 90;
 
                     let score: { user: number; opp: number } | undefined;
                     let status: string | undefined;
                     let statusDim = false;
-                    if (isPlayingRound) {
-                        const shown = g.events.filter((e) => e.minute <= liveMinute);
-                        const userGoals = shown.filter((e) => e.side === userSide).length;
+                    let feedEvents: MatchEvent[] = [];
+                    if (isPlayingRound && playRes) {
+                        const shown = playRes.events.filter((e) => e.minute <= liveMinute);
+                        const userGoals = shown.filter((e) => e.side === 'home').length;
                         score = { user: userGoals, opp: shown.length - userGoals };
                         status = clockLabel || undefined;
-                    } else if (revealed) {
-                        score = {
-                            user: userIsHome ? g.homeGoals : g.awayGoals,
-                            opp: userIsHome ? g.awayGoals : g.homeGoals,
-                        };
-                        if (g.decided === 'aet') status = 'a.e.t.';
-                        else if (g.decided === 'pens') status = 'Penalties';
+                        feedEvents = shown;
+                    } else if (g.result) {
+                        score = { user: g.result.homeGoals, opp: g.result.awayGoals };
+                        if (g.result.decided === 'aet') status = 'a.e.t.';
+                        else if (g.result.decided === 'pens') status = 'Penalties';
                         else {
                             status = 'Full time';
                             statusDim = true;
                         }
+                        feedEvents = g.result.events;
                     }
 
-                    const won = g.winnerId === USER_ID;
+                    const won = g.result?.winnerId === USER_ID;
                     let tag: React.ReactNode = null;
                     if (isPlayingRound) tag = <ResultTag kind="next" label="Live now" />;
-                    else if (revealed)
+                    else if (g.result)
                         tag = won ? (
                             <ResultTag
                                 kind="w"
                                 label={
-                                    g.decided === 'pens'
+                                    g.result.decided === 'pens'
                                         ? 'Won on penalties'
-                                        : g.decided === 'aet'
+                                        : g.result.decided === 'aet'
                                           ? 'Won a.e.t.'
                                           : 'Won'
                                 }
@@ -250,23 +257,19 @@ export default function KnockoutScreen({
                         ) : (
                             <ResultTag
                                 kind="l"
-                                label={g.decided === 'pens' ? 'Lost on penalties' : 'Lost'}
+                                label={g.result.decided === 'pens' ? 'Lost on penalties' : 'Lost'}
                             />
                         );
-                    else if (upNext && cur) tag = <ResultTag kind="next" label="Up next" />;
+                    else tag = <ResultTag kind="next" label="Up next" />;
 
-                    const showFeed = isPlayingRound || revealed;
-                    const feedEvents = isPlayingRound
-                        ? g.events.filter((e) => e.minute <= liveMinute)
-                        : revealed
-                          ? g.events
-                          : [];
-                    const penKicks = g.pens?.kicks;
+                    const showFeed = isPlayingRound || !!g.result;
+                    const penKicks = isPlayingRound ? playRes?.pens?.kicks : g.result?.pens?.kicks;
                     const penShownCount = isPlayingRound ? penShown : (penKicks?.length ?? 0);
                     const showShootout =
-                        !!penKicks && (isPlayingRound ? liveMinute >= liveMax : revealed);
+                        !!penKicks && (isPlayingRound ? liveMinute >= liveMax : true);
                     const live = isPlayingRound && liveMinute < liveMax;
                     const liveLabel = clockLabel === 'HT' ? 'Half time' : `Live · ${clockLabel}`;
+                    const upNext = !isPlayingRound && !g.result;
 
                     return (
                         <div key={`ko-${r}`} className="mt-[26px]">
@@ -293,7 +296,7 @@ export default function KnockoutScreen({
                                     <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
                                         <GoalList
                                             events={feedEvents}
-                                            userSide={userSide}
+                                            userSide="home"
                                             oppCode={opp.code}
                                             live={live}
                                         />
@@ -323,9 +326,9 @@ export default function KnockoutScreen({
                     {b.outcome === 'out' && (
                         <Banner
                             champion={false}
-                            eyebrow={`Knocked out · ${BRACKET_ROUNDS[b.played]}`}
+                            eyebrow={`Knocked out · ${BRACKET_ROUNDS[b.current]}`}
                             heading="Knocked out."
-                            body={`Beaten in the ${BRACKET_ROUNDS[b.played]}. So close - draft a new XI and run it back.`}
+                            body={`Beaten in the ${BRACKET_ROUNDS[b.current]}. So close - draft a new XI and run it back.`}
                             onReset={onReset}
                         />
                     )}
