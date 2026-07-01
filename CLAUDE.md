@@ -191,12 +191,22 @@ page** (`KnockoutScreen.tsx`), driven by `domain/bracket.ts`.
   on mobile so there is no horizontal scroll (toggled at max-width 900px; `bkt-`
   prefixed CSS in `index.css`, with desktop and mobile connectors scoped separately so
   they cannot cross-contaminate). Mobile uses 3-letter country codes; the year stays
-  visible.
+  visible. The desktop match box stacks the two teams as rows (`Seed`); the mobile box
+  (`MobileMatch` / `MSide`, `.bkt-vs`) instead sets them side by side (home | away),
+  each a column of flag / code+year / goals with a result dash between the goals (three
+  rows, not four, kept narrow so the four Round-of-16 boxes still fit one phone row).
+  The mobile centre shows the actual final match box next to the champion box (`Cup`);
+  desktop keeps them as separate `Final` and `Champion` columns.
+- **Champion box** (`Cup`): the green node crowning the winner. It carries a gold
+  `Trophy` icon; hovering it fires a one-shot confetti burst originating at the trophy
+  (global `canvas-confetti`, gated on a champion existing + `prefers-reduced-motion`).
 - **Confetti** (`Confetti.tsx`, `canvas-confetti`) rains when the user wins the cup. It
-  is pointer-events-none (never blocks "Draft a new XI"), sits at `z-50`, respects
-  `prefers-reduced-motion`, scales piece size down on narrow screens, and runs without
-  a worker (transferControlToOffscreen can only run once per canvas and would throw
-  under StrictMode's dev double-invoke).
+  is pointer-events-none (never blocks "Draft a new XI"), sits at `z-50` and fills the
+  viewport via `fixed inset-0 h-full w-full` (a bare `<canvas>` is a replaced element,
+  so `inset-0` alone leaves it at its intrinsic 300x150 and confines the rain to the
+  top-left), respects `prefers-reduced-motion`, scales piece size down on narrow
+  screens, and runs without a worker (transferControlToOffscreen can only run once per
+  canvas and would throw under StrictMode's dev double-invoke).
 
 ## Conventions and working agreements
 

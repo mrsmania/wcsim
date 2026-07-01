@@ -328,12 +328,18 @@ button:not(:disabled) {
     text-transform: uppercase;
     color: var(--color-amber);
 }
+.bkt-cup .bkt-cup-trophy {
+    display: block;
+    width: fit-content;
+    margin: 5px auto 4px;
+    color: var(--color-amber);
+}
 .bkt-cup .bkt-cup-nm {
     font-family: var(--font-display);
     font-weight: 800;
     font-size: 14px;
     line-height: 1.1;
-    margin-top: 6px;
+    margin-top: 2px;
 }
 
 /* ---- narrow (two-sided vertical) ---- */
@@ -356,45 +362,87 @@ button:not(:disabled) {
     justify-content: space-around;
     min-width: 0;
 }
+/* Mobile match box: the two teams sit side by side (home | away), each a column
+   of flag / code+year / goals, with a result dash between the goals. Three rows
+   instead of four, and kept narrow so the four R16 boxes still fit one phone row
+   (no horizontal scroll). */
 .bkt-mtree .bkt-match {
-    width: 70px;
     font-size: 10px;
 }
-.bkt-mtree .bkt-seed {
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 6px;
-}
-.bkt-stack {
+.bkt-mtree .bkt-match.bkt-vs {
     display: flex;
+    align-items: stretch;
+    justify-content: center;
+    width: 74px;
+    padding: 5px 3px;
+}
+.bkt-vs .bkt-col {
+    flex: 1 1 0;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     gap: 3px;
+    padding: 0 1px;
+    border: none;
+    font-size: 9.5px;
     min-width: 0;
 }
-.bkt-mtree .bkt-lab {
+.bkt-vs .bkt-lab {
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 3px;
+    gap: 1px;
     line-height: 1;
+    min-width: 0;
 }
-.bkt-mtree .bkt-nm {
+.bkt-vs .bkt-nm {
     overflow: visible;
     text-overflow: clip;
+    letter-spacing: 0;
 }
-.bkt-mtree .bkt-yr {
-    font-size: 8px;
+.bkt-vs .bkt-yr {
+    font-size: 7.5px;
 }
-.bkt-mtree .bkt-sc {
-    font-size: 12.5px;
+.bkt-vs .bkt-sc {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
     font-weight: 700;
-    padding-left: 3px;
 }
+.bkt-vs .bkt-dash {
+    align-self: flex-end;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-muted);
+    padding: 0 1px;
+}
+.bkt-vs .bkt-tbd {
+    padding: 2px 0;
+}
+/* Centre: the final match box with the champion box next to it (wrapping below
+   on the narrowest screens). */
 .bkt-mcenter {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
+    gap: 14px;
+}
+.bkt-mfinal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+.bkt-mfinal-lbl {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-muted);
 }
 /* narrow connectors — top half flows DOWN */
 .bkt-mband:not(.bkt-up) .bkt-match::after {

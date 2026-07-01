@@ -1,7 +1,13 @@
+import { useRef } from 'react';
+import confetti from 'canvas-confetti';
+import { Trophy } from 'lucide-react';
 import { BRACKET_ROUNDS, bracketChampion, type BracketState } from '../domain/bracket';
 import { USER_ID, type GroupTeam } from '../domain/tournament';
 import Flag from './Flag';
 import { RatingChip } from './matchUi';
+
+/** Festive palette for the trophy hover burst (matches the win celebration). */
+const CUP_COLORS = ['#F5C542', '#15924c', '#0E5C34', '#E4922B', '#ffffff', '#C8453C'];
 
 /** Games per round, longest to the final — the fixed shape the tree always draws
  *  (later rounds show as "?" until their feeder round is played). */
@@ -47,10 +53,9 @@ function gameView(b: BracketState, round: number, g: number): GameView {
 const code = (t: GroupTeam) => t.code.toUpperCase();
 const yr = (t: GroupTeam) => (t.year ? `'${String(t.year).slice(2)}` : '');
 
-/** One team line in a match box. `stacked` switches between the wide layout
- *  (flag + code + year + score on one row) and the narrow layout (flag over
- *  code+year, score to the right). */
-function Seed({ side, score, stacked }: { side: SideView; score?: number; stacked: boolean }) {
+/** One team line in a wide-layout match box: flag + code + year + rating chip on
+ *  one row, score pushed to the right. */
+function Seed({ side, score }: { side: SideView; score?: number }) {
   const team = side.team;
   const isUser = team?.id === USER_ID;
   const cls = [
@@ -61,35 +66,81 @@ function Seed({ side, score, stacked }: { side: SideView; score?: number; stacke
     .filter(Boolean)
     .join(' ');
 
-  const flagCls = stacked ? 'h-[13px] w-5' : 'h-3 w-[18px]';
-  const ident = team ? (
-    <>
-      <Flag code={team.code} isUser={isUser} className={flagCls} />
-      <span className="bkt-lab">
-        <span className="bkt-nm">{code(team)}</span>
-        {yr(team) && <span className="bkt-yr">{yr(team)}</span>}
-      </span>
-    </>
-  ) : (
-    <span className="bkt-lab">
-      <span className="bkt-nm bkt-tbd">?</span>
-    </span>
-  );
-
   return (
     <div className={cls}>
-      {stacked ? <span className="bkt-stack">{ident}</span> : ident}
-      {!stacked && team && <RatingChip value={team.strength.overall} />}
+      {team ? (
+        <>
+          <Flag code={team.code} isUser={isUser} className="h-3 w-[18px]" />
+          <span className="bkt-lab">
+            <span className="bkt-nm">{code(team)}</span>
+            {yr(team) && <span className="bkt-yr">{yr(team)}</span>}
+          </span>
+          <RatingChip value={team.strength.overall} />
+        </>
+      ) : (
+        <span className="bkt-lab">
+          <span className="bkt-nm bkt-tbd">?</span>
+        </span>
+      )}
       {score !== undefined && <span className="bkt-sc">{score}</span>}
     </div>
   );
 }
 
+/** One team column in the narrow (mobile) match box: flag over code+year over
+ *  the goals it scored. Two of these sit side by side with a result dash between
+ *  them (see MobileMatch), so a played tie reads as three rows, not four. */
+function MSide({ side, score }: { side: SideView; score?: number }) {
+  const team = side.team;
+  const isUser = team?.id === USER_ID;
+  const cls = [
+    'bkt-seed',
+    'bkt-col',
+    side.struck ? 'bkt-out' : score !== undefined ? 'bkt-win' : '',
+    isUser ? 'bkt-you' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <div className={cls}>
+      {team ? (
+        <>
+          <Flag code={team.code} isUser={isUser} className="h-[11px] w-4" />
+          <span className="bkt-lab">
+            <span className="bkt-nm">{code(team)}</span>
+            {yr(team) && <span className="bkt-yr">{yr(team)}</span>}
+          </span>
+          {score !== undefined && <span className="bkt-sc">{score}</span>}
+        </>
+      ) : (
+        <span className="bkt-nm bkt-tbd">?</span>
+      )}
+    </div>
+  );
+}
+
+/** Narrow layout: home | away side by side, with a dash between their goals to
+ *  read as a result. */
+function MobileMatch({ view }: { view: GameView }) {
+  const hasScore = view.homeScore !== undefined && view.awayScore !== undefined;
+  return (
+    <div className="bkt-match bkt-vs">
+      <MSide side={view.home} score={view.homeScore} />
+      <span className="bkt-dash" aria-hidden>
+        {hasScore ? '–' : ''}
+      </span>
+      <MSide side={view.away} score={view.awayScore} />
+    </div>
+  );
+}
+
 function Match({ view, stacked }: { view: GameView; stacked: boolean }) {
+  if (stacked) return <MobileMatch view={view} />;
   return (
     <div className="bkt-match">
-      <Seed side={view.home} score={view.homeScore} stacked={stacked} />
-      <Seed side={view.away} score={view.awayScore} stacked={stacked} />
+      <Seed side={view.home} score={view.homeScore} />
+      <Seed side={view.away} score={view.awayScore} />
     </div>
   );
 }
@@ -106,30 +157,50 @@ function pairs<T>(arr: T[]): T[][] {
 function Cup({ b, stacked }: { b: BracketState; stacked: boolean }) {
   const won = bracketChampion(b);
   const champ = won?.team ?? null;
-  const score = won ? `${won.homeGoals}–${won.awayGoals}` : null;
+  const trophyRef = useRef<HTMLSpanElement>(null);
+
+  /** A burst of confetti erupting from the trophy on hover. */
+  const burst = () => {
+    const el = trophyRef.current;
+    if (!el) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const r = el.getBoundingClientRect();
+    confetti({
+      particleCount: 80,
+      spread: 78,
+      startVelocity: 42,
+      gravity: 0.9,
+      ticks: 220,
+      scalar: 0.9,
+      origin: {
+        x: (r.left + r.width / 2) / window.innerWidth,
+        y: (r.top + r.height / 2) / window.innerHeight,
+      },
+      colors: CUP_COLORS,
+      disableForReducedMotion: true,
+    });
+  };
 
   return (
-    <div className="bkt-cup">
+    <div className="bkt-cup" onMouseEnter={champ ? burst : undefined}>
       <div className="bkt-cup-lbl">{champ ? 'World Champion' : 'Champion'}</div>
+      <span ref={trophyRef} className="bkt-cup-trophy" aria-hidden>
+        <Trophy size={stacked ? 20 : 24} strokeWidth={2} />
+      </span>
       {champ ? (
         <>
           <Flag
             code={champ.code}
             isUser={champ.id === USER_ID}
-            className="mx-auto my-1.5 block h-5 w-[30px]"
+            className="mx-auto mb-1.5 block h-5 w-[30px]"
           />
           <div className="bkt-cup-nm">
             {champ.name}
             {!stacked && <RatingChip value={champ.strength.overall} className="ml-1.5 align-middle" />}
           </div>
-          {score && (
-            <div className="mt-1.5 font-mono text-[9px] font-semibold tracking-[0.04em] text-white/70">
-              Final &middot; {score}
-            </div>
-          )}
         </>
       ) : (
-        <div className="bkt-cup-nm mt-2">?</div>
+        <div className="bkt-cup-nm mt-1.5">?</div>
       )}
     </div>
   );
@@ -203,6 +274,10 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
           </div>
 
           <div className="bkt-mcenter">
+            <div className="bkt-mfinal">
+              <div className="bkt-mfinal-lbl">Final</div>
+              <Match view={v(3, 0)} stacked />
+            </div>
             <Cup b={b} stacked />
           </div>
 
