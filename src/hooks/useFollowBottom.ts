@@ -22,10 +22,17 @@ interface FollowBottomOpts {
  *  - Only real downward growth of the SAME tail acts. First sight and any tail
  *    change (a match ends, a new round mounts) just set a baseline, so arriving
  *    and switching regions never jump.
- *  - Pause/resume: "stuck" is recomputed from the tail's position on every scroll.
- *    Near the bottom of the active content => follow; scrolled up past `threshold`
- *    => pause. Our own scrolls land in the stuck zone, so we never need to tell
- *    our scrolls apart from the user's.
+ *  - Pause/resume: while idle, "stuck" is recomputed from the tail's position on
+ *    every scroll - near the bottom of the active content => follow; scrolled up
+ *    past `threshold` => pause. While our own ease is in flight only a deliberate
+ *    upward scroll pauses it; we must NOT cancel it merely because its (far) target
+ *    is still below the fold, or a large jump (e.g. down to the "You qualified"
+ *    card) would abort after one step and never arrive on a short screen.
+ *
+ * Note: the page scroller sets `overflow-anchor: none` (in index.css). Browser
+ * scroll anchoring otherwise nudges scrollY when content above the fold changes
+ * height (which happens as a match finalises and result cards mount), and those
+ * native nudges read as user scrolls and stall the follow.
  *
  * The scroll itself is a single owned requestAnimationFrame easing loop rather
  * than window.scrollTo({behavior:'smooth'}). The native smooth scroll, called
@@ -60,6 +67,9 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
 
     // Follow by default; off when the user scrolls up, back on at the bottom.
     let stuck = true;
+    // Last scroll position we saw, to tell an upward user scroll (pause) from our
+    // own downward easing (which must never cancel itself).
+    let lastScrollY = window.scrollY;
     // Absolute document position of the tail's bottom last time we looked, and the
     // tail element it belonged to (a relocating tail re-baselines, never scrolls).
     let lastDocBottom: number | null = null;
@@ -162,14 +172,28 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
       mo.observe(rootEl, { childList: true, subtree: true });
     }
 
-    // Read-only: recompute whether we are stuck. Never scrolls. If the user
-    // scrolls away, also abandon any in-flight follow so we do not fight them.
+    // Recompute whether we are following. Never scrolls itself. While our own
+    // easing scroll is in flight we must not cancel it just because its target is
+    // still far below the fold - that self-abort was exactly what stopped large
+    // jumps (e.g. easing down to the "You qualified" card) from completing on short
+    // mobile screens. During an in-flight ease only a deliberate upward scroll by
+    // the user interrupts it; when idle, engage near the bottom and pause once the
+    // user has scrolled away.
     const onScroll = () => {
       const marker = tailRef.current;
       if (!marker) return;
+      const y = window.scrollY;
+      const scrolledUp = y < lastScrollY - 2;
+      lastScrollY = y;
+      if (animTarget !== null) {
+        if (scrolledUp) {
+          stuck = false;
+          stopAnim();
+        }
+        return;
+      }
       const belowFold = marker.getBoundingClientRect().bottom - window.innerHeight;
       stuck = belowFold <= thresholdRef.current;
-      if (!stuck) stopAnim();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
 

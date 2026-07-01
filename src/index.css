@@ -33,6 +33,16 @@ body,
     height: 100%;
 }
 
+/* Disable browser scroll anchoring on the page scroller. When a match finalises
+   and the "You qualified" / result cards mount, content above the fold changes
+   height; anchoring compensates by nudging scrollY, which fought (and stalled)
+   the auto-follow scroll - most visibly on short mobile screens. We drive the
+   scroll ourselves (useFollowBottom), so we do not want the browser second-
+   guessing it. */
+html {
+    overflow-anchor: none;
+}
+
 body {
     margin: 0;
     color: var(--color-ink);
