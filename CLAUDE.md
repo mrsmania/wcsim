@@ -92,7 +92,8 @@ src/
                clock.ts      (live-reveal playback step sequence)
                chemistry.ts  (cohesion scoring -> strength bonus; gated by a flag)
                validateSquads.ts (dev-time dataset integrity checks)
-  state/       gameReducer.ts (the phase machine + Action union)
+  state/       gameReducer.ts (the phase machine + Action union), persist.ts (the
+               whole game <-> localStorage, so routes survive a refresh)
   hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
                match-reveal clock used by both tournament screens)
   components/  presentational React (App composes them); the group screen
@@ -101,7 +102,6 @@ src/
                presentational atoms + per-match view-model used by both screens;
                SquadBrowser + TeamRoster are the read-only squad archive (see below)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser)
-  state/       persist.ts (loadGame/saveGame - whole game to localStorage)
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
@@ -111,7 +111,9 @@ src/
 group -> knockout`. `group` (`TournamentScreen.tsx`) and `knockout`
 (`KnockoutScreen.tsx`) are separate screens: you play the group one matchday at a
 time, then click "Enter the knockouts" to reach the bracket and play it one round at
-a time. Components dispatch actions; `App` runs side effects (the roll scramble
+a time. The group opens with the draw as a **modal** (`GroupDrawReveal`, shown once
+for a freshly drawn group); the standings + matchdays stay hidden behind it until it
+is dismissed, so the draw is not spoiled. Components dispatch actions; `App` runs side effects (the roll scramble
 animation, scroll follow) and the phase transitions. The `domain/` modules are
 deterministic except where they intentionally call `Math.random` (match sim, opponent
 draw, roll). Strong pattern: **each match's result is computed up front, then the

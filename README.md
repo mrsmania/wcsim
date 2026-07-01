@@ -24,6 +24,8 @@ TypeScript objects under `src/data/`.
 - **Vite** + **React** + **TypeScript**
 - **Tailwind CSS v4** (via the `@tailwindcss/vite` plugin)
 - State as a single `useReducer` game machine; pure game logic in `src/domain/`
+- **Routing** via `react-router-dom` (clean paths); the whole game is mirrored to
+  `localStorage`, so browser Back/Forward work and an in-progress run survives a refresh
 - **Design:** the flat "turf-flat" look (top-down tactics-board pitch, hard-shadow
   cards) with Archivo / Schibsted Grotesk / Spline Sans Mono web fonts. Tokens live
   in `src/index.css`; reference mockups in `docs/redesign-2026/turf-flat/`.
@@ -47,16 +49,19 @@ src/
   domain/      pure logic: formations, draft, match (sim + shootout), tournament
                (group/standings), knockout + bracket (16-team tree), clock (playback),
                chemistry, validateSquads (dev-time dataset checks)
-  state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group -> knockout)
+  state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group ->
+               knockout) + persist.ts (whole game <-> localStorage)
   components/  SetupPanel, SquadPanel, Pitch (+ PlayerBadge), BoxScore (ratings +
                chemistry), XiTable (line-up sheet), CompletePanel, the group screen
-               (TournamentScreen -> GroupDrawReveal / StandingsTable / MatchdayCard)
-               and KnockoutScreen (+ Bracket), TournamentSummary + shared atoms
-               (Flag, Tooltip, FixtureRow, GoalList) via matchUi/matchView + useMatchClock
+               (TournamentScreen -> GroupDrawReveal modal / StandingsTable / MatchdayCard)
+               and KnockoutScreen (+ Bracket + Confetti), TournamentSummary, the squad
+               browser (SquadBrowser + TeamRoster), and shared atoms (Flag, Tooltip,
+               FixtureRow, GoalList) via matchUi/matchView + useMatchClock
   config.ts    FEATURES flags
 ```
 
-See `CLAUDE.md` for an architecture / onboarding overview.
+App branches its screen by the URL (react-router); see `CLAUDE.md` for the full
+architecture / onboarding overview.
 
 Players carry an array of specific positions (e.g. `['RB','RM']`); a slot only
 accepts a player whose positions include the slot's role. Each real person has a
@@ -85,26 +90,37 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Animated play-by-play match overlay (running clock, goal feed)
 - [x] Knockout rounds through to the final (extra time + penalty shootout) and a tournament summary
 - [x] Team chemistry: cohesion bonus to the user XI, feature-flagged in `src/config.ts`
+- [x] Squad browser: browse every squad by World Cup or by team (with all-time "Legends" per team), feature-flagged
+- [x] Real URLs with working browser Back / Forward; the in-progress game persists across a refresh
 
 ## Hosting
 
-The build output (`dist/`) is fully static, so it can be served anywhere.
-`vite.config.ts` sets `base: './'` so the same build works at any path.
+The build output (`dist/`) is static. Routing uses the History API (clean paths),
+which needs an **absolute** base and an SPA fallback:
+
+- `vite.config.ts` sets `base: '/wcsim/'` for the production build (`'/'` in dev),
+  so deeply-nested URLs (e.g. `/squads/team/bra-2002`) still resolve `/assets`.
+- `npm run build` also writes `dist/404.html` (a copy of `index.html`), so a deep
+  link or refresh is served the app instead of a 404.
 
 ### GitHub Pages
 
-`.github/workflows/deploy.yml` builds and deploys on every push to `main`.
-In the repository settings, set **Settings -> Pages -> Build and deployment ->
-Source = GitHub Actions**. Because `base` is relative, it works for both a
-project page (`<user>.github.io/<repo>/`) and a custom domain with no changes.
+`.github/workflows/deploy.yml` builds and deploys on every push to `main`. In the
+repository settings, set **Settings -> Pages -> Build and deployment ->
+Source = GitHub Actions**. The site is served at `<user>.github.io/wcsim/`, which
+matches the configured base.
 
-### Synology DS723+
+### Another host or path (Synology, Docker, custom domain)
 
-Two options:
+Because the base is absolute, serving the app at a different path means rebuilding
+with a matching base, e.g. root: `npm run build -- --base=/` (or
+`--base=/my/path/`). Then either configure the server to serve `index.html` for
+unknown routes, or rely on the emitted `404.html`.
 
-1. **Web Station** (simplest): build locally (`npm run build`), copy `dist/`
-   to a shared folder, and point a Web Station virtual host at it.
-2. **Container Manager (Docker)**: build the included image and run it.
+1. **Web Station** (simplest): rebuild with the right base, copy `dist/` to a
+   shared folder, and point a Web Station virtual host at it.
+2. **Container Manager (Docker)**: build the included image and run it (adjust the
+   Dockerfile's build `--base` and nginx SPA fallback for your path first).
 
    ```bash
    docker build -t wcsim .
