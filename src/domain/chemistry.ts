@@ -109,7 +109,9 @@ export function computeChemistry(placements: Placement[]): ChemistryReport {
     return { placed: 0, bonus: 0, rawTotal: 0, capped: false, fitCount: 0, categories: [] };
   }
 
-  const squads: Squad[] = placements.map((pl) => SQUAD_BY_ID[pl.player.squadId]);
+  const squads: Squad[] = placements
+    .map((pl) => SQUAD_BY_ID[pl.player.squadId])
+    .filter((s): s is Squad => !!s);
   const cats: ChemistryCategory[] = [];
 
   // Same squad — real teammates (same nation & year). Largest such group.

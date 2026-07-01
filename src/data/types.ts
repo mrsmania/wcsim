@@ -20,7 +20,7 @@ export type Position =
 /** Coarse grouping used for colour-coding and sorting. */
 export type PositionCategory = 'GK' | 'DEF' | 'MID' | 'FWD';
 
-export const CATEGORY_OF: Record<Position, PositionCategory> = {
+const CATEGORY_OF: Record<Position, PositionCategory> = {
   GK: 'GK',
   LB: 'DEF',
   CB: 'DEF',
@@ -50,7 +50,9 @@ export interface Player {
   name: string;
   /** One or more roles this player is eligible for. */
   positions: Position[];
-  /** Approximate skill rating, ~70-95. Placeholder data, not authoritative. */
+  /** Holistic strength at the time of that tournament, on a 60-99 scale
+   *  (shown in the UI as "rating"). The 1998/2002 squads are partial
+   *  placeholders; 2006 onward are researched. */
   elo: number;
 }
 
@@ -63,7 +65,8 @@ export interface Squad {
   nation: string;
   /** Tournament year, e.g. 1998. */
   year: number;
-  /** Overall team strength for match simulation, ~70-95. */
+  /** Overall team strength for match simulation, on a 60-99 scale. The
+   *  1998/2002 squads are partial placeholders; 2006 onward are researched. */
   rating: number;
   players: Player[];
 }
@@ -95,3 +98,14 @@ export const CATEGORY_ORDER: PositionCategory[] = ['GK', 'DEF', 'MID', 'FWD'];
 export function primaryCategory(player: Player): PositionCategory {
   return categoryOf(player.positions[0]);
 }
+
+/** A player's natural/primary role (positions[0]). */
+export function primaryPosition(player: Player): Position {
+  return player.positions[0];
+}
+
+/** Categories counted as attack in match strength (mirrors match.ts). */
+export const ATTACK_CATS: PositionCategory[] = ['MID', 'FWD'];
+
+/** Categories counted as defense in match strength (mirrors match.ts). */
+export const DEF_CATS: PositionCategory[] = ['GK', 'DEF'];

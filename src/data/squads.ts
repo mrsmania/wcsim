@@ -4370,5 +4370,6 @@ export const SQUADS: Squad[] = [
     ]),
 ];
 
-/** Lookup table for resolving a squad by id. */
-export const SQUAD_BY_ID: Record<string, Squad> = Object.fromEntries(SQUADS.map((s) => [s.id, s]));
+/** Lookup table for resolving a squad by id. A miss returns `undefined`, so
+ *  callers must guard the lookup. */
+export const SQUAD_BY_ID: Record<string, Squad | undefined> = Object.fromEntries(SQUADS.map((s) => [s.id, s]));
