@@ -77,21 +77,27 @@ and run it in node, e.g.
 
 ```
 src/
-  data/        types.ts (domain types + helpers) + squads.ts (the dataset + SQUAD_BY_ID)
+  data/        types.ts (domain types + helpers), format.ts (name/position display
+               formatters), squads.ts (the dataset + SQUAD_BY_ID)
   domain/      pure, framework-free logic (no React imports):
                formations.ts (formation -> pitch slot coordinates)
                draft.ts      (placement rules, rolling/re-rolling squads)
                match.ts      (xiStrength, Poisson match sim, penalty shootout)
-               tournament.ts (group build, fixtures, standings)
-               knockout.ts   (single-tie sim helpers: playKnockout, drawOpponent,
+               tournament.ts (group build, fixtures, standings, simulateMatchday,
+                              qualifiers, bracket seeding)
+               knockout.ts   (opponent draw + shared KO round labels: drawOpponent,
                               KO_ROUNDS, KoDecided)
                bracket.ts    (the 16-team knockout bracket model; see below)
                clock.ts      (live-reveal playback step sequence)
                chemistry.ts  (cohesion scoring -> overall bonus; gated by a flag)
+               validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union)
-  hooks/       useFollowBottom.ts (auto-scroll that follows growing content down)
-  components/  presentational React (App composes them); matchUi.tsx holds the
-               presentational bits shared by the group + knockout screens
+  hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
+               match-reveal clock used by both tournament screens)
+  components/  presentational React (App composes them); the group screen
+               (TournamentScreen) splits into GroupDrawReveal / StandingsTable /
+               MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
+               presentational atoms + per-match view-model used by both screens
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers)
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects
   main.tsx     entry (wraps App in React.StrictMode)

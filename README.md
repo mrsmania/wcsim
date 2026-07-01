@@ -42,14 +42,17 @@ npm run typecheck
 
 ```
 src/
-  data/        types.ts (domain types + position/category model) + squads.ts (the dataset)
-  domain/      pure logic: formations, draft, match (sim + shootout),
-               tournament (group/standings), knockout, clock (playback), chemistry
+  data/        types.ts (domain types + position/category model), format.ts (name/
+               position display helpers), squads.ts (the dataset)
+  domain/      pure logic: formations, draft, match (sim + shootout), tournament
+               (group/standings), knockout + bracket (16-team tree), clock (playback),
+               chemistry, validateSquads (dev-time dataset checks)
   state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group -> knockout)
   components/  SetupPanel, SquadPanel, Pitch (+ PlayerBadge), BoxScore (ratings +
-               chemistry), XiTable (line-up sheet), CompletePanel, TournamentScreen
-               (group + knockout on one screen), TournamentSummary + shared atoms
-               (Flag, Tooltip, FixtureRow, GoalList, SpeedControl)
+               chemistry), XiTable (line-up sheet), CompletePanel, the group screen
+               (TournamentScreen -> GroupDrawReveal / StandingsTable / MatchdayCard)
+               and KnockoutScreen (+ Bracket), TournamentSummary + shared atoms
+               (Flag, Tooltip, FixtureRow, GoalList) via matchUi/matchView + useMatchClock
   config.ts    FEATURES flags
 ```
 
