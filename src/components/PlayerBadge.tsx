@@ -17,36 +17,6 @@ function RemoveButton({ name, onRemove }: { name: string; onRemove: () => void }
     );
 }
 
-/** A circular player face. Shows the photo when one is supplied, otherwise a CSS
- *  silhouette placeholder (the dataset has no photos). Reused by PlayerBadge and
- *  the drawn-squad rows so the placeholder stays identical everywhere. */
-export function FaceAvatar({
-    photoUrl,
-    name,
-    className = '',
-}: {
-    photoUrl?: string;
-    name?: string;
-    className?: string;
-}) {
-    return (
-        <span
-            className={`relative block shrink-0 overflow-hidden rounded-full bg-linear-to-b from-[#dceae0] to-[#a7c8af] ${className}`}
-        >
-            {photoUrl ? (
-                <img src={photoUrl} alt={name ?? ''} className="h-full w-full object-cover" />
-            ) : (
-                <>
-                    {/* head */}
-                    <span className="absolute left-1/2 top-[23%] aspect-square w-[38%] -translate-x-1/2 rounded-full bg-ink/30" />
-                    {/* shoulders */}
-                    <span className="absolute left-1/2 bottom-[-5%] h-1/2 w-[72%] -translate-x-1/2 rounded-t-[46%] bg-ink/30" />
-                </>
-            )}
-        </span>
-    );
-}
-
 interface Props {
     name: string;
     number?: number;
