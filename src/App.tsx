@@ -15,11 +15,17 @@ import {
     STRENGTH_BANDS,
     type TeamStrength,
 } from './domain/draft';
-import { createGroup, pickOpponents, standings, userGroupTeam } from './domain/tournament';
+import {
+    bracketSeedFromGroup,
+    createGroup,
+    pickOpponents,
+    userGroupTeam,
+} from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
-import { buildBracket, BRACKET_ROUNDS } from './domain/bracket';
+import { buildBracket, BRACKET_ROUNDS, type BracketState } from './domain/bracket';
+import { validateSquads } from './domain/validateSquads';
 import { FEATURES } from './config';
-import { gameReducer, initialState } from './state/gameReducer';
+import { gameReducer, initialState, type Phase } from './state/gameReducer';
 import type { MatchSpeed } from './domain/clock';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
@@ -60,6 +66,45 @@ function saveSettings(speed: MatchSpeed, auto: boolean) {
     }
 }
 
+/** The masthead status stamp for the knockout phase (round name, or the outcome
+ *  once the run is over). Only meaningful during the knockout phase. */
+function knockoutStamp(bracket: BracketState | null): string {
+    if (bracket?.outcome === 'champion') return 'Champions';
+    if (bracket?.outcome === 'out') return 'Eliminated';
+    return BRACKET_ROUNDS[bracket?.current ?? 0];
+}
+
+/** The section eyebrow/title (setup/draft/complete screens) and the masthead
+ *  status stamp, both phase-dependent. The stamp is null on the tournament
+ *  screens' own headers only when nothing applies; the knockout round is
+ *  computed lazily, so `BRACKET_ROUNDS` is read only in the knockout phase. */
+function mastheadCopy(
+    phase: Phase,
+    placed: number,
+    bracket: BracketState | null,
+): { eyebrow: string; title: string; stamp: string | null } {
+    const eyebrow = phase === 'complete' ? 'Confirmed line-up' : 'Team sheet';
+    const title =
+        phase === 'setup'
+            ? 'Set your formation'
+            : phase === 'draft'
+              ? 'Build your XI'
+              : 'Your XI is set';
+    const stamp =
+        phase === 'setup'
+            ? 'Set up · 11 to pick'
+            : phase === 'draft'
+              ? `Drafting · ${placed}/11`
+              : phase === 'complete'
+                ? 'Team sheet · locked'
+                : phase === 'group'
+                  ? 'Group stage'
+                  : phase === 'knockout'
+                    ? knockoutStamp(bracket)
+                    : null;
+    return { eyebrow, title, stamp };
+}
+
 export default function App() {
     const [state, dispatch] = useReducer(gameReducer, initialState, (base) => ({
         ...base,
@@ -70,6 +115,13 @@ export default function App() {
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
     const squadRef = useRef<HTMLElement | null>(null);
+    // Re-entry guard for the draw-next-squad effect: once it fires a roll for the
+    // current committed state it stops until that roll settles (or a placement /
+    // removal changes the state), so one open slot never triggers two rolls.
+    const drawGuardRef = useRef(false);
+    // The id of the last squad that was in hand, so the next auto-draw can exclude
+    // it (never scramble straight back to the same squad). Cleared on reset.
+    const lastSquadIdRef = useRef<string | null>(null);
 
     useEffect(
         () => () => {
@@ -77,6 +129,18 @@ export default function App() {
         },
         [],
     );
+
+    // Dev-time dataset integrity check: run the WP2 validator once on mount and
+    // report any problems (silent when clean).
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+        const problems = validateSquads(SQUADS);
+        if (problems.length === 0) {
+            console.info('validateSquads: 0 problems');
+        } else {
+            console.error(`validateSquads: ${problems.length} problem(s)`, problems);
+        }
+    }, []);
 
     const {
         phase,
@@ -121,8 +185,7 @@ export default function App() {
     const runRoll = useCallback((target: Squad | null, isReroll: boolean) => {
         if (!target || animatingRef.current) return;
         animatingRef.current = true;
-        if (isReroll) dispatch({ type: 'CONSUME_REROLL' });
-        dispatch({ type: 'ROLL_START' });
+        dispatch({ type: 'ROLL_START', isReroll });
 
         let delay = 55;
         let elapsed = 0;
@@ -146,12 +209,40 @@ export default function App() {
         spin();
     }, []);
 
+    // Remember the squad currently in hand so the next auto-draw can exclude it.
+    // Cleared back at setup (a fresh run) so the very first roll excludes nothing.
+    useEffect(() => {
+        if (phase === 'setup') lastSquadIdRef.current = null;
+        else if (currentSquad) lastSquadIdRef.current = currentSquad.id;
+    }, [phase, currentSquad]);
+
+    // Draw the next squad from committed state. Whenever the draft has an open slot
+    // and no squad in hand (and nothing is rolling), roll one. This is the single
+    // owner of "draw the next squad": it subsumes the first roll on START_DRAFT,
+    // the roll after a placement (PLACE_PLAYER clears currentSquad), and the roll
+    // for a freed slot after REMOVE_PLAYER when the XI was complete. Rerolls stay
+    // explicit (they keep a squad in hand / set rolling, so this never interferes).
+    useEffect(() => {
+        const shouldDraw = phase === 'draft' && !!formation && !currentSquad && !rolling;
+        if (!shouldDraw) {
+            // No draw pending (a squad is in hand, or we are mid-roll, or not in the
+            // draft): release the guard so the next open slot can trigger one roll.
+            drawGuardRef.current = false;
+            return;
+        }
+        if (drawGuardRef.current) return; // already fired a roll for this open slot
+        drawGuardRef.current = true;
+        const open = positionsWithOpenSlot(formation, filled);
+        const used = new Set(usedPersonIds);
+        runRoll(rollAny(SQUADS, open, used, lastSquadIdRef.current), false);
+    }, [phase, formation, currentSquad, rolling, filled, usedPersonIds, runRoll]);
+
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
+        // Just enter the draft; the draw-next-squad effect rolls the first squad
+        // from committed state (an open slot with no squad in hand).
         dispatch({ type: 'START_DRAFT', formation: previewFormation });
-        const open = positionsWithOpenSlot(previewFormation, {});
-        runRoll(rollAny(SQUADS, open, new Set(), null), false);
-    }, [previewFormation, runRoll]);
+    }, [previewFormation]);
 
     // Testing shortcut: auto-pick a full valid XI (within a strength band) and
     // jump straight to "complete".
@@ -170,44 +261,33 @@ export default function App() {
 
     const handlePlace = useCallback(
         (slotId: string) => {
+            // The reducer owns placement validation and ignores an invalid slot;
+            // dispatch unconditionally and let it be the single source of truth.
+            // The draw-next-squad effect rolls the next squad from committed state.
             const slot = formation?.slots.find((s) => s.id === slotId);
             const player = currentSquad?.players.find((p) => p.id === selectedPlayerId);
-            if (!formation || !slot || !player || !canPlace(player, slot, filled)) return;
+            const willPlace = !!formation && !!slot && !!player && canPlace(player, slot, filled);
 
             dispatch({ type: 'PLACE_PLAYER', slotId });
 
             // Mobile: jump back up to the squad list (showing the next drawn squad); the
-            // panel's scroll-mt keeps a little margin above it.
-            if (isStackedLayout()) {
+            // panel's scroll-mt keeps a little margin above it. Only for a placement
+            // that actually landed.
+            if (willPlace && isStackedLayout()) {
                 squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-
-            const nextFilled = { ...filled, [slotId]: player };
-            if (filledCount(formation, nextFilled) >= formation.slots.length) return; // complete
-
-            const open = positionsWithOpenSlot(formation, nextFilled);
-            const used = new Set([...usedPersonIds, player.personId]);
-            runRoll(rollAny(SQUADS, open, used, currentSquad?.id ?? null), false);
         },
-        [formation, currentSquad, selectedPlayerId, filled, usedPersonIds, runRoll],
+        [formation, currentSquad, selectedPlayerId, filled],
     );
 
-    // Testing aid: remove a placed player. If no squad is in hand (we were
-    // "complete"), roll one for the freed slot so a replacement can be drafted.
+    // Testing aid: remove a placed player. The XI drops back to 'draft'; if no
+    // squad is in hand (we were "complete"), the draw-next-squad effect rolls one
+    // for the freed slot from committed state so a replacement can be drafted.
     const handleRemove = useCallback(
         (slotId: string) => {
-            const removed = formation && filled[slotId];
-            if (!formation || !removed) return;
             dispatch({ type: 'REMOVE_PLAYER', slotId });
-            if (!currentSquad && !rolling) {
-                const nextFilled = { ...filled };
-                delete nextFilled[slotId];
-                const open = positionsWithOpenSlot(formation, nextFilled);
-                const used = new Set(usedPersonIds.filter((id) => id !== removed.personId));
-                runRoll(rollAny(SQUADS, open, used, null), false);
-            }
         },
-        [formation, filled, currentSquad, rolling, usedPersonIds, runRoll],
+        [],
     );
 
     const handleReroll = useCallback(
@@ -238,14 +318,7 @@ export default function App() {
 
     const handleEnterKnockout = useCallback(() => {
         if (!group) return;
-        const table = standings(group);
-        const user = table.find((s) => s.team.isUser)!.team;
-        // The team that qualified alongside the user (the other side of the top two).
-        const coQualifier = table
-            .slice(0, 2)
-            .map((s) => s.team)
-            .find((t) => !t.isUser)!;
-        const excludeIds = group.teams.filter((t) => !t.isUser).map((t) => t.id);
+        const { user, coQualifier, excludeIds } = bracketSeedFromGroup(group);
         dispatch({
             type: 'START_BRACKET',
             bracket: buildBracket(user, coQualifier, excludeIds),
@@ -265,31 +338,11 @@ export default function App() {
     // Page section header (eyebrow + heading) and the masthead status stamp, both
     // phase-dependent. The stamp is null on the tournament screens (their own header).
     const placed = activeFormation ? filledCount(activeFormation, filled) : 0;
-    const sectionEyebrow = phase === 'complete' ? 'Confirmed line-up' : 'Team sheet';
-    const sectionTitle =
-        phase === 'setup'
-            ? 'Set your formation'
-            : phase === 'draft'
-              ? 'Build your XI'
-              : 'Your XI is set';
-    const koStamp =
-        bracket?.outcome === 'champion'
-            ? 'Champions'
-            : bracket?.outcome === 'out'
-              ? 'Eliminated'
-              : BRACKET_ROUNDS[bracket?.current ?? 0];
-    const stampText =
-        phase === 'setup'
-            ? 'Set up · 11 to pick'
-            : phase === 'draft'
-              ? `Drafting · ${placed}/11`
-              : phase === 'complete'
-                ? 'Team sheet · locked'
-                : phase === 'group'
-                  ? 'Group stage'
-                  : phase === 'knockout'
-                    ? koStamp
-                    : null;
+    const { eyebrow: sectionEyebrow, title: sectionTitle, stamp: stampText } = mastheadCopy(
+        phase,
+        placed,
+        bracket,
+    );
 
     return (
         <div className="min-h-full text-ink">

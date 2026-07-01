@@ -1,7 +1,7 @@
 import type { Player, Squad } from '../data/types';
 import type { Formation, FormationName, Style } from '../domain/formations';
 import { canPlace, isComplete, type Filled } from '../domain/draft';
-import type { GroupState, MatchdayResult } from '../domain/tournament';
+import { recordMatchday, type GroupState, type MatchdayResult } from '../domain/tournament';
 import { recordRound, type BracketGame, type BracketState } from '../domain/bracket';
 import type { MatchSpeed } from '../domain/clock';
 
@@ -38,9 +38,8 @@ export type Action =
   | { type: 'SET_STYLE'; style: Style }
   | { type: 'START_DRAFT'; formation: Formation }
   | { type: 'AUTOFILL'; formation: Formation; filled: Filled; usedPersonIds: string[] }
-  | { type: 'ROLL_START' }
+  | { type: 'ROLL_START'; isReroll: boolean }
   | { type: 'ROLL_SETTLE'; squad: Squad }
-  | { type: 'CONSUME_REROLL' }
   | { type: 'SELECT_PLAYER'; playerId: string }
   | { type: 'PLACE_PLAYER'; slotId: string }
   | { type: 'REMOVE_PLAYER'; slotId: string }
@@ -98,13 +97,15 @@ export function gameReducer(state: GameState, action: Action): GameState {
       };
 
     case 'ROLL_START':
-      return { ...state, rolling: true, selectedPlayerId: null };
+      return {
+        ...state,
+        rolling: true,
+        selectedPlayerId: null,
+        rerollsLeft: action.isReroll ? Math.max(0, state.rerollsLeft - 1) : state.rerollsLeft,
+      };
 
     case 'ROLL_SETTLE':
       return { ...state, rolling: false, currentSquad: action.squad };
-
-    case 'CONSUME_REROLL':
-      return { ...state, rerollsLeft: Math.max(0, state.rerollsLeft - 1) };
 
     case 'SELECT_PLAYER':
       return { ...state, selectedPlayerId: action.playerId };
@@ -147,16 +148,10 @@ export function gameReducer(state: GameState, action: Action): GameState {
     case 'START_GROUP':
       return { ...state, phase: 'group', group: action.group };
 
-    case 'RECORD_MATCHDAY': {
-      if (!state.group) return state;
-      const md = state.group.matchday;
-      const fixtures = state.group.fixtures.map((f) => {
-        if (f.matchday !== md) return f;
-        const r = action.results.find((x) => x.homeId === f.homeId && x.awayId === f.awayId);
-        return r ? { ...f, result: r.result } : f;
-      });
-      return { ...state, group: { ...state.group, fixtures, matchday: md + 1 } };
-    }
+    case 'RECORD_MATCHDAY':
+      return state.group
+        ? { ...state, group: recordMatchday(state.group, action.results) }
+        : state;
 
     case 'START_BRACKET':
       return { ...state, phase: 'knockout', bracket: action.bracket };

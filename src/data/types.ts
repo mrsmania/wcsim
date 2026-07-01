@@ -82,7 +82,10 @@ const NAME_PARTICLES = new Set([
   'do', 'la', 'le', 'el', 'ter', 'ten', 'bin', 'al',
 ]);
 
-/** Display surname: the last word, plus any leading particles. */
+/** Display surname: the last word, plus any leading particles. Index 0 (a lone
+ *  first name) is never consumed: single-word names return whole, and the
+ *  particle walk stops at `i > 0`. Dots are stripped only when testing a token
+ *  against the particle set, not from the returned surname. */
 export function lastName(full: string): string {
   const parts = full.trim().split(/\s+/);
   if (parts.length <= 1) return full;

@@ -1,9 +1,13 @@
 import type { Player, Squad } from '../data/types';
 import { SQUADS } from '../data/squads';
-import { scorerPool, xiStrength, type MatchResult, type Strength } from './match';
+import { scorerPool, simulateMatch, xiStrength, type MatchResult, type Strength } from './match';
 
 export const GROUP_MATCHDAYS = 3;
 export const USER_ID = 'user';
+
+/** How many teams advance from the group (the top `QUALIFY_COUNT` of the table).
+ *  Defined once so the "top 2 advance" rule lives in a single place. */
+export const QUALIFY_COUNT = 2;
 
 export interface GroupTeam {
   id: string;
@@ -109,7 +113,9 @@ export function createGroup(user: GroupTeam, opponents: Squad[]): GroupState {
 }
 
 export function teamById(group: GroupState, id: string): GroupTeam {
-  return group.teams.find((t) => t.id === id)!;
+  const team = group.teams.find((t) => t.id === id);
+  if (!team) throw new Error(`teamById: no team with id "${id}" in this group`);
+  return team;
 }
 
 export function fixturesForMatchday(group: GroupState, md: number): Fixture[] {
@@ -168,8 +174,63 @@ export function isGroupFinished(group: GroupState): boolean {
   return group.matchday > GROUP_MATCHDAYS;
 }
 
-/** User finishes in the top 2 (qualification places). */
+/** The teams that advance from the group: the top `QUALIFY_COUNT` of the table.
+ *  The single source of the "top 2 advance" rule. */
+export function qualifiers(group: GroupState): GroupTeam[] {
+  return standings(group).slice(0, QUALIFY_COUNT).map((s) => s.team);
+}
+
+/** User finishes in a qualification place. */
 export function userAdvanced(group: GroupState): boolean {
-  const idx = standings(group).findIndex((s) => s.team.isUser);
-  return idx >= 0 && idx < 2;
+  return qualifiers(group).some((t) => t.isUser);
+}
+
+/** Seed the knockout bracket from a finished group: the user, the team that
+ *  qualified alongside them, and every group team to exclude from the draw (so
+ *  there are no immediate rematches). Throws with a clear message if the user is
+ *  not among the qualifiers (the caller should only enter the knockouts once the
+ *  user has advanced). */
+export function bracketSeedFromGroup(group: GroupState): {
+  user: GroupTeam;
+  coQualifier: GroupTeam;
+  excludeIds: string[];
+} {
+  const top = qualifiers(group);
+  const user = top.find((t) => t.isUser);
+  const coQualifier = top.find((t) => !t.isUser);
+  if (!user || !coQualifier) {
+    throw new Error('bracketSeedFromGroup: user did not qualify (no user + co-qualifier in the top places)');
+  }
+  const excludeIds = group.teams.filter((t) => !t.isUser).map((t) => t.id);
+  return { user, coQualifier, excludeIds };
+}
+
+/** Merge a played matchday's results into the group and advance to the next
+ *  matchday. The reducer delegates here (mirrors `recordRound` for the bracket). */
+export function recordMatchday(group: GroupState, results: MatchdayResult[]): GroupState {
+  const md = group.matchday;
+  const fixtures = group.fixtures.map((f) => {
+    if (f.matchday !== md) return f;
+    const r = results.find((x) => x.homeId === f.homeId && x.awayId === f.awayId);
+    return r ? { ...f, result: r.result } : f;
+  });
+  return { ...group, fixtures, matchday: md + 1 };
+}
+
+/** Simulate every fixture of matchday `md`, returning the results to record.
+ *  The domain entry point for a group matchday: the screen animates these
+ *  results via the clock rather than simulating them itself. */
+export function simulateMatchday(group: GroupState, md: number): MatchdayResult[] {
+  return fixturesForMatchday(group, md).map((f) => {
+    const home = teamById(group, f.homeId);
+    const away = teamById(group, f.awayId);
+    return {
+      homeId: f.homeId,
+      awayId: f.awayId,
+      result: simulateMatch(
+        { strength: home.strength, scorers: home.scorers },
+        { strength: away.strength, scorers: away.scorers },
+      ),
+    };
+  });
 }

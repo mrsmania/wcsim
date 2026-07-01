@@ -5,8 +5,8 @@ export const FEATURES = {
      *  rating bonus and all chemistry UI. */
     chemistry: true,
     /** Remove placed players from the pitch via an x on the badge (testing aid).
-     *  Set to false to hide the control and disable removal. */
-    removePlayers: true,
+     *  Off by default; set to true to show the control and enable removal. */
+    removePlayers: false,
     /** Show each team's rating as a small chip next to it (desktop only). Set to
      *  false to hide all the rating chips everywhere. */
     teamRatings: true,
