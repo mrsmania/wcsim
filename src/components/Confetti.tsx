@@ -4,32 +4,32 @@ import { useEffect, useRef } from 'react';
 const COLORS = ['#F5C542', '#15924c', '#0E5C34', '#E4922B', '#ffffff', '#C8453C'];
 
 interface Piece {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  rot: number;
-  vrot: number;
-  color: string;
-  round: boolean;
-  /** Remaining frames for a burst piece; omitted for rain (lives until off-screen). */
-  life?: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    size: number;
+    rot: number;
+    vrot: number;
+    color: string;
+    round: boolean;
+    /** Remaining frames for a burst piece; omitted for rain (lives until off-screen). */
+    life?: number;
 }
 
 function drawPiece(ctx: CanvasRenderingContext2D, p: Piece) {
-  ctx.save();
-  ctx.translate(p.x, p.y);
-  ctx.rotate(p.rot);
-  ctx.fillStyle = p.color;
-  if (p.round) {
-    ctx.beginPath();
-    ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-  }
-  ctx.restore();
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    if (p.round) {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+    }
+    ctx.restore();
 }
 
 /**
@@ -40,68 +40,68 @@ function drawPiece(ctx: CanvasRenderingContext2D, p: Piece) {
  * under prefers-reduced-motion.
  */
 export function confettiBurst(originX: number, originY: number, count = 80) {
-  if (typeof window === 'undefined') return;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
 
-  const canvas = document.createElement('canvas');
-  canvas.setAttribute('aria-hidden', 'true');
-  canvas.style.cssText =
-    'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60';
-  document.body.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    canvas.remove();
-    return;
-  }
-
-  const dpr = window.devicePixelRatio || 1;
-  const w = document.documentElement.clientWidth;
-  const h = document.documentElement.clientHeight;
-  canvas.width = Math.floor(w * dpr);
-  canvas.height = Math.floor(h * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  const pieces: Piece[] = [];
-  for (let i = 0; i < count; i++) {
-    // Fire outward in every direction (a full 360deg pop), then let gravity win.
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 5 + Math.random() * 6;
-    pieces.push({
-      x: originX,
-      y: originY,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size: 5 + Math.random() * 6,
-      rot: Math.random() * Math.PI,
-      vrot: (Math.random() - 0.5) * 0.4,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      round: Math.random() < 0.4,
-      life: 90 + Math.floor(Math.random() * 40),
-    });
-  }
-
-  let raf = 0;
-  const tick = () => {
-    ctx.clearRect(0, 0, w, h);
-    for (let i = pieces.length - 1; i >= 0; i--) {
-      const p = pieces[i];
-      p.vy += 0.12; // gravity
-      p.vx *= 0.99;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.rot += p.vrot;
-      p.life! -= 1;
-      drawPiece(ctx, p);
-      if (p.life! <= 0 || p.y > h + 40) pieces.splice(i, 1);
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.style.cssText =
+        'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        canvas.remove();
+        return;
     }
-    if (pieces.length > 0) {
-      raf = requestAnimationFrame(tick);
-    } else {
-      cancelAnimationFrame(raf);
-      canvas.remove();
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = document.documentElement.clientWidth;
+    const h = document.documentElement.clientHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const pieces: Piece[] = [];
+    for (let i = 0; i < count; i++) {
+        // Fire outward in every direction (a full 360deg pop), then let gravity win.
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 6;
+        pieces.push({
+            x: originX,
+            y: originY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 5 + Math.random() * 6,
+            rot: Math.random() * Math.PI,
+            vrot: (Math.random() - 0.5) * 0.4,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            round: Math.random() < 0.4,
+            life: 90 + Math.floor(Math.random() * 40),
+        });
     }
-  };
-  raf = requestAnimationFrame(tick);
+
+    let raf = 0;
+    const tick = () => {
+        ctx.clearRect(0, 0, w, h);
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            const p = pieces[i];
+            p.vy += 0.12; // gravity
+            p.vx *= 0.99;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rot += p.vrot;
+            p.life! -= 1;
+            drawPiece(ctx, p);
+            if (p.life! <= 0 || p.y > h + 40) pieces.splice(i, 1);
+        }
+        if (pieces.length > 0) {
+            raf = requestAnimationFrame(tick);
+        } else {
+            cancelAnimationFrame(raf);
+            canvas.remove();
+        }
+    };
+    raf = requestAnimationFrame(tick);
 }
 
 /**
@@ -110,94 +110,100 @@ export function confettiBurst(originX: number, originY: number, count = 80) {
  * blocks the "Draft a new XI" button, and disabled under prefers-reduced-motion.
  * Piece size / density scale down on narrow screens.
  */
-export default function Confetti({ durationMs = 9000 }: { durationMs?: number }) {
-  const ref = useRef<HTMLCanvasElement>(null);
+export default function Confetti({ durationMs = 3000 }: { durationMs?: number }) {
+    const ref = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    useEffect(() => {
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        const canvas = ref.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-    // `stopped` guards against a leftover frame from a torn-down effect: under React
-    // StrictMode the effect runs twice in dev, and without this a stale loop keeps
-    // clearing the canvas and fighting the live one (the rain vanishes after a beat).
-    let stopped = false;
+        // `stopped` guards against a leftover frame from a torn-down effect: under React
+        // StrictMode the effect runs twice in dev, and without this a stale loop keeps
+        // clearing the canvas and fighting the live one (the rain vanishes after a beat).
+        let stopped = false;
 
-    // Narrow screens get smaller, fewer pieces (an absolute-sized piece looks huge
-    // on a phone); wider screens get the full-size, denser rain.
-    const narrow = window.innerWidth < 640;
-    const sizeScale = narrow ? 0.7 : 1;
-    const openingBurst = narrow ? 120 : 200;
-    const perFrame = narrow ? 4 : 7;
-    const maxPieces = narrow ? 260 : 460;
+        // Narrow screens get smaller, fewer pieces (an absolute-sized piece looks huge
+        // on a phone); wider screens get the full-size, denser rain.
+        const narrow = window.innerWidth < 640;
+        const sizeScale = narrow ? 0.7 : 1;
+        const openingBurst = narrow ? 120 : 200;
+        const perFrame = narrow ? 4 : 7;
+        const maxPieces = narrow ? 260 : 900;
 
-    const dpr = window.devicePixelRatio || 1;
-    let w = 0;
-    let h = 0;
-    // Size the backing store to the canvas's own rendered box (x dpr for crispness);
-    // h-full w-full stretches that box to the viewport, so display and backing match.
-    const resize = () => {
-      const r = canvas.getBoundingClientRect();
-      w = r.width;
-      h = r.height;
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener('resize', resize);
+        const dpr = window.devicePixelRatio || 1;
+        let w = 0;
+        let h = 0;
+        // Size the backing store to the canvas's own rendered box (x dpr for crispness);
+        // h-full w-full stretches that box to the viewport, so display and backing match.
+        const resize = () => {
+            const r = canvas.getBoundingClientRect();
+            w = r.width;
+            h = r.height;
+            canvas.width = Math.floor(w * dpr);
+            canvas.height = Math.floor(h * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        resize();
+        window.addEventListener('resize', resize);
 
-    const pieces: Piece[] = [];
-    const add = (n: number) => {
-      for (let i = 0; i < n; i++) {
-        pieces.push({
-          x: Math.random() * w,
-          y: -20 - Math.random() * h * 0.4, // start above the fold so it rains in
-          vx: (Math.random() - 0.5) * 1.6,
-          vy: 2 + Math.random() * 3.5,
-          size: (5 + Math.random() * 7) * sizeScale,
-          rot: Math.random() * Math.PI,
-          vrot: (Math.random() - 0.5) * 0.35,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
-          round: Math.random() < 0.4,
-        });
-      }
-    };
-    add(openingBurst); // an opening burst
+        const pieces: Piece[] = [];
+        const add = (n: number) => {
+            for (let i = 0; i < n; i++) {
+                pieces.push({
+                    x: Math.random() * w,
+                    y: -20 - Math.random() * h * 0.4, // start above the fold so it rains in
+                    vx: (Math.random() - 0.5) * 1.6,
+                    vy: 2 + Math.random() * 3.5,
+                    size: (5 + Math.random() * 7) * sizeScale,
+                    rot: Math.random() * Math.PI,
+                    vrot: (Math.random() - 0.5) * 0.35,
+                    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                    round: Math.random() < 0.4,
+                });
+            }
+        };
+        add(openingBurst); // an opening burst
 
-    const start = performance.now();
-    let raf = 0;
-    const tick = (t: number) => {
-      if (stopped) return;
-      ctx.clearRect(0, 0, w, h);
-      if (t - start < durationMs && pieces.length < maxPieces) add(perFrame); // keep it heavy
-      for (let i = pieces.length - 1; i >= 0; i--) {
-        const p = pieces[i];
-        p.vy += 0.05; // gravity
-        p.vx *= 0.995;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.rot += p.vrot;
-        drawPiece(ctx, p);
-        if (p.y > h + 40) pieces.splice(i, 1);
-      }
-      if (pieces.length > 0) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+        const start = performance.now();
+        let raf = 0;
+        const tick = (t: number) => {
+            if (stopped) return;
+            ctx.clearRect(0, 0, w, h);
+            if (t - start < durationMs && pieces.length < maxPieces) add(perFrame); // keep it heavy
+            for (let i = pieces.length - 1; i >= 0; i--) {
+                const p = pieces[i];
+                p.vy += 0.05; // gravity
+                p.vx *= 0.995;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.rot += p.vrot;
+                drawPiece(ctx, p);
+                if (p.y > h + 40) pieces.splice(i, 1);
+            }
+            if (pieces.length > 0) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
 
-    return () => {
-      stopped = true;
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
-      // Wipe the canvas so a torn-down instance leaves nothing behind for the next.
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    };
-  }, [durationMs]);
+        return () => {
+            stopped = true;
+            cancelAnimationFrame(raf);
+            window.removeEventListener('resize', resize);
+            // Wipe the canvas so a torn-down instance leaves nothing behind for the next.
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        };
+    }, [durationMs]);
 
-  // h-full w-full is load-bearing: a <canvas> is a replaced element, so fixed
-  // inset-0 alone leaves it at its intrinsic 300x150 (pinned top-left). A definite
-  // CSS size stretches it full-viewport; the effect sizes the backing store to match.
-  return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-50 h-full w-full" />;
+    // h-full w-full is load-bearing: a <canvas> is a replaced element, so fixed
+    // inset-0 alone leaves it at its intrinsic 300x150 (pinned top-left). A definite
+    // CSS size stretches it full-viewport; the effect sizes the backing store to match.
+    return (
+        <canvas
+            ref={ref}
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-50 h-full w-full"
+        />
+    );
 }
