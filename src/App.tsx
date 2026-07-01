@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { SQUADS } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -355,12 +355,18 @@ export default function App() {
         <div className="min-h-full text-ink">
             <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5">
                 <header className="flex items-center gap-3 border-b-2 border-ink pb-4">
-                    <span className="relative h-[38px] w-[38px] shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.9)]">
-                        <span className="absolute inset-[7px] rounded-[1px] border-[1.5px] border-white/90" />
-                    </span>
-                    <h1 className="font-display text-[23px] font-black uppercase leading-none tracking-[-0.02em]">
-                        World Cup <span className="text-pitch">Simulator</span>
-                    </h1>
+                    <Link
+                        to="/"
+                        aria-label="World Cup Simulator - home"
+                        className="flex items-center gap-3 transition hover:opacity-90"
+                    >
+                        <span className="relative h-[38px] w-[38px] shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.9)]">
+                            <span className="absolute inset-[7px] rounded-[1px] border-[1.5px] border-white/90" />
+                        </span>
+                        <h1 className="font-display text-[23px] font-black uppercase leading-none tracking-[-0.02em]">
+                            World Cup <span className="text-pitch">Simulator</span>
+                        </h1>
+                    </Link>
                     <span className="border-l border-line pl-3.5 text-[12.5px] text-muted max-sm:hidden">
                         Draft a random XI. Win the cup.
                     </span>

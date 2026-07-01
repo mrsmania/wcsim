@@ -60,7 +60,6 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                     .filter((p) => categoryOf(primaryPosition(p)) === cat)
                     .sort((a, b) => b.elo - a.elo || a.number - b.number);
                 if (group.length === 0) return null;
-                const isGk = cat === 'GK';
                 return (
                     <div key={cat}>
                         <div className="border-b border-line bg-ground/60 px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-pitch">
@@ -70,12 +69,14 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                         {group.map((p) => (
                             <div
                                 key={p.id}
-                                className={`${ROW} border-b border-line py-2 last:border-b-0 ${isGk ? 'bg-chalk' : ''}`}
+                                className={`${ROW} border-b border-line py-2 last:border-b-0`}
                             >
                                 <span className="text-center font-mono text-[12px] text-muted tabular-nums">
                                     {p.number}
                                 </span>
-                                <span className="truncate text-[13.5px] font-semibold">{p.name}</span>
+                                <span className="truncate text-[13.5px] font-semibold">
+                                    {p.name}
+                                </span>
                                 <span className="text-right font-mono text-[11px] font-semibold text-muted">
                                     {primaryPosition(p)}
                                 </span>

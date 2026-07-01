@@ -373,7 +373,7 @@ button:not(:disabled) {
     display: flex;
     align-items: stretch;
     justify-content: center;
-    width: 74px;
+    width: 83px;
     padding: 5px 3px;
 }
 .bkt-vs .bkt-col {
