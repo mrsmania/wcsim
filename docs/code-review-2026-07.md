@@ -38,14 +38,21 @@ package. Both decision gates were applied: **G1 -> attack-vs-defense** and
       diff-by-diff and committed. Commit `e2e75b2`. Verified via a full dev-server
       playthrough (see below).
 
-**Open / not done:**
+**Also completed (originally optional):**
 
-- [ ] **WP0** (optional characterization harness) - not committed as a separate
-      package. Its intent was folded into WP4's throwaway self-tests (shootout,
-      bracket, G1 invariants), which passed. A committed harness would be redundant
-      given there is no test runner; safe to skip.
-- [ ] **Q-4** (move `lastName`/`formatPositions` to `format.ts`) - intentionally
-      skipped (optional; would touch several component files for little gain).
+- [x] **Q-4** - `lastName` (plus its private `NAME_PARTICLES`) and `formatPositions`
+      moved out of `types.ts` into a new `src/data/format.ts`; the three importers
+      (Pitch, XiTable, SquadPanel) updated. Commit `b666845`.
+- [x] **WP0** - a committed characterization harness at `scripts/checks.ts`, run via
+      `npm run checks`. It exercises the random-driven domain core thousands of times
+      and asserts invariants (shootout always decisive with reconstructable kicks,
+      bracket always crowns one champion with the co-qualifier only reachable in the
+      final, standings totals reconcile and sort, even-team goal rates stay sane,
+      chemistry equals its capped category sum). `scripts/` is type-checked in the
+      build so it cannot rot; documented in CLAUDE.md. All 9 checks pass. Commit
+      `456e3df`.
+
+**Open / not done:** nothing - every finding in this review is now resolved.
 
 **Scope adjustments from the plan** (forced by real module boundaries, so the
 build stays acyclic):
