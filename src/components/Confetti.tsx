@@ -1,16 +1,114 @@
 import { useEffect, useRef } from 'react';
-import confetti from 'canvas-confetti';
 
 /** Festive palette (gold + the pitch greens + amber + white + a warm red). */
 const COLORS = ['#F5C542', '#15924c', '#0E5C34', '#E4922B', '#ffffff', '#C8453C'];
 
+interface Piece {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  rot: number;
+  vrot: number;
+  color: string;
+  round: boolean;
+  /** Remaining frames for a burst piece; omitted for rain (lives until off-screen). */
+  life?: number;
+}
+
+function drawPiece(ctx: CanvasRenderingContext2D, p: Piece) {
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.fillStyle = p.color;
+  if (p.round) {
+    ctx.beginPath();
+    ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+  }
+  ctx.restore();
+}
+
 /**
- * A full-viewport confetti celebration: two opening cannon bursts from the lower
- * corners, then a heavy rain from the top for `durationMs`. Backed by
- * canvas-confetti bound to our own canvas so it stays pointer-events-none (never
- * blocks the "Draft a new XI" button), sits at z-50, and is disabled under
- * prefers-reduced-motion. Piece size scales down on narrow screens so it is not
- * oversized on mobile.
+ * A one-shot burst of confetti erupting from a screen point (`originX/Y` in client
+ * coordinates), used by the champion cup on hover. Self-contained: it appends its
+ * own throwaway full-viewport canvas, animates the pieces up-and-out under gravity,
+ * then removes the canvas once they have all fallen. Pointer-events-none and a no-op
+ * under prefers-reduced-motion.
+ */
+export function confettiBurst(originX: number, originY: number, count = 80) {
+  if (typeof window === 'undefined') return;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  canvas.style.cssText =
+    'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:60';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    canvas.remove();
+    return;
+  }
+
+  const dpr = window.devicePixelRatio || 1;
+  const w = document.documentElement.clientWidth;
+  const h = document.documentElement.clientHeight;
+  canvas.width = Math.floor(w * dpr);
+  canvas.height = Math.floor(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const pieces: Piece[] = [];
+  for (let i = 0; i < count; i++) {
+    // Fan the pieces around straight up (a ~78deg cone), then let gravity win.
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * ((78 * Math.PI) / 180);
+    const speed = 5 + Math.random() * 6;
+    pieces.push({
+      x: originX,
+      y: originY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 5 + Math.random() * 6,
+      rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 0.4,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      round: Math.random() < 0.4,
+      life: 90 + Math.floor(Math.random() * 40),
+    });
+  }
+
+  let raf = 0;
+  const tick = () => {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = pieces.length - 1; i >= 0; i--) {
+      const p = pieces[i];
+      p.vy += 0.12; // gravity
+      p.vx *= 0.99;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vrot;
+      p.life! -= 1;
+      drawPiece(ctx, p);
+      if (p.life! <= 0 || p.y > h + 40) pieces.splice(i, 1);
+    }
+    if (pieces.length > 0) {
+      raf = requestAnimationFrame(tick);
+    } else {
+      cancelAnimationFrame(raf);
+      canvas.remove();
+    }
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+/**
+ * A full-viewport canvas that rains heavy confetti for `durationMs`, then lets the
+ * last pieces fall out. Self-contained (no deps), pointer-events-none so it never
+ * blocks the "Draft a new XI" button, and disabled under prefers-reduced-motion.
+ * Piece size / density scale down on narrow screens.
  */
 export default function Confetti({ durationMs = 9000 }: { durationMs?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -19,47 +117,87 @@ export default function Confetti({ durationMs = 9000 }: { durationMs?: number })
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const canvas = ref.current;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    // No worker: it would transferControlToOffscreen(), which can only happen once
-    // per canvas and so throws under React StrictMode's dev double-invoke. This
-    // amount of confetti is fine on the main thread.
-    const fire = confetti.create(canvas, { resize: true });
+    // `stopped` guards against a leftover frame from a torn-down effect: under React
+    // StrictMode the effect runs twice in dev, and without this a stale loop keeps
+    // clearing the canvas and fighting the live one (the rain vanishes after a beat).
+    let stopped = false;
+
     // Narrow screens get smaller, fewer pieces (an absolute-sized piece looks huge
     // on a phone); wider screens get the full-size, denser rain.
     const narrow = window.innerWidth < 640;
-    const scalar = narrow ? 0.6 : 0.9;
-    const perFrame = narrow ? 3 : 6;
+    const sizeScale = narrow ? 0.7 : 1;
+    const openingBurst = narrow ? 120 : 200;
+    const perFrame = narrow ? 4 : 7;
+    const maxPieces = narrow ? 260 : 460;
 
-    // Opening burst from each lower corner, angled up and inward.
-    fire({ particleCount: 90, spread: 100, startVelocity: 45, angle: 60, origin: { x: 0, y: 0.75 }, colors: COLORS, scalar });
-    fire({ particleCount: 90, spread: 100, startVelocity: 45, angle: 120, origin: { x: 1, y: 0.75 }, colors: COLORS, scalar });
-
-    const end = performance.now() + durationMs;
-    let raf = 0;
-    const frame = (t: number) => {
-      // Rain: drop pieces from just above the top edge with a little drift.
-      fire({
-        particleCount: perFrame,
-        startVelocity: 0,
-        ticks: 260,
-        gravity: 0.7,
-        drift: (Math.random() - 0.5) * 2,
-        origin: { x: Math.random(), y: -0.1 },
-        colors: COLORS,
-        scalar,
-      });
-      if (t < end) raf = requestAnimationFrame(frame);
+    const dpr = window.devicePixelRatio || 1;
+    let w = 0;
+    let h = 0;
+    // Size the backing store to the canvas's own rendered box (x dpr for crispness);
+    // h-full w-full stretches that box to the viewport, so display and backing match.
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      w = r.width;
+      h = r.height;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    raf = requestAnimationFrame(frame);
+    resize();
+    window.addEventListener('resize', resize);
+
+    const pieces: Piece[] = [];
+    const add = (n: number) => {
+      for (let i = 0; i < n; i++) {
+        pieces.push({
+          x: Math.random() * w,
+          y: -20 - Math.random() * h * 0.4, // start above the fold so it rains in
+          vx: (Math.random() - 0.5) * 1.6,
+          vy: 2 + Math.random() * 3.5,
+          size: (5 + Math.random() * 7) * sizeScale,
+          rot: Math.random() * Math.PI,
+          vrot: (Math.random() - 0.5) * 0.35,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          round: Math.random() < 0.4,
+        });
+      }
+    };
+    add(openingBurst); // an opening burst
+
+    const start = performance.now();
+    let raf = 0;
+    const tick = (t: number) => {
+      if (stopped) return;
+      ctx.clearRect(0, 0, w, h);
+      if (t - start < durationMs && pieces.length < maxPieces) add(perFrame); // keep it heavy
+      for (let i = pieces.length - 1; i >= 0; i--) {
+        const p = pieces[i];
+        p.vy += 0.05; // gravity
+        p.vx *= 0.995;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vrot;
+        drawPiece(ctx, p);
+        if (p.y > h + 40) pieces.splice(i, 1);
+      }
+      if (pieces.length > 0) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
 
     return () => {
+      stopped = true;
       cancelAnimationFrame(raf);
-      fire.reset();
+      window.removeEventListener('resize', resize);
+      // Wipe the canvas so a torn-down instance leaves nothing behind for the next.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [durationMs]);
 
   // h-full w-full is load-bearing: a <canvas> is a replaced element, so fixed
-  // inset-0 alone leaves it at its intrinsic 300x150 (pinned top-left) and the
-  // confetti draws only inside that box. A definite size stretches it full-viewport.
+  // inset-0 alone leaves it at its intrinsic 300x150 (pinned top-left). A definite
+  // CSS size stretches it full-viewport; the effect sizes the backing store to match.
   return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-50 h-full w-full" />;
 }

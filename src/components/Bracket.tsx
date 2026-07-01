@@ -1,13 +1,10 @@
 import { useRef } from 'react';
-import confetti from 'canvas-confetti';
 import { Trophy } from 'lucide-react';
 import { BRACKET_ROUNDS, bracketChampion, type BracketState } from '../domain/bracket';
 import { USER_ID, type GroupTeam } from '../domain/tournament';
+import { confettiBurst } from './Confetti';
 import Flag from './Flag';
 import { RatingChip } from './matchUi';
-
-/** Festive palette for the trophy hover burst (matches the win celebration). */
-const CUP_COLORS = ['#F5C542', '#15924c', '#0E5C34', '#E4922B', '#ffffff', '#C8453C'];
 
 /** Games per round, longest to the final — the fixed shape the tree always draws
  *  (later rounds show as "?" until their feeder round is played). */
@@ -163,22 +160,8 @@ function Cup({ b, stacked }: { b: BracketState; stacked: boolean }) {
   const burst = () => {
     const el = trophyRef.current;
     if (!el) return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const r = el.getBoundingClientRect();
-    confetti({
-      particleCount: 80,
-      spread: 78,
-      startVelocity: 42,
-      gravity: 0.9,
-      ticks: 220,
-      scalar: 0.9,
-      origin: {
-        x: (r.left + r.width / 2) / window.innerWidth,
-        y: (r.top + r.height / 2) / window.innerHeight,
-      },
-      colors: CUP_COLORS,
-      disableForReducedMotion: true,
-    });
+    confettiBurst(r.left + r.width / 2, r.top + r.height / 2);
   };
 
   return (

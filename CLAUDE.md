@@ -18,8 +18,9 @@ Pure client-side: no backend, no database. All player data is hardcoded in
 - State is a single `useReducer` phase machine; all game logic is pure functions in
   `src/domain/`. No state-management library. Routing is `react-router-dom`
   (`BrowserRouter`, clean paths) - see "Routing & persistence" below.
-- Flags from `country-flag-icons`; icons from `lucide-react`; win-celebration
-  confetti from `canvas-confetti`; routing from `react-router-dom`.
+- Flags from `country-flag-icons`; icons from `lucide-react`; the win-celebration
+  confetti is a small self-contained canvas renderer (`Confetti.tsx`, no dependency);
+  routing from `react-router-dom`.
 - Fonts: **Archivo** (display), **Schibsted Grotesk** (body), **Spline Sans Mono**
   (data/numerals), loaded via a Google Fonts `<link>` in `index.html`.
 
@@ -221,14 +222,21 @@ page** (`KnockoutScreen.tsx`), driven by `domain/bracket.ts`.
   desktop keeps them as separate `Final` and `Champion` columns.
 - **Champion box** (`Cup`): the green node crowning the winner. It carries a gold
   `Trophy` icon; hovering it fires a one-shot confetti burst originating at the trophy
-  (global `canvas-confetti`, gated on a champion existing + `prefers-reduced-motion`).
-- **Confetti** (`Confetti.tsx`, `canvas-confetti`) rains when the user wins the cup. It
-  is pointer-events-none (never blocks "Draft a new XI"), sits at `z-50` and fills the
-  viewport via `fixed inset-0 h-full w-full` (a bare `<canvas>` is a replaced element,
-  so `inset-0` alone leaves it at its intrinsic 300x150 and confines the rain to the
-  top-left), respects `prefers-reduced-motion`, scales piece size down on narrow
-  screens, and runs without a worker (transferControlToOffscreen can only run once per
-  canvas and would throw under StrictMode's dev double-invoke).
+  (`confettiBurst(x, y)` from `Confetti.tsx`, which appends its own throwaway
+  full-viewport canvas and removes it once the pieces fall out; gated on a champion
+  existing + `prefers-reduced-motion`).
+- **Confetti** (`Confetti.tsx`) rains when the user wins the cup. It is a small,
+  self-contained canvas animation (no `canvas-confetti` dependency): a pool of falling
+  rectangles/circles it draws each frame, kept heavy for `durationMs` (9s) then drained.
+  It is pointer-events-none (never blocks "Draft a new XI"), sits at `z-50` and fills
+  the viewport via `fixed inset-0 h-full w-full` (a bare `<canvas>` is a replaced
+  element, so `inset-0` alone leaves it at its intrinsic 300x150 and confines the rain
+  to the top-left); the backing store is sized to the canvas's rendered box x
+  `devicePixelRatio` so it stays crisp on high-DPI screens. It respects
+  `prefers-reduced-motion` and scales piece size / density down on narrow screens.
+  (The earlier `canvas-confetti`-backed version was dropped: driving its scoped
+  instance with a per-frame `fire()` stopped adding particles after the first frames,
+  so the rain drained out after ~5s instead of lasting the full 9s.)
 
 ## Squad browser (flagged)
 

@@ -11,7 +11,6 @@
     "checks": "esbuild scripts/checks.ts --bundle --format=esm --platform=node | node --input-type=module"
   },
   "dependencies": {
-    "canvas-confetti": "^1.9.4",
     "country-flag-icons": "^1.6.19",
     "lucide-react": "^1.21.0",
     "react": "^18.3.1",
@@ -20,7 +19,6 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
-    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
