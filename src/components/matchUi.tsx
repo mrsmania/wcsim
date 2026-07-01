@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from 'react';
-import { ArrowRight, Check, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 import type { MatchSpeed } from '../domain/clock';
 import type { KoDecided } from '../domain/knockout';
 import type { PenKick } from '../domain/match';
@@ -196,21 +196,54 @@ export function PlaybackControls({
   );
 }
 
-/** A stage header (eyebrow + display heading), optionally carrying the controls. */
+/** A small breadcrumb link above a stage header, used to jump between the group
+ *  and knockout screens (which share the same saved game) without losing progress.
+ *  `dir` picks which side the arrow sits and animates on hover. */
+export function StageCrumb({
+  dir,
+  label,
+  onClick,
+}: {
+  dir: 'back' | 'fwd';
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group mb-1.5 inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch"
+    >
+      {dir === 'back' && (
+        <ArrowLeft size={13} strokeWidth={2.5} className="transition group-hover:-translate-x-0.5" />
+      )}
+      {label}
+      {dir === 'fwd' && (
+        <ArrowRight size={13} strokeWidth={2.5} className="transition group-hover:translate-x-0.5" />
+      )}
+    </button>
+  );
+}
+
+/** A stage header (eyebrow + display heading), optionally carrying a breadcrumb
+ *  link above the eyebrow and the playback controls on the right. */
 export function StageHeader({
   eyebrow,
   title,
   controls,
   headingRef,
+  crumb,
 }: {
   eyebrow: string;
   title: string;
   controls?: ReactNode;
   headingRef?: Ref<HTMLDivElement>;
+  crumb?: ReactNode;
 }) {
   return (
     <div ref={headingRef} className="mb-[18px] mt-[30px] flex flex-wrap items-end justify-between gap-4">
       <div>
+        {crumb}
         <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
           {eyebrow}
         </div>

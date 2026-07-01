@@ -27,6 +27,7 @@ import {
     PlaybackControls,
     PRIMARY_BTN,
     ResultTag,
+    StageCrumb,
     StageHeader,
 } from './matchUi';
 
@@ -41,6 +42,8 @@ interface Props {
     onSetSpeed: (s: MatchSpeed) => void;
     /** Store the played round's results (all its games) once the user's match ends. */
     onRecordRound: (games: BracketGame[]) => void;
+    /** Jump back to the group-stage screen to review it (progress is preserved). */
+    onViewGroup: () => void;
     onReset: () => void;
 }
 
@@ -60,6 +63,7 @@ export default function KnockoutScreen({
     onSetAuto,
     onSetSpeed,
     onRecordRound,
+    onViewGroup,
     onReset,
 }: Props) {
     const b = bracket;
@@ -149,6 +153,7 @@ export default function KnockoutScreen({
             <StageHeader
                 eyebrow="Knockouts"
                 title="Win 4 to lift the trophy"
+                crumb={<StageCrumb dir="back" label="Group stage" onClick={onViewGroup} />}
                 controls={
                     !over ? (
                         <PlaybackControls

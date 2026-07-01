@@ -27,6 +27,7 @@ import {
     PlaybackControls,
     PRIMARY_BTN,
     ResultTag,
+    StageCrumb,
     StageHeader,
 } from './matchUi';
 
@@ -39,8 +40,13 @@ interface Props {
     onSetAuto: (a: boolean) => void;
     onSetSpeed: (s: MatchSpeed) => void;
     onRecordMatchday: (results: MatchdayResult[]) => void;
-    /** Build the bracket and move to the knockout screen (qualified only). */
+    /** Build the bracket and move to the knockout screen (qualified only). Once the
+     *  bracket exists this just returns to it, so it doubles as the "back to the
+     *  knockouts" action when reviewing the group from the knockout stage. */
     onEnterKnockout: () => void;
+    /** True once the knockout bracket has been built, i.e. the user is revisiting
+     *  the group from the knockouts (shows the return-to-knockouts affordances). */
+    hasBracket: boolean;
     onReset: () => void;
 }
 
@@ -61,6 +67,7 @@ export default function TournamentScreen({
     onSetSpeed,
     onRecordMatchday,
     onEnterKnockout,
+    hasBracket,
     onReset,
 }: Props) {
     const opponents = group.teams.filter((t) => !t.isUser);
@@ -165,6 +172,11 @@ export default function TournamentScreen({
                 title="Group of 4 · top 2 advance"
                 controls={controls}
                 headingRef={stageTopRef}
+                crumb={
+                    hasBracket ? (
+                        <StageCrumb dir="fwd" label="Knockouts" onClick={onEnterKnockout} />
+                    ) : undefined
+                }
             />
 
             {/* Teams and fixtures stay hidden until the draw modal is dismissed. */}
@@ -257,7 +269,7 @@ export default function TournamentScreen({
                         bracket - win four to lift the cup.
                     </p>
                     <button onClick={onEnterKnockout} className={PRIMARY_BTN}>
-                        Enter the knockouts
+                        {hasBracket ? 'Back to the knockouts' : 'Enter the knockouts'}
                         <ArrowRight size={16} strokeWidth={2.5} />
                     </button>
                 </div>

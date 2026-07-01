@@ -418,6 +418,7 @@ export default function App() {
                                 dispatch({ type: 'RECORD_MATCHDAY', results })
                             }
                             onEnterKnockout={handleEnterKnockout}
+                            hasBracket={!!bracket}
                             onReset={handleReset}
                         />
                     ) : (
@@ -437,6 +438,7 @@ export default function App() {
                             onRecordRound={(games) =>
                                 dispatch({ type: 'RECORD_BRACKET_ROUND', games })
                             }
+                            onViewGroup={() => navigate('/group')}
                             onReset={handleReset}
                         />
                     ) : (

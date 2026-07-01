@@ -128,7 +128,12 @@ reducer stays the source of truth for *game data*. `App` branches on
 their data is missing), and `/squads/*`. Navigation happens via `useNavigate` in the
 masthead Play/Squads toggle and the transition handlers (`handleStartGroup`,
 `handleEnterKnockout`, `handleReset`), which never rebuild existing state. So Back/
-Forward move between screens (knockout <-> group <-> home) without losing progress. The
+Forward move between screens (knockout <-> group <-> home) without losing progress. On
+top of browser Back/Forward, each tournament screen carries a `StageCrumb` link in its
+`StageHeader` for explicit, discoverable cross-navigation: the knockout screen links back
+to `/group` (`onViewGroup`), and once a bracket exists the group screen links forward to
+`/knockout` (reusing `onEnterKnockout`, which only navigates when the bracket is already
+built, and whose qualified-CTA button then reads "Back to the knockouts"). The
 whole `GameState` is mirrored to `localStorage` (`state/persist.ts`) and restored on
 load, so `/group` and `/knockout` survive a refresh (transient draft fields are reset
 on restore). `SquadBrowser` derives its view from route params via `useMatch`
