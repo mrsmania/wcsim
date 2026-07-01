@@ -218,11 +218,14 @@ toggle in the masthead. It is separate from the game: `App` holds a `view: 'game
 'browse'` `useState` that is independent of `gameReducer`, so an in-progress draft or
 tournament is preserved while browsing.
 
-- **`SquadBrowser.tsx`** owns browse-local state (`year`, `selectedId`, `query`) and
-  derives everything from `SQUADS` / `SQUAD_BY_ID`. Three views off that state: a nation
-  grid for the chosen World Cup (cards sorted by rating, `< 32` teams flagged as
-  approximate placeholder years), a single squad's roster, and a cross-tournament search
-  (diacritic-insensitive over player name + nation/code/year, capped at 80 rows).
+- **`SquadBrowser.tsx`** owns browse-local state (`mode`, `year`, `selectedId`,
+  `selectedCode`, `query`) and derives everything from `SQUADS` / `SQUAD_BY_ID`. A
+  **Display** toggle picks the entry point: *By World Cup* (a year's nation grid, cards
+  sorted by rating, `< 32`-team years flagged as approximate placeholders) or *By Team*
+  (every nation with its participation count = occurrences in the dataset, drilling into
+  the World Cups it played via the `TeamCups` list). Both land on a squad roster. A
+  cross-tournament search (diacritic-insensitive over player name + nation/code/year,
+  capped at 80 rows) overrides either mode.
 - **`TeamRoster.tsx`** renders one squad grouped GK -> DEF -> MID -> FWD (styled like
   `XiTable`, GK on `bg-chalk`), each row showing the four required fields: jersey number,
   full name, **main position only** (`primaryPosition` = `positions[0]`), and rating.
