@@ -17,7 +17,8 @@ Pure client-side: no backend, no database. All player data is hardcoded in
 - **Tailwind CSS v4** via the `@tailwindcss/vite` plugin.
 - State is a single `useReducer` phase machine; all game logic is pure functions in
   `src/domain/`. No state-management library, no router.
-- Flags from `country-flag-icons`; icons from `lucide-react`.
+- Flags from `country-flag-icons`; icons from `lucide-react`; win-celebration
+  confetti from `canvas-confetti`.
 - Fonts: **Archivo** (display), **Schibsted Grotesk** (body), **Spline Sans Mono**
   (data/numerals), loaded via a Google Fonts `<link>` in `index.html`.
 
@@ -75,23 +76,30 @@ src/
                draft.ts      (placement rules, rolling/re-rolling squads)
                match.ts      (xiStrength, Poisson match sim, penalty shootout)
                tournament.ts (group build, fixtures, standings)
-               knockout.ts   (bracket / rounds)
+               knockout.ts   (single-tie sim helpers: playKnockout, drawOpponent,
+                              KO_ROUNDS, KoDecided)
+               bracket.ts    (the 16-team knockout bracket model; see below)
                clock.ts      (live-reveal playback step sequence)
                chemistry.ts  (cohesion scoring -> overall bonus; gated by a flag)
   state/       gameReducer.ts (the phase machine + Action union)
-  components/  presentational React (App composes them)
-  config.ts    FEATURES flags
+  hooks/       useFollowBottom.ts (auto-scroll that follows growing content down)
+  components/  presentational React (App composes them); matchUi.tsx holds the
+               presentational bits shared by the group + knockout screens
+  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers)
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects
-  main.tsx     entry
+  main.tsx     entry (wraps App in React.StrictMode)
 ```
 
 **Data flow / phases.** `gameReducer` drives `phase: setup -> draft -> complete ->
-group -> knockout`. Components dispatch actions; `App` runs side effects (the roll
-scramble animation, mobile scrolling) and the phase transitions. The `domain/`
-modules are deterministic except where they intentionally call `Math.random`
-(match sim, opponent draw, roll). Strong pattern: **match results are computed up
-front, then the clock only reveals them** (`clock.ts` + the screen components) -
-simulation is separate from playback.
+group -> knockout`. `group` (`TournamentScreen.tsx`) and `knockout`
+(`KnockoutScreen.tsx`) are separate screens: you play the group one matchday at a
+time, then click "Enter the knockouts" to reach the bracket and play it one round at
+a time. Components dispatch actions; `App` runs side effects (the roll scramble
+animation, scroll follow) and the phase transitions. The `domain/` modules are
+deterministic except where they intentionally call `Math.random` (match sim, opponent
+draw, roll). Strong pattern: **each match's result is computed up front, then the
+clock only reveals it** (`clock.ts` + the screen components) - simulation is separate
+from playback.
 
 ## Core concepts
 
@@ -149,6 +157,34 @@ intact squads with innate chemistry). Lives in `domain/chemistry.ts`; surfaced i
   bonus is 0 and all chemistry UI (box, "?" rules, breakdown, the underlined primary
   position in the draft chip, the per-player flag/year in the box) disappears.
 
+## Knockout bracket
+
+After qualifying from the group, the user clicks through to a separate **knockout
+page** (`KnockoutScreen.tsx`), driven by `domain/bracket.ts`.
+
+- **Field**: a 16-team bracket. Seed 0 is the user; the team that qualified alongside
+  them in the group is seeded into the opposite half; the other 14 are drawn
+  elo-weighted via `drawOpponent` (seeded to exclude the group opponents, so no
+  immediate rematches).
+- **Lazy, round by round**: only the current round exists until it is played. The user
+  plays their own tie (Round of 16 -> Final) with the same live clock / goal feed as
+  the group; the other ties in that round auto-resolve to fill the tree. The user's own
+  scores stay hidden until each round is played; the next opponent is always shown.
+- **A champion is always crowned**: if the user loses, `bracket.ts` simulates the
+  remaining rounds (higher elo more likely to advance) so the tree still completes and
+  the trophy is awarded.
+- **`Bracket.tsx`** renders the tree responsively: a wide left-to-right layout on
+  desktop and a two-sided vertical tree (top-down + bottom-up, converging on the cup)
+  on mobile so there is no horizontal scroll (toggled at max-width 900px; `bkt-`
+  prefixed CSS in `index.css`, with desktop and mobile connectors scoped separately so
+  they cannot cross-contaminate). Mobile uses 3-letter country codes; the year stays
+  visible.
+- **Confetti** (`Confetti.tsx`, `canvas-confetti`) rains when the user wins the cup. It
+  is pointer-events-none (never blocks "Draft a new XI"), sits at `z-50`, respects
+  `prefers-reduced-motion`, scales piece size down on narrow screens, and runs without
+  a worker (transferControlToOffscreen can only run once per canvas and would throw
+  under StrictMode's dev double-invoke).
+
 ## Conventions and working agreements
 
 - **2-space indentation**; match the surrounding file's style exactly. Do not
@@ -179,6 +215,16 @@ intact squads with innate chemistry). Lives in `domain/chemistry.ts`; surfaced i
   **chemistry card** (donut + effective overall + per-category breakdown chips).
   `XiTable` is the **line-up sheet** below them (pos / name / flag+year / rating,
   GK row on chalk).
+- **Team rating chips**: `RatingChip` (in `matchUi.tsx`) shows a team's rating as a
+  small chip next to it (standings, fixtures, bracket seeds, summary recaps). It is
+  hidden below the `sm` breakpoint (no hover on mobile, space is tight) and toggled
+  globally by `FEATURES.teamRatings`. This replaced the earlier title-hover tooltips.
+- **Auto-scroll**: `useFollowBottom` eases the page down to follow growing content
+  (live goal feeds, new match / round cards, the qualify call-to-action). It follows
+  down only, pauses when the user scrolls up, and never cancels its own in-flight ease.
+  `index.css` sets `overflow-anchor: none` on `html`: the browser's scroll anchoring
+  otherwise nudges scrollY when result cards mount and stalled the follow (worst on
+  short mobile screens).
 
 ## Hosting
 
