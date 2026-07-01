@@ -1,4 +1,4 @@
-import { BRACKET_ROUNDS, type BracketState } from '../domain/bracket';
+import { BRACKET_ROUNDS, bracketChampion, type BracketState } from '../domain/bracket';
 import { USER_ID, type GroupTeam } from '../domain/tournament';
 import Flag from './Flag';
 import { RatingChip } from './matchUi';
@@ -104,15 +104,9 @@ function pairs<T>(arr: T[]): T[][] {
  *  — the user when they lift it, otherwise whichever team went on to win it — or
  *  "?" while the run is still going. */
 function Cup({ b, stacked }: { b: BracketState; stacked: boolean }) {
-  const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
-  const r = finalGame?.result;
-  const champ = b.outcome === 'champion' ? b.teams[USER_ID] : r ? b.teams[r.winnerId] : null;
-  const score =
-    champ && r
-      ? r.winnerId === finalGame!.homeId
-        ? `${r.homeGoals}–${r.awayGoals}`
-        : `${r.awayGoals}–${r.homeGoals}`
-      : null;
+  const won = bracketChampion(b);
+  const champ = won?.team ?? null;
+  const score = won ? `${won.homeGoals}–${won.awayGoals}` : null;
 
   return (
     <div className="bkt-cup">

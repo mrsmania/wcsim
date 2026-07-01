@@ -15,12 +15,12 @@ interface Props {
   /** Score shown between the teams; omitted renders a "v". */
   score?: { home: number; away: number };
   /** Overall ratings; shown as a small chip next to each team (desktop). */
-  homeElo?: number;
-  awayElo?: number;
+  homeRating?: number;
+  awayRating?: number;
 }
 
 /** A compact one-line match row: home — score — away. */
-export default function FixtureRow({ home, away, score, homeElo, awayElo }: Props) {
+export default function FixtureRow({ home, away, score, homeRating, awayRating }: Props) {
   const tint = home.isUser || away.isUser ? 'bg-pitch/[0.06]' : '';
   const scoreText = score ? `${score.home}–${score.away}` : 'v';
   const yr = 'shrink-0 font-mono text-[11px] font-medium text-muted';
@@ -28,7 +28,7 @@ export default function FixtureRow({ home, away, score, homeElo, awayElo }: Prop
   return (
     <div className={`flex items-center gap-2 rounded-[5px] px-2.5 py-2 text-sm ${tint}`}>
       <span className={`flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
-        {homeElo != null && <RatingChip value={homeElo} />}
+        {homeRating != null && <RatingChip value={homeRating} />}
         <span className="truncate">{home.name}</span>
         {home.year && <span className={yr}>{home.year}</span>}
         <Flag code={home.code} isUser={home.isUser} className="h-4 w-6 shrink-0" />
@@ -40,7 +40,7 @@ export default function FixtureRow({ home, away, score, homeElo, awayElo }: Prop
         <Flag code={away.code} isUser={away.isUser} className="h-4 w-6 shrink-0" />
         <span className="truncate">{away.name}</span>
         {away.year && <span className={yr}>{away.year}</span>}
-        {awayElo != null && <RatingChip value={awayElo} />}
+        {awayRating != null && <RatingChip value={awayRating} />}
       </span>
       {/* Empty trailing column, preserving the row's grid width and score centring. */}
       <span className="flex w-4 items-center justify-center text-muted" />

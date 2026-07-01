@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { buildMatchSteps, HALF_TIME_MS, PEN_MS, STEP_MS, type MatchSpeed } from '../domain/clock';
-import type { MatchEvent } from '../domain/match';
+import type { MatchSpeed } from '../domain/clock';
 import {
     BRACKET_ROUNDS,
     bracketChampionId,
     currentGame,
+    opponentOf,
     playRound,
+    userGameInRound,
     type BracketGame,
     type BracketState,
 } from '../domain/bracket';
@@ -13,20 +14,19 @@ import { USER_ID, type GroupState } from '../domain/tournament';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { ArrowRight, Play } from 'lucide-react';
-import GoalList from './GoalList';
 import Bracket from './Bracket';
 import Confetti from './Confetti';
+import MatchdayCard from './MatchdayCard';
 import TournamentSummary from './TournamentSummary';
+import { useMatchClock, KO_END_HOLD_MS } from '../hooks/useMatchClock';
 import { useFollowBottom } from '../hooks/useFollowBottom';
+import { liveMatchView } from './matchView';
 import {
     Banner,
-    FixtureHead,
-    LiveLine,
     maxMinute,
     PlaybackControls,
     PRIMARY_BTN,
     ResultTag,
-    ShootoutFeed,
     StageHeader,
 } from './matchUi';
 
@@ -43,6 +43,9 @@ interface Props {
     onRecordRound: (games: BracketGame[]) => void;
     onReset: () => void;
 }
+
+/** Delay (ms) between an idle beat and auto-playing the next round. */
+const AUTO_PLAY_DELAY_MS = 700;
 
 /** The knockout page: the 16-team bracket tree, then the user's run played one
  *  round at a time with live goal feeds. Each round is only simulated when the
@@ -65,9 +68,6 @@ export default function KnockoutScreen({
     const lastRunRound = champion ? BRACKET_ROUNDS.length - 1 : b.current;
     const cur = currentGame(b);
 
-    const [liveMinute, setLiveMinute] = useState(0);
-    const [clockLabel, setClockLabel] = useState('');
-    const [penShown, setPenShown] = useState(0);
     // The round currently being revealed: its round index + the freshly simulated
     // games (games[0] is the user's, driving the clock).
     const [playing, setPlaying] = useState<{ round: number; games: BracketGame[] } | null>(null);
@@ -75,13 +75,6 @@ export default function KnockoutScreen({
 
     const { tailRef, rootRef } = useFollowBottom();
     const bannerRef = useRef<HTMLDivElement | null>(null);
-
-    const onRecordRef = useRef(onRecordRound);
-    const speedRef = useRef(speed);
-    useEffect(() => {
-        onRecordRef.current = onRecordRound;
-        speedRef.current = speed;
-    });
 
     // When the run ends, bring the champion / knocked-out banner into view.
     useEffect(() => {
@@ -102,85 +95,47 @@ export default function KnockoutScreen({
 
     // Match clock: animate the user's game to its end, run the shootout if it went
     // to penalties, then record the whole round's results.
-    useEffect(() => {
-        if (!playing) return;
-        const games = playing.games;
-        const res = games[0].result!;
-        const max = maxMinute(res.decided);
-        const kicks = res.pens?.kicks ?? [];
-        const penMs = PEN_MS[speedRef.current];
-        const steps = buildMatchSteps(max, HALF_TIME_MS[speedRef.current]);
-        const endLabel = res.decided === 'reg' ? 'FT' : res.decided === 'aet' ? 'a.e.t.' : 'pens';
-        let idx = 0;
-        let timer: number | undefined;
-
-        const advance = () => {
-            onRecordRef.current(games);
+    const playRes = playing ? playing.games[0].result : undefined;
+    const { liveMinute, clockLabel, penShown } = useMatchClock({
+        active: isPlaying,
+        speed,
+        maxMinute: playRes ? maxMinute(playRes.decided) : 90,
+        endLabel: playRes
+            ? playRes.decided === 'reg'
+                ? 'FT'
+                : playRes.decided === 'aet'
+                  ? 'a.e.t.'
+                  : 'pens'
+            : 'FT',
+        penKicks: playRes?.decided === 'pens' ? playRes.pens?.kicks : undefined,
+        endHoldMs: KO_END_HOLD_MS,
+        onEnd: () => {
+            if (playing) onRecordRound(playing.games);
             setPlaying(null);
-        };
-        const runShootout = () => {
-            let k = 0;
-            const penId = window.setInterval(() => {
-                k += 1;
-                setPenShown(k);
-                if (k >= kicks.length) {
-                    window.clearInterval(penId);
-                    timer = window.setTimeout(advance, 1500);
-                }
-            }, penMs);
-            timer = penId;
-        };
-        const finishClock = () => {
-            setClockLabel(endLabel);
-            if (res.decided === 'pens' && kicks.length) timer = window.setTimeout(runShootout, 700);
-            else timer = window.setTimeout(advance, 1200);
-        };
-        const tick = () => {
-            const step = steps[idx];
-            setLiveMinute(step.reveal);
-            setClockLabel(step.label);
-            const delay = STEP_MS[speedRef.current] + (step.hold ?? 0);
-            if (idx >= steps.length - 1) {
-                timer = window.setTimeout(finishClock, delay);
-                return;
-            }
-            idx += 1;
-            timer = window.setTimeout(tick, delay);
-        };
-
-        setLiveMinute(0);
-        setClockLabel('');
-        setPenShown(0);
-        tick();
-        return () => {
-            if (timer) {
-                window.clearTimeout(timer);
-                window.clearInterval(timer);
-            }
-        };
-    }, [playing]);
+        },
+    });
 
     // Auto mode: play each round as it becomes current.
     useEffect(() => {
         if (!auto || playing) return;
         if (!currentGame(b)) return;
-        const t = window.setTimeout(() => setPlaying({ round: b.current, games: playRound(b) }), 700);
+        const t = window.setTimeout(
+            () => setPlaying({ round: b.current, games: playRound(b) }),
+            AUTO_PLAY_DELAY_MS,
+        );
         return () => window.clearTimeout(t);
     }, [auto, playing, b]);
 
     const showNextButton = !auto && !isPlaying && !!cur;
 
     const nextGameButton = (
-        <>
-            <div className="mt-[22px] flex justify-center">
-                <button onClick={startPlay} className={PRIMARY_BTN}>
-                    <Play size={13} fill="currentColor" strokeWidth={0} />
-                    Next game
-                    <ArrowRight size={15} strokeWidth={2.5} />
-                </button>
-            </div>
-            <div ref={tailRef} aria-hidden className="h-0" />
-        </>
+        <div className="mt-[22px] flex justify-center">
+            <button onClick={startPlay} className={PRIMARY_BTN}>
+                <Play size={13} fill="currentColor" strokeWidth={0} />
+                Next game
+                <ArrowRight size={15} strokeWidth={2.5} />
+            </button>
+        </div>
     );
 
     return (
@@ -212,35 +167,43 @@ export default function KnockoutScreen({
 
             <div className="mx-auto max-w-[780px]">
                 {Array.from({ length: lastRunRound + 1 }, (_, r) => r).map((r) => {
-                    const g = b.rounds[r]?.[0];
+                    const g = userGameInRound(b, r);
                     if (!g) return null;
-                    const opp = b.teams[g.homeId === USER_ID ? g.awayId : g.homeId];
+                    const opp = opponentOf(b, g);
+                    if (!opp) return null;
                     const isPlayingRound = playing?.round === r;
-                    const playRes = isPlayingRound ? playing!.games[0].result! : undefined;
-                    const decided = playRes?.decided ?? g.result?.decided;
+                    const roundRes = isPlayingRound ? playing!.games[0].result! : undefined;
+                    const decided = roundRes?.decided ?? g.result?.decided;
                     const isFinal = r === BRACKET_ROUNDS.length - 1;
                     const liveMax = decided ? maxMinute(decided) : 90;
 
-                    let score: { user: number; opp: number } | undefined;
-                    let status: string | undefined;
-                    let statusDim = false;
-                    let feedEvents: MatchEvent[] = [];
-                    if (isPlayingRound && playRes) {
-                        const shown = playRes.events.filter((e) => e.minute <= liveMinute);
-                        const userGoals = shown.filter((e) => e.side === 'home').length;
-                        score = { user: userGoals, opp: shown.length - userGoals };
-                        status = clockLabel || undefined;
-                        feedEvents = shown;
-                    } else if (g.result) {
-                        score = { user: g.result.homeGoals, opp: g.result.awayGoals };
-                        if (g.result.decided === 'aet') status = 'a.e.t.';
-                        else if (g.result.decided === 'pens') status = 'Penalties';
-                        else {
-                            status = 'Full time';
-                            statusDim = true;
-                        }
-                        feedEvents = g.result.events;
+                    let finishedStatus = 'Full time';
+                    let finishedDim = true;
+                    if (g.result?.decided === 'aet') {
+                        finishedStatus = 'a.e.t.';
+                        finishedDim = false;
+                    } else if (g.result?.decided === 'pens') {
+                        finishedStatus = 'Penalties';
+                        finishedDim = false;
                     }
+
+                    const view = liveMatchView({
+                        playing: isPlayingRound && !!roundRes,
+                        userSide: 'home',
+                        liveMinute,
+                        liveMax,
+                        clockLabel,
+                        playingEvents: roundRes?.events,
+                        finished: g.result
+                            ? {
+                                  userGoals: g.result.homeGoals,
+                                  oppGoals: g.result.awayGoals,
+                                  status: finishedStatus,
+                                  statusDim: finishedDim,
+                                  events: g.result.events,
+                              }
+                            : undefined,
+                    });
 
                     const won = g.result?.winnerId === USER_ID;
                     let tag: React.ReactNode = null;
@@ -265,54 +228,31 @@ export default function KnockoutScreen({
                         );
                     else tag = <ResultTag kind="next" label="Up next" />;
 
-                    const showFeed = isPlayingRound || !!g.result;
-                    const penKicks = isPlayingRound ? playRes?.pens?.kicks : g.result?.pens?.kicks;
+                    const penKicks = isPlayingRound ? roundRes?.pens?.kicks : g.result?.pens?.kicks;
                     const penShownCount = isPlayingRound ? penShown : (penKicks?.length ?? 0);
                     const showShootout =
                         !!penKicks && (isPlayingRound ? liveMinute >= liveMax : true);
-                    const live = isPlayingRound && liveMinute < liveMax;
-                    const liveLabel = clockLabel === 'HT' ? 'Half time' : `Live · ${clockLabel}`;
                     const upNext = !isPlayingRound && !g.result;
 
                     return (
-                        <div key={`ko-${r}`} className="mt-[26px]">
-                            <div className="mb-[9px] flex items-center gap-2.5">
-                                <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                                    {BRACKET_ROUNDS[r]}
-                                </span>
-                                {tag}
-                            </div>
-                            <div
-                                className={`overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
-                                    isPlayingRound || isFinal ? 'border-t-[3px] border-t-pitch' : ''
-                                }`}
-                            >
-                                <FixtureHead
-                                    oppName={opp.name}
-                                    oppCode={opp.code}
-                                    oppYear={opp.year}
-                                    score={score}
-                                    status={status}
-                                    statusDim={statusDim}
-                                    userElo={b.teams[USER_ID].strength.overall}
-                                    oppElo={opp.strength.overall}
-                                />
-                                {showFeed && (
-                                    <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
-                                        <GoalList
-                                            events={feedEvents}
-                                            userSide="home"
-                                            oppCode={opp.code}
-                                            live={live}
-                                        />
-                                        {showShootout && penKicks && (
-                                            <ShootoutFeed kicks={penKicks} shown={penShownCount} />
-                                        )}
-                                        {live && <LiveLine label={liveLabel} />}
-                                        {isPlayingRound && <div ref={tailRef} aria-hidden className="h-0" />}
-                                    </div>
-                                )}
-                            </div>
+                        <div key={`ko-${r}`}>
+                            <MatchdayCard
+                                label={BRACKET_ROUNDS[r]}
+                                tag={tag}
+                                userRating={b.teams[USER_ID].strength.overall}
+                                oppName={opp.name}
+                                oppCode={opp.code}
+                                oppYear={opp.year}
+                                oppRating={opp.strength.overall}
+                                view={view}
+                                userSide="home"
+                                playing={isPlayingRound}
+                                highlight={isFinal}
+                                clockLabel={clockLabel}
+                                penKicks={penKicks}
+                                penShown={penShownCount}
+                                showShootout={showShootout}
+                            />
                             {upNext && showNextButton && nextGameButton}
                         </div>
                     );
@@ -354,10 +294,9 @@ export default function KnockoutScreen({
                     />
                 )}
 
-                {/* Tail so the page follows down between auto rounds. */}
-                {!isPlaying && !showNextButton && !over && (
-                    <div ref={tailRef} aria-hidden className="h-0" />
-                )}
+                {/* Single auto-scroll tail: the page follows this down as content grows
+                    (live feeds, new round cards, the next-game button, the banners). */}
+                <div ref={tailRef} aria-hidden className="h-0" />
             </div>
         </div>
     );
