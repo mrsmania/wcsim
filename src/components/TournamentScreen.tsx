@@ -167,10 +167,14 @@ export default function TournamentScreen({
                 headingRef={stageTopRef}
             />
 
-            <StandingsTable group={group} groupFinished={groupFinished} advanced={advanced} />
+            {/* Teams and fixtures stay hidden until the draw modal is dismissed. */}
+            {!revealing && (
+                <StandingsTable group={group} groupFinished={groupFinished} advanced={advanced} />
+            )}
 
             {/* Group matchdays */}
-            {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => {
+            {!revealing &&
+                Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => {
                 const fx = fixturesForMatchday(group, md);
                 const userFx = fx.find(
                     (f) => teamById(group, f.homeId).isUser || teamById(group, f.awayId).isUser,
