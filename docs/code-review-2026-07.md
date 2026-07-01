@@ -35,9 +35,8 @@ package. Both decision gates were applied: **G1 -> attack-vs-defense** and
       and the flat bracket accessors; renamed FixtureRow's `homeElo`/`awayElo` ->
       `homeRating`/`awayRating`. The agent's watchdog killed it during a trivial
       final cleanup, but it left a coherent, green state that was reviewed
-      diff-by-diff and committed. Commit `e2e75b2`. **Runtime playthrough still
-      recommended** (see below) - it was not run because port 5173 was held by a
-      live dev server.
+      diff-by-diff and committed. Commit `e2e75b2`. Verified via a full dev-server
+      playthrough (see below).
 
 **Open / not done:**
 
@@ -59,21 +58,26 @@ build stays acyclic):
 - **F-8**: the shared caption constants shipped in WP3; the standings table was
   extracted into `StandingsTable` in **WP5**.
 
-**Housekeeping / notes for the next session:**
+**Housekeeping / notes:**
 
-- **Not pushed yet.** Local `main` is 7 commits ahead of `origin/main` (the 6 WP
-  commits above plus `56592c8`). Push was deliberately deferred pending the runtime
-  playthrough.
+- **Pushed to `origin/main`.** All six WP commits (plus the concurrent `56592c8`)
+  are on the remote; the GitHub Pages deploy runs from there.
+- **Verification done.** A full dev-server playthrough was run: dataset validator
+  reported 0 problems; the draft (roll -> pick -> place -> auto next-roll) behaves
+  as before; the group stage revealed all three matchdays with live goal feeds and
+  a correct qualify call-to-action; the knockout ran R16 -> Final with live reveals
+  and crowned a champion with full-screen confetti; the summary recap rendered.
+  Zero console errors or warnings throughout. The G1 attack-vs-defense change plays
+  sanely (typical scorelines, no runaway or scoreless games).
 - **Concurrent commit:** `56592c8` "Fix confetti rain confined to a 300x150 box"
   (Confetti.tsx) was authored by Mario Smania from another session mid-run. It does
-  not overlap any WP and was left untouched.
+  not overlap any WP and was left untouched (and verified working in the playthrough).
 - **Stashed overreach:** `git stash@{0}` holds an out-of-scope change a Wave-1 agent
   slipped in - a new `FEATURES.randomTeam` flag gating the "Random team" button
   (`SetupPanel.tsx` + `config.ts`). It matches no finding. `git stash pop` to keep
   it, `git stash drop` to discard.
-- **Verification still owed:** a full manual UI playthrough (draft -> group ->
-  knockout -> champion/confetti) has not been run yet; it is the acceptance gate for
-  WP5 and a good final check for the G1 difficulty change.
+- **`.claude/launch.json`** is an untracked dev-server config added for the preview
+  playthrough; keep or delete as preferred (not committed).
 
 ## Method
 
