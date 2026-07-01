@@ -12,20 +12,27 @@ import Flag from './Flag';
 import FixtureRow from './FixtureRow';
 import { ordinal, RatingChip } from './matchUi';
 
-/** Column layout shared by the header and body rows. */
+/** Column layout shared by the header and body rows. Mobile shows only PL / GD /
+ *  PTS after # + Team (5 columns); the desktop layout adds W / D / L / +/- for the
+ *  full nine. The desktop-only cells carry `hidden sm:block`, so on mobile they drop
+ *  out of the grid entirely and the five visible cells line up with the five mobile
+ *  columns (cell order must match the column order at both breakpoints). */
 const ST_GRID =
-  'grid grid-cols-[28px_minmax(0,1fr)_26px_26px_32px_38px] sm:grid-cols-[34px_minmax(0,1fr)_30px_30px_30px_34px_38px] items-center gap-1 px-4 py-[11px]';
+  'grid grid-cols-[26px_minmax(0,1fr)_30px_38px_40px] sm:grid-cols-[34px_minmax(0,1fr)_32px_26px_26px_26px_46px_38px_40px] items-center gap-1 px-4 py-[11px]';
 const ST_NUM = 'text-center font-mono text-[13px] text-muted';
 const ST_HEAD =
   'text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted';
 
-/** Numeric header columns after the # / Team labels. `P` (played) hides on mobile. */
-const NUM_HEADS: { label: string; mobileHidden?: boolean }[] = [
-  { label: 'P', mobileHidden: true },
-  { label: 'W' },
-  { label: 'D' },
+/** Numeric header columns after the # / Team labels. W / D / L / +/- are desktop
+ *  only; PL / GD / PTS always show. (+/- is goals scored:conceded.) */
+const NUM_HEADS: { label: string; desktopOnly?: boolean }[] = [
+  { label: 'PL' },
+  { label: 'W', desktopOnly: true },
+  { label: 'D', desktopOnly: true },
+  { label: 'L', desktopOnly: true },
+  { label: '+/-', desktopOnly: true },
   { label: 'GD' },
-  { label: 'Pts' },
+  { label: 'PTS' },
 ];
 
 interface Props {
@@ -52,7 +59,7 @@ export default function StandingsTable({ group, groupFinished, advanced }: Props
         {NUM_HEADS.map((h) => (
           <span
             key={h.label}
-            className={h.mobileHidden ? `hidden sm:block ${ST_HEAD}` : ST_HEAD}
+            className={h.desktopOnly ? `hidden sm:block ${ST_HEAD}` : ST_HEAD}
           >
             {h.label}
           </span>
@@ -95,9 +102,13 @@ export default function StandingsTable({ group, groupFinished, advanced }: Props
               )}
               <RatingChip value={s.team.strength.overall} />
             </span>
-            <span className={`hidden sm:block ${ST_NUM}`}>{s.played}</span>
-            <span className={ST_NUM}>{s.won}</span>
-            <span className={ST_NUM}>{s.drawn}</span>
+            <span className={ST_NUM}>{s.played}</span>
+            <span className={`hidden sm:block ${ST_NUM}`}>{s.won}</span>
+            <span className={`hidden sm:block ${ST_NUM}`}>{s.drawn}</span>
+            <span className={`hidden sm:block ${ST_NUM}`}>{s.lost}</span>
+            <span className={`hidden sm:block ${ST_NUM}`}>
+              {s.gf}:{s.ga}
+            </span>
             <span className={ST_NUM}>{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
             <span className="text-center font-mono text-sm font-bold text-ink">{s.points}</span>
           </div>
