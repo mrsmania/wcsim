@@ -69,8 +69,9 @@ export default function TournamentScreen({
     const advanced = groupFinished && userAdvanced(group);
     const eliminated = groupFinished && !advanced;
 
-    // Opening group draw takeover (shown once).
-    const [revealing, setRevealing] = useState(true);
+    // Opening group draw, shown as a modal only for a freshly drawn group (no
+    // matchday played yet), so navigating Back to the group does not replay it.
+    const [revealing, setRevealing] = useState(() => group.matchday === 1);
 
     // The matchday currently being revealed by the clock (null when idle).
     const [playingGroup, setPlayingGroup] = useState<{
@@ -129,17 +130,6 @@ export default function TournamentScreen({
     const nextAnchorKey =
         nextMatchday !== null && !auto && !isPlaying ? `md-${nextMatchday}` : null;
 
-    // --- opening group draw view (full takeover, shown once) ---
-    if (revealing) {
-        return (
-            <GroupDrawReveal
-                userTeam={userTeam}
-                opponents={opponents}
-                onContinue={() => setRevealing(false)}
-            />
-        );
-    }
-
     const table = standings(group);
     const userPosition = table.findIndex((s) => s.team.isUser) + 1;
 
@@ -163,6 +153,13 @@ export default function TournamentScreen({
 
     return (
         <div ref={rootRef} className="mx-auto max-w-[780px]">
+            {revealing && (
+                <GroupDrawReveal
+                    userTeam={userTeam}
+                    opponents={opponents}
+                    onContinue={() => setRevealing(false)}
+                />
+            )}
             <StageHeader
                 eyebrow="Group stage"
                 title="Group of 4 · top 2 advance"

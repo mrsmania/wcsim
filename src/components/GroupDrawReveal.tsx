@@ -3,7 +3,7 @@ import { SQUADS } from '../data/squads';
 import type { GroupTeam } from '../domain/tournament';
 import { ArrowRight } from 'lucide-react';
 import Flag from './Flag';
-import { PRIMARY_BTN, RatingChip, StageHeader } from './matchUi';
+import { PRIMARY_BTN, RatingChip } from './matchUi';
 
 /** How often (ms) the drawn flags reshuffle while the draw scrambles. */
 const SCRAMBLE_STEP_MS = 90;
@@ -16,18 +16,24 @@ const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)]
 interface Props {
   userTeam: GroupTeam;
   opponents: GroupTeam[];
-  /** Dismiss the draw takeover and continue to the group stage. */
+  /** Dismiss the draw modal and continue to the group stage. */
   onContinue: () => void;
 }
 
 /** The opening group draw: opponent flags scramble for a beat, then settle on the
- *  real teams, and a button continues to the group stage. Shown once as a full
- *  takeover before any matchday is played. */
+ *  real teams, and a button continues to the group stage. Rendered as a modal over
+ *  the group screen, shown once for a freshly drawn group. */
 export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Props) {
   const [settled, setSettled] = useState(false);
   const [revealCodes, setRevealCodes] = useState<string[]>(() => opponents.map(() => randomCode()));
 
   useEffect(() => {
+    // Reduced motion: skip the scramble and reveal the real opponents at once.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setRevealCodes(opponents.map((o) => o.code));
+      setSettled(true);
+      return;
+    }
     let elapsed = 0;
     const id = window.setInterval(() => {
       elapsed += SCRAMBLE_STEP_MS;
@@ -44,9 +50,24 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
   }, []);
 
   return (
-    <div className="mx-auto max-w-[780px]">
-      <StageHeader eyebrow="Group draw" title="Your group" />
-      <div className="rounded-md border border-line bg-panel p-6 shadow-hard">
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={settled ? onContinue : undefined}
+    >
+      <div
+        className="w-full max-w-[560px] rounded-md border border-line bg-panel p-5 shadow-hard sm:p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4">
+          <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+            Group draw
+          </div>
+          <h2 className="mt-0.5 font-display text-2xl font-extrabold leading-none tracking-[-0.02em]">
+            Your group
+          </h2>
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="flex flex-col items-center gap-2 rounded-[5px] border border-pitch/40 bg-pitch/[0.06] px-3 py-5 text-center">
             <Flag isUser code="" className="h-6 w-9" />
@@ -76,18 +97,18 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
             </div>
           ))}
         </div>
-      </div>
-      <div className="mt-[22px] flex justify-center">
-        {settled ? (
-          <button onClick={onContinue} className={PRIMARY_BTN}>
-            Continue to group stage
-            <ArrowRight size={16} strokeWidth={2.5} />
-          </button>
-        ) : (
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-            Drawing opponents…
-          </p>
-        )}
+        <div className="mt-5 flex justify-center">
+          {settled ? (
+            <button onClick={onContinue} className={PRIMARY_BTN}>
+              Continue to group stage
+              <ArrowRight size={16} strokeWidth={2.5} />
+            </button>
+          ) : (
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+              Drawing opponents…
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Navigate, useMatch, useNavigate } from 'react-router-dom';
 import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
 import { ArrowLeft, ArrowRight, Search, X } from 'lucide-react';
@@ -33,15 +34,22 @@ type Mode = 'byCup' | 'byTeam';
  * Every player is shown with full name, jersey number, main position and rating.
  */
 export default function SquadBrowser() {
-    const [mode, setMode] = useState<Mode>('byCup');
-    const [year, setYear] = useState<number>(YEARS[0]);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [selectedCode, setSelectedCode] = useState<string | null>(null);
+    const navigate = useNavigate();
     const [query, setQuery] = useState('');
+
+    // Route -> which view. `useMatch` paths are basename-relative.
+    const mRoster = useMatch('/squads/team/:squadId');
+    const mTeamCups = useMatch('/squads/by-team/:code');
+    const mTeamGrid = useMatch('/squads/by-team');
+    const mCupYear = useMatch('/squads/by-world-cup/:year');
+    const mCup = useMatch('/squads/by-world-cup');
 
     const q = query.trim();
     const searching = q.length >= 2;
-    const selected = selectedId ? SQUAD_BY_ID[selectedId] : null;
+
+    const selected = mRoster ? (SQUAD_BY_ID[mRoster.params.squadId ?? ''] ?? null) : null;
+    const year = mCupYear ? Number(mCupYear.params.year) : YEARS[0];
+    const mode: Mode = mTeamGrid || mTeamCups ? 'byTeam' : 'byCup';
 
     // Nations for the chosen year, strongest first (then alphabetical).
     const nations = useMemo(
@@ -67,7 +75,8 @@ export default function SquadBrowser() {
         arr.sort((a, b) => b.squads.length - a.squads.length || a.nation.localeCompare(b.nation));
         return arr;
     }, []);
-    const team = selectedCode ? (teams.find((t) => t.code === selectedCode) ?? null) : null;
+    const teamCode = (mTeamCups?.params.code ?? '').toLowerCase();
+    const team = mTeamCups ? (teams.find((t) => t.code.toLowerCase() === teamCode) ?? null) : null;
 
     // Cross-tournament search: any player whose name (or whose team's nation /
     // code / year) matches, strongest first.
@@ -88,15 +97,20 @@ export default function SquadBrowser() {
     }, [q, searching]);
 
     const openSquad = (id: string) => {
-        setSelectedId(id);
         setQuery('');
+        navigate(`/squads/team/${id}`);
     };
-    const switchMode = (m: Mode) => {
-        setMode(m);
-        setSelectedId(null);
-        setSelectedCode(null);
-        setQuery('');
+    // Leaving a roster: step back in history when we came from within the app,
+    // otherwise (a deep link) fall back to that squad's World Cup grid.
+    const backFromRoster = () => {
+        if (typeof window !== 'undefined' && (window.history.state?.idx ?? 0) > 0) navigate(-1);
+        else navigate(`/squads/by-world-cup/${selected?.year ?? YEARS[0]}`);
     };
+
+    // Bare /squads or an unrecognised sub-path -> default to the by-world-cup grid.
+    if (!mRoster && !mTeamCups && !mTeamGrid && !mCupYear && !mCup) {
+        return <Navigate to="/squads/by-world-cup" replace />;
+    }
 
     const title = searching
         ? 'Search'
@@ -144,7 +158,12 @@ export default function SquadBrowser() {
                         ).map(([m, label]) => (
                             <button
                                 key={m}
-                                onClick={() => switchMode(m)}
+                                onClick={() => {
+                                    setQuery('');
+                                    navigate(
+                                        m === 'byTeam' ? '/squads/by-team' : '/squads/by-world-cup',
+                                    );
+                                }}
                                 className={[
                                     'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
                                     mode === m
@@ -192,15 +211,15 @@ export default function SquadBrowser() {
                         </span>
                     ) : selected ? (
                         <button
-                            onClick={() => setSelectedId(null)}
+                            onClick={backFromRoster}
                             className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-white px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
                         >
                             <ArrowLeft size={14} strokeWidth={2.5} />
-                            {selectedCode ? (team?.nation ?? 'Back') : 'All squads'}
+                            Back
                         </button>
                     ) : team ? (
                         <button
-                            onClick={() => setSelectedCode(null)}
+                            onClick={() => navigate('/squads/by-team')}
                             className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-white px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
                         >
                             <ArrowLeft size={14} strokeWidth={2.5} />
@@ -213,7 +232,7 @@ export default function SquadBrowser() {
                                 return (
                                     <button
                                         key={y}
-                                        onClick={() => setYear(y)}
+                                        onClick={() => navigate(`/squads/by-world-cup/${y}`)}
                                         className={[
                                             'rounded-[5px] border px-3 py-2 font-mono text-[12px] font-semibold tabular-nums transition',
                                             active
@@ -242,7 +261,7 @@ export default function SquadBrowser() {
                     {teams.map((t) => (
                         <button
                             key={t.code}
-                            onClick={() => setSelectedCode(t.code)}
+                            onClick={() => navigate(`/squads/by-team/${t.code.toLowerCase()}`)}
                             className="flex flex-col gap-2.5 rounded-md border border-line bg-panel p-3.5 text-left shadow-hard transition hover:border-pitch"
                         >
                             <Flag code={t.code} className="h-5 w-8" />

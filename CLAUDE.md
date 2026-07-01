@@ -16,9 +16,10 @@ Pure client-side: no backend, no database. All player data is hardcoded in
 - **Vite** + **React** + **TypeScript** (strict).
 - **Tailwind CSS v4** via the `@tailwindcss/vite` plugin.
 - State is a single `useReducer` phase machine; all game logic is pure functions in
-  `src/domain/`. No state-management library, no router.
+  `src/domain/`. No state-management library. Routing is `react-router-dom`
+  (`BrowserRouter`, clean paths) - see "Routing & persistence" below.
 - Flags from `country-flag-icons`; icons from `lucide-react`; win-celebration
-  confetti from `canvas-confetti`.
+  confetti from `canvas-confetti`; routing from `react-router-dom`.
 - Fonts: **Archivo** (display), **Schibsted Grotesk** (body), **Spline Sans Mono**
   (data/numerals), loaded via a Google Fonts `<link>` in `index.html`.
 
@@ -100,8 +101,10 @@ src/
                presentational atoms + per-match view-model used by both screens;
                SquadBrowser + TeamRoster are the read-only squad archive (see below)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser)
-  App.tsx      owns the reducer, the roll animation, and responsive-scroll effects
-  main.tsx     entry (wraps App in React.StrictMode)
+  state/       persist.ts (loadGame/saveGame - whole game to localStorage)
+  App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
+               branches its screen by the URL (react-router)
+  main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
 ```
 
 **Data flow / phases.** `gameReducer` drives `phase: setup -> draft -> complete ->
@@ -114,6 +117,20 @@ deterministic except where they intentionally call `Math.random` (match sim, opp
 draw, roll). Strong pattern: **each match's result is computed up front, then the
 clock only reveals it** (`clock.ts` + the screen components) - simulation is separate
 from playback.
+
+**Routing & persistence.** The URL is the source of truth for *which screen*; the
+reducer stays the source of truth for *game data*. `App` branches on
+`location.pathname`: `/` (home = setup/draft/complete, sub-view derived from
+`formation` + `isComplete`, not `phase`), `/group`, `/knockout` (both redirect `/` when
+their data is missing), and `/squads/*`. Navigation happens via `useNavigate` in the
+masthead Play/Squads toggle and the transition handlers (`handleStartGroup`,
+`handleEnterKnockout`, `handleReset`), which never rebuild existing state. So Back/
+Forward move between screens (knockout <-> group <-> home) without losing progress. The
+whole `GameState` is mirrored to `localStorage` (`state/persist.ts`) and restored on
+load, so `/group` and `/knockout` survive a refresh (transient draft fields are reset
+on restore). `SquadBrowser` derives its view from route params via `useMatch`
+(`/squads/by-world-cup/:year`, `/squads/by-team/:code`, `/squads/team/:squadId`); team
+codes in URLs are lowercase and matched case-insensitively.
 
 ## Core concepts
 
@@ -213,14 +230,13 @@ page** (`KnockoutScreen.tsx`), driven by `domain/bracket.ts`.
 
 ## Squad browser (flagged)
 
-A read-only reference view over the whole dataset, reached from a **Play / Squads**
-toggle in the masthead. It is separate from the game: `App` holds a `view: 'game' |
-'browse'` `useState` that is independent of `gameReducer`, so an in-progress draft or
-tournament is preserved while browsing.
+A read-only reference view over the whole dataset, reached from the **Play / Squads**
+toggle in the masthead (which navigates to `/squads/*`). It is separate from the game:
+the in-progress reducer state is untouched while browsing, so Back returns to it.
 
-- **`SquadBrowser.tsx`** owns browse-local state (`mode`, `year`, `selectedId`,
-  `selectedCode`, `query`) and derives everything from `SQUADS` / `SQUAD_BY_ID`. A
-  **Display** toggle picks the entry point: *By World Cup* (a year's nation grid, cards
+- **`SquadBrowser.tsx`** derives its view from the URL (`useMatch` + `useNavigate`;
+  `query`/search stays local) over `SQUADS` / `SQUAD_BY_ID`. A **Display** toggle picks
+  the entry point: *By World Cup* (a year's nation grid, cards
   sorted by rating, `< 32`-team years flagged as approximate placeholders) or *By Team*
   (every nation with its participation count = occurrences in the dataset, drilling into
   the World Cups it played via the `TeamCups` list, which also shows a "Legends of
@@ -279,6 +295,11 @@ tournament is preserved while browsing.
 
 ## Hosting
 
-Build output (`dist/`) is fully static; `vite.config.ts` sets `base: './'` so it
-works at any path. `.github/workflows/deploy.yml` builds and deploys to GitHub Pages
-on push to `main`. See `README.md` for the Synology/Docker options.
+Build output (`dist/`) is static. Because routing uses the History API (clean paths),
+`vite.config.ts` sets an **absolute** `base` for the build (`'/wcsim/'`; `'/'` in dev)
+so deeply-nested URLs still resolve `/assets`, and `scripts/copy-404.mjs` (run at the
+end of `npm run build`) copies `index.html` to `dist/404.html` so GitHub Pages serves
+the SPA for any deep link / refresh. `.github/workflows/deploy.yml` builds and deploys
+to GitHub Pages on push to `main`. NOTE: the absolute base makes `dist/` GitHub-Pages-
+path-specific; a NAS/Docker host at a different path must rebuild with its own `base`
+(see `README.md` for the Synology/Docker options).

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { SQUADS } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
     canPlace,
     filledCount,
+    isComplete,
     hasAnotherCup,
     hasAnotherTeam,
     positionsWithOpenSlot,
@@ -25,8 +27,8 @@ import { teamChemistry } from './domain/chemistry';
 import { buildBracket, BRACKET_ROUNDS, type BracketState } from './domain/bracket';
 import { validateSquads } from './domain/validateSquads';
 import { FEATURES } from './config';
-import { gameReducer, initialState, type Phase } from './state/gameReducer';
-import type { MatchSpeed } from './domain/clock';
+import { gameReducer, initialState } from './state/gameReducer';
+import { loadGame, saveGame } from './state/persist';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import CompletePanel from './components/CompletePanel';
@@ -43,78 +45,41 @@ import SquadBrowser from './components/SquadBrowser';
 const isStackedLayout = () =>
     typeof window !== 'undefined' && !window.matchMedia('(min-width: 1080px)').matches;
 
-/** Playback preferences (speed + auto/game-by-game) persisted across runs. */
-const SETTINGS_KEY = 'wcsim:settings';
-
-function loadSettings(): { speed?: MatchSpeed; auto?: boolean } {
-    try {
-        const parsed = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}');
-        const out: { speed?: MatchSpeed; auto?: boolean } = {};
-        if (parsed.speed === 'slow' || parsed.speed === 'normal' || parsed.speed === 'fast')
-            out.speed = parsed.speed;
-        if (typeof parsed.auto === 'boolean') out.auto = parsed.auto;
-        return out;
-    } catch {
-        return {};
-    }
-}
-
-function saveSettings(speed: MatchSpeed, auto: boolean) {
-    try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify({ speed, auto }));
-    } catch {
-        /* localStorage unavailable (e.g. private mode); preferences just won't persist */
-    }
-}
-
-/** The masthead status stamp for the knockout phase (round name, or the outcome
- *  once the run is over). Only meaningful during the knockout phase. */
+/** The masthead status stamp for the knockout screen (round name, or the outcome
+ *  once the run is over). */
 function knockoutStamp(bracket: BracketState | null): string {
     if (bracket?.outcome === 'champion') return 'Champions';
     if (bracket?.outcome === 'out') return 'Eliminated';
     return BRACKET_ROUNDS[bracket?.current ?? 0];
 }
 
-/** The section eyebrow/title (setup/draft/complete screens) and the masthead
- *  status stamp, both phase-dependent. The stamp is null on the tournament
- *  screens' own headers only when nothing applies; the knockout round is
- *  computed lazily, so `BRACKET_ROUNDS` is read only in the knockout phase. */
-function mastheadCopy(
-    phase: Phase,
-    placed: number,
-    bracket: BracketState | null,
-): { eyebrow: string; title: string; stamp: string | null } {
-    const eyebrow = phase === 'complete' ? 'Confirmed line-up' : 'Team sheet';
+type HomeView = 'setup' | 'draft' | 'complete';
+
+/** Section eyebrow/title + masthead stamp for the home screen, by sub-view. The
+ *  home sub-view is derived from the drafted data (not `phase`), so navigating
+ *  Back to home mid-tournament still reads as the locked XI. */
+function homeCopy(view: HomeView, placed: number): { eyebrow: string; title: string; stamp: string } {
+    const eyebrow = view === 'complete' ? 'Confirmed line-up' : 'Team sheet';
     const title =
-        phase === 'setup'
+        view === 'setup'
             ? 'Set your formation'
-            : phase === 'draft'
+            : view === 'draft'
               ? 'Build your XI'
               : 'Your XI is set';
     const stamp =
-        phase === 'setup'
+        view === 'setup'
             ? 'Set up · 11 to pick'
-            : phase === 'draft'
+            : view === 'draft'
               ? `Drafting · ${placed}/11`
-              : phase === 'complete'
-                ? 'Team sheet · locked'
-                : phase === 'group'
-                  ? 'Group stage'
-                  : phase === 'knockout'
-                    ? knockoutStamp(bracket)
-                    : null;
+              : 'Team sheet · locked';
     return { eyebrow, title, stamp };
 }
 
 export default function App() {
-    const [state, dispatch] = useReducer(gameReducer, initialState, (base) => ({
-        ...base,
-        ...loadSettings(),
-    }));
+    const [state, dispatch] = useReducer(gameReducer, initialState, () => loadGame() ?? initialState);
     const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
-    // Top-level view, independent of the game reducer so an in-progress draft or
-    // tournament is preserved while browsing the squad archive.
-    const [view, setView] = useState<'game' | 'browse'>('game');
+    const location = useLocation();
+    const navigate = useNavigate();
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -163,10 +128,10 @@ export default function App() {
         auto,
     } = state;
 
-    // Persist playback preferences so speed + mode carry across runs and reloads.
+    // Persist the whole game so the clean-path routes survive a refresh.
     useEffect(() => {
-        saveSettings(speed, auto);
-    }, [speed, auto]);
+        saveGame(state);
+    }, [state]);
 
     // During setup the pitch previews the selected formation/style; during the
     // draft it uses the locked formation stored in state.
@@ -174,7 +139,15 @@ export default function App() {
         () => getFormation(FORMATIONS_DATA, formationName, style),
         [formationName, style],
     );
-    const activeFormation = phase === 'setup' ? previewFormation : formation;
+    // Home sub-view derived from the data, not `phase`: no formation -> setup;
+    // formation but incomplete -> draft; complete XI -> complete (even once the
+    // tournament has started, so Back to home shows the locked XI).
+    const homeView: HomeView = !formation
+        ? 'setup'
+        : isComplete(formation, filled)
+          ? 'complete'
+          : 'draft';
+    const activeFormation = homeView === 'setup' ? previewFormation : formation;
 
     // Mobile: when a player is picked, scroll the pitch to the top (with a little
     // margin via scroll-mt) so the user can tap an open slot. Scrolling back up to
@@ -311,6 +284,11 @@ export default function App() {
     );
 
     const handleStartGroup = useCallback(() => {
+        // Already drawn (e.g. navigated Back to home): just return to the group.
+        if (group) {
+            navigate('/group');
+            return;
+        }
         if (!formation) return;
         const players = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
         const bonus = FEATURES.chemistry ? teamChemistry(formation, filled).bonus : 0;
@@ -318,16 +296,28 @@ export default function App() {
             type: 'START_GROUP',
             group: createGroup(userGroupTeam(players, bonus), pickOpponents(3)),
         });
-    }, [formation, filled]);
+        navigate('/group');
+    }, [group, formation, filled, navigate]);
 
     const handleEnterKnockout = useCallback(() => {
+        // Already built (navigated Back to the group): just return to the bracket.
+        if (bracket) {
+            navigate('/knockout');
+            return;
+        }
         if (!group) return;
         const { user, coQualifier, excludeIds } = bracketSeedFromGroup(group);
         dispatch({
             type: 'START_BRACKET',
             bracket: buildBracket(user, coQualifier, excludeIds),
         });
-    }, [group]);
+        navigate('/knockout');
+    }, [bracket, group, navigate]);
+
+    const handleReset = useCallback(() => {
+        dispatch({ type: 'RESET' });
+        navigate('/');
+    }, [navigate]);
 
     const openPositions = useMemo<Set<Position>>(
         () =>
@@ -342,11 +332,24 @@ export default function App() {
     // Page section header (eyebrow + heading) and the masthead status stamp, both
     // phase-dependent. The stamp is null on the tournament screens (their own header).
     const placed = activeFormation ? filledCount(activeFormation, filled) : 0;
-    const { eyebrow: sectionEyebrow, title: sectionTitle, stamp: stampText } = mastheadCopy(
-        phase,
-        placed,
-        bracket,
-    );
+    const home = homeCopy(homeView, placed);
+
+    // Route -> which screen. `location.pathname` is basename-relative.
+    const path = location.pathname;
+    const squadsEnabled = FEATURES.squadBrowser;
+    const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
+    const isGroup = path === '/group';
+    const isKnockout = path === '/knockout';
+    const isHome = path === '/';
+    // Where "Play" returns to: the furthest game screen reached.
+    const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
+    const stampText = isSquads
+        ? null
+        : isGroup
+          ? 'Group stage'
+          : isKnockout
+            ? knockoutStamp(bracket)
+            : home.stamp;
 
     return (
         <div className="min-h-full text-ink">
@@ -362,25 +365,30 @@ export default function App() {
                         Draft a random XI. Win the cup.
                     </span>
                     <div className="ml-auto flex items-center gap-2.5">
-                        {view === 'game' && stampText && (
+                        {stampText && (
                             <span className="rounded-[3px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted max-sm:hidden">
                                 {stampText}
                             </span>
                         )}
-                        {FEATURES.squadBrowser && (
+                        {squadsEnabled && (
                             <div className="flex overflow-hidden rounded-[5px] border border-line">
-                                {(['game', 'browse'] as const).map((v) => (
+                                {(
+                                    [
+                                        ['Play', gameRoute, !isSquads],
+                                        ['Squads', '/squads/by-world-cup', isSquads],
+                                    ] as const
+                                ).map(([label, to, active]) => (
                                     <button
-                                        key={v}
-                                        onClick={() => setView(v)}
+                                        key={label}
+                                        onClick={() => navigate(to)}
                                         className={[
                                             'border-r border-line px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] transition last:border-r-0',
-                                            view === v
+                                            active
                                                 ? 'bg-ink text-ground'
                                                 : 'bg-white text-muted hover:text-pitch',
                                         ].join(' ')}
                                     >
-                                        {v === 'game' ? 'Play' : 'Squads'}
+                                        {label}
                                     </button>
                                 ))}
                             </div>
@@ -388,47 +396,55 @@ export default function App() {
                     </div>
                 </header>
 
-                {view === 'browse' && FEATURES.squadBrowser ? (
+                {isSquads ? (
                     <SquadBrowser />
-                ) : phase === 'group' && group && formation ? (
-                    <TournamentScreen
-                        group={group}
-                        formation={formation}
-                        filled={filled}
-                        speed={speed}
-                        auto={auto}
-                        onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
-                        onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                        onRecordMatchday={(results) =>
-                            dispatch({ type: 'RECORD_MATCHDAY', results })
-                        }
-                        onEnterKnockout={handleEnterKnockout}
-                        onReset={() => dispatch({ type: 'RESET' })}
-                    />
-                ) : phase === 'knockout' && bracket && group && formation ? (
-                    <KnockoutScreen
-                        bracket={bracket}
-                        group={group}
-                        formation={formation}
-                        filled={filled}
-                        speed={speed}
-                        auto={auto}
-                        onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
-                        onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                        onRecordRound={(games) =>
-                            dispatch({ type: 'RECORD_BRACKET_ROUND', games })
-                        }
-                        onReset={() => dispatch({ type: 'RESET' })}
-                    />
-                ) : (
+                ) : isGroup ? (
+                    group && formation ? (
+                        <TournamentScreen
+                            group={group}
+                            formation={formation}
+                            filled={filled}
+                            speed={speed}
+                            auto={auto}
+                            onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
+                            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                            onRecordMatchday={(results) =>
+                                dispatch({ type: 'RECORD_MATCHDAY', results })
+                            }
+                            onEnterKnockout={handleEnterKnockout}
+                            onReset={handleReset}
+                        />
+                    ) : (
+                        <Navigate to="/" replace />
+                    )
+                ) : isKnockout ? (
+                    bracket && group && formation ? (
+                        <KnockoutScreen
+                            bracket={bracket}
+                            group={group}
+                            formation={formation}
+                            filled={filled}
+                            speed={speed}
+                            auto={auto}
+                            onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
+                            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                            onRecordRound={(games) =>
+                                dispatch({ type: 'RECORD_BRACKET_ROUND', games })
+                            }
+                            onReset={handleReset}
+                        />
+                    ) : (
+                        <Navigate to="/" replace />
+                    )
+                ) : isHome ? (
                     <>
                     <div className="mb-5 mt-7 flex items-center gap-4">
                         <div>
                             <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-                                {sectionEyebrow}
+                                {home.eyebrow}
                             </div>
                             <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
-                                {sectionTitle}
+                                {home.title}
                             </h2>
                         </div>
                         <div className="relative h-0 flex-1 border-t-2 border-line">
@@ -438,7 +454,7 @@ export default function App() {
                     <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
                         {/* Col 1: setup -> drawn squad -> complete */}
                         <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
-                            {phase === 'setup' && (
+                            {homeView === 'setup' && (
                                 <SetupPanel
                                     names={FORMATIONS_DATA.names}
                                     selectedName={formationName}
@@ -453,7 +469,7 @@ export default function App() {
                                     onRandomTeam={handleRandomTeam}
                                 />
                             )}
-                            {phase === 'draft' && formation && (
+                            {homeView === 'draft' && formation && (
                                 <SquadPanel
                                     squad={panelSquad}
                                     rolling={rolling}
@@ -473,13 +489,13 @@ export default function App() {
                                     }
                                 />
                             )}
-                            {phase === 'complete' && formation && (
+                            {homeView === 'complete' && formation && (
                                 <CompletePanel
                                     formation={formation}
                                     filled={filled}
                                     style={style}
                                     onStart={handleStartGroup}
-                                    onReset={() => dispatch({ type: 'RESET' })}
+                                    onReset={handleReset}
                                 />
                             )}
                         </aside>
@@ -514,6 +530,8 @@ export default function App() {
                         )}
                     </div>
                     </>
+                ) : (
+                    <Navigate to="/" replace />
                 )}
             </div>
         </div>
