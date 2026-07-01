@@ -1,11 +1,12 @@
 import { HelpCircle } from 'lucide-react';
 import type { Player } from '../data/types';
-import { categoryOf } from '../data/types';
+import { categoryOf, DEF_CATS } from '../data/types';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { teamChemistry, MAX_BONUS } from '../domain/chemistry';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
+import { MONO_CAP } from './matchUi';
 
 /** Full rules shown when hovering the chemistry "?" help icon. Category names and
  *  point tiers match exactly what the breakdown below shows. */
@@ -84,7 +85,7 @@ export default function BoxScore({ formation, filled, showChemistry = false }: P
     const attack = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
     const midfield = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'MID'));
     const defense = avgElo(
-        placedPlayers.filter((p) => ['GK', 'DEF'].includes(categoryOf(p.positions[0]))),
+        placedPlayers.filter((p) => DEF_CATS.includes(categoryOf(p.positions[0]))),
     );
     const overall = avgElo(placedPlayers);
 
@@ -114,7 +115,7 @@ export default function BoxScore({ formation, filled, showChemistry = false }: P
                             </span>
                         </span>
                         <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                            <div className={`flex items-center gap-1.5 ${MONO_CAP}`}>
                                 Chemistry bonus
                                 <Tooltip
                                     wide

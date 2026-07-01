@@ -27,6 +27,21 @@ export function RatingChip({ value, className = '' }: { value: number; className
 export const PRIMARY_BTN =
   'inline-flex items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-5 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99]';
 
+/** Shared outline action button (the turf-flat `.btn.secondary`). Visual identity
+ *  only, so callers append their own layout/sizing (width, padding, gap, disabled). */
+export const SECONDARY_BTN =
+  'rounded-[5px] border border-ink bg-white font-display font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch';
+
+/** Shared caption class strings (the turf-flat mono labels). Each is the exact
+ *  string that repeats across screens; reuse rather than re-typing the utilities. */
+/** Pitch-green section eyebrow (small mono caps). */
+export const EYEBROW = 'font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-pitch';
+/** Card/table header row (mono caps on the ink underline). */
+export const TABLE_HEAD =
+  'font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted';
+/** Muted mono caption used inside cards. */
+export const MONO_CAP = 'font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted';
+
 export const ordinal = (n: number) =>
   n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`;
 
@@ -63,7 +78,7 @@ export function ShootoutFeed({ kicks, shown }: { kicks: PenKick[]; shown: number
 
   return (
     <div className="mt-3 border-t border-line pt-3.5">
-      <div className="mb-3 text-center font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+      <div className={`mb-3 text-center ${MONO_CAP}`}>
         Penalty shootout &middot;{' '}
         <b className="text-ink">
           {homeScore}–{awayScore}
@@ -242,7 +257,6 @@ export function FixtureHead({
   score,
   status,
   statusDim,
-  scrambleCode,
   userElo,
   oppElo,
 }: {
@@ -253,8 +267,6 @@ export function FixtureHead({
   score?: { user: number; opp: number };
   status?: string;
   statusDim?: boolean;
-  /** Render the away side as a scrambling mystery: this flag code + "…". */
-  scrambleCode?: string;
   /** Team ratings, shown as a hover title on each side. */
   userElo?: number;
   oppElo?: number;
@@ -287,21 +299,12 @@ export function FixtureHead({
         )}
       </div>
       <div className="flex min-w-0 items-center gap-[9px] font-semibold text-ink max-sm:gap-1.5">
-        {scrambleCode !== undefined ? (
-          <>
-            <Flag code={scrambleCode} className="h-[15px] w-[22px]" />
-            <span className="truncate">…</span>
-          </>
-        ) : (
-          <>
-            <Flag code={oppCode ?? ''} className="h-[15px] w-[22px]" />
-            <span className="truncate">{oppName}</span>
-            {oppYear && (
-              <span className="shrink-0 font-mono text-[11px] font-medium text-muted">{oppYear}</span>
-            )}
-            {oppElo != null && <RatingChip value={oppElo} />}
-          </>
+        <Flag code={oppCode ?? ''} className="h-[15px] w-[22px]" />
+        <span className="truncate">{oppName}</span>
+        {oppYear && (
+          <span className="shrink-0 font-mono text-[11px] font-medium text-muted">{oppYear}</span>
         )}
+        {oppElo != null && <RatingChip value={oppElo} />}
       </div>
     </div>
   );

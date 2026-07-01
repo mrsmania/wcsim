@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
 import type { TeamStrength } from '../domain/draft';
 import { ChevronDown, Dices } from 'lucide-react';
+import { SECONDARY_BTN } from './matchUi';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'weak', label: 'Weak', hint: 'rating < 75' },
@@ -110,7 +111,7 @@ export default function SetupPanel({
                             onClick={() => setMenuOpen((o) => !o)}
                             disabled={!ready}
                             title="Testing: auto-fill a random valid XI of a chosen strength and skip the draft"
-                            className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-ink bg-white px-4 py-[11px] font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`flex w-full items-center justify-center gap-2 px-4 py-[11px] text-[13px] ${SECONDARY_BTN} disabled:cursor-not-allowed disabled:opacity-50`}
                         >
                             Random team
                             <ChevronDown size={15} strokeWidth={2.5} />

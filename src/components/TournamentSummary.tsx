@@ -1,15 +1,22 @@
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { standings, teamById, USER_ID, type GroupState, type GroupTeam } from '../domain/tournament';
-import type { BracketState } from '../domain/bracket';
+import { BRACKET_ROUNDS, type BracketState } from '../domain/bracket';
 import type { KoDecided } from '../domain/knockout';
 import { CATEGORY_ORDER, categoryOf } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import Flag from './Flag';
-import { RatingChip } from './matchUi';
+import { EYEBROW, TABLE_HEAD, ordinal, RatingChip } from './matchUi';
 
-const ordinal = (n: number) => (n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`);
-const KO_ABBR = ['R16', 'QF', 'SF', 'Final'];
+/** Short recap labels, one per knockout round, keyed to the domain's round list so
+ *  the two cannot drift. The recap shows abbreviations; the last round keeps its
+ *  full name (which is already short). */
+const KO_ABBR: Record<(typeof BRACKET_ROUNDS)[number], string> = {
+  'Round of 16': 'R16',
+  'Quarter-final': 'QF',
+  'Semi-final': 'SF',
+  Final: 'Final',
+};
 
 /** Small square W / L / D chip shown at the head of a result row. */
 function ResultBadge({ won }: { won?: boolean }) {
@@ -28,7 +35,7 @@ function ResultBadge({ won }: { won?: boolean }) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="border-b border-line px-[18px] py-[14px] last:border-b-0">
-      <div className="mb-[9px] font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-pitch">
+      <div className={`mb-[9px] ${EYEBROW}`}>
         {label}
       </div>
       {children}
@@ -127,7 +134,7 @@ function KnockoutRecap({ bracket }: { bracket: BracketState }) {
                 <RatingChip value={r.opp.strength.overall} />
               </span>
               <span className="shrink-0 font-mono text-[11px] text-muted">
-                {KO_ABBR[r.round]}
+                {KO_ABBR[BRACKET_ROUNDS[r.round]]}
                 {extra}
               </span>
               <span className="shrink-0 font-mono text-[13px] font-bold text-ink">
@@ -195,7 +202,7 @@ interface Props {
 export default function TournamentSummary({ formation, filled, group, bracket }: Props) {
   return (
     <div className="mt-[30px] overflow-hidden rounded-md border border-line bg-panel text-left shadow-hard">
-      <div className="border-b-2 border-ink px-[18px] py-[13px] font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted">
+      <div className={`border-b-2 border-ink px-[18px] py-[13px] ${TABLE_HEAD}`}>
         Tournament summary
       </div>
       {group && <GroupRecap group={group} />}

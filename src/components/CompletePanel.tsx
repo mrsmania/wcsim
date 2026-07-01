@@ -4,6 +4,7 @@ import { STYLE_LABEL, type Formation, type Style } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
+import { SECONDARY_BTN } from './matchUi';
 
 interface Props {
     formation: Formation;
@@ -73,7 +74,7 @@ export default function CompletePanel({ formation, filled, style, onStart, onRes
                             </button>
                             <button
                                 onClick={() => setConfirmReset(false)}
-                                className="rounded-[5px] border border-ink bg-white px-3 py-2 font-display text-[12px] font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch"
+                                className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
                             >
                                 Cancel
                             </button>
@@ -81,7 +82,7 @@ export default function CompletePanel({ formation, filled, style, onStart, onRes
                     ) : (
                         <button
                             onClick={() => setConfirmReset(true)}
-                            className="flex w-full items-center justify-center rounded-[5px] border border-ink bg-white px-4 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch"
+                            className={`flex w-full items-center justify-center px-4 py-3 text-[13px] ${SECONDARY_BTN}`}
                         >
                             Start over
                         </button>
