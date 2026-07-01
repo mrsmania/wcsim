@@ -198,17 +198,19 @@ Each finding maps to a work package (WP) in the action plan.
 - `standings`, the Knuth-Poisson sampler, `clock.ts`, and the `draft.ts` predicates are
   small, correct, and honest. `chemistry.ts` delivers on its transparency design goal.
 
-## Decision gates (resolve before the affected WP starts)
+## Decision gates (RESOLVED 2026-07)
 
-- **G1 (affects WP4, D-8): match model.** The sim currently uses team `overall` only;
-  `attack`/`defense` are computed but unused by `expectedGoals`, and a comment claims
-  otherwise. Choose: **(a)** keep overall-only and correct the comment (no gameplay
-  change, recommended unless you want to rebalance), or **(b)** change `expectedGoals` to
-  attack-vs-defense (a real difficulty/gameplay change to playtest). The `attack`/
-  `defense` fields also feed the ratings-strip UI, so do not remove them regardless.
-- **G2 (affects WP6, A-6): `removePlayers`.** The flag ships `true` but is documented as a
-  testing aid. Choose: **(a)** it is a real user feature -> drop the flag and the "testing
-  aid" wording, keep the code; or **(b)** it is test-only -> default the flag to `false`.
+- **G1 (affects WP4, D-8): match model. Resolved -> switch to attack-vs-defense.** Change
+  `expectedGoals` to use the side's `attack` against the opponent's `defense` (not team
+  `overall`), matching the existing comment and the intent of `xiStrength`. This is a real
+  difficulty/gameplay change and MUST be playtested (goal rates and knockout upset
+  frequency will shift); update any WP0 characterization expectations to the new,
+  intentional behavior rather than treating the diff as a regression. Keep the `attack`/
+  `defense` fields regardless (the ratings-strip UI reads them).
+- **G2 (affects WP6, A-6): `removePlayers`. Resolved -> test-only, default off.** Set
+  `FEATURES.removePlayers` to `false` so the shipped build hides the x-to-remove control.
+  Keep the flag, the App handler, and the reducer case behind it (do not delete the code
+  path); keep the "testing aid" wording accurate.
 
 ## Action plan
 
@@ -292,11 +294,12 @@ overreach (reformatting, incidental behavior changes) before committing.
   `REFERENCE_RATING` and the pen bounds; memoize `squadOverall`; route raw `positions[0]`
   through `primaryPosition`; guard the `SQUAD_BY_ID` lookup in `chemistry.ts` and remove
   its `console.warn`/`warnedMissing` (the WP2 validator now covers it); add flat bracket
-  accessors (`finalScoreForChampion`, `opponentOf`, `userGame`); resolve G1 for the
-  `expectedGoals` model + comment.
-- **Acceptance:** build clean; a full 16 -> 1 bracket still runs; if the optional
-  characterization checks (WP0) exist, they still pass (or their expected values are
-  intentionally updated for a G1 behavior change).
+  accessors (`finalScoreForChampion`, `opponentOf`, `userGame`); per G1, change
+  `expectedGoals` to attack-vs-defense (side `attack` vs opponent `defense`) and update
+  its callers in `match.ts`/`knockout.ts`/`bracket.ts`.
+- **Acceptance:** build clean; a full 16 -> 1 bracket still runs; the attack-vs-defense
+  change is playtested (a manual group + knockout run looks sane, not runaway or
+  scoreless); WP0 match-sim expectations are updated to the new intended behavior.
 - **Effort:** M. **Deps:** WP2 (`primaryPosition`, `ATTACK_CATS`), G1. **Risk:** medium
   (touches the deterministic core; strongly consider WP0 first).
 
@@ -335,8 +338,8 @@ overreach (reformatting, incidental behavior changes) before committing.
   `userAdvanced`, `handleEnterKnockout`, and the standings consumers through them; fold
   the masthead stamp/eyebrow/title into one pure helper and guard `koStamp`; consider
   merging `CONSUME_REROLL` into `ROLL_START`; add a guarded early-return for the
-  user-team lookup; wire `validateSquads` behind `import.meta.env.DEV`; resolve G2 for
-  `removePlayers`.
+  user-team lookup; wire `validateSquads` behind `import.meta.env.DEV`; per G2, set
+  `FEATURES.removePlayers` to `false` (keep the flag and code path).
 - **Acceptance:** build clean; draft, group, and knockout flows behave identically in the
   dev server; dev console shows the validator run with zero problems.
 - **Effort:** M-L. **Deps:** WP2 (validator). **Risk:** medium-high (touches the core
