@@ -132,12 +132,12 @@ export function currentGame(b: BracketState): BracketGame | null {
   return g?.hasUser ? g : null;
 }
 
-/** Simulate every tie in the current round, returning the games with results.
- *  The caller reveals the user's game (index 0) via the clock, then records the
- *  whole round. */
-export function playRound(b: BracketState): BracketGame[] {
-  return b.rounds[b.current].map((g) => {
-    const sim = simGame(b.teams[g.homeId], b.teams[g.awayId]);
+/** Simulate a set of ties, returning the games with their results filled in.
+ *  Stronger teams (higher rating) win more often, since `simGame` scores from
+ *  each side's overall rating. */
+function simulateGames(teams: Record<string, GroupTeam>, games: BracketGame[]): BracketGame[] {
+  return games.map((g) => {
+    const sim = simGame(teams[g.homeId], teams[g.awayId]);
     return {
       ...g,
       result: {
@@ -152,16 +152,53 @@ export function playRound(b: BracketState): BracketGame[] {
   });
 }
 
+/** Simulate every tie in the current round, returning the games with results.
+ *  The caller reveals the user's game (index 0) via the clock, then records the
+ *  whole round. */
+export function playRound(b: BracketState): BracketGame[] {
+  return simulateGames(b.teams, b.rounds[b.current]);
+}
+
+/** Play out the rest of the bracket from a round's winners to a champion. */
+function completeFrom(
+  teams: Record<string, GroupTeam>,
+  winners: string[],
+  fromRound: number,
+): BracketGame[][] {
+  const rest: BracketGame[][] = [];
+  let advancing = winners;
+  for (let round = fromRound; round < BRACKET_ROUNDS.length; round++) {
+    const games = simulateGames(teams, pairGames(advancing));
+    rest.push(games);
+    advancing = games.map((g) => g.result!.winnerId);
+  }
+  return rest;
+}
+
 /** Record a played round's results (from {@link playRound}) and advance: the user
- *  moves on and the next round's ties are created, or the run ends. */
+ *  moves on and the next round's ties are created, or — if the user is knocked
+ *  out — the remaining rounds are simulated so a champion is still crowned. */
 export function recordRound(b: BracketState, played: BracketGame[]): BracketState {
   const cur = b.current;
   const rounds = b.rounds.map((r, i) => (i === cur ? played : r));
-  const userWon = played[0].result?.winnerId === USER_ID;
-  if (!userWon) return { ...b, rounds, outcome: 'out' };
-  if (cur >= BRACKET_ROUNDS.length - 1) {
-    return { ...b, rounds, outcome: 'champion', current: BRACKET_ROUNDS.length };
-  }
   const winners = played.map((g) => g.result!.winnerId);
-  return { ...b, rounds: [...rounds, pairGames(winners)], current: cur + 1 };
+  const userWon = played[0].result?.winnerId === USER_ID;
+
+  if (userWon) {
+    if (cur >= BRACKET_ROUNDS.length - 1) {
+      return { ...b, rounds, outcome: 'champion', current: BRACKET_ROUNDS.length };
+    }
+    return { ...b, rounds: [...rounds, pairGames(winners)], current: cur + 1 };
+  }
+
+  // Knocked out: finish the tournament for the remaining teams.
+  const rest = completeFrom(b.teams, winners, cur + 1);
+  return { ...b, rounds: [...rounds, ...rest], current: cur, outcome: 'out' };
+}
+
+/** The eventual winner of the whole bracket, once the final has been played
+ *  (whether the user lifted it or not); null while the run is still going. */
+export function bracketChampionId(b: BracketState): string | null {
+  const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
+  return finalGame?.result?.winnerId ?? null;
 }

@@ -76,7 +76,7 @@ function Seed({ side, score, stacked }: { side: SideView; score?: number; stacke
   );
 
   return (
-    <div className={cls}>
+    <div className={cls} title={team ? `Rating ${team.strength.overall}` : undefined}>
       {stacked ? <span className="bkt-stack">{ident}</span> : ident}
       {score !== undefined && <span className="bkt-sc">{score}</span>}
     </div>
@@ -98,12 +98,13 @@ function pairs<T>(arr: T[]): T[][] {
   return out;
 }
 
-/** The champion node ("the cup"): the user once they win the final, otherwise
- *  "?" (the rest of the bracket is only played as the user advances). */
+/** The champion node ("the cup"): the winner of the final once it has been played
+ *  — the user when they lift it, otherwise whichever team went on to win it — or
+ *  "?" while the run is still going. */
 function Cup({ b }: { b: BracketState }) {
-  const champ = b.outcome === 'champion' ? b.teams[USER_ID] : null;
   const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
   const r = finalGame?.result;
+  const champ = b.outcome === 'champion' ? b.teams[USER_ID] : r ? b.teams[r.winnerId] : null;
   const score =
     champ && r
       ? r.winnerId === finalGame!.homeId
@@ -112,11 +113,15 @@ function Cup({ b }: { b: BracketState }) {
       : null;
 
   return (
-    <div className="bkt-cup">
+    <div className="bkt-cup" title={champ ? `Rating ${champ.strength.overall}` : undefined}>
       <div className="bkt-cup-lbl">{champ ? 'World Champion' : 'Champion'}</div>
       {champ ? (
         <>
-          <Flag code={champ.code} isUser className="mx-auto my-1.5 block h-5 w-[30px]" />
+          <Flag
+            code={champ.code}
+            isUser={champ.id === USER_ID}
+            className="mx-auto my-1.5 block h-5 w-[30px]"
+          />
           <div className="bkt-cup-nm">{champ.name}</div>
           {score && (
             <div className="mt-1.5 font-mono text-[9px] font-semibold tracking-[0.04em] text-white/70">

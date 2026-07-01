@@ -61,7 +61,10 @@ function GroupRecap({ group }: { group: GroupState }) {
             className="grid grid-cols-[18px_minmax(0,1fr)_auto] items-center gap-2.5 py-[5px] text-[13.5px]"
           >
             <ResultBadge won={r.won} />
-            <span className="flex min-w-0 items-center gap-[9px] font-semibold text-ink">
+            <span
+              title={`Rating ${r.opponent.strength.overall}`}
+              className="flex min-w-0 items-center gap-[9px] font-semibold text-ink"
+            >
               <Flag code={r.opponent.code} className="h-[15px] w-[22px]" />
               <span className="truncate">{r.opponent.name}</span>
               {r.opponent.year && (
@@ -116,7 +119,10 @@ function KnockoutRecap({ bracket }: { bracket: BracketState }) {
               className="grid grid-cols-[18px_minmax(0,1fr)_auto_auto] items-center gap-2.5 py-[5px] text-[13.5px]"
             >
               <ResultBadge won={r.won} />
-              <span className="flex min-w-0 items-center gap-[9px] font-semibold text-ink">
+              <span
+                title={`Rating ${r.opp.strength.overall}`}
+                className="flex min-w-0 items-center gap-[9px] font-semibold text-ink"
+              >
                 <Flag code={r.opp.code} className="h-[15px] w-[22px]" />
                 <span className="truncate">{r.opp.name}</span>
                 {r.opp.year && (

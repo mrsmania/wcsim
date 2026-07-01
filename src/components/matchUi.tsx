@@ -228,6 +228,8 @@ export function FixtureHead({
   status,
   statusDim,
   scrambleCode,
+  userElo,
+  oppElo,
 }: {
   oppName?: string;
   oppCode?: string;
@@ -238,10 +240,16 @@ export function FixtureHead({
   statusDim?: boolean;
   /** Render the away side as a scrambling mystery: this flag code + "…". */
   scrambleCode?: string;
+  /** Team ratings, shown as a hover title on each side. */
+  userElo?: number;
+  oppElo?: number;
 }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-[18px] py-[14px] max-sm:gap-1.5 max-sm:px-3 max-sm:text-[13px] sm:text-[14.5px]">
-      <div className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5">
+      <div
+        title={userElo != null ? `Rating ${userElo}` : undefined}
+        className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5"
+      >
         <span className="truncate">Your XI</span>
         <Flag isUser code="" className="h-[15px] w-[22px]" />
       </div>
@@ -265,7 +273,10 @@ export function FixtureHead({
           </span>
         )}
       </div>
-      <div className="flex min-w-0 items-center gap-[9px] font-semibold text-ink max-sm:gap-1.5">
+      <div
+        title={oppElo != null ? `Rating ${oppElo}` : undefined}
+        className="flex min-w-0 items-center gap-[9px] font-semibold text-ink max-sm:gap-1.5"
+      >
         {scrambleCode !== undefined ? (
           <>
             <Flag code={scrambleCode} className="h-[15px] w-[22px]" />

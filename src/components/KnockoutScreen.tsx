@@ -3,6 +3,7 @@ import { buildMatchSteps, HALF_TIME_MS, PEN_MS, STEP_MS, type MatchSpeed } from 
 import type { MatchEvent } from '../domain/match';
 import {
     BRACKET_ROUNDS,
+    bracketChampionId,
     currentGame,
     playRound,
     type BracketGame,
@@ -293,6 +294,8 @@ export default function KnockoutScreen({
                                     score={score}
                                     status={status}
                                     statusDim={statusDim}
+                                    userElo={b.teams[USER_ID].strength.overall}
+                                    oppElo={opp.strength.overall}
                                 />
                                 {showFeed && (
                                     <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
@@ -325,15 +328,21 @@ export default function KnockoutScreen({
                             onReset={onReset}
                         />
                     )}
-                    {b.outcome === 'out' && (
-                        <Banner
-                            champion={false}
-                            eyebrow={`Knocked out · ${BRACKET_ROUNDS[b.current]}`}
-                            heading="Knocked out."
-                            body={`Beaten in the ${BRACKET_ROUNDS[b.current]}. So close - draft a new XI and run it back.`}
-                            onReset={onReset}
-                        />
-                    )}
+                    {b.outcome === 'out' &&
+                        (() => {
+                            const champ = b.teams[bracketChampionId(b) ?? ''];
+                            return (
+                                <Banner
+                                    champion={false}
+                                    eyebrow={`Knocked out · ${BRACKET_ROUNDS[b.current]}`}
+                                    heading="Knocked out."
+                                    body={`Beaten in the ${BRACKET_ROUNDS[b.current]}.${
+                                        champ ? ` ${champ.name} went on to lift the cup.` : ''
+                                    } Draft a new XI and run it back.`}
+                                    onReset={onReset}
+                                />
+                            );
+                        })()}
                 </div>
 
                 {over && (

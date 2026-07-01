@@ -65,6 +65,7 @@ export default function TournamentScreen({
     onReset,
 }: Props) {
     const opponents = group.teams.filter((t) => !t.isUser);
+    const userTeam = group.teams.find((t) => t.isUser)!;
     const groupFinished = isGroupFinished(group);
     const advanced = groupFinished && userAdvanced(group);
     const eliminated = groupFinished && !advanced;
@@ -201,7 +202,10 @@ export default function TournamentScreen({
                 <StageHeader eyebrow="Group draw" title="Your group" />
                 <div className="rounded-md border border-line bg-panel p-6 shadow-hard">
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <div className="flex flex-col items-center gap-2 rounded-[5px] border border-pitch/40 bg-pitch/[0.06] px-3 py-5 text-center">
+                        <div
+                            title={`Rating ${userTeam.strength.overall}`}
+                            className="flex flex-col items-center gap-2 rounded-[5px] border border-pitch/40 bg-pitch/[0.06] px-3 py-5 text-center"
+                        >
                             <Flag isUser code="" className="h-6 w-9" />
                             <span className="text-sm font-bold text-ink">Your XI</span>
                             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-loss">
@@ -211,6 +215,7 @@ export default function TournamentScreen({
                         {opponents.map((o, i) => (
                             <div
                                 key={o.id}
+                                title={settled ? `Rating ${o.strength.overall}` : undefined}
                                 className={`flex flex-col items-center gap-2 rounded-[5px] border border-line bg-ground px-3 py-5 text-center ${
                                     settled ? 'animate-settle' : ''
                                 }`}
@@ -327,7 +332,10 @@ export default function TournamentScreen({
                                     </span>
                                 )}
                             </span>
-                            <span className="flex min-w-0 items-center gap-[9px]">
+                            <span
+                                title={`Rating ${s.team.strength.overall}`}
+                                className="flex min-w-0 items-center gap-[9px]"
+                            >
                                 <Flag
                                     code={s.team.code}
                                     isUser={s.team.isUser}
@@ -392,6 +400,8 @@ export default function TournamentScreen({
                                             key={`${f.homeId}-${f.awayId}`}
                                             home={h}
                                             away={a}
+                                            homeElo={h.strength.overall}
+                                            awayElo={a.strength.overall}
                                             score={
                                                 f.result
                                                     ? {
@@ -489,6 +499,8 @@ export default function TournamentScreen({
                                 score={score}
                                 status={status}
                                 statusDim={statusDim}
+                                userElo={userTeam.strength.overall}
+                                oppElo={opp.strength.overall}
                             />
                             {feedEvents && (
                                 <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
