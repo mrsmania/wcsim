@@ -63,8 +63,8 @@ export function confettiBurst(originX: number, originY: number, count = 80) {
 
   const pieces: Piece[] = [];
   for (let i = 0; i < count; i++) {
-    // Fan the pieces around straight up (a ~78deg cone), then let gravity win.
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * ((78 * Math.PI) / 180);
+    // Fire outward in every direction (a full 360deg pop), then let gravity win.
+    const angle = Math.random() * Math.PI * 2;
     const speed = 5 + Math.random() * 6;
     pieces.push({
       x: originX,
