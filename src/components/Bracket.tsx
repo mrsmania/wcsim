@@ -1,6 +1,7 @@
 import { BRACKET_ROUNDS, type BracketState } from '../domain/bracket';
 import { USER_ID, type GroupTeam } from '../domain/tournament';
 import Flag from './Flag';
+import { RatingChip } from './matchUi';
 
 /** Games per round, longest to the final — the fixed shape the tree always draws
  *  (later rounds show as "?" until their feeder round is played). */
@@ -76,8 +77,9 @@ function Seed({ side, score, stacked }: { side: SideView; score?: number; stacke
   );
 
   return (
-    <div className={cls} title={team ? `Rating ${team.strength.overall}` : undefined}>
+    <div className={cls}>
       {stacked ? <span className="bkt-stack">{ident}</span> : ident}
+      {!stacked && team && <RatingChip value={team.strength.overall} />}
       {score !== undefined && <span className="bkt-sc">{score}</span>}
     </div>
   );
@@ -101,7 +103,7 @@ function pairs<T>(arr: T[]): T[][] {
 /** The champion node ("the cup"): the winner of the final once it has been played
  *  — the user when they lift it, otherwise whichever team went on to win it — or
  *  "?" while the run is still going. */
-function Cup({ b }: { b: BracketState }) {
+function Cup({ b, stacked }: { b: BracketState; stacked: boolean }) {
   const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
   const r = finalGame?.result;
   const champ = b.outcome === 'champion' ? b.teams[USER_ID] : r ? b.teams[r.winnerId] : null;
@@ -113,7 +115,7 @@ function Cup({ b }: { b: BracketState }) {
       : null;
 
   return (
-    <div className="bkt-cup" title={champ ? `Rating ${champ.strength.overall}` : undefined}>
+    <div className="bkt-cup">
       <div className="bkt-cup-lbl">{champ ? 'World Champion' : 'Champion'}</div>
       {champ ? (
         <>
@@ -122,7 +124,10 @@ function Cup({ b }: { b: BracketState }) {
             isUser={champ.id === USER_ID}
             className="mx-auto my-1.5 block h-5 w-[30px]"
           />
-          <div className="bkt-cup-nm">{champ.name}</div>
+          <div className="bkt-cup-nm">
+            {champ.name}
+            {!stacked && <RatingChip value={champ.strength.overall} className="ml-1.5 align-middle" />}
+          </div>
           {score && (
             <div className="mt-1.5 font-mono text-[9px] font-semibold tracking-[0.04em] text-white/70">
               Final &middot; {score}
@@ -174,7 +179,7 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
             <Match view={v(3, 0)} stacked={false} />
           </div>
           <div className="bkt-round bkt-champ">
-            <Cup b={b} />
+            <Cup b={b} stacked={false} />
           </div>
         </div>
       </div>
@@ -204,7 +209,7 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
           </div>
 
           <div className="bkt-mcenter">
-            <Cup b={b} />
+            <Cup b={b} stacked />
           </div>
 
           {/* bottom half, flowing up */}

@@ -3,7 +3,22 @@ import { ArrowRight, Check, X } from 'lucide-react';
 import type { MatchSpeed } from '../domain/clock';
 import type { KoDecided } from '../domain/knockout';
 import type { PenKick } from '../domain/match';
+import { FEATURES } from '../config';
 import Flag from './Flag';
+
+/** A small chip showing a team's rating, sitting next to the team. Hidden on
+ *  mobile (there is no hover there and space is tight) and toggled globally by
+ *  FEATURES.teamRatings. */
+export function RatingChip({ value, className = '' }: { value: number; className?: string }) {
+  if (!FEATURES.teamRatings) return null;
+  return (
+    <span
+      className={`hidden shrink-0 items-center rounded-full bg-chalk px-1.5 py-px font-mono text-[9px] font-semibold leading-none text-muted sm:inline-flex ${className}`}
+    >
+      {value}
+    </span>
+  );
+}
 
 /** Presentational helpers shared by the group-stage and knockout screens. Kept
  *  framework-light: every piece is a pure function of its props. */
@@ -246,11 +261,9 @@ export function FixtureHead({
 }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-[18px] py-[14px] max-sm:gap-1.5 max-sm:px-3 max-sm:text-[13px] sm:text-[14.5px]">
-      <div
-        title={userElo != null ? `Rating ${userElo}` : undefined}
-        className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5"
-      >
+      <div className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5">
         <span className="truncate">Your XI</span>
+        {userElo != null && <RatingChip value={userElo} />}
         <Flag isUser code="" className="h-[15px] w-[22px]" />
       </div>
       <div className="flex flex-col items-center gap-[3px] max-sm:min-w-[58px] sm:min-w-[74px]">
@@ -273,10 +286,7 @@ export function FixtureHead({
           </span>
         )}
       </div>
-      <div
-        title={oppElo != null ? `Rating ${oppElo}` : undefined}
-        className="flex min-w-0 items-center gap-[9px] font-semibold text-ink max-sm:gap-1.5"
-      >
+      <div className="flex min-w-0 items-center gap-[9px] font-semibold text-ink max-sm:gap-1.5">
         {scrambleCode !== undefined ? (
           <>
             <Flag code={scrambleCode} className="h-[15px] w-[22px]" />
@@ -289,6 +299,7 @@ export function FixtureHead({
             {oppYear && (
               <span className="shrink-0 font-mono text-[11px] font-medium text-muted">{oppYear}</span>
             )}
+            {oppElo != null && <RatingChip value={oppElo} />}
           </>
         )}
       </div>

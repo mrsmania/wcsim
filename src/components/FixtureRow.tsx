@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import Flag from './Flag';
+import { RatingChip } from './matchUi';
 
 /** Minimal team shape a fixture row needs. */
 export interface FixtureTeam {
@@ -23,22 +24,9 @@ interface Props {
   scrambleCode?: string;
   /** Render the away side as an undrawn opponent ("?"). */
   awayUnknown?: boolean;
-  /** Overall ratings; shown as a pill when hovering that team (desktop). */
+  /** Overall ratings; shown as a small chip next to each team (desktop). */
   homeElo?: number;
   awayElo?: number;
-}
-
-/** A small dark pill revealed on hover of a team (desktop only — no touch hover). */
-function EloPill({ elo, group }: { elo: number; group: 'home' | 'away' }) {
-  return (
-    <span
-      className={`hidden shrink-0 rounded-full bg-pitch px-1.5 font-mono text-[10px] font-bold leading-tight text-white ${
-        group === 'home' ? 'group-hover/home:inline-block' : 'group-hover/away:inline-block'
-      }`}
-    >
-      {elo}
-    </span>
-  );
 }
 
 /** A compact one-line match row: home — score — away, optionally expandable. */
@@ -79,12 +67,12 @@ export default function FixtureRow({
     </>
   );
 
-  const showAwayElo = awayElo != null && !awayUnknown && scrambleCode === undefined;
+  const showAwayElo = !awayUnknown && scrambleCode === undefined;
 
   const inner = (
     <>
-      <span className={`group/home flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
-        {homeElo != null && <EloPill elo={homeElo} group="home" />}
+      <span className={`flex flex-1 items-center justify-end gap-2 truncate ${home.isUser ? 'font-black' : 'font-medium'}`}>
+        {homeElo != null && <RatingChip value={homeElo} />}
         <span className="truncate">{home.name}</span>
         {home.year && <span className={yr}>{home.year}</span>}
         <Flag code={home.code} isUser={home.isUser} className="h-4 w-6 shrink-0" />
@@ -93,9 +81,9 @@ export default function FixtureRow({
         <span className="rounded-[5px] bg-chalk px-2.5 py-1 font-mono font-bold text-ink">{scoreText}</span>
         {status && <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.08em] text-amber">{status}</span>}
       </span>
-      <span className={`group/away flex flex-1 items-center gap-2 truncate ${away.isUser ? 'font-black' : 'font-medium'}`}>
+      <span className={`flex flex-1 items-center gap-2 truncate ${away.isUser ? 'font-black' : 'font-medium'}`}>
         {awayContent}
-        {showAwayElo && <EloPill elo={awayElo} group="away" />}
+        {showAwayElo && awayElo != null && <RatingChip value={awayElo} />}
       </span>
       <span className="flex w-4 items-center justify-center text-muted">
         {expandable ? expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} /> : null}

@@ -27,6 +27,7 @@ import {
     ordinal,
     PlaybackControls,
     PRIMARY_BTN,
+    RatingChip,
     ResultTag,
     StageHeader,
 } from './matchUi';
@@ -202,20 +203,17 @@ export default function TournamentScreen({
                 <StageHeader eyebrow="Group draw" title="Your group" />
                 <div className="rounded-md border border-line bg-panel p-6 shadow-hard">
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <div
-                            title={`Rating ${userTeam.strength.overall}`}
-                            className="flex flex-col items-center gap-2 rounded-[5px] border border-pitch/40 bg-pitch/[0.06] px-3 py-5 text-center"
-                        >
+                        <div className="flex flex-col items-center gap-2 rounded-[5px] border border-pitch/40 bg-pitch/[0.06] px-3 py-5 text-center">
                             <Flag isUser code="" className="h-6 w-9" />
                             <span className="text-sm font-bold text-ink">Your XI</span>
                             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-loss">
                                 You
                             </span>
+                            <RatingChip value={userTeam.strength.overall} />
                         </div>
                         {opponents.map((o, i) => (
                             <div
                                 key={o.id}
-                                title={settled ? `Rating ${o.strength.overall}` : undefined}
                                 className={`flex flex-col items-center gap-2 rounded-[5px] border border-line bg-ground px-3 py-5 text-center ${
                                     settled ? 'animate-settle' : ''
                                 }`}
@@ -229,6 +227,7 @@ export default function TournamentScreen({
                                         WC {o.year}
                                     </span>
                                 )}
+                                {settled && <RatingChip value={o.strength.overall} />}
                             </div>
                         ))}
                     </div>
@@ -332,10 +331,7 @@ export default function TournamentScreen({
                                     </span>
                                 )}
                             </span>
-                            <span
-                                title={`Rating ${s.team.strength.overall}`}
-                                className="flex min-w-0 items-center gap-[9px]"
-                            >
+                            <span className="flex min-w-0 items-center gap-[9px]">
                                 <Flag
                                     code={s.team.code}
                                     isUser={s.team.isUser}
@@ -358,6 +354,7 @@ export default function TournamentScreen({
                                         You
                                     </span>
                                 )}
+                                <RatingChip value={s.team.strength.overall} />
                             </span>
                             <span className={`hidden sm:block ${stNum}`}>{s.played}</span>
                             <span className={stNum}>{s.won}</span>
