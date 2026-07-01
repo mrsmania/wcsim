@@ -3,6 +3,78 @@
 A principles-focused review of the `src/` tree against DRY, KISS, SoC, YAGNI, clean
 code, and the Law of Demeter, followed by an action plan for an implementation team.
 
+## Implementation status (updated 2026-07-01)
+
+Implemented by a team of specialist agents in three waves, one commit per work
+package. Both decision gates were applied: **G1 -> attack-vs-defense** and
+**G2 -> `removePlayers` default off**. Each committed WP built green
+(`tsc --noEmit` + `vite build`); the combined build is green.
+
+**Done and committed** (all 6 WPs):
+
+- [x] **WP1** - Dead code purge (F-1). `SpeedControl.tsx`, `positionStyle.ts`
+      deleted; `FaceAvatar` removed. Commit `072c014`.
+- [x] **WP2** - Data/types foundation + dataset validator (Q-1, Q-3, Q-5 typing,
+      Q-9, D-10/Q-6 helpers). New `domain/validateSquads.ts`; `SQUAD_BY_ID` typed
+      `| undefined`; `primaryPosition`/`ATTACK_CATS`/`DEF_CATS` added. Commit `3540278`.
+- [x] **WP4** - Domain dedup and purity (D-1, D-2, D-4, D-5, D-6, D-7, D-8/G1, D-9,
+      D-10, D-12, Q-5 guards, Q-6 match, Q-10). Attack-vs-defense verified via a
+      throwaway sim harness (mean ~1.3 goals/side; brackets always complete; user
+      meets the co-qualifier only in the final). Commit `fe3c9de`.
+- [x] **WP3** - Frontend shared primitives (F-2, F-3, F-7, F-8 partial, F-9, Q-6
+      BoxScore). `FixtureRow` pruned; `SECONDARY_BTN`/`EYEBROW`/`TABLE_HEAD`/
+      `MONO_CAP` added and reused. Commit `53f6318`.
+- [x] **WP6** - App orchestration and reducer symmetry (A-1, A-2, A-4, A-5, A-7,
+      A-8, D-3, D-11, Q-7, Q-8, A-6/G2). Placement now reducer-owned; draw-next is a
+      single committed-state effect; seeding/qualify rules moved into the domain;
+      the dev-time validator is wired behind `import.meta.env.DEV`. Commit `bbaf7fe`.
+- [x] **WP5** - Screen decomposition and dedup (F-4, F-5, F-6, F-10, F-11, F-12,
+      A-3, Q-2). `TournamentScreen` dropped 551 -> ~180 lines; extracted
+      `GroupDrawReveal` / `StandingsTable` / `MatchdayCard`, the shared
+      `useMatchClock` hook, and the pure `liveMatchView`; wired `simulateMatchday`
+      and the flat bracket accessors; renamed FixtureRow's `homeElo`/`awayElo` ->
+      `homeRating`/`awayRating`. The agent's watchdog killed it during a trivial
+      final cleanup, but it left a coherent, green state that was reviewed
+      diff-by-diff and committed. Commit `e2e75b2`. **Runtime playthrough still
+      recommended** (see below) - it was not run because port 5173 was held by a
+      live dev server.
+
+**Open / not done:**
+
+- [ ] **WP0** (optional characterization harness) - not committed as a separate
+      package. Its intent was folded into WP4's throwaway self-tests (shootout,
+      bracket, G1 invariants), which passed. A committed harness would be redundant
+      given there is no test runner; safe to skip.
+- [ ] **Q-4** (move `lastName`/`formatPositions` to `format.ts`) - intentionally
+      skipped (optional; would touch several component files for little gain).
+
+**Scope adjustments from the plan** (forced by real module boundaries, so the
+build stays acyclic):
+
+- **D-11** (`teamById`) and **`simulateMatchday`** live in `tournament.ts`, which
+  `match.ts` must not import (cycle), so both were implemented by **WP6**, not WP4.
+- **Q-2**: there is no `EloPill`/`RatingPill` component in the repo, so that half was
+  a no-op; the `homeElo`/`awayElo` -> `homeRating`/`awayRating` prop rename was done
+  in **WP5** (which owns `FixtureRow`'s only caller, now `StandingsTable`).
+- **F-8**: the shared caption constants shipped in WP3; the standings table was
+  extracted into `StandingsTable` in **WP5**.
+
+**Housekeeping / notes for the next session:**
+
+- **Not pushed yet.** Local `main` is 7 commits ahead of `origin/main` (the 6 WP
+  commits above plus `56592c8`). Push was deliberately deferred pending the runtime
+  playthrough.
+- **Concurrent commit:** `56592c8` "Fix confetti rain confined to a 300x150 box"
+  (Confetti.tsx) was authored by Mario Smania from another session mid-run. It does
+  not overlap any WP and was left untouched.
+- **Stashed overreach:** `git stash@{0}` holds an out-of-scope change a Wave-1 agent
+  slipped in - a new `FEATURES.randomTeam` flag gating the "Random team" button
+  (`SetupPanel.tsx` + `config.ts`). It matches no finding. `git stash pop` to keep
+  it, `git stash drop` to discard.
+- **Verification still owed:** a full manual UI playthrough (draft -> group ->
+  knockout -> champion/confetti) has not been run yet; it is the acceptance gate for
+  WP5 and a good final check for the G1 difficulty change.
+
 ## Method
 
 Four specialist reviewers audited disjoint slices of the codebase in parallel, each
