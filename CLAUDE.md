@@ -58,11 +58,18 @@ npm run dev        # Vite dev server (http://localhost:5173, bumps to 5174 if bu
 npm run build      # tsc --noEmit && vite build -> dist/   (run this to verify changes)
 npm run typecheck  # tsc --noEmit
 npm run preview    # serve the production build
+npm run checks     # run domain characterization checks (scripts/checks.ts)
 ```
 
-There is **no test runner**. Verify changes with `npm run build` (type-check +
-bundle). For quick logic checks you can bundle a throwaway script with the bundled
-esbuild and run it in node, e.g.
+There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
+bundle). For the deterministic domain core there is a committed characterization
+harness at `scripts/checks.ts`, run via `npm run checks`: it exercises the sim,
+penalty shootout, knockout bracket, standings, and chemistry thousands of times and
+asserts invariants (a shootout always has a winner, a bracket always crowns one
+champion, standings totals reconcile, chemistry sums to its capped bonus, etc.),
+exiting non-zero on any violation. Run it after touching anything in `domain/`. For
+one-off logic probes you can still bundle a throwaway script with the bundled esbuild
+and run it in node, e.g.
 `npx esbuild --bundle --format=esm --platform=node tmp_x.ts | node --input-type=module`
 (name scratch files `tmp_*`; they are gitignored).
 
