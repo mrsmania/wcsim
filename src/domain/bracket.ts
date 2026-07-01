@@ -48,7 +48,7 @@ export interface BracketState {
 const sideOf = (t: GroupTeam): Side => ({ strength: t.strength, scorers: t.scorers });
 
 /** Simulate one knockout game to a definite winner: regulation, then extra time,
- *  then a shootout if still level. (Generalises `playKnockout` to any two teams.) */
+ *  then a shootout if still level. The single reg -> ET -> shootout resolver. */
 function simGame(home: GroupTeam, away: GroupTeam): {
   result: MatchResult;
   decided: KoDecided;
@@ -201,4 +201,42 @@ export function recordRound(b: BracketState, played: BracketGame[]): BracketStat
 export function bracketChampionId(b: BracketState): string | null {
   const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
   return finalGame?.result?.winnerId ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Flat accessors. These keep screen JSX (WP5) from reaching into the bracket
+// shape with `?.[0]`/`!` chains; each returns a plain, already-resolved value.
+// ---------------------------------------------------------------------------
+
+/** The non-user team in a game, or undefined if the game has no user side (it
+ *  always does on the user's own path, so callers there can treat it as set). */
+export function opponentOf(b: BracketState, game: BracketGame): GroupTeam | undefined {
+  const oppId = game.homeId === USER_ID ? game.awayId : game.homeId;
+  return b.teams[oppId];
+}
+
+/** The user's game in a given round (index 0 of that round), or undefined if the
+ *  round has not been reached yet. */
+export function userGameInRound(b: BracketState, round: number): BracketGame | undefined {
+  return b.rounds[round]?.[0];
+}
+
+/** The crowned champion once the final has been played, with the final score
+ *  oriented winner-first; null while the run is still going. The champion is the
+ *  user when they lifted the cup, otherwise whichever team went on to win it. */
+export function bracketChampion(
+  b: BracketState,
+): { team: GroupTeam; homeGoals: number; awayGoals: number } | null {
+  const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
+  const r = finalGame?.result;
+  if (!finalGame || !r) return null;
+  const teamId = b.outcome === 'champion' ? USER_ID : r.winnerId;
+  const team = b.teams[teamId];
+  if (!team) return null;
+  const winnerIsHome = r.winnerId === finalGame.homeId;
+  return {
+    team,
+    homeGoals: winnerIsHome ? r.homeGoals : r.awayGoals,
+    awayGoals: winnerIsHome ? r.awayGoals : r.homeGoals,
+  };
 }

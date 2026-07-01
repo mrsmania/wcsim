@@ -120,6 +120,54 @@ const SIDE: Record<CsvPos, 'L' | 'C' | 'R'> = {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/** Lay out one band's members into slots at vertical line `bandY`: order them
+ *  left -> centre -> right, bow central runs of 3+, spread rows with flanking
+ *  wide roles evenly between the touchlines (central-only rows cluster around the
+ *  middle), and apply each role's depth nudge. */
+function placeRow(entries: Member[], bandY: number): Slot[] {
+    const lefts = entries.filter((m) => SIDE[m.pos] === 'L');
+    const centers = entries.filter((m) => SIDE[m.pos] === 'C');
+    const rights = entries.filter((m) => SIDE[m.pos] === 'R');
+
+    // Bow only kicks in for central lines of 3+ (0 at the ends, max in the middle).
+    const arc = (k: number, n: number) =>
+        n >= 3 ? CENTER_ARC * (1 - (2 * Math.abs(k - (n - 1) / 2)) / (n - 1)) : 0;
+
+    // Left -> centre -> right order, tagged with the vertical bow on central runs.
+    const ordered: { m: Member; dy: number }[] = [
+        ...lefts.map((m) => ({ m, dy: 0 })),
+        ...centers.map((m, k) => ({ m, dy: arc(k, centers.length) })),
+        ...rights.map((m) => ({ m, dy: 0 })),
+    ];
+    const rowLen = ordered.length;
+    const hasWide = lefts.length > 0 || rights.length > 0;
+    // With flanking wide players, spread the whole row evenly between the touchline
+    // anchors so the outer gaps match the inner ones (a back 5, a five-man
+    // midfield); a purely central line clusters around the middle.
+    const placed = ordered.map((e, i) => ({
+        m: e.m,
+        x:
+            hasWide && rowLen > 1
+                ? LEFT_WIDE + ((RIGHT_WIDE - LEFT_WIDE) * i) / (rowLen - 1)
+                : 50 + (i - (rowLen - 1) / 2) * CENTER_GAP,
+        dy: e.dy,
+    }));
+
+    const slots: Slot[] = [];
+    const labelCount: Record<string, number> = {};
+    for (const { m, x, dy } of placed) {
+        labelCount[m.label] = (labelCount[m.label] ?? 0) + 1;
+        slots.push({
+            id: `${m.label}${labelCount[m.label]}`,
+            position: m.matchPos,
+            label: m.label,
+            x: round1(x),
+            y: round1(bandY + (Y_NUDGE[m.pos] ?? 0) + dy),
+        });
+    }
+    return slots;
+}
+
 function buildFormation(name: string, style: Style, counts: Record<CsvPos, number>): Formation {
     const slots: Slot[] = [];
     for (const band of BANDS) {
@@ -131,45 +179,7 @@ function buildFormation(name: string, style: Style, counts: Record<CsvPos, numbe
         if (entries.length === 0) continue;
 
         const bandY = band.fixed ? band.baseY : band.baseY + SHIFT[style];
-        const lefts = entries.filter((m) => SIDE[m.pos] === 'L');
-        const centers = entries.filter((m) => SIDE[m.pos] === 'C');
-        const rights = entries.filter((m) => SIDE[m.pos] === 'R');
-
-        // Bow only kicks in for central lines of 3+ (0 at the ends, max in the middle).
-        const arc = (k: number, n: number) =>
-            n >= 3 ? CENTER_ARC * (1 - (2 * Math.abs(k - (n - 1) / 2)) / (n - 1)) : 0;
-
-        // Left -> centre -> right order, tagged with the vertical bow on central runs.
-        const ordered: { m: Member; dy: number }[] = [
-            ...lefts.map((m) => ({ m, dy: 0 })),
-            ...centers.map((m, k) => ({ m, dy: arc(k, centers.length) })),
-            ...rights.map((m) => ({ m, dy: 0 })),
-        ];
-        const rowLen = ordered.length;
-        const hasWide = lefts.length > 0 || rights.length > 0;
-        // With flanking wide players, spread the whole row evenly between the touchline
-        // anchors so the outer gaps match the inner ones (a back 5, a five-man
-        // midfield); a purely central line clusters around the middle.
-        const placed = ordered.map((e, i) => ({
-            m: e.m,
-            x:
-                hasWide && rowLen > 1
-                    ? LEFT_WIDE + ((RIGHT_WIDE - LEFT_WIDE) * i) / (rowLen - 1)
-                    : 50 + (i - (rowLen - 1) / 2) * CENTER_GAP,
-            dy: e.dy,
-        }));
-
-        const labelCount: Record<string, number> = {};
-        for (const { m, x, dy } of placed) {
-            labelCount[m.label] = (labelCount[m.label] ?? 0) + 1;
-            slots.push({
-                id: `${m.label}${labelCount[m.label]}`,
-                position: m.matchPos,
-                label: m.label,
-                x: round1(x),
-                y: round1(bandY + (Y_NUDGE[m.pos] ?? 0) + dy),
-            });
-        }
+        slots.push(...placeRow(entries, bandY));
     }
     return { name, style, slots };
 }
