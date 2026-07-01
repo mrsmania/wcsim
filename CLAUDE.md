@@ -97,8 +97,9 @@ src/
   components/  presentational React (App composes them); the group screen
                (TournamentScreen) splits into GroupDrawReveal / StandingsTable /
                MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
-               presentational atoms + per-match view-model used by both screens
-  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers)
+               presentational atoms + per-match view-model used by both screens;
+               SquadBrowser + TeamRoster are the read-only squad archive (see below)
+  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser)
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects
   main.tsx     entry (wraps App in React.StrictMode)
 ```
@@ -209,6 +210,27 @@ page** (`KnockoutScreen.tsx`), driven by `domain/bracket.ts`.
   top-left), respects `prefers-reduced-motion`, scales piece size down on narrow
   screens, and runs without a worker (transferControlToOffscreen can only run once per
   canvas and would throw under StrictMode's dev double-invoke).
+
+## Squad browser (flagged)
+
+A read-only reference view over the whole dataset, reached from a **Play / Squads**
+toggle in the masthead. It is separate from the game: `App` holds a `view: 'game' |
+'browse'` `useState` that is independent of `gameReducer`, so an in-progress draft or
+tournament is preserved while browsing.
+
+- **`SquadBrowser.tsx`** owns browse-local state (`year`, `selectedId`, `query`) and
+  derives everything from `SQUADS` / `SQUAD_BY_ID`. Three views off that state: a nation
+  grid for the chosen World Cup (cards sorted by rating, `< 32` teams flagged as
+  approximate placeholder years), a single squad's roster, and a cross-tournament search
+  (diacritic-insensitive over player name + nation/code/year, capped at 80 rows).
+- **`TeamRoster.tsx`** renders one squad grouped GK -> DEF -> MID -> FWD (styled like
+  `XiTable`, GK on `bg-chalk`), each row showing the four required fields: jersey number,
+  full name, **main position only** (`primaryPosition` = `positions[0]`), and rating.
+- Ratings here are plain always-visible mono numbers, deliberately **not** `RatingChip`
+  (which is `sm`-only and gated by `FEATURES.teamRatings`) - the point of this view is to
+  expose the numbers.
+- Entirely behind **`FEATURES.squadBrowser`**; with it `false` the masthead toggle and
+  the whole view disappear and the game is unchanged.
 
 ## Conventions and working agreements
 

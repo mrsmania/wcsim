@@ -35,6 +35,7 @@ import BoxScore from './components/BoxScore';
 import XiTable from './components/XiTable';
 import TournamentScreen from './components/TournamentScreen';
 import KnockoutScreen from './components/KnockoutScreen';
+import SquadBrowser from './components/SquadBrowser';
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
@@ -111,6 +112,9 @@ export default function App() {
         ...loadSettings(),
     }));
     const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
+    // Top-level view, independent of the game reducer so an in-progress draft or
+    // tournament is preserved while browsing the squad archive.
+    const [view, setView] = useState<'game' | 'browse'>('game');
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -347,7 +351,7 @@ export default function App() {
     return (
         <div className="min-h-full text-ink">
             <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5">
-                <header className="flex items-center gap-4 border-b-2 border-ink pb-4">
+                <header className="flex items-center gap-3 border-b-2 border-ink pb-4">
                     <span className="relative h-[38px] w-[38px] shrink-0 rounded-[3px] bg-[repeating-linear-gradient(90deg,#0e5c34_0_5px,#15924c_5px_10px)] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.9)]">
                         <span className="absolute inset-[7px] rounded-[1px] border-[1.5px] border-white/90" />
                     </span>
@@ -357,14 +361,36 @@ export default function App() {
                     <span className="border-l border-line pl-3.5 text-[12.5px] text-muted max-sm:hidden">
                         Draft a random XI. Win the cup.
                     </span>
-                    {stampText && (
-                        <span className="ml-auto rounded-[3px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted max-sm:hidden">
-                            {stampText}
-                        </span>
-                    )}
+                    <div className="ml-auto flex items-center gap-2.5">
+                        {view === 'game' && stampText && (
+                            <span className="rounded-[3px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted max-sm:hidden">
+                                {stampText}
+                            </span>
+                        )}
+                        {FEATURES.squadBrowser && (
+                            <div className="flex overflow-hidden rounded-[5px] border border-line">
+                                {(['game', 'browse'] as const).map((v) => (
+                                    <button
+                                        key={v}
+                                        onClick={() => setView(v)}
+                                        className={[
+                                            'border-r border-line px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] transition last:border-r-0',
+                                            view === v
+                                                ? 'bg-ink text-ground'
+                                                : 'bg-white text-muted hover:text-pitch',
+                                        ].join(' ')}
+                                    >
+                                        {v === 'game' ? 'Play' : 'Squads'}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </header>
 
-                {phase === 'group' && group && formation ? (
+                {view === 'browse' && FEATURES.squadBrowser ? (
+                    <SquadBrowser />
+                ) : phase === 'group' && group && formation ? (
                     <TournamentScreen
                         group={group}
                         formation={formation}

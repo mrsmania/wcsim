@@ -10,4 +10,8 @@ export const FEATURES = {
     /** Show each team's rating as a small chip next to it (desktop only). Set to
      *  false to hide all the rating chips everywhere. */
     teamRatings: true,
+    /** Squad & World Cup browser: a read-only reference view (reached from the
+     *  masthead) to look through every nation's squad from any tournament. Set to
+     *  false to hide the masthead toggle and the whole browse view. */
+    squadBrowser: true,
 } as const;
