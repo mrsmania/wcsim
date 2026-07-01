@@ -47,16 +47,23 @@ export interface GroupState {
   matchday: number;
 }
 
-/** Build the user's match team. `chemistryBonus` (0 when the feature is off) is
- *  added to overall only, so a cohesive draft simulates a touch stronger. */
+/** Build the user's match team. `chemistryBonus` (0 when the feature is off) lifts
+ *  attack, defense, and overall equally, so a cohesive draft both scores a little
+ *  more and concedes a little less. It must reach attack/defense: the match sim
+ *  drives goals from those (not overall); overall carries it for the ratings strip. */
 export function userGroupTeam(players: Player[], chemistryBonus = 0): GroupTeam {
-  const strength = xiStrength(players);
+  const base = xiStrength(players);
+  const strength: Strength = {
+    attack: base.attack + chemistryBonus,
+    defense: base.defense + chemistryBonus,
+    overall: base.overall + chemistryBonus,
+  };
   return {
     id: USER_ID,
     name: 'Your XI',
     code: 'YOU',
     isUser: true,
-    strength: { ...strength, overall: strength.overall + chemistryBonus },
+    strength,
     scorers: scorerPool(players),
     penTakers: penTakersFrom(players),
   };

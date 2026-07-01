@@ -89,7 +89,7 @@ src/
                               KO_ROUNDS, KoDecided)
                bracket.ts    (the 16-team knockout bracket model; see below)
                clock.ts      (live-reveal playback step sequence)
-               chemistry.ts  (cohesion scoring -> overall bonus; gated by a flag)
+               chemistry.ts  (cohesion scoring -> strength bonus; gated by a flag)
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union)
   hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
@@ -155,9 +155,11 @@ from playback.
 
 ## Chemistry feature (flagged)
 
-A cohesion bonus added to the **user XI's `overall` only** (opponents are real,
-intact squads with innate chemistry). Lives in `domain/chemistry.ts`; surfaced in
-`BoxScore` (live during draft) and `CompletePanel`. Design docs:
+A cohesion bonus added to the **user XI's strength** (attack, defense, and overall
+alike, so it actually reaches the attack-vs-defense match sim, not just the ratings
+display; opponents are real, intact squads with innate chemistry). Lives in
+`domain/chemistry.ts`; surfaced in `BoxScore` (live during draft) and
+`CompletePanel`. Design docs:
 `docs/chemistry-requirements.md`, `docs/chemistry-design.md`.
 
 - Six categories, each contributing a **small integer that sums to the bonus**

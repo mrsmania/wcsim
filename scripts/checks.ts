@@ -169,6 +169,18 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('chemistry: bonus equals the category sum, capped at MAX_BONUS', ok);
 }
 
+// --- Chemistry bonus reaches the sim (attack + defense, not just overall) ----
+{
+  const players = bestEleven(SQUADS[0].players);
+  const base = userGroupTeam(players, 0).strength;
+  const boosted = userGroupTeam(players, 5).strength;
+  const reaches =
+    boosted.attack === base.attack + 5 &&
+    boosted.defense === base.defense + 5 &&
+    boosted.overall === base.overall + 5;
+  check('chemistry: the bonus lifts attack + defense (so it affects the match sim)', reaches);
+}
+
 // --- Summary ---------------------------------------------------------------
 console.log('WP0 characterization checks');
 console.log(`  passed: ${passed}`);
