@@ -20,8 +20,10 @@ import type { Filled } from './draft';
 
 export type Confederation = 'UEFA' | 'CONMEBOL' | 'CONCACAF' | 'CAF' | 'AFC' | 'OFC';
 
-/** Nation code -> confederation, for the "Same continent" category. */
-export const CONFEDERATION: Record<string, Confederation> = {
+/** Nation code -> confederation, for the "Same continent" category. A miss
+ *  returns `undefined`, so callers must guard the lookup (validateSquads asserts
+ *  every squad code is mapped). */
+export const CONFEDERATION: Record<string, Confederation | undefined> = {
   // UEFA
   FRA: 'UEFA', ITA: 'UEFA', NED: 'UEFA', GER: 'UEFA', ESP: 'UEFA', ENG: 'UEFA',
   POR: 'UEFA', BEL: 'UEFA', CRO: 'UEFA', SRB: 'UEFA', SUI: 'UEFA', DEN: 'UEFA',
