@@ -323,9 +323,10 @@
     <h1>The <em>Sticker Album</em></h1>
   </div>
   <div class="meta">
-    <strong>Status</strong> Approved v1.1<br>
+    <strong>Status</strong> Approved v1.2<br>
     <strong>Date</strong> 2026-06-29<br>
-    <strong>Verified</strong> 2026-07-02 (counts still 39/12/2)<br>
+    <strong>Updated</strong> 2026-07-02 (counts re-verified 39/12/2; added draft
+      collectible visibility + player swap, and the image-ready note)<br>
     <strong>Next step</strong> Implementation
   </div>
 </div>
@@ -420,6 +421,16 @@
   </div>
 
   <p style="margin-top:16px; font-size:13.5px; color: var(--ink-mid);">Playing against an opponent who fields a collectible player does <em>not</em> earn a sticker. The collection reflects players you personally drafted.</p>
+
+  <div class="callout">
+    <strong>During the draft:</strong> collectible players are flagged in the drawn-squad
+    roster (a tier-coloured "collectible" marker on the row, and a call-out when the current
+    roll contains one) so the player can spot them and choose to draft them. To make chasing a
+    collectible practical even when its position is already filled, the player may also
+    <strong>swap</strong> an already-placed player for an eligible one (see FR-10). Nothing is
+    awarded mid-run &mdash; drafting or swapping in a collectible only adds it to the
+    <em>pending</em> set that is applied at run-end (FR-2).
+  </div>
 </section>
 
 <!-- ── 4. Duplicates & Trading ── -->
@@ -505,6 +516,8 @@
     <li><span class="req-num">FR-6</span><span>All album logic is gated behind <code>FEATURES.stickerAlbum</code>. When false, no album UI surfaces and no stickers are earned.</span></li>
     <li><span class="req-num">FR-7</span><span>Album state is persisted in localStorage independently of game phase state. Resetting a run does not affect the album.</span></li>
     <li><span class="req-num">FR-8</span><span>The post-run "new stickers" summary only appears if at least one new (non-duplicate) sticker was earned in that run.</span></li>
+    <li><span class="req-num">FR-9</span><span>During the draft, every collectible player in the drawn squad is visibly marked with its tier, and a call-out signals when the current roll contains a collectible. Marking is derived from <code>STICKER_TIERS</code> (FR-1), so it needs no separate data. Gated behind <code>FEATURES.stickerAlbum</code>.</span></li>
+    <li><span class="req-num">FR-10</span><span>The player may swap an already-placed player for another eligible player (one whose <code>positions</code> include that slot's role). Swapping frees the removed player's <code>personId</code> to be drafted again and marks the incoming player as used. This lets a collectible be brought in even when its position was already filled. Swap is available whenever the feature is enabled &mdash; it is not tied to the sticker album, but the album is its main motivation.</span></li>
   </ul>
 </section>
 
@@ -514,11 +527,21 @@
   <ul class="plain">
     <li>Multiplayer sticker trading</li>
     <li>Backend sync / cloud save</li>
-    <li>Player images or illustrated sticker art (sticker cards use text/flag only)</li>
+    <li>Player images or illustrated sticker art (sticker cards use text/flag only in v1)</li>
     <li>Animated sticker reveal / peel effect (nice-to-have, deferred)</li>
     <li>Per-tournament or per-nation sub-albums</li>
     <li>Statistics (e.g. "how many runs to collect X")</li>
   </ul>
+
+  <div class="callout">
+    <strong>Image-ready (pathed for later):</strong> v1 ships text + flag cards, but the card
+    and asset path are prepared so real sticker images can be added later with no data rework.
+    The switch is: drop images at <code>public/stickers/&lt;player-id&gt;.png</code> (keyed by the
+    same <code>player.id</code> the album already uses), and <code>StickerCard</code> renders the
+    image with a graceful fallback to the current text+flag treatment when a file is missing. The
+    <code>src</code> is built base-path-aware (<code>import.meta.env.BASE_URL</code>) so it resolves
+    under the GitHub Pages subpath. No change to <code>AlbumState</code>, config, or domain logic.
+  </div>
 </section>
 
 <!-- ── 9. Resolved Decisions ── -->
@@ -534,6 +557,6 @@
 </section>
 
 <div class="doc-footer">
-  <span>World Cup Simulator — Sticker Album Spec v1.1</span>
-  <span>Design: docs/sticker-album-design.md · Comps: docs/redesign-2026/turf-flat/sticker-album.html</span>
+  <span>World Cup Simulator — Sticker Album Spec v1.2</span>
+  <span>Design: docs/sticker-album-design.md · Comps: turf-flat/sticker-album.html + turf-flat/draft-stickers.html</span>
 </div>

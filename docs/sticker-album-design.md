@@ -276,7 +276,20 @@ No migration logic needed for v1. When a v2 schema is required, add a `migrate(r
 Full album view. Receives `album: AlbumState`, `allPlayers: Player[]`, `onTrade: (tier, playerId) => void`, `onClose: () => void`. Internally calls `albumStats()` for the counter. Renders sticker cards grouped by tier (Monumental first, then Iconic, then Legendary). Shows "Trade duplicates" buttons per tier when `canAffordTrade` is true. Opens `TradeModal` when a trade button is tapped. Shows a completion celebration state when `collected.length === total` (treatment TBD per spec 5.8).
 
 ### `StickerCard` (`src/components/StickerCard.tsx`)
-Single sticker. Props: `player: Player`, `tier: StickerTier`, `collected: boolean`, `duplicateCount: number`. Collected: shows name, nation flag, rating, tier badge, duplicate count badge (`x3`) when `duplicateCount > 0`. Uncollected: shows name and nation only; player details are visually obscured (silhouette treatment via CSS, e.g. reduced opacity and blurred/greyed detail area). No player photo (out of scope v1).
+Single sticker. Props: `player: Player`, `tier: StickerTier`, `collected: boolean`, `duplicateCount: number`. Collected: shows name, nation flag, rating, tier badge, duplicate count badge (`x3`) when `duplicateCount > 0`. Uncollected: shows name and nation only; player details are visually obscured (silhouette treatment via CSS, e.g. reduced opacity and blurred/greyed detail area). No player photo in v1.
+
+**Image-ready (v2 switch is pathed).** Keep the text+flag markup as the *fallback* and layer an
+optional image on top so real sticker art can be added later with zero data/schema change:
+
+```tsx
+// v1 today: text + flag only. v2 drops in images keyed by player.id, with fallback.
+const artSrc = `${import.meta.env.BASE_URL}stickers/${player.id}.png`; // base-path aware
+// render <img src={artSrc} onError={hideImg}/> over the text/flag face; if the file is
+// absent (onError) or the feature is off, the existing text+flag card shows through.
+```
+
+Files live at `public/stickers/<player.id>.png` (same key the album uses), so populating art is a
+pure content task. `AlbumState`, `config.ts`, and `domain/album.ts` are untouched by the switch.
 
 ### `RunEndStickerSummary` (`src/components/RunEndStickerSummary.tsx`)
 Post-run overlay. Props: `newPlayerIds: string[]`, `allPlayers: Player[]`, `album: AlbumState`, `onClose: () => void`. Shown only when `newPlayerIds.length > 0` (FR-8). Displays "New stickers added" heading, lists newly earned sticker cards with highlight treatment. "View album" / "Done" button closes the overlay and returns to the setup screen.
@@ -357,3 +370,60 @@ Use a UI-phase enum in `App.tsx`: `'playing' | 'cup-pick' | 'sticker-summary' | 
 
 **Q7 -- Duplicate deduction order: arbitrary.**
 `executeTrade` decrements per-player duplicate entries in arbitrary iteration order until the cost is met. The exact order is not user-visible.
+
+---
+
+## 9. Draft Integration (v1.2 additions)
+
+Two draft-screen features surfaced during design review. Both are gated behind
+`FEATURES.stickerAlbum` (the swap mechanic can also stand alone, but ships with the album).
+Comps: `docs/redesign-2026/turf-flat/draft-stickers.html`.
+
+### 9.1 Collectible visibility in the draft (FR-9)
+
+Purely presentational; no new state. `SquadPanel` already renders each drawn player's row
+(number, name, positions, elo). Add a tier marker derived at render time:
+
+```ts
+import { tierOf } from '../domain/album'; // pure; returns StickerTier | null
+const tier = FEATURES.stickerAlbum ? tierOf(player) : null; // null => no marker
+```
+
+- When `tier` is non-null, render a small tier-coloured "collectible" chip on the row (reuse the
+  album's tier accents). Optionally add a "not yet in your album" hint by checking
+  `!album.collected.includes(player.id)` (album is already in `App.tsx`; pass a `collectedIds:
+  Set<string>` down, or omit for v1 and mark all collectibles the same).
+- Show a one-line call-out above the roster when the drawn squad contains at least one collectible
+  (`squad.players.some(p => tierOf(p))`), e.g. "Collectible available: Lionel Messi - Monumental".
+- No effect on eligibility or draft logic; it only draws attention.
+
+### 9.2 Swap an already-placed player (FR-10)
+
+Lets the user replace a placed player with an eligible player from the current roll (matching the
+slot's role), so a collectible can be brought in even when its position was already filled. This
+generalises the existing `removePlayers` testing aid (`REMOVE_PLAYER`) into a first-class,
+one-step swap.
+
+**Reducer.** Add one action; keep it pure and self-contained (mirrors `PLACE_PLAYER`):
+
+```ts
+| { type: 'SWAP_PLAYER'; slotId: string; playerId: string }
+// From the currentSquad, the player replacing whoever occupies slotId. Reducer:
+//  - guard: slot exists, player is in currentSquad, canPlace(player, slot, filledWithoutOccupant)
+//  - free the outgoing occupant's personId from usedPersonIds
+//  - set filled[slotId] = incoming; add incoming.personId to usedPersonIds
+//  - clear currentSquad + selectedPlayerId (like PLACE_PLAYER); phase stays 'complete'/'draft'
+```
+
+Because the outgoing player leaves the XI, their sticker must NOT be counted at run-end: derive
+`pendingStickers` from the *final* `filled` XI at run-end (recommended) rather than trusting the
+incremental `STICKER_COLLECT_PENDING` log, OR remove the outgoing id from `pendingStickers` in the
+`SWAP_PLAYER` handler. The final-XI derivation is simpler and swap-proof: at run-end, walk
+`Object.values(filled)`, keep the collectibles, and merge those into the album (autofill and swap
+both fall out for free). Adjust FR-2/Q4 accordingly.
+
+**UI.** Each placed slot gets a "swap" affordance (the pitch badge already supports a remove `x`
+behind `removePlayers`; add a swap icon next to it). Tapping it enters a swap intent for that slot:
+the `SquadPanel` highlights players in the current roll eligible for the slot's role; picking one
+dispatches `SWAP_PLAYER`. A collectible in the roll whose positions are all filled shows a
+"Swap in" call-to-action pointing at the matching filled slot(s).

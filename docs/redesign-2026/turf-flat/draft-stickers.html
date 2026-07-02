@@ -1,0 +1,384 @@
+<!--
+  TURF FLAT — World Cup Simulator (6): DRAFTING WITH STICKERS
+  Design proposal for two sticker-album draft-screen features:
+    - FR-9  collectible players flagged in the drawn-squad roster (tier marker + a
+            "collectible available" call-out), and marked once placed in the XI
+    - FR-10 swap: replace an already-placed player with an eligible one from the roll,
+            so a collectible can be brought in even when its position is filled
+  Spec: docs/sticker-album-spec.html   Design: docs/sticker-album-design.md
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drafting with Stickers — Turf Flat</title>
+<script>
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+/* ===== themeable palette (shared with the other turf-flat comps) ===== */
+:root,:root[data-theme="pitch"]{
+  --pitch-deep:#0E5C34;--pitch:#15924C;--chalk:#E8F0E8;--paper:#F4F2EC;--ink:#13211A;--muted:#5C6A60;
+  --line:#D4DED5;--amber:#E4922B;--loss:#C8453C;--white:#fff;--wash:rgba(14,92,52,.05);--ring:rgba(255,255,255,.9);
+  --flag-edge:rgba(19,33,26,.18);--win-tint:rgba(21,146,76,.13);--gold:#C99A3A;--gold-lo:#F0CF8A;
+  --turf-a:#1f8a4d;--turf-b:#1a7d45;--turf-line:rgba(255,255,255,.82);--on-pitch:#fff;--plate:#fff;--plate-ink:#13211A;
+}
+:root[data-theme="cobalt"]{--pitch-deep:#16356E;--pitch:#2356C8;--chalk:#E4ECFA;--paper:#F2F4F9;--ink:#141C2B;--muted:#5A6480;--line:#D2DAEA;--amber:#E8902A;--loss:#D6453E;--white:#fff;--wash:rgba(22,53,110,.06);--ring:rgba(255,255,255,.9);--flag-edge:rgba(20,28,43,.18);--win-tint:rgba(35,86,200,.12);--gold:#C79A38;--gold-lo:#EFCE86;--turf-a:#1f8a4d;--turf-b:#1a7d45;--turf-line:rgba(255,255,255,.82);--on-pitch:#fff;--plate:#fff;--plate-ink:#141C2B;}
+:root[data-theme="claret"]{--pitch-deep:#5A1230;--pitch:#7C1F3E;--chalk:#F3E6EA;--paper:#F6F1ED;--ink:#241318;--muted:#7A5C63;--line:#E5D3D6;--amber:#C8962F;--loss:#E2683A;--white:#fff;--wash:rgba(90,18,48,.05);--ring:rgba(255,255,255,.88);--flag-edge:rgba(36,19,24,.18);--win-tint:rgba(124,31,62,.12);--gold:#C8962F;--gold-lo:#EFCE86;--turf-a:#1f8a4d;--turf-b:#1a7d45;--turf-line:rgba(255,255,255,.82);--on-pitch:#fff;--plate:#fff;--plate-ink:#241318;}
+:root[data-theme="petrol"]{--pitch-deep:#0C3B3F;--pitch:#136A6E;--chalk:#E0EEEC;--paper:#F1F4F2;--ink:#0F2123;--muted:#577173;--line:#CFE0DD;--amber:#E2792A;--loss:#CF4B3C;--white:#fff;--wash:rgba(12,59,63,.06);--ring:rgba(255,255,255,.9);--flag-edge:rgba(15,33,35,.18);--win-tint:rgba(19,106,110,.13);--gold:#C79A38;--gold-lo:#EFCE86;--turf-a:#1f8a4d;--turf-b:#1a7d45;--turf-line:rgba(255,255,255,.82);--on-pitch:#fff;--plate:#fff;--plate-ink:#0F2123;}
+:root[data-theme="floodlight"]{--pitch-deep:#0C4F2E;--pitch:#2FB46A;--chalk:#1B2C24;--paper:#0E1714;--ink:#E8F2EA;--muted:#90A89A;--line:#2A3D33;--amber:#F0A93E;--loss:#E76C5C;--white:#16231D;--wash:rgba(47,180,106,.07);--ring:rgba(232,242,234,.28);--flag-edge:rgba(232,242,234,.22);--win-tint:rgba(47,180,106,.18);--gold:#E0B14E;--gold-lo:#F2D588;--turf-a:#15663C;--turf-b:#125735;--turf-line:rgba(232,242,234,.5);--on-pitch:#fff;--plate:#1C2C25;--plate-ink:#E8F2EA;}
+:root{--disp:'Archivo',system-ui,sans-serif;--body:'Schibsted Grotesk',system-ui,sans-serif;--mono:'Spline Sans Mono',ui-monospace,monospace;}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.45;-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(180deg,var(--wash),transparent 220px);background-repeat:no-repeat}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px}
+a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.mast{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:2px solid var(--ink)}
+.mast .crest{width:38px;height:38px;flex:0 0 auto;border-radius:6px;background:var(--pitch-deep);display:grid;place-items:center}
+.mast .crest svg{width:22px;height:22px;stroke:var(--amber);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:23px;letter-spacing:-.02em;margin:0;text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12.5px;color:var(--muted);margin-left:2px;border-left:1px solid var(--line);padding-left:14px}
+.mast .stamp{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:6px 10px;background:var(--white)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+.sec-h{display:flex;align-items:center;gap:16px;margin:28px 0 8px}
+.sec-h .txt h2{font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:2px 0 0;line-height:1}
+.sec-h .chalk{flex:1;height:0;border-top:2px solid var(--line);position:relative}
+.sec-h .chalk::before{content:"";position:absolute;left:0;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--white);border:2px solid var(--line)}
+
+.feat{margin:14px 0 4px;border:1px dashed var(--line);border-radius:6px;background:var(--wash);padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.feat .fl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.feat p{margin:0;font-size:12.5px;color:var(--muted)}
+.feat .spacer{flex:1}
+
+.card{background:var(--white);border:1px solid var(--line);border-radius:6px;box-shadow:6px 6px 0 var(--pitch-deep)}
+.btn{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:13px;border:1px solid var(--ink);background:var(--white);color:var(--ink);border-radius:5px;padding:11px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--pitch);border-color:var(--pitch-deep);color:var(--on-pitch)}
+.btn.sm{padding:8px 12px;font-size:11px}
+
+/* ===== flags ===== */
+.flag{width:22px;height:15px;border-radius:2px;flex:0 0 auto;display:inline-block;box-shadow:inset 0 0 0 1px var(--flag-edge);background:#bbb;overflow:hidden;position:relative;vertical-align:middle}
+.flag.lg{width:30px;height:20px}
+.f-bra{background:#1B9E3E}.f-bra::before{content:"";position:absolute;inset:0;margin:auto;width:62%;height:62%;background:#FFD500;transform:rotate(45deg)}.f-bra::after{content:"";position:absolute;inset:0;margin:auto;width:24%;height:24%;border-radius:50%;background:#2A3A8C}
+.f-esp{background:linear-gradient(180deg,#AA151B 0 25%,#F1BF00 25% 75%,#AA151B 75%)}
+.f-por{background:linear-gradient(90deg,#046A38 0 40%,#DA251D 40%)}.f-por::after{content:"";position:absolute;left:40%;top:50%;width:7px;height:7px;border-radius:50%;background:#FFE000;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px #046A38}
+.f-eng{background:#fff}.f-eng::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:16%;background:#CE1124;transform:translateX(-50%)}.f-eng::after{content:"";position:absolute;top:50%;left:0;right:0;height:22%;background:#CE1124;transform:translateY(-50%)}
+.f-cro{background:linear-gradient(180deg,#FF0000 0 34%,#fff 34% 66%,#171796 66%)}
+.f-ger{background:linear-gradient(180deg,#111 0 33.3%,#DD0000 33.3% 66.6%,#FFCE00 66.6%)}
+.f-fra{background:linear-gradient(90deg,#0055A4 0 33.3%,#fff 33.3% 66.6%,#EF4135 66.6%)}
+.f-you{background:var(--loss);position:relative}.f-you::after{content:"YOU";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:7px;color:#fff}
+
+/* ===== tier accents ===== */
+.t-leg{--accent:var(--pitch)}.t-ico{--accent:var(--amber)}.t-mon{--accent:var(--gold)}
+.cchip{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:20px;padding:2px 6px;color:#fff;background:var(--accent);flex:0 0 auto}
+.t-mon .cchip{color:#3a2a06;background:linear-gradient(135deg,var(--gold-lo),var(--gold))}
+
+/* ===== layout ===== */
+.draft-grid{display:grid;grid-template-columns:320px minmax(0,1fr) 320px;gap:22px;align-items:start;margin-top:14px}
+
+/* ── col 1: drawn squad ── */
+.coll-note{display:flex;gap:11px;align-items:center;border:1px solid var(--amber);border-left:3px solid var(--amber);
+  background:linear-gradient(90deg,var(--win-tint),transparent);border-radius:6px;padding:11px 13px;margin-bottom:14px}
+.coll-note .cn-star{font-size:16px;color:var(--amber);flex:0 0 auto}
+.coll-note b{font-family:var(--disp);font-weight:800;font-size:13.5px;display:block}
+.coll-note span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.dsquad{overflow:hidden}
+.ds-hd{padding:13px 14px 12px;border-bottom:1px solid var(--line)}
+.ds-hd .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.ds-hd .nm{display:flex;align-items:center;gap:9px;margin-top:6px;font-family:var(--disp);font-weight:800;font-size:17px}
+.ds-hd .nm .yr{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted)}
+.ds-list{display:flex;flex-direction:column;max-height:none}
+.drow{display:grid;grid-template-columns:20px 1fr auto;gap:9px;align-items:center;width:100%;text-align:left;
+  font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid var(--line);border-left:3px solid transparent;
+  padding:9px 13px;cursor:pointer}
+.drow:hover{background:var(--wash)}
+.drow.sel{background:var(--win-tint)}
+.drow.coll{border-left-color:var(--accent)}
+.drow .num{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center}
+.drow .who{min-width:0}
+.drow .who .n{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:7px}
+.drow .who .n .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drow .who .p{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:1px}
+.drow .who .p u{text-decoration-thickness:1px;text-underline-offset:2px}
+.drow .elo{font-family:var(--mono);font-weight:800;font-size:15px;text-align:right}
+.ds-rerolls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 13px 6px}
+.rr{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);background:var(--white);border-radius:10px;
+  padding:9px 4px;font-family:var(--body);font-size:10.5px;font-weight:700;line-height:1.1;color:var(--ink);cursor:pointer;text-align:center}
+.rr.primary{background:var(--pitch);border-color:var(--pitch-deep);color:#fff}
+.rr svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ds-count{text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted);padding:2px 0 12px}
+
+/* ── col 2: pitch board ── */
+.board-col{display:flex;flex-direction:column;align-items:center}
+.board{position:relative;border-radius:6px;overflow:visible;border:1px solid var(--line);aspect-ratio:68/80;width:100%;max-width:520px;
+  background:repeating-linear-gradient(0deg,var(--turf-a) 0 9.09%,var(--turf-b) 9.09% 18.18%);box-shadow:6px 6px 0 var(--pitch-deep)}
+.board .clip{position:absolute;inset:0;border-radius:6px;overflow:hidden}
+.mk{position:absolute;border:2px solid var(--turf-line)}
+.out{inset:3.5%;border-radius:3px}.mid{left:3.5%;right:3.5%;top:50%;height:0;border-width:0 0 2px 0}
+.circ{left:50%;top:50%;width:30%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%)}
+.spot{left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:var(--turf-line);border:0;transform:translate(-50%,-50%)}
+.boxT{left:24%;right:24%;top:3.5%;height:14%;border-top:0}.boxB{left:24%;right:24%;bottom:3.5%;height:14%;border-bottom:0}
+.tok{position:absolute;transform:translate(-50%,-50%);width:64px;text-align:center;z-index:2}
+.disc{position:relative;width:40px;height:40px;border-radius:50%;margin:0 auto;display:grid;place-items:center;
+  font-family:var(--mono);font-weight:700;font-size:14px;color:var(--on-pitch);background:var(--pitch-deep);border:2px solid var(--on-pitch)}
+.disc .cstar{position:absolute;top:-6px;right:-6px;width:17px;height:17px;border-radius:50%;background:var(--amber);color:#fff;
+  display:grid;place-items:center;font-size:9px;border:1.5px solid var(--on-pitch)}
+.t-mon .disc .cstar{background:linear-gradient(135deg,var(--gold-lo),var(--gold));color:#3a2a06}
+.plate{margin-top:5px;display:inline-block;background:var(--plate);border-radius:3px;padding:3px 7px;max-width:74px}
+.plate .nm{display:block;font-weight:700;font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;color:var(--plate-ink)}
+.swapbtn{position:absolute;top:-6px;left:-6px;width:18px;height:18px;border-radius:50%;background:var(--white);border:1px solid var(--line);
+  display:grid;place-items:center;cursor:pointer;color:var(--pitch);z-index:3}
+.swapbtn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+/* the slot that the selected collectible can be swapped into */
+.tok.target .disc{box-shadow:0 0 0 3px var(--amber),0 0 0 6px rgba(0,0,0,.06)}
+.tok.target .plate{background:var(--amber);}
+.tok.target .plate .nm{color:#3a2a06}
+.tok.target .tgt{display:block;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#3a2a06;margin-top:1px}
+
+/* ── col 3: ratings + collectibles-in-XI + line-up ── */
+.stack{display:flex;flex-direction:column;gap:18px}
+.ratings{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden;box-shadow:6px 6px 0 var(--pitch-deep)}
+.rt{padding:12px;border-right:1px solid var(--line);background:var(--white)}.rt:last-child{border-right:0}
+.rt.ovr{background:var(--pitch-deep);color:var(--on-pitch);border-right-color:var(--pitch-deep)}
+.rt .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.rt.ovr .k{color:rgba(255,255,255,.72)}
+.rt .v{font-family:var(--mono);font-weight:700;font-size:26px;line-height:1;margin-top:6px}
+.collbox{padding:15px 16px}
+.collbox .hd{display:flex;align-items:center;gap:8px;font-family:var(--disp);font-weight:800;font-size:15px}
+.collbox .hd .b{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.collbox ul{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.collbox li{display:flex;align-items:center;gap:9px;font-size:13px}
+.collbox li .cn{font-weight:700}.collbox li .fy{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto}
+.collbox .note{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);font-style:italic}
+.sheet{overflow:hidden}
+.sheet .cap{padding:12px 15px;border-bottom:2px solid var(--ink);font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.prow{display:grid;grid-template-columns:28px 1fr auto auto;gap:9px;align-items:center;padding:8px 15px;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}.prow.gk{background:var(--chalk)}
+.prow .pos{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pitch)}
+.prow .nm{font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.prow .nm .st{color:var(--amber)}.prow.t-mon .nm .st{color:var(--gold)}
+.prow .fy{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.prow .rt-n{font-family:var(--mono);font-weight:700;font-size:14px;text-align:right;min-width:22px}
+
+/* ===== swap overlay ===== */
+.overlay{position:fixed;inset:0;z-index:80;background:rgba(10,20,14,.55);display:grid;place-items:center;padding:24px}
+.overlay[hidden]{display:none}
+.modal{background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:8px 8px 0 var(--pitch-deep);max-width:520px;width:100%;padding:24px}
+.modal .m-eyebrow{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pitch)}
+.modal h3{font-family:var(--disp);font-weight:900;font-size:24px;letter-spacing:-.02em;margin:5px 0 6px}
+.modal .m-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.swap-vs{display:grid;grid-template-columns:1fr 34px 1fr;align-items:center;gap:8px}
+.swap-card{border:1px solid var(--line);border-radius:6px;background:var(--white);padding:14px;text-align:center}
+.swap-card.out{opacity:.75}
+.swap-card.in{border-top:3px solid var(--accent)}
+.swap-card .role{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.swap-card .who{font-family:var(--disp);font-weight:800;font-size:15px;margin:8px 0 3px}
+.swap-card .meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.swap-card .big{font-family:var(--mono);font-weight:700;font-size:22px;margin-top:8px}
+.swap-card.in .big{color:var(--accent)}.swap-card.in.t-mon .big{color:var(--gold)}
+.swap-vs .ar{text-align:center;font-size:20px;color:var(--pitch)}
+.modal .note{font-size:12px;color:var(--muted);font-style:italic;margin-top:14px}
+.modal .m-actions{margin-top:18px;display:flex;gap:10px;justify-content:flex-end}
+
+.themer{position:fixed;top:64px;right:14px;z-index:90;display:flex;align-items:center;gap:9px;background:var(--white);border:1px solid var(--line);border-radius:30px;padding:6px 10px 6px 13px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.themer .tlbl{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.themer .sw-row{display:flex;gap:6px}
+.themer .sw{position:relative;width:22px;height:22px;border-radius:50%;cursor:pointer;border:1px solid var(--flag-edge);padding:0;overflow:hidden;background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%)}
+.themer .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--ink)}
+.themer .sw .nm{position:absolute;left:-9999px}
+.themer .sw.t-pitch{--c1:#15924C;--c2:#0E5C34}.themer .sw.t-cobalt{--c1:#2356C8;--c2:#16356E}.themer .sw.t-claret{--c1:#7C1F3E;--c2:#C8962F}.themer .sw.t-petrol{--c1:#136A6E;--c2:#E2792A}.themer .sw.t-floodlight{--c1:#0E1714;--c2:#2FB46A}
+
+@media (max-width:1080px){.draft-grid{grid-template-columns:1fr 1fr;grid-template-areas:"squad stack" "board board"}.dsquad-col{grid-area:squad}.board-col{grid-area:board}.stack{grid-area:stack}}
+@media (max-width:760px){.draft-grid{grid-template-columns:1fr;grid-template-areas:"squad" "board" "stack"}.mast .tag{display:none}}
+@media (max-width:560px){.themer{top:58px;right:10px;padding:5px 8px 5px 10px}.themer .tlbl{display:none}.wrap{padding:0 14px 60px}.mast .stamp{display:none}.mast h1{font-size:19px}.sec-h .txt h2{font-size:24px}.swap-vs{grid-template-columns:1fr;gap:10px}.swap-vs .ar{transform:rotate(90deg)}}
+</style>
+
+<nav class="themer" aria-label="Colour theme">
+  <span class="tlbl">Theme</span>
+  <div class="sw-row">
+    <button class="sw t-pitch" data-theme="pitch" title="Pitch" aria-pressed="true"><span class="nm">Pitch</span></button>
+    <button class="sw t-cobalt" data-theme="cobalt" title="Cobalt" aria-pressed="false"><span class="nm">Cobalt</span></button>
+    <button class="sw t-claret" data-theme="claret" title="Claret" aria-pressed="false"><span class="nm">Claret</span></button>
+    <button class="sw t-petrol" data-theme="petrol" title="Petrol" aria-pressed="false"><span class="nm">Petrol</span></button>
+    <button class="sw t-floodlight" data-theme="floodlight" title="Floodlight" aria-pressed="false"><span class="nm">Floodlight</span></button>
+  </div>
+</nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="trophy" viewBox="0 0 24 24"><path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"/><path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"/><path d="M18 9h1.5a1 1 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6 9H4.5a1 1 0 0 1 0-5H6"/></symbol>
+  <symbol id="swap" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></symbol>
+  <symbol id="roll" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="crest" aria-hidden="true"><svg><use href="#trophy"/></svg></div>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <span class="stamp">Drafting &middot; 11/11</span>
+  </header>
+
+  <div class="sec-h">
+    <div class="txt"><div class="eyebrow">Team sheet</div><h2>Build your XI</h2></div>
+    <div class="chalk" aria-hidden="true"></div>
+  </div>
+
+  <div class="feat">
+    <span class="fl">Sticker-album draft features</span>
+    <p>Collectibles are flagged in the drawn squad and in your XI. When a collectible cannot fit an open slot, <b>swap</b> it in for a placed player.</p>
+    <span class="spacer"></span>
+    <button class="btn sm" data-open="ov-swap">Preview swap</button>
+  </div>
+
+  <div class="draft-grid">
+    <!-- COL 1 — drawn squad with collectible markers -->
+    <section class="dsquad-col">
+      <div class="coll-note">
+        <span class="cn-star">&#9733;</span>
+        <div><b>3 collectibles in this squad</b><span>Mbapp&eacute; &middot; Monumental &nbsp;|&nbsp; Benzema, Griezmann &middot; Legendary</span></div>
+      </div>
+
+      <div class="card dsquad">
+        <div class="ds-hd">
+          <div class="k">Drawn squad</div>
+          <div class="nm"><span class="flag f-fra"></span>France <span class="yr">2022</span></div>
+        </div>
+        <div class="ds-list">
+          <button class="drow"><span class="num">1</span><span class="who"><span class="n"><span class="txt">Hugo Lloris</span></span><span class="p"><u>GK</u></span></span><span class="elo">86</span></button>
+          <button class="drow coll t-mon sel"><span class="num">10</span><span class="who"><span class="n"><span class="txt">Kylian Mbapp&eacute;</span><span class="cchip">&#9733; Monumental</span></span><span class="p"><u>ST</u> &middot; LW</span></span><span class="elo">97</span></button>
+          <button class="drow coll t-leg"><span class="num">19</span><span class="who"><span class="n"><span class="txt">Karim Benzema</span><span class="cchip">&#9733; Legendary</span></span><span class="p"><u>ST</u></span></span><span class="elo">91</span></button>
+          <button class="drow coll t-leg"><span class="num">7</span><span class="who"><span class="n"><span class="txt">Antoine Griezmann</span><span class="cchip">&#9733; Legendary</span></span><span class="p"><u>AM</u> &middot; ST</span></span><span class="elo">90</span></button>
+          <button class="drow"><span class="num">8</span><span class="who"><span class="n"><span class="txt">Aur&eacute;lien Tchou&eacute;m&eacute;ni</span></span><span class="p"><u>DM</u> &middot; CM</span></span><span class="elo">87</span></button>
+          <button class="drow"><span class="num">4</span><span class="who"><span class="n"><span class="txt">Rapha&euml;l Varane</span></span><span class="p"><u>CB</u></span></span><span class="elo">87</span></button>
+          <button class="drow"><span class="num">5</span><span class="who"><span class="n"><span class="txt">Jules Kound&eacute;</span></span><span class="p"><u>RB</u> &middot; CB</span></span><span class="elo">85</span></button>
+          <button class="drow"><span class="num">11</span><span class="who"><span class="n"><span class="txt">Ousmane Demb&eacute;l&eacute;</span></span><span class="p"><u>RW</u></span></span><span class="elo">85</span></button>
+          <button class="drow"><span class="num">9</span><span class="who"><span class="n"><span class="txt">Olivier Giroud</span></span><span class="p"><u>ST</u></span></span><span class="elo">84</span></button>
+          <button class="drow"><span class="num">22</span><span class="who"><span class="n"><span class="txt">Th&eacute;o Hern&aacute;ndez</span></span><span class="p"><u>LB</u></span></span><span class="elo">84</span></button>
+        </div>
+        <div class="ds-rerolls">
+          <div class="rr"><svg><use href="#roll"/></svg>Another team</div>
+          <div class="rr"><svg><use href="#roll"/></svg>Another cup</div>
+          <div class="rr primary"><svg><use href="#roll"/></svg>Roll again</div>
+        </div>
+        <div class="ds-count">2 re-rolls left</div>
+      </div>
+    </section>
+
+    <!-- COL 2 — pitch: XI complete, one slot marked as the swap target -->
+    <section class="board-col">
+      <div class="board" role="img" aria-label="Your XI; the left wing slot is highlighted as a swap target for the selected collectible">
+        <div class="clip">
+          <div class="mk out"></div><div class="mk mid"></div><div class="mk circ"></div><div class="mk spot"></div>
+          <div class="mk boxT"></div><div class="mk boxB"></div>
+        </div>
+        <!-- forwards -->
+        <div class="tok target t-mon" style="left:22%;top:16%">
+          <div class="disc">11</div>
+          <span class="plate"><span class="nm">Coutinho</span><span class="tgt">Swap &rarr; Mbapp&eacute;</span></span>
+        </div>
+        <div class="tok t-leg" style="left:50%;top:11%">
+          <button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button>
+          <div class="disc">9<span class="cstar">&#9733;</span></div><span class="plate"><span class="nm">Kane</span></span>
+        </div>
+        <div class="tok" style="left:78%;top:16%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">7</div><span class="plate"><span class="nm">Ronaldo</span></span></div>
+        <!-- midfield -->
+        <div class="tok" style="left:30%;top:40%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">8</div><span class="plate"><span class="nm">Lampard</span></span></div>
+        <div class="tok" style="left:70%;top:40%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">10</div><span class="plate"><span class="nm">Modri&#263;</span></span></div>
+        <div class="tok" style="left:50%;top:56%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">18</div><span class="plate"><span class="nm">Kroos</span></span></div>
+        <!-- defense -->
+        <div class="tok" style="left:15%;top:73%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">6</div><span class="plate"><span class="nm">Carlos</span></span></div>
+        <div class="tok t-leg" style="left:38%;top:77%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">3<span class="cstar">&#9733;</span></div><span class="plate"><span class="nm">Ramos</span></span></div>
+        <div class="tok" style="left:62%;top:77%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">15</div><span class="plate"><span class="nm">Piqu&eacute;</span></span></div>
+        <div class="tok" style="left:85%;top:73%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">20</div><span class="plate"><span class="nm">Cancelo</span></span></div>
+        <!-- keeper -->
+        <div class="tok" style="left:50%;top:92%"><button class="swapbtn" data-open="ov-swap" title="Swap"><svg><use href="#swap"/></svg></button><div class="disc">23</div><span class="plate"><span class="nm">Ederson</span></span></div>
+      </div>
+    </section>
+
+    <!-- COL 3 — ratings + collectibles in XI + line-up -->
+    <section class="stack">
+      <div class="ratings">
+        <div class="rt ovr"><div class="k">Ovr</div><div class="v">89</div></div>
+        <div class="rt"><div class="k">Att</div><div class="v">90</div></div>
+        <div class="rt"><div class="k">Mid</div><div class="v">89</div></div>
+        <div class="rt"><div class="k">Def</div><div class="v">89</div></div>
+      </div>
+
+      <div class="card collbox">
+        <div class="hd">Collectibles in your XI <span class="b">2 in this run</span></div>
+        <ul>
+          <li class="t-leg"><span class="flag f-eng"></span><span class="cn">Harry Kane</span><span class="cchip">Legendary</span><span class="fy">ST &middot; 91</span></li>
+          <li class="t-leg"><span class="flag f-esp"></span><span class="cn">Sergio Ramos</span><span class="cchip">Legendary</span><span class="fy">CB &middot; 92</span></li>
+        </ul>
+        <div class="note">Banked to your album when the run ends &mdash; not before (win or knockout). Swap in Mbapp&eacute; to make it three.</div>
+      </div>
+
+      <div class="card sheet">
+        <div class="cap"><span>Line-up</span><span>Rating</span></div>
+        <div class="prow gk"><span class="pos">GK</span><span class="nm">Ederson</span><span class="fy"><span class="flag f-bra"></span>2022</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">LB</span><span class="nm">Roberto Carlos</span><span class="fy"><span class="flag f-bra"></span>2002</span><span class="rt-n">88</span></div>
+        <div class="prow t-leg"><span class="pos">CB</span><span class="nm"><span class="st">&#9733;</span>Sergio Ramos</span><span class="fy"><span class="flag f-esp"></span>2018</span><span class="rt-n">92</span></div>
+        <div class="prow"><span class="pos">CB</span><span class="nm">Gerard Piqu&eacute;</span><span class="fy"><span class="flag f-esp"></span>2018</span><span class="rt-n">90</span></div>
+        <div class="prow"><span class="pos">RB</span><span class="nm">Jo&atilde;o Cancelo</span><span class="fy"><span class="flag f-por"></span>2022</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">CM</span><span class="nm">Frank Lampard</span><span class="fy"><span class="flag f-eng"></span>2006</span><span class="rt-n">88</span></div>
+        <div class="prow"><span class="pos">CM</span><span class="nm">Luka Modri&#263;</span><span class="fy"><span class="flag f-cro"></span>2014</span><span class="rt-n">89</span></div>
+        <div class="prow"><span class="pos">DM</span><span class="nm">Toni Kroos</span><span class="fy"><span class="flag f-ger"></span>2014</span><span class="rt-n">89</span></div>
+        <div class="prow"><span class="pos">LW</span><span class="nm">Philippe Coutinho</span><span class="fy"><span class="flag f-bra"></span>2018</span><span class="rt-n">88</span></div>
+        <div class="prow t-leg"><span class="pos">ST</span><span class="nm"><span class="st">&#9733;</span>Harry Kane</span><span class="fy"><span class="flag f-eng"></span>2022</span><span class="rt-n">91</span></div>
+        <div class="prow"><span class="pos">RW</span><span class="nm">Cristiano Ronaldo</span><span class="fy"><span class="flag f-por"></span>2010</span><span class="rt-n">89</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== swap overlay ===== -->
+<div class="overlay" id="ov-swap" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Swap into your XI">
+    <div class="m-eyebrow">Swap</div>
+    <h3>Bring in a collectible</h3>
+    <p class="m-sub">Left wing is filled, but Mbapp&eacute; can play there. Swap out your current LW to add the Monumental sticker.</p>
+    <div class="swap-vs">
+      <div class="swap-card out">
+        <div class="role">Out &middot; LW</div>
+        <div class="who">Coutinho</div>
+        <div class="meta"><span class="flag f-bra" style="margin-right:5px"></span>Brazil &middot; 2018</div>
+        <div class="big">88</div>
+      </div>
+      <div class="ar">&rarr;</div>
+      <div class="swap-card in t-mon">
+        <div class="role">In &middot; LW</div>
+        <div class="who">Kylian Mbapp&eacute; <span class="cchip">&#9733; Monumental</span></div>
+        <div class="meta"><span class="flag f-fra" style="margin-right:5px"></span>France &middot; 2022</div>
+        <div class="big">97</div>
+      </div>
+    </div>
+    <p class="note">Coutinho returns to the pool and can be drafted again. The sticker is only added to your album when the run ends.</p>
+    <div class="m-actions">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" data-close>Confirm swap</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){ /* theme switcher */
+  var KEY='turf-flat-theme',sw=[].slice.call(document.querySelectorAll('.themer .sw'));
+  function mark(t){sw.forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-theme')===t?'true':'false');});}
+  mark(document.documentElement.getAttribute('data-theme')||'pitch');
+  sw.forEach(function(b){b.addEventListener('click',function(){var t=b.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem(KEY,t);}catch(e){}mark(t);});});
+})();
+(function(){ /* overlay open/close */
+  function closeAll(){[].forEach.call(document.querySelectorAll('.overlay'),function(o){o.hidden=true;});}
+  document.addEventListener('click',function(e){
+    var op=e.target.closest('[data-open]'); if(op){var o=document.getElementById(op.getAttribute('data-open'));if(o)o.hidden=false;return;}
+    if(e.target.closest('[data-close]')){closeAll();return;}
+    if(e.target.classList.contains('overlay'))closeAll();
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeAll();});
+})();
+</script>
