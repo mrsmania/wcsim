@@ -152,6 +152,7 @@ export default function App() {
         speed,
         auto,
         stickersApplied,
+        swapsLeft,
     } = state;
 
     // Persist the whole game so the clean-path routes survive a refresh.
@@ -630,6 +631,7 @@ export default function App() {
                                     }
                                     openPositions={openPositions}
                                     filledPositions={filledPositions}
+                                    swapsLeft={swapsLeft}
                                     usedPersonIds={usedSet}
                                     selectedPlayerId={selectedPlayerId}
                                     onReroll={handleReroll}
@@ -661,7 +663,7 @@ export default function App() {
                                         selectedPlayer={selectedPlayer}
                                         onPlace={handlePlace}
                                         onRemove={FEATURES.removePlayers ? handleRemove : undefined}
-                                        onSwap={STICKERS ? handleSwap : undefined}
+                                        onSwap={STICKERS && swapsLeft > 0 ? handleSwap : undefined}
                                     />
                                 </section>
                                 <section className="flex flex-col gap-[18px] [grid-area:stack]">

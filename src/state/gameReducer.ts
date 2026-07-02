@@ -3,11 +3,15 @@ import type { Formation, FormationName, Style } from '../domain/formations';
 import { canPlace, isComplete, type Filled } from '../domain/draft';
 import { recordMatchday, type GroupState, type MatchdayResult } from '../domain/tournament';
 import { recordRound, type BracketGame, type BracketState } from '../domain/bracket';
+import { isCollectible } from '../domain/album';
 import type { MatchSpeed } from '../domain/clock';
 
 export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
 
 export const INITIAL_REROLLS = 3;
+/** Player swaps allowed per game (sticker album feature). Only collectibles can be
+ *  swapped in, and only this many times per run. */
+export const INITIAL_SWAPS = 2;
 
 export interface GameState {
   phase: Phase;
@@ -35,6 +39,8 @@ export interface GameState {
    *  The run-end condition (group elimination / bracket outcome) is persistent, so
    *  this guards a once-per-run apply that survives a reload. Reset with the run. */
   stickersApplied: boolean;
+  /** Remaining collectible swaps this run (sticker album feature). */
+  swapsLeft: number;
 }
 
 export type Action =
@@ -73,6 +79,7 @@ export const initialState: GameState = {
   speed: 'fast',
   auto: false,
   stickersApplied: false,
+  swapsLeft: INITIAL_SWAPS,
 };
 
 function currentPlayer(squad: Squad | null, playerId: string | null): Player | null {
@@ -138,11 +145,12 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
     case 'SWAP_PLAYER': {
       // Replace an already-placed player with the selected player from the current
-      // squad (the incoming player must be eligible for that slot's role). The
-      // outgoing player leaves the XI, freeing their personId to be drafted again;
-      // the incoming personId becomes used. Lets a collectible be brought in even
-      // when its position was already filled. currentSquad clears like PLACE_PLAYER,
-      // so the draw effect rolls the next squad for any still-open slot.
+      // squad. Restricted: only a COLLECTIBLE can be swapped in, only INTO a slot its
+      // role fits, and only while swaps remain (INITIAL_SWAPS per run). The outgoing
+      // player leaves the XI, freeing their personId; the incoming personId becomes
+      // used. Lets a collectible be brought in even when its position was already
+      // filled. currentSquad clears like PLACE_PLAYER, so the draw effect rolls the
+      // next squad for any still-open slot.
       const { formation, currentSquad, selectedPlayerId, filled } = state;
       const player = currentPlayer(currentSquad, selectedPlayerId);
       const slot = formation?.slots.find((s) => s.id === action.slotId);
@@ -151,6 +159,8 @@ export function gameReducer(state: GameState, action: Action): GameState {
         !!player &&
         !!slot &&
         !!outgoing &&
+        state.swapsLeft > 0 &&
+        isCollectible(player) &&
         player.positions.includes(slot.position) &&
         outgoing.personId !== player.personId &&
         !state.usedPersonIds.includes(player.personId);
@@ -166,6 +176,7 @@ export function gameReducer(state: GameState, action: Action): GameState {
           ...state.usedPersonIds.filter((id) => id !== outgoing.personId),
           player.personId,
         ],
+        swapsLeft: state.swapsLeft - 1,
         currentSquad: null,
         selectedPlayerId: null,
         phase: done ? 'complete' : 'draft',

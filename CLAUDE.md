@@ -309,13 +309,17 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   text/flag fallback).
 - **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier chip
   + a "collectibles in this squad" call-out). **Swap** (`SWAP_PLAYER` reducer action):
-  when a player is selected, filled slots they're eligible for become swap targets on
-  the `Pitch` (amber ring + swap glyph on the badge); swapping frees the outgoing
-  player's `personId` and uses the incoming one, letting a collectible be brought in
-  even when its slot is filled. So the whole point works, `SquadPanel` makes a player
-  selectable when they fit an open slot **or** a filled one (`App` passes
-  `filledPositions`); otherwise a player whose only positions are all filled would be
-  greyed out and could never be swapped in.
+  only **collectibles** can be swapped in, and only **`INITIAL_SWAPS` (2) per run**
+  (`swapsLeft` in state, shown in `SquadPanel` and reset with the run). When a
+  collectible is selected, filled slots it's eligible for become swap targets on the
+  `Pitch` (amber ring + swap glyph); swapping frees the outgoing player's `personId`
+  and uses the incoming one, so a collectible can be brought in even when its slot is
+  filled. For that to be reachable, `SquadPanel` makes a **collectible** selectable
+  when it fits an open slot **or** a filled one (`App` passes `filledPositions`);
+  non-collectibles remain gated on open slots only, so a collectible whose positions
+  are all filled is the only thing that lights up when nothing is open. The
+  collectible + swaps-remaining checks are enforced in `SquadPanel`, `Pitch`, and the
+  `SWAP_PLAYER` reducer case.
 - With **`FEATURES.stickerAlbum` = false**: no album route/entry, no markers, no swap,
   no overlays, and no album localStorage reads/writes; the game is unchanged.
 

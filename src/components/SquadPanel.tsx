@@ -18,9 +18,11 @@ interface Props {
     canAnotherTeam: boolean;
     canAnotherCup: boolean;
     openPositions: Set<Position>;
-    /** Positions with a filled slot: a player eligible for one can be selected to
+    /** Positions with a filled slot: a COLLECTIBLE eligible for one can be selected to
      *  swap in, even with no open slot (sticker album). Empty when the album is off. */
     filledPositions: Set<Position>;
+    /** Remaining collectible swaps this run; 0 disables the swap-selection path. */
+    swapsLeft: number;
     usedPersonIds: Set<string>;
     selectedPlayerId: string | null;
     onReroll: (kind: RerollKind) => void;
@@ -62,6 +64,7 @@ export default function SquadPanel({
     canAnotherCup,
     openPositions,
     filledPositions,
+    swapsLeft,
     usedPersonIds,
     selectedPlayerId,
     onReroll,
@@ -111,13 +114,18 @@ export default function SquadPanel({
                 {sortSquad(squad.players).map((p) => {
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);
-                    // Also selectable if the player can swap into a filled slot they fit
-                    // (their position may have no open slot). filledPositions is empty
-                    // when the album is off, so behaviour is unchanged there.
-                    const swappable = !used && p.positions.some((pos) => filledPositions.has(pos));
+                    const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
+                    // A COLLECTIBLE can also be selected to swap into a filled slot it
+                    // fits (its position may have no open slot), while swaps remain.
+                    // Non-collectibles stay gated on open slots only. filledPositions is
+                    // empty when the album is off, so behaviour is unchanged there.
+                    const swappable =
+                        !!tier &&
+                        !used &&
+                        swapsLeft > 0 &&
+                        p.positions.some((pos) => filledPositions.has(pos));
                     const interactive = selectable || swappable;
                     const selected = p.id === selectedPlayerId;
-                    const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
                     return (
                         <li key={p.id} className="border-b border-line last:border-b-0">
                             <button
@@ -197,6 +205,12 @@ export default function SquadPanel({
                 />
                 <div className="col-span-3 text-center text-[11px] text-muted">
                     {rerollsLeft} re-rolls left
+                    {FEATURES.stickerAlbum && (
+                        <>
+                            {' '}
+                            &middot; {swapsLeft} collectible swap{swapsLeft === 1 ? '' : 's'} left
+                        </>
+                    )}
                 </div>
             </div>
         </div>

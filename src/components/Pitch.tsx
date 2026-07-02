@@ -3,6 +3,7 @@ import type { Player } from '../data/types';
 import { lastName } from '../data/format';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
+import { isCollectible } from '../domain/album';
 import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
@@ -367,10 +368,13 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                             : selectedPlayer!.positions[0] === slot.position
                               ? 'primary'
                               : 'secondary';
-                        // A filled slot the selected player is eligible for = a swap target.
+                        // A filled slot a selected COLLECTIBLE is eligible for = a swap
+                        // target (only collectibles can be swapped in). `onSwap` is
+                        // undefined when the album is off or no swaps remain.
                         const swapTarget =
                             !!onSwap &&
                             !!selectedPlayer &&
+                            isCollectible(selectedPlayer) &&
                             !!player &&
                             player.personId !== selectedPlayer.personId &&
                             selectedPlayer.positions.includes(slot.position);
