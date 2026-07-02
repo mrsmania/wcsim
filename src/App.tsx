@@ -119,7 +119,14 @@ export default function App() {
 
     useEffect(
         () => () => {
+            // Clear any in-flight scramble timer on unmount. Also reset the animation
+            // flag so a roll that was interrupted here (e.g. React StrictMode's dev
+            // remount clearing the timer while `rolling` is still true) is detected as
+            // orphaned by the draw-next-squad effect and restarted, rather than leaving
+            // the squad box stuck on "Drawing a squad...".
             if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+            timerRef.current = null;
+            animatingRef.current = false;
         },
         [],
     );
@@ -227,14 +234,20 @@ export default function App() {
     // for a freed slot after REMOVE_PLAYER when the XI was complete. Rerolls stay
     // explicit (they keep a squad in hand / set rolling, so this never interferes).
     useEffect(() => {
-        const shouldDraw = phase === 'draft' && !!formation && !currentSquad && !rolling;
+        const needSquad = phase === 'draft' && !!formation && !currentSquad;
+        // `rolling` is true but no animation is actually running: the in-flight
+        // scramble was interrupted (a reload/StrictMode remount cleared its timer).
+        // Recover by rolling again, otherwise the squad box stays on "Drawing...".
+        const orphaned = needSquad && rolling && !animatingRef.current;
+        const shouldDraw = (needSquad && !rolling) || orphaned;
         if (!shouldDraw) {
-            // No draw pending (a squad is in hand, or we are mid-roll, or not in the
-            // draft): release the guard so the next open slot can trigger one roll.
+            // No draw pending (a squad is in hand, or a real roll is animating, or not
+            // in the draft): release the guard so the next open slot triggers one roll.
             drawGuardRef.current = false;
             return;
         }
-        if (drawGuardRef.current) return; // already fired a roll for this open slot
+        // Guard against double rolls, except when recovering an orphaned roll.
+        if (drawGuardRef.current && !orphaned) return;
         drawGuardRef.current = true;
         const open = positionsWithOpenSlot(formation, filled);
         const used = new Set(usedPersonIds);
