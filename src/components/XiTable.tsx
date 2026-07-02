@@ -2,8 +2,11 @@ import { categoryOf, CATEGORY_ORDER } from '../data/types';
 import { lastName } from '../data/format';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
+import { tierOf } from '../domain/album';
 import { SQUAD_BY_ID } from '../data/squads';
+import { FEATURES } from '../config';
 import Flag from './Flag';
+import { TIER_META } from './StickerCard';
 
 /** The placed XI as a line-up sheet: position, last name, flag + year, rating,
  *  ordered back to front (GK, DEF, MID, FWD). Sits in the right column beside the
@@ -31,18 +34,33 @@ export default function XiTable({ formation, filled }: { formation: Formation; f
                 const player = filled[slot.id];
                 const sq = player ? SQUAD_BY_ID[player.squadId] : null;
                 const isGk = slot.position === 'GK';
+                // Collectible marker + tier accent, matching the drawn-squad list.
+                const tier = player && FEATURES.stickerAlbum ? tierOf(player) : null;
                 return (
                     <div
                         key={slot.id}
                         className={`grid grid-cols-[30px_1fr_auto_auto] items-center gap-2.5 border-b border-line px-4 py-2.5 last:border-b-0 ${isGk ? 'bg-chalk' : ''}`}
+                        style={tier ? { boxShadow: `inset 3px 0 0 ${TIER_META[tier].accent}` } : undefined}
                     >
                         <span className="font-mono text-[11px] font-semibold tracking-[0.04em] text-pitch">
                             {slot.label}
                         </span>
                         <span
-                            className={`truncate text-[13.5px] ${player ? 'font-semibold' : 'text-muted'}`}
+                            className={`flex min-w-0 items-center gap-1.5 text-[13.5px] ${player ? 'font-semibold' : 'text-muted'}`}
                         >
-                            {player ? lastName(player.name) : '–'}
+                            <span className="truncate">{player ? lastName(player.name) : '–'}</span>
+                            {tier && (
+                                <span
+                                    className="grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full font-mono text-[9px] font-bold leading-none"
+                                    style={{
+                                        background: TIER_META[tier].accent,
+                                        color: tier === 'monumental' ? '#3a2a06' : '#fff',
+                                    }}
+                                    title={`Collectible · ${TIER_META[tier].name}`}
+                                >
+                                    &#9733;
+                                </span>
+                            )}
                         </span>
                         <span className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
                             {sq ? (

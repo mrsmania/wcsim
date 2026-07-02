@@ -299,8 +299,8 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `champion`/`out`, or group-stage elimination) `App` applies the collectibles in the
   **final XI** (derived from `filled`, so autofill and swaps are covered for free) via
   `applyRunStickers`, guarded once-per-run by the persisted `stickersApplied` reducer
-  flag. A **cup win** first shows `CupRewardPicker` (pick any one uncollected sticker,
-  any tier - FR-3/D-1), then applies. `RunEndStickerSummary` then shows the newly
+  flag. A **cup win** first shows `CupRewardPicker` (pick any one uncollected Legendary
+  or Iconic sticker - Monumental excluded, FR-3/D-1), then applies. `RunEndStickerSummary` then shows the newly
   earned cards (only if any were new, FR-8). Both are global overlays in `App`.
 - **Album screen** (`AlbumScreen.tsx`, route **`/album`**, reached from a home-screen
   entry button): completion counter + duplicate pool, tier sections (Monumental,
@@ -309,8 +309,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   and a 100% completion state. `StickerCard` is text+flag in v1 but image-ready (flip
   `STICKER_IMAGES`, drop `public/stickers/<player.id>.png`; base-path-aware, with a
   text/flag fallback).
-- **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier chip
-  + a "collectibles in this squad" call-out). **Swap** (`SWAP_PLAYER` reducer action):
+- **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier star
+  chip + a "collectibles in this squad" call-out); `XiTable` marks them the same way in
+  the line-up sheet (tier star + a tier-coloured left accent bar on the row). **Swap**
+  (`SWAP_PLAYER` reducer action):
   only **collectibles** can be swapped in, and only **`INITIAL_SWAPS` (2) per run**
   (`swapsLeft` in state, shown in `SquadPanel` and reset with the run). When a
   collectible is selected, filled slots it's eligible for become swap targets on the
