@@ -7,6 +7,7 @@ import { RotateCcw } from 'lucide-react';
 import Flag from './Flag';
 import Tooltip from './Tooltip';
 import { TIER_META } from './StickerCard';
+import StartOverButton from './StartOverButton';
 import { FEATURES } from '../config';
 
 export type RerollKind = 'team' | 'cup' | 'any';
@@ -27,6 +28,8 @@ interface Props {
     selectedPlayerId: string | null;
     onReroll: (kind: RerollKind) => void;
     onSelectPlayer: (playerId: string) => void;
+    /** Drop the whole XI and return to setup (rendered inside the box footer). */
+    onReset: () => void;
 }
 
 function Header({ squad, scrambling }: { squad: Squad; scrambling: boolean }) {
@@ -69,6 +72,7 @@ export default function SquadPanel({
     selectedPlayerId,
     onReroll,
     onSelectPlayer,
+    onReset,
 }: Props) {
     if (!squad) {
         return <div className="text-muted">Drawing a squad…</div>;
@@ -180,25 +184,27 @@ export default function SquadPanel({
                 })}
             </ul>
 
-            {/* Re-roll controls (one row of three) */}
-            <div className="grid grid-cols-3 gap-2 px-3 pb-3.5">
-                <RerollButton
-                    label="Another team"
-                    disabled={rerollDisabled || !canAnotherTeam}
-                    onClick={() => onReroll('team')}
-                />
-                <RerollButton
-                    label="Another cup"
-                    disabled={rerollDisabled || !canAnotherCup}
-                    onClick={() => onReroll('cup')}
-                />
-                <RerollButton
-                    label="Roll again"
-                    primary
-                    disabled={rerollDisabled}
-                    onClick={() => onReroll('any')}
-                />
-                <div className="col-span-3 text-center text-[11px] text-muted">
+            {/* Re-roll controls (one row of three), the count, then Start over */}
+            <div className="px-3 pb-3.5">
+                <div className="grid grid-cols-3 gap-2">
+                    <RerollButton
+                        label="Another team"
+                        disabled={rerollDisabled || !canAnotherTeam}
+                        onClick={() => onReroll('team')}
+                    />
+                    <RerollButton
+                        label="Another cup"
+                        disabled={rerollDisabled || !canAnotherCup}
+                        onClick={() => onReroll('cup')}
+                    />
+                    <RerollButton
+                        label="Roll again"
+                        primary
+                        disabled={rerollDisabled}
+                        onClick={() => onReroll('any')}
+                    />
+                </div>
+                <div className="mt-2 text-center text-[11px] text-muted">
                     {rerollsLeft} re-rolls left
                     {FEATURES.stickerAlbum && (
                         <>
@@ -207,6 +213,7 @@ export default function SquadPanel({
                         </>
                     )}
                 </div>
+                <StartOverButton onReset={onReset} />
             </div>
         </div>
     );

@@ -325,8 +325,9 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   players (`swapEligibleIds`) and passes it to `SquadPanel` (so a used person's better
   version is still pickable); the same collectible/occupant/`swapsLeft` checks are
   enforced in `Pitch` and the `SWAP_PLAYER` reducer case.
-- **Start over** (`StartOverButton`): shown under the drawn squad during the draft; with
-  an inline confirm it runs `handleReset` (drops every chosen player, back to setup).
+- **Start over** (`StartOverButton`): rendered inside the `SquadPanel` box footer during
+  the draft, below the re-roll/swaps count; with an inline confirm it runs `handleReset`
+  (drops every chosen player, back to setup).
 - With **`FEATURES.stickerAlbum` = false**: no album route/entry, no markers, no swap,
   no overlays, and no album localStorage reads/writes; the game is unchanged.
 

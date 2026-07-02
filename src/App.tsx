@@ -50,7 +50,6 @@ import XiTable from './components/XiTable';
 import TournamentScreen from './components/TournamentScreen';
 import KnockoutScreen from './components/KnockoutScreen';
 import SquadBrowser from './components/SquadBrowser';
-import StartOverButton from './components/StartOverButton';
 import AlbumScreen from './components/AlbumScreen';
 import CupRewardPicker from './components/CupRewardPicker';
 import RunEndStickerSummary from './components/RunEndStickerSummary';
@@ -642,7 +641,6 @@ export default function App() {
                                 />
                             )}
                             {homeView === 'draft' && formation && (
-                              <>
                                 <SquadPanel
                                     squad={panelSquad}
                                     rolling={rolling}
@@ -662,9 +660,8 @@ export default function App() {
                                     onSelectPlayer={(playerId) =>
                                         dispatch({ type: 'SELECT_PLAYER', playerId })
                                     }
+                                    onReset={handleReset}
                                 />
-                                <StartOverButton onReset={handleReset} />
-                              </>
                             )}
                             {homeView === 'complete' && formation && (
                                 <CompletePanel
