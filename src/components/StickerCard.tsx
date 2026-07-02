@@ -1,6 +1,6 @@
 import type { Player } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
-import { STICKER_IMAGES, type StickerTier } from '../config';
+import { FEATURES, type StickerTier } from '../config';
 import Flag from './Flag';
 
 /** Tier identity for the sticker cards. These accents are the sticker rarity ramp
@@ -21,10 +21,10 @@ export const TIER_META: Record<
   legendary: { name: 'Legendary', accent: '#15924c', strip: '#15924c', stripText: '#ffffff', order: 2 },
 };
 
-// Sticker art is text + flag in v1. Real images are gated by STICKER_IMAGES in
-// config.ts (drop <player.id>.png into public/stickers/ and flip it on); when set,
-// StickerCard renders the image over the face with a fallback to text+flag.
-// Base-path aware so it resolves under '/' in dev and '/wcsim/' on Pages.
+// Real images are gated by FEATURES.stickerImages (drop <player.id>.png into
+// public/stickers/); when on, StickerCard renders the image over the face with a
+// fallback to text+flag. Base-path aware so it resolves under '/' in dev and
+// '/wcsim/' on Pages.
 const artSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.png`;
 
 interface Props {
@@ -70,7 +70,7 @@ export default function StickerCard({
         ) : null}
       </div>
       <div className="flex flex-1 flex-col items-center gap-1.5 px-3 pb-3 pt-2 text-center">
-        {STICKER_IMAGES && collected && (
+        {FEATURES.stickerImages && collected && (
           <img
             src={artSrc(player.id)}
             alt=""

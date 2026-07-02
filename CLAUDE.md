@@ -108,7 +108,7 @@ src/
                presentational atoms + per-match view-model used by both screens;
                SquadBrowser + TeamRoster are the read-only squad archive (see below)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser,
-               stickerAlbum) + STICKER_TIERS / STICKER_TRADE_COST
+               stickerAlbum, stickerImages) + STICKER_TIERS / STICKER_TRADE_COST
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
@@ -306,9 +306,11 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   entry button): completion counter + duplicate pool, tier sections (Monumental,
   Iconic, Legendary) of `StickerCard`s (collected = flag+name+rating+tier; uncollected =
   silhouette with a `?`), a per-tier **Trade** action (`TradeModal`) when affordable,
-  and a 100% completion state. `StickerCard` is text+flag in v1 but image-ready (flip
-  `STICKER_IMAGES`, drop `public/stickers/<player.id>.png`; base-path-aware, with a
-  text/flag fallback).
+  and a 100% completion state. `StickerCard` shows real artwork when
+  `FEATURES.stickerImages` is on (default): drop `public/stickers/<player.id>.png`
+  (base-path-aware, `aspect-square w-full` hero image on collected cards) with a
+  per-missing-file text+flag fallback, so partial art sets are fine; set the flag
+  false to always use the text+flag placeholder.
 - **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier star
   chip + a "collectibles in this squad" call-out); `XiTable` marks them the same way in
   the line-up sheet (tier star + a tier-coloured left accent bar on the row). **Swap**

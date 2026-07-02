@@ -20,6 +20,12 @@ export const FEATURES = {
      *  markers, and the swap control. Set to false to hide all of it (and skip the
      *  album localStorage reads/writes). */
     stickerAlbum: true,
+    /** Use real sticker artwork instead of the text+flag placeholder. Drop
+     *  <player.id>.png files into public/stickers/ (e.g. fra-2022-10.png). StickerCard
+     *  renders the image on collected cards with a graceful fallback, so partial art
+     *  sets are fine - a player without a file just shows the flag + text. Set to
+     *  false to skip the image requests entirely and always use the placeholder. */
+    stickerImages: true,
 } as const;
 
 /** Collectible sticker tiers, by player `elo` (inclusive on both ends). The single
@@ -42,10 +48,3 @@ export const STICKER_TRADE_COST: Record<StickerTier, number> = {
     iconic: 20,
     monumental: 50,
 } as const;
-
-/** Use real sticker artwork instead of the text+flag placeholder. Off by default so
- *  v1 makes no (404-ing) image requests. To switch on: drop <player.id>.png files into
- *  public/stickers/ (e.g. fra-2022-10.png) and flip this to true. StickerCard renders
- *  the image on collected cards with a graceful fallback, so partial art sets are fine
- *  - a player without a file just shows the flag + text. */
-export const STICKER_IMAGES = false;
