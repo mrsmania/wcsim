@@ -19,6 +19,18 @@ export default function Overlay({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Lock background scroll while the modal is open (own effect with [] deps so the
+  // original overflow is captured once and restored on close, not clobbered by a
+  // re-render). The page scrolls on the document element, so lock that.
+  useEffect(() => {
+    const el = document.documentElement;
+    const prev = el.style.overflow;
+    el.style.overflow = 'hidden';
+    return () => {
+      el.style.overflow = prev;
+    };
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-[80] grid place-items-center bg-ink/55 p-6"

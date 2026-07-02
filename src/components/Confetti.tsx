@@ -203,7 +203,7 @@ export default function Confetti({ durationMs = 3000 }: { durationMs?: number })
         <canvas
             ref={ref}
             aria-hidden
-            className="pointer-events-none fixed inset-0 z-50 h-full w-full"
+            className="pointer-events-none fixed inset-0 z-[90] h-full w-full"
         />
     );
 }

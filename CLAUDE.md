@@ -239,7 +239,9 @@ page** (`KnockoutScreen.tsx`), driven by `domain/bracket.ts`.
 - **Confetti** (`Confetti.tsx`) rains when the user wins the cup. It is a small,
   self-contained canvas animation (no `canvas-confetti` dependency): a pool of falling
   rectangles/circles it draws each frame, kept heavy for `durationMs` (9s) then drained.
-  It is pointer-events-none (never blocks "Draft a new XI"), sits at `z-50` and fills
+  It is pointer-events-none (never blocks "Draft a new XI" or the cup-reward modal
+  under it) and sits at `z-[90]`, above the sticker modals (`Overlay` is `z-[80]`), so
+  on a cup win the rain falls in front of the reward picker. It fills
   the viewport via `fixed inset-0 h-full w-full` (a bare `<canvas>` is a replaced
   element, so `inset-0` alone leaves it at its intrinsic 300x150 and confines the rain
   to the top-left); the backing store is sized to the canvas's rendered box x

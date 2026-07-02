@@ -15,10 +15,12 @@ interface Props {
 /** Shown after a cup win (FR-3 / D-1): pick any one uncollected sticker from any
  *  tier. If everything is already collected, the pick becomes a duplicate. */
 export default function CupRewardPicker({ album, allPlayers, onPick }: Props) {
-  const all = collectiblePlayers(allPlayers);
-  const uncollected = all.filter((p) => !album.collected.includes(p.id));
+  // The cup reward can pick any tier EXCEPT Monumental - the top tier is earned only
+  // by drafting the player or trading, never as a free win reward.
+  const pickable = collectiblePlayers(allPlayers).filter((p) => tierOf(p) !== 'monumental');
+  const uncollected = pickable.filter((p) => !album.collected.includes(p.id));
   const allDone = uncollected.length === 0;
-  const pool = (allDone ? all : uncollected)
+  const pool = (allDone ? pickable : uncollected)
     .slice()
     .sort((a, b) => TIER_META[tierOf(a)!].order - TIER_META[tierOf(b)!].order || b.elo - a.elo);
 
@@ -29,7 +31,7 @@ export default function CupRewardPicker({ album, allPlayers, onPick }: Props) {
         <div>
           <div className="font-display text-lg font-black leading-none">World Champions</div>
           <div className="mt-1 text-[12px] text-white/80">
-            Pick any one {allDone ? 'sticker' : 'uncollected sticker'} &mdash; any tier.
+            Pick any one {allDone ? '' : 'uncollected '}Legendary or Iconic sticker.
           </div>
         </div>
       </div>
@@ -46,7 +48,7 @@ export default function CupRewardPicker({ album, allPlayers, onPick }: Props) {
       </div>
       {allDone && (
         <p className="mt-4 text-xs italic text-muted">
-          You have collected every sticker &mdash; your pick will add a duplicate to the trade pool.
+          You have collected every Legendary and Iconic sticker &mdash; your pick will add a duplicate to the trade pool.
         </p>
       )}
     </Overlay>

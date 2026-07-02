@@ -510,7 +510,7 @@
   <ul class="req-list">
     <li><span class="req-num">FR-1</span><span>A player is collectible if and only if their <code>elo</code> falls within a tier defined in <code>STICKER_TIERS</code>.</span></li>
     <li><span class="req-num">FR-2</span><span>Stickers earned during a run (via drafting) are held in a pending state and applied to the album only when the run ends (win or knockout). Pending stickers do not affect album state mid-run.</span></li>
-    <li><span class="req-num">FR-3</span><span>The cup-win reward screen (shown after the match result screen) allows picking any one uncollected sticker from any tier. If all stickers are already collected, the reward is a duplicate of the player's choice instead.</span></li>
+    <li><span class="req-num">FR-3</span><span>The cup-win reward screen (shown after the match result screen) allows picking any one uncollected sticker from the <strong>Legendary or Iconic</strong> tiers (Monumental is excluded - the top tier is earned only by drafting the player or trading). If all Legendary/Iconic stickers are already collected, the reward is a duplicate of the player's choice instead.</span></li>
     <li><span class="req-num">FR-4</span><span>Trading consumes <code>STICKER_TRADE_COST[targetTier]</code> duplicates from the total duplicate pool (any mix of tiers) and returns one sticker selected from 3 uncollected options of the target tier.</span></li>
     <li><span class="req-num">FR-5</span><span>If fewer than 3 uncollected stickers remain in a tier, the trade UI shows however many remain (1 or 2 options). If none remain, that tier's trade option is hidden.</span></li>
     <li><span class="req-num">FR-6</span><span>All album logic is gated behind <code>FEATURES.stickerAlbum</code>. When false, no album UI surfaces and no stickers are earned.</span></li>
@@ -548,7 +548,7 @@
 <section>
   <div class="section-label">9 — Resolved Decisions</div>
   <ul class="req-list">
-    <li><span class="req-num">D-1</span><span><strong>Cup-win reward tier:</strong> Player may pick from any tier (Legendary, Iconic, or Monumental). Not restricted to the tier of the opponent faced in the final.</span></li>
+    <li><span class="req-num">D-1</span><span><strong>Cup-win reward tier:</strong> Player may pick from Legendary or Iconic (not Monumental - see FR-3). Not restricted to the tier of the opponent faced in the final. <em>(Updated 2026-07-02: Monumental excluded from the free reward pick.)</em></span></li>
     <li><span class="req-num">D-2</span><span><strong>Post-run sticker summary timing:</strong> Shown after the final match result screen. The flow is: match result → sticker summary (if any new stickers earned) → return to home / album.</span></li>
     <li><span class="req-num">D-3</span><span><strong>Album entry point:</strong> Home screen element (v1). A persistent button or section on the home/setup screen. Not a floating button or top-level nav tab.</span></li>
     <li><span class="req-num">D-4</span><span><strong>1998/2002 datasets:</strong> Included in the collectible pool from launch. Full verified datasets for those years will be added soon; ratings will be updated then if needed.</span></li>
