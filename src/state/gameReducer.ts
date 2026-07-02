@@ -155,6 +155,11 @@ export function gameReducer(state: GameState, action: Action): GameState {
       const player = currentPlayer(currentSquad, selectedPlayerId);
       const slot = formation?.slots.find((s) => s.id === action.slotId);
       const outgoing = slot ? filled[slot.id] : null;
+      // Swap into a filled slot the incoming role fits, when either the occupant is
+      // a different person and the incoming isn't already in the XI (a normal swap),
+      // OR the occupant is the SAME person (a better/other version - upgrade them in
+      // place; a different card, not a no-op). The same-person case can only target
+      // the slot that person already sits in, which avoids ever duplicating a person.
       const eligible =
         !!player &&
         !!slot &&
@@ -162,8 +167,9 @@ export function gameReducer(state: GameState, action: Action): GameState {
         state.swapsLeft > 0 &&
         isCollectible(player) &&
         player.positions.includes(slot.position) &&
-        outgoing.personId !== player.personId &&
-        !state.usedPersonIds.includes(player.personId);
+        (outgoing.personId === player.personId
+          ? outgoing.id !== player.id
+          : !state.usedPersonIds.includes(player.personId));
       if (!formation || !player || !slot || !outgoing || !eligible) {
         return state; // invalid swap: ignore
       }

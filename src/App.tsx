@@ -50,6 +50,7 @@ import XiTable from './components/XiTable';
 import TournamentScreen from './components/TournamentScreen';
 import KnockoutScreen from './components/KnockoutScreen';
 import SquadBrowser from './components/SquadBrowser';
+import StartOverButton from './components/StartOverButton';
 import AlbumScreen from './components/AlbumScreen';
 import CupRewardPicker from './components/CupRewardPicker';
 import RunEndStickerSummary from './components/RunEndStickerSummary';
@@ -438,16 +439,25 @@ export default function App() {
             activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>(),
         [activeFormation, filled],
     );
-    // Positions that currently have a FILLED slot: a player eligible for one of these
-    // can be swapped in even if they fit no open slot (sticker album feature). Empty
-    // when the album is off, so the squad list gating is unchanged.
-    const filledPositions = useMemo<Set<Position>>(() => {
-        const s = new Set<Position>();
-        if (STICKERS && activeFormation) {
-            for (const slot of activeFormation.slots) if (filled[slot.id]) s.add(slot.position);
+    // Ids of drawn-squad players that can be swapped in (collectible + swaps remain +
+    // there's a filled slot they can take): a different-person slot when they're not
+    // already in the XI, or their OWN slot as an upgrade (a different card of the same
+    // person). Empty when the album is off / no swaps left, so gating is unchanged there.
+    const swapEligibleIds = useMemo<Set<string>>(() => {
+        const ids = new Set<string>();
+        if (!STICKERS || swapsLeft <= 0 || !activeFormation || !currentSquad) return ids;
+        const used = new Set(usedPersonIds);
+        for (const p of currentSquad.players) {
+            if (!isCollectible(p)) continue;
+            const ok = activeFormation.slots.some((s) => {
+                const occ = filled[s.id];
+                if (!occ || !p.positions.includes(s.position)) return false;
+                return occ.personId === p.personId ? occ.id !== p.id : !used.has(p.personId);
+            });
+            if (ok) ids.add(p.id);
         }
-        return s;
-    }, [STICKERS, activeFormation, filled]);
+        return ids;
+    }, [STICKERS, swapsLeft, activeFormation, currentSquad, filled, usedPersonIds]);
     const usedSet = useMemo(() => new Set(usedPersonIds), [usedPersonIds]);
     const selectedPlayer = currentSquad?.players.find((p) => p.id === selectedPlayerId) ?? null;
     const panelSquad = rolling ? displaySquad : currentSquad;
@@ -632,6 +642,7 @@ export default function App() {
                                 />
                             )}
                             {homeView === 'draft' && formation && (
+                              <>
                                 <SquadPanel
                                     squad={panelSquad}
                                     rolling={rolling}
@@ -643,7 +654,7 @@ export default function App() {
                                         !!currentSquad && hasAnotherCup(SQUADS, currentSquad)
                                     }
                                     openPositions={openPositions}
-                                    filledPositions={filledPositions}
+                                    swapEligibleIds={swapEligibleIds}
                                     swapsLeft={swapsLeft}
                                     usedPersonIds={usedSet}
                                     selectedPlayerId={selectedPlayerId}
@@ -652,6 +663,8 @@ export default function App() {
                                         dispatch({ type: 'SELECT_PLAYER', playerId })
                                     }
                                 />
+                                <StartOverButton onReset={handleReset} />
+                              </>
                             )}
                             {homeView === 'complete' && formation && (
                                 <CompletePanel

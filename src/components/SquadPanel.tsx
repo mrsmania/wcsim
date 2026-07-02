@@ -18,10 +18,10 @@ interface Props {
     canAnotherTeam: boolean;
     canAnotherCup: boolean;
     openPositions: Set<Position>;
-    /** Positions with a filled slot: a COLLECTIBLE eligible for one can be selected to
-     *  swap in, even with no open slot (sticker album). Empty when the album is off. */
-    filledPositions: Set<Position>;
-    /** Remaining collectible swaps this run; 0 disables the swap-selection path. */
+    /** Ids of drawn-squad players that can be swapped into a filled slot (collectible,
+     *  swaps remaining, occupant rules met - computed in App). Empty when off. */
+    swapEligibleIds: Set<string>;
+    /** Remaining collectible swaps this run; shown in the footer. */
     swapsLeft: number;
     usedPersonIds: Set<string>;
     selectedPlayerId: string | null;
@@ -63,7 +63,7 @@ export default function SquadPanel({
     canAnotherTeam,
     canAnotherCup,
     openPositions,
-    filledPositions,
+    swapEligibleIds,
     swapsLeft,
     usedPersonIds,
     selectedPlayerId,
@@ -115,15 +115,10 @@ export default function SquadPanel({
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);
                     const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
-                    // A COLLECTIBLE can also be selected to swap into a filled slot it
-                    // fits (its position may have no open slot), while swaps remain.
-                    // Non-collectibles stay gated on open slots only. filledPositions is
-                    // empty when the album is off, so behaviour is unchanged there.
-                    const swappable =
-                        !!tier &&
-                        !used &&
-                        swapsLeft > 0 &&
-                        p.positions.some((pos) => filledPositions.has(pos));
+                    // A collectible that can swap into a filled slot (App computed the
+                    // occupant rules). This is why a used person's better version is
+                    // still pickable - to upgrade themselves in place.
+                    const swappable = swapEligibleIds.has(p.id);
                     const interactive = selectable || swappable;
                     const selected = p.id === selectedPlayerId;
                     return (
@@ -143,7 +138,7 @@ export default function SquadPanel({
                                     {p.number}
                                 </span>
                                 <span
-                                    className={`min-w-0 flex-1 truncate text-sm font-bold ${used ? 'text-muted line-through' : ''}`}
+                                    className={`min-w-0 flex-1 truncate text-sm font-bold ${used && !swappable ? 'text-muted line-through' : ''}`}
                                 >
                                     {p.name}
                                 </span>

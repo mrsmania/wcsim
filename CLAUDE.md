@@ -313,13 +313,16 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   (`swapsLeft` in state, shown in `SquadPanel` and reset with the run). When a
   collectible is selected, filled slots it's eligible for become swap targets on the
   `Pitch` (amber ring + swap glyph); swapping frees the outgoing player's `personId`
-  and uses the incoming one, so a collectible can be brought in even when its slot is
-  filled. For that to be reachable, `SquadPanel` makes a **collectible** selectable
-  when it fits an open slot **or** a filled one (`App` passes `filledPositions`);
-  non-collectibles remain gated on open slots only, so a collectible whose positions
-  are all filled is the only thing that lights up when nothing is open. The
-  collectible + swaps-remaining checks are enforced in `SquadPanel`, `Pitch`, and the
-  `SWAP_PLAYER` reducer case.
+  and uses the incoming one. The occupant rule: a collectible may swap into a filled
+  slot when the occupant is a **different** person and the collectible isn't already
+  in the XI, **or** the occupant is the **same** person as a different card (upgrade
+  a version in place - e.g. Buffon 88 -> Buffon 90; only that person's own slot lights
+  up, so no one is ever duplicated). `App` computes the set of swap-eligible drawn
+  players (`swapEligibleIds`) and passes it to `SquadPanel` (so a used person's better
+  version is still pickable); the same collectible/occupant/`swapsLeft` checks are
+  enforced in `Pitch` and the `SWAP_PLAYER` reducer case.
+- **Start over** (`StartOverButton`): shown under the drawn squad during the draft; with
+  an inline confirm it runs `handleReset` (drops every chosen player, back to setup).
 - With **`FEATURES.stickerAlbum` = false**: no album route/entry, no markers, no swap,
   no overlays, and no album localStorage reads/writes; the game is unchanged.
 

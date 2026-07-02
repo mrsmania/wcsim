@@ -299,6 +299,13 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
     const ox = (box.w - VBW * fit) / 2;
     const oy = (box.h - VBH * fit) / 2;
 
+    // Is the selected player's person already in the XI? A used collectible may only
+    // swap into the slot where that person sits (an upgrade); an unused one may swap
+    // into any filled slot it fits.
+    const selectedIsUsed =
+        !!selectedPlayer &&
+        Object.values(filled).some((pl) => !!pl && pl.personId === selectedPlayer.personId);
+
     const marks = markingsPath();
     const spots = [
         [150, 200],
@@ -370,14 +377,19 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                               : 'secondary';
                         // A filled slot a selected COLLECTIBLE is eligible for = a swap
                         // target (only collectibles can be swapped in). `onSwap` is
-                        // undefined when the album is off or no swaps remain.
+                        // undefined when the album is off or no swaps remain. A swap is
+                        // allowed when the occupant is a different person (and the
+                        // collectible isn't already in the XI), or the SAME person as a
+                        // different card (upgrade in place - only their own slot lights up).
                         const swapTarget =
                             !!onSwap &&
                             !!selectedPlayer &&
                             isCollectible(selectedPlayer) &&
                             !!player &&
-                            player.personId !== selectedPlayer.personId &&
-                            selectedPlayer.positions.includes(slot.position);
+                            selectedPlayer.positions.includes(slot.position) &&
+                            (player.personId === selectedPlayer.personId
+                                ? player.id !== selectedPlayer.id
+                                : !selectedIsUsed);
                         const qx = px((slot.x / 100) * 300);
                         const qy = py((slot.y / 100) * 400);
                         return (
