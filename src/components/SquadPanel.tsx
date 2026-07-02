@@ -6,7 +6,7 @@ import { tierOf } from '../domain/album';
 import { RotateCcw } from 'lucide-react';
 import Flag from './Flag';
 import Tooltip from './Tooltip';
-import { TIER_META } from './StickerCard';
+import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
 import { FEATURES } from '../config';
 
@@ -146,18 +146,7 @@ export default function SquadPanel({
                                 >
                                     {p.name}
                                 </span>
-                                {tier && (
-                                    <span
-                                        className="shrink-0 grid h-[15px] w-[15px] place-items-center rounded-full font-mono text-[9px] font-bold leading-none"
-                                        style={{
-                                            background: TIER_META[tier].accent,
-                                            color: tier === 'monumental' ? '#3a2a06' : '#fff',
-                                        }}
-                                        title={`Collectible · ${TIER_META[tier].name}`}
-                                    >
-                                        &#9733;
-                                    </span>
-                                )}
+                                {tier && <CollectibleStar tier={tier} />}
                                 {FEATURES.chemistry ? (
                                     <Tooltip
                                         className="shrink-0 text-[11px] text-muted"

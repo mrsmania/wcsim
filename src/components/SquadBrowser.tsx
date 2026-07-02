@@ -3,7 +3,11 @@ import { Navigate, useMatch, useNavigate } from 'react-router-dom';
 import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
 import { ArrowLeft, ArrowRight, Search, X } from 'lucide-react';
+import { tierOf } from '../domain/album';
+import { FEATURES } from '../config';
 import Flag from './Flag';
+import CollectibleStar from './CollectibleStar';
+import { TIER_META } from './StickerCard';
 import TeamRoster from './TeamRoster';
 
 /** Distinct tournament years, newest first for the selector. */
@@ -442,17 +446,23 @@ function SearchResults({
     const shown = results.slice(0, MAX_RESULTS);
     return (
         <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
-            {shown.map(({ player, squad }) => (
+            {shown.map(({ player, squad }) => {
+                const tier = FEATURES.stickerAlbum ? tierOf(player) : null;
+                return (
                 <button
                     key={player.id}
                     onClick={() => onOpen(squad.id)}
                     className="flex w-full items-center gap-3 border-b border-line px-4 py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5"
+                    style={tier ? { boxShadow: `inset 3px 0 0 ${TIER_META[tier].accent}` } : undefined}
                 >
                     <span className="w-6 shrink-0 text-center font-mono text-[12px] text-muted tabular-nums">
                         {player.number}
                     </span>
                     <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13.5px] font-semibold">{player.name}</div>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate text-[13.5px] font-semibold">{player.name}</span>
+                            {tier && <CollectibleStar tier={tier} />}
+                        </div>
                         <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
                             <span className="font-semibold">{primaryPosition(player)}</span>
                             <span>&middot;</span>
@@ -466,7 +476,8 @@ function SearchResults({
                         {player.elo}
                     </span>
                 </button>
-            ))}
+                );
+            })}
             {results.length > MAX_RESULTS && (
                 <div className="border-t border-line px-4 py-2.5 text-center font-mono text-[11px] text-muted">
                     Showing top {MAX_RESULTS} of {results.length}. Refine your search to narrow it

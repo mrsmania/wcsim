@@ -6,6 +6,7 @@ import { tierOf } from '../domain/album';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Flag from './Flag';
+import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './StickerCard';
 
 /** The placed XI as a line-up sheet: position, last name, flag + year, rating,
@@ -49,18 +50,7 @@ export default function XiTable({ formation, filled }: { formation: Formation; f
                             className={`flex min-w-0 items-center gap-1.5 text-[13.5px] ${player ? 'font-semibold' : 'text-muted'}`}
                         >
                             <span className="truncate">{player ? lastName(player.name) : '–'}</span>
-                            {tier && (
-                                <span
-                                    className="grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full font-mono text-[9px] font-bold leading-none"
-                                    style={{
-                                        background: TIER_META[tier].accent,
-                                        color: tier === 'monumental' ? '#3a2a06' : '#fff',
-                                    }}
-                                    title={`Collectible · ${TIER_META[tier].name}`}
-                                >
-                                    &#9733;
-                                </span>
-                            )}
+                            {tier && <CollectibleStar tier={tier} />}
                         </span>
                         <span className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
                             {sq ? (

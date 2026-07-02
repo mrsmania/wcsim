@@ -5,7 +5,11 @@ import {
     type PositionCategory,
     type Squad,
 } from '../data/types';
+import { tierOf } from '../domain/album';
+import { FEATURES } from '../config';
 import Flag from './Flag';
+import CollectibleStar from './CollectibleStar';
+import { TIER_META } from './StickerCard';
 
 const CATEGORY_LABEL: Record<PositionCategory, string> = {
     GK: 'Goalkeepers',
@@ -66,16 +70,20 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                             {CATEGORY_LABEL[cat]}
                             <span className="ml-1.5 text-muted">&middot; {group.length}</span>
                         </div>
-                        {group.map((p) => (
+                        {group.map((p) => {
+                            const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
+                            return (
                             <div
                                 key={p.id}
                                 className={`${ROW} border-b border-line py-2 last:border-b-0`}
+                                style={tier ? { boxShadow: `inset 3px 0 0 ${TIER_META[tier].accent}` } : undefined}
                             >
                                 <span className="text-center font-mono text-[12px] text-muted tabular-nums">
                                     {p.number}
                                 </span>
-                                <span className="truncate text-[13.5px] font-semibold">
-                                    {p.name}
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                    <span className="truncate text-[13.5px] font-semibold">{p.name}</span>
+                                    {tier && <CollectibleStar tier={tier} />}
                                 </span>
                                 <span className="text-right font-mono text-[11px] font-semibold text-muted">
                                     {primaryPosition(p)}
@@ -84,7 +92,8 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                                     {p.elo}
                                 </span>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 );
             })}
