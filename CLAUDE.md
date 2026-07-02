@@ -94,9 +94,12 @@ src/
                bracket.ts    (the 16-team knockout bracket model; see below)
                clock.ts      (live-reveal playback step sequence)
                chemistry.ts  (cohesion scoring -> strength bonus; gated by a flag)
+               album.ts      (sticker collectibility/tiers, trade, run-end apply;
+                              pure; gated by a flag - see below)
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union), persist.ts (the
-               whole game <-> localStorage, so routes survive a refresh)
+               whole game <-> localStorage, so routes survive a refresh),
+               albumStorage.ts (the sticker album <-> its own localStorage keys)
   hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
                match-reveal clock used by both tournament screens)
   components/  presentational React (App composes them); the group screen
@@ -104,7 +107,8 @@ src/
                MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
                presentational atoms + per-match view-model used by both screens;
                SquadBrowser + TeamRoster are the read-only squad archive (see below)
-  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser)
+  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser,
+               stickerAlbum) + STICKER_TIERS / STICKER_TRADE_COST
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
@@ -268,6 +272,49 @@ the in-progress reducer state is untouched while browsing, so Back returns to it
   expose the numbers.
 - Entirely behind **`FEATURES.squadBrowser`**; with it `false` the masthead toggle and
   the whole view disappear and the game is unchanged.
+
+## Sticker album (flagged)
+
+A persistent Panini-style collection of the elite players you draft across runs.
+Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; comps:
+`docs/redesign-2026/turf-flat/{sticker-album,draft-stickers}.html`. Entirely behind
+**`FEATURES.stickerAlbum`**.
+
+- **What's collectible.** A player is collectible iff their `elo` falls in a
+  `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
+  **Monumental** 97-99 (currently 39 / 12 / 2 = 53 across the dataset). Collectibility
+  is derived at runtime (`domain/album.ts` `tierOf`), so adding players/tournaments
+  grows the album automatically - no lookup table.
+- **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
+  `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),
+  `executeTrade`, `pendingNewStickers`, `albumStats`, plus the `AlbumState`
+  (`{version, collected: id[], duplicates: Record<id,count>}`).
+- **Persistence.** `state/albumStorage.ts` owns `wcsim_album_v1` (the collection) and
+  `wcsim_album_stats_v1` (trade-cost telemetry: runsPlayed / stickersEarned /
+  tradesCompleted), **separate keys from the game** so a reset never wipes the album.
+  `App` holds `album` in `useState(loadAlbum)` and prop-drills it (no context).
+- **Earning (run-end only).** Stickers are never awarded mid-run. At run-end (bracket
+  `champion`/`out`, or group-stage elimination) `App` applies the collectibles in the
+  **final XI** (derived from `filled`, so autofill and swaps are covered for free) via
+  `applyRunStickers`, guarded once-per-run by the persisted `stickersApplied` reducer
+  flag. A **cup win** first shows `CupRewardPicker` (pick any one uncollected sticker,
+  any tier - FR-3/D-1), then applies. `RunEndStickerSummary` then shows the newly
+  earned cards (only if any were new, FR-8). Both are global overlays in `App`.
+- **Album screen** (`AlbumScreen.tsx`, route **`/album`**, reached from a home-screen
+  entry button): completion counter + duplicate pool, tier sections (Monumental,
+  Iconic, Legendary) of `StickerCard`s (collected = flag+name+rating+tier; uncollected =
+  silhouette with a `?`), a per-tier **Trade** action (`TradeModal`) when affordable,
+  and a 100% completion state. `StickerCard` is text+flag in v1 but image-ready (flip
+  `STICKER_IMAGES`, drop `public/stickers/<player.id>.png`; base-path-aware, with a
+  text/flag fallback).
+- **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier chip
+  + a "collectibles in this squad" call-out). **Swap** (`SWAP_PLAYER` reducer action):
+  when a player is selected, filled slots they're eligible for become swap targets on
+  the `Pitch` (amber ring + swap glyph on the badge); swapping frees the outgoing
+  player's `personId` and uses the incoming one, letting a collectible be brought in
+  even when its slot is filled.
+- With **`FEATURES.stickerAlbum` = false**: no album route/entry, no markers, no swap,
+  no overlays, and no album localStorage reads/writes; the game is unchanged.
 
 ## Conventions and working agreements
 

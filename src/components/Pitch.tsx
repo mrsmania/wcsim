@@ -176,6 +176,9 @@ interface Props {
     onPlace: (slotId: string) => void;
     /** Testing aid: clear a placed slot via the x on its badge. */
     onRemove?: (slotId: string) => void;
+    /** Swap the selected player into an already-filled slot they are eligible for
+     *  (sticker album feature). When set, matching filled slots become swap targets. */
+    onSwap?: (slotId: string) => void;
 }
 
 /** One placed player or open slot, rendered flat over the pitch at a position
@@ -184,23 +187,28 @@ function OverlayMarker({
     slot,
     player,
     target,
+    swapTarget,
     left,
     top,
     scale,
     onPlace,
     onRemove,
+    onSwap,
 }: {
     slot: Slot;
     player: Player | null;
     /** Whether this open slot matches the selected player's natural (primary) or a
      *  secondary position, so the pulse can be colour-coded; 'none' = not a target. */
     target: 'none' | 'primary' | 'secondary';
+    /** Whether this FILLED slot can accept the selected player via a swap. */
+    swapTarget: boolean;
     left: string;
     top: string;
     scale: number;
     onPlace: (slotId: string) => void;
     /** Testing aid: clear this slot (only shown for placed players). */
     onRemove?: () => void;
+    onSwap?: (slotId: string) => void;
 }) {
     const transform = `translate(-50%, -50%) scale(${scale})`;
     // Slide to the new spot when the formation changes.
@@ -208,6 +216,18 @@ function OverlayMarker({
     const style = { left, top, transform, transformOrigin: 'center', transition };
 
     if (player) {
+        if (swapTarget && onSwap) {
+            return (
+                <button
+                    className="absolute flex flex-col items-center"
+                    style={style}
+                    onClick={() => onSwap(slot.id)}
+                    aria-label={`Swap in for ${lastName(player.name)}`}
+                >
+                    <PlayerBadge name={lastName(player.name)} number={player.number} swap />
+                </button>
+            );
+        }
         return (
             <div className="absolute flex flex-col items-center" style={style}>
                 <PlayerBadge
@@ -245,7 +265,7 @@ function OverlayMarker({
     );
 }
 
-export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRemove }: Props) {
+export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRemove, onSwap }: Props) {
     // 11 persistent circles (keyed by index). On a formation change each circle
     // slides to its nearest new slot instead of mounting/unmounting.
     const [circles, setCircles] = useState<Slot[]>(() => formation.slots);
@@ -347,6 +367,13 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                             : selectedPlayer!.positions[0] === slot.position
                               ? 'primary'
                               : 'secondary';
+                        // A filled slot the selected player is eligible for = a swap target.
+                        const swapTarget =
+                            !!onSwap &&
+                            !!selectedPlayer &&
+                            !!player &&
+                            player.personId !== selectedPlayer.personId &&
+                            selectedPlayer.positions.includes(slot.position);
                         const qx = px((slot.x / 100) * 300);
                         const qy = py((slot.y / 100) * 400);
                         return (
@@ -355,11 +382,13 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                                 slot={slot}
                                 player={player}
                                 target={target}
+                                swapTarget={swapTarget}
                                 left={`${ox + qx * fit}px`}
                                 top={`${oy + qy * fit}px`}
                                 scale={Math.min(fit, 1)}
                                 onPlace={onPlace}
                                 onRemove={player && onRemove ? () => onRemove(slot.id) : undefined}
+                                onSwap={onSwap}
                             />
                         );
                     })}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Trophy } from 'lucide-react';
+import { ArrowRight, Trophy } from 'lucide-react';
 import { SQUADS } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -21,15 +21,26 @@ import {
 import {
     bracketSeedFromGroup,
     createGroup,
+    isGroupFinished,
     pickOpponents,
+    userAdvanced,
     userGroupTeam,
 } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
 import { buildBracket, BRACKET_ROUNDS, type BracketState } from './domain/bracket';
+import {
+    albumStats,
+    applyRunStickers,
+    executeTrade,
+    isCollectible,
+    pendingNewStickers,
+    type AlbumState,
+} from './domain/album';
 import { validateSquads } from './domain/validateSquads';
-import { FEATURES } from './config';
+import { FEATURES, type StickerTier } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
+import { loadAlbum, saveAlbum, loadStats, saveStats } from './state/albumStorage';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import CompletePanel from './components/CompletePanel';
@@ -39,6 +50,9 @@ import XiTable from './components/XiTable';
 import TournamentScreen from './components/TournamentScreen';
 import KnockoutScreen from './components/KnockoutScreen';
 import SquadBrowser from './components/SquadBrowser';
+import AlbumScreen from './components/AlbumScreen';
+import CupRewardPicker from './components/CupRewardPicker';
+import RunEndStickerSummary from './components/RunEndStickerSummary';
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
@@ -81,6 +95,16 @@ export default function App() {
     const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Sticker album (gated). Lives outside the reducer / game state and in its own
+    // localStorage key, so resetting a run never touches the collection (FR-7).
+    const STICKERS = FEATURES.stickerAlbum;
+    const allPlayers = useMemo(() => SQUADS.flatMap((s) => s.players), []);
+    const [album, setAlbum] = useState<AlbumState>(() =>
+        STICKERS ? loadAlbum() : { version: 1, collected: [], duplicates: {} },
+    );
+    /** New (non-duplicate) ids earned this run -> shows the run-end summary. */
+    const [newStickerIds, setNewStickerIds] = useState<string[] | null>(null);
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -127,6 +151,7 @@ export default function App() {
         bracket,
         speed,
         auto,
+        stickersApplied,
     } = state;
 
     // Persist the whole game so the clean-path routes survive a refresh.
@@ -258,6 +283,19 @@ export default function App() {
         [formation, currentSquad, selectedPlayerId, filled],
     );
 
+    // Swap the selected player into an already-filled slot (sticker album feature).
+    // The reducer validates eligibility; the draw effect then rolls the next squad
+    // for any still-open slot, exactly like a placement.
+    const handleSwap = useCallback(
+        (slotId: string) => {
+            dispatch({ type: 'SWAP_PLAYER', slotId });
+            if (isStackedLayout()) {
+                squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        },
+        [],
+    );
+
     // Testing aid: remove a placed player. The XI drops back to 'draft'; if no
     // squad is in hand (we were "complete"), the draw-next-squad effect rolls one
     // for the freed slot from committed state so a replacement can be drafted.
@@ -320,6 +358,67 @@ export default function App() {
         navigate('/');
     }, [navigate]);
 
+    // --- sticker album -----------------------------------------------------
+    // Collectibles in the final XI (derived, so autofill and swaps are handled for
+    // free - no incremental pending log to keep in sync).
+    const draftedCollectibleIds = useMemo(
+        () =>
+            Object.values(filled)
+                .filter((p): p is Player => !!p)
+                .filter(isCollectible)
+                .map((p) => p.id),
+        [filled],
+    );
+
+    // The run's terminal state (persistent): group elimination, or the bracket end.
+    const runEnd = useMemo<{ wonCup: boolean } | null>(() => {
+        if (!STICKERS) return null;
+        if (bracket) {
+            if (bracket.outcome === 'champion') return { wonCup: true };
+            if (bracket.outcome === 'out') return { wonCup: false };
+            return null;
+        }
+        if (group && isGroupFinished(group) && !userAdvanced(group)) return { wonCup: false };
+        return null;
+    }, [STICKERS, bracket, group]);
+
+    const applyStickers = useCallback(
+        (wonCup: boolean, cupPickId: string | null) => {
+            const ids = cupPickId ? [...draftedCollectibleIds, cupPickId] : draftedCollectibleIds;
+            const newly = pendingNewStickers(album, ids);
+            const next = applyRunStickers(album, draftedCollectibleIds, wonCup, cupPickId);
+            setAlbum(next);
+            saveAlbum(next);
+            const stats = loadStats();
+            saveStats({
+                runsPlayed: stats.runsPlayed + 1,
+                stickersEarned: stats.stickersEarned + newly.length,
+                tradesCompleted: stats.tradesCompleted,
+            });
+            dispatch({ type: 'MARK_STICKERS_APPLIED' });
+            setNewStickerIds(newly);
+        },
+        [album, draftedCollectibleIds],
+    );
+
+    // Bank stickers once when the run ends by loss/elimination. Cup wins wait for
+    // the reward pick (CupRewardPicker below), which then calls applyStickers.
+    useEffect(() => {
+        if (!STICKERS || stickersApplied || !runEnd || runEnd.wonCup) return;
+        applyStickers(false, null);
+    }, [STICKERS, stickersApplied, runEnd, applyStickers]);
+
+    const handleTrade = useCallback(
+        (tier: StickerTier, playerId: string) => {
+            const next = executeTrade(album, tier, playerId);
+            setAlbum(next);
+            saveAlbum(next);
+            const stats = loadStats();
+            saveStats({ ...stats, tradesCompleted: stats.tradesCompleted + 1 });
+        },
+        [album],
+    );
+
     const openPositions = useMemo<Set<Position>>(
         () =>
             activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>(),
@@ -339,18 +438,22 @@ export default function App() {
     const path = location.pathname;
     const squadsEnabled = FEATURES.squadBrowser;
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
+    const isAlbum = STICKERS && path === '/album';
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
     const isHome = path === '/';
     // Where "Play" returns to: the furthest game screen reached.
     const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
+    const albumSummary = STICKERS ? albumStats(album, allPlayers) : null;
     const stampText = isSquads
         ? null
-        : isGroup
-          ? 'Group stage'
-          : isKnockout
-            ? knockoutStamp(bracket)
-            : home.stamp;
+        : isAlbum
+          ? 'Sticker album'
+          : isGroup
+            ? 'Group stage'
+            : isKnockout
+              ? knockoutStamp(bracket)
+              : home.stamp;
 
     return (
         <div className="min-h-full text-ink">
@@ -405,6 +508,13 @@ export default function App() {
 
                 {isSquads ? (
                     <SquadBrowser />
+                ) : isAlbum ? (
+                    <AlbumScreen
+                        album={album}
+                        allPlayers={allPlayers}
+                        onTrade={handleTrade}
+                        onClose={() => navigate('/')}
+                    />
                 ) : isGroup ? (
                     group && formation ? (
                         <TournamentScreen
@@ -463,6 +573,25 @@ export default function App() {
                     <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
                         {/* Col 1: setup -> drawn squad -> complete */}
                         <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
+                            {STICKERS && albumSummary && (
+                                <button
+                                    onClick={() => navigate('/album')}
+                                    className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
+                                >
+                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
+                                        <Trophy size={18} strokeWidth={2} className="text-amber" />
+                                    </span>
+                                    <span className="flex flex-col leading-tight">
+                                        <b className="font-display text-[14px] font-extrabold">
+                                            Sticker album
+                                        </b>
+                                        <span className="font-mono text-[11px] text-muted">
+                                            {albumSummary.collected} / {albumSummary.total} collected
+                                        </span>
+                                    </span>
+                                    <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />
+                                </button>
+                            )}
                             {homeView === 'setup' && (
                                 <SetupPanel
                                     names={FORMATIONS_DATA.names}
@@ -521,6 +650,7 @@ export default function App() {
                                         selectedPlayer={selectedPlayer}
                                         onPlace={handlePlace}
                                         onRemove={FEATURES.removePlayers ? handleRemove : undefined}
+                                        onSwap={STICKERS ? handleSwap : undefined}
                                     />
                                 </section>
                                 <section className="flex flex-col gap-[18px] [grid-area:stack]">
@@ -543,6 +673,29 @@ export default function App() {
                     <Navigate to="/" replace />
                 )}
             </div>
+
+            {/* Run-end sticker flow (global overlays, layered over any screen).
+                Cup win: pick a bonus sticker first (blocks until picked), then the
+                summary. Loss/elimination: the effect above already applied, so only
+                the summary shows (when at least one new sticker was earned). */}
+            {STICKERS && runEnd?.wonCup && !stickersApplied && (
+                <CupRewardPicker
+                    album={album}
+                    allPlayers={allPlayers}
+                    onPick={(playerId) => applyStickers(true, playerId)}
+                />
+            )}
+            {STICKERS && newStickerIds && newStickerIds.length > 0 && (
+                <RunEndStickerSummary
+                    newPlayerIds={newStickerIds}
+                    allPlayers={allPlayers}
+                    onClose={() => setNewStickerIds(null)}
+                    onViewAlbum={() => {
+                        setNewStickerIds(null);
+                        navigate('/album');
+                    }}
+                />
+            )}
         </div>
     );
 }

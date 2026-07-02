@@ -2,9 +2,11 @@ import type { Player, Position, Squad } from '../data/types';
 import { CATEGORY_ORDER, primaryCategory } from '../data/types';
 import { formatPositions } from '../data/format';
 import { isSelectable } from '../domain/draft';
+import { tierOf } from '../domain/album';
 import { RotateCcw } from 'lucide-react';
 import Flag from './Flag';
 import Tooltip from './Tooltip';
+import { TIER_META } from './StickerCard';
 import { FEATURES } from '../config';
 
 export type RerollKind = 'team' | 'cup' | 'any';
@@ -82,6 +84,23 @@ export default function SquadPanel({
         <div className="flex flex-col gap-3 rounded-md border border-line bg-panel pt-3 shadow-hard">
             <Header squad={squad} scrambling={false} />
 
+            {FEATURES.stickerAlbum &&
+                (() => {
+                    const colls = squad.players.filter((p) => tierOf(p));
+                    if (colls.length === 0) return null;
+                    return (
+                        <div className="mx-3 flex items-start gap-2 rounded-md border border-amber/60 bg-amber/10 px-2.5 py-2 text-[11px] leading-snug">
+                            <span className="shrink-0 text-amber">&#9733;</span>
+                            <span className="text-muted">
+                                <b className="text-ink">
+                                    {colls.length} collectible{colls.length > 1 ? 's' : ''}
+                                </b>{' '}
+                                in this squad: {colls.map((p) => p.name).join(', ')}
+                            </span>
+                        </div>
+                    );
+                })()}
+
             {/* Player list fills the panel and scrolls. Rows are split by dividers so
           each reads as a tappable line: number, name, positions, elo. */}
             <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line max-h-[40vh]">
@@ -89,6 +108,7 @@ export default function SquadPanel({
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);
                     const selected = p.id === selectedPlayerId;
+                    const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
                     return (
                         <li key={p.id} className="border-b border-line last:border-b-0">
                             <button
@@ -110,6 +130,18 @@ export default function SquadPanel({
                                 >
                                     {p.name}
                                 </span>
+                                {tier && (
+                                    <span
+                                        className="shrink-0 grid h-[15px] w-[15px] place-items-center rounded-full font-mono text-[9px] font-bold leading-none"
+                                        style={{
+                                            background: TIER_META[tier].accent,
+                                            color: tier === 'monumental' ? '#3a2a06' : '#fff',
+                                        }}
+                                        title={`Collectible · ${TIER_META[tier].name}`}
+                                    >
+                                        &#9733;
+                                    </span>
+                                )}
                                 {FEATURES.chemistry ? (
                                     <Tooltip
                                         className="shrink-0 text-[11px] text-muted"

@@ -31,6 +31,10 @@ export interface GameState {
   speed: MatchSpeed;
   /** "Automatic" playback toggle, shared across group + knockout so it carries over. */
   auto: boolean;
+  /** Whether this run's collectibles have been merged into the sticker album yet.
+   *  The run-end condition (group elimination / bracket outcome) is persistent, so
+   *  this guards a once-per-run apply that survives a reload. Reset with the run. */
+  stickersApplied: boolean;
 }
 
 export type Action =
@@ -42,6 +46,7 @@ export type Action =
   | { type: 'ROLL_SETTLE'; squad: Squad }
   | { type: 'SELECT_PLAYER'; playerId: string }
   | { type: 'PLACE_PLAYER'; slotId: string }
+  | { type: 'SWAP_PLAYER'; slotId: string }
   | { type: 'REMOVE_PLAYER'; slotId: string }
   | { type: 'START_GROUP'; group: GroupState }
   | { type: 'RECORD_MATCHDAY'; results: MatchdayResult[] }
@@ -49,6 +54,7 @@ export type Action =
   | { type: 'RECORD_BRACKET_ROUND'; games: BracketGame[] }
   | { type: 'SET_SPEED'; speed: MatchSpeed }
   | { type: 'SET_AUTO'; auto: boolean }
+  | { type: 'MARK_STICKERS_APPLIED' }
   | { type: 'RESET' };
 
 export const initialState: GameState = {
@@ -66,6 +72,7 @@ export const initialState: GameState = {
   bracket: null,
   speed: 'fast',
   auto: false,
+  stickersApplied: false,
 };
 
 function currentPlayer(squad: Squad | null, playerId: string | null): Player | null {
@@ -129,6 +136,42 @@ export function gameReducer(state: GameState, action: Action): GameState {
       };
     }
 
+    case 'SWAP_PLAYER': {
+      // Replace an already-placed player with the selected player from the current
+      // squad (the incoming player must be eligible for that slot's role). The
+      // outgoing player leaves the XI, freeing their personId to be drafted again;
+      // the incoming personId becomes used. Lets a collectible be brought in even
+      // when its position was already filled. currentSquad clears like PLACE_PLAYER,
+      // so the draw effect rolls the next squad for any still-open slot.
+      const { formation, currentSquad, selectedPlayerId, filled } = state;
+      const player = currentPlayer(currentSquad, selectedPlayerId);
+      const slot = formation?.slots.find((s) => s.id === action.slotId);
+      const outgoing = slot ? filled[slot.id] : null;
+      const eligible =
+        !!player &&
+        !!slot &&
+        !!outgoing &&
+        player.positions.includes(slot.position) &&
+        outgoing.personId !== player.personId &&
+        !state.usedPersonIds.includes(player.personId);
+      if (!formation || !player || !slot || !outgoing || !eligible) {
+        return state; // invalid swap: ignore
+      }
+      const nextFilled: Filled = { ...filled, [slot.id]: player };
+      const done = isComplete(formation, nextFilled);
+      return {
+        ...state,
+        filled: nextFilled,
+        usedPersonIds: [
+          ...state.usedPersonIds.filter((id) => id !== outgoing.personId),
+          player.personId,
+        ],
+        currentSquad: null,
+        selectedPlayerId: null,
+        phase: done ? 'complete' : 'draft',
+      };
+    }
+
     case 'REMOVE_PLAYER': {
       // Testing aid: clear a placed slot, free the person to be drafted again, and
       // drop back to drafting (the XI is no longer complete).
@@ -166,6 +209,9 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
     case 'SET_AUTO':
       return { ...state, auto: action.auto };
+
+    case 'MARK_STICKERS_APPLIED':
+      return { ...state, stickersApplied: true };
 
     case 'RESET':
       return { ...initialState, speed: state.speed, auto: state.auto };
