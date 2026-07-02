@@ -74,7 +74,7 @@ export default function StickerCard({
           <img
             src={artSrc(player.id)}
             alt=""
-            className="mb-1 h-10 w-10 object-contain"
+            className="mb-1 aspect-square w-full object-contain"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
