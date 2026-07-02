@@ -4,9 +4,13 @@ import { initialState, type GameState } from './gameReducer';
 // refresh and are bookmarkable. One versioned key; bump it on a schema change.
 const KEY = 'wcsim:game:v1';
 
-/** Load a persisted game, or null if absent / unreadable / stale. Transient draft
- *  fields are reset so a restore mid-draft re-rolls cleanly instead of resuming a
- *  half-finished roll animation. Merged over `initialState` to tolerate added fields. */
+/** Load a persisted game, or null if absent / unreadable / stale. Only the roll
+ *  animation flag is reset (no scramble is running right after a load); the drawn
+ *  squad and current selection are KEPT, so reloading mid-draft restores the same
+ *  squad rather than rolling a fresh one. Nulling them would let a reload act as a
+ *  free, unlimited re-roll (bypassing the re-roll limit). If no squad was in hand
+ *  (a settle hadn't happened yet), the draw-next-squad effect rolls one as usual.
+ *  Merged over `initialState` to tolerate added fields. */
 export function loadGame(): GameState | null {
     try {
         const raw = localStorage.getItem(KEY);
@@ -17,8 +21,6 @@ export function loadGame(): GameState | null {
             ...initialState,
             ...parsed,
             rolling: false,
-            currentSquad: null,
-            selectedPlayerId: null,
         };
     } catch {
         return null;
