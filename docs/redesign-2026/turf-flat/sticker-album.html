@@ -1,0 +1,554 @@
+<!--
+  TURF FLAT — World Cup Simulator redesign (5): the STICKER ALBUM
+  Design proposal for the Sticker Album feature.
+    Spec:   docs/sticker-album-spec.html
+    Design: docs/sticker-album-design.md
+  Pages covered on this comp:
+    - Home-screen entry point (D-3)
+    - Album screen: completion counter + duplicate pool + tier sections (Monumental,
+      Iconic, Legendary) of collected / silhouette sticker cards, per-tier trade action
+    - Overlays (buttons at the top open them): New-stickers run-end summary,
+      Cup-win "pick your prize", Trade-duplicates 3-pick, and a 100% completion state
+  Real collectible set (elo >= 90): 2 Monumental, 12 Iconic, 39 Legendary = 53.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sticker Album — Turf Flat</title>
+<script>
+/* Apply the saved theme before paint to avoid a flash, shared key across all pages. */
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+/* ===== THEMEABLE PALETTE (identical to the other turf-flat comps) ===== */
+:root,:root[data-theme="pitch"]{
+  --pitch-deep:#0E5C34; --pitch:#15924C; --chalk:#E8F0E8; --paper:#F4F2EC;
+  --ink:#13211A; --muted:#5C6A60; --line:#D4DED5; --amber:#E4922B; --loss:#C8453C;
+  --white:#ffffff; --wash:rgba(14,92,52,.05); --ring:rgba(255,255,255,.9);
+  --flag-edge:rgba(19,33,26,.18); --gold:#C99A3A; --gold-lo:#F0CF8A;
+}
+:root[data-theme="cobalt"]{
+  --pitch-deep:#16356E; --pitch:#2356C8; --chalk:#E4ECFA; --paper:#F2F4F9;
+  --ink:#141C2B; --muted:#5A6480; --line:#D2DAEA; --amber:#E8902A; --loss:#D6453E;
+  --white:#ffffff; --wash:rgba(22,53,110,.06); --ring:rgba(255,255,255,.9);
+  --flag-edge:rgba(20,28,43,.18); --gold:#C79A38; --gold-lo:#EFCE86;
+}
+:root[data-theme="claret"]{
+  --pitch-deep:#5A1230; --pitch:#7C1F3E; --chalk:#F3E6EA; --paper:#F6F1ED;
+  --ink:#241318; --muted:#7A5C63; --line:#E5D3D6; --amber:#C8962F; --loss:#E2683A;
+  --white:#ffffff; --wash:rgba(90,18,48,.05); --ring:rgba(255,255,255,.88);
+  --flag-edge:rgba(36,19,24,.18); --gold:#C8962F; --gold-lo:#EFCE86;
+}
+:root[data-theme="petrol"]{
+  --pitch-deep:#0C3B3F; --pitch:#136A6E; --chalk:#E0EEEC; --paper:#F1F4F2;
+  --ink:#0F2123; --muted:#577173; --line:#CFE0DD; --amber:#E2792A; --loss:#CF4B3C;
+  --white:#ffffff; --wash:rgba(12,59,63,.06); --ring:rgba(255,255,255,.9);
+  --flag-edge:rgba(15,33,35,.18); --gold:#C79A38; --gold-lo:#EFCE86;
+}
+:root[data-theme="floodlight"]{
+  --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+  --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+  --white:#16231D; --wash:rgba(47,180,106,.07); --ring:rgba(232,242,234,.28);
+  --flag-edge:rgba(232,242,234,.22); --gold:#E0B14E; --gold-lo:#F2D588;
+}
+:root{
+  --disp:'Archivo',system-ui,sans-serif;
+  --body:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(180deg,var(--wash),transparent 220px);
+  background-repeat:no-repeat;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== masthead ===== */
+.mast{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:2px solid var(--ink)}
+.mast .crest{width:38px;height:38px;flex:0 0 auto;border-radius:6px;background:var(--pitch-deep);
+  display:grid;place-items:center}
+.mast .crest svg{width:22px;height:22px;stroke:var(--amber);fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:23px;letter-spacing:-.02em;margin:0;text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12.5px;color:var(--muted);margin-left:2px;border-left:1px solid var(--line);padding-left:14px}
+.mast .stamp{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:6px 10px;background:var(--white)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+.sec-h{display:flex;align-items:flex-end;gap:16px;margin:30px 0 18px}
+.sec-h .txt h2{font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:2px 0 0;line-height:1}
+.sec-h .crumb{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:inline-flex;gap:6px;margin-bottom:6px}
+.sec-h .chalk{flex:1;height:0;border-top:2px solid var(--line);position:relative;align-self:center}
+.sec-h .chalk::before{content:"";position:absolute;left:0;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--white);border:2px solid var(--line)}
+
+.card{background:var(--white);border:1px solid var(--line);border-radius:6px;box-shadow:6px 6px 0 var(--pitch-deep)}
+.btn{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:13px;
+  border:1px solid var(--ink);background:var(--white);color:var(--ink);border-radius:5px;padding:11px 16px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--pitch);border-color:var(--pitch-deep);color:#fff}
+.btn.sm{padding:8px 12px;font-size:11px}
+.btn.block{width:100%;justify-content:center}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ===== flags (CSS approximations, comp only) ===== */
+.flag{width:22px;height:15px;border-radius:2px;flex:0 0 auto;display:inline-block;
+  box-shadow:inset 0 0 0 1px var(--flag-edge);background:#bbb;overflow:hidden;position:relative;vertical-align:middle}
+.flag.lg{width:34px;height:23px}
+.f-bra{background:#1B9E3E}.f-bra::before{content:"";position:absolute;inset:0;margin:auto;width:62%;height:62%;background:#FFD500;transform:rotate(45deg)}
+.f-bra::after{content:"";position:absolute;inset:0;margin:auto;width:24%;height:24%;border-radius:50%;background:#2A3A8C}
+.f-esp{background:linear-gradient(180deg,#AA151B 0 25%,#F1BF00 25% 75%,#AA151B 75%)}
+.f-por{background:linear-gradient(90deg,#046A38 0 40%,#DA251D 40%)}
+.f-por::after{content:"";position:absolute;left:40%;top:50%;width:7px;height:7px;border-radius:50%;background:#FFE000;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px #046A38}
+.f-eng{background:#fff}.f-eng::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:16%;background:#CE1124;transform:translateX(-50%)}.f-eng::after{content:"";position:absolute;top:50%;left:0;right:0;height:22%;background:#CE1124;transform:translateY(-50%)}
+.f-cro{background:linear-gradient(180deg,#FF0000 0 34%,#fff 34% 66%,#171796 66%)}
+.f-ger{background:linear-gradient(180deg,#111 0 33.3%,#DD0000 33.3% 66.6%,#FFCE00 66.6%)}
+.f-arg{background:linear-gradient(180deg,#74ACDF 0 33.3%,#fff 33.3% 66.6%,#74ACDF 66.6%)}.f-arg::after{content:"";position:absolute;inset:0;margin:auto;width:7px;height:7px;border-radius:50%;background:#F6B40E}
+.f-ita{background:linear-gradient(90deg,#008C45 0 33.3%,#fff 33.3% 66.6%,#CD212A 66.6%)}
+.f-fra{background:linear-gradient(90deg,#0055A4 0 33.3%,#fff 33.3% 66.6%,#EF4135 66.6%)}
+.f-ned{background:linear-gradient(180deg,#AE1C28 0 33.3%,#fff 33.3% 66.6%,#21468B 66.6%)}
+.f-bel{background:linear-gradient(90deg,#000 0 33.3%,#FAE042 33.3% 66.6%,#ED2939 66.6%)}
+.f-pol{background:linear-gradient(180deg,#fff 0 50%,#DC143C 50%)}
+.f-uru{background:repeating-linear-gradient(180deg,#fff 0 22%,#7BAFD4 22% 44%)}
+.f-uru::after{content:"";position:absolute;left:24%;top:26%;width:6px;height:6px;border-radius:50%;background:#F6C915;transform:translate(-50%,-50%)}
+.f-kor{background:#fff}
+.f-kor::after{content:"";position:absolute;left:50%;top:50%;width:50%;height:50%;border-radius:50%;background:linear-gradient(180deg,#CD2E3A 0 50%,#0047A0 50%);transform:translate(-50%,-50%)}
+
+/* ===== tier accents ===== */
+.t-leg{--accent:var(--pitch)}
+.t-ico{--accent:var(--amber)}
+.t-mon{--accent:var(--gold)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+
+/* ===== home entry point demo ===== */
+.demo-note{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);background:var(--chalk);border:1px dashed var(--line);border-radius:4px;padding:4px 9px;display:inline-block}
+.entry-demo{margin-top:22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.album-cta{display:inline-flex;align-items:center;gap:13px;background:var(--white);border:1px solid var(--line);
+  border-left:3px solid var(--amber);border-radius:6px;padding:11px 16px;cursor:pointer;box-shadow:3px 3px 0 var(--pitch-deep)}
+.album-cta .ac-ic{width:30px;height:30px;border-radius:5px;background:var(--pitch-deep);display:grid;place-items:center;flex:0 0 auto}
+.album-cta .ac-ic svg{width:17px;height:17px;stroke:var(--amber);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.album-cta .ac-tx{display:flex;flex-direction:column;line-height:1.15;text-align:left}
+.album-cta .ac-tx b{font-family:var(--disp);font-weight:800;font-size:14px}
+.album-cta .ac-tx em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.album-cta .ac-ar{color:var(--pitch);font-weight:700;margin-left:4px}
+
+/* ===== hero: completion counter ===== */
+.hero{margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:0}
+.hero .hero-main{padding:20px 22px}
+.hero-count{font-family:var(--disp);font-weight:900;letter-spacing:-.02em;margin:6px 0 12px;line-height:1}
+.hero-count b{font-size:44px}
+.hero-count span{font-size:18px;color:var(--muted);font-weight:800}
+.bar{height:9px;border-radius:20px;background:var(--chalk);overflow:hidden;border:1px solid var(--line)}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--pitch),var(--pitch-deep))}
+.hero-tiers{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px}
+.ht{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.ht b{color:var(--ink);font-weight:700}
+.hero-side{border-left:1px solid var(--line);background:var(--chalk);padding:20px 22px;display:flex;flex-direction:column;justify-content:center;border-radius:0 6px 6px 0}
+.hero-side .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.hero-side .v{font-family:var(--mono);font-weight:700;font-size:38px;line-height:1;margin-top:4px}
+.hero-side .sub{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4}
+
+/* ===== demo strip (opens the overlays) ===== */
+.demo-strip{margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  border:1px dashed var(--line);border-radius:6px;padding:12px 14px;background:var(--wash)}
+.demo-strip .dl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-right:auto}
+
+/* ===== tier sections ===== */
+.tier-sec{margin-top:34px}
+.tier-head{display:flex;align-items:center;gap:11px;padding-bottom:9px;margin-bottom:16px;border-bottom:2px solid var(--ink)}
+.tier-head h3{font-family:var(--disp);font-weight:800;font-size:19px;letter-spacing:-.01em;margin:0}
+.tier-head .cnt{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted)}
+.tier-head .spacer{flex:1}
+.tier-head .need{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.btn.trade{border-color:var(--accent);color:var(--accent);background:transparent}
+.btn.trade:hover{background:var(--accent);color:#fff}
+.t-mon .btn.trade:hover{color:#3a2a06}
+
+.grid-stickers{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+
+/* ===== sticker card ===== */
+.sticker{position:relative;border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:6px;
+  background:var(--white);box-shadow:4px 4px 0 var(--pitch-deep);overflow:hidden;display:flex;flex-direction:column}
+.sticker .st-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 0}
+.st-tier{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.st-dup{font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;background:var(--amber);border-radius:20px;padding:1px 7px}
+.st-lock{color:var(--muted);font-size:12px;line-height:1}
+.st-face{padding:8px 12px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;flex:1}
+.st-face .flag{margin-top:2px}
+.st-face .nm{font-family:var(--disp);font-weight:800;font-size:14px;letter-spacing:-.01em;line-height:1.1}
+.st-face .yr{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.st-rate{background:var(--accent);color:#fff;padding:7px 10px;display:flex;align-items:baseline;justify-content:center;gap:7px}
+.st-rate .rv{font-family:var(--mono);font-weight:700;font-size:26px;line-height:1}
+.st-rate .rk{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;opacity:.82}
+.t-mon .st-rate{background:linear-gradient(135deg,var(--gold-lo),var(--gold));color:#3a2a06}
+
+/* locked / silhouette */
+.sticker.locked{border-style:dashed;border-top-style:solid;box-shadow:none;background:var(--paper);opacity:.92}
+.sticker.locked .flag{filter:grayscale(1);opacity:.45}
+.sticker.locked .st-face .nm{color:var(--muted)}
+.sticker.locked .st-rate{background:var(--chalk);color:var(--muted)}
+.sticker.locked .st-rate .rv{opacity:.6}
+.sticker.locked .st-tier{opacity:.7}
+
+/* highlighted (newly earned) */
+.sticker.isnew{outline:2px solid var(--amber);outline-offset:2px}
+.sticker.isnew::after{content:"NEW";position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--pitch);border-radius:20px;padding:2px 8px}
+
+/* pickable (in overlays) */
+.sticker.pick{cursor:pointer;transition:transform .12s}
+.sticker.pick:hover{transform:translateY(-3px)}
+
+/* ===== overlays ===== */
+.overlay{position:fixed;inset:0;z-index:80;background:rgba(10,20,14,.55);display:grid;place-items:center;padding:24px}
+.overlay[hidden]{display:none}
+.modal{background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:8px 8px 0 var(--pitch-deep);
+  max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal .m-eyebrow{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pitch)}
+.modal h3{font-family:var(--disp);font-weight:900;font-size:26px;letter-spacing:-.02em;margin:5px 0 6px;line-height:1.05}
+.modal .m-sub{font-size:13.5px;color:var(--muted);margin-bottom:18px}
+.modal .m-sub b{color:var(--ink)}
+.modal .m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.modal .m-grid.wide{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));max-height:46vh;overflow:auto;padding:2px}
+.modal .m-actions{margin-top:20px;display:flex;gap:10px;justify-content:flex-end}
+.modal .note{font-size:12px;color:var(--muted);font-style:italic;margin-top:12px}
+.cup-banner{background:var(--pitch-deep);color:#fff;border-radius:6px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.cup-banner svg{width:26px;height:26px;stroke:var(--amber);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.cup-banner .cb-t{font-family:var(--disp);font-weight:900;font-size:18px;letter-spacing:-.01em}
+.cup-banner .cb-s{font-size:12px;color:rgba(255,255,255,.8)}
+
+/* ===== 100% completion state (spec 5.8) ===== */
+.complete-hero{margin-top:34px;border:1px solid var(--gold);border-radius:8px;overflow:hidden;
+  background:linear-gradient(135deg,var(--gold-lo),var(--gold));color:#3a2a06;box-shadow:6px 6px 0 var(--pitch-deep);
+  padding:26px 24px;text-align:center;position:relative}
+.complete-hero .ce{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+.complete-hero h3{font-family:var(--disp);font-weight:900;font-size:34px;letter-spacing:-.02em;margin:6px 0 4px}
+.complete-hero p{font-size:13.5px;margin:0;color:#4a3610}
+
+/* ===== theme switcher ===== */
+.themer{position:fixed;top:64px;right:14px;z-index:90;display:flex;align-items:center;gap:9px;
+  background:var(--white);border:1px solid var(--line);border-radius:30px;padding:6px 10px 6px 13px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);max-width:calc(100vw - 28px)}
+.themer .tlbl{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.themer .sw-row{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.themer .sw{position:relative;width:22px;height:22px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  border:1px solid var(--flag-edge);padding:0;overflow:hidden;background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%)}
+.themer .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--ink)}
+.themer .sw .nm{position:absolute;left:-9999px}
+.themer .sw.t-pitch{--c1:#15924C;--c2:#0E5C34}.themer .sw.t-cobalt{--c1:#2356C8;--c2:#16356E}
+.themer .sw.t-claret{--c1:#7C1F3E;--c2:#C8962F}.themer .sw.t-petrol{--c1:#136A6E;--c2:#E2792A}
+.themer .sw.t-floodlight{--c1:#0E1714;--c2:#2FB46A}
+
+@media (max-width:760px){ .mast .tag{display:none} .hero{grid-template-columns:1fr} .hero-side{border-left:0;border-top:1px solid var(--line);border-radius:0 0 6px 6px} }
+@media (max-width:560px){
+  .themer{top:58px;right:10px;gap:7px;padding:5px 8px 5px 10px}.themer .tlbl{display:none}
+  .wrap{padding:0 14px 60px}.mast .stamp{display:none}.mast h1{font-size:19px}.sec-h .txt h2{font-size:24px}
+  .modal .m-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+
+<nav class="themer" aria-label="Colour theme">
+  <span class="tlbl">Theme</span>
+  <div class="sw-row">
+    <button class="sw t-pitch" data-theme="pitch" title="Pitch" aria-pressed="true"><span class="nm">Pitch</span></button>
+    <button class="sw t-cobalt" data-theme="cobalt" title="Cobalt" aria-pressed="false"><span class="nm">Cobalt</span></button>
+    <button class="sw t-claret" data-theme="claret" title="Claret" aria-pressed="false"><span class="nm">Claret</span></button>
+    <button class="sw t-petrol" data-theme="petrol" title="Petrol" aria-pressed="false"><span class="nm">Petrol</span></button>
+    <button class="sw t-floodlight" data-theme="floodlight" title="Floodlight" aria-pressed="false"><span class="nm">Floodlight</span></button>
+  </div>
+</nav>
+
+<!-- trophy glyph reused in a few places -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="trophy" viewBox="0 0 24 24">
+  <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"/>
+  <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"/>
+  <path d="M18 9h1.5a1 1 0 0 0 0-5H18"/><path d="M4 22h16"/>
+  <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6 9H4.5a1 1 0 0 1 0-5H6"/>
+</symbol></svg>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="crest" aria-hidden="true"><svg><use href="#trophy"/></svg></div>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <span class="stamp">Sticker album</span>
+  </header>
+
+  <!-- ENTRY POINT (D-3: a home-screen element, not a nav tab) -->
+  <div class="entry-demo">
+    <span class="demo-note">Home-screen entry point</span>
+    <button class="album-cta">
+      <span class="ac-ic"><svg><use href="#trophy"/></svg></span>
+      <span class="ac-tx"><b>Sticker album</b><em>31 / 53 collected &middot; 23 duplicates</em></span>
+      <span class="ac-ar">&rarr;</span>
+    </button>
+  </div>
+
+  <div class="sec-h">
+    <div class="txt">
+      <div class="crumb">&larr; Back to game</div>
+      <div class="eyebrow">Your collection</div>
+      <h2>The Sticker Album</h2>
+    </div>
+    <div class="chalk" aria-hidden="true"></div>
+  </div>
+
+  <!-- HERO: completion counter + duplicate pool -->
+  <section class="card hero">
+    <div class="hero-main">
+      <div class="eyebrow">Collected</div>
+      <div class="hero-count"><b>31</b> <span>/ 53</span></div>
+      <div class="bar"><span style="width:58%"></span></div>
+      <div class="hero-tiers">
+        <span class="ht t-mon"><span class="dot"></span>Monumental <b>1&#8202;/&#8202;2</b></span>
+        <span class="ht t-ico"><span class="dot"></span>Iconic <b>6&#8202;/&#8202;12</b></span>
+        <span class="ht t-leg"><span class="dot"></span>Legendary <b>24&#8202;/&#8202;39</b></span>
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="k">Duplicates</div>
+      <div class="v">23</div>
+      <div class="sub">Trade any mix for a new sticker of your choice.</div>
+    </div>
+  </section>
+
+  <div class="demo-strip">
+    <span class="dl">Run-end &amp; trade states &rarr;</span>
+    <button class="btn sm" data-open="ov-summary">New stickers</button>
+    <button class="btn sm" data-open="ov-cup">Cup reward</button>
+    <button class="btn sm" data-open="ov-trade">Trade duplicates</button>
+    <button class="btn sm" data-open="ov-done">100% state</button>
+  </div>
+
+  <!-- ============ MONUMENTAL ============ -->
+  <section class="tier-sec t-mon">
+    <div class="tier-head">
+      <span class="dot"></span>
+      <h3>Monumental</h3>
+      <span class="cnt">1 / 2</span>
+      <span class="spacer"></span>
+      <span class="need">Trade cost 50 duplicates &middot; need 27 more</span>
+    </div>
+    <div class="grid-stickers">
+      <article class="sticker t-mon">
+        <div class="st-hd"><span class="st-tier">Monumental</span></div>
+        <div class="st-face"><span class="flag lg f-arg"></span><span class="nm">Lionel Messi</span><span class="yr">Argentina &middot; 2022</span></div>
+        <div class="st-rate"><span class="rv">97</span><span class="rk">Rating</span></div>
+      </article>
+      <article class="sticker t-mon locked">
+        <div class="st-hd"><span class="st-tier">Monumental</span><span class="st-lock">&#9671;</span></div>
+        <div class="st-face"><span class="flag lg f-fra"></span><span class="nm">Kylian Mbapp&eacute;</span><span class="yr">France &middot; 2022</span></div>
+        <div class="st-rate"><span class="rv">?</span></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ ICONIC ============ -->
+  <section class="tier-sec t-ico">
+    <div class="tier-head">
+      <span class="dot"></span>
+      <h3>Iconic</h3>
+      <span class="cnt">6 / 12</span>
+      <span class="spacer"></span>
+      <button class="btn sm trade" data-open="ov-trade">Trade 20 &rarr; Iconic</button>
+    </div>
+    <div class="grid-stickers">
+      <article class="sticker t-ico">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-dup">&times;3</span></div>
+        <div class="st-face"><span class="flag lg f-arg"></span><span class="nm">Lionel Messi</span><span class="yr">Argentina &middot; 2018</span></div>
+        <div class="st-rate"><span class="rv">96</span><span class="rk">Rating</span></div>
+      </article>
+      <article class="sticker t-ico">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-dup">&times;2</span></div>
+        <div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Ronaldinho</span><span class="yr">Brazil &middot; 2006</span></div>
+        <div class="st-rate"><span class="rv">95</span><span class="rk">Rating</span></div>
+      </article>
+      <article class="sticker t-ico">
+        <div class="st-hd"><span class="st-tier">Iconic</span></div>
+        <div class="st-face"><span class="flag lg f-arg"></span><span class="nm">Lionel Messi</span><span class="yr">Argentina &middot; 2014</span></div>
+        <div class="st-rate"><span class="rv">96</span><span class="rk">Rating</span></div>
+      </article>
+      <article class="sticker t-ico">
+        <div class="st-hd"><span class="st-tier">Iconic</span></div>
+        <div class="st-face"><span class="flag lg f-por"></span><span class="nm">Cristiano Ronaldo</span><span class="yr">Portugal &middot; 2014</span></div>
+        <div class="st-rate"><span class="rv">94</span><span class="rk">Rating</span></div>
+      </article>
+      <article class="sticker t-ico">
+        <div class="st-hd"><span class="st-tier">Iconic</span></div>
+        <div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Neymar</span><span class="yr">Brazil &middot; 2018</span></div>
+        <div class="st-rate"><span class="rv">94</span><span class="rk">Rating</span></div>
+      </article>
+      <article class="sticker t-ico">
+        <div class="st-hd"><span class="st-tier">Iconic</span></div>
+        <div class="st-face"><span class="flag lg f-bel"></span><span class="nm">Kevin De Bruyne</span><span class="yr">Belgium &middot; 2022</span></div>
+        <div class="st-rate"><span class="rv">94</span><span class="rk">Rating</span></div>
+      </article>
+      <article class="sticker t-ico locked">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-lock">&#9671;</span></div>
+        <div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Ronaldo</span><span class="yr">Brazil &middot; 1998</span></div>
+        <div class="st-rate"><span class="rv">?</span></div>
+      </article>
+      <article class="sticker t-ico locked">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-lock">&#9671;</span></div>
+        <div class="st-face"><span class="flag lg f-arg"></span><span class="nm">Lionel Messi</span><span class="yr">Argentina &middot; 2010</span></div>
+        <div class="st-rate"><span class="rv">?</span></div>
+      </article>
+      <article class="sticker t-ico locked">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-lock">&#9671;</span></div>
+        <div class="st-face"><span class="flag lg f-por"></span><span class="nm">Cristiano Ronaldo</span><span class="yr">Portugal &middot; 2018</span></div>
+        <div class="st-rate"><span class="rv">?</span></div>
+      </article>
+      <article class="sticker t-ico locked">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-lock">&#9671;</span></div>
+        <div class="st-face"><span class="flag lg f-bel"></span><span class="nm">Kevin De Bruyne</span><span class="yr">Belgium &middot; 2018</span></div>
+        <div class="st-rate"><span class="rv">?</span></div>
+      </article>
+      <article class="sticker t-ico locked">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-lock">&#9671;</span></div>
+        <div class="st-face"><span class="flag lg f-bel"></span><span class="nm">Thibaut Courtois</span><span class="yr">Belgium &middot; 2022</span></div>
+        <div class="st-rate"><span class="rv">?</span></div>
+      </article>
+      <article class="sticker t-ico locked">
+        <div class="st-hd"><span class="st-tier">Iconic</span><span class="st-lock">&#9671;</span></div>
+        <div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Neymar</span><span class="yr">Brazil &middot; 2022</span></div>
+        <div class="st-rate"><span class="rv">?</span></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ LEGENDARY ============ -->
+  <section class="tier-sec t-leg">
+    <div class="tier-head">
+      <span class="dot"></span>
+      <h3>Legendary</h3>
+      <span class="cnt">24 / 39</span>
+      <span class="spacer"></span>
+      <button class="btn sm trade" data-open="ov-trade">Trade 10 &rarr; Legendary</button>
+    </div>
+    <div class="grid-stickers">
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-dup">&times;2</span></div><div class="st-face"><span class="flag lg f-fra"></span><span class="nm">Zinedine Zidane</span><span class="yr">France &middot; 1998</span></div><div class="st-rate"><span class="rv">92</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Ronaldo</span><span class="yr">Brazil &middot; 2002</span></div><div class="st-rate"><span class="rv">91</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-esp"></span><span class="nm">Xavi</span><span class="yr">Spain &middot; 2010</span></div><div class="st-rate"><span class="rv">91</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-esp"></span><span class="nm">Andr&eacute;s Iniesta</span><span class="yr">Spain &middot; 2010</span></div><div class="st-rate"><span class="rv">90</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Neymar</span><span class="yr">Brazil &middot; 2014</span></div><div class="st-rate"><span class="rv">92</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-dup">&times;2</span></div><div class="st-face"><span class="flag lg f-ger"></span><span class="nm">Toni Kroos</span><span class="yr">Germany &middot; 2018</span></div><div class="st-rate"><span class="rv">92</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-cro"></span><span class="nm">Luka Modri&#263;</span><span class="yr">Croatia &middot; 2018</span></div><div class="st-rate"><span class="rv">92</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-eng"></span><span class="nm">Harry Kane</span><span class="yr">England &middot; 2022</span></div><div class="st-rate"><span class="rv">91</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-fra"></span><span class="nm">Karim Benzema</span><span class="yr">France &middot; 2022</span></div><div class="st-rate"><span class="rv">91</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-cro"></span><span class="nm">Luka Modri&#263;</span><span class="yr">Croatia &middot; 2022</span></div><div class="st-rate"><span class="rv">92</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-kor"></span><span class="nm">Son Heung-min</span><span class="yr">South Korea &middot; 2022</span></div><div class="st-rate"><span class="rv">90</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg locked"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-lock">&#9671;</span></div><div class="st-face"><span class="flag lg f-ita"></span><span class="nm">Gianluigi Buffon</span><span class="yr">Italy &middot; 2006</span></div><div class="st-rate"><span class="rv">?</span></div></article>
+      <article class="sticker t-leg locked"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-lock">&#9671;</span></div><div class="st-face"><span class="flag lg f-esp"></span><span class="nm">Iker Casillas</span><span class="yr">Spain &middot; 2010</span></div><div class="st-rate"><span class="rv">?</span></div></article>
+      <article class="sticker t-leg locked"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-lock">&#9671;</span></div><div class="st-face"><span class="flag lg f-ned"></span><span class="nm">Arjen Robben</span><span class="yr">Netherlands &middot; 2014</span></div><div class="st-rate"><span class="rv">?</span></div></article>
+      <article class="sticker t-leg locked"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-lock">&#9671;</span></div><div class="st-face"><span class="flag lg f-bel"></span><span class="nm">Eden Hazard</span><span class="yr">Belgium &middot; 2018</span></div><div class="st-rate"><span class="rv">?</span></div></article>
+      <article class="sticker t-leg locked"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-lock">&#9671;</span></div><div class="st-face"><span class="flag lg f-pol"></span><span class="nm">Robert Lewandowski</span><span class="yr">Poland &middot; 2022</span></div><div class="st-rate"><span class="rv">?</span></div></article>
+      <article class="sticker t-leg locked"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-lock">&#9671;</span></div><div class="st-face"><span class="flag lg f-ned"></span><span class="nm">Virgil van Dijk</span><span class="yr">Netherlands &middot; 2022</span></div><div class="st-rate"><span class="rv">?</span></div></article>
+      <article class="sticker t-leg locked"><div class="st-hd"><span class="st-tier">Legendary</span><span class="st-lock">&#9671;</span></div><div class="st-face"><span class="flag lg f-uru"></span><span class="nm">Federico Valverde</span><span class="yr">Uruguay &middot; 2022</span></div><div class="st-rate"><span class="rv">?</span></div></article>
+    </div>
+    <p style="font-family:var(--mono);font-size:11px;color:var(--muted);margin:14px 2px 0">Showing 18 of 39 &mdash; the album lists every card in the tier.</p>
+  </section>
+</div>
+
+<!-- ============ OVERLAY: run-end new-stickers summary (spec 5.7 / FR-8) ============ -->
+<div class="overlay" id="ov-summary" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="New stickers added">
+    <div class="m-eyebrow">Run complete</div>
+    <h3>New stickers added</h3>
+    <p class="m-sub"><b>3 new</b> collected this run &middot; 2 duplicates added to your pool.</p>
+    <div class="m-grid">
+      <article class="sticker t-ico isnew"><div class="st-hd"><span class="st-tier">Iconic</span></div><div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Neymar</span><span class="yr">Brazil &middot; 2018</span></div><div class="st-rate"><span class="rv">94</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg isnew"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-eng"></span><span class="nm">Harry Kane</span><span class="yr">England &middot; 2022</span></div><div class="st-rate"><span class="rv">91</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg isnew"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-kor"></span><span class="nm">Son Heung-min</span><span class="yr">South Korea &middot; 2022</span></div><div class="st-rate"><span class="rv">90</span><span class="rk">Rating</span></div></article>
+    </div>
+    <p class="note">Duplicates this run: Zidane &times;1, Kroos &times;1 &mdash; added to the trade pool.</p>
+    <div class="m-actions">
+      <button class="btn" data-close>Done</button>
+      <button class="btn primary" data-close>View album &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OVERLAY: cup-win reward picker (spec FR-3 / D-1) ============ -->
+<div class="overlay" id="ov-cup" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Pick your prize">
+    <div class="cup-banner">
+      <svg><use href="#trophy"/></svg>
+      <div><div class="cb-t">World Champions</div><div class="cb-s">Pick any one uncollected sticker &mdash; any tier.</div></div>
+    </div>
+    <div class="m-grid wide">
+      <article class="sticker t-mon pick"><div class="st-hd"><span class="st-tier">Monumental</span></div><div class="st-face"><span class="flag lg f-fra"></span><span class="nm">Kylian Mbapp&eacute;</span><span class="yr">France &middot; 2022</span></div><div class="st-rate"><span class="rv">97</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-ico pick"><div class="st-hd"><span class="st-tier">Iconic</span></div><div class="st-face"><span class="flag lg f-arg"></span><span class="nm">Lionel Messi</span><span class="yr">Argentina &middot; 2010</span></div><div class="st-rate"><span class="rv">93</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-ico pick"><div class="st-hd"><span class="st-tier">Iconic</span></div><div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Ronaldo</span><span class="yr">Brazil &middot; 1998</span></div><div class="st-rate"><span class="rv">93</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg pick"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-ned"></span><span class="nm">Virgil van Dijk</span><span class="yr">Netherlands &middot; 2022</span></div><div class="st-rate"><span class="rv">90</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg pick"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-pol"></span><span class="nm">Robert Lewandowski</span><span class="yr">Poland &middot; 2022</span></div><div class="st-rate"><span class="rv">91</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-leg pick"><div class="st-hd"><span class="st-tier">Legendary</span></div><div class="st-face"><span class="flag lg f-bel"></span><span class="nm">Eden Hazard</span><span class="yr">Belgium &middot; 2018</span></div><div class="st-rate"><span class="rv">92</span><span class="rk">Rating</span></div></article>
+    </div>
+    <p class="note">If every sticker is already collected, the prize becomes a duplicate of your pick instead.</p>
+    <div class="m-actions"><button class="btn" data-close>Later</button></div>
+  </div>
+</div>
+
+<!-- ============ OVERLAY: trade duplicates (spec FR-4 / FR-5) ============ -->
+<div class="overlay" id="ov-trade" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Trade duplicates">
+    <div class="m-eyebrow">Trade duplicates</div>
+    <h3>Choose one Iconic sticker</h3>
+    <p class="m-sub">Spend <b>20 duplicates</b> (any mix) from your pool of <b>23</b>. The three options are always uncollected &mdash; no risk of a duplicate.</p>
+    <div class="m-grid">
+      <article class="sticker t-ico pick"><div class="st-hd"><span class="st-tier">Iconic</span></div><div class="st-face"><span class="flag lg f-arg"></span><span class="nm">Lionel Messi</span><span class="yr">Argentina &middot; 2010</span></div><div class="st-rate"><span class="rv">93</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-ico pick"><div class="st-hd"><span class="st-tier">Iconic</span></div><div class="st-face"><span class="flag lg f-bel"></span><span class="nm">Kevin De Bruyne</span><span class="yr">Belgium &middot; 2018</span></div><div class="st-rate"><span class="rv">93</span><span class="rk">Rating</span></div></article>
+      <article class="sticker t-ico pick"><div class="st-hd"><span class="st-tier">Iconic</span></div><div class="st-face"><span class="flag lg f-bra"></span><span class="nm">Neymar</span><span class="yr">Brazil &middot; 2022</span></div><div class="st-rate"><span class="rv">93</span><span class="rk">Rating</span></div></article>
+    </div>
+    <p class="note">Fewer than three left in a tier shows however many remain (1&ndash;2). None left hides the trade for that tier.</p>
+    <div class="m-actions"><button class="btn" data-close>Cancel</button></div>
+  </div>
+</div>
+
+<!-- ============ OVERLAY: 100% completion celebration (spec 5.8) ============ -->
+<div class="overlay" id="ov-done" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Album complete" style="text-align:center">
+    <div class="complete-hero" style="margin-top:0;box-shadow:none">
+      <div class="ce">&#9733; Album complete &#9733;</div>
+      <h3>All 53 collected</h3>
+      <p>Every Legendary, Iconic and Monumental sticker across 1998&ndash;2022. A full house.</p>
+    </div>
+    <div class="m-actions" style="justify-content:center"><button class="btn primary" data-close>Back to the album</button></div>
+  </div>
+</div>
+
+<script>
+/* Theme switcher (shared behaviour across the turf-flat comps). */
+(function(){
+  var KEY='turf-flat-theme';
+  var sw=[].slice.call(document.querySelectorAll('.themer .sw'));
+  function mark(t){sw.forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-theme')===t?'true':'false');});}
+  mark(document.documentElement.getAttribute('data-theme')||'pitch');
+  sw.forEach(function(b){b.addEventListener('click',function(){
+    var t=b.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme',t);
+    try{localStorage.setItem(KEY,t);}catch(e){}
+    mark(t);});});
+})();
+
+/* Overlay open/close: any [data-open="id"] opens #id; [data-close] or backdrop closes. */
+(function(){
+  function open(id){var o=document.getElementById(id);if(o)o.hidden=false;}
+  function closeAll(){[].forEach.call(document.querySelectorAll('.overlay'),function(o){o.hidden=true;});}
+  document.addEventListener('click',function(e){
+    var op=e.target.closest('[data-open]');
+    if(op){open(op.getAttribute('data-open'));return;}
+    if(e.target.closest('[data-close]')){closeAll();return;}
+    if(e.target.classList.contains('overlay')){closeAll();}
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeAll();});
+})();
+</script>

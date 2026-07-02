@@ -3,6 +3,11 @@
 **Status:** Ready for implementation
 **Source of truth:** `docs/sticker-album-spec.html`
 **Date:** 2026-06-29
+**Reconciled with codebase:** 2026-07-02 — tier counts re-verified against the current
+dataset (still 39 Legendary / 12 Iconic / 2 Monumental = 53, all elo >= 90); code
+references below updated to the current names (`bracket`, `RECORD_BRACKET_ROUND`,
+`KnockoutScreen`, routing) and the real `FEATURES` shape. Visual comps for the required
+pages live at `docs/redesign-2026/turf-flat/sticker-album.html`.
 
 ---
 
@@ -46,7 +51,7 @@ export type PendingStickers = string[]; // player IDs (may contain duplicates if
 |-----|----------|-------|
 | `wcsim_album_v1` | `AlbumState` JSON | Main collection; separate from game state |
 | `wcsim_album_stats_v1` | `AlbumStats` JSON | Lightweight telemetry for trade-cost calibration |
-| `wcsim:settings` | existing | Unchanged |
+| `wcsim:game:v1` | existing | The persisted `GameState` (`state/persist.ts`). Unchanged. The album keys are deliberately separate so clearing/resetting a run never touches the album (FR-7). |
 
 ```ts
 export interface AlbumStats {
@@ -74,8 +79,13 @@ Tier membership is checked at runtime from `STICKER_TIERS` in `config.ts`. No se
 ## 2. New Config Additions (`src/config.ts`)
 
 ```ts
+// The live FEATURES object today is { chemistry, removePlayers, teamRatings,
+// squadBrowser }. Add stickerAlbum alongside the existing flags:
 export const FEATURES = {
   chemistry: true,
+  removePlayers: false,
+  teamRatings: true,
+  squadBrowser: true,
   stickerAlbum: true,   // ADD: gate the entire feature
 } as const;
 
@@ -214,11 +224,18 @@ Note: `ALBUM_TRADE` and cup-win pick do not need to live in `gameReducer` becaus
 
 ### Phase Transitions That Trigger Sticker Application
 
-1. **Knockout elimination** (`KO_RECORD` with `userWon: false`): after `knockout.outcome` becomes `'out'`, `App.tsx` dispatches `END_RUN_APPLY_STICKERS` with `wonCup: false`.
-2. **Cup win** (`KO_RECORD` sets `knockout.outcome` to `'champion'`): `App.tsx` shows `CupRewardPicker` first, then dispatches `END_RUN_APPLY_STICKERS` with `wonCup: true` and the chosen player ID.
-3. **No trigger on group-stage elimination** for now (the spec says "win or being knocked out" -- the group stage ends in either qualification or elimination; "being knocked out" includes group-stage elimination, so `isGroupFinished && !userAdvanced` should also trigger sticker application before showing the post-tournament screen).
+The knockout run is driven by `domain/bracket.ts`: the `RECORD_BRACKET_ROUND` action feeds
+`recordRound`, which sets `bracket.outcome` to `'alive' | 'champion' | 'out'`. Sticker
+application keys off that outcome (and off group-stage exit), detected in `App.tsx` after the
+reducer updates.
 
-The detection logic already exists: `knockout.outcome === 'out'` in `TournamentScreen`/`App.tsx`; group exit via `isGroupFinished(group) && !userAdvanced(group)`.
+1. **Knockout elimination** (`RECORD_BRACKET_ROUND` leaves `bracket.outcome === 'out'`): `App.tsx` dispatches `END_RUN_APPLY_STICKERS` with `wonCup: false`.
+2. **Cup win** (`RECORD_BRACKET_ROUND` sets `bracket.outcome === 'champion'`): `App.tsx` shows `CupRewardPicker` first, then dispatches `END_RUN_APPLY_STICKERS` with `wonCup: true` and the chosen player ID.
+3. **Group-stage elimination** also ends the run (spec + design Q3): `isGroupFinished(group) && !userAdvanced(group)` triggers sticker application and the `RunEndStickerSummary`, same as a knockout elimination.
+
+The detection points already exist: `bracket.outcome` (surfaced in `KnockoutScreen` / `App.tsx`)
+and the group exit via `isGroupFinished(group) && !userAdvanced(group)` (surfaced in
+`TournamentScreen` / `App.tsx`).
 
 ---
 
@@ -275,11 +292,15 @@ Pick-your-prize screen shown after a cup win, before stickers are applied. Props
 **`App.tsx`:**
 - Add `album: AlbumState` and `setAlbum` state (loaded from `albumStorage` on mount).
 - Add `albumStats` update helper that also calls `saveStats`.
-- Detect run-end conditions (already present via `knockout.outcome` and group-stage checks) and wire up `END_RUN_APPLY_STICKERS` dispatch + `applyRunStickers` + `saveAlbum` call.
-- Render album entry point button on the setup/draft/complete screen (per D-3: home screen element).
-- Conditionally render `AlbumScreen` when album is open.
+- Detect run-end conditions (already present via `bracket.outcome` and group-stage checks) and wire up `END_RUN_APPLY_STICKERS` dispatch + `applyRunStickers` + `saveAlbum` call.
+- Routing: the app branches on `location.pathname` (`/`, `/group`, `/knockout`, `/squads/*`).
+  Add an **`/album`** route rendering `AlbumScreen` (consistent with the existing route-per-screen
+  architecture and `state/persist.ts`). Reach it from a home-screen entry point per D-3 (a button
+  in `SetupPanel`/`CompletePanel`), navigating via `useNavigate`; `AlbumScreen`'s `onClose` becomes
+  a `navigate(-1)` / `navigate('/')`. The `RunEndStickerSummary` and `CupRewardPicker` remain modal
+  overlays layered over the current screen rather than routes (they are transient run-end steps).
 - Conditionally render `RunEndStickerSummary` when `pendingNewStickers` is non-empty.
-- Conditionally render `CupRewardPicker` when `knockout.outcome === 'champion'` and cup pick not yet made.
+- Conditionally render `CupRewardPicker` when `bracket.outcome === 'champion'` and the cup pick is not yet made.
 
 **`gameReducer.ts`:**
 - Add `pendingStickers: string[]` to `GameState`.
@@ -289,8 +310,13 @@ Pick-your-prize screen shown after a cup win, before stickers are applied. Props
 **`SetupPanel.tsx`:**
 - Add an "Album" button/section (receives `onOpenAlbum: () => void` and `albumSummary: { collected: number; total: number }` as props). Position and styling TBD by implementer.
 
-**`TournamentScreen.tsx`:**
-- After the final knockout result (or group-stage exit), signal the parent (`App.tsx`) to begin the sticker-application flow. This can be via an existing `onReset` replacement or a new `onRunEnd` callback. The exact callback design depends on how `App.tsx` currently handles the "Start over" flow.
+**`TournamentScreen.tsx` (group) and `KnockoutScreen.tsx` (bracket):**
+- The two run-end points now live on separate screens: group-stage exit is detected in
+  `TournamentScreen` (`isGroupFinished && !userAdvanced`), and the cup win / knockout elimination in
+  `KnockoutScreen` (`bracket.outcome`). Either screen signals the parent (`App.tsx`) to begin the
+  sticker-application flow. The screens already take an `onReset` callback for "Draft a new XI"; add a
+  sibling `onRunEnd` (or fold it into the existing end-of-run effect in `App.tsx` that watches
+  `bracket.outcome` / the group result) so the summary + album-apply run once per run end.
 
 ---
 
