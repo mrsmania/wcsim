@@ -18,6 +18,9 @@ interface Props {
     canAnotherTeam: boolean;
     canAnotherCup: boolean;
     openPositions: Set<Position>;
+    /** Positions with a filled slot: a player eligible for one can be selected to
+     *  swap in, even with no open slot (sticker album). Empty when the album is off. */
+    filledPositions: Set<Position>;
     usedPersonIds: Set<string>;
     selectedPlayerId: string | null;
     onReroll: (kind: RerollKind) => void;
@@ -58,6 +61,7 @@ export default function SquadPanel({
     canAnotherTeam,
     canAnotherCup,
     openPositions,
+    filledPositions,
     usedPersonIds,
     selectedPlayerId,
     onReroll,
@@ -107,16 +111,21 @@ export default function SquadPanel({
                 {sortSquad(squad.players).map((p) => {
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);
+                    // Also selectable if the player can swap into a filled slot they fit
+                    // (their position may have no open slot). filledPositions is empty
+                    // when the album is off, so behaviour is unchanged there.
+                    const swappable = !used && p.positions.some((pos) => filledPositions.has(pos));
+                    const interactive = selectable || swappable;
                     const selected = p.id === selectedPlayerId;
                     const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
                     return (
                         <li key={p.id} className="border-b border-line last:border-b-0">
                             <button
-                                disabled={!selectable}
+                                disabled={!interactive}
                                 onClick={() => onSelectPlayer(p.id)}
                                 className={[
                                     'flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition',
-                                    selectable
+                                    interactive
                                         ? 'cursor-pointer hover:bg-pitch/5'
                                         : 'cursor-not-allowed opacity-40',
                                     selected ? 'bg-pitch/10' : '',

@@ -312,7 +312,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   when a player is selected, filled slots they're eligible for become swap targets on
   the `Pitch` (amber ring + swap glyph on the badge); swapping frees the outgoing
   player's `personId` and uses the incoming one, letting a collectible be brought in
-  even when its slot is filled.
+  even when its slot is filled. So the whole point works, `SquadPanel` makes a player
+  selectable when they fit an open slot **or** a filled one (`App` passes
+  `filledPositions`); otherwise a player whose only positions are all filled would be
+  greyed out and could never be swapped in.
 - With **`FEATURES.stickerAlbum` = false**: no album route/entry, no markers, no swap,
   no overlays, and no album localStorage reads/writes; the game is unchanged.
 

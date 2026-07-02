@@ -424,6 +424,16 @@ export default function App() {
             activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>(),
         [activeFormation, filled],
     );
+    // Positions that currently have a FILLED slot: a player eligible for one of these
+    // can be swapped in even if they fit no open slot (sticker album feature). Empty
+    // when the album is off, so the squad list gating is unchanged.
+    const filledPositions = useMemo<Set<Position>>(() => {
+        const s = new Set<Position>();
+        if (STICKERS && activeFormation) {
+            for (const slot of activeFormation.slots) if (filled[slot.id]) s.add(slot.position);
+        }
+        return s;
+    }, [STICKERS, activeFormation, filled]);
     const usedSet = useMemo(() => new Set(usedPersonIds), [usedPersonIds]);
     const selectedPlayer = currentSquad?.players.find((p) => p.id === selectedPlayerId) ?? null;
     const panelSquad = rolling ? displaySquad : currentSquad;
@@ -619,6 +629,7 @@ export default function App() {
                                         !!currentSquad && hasAnotherCup(SQUADS, currentSquad)
                                     }
                                     openPositions={openPositions}
+                                    filledPositions={filledPositions}
                                     usedPersonIds={usedSet}
                                     selectedPlayerId={selectedPlayerId}
                                     onReroll={handleReroll}
