@@ -6,6 +6,7 @@ import {
     type Squad,
 } from '../data/types';
 import { tierOf } from '../domain/album';
+import { squadOverall } from '../domain/tournament';
 import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
@@ -43,7 +44,7 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                 </span>
                 <span className="font-mono text-[13px] font-semibold text-muted">{squad.year}</span>
                 <span className="ml-auto font-mono text-[11px] font-semibold tracking-[0.02em] text-muted">
-                    Team <span className="text-ink">{squad.rating}</span> &middot; Avg{' '}
+                    Team <span className="text-ink">{squadOverall(squad)}</span> &middot; Avg{' '}
                     <span className="text-ink">{avg}</span> &middot; {squad.players.length} players
                 </span>
             </div>

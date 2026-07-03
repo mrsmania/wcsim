@@ -4,6 +4,7 @@ import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { tierOf } from '../domain/album';
+import { squadOverall } from '../domain/tournament';
 import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
@@ -59,11 +60,12 @@ export default function SquadBrowser() {
     const year = mCupYear ? Number(mCupYear.params.year) : YEARS[0];
     const mode: Mode = mTeamGrid || mTeamCups ? 'byTeam' : 'byCup';
 
-    // Nations for the chosen year, strongest first (then alphabetical).
+    // Nations for the chosen year, strongest first (then alphabetical). Ranked by the
+    // same computed rating the game uses (best-XI overall), not the stored field.
     const nations = useMemo(
         () =>
             SQUADS.filter((s) => s.year === year).sort(
-                (a, b) => b.rating - a.rating || a.nation.localeCompare(b.nation),
+                (a, b) => squadOverall(b) - squadOverall(a) || a.nation.localeCompare(b.nation),
             ),
         [year],
     );
@@ -315,13 +317,15 @@ function StatHeaders() {
 }
 
 /** The trailing stat cells for one squad (rating / players / collectibles), matching
- *  StatHeaders. Collectibles shows an amber star + count, or a muted dash. */
+ *  StatHeaders. Rating is the computed best-XI overall (what the match engine uses),
+ *  so it matches the in-game rating chips. Collectibles shows an amber star + count,
+ *  or a muted dash. */
 function StatCells({ squad }: { squad: Squad }) {
     const coll = FEATURES.stickerAlbum ? squad.players.filter((p) => tierOf(p)).length : 0;
     return (
         <>
             <span className="text-right font-mono text-sm font-bold tabular-nums">
-                {squad.rating}
+                {squadOverall(squad)}
             </span>
             <span className="text-right font-mono text-[13px] tabular-nums text-muted">
                 {squad.players.length}
