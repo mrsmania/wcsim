@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Navigate, useMatch, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useMatch, useNavigate } from 'react-router-dom';
 import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
 import { ArrowLeft, Search, X } from 'lucide-react';
@@ -19,6 +19,10 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 /** A full 32-nation field; below this a year is hand-authored placeholder data. */
 const FULL_FIELD = 32;
 const MAX_RESULTS = 80;
+
+/** Route to a single squad's roster. Used as a real href so the row links can be
+ *  middle-clicked / opened in a new tab (react-router applies the deploy basename). */
+const squadHref = (id: string) => `/squads/team/${id}`;
 
 /** A nation and every World Cup it appears in within this dataset. */
 interface TeamGroup {
@@ -100,10 +104,6 @@ export default function SquadBrowser() {
         return hits.sort((a, b) => b.player.elo - a.player.elo);
     }, [q, searching]);
 
-    const openSquad = (id: string) => {
-        setQuery('');
-        navigate(`/squads/team/${id}`);
-    };
     // Leaving a roster: step back in history when we came from within the app,
     // otherwise (a deep link) fall back to that squad's World Cup grid.
     const backFromRoster = () => {
@@ -160,14 +160,10 @@ export default function SquadBrowser() {
                                 ['byTeam', 'By Team'],
                             ] as const
                         ).map(([m, label]) => (
-                            <button
+                            <Link
                                 key={m}
-                                onClick={() => {
-                                    setQuery('');
-                                    navigate(
-                                        m === 'byTeam' ? '/squads/by-team' : '/squads/by-world-cup',
-                                    );
-                                }}
+                                to={m === 'byTeam' ? '/squads/by-team' : '/squads/by-world-cup'}
+                                onClick={() => setQuery('')}
                                 className={[
                                     'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
                                     mode === m
@@ -176,7 +172,7 @@ export default function SquadBrowser() {
                                 ].join(' ')}
                             >
                                 {label}
-                            </button>
+                            </Link>
                         ))}
                     </div>
                 </div>
@@ -222,21 +218,21 @@ export default function SquadBrowser() {
                             Back
                         </button>
                     ) : team ? (
-                        <button
-                            onClick={() => navigate('/squads/by-team')}
+                        <Link
+                            to="/squads/by-team"
                             className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-white px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
                         >
                             <ArrowLeft size={14} strokeWidth={2.5} />
                             All teams
-                        </button>
+                        </Link>
                     ) : (
                         <div className="flex flex-wrap gap-1.5">
                             {YEARS.map((y) => {
                                 const active = y === year;
                                 return (
-                                    <button
+                                    <Link
                                         key={y}
-                                        onClick={() => navigate(`/squads/by-world-cup/${y}`)}
+                                        to={`/squads/by-world-cup/${y}`}
                                         className={[
                                             'rounded-[5px] border px-3 py-2 font-mono text-[12px] font-semibold tabular-nums transition',
                                             active
@@ -245,7 +241,7 @@ export default function SquadBrowser() {
                                         ].join(' ')}
                                     >
                                         {y}
-                                    </button>
+                                    </Link>
                                 );
                             })}
                         </div>
@@ -255,17 +251,17 @@ export default function SquadBrowser() {
 
             {/* Content */}
             {searching ? (
-                <SearchResults results={results} onOpen={openSquad} />
+                <SearchResults results={results} onClear={() => setQuery('')} />
             ) : selected ? (
                 <TeamRoster squad={selected} />
             ) : team ? (
-                <TeamCups team={team} onOpen={openSquad} />
+                <TeamCups team={team} />
             ) : mode === 'byTeam' ? (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {teams.map((t) => (
-                        <button
+                        <Link
                             key={t.code}
-                            onClick={() => navigate(`/squads/by-team/${t.code.toLowerCase()}`)}
+                            to={`/squads/by-team/${t.code.toLowerCase()}`}
                             className="flex flex-col gap-2.5 rounded-md border border-line bg-panel p-3.5 text-left shadow-hard transition hover:border-pitch"
                         >
                             <Flag code={t.code} className="h-5 w-8" />
@@ -279,7 +275,7 @@ export default function SquadBrowser() {
                                 <span className="font-bold text-ink">{t.squads.length}</span> World
                                 Cup{t.squads.length === 1 ? '' : 's'}
                             </div>
-                        </button>
+                        </Link>
                     ))}
                 </div>
             ) : (
@@ -290,7 +286,7 @@ export default function SquadBrowser() {
                             full researched field.
                         </p>
                     )}
-                    <CupTable squads={nations} onOpen={openSquad} />
+                    <CupTable squads={nations} />
                 </>
             )}
         </>
@@ -348,7 +344,7 @@ function StatCells({ squad }: { squad: Squad }) {
 
 /** A World Cup's field as a table: flag + nation, team rating, squad size, and the
  *  number of collectibles in that squad. Rows open the squad's roster. */
-function CupTable({ squads, onOpen }: { squads: Squad[]; onOpen: (squadId: string) => void }) {
+function CupTable({ squads }: { squads: Squad[] }) {
     return (
         <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
             <div
@@ -358,9 +354,9 @@ function CupTable({ squads, onOpen }: { squads: Squad[]; onOpen: (squadId: strin
                 <StatHeaders />
             </div>
             {squads.map((sq) => (
-                <button
+                <Link
                     key={sq.id}
-                    onClick={() => onOpen(sq.id)}
+                    to={squadHref(sq.id)}
                     className={`${STAT_GRID} w-full border-b border-line py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5`}
                 >
                     <span className="flex min-w-0 items-center gap-2.5">
@@ -371,7 +367,7 @@ function CupTable({ squads, onOpen }: { squads: Squad[]; onOpen: (squadId: strin
                         <span className="shrink-0 font-mono text-[10.5px] text-muted">{sq.code}</span>
                     </span>
                     <StatCells squad={sq} />
-                </button>
+                </Link>
             ))}
         </div>
     );
@@ -411,7 +407,7 @@ function topLegends(team: TeamGroup, n = 10): Legend[] {
 
 /** A team's detail page: the World Cups it played (newest first, each opening that
  *  squad's roster), and its all-time legends. */
-function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string) => void }) {
+function TeamCups({ team }: { team: TeamGroup }) {
     const legends = topLegends(team);
     return (
         <div className="flex flex-col gap-4">
@@ -433,14 +429,14 @@ function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string)
                     <StatHeaders />
                 </div>
                 {team.squads.map((s) => (
-                    <button
+                    <Link
                         key={s.id}
-                        onClick={() => onOpen(s.id)}
+                        to={squadHref(s.id)}
                         className={`${STAT_GRID} w-full border-b border-line py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5`}
                     >
                         <span className="font-mono text-[15px] font-bold tabular-nums">{s.year}</span>
                         <StatCells squad={s} />
-                    </button>
+                    </Link>
                 ))}
             </div>
 
@@ -488,10 +484,11 @@ function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string)
  *  thousands of rows. */
 function SearchResults({
     results,
-    onOpen,
+    onClear,
 }: {
     results: { player: Player; squad: Squad }[];
-    onOpen: (squadId: string) => void;
+    /** Clear the query so the opened roster is shown (not the search) on plain click. */
+    onClear: () => void;
 }) {
     if (results.length === 0) {
         return (
@@ -506,9 +503,10 @@ function SearchResults({
             {shown.map(({ player, squad }) => {
                 const tier = FEATURES.stickerAlbum ? tierOf(player) : null;
                 return (
-                    <button
+                    <Link
                         key={player.id}
-                        onClick={() => onOpen(squad.id)}
+                        to={squadHref(squad.id)}
+                        onClick={onClear}
                         className="flex w-full items-center gap-3 border-b border-line px-4 py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5"
                         style={
                             tier
@@ -538,7 +536,7 @@ function SearchResults({
                         <span className="shrink-0 text-right font-mono text-sm font-bold tabular-nums">
                             {player.elo}
                         </span>
-                    </button>
+                    </Link>
                 );
             })}
             {results.length > MAX_RESULTS && (

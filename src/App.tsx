@@ -521,9 +521,9 @@ export default function App() {
                                         ['Squads', '/squads/by-world-cup', isSquads],
                                     ] as const
                                 ).map(([label, to, active]) => (
-                                    <button
+                                    <Link
                                         key={label}
-                                        onClick={() => navigate(to)}
+                                        to={to}
                                         className={[
                                             'border-r border-line px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] transition last:border-r-0',
                                             active
@@ -532,7 +532,7 @@ export default function App() {
                                         ].join(' ')}
                                     >
                                         {label}
-                                    </button>
+                                    </Link>
                                 ))}
                             </div>
                         )}
@@ -607,8 +607,8 @@ export default function App() {
                         {/* Col 1: setup -> drawn squad -> complete */}
                         <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
                             {STICKERS && albumSummary && (
-                                <button
-                                    onClick={() => navigate('/album')}
+                                <Link
+                                    to="/album"
                                     className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
                                 >
                                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
@@ -623,7 +623,7 @@ export default function App() {
                                         </span>
                                     </span>
                                     <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />
-                                </button>
+                                </Link>
                             )}
                             {homeView === 'setup' && (
                                 <SetupPanel
