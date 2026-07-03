@@ -210,8 +210,8 @@ export default function SquadBrowser() {
                 <div className="mb-5 min-w-0">
                     {searching ? (
                         <span className="font-mono text-[12px] text-muted">
-                            {results.length} {results.length === 1 ? 'player' : 'players'} across all
-                            tournaments
+                            {results.length} {results.length === 1 ? 'player' : 'players'} across
+                            all tournaments
                         </span>
                     ) : selected ? (
                         <button
@@ -290,32 +290,71 @@ export default function SquadBrowser() {
                             full researched field.
                         </p>
                     )}
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                        {nations.map((sq) => (
-                            <button
-                                key={sq.id}
-                                onClick={() => openSquad(sq.id)}
-                                className="flex flex-col gap-2.5 rounded-md border border-line bg-panel p-3.5 text-left shadow-hard transition hover:border-pitch"
-                            >
-                                <Flag code={sq.code} className="h-5 w-8" />
-                                <div className="min-w-0">
-                                    <div className="truncate font-display text-[15px] font-extrabold leading-tight">
-                                        {sq.nation}
-                                    </div>
-                                    <div className="font-mono text-[11px] text-muted">
-                                        {sq.code} &middot; {sq.year}
-                                    </div>
-                                </div>
-                                <div className="mt-auto font-mono text-[11px] text-muted">
-                                    Rating <span className="font-bold text-ink">{sq.rating}</span>{' '}
-                                    &middot; {sq.players.length}p
-                                </div>
-                            </button>
-                        ))}
-                    </div>
+                    <CupTable squads={nations} onOpen={openSquad} />
                 </>
             )}
         </>
+    );
+}
+
+/** A World Cup's field as a table: flag + nation, team rating, squad size, and the
+ *  number of collectibles in that squad. Rows open the squad's roster. The
+ *  collectibles column only appears when the sticker album is enabled. */
+function CupTable({ squads, onOpen }: { squads: Squad[]; onOpen: (squadId: string) => void }) {
+    const showColl = FEATURES.stickerAlbum;
+    // Header and rows share this grid so the columns line up.
+    const grid = showColl
+        ? 'grid grid-cols-[minmax(0,1fr)_58px_64px_104px] items-center gap-2 px-4'
+        : 'grid grid-cols-[minmax(0,1fr)_58px_64px] items-center gap-2 px-4';
+    return (
+        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+            <div
+                className={`${grid} border-b-2 border-ink py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
+            >
+                <span>Team</span>
+                <span className="text-right">Rating</span>
+                <span className="text-right">Players</span>
+                {showColl && <span className="whitespace-nowrap text-right">Collectibles</span>}
+            </div>
+            {squads.map((sq) => {
+                const coll = showColl ? sq.players.filter((p) => tierOf(p)).length : 0;
+                return (
+                    <button
+                        key={sq.id}
+                        onClick={() => onOpen(sq.id)}
+                        className={`${grid} w-full border-b border-line py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5`}
+                    >
+                        <span className="flex min-w-0 items-center gap-2.5">
+                            <Flag code={sq.code} className="h-4 w-6 shrink-0" />
+                            <span className="truncate font-display text-[14.5px] font-extrabold leading-tight">
+                                {sq.nation}
+                            </span>
+                            <span className="shrink-0 font-mono text-[10.5px] text-muted">
+                                {sq.code}
+                            </span>
+                        </span>
+                        <span className="text-right font-mono text-sm font-bold tabular-nums">
+                            {sq.rating}
+                        </span>
+                        <span className="text-right font-mono text-[13px] tabular-nums text-muted">
+                            {sq.players.length}
+                        </span>
+                        {showColl && (
+                            <span className="flex items-center justify-end gap-1 font-mono text-[13px] tabular-nums">
+                                {coll > 0 ? (
+                                    <>
+                                        <span className="text-amber">&#9733;</span>
+                                        <span className="font-bold text-ink">{coll}</span>
+                                    </>
+                                ) : (
+                                    <span className="text-muted/50">-</span>
+                                )}
+                            </span>
+                        )}
+                    </button>
+                );
+            })}
+        </div>
     );
 }
 
@@ -374,7 +413,9 @@ function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string)
                         onClick={() => onOpen(s.id)}
                         className="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition last:border-b-0 hover:bg-pitch/5"
                     >
-                        <span className="font-mono text-[15px] font-bold tabular-nums">{s.year}</span>
+                        <span className="font-mono text-[15px] font-bold tabular-nums">
+                            {s.year}
+                        </span>
                         <span className="ml-auto flex items-center gap-3 font-mono text-[11px] text-muted">
                             <span>
                                 Rating <span className="font-bold text-ink">{s.rating}</span>
@@ -410,8 +451,7 @@ function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string)
                                 {l.apps.map((a, j) => (
                                     <span key={a.year}>
                                         {j > 0 && ' · '}
-                                        {a.year}{' '}
-                                        <span className="font-bold text-ink">{a.elo}</span>
+                                        {a.year} <span className="font-bold text-ink">{a.elo}</span>
                                     </span>
                                 ))}
                             </div>
@@ -449,33 +489,39 @@ function SearchResults({
             {shown.map(({ player, squad }) => {
                 const tier = FEATURES.stickerAlbum ? tierOf(player) : null;
                 return (
-                <button
-                    key={player.id}
-                    onClick={() => onOpen(squad.id)}
-                    className="flex w-full items-center gap-3 border-b border-line px-4 py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5"
-                    style={tier ? { boxShadow: `inset 3px 0 0 ${TIER_META[tier].accent}` } : undefined}
-                >
-                    <span className="w-6 shrink-0 text-center font-mono text-[12px] text-muted tabular-nums">
-                        {player.number}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-1.5">
-                            <span className="truncate text-[13.5px] font-semibold">{player.name}</span>
-                            {tier && <CollectibleStar tier={tier} />}
+                    <button
+                        key={player.id}
+                        onClick={() => onOpen(squad.id)}
+                        className="flex w-full items-center gap-3 border-b border-line px-4 py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5"
+                        style={
+                            tier
+                                ? { boxShadow: `inset 3px 0 0 ${TIER_META[tier].accent}` }
+                                : undefined
+                        }
+                    >
+                        <span className="w-6 shrink-0 text-center font-mono text-[12px] text-muted tabular-nums">
+                            {player.number}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                                <span className="truncate text-[13.5px] font-semibold">
+                                    {player.name}
+                                </span>
+                                {tier && <CollectibleStar tier={tier} />}
+                            </div>
+                            <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
+                                <span className="font-semibold">{primaryPosition(player)}</span>
+                                <span>&middot;</span>
+                                <Flag code={squad.code} className="h-3 w-[18px]" />
+                                <span>
+                                    {squad.code} {squad.year}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
-                            <span className="font-semibold">{primaryPosition(player)}</span>
-                            <span>&middot;</span>
-                            <Flag code={squad.code} className="h-3 w-[18px]" />
-                            <span>
-                                {squad.code} {squad.year}
-                            </span>
-                        </div>
-                    </div>
-                    <span className="shrink-0 text-right font-mono text-sm font-bold tabular-nums">
-                        {player.elo}
-                    </span>
-                </button>
+                        <span className="shrink-0 text-right font-mono text-sm font-bold tabular-nums">
+                            {player.elo}
+                        </span>
+                    </button>
                 );
             })}
             {results.length > MAX_RESULTS && (
