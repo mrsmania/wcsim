@@ -80,17 +80,23 @@ export function confettiBurst(originX: number, originY: number, count = 80) {
         });
     }
 
+    // Time-based motion (in 60fps units) so the burst runs at the same speed on
+    // high-refresh displays; life is counted in frames, so it scales with dt too.
+    const FRAME = 1000 / 60;
+    let last = performance.now();
     let raf = 0;
-    const tick = () => {
+    const tick = (t: number) => {
+        const dt = Math.min((t - last) / FRAME, 3);
+        last = t;
         ctx.clearRect(0, 0, w, h);
         for (let i = pieces.length - 1; i >= 0; i--) {
             const p = pieces[i];
-            p.vy += 0.12; // gravity
-            p.vx *= 0.99;
-            p.x += p.vx;
-            p.y += p.vy;
-            p.rot += p.vrot;
-            p.life! -= 1;
+            p.vy += 0.12 * dt; // gravity
+            p.vx *= Math.pow(0.99, dt);
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.rot += p.vrot * dt;
+            p.life! -= dt;
             drawPiece(ctx, p);
             if (p.life! <= 0 || p.y > h + 40) pieces.splice(i, 1);
         }
@@ -167,19 +173,35 @@ export default function Confetti({ durationMs = 3000 }: { durationMs?: number })
         };
         add(openingBurst); // an opening burst
 
+        // Time-based motion: scale every per-frame delta by how long the frame
+        // actually took, in 60fps units. Without this the rain runs 2-4x too fast on
+        // high-refresh (120/144Hz) displays, where rAF fires that much more often.
+        const FRAME = 1000 / 60;
         const start = performance.now();
+        let last = start;
+        let spawnAcc = 0;
         let raf = 0;
         const tick = (t: number) => {
             if (stopped) return;
+            // Cap the step so returning from a background tab doesn't teleport pieces.
+            const dt = Math.min((t - last) / FRAME, 3);
+            last = t;
             ctx.clearRect(0, 0, w, h);
-            if (t - start < durationMs && pieces.length < maxPieces) add(perFrame); // keep it heavy
+            if (t - start < durationMs && pieces.length < maxPieces) {
+                spawnAcc += perFrame * dt; // keep it heavy, at a refresh-independent rate
+                const n = Math.floor(spawnAcc);
+                if (n > 0) {
+                    add(n);
+                    spawnAcc -= n;
+                }
+            }
             for (let i = pieces.length - 1; i >= 0; i--) {
                 const p = pieces[i];
-                p.vy += 0.05; // gravity
-                p.vx *= 0.995;
-                p.x += p.vx;
-                p.y += p.vy;
-                p.rot += p.vrot;
+                p.vy += 0.05 * dt; // gravity
+                p.vx *= Math.pow(0.995, dt);
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.rot += p.vrot * dt;
                 drawPiece(ctx, p);
                 if (p.y > h + 40) pieces.splice(i, 1);
             }
