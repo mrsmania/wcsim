@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Navigate, useMatch, useNavigate } from 'react-router-dom';
 import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
-import { ArrowLeft, ArrowRight, Search, X } from 'lucide-react';
+import { ArrowLeft, Search, X } from 'lucide-react';
 import { tierOf } from '../domain/album';
 import { FEATURES } from '../config';
 import Flag from './Flag';
@@ -297,63 +297,82 @@ export default function SquadBrowser() {
     );
 }
 
+/** The stat table's column grid, shared by its header and rows so they line up.
+ *  The By World Cup and By Team tables both use it (first column is the team or the
+ *  year; the trailing three are rating / players / collectibles). The collectibles
+ *  column is dropped when the sticker album is off. */
+const STAT_GRID = FEATURES.stickerAlbum
+    ? 'grid grid-cols-[minmax(0,1fr)_58px_64px_104px] items-center gap-2 px-4'
+    : 'grid grid-cols-[minmax(0,1fr)_58px_64px] items-center gap-2 px-4';
+
+/** The trailing header labels (rating / players / collectibles), right-aligned. */
+function StatHeaders() {
+    return (
+        <>
+            <span className="text-right">Rating</span>
+            <span className="text-right">Players</span>
+            {FEATURES.stickerAlbum && (
+                <span className="whitespace-nowrap text-right">Collectibles</span>
+            )}
+        </>
+    );
+}
+
+/** The trailing stat cells for one squad (rating / players / collectibles), matching
+ *  StatHeaders. Collectibles shows an amber star + count, or a muted dash. */
+function StatCells({ squad }: { squad: Squad }) {
+    const coll = FEATURES.stickerAlbum ? squad.players.filter((p) => tierOf(p)).length : 0;
+    return (
+        <>
+            <span className="text-right font-mono text-sm font-bold tabular-nums">
+                {squad.rating}
+            </span>
+            <span className="text-right font-mono text-[13px] tabular-nums text-muted">
+                {squad.players.length}
+            </span>
+            {FEATURES.stickerAlbum && (
+                <span className="flex items-center justify-end gap-1 font-mono text-[13px] tabular-nums">
+                    {coll > 0 ? (
+                        <>
+                            <span className="text-amber">&#9733;</span>
+                            <span className="font-bold text-ink">{coll}</span>
+                        </>
+                    ) : (
+                        <span className="text-muted/50">-</span>
+                    )}
+                </span>
+            )}
+        </>
+    );
+}
+
 /** A World Cup's field as a table: flag + nation, team rating, squad size, and the
- *  number of collectibles in that squad. Rows open the squad's roster. The
- *  collectibles column only appears when the sticker album is enabled. */
+ *  number of collectibles in that squad. Rows open the squad's roster. */
 function CupTable({ squads, onOpen }: { squads: Squad[]; onOpen: (squadId: string) => void }) {
-    const showColl = FEATURES.stickerAlbum;
-    // Header and rows share this grid so the columns line up.
-    const grid = showColl
-        ? 'grid grid-cols-[minmax(0,1fr)_58px_64px_104px] items-center gap-2 px-4'
-        : 'grid grid-cols-[minmax(0,1fr)_58px_64px] items-center gap-2 px-4';
     return (
         <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
             <div
-                className={`${grid} border-b-2 border-ink py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
+                className={`${STAT_GRID} border-b-2 border-ink py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
             >
                 <span>Team</span>
-                <span className="text-right">Rating</span>
-                <span className="text-right">Players</span>
-                {showColl && <span className="whitespace-nowrap text-right">Collectibles</span>}
+                <StatHeaders />
             </div>
-            {squads.map((sq) => {
-                const coll = showColl ? sq.players.filter((p) => tierOf(p)).length : 0;
-                return (
-                    <button
-                        key={sq.id}
-                        onClick={() => onOpen(sq.id)}
-                        className={`${grid} w-full border-b border-line py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5`}
-                    >
-                        <span className="flex min-w-0 items-center gap-2.5">
-                            <Flag code={sq.code} className="h-4 w-6 shrink-0" />
-                            <span className="truncate font-display text-[14.5px] font-extrabold leading-tight">
-                                {sq.nation}
-                            </span>
-                            <span className="shrink-0 font-mono text-[10.5px] text-muted">
-                                {sq.code}
-                            </span>
+            {squads.map((sq) => (
+                <button
+                    key={sq.id}
+                    onClick={() => onOpen(sq.id)}
+                    className={`${STAT_GRID} w-full border-b border-line py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5`}
+                >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                        <Flag code={sq.code} className="h-4 w-6 shrink-0" />
+                        <span className="truncate font-display text-[14.5px] font-extrabold leading-tight">
+                            {sq.nation}
                         </span>
-                        <span className="text-right font-mono text-sm font-bold tabular-nums">
-                            {sq.rating}
-                        </span>
-                        <span className="text-right font-mono text-[13px] tabular-nums text-muted">
-                            {sq.players.length}
-                        </span>
-                        {showColl && (
-                            <span className="flex items-center justify-end gap-1 font-mono text-[13px] tabular-nums">
-                                {coll > 0 ? (
-                                    <>
-                                        <span className="text-amber">&#9733;</span>
-                                        <span className="font-bold text-ink">{coll}</span>
-                                    </>
-                                ) : (
-                                    <span className="text-muted/50">-</span>
-                                )}
-                            </span>
-                        )}
-                    </button>
-                );
-            })}
+                        <span className="shrink-0 font-mono text-[10.5px] text-muted">{sq.code}</span>
+                    </span>
+                    <StatCells squad={sq} />
+                </button>
+            ))}
         </div>
     );
 }
@@ -396,7 +415,7 @@ function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string)
     const legends = topLegends(team);
     return (
         <div className="flex flex-col gap-4">
-            {/* World Cups played */}
+            {/* World Cups played (same stat columns as the By World Cup table) */}
             <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-ink px-4 py-3.5">
                     <Flag code={team.code} className="h-6 w-9" />
@@ -407,22 +426,20 @@ function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string)
                         {team.squads.length} World Cup{team.squads.length === 1 ? '' : 's'}
                     </span>
                 </div>
+                <div
+                    className={`${STAT_GRID} border-b border-line py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
+                >
+                    <span>World Cup</span>
+                    <StatHeaders />
+                </div>
                 {team.squads.map((s) => (
                     <button
                         key={s.id}
                         onClick={() => onOpen(s.id)}
-                        className="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition last:border-b-0 hover:bg-pitch/5"
+                        className={`${STAT_GRID} w-full border-b border-line py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5`}
                     >
-                        <span className="font-mono text-[15px] font-bold tabular-nums">
-                            {s.year}
-                        </span>
-                        <span className="ml-auto flex items-center gap-3 font-mono text-[11px] text-muted">
-                            <span>
-                                Rating <span className="font-bold text-ink">{s.rating}</span>
-                            </span>
-                            <span>{s.players.length}p</span>
-                            <ArrowRight size={14} strokeWidth={2.5} className="text-pitch" />
-                        </span>
+                        <span className="font-mono text-[15px] font-bold tabular-nums">{s.year}</span>
+                        <StatCells squad={s} />
                     </button>
                 ))}
             </div>
@@ -431,7 +448,7 @@ function TeamCups({ team, onOpen }: { team: TeamGroup; onOpen: (squadId: string)
             <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
                 <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3.5">
                     <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
-                        Legends of {team.nation}
+                        Best players
                     </span>
                     <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                         Best
