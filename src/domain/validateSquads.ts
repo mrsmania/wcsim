@@ -33,13 +33,6 @@ export function validateSquads(squads: Squad[]): string[] {
     if (!CONFEDERATION[s.code]) {
       problems.push(`Squad "${s.id}" has code "${s.code}" with no confederation mapping`);
     }
-
-    // Squad.rating within range.
-    if (!inRange(s.rating)) {
-      problems.push(
-        `Squad "${s.id}" rating ${s.rating} is outside ${MIN_RATING}-${MAX_RATING}`,
-      );
-    }
   }
 
   // Player-level checks across the whole dataset.

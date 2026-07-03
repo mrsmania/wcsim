@@ -154,7 +154,9 @@ codes in URLs are lowercase and matched case-insensitively.
   `positions` (ordered - **`positions[0]` is the player's natural/primary role**),
   `elo` (strength rating, ~60-99; shown in the UI as "rating", never "elo").
 - **Squad**: `id` = `` `${code}-${year}` `` (e.g. `bra-2002`), `code`, `nation`,
-  `year`, `rating`, `players`.
+  `year`, `players`. There is **no squad-level rating**: a team's strength is derived
+  from its players (`squadOverall` = avg elo of the best XI), so every rating shown
+  (the `/squads` table, roster header, in-game chips) tracks the player elos.
 - **`personId` = slug of the name**, shared across tournaments, so the same human
   (e.g. Messi in 2006 and 2022) is **one identity and can be drafted only once**.
   Therefore name spellings MUST be identical across squads for the same person, and
@@ -179,7 +181,7 @@ codes in URLs are lowercase and matched case-insensitively.
   Iran 25). ~3,878 player rows total.
 - **Ratings** are a holistic judgement of each player's strength *at the time of
   that tournament* on the 60-99 scale (not current ability, not a FIFA-game number).
-- The `squad(code, nation, year, rating, rows)` helper builds the `Player[]`;
+- The `squad(code, nation, year, rows)` helper builds the `Player[]`;
   `SQUAD_BY_ID` is the lookup table. **Editing `squads.ts` is the only thing needed
   to change rosters/ratings** - `App`, the draft, and the sim all derive everything
   at runtime (re-roll "another team/cup" is computed from `.year` / `.code`). No

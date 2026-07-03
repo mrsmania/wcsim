@@ -65,9 +65,6 @@ export interface Squad {
   nation: string;
   /** Tournament year, e.g. 1998. */
   year: number;
-  /** Overall team strength for match simulation, on a 60-99 scale. The
-   *  1998/2002 squads are partial placeholders; 2006 onward are researched. */
-  rating: number;
   players: Player[];
 }
 

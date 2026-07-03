@@ -38,7 +38,7 @@ function slug(name: string): string {
 
 type Row = [number, string, Position[], number];
 
-function squad(code: string, nation: string, year: number, rating: number, rows: Row[]): Squad {
+function squad(code: string, nation: string, year: number, rows: Row[]): Squad {
     const id = `${code.toLowerCase()}-${year}`;
     const players: Player[] = rows.map(([number, name, positions, elo]) => ({
         id: `${id}-${number}`,
@@ -49,12 +49,12 @@ function squad(code: string, nation: string, year: number, rating: number, rows:
         positions,
         elo,
     }));
-    return { id, code, nation, year, rating, players };
+    return { id, code, nation, year, players };
 }
 
 export const SQUADS: Squad[] = [
     // ===================== 1998 =====================
-    squad('BRA', 'Brazil', 1998, 90, [
+    squad('BRA', 'Brazil', 1998, [
         [1, 'Cláudio Taffarel', ['GK'], 84],
         [22, 'Dida', ['GK'], 80],
         [2, 'Cafu', ['RB', 'RM'], 86],
@@ -73,7 +73,7 @@ export const SQUADS: Squad[] = [
         [7, 'Bebeto', ['ST', 'RW'], 84],
         [18, 'Edmundo', ['ST'], 79],
     ]),
-    squad('FRA', 'France', 1998, 89, [
+    squad('FRA', 'France', 1998, [
         [16, 'Fabien Barthez', ['GK'], 85],
         [1, 'Bernard Lama', ['GK'], 78],
         [15, 'Lilian Thuram', ['RB', 'RM', 'CB'], 86],
@@ -91,7 +91,7 @@ export const SQUADS: Squad[] = [
         [20, 'David Trezeguet', ['ST'], 80],
         [12, 'Thierry Henry', ['RW', 'LW', 'ST'], 85],
     ]),
-    squad('ITA', 'Italy', 1998, 86, [
+    squad('ITA', 'Italy', 1998, [
         [1, 'Gianluca Pagliuca', ['GK'], 82],
         [12, 'Gianluigi Buffon', ['GK'], 80],
         [3, 'Paolo Maldini', ['LB', 'CB', 'LM'], 88],
@@ -110,7 +110,7 @@ export const SQUADS: Squad[] = [
         [9, 'Christian Vieri', ['ST'], 86],
         [20, 'Filippo Inzaghi', ['ST'], 83],
     ]),
-    squad('NED', 'Netherlands', 1998, 86, [
+    squad('NED', 'Netherlands', 1998, [
         [1, 'Edwin van der Sar', ['GK'], 85],
         [16, 'Ruud Hesp', ['GK'], 76],
         [2, 'Michael Reiziger', ['RB', 'RM'], 79],
@@ -130,7 +130,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ===================== 2002 =====================
-    squad('BRA', 'Brazil', 2002, 91, [
+    squad('BRA', 'Brazil', 2002, [
         [1, 'Marcos', ['GK'], 84],
         [12, 'Dida', ['GK'], 82],
         [2, 'Cafu', ['RB', 'RM'], 86],
@@ -149,7 +149,7 @@ export const SQUADS: Squad[] = [
         [21, 'Luizão', ['ST'], 77],
         [9, 'Ronaldo', ['ST'], 91],
     ]),
-    squad('ITA', 'Italy', 2002, 85, [
+    squad('ITA', 'Italy', 2002, [
         [1, 'Gianluigi Buffon', ['GK'], 88],
         [12, 'Francesco Toldo', ['GK'], 81],
         [3, 'Paolo Maldini', ['LB', 'CB', 'LM'], 86],
@@ -168,7 +168,7 @@ export const SQUADS: Squad[] = [
         [20, 'Vincenzo Montella', ['ST'], 79],
         [7, 'Filippo Inzaghi', ['ST'], 83],
     ]),
-    squad('GER', 'Germany', 2002, 84, [
+    squad('GER', 'Germany', 2002, [
         [1, 'Oliver Kahn', ['GK'], 89],
         [12, 'Jens Lehmann', ['GK'], 82],
         [2, 'Thomas Linke', ['CB'], 77],
@@ -191,7 +191,7 @@ export const SQUADS: Squad[] = [
     // ===================== 2006 =====================
 
     // ----- Group A -----
-    squad('GER', 'Germany', 2006, 86, [
+    squad('GER', 'Germany', 2006, [
         [1, 'Jens Lehmann', ['GK'], 85],
         [12, 'Oliver Kahn', ['GK'], 86],
         [23, 'Timo Hildebrand', ['GK'], 74],
@@ -216,7 +216,7 @@ export const SQUADS: Squad[] = [
         [14, 'Gerald Asamoah', ['ST'], 73],
         [20, 'Lukas Podolski', ['ST', 'LW'], 82],
     ]),
-    squad('ECU', 'Ecuador', 2006, 75, [
+    squad('ECU', 'Ecuador', 2006, [
         [1, 'Cristian Mora', ['GK'], 76],
         [12, 'Edwin Villafuerte', ['GK'], 69],
         [22, 'Damián Lanza', ['GK'], 67],
@@ -241,7 +241,7 @@ export const SQUADS: Squad[] = [
         [21, 'Carlos Tenorio', ['ST'], 78],
         [23, 'Christian Benítez', ['ST'], 70],
     ]),
-    squad('POL', 'Poland', 2006, 75, [
+    squad('POL', 'Poland', 2006, [
         [1, 'Artur Boruc', ['GK'], 81],
         [12, 'Tomasz Kuszczak', ['GK'], 75],
         [22, 'Łukasz Fabiański', ['GK'], 70],
@@ -266,7 +266,7 @@ export const SQUADS: Squad[] = [
         [21, 'Ireneusz Jeleń', ['ST'], 74],
         [23, 'Paweł Brożek', ['ST'], 70],
     ]),
-    squad('CRC', 'Costa Rica', 2006, 70, [
+    squad('CRC', 'Costa Rica', 2006, [
         [1, 'José Francisco Porras', ['GK'], 74],
         [18, 'Álvaro Mesén', ['GK'], 72],
         [23, 'Wardy Alfaro', ['GK'], 65],
@@ -293,7 +293,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group B -----
-    squad('ENG', 'England', 2006, 86, [
+    squad('ENG', 'England', 2006, [
         [1, 'Paul Robinson', ['GK'], 82],
         [13, 'David James', ['GK'], 78],
         [22, 'Scott Carson', ['GK'], 70],
@@ -318,7 +318,7 @@ export const SQUADS: Squad[] = [
         [21, 'Peter Crouch', ['ST'], 81],
         [23, 'Theo Walcott', ['RW', 'ST'], 72],
     ]),
-    squad('SWE', 'Sweden', 2006, 80, [
+    squad('SWE', 'Sweden', 2006, [
         [1, 'Andreas Isaksson', ['GK'], 82],
         [12, 'John Alvbåge', ['GK'], 68],
         [23, 'Rami Shaaban', ['GK'], 70],
@@ -343,7 +343,7 @@ export const SQUADS: Squad[] = [
         [20, 'Marcus Allbäck', ['ST'], 77],
         [22, 'Markus Rosenberg', ['ST'], 74],
     ]),
-    squad('PAR', 'Paraguay', 2006, 76, [
+    squad('PAR', 'Paraguay', 2006, [
         [1, 'Justo Villar', ['GK'], 80],
         [12, 'Derlis Gómez', ['GK'], 68],
         [22, 'Aldo Bobadilla', ['GK'], 74],
@@ -368,7 +368,7 @@ export const SQUADS: Squad[] = [
         [20, 'Dante López', ['ST'], 72],
         [23, 'Nelson Cuevas', ['LW', 'ST'], 77],
     ]),
-    squad('TRI', 'Trinidad and Tobago', 2006, 66, [
+    squad('TRI', 'Trinidad and Tobago', 2006, [
         [1, 'Shaka Hislop', ['GK'], 73],
         [21, 'Kelvin Jack', ['GK'], 66],
         [22, 'Clayton Ince', ['GK'], 65],
@@ -395,7 +395,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group C -----
-    squad('ARG', 'Argentina', 2006, 86, [
+    squad('ARG', 'Argentina', 2006, [
         [1, 'Roberto Abbondanzieri', ['GK'], 80],
         [12, 'Leo Franco', ['GK'], 73],
         [23, 'Oscar Ustari', ['GK'], 70],
@@ -420,7 +420,7 @@ export const SQUADS: Squad[] = [
         [19, 'Lionel Messi', ['RW'], 80],
         [20, 'Julio Cruz', ['ST'], 79],
     ]),
-    squad('CIV', 'Ivory Coast', 2006, 79, [
+    squad('CIV', 'Ivory Coast', 2006, [
         [1, 'Jean-Jacques Tizié', ['GK'], 72],
         [16, 'Gérard Gnanhouan', ['GK'], 68],
         [23, 'Boubacar Barry', ['GK'], 69],
@@ -445,7 +445,7 @@ export const SQUADS: Squad[] = [
         [14, 'Bakari Koné', ['ST', 'RW'], 76],
         [15, 'Aruna Dindane', ['ST'], 79],
     ]),
-    squad('NED', 'Netherlands', 2006, 85, [
+    squad('NED', 'Netherlands', 2006, [
         [1, 'Edwin van der Sar', ['GK'], 86],
         [22, 'Henk Timmer', ['GK'], 71],
         [23, 'Maarten Stekelenburg', ['GK'], 74],
@@ -470,7 +470,7 @@ export const SQUADS: Squad[] = [
         [17, 'Jan Vennegoor of Hesselink', ['ST'], 77],
         [19, 'Dirk Marcellis', ['CB', 'RB'], 68],
     ]),
-    squad('SCG', 'Serbia and Montenegro', 2006, 76, [
+    squad('SCG', 'Serbia and Montenegro', 2006, [
         [1, 'Dragoslav Jevrić', ['GK'], 74],
         [12, 'Oliver Kovačević', ['GK'], 68],
         [23, 'Vladimir Stojković', ['GK'], 71],
@@ -497,7 +497,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group D -----
-    squad('MEX', 'Mexico', 2006, 79, [
+    squad('MEX', 'Mexico', 2006, [
         [1, 'Oswaldo Sánchez', ['GK'], 81],
         [12, 'José de Jesús Corona', ['GK'], 73],
         [13, 'Guillermo Ochoa', ['GK'], 70],
@@ -522,7 +522,7 @@ export const SQUADS: Squad[] = [
         [17, 'Francisco Fonseca', ['ST'], 78],
         [19, 'Omar Bravo', ['ST'], 79],
     ]),
-    squad('IRN', 'Iran', 2006, 74, [
+    squad('IRN', 'Iran', 2006, [
         [1, 'Ebrahim Mirzapour', ['GK'], 76],
         [12, 'Hassan Roudbarian', ['GK'], 67],
         [22, 'Vahid Talebloo', ['GK'], 68],
@@ -547,7 +547,7 @@ export const SQUADS: Squad[] = [
         [16, 'Reza Enayati', ['ST'], 70],
         [17, 'Javad Kazemeyan', ['RW', 'ST'], 71],
     ]),
-    squad('ANG', 'Angola', 2006, 68, [
+    squad('ANG', 'Angola', 2006, [
         [1, 'João Ricardo', ['GK'], 71],
         [12, 'Lama', ['GK'], 64],
         [22, 'Mário', ['GK'], 62],
@@ -572,7 +572,7 @@ export const SQUADS: Squad[] = [
         [18, 'Love', ['ST'], 67],
         [19, 'Titi Buengo', ['ST'], 65],
     ]),
-    squad('POR', 'Portugal', 2006, 85, [
+    squad('POR', 'Portugal', 2006, [
         [1, 'Ricardo', ['GK'], 82],
         [12, 'Quim', ['GK'], 73],
         [22, 'Paulo Santos', ['GK'], 68],
@@ -599,7 +599,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group E -----
-    squad('ITA', 'Italy', 2006, 89, [
+    squad('ITA', 'Italy', 2006, [
         [1, 'Gianluigi Buffon', ['GK'], 95],
         [12, 'Angelo Peruzzi', ['GK'], 74],
         [14, 'Marco Amelia', ['GK'], 70],
@@ -624,7 +624,7 @@ export const SQUADS: Squad[] = [
         [15, 'Vincenzo Iaquinta', ['ST', 'RW'], 79],
         [18, 'Filippo Inzaghi', ['ST'], 82],
     ]),
-    squad('GHA', 'Ghana', 2006, 79, [
+    squad('GHA', 'Ghana', 2006, [
         [1, 'Sammy Adjei', ['GK'], 70],
         [16, 'George Owu', ['GK'], 64],
         [22, 'Richard Kingson', ['GK'], 74],
@@ -649,7 +649,7 @@ export const SQUADS: Squad[] = [
         [14, 'Matthew Amoah', ['ST'], 72],
         [19, 'Razak Pimpong', ['ST', 'RW'], 66],
     ]),
-    squad('USA', 'United States', 2006, 77, [
+    squad('USA', 'United States', 2006, [
         [1, 'Kasey Keller', ['GK'], 80],
         [18, 'Tim Howard', ['GK'], 78],
         [19, 'Marcus Hahnemann', ['GK'], 73],
@@ -674,7 +674,7 @@ export const SQUADS: Squad[] = [
         [16, 'Josh Wolff', ['ST'], 72],
         [20, 'Brian McBride', ['ST'], 80],
     ]),
-    squad('CZE', 'Czech Republic', 2006, 80, [
+    squad('CZE', 'Czech Republic', 2006, [
         [1, 'Petr Čech', ['GK'], 86],
         [16, 'Jaromír Blažek', ['GK'], 70],
         [23, 'Antonín Kinský', ['GK'], 68],
@@ -701,7 +701,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group F -----
-    squad('BRA', 'Brazil', 2006, 90, [
+    squad('BRA', 'Brazil', 2006, [
         [1, 'Dida', ['GK'], 86],
         [12, 'Rogério Ceni', ['GK'], 78],
         [22, 'Júlio César', ['GK'], 78],
@@ -726,7 +726,7 @@ export const SQUADS: Squad[] = [
         [21, 'Fred Guedes', ['ST'], 75],
         [23, 'Robinho', ['LW', 'ST'], 83],
     ]),
-    squad('CRO', 'Croatia', 2006, 79, [
+    squad('CRO', 'Croatia', 2006, [
         [1, 'Stipe Pletikosa', ['GK'], 80],
         [12, 'Joey Didulica', ['GK'], 68],
         [23, 'Tomislav Butina', ['GK'], 72],
@@ -751,7 +751,7 @@ export const SQUADS: Squad[] = [
         [21, 'Boško Balaban', ['ST'], 71],
         [22, 'Ivan Bošnjak', ['ST'], 70],
     ]),
-    squad('AUS', 'Australia', 2006, 79, [
+    squad('AUS', 'Australia', 2006, [
         [1, 'Mark Schwarzer', ['GK'], 81],
         [12, 'Ante Čović', ['GK'], 68],
         [18, 'Željko Kalac', ['GK'], 75],
@@ -776,7 +776,7 @@ export const SQUADS: Squad[] = [
         [17, 'Archie Thompson', ['ST'], 71],
         [19, 'Joshua Kennedy', ['ST'], 71],
     ]),
-    squad('JPN', 'Japan', 2006, 76, [
+    squad('JPN', 'Japan', 2006, [
         [1, 'Seigo Narazaki', ['GK'], 75],
         [12, 'Yoichi Doi', ['GK'], 70],
         [23, 'Yoshikatsu Kawaguchi', ['GK'], 77],
@@ -803,7 +803,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group G -----
-    squad('FRA', 'France', 2006, 87, [
+    squad('FRA', 'France', 2006, [
         [1, 'Fabien Barthez', ['GK'], 79],
         [16, 'Grégory Coupet', ['GK'], 80],
         [23, 'Mickaël Landreau', ['GK'], 76],
@@ -828,7 +828,7 @@ export const SQUADS: Squad[] = [
         [14, 'Louis Saha', ['ST'], 80],
         [20, 'David Trezeguet', ['ST'], 84],
     ]),
-    squad('SUI', 'Switzerland', 2006, 79, [
+    squad('SUI', 'Switzerland', 2006, [
         [1, 'Pascal Zuberbühler', ['GK'], 79],
         [12, 'Fabio Coltorti', ['GK'], 70],
         [21, 'Diego Benaglio', ['GK'], 70],
@@ -853,7 +853,7 @@ export const SQUADS: Squad[] = [
         [11, 'Marco Streller', ['ST'], 75],
         [18, 'Mauro Lustrinelli', ['ST'], 69],
     ]),
-    squad('KOR', 'South Korea', 2006, 75, [
+    squad('KOR', 'South Korea', 2006, [
         [1, 'Lee Woon-jae', ['GK'], 78],
         [20, 'Kim Yong-dae', ['GK'], 69],
         [21, 'Kim Young-kwang', ['GK'], 67],
@@ -878,7 +878,7 @@ export const SQUADS: Squad[] = [
         [16, 'Chung Kyung-ho', ['ST', 'RW'], 70],
         [19, 'Cho Jae-jin', ['ST'], 75],
     ]),
-    squad('TOG', 'Togo', 2006, 68, [
+    squad('TOG', 'Togo', 2006, [
         [1, 'Ouro-Nimini Tchagnirou', ['GK'], 66],
         [16, 'Kossi Agassa', ['GK'], 70],
         [22, 'Kodjovi Obilalé', ['GK'], 62],
@@ -905,7 +905,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group H -----
-    squad('ESP', 'Spain', 2006, 85, [
+    squad('ESP', 'Spain', 2006, [
         [1, 'Iker Casillas', ['GK'], 88],
         [19, 'Santiago Cañizares', ['GK'], 80],
         [23, 'Pepe Reina', ['GK'], 80],
@@ -930,7 +930,7 @@ export const SQUADS: Squad[] = [
         [9, 'Fernando Torres', ['ST'], 84],
         [21, 'David Villa', ['ST'], 83],
     ]),
-    squad('UKR', 'Ukraine', 2006, 78, [
+    squad('UKR', 'Ukraine', 2006, [
         [1, 'Oleksandr Shovkovskyi', ['GK'], 81],
         [12, 'Andriy Pyatov', ['GK'], 72],
         [23, 'Bohdan Shust', ['GK'], 68],
@@ -955,7 +955,7 @@ export const SQUADS: Squad[] = [
         [16, 'Andriy Vorobey', ['RW', 'ST'], 76],
         [20, 'Oleksiy Bielik', ['ST'], 72],
     ]),
-    squad('TUN', 'Tunisia', 2006, 73, [
+    squad('TUN', 'Tunisia', 2006, [
         [1, 'Ali Boumnijel', ['GK'], 74],
         [16, 'Adel Nefzi', ['GK'], 69],
         [22, 'Hamdi Kasraoui', ['GK'], 69],
@@ -980,7 +980,7 @@ export const SQUADS: Squad[] = [
         [7, 'Haykel Guemamdia', ['ST'], 72],
         [11, 'Francileudo Santos', ['ST'], 76],
     ]),
-    squad('KSA', 'Saudi Arabia', 2006, 68, [
+    squad('KSA', 'Saudi Arabia', 2006, [
         [1, 'Mohamed Al-Deayea', ['GK'], 72],
         [21, 'Mabrouk Zaid', ['GK'], 71],
         [22, 'Mohammad Khouja', ['GK'], 65],
@@ -1008,7 +1008,7 @@ export const SQUADS: Squad[] = [
 
     // ===================== 2010 =====================
     // ----- Group A -----
-    squad('RSA', 'South Africa', 2010, 70, [
+    squad('RSA', 'South Africa', 2010, [
         [1, 'Moeneeb Josephs', ['GK'], 70],
         [16, 'Itumeleng Khune', ['GK'], 74],
         [22, 'Shu-Aib Walters', ['GK'], 66],
@@ -1033,7 +1033,7 @@ export const SQUADS: Squad[] = [
         [9, 'Katlego Mphela', ['ST'], 76],
         [18, 'Siyabonga Nomvethe', ['ST'], 71],
     ]),
-    squad('MEX', 'Mexico', 2010, 79, [
+    squad('MEX', 'Mexico', 2010, [
         [1, 'Óscar Pérez', ['GK'], 74],
         [13, 'Guillermo Ochoa', ['GK'], 78],
         [23, 'Luis Ernesto Michel', ['GK'], 71],
@@ -1058,7 +1058,7 @@ export const SQUADS: Squad[] = [
         [11, 'Carlos Vela', ['LW', 'ST'], 79],
         [14, 'Javier Hernández', ['ST'], 81],
     ]),
-    squad('URU', 'Uruguay', 2010, 83, [
+    squad('URU', 'Uruguay', 2010, [
         [1, 'Fernando Muslera', ['GK'], 80],
         [12, 'Juan Castillo', ['GK'], 69],
         [23, 'Martín Silva', ['GK'], 69],
@@ -1083,7 +1083,7 @@ export const SQUADS: Squad[] = [
         [13, 'Sebastián Abreu', ['ST'], 74],
         [21, 'Sebastián Fernández', ['RW', 'ST'], 73],
     ]),
-    squad('FRA', 'France', 2010, 84, [
+    squad('FRA', 'France', 2010, [
         [1, 'Hugo Lloris', ['GK'], 82],
         [16, 'Steve Mandanda', ['GK'], 78],
         [23, 'Cédric Carrasso', ['GK'], 70],
@@ -1110,7 +1110,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group B -----
-    squad('ARG', 'Argentina', 2010, 86, [
+    squad('ARG', 'Argentina', 2010, [
         [1, 'Diego Pozo', ['GK'], 70],
         [12, 'Mariano Andújar', ['GK'], 70],
         [22, 'Sergio Romero', ['GK'], 77],
@@ -1135,7 +1135,7 @@ export const SQUADS: Squad[] = [
         [19, 'Diego Milito', ['ST'], 85],
         [21, 'Ariel Garcé', ['RB', 'CB'], 68],
     ]),
-    squad('NGA', 'Nigeria', 2010, 76, [
+    squad('NGA', 'Nigeria', 2010, [
         [1, 'Vincent Enyeama', ['GK'], 80],
         [16, 'Austin Ejide', ['GK'], 69],
         [23, 'Dele Aiyenugba', ['GK'], 68],
@@ -1160,7 +1160,7 @@ export const SQUADS: Squad[] = [
         [9, 'Obafemi Martins', ['ST'], 79],
         [10, 'Brown Ideye', ['ST'], 70],
     ]),
-    squad('KOR', 'South Korea', 2010, 76, [
+    squad('KOR', 'South Korea', 2010, [
         [1, 'Lee Woon-jae', ['GK'], 74],
         [18, 'Jung Sung-ryong', ['GK'], 74],
         [21, 'Kim Young-kwang', ['GK'], 67],
@@ -1185,7 +1185,7 @@ export const SQUADS: Squad[] = [
         [20, 'Lee Dong-gook', ['ST'], 73],
         [23, 'Kang Min-soo', ['CB'], 68],
     ]),
-    squad('GRE', 'Greece', 2010, 74, [
+    squad('GRE', 'Greece', 2010, [
         [1, 'Kostas Chalkias', ['GK'], 72],
         [12, 'Alexandros Tzorvas', ['GK'], 71],
         [13, 'Michalis Sifakis', ['GK'], 69],
@@ -1212,7 +1212,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group C -----
-    squad('ENG', 'England', 2010, 85, [
+    squad('ENG', 'England', 2010, [
         [1, 'David James', ['GK'], 78],
         [13, 'Robert Green', ['GK'], 74],
         [19, 'Joe Hart', ['GK'], 76],
@@ -1237,7 +1237,7 @@ export const SQUADS: Squad[] = [
         [21, 'Peter Crouch', ['ST'], 77],
         [23, 'Jermain Defoe', ['ST'], 80],
     ]),
-    squad('USA', 'United States', 2010, 78, [
+    squad('USA', 'United States', 2010, [
         [1, 'Tim Howard', ['GK'], 82],
         [18, 'Brad Guzan', ['GK'], 72],
         [23, 'Marcus Hahnemann', ['GK'], 70],
@@ -1262,7 +1262,7 @@ export const SQUADS: Squad[] = [
         [17, 'Jozy Altidore', ['ST'], 78],
         [20, 'Robbie Findley', ['ST', 'LW'], 70],
     ]),
-    squad('ALG', 'Algeria', 2010, 72, [
+    squad('ALG', 'Algeria', 2010, [
         [1, 'Lounès Gaouaoui', ['GK'], 67],
         [16, 'Faouzi Chaouchi', ['GK'], 69],
         [23, "Raïs M'Bolhi", ['GK'], 70],
@@ -1287,7 +1287,7 @@ export const SQUADS: Squad[] = [
         [10, 'Rafik Saïfi', ['AM', 'ST'], 73],
         [11, 'Rafik Djebbour', ['ST'], 71],
     ]),
-    squad('SVN', 'Slovenia', 2010, 72, [
+    squad('SVN', 'Slovenia', 2010, [
         [1, 'Samir Handanović', ['GK'], 79],
         [12, 'Jasmin Handanović', ['GK'], 67],
         [16, 'Aleksander Šeliga', ['GK'], 67],
@@ -1314,7 +1314,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group D -----
-    squad('GER', 'Germany', 2010, 87, [
+    squad('GER', 'Germany', 2010, [
         [1, 'Manuel Neuer', ['GK'], 84],
         [12, 'Tim Wiese', ['GK'], 74],
         [22, 'Hans-Jörg Butt', ['GK'], 72],
@@ -1339,7 +1339,7 @@ export const SQUADS: Squad[] = [
         [19, 'Cacau', ['ST'], 74],
         [23, 'Mario Gómez', ['ST'], 81],
     ]),
-    squad('AUS', 'Australia', 2010, 74, [
+    squad('AUS', 'Australia', 2010, [
         [1, 'Mark Schwarzer', ['GK'], 81],
         [12, 'Adam Federici', ['GK'], 71],
         [18, 'Eugene Galekovic', ['GK'], 68],
@@ -1364,7 +1364,7 @@ export const SQUADS: Squad[] = [
         [17, 'Nikita Rukavytsya', ['LW', 'ST'], 69],
         [19, 'Richard Garcia', ['ST', 'RW'], 71],
     ]),
-    squad('SRB', 'Serbia', 2010, 79, [
+    squad('SRB', 'Serbia', 2010, [
         [1, 'Vladimir Stojković', ['GK'], 76],
         [12, 'Bojan Isailović', ['GK'], 66],
         [23, 'Anđelko Đuričić', ['GK'], 66],
@@ -1389,7 +1389,7 @@ export const SQUADS: Squad[] = [
         [15, 'Nikola Žigić', ['ST'], 78],
         [21, 'Dragan Mrđa', ['ST'], 70],
     ]),
-    squad('GHA', 'Ghana', 2010, 78, [
+    squad('GHA', 'Ghana', 2010, [
         [1, 'Richard Kingson', ['GK'], 74],
         [16, 'Daniel Agyei', ['GK'], 66],
         [22, 'Stephen Ahorlu', ['GK'], 64],
@@ -1416,7 +1416,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group E -----
-    squad('NED', 'Netherlands', 2010, 88, [
+    squad('NED', 'Netherlands', 2010, [
         [1, 'Maarten Stekelenburg', ['GK'], 84],
         [16, 'Michel Vorm', ['GK'], 73],
         [22, 'Sander Boschker', ['GK'], 68],
@@ -1441,7 +1441,7 @@ export const SQUADS: Squad[] = [
         [9, 'Robin van Persie', ['ST'], 88],
         [21, 'Klaas-Jan Huntelaar', ['ST'], 81],
     ]),
-    squad('DEN', 'Denmark', 2010, 75, [
+    squad('DEN', 'Denmark', 2010, [
         [1, 'Thomas Sørensen', ['GK'], 80],
         [16, 'Stephan Andersen', ['GK'], 70],
         [22, 'Jesper Christiansen', ['GK'], 66],
@@ -1466,7 +1466,7 @@ export const SQUADS: Squad[] = [
         [18, 'Søren Larsen', ['ST'], 69],
         [20, 'Thomas Enevoldsen', ['LW', 'ST'], 70],
     ]),
-    squad('JPN', 'Japan', 2010, 75, [
+    squad('JPN', 'Japan', 2010, [
         [1, 'Seigo Narazaki', ['GK'], 74],
         [21, 'Eiji Kawashima', ['GK'], 74],
         [23, 'Yoshikatsu Kawaguchi', ['GK'], 68],
@@ -1491,7 +1491,7 @@ export const SQUADS: Squad[] = [
         [16, 'Yoshito Ōkubo', ['ST', 'LW'], 75],
         [19, 'Takayuki Morimoto', ['ST'], 71],
     ]),
-    squad('CMR', 'Cameroon', 2010, 75, [
+    squad('CMR', 'Cameroon', 2010, [
         [1, 'Idriss Carlos Kameni', ['GK'], 77],
         [16, 'Hamidou Souleymanou', ['GK'], 68],
         [22, 'Guy Roland Ndy Assembé', ['GK'], 65],
@@ -1518,7 +1518,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group F -----
-    squad('ITA', 'Italy', 2010, 83, [
+    squad('ITA', 'Italy', 2010, [
         [1, 'Gianluigi Buffon', ['GK'], 88],
         [12, 'Federico Marchetti', ['GK'], 74],
         [14, 'Morgan De Sanctis', ['GK'], 74],
@@ -1543,7 +1543,7 @@ export const SQUADS: Squad[] = [
         [18, 'Fabio Quagliarella', ['ST', 'AM'], 79],
         [20, 'Giampaolo Pazzini', ['ST'], 77],
     ]),
-    squad('PAR', 'Paraguay', 2010, 78, [
+    squad('PAR', 'Paraguay', 2010, [
         [1, 'Justo Villar', ['GK'], 80],
         [12, 'Diego Barreto', ['GK'], 70],
         [22, 'Aldo Bobadilla', ['GK'], 70],
@@ -1568,7 +1568,7 @@ export const SQUADS: Squad[] = [
         [19, 'Lucas Barrios', ['ST'], 79],
         [23, 'Rodolfo Gamarra', ['AM', 'LW'], 68],
     ]),
-    squad('NZL', 'New Zealand', 2010, 68, [
+    squad('NZL', 'New Zealand', 2010, [
         [1, 'Mark Paston', ['GK'], 71],
         [12, 'Glen Moss', ['GK'], 66],
         [23, 'James Bannatyne', ['GK'], 64],
@@ -1593,7 +1593,7 @@ export const SQUADS: Squad[] = [
         [20, 'Chris Wood', ['ST'], 68],
         [22, 'Jeremy Brockie', ['ST', 'RW'], 65],
     ]),
-    squad('SVK', 'Slovakia', 2010, 75, [
+    squad('SVK', 'Slovakia', 2010, [
         [1, 'Ján Mucha', ['GK'], 75],
         [12, 'Dušan Perniš', ['GK'], 68],
         [23, 'Dušan Kuciak', ['GK'], 67],
@@ -1620,7 +1620,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group G -----
-    squad('BRA', 'Brazil', 2010, 88, [
+    squad('BRA', 'Brazil', 2010, [
         [1, 'Júlio César', ['GK'], 85],
         [12, 'Heurelho Gomes', ['GK'], 76],
         [22, 'Doni', ['GK'], 74],
@@ -1645,7 +1645,7 @@ export const SQUADS: Squad[] = [
         [21, 'Nilmar', ['ST'], 77],
         [23, 'Grafite', ['ST'], 76],
     ]),
-    squad('PRK', 'North Korea', 2010, 64, [
+    squad('PRK', 'North Korea', 2010, [
         [1, 'Ri Myong-guk', ['GK'], 69],
         [21, 'Ri Kwang-hyok', ['GK'], 64],
         [2, 'Cha Jong-hyok', ['CB', 'RB'], 64],
@@ -1670,7 +1670,7 @@ export const SQUADS: Squad[] = [
         [10, 'Hong Yong-jo', ['AM', 'CM'], 72],
         [20, 'Kim Myong-won', ['ST'], 62],
     ]),
-    squad('CIV', 'Ivory Coast', 2010, 80, [
+    squad('CIV', 'Ivory Coast', 2010, [
         [1, 'Boubacar Barry', ['GK'], 74],
         [16, 'Aristide Zogbo', ['GK'], 72],
         [23, 'Daniel Yeboah', ['GK'], 66],
@@ -1695,7 +1695,7 @@ export const SQUADS: Squad[] = [
         [15, 'Aruna Dindane', ['ST'], 78],
         [11, 'Didier Drogba', ['ST'], 86],
     ]),
-    squad('POR', 'Portugal', 2010, 84, [
+    squad('POR', 'Portugal', 2010, [
         [1, 'Eduardo Carvalho', ['GK'], 80],
         [12, 'Beto', ['GK'], 70],
         [22, 'Daniel Fernandes', ['GK'], 68],
@@ -1722,7 +1722,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group H -----
-    squad('ESP', 'Spain', 2010, 91, [
+    squad('ESP', 'Spain', 2010, [
         [1, 'Iker Casillas', ['GK'], 90],
         [12, 'Víctor Valdés', ['GK'], 82],
         [23, 'Pepe Reina', ['GK'], 83],
@@ -1747,7 +1747,7 @@ export const SQUADS: Squad[] = [
         [9, 'Fernando Torres', ['ST'], 84],
         [19, 'Fernando Llorente', ['ST'], 80],
     ]),
-    squad('SUI', 'Switzerland', 2010, 78, [
+    squad('SUI', 'Switzerland', 2010, [
         [1, 'Diego Benaglio', ['GK'], 82],
         [12, 'Marco Wölfli', ['GK'], 69],
         [21, 'Johnny Leoni', ['GK'], 68],
@@ -1772,7 +1772,7 @@ export const SQUADS: Squad[] = [
         [18, 'Albert Bunjaku', ['ST'], 70],
         [19, 'Eren Derdiyok', ['ST'], 76],
     ]),
-    squad('HON', 'Honduras', 2010, 70, [
+    squad('HON', 'Honduras', 2010, [
         [1, 'Ricardo Canales', ['GK'], 68],
         [18, 'Noel Valladares', ['GK'], 73],
         [22, 'Donis Escober', ['GK'], 66],
@@ -1797,7 +1797,7 @@ export const SQUADS: Squad[] = [
         [11, 'David Suazo', ['ST'], 78],
         [12, 'George Welcome', ['ST'], 66],
     ]),
-    squad('CHI', 'Chile', 2010, 80, [
+    squad('CHI', 'Chile', 2010, [
         [1, 'Claudio Bravo', ['GK'], 82],
         [12, 'Miguel Pinto', ['GK'], 70],
         [23, 'Luis Marín (Chile)', ['GK'], 67],
@@ -1825,7 +1825,7 @@ export const SQUADS: Squad[] = [
 
     // ===================== 2014 =====================
     // ----- Group A -----
-    squad('BRA', 'Brazil', 2014, 89, [
+    squad('BRA', 'Brazil', 2014, [
         [1, 'Júlio César', ['GK'], 82],
         [12, 'Jefferson', ['GK'], 78],
         [22, 'Victor', ['GK'], 70],
@@ -1850,7 +1850,7 @@ export const SQUADS: Squad[] = [
         [10, 'Neymar', ['LW', 'ST'], 92],
         [21, 'Jô', ['ST'], 72],
     ]),
-    squad('CRO', 'Croatia', 2014, 80, [
+    squad('CRO', 'Croatia', 2014, [
         [1, 'Stipe Pletikosa', ['GK'], 77],
         [12, 'Oliver Zelenika', ['GK'], 64],
         [23, 'Danijel Subašić', ['GK'], 76],
@@ -1875,7 +1875,7 @@ export const SQUADS: Squad[] = [
         [18, 'Ivica Olić', ['LW', 'ST'], 78],
         [22, 'Eduardo da Silva', ['ST'], 74],
     ]),
-    squad('MEX', 'Mexico', 2014, 79, [
+    squad('MEX', 'Mexico', 2014, [
         [1, 'José de Jesús Corona', ['GK'], 74],
         [12, 'Alfredo Talavera', ['GK'], 73],
         [13, 'Guillermo Ochoa', ['GK'], 82],
@@ -1900,7 +1900,7 @@ export const SQUADS: Squad[] = [
         [14, 'Javier Hernández', ['ST'], 84],
         [19, 'Oribe Peralta', ['ST'], 79],
     ]),
-    squad('CMR', 'Cameroon', 2014, 72, [
+    squad('CMR', 'Cameroon', 2014, [
         [1, 'Loïc Feudjou', ['GK'], 64],
         [16, 'Charles Itandje', ['GK'], 70],
         [23, 'Sammy Ndjock', ['GK'], 66],
@@ -1927,7 +1927,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group B -----
-    squad('ESP', 'Spain', 2014, 87, [
+    squad('ESP', 'Spain', 2014, [
         [1, 'Iker Casillas', ['GK'], 89],
         [12, 'David de Gea', ['GK'], 83],
         [23, 'Pepe Reina', ['GK'], 78],
@@ -1952,7 +1952,7 @@ export const SQUADS: Squad[] = [
         [11, 'Pedro Rodríguez', ['RW', 'LW'], 84],
         [19, 'Diego Costa', ['ST'], 86],
     ]),
-    squad('NED', 'Netherlands', 2014, 87, [
+    squad('NED', 'Netherlands', 2014, [
         [1, 'Jasper Cillessen', ['GK'], 78],
         [22, 'Michel Vorm', ['GK'], 76],
         [23, 'Tim Krul', ['GK'], 77],
@@ -1977,7 +1977,7 @@ export const SQUADS: Squad[] = [
         [9, 'Robin van Persie', ['ST'], 88],
         [19, 'Klaas-Jan Huntelaar', ['ST'], 81],
     ]),
-    squad('CHI', 'Chile', 2014, 82, [
+    squad('CHI', 'Chile', 2014, [
         [1, 'Claudio Bravo', ['GK'], 84],
         [12, 'Cristopher Toselli', ['GK'], 68],
         [23, 'Johnny Herrera', ['GK'], 70],
@@ -2002,7 +2002,7 @@ export const SQUADS: Squad[] = [
         [11, 'Eduardo Vargas', ['ST', 'LW'], 80],
         [22, 'Esteban Paredes', ['ST'], 72],
     ]),
-    squad('AUS', 'Australia', 2014, 72, [
+    squad('AUS', 'Australia', 2014, [
         [1, 'Mathew Ryan', ['GK'], 75],
         [12, 'Mitchell Langerak', ['GK'], 72],
         [18, 'Eugene Galekovic', ['GK'], 68],
@@ -2029,7 +2029,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group C -----
-    squad('COL', 'Colombia', 2014, 83, [
+    squad('COL', 'Colombia', 2014, [
         [1, 'David Ospina', ['GK'], 84],
         [12, 'Camilo Vargas', ['GK'], 70],
         [22, 'Faryd Mondragón', ['GK'], 68],
@@ -2054,7 +2054,7 @@ export const SQUADS: Squad[] = [
         [19, 'Adrián Ramos', ['ST'], 78],
         [21, 'Jackson Martínez', ['ST'], 81],
     ]),
-    squad('GRE', 'Greece', 2014, 75, [
+    squad('GRE', 'Greece', 2014, [
         [1, 'Orestis Karnezis', ['GK'], 76],
         [12, 'Panagiotis Glykos', ['GK'], 69],
         [13, 'Stefanos Kapino', ['GK'], 67],
@@ -2079,7 +2079,7 @@ export const SQUADS: Squad[] = [
         [14, 'Dimitris Salpingidis', ['RW', 'ST'], 76],
         [17, 'Theofanis Gekas', ['ST'], 75],
     ]),
-    squad('CIV', 'Ivory Coast', 2014, 80, [
+    squad('CIV', 'Ivory Coast', 2014, [
         [1, 'Boubacar Barry', ['GK'], 72],
         [16, 'Sylvain Gbohouo', ['GK'], 68],
         [23, 'Sayouba Mandé', ['GK'], 66],
@@ -2104,7 +2104,7 @@ export const SQUADS: Squad[] = [
         [12, 'Wilfried Bony', ['ST'], 82],
         [13, 'Didier Ya Konan', ['ST'], 73],
     ]),
-    squad('JPN', 'Japan', 2014, 76, [
+    squad('JPN', 'Japan', 2014, [
         [1, 'Eiji Kawashima', ['GK'], 76],
         [12, 'Shusaku Nishikawa', ['GK'], 72],
         [23, 'Shūichi Gonda', ['GK'], 70],
@@ -2131,7 +2131,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group D -----
-    squad('URU', 'Uruguay', 2014, 84, [
+    squad('URU', 'Uruguay', 2014, [
         [1, 'Fernando Muslera', ['GK'], 84],
         [12, 'Rodrigo Muñoz', ['GK'], 68],
         [23, 'Martín Silva', ['GK'], 70],
@@ -2156,7 +2156,7 @@ export const SQUADS: Squad[] = [
         [11, 'Cristhian Stuani', ['ST'], 73],
         [21, 'Edinson Cavani', ['ST'], 88],
     ]),
-    squad('CRC', 'Costa Rica', 2014, 74, [
+    squad('CRC', 'Costa Rica', 2014, [
         [1, 'Keylor Navas', ['GK'], 82],
         [18, 'Patrick Pemberton', ['GK'], 69],
         [23, 'Daniel Cambronero', ['GK'], 67],
@@ -2181,7 +2181,7 @@ export const SQUADS: Squad[] = [
         [14, 'Randall Brenes', ['ST', 'RW'], 70],
         [21, 'Marco Ureña', ['ST'], 72],
     ]),
-    squad('ENG', 'England', 2014, 83, [
+    squad('ENG', 'England', 2014, [
         [1, 'Joe Hart', ['GK'], 82],
         [13, 'Ben Foster', ['GK'], 74],
         [22, 'Fraser Forster', ['GK'], 73],
@@ -2206,7 +2206,7 @@ export const SQUADS: Squad[] = [
         [18, 'Rickie Lambert', ['ST'], 73],
         [19, 'Raheem Sterling', ['RW', 'LW', 'AM'], 78],
     ]),
-    squad('ITA', 'Italy', 2014, 85, [
+    squad('ITA', 'Italy', 2014, [
         [1, 'Gianluigi Buffon', ['GK'], 87],
         [12, 'Salvatore Sirigu', ['GK'], 76],
         [13, 'Mattia Perin', ['GK'], 72],
@@ -2233,7 +2233,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group E -----
-    squad('SUI', 'Switzerland', 2014, 80, [
+    squad('SUI', 'Switzerland', 2014, [
         [1, 'Diego Benaglio', ['GK'], 82],
         [12, 'Yann Sommer', ['GK'], 78],
         [21, 'Marco Bürki', ['RB', 'CB'], 68],
@@ -2258,7 +2258,7 @@ export const SQUADS: Squad[] = [
         [17, 'Mario Gavranović', ['ST'], 72],
         [19, 'Josip Drmić', ['ST'], 77],
     ]),
-    squad('ECU', 'Ecuador', 2014, 76, [
+    squad('ECU', 'Ecuador', 2014, [
         [1, 'Máximo Banguera', ['GK'], 72],
         [12, 'Adrián Bone', ['GK'], 69],
         [22, 'Alexander Domínguez', ['GK'], 74],
@@ -2283,7 +2283,7 @@ export const SQUADS: Squad[] = [
         [13, 'Enner Valencia', ['ST'], 78],
         [17, 'Jaime Ayoví', ['ST'], 70],
     ]),
-    squad('FRA', 'France', 2014, 86, [
+    squad('FRA', 'France', 2014, [
         [1, 'Hugo Lloris', ['GK'], 85],
         [16, 'Stéphane Ruffier', ['GK'], 76],
         [23, 'Mickaël Landreau', ['GK'], 72],
@@ -2308,7 +2308,7 @@ export const SQUADS: Squad[] = [
         [10, 'Karim Benzema', ['ST'], 88],
         [20, 'Loïc Rémy', ['ST'], 78],
     ]),
-    squad('HON', 'Honduras', 2014, 70, [
+    squad('HON', 'Honduras', 2014, [
         [1, 'Luis López', ['GK'], 69],
         [18, 'Noel Valladares', ['GK'], 74],
         [22, 'Donis Escober', ['GK'], 67],
@@ -2335,7 +2335,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group F -----
-    squad('ARG', 'Argentina', 2014, 88, [
+    squad('ARG', 'Argentina', 2014, [
         [1, 'Sergio Romero', ['GK'], 82],
         [12, 'Agustín Orión', ['GK'], 71],
         [21, 'Mariano Andújar', ['GK'], 72],
@@ -2360,7 +2360,7 @@ export const SQUADS: Squad[] = [
         [20, 'Sergio Agüero', ['ST'], 88],
         [22, 'Ezequiel Lavezzi', ['LW', 'RW'], 81],
     ]),
-    squad('BIH', 'Bosnia and Herzegovina', 2014, 76, [
+    squad('BIH', 'Bosnia and Herzegovina', 2014, [
         [1, 'Asmir Begović', ['GK'], 82],
         [12, 'Asmir Avdukić', ['GK'], 66],
         [22, 'Jasmin Fejzić', ['GK'], 67],
@@ -2385,7 +2385,7 @@ export const SQUADS: Squad[] = [
         [11, 'Edin Džeko', ['ST'], 84],
         [19, 'Edin Višća', ['RW', 'RM'], 72],
     ]),
-    squad('IRN', 'Iran', 2014, 71, [
+    squad('IRN', 'Iran', 2014, [
         [1, 'Rahman Ahmadi', ['GK'], 69],
         [12, 'Alireza Haghighi', ['GK'], 72],
         [22, 'Daniel Davari', ['GK'], 70],
@@ -2410,7 +2410,7 @@ export const SQUADS: Squad[] = [
         [11, 'Ghasem Haddadifar', ['CM'], 66],
         [16, 'Reza Ghoochannejhad', ['ST'], 75],
     ]),
-    squad('NGA', 'Nigeria', 2014, 77, [
+    squad('NGA', 'Nigeria', 2014, [
         [1, 'Vincent Enyeama', ['GK'], 84],
         [16, 'Austin Ejide', ['GK'], 69],
         [21, 'Chigozie Agbim', ['GK'], 67],
@@ -2437,7 +2437,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group G -----
-    squad('GER', 'Germany', 2014, 90, [
+    squad('GER', 'Germany', 2014, [
         [1, 'Manuel Neuer', ['GK'], 96],
         [12, 'Ron-Robert Zieler', ['GK'], 70],
         [22, 'Roman Weidenfeller', ['GK'], 72],
@@ -2462,7 +2462,7 @@ export const SQUADS: Squad[] = [
         [10, 'Lukas Podolski', ['LW', 'ST'], 80],
         [11, 'Miroslav Klose', ['ST'], 82],
     ]),
-    squad('POR', 'Portugal', 2014, 85, [
+    squad('POR', 'Portugal', 2014, [
         [1, 'Eduardo Carvalho', ['GK'], 74],
         [12, 'Rui Patrício', ['GK'], 80],
         [22, 'Beto', ['GK'], 70],
@@ -2487,7 +2487,7 @@ export const SQUADS: Squad[] = [
         [11, 'Éder', ['ST'], 73],
         [23, 'Hélder Postiga', ['ST'], 76],
     ]),
-    squad('GHA', 'Ghana', 2014, 77, [
+    squad('GHA', 'Ghana', 2014, [
         [1, 'Stephen Adams', ['GK'], 66],
         [12, 'Adam Kwarasey', ['GK'], 71],
         [16, 'Fatau Dauda', ['GK'], 68],
@@ -2512,7 +2512,7 @@ export const SQUADS: Squad[] = [
         [13, 'Jordan Ayew', ['ST', 'LW'], 72],
         [18, 'Majeed Waris', ['ST'], 70],
     ]),
-    squad('USA', 'United States', 2014, 77, [
+    squad('USA', 'United States', 2014, [
         [1, 'Tim Howard', ['GK'], 82],
         [12, 'Brad Guzan', ['GK'], 75],
         [22, 'Nick Rimando', ['GK'], 70],
@@ -2539,7 +2539,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group H -----
-    squad('BEL', 'Belgium', 2014, 85, [
+    squad('BEL', 'Belgium', 2014, [
         [1, 'Thibaut Courtois', ['GK'], 85],
         [12, 'Simon Mignolet', ['GK'], 78],
         [13, 'Sammy Bossut', ['GK'], 66],
@@ -2564,7 +2564,7 @@ export const SQUADS: Squad[] = [
         [9, 'Romelu Lukaku', ['ST'], 81],
         [17, 'Divock Origi', ['ST'], 71],
     ]),
-    squad('ALG', 'Algeria', 2014, 76, [
+    squad('ALG', 'Algeria', 2014, [
         [1, 'Cédric Si Mohamed', ['GK'], 67],
         [16, 'Mohamed Lamine Zemmamouche', ['GK'], 68],
         [23, "Raïs M'Bolhi", ['GK'], 76],
@@ -2589,7 +2589,7 @@ export const SQUADS: Squad[] = [
         [13, 'Islam Slimani', ['ST'], 78],
         [15, 'Hillal Soudani', ['ST', 'LW'], 74],
     ]),
-    squad('RUS', 'Russia', 2014, 76, [
+    squad('RUS', 'Russia', 2014, [
         [1, 'Igor Akinfeev', ['GK'], 82],
         [12, 'Yuri Lodygin', ['GK'], 70],
         [16, 'Sergey Ryzhikov', ['GK'], 68],
@@ -2614,7 +2614,7 @@ export const SQUADS: Squad[] = [
         [9, 'Aleksandr Kokorin', ['ST', 'LW'], 79],
         [11, 'Aleksandr Kerzhakov', ['ST'], 78],
     ]),
-    squad('KOR', 'South Korea', 2014, 74, [
+    squad('KOR', 'South Korea', 2014, [
         [1, 'Jung Sung-ryong', ['GK'], 74],
         [21, 'Kim Seung-gyu', ['GK'], 71],
         [23, 'Lee Bum-young', ['GK'], 66],
@@ -2642,7 +2642,7 @@ export const SQUADS: Squad[] = [
 
     // ===================== 2018 =====================
     // ----- Group A -----
-    squad('RUS', 'Russia', 2018, 73, [
+    squad('RUS', 'Russia', 2018, [
         [1, 'Igor Akinfeev', ['GK'], 78],
         [12, 'Andrey Lunyov', ['GK'], 69],
         [20, 'Vladimir Gabulov', ['GK'], 68],
@@ -2667,7 +2667,7 @@ export const SQUADS: Squad[] = [
         [10, 'Fyodor Smolov', ['ST'], 76],
         [22, 'Artem Dzyuba', ['ST'], 76],
     ]),
-    squad('KSA', 'Saudi Arabia', 2018, 66, [
+    squad('KSA', 'Saudi Arabia', 2018, [
         [1, 'Abdullah Al-Mayouf', ['GK'], 67],
         [21, 'Yasser Al-Mosailem', ['GK'], 66],
         [22, 'Mohammed Al-Owais', ['GK'], 66],
@@ -2692,7 +2692,7 @@ export const SQUADS: Squad[] = [
         [10, 'Mohammad Al-Sahlawi', ['ST'], 68],
         [20, 'Muhannad Assiri', ['ST'], 64],
     ]),
-    squad('EGY', 'Egypt', 2018, 74, [
+    squad('EGY', 'Egypt', 2018, [
         [1, 'Essam El Hadary', ['GK'], 70],
         [16, 'Sherif Ekramy', ['GK'], 69],
         [23, 'Mohamed El Shenawy', ['GK'], 72],
@@ -2717,7 +2717,7 @@ export const SQUADS: Squad[] = [
         [22, 'Amr Warda', ['AM', 'RW'], 68],
         [9, 'Marwan Mohsen', ['ST'], 69],
     ]),
-    squad('URU', 'Uruguay', 2018, 84, [
+    squad('URU', 'Uruguay', 2018, [
         [1, 'Fernando Muslera', ['GK'], 80],
         [12, 'Martín Campaña', ['GK'], 70],
         [23, 'Martín Silva', ['GK'], 71],
@@ -2744,7 +2744,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group B -----
-    squad('POR', 'Portugal', 2018, 86, [
+    squad('POR', 'Portugal', 2018, [
         [1, 'Rui Patrício', ['GK'], 85],
         [12, 'Anthony Lopes', ['GK'], 78],
         [22, 'Beto', ['GK'], 70],
@@ -2769,7 +2769,7 @@ export const SQUADS: Squad[] = [
         [7, 'Cristiano Ronaldo', ['ST', 'LW'], 93],
         [9, 'André Silva', ['ST'], 78],
     ]),
-    squad('ESP', 'Spain', 2018, 88, [
+    squad('ESP', 'Spain', 2018, [
         [1, 'David de Gea', ['GK'], 89],
         [13, 'Kepa Arrizabalaga', ['GK'], 78],
         [23, 'Pepe Reina', ['GK'], 76],
@@ -2794,7 +2794,7 @@ export const SQUADS: Squad[] = [
         [17, 'Iago Aspas', ['ST', 'LW'], 81],
         [19, 'Diego Costa', ['ST'], 84],
     ]),
-    squad('MAR', 'Morocco', 2018, 76, [
+    squad('MAR', 'Morocco', 2018, [
         [1, 'Yassine Bounou', ['GK'], 76],
         [12, 'Munir', ['GK'], 70],
         [22, 'Ahmed Reda Tagnaouti', ['GK'], 66],
@@ -2819,7 +2819,7 @@ export const SQUADS: Squad[] = [
         [19, 'Youssef En-Nesyri', ['ST'], 72],
         [20, 'Aziz Bouhaddouz', ['ST'], 69],
     ]),
-    squad('IRN', 'Iran', 2018, 73, [
+    squad('IRN', 'Iran', 2018, [
         [1, 'Alireza Beiranvand', ['GK'], 74],
         [12, 'Rashid Mazaheri', ['GK'], 68],
         [22, 'Amir Abedzadeh', ['GK'], 66],
@@ -2846,7 +2846,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group C -----
-    squad('FRA', 'France', 2018, 90, [
+    squad('FRA', 'France', 2018, [
         [1, 'Hugo Lloris', ['GK'], 85],
         [16, 'Steve Mandanda', ['GK'], 76],
         [23, 'Alphonse Areola', ['GK'], 74],
@@ -2871,7 +2871,7 @@ export const SQUADS: Squad[] = [
         [20, 'Florian Thauvin', ['RW', 'RM'], 79],
         [9, 'Olivier Giroud', ['ST'], 82],
     ]),
-    squad('AUS', 'Australia', 2018, 74, [
+    squad('AUS', 'Australia', 2018, [
         [1, 'Mathew Ryan', ['GK'], 78],
         [12, 'Brad Jones', ['GK'], 69],
         [18, 'Danny Vukovic', ['GK'], 68],
@@ -2896,7 +2896,7 @@ export const SQUADS: Squad[] = [
         [11, 'Andrew Nabbout', ['ST', 'RW'], 70],
         [14, 'Jamie Maclaren', ['ST'], 69],
     ]),
-    squad('PER', 'Peru', 2018, 75, [
+    squad('PER', 'Peru', 2018, [
         [1, 'Pedro Gallese', ['GK'], 74],
         [12, 'Carlos Cáceda', ['GK'], 68],
         [21, 'José Carvallo', ['GK'], 67],
@@ -2921,7 +2921,7 @@ export const SQUADS: Squad[] = [
         [10, 'Jefferson Farfán', ['RW', 'ST'], 78],
         [11, 'Raúl Ruidíaz', ['ST'], 73],
     ]),
-    squad('DEN', 'Denmark', 2018, 80, [
+    squad('DEN', 'Denmark', 2018, [
         [1, 'Kasper Schmeichel', ['GK'], 84],
         [16, 'Jonas Lössl', ['GK'], 74],
         [22, 'Frederik Rønnow', ['GK'], 73],
@@ -2948,7 +2948,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group D -----
-    squad('ARG', 'Argentina', 2018, 85, [
+    squad('ARG', 'Argentina', 2018, [
         [1, 'Nahuel Guzmán', ['GK'], 72],
         [12, 'Franco Armani', ['GK'], 74],
         [23, 'Willy Caballero', ['GK'], 71],
@@ -2973,7 +2973,7 @@ export const SQUADS: Squad[] = [
         [9, 'Gonzalo Higuaín', ['ST'], 85],
         [19, 'Sergio Agüero', ['ST'], 89],
     ]),
-    squad('ISL', 'Iceland', 2018, 73, [
+    squad('ISL', 'Iceland', 2018, [
         [1, 'Hannes Þór Halldórsson', ['GK'], 73],
         [12, 'Frederik Schram', ['GK'], 68],
         [13, 'Rúnar Alex Rúnarsson', ['GK'], 68],
@@ -2998,7 +2998,7 @@ export const SQUADS: Squad[] = [
         [11, 'Alfreð Finnbogason', ['ST'], 74],
         [22, 'Jón Daði Böðvarsson', ['ST', 'LW'], 72],
     ]),
-    squad('CRO', 'Croatia', 2018, 86, [
+    squad('CRO', 'Croatia', 2018, [
         [1, 'Danijel Subašić', ['GK'], 79],
         [12, 'Lovre Kalinić', ['GK'], 70],
         [23, 'Dominik Livaković', ['GK'], 72],
@@ -3023,7 +3023,7 @@ export const SQUADS: Squad[] = [
         [16, 'Nikola Kalinić', ['ST'], 78],
         [17, 'Mario Mandžukić', ['ST', 'LW'], 84],
     ]),
-    squad('NGA', 'Nigeria', 2018, 76, [
+    squad('NGA', 'Nigeria', 2018, [
         [1, 'Ikechukwu Ezenwa', ['GK'], 70],
         [16, 'Daniel Akpeyi', ['GK'], 68],
         [23, 'Francis Uzoho', ['GK'], 69],
@@ -3050,7 +3050,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group E -----
-    squad('BRA', 'Brazil', 2018, 90, [
+    squad('BRA', 'Brazil', 2018, [
         [1, 'Alisson', ['GK'], 86],
         [16, 'Cássio', ['GK'], 72],
         [23, 'Ederson', ['GK'], 83],
@@ -3075,7 +3075,7 @@ export const SQUADS: Squad[] = [
         [10, 'Neymar', ['LW', 'AM', 'ST'], 94],
         [20, 'Roberto Firmino', ['ST'], 85],
     ]),
-    squad('SUI', 'Switzerland', 2018, 80, [
+    squad('SUI', 'Switzerland', 2018, [
         [1, 'Yann Sommer', ['GK'], 83],
         [12, 'Yvon Mvogo', ['GK'], 71],
         [21, 'Roman Bürki', ['GK'], 76],
@@ -3100,7 +3100,7 @@ export const SQUADS: Squad[] = [
         [19, 'Josip Drmić', ['ST'], 73],
         [23, 'Xherdan Shaqiri', ['RW', 'AM', 'LW'], 85],
     ]),
-    squad('CRC', 'Costa Rica', 2018, 72, [
+    squad('CRC', 'Costa Rica', 2018, [
         [1, 'Keylor Navas', ['GK'], 85],
         [18, 'Patrick Pemberton', ['GK'], 66],
         [23, 'Leonel Moreira', ['GK'], 66],
@@ -3125,7 +3125,7 @@ export const SQUADS: Squad[] = [
         [12, 'Joel Campbell', ['RW', 'LW', 'ST'], 77],
         [21, 'Marco Ureña', ['ST'], 70],
     ]),
-    squad('SRB', 'Serbia', 2018, 79, [
+    squad('SRB', 'Serbia', 2018, [
         [1, 'Vladimir Stojković', ['GK'], 74],
         [12, 'Predrag Rajković', ['GK'], 72],
         [23, 'Marko Dmitrović', ['GK'], 71],
@@ -3152,7 +3152,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group F -----
-    squad('GER', 'Germany', 2018, 88, [
+    squad('GER', 'Germany', 2018, [
         [1, 'Manuel Neuer', ['GK'], 88],
         [12, 'Kevin Trapp', ['GK'], 74],
         [22, 'Marc-André ter Stegen', ['GK'], 86],
@@ -3177,7 +3177,7 @@ export const SQUADS: Squad[] = [
         [9, 'Timo Werner', ['ST', 'LW'], 83],
         [23, 'Mario Gómez', ['ST'], 78],
     ]),
-    squad('MEX', 'Mexico', 2018, 80, [
+    squad('MEX', 'Mexico', 2018, [
         [1, 'José de Jesús Corona', ['GK'], 76],
         [12, 'Alfredo Talavera', ['GK'], 75],
         [13, 'Guillermo Ochoa', ['GK'], 82],
@@ -3202,7 +3202,7 @@ export const SQUADS: Squad[] = [
         [14, 'Javier Hernández', ['ST'], 83],
         [19, 'Oribe Peralta', ['ST'], 75],
     ]),
-    squad('SWE', 'Sweden', 2018, 78, [
+    squad('SWE', 'Sweden', 2018, [
         [1, 'Robin Olsen', ['GK'], 79],
         [12, 'Karl-Johan Johnsson', ['GK'], 72],
         [23, 'Kristoffer Nordfeldt', ['GK'], 71],
@@ -3227,7 +3227,7 @@ export const SQUADS: Squad[] = [
         [20, 'Ola Toivonen', ['ST'], 77],
         [22, 'Isaac Kiese Thelin', ['ST'], 71],
     ]),
-    squad('KOR', 'South Korea', 2018, 74, [
+    squad('KOR', 'South Korea', 2018, [
         [1, 'Kim Seung-gyu', ['GK'], 74],
         [21, 'Kim Jin-hyeon', ['GK'], 72],
         [23, 'Jo Hyeon-woo', ['GK'], 73],
@@ -3254,7 +3254,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group G -----
-    squad('BEL', 'Belgium', 2018, 89, [
+    squad('BEL', 'Belgium', 2018, [
         [1, 'Thibaut Courtois', ['GK'], 90],
         [12, 'Simon Mignolet', ['GK'], 74],
         [13, 'Koen Casteels', ['GK'], 71],
@@ -3279,7 +3279,7 @@ export const SQUADS: Squad[] = [
         [18, 'Adnan Januzaj', ['RW', 'AM'], 74],
         [9, 'Romelu Lukaku', ['ST'], 86],
     ]),
-    squad('PAN', 'Panama', 2018, 67, [
+    squad('PAN', 'Panama', 2018, [
         [1, 'Jaime Penedo', ['GK'], 71],
         [12, 'José Calderón', ['GK'], 63],
         [22, 'Álex Rodríguez', ['GK'], 62],
@@ -3304,7 +3304,7 @@ export const SQUADS: Squad[] = [
         [16, 'Abdiel Arroyo', ['ST', 'RW'], 63],
         [18, 'Luis Tejada', ['ST'], 66],
     ]),
-    squad('TUN', 'Tunisia', 2018, 71, [
+    squad('TUN', 'Tunisia', 2018, [
         [1, 'Mouez Hassen', ['GK'], 70],
         [16, 'Aymen Mathlouthi', ['GK'], 68],
         [22, 'Farouk Ben Mustapha', ['GK'], 68],
@@ -3329,7 +3329,7 @@ export const SQUADS: Squad[] = [
         [8, 'Fakhreddine Ben Youssef', ['ST'], 69],
         [19, 'Saber Khalifa', ['ST'], 65],
     ]),
-    squad('ENG', 'England', 2018, 85, [
+    squad('ENG', 'England', 2018, [
         [1, 'Jordan Pickford', ['GK'], 81],
         [13, 'Jack Butland', ['GK'], 73],
         [23, 'Nick Pope', ['GK'], 71],
@@ -3356,7 +3356,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group H -----
-    squad('POL', 'Poland', 2018, 79, [
+    squad('POL', 'Poland', 2018, [
         [1, 'Wojciech Szczęsny', ['GK'], 84],
         [12, 'Bartosz Białkowski', ['GK'], 71],
         [22, 'Łukasz Fabiański', ['GK'], 80],
@@ -3381,7 +3381,7 @@ export const SQUADS: Squad[] = [
         [14, 'Łukasz Teodorczyk', ['ST'], 73],
         [23, 'Dawid Kownacki', ['ST'], 70],
     ]),
-    squad('SEN', 'Senegal', 2018, 81, [
+    squad('SEN', 'Senegal', 2018, [
         [1, 'Abdoulaye Diallo', ['GK'], 72],
         [16, "Khadim N'Diaye", ['GK'], 70],
         [23, 'Alfred Gomis', ['GK'], 71],
@@ -3406,7 +3406,7 @@ export const SQUADS: Squad[] = [
         [19, "M'Baye Niang", ['ST', 'RW'], 77],
         [20, 'Keita Baldé', ['LW', 'ST'], 80],
     ]),
-    squad('COL', 'Colombia', 2018, 82, [
+    squad('COL', 'Colombia', 2018, [
         [1, 'David Ospina', ['GK'], 81],
         [12, 'Camilo Vargas', ['GK'], 72],
         [22, 'José Fernando Cuadrado', ['GK'], 68],
@@ -3431,7 +3431,7 @@ export const SQUADS: Squad[] = [
         [14, 'Luis Muriel', ['ST', 'LW'], 78],
         [19, 'Miguel Borja', ['ST'], 74],
     ]),
-    squad('JPN', 'Japan', 2018, 76, [
+    squad('JPN', 'Japan', 2018, [
         [1, 'Eiji Kawashima', ['GK'], 74],
         [12, 'Masaaki Higashiguchi', ['GK'], 71],
         [23, 'Kosuke Nakamura', ['GK'], 70],
@@ -3459,7 +3459,7 @@ export const SQUADS: Squad[] = [
 
     // ===================== 2022 =====================
     // ----- Group A -----
-    squad('QAT', 'Qatar', 2022, 65, [
+    squad('QAT', 'Qatar', 2022, [
         [1, 'Saad Al-Sheeb', ['GK'], 68],
         [21, 'Yousef Hassan', ['GK'], 63],
         [22, 'Meshaal Barsham', ['GK'], 67],
@@ -3487,7 +3487,7 @@ export const SQUADS: Squad[] = [
         [18, 'Khalid Muneer', ['ST', 'LW'], 62],
         [19, 'Almoez Ali', ['ST'], 72],
     ]),
-    squad('ECU', 'Ecuador', 2022, 78, [
+    squad('ECU', 'Ecuador', 2022, [
         [1, 'Hernán Galíndez', ['GK'], 74],
         [12, 'Moisés Ramírez', ['GK'], 70],
         [22, 'Alexander Domínguez', ['GK'], 72],
@@ -3515,7 +3515,7 @@ export const SQUADS: Squad[] = [
         [24, 'Djorkaeff Reasco', ['ST', 'LW'], 68],
         [26, 'Kevin Rodríguez', ['ST'], 68],
     ]),
-    squad('SEN', 'Senegal', 2022, 84, [
+    squad('SEN', 'Senegal', 2022, [
         [1, 'Seny Dieng', ['GK'], 71],
         [16, 'Édouard Mendy', ['GK'], 85],
         [23, 'Alfred Gomis', ['GK'], 72],
@@ -3543,7 +3543,7 @@ export const SQUADS: Squad[] = [
         [19, 'Famara Diédhiou', ['ST'], 74],
         [20, 'Bamba Dieng', ['ST', 'LW'], 72],
     ]),
-    squad('NED', 'Netherlands', 2022, 87, [
+    squad('NED', 'Netherlands', 2022, [
         [1, 'Remko Pasveer', ['GK'], 73],
         [13, 'Justin Bijlow', ['GK'], 76],
         [23, 'Andries Noppert', ['GK'], 70],
@@ -3573,7 +3573,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group B -----
-    squad('ENG', 'England', 2022, 88, [
+    squad('ENG', 'England', 2022, [
         [1, 'Jordan Pickford', ['GK'], 82],
         [13, 'Nick Pope', ['GK'], 78],
         [23, 'Aaron Ramsdale', ['GK'], 79],
@@ -3601,7 +3601,7 @@ export const SQUADS: Squad[] = [
         [9, 'Harry Kane', ['ST'], 91],
         [24, 'Callum Wilson', ['ST'], 77],
     ]),
-    squad('IRN', 'Iran', 2022, 73, [
+    squad('IRN', 'Iran', 2022, [
         [1, 'Alireza Beiranvand', ['GK'], 74],
         [12, 'Payam Niazmand', ['GK'], 68],
         [22, 'Amir Abedzadeh', ['GK'], 68],
@@ -3628,7 +3628,7 @@ export const SQUADS: Squad[] = [
         [10, 'Karim Ansarifard', ['ST'], 70],
         [20, 'Sardar Azmoun', ['ST'], 80],
     ]),
-    squad('USA', 'United States', 2022, 79, [
+    squad('USA', 'United States', 2022, [
         [1, 'Matt Turner', ['GK'], 78],
         [12, 'Ethan Horvath', ['GK'], 72],
         [25, 'Sean Johnson', ['GK'], 71],
@@ -3656,7 +3656,7 @@ export const SQUADS: Squad[] = [
         [19, 'Haji Wright', ['ST'], 73],
         [24, 'Josh Sargent', ['ST'], 75],
     ]),
-    squad('WAL', 'Wales', 2022, 76, [
+    squad('WAL', 'Wales', 2022, [
         [1, 'Wayne Hennessey', ['GK'], 74],
         [12, 'Danny Ward', ['GK'], 73],
         [21, 'Adam Davies', ['GK'], 68],
@@ -3686,7 +3686,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group C -----
-    squad('ARG', 'Argentina', 2022, 92, [
+    squad('ARG', 'Argentina', 2022, [
         [1, 'Franco Armani', ['GK'], 76],
         [12, 'Gerónimo Rulli', ['GK'], 76],
         [23, 'Emiliano Martínez', ['GK'], 89],
@@ -3714,7 +3714,7 @@ export const SQUADS: Squad[] = [
         [21, 'Paulo Dybala', ['AM', 'RW'], 83],
         [22, 'Lautaro Martínez', ['ST'], 86],
     ]),
-    squad('KSA', 'Saudi Arabia', 2022, 70, [
+    squad('KSA', 'Saudi Arabia', 2022, [
         [1, 'Mohammed Al-Rubaie', ['GK'], 66],
         [21, 'Mohammed Al-Owais', ['GK'], 72],
         [22, 'Nawaf Al-Aqidi', ['GK'], 66],
@@ -3742,7 +3742,7 @@ export const SQUADS: Squad[] = [
         [18, 'Nawaf Al-Abed', ['ST', 'AM'], 64],
         [25, 'Haitham Asiri', ['ST', 'LW'], 66],
     ]),
-    squad('MEX', 'Mexico', 2022, 79, [
+    squad('MEX', 'Mexico', 2022, [
         [1, 'Alfredo Talavera', ['GK'], 73],
         [12, 'Rodolfo Cota', ['GK'], 71],
         [13, 'Guillermo Ochoa', ['GK'], 80],
@@ -3770,7 +3770,7 @@ export const SQUADS: Squad[] = [
         [11, 'Funes Mori', ['ST'], 73],
         [20, 'Henry Martín', ['ST'], 73],
     ]),
-    squad('POL', 'Poland', 2022, 80, [
+    squad('POL', 'Poland', 2022, [
         [1, 'Wojciech Szczęsny', ['GK'], 86],
         [12, 'Łukasz Skorupski', ['GK'], 76],
         [22, 'Kamil Grabara', ['GK'], 72],
@@ -3800,7 +3800,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group D -----
-    squad('FRA', 'France', 2022, 90, [
+    squad('FRA', 'France', 2022, [
         [1, 'Hugo Lloris', ['GK'], 87],
         [16, 'Steve Mandanda', ['GK'], 74],
         [23, 'Alphonse Areola', ['GK'], 73],
@@ -3827,7 +3827,7 @@ export const SQUADS: Squad[] = [
         [12, 'Kolo Muani', ['ST', 'RW'], 80],
         [26, 'Marcus Thuram', ['ST', 'LW'], 80],
     ]),
-    squad('AUS', 'Australia', 2022, 73, [
+    squad('AUS', 'Australia', 2022, [
         [1, 'Mathew Ryan', ['GK'], 78],
         [12, 'Andrew Redmayne', ['GK'], 68],
         [18, 'Danny Vukovic', ['GK'], 68],
@@ -3855,7 +3855,7 @@ export const SQUADS: Squad[] = [
         [24, 'Joel King', ['ST'], 68],
         [25, 'Jason Cummings', ['ST'], 68],
     ]),
-    squad('DEN', 'Denmark', 2022, 83, [
+    squad('DEN', 'Denmark', 2022, [
         [1, 'Kasper Schmeichel', ['GK'], 83],
         [16, 'Oliver Christensen', ['GK'], 70],
         [22, 'Frederik Rønnow', ['GK'], 72],
@@ -3883,7 +3883,7 @@ export const SQUADS: Squad[] = [
         [20, 'Yussuf Poulsen', ['ST', 'RW'], 79],
         [21, 'Andreas Cornelius', ['ST'], 74],
     ]),
-    squad('TUN', 'Tunisia', 2022, 72, [
+    squad('TUN', 'Tunisia', 2022, [
         [1, 'Aymen Mathlouthi', ['GK'], 70],
         [16, 'Aymen Dahmen', ['GK'], 70],
         [22, 'Ben Saïd', ['GK'], 69],
@@ -3913,7 +3913,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group E -----
-    squad('ESP', 'Spain', 2022, 89, [
+    squad('ESP', 'Spain', 2022, [
         [1, 'Robert Sánchez', ['GK'], 79],
         [13, 'David Raya', ['GK'], 80],
         [23, 'Unai Simón', ['GK'], 84],
@@ -3941,7 +3941,7 @@ export const SQUADS: Squad[] = [
         [22, 'Pablo Sarabia', ['RW', 'AM'], 79],
         [25, 'Ansu Fati', ['LW', 'ST'], 79],
     ]),
-    squad('CRC', 'Costa Rica', 2022, 71, [
+    squad('CRC', 'Costa Rica', 2022, [
         [1, 'Keylor Navas', ['GK'], 84],
         [18, 'Esteban Alvarado', ['GK'], 68],
         [23, 'Patrick Sequeira', ['GK'], 65],
@@ -3969,7 +3969,7 @@ export const SQUADS: Squad[] = [
         [13, 'Gerson Torres', ['RW', 'ST'], 64],
         [26, 'Álvaro Zamora', ['LW'], 64],
     ]),
-    squad('GER', 'Germany', 2022, 87, [
+    squad('GER', 'Germany', 2022, [
         [1, 'Manuel Neuer', ['GK'], 88],
         [12, 'Kevin Trapp', ['GK'], 79],
         [22, 'Marc-André ter Stegen', ['GK'], 88],
@@ -3997,7 +3997,7 @@ export const SQUADS: Squad[] = [
         [9, 'Niclas Füllkrug', ['ST'], 78],
         [26, 'Youssoufa Moukoko', ['ST'], 73],
     ]),
-    squad('JPN', 'Japan', 2022, 79, [
+    squad('JPN', 'Japan', 2022, [
         [1, 'Eiji Kawashima', ['GK'], 68],
         [12, 'Shūichi Gonda', ['GK'], 74],
         [23, 'Daniel Schmidt', ['GK'], 72],
@@ -4027,7 +4027,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group F -----
-    squad('BEL', 'Belgium', 2022, 87, [
+    squad('BEL', 'Belgium', 2022, [
         [1, 'Thibaut Courtois', ['GK'], 93],
         [12, 'Simon Mignolet', ['GK'], 76],
         [13, 'Koen Casteels', ['GK'], 78],
@@ -4055,7 +4055,7 @@ export const SQUADS: Squad[] = [
         [23, 'Michy Batshuayi', ['ST'], 76],
         [24, 'Loïs Openda', ['ST'], 76],
     ]),
-    squad('CAN', 'Canada', 2022, 73, [
+    squad('CAN', 'Canada', 2022, [
         [1, 'St. Clair', ['GK'], 71],
         [16, 'James Pantemis', ['GK'], 66],
         [18, 'Milan Borjan', ['GK'], 73],
@@ -4083,7 +4083,7 @@ export const SQUADS: Squad[] = [
         [17, 'Cyle Larin', ['ST'], 76],
         [20, 'Jonathan David', ['ST', 'AM'], 82],
     ]),
-    squad('MAR', 'Morocco', 2022, 81, [
+    squad('MAR', 'Morocco', 2022, [
         [1, 'Yassine Bounou', ['GK'], 84],
         [12, 'Munir', ['GK'], 70],
         [22, 'Ahmed Reda Tagnaouti', ['GK'], 68],
@@ -4111,7 +4111,7 @@ export const SQUADS: Squad[] = [
         [19, 'Youssef En-Nesyri', ['ST'], 80],
         [21, 'Walid Cheddira', ['ST'], 70],
     ]),
-    squad('CRO', 'Croatia', 2022, 86, [
+    squad('CRO', 'Croatia', 2022, [
         [1, 'Dominik Livaković', ['GK'], 81],
         [12, 'Ivica Grbić', ['GK'], 70],
         [23, 'Ivica Ivušić', ['GK'], 68],
@@ -4141,7 +4141,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group G -----
-    squad('BRA', 'Brazil', 2022, 91, [
+    squad('BRA', 'Brazil', 2022, [
         [1, 'Alisson', ['GK'], 91],
         [12, 'Weverton', ['GK'], 72],
         [23, 'Ederson', ['GK'], 88],
@@ -4169,7 +4169,7 @@ export const SQUADS: Squad[] = [
         [18, 'Gabriel Jesus', ['ST'], 85],
         [25, 'Pedro', ['ST'], 79],
     ]),
-    squad('SRB', 'Serbia', 2022, 78, [
+    squad('SRB', 'Serbia', 2022, [
         [1, 'Marko Dmitrović', ['GK'], 76],
         [12, 'Predrag Rajković', ['GK'], 73],
         [23, 'Vanja Milinković-Savić', ['GK'], 72],
@@ -4197,7 +4197,7 @@ export const SQUADS: Squad[] = [
         [11, 'Luka Jović', ['ST'], 78],
         [18, 'Dušan Vlahović', ['ST'], 84],
     ]),
-    squad('SUI', 'Switzerland', 2022, 80, [
+    squad('SUI', 'Switzerland', 2022, [
         [1, 'Yann Sommer', ['GK'], 83],
         [12, 'Jonas Omlin', ['GK'], 72],
         [21, 'Gregor Kobel', ['GK'], 78],
@@ -4225,7 +4225,7 @@ export const SQUADS: Squad[] = [
         [9, 'Haris Seferović', ['ST'], 76],
         [19, 'Noah Okafor', ['LW', 'ST'], 77],
     ]),
-    squad('CMR', 'Cameroon', 2022, 73, [
+    squad('CMR', 'Cameroon', 2022, [
         [1, 'Simon Ngapandouetnbu', ['GK'], 66],
         [16, 'Devis Epassy', ['GK'], 66],
         [23, 'André Onana', ['GK'], 83],
@@ -4255,7 +4255,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ----- Group H -----
-    squad('POR', 'Portugal', 2022, 87, [
+    squad('POR', 'Portugal', 2022, [
         [1, 'Rui Patrício', ['GK'], 83],
         [12, 'José Sá', ['GK'], 79],
         [22, 'Diogo Costa', ['GK'], 81],
@@ -4283,7 +4283,7 @@ export const SQUADS: Squad[] = [
         [9, 'André Silva', ['ST'], 79],
         [26, 'Gonçalo Ramos', ['ST'], 76],
     ]),
-    squad('GHA', 'Ghana', 2022, 74, [
+    squad('GHA', 'Ghana', 2022, [
         [1, 'Lawrence Ati-Zigi', ['GK'], 72],
         [12, 'Ibrahim Danlad', ['GK'], 66],
         [16, 'Manaf Nurudeen', ['GK'], 66],
@@ -4311,7 +4311,7 @@ export const SQUADS: Squad[] = [
         [19, 'Iñaki Williams', ['ST', 'RW'], 78],
         [25, 'Antoine Semenyo', ['ST', 'RW'], 70],
     ]),
-    squad('URU', 'Uruguay', 2022, 84, [
+    squad('URU', 'Uruguay', 2022, [
         [1, 'Fernando Muslera', ['GK'], 80],
         [12, 'Sebastián Sosa', ['GK'], 71],
         [23, 'Sergio Rochet', ['GK'], 74],
@@ -4339,7 +4339,7 @@ export const SQUADS: Squad[] = [
         [18, 'Maxi Gómez', ['ST'], 74],
         [21, 'Edinson Cavani', ['ST'], 82],
     ]),
-    squad('KOR', 'South Korea', 2022, 78, [
+    squad('KOR', 'South Korea', 2022, [
         [1, 'Kim Seung-gyu', ['GK'], 77],
         [12, 'Song Bum-keun', ['GK'], 70],
         [21, 'Jo Hyeon-woo', ['GK'], 74],
