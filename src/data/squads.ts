@@ -187,7 +187,7 @@ export const SQUADS: Squad[] = [
         [5, 'Carsten Ramelow', ['CB', 'DM'], 79],
         [21, 'Christoph Metzelder', ['CB'], 79],
         [3, 'Christian Ziege', ['LB', 'LM'], 80],
-        [17, 'Christian Wörns', ['CB'], 76],
+        [17, 'Lars Ricken', ['AM', 'RW'], 76],
         [16, 'Dietmar Hamann', ['DM', 'CM'], 82],
         [8, 'Torsten Frings', ['DM', 'RM', 'RB'], 81],
         [6, 'Jens Jeremies', ['DM', 'CM'], 78],
