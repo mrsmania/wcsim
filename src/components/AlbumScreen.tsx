@@ -13,6 +13,7 @@ import {
 } from '../domain/album';
 import StickerCard, { TIER_META } from './StickerCard';
 import TradeModal from './TradeModal';
+import Overlay from './Overlay';
 
 interface Props {
   album: AlbumState;
@@ -25,6 +26,8 @@ const TIER_ORDER: StickerTier[] = ['monumental', 'iconic', 'legendary'];
 
 export default function AlbumScreen({ album, allPlayers, onTrade, onClose }: Props) {
   const [trade, setTrade] = useState<{ tier: StickerTier; options: Player[] } | null>(null);
+  // A collected sticker enlarged to full size in a lightbox (click to open).
+  const [expanded, setExpanded] = useState<{ player: Player; tier: StickerTier } | null>(null);
 
   const stats = useMemo(() => albumStats(album, allPlayers), [album, allPlayers]);
   const dupes = totalDuplicates(album);
@@ -153,15 +156,31 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onClose }: Pro
               ) : null}
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {players.map((p) => (
-                <StickerCard
-                  key={p.id}
-                  player={p}
-                  tier={tier}
-                  collected={collectedSet.has(p.id)}
-                  duplicateCount={album.duplicates[p.id] ?? 0}
-                />
-              ))}
+              {players.map((p) => {
+                const isCollected = collectedSet.has(p.id);
+                const card = (
+                  <StickerCard
+                    player={p}
+                    tier={tier}
+                    collected={isCollected}
+                    duplicateCount={album.duplicates[p.id] ?? 0}
+                  />
+                );
+                // A collected sticker is clickable and enlarges to full size.
+                return isCollected ? (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setExpanded({ player: p, tier })}
+                    aria-label={`Enlarge ${p.name} sticker`}
+                    className="block w-full cursor-pointer rounded-md border-0 bg-transparent p-0 text-left transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-pitch focus-visible:ring-offset-2"
+                  >
+                    {card}
+                  </button>
+                ) : (
+                  <div key={p.id}>{card}</div>
+                );
+              })}
             </div>
           </section>
         );
@@ -178,6 +197,21 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onClose }: Pro
           }}
           onCancel={() => setTrade(null)}
         />
+      )}
+
+      {expanded && (
+        <Overlay onClose={() => setExpanded(null)} ariaLabel={`${expanded.player.name} sticker`}>
+          <div className="flex justify-center">
+            <div className="w-full max-w-[320px]">
+              <StickerCard
+                player={expanded.player}
+                tier={expanded.tier}
+                collected
+                duplicateCount={album.duplicates[expanded.player.id] ?? 0}
+              />
+            </div>
+          </div>
+        </Overlay>
       )}
     </div>
   );
