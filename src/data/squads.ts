@@ -147,7 +147,7 @@ export const SQUADS: Squad[] = [
         [11, 'Ronaldinho', ['AM', 'LW', 'RW'], 91],
         [20, 'Edílson', ['RW', 'ST'], 78],
         [21, 'Luizão', ['ST'], 77],
-        [9, 'Ronaldo', ['ST'], 96],
+        [9, 'Ronaldo', ['ST'], 98],
         [7, 'Ricardinho', ['CM', 'AM'], 78],
         [5, 'Anderson Polga', ['CB'], 77],
         [16, 'Júnior', ['LB', 'LM'], 77],
@@ -2373,7 +2373,7 @@ export const SQUADS: Squad[] = [
         [11, 'Maxi Rodríguez', ['RM', 'CM'], 79],
         [19, 'Ricky Álvarez', ['AM', 'LW'], 74],
         [9, 'Gonzalo Higuaín', ['ST'], 85],
-        [10, 'Lionel Messi', ['RW', 'AM', 'ST'], 96],
+        [10, 'Lionel Messi', ['RW', 'AM', 'ST'], 97],
         [18, 'Rodrigo Palacio', ['ST'], 80],
         [20, 'Sergio Agüero', ['ST'], 88],
         [22, 'Ezequiel Lavezzi', ['LW', 'RW'], 81],
@@ -2456,7 +2456,7 @@ export const SQUADS: Squad[] = [
 
     // ----- Group G -----
     squad('GER', 'Germany', 2014, [
-        [1, 'Manuel Neuer', ['GK'], 96],
+        [1, 'Manuel Neuer', ['GK'], 97],
         [12, 'Ron-Robert Zieler', ['GK'], 70],
         [22, 'Roman Weidenfeller', ['GK'], 72],
         [2, 'Kevin Großkreutz', ['RB', 'LB', 'LM'], 75],
@@ -2984,7 +2984,7 @@ export const SQUADS: Squad[] = [
         [15, 'Enzo Pérez', ['CM', 'DM'], 76],
         [18, 'Eduardo Salvio', ['RM', 'RW', 'RB'], 77],
         [20, 'Giovani Lo Celso', ['CM', 'AM', 'DM'], 78],
-        [10, 'Lionel Messi', ['RW', 'AM', 'ST'], 96],
+        [10, 'Lionel Messi', ['RW', 'AM', 'ST'], 94],
         [11, 'Ángel Di María', ['LW', 'RW', 'AM'], 87],
         [21, 'Paulo Dybala', ['AM', 'RW', 'ST'], 86],
         [22, 'Cristian Pavón', ['RW', 'LW'], 76],
