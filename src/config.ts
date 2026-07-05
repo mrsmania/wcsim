@@ -31,6 +31,11 @@ export const FEATURES = {
      *  between rounds, with a live title-odds readout and a run score. Off by default
      *  (experimental); set true to expose the entry and route. */
     careerMode: true,
+    /** Budget draft ("Transfer Market"): a second way to build the XI - hand-pick
+     *  players from all squads within a fixed budget (BUDGET_DRAFT), priced by rating
+     *  (domain/pricing.ts). Adds a setup entry + a /build screen. Set false to hide it
+     *  and keep only the random roll. */
+    budgetDraft: true,
 } as const;
 
 /** Collectible sticker tiers, by player `elo` (inclusive on both ends). The single

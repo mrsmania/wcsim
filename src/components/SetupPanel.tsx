@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
 import type { TeamStrength } from '../domain/draft';
-import { ChevronDown, Dices } from 'lucide-react';
+import { ChevronDown, Coins, Dices } from 'lucide-react';
 import { SECONDARY_BTN } from './matchUi';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
@@ -26,6 +26,8 @@ interface Props {
     onStart: () => void;
     /** Testing shortcut: auto-fill a random valid XI of the chosen strength. */
     onRandomTeam: (tier: TeamStrength) => void;
+    /** Build the XI in the budget market instead of rolling (budgetDraft feature). */
+    onBudgetDraft?: () => void;
 }
 
 export default function SetupPanel({
@@ -38,6 +40,7 @@ export default function SetupPanel({
     onSelectStyle,
     onStart,
     onRandomTeam,
+    onBudgetDraft,
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
@@ -143,6 +146,16 @@ export default function SetupPanel({
                         )}
                     </div>
                 </div>
+                {onBudgetDraft && (
+                    <button
+                        onClick={onBudgetDraft}
+                        disabled={!ready}
+                        className="mt-[9px] flex w-full items-center justify-center gap-2 rounded-[5px] border border-line bg-white px-4 py-[11px] font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Buy with a budget
+                        <Coins size={16} strokeWidth={2.5} />
+                    </button>
+                )}
                 <p className="mt-2.5 font-mono text-[12px] tracking-[0.02em] text-muted">
                     Roll a national-team squad, then pick one player into an open slot. Repeat 11
                     times.

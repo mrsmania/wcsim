@@ -16,6 +16,7 @@ import {
     rollAnotherTeam,
     rollAny,
     STRENGTH_BANDS,
+    type Filled,
     type TeamStrength,
 } from './domain/draft';
 import {
@@ -52,6 +53,7 @@ import KnockoutScreen from './components/KnockoutScreen';
 import SquadBrowser from './components/SquadBrowser';
 import AlbumScreen from './components/AlbumScreen';
 import CupRunScreen from './components/CupRunScreen';
+import BudgetDraftScreen from './components/BudgetDraftScreen';
 import CupRewardPicker from './components/CupRewardPicker';
 import RunEndStickerSummary from './components/RunEndStickerSummary';
 
@@ -277,6 +279,17 @@ export default function App() {
         [previewFormation],
     );
 
+    // Budget market: load the hand-picked XI into the game (same as a rolled draft's
+    // completion) and go to the complete panel.
+    const handleBudgetConfirm = useCallback(
+        (filled: Filled, usedPersonIds: string[]) => {
+            if (!previewFormation) return;
+            dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
+            navigate('/');
+        },
+        [previewFormation, navigate],
+    );
+
     const handlePlace = useCallback(
         (slotId: string) => {
             // The reducer owns placement validation and ignores an invalid slot;
@@ -487,6 +500,7 @@ export default function App() {
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
     const isAlbum = STICKERS && path === '/album';
     const isCupRun = FEATURES.careerMode && path === '/cup-run';
+    const isBudget = FEATURES.budgetDraft && path === '/build';
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
     const isHome = path === '/';
@@ -561,6 +575,11 @@ export default function App() {
                         draftedXi={draftedXi}
                         chemistryBonus={cupRunChemistry}
                         onReDraft={handleReset}
+                    />
+                ) : isBudget ? (
+                    <BudgetDraftScreen
+                        formation={previewFormation}
+                        onConfirm={handleBudgetConfirm}
                     />
                 ) : isAlbum ? (
                     <AlbumScreen
@@ -678,6 +697,9 @@ export default function App() {
                                     onSelectStyle={(s) => dispatch({ type: 'SET_STYLE', style: s })}
                                     onStart={handleStart}
                                     onRandomTeam={handleRandomTeam}
+                                    onBudgetDraft={
+                                        FEATURES.budgetDraft ? () => navigate('/build') : undefined
+                                    }
                                 />
                             )}
                             {homeView === 'draft' && formation && (
