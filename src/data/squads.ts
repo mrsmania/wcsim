@@ -3637,7 +3637,7 @@ export const SQUADS: Squad[] = [
         [11, 'Vahid Amiri', ['LM', 'LW', 'CM'], 71],
         [14, 'Saman Ghoddos', ['AM', 'CM', 'RW'], 74],
         [15, 'Rouzbeh Cheshmi', ['DM', 'CB'], 70],
-        [18, 'Ali Karimi', ['CM', 'DM'], 71],
+        [18, 'Ali Karimi (2022)', ['CM', 'DM'], 71],
         [21, 'Ahmad Nourollahi', ['CM', 'AM'], 72],
         [7, 'Alireza Jahanbakhsh', ['RW', 'RM', 'AM'], 78],
         [16, 'Mehdi Torabi', ['RW', 'AM', 'LW'], 71],
