@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Trophy } from 'lucide-react';
+import { ArrowRight, Swords, Trophy } from 'lucide-react';
 import { SQUADS } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -51,6 +51,7 @@ import TournamentScreen from './components/TournamentScreen';
 import KnockoutScreen from './components/KnockoutScreen';
 import SquadBrowser from './components/SquadBrowser';
 import AlbumScreen from './components/AlbumScreen';
+import CupRunScreen from './components/CupRunScreen';
 import CupRewardPicker from './components/CupRewardPicker';
 import RunEndStickerSummary from './components/RunEndStickerSummary';
 
@@ -472,6 +473,7 @@ export default function App() {
     const squadsEnabled = FEATURES.squadBrowser;
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
     const isAlbum = STICKERS && path === '/album';
+    const isCupRun = FEATURES.careerMode && path === '/cup-run';
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
     const isHome = path === '/';
@@ -541,6 +543,8 @@ export default function App() {
 
                 {isSquads ? (
                     <SquadBrowser />
+                ) : isCupRun ? (
+                    <CupRunScreen />
                 ) : isAlbum ? (
                     <AlbumScreen
                         album={album}
@@ -620,6 +624,25 @@ export default function App() {
                                         </b>
                                         <span className="font-mono text-[11px] text-muted">
                                             {albumSummary.collected} / {albumSummary.total} collected
+                                        </span>
+                                    </span>
+                                    <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />
+                                </Link>
+                            )}
+                            {FEATURES.careerMode && (
+                                <Link
+                                    to="/cup-run"
+                                    className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
+                                >
+                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
+                                        <Swords size={18} strokeWidth={2} className="text-amber" />
+                                    </span>
+                                    <span className="flex flex-col leading-tight">
+                                        <b className="font-display text-[14px] font-extrabold">
+                                            Cup Run <span className="text-muted">(beta)</span>
+                                        </b>
+                                        <span className="font-mono text-[11px] text-muted">
+                                            Roguelike draft + boons
                                         </span>
                                     </span>
                                     <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />
