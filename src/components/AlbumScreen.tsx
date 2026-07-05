@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { Player } from '../data/types';
-import { STICKER_TRADE_COST, type StickerTier } from '../config';
+import { SQUAD_BY_ID } from '../data/squads';
+import { FEATURES, STICKER_TRADE_COST, type StickerTier } from '../config';
 import {
     albumStats,
     canAffordTrade,
@@ -14,6 +15,7 @@ import {
 import StickerCard, { TIER_META } from './StickerCard';
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
+import Flag from './Flag';
 
 interface Props {
     album: AlbumState;
@@ -224,22 +226,67 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onClose }: Pro
                 />
             )}
 
-            {expanded && (
-                <Overlay
-                    onClose={() => setExpanded(null)}
-                    ariaLabel={`${expanded.player.name} sticker`}
-                    bare
-                >
-                    <div className="w-[600px] max-w-[calc(100vw-3rem)]">
-                        <StickerCard
-                            player={expanded.player}
-                            tier={expanded.tier}
-                            collected
-                            duplicateCount={album.duplicates[expanded.player.id] ?? 0}
-                        />
-                    </div>
-                </Overlay>
-            )}
+            {expanded &&
+                (() => {
+                    const p = expanded.player;
+                    const sq = SQUAD_BY_ID[p.squadId];
+                    const meta = TIER_META[expanded.tier];
+                    const dup = album.duplicates[p.id] ?? 0;
+                    // One card: the modal panel itself. The sticker is its content (big
+                    // image + details), not a nested card - so no card-in-card.
+                    return (
+                        <Overlay onClose={() => setExpanded(null)} ariaLabel={`${p.name} sticker`}>
+                            <div
+                                className="-mx-6 -mt-6 mb-4 h-1.5 rounded-t-lg"
+                                style={{ background: meta.accent }}
+                            />
+                            <div className="flex flex-col items-center text-center">
+                                <div className="mb-1 flex w-full items-center justify-between pr-8">
+                                    <span
+                                        className="font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
+                                        style={{ color: meta.accent }}
+                                    >
+                                        {meta.name}
+                                    </span>
+                                    {dup > 0 && (
+                                        <span className="rounded-full bg-amber px-2 py-0.5 font-mono text-[11px] font-bold leading-none text-white">
+                                            &times;{dup}
+                                        </span>
+                                    )}
+                                </div>
+                                {FEATURES.stickerImages && (
+                                    <img
+                                        src={`${import.meta.env.BASE_URL}stickers/${p.id}.png`}
+                                        alt=""
+                                        className="mb-3 aspect-square w-full max-w-[440px] object-contain"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                        }}
+                                    />
+                                )}
+                                <Flag code={sq?.code ?? ''} className="h-6 w-9" />
+                                <div className="mt-2 font-display text-2xl font-extrabold leading-tight">
+                                    {p.name}
+                                </div>
+                                <div className="font-mono text-[13px] text-muted">
+                                    {sq?.nation}
+                                    {sq?.year ? ` · ${sq.year}` : ''}
+                                </div>
+                                <div
+                                    className="mt-3 inline-flex items-baseline gap-2 rounded-md px-4 py-2"
+                                    style={{ background: meta.strip, color: meta.stripText }}
+                                >
+                                    <span className="font-mono text-3xl font-bold leading-none">
+                                        {p.elo}
+                                    </span>
+                                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] opacity-80">
+                                        Rating
+                                    </span>
+                                </div>
+                            </div>
+                        </Overlay>
+                    );
+                })()}
         </div>
     );
 }
