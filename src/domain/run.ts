@@ -33,6 +33,8 @@ export interface RunState {
   /** Squad ids already drawn as opponents (avoid repeats). */
   facedIds: string[];
   activeBoons: string[];
+  /** Career perks active for this run (affects offers / start). */
+  perks: string[];
   /** The pending 1-of-3 boon offer, when phase === 'boon'. */
   offer: Boon[] | null;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played). */
@@ -62,18 +64,34 @@ function ordinal(n: number): string {
 }
 
 /** Auto-draft a legal random XI (1 GK, 4 DEF, 3 MID, 3 FWD), one person each.
- *  A stand-in for the real draft so the prototype focuses on the run loop. */
-export function autoDraftXi(): Player[] {
+ *  A stand-in for the real draft so the prototype focuses on the run loop. With
+ *  `strong` (the Deep Squad perk) each slot takes the best of a few candidates. */
+export function autoDraftXi(strong = false): Player[] {
   const byCat: Record<string, Player[]> = { GK: [], DEF: [], MID: [], FWD: [] };
   for (const s of SQUADS) for (const p of s.players) byCat[categoryOf(primaryPosition(p))].push(p);
   const used = new Set<string>();
+  const one = (pool: Player[]): Player | null => {
+    if (!strong) {
+      for (let i = 0; i < 50; i++) {
+        const p = pool[Math.floor(Math.random() * pool.length)];
+        if (p && !used.has(p.personId)) return p;
+      }
+      return null;
+    }
+    let best: Player | null = null;
+    for (let i = 0; i < 6; i++) {
+      const p = pool[Math.floor(Math.random() * pool.length)];
+      if (!p || used.has(p.personId)) continue;
+      if (!best || p.elo > best.elo) best = p;
+    }
+    return best;
+  };
   const pick = (cat: string, n: number): Player[] => {
-    const pool = byCat[cat];
     const out: Player[] = [];
     let guard = 0;
     while (out.length < n && guard++ < 1000) {
-      const p = pool[Math.floor(Math.random() * pool.length)];
-      if (!p || used.has(p.personId)) continue;
+      const p = one(byCat[cat]);
+      if (!p) continue;
       used.add(p.personId);
       out.push(p);
     }
@@ -82,18 +100,34 @@ export function autoDraftXi(): Player[] {
   return [...pick('GK', 1), ...pick('DEF', 4), ...pick('MID', 3), ...pick('FWD', 3)];
 }
 
-export function beginRun(xi: Player[]): RunState {
+/** Boon offer size, widened by the Extra Boon perk. */
+const offerSize = (perks: string[]) => (perks.includes('extra-boon') ? 4 : 3);
+
+export function beginRun(xi: Player[], perks: string[] = []): RunState {
+  let players = xi;
+  const activeBoons: string[] = [];
+  const log = ['Cup run started. Win the group, then the knockouts.'];
+  // Scout Network perk: begin with one random boon already applied.
+  if (perks.includes('scout')) {
+    const boon = offerBoons(1)[0];
+    if (boon) {
+      players = boon.apply(players);
+      activeBoons.push(boon.id);
+      log.push(`Scout Network boon: ${boon.name} (${boon.description})`);
+    }
+  }
   return {
-    xi,
+    xi: players,
     phase: 'group',
     koRound: 0,
     facedIds: [],
-    activeBoons: [],
+    activeBoons,
+    perks,
     offer: null,
     nextOpponent: null,
     score: 0,
     outcome: null,
-    log: ['Cup run started. Win the group, then the knockouts.'],
+    log,
   };
 }
 
@@ -121,7 +155,7 @@ export function playGroupStage(run: RunState): RunState {
   return {
     ...run,
     phase: 'boon',
-    offer: offerBoons(3),
+    offer: offerBoons(offerSize(run.perks)),
     nextOpponent: opp,
     facedIds: [...run.facedIds, opp.id],
     score: STAGE_SCORE.group,
@@ -198,7 +232,7 @@ export function playKnockoutRound(run: RunState): RunState {
     ...run,
     phase: 'boon',
     koRound: nextRound,
-    offer: offerBoons(3),
+    offer: offerBoons(offerSize(run.perks)),
     nextOpponent: nextOpp,
     facedIds: [...run.facedIds, nextOpp.id],
     score: STAGE_SCORE[KO_OUTCOME[round]],
