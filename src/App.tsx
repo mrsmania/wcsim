@@ -468,6 +468,19 @@ export default function App() {
     const placed = activeFormation ? filledCount(activeFormation, filled) : 0;
     const home = homeCopy(homeView, placed);
 
+    // The completed XI (all slots filled) handed to a Cup Run, with its chemistry bonus.
+    const cupRunXi =
+        formation &&
+        (() => {
+            const ps = formation.slots
+                .map((s) => filled[s.id])
+                .filter((p): p is Player => !!p);
+            return ps.length === formation.slots.length ? ps : null;
+        })();
+    const draftedXi = cupRunXi || null;
+    const cupRunChemistry =
+        draftedXi && formation && FEATURES.chemistry ? teamChemistry(formation, filled).bonus : 0;
+
     // Route -> which screen. `location.pathname` is basename-relative.
     const path = location.pathname;
     const squadsEnabled = FEATURES.squadBrowser;
@@ -544,7 +557,7 @@ export default function App() {
                 {isSquads ? (
                     <SquadBrowser />
                 ) : isCupRun ? (
-                    <CupRunScreen />
+                    <CupRunScreen draftedXi={draftedXi} chemistryBonus={cupRunChemistry} />
                 ) : isAlbum ? (
                     <AlbumScreen
                         album={album}
@@ -692,6 +705,9 @@ export default function App() {
                                     filled={filled}
                                     style={style}
                                     onStart={handleStartGroup}
+                                    onCupRun={
+                                        FEATURES.careerMode ? () => navigate('/cup-run') : undefined
+                                    }
                                     onReset={handleReset}
                                 />
                             )}

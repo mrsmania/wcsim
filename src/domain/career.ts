@@ -75,7 +75,7 @@ export const PERKS: Perk[] = [
   {
     id: 'deep-squad',
     name: 'Deep Squad',
-    description: 'Your drafted XI rolls a little stronger.',
+    description: '+1 to your entire XI at the start of each run.',
     cost: 45,
   },
   {

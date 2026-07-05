@@ -11,10 +11,19 @@ interface Props {
     filled: Filled;
     style: Style;
     onStart: () => void;
+    /** Play the drafted XI as a roguelike Cup Run (career mode); omitted when off. */
+    onCupRun?: () => void;
     onReset: () => void;
 }
 
-export default function CompletePanel({ formation, filled, style, onStart, onReset }: Props) {
+export default function CompletePanel({
+    formation,
+    filled,
+    style,
+    onStart,
+    onCupRun,
+    onReset,
+}: Props) {
     const [confirmReset, setConfirmReset] = useState(false);
     const base = teamRating(formation, filled);
     const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
@@ -62,6 +71,16 @@ export default function CompletePanel({ formation, filled, style, onStart, onRes
                         Start the World Cup
                         <ArrowRight size={16} strokeWidth={2.5} />
                     </button>
+
+                    {onCupRun && (
+                        <button
+                            onClick={onCupRun}
+                            className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-line bg-white px-4 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch active:scale-[0.99]"
+                        >
+                            Play as a Cup Run
+                            <ArrowRight size={16} strokeWidth={2.5} />
+                        </button>
+                    )}
 
                     {confirmReset ? (
                         <div className="flex items-center gap-2">

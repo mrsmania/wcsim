@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { primaryPosition } from '../data/types';
+import { primaryPosition, type Player } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
 import { KO_ROUNDS } from '../domain/knockout';
 import type { Rarity } from '../domain/boons';
 import {
-  autoDraftXi,
   beginRun,
   playGroupStage,
   chooseBoon,
@@ -55,20 +54,31 @@ interface Reward {
 /** Prototype of the roguelike Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
  *  the next run. Self-contained local state; does not touch the main game reducer. */
-export default function CupRunScreen() {
+export default function CupRunScreen({
+  draftedXi,
+  chemistryBonus,
+}: {
+  /** The XI drafted in the main game, or null if the XI is not complete yet. */
+  draftedXi: Player[] | null;
+  chemistryBonus: number;
+}) {
   const [career, setCareer] = useState<CareerState>(loadCareer);
   const [run, setRun] = useState<RunState | null>(null);
   const [reward, setReward] = useState<Reward | null>(null);
 
-  const odds = useMemo(() => (run ? simulateTitleOdds(run.xi, 600).champion : 0), [run?.xi]);
+  const odds = useMemo(
+    () => (run ? simulateTitleOdds(run.xi, 600, run.chemistryBonus).champion : 0),
+    [run?.xi],
+  );
   const str = useMemo(
     () => (run ? xiStrength(run.xi) : { attack: 0, defense: 0, overall: 0 }),
     [run?.xi],
   );
 
   const startRun = () => {
+    if (!draftedXi) return;
     setReward(null);
-    setRun(beginRun(autoDraftXi(career.unlocked.includes('deep-squad')), career.unlocked));
+    setRun(beginRun(draftedXi, career.unlocked, chemistryBonus));
   };
 
   // Step the run; award XP/Prestige exactly once when it ends.
@@ -188,17 +198,28 @@ export default function CupRunScreen() {
         </div>
       </section>
 
-      {/* No active run: CTA */}
-      {!run && (
-        <div className="rounded-md border border-line bg-panel p-8 text-center shadow-hard">
-          <p className="mb-4 text-[13.5px] text-muted">
-            Draft an XI and chase the trophy. Every run earns XP and Prestige for your career.
-          </p>
-          <button onClick={startRun} className={PRIMARY_BTN}>
-            Start a Cup Run
-          </button>
-        </div>
-      )}
+      {/* No active run: start with the drafted XI, or prompt to draft one. */}
+      {!run &&
+        (draftedXi ? (
+          <div className="rounded-md border border-line bg-panel p-8 text-center shadow-hard">
+            <p className="mb-4 text-[13.5px] text-muted">
+              Take your drafted XI on a Cup Run. Pick a boon between rounds; every run earns XP and
+              Prestige for your career.
+            </p>
+            <button onClick={startRun} className={PRIMARY_BTN}>
+              Start a Cup Run
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed border-line bg-panel p-8 text-center shadow-hard">
+            <p className="mb-4 text-[13.5px] text-muted">
+              Draft your XI first, then bring it here for a Cup Run.
+            </p>
+            <Link to="/" className={PRIMARY_BTN}>
+              Draft your XI
+            </Link>
+          </div>
+        ))}
 
       {/* Active run */}
       {run && (

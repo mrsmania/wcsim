@@ -35,6 +35,8 @@ export interface RunState {
   activeBoons: string[];
   /** Career perks active for this run (affects offers / start). */
   perks: string[];
+  /** Team chemistry bonus for the drafted XI (0 when the feature is off). */
+  chemistryBonus: number;
   /** The pending 1-of-3 boon offer, when phase === 'boon'. */
   offer: Boon[] | null;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played). */
@@ -103,10 +105,15 @@ export function autoDraftXi(strong = false): Player[] {
 /** Boon offer size, widened by the Extra Boon perk. */
 const offerSize = (perks: string[]) => (perks.includes('extra-boon') ? 4 : 3);
 
-export function beginRun(xi: Player[], perks: string[] = []): RunState {
+export function beginRun(xi: Player[], perks: string[] = [], chemistryBonus = 0): RunState {
   let players = xi;
   const activeBoons: string[] = [];
   const log = ['Cup run started. Win the group, then the knockouts.'];
+  // Deep Squad perk: a flat +1 to the drafted XI at kickoff.
+  if (perks.includes('deep-squad')) {
+    players = players.map((p) => ({ ...p, elo: Math.min(99, p.elo + 1) }));
+    log.push('Deep Squad: +1 to your XI.');
+  }
   // Scout Network perk: begin with one random boon already applied.
   if (perks.includes('scout')) {
     const boon = offerBoons(1)[0];
@@ -123,6 +130,7 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
     facedIds: [],
     activeBoons,
     perks,
+    chemistryBonus,
     offer: null,
     nextOpponent: null,
     score: 0,
@@ -134,7 +142,7 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
 /** Simulate the group stage; qualify -> draw the R16 opponent + offer a boon. */
 export function playGroupStage(run: RunState): RunState {
   if (run.phase !== 'group') return run;
-  const user = userGroupTeam(run.xi);
+  const user = userGroupTeam(run.xi, run.chemistryBonus);
   let group = createGroup(user, pickOpponents(3));
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
@@ -201,7 +209,7 @@ export function playKnockoutRound(run: RunState): RunState {
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
-  const { userWon, hg, ag, decided } = simulateKoTie(userGroupTeam(run.xi), opp);
+  const { userWon, hg, ag, decided } = simulateKoTie(userGroupTeam(run.xi, run.chemistryBonus), opp);
   const tag = decided === 'pens' ? ' (pens)' : decided === 'aet' ? ' (aet)' : '';
   const scoreLine = `${roundName}: you ${hg}-${ag} ${opp.name}${tag}.`;
 
