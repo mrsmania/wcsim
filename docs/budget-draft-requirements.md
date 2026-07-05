@@ -17,7 +17,7 @@ fixed-budget market where they hand-pick players priced by rating.
 | # | Decision | Choice |
 |---|----------|--------|
 | D1 | Two draft modes | **Random Roll** (today) and **Budget Market** (new), chosen at setup |
-| D2 | Budget | Fixed **$100** for the whole XI |
+| D2 | Budget | Fixed budget, tunable in config (`BUDGET_DRAFT`, default **$110**) |
 | D3 | Price | A **fixed function of rating** (higher rating = higher price); see §3 |
 | D4 | Pool | **All players from all squads** in the dataset are buyable |
 | D5 | Choice | The **user picks each player** (no rolling) |
@@ -38,20 +38,20 @@ Price is **convex** so a fixed budget forces trade-offs (you can't buy eleven st
 and a lone superstar has diminishing rating-per-dollar):
 
 ```
-priceOf(elo) = max(1, round((elo - 58)^2 / 64))   // BUDGET = 100
+priceOf(elo) = max(1, round((elo - 58)^2 / 64))   // budget: config BUDGET_DRAFT (default 110)
 ```
 
 Validated against the dataset:
 
-| Rating | 60 | 70 | 78 | 82 | 84 | 88 | 90 | 93 | 96 | 99 |
-|--------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| Price  | $1 | $2 | $6 | $9 | $11| $14| $16| $19| $23| $26|
+| Rating | 60 | 70 | 78 | 82 | 83 | 84 | 88 | 90 | 93 | 96 | 99 |
+|--------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| Price  | $1 | $2 | $6 | $9 | $10| $11| $14| $16| $19| $23| $26|
 
-- An **all-82 XI = $99** (just fits); an **all-84 XI = $121** (busts). So the uniform-rating ceiling under budget is ~82.
-- A **"dream XI" (best per slot) = ~$226**; the **cheapest valid XI = ~$11**; the $100 budget sits between them, so the choice space is real.
-- Typical outcome: ~$100 buys either a balanced ~82 side, or a couple of stars (one 99 = $26) propped up by cheaper role players.
+- Uniform-rating ceiling by budget: **$99 -> all-82**, **$110 -> all-83**, **$121 -> all-84**. Default is **$110** (all-83 just fits), a notch more generous than $100.
+- A **"dream XI" (best per slot) = ~$226**; the **cheapest valid XI = ~$11**; the budget sits between them, so the choice space is real.
+- Typical outcome: the budget buys either a balanced ~83 side, or a couple of stars (one 99 = $26) propped up by cheaper role players.
 
-`BASE`/`DIVISOR` are the tuning knobs if the budget should feel tighter or looser.
+**`BUDGET_DRAFT`** (config.ts) is the single knob for tightness - raise it if budget teams should feel stronger. `BASE`/`DIVISOR` in `pricing.ts` reshape the curve if needed.
 
 ## 4. Constraints
 

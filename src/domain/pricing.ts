@@ -2,11 +2,13 @@
 // Budget draft pricing. A player's transfer value is a fixed function of their
 // rating, deliberately CONVEX (the curve steepens at the top) so a fixed budget
 // forces real trade-offs: you can't afford eleven stars, and a lone superstar has
-// a diminishing rating-per-dollar. Pure and dependency-free.
+// a diminishing rating-per-dollar. The budget itself lives in config.ts.
 // ---------------------------------------------------------------------------
 
-/** Fixed budget for a full XI in the budget draft, in "$". */
-export const BUDGET = 100;
+import { BUDGET_DRAFT } from '../config';
+
+/** Fixed budget for a full XI, in "$". Tune it in config.ts (BUDGET_DRAFT). */
+export const BUDGET = BUDGET_DRAFT;
 
 /** Tuning constants for the price curve `round((elo - BASE)^2 / DIVISOR)`, min 1. */
 const BASE = 58;

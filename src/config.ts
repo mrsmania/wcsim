@@ -53,3 +53,10 @@ export const STICKER_TRADE_COST: Record<StickerTier, number> = {
     iconic: 20,
     monumental: 50,
 } as const;
+
+/** Budget draft ("Transfer Market"): total "$" to spend on a full XI (see
+ *  docs/budget-draft-requirements.md). Prices are convex (domain/pricing.ts), so with
+ *  the current curve this budget maps to a uniform-rating ceiling of roughly:
+ *  $99 -> all-82, $110 -> all-83, $121 -> all-84. This is the single knob for how tight
+ *  the mode is - raise it if budget teams should feel stronger. */
+export const BUDGET_DRAFT = 110;
