@@ -118,7 +118,7 @@ export function beginRun(xi: Player[], perks: string[] = [], chemistryBonus = 0)
   if (perks.includes('scout')) {
     const boon = offerBoons(1)[0];
     if (boon) {
-      players = boon.apply(players);
+      players = boon.apply(players, { opponentSquadId: null });
       activeBoons.push(boon.id);
       log.push(`Scout Network boon: ${boon.name} (${boon.description})`);
     }
@@ -176,13 +176,19 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
   if (run.phase !== 'boon') return run;
   const boon = boonById(boonId);
   if (!boon) return run;
+  const before = run.xi;
+  const xi = boon.apply(before, { opponentSquadId: run.nextOpponent?.id ?? null });
+  // If the boon swapped the roster, name the change; otherwise show its description.
+  const inP = xi.find((p) => !before.some((b) => b.id === p.id));
+  const outP = before.find((p) => !xi.some((a) => a.id === p.id));
+  const note = inP && outP ? `${inP.name} in for ${outP.name}` : boon.description;
   return {
     ...run,
-    xi: boon.apply(run.xi),
+    xi,
     activeBoons: [...run.activeBoons, boon.id],
     offer: null,
     phase: 'match',
-    log: [...run.log, `Boon: ${boon.name} (${boon.description})`],
+    log: [...run.log, `Boon: ${boon.name} (${note})`],
   };
 }
 

@@ -557,7 +557,11 @@ export default function App() {
                 {isSquads ? (
                     <SquadBrowser />
                 ) : isCupRun ? (
-                    <CupRunScreen draftedXi={draftedXi} chemistryBonus={cupRunChemistry} />
+                    <CupRunScreen
+                        draftedXi={draftedXi}
+                        chemistryBonus={cupRunChemistry}
+                        onReDraft={handleReset}
+                    />
                 ) : isAlbum ? (
                     <AlbumScreen
                         album={album}

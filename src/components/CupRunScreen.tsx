@@ -57,10 +57,13 @@ interface Reward {
 export default function CupRunScreen({
   draftedXi,
   chemistryBonus,
+  onReDraft,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
   chemistryBonus: number;
+  /** Reset the draft and go draft a fresh XI (each roguelike run is a new team). */
+  onReDraft: () => void;
 }) {
   const [career, setCareer] = useState<CareerState>(loadCareer);
   const [run, setRun] = useState<RunState | null>(null);
@@ -369,9 +372,15 @@ export default function CupRunScreen({
                       )}
                     </div>
                   )}
-                  <div className="mt-4 flex items-center justify-center gap-2.5">
-                    <button onClick={startRun} className={PRIMARY_BTN}>
-                      New run
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                    <button onClick={onReDraft} className={PRIMARY_BTN}>
+                      Draft a new XI
+                    </button>
+                    <button
+                      onClick={startRun}
+                      className="rounded-md border border-line bg-white px-4 py-3 font-display font-extrabold uppercase tracking-[0.02em] text-ink transition hover:border-pitch hover:text-pitch"
+                    >
+                      Replay same XI
                     </button>
                     <button
                       onClick={() => {

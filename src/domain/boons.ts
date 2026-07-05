@@ -1,19 +1,36 @@
 import type { Player } from '../data/types';
 import { categoryOf, primaryPosition, ATTACK_CATS, DEF_CATS } from '../data/types';
-import { SQUAD_BY_ID } from '../data/squads';
+import { SQUAD_BY_ID, SQUADS } from '../data/squads';
 
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
 export type Rarity = 'common' | 'rare' | 'legendary';
 
+/** Run context a boon may read (e.g. the upcoming opponent, for Poach). */
+export interface BoonContext {
+  opponentSquadId: string | null;
+}
+
 /** A boon chosen between rounds of a Cup Run. `apply` is a pure transform of the XI
- *  (rating deltas), which flows into `xiStrength` and therefore the sim/odds. */
+ *  - either rating deltas (flowing into `xiStrength`/the sim) or a roster change (a
+ *  player swapped in/out). Rating boons ignore the context. */
 export interface Boon {
   id: string;
   name: string;
   rarity: Rarity;
   description: string;
-  apply: (xi: Player[]) => Player[];
+  apply: (xi: Player[], ctx: BoonContext) => Player[];
 }
+
+/** Every player in the dataset, for roster boons (Transfer / Wildcard). */
+const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
+const catOf = (p: Player) => categoryOf(primaryPosition(p));
+const weakest = (xi: Player[]) => xi.reduce((lo, p) => (p.elo < lo.elo ? p : lo), xi[0]);
+const weakestOfCat = (xi: Player[], cat: ReturnType<typeof catOf>): Player | null => {
+  const inCat = xi.filter((p) => catOf(p) === cat);
+  return inCat.length ? inCat.reduce((lo, p) => (p.elo < lo.elo ? p : lo), inCat[0]) : null;
+};
+const swap = (xi: Player[], outId: string, inP: Player) =>
+  xi.map((p) => (p.id === outId ? inP : p));
 
 const MIN = 60;
 const MAX = 99;
@@ -107,6 +124,52 @@ export const BOONS: Boon[] = [
     apply: (xi) => {
       const code = topNationCode(xi);
       return code ? xi.map((p) => (SQUAD_BY_ID[p.squadId]?.code === code ? bump(p, 2) : p)) : xi;
+    },
+  },
+  {
+    id: 'transfer',
+    name: 'Transfer',
+    rarity: 'rare',
+    description: 'Swap your weakest player for a stronger one in the same position.',
+    apply: (xi) => {
+      const out = weakest(xi);
+      const cat = catOf(out);
+      const used = new Set(xi.map((p) => p.personId));
+      const cands = ALL_PLAYERS.filter(
+        (p) => catOf(p) === cat && p.elo > out.elo && !used.has(p.personId),
+      );
+      if (!cands.length) return xi;
+      return swap(xi, out.id, cands[Math.floor(Math.random() * cands.length)]);
+    },
+  },
+  {
+    id: 'poach',
+    name: 'Poach',
+    rarity: 'rare',
+    description: "Steal your next opponent's best player.",
+    apply: (xi, ctx) => {
+      const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
+      if (!opp) return xi;
+      const used = new Set(xi.map((p) => p.personId));
+      const cands = opp.players.filter((p) => !used.has(p.personId));
+      if (!cands.length) return xi;
+      const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
+      const out = weakestOfCat(xi, catOf(inP)) ?? weakest(xi);
+      return swap(xi, out.id, inP);
+    },
+  },
+  {
+    id: 'wildcard',
+    name: 'Wildcard Legend',
+    rarity: 'legendary',
+    description: 'Add a random 90+ legend to your XI.',
+    apply: (xi) => {
+      const used = new Set(xi.map((p) => p.personId));
+      const legends = ALL_PLAYERS.filter((p) => p.elo >= 90 && !used.has(p.personId));
+      if (!legends.length) return xi;
+      const inP = legends[Math.floor(Math.random() * legends.length)];
+      const out = weakestOfCat(xi, catOf(inP)) ?? weakest(xi);
+      return swap(xi, out.id, inP);
     },
   },
 ];
