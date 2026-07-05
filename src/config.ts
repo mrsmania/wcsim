@@ -6,7 +6,7 @@ export const FEATURES = {
     chemistry: true,
     /** Remove placed players from the pitch via an x on the badge (testing aid).
      *  Off by default; set to true to show the control and enable removal. */
-    removePlayers: false,
+    removePlayers: true,
     /** Show each team's rating as a small chip next to it (desktop only). Set to
      *  false to hide all the rating chips everywhere. */
     teamRatings: true,
@@ -30,7 +30,7 @@ export const FEATURES = {
      *  home-screen entry: auto-draft an XI, then play the tournament picking a boon
      *  between rounds, with a live title-odds readout and a run score. Off by default
      *  (experimental); set true to expose the entry and route. */
-    careerMode: false,
+    careerMode: true,
 } as const;
 
 /** Collectible sticker tiers, by player `elo` (inclusive on both ends). The single
