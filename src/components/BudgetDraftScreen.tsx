@@ -15,6 +15,24 @@ const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const MAX_RESULTS = 60;
 
+/** A shuffled copy (Fisher-Yates). Uses Math.random intentionally, like the sim. */
+function shuffle<T>(arr: readonly T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Cheapest possible price for any player, reserved per still-empty slot so a random
+ *  auto-fill never strands a slot it can no longer afford. */
+const MIN_PRICE = 1;
+/** How many of the best affordable options each random pick draws from. Small enough
+ *  to keep picks strong (the budget gets spent), large enough that no two auto-fills
+ *  look alike. */
+const PICK_POOL = 15;
+
 /** Players eligible for each position, highest-rated first (for the auto-fill helper). */
 const BY_POSITION: Partial<Record<Position, Player[]>> = (() => {
   const m: Partial<Record<Position, Player[]>> = {};
@@ -99,53 +117,63 @@ export default function BudgetDraftScreen({
     setSelectedSlotId(null);
   };
 
-  // Fill every empty slot and spend as much of the remaining budget as possible:
-  // first a cheapest affordable player per open slot (a guaranteed valid completion),
-  // then greedily upgrade those picks by the best rating-per-dollar until the money
-  // runs out. Never touches slots you filled by hand.
+  // Fill every empty slot and spend most of the budget, differently on each click.
+  // Empty slots are filled in a random order; each gets a random pick from the best
+  // few players it can still afford (reserving $1 for every slot after it, so it is
+  // always a valid completion). Then a random upgrade pass spends whatever is left.
+  // Never touches slots you filled by hand.
   const autoFill = () => {
     const next: Filled = { ...filled };
     const usedIds = new Set(placed.map((p) => p.personId));
     let left = remaining;
     const autoIds: string[] = [];
-    for (const s of slots) {
-      if (next[s.id]) continue;
-      let pick: Player | null = null;
-      for (const p of BY_POSITION[s.position] ?? []) {
-        if (usedIds.has(p.personId)) continue;
-        const pr = priceOf(p.elo);
-        if (pr > left) continue;
-        if (!pick || pr < priceOf(pick.elo)) pick = p; // cheapest affordable
-      }
-      if (!pick) continue; // can't afford any eligible player; leave open
+
+    // Random fill: shuffle the empty slots, reserve the bare minimum for the rest.
+    const order = shuffle(slots.filter((s) => !next[s.id]));
+    order.forEach((s, i) => {
+      const reserve = (order.length - 1 - i) * MIN_PRICE;
+      const cap = left - reserve;
+      const pool = (BY_POSITION[s.position] ?? []).filter(
+        (p) => !usedIds.has(p.personId) && priceOf(p.elo) <= cap,
+      );
+      if (pool.length === 0) return; // nothing affordable; leave open (shouldn't happen)
+      // pool is sorted by elo desc; draw from the best few affordable for a strong,
+      // budget-spending pick that still varies run to run.
+      const topK = pool.slice(0, Math.min(PICK_POOL, pool.length));
+      const pick = topK[Math.floor(Math.random() * topK.length)];
       next[s.id] = pick;
       usedIds.add(pick.personId);
       left -= priceOf(pick.elo);
       autoIds.push(s.id);
-    }
-    // Spend the rest on the best rating-per-dollar upgrades to the auto-filled slots.
-    for (let guard = 0; guard < 200; guard++) {
-      let best: { slotId: string; player: Player; deltaCost: number; ratio: number } | null = null;
-      for (const slotId of autoIds) {
+    });
+
+    // Spend the rest on random affordable upgrades to the auto-filled slots, so the
+    // leftover budget gets used without funnelling every run to the same picks.
+    for (let guard = 0; guard < 300 && left > 0; guard++) {
+      let upgraded = false;
+      for (const slotId of shuffle(autoIds)) {
         const cur = next[slotId]!;
         const slot = slots.find((s) => s.id === slotId)!;
         const curPrice = priceOf(cur.elo);
-        for (const p of BY_POSITION[slot.position] ?? []) {
-          if (p.elo <= cur.elo) break; // list is sorted desc: nothing better below here
-          if (usedIds.has(p.personId)) continue;
-          const deltaCost = priceOf(p.elo) - curPrice;
-          if (deltaCost <= 0 || deltaCost > left) continue;
-          const ratio = (p.elo - cur.elo) / deltaCost;
-          if (!best || ratio > best.ratio) best = { slotId, player: p, deltaCost, ratio };
-        }
+        const options = (BY_POSITION[slot.position] ?? []).filter(
+          (p) =>
+            p.elo > cur.elo &&
+            !usedIds.has(p.personId) &&
+            priceOf(p.elo) - curPrice <= left,
+        );
+        if (options.length === 0) continue;
+        const topK = options.slice(0, Math.min(PICK_POOL, options.length));
+        const up = topK[Math.floor(Math.random() * topK.length)];
+        usedIds.delete(cur.personId);
+        usedIds.add(up.personId);
+        next[slotId] = up;
+        left -= priceOf(up.elo) - curPrice;
+        upgraded = true;
+        break;
       }
-      if (!best) break;
-      const out = next[best.slotId]!;
-      usedIds.delete(out.personId);
-      usedIds.add(best.player.personId);
-      next[best.slotId] = best.player;
-      left -= best.deltaCost;
+      if (!upgraded) break;
     }
+
     setFilled(next);
     setSelectedSlotId(null);
   };

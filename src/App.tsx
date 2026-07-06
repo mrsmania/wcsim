@@ -716,7 +716,11 @@ export default function App() {
                                     <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />
                                 </Link>
                             )}
-                            {FEATURES.careerMode && (
+                            {/* Career hub entry. Only on the setup sub-view: mid-draft /
+                                complete it would be noise (the play path there is the
+                                Play-mode toggle + the complete CTA). Here it's the door to
+                                the perk shop + trophies before a run. */}
+                            {FEATURES.careerMode && homeView === 'setup' && (
                                 <Link
                                     to="/cup-run"
                                     className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
@@ -726,10 +730,10 @@ export default function App() {
                                     </span>
                                     <span className="flex flex-col leading-tight">
                                         <b className="font-display text-[14px] font-extrabold">
-                                            Cup Run <span className="text-muted">(beta)</span>
+                                            Cup Run career <span className="text-muted">(beta)</span>
                                         </b>
                                         <span className="font-mono text-[11px] text-muted">
-                                            Roguelike draft + boons
+                                            Perks, Prestige &amp; trophies
                                         </span>
                                     </span>
                                     <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />

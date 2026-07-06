@@ -366,8 +366,9 @@ A roguelike layer over the core loop, plus a persistent career. Design:
 
 - **Cup Run** (`domain/run.ts`, route `/cup-run`, `CupRunScreen.tsx`): you pick "Cup Run"
   as the play mode on setup (see "Play mode" above), draft your XI the normal way, then
-  the `CompletePanel` CTA ("Enter the Cup Run") takes you in (the home-screen Cup Run card
-  is a second entry). The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
+  the `CompletePanel` CTA ("Enter the Cup Run") takes you in. A "Cup Run career" card on the
+  home **setup** sub-view (hidden once drafting) is the door to the career hub (perks/trophies)
+  before a run. The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
   `playKnockoutRound` -> ... -> ended (`champion` or knocked out) - reusing the real
   group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Between
   rounds you pick 1 of 3 **boons** (`domain/boons.ts`): rating tweaks (Golden Generation,
@@ -406,9 +407,12 @@ A second way to build the XI, alongside the random roll. Spec:
   players from all squads into the chosen formation's slots within a fixed budget
   (`BUDGET_DRAFT` in config, $110), each priced by rating via **`domain/pricing.ts`**
   (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so the budget forces trade-offs).
-  A budget bar, one-per-person, an "Auto-fill & spend" helper (cheapest valid fill then
-  greedy rating-per-$ upgrades), and a "Clear". Confirm loads the XI via the reducer's
-  `AUTOFILL`, so it plays through Quick Play + Cup Run like a rolled XI.
+  A budget bar, one-per-person, an "Auto-fill & spend" helper (randomized: fills the empty
+  slots in a shuffled order, each a random pick from the best few players it can still afford
+  while reserving the minimum for the rest, then a random upgrade pass spends the leftover -
+  so every click yields a different XI that still spends most of the budget), and a "Clear".
+  Confirm loads the XI via the reducer's `AUTOFILL`, so it plays through Quick Play + Cup Run
+  like a rolled XI.
 
 ## Conventions and working agreements
 
