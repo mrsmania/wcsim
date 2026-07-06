@@ -26,7 +26,7 @@ import { drawOpponent, KO_ROUNDS, type KoDecided } from './knockout';
 import { offerBoons, boonById, type Boon } from './boons';
 
 // ---------------------------------------------------------------------------
-// Cup Run (roguelike) - prototype run state machine. Pure over Math.random via
+// Cup Run - prototype run state machine. Pure over Math.random via
 // the sim. The UI steps it: playGroupStage -> chooseBoon -> playKnockoutRound ...
 // ---------------------------------------------------------------------------
 
@@ -133,7 +133,7 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
     if (boon) {
       players = boon.apply(players, { opponentSquadId: null });
       activeBoons.push(boon.id);
-      log.push(`Scout Network boon: ${boon.name} (${boon.description})`);
+      log.push(`Scout Network boost: ${boon.name} (${boon.description})`);
     }
   }
   return {
@@ -218,7 +218,7 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
       nextOpponent: opp,
       facedIds: [...faced, opp.id],
       score: STAGE_SCORE.group,
-      log: [...run.log, ...matchLines, posLine, `Through to the ${KO_ROUNDS[0]}. Pick a boon.`],
+      log: [...run.log, ...matchLines, posLine, `Through to the ${KO_ROUNDS[0]}. Pick a boost.`],
     },
     userMatches,
   };
@@ -244,7 +244,7 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
     activeBoons: [...run.activeBoons, boon.id],
     offer: null,
     phase: 'match',
-    log: [...run.log, `Boon: ${boon.name} (${note})`],
+    log: [...run.log, `Boost: ${boon.name} (${note})`],
   };
 }
 
@@ -311,7 +311,7 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
       score: STAGE_SCORE[KO_OUTCOME[round]],
-      log: [...run.log, `${scoreLine} Into the ${KO_ROUNDS[nextRound]}. Pick a boon.`],
+      log: [...run.log, `${scoreLine} Into the ${KO_ROUNDS[nextRound]}. Pick a boost.`],
     };
   }
   return { next, match, opp, roundName };

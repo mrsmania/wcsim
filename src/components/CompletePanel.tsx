@@ -12,7 +12,7 @@ interface Props {
     style: Style;
     /** Play a standard World Cup with this XI. */
     onStart: () => void;
-    /** Take this XI on a roguelike Cup Run (career mode); omitted when off. */
+    /** Take this XI on a Cup Run (career mode); omitted when off. */
     onCupRun?: () => void;
     onReset: () => void;
 }
@@ -65,7 +65,7 @@ export default function CompletePanel({
             <div className="p-[18px]">
                 <p className="mb-4 text-[13px] text-muted">
                     {onCupRun
-                        ? 'Your XI is set. Play a standard World Cup, or take it on a Cup Run (a roguelike run where you pick a boon between rounds).'
+                        ? 'Your XI is set. Play a standard World Cup, or take it on a Cup Run (a knockout run where you pick a team boost between rounds).'
                         : "You'll be drawn into a group of four. Play all three matchdays, finish in the top two, and reach the knockouts."}
                 </p>
                 <div className="flex flex-col gap-2.5">

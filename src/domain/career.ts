@@ -69,7 +69,7 @@ export const PERKS: Perk[] = [
   {
     id: 'scout',
     name: 'Scout Network',
-    description: 'Start every run with one random boon already applied.',
+    description: 'Start every run with one random team boost already applied.',
     cost: 25,
   },
   {
@@ -80,8 +80,8 @@ export const PERKS: Perk[] = [
   },
   {
     id: 'extra-boon',
-    name: 'Extra Boon',
-    description: 'Boon offers show 4 choices instead of 3.',
+    name: 'Extra Choice',
+    description: '4 team boosts to choose from each round instead of 3.',
     cost: 75,
   },
 ];

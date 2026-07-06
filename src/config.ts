@@ -29,9 +29,9 @@ export const FEATURES = {
      *  sets are fine - a player without a file just shows the flag + text. Set to
      *  false to skip the image requests entirely and always use the placeholder. */
     stickerImages: true,
-    /** Career / roguelike "Cup Run" mode (prototype). Adds a /cup-run screen and a
-     *  home-screen entry: auto-draft an XI, then play the tournament picking a boon
-     *  between rounds, with a live title-odds readout and a run score. Off by default
+    /** Career "Cup Run" mode (prototype). Adds a /cup-run screen and a home-screen
+     *  entry: take a drafted XI through the tournament, picking a team boost between
+     *  rounds, with a live title-odds readout and a run score. Off by default
      *  (experimental); set true to expose the entry and route. */
     careerMode: true,
     /** Budget draft ("Transfer Market"): a second way to build the XI - hand-pick

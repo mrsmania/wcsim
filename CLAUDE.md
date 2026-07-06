@@ -370,9 +370,12 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Between
   rounds you pick 1 of 3 **boons** (`domain/boons.ts`): rating tweaks (Golden Generation,
   Glass Cannon, ...) and roster swaps (Transfer, Poach the next opponent, Wildcard Legend).
-  A live **title-odds %** readout uses `domain/odds.ts`. Chemistry is recomputed live per XI
-  (`run.ts` `chemistryOf`), so roster boons don't leave it stale. The drafted XI enters
-  via the reducer's `AUTOFILL`; each "New run" re-drafts (roguelike-fresh).
+  **UI term:** the code says `boon`/`Boon` but the user-facing copy calls them "boosts" (and
+  the `extra-boon` perk is shown as "Extra Choice") - "roguelike"/"boon" are too niche for
+  players, so keep them out of visible strings, like elo -> "rating". A live **title-odds %**
+  readout uses `domain/odds.ts`. Chemistry is recomputed live per XI (`run.ts` `chemistryOf`),
+  so roster boons don't leave it stale. The drafted XI enters via the reducer's `AUTOFILL`;
+  each "New run" re-drafts fresh.
 - **Live match playback.** Matches are revealed with the same live clock + goal feed as the
   main game, not resolved instantly. `run.ts` splits into `prepare*`/`play*`: `prepareGroupStage`
   and `prepareKnockoutRound` simulate up front and return both the committed `next` RunState and

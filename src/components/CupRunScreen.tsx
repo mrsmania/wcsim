@@ -138,7 +138,7 @@ function LiveCupMatch({
   );
 }
 
-/** Prototype of the roguelike Cup Run + the Manager Career meta-layer. Runs feed XP
+/** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
  *  the next run. The in-progress run persists to its own localStorage key, so a
  *  refresh mid-run resumes it; matches are revealed with the shared live clock; and
@@ -152,7 +152,7 @@ export default function CupRunScreen({
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
-  /** Reset the draft and go draft a fresh XI (each roguelike run is a new team). */
+  /** Reset the draft and go draft a fresh XI (each run is a new team). */
   onReDraft: () => void;
   /** Match playback speed (shared with the main game, so the preference persists). */
   speed: MatchSpeed;
@@ -347,8 +347,8 @@ export default function CupRunScreen({
         (draftedXi ? (
           <div className="rounded-md border border-line bg-panel p-8 text-center shadow-hard">
             <p className="mb-4 text-[13.5px] text-muted">
-              Take your drafted XI on a Cup Run. Pick a boon between rounds; every run earns XP and
-              Prestige for your career.
+              Take your drafted XI on a Cup Run. Pick a team boost between rounds; every run earns
+              XP and Prestige for your career.
             </p>
             <button onClick={startRun} className={PRIMARY_BTN}>
               Start a Cup Run
@@ -528,7 +528,7 @@ export default function CupRunScreen({
                   <div>
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                        Pick a boon
+                        Pick a boost
                       </span>
                       {run.nextOpponent && (
                         <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">
