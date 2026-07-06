@@ -39,7 +39,7 @@ import {
 } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { FEATURES, type StickerTier } from './config';
-import { gameReducer, initialState } from './state/gameReducer';
+import { gameReducer, initialState, type PlayMode } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
 import { loadAlbum, saveAlbum, loadStats, saveStats } from './state/albumStorage';
 import SetupPanel from './components/SetupPanel';
@@ -151,6 +151,7 @@ export default function App() {
         phase,
         formationName,
         style,
+        mode,
         formation,
         filled,
         currentSquad,
@@ -493,6 +494,14 @@ export default function App() {
         })();
     const draftedXi = cupRunXi || null;
 
+    // Effective play mode. Forced to 'quick' when Cup Run is off, so the stored
+    // default ('cup') never leaks into a build without the feature.
+    const playMode: PlayMode = FEATURES.careerMode ? mode : 'quick';
+    // The mode the complete panel commits to. Once a group/bracket exists the XI is
+    // already in a standard World Cup, so stay 'quick' regardless of the stored mode
+    // (covers a legacy save that loaded with the 'cup' default mid-tournament).
+    const completeMode: PlayMode = group || bracket ? 'quick' : playMode;
+
     // Route -> which screen. `location.pathname` is basename-relative.
     const path = location.pathname;
     const squadsEnabled = FEATURES.squadBrowser;
@@ -503,8 +512,15 @@ export default function App() {
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
     const isHome = path === '/';
-    // Where "Play" returns to: the furthest game screen reached.
-    const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
+    // Where "Play" returns to: the furthest game screen reached. In Cup Run mode,
+    // once an XI is drafted that's the Cup Run screen (it owns its own run state).
+    const gameRoute = bracket
+        ? '/knockout'
+        : group
+          ? '/group'
+          : playMode === 'cup' && draftedXi
+            ? '/cup-run'
+            : '/';
     const albumSummary = STICKERS ? albumStats(album, allPlayers) : null;
     const stampText = isSquads
         ? null
@@ -697,6 +713,12 @@ export default function App() {
                                         dispatch({ type: 'SET_FORMATION', name })
                                     }
                                     onSelectStyle={(s) => dispatch({ type: 'SET_STYLE', style: s })}
+                                    mode={playMode}
+                                    onSelectMode={
+                                        FEATURES.careerMode
+                                            ? (m) => dispatch({ type: 'SET_MODE', mode: m })
+                                            : undefined
+                                    }
                                     onStart={handleStart}
                                     onRandomTeam={
                                         FEATURES.randomTeam ? handleRandomTeam : undefined
@@ -734,9 +756,11 @@ export default function App() {
                                     formation={formation}
                                     filled={filled}
                                     style={style}
-                                    onStart={handleStartGroup}
-                                    onCupRun={
-                                        FEATURES.careerMode ? () => navigate('/cup-run') : undefined
+                                    mode={completeMode}
+                                    onStart={
+                                        completeMode === 'cup'
+                                            ? () => navigate('/cup-run')
+                                            : handleStartGroup
                                     }
                                     onReset={handleReset}
                                 />

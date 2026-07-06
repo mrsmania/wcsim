@@ -8,6 +8,10 @@ import type { MatchSpeed } from '../domain/clock';
 
 export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
 
+/** Which play mode the drafted XI enters after it's complete: a standard World Cup
+ *  ('quick') or a roguelike Cup Run ('cup'). Chosen up front on the setup screen. */
+export type PlayMode = 'quick' | 'cup';
+
 export const INITIAL_REROLLS = 3;
 /** Player swaps allowed per game (sticker album feature). Only collectibles can be
  *  swapped in, and only this many times per run. */
@@ -18,6 +22,11 @@ export interface GameState {
   /** Selected during setup; locked once the draft starts. */
   formationName: FormationName;
   style: Style;
+  /** Play mode the completed XI will enter. Chosen on the setup screen (only
+   *  offered when FEATURES.careerMode is on; the UI forces 'quick' otherwise) and
+   *  remembered across the run. `initialState.mode` is the single knob for the
+   *  "main" mode a fresh player lands on. */
+  mode: PlayMode;
   /** Resolved formation, set when the draft begins. */
   formation: Formation | null;
   /** slotId -> placed player. */
@@ -46,6 +55,7 @@ export interface GameState {
 export type Action =
   | { type: 'SET_FORMATION'; name: FormationName }
   | { type: 'SET_STYLE'; style: Style }
+  | { type: 'SET_MODE'; mode: PlayMode }
   | { type: 'START_DRAFT'; formation: Formation }
   | { type: 'AUTOFILL'; formation: Formation; filled: Filled; usedPersonIds: string[] }
   | { type: 'ROLL_START'; isReroll: boolean }
@@ -67,6 +77,7 @@ export const initialState: GameState = {
   phase: 'setup',
   formationName: '4-3-3',
   style: 'bal',
+  mode: 'cup',
   formation: null,
   filled: {},
   rolling: false,
@@ -94,6 +105,9 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
     case 'SET_STYLE':
       return state.phase === 'setup' ? { ...state, style: action.style } : state;
+
+    case 'SET_MODE':
+      return state.phase === 'setup' ? { ...state, mode: action.mode } : state;
 
     case 'START_DRAFT':
       return { ...state, phase: 'draft', formation: action.formation, filled: {} };
@@ -231,7 +245,9 @@ export function gameReducer(state: GameState, action: Action): GameState {
       return { ...state, stickersApplied: true };
 
     case 'RESET':
-      return { ...initialState, speed: state.speed, auto: state.auto };
+      // Keep the display prefs and the chosen play mode across a reset, so "start
+      // over" re-drafts into the same mode rather than snapping back to the default.
+      return { ...initialState, speed: state.speed, auto: state.auto, mode: state.mode };
 
     default:
       return state;

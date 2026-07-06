@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
 import type { TeamStrength } from '../domain/draft';
+import type { PlayMode } from '../state/gameReducer';
 import { ChevronDown, Coins, Dices } from 'lucide-react';
 import { SECONDARY_BTN } from './matchUi';
+
+const MODES: { value: PlayMode; label: string; sub: string }[] = [
+    { value: 'quick', label: 'Quick Play', sub: 'Group + knockout' },
+    { value: 'cup', label: 'Cup Run', sub: 'Roguelike + boons' },
+];
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'weak', label: 'Weak', hint: 'rating < 75' },
@@ -23,6 +29,11 @@ interface Props {
     ready: boolean;
     onSelectName: (name: FormationName) => void;
     onSelectStyle: (style: Style) => void;
+    /** Chosen play mode. Only meaningful when onSelectMode is provided. */
+    mode?: PlayMode;
+    /** Choose the play mode. Omitted when FEATURES.careerMode is off, which hides
+     *  the whole Play-mode toggle (the game is always a standard World Cup then). */
+    onSelectMode?: (mode: PlayMode) => void;
     onStart: () => void;
     /** Testing shortcut: auto-fill a random valid XI of the chosen strength. Omitted
      *  when FEATURES.randomTeam is off, which hides the whole control. */
@@ -39,6 +50,8 @@ export default function SetupPanel({
     ready,
     onSelectName,
     onSelectStyle,
+    mode,
+    onSelectMode,
     onStart,
     onRandomTeam,
     onBudgetDraft,
@@ -97,6 +110,40 @@ export default function SetupPanel({
                     })}
                 </div>
             </div>
+
+            {/* Play mode (gated by FEATURES.careerMode via onSelectMode) */}
+            {onSelectMode && (
+                <div className="border-t border-line p-[18px]">
+                    <p className={SEGLBL}>Play mode</p>
+                    <div className="flex overflow-hidden rounded-[5px] border border-line">
+                        {MODES.map(({ value, label, sub }) => {
+                            const active = value === mode;
+                            return (
+                                <button
+                                    key={value}
+                                    onClick={() => onSelectMode(value)}
+                                    className={[
+                                        'flex flex-1 flex-col items-center gap-0.5 border-r border-line px-2 py-2.5 transition last:border-r-0',
+                                        active
+                                            ? 'bg-pitch-dark text-white'
+                                            : 'bg-white text-muted hover:text-pitch',
+                                    ].join(' ')}
+                                >
+                                    <span className="text-[12.5px] font-semibold">{label}</span>
+                                    <span
+                                        className={[
+                                            'font-mono text-[9.5px] tracking-[0.02em]',
+                                            active ? 'text-white/70' : 'text-muted/70',
+                                        ].join(' ')}
+                                    >
+                                        {sub}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Build your XI */}
             <div className="border-t border-line p-[18px]">

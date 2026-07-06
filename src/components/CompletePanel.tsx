@@ -4,15 +4,17 @@ import { STYLE_LABEL, type Formation, type Style } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
+import type { PlayMode } from '../state/gameReducer';
 import { SECONDARY_BTN } from './matchUi';
 
 interface Props {
     formation: Formation;
     filled: Filled;
     style: Style;
+    /** The chosen play mode; the single CTA (label + copy) follows it. */
+    mode: PlayMode;
+    /** Enter the chosen mode. App wires this to start the World Cup or the Cup Run. */
     onStart: () => void;
-    /** Play the drafted XI as a roguelike Cup Run (career mode); omitted when off. */
-    onCupRun?: () => void;
     onReset: () => void;
 }
 
@@ -20,10 +22,11 @@ export default function CompletePanel({
     formation,
     filled,
     style,
+    mode,
     onStart,
-    onCupRun,
     onReset,
 }: Props) {
+    const cup = mode === 'cup';
     const [confirmReset, setConfirmReset] = useState(false);
     const base = teamRating(formation, filled);
     const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
@@ -60,27 +63,18 @@ export default function CompletePanel({
 
             <div className="p-[18px]">
                 <p className="mb-4 text-[13px] text-muted">
-                    You'll be drawn into a group of four. Play all three matchdays, finish in the top
-                    two, and reach the knockouts.
+                    {cup
+                        ? 'Take this XI into a Cup Run: play the tournament, then pick a boon between rounds to evolve your team and push your title odds.'
+                        : "You'll be drawn into a group of four. Play all three matchdays, finish in the top two, and reach the knockouts."}
                 </p>
                 <div className="flex flex-col gap-2.5">
                     <button
                         onClick={onStart}
                         className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-4 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99]"
                     >
-                        Start the World Cup
+                        {cup ? 'Enter the Cup Run' : 'Start the World Cup'}
                         <ArrowRight size={16} strokeWidth={2.5} />
                     </button>
-
-                    {onCupRun && (
-                        <button
-                            onClick={onCupRun}
-                            className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-line bg-white px-4 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch active:scale-[0.99]"
-                        >
-                            Play as a Cup Run
-                            <ArrowRight size={16} strokeWidth={2.5} />
-                        </button>
-                    )}
 
                     {confirmReset ? (
                         <div className="flex items-center gap-2">
