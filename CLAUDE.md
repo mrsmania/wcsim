@@ -387,13 +387,16 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   knockout tie, via a keyed `LiveCupMatch` (shared `useMatchClock` + `MatchdayCard`), committing
   `next` when the reveal ends. A **Speed** control (shared with the game's `speed`) sets the pace.
 - **In-run layout.** A `RunLadder` sits up top (Group -> R16 -> QF -> SF -> Final -> Cup; current
-  step lit and auto-scrolled to centre). The bar itself is a clean stepper (node glyph ✓/✗ +
-  round label only, no scorelines); the round detail lives in a **panel below** it that defaults
-  to (and follows) the most recently played round and persists - clicking any played step reviews
-  it there. The detail shows the KO fixture + result + the boost taken going into it
-  (`RoundRecord.boostId`, set in `prepareKnockoutRound`), or the group's finishing position + its
-  three matchday scorelines (`RoundRecord.groupResults`), all from `RunState.history`. The career
-  hub collapses to a slim strip with a chevron during a run (shown in full
+  step lit and auto-scrolled to centre) as a **basic history tracker** (node glyph ✓/✗ + round
+  label; the current step shows "vs XXX"). Clicking a step **switches the content area below** to
+  that round (tab-like): the current step is the live/interactive view, a past step opens a
+  read-only `RoundReview`. `CupRunScreen` owns `reviewIndex` (null = live) + `currentRoundIndex`;
+  it maps a click to review-or-live and snaps back to live when the run advances (effect on
+  `currentRoundIndex`); the ladder is `locked` while a match is playing. A KO review re-renders the
+  finished match card (`FinishedKoCard`, from the record's stored `events`/`pens`/ratings) + the
+  boost taken (`RoundRecord.boostId`); the group review shows the finishing position + its three
+  matchday scorelines (`RoundRecord.groupResults`) - all from `RunState.history`. The career hub
+  collapses to a slim strip with a chevron during a run (shown in full
   only between runs). The XI panel lists **active boosts** as chips and tags players a roster boost
   brought in (`RunState.boostedIds`, an amber "Boost" mark). After the three group matches reveal,
   the **final group standings** show (the reused `StandingsTable`, from the `group`

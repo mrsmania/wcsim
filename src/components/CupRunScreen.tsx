@@ -19,6 +19,7 @@ import {
   type RunOutcome,
   type UserMatch,
   type KoMatch,
+  type RoundRecord,
 } from '../domain/run';
 import {
   PERKS,
@@ -33,7 +34,7 @@ import { loadRun, saveRun, clearRun } from '../state/runStorage';
 import { useMatchClock, FT_HOLD_MS, KO_END_HOLD_MS } from '../hooks/useMatchClock';
 import { useFollowBottom } from '../hooks/useFollowBottom';
 import { liveMatchView, resultTag } from './matchView';
-import { ResultTag } from './matchUi';
+import { ordinal, ResultTag } from './matchUi';
 import MatchdayCard from './MatchdayCard';
 import StandingsTable from './StandingsTable';
 import RunLadder from './RunLadder';
@@ -170,53 +171,64 @@ function GroupResultCard({ m, i, userRating }: { m: UserMatch; i: number; userRa
   );
 }
 
-/** A finished knockout tie rendered as a settled card, kept above the boost picker
- *  so the result stays on screen while the user chooses their next boost. */
+/** A finished knockout tie rendered as a settled card (goal feed + shootout). Built
+ *  from primitives so it serves both the just-played tie (kept above the boost pick)
+ *  and a past-round review opened from the ladder. */
 function FinishedKoCard({
-  match,
-  opp,
   roundName,
+  oppName,
+  oppCode,
+  oppYear,
+  oppRating,
   userRating,
+  userGoals,
+  oppGoals,
+  decided,
+  events,
+  pens,
+  userWon,
 }: {
-  match: KoMatch;
-  opp: GroupTeam;
   roundName: string;
+  oppName: string;
+  oppCode: string;
+  oppYear?: number;
+  oppRating?: number;
   userRating: number;
+  userGoals: number;
+  oppGoals: number;
+  decided: KoDecided;
+  events: MatchEvent[];
+  pens?: ShootoutResult;
+  userWon: boolean;
 }) {
-  const liveMax = match.decided === 'reg' ? 90 : 120;
-  const status = match.decided === 'reg' ? 'Full time' : match.decided === 'aet' ? 'a.e.t.' : 'Penalties';
-  const label = match.userWon
-    ? match.decided === 'pens'
+  const liveMax = decided === 'reg' ? 90 : 120;
+  const status = decided === 'reg' ? 'Full time' : decided === 'aet' ? 'a.e.t.' : 'Penalties';
+  const label = userWon
+    ? decided === 'pens'
       ? 'Won on penalties'
-      : match.decided === 'aet'
+      : decided === 'aet'
         ? 'Won a.e.t.'
         : 'Won'
-    : match.decided === 'pens'
+    : decided === 'pens'
       ? 'Lost on penalties'
       : 'Lost';
-  const penKicks = match.decided === 'pens' ? match.pens?.kicks : undefined;
+  const penKicks = decided === 'pens' ? pens?.kicks : undefined;
   return (
     <MatchdayCard
       label={roundName}
-      tag={<ResultTag kind={match.userWon ? 'w' : 'l'} label={label} />}
+      tag={<ResultTag kind={userWon ? 'w' : 'l'} label={label} />}
       userRating={userRating}
-      oppName={opp.name}
-      oppCode={opp.code}
-      oppYear={opp.year}
-      oppRating={opp.strength.overall}
+      oppName={oppName}
+      oppCode={oppCode}
+      oppYear={oppYear}
+      oppRating={oppRating ?? 0}
       view={liveMatchView({
         playing: false,
         userSide: 'home',
         liveMinute: liveMax,
         liveMax,
         clockLabel: '',
-        finished: {
-          userGoals: match.userGoals,
-          oppGoals: match.oppGoals,
-          status,
-          statusDim: match.decided === 'reg',
-          events: match.events,
-        },
+        finished: { userGoals, oppGoals, status, statusDim: decided === 'reg', events },
       })}
       userSide="home"
       playing={false}
@@ -225,6 +237,90 @@ function FinishedKoCard({
       penShown={penKicks?.length ?? 0}
       showShootout={!!penKicks}
     />
+  );
+}
+
+/** The read-only review shown in the content area when a past round is opened from
+ *  the ladder: the round's result (+ boost taken), or the group's finishing summary. */
+function RoundReview({ record, onBack }: { record: RoundRecord; onBack: () => void }) {
+  const backBtn = (
+    <button
+      onClick={onBack}
+      className="mt-4 inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-pitch"
+    >
+      <ArrowLeft size={13} strokeWidth={2.5} />
+      Back to the current round
+    </button>
+  );
+
+  if (record.stage === 'group') {
+    return (
+      <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
+        <div className="mb-3 text-[14px] font-semibold">
+          Group stage — finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
+          <span className={record.won ? 'text-pitch' : 'text-loss'}>
+            {record.won ? 'through to the knockouts' : 'eliminated'}
+          </span>
+        </div>
+        {record.groupResults && (
+          <div className="flex flex-col gap-1.5">
+            {record.groupResults.map((r, i) => {
+              const res = r.us > r.them ? 'text-pitch' : r.us < r.them ? 'text-loss' : 'text-muted';
+              return (
+                <div key={i} className="flex items-center gap-2 text-[13px]">
+                  <span className="w-[74px] shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                    Matchday {i + 1}
+                  </span>
+                  <span className="font-semibold">Your XI</span>
+                  <span className={`font-mono font-bold ${res}`}>
+                    {r.us}-{r.them}
+                  </span>
+                  <Flag code={r.code} className="h-3 w-[18px]" />
+                  <span className="min-w-0 truncate">{r.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {backBtn}
+      </div>
+    );
+  }
+
+  const boost = record.boostId ? boonById(record.boostId) : undefined;
+  return (
+    <div>
+      <FinishedKoCard
+        roundName={KO_ROUNDS[record.stage as number]}
+        oppName={record.oppName ?? ''}
+        oppCode={record.oppCode ?? ''}
+        oppYear={record.oppYear}
+        oppRating={record.oppRating}
+        userRating={record.userRating ?? 0}
+        userGoals={record.userGoals ?? 0}
+        oppGoals={record.oppGoals ?? 0}
+        decided={record.decided ?? 'reg'}
+        events={record.events ?? []}
+        pens={record.pens}
+        userWon={record.won}
+      />
+      <div className="mt-4 rounded-md border border-line bg-panel p-4 shadow-hard">
+        {boost ? (
+          <div className="flex items-start gap-2 text-[12.5px]">
+            <span
+              className="mt-[3px] h-2 w-2 shrink-0 rounded-full"
+              style={{ background: RARITY_COLOR[boost.rarity] }}
+            />
+            <span className="text-muted">
+              Boost taken: <b className="text-ink">{boost.name}</b> — {boost.description}
+            </span>
+          </div>
+        ) : (
+          <div className="text-[12.5px] text-muted">No boost this round.</div>
+        )}
+        {backBtn}
+      </div>
+    </div>
   );
 }
 
@@ -321,6 +417,26 @@ export default function CupRunScreen({
   };
   useEffect(() => () => { if (toastTimer.current) window.clearTimeout(toastTimer.current); }, []);
 
+  // Ladder navigation: which round the content area is showing. null = the live/current
+  // round; a step index = reviewing that past round. `currentRoundIndex` is the live
+  // round's step (group = 0, KO round r = r+1). A review snaps back to live whenever the
+  // run advances to a new round.
+  const [reviewIndex, setReviewIndex] = useState<number | null>(null);
+  const currentRoundIndex = run
+    ? run.phase === 'group' || (run.phase === 'ended' && run.outcome === 'group')
+      ? 0
+      : run.koRound + 1
+    : 0;
+  useEffect(() => {
+    setReviewIndex(null);
+  }, [currentRoundIndex]);
+  const reviewRecord: RoundRecord | undefined =
+    run && reviewIndex !== null
+      ? reviewIndex === 0
+        ? (run.history ?? []).find((h) => h.stage === 'group')
+        : (run.history ?? []).find((h) => h.stage === reviewIndex - 1)
+      : undefined;
+
   // Persist the in-progress run (or clear it once there is none), so a refresh
   // mid-run resumes exactly where it left off.
   useEffect(() => {
@@ -365,6 +481,7 @@ export default function CupRunScreen({
     setReward(null);
     setReveal(null);
     setLastKoMatch(null);
+    setReviewIndex(null);
     setRun(beginRun(draftedXi, career.unlocked));
   };
 
@@ -582,9 +699,17 @@ export default function CupRunScreen({
       {/* Active run */}
       {run && (
         <>
-          {/* Progress ladder: Group -> R16 -> QF -> SF -> Final -> Cup. */}
+          {/* Progress ladder: Group -> R16 -> QF -> SF -> Final -> Cup. Clicking a step
+              switches the content area below to that round; the current step returns
+              to the live view. Locked while a match is playing out. */}
           <div className="mb-4">
-            <RunLadder run={run} />
+            <RunLadder
+              run={run}
+              currentIndex={currentRoundIndex}
+              viewedIndex={reviewIndex ?? currentRoundIndex}
+              onSelectStep={(i) => setReviewIndex(i === currentRoundIndex ? null : i)}
+              locked={!!reveal}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
@@ -666,6 +791,10 @@ export default function CupRunScreen({
 
             {/* Run panel + log */}
             <section className="flex min-w-0 flex-col gap-4">
+              {reviewRecord ? (
+                <RoundReview record={reviewRecord} onBack={() => setReviewIndex(null)} />
+              ) : (
+                <>
               {run.phase !== 'ended' && (
                 <div className="flex items-center justify-end gap-2">
                   <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted">
@@ -745,10 +874,18 @@ export default function CupRunScreen({
                 <>
                 {run.phase === 'boon' && lastKoMatch && (
                   <FinishedKoCard
-                    match={lastKoMatch.match}
-                    opp={lastKoMatch.opp}
                     roundName={lastKoMatch.roundName}
+                    oppName={lastKoMatch.opp.name}
+                    oppCode={lastKoMatch.opp.code}
+                    oppYear={lastKoMatch.opp.year}
+                    oppRating={lastKoMatch.opp.strength.overall}
                     userRating={userRating}
+                    userGoals={lastKoMatch.match.userGoals}
+                    oppGoals={lastKoMatch.match.oppGoals}
+                    decided={lastKoMatch.match.decided}
+                    events={lastKoMatch.match.events}
+                    pens={lastKoMatch.match.pens}
+                    userWon={lastKoMatch.match.userWon}
                   />
                 )}
                 {run.phase === 'boon' && lastKoMatch && (
@@ -880,6 +1017,8 @@ export default function CupRunScreen({
                 </div>
                 </>
               )}
+              </>
+            )}
 
               {/* Run log - secondary, collapsible. */}
               <details className="rounded-md border border-line bg-panel shadow-hard">

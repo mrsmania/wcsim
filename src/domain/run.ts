@@ -46,6 +46,11 @@ export interface RoundRecord {
   userGoals?: number;
   oppGoals?: number;
   decided?: KoDecided;
+  oppRating?: number;
+  userRating?: number;
+  /** Knockout: the settled tie's goal events + shootout, for a full review. */
+  events?: MatchEvent[];
+  pens?: ShootoutResult;
   /** Knockout: the boost taken going into this round (id, resolve via boonById). */
   boostId?: string;
   /** Group: finishing position + table size. */
@@ -329,7 +334,8 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
-  const match = simulateKoTie(userGroupTeam(run.xi, chemistryOf(run.xi)), opp);
+  const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi));
+  const match = simulateKoTie(userTeam, opp);
   const tag = match.decided === 'pens' ? ' (pens)' : match.decided === 'aet' ? ' (aet)' : '';
   const scoreLine = `${roundName}: you ${match.userGoals}-${match.oppGoals} ${opp.name}${tag}.`;
   const record: RoundRecord = {
@@ -338,9 +344,13 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
     oppName: opp.name,
     oppCode: opp.code,
     oppYear: opp.year,
+    oppRating: opp.strength.overall,
+    userRating: userTeam.strength.overall,
     userGoals: match.userGoals,
     oppGoals: match.oppGoals,
     decided: match.decided,
+    events: match.events,
+    pens: match.pens,
     // The boost picked between the previous round and this one is the most recent
     // active boon (exactly one is chosen before each knockout round).
     boostId: run.activeBoons[run.activeBoons.length - 1],
