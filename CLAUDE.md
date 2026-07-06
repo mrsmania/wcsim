@@ -330,7 +330,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   entry button): completion counter + duplicate pool, tier sections (Monumental,
   Iconic, Legendary) of `StickerCard`s (collected = flag+name+rating+tier; uncollected =
   silhouette with a `?`), a per-tier **Trade** action (`TradeModal`) when affordable,
-  and a 100% completion state. `StickerCard` shows real artwork when
+  a 100% completion state, and a **"Reset album"** footer button (inline confirm ->
+  `onReset` -> `clearAlbum()` in `albumStorage.ts`, which removes the album + stats keys;
+  App resets the in-memory album to `emptyAlbum()`). Reset touches only the album, not the
+  game / career / run. `StickerCard` shows real artwork when
   `FEATURES.stickerImages` is on (default): drop `public/stickers/<player.id>.png`
   (base-path-aware, `aspect-square w-full` hero image on collected cards) with a
   per-missing-file text+flag fallback, so partial art sets are fine; set the flag
@@ -396,7 +399,11 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   a run awards XP (-> levels) and Prestige, spent in a small perk shop (Scout Network,
   Deep Squad, Extra Boon) that feeds the next run. A trophy record (runs/cups/best) sits
   in the `CupRunScreen` hub. Separate storage from the game + album.
-- Known gaps (prototype): no cup-win confetti in the Cup Run.
+- **Cup-win confetti.** A Cup Run that ends as `champion` rains the shared `Confetti`
+  (same self-contained canvas as the main game; `run?.outcome === 'champion'` in
+  `CupRunScreen`), layering above the cup-win reward picker like the standard game.
+- Known gaps (prototype): the career meta-layer is still thin - level is a cosmetic XP
+  tally with no mechanical effect, and Prestige only buys the 3 perks (no lasting sink).
 
 ## Budget draft / Transfer Market (flagged)
 

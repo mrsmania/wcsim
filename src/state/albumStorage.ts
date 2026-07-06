@@ -70,3 +70,15 @@ export function saveStats(stats: AlbumStats): void {
         /* ignore */
     }
 }
+
+/** Wipe the album from storage (collection + trade telemetry), for a manual reset.
+ *  The caller resets its in-memory album to `emptyAlbum()`. Leaves the game, career,
+ *  and run keys untouched. */
+export function clearAlbum(): void {
+    try {
+        localStorage.removeItem(ALBUM_KEY);
+        localStorage.removeItem(STATS_KEY);
+    } catch {
+        /* ignore */
+    }
+}

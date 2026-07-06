@@ -16,20 +16,25 @@ import StickerCard, { TIER_META } from './StickerCard';
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
+import { SECONDARY_BTN } from './matchUi';
 
 interface Props {
     album: AlbumState;
     allPlayers: Player[];
     onTrade: (tier: StickerTier, playerId: string) => void;
+    /** Wipe the whole album (collection + trade stats) back to empty. */
+    onReset: () => void;
     onClose: () => void;
 }
 
 const TIER_ORDER: StickerTier[] = ['monumental', 'iconic', 'legendary'];
 
-export default function AlbumScreen({ album, allPlayers, onTrade, onClose }: Props) {
+export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClose }: Props) {
     const [trade, setTrade] = useState<{ tier: StickerTier; options: Player[] } | null>(null);
     // A collected sticker enlarged to full size in a lightbox (click to open).
     const [expanded, setExpanded] = useState<{ player: Player; tier: StickerTier } | null>(null);
+    // Inline confirm for the destructive album reset.
+    const [confirmReset, setConfirmReset] = useState(false);
 
     const stats = useMemo(() => albumStats(album, allPlayers), [album, allPlayers]);
     const dupes = totalDuplicates(album);
@@ -212,6 +217,40 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onClose }: Pro
                     </section>
                 );
             })}
+
+            {/* Manual reset (destructive; inline confirm). Clears the collection +
+                trade stats from browser storage. Tucked at the foot, out of the way. */}
+            <div className="mt-12 flex justify-center border-t border-line pt-6">
+                {confirmReset ? (
+                    <div className="flex flex-wrap items-center justify-center gap-2.5 text-center">
+                        <span className="text-xs font-semibold text-muted">
+                            Reset the whole album? This clears every sticker and can't be undone.
+                        </span>
+                        <button
+                            onClick={() => {
+                                onReset();
+                                setConfirmReset(false);
+                            }}
+                            className="rounded-[5px] border border-loss bg-loss px-3 py-2 font-display text-[12px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:opacity-90"
+                        >
+                            Yes, reset album
+                        </button>
+                        <button
+                            onClick={() => setConfirmReset(false)}
+                            className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => setConfirmReset(true)}
+                        className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-loss"
+                    >
+                        Reset album
+                    </button>
+                )}
+            </div>
 
             {trade && (
                 <TradeModal

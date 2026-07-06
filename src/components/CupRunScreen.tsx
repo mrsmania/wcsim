@@ -35,6 +35,7 @@ import { useFollowBottom } from '../hooks/useFollowBottom';
 import { liveMatchView, resultTag } from './matchView';
 import { ResultTag } from './matchUi';
 import MatchdayCard from './MatchdayCard';
+import Confetti from './Confetti';
 import Flag from './Flag';
 
 const RARITY_COLOR: Record<Rarity, string> = {
@@ -246,6 +247,9 @@ export default function CupRunScreen({
 
   return (
     <div ref={rootRef} className="mx-auto max-w-[1000px]">
+      {/* Cup-win celebration: rains once when the run ends as champion (same
+          self-contained canvas as the main game; respects reduced-motion). */}
+      {run?.outcome === 'champion' && <Confetti />}
       <Link
         to="/"
         className="group mt-7 inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch"

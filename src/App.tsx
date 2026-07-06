@@ -32,6 +32,7 @@ import { buildBracket, BRACKET_ROUNDS, type BracketState } from './domain/bracke
 import {
     albumStats,
     applyRunStickers,
+    emptyAlbum,
     executeTrade,
     isCollectible,
     pendingNewStickers,
@@ -42,7 +43,7 @@ import { FEATURES, type StickerTier } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
 import { clearRun } from './state/runStorage';
-import { loadAlbum, saveAlbum, loadStats, saveStats } from './state/albumStorage';
+import { loadAlbum, saveAlbum, loadStats, saveStats, clearAlbum } from './state/albumStorage';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import BudgetMarket from './components/BudgetMarket';
@@ -529,6 +530,13 @@ export default function App() {
         [album],
     );
 
+    // Manual album reset: wipe the album's localStorage (collection + trade stats)
+    // and clear the in-memory album. Leaves the game / career / run untouched.
+    const handleResetAlbum = useCallback(() => {
+        clearAlbum();
+        setAlbum(emptyAlbum());
+    }, []);
+
     const openPositions = useMemo<Set<Position>>(
         () =>
             activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>(),
@@ -682,6 +690,7 @@ export default function App() {
                         album={album}
                         allPlayers={allPlayers}
                         onTrade={handleTrade}
+                        onReset={handleResetAlbum}
                         onClose={() => navigate('/')}
                     />
                 ) : isGroup ? (
