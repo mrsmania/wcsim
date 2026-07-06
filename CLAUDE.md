@@ -388,12 +388,18 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   `next` when the reveal ends. A **Speed** control (shared with the game's `speed`) sets the pace.
 - **In-run layout.** A `RunLadder` sits up top (Group -> R16 -> QF -> SF -> Final -> Cup; current
   step lit and auto-scrolled to centre; past steps show W/L + opponent, read from
-  `RunState.history`). The career hub collapses to a slim strip with a chevron during a run (shown
-  in full only between runs). The XI panel lists **active boosts** as chips and tags players a
-  roster boost brought in (`RunState.boostedIds`, an amber "Boost" mark). After the three group
-  matches reveal, the **final group standings** show (the reused `StandingsTable`, from the `group`
-  `prepareGroupStage` now returns) with a Continue button before the boost pick. The run log is a
-  collapsible feed.
+  `RunState.history`). **Each played step is clickable**, revealing that round's result + the boost
+  taken going into it (`RoundRecord.boostId`, set in `prepareKnockoutRound` from the most recent
+  active boon). The career hub collapses to a slim strip with a chevron during a run (shown in full
+  only between runs). The XI panel lists **active boosts** as chips and tags players a roster boost
+  brought in (`RunState.boostedIds`, an amber "Boost" mark). After the three group matches reveal,
+  the **final group standings** show (the reused `StandingsTable`, from the `group`
+  `prepareGroupStage` now returns) with a Continue button before the boost pick.
+- **Boost pick flow.** A finished knockout tie stays on screen (as `FinishedKoCard`) through the
+  following boost pick, and the boost panel is auto-scrolled into view (App-level `boostRef` +
+  effect on `phase === 'boon'`). Picking a boost fires a **toast** of what it did (a roster swap
+  names the players in/out, e.g. Poach; otherwise the boost's description), so the run log (now a
+  collapsible feed) isn't needed to see the effect.
 - **Persistence** (`state/runStorage.ts` key `wcsim_run_v1`): the in-progress run is mirrored to
   its own key, so a refresh mid-run resumes it (the transient live-reveal is not persisted, so a
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built

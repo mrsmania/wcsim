@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { primaryPosition, type Player } from '../data/types';
@@ -8,7 +8,7 @@ import { simulateTitleOdds } from '../domain/odds';
 import { KO_ROUNDS, type KoDecided } from '../domain/knockout';
 import type { MatchSpeed } from '../domain/clock';
 import type { GroupState, GroupTeam } from '../domain/tournament';
-import { boonById, type Rarity } from '../domain/boons';
+import { boonById, type Boon, type Rarity } from '../domain/boons';
 import {
   beginRun,
   prepareGroupStage,
@@ -170,6 +170,64 @@ function GroupResultCard({ m, i, userRating }: { m: UserMatch; i: number; userRa
   );
 }
 
+/** A finished knockout tie rendered as a settled card, kept above the boost picker
+ *  so the result stays on screen while the user chooses their next boost. */
+function FinishedKoCard({
+  match,
+  opp,
+  roundName,
+  userRating,
+}: {
+  match: KoMatch;
+  opp: GroupTeam;
+  roundName: string;
+  userRating: number;
+}) {
+  const liveMax = match.decided === 'reg' ? 90 : 120;
+  const status = match.decided === 'reg' ? 'Full time' : match.decided === 'aet' ? 'a.e.t.' : 'Penalties';
+  const label = match.userWon
+    ? match.decided === 'pens'
+      ? 'Won on penalties'
+      : match.decided === 'aet'
+        ? 'Won a.e.t.'
+        : 'Won'
+    : match.decided === 'pens'
+      ? 'Lost on penalties'
+      : 'Lost';
+  const penKicks = match.decided === 'pens' ? match.pens?.kicks : undefined;
+  return (
+    <MatchdayCard
+      label={roundName}
+      tag={<ResultTag kind={match.userWon ? 'w' : 'l'} label={label} />}
+      userRating={userRating}
+      oppName={opp.name}
+      oppCode={opp.code}
+      oppYear={opp.year}
+      oppRating={opp.strength.overall}
+      view={liveMatchView({
+        playing: false,
+        userSide: 'home',
+        liveMinute: liveMax,
+        liveMax,
+        clockLabel: '',
+        finished: {
+          userGoals: match.userGoals,
+          oppGoals: match.oppGoals,
+          status,
+          statusDim: match.decided === 'reg',
+          events: match.events,
+        },
+      })}
+      userSide="home"
+      playing={false}
+      clockLabel=""
+      penKicks={penKicks}
+      penShown={penKicks?.length ?? 0}
+      showShootout={!!penKicks}
+    />
+  );
+}
+
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
  *  the next run. The in-progress run persists to its own localStorage key, so a
@@ -197,9 +255,23 @@ export default function CupRunScreen({
   const [run, setRun] = useState<RunState | null>(loadRun);
   const [reward, setReward] = useState<Reward | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
+  // The just-finished knockout tie, kept on screen through the following boost pick.
+  const [lastKoMatch, setLastKoMatch] = useState<{ match: KoMatch; opp: GroupTeam; roundName: string } | null>(null);
+  // A transient toast for what a boost just did (so the run log isn't needed).
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
+  // The boost-pick panel, scrolled into view when a run enters the boost phase.
+  const boostRef = useRef<HTMLDivElement | null>(null);
   // The career hub collapses to a slim strip during a run (perks are a between-runs
   // thing); it always shows fully when there is no active run.
   const [hubOpen, setHubOpen] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 4500);
+  };
+  useEffect(() => () => { if (toastTimer.current) window.clearTimeout(toastTimer.current); }, []);
 
   // Persist the in-progress run (or clear it once there is none), so a refresh
   // mid-run resumes exactly where it left off.
@@ -230,10 +302,21 @@ export default function CupRunScreen({
   // Follow the live feed down while a match is revealing.
   const { tailRef, rootRef } = useFollowBottom({ active: !!reveal });
 
+  // When a run enters the boost phase, scroll the boost picker into view so the user
+  // lands on it after a knockout tie (or the group table) without hunting for it.
+  useEffect(() => {
+    if (run?.phase !== 'boon') return;
+    const el = boostRef.current;
+    if (!el) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  }, [run?.phase]);
+
   const startRun = () => {
     if (!draftedXi) return;
     setReward(null);
     setReveal(null);
+    setLastKoMatch(null);
     setRun(beginRun(draftedXi, career.unlocked));
   };
 
@@ -268,6 +351,14 @@ export default function CupRunScreen({
       if (reveal.index < reveal.matches.length - 1) setReveal({ ...reveal, index: reveal.index + 1 });
       else setReveal({ ...reveal, done: true }); // all three played -> show the table
     } else {
+      // A knockout tie that leads to another boost: keep the finished card on screen
+      // through the boost pick (auto-scrolled to below). A loss / the final commits
+      // straight to the ended panel.
+      setLastKoMatch(
+        reveal.next.phase === 'boon'
+          ? { match: reveal.match, opp: reveal.opp, roundName: reveal.roundName }
+          : null,
+      );
       advance(reveal.next);
       setReveal(null);
     }
@@ -277,6 +368,19 @@ export default function CupRunScreen({
     if (reveal?.kind !== 'group') return;
     advance(reveal.next);
     setReveal(null);
+  };
+
+  // Pick a boost: apply it, clear the kept match, and toast what it did (roster swap
+  // names the players; otherwise the boost's description) so the log isn't needed.
+  const pickBoost = (b: Boon) => {
+    if (!run) return;
+    const before = run.xi;
+    const next = chooseBoon(run, b.id);
+    const inP = next.xi.find((p) => !before.some((x) => x.id === p.id));
+    const outP = before.find((p) => !next.xi.some((x) => x.id === p.id));
+    showToast(inP && outP ? `${b.name}: ${inP.name} in for ${outP.name}` : `${b.name}: ${b.description}`);
+    setLastKoMatch(null);
+    setRun(next);
   };
 
   const purchase = (perkId: string) => {
@@ -293,6 +397,15 @@ export default function CupRunScreen({
     <div ref={rootRef} className="mx-auto max-w-[1000px]">
       {/* Cup-win celebration: rains once when the run ends as champion. */}
       {run?.outcome === 'champion' && <Confetti />}
+
+      {/* Boost toast: what the last pick did (roster swap names the players). */}
+      {toast && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[80] flex justify-center px-4">
+          <div className="pointer-events-auto max-w-[92vw] rounded-md border border-pitch-dark bg-ink px-4 py-2.5 text-center font-mono text-[12.5px] font-semibold text-ground shadow-hard">
+            {toast}
+          </div>
+        </div>
+      )}
       <Link
         to="/"
         className="group mt-7 inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch"
@@ -581,7 +694,19 @@ export default function CupRunScreen({
                   <div ref={tailRef} aria-hidden className="h-0" />
                 </div>
               ) : (
-                <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
+                <>
+                {run.phase === 'boon' && lastKoMatch && (
+                  <FinishedKoCard
+                    match={lastKoMatch.match}
+                    opp={lastKoMatch.opp}
+                    roundName={lastKoMatch.roundName}
+                    userRating={userRating}
+                  />
+                )}
+                <div
+                  ref={run.phase === 'boon' ? boostRef : undefined}
+                  className="rounded-md border border-line bg-panel p-5 shadow-hard"
+                >
                   {run.phase === 'group' && (
                     <div className="text-center">
                       <p className="mb-4 text-[13.5px] text-muted">
@@ -610,7 +735,7 @@ export default function CupRunScreen({
                         {run.offer.map((b) => (
                           <button
                             key={b.id}
-                            onClick={() => setRun(chooseBoon(run, b.id))}
+                            onClick={() => pickBoost(b)}
                             className="flex flex-col gap-1.5 rounded-md border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
                             style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
                           >
@@ -681,6 +806,7 @@ export default function CupRunScreen({
                           onClick={() => {
                             setRun(null);
                             setReward(null);
+                            setLastKoMatch(null);
                           }}
                           className="rounded-md border border-line bg-white px-4 py-3 font-display font-extrabold uppercase tracking-[0.02em] text-ink transition hover:border-pitch hover:text-pitch"
                         >
@@ -690,6 +816,7 @@ export default function CupRunScreen({
                     </div>
                   )}
                 </div>
+                </>
               )}
 
               {/* Run log - secondary, collapsible. */}

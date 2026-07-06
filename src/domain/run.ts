@@ -46,6 +46,8 @@ export interface RoundRecord {
   userGoals?: number;
   oppGoals?: number;
   decided?: KoDecided;
+  /** Knockout: the boost taken going into this round (id, resolve via boonById). */
+  boostId?: string;
   /** Group: finishing position + table size. */
   groupPos?: number;
   groupSize?: number;
@@ -331,6 +333,9 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
     userGoals: match.userGoals,
     oppGoals: match.oppGoals,
     decided: match.decided,
+    // The boost picked between the previous round and this one is the most recent
+    // active boon (exactly one is chosen before each knockout round).
+    boostId: run.activeBoons[run.activeBoons.length - 1],
   };
   const history = [...run.history, record];
 

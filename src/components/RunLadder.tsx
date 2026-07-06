@@ -1,9 +1,17 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import type { RunState } from '../domain/run';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { RoundRecord, RunState } from '../domain/run';
+import { KO_ROUNDS } from '../domain/knockout';
+import { boonById, type Rarity } from '../domain/boons';
 import { ordinal } from './matchUi';
 
 /** Short labels for the six ladder slots (group, four KO rounds, the cup). */
 const SHORT = ['GRP', 'R16', 'QF', 'SF', 'FIN', 'CUP'];
+
+const RARITY_COLOR: Record<Rarity, string> = {
+  legendary: '#c99a3a',
+  rare: '#e4922b',
+  common: '#15924c',
+};
 
 type Status = 'win' | 'loss' | 'current' | 'upcoming' | 'cup-won' | 'cup-upcoming';
 
@@ -14,6 +22,8 @@ interface Step {
   node: string;
   /** Small caption under the label (result, "vs XXX", finishing position). */
   sub: ReactNode;
+  /** The completed round this step represents, if any (makes the step clickable). */
+  record?: RoundRecord;
 }
 
 const NODE_BASE =
@@ -27,12 +37,54 @@ const NODE_BY_STATUS: Record<Status, string> = {
   'cup-upcoming': 'border-line bg-panel text-muted',
 };
 
+const decidedLabel = (d?: string) => (d === 'aet' ? ' (a.e.t.)' : d === 'pens' ? ' (pens)' : '');
+
+/** The detail shown when a past step is clicked: its result + the boost taken. */
+function StepDetail({ record }: { record: RoundRecord }) {
+  const boost = record.boostId ? boonById(record.boostId) : undefined;
+  const isGroup = record.stage === 'group';
+  return (
+    <div className="text-[12.5px]">
+      {isGroup ? (
+        <div className="font-semibold">
+          Group stage · finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
+          <span className={record.won ? 'text-pitch' : 'text-loss'}>
+            {record.won ? 'through to the knockouts' : 'eliminated'}
+          </span>
+        </div>
+      ) : (
+        <div className="font-semibold">
+          {KO_ROUNDS[record.stage as number]} ·{' '}
+          <span className={record.won ? 'text-pitch' : 'text-loss'}>
+            {record.won ? 'Won' : 'Lost'} {record.userGoals}-{record.oppGoals}
+          </span>{' '}
+          vs {record.oppName}
+          {record.oppYear ? ` ${record.oppYear}` : ''}
+          {decidedLabel(record.decided)}
+        </div>
+      )}
+      {boost && (
+        <div className="mt-1 flex items-start gap-1.5 text-muted">
+          <span
+            className="mt-[3px] h-2 w-2 shrink-0 rounded-full"
+            style={{ background: RARITY_COLOR[boost.rarity] }}
+          />
+          <span>
+            Boost: <b className="text-ink">{boost.name}</b> — {boost.description}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** The Cup Run progress ladder: Group -> R16 -> QF -> SF -> Final -> Cup, current
  *  step lit and auto-scrolled to the centre so the user never scrolls to find it.
- *  Reads the structured `run.history` (plus the pending opponent + outcome). */
+ *  Played steps are clickable and reveal that round's result + the boost taken. */
 export default function RunLadder({ run }: { run: RunState }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const curRef = useRef<HTMLDivElement | null>(null);
+  const curRef = useRef<HTMLButtonElement | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
 
   const hist = run.history ?? [];
   const groupRec = hist.find((h) => h.stage === 'group');
@@ -60,6 +112,7 @@ export default function RunLadder({ run }: { run: RunState }) {
       short: SHORT[0],
       status: groupRec.won ? 'win' : 'loss',
       node: groupRec.won ? '✓' : '✗',
+      record: groupRec,
       sub: (
         <span className={groupRec.won ? 'font-bold text-pitch' : 'font-bold text-loss'}>
           {ordinal(groupRec.groupPos ?? 0)} / {groupRec.groupSize}
@@ -78,6 +131,7 @@ export default function RunLadder({ run }: { run: RunState }) {
         short: SHORT[i + 1],
         status: rec.won ? 'win' : 'loss',
         node: rec.won ? '✓' : '✗',
+        record: rec,
         sub: (
           <span className={rec.won ? 'font-bold text-pitch' : 'font-bold text-loss'}>
             {rec.won ? 'W' : 'L'} {rec.userGoals}-{rec.oppGoals} {rec.oppCode}
@@ -118,46 +172,63 @@ export default function RunLadder({ run }: { run: RunState }) {
     c.scrollTo({ left: Math.max(0, target), behavior: reduced ? 'auto' : 'smooth' });
   }, [currentIndex]);
 
+  const detail = selected !== null ? steps[selected]?.record : undefined;
+
   return (
-    <div ref={scrollRef} className="overflow-x-auto rounded-md border border-line bg-panel shadow-hard">
-      <div className="flex min-w-[600px] items-start px-2 py-3.5">
-        {steps.map((s, i) => {
-          const isCurrent = s.status === 'current';
-          const reached = s.status !== 'upcoming' && s.status !== 'cup-upcoming';
-          const isCup = i === 5;
-          return (
-            <div
-              key={i}
-              ref={i === currentIndex ? curRef : undefined}
-              className="relative flex flex-1 flex-col items-center px-0.5 text-center"
-            >
-              {i > 0 && (
+    <div className="rounded-md border border-line bg-panel shadow-hard">
+      <div ref={scrollRef} className="overflow-x-auto">
+        <div className="flex min-w-[600px] items-start px-2 py-3.5">
+          {steps.map((s, i) => {
+            const isCurrent = s.status === 'current';
+            const reached = s.status !== 'upcoming' && s.status !== 'cup-upcoming';
+            const isCup = i === 5;
+            const clickable = !!s.record;
+            const isSel = selected === i;
+            return (
+              <button
+                key={i}
+                type="button"
+                ref={i === currentIndex ? curRef : undefined}
+                disabled={!clickable}
+                onClick={() => clickable && setSelected(isSel ? null : i)}
+                aria-pressed={isSel}
+                className={`relative flex flex-1 flex-col items-center rounded-md px-0.5 py-1 text-center ${
+                  clickable ? 'cursor-pointer hover:bg-chalk' : 'cursor-default'
+                } ${isSel ? 'bg-chalk ring-1 ring-line' : ''}`}
+              >
+                {i > 0 && (
+                  <span
+                    className={`absolute left-[-50%] top-[23px] h-0.5 w-full ${reached ? 'bg-pitch' : 'bg-line'}`}
+                  />
+                )}
                 <span
-                  className={`absolute left-[-50%] top-[19px] h-0.5 w-full ${reached ? 'bg-pitch' : 'bg-line'}`}
-                />
-              )}
-              <span
-                className={[
-                  NODE_BASE,
-                  isCup ? 'h-[42px] w-[42px] text-[18px]' : 'h-[38px] w-[38px] text-[11px]',
-                  NODE_BY_STATUS[s.status],
-                ].join(' ')}
-                style={s.status === 'cup-won' ? { background: 'linear-gradient(135deg,#f0cf8a,#c99a3a)' } : undefined}
-              >
-                {s.node}
-              </span>
-              <span
-                className={`mt-[7px] font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] ${
-                  isCurrent ? 'text-amber' : reached ? 'text-ink' : 'text-muted'
-                }`}
-              >
-                {s.short}
-              </span>
-              <span className="mt-0.5 min-h-[13px] font-mono text-[10px] leading-tight">{s.sub}</span>
-            </div>
-          );
-        })}
+                  className={[
+                    NODE_BASE,
+                    isCup ? 'h-[42px] w-[42px] text-[18px]' : 'h-[38px] w-[38px] text-[11px]',
+                    NODE_BY_STATUS[s.status],
+                  ].join(' ')}
+                  style={s.status === 'cup-won' ? { background: 'linear-gradient(135deg,#f0cf8a,#c99a3a)' } : undefined}
+                >
+                  {s.node}
+                </span>
+                <span
+                  className={`mt-[7px] font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] ${
+                    isCurrent ? 'text-amber' : reached ? 'text-ink' : 'text-muted'
+                  }`}
+                >
+                  {s.short}
+                </span>
+                <span className="mt-0.5 min-h-[13px] font-mono text-[10px] leading-tight">{s.sub}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
+      {detail && (
+        <div className="border-t border-line px-4 py-3">
+          <StepDetail record={detail} />
+        </div>
+      )}
     </div>
   );
 }
