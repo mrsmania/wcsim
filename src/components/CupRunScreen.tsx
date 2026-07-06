@@ -228,6 +228,54 @@ function FinishedKoCard({
   );
 }
 
+/** A compact result banner (styled like the quick-game `Banner`): deep-green for a
+ *  win / the cup, flat white for a loss, with the tifo corner arcs. No action button
+ *  (the Cup Run panel below owns those). */
+function RunBanner({
+  tone,
+  eyebrow,
+  heading,
+  body,
+}: {
+  tone: 'win' | 'loss';
+  eyebrow: string;
+  heading: string;
+  body?: string;
+}) {
+  const win = tone === 'win';
+  const arc = win ? 'border-white/15' : 'border-line';
+  return (
+    <div
+      className={`relative overflow-hidden rounded-md border p-5 text-center shadow-hard ${
+        win ? 'border-pitch-dark bg-pitch-dark text-white' : 'border-line bg-panel'
+      }`}
+    >
+      <span className={`pointer-events-none absolute -bottom-10 -left-10 h-24 w-24 rounded-full border-2 ${arc}`} />
+      <span className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full border-2 ${arc}`} />
+      <div
+        className={`relative font-mono text-[10px] font-semibold uppercase tracking-[0.2em] ${
+          win ? 'text-amber' : 'text-loss'
+        }`}
+      >
+        {eyebrow}
+      </div>
+      <div className="relative mt-1 font-display text-2xl font-black tracking-[-0.02em] max-sm:text-xl">
+        {heading}
+      </div>
+      {body && (
+        <div className={`relative mt-1 text-[12.5px] ${win ? 'text-white/80' : 'text-muted'}`}>{body}</div>
+      )}
+    </div>
+  );
+}
+
+/** The win result headline for a finished knockout tie. */
+function koWinHeading(m: KoMatch): string {
+  if (m.decided === 'pens') return 'Won on penalties';
+  if (m.decided === 'aet') return `Won ${m.userGoals}-${m.oppGoals} (a.e.t.)`;
+  return `Won ${m.userGoals}-${m.oppGoals}`;
+}
+
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
  *  the next run. The in-progress run persists to its own localStorage key, so a
@@ -703,6 +751,30 @@ export default function CupRunScreen({
                     userRating={userRating}
                   />
                 )}
+                {run.phase === 'boon' && lastKoMatch && (
+                  <RunBanner
+                    tone="win"
+                    eyebrow={lastKoMatch.roundName}
+                    heading={koWinHeading(lastKoMatch.match)}
+                    body={`Through to the ${KO_ROUNDS[run.koRound]} — pick a boost below.`}
+                  />
+                )}
+                {run.phase === 'ended' && run.outcome && (
+                  <RunBanner
+                    tone={run.outcome === 'champion' ? 'win' : 'loss'}
+                    eyebrow={
+                      run.outcome === 'champion'
+                        ? 'Full time · the Final'
+                        : `Knocked out · ${OUTCOME_LABEL[run.outcome]}`
+                    }
+                    heading={run.outcome === 'champion' ? 'World Cup Champions' : 'Knocked out'}
+                    body={
+                      run.outcome === 'champion'
+                        ? 'Your XI ran the tournament and lifted the cup.'
+                        : undefined
+                    }
+                  />
+                )}
                 <div
                   ref={run.phase === 'boon' ? boostRef : undefined}
                   className="rounded-md border border-line bg-panel p-5 shadow-hard"
@@ -774,16 +846,6 @@ export default function CupRunScreen({
 
                   {run.phase === 'ended' && run.outcome && (
                     <div className="text-center">
-                      <div
-                        className="mx-auto mb-3 inline-block rounded-md px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
-                        style={
-                          run.outcome === 'champion'
-                            ? { background: 'linear-gradient(135deg,#f0cf8a,#c99a3a)', color: '#3a2a06' }
-                            : { background: '#eee', color: '#555' }
-                        }
-                      >
-                        {run.outcome === 'champion' ? '★ Champions ★' : `Out in ${OUTCOME_LABEL[run.outcome]}`}
-                      </div>
                       <div className="font-display text-2xl font-black">Final score {run.score}</div>
                       {reward && (
                         <div className="mt-1.5 font-mono text-[12px] text-muted">

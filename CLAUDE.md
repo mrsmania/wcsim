@@ -396,10 +396,12 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   the **final group standings** show (the reused `StandingsTable`, from the `group`
   `prepareGroupStage` now returns) with a Continue button before the boost pick.
 - **Boost pick flow.** A finished knockout tie stays on screen (as `FinishedKoCard`) through the
-  following boost pick, and the boost panel is auto-scrolled into view (App-level `boostRef` +
+  following boost pick, with a green **`RunBanner`** ("Won 2-1 · Through to the Quarter-final")
+  between it and the boost picker, and the boost panel is auto-scrolled into view (`boostRef` +
   effect on `phase === 'boon'`). Picking a boost fires a **toast** of what it did (a roster swap
   names the players in/out, e.g. Poach; otherwise the boost's description), so the run log (now a
-  collapsible feed) isn't needed to see the effect.
+  collapsible feed) isn't needed. The ended screen uses the same `RunBanner` (a compact take on the
+  quick game's `Banner`): green for the cup win, flat white for a knockout loss / group exit.
 - **Persistence** (`state/runStorage.ts` key `wcsim_run_v1`): the in-progress run is mirrored to
   its own key, so a refresh mid-run resumes it (the transient live-reveal is not persisted, so a
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built
