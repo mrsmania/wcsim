@@ -12,6 +12,7 @@ import {
   playGroupStage,
   chooseBoon,
   playKnockoutRound,
+  chemistryOf,
   type RunState,
   type RunOutcome,
 } from '../domain/run';
@@ -56,12 +57,10 @@ interface Reward {
  *  the next run. Self-contained local state; does not touch the main game reducer. */
 export default function CupRunScreen({
   draftedXi,
-  chemistryBonus,
   onReDraft,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
-  chemistryBonus: number;
   /** Reset the draft and go draft a fresh XI (each roguelike run is a new team). */
   onReDraft: () => void;
 }) {
@@ -70,7 +69,7 @@ export default function CupRunScreen({
   const [reward, setReward] = useState<Reward | null>(null);
 
   const odds = useMemo(
-    () => (run ? simulateTitleOdds(run.xi, 600, run.chemistryBonus).champion : 0),
+    () => (run ? simulateTitleOdds(run.xi, 600, chemistryOf(run.xi)).champion : 0),
     [run?.xi],
   );
   const str = useMemo(
@@ -81,7 +80,7 @@ export default function CupRunScreen({
   const startRun = () => {
     if (!draftedXi) return;
     setReward(null);
-    setRun(beginRun(draftedXi, career.unlocked, chemistryBonus));
+    setRun(beginRun(draftedXi, career.unlocked));
   };
 
   // Step the run; award XP/Prestige exactly once when it ends.

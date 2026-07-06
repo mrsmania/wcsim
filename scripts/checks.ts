@@ -35,6 +35,17 @@ import {
   BRACKET_ROUNDS,
 } from '../src/domain/bracket';
 import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemistry';
+import { priceOf, BUDGET } from '../src/domain/pricing';
+import { BOONS, offerBoons } from '../src/domain/boons';
+import {
+  beginRun,
+  playGroupStage,
+  chooseBoon,
+  playKnockoutRound,
+  type RunOutcome,
+} from '../src/domain/run';
+import { applyRunResult, buyPerk, INITIAL_CAREER, levelForXp, PERKS } from '../src/domain/career';
+import { simulateTitleOdds } from '../src/domain/odds';
 
 let passed = 0;
 const failures: string[] = [];
@@ -179,6 +190,93 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     boosted.defense === base.defense + 5 &&
     boosted.overall === base.overall + 5;
   check('chemistry: the bonus lifts attack + defense (so it affects the match sim)', reaches);
+}
+
+// --- Budget draft pricing: monotonic, floored at 1 -------------------------
+{
+  let ok = BUDGET > 0;
+  for (let e = 60; e <= 99; e++) {
+    if (priceOf(e) < 1) ok = false;
+    if (e > 60 && priceOf(e) < priceOf(e - 1)) ok = false; // non-decreasing in rating
+  }
+  check('pricing: price is >= 1 and never decreases with rating', ok);
+}
+
+// --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------
+{
+  const xi = bestEleven(SQUADS[0].players);
+  let ok = true;
+  for (const b of BOONS) {
+    const after = b.apply(xi, { opponentSquadId: SQUADS[1].id });
+    if (after.length !== xi.length) ok = false; // roster boons swap, never grow/shrink
+    if (new Set(after.map((p) => p.personId)).size !== after.length) ok = false; // no dupes
+  }
+  const offer = offerBoons(3);
+  if (offer.length !== 3 || new Set(offer.map((b) => b.id)).size !== 3) ok = false;
+  check('boons: every boon keeps 11 distinct players; offers are distinct', ok);
+}
+
+// --- Cup Run: always ends with a valid outcome, score, and 11 players -------
+{
+  const EXPECT: Record<RunOutcome, number> = {
+    group: 10,
+    r16: 25,
+    qf: 45,
+    sf: 70,
+    final: 95,
+    champion: 140,
+  };
+  let ok = true;
+  for (let i = 0; i < 300 && ok; i++) {
+    let r = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
+    let guard = 0;
+    while (r.phase !== 'ended' && guard++ < 20) {
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id);
+      else if (r.phase === 'match') r = playKnockoutRound(r);
+      else break;
+    }
+    if (r.phase !== 'ended' || !r.outcome) ok = false;
+    else if (r.score !== EXPECT[r.outcome] || r.xi.length !== 11) ok = false;
+  }
+  check('run: every Cup Run ends with a valid outcome, score, and 11 players', ok);
+}
+
+// --- Career: run rewards + perk purchases account correctly -----------------
+{
+  let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
+  let guard = 0;
+  while (run.phase !== 'ended' && guard++ < 20) {
+    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id);
+    else if (run.phase === 'match') run = playKnockoutRound(run);
+    else break;
+  }
+  const res = applyRunResult(INITIAL_CAREER, run);
+  let ok =
+    res.career.stats.runs === INITIAL_CAREER.stats.runs + 1 &&
+    res.xpGained === run.score &&
+    res.career.xp === INITIAL_CAREER.xp + run.score &&
+    res.prestigeGained >= 1 &&
+    res.career.level === levelForXp(res.career.xp) &&
+    (run.outcome === 'champion') === (res.career.stats.cups === INITIAL_CAREER.stats.cups + 1);
+  // Perk economy: no unlock with 0 prestige; unlock (and deduct) when affordable; no re-buy.
+  if (buyPerk(INITIAL_CAREER, PERKS[0].id).unlocked.length !== 0) ok = false;
+  const rich = buyPerk({ ...INITIAL_CAREER, prestige: PERKS[0].cost }, PERKS[0].id);
+  if (!rich.unlocked.includes(PERKS[0].id) || rich.prestige !== 0) ok = false;
+  if (buyPerk(rich, PERKS[0].id).unlocked.length !== 1) ok = false;
+  check('career: run rewards accrue and perk purchases respect affordability', ok);
+}
+
+// --- Title odds: a valid probability distribution ---------------------------
+{
+  const o = simulateTitleOdds(bestEleven(SQUADS[0].players), 300);
+  const distSum = Object.values(o.distribution).reduce((a, b) => a + b, 0);
+  const ok =
+    Math.abs(distSum - 1) < 1e-9 &&
+    o.champion >= 0 &&
+    o.advanced <= 1 &&
+    o.champion <= o.finalist + 1e-9 &&
+    o.finalist <= o.advanced + 1e-9;
+  check('odds: distribution sums to 1 and champion <= finalist <= advanced', ok);
 }
 
 // --- Summary ---------------------------------------------------------------

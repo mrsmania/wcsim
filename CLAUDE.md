@@ -96,19 +96,30 @@ src/
                chemistry.ts  (cohesion scoring -> strength bonus; gated by a flag)
                album.ts      (sticker collectibility/tiers, trade, run-end apply;
                               pure; gated by a flag - see below)
+               odds.ts       (simulateTitleOdds: Monte-Carlo an XI's cup-win % over
+                              many simulated tournaments; drives the Cup Run readout)
+               pricing.ts    (budget-draft price by rating; convex; BUDGET from config)
+               boons.ts      (Cup Run boons: rating + roster transforms; gated)
+               run.ts        (Cup Run state machine; chemistryOf; gated - see below)
+               career.ts     (Cup Run career: XP/level/Prestige/perks; gated)
                validateSquads.ts (dev-time dataset integrity checks)
-  state/       gameReducer.ts (the phase machine + Action union), persist.ts (the
-               whole game <-> localStorage, so routes survive a refresh),
-               albumStorage.ts (the sticker album <-> its own localStorage keys)
+  state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
+               fully built XI - reused by the budget draft), persist.ts (the whole
+               game <-> localStorage, so routes survive a refresh), albumStorage.ts
+               (the sticker album <-> its own localStorage keys), careerStorage.ts
+               (the Cup Run career <-> wcsim_career_v1)
   hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
                match-reveal clock used by both tournament screens)
   components/  presentational React (App composes them); the group screen
                (TournamentScreen) splits into GroupDrawReveal / StandingsTable /
                MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
                presentational atoms + per-match view-model used by both screens;
-               SquadBrowser + TeamRoster are the read-only squad archive (see below)
+               SquadBrowser + TeamRoster are the read-only squad archive (see below);
+               CupRunScreen (Cup Run + career) and BudgetDraftScreen (transfer market)
+               are lazy-loaded (React.lazy) route screens
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser,
-               stickerAlbum, stickerImages) + STICKER_TIERS / STICKER_TRADE_COST
+               stickerAlbum, stickerImages, careerMode, budgetDraft) + STICKER_TIERS /
+               STICKER_TRADE_COST + BUDGET_DRAFT
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
@@ -334,6 +345,42 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   (drops every chosen player, back to setup).
 - With **`FEATURES.stickerAlbum` = false**: no album route/entry, no markers, no swap,
   no overlays, and no album localStorage reads/writes; the game is unchanged.
+
+## Cup Run + Career (flagged, prototype)
+
+A roguelike layer over the core loop, plus a persistent career. Design:
+`docs/roguelike-career-design.md`. Entirely behind **`FEATURES.careerMode`**.
+
+- **Cup Run** (`domain/run.ts`, route `/cup-run`, `CupRunScreen.tsx`): you draft your XI
+  the normal way, then "Play as a Cup Run" (a button on `CompletePanel`, or the home
+  entry). The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
+  `playKnockoutRound` -> ... -> ended (`champion` or knocked out) - reusing the real
+  group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Matches
+  resolve instantly to a run log (no live clock yet). Between rounds you pick 1 of 3
+  **boons** (`domain/boons.ts`): rating tweaks (Golden Generation, Glass Cannon, ...)
+  and roster swaps (Transfer, Poach the next opponent, Wildcard Legend). A live
+  **title-odds %** readout uses `domain/odds.ts`. Chemistry is recomputed live per XI
+  (`run.ts` `chemistryOf`), so roster boons don't leave it stale. The drafted XI enters
+  via the reducer's `AUTOFILL`; each "New run" re-drafts (roguelike-fresh).
+- **Career** (`domain/career.ts`, `state/careerStorage.ts` key `wcsim_career_v1`):
+  a run awards XP (-> levels) and Prestige, spent in a small perk shop (Scout Network,
+  Deep Squad, Extra Boon) that feeds the next run. A trophy record (runs/cups/best) sits
+  in the `CupRunScreen` hub. Separate storage from the game + album.
+- Known gaps (prototype): no mid-run persistence, no album stickers awarded from a Cup
+  Run, no live match playback, no cup-win confetti.
+
+## Budget draft / Transfer Market (flagged)
+
+A second way to build the XI, alongside the random roll. Spec:
+`docs/budget-draft-requirements.md`. Behind **`FEATURES.budgetDraft`**.
+
+- Setup offers "Buy with a budget" -> `BudgetDraftScreen.tsx` (route `/build`). You buy
+  players from all squads into the chosen formation's slots within a fixed budget
+  (`BUDGET_DRAFT` in config, $110), each priced by rating via **`domain/pricing.ts`**
+  (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so the budget forces trade-offs).
+  A budget bar, one-per-person, an "Auto-fill & spend" helper (cheapest valid fill then
+  greedy rating-per-$ upgrades), and a "Clear". Confirm loads the XI via the reducer's
+  `AUTOFILL`, so it plays through Quick Play + Cup Run like a rolled XI.
 
 ## Conventions and working agreements
 

@@ -492,8 +492,6 @@ export default function App() {
             return ps.length === formation.slots.length ? ps : null;
         })();
     const draftedXi = cupRunXi || null;
-    const cupRunChemistry =
-        draftedXi && formation && FEATURES.chemistry ? teamChemistry(formation, filled).bonus : 0;
 
     // Route -> which screen. `location.pathname` is basename-relative.
     const path = location.pathname;
@@ -579,11 +577,7 @@ export default function App() {
                 {isSquads ? (
                     <SquadBrowser />
                 ) : isCupRun ? (
-                    <CupRunScreen
-                        draftedXi={draftedXi}
-                        chemistryBonus={cupRunChemistry}
-                        onReDraft={handleReset}
-                    />
+                    <CupRunScreen draftedXi={draftedXi} onReDraft={handleReset} />
                 ) : isBudget ? (
                     <BudgetDraftScreen
                         formation={previewFormation}

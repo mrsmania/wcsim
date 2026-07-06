@@ -1,6 +1,7 @@
 import type { Player } from '../data/types';
-import { categoryOf, primaryPosition } from '../data/types';
-import { SQUADS } from '../data/squads';
+import { primaryPosition } from '../data/types';
+import { FEATURES } from '../config';
+import { computeChemistry } from './chemistry';
 import {
   userGroupTeam,
   createGroup,
@@ -35,8 +36,6 @@ export interface RunState {
   activeBoons: string[];
   /** Career perks active for this run (affects offers / start). */
   perks: string[];
-  /** Team chemistry bonus for the drafted XI (0 when the feature is off). */
-  chemistryBonus: number;
   /** The pending 1-of-3 boon offer, when phase === 'boon'. */
   offer: Boon[] | null;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played). */
@@ -65,47 +64,18 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
 }
 
-/** Auto-draft a legal random XI (1 GK, 4 DEF, 3 MID, 3 FWD), one person each.
- *  A stand-in for the real draft so the prototype focuses on the run loop. With
- *  `strong` (the Deep Squad perk) each slot takes the best of a few candidates. */
-export function autoDraftXi(strong = false): Player[] {
-  const byCat: Record<string, Player[]> = { GK: [], DEF: [], MID: [], FWD: [] };
-  for (const s of SQUADS) for (const p of s.players) byCat[categoryOf(primaryPosition(p))].push(p);
-  const used = new Set<string>();
-  const one = (pool: Player[]): Player | null => {
-    if (!strong) {
-      for (let i = 0; i < 50; i++) {
-        const p = pool[Math.floor(Math.random() * pool.length)];
-        if (p && !used.has(p.personId)) return p;
-      }
-      return null;
-    }
-    let best: Player | null = null;
-    for (let i = 0; i < 6; i++) {
-      const p = pool[Math.floor(Math.random() * pool.length)];
-      if (!p || used.has(p.personId)) continue;
-      if (!best || p.elo > best.elo) best = p;
-    }
-    return best;
-  };
-  const pick = (cat: string, n: number): Player[] => {
-    const out: Player[] = [];
-    let guard = 0;
-    while (out.length < n && guard++ < 1000) {
-      const p = one(byCat[cat]);
-      if (!p) continue;
-      used.add(p.personId);
-      out.push(p);
-    }
-    return out;
-  };
-  return [...pick('GK', 1), ...pick('DEF', 4), ...pick('MID', 3), ...pick('FWD', 3)];
+/** Team chemistry bonus for the current XI (0 when the feature is off). Recomputed
+ *  live from the players so it stays correct after a roster boon changes the XI;
+ *  every player is treated as in their natural role (a run tracks players, not slots). */
+export function chemistryOf(xi: Player[]): number {
+  if (!FEATURES.chemistry) return 0;
+  return computeChemistry(xi.map((p) => ({ player: p, slotPosition: primaryPosition(p) }))).bonus;
 }
 
 /** Boon offer size, widened by the Extra Boon perk. */
 const offerSize = (perks: string[]) => (perks.includes('extra-boon') ? 4 : 3);
 
-export function beginRun(xi: Player[], perks: string[] = [], chemistryBonus = 0): RunState {
+export function beginRun(xi: Player[], perks: string[] = []): RunState {
   let players = xi;
   const activeBoons: string[] = [];
   const log = ['Cup run started. Win the group, then the knockouts.'];
@@ -130,7 +100,6 @@ export function beginRun(xi: Player[], perks: string[] = [], chemistryBonus = 0)
     facedIds: [],
     activeBoons,
     perks,
-    chemistryBonus,
     offer: null,
     nextOpponent: null,
     score: 0,
@@ -142,8 +111,9 @@ export function beginRun(xi: Player[], perks: string[] = [], chemistryBonus = 0)
 /** Simulate the group stage; qualify -> draw the R16 opponent + offer a boon. */
 export function playGroupStage(run: RunState): RunState {
   if (run.phase !== 'group') return run;
-  const user = userGroupTeam(run.xi, run.chemistryBonus);
-  let group = createGroup(user, pickOpponents(3));
+  const user = userGroupTeam(run.xi, chemistryOf(run.xi));
+  const opponents = pickOpponents(3);
+  let group = createGroup(user, opponents);
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
   }
@@ -159,13 +129,15 @@ export function playGroupStage(run: RunState): RunState {
       log: [...run.log, line, 'Eliminated in the group stage.'],
     };
   }
-  const opp = drawOpponent(new Set(run.facedIds));
+  // Exclude the group opponents from the knockout draw (no immediate rematch).
+  const faced = [...run.facedIds, ...opponents.map((s) => s.id)];
+  const opp = drawOpponent(new Set(faced));
   return {
     ...run,
     phase: 'boon',
     offer: offerBoons(offerSize(run.perks)),
     nextOpponent: opp,
-    facedIds: [...run.facedIds, opp.id],
+    facedIds: [...faced, opp.id],
     score: STAGE_SCORE.group,
     log: [...run.log, line, `Through to the ${KO_ROUNDS[0]}. Pick a boon.`],
   };
@@ -215,7 +187,7 @@ export function playKnockoutRound(run: RunState): RunState {
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
-  const { userWon, hg, ag, decided } = simulateKoTie(userGroupTeam(run.xi, run.chemistryBonus), opp);
+  const { userWon, hg, ag, decided } = simulateKoTie(userGroupTeam(run.xi, chemistryOf(run.xi)), opp);
   const tag = decided === 'pens' ? ' (pens)' : decided === 'aet' ? ' (aet)' : '';
   const scoreLine = `${roundName}: you ${hg}-${ag} ${opp.name}${tag}.`;
 
