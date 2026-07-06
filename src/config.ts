@@ -9,7 +9,7 @@ export const FEATURES = {
     removePlayers: true,
     /** "Random team" shortcut on the setup screen: auto-fill a full valid XI of a
      *  chosen strength and skip the draft (testing aid). Turn off for real users. */
-    randomTeam: true,
+    randomTeam: false,
     /** Show each team's rating as a small chip next to it (desktop only). Set to
      *  false to hide all the rating chips everywhere. */
     teamRatings: true,

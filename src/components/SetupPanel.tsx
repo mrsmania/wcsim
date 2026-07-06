@@ -153,7 +153,7 @@ export default function SetupPanel({
                     <button
                         onClick={onBudgetDraft}
                         disabled={!ready}
-                        className="mt-[9px] flex w-full items-center justify-center gap-2 rounded-[5px] border border-line bg-white px-4 py-[11px] font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-[9px] flex w-full items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-4 py-[11px] font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         Buy with a budget
                         <Coins size={16} strokeWidth={2.5} />

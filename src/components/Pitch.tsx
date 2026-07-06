@@ -278,7 +278,7 @@ function OverlayMarker({
             >
                 {canPlace || isTarget ? '+' : null}
             </div>
-            <span className="mt-1.5 rounded-[3px] bg-ink/60 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
+            <span className="mt-1.5 rounded-[3px] bg-ink/60 px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-white">
                 {slot.label}
             </span>
         </button>

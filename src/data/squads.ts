@@ -1818,7 +1818,7 @@ export const SQUADS: Squad[] = [
     squad('CHI', 'Chile', 2010, [
         [1, 'Claudio Bravo', ['GK'], 82],
         [12, 'Miguel Pinto', ['GK'], 70],
-        [23, 'Luis Marín (Chile)', ['GK'], 67],
+        [23, 'Luis Marín', ['GK'], 67],
         [2, 'Ismael Fuentes', ['CB'], 72],
         [3, 'Waldo Ponce', ['CB'], 75],
         [4, 'Mauricio Isla', ['RB', 'RM'], 78],
