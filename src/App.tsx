@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Swords, Trophy } from 'lucide-react';
 import { SQUADS } from './data/squads';
@@ -48,12 +48,13 @@ import CompletePanel from './components/CompletePanel';
 import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
 import XiTable from './components/XiTable';
-import TournamentScreen from './components/TournamentScreen';
-import KnockoutScreen from './components/KnockoutScreen';
-import SquadBrowser from './components/SquadBrowser';
-import AlbumScreen from './components/AlbumScreen';
-import CupRunScreen from './components/CupRunScreen';
-import BudgetDraftScreen from './components/BudgetDraftScreen';
+// Route-gated screens are code-split so the home/setup initial load stays small.
+const TournamentScreen = lazy(() => import('./components/TournamentScreen'));
+const KnockoutScreen = lazy(() => import('./components/KnockoutScreen'));
+const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
+const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
+const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
+const BudgetDraftScreen = lazy(() => import('./components/BudgetDraftScreen'));
 import CupRewardPicker from './components/CupRewardPicker';
 import RunEndStickerSummary from './components/RunEndStickerSummary';
 
@@ -568,6 +569,13 @@ export default function App() {
                     </div>
                 </header>
 
+                <Suspense
+                    fallback={
+                        <div className="mt-20 text-center font-mono text-[12px] text-muted">
+                            Loading…
+                        </div>
+                    }
+                >
                 {isSquads ? (
                     <SquadBrowser />
                 ) : isCupRun ? (
@@ -773,6 +781,7 @@ export default function App() {
                 ) : (
                     <Navigate to="/" replace />
                 )}
+                </Suspense>
             </div>
 
             {/* Run-end sticker flow (global overlays, layered over any screen).

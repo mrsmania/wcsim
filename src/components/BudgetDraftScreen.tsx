@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Search, X } from 'lucide-react';
-import type { Player } from '../data/types';
+import type { Player, Position } from '../data/types';
 import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import type { Formation } from '../domain/formations';
 import { isComplete, teamRating, type Filled } from '../domain/draft';
@@ -14,6 +14,14 @@ import CollectibleStar from './CollectibleStar';
 const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const MAX_RESULTS = 60;
+
+/** Players eligible for each position, highest-rated first (for the auto-fill helper). */
+const BY_POSITION: Partial<Record<Position, Player[]>> = (() => {
+  const m: Partial<Record<Position, Player[]>> = {};
+  for (const p of ALL_PLAYERS) for (const pos of p.positions) (m[pos] ??= []).push(p);
+  for (const pos of Object.keys(m) as Position[]) m[pos]!.sort((a, b) => b.elo - a.elo);
+  return m;
+})();
 
 /** Budget draft / Transfer Market: hand-pick an XI from all squads within a fixed
  *  budget (each player priced by rating). Builds a `filled` for the given formation
@@ -86,6 +94,62 @@ export default function BudgetDraftScreen({
     setSelectedSlotId(slotId);
   };
 
+  const clearAll = () => {
+    setFilled({});
+    setSelectedSlotId(null);
+  };
+
+  // Fill every empty slot and spend as much of the remaining budget as possible:
+  // first a cheapest affordable player per open slot (a guaranteed valid completion),
+  // then greedily upgrade those picks by the best rating-per-dollar until the money
+  // runs out. Never touches slots you filled by hand.
+  const autoFill = () => {
+    const next: Filled = { ...filled };
+    const usedIds = new Set(placed.map((p) => p.personId));
+    let left = remaining;
+    const autoIds: string[] = [];
+    for (const s of slots) {
+      if (next[s.id]) continue;
+      let pick: Player | null = null;
+      for (const p of BY_POSITION[s.position] ?? []) {
+        if (usedIds.has(p.personId)) continue;
+        const pr = priceOf(p.elo);
+        if (pr > left) continue;
+        if (!pick || pr < priceOf(pick.elo)) pick = p; // cheapest affordable
+      }
+      if (!pick) continue; // can't afford any eligible player; leave open
+      next[s.id] = pick;
+      usedIds.add(pick.personId);
+      left -= priceOf(pick.elo);
+      autoIds.push(s.id);
+    }
+    // Spend the rest on the best rating-per-dollar upgrades to the auto-filled slots.
+    for (let guard = 0; guard < 200; guard++) {
+      let best: { slotId: string; player: Player; deltaCost: number; ratio: number } | null = null;
+      for (const slotId of autoIds) {
+        const cur = next[slotId]!;
+        const slot = slots.find((s) => s.id === slotId)!;
+        const curPrice = priceOf(cur.elo);
+        for (const p of BY_POSITION[slot.position] ?? []) {
+          if (p.elo <= cur.elo) break; // list is sorted desc: nothing better below here
+          if (usedIds.has(p.personId)) continue;
+          const deltaCost = priceOf(p.elo) - curPrice;
+          if (deltaCost <= 0 || deltaCost > left) continue;
+          const ratio = (p.elo - cur.elo) / deltaCost;
+          if (!best || ratio > best.ratio) best = { slotId, player: p, deltaCost, ratio };
+        }
+      }
+      if (!best) break;
+      const out = next[best.slotId]!;
+      usedIds.delete(out.personId);
+      usedIds.add(best.player.personId);
+      next[best.slotId] = best.player;
+      left -= best.deltaCost;
+    }
+    setFilled(next);
+    setSelectedSlotId(null);
+  };
+
   return (
     <div className="mx-auto max-w-[1000px]">
       <Link
@@ -130,6 +194,24 @@ export default function BudgetDraftScreen({
             className="h-full bg-pitch"
             style={{ width: `${Math.min(100, (spent / BUDGET) * 100)}%` }}
           />
+        </div>
+        <div className="mt-3 flex gap-2">
+          {emptySlots.length > 0 && (
+            <button
+              onClick={autoFill}
+              className="rounded-[5px] border border-line bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink transition hover:border-pitch hover:text-pitch"
+            >
+              Auto-fill &amp; spend
+            </button>
+          )}
+          {placed.length > 0 && (
+            <button
+              onClick={clearAll}
+              className="rounded-[5px] border border-line bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-muted transition hover:border-loss hover:text-loss"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
