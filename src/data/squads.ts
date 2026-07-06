@@ -24,6 +24,9 @@ import type { Player, Position, Squad } from './types';
 // only be drafted once. Keep name spellings identical across squads for that to
 // work; distinct people MUST have distinct names (e.g. Amadou Onana vs Andre
 // Onana, Marcus Thuram vs Thuram/Lilian) or they would collide into one person.
+// Two different people who must *display* the same name (the flag beside it tells
+// them apart) instead pass an explicit personId override as the 5th Row element -
+// see the two "Luis Marín" (Costa Rica CB vs Chile GK).
 // ---------------------------------------------------------------------------
 
 function slug(name: string): string {
@@ -36,13 +39,15 @@ function slug(name: string): string {
         .replace(/^-+|-+$/g, '');
 }
 
-type Row = [number, string, Position[], number];
+// [number, name, positions, rating] plus an optional personId override for a
+// same-name namesake that must display identically (see the header note).
+type Row = [number, string, Position[], number, string?];
 
 function squad(code: string, nation: string, year: number, rows: Row[]): Squad {
     const id = `${code.toLowerCase()}-${year}`;
-    const players: Player[] = rows.map(([number, name, positions, elo]) => ({
+    const players: Player[] = rows.map(([number, name, positions, elo, personId]) => ({
         id: `${id}-${number}`,
-        personId: slug(name),
+        personId: personId ?? slug(name),
         squadId: id,
         number,
         name,
@@ -1818,7 +1823,7 @@ export const SQUADS: Squad[] = [
     squad('CHI', 'Chile', 2010, [
         [1, 'Claudio Bravo', ['GK'], 82],
         [12, 'Miguel Pinto', ['GK'], 70],
-        [23, 'Luis Marín', ['GK'], 67],
+        [23, 'Luis Marín', ['GK'], 67, 'luis-marin-chile'],
         [2, 'Ismael Fuentes', ['CB'], 72],
         [3, 'Waldo Ponce', ['CB'], 75],
         [4, 'Mauricio Isla', ['RB', 'RM'], 78],
