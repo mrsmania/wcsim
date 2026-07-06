@@ -36,8 +36,9 @@ export const FEATURES = {
     careerMode: true,
     /** Budget draft ("Transfer Market"): a second way to build the XI - hand-pick
      *  players from all squads within a fixed budget (BUDGET_DRAFT), priced by rating
-     *  (domain/pricing.ts). Adds a setup entry + a /build screen. Set false to hide it
-     *  and keep only the random roll. */
+     *  (domain/pricing.ts). Adds a "Buy with a budget" setup entry that swaps the
+     *  draft's left column to the market (same page). Set false to hide it and keep
+     *  only the random roll. */
     budgetDraft: true,
 } as const;
 

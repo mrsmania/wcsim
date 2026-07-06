@@ -104,8 +104,9 @@ src/
                career.ts     (Cup Run career: XP/level/Prestige/perks; gated)
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
-               fully built XI - reused by the budget draft; a `mode` "quick|cup"
-               play-mode field set on setup via SET_MODE), persist.ts (the whole
+               fully built XI; a `mode` "quick|cup" play-mode field set via SET_MODE;
+               a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER for the
+               in-page budget build), persist.ts (the whole
                game <-> localStorage, so routes survive a refresh), albumStorage.ts
                (the sticker album <-> its own localStorage keys), careerStorage.ts
                (the Cup Run career <-> wcsim_career_v1)
@@ -116,8 +117,9 @@ src/
                MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
                presentational atoms + per-match view-model used by both screens;
                SquadBrowser + TeamRoster are the read-only squad archive (see below);
-               CupRunScreen (Cup Run + career) and BudgetDraftScreen (transfer market)
-               are lazy-loaded (React.lazy) route screens
+               CupRunScreen (Cup Run + career) is a lazy-loaded (React.lazy) route
+               screen; BudgetMarket is the budget build's left-column panel (shares
+               the home page's Pitch + ratings/line-up, not a separate screen)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, randomTeam,
                squadBrowser, stickerAlbum, stickerImages, careerMode, budgetDraft) +
                STICKER_TIERS / STICKER_TRADE_COST + BUDGET_DRAFT
@@ -403,26 +405,31 @@ A roguelike layer over the core loop, plus a persistent career. Design:
 A second way to build the XI, alongside the random roll. Spec:
 `docs/budget-draft-requirements.md`. Behind **`FEATURES.budgetDraft`**.
 
-- Setup offers "Buy with a budget" -> `BudgetDraftScreen.tsx` (route `/build`). You buy
-  players from all squads into the chosen formation's slots within a fixed budget
-  (`BUDGET_DRAFT` in config, $110), each priced by rating via **`domain/pricing.ts`**
-  (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so the budget forces trade-offs).
-- **Same layout as the roll draft** (so it doesn't feel like a different app): the 3-column
-  grid (market | pitch | ratings+chemistry+line-up) reusing the real `Pitch`, `BoxScore`, and
-  `XiTable`. The left column is the transfer market (the player source, like the drawn squad):
-  a budget bar + "Auto-fill & spend" + "Clear" on top, then the rating-sorted, searchable list
-  for the targeted position (all shown; unaffordable/used rows disabled; collectible tier stars).
+- **It is the same page as the roll draft, not a separate screen.** "Buy with a budget" on the
+  setup panel dispatches `START_BUDGET` (which sets `build: 'budget'`, `phase: 'draft'`) and stays
+  on `/` - only the left column swaps to the transfer market; the centre `Pitch` and the right
+  ratings/chemistry/line-up (`BoxScore` + `XiTable`) are the same shared components as the roll
+  draft and never remount. Completing the XI flips to `phase: 'complete'` -> the normal
+  `CompletePanel` (mode-aware CTA), so there is no separate "Confirm" step. (`/build` is gone; any
+  old link redirects to `/`. `App` gates the roll-only "draw next squad" effect on `build === 'roll'`.)
+- **`BudgetMarket.tsx`** is the left-column panel (the player source, mirroring the drawn-squad
+  panel): a budget bar + "Auto-fill & spend" + "Clear" + "Start over" on top, then the
+  rating-sorted, searchable list for the targeted position (all shown; unaffordable/used rows
+  disabled; collectible tier stars). You buy from all squads within a fixed budget (`BUDGET_DRAFT`
+  in config, $110), each priced by rating via **`domain/pricing.ts`** (`priceOf` =
+  `max(1, round((elo-58)^2/64))`, convex so the budget forces trade-offs).
 - **Position selection is on the pitch, both directions.** `Pitch` gained two optional props
-  (`onSelectSlot` + `targetSlotId`, unused/no-op in the roll draft): tap an empty slot to *shop*
-  that position (the market filters to it), OR tap a market player to hold it (its eligible slots
-  pulse amber/white) then tap a highlighted slot to buy - mirroring the roll draft's
-  select-then-place. Placed players show the badge + a remove `x`; buying advances the target to
-  the next empty slot.
+  (`onSelectSlot` + `targetSlotId`, no-op in the roll draft): tap an empty slot to *shop* that
+  position (the market filters to it), OR tap a market player to hold it (its eligible slots pulse
+  amber/white) then tap a highlighted slot to buy - mirroring the roll draft's select-then-place.
+  App owns the transient held-player + target-slot state (not persisted) and drives both the market
+  and the pitch from it; buys dispatch `BUY_PLAYER` (validates like `PLACE_PLAYER`), removes reuse
+  `REMOVE_PLAYER` (the badge `x`), and buying advances the target to the next empty slot.
 - The "Auto-fill & spend" helper is randomized: fills the empty slots in a shuffled order, each a
   random pick from the best few players it can still afford (reserving the minimum for the rest),
   then a random upgrade pass spends the leftover - so every click yields a different XI that still
-  spends most of the budget. Confirm loads the XI via the reducer's `AUTOFILL`, so it plays
-  through Quick Play + Cup Run like a rolled XI.
+  spends most of the budget (committed via `AUTOFILL`). The built XI plays through Quick Play +
+  Cup Run exactly like a rolled one.
 
 ## Conventions and working agreements
 

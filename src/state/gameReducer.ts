@@ -12,6 +12,11 @@ export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
  *  ('quick') or a roguelike Cup Run ('cup'). Chosen up front on the setup screen. */
 export type PlayMode = 'quick' | 'cup';
 
+/** How the XI is being assembled: rolling random squads ('roll') or hand-picking
+ *  from all squads within a budget ('budget'). Both share the same draft state
+ *  (`filled`) and the same pitch/ratings/line-up; only the left column differs. */
+export type BuildMethod = 'roll' | 'budget';
+
 export const INITIAL_REROLLS = 3;
 /** Player swaps allowed per game (sticker album feature). Only collectibles can be
  *  swapped in, and only this many times per run. */
@@ -27,6 +32,9 @@ export interface GameState {
    *  remembered across the run. `initialState.mode` is the single knob for the
    *  "main" mode a fresh player lands on. */
   mode: PlayMode;
+  /** How the current XI is being built. Set when the draft/budget build begins;
+   *  gates the roll-only "draw next squad" effect and picks the left-column panel. */
+  build: BuildMethod;
   /** Resolved formation, set when the draft begins. */
   formation: Formation | null;
   /** slotId -> placed player. */
@@ -57,6 +65,8 @@ export type Action =
   | { type: 'SET_STYLE'; style: Style }
   | { type: 'SET_MODE'; mode: PlayMode }
   | { type: 'START_DRAFT'; formation: Formation }
+  | { type: 'START_BUDGET'; formation: Formation }
+  | { type: 'BUY_PLAYER'; slotId: string; player: Player }
   | { type: 'AUTOFILL'; formation: Formation; filled: Filled; usedPersonIds: string[] }
   | { type: 'ROLL_START'; isReroll: boolean }
   | { type: 'ROLL_SETTLE'; squad: Squad }
@@ -78,6 +88,7 @@ export const initialState: GameState = {
   formationName: '4-3-3',
   style: 'bal',
   mode: 'cup',
+  build: 'roll',
   formation: null,
   filled: {},
   rolling: false,
@@ -110,7 +121,41 @@ export function gameReducer(state: GameState, action: Action): GameState {
       return state.phase === 'setup' ? { ...state, mode: action.mode } : state;
 
     case 'START_DRAFT':
-      return { ...state, phase: 'draft', formation: action.formation, filled: {} };
+      return { ...state, phase: 'draft', build: 'roll', formation: action.formation, filled: {} };
+
+    case 'START_BUDGET':
+      // Enter the budget build: a draft with no rolling (the "draw next squad"
+      // effect is gated on build === 'roll'), sharing the same filled/pitch/panels.
+      return {
+        ...state,
+        phase: 'draft',
+        build: 'budget',
+        formation: action.formation,
+        filled: {},
+        usedPersonIds: [],
+        currentSquad: null,
+        selectedPlayerId: null,
+        rolling: false,
+      };
+
+    case 'BUY_PLAYER': {
+      // Budget build: place a hand-picked player into an eligible open slot. The UI
+      // enforces the budget (unaffordable rows are not selectable); the reducer owns
+      // the placement rules (position match + one-per-person), mirroring PLACE_PLAYER.
+      const { formation, filled } = state;
+      const { player } = action;
+      const slot = formation?.slots.find((s) => s.id === action.slotId);
+      if (!formation || !slot || !canPlace(player, slot, filled)) return state;
+      if (state.usedPersonIds.includes(player.personId)) return state;
+      const nextFilled: Filled = { ...filled, [slot.id]: player };
+      const done = isComplete(formation, nextFilled);
+      return {
+        ...state,
+        filled: nextFilled,
+        usedPersonIds: [...state.usedPersonIds, player.personId],
+        phase: done ? 'complete' : 'draft',
+      };
+    }
 
     case 'AUTOFILL':
       return {

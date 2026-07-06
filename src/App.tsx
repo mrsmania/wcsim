@@ -45,6 +45,7 @@ import { clearRun } from './state/runStorage';
 import { loadAlbum, saveAlbum, loadStats, saveStats } from './state/albumStorage';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
+import BudgetMarket from './components/BudgetMarket';
 import CompletePanel from './components/CompletePanel';
 import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
@@ -55,7 +56,6 @@ const KnockoutScreen = lazy(() => import('./components/KnockoutScreen'));
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
-const BudgetDraftScreen = lazy(() => import('./components/BudgetDraftScreen'));
 import CupRewardPicker from './components/CupRewardPicker';
 import RunEndStickerSummary from './components/RunEndStickerSummary';
 
@@ -98,6 +98,10 @@ function homeCopy(view: HomeView, placed: number): { eyebrow: string; title: str
 export default function App() {
     const [state, dispatch] = useReducer(gameReducer, initialState, () => loadGame() ?? initialState);
     const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
+    // Budget build (transient, not persisted): the market player currently held and
+    // the empty slot being shopped for. Both drive the shared pitch in budget mode.
+    const [heldId, setHeldId] = useState<string | null>(null);
+    const [budgetTargetId, setBudgetTargetId] = useState<string | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -158,6 +162,7 @@ export default function App() {
         formationName,
         style,
         mode,
+        build,
         formation,
         filled,
         currentSquad,
@@ -245,7 +250,9 @@ export default function App() {
     // for a freed slot after REMOVE_PLAYER when the XI was complete. Rerolls stay
     // explicit (they keep a squad in hand / set rolling, so this never interferes).
     useEffect(() => {
-        const needSquad = phase === 'draft' && !!formation && !currentSquad;
+        // Roll build only: the budget build has no rolling (its slots are filled by
+        // buying), so it must never draw a squad.
+        const needSquad = phase === 'draft' && build === 'roll' && !!formation && !currentSquad;
         // `rolling` is true but no animation is actually running: the in-flight
         // scramble was interrupted (a reload/StrictMode remount cleared its timer).
         // Recover by rolling again, otherwise the squad box stays on "Drawing...".
@@ -263,7 +270,7 @@ export default function App() {
         const open = positionsWithOpenSlot(formation, filled);
         const used = new Set(usedPersonIds);
         runRoll(rollAny(SQUADS, open, used, lastSquadIdRef.current), false);
-    }, [phase, formation, currentSquad, rolling, filled, usedPersonIds, runRoll]);
+    }, [phase, build, formation, currentSquad, rolling, filled, usedPersonIds, runRoll]);
 
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
@@ -290,17 +297,39 @@ export default function App() {
         [previewFormation],
     );
 
-    // Budget market: load the hand-picked XI into the game (same as a rolled draft's
-    // completion) and go to the complete panel.
-    const handleBudgetConfirm = useCallback(
-        (filled: Filled, usedPersonIds: string[]) => {
-            if (!previewFormation) return;
-            if (FEATURES.careerMode) clearRun();
-            dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
-            navigate('/');
+    // Budget build: enter it in place (no route change) - the left column swaps to
+    // the market, while the pitch + ratings/line-up stay put.
+    const handleBudget = useCallback(() => {
+        if (!previewFormation) return;
+        if (FEATURES.careerMode) clearRun();
+        setHeldId(null);
+        setBudgetTargetId(null);
+        dispatch({ type: 'START_BUDGET', formation: previewFormation });
+    }, [previewFormation]);
+
+    // Hold / release a market player (its eligible slots then pulse on the pitch).
+    const handleBudgetHold = useCallback((player: Player) => {
+        setHeldId((id) => (id === player.id ? null : player.id));
+    }, []);
+
+    // Auto-fill: commit a full budget XI (the market computes it). AUTOFILL -> complete.
+    const handleBudgetAutoFill = useCallback(
+        (filledXi: Filled, usedPersonIds: string[]) => {
+            if (!formation) return;
+            setHeldId(null);
+            setBudgetTargetId(null);
+            dispatch({ type: 'AUTOFILL', formation, filled: filledXi, usedPersonIds });
         },
-        [previewFormation, navigate],
+        [formation],
     );
+
+    // Clear every bought player but stay in the budget build (re-enter it fresh).
+    const handleBudgetClear = useCallback(() => {
+        if (!formation) return;
+        setHeldId(null);
+        setBudgetTargetId(null);
+        dispatch({ type: 'START_BUDGET', formation });
+    }, [formation]);
 
     const handlePlace = useCallback(
         (slotId: string) => {
@@ -345,6 +374,31 @@ export default function App() {
         },
         [],
     );
+
+    // --- budget build: place / shop / remove on the shared pitch ---------------
+    // Buy the held market player into an eligible slot, then shop the next empty one.
+    const handleBudgetPlace = useCallback(
+        (slotId: string) => {
+            const player = heldId ? allPlayers.find((p) => p.id === heldId) : null;
+            if (!player || !formation) return;
+            dispatch({ type: 'BUY_PLAYER', slotId, player });
+            setHeldId(null);
+            const next = formation.slots.find((s) => s.id !== slotId && !filled[s.id]);
+            setBudgetTargetId(next ? next.id : null);
+        },
+        [heldId, allPlayers, formation, filled],
+    );
+    // Tap an empty slot with no eligible held player: shop that position instead.
+    const handleBudgetShop = useCallback((slotId: string) => {
+        setBudgetTargetId(slotId);
+        setHeldId(null);
+    }, []);
+    // Remove a bought player (drops back to building) and shop that slot again.
+    const handleBudgetRemove = useCallback((slotId: string) => {
+        dispatch({ type: 'REMOVE_PLAYER', slotId });
+        setBudgetTargetId(slotId);
+        setHeldId(null);
+    }, []);
 
     const handleReroll = useCallback(
         (kind: RerollKind) => {
@@ -505,6 +559,18 @@ export default function App() {
     const panelSquad = rolling ? displaySquad : currentSquad;
     const availableStyles = FORMATIONS_DATA.stylesByName[formationName] ?? STYLES;
 
+    // Budget build: the effective empty slot being shopped (falls back to the first
+    // open one) and the held market player - both drive the shared pitch.
+    const isBudgetBuild = build === 'budget';
+    const budgetTargetSlot =
+        isBudgetBuild && activeFormation
+            ? activeFormation.slots.find((s) => s.id === budgetTargetId && !filled[s.id]) ??
+              activeFormation.slots.find((s) => !filled[s.id]) ??
+              null
+            : null;
+    const heldPlayer =
+        isBudgetBuild && heldId ? allPlayers.find((p) => p.id === heldId) ?? null : null;
+
     // Page section header (eyebrow + heading) and the masthead status stamp, both
     // phase-dependent. The stamp is null on the tournament screens (their own header).
     const placed = activeFormation ? filledCount(activeFormation, filled) : 0;
@@ -535,7 +601,6 @@ export default function App() {
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
     const isAlbum = STICKERS && path === '/album';
     const isCupRun = FEATURES.careerMode && path === '/cup-run';
-    const isBudget = FEATURES.budgetDraft && path === '/build';
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
     const isHome = path === '/';
@@ -626,11 +691,6 @@ export default function App() {
                         speed={speed}
                         onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
                         onRunEnd={STICKERS ? handleCupRunEnd : undefined}
-                    />
-                ) : isBudget ? (
-                    <BudgetDraftScreen
-                        formation={previewFormation}
-                        onConfirm={handleBudgetConfirm}
                     />
                 ) : isAlbum ? (
                     <AlbumScreen
@@ -760,34 +820,45 @@ export default function App() {
                                     onRandomTeam={
                                         FEATURES.randomTeam ? handleRandomTeam : undefined
                                     }
-                                    onBudgetDraft={
-                                        FEATURES.budgetDraft ? () => navigate('/build') : undefined
-                                    }
+                                    onBudgetDraft={FEATURES.budgetDraft ? handleBudget : undefined}
                                 />
                             )}
-                            {homeView === 'draft' && formation && (
-                                <SquadPanel
-                                    squad={panelSquad}
-                                    rolling={rolling}
-                                    rerollsLeft={rerollsLeft}
-                                    canAnotherTeam={
-                                        !!currentSquad && hasAnotherTeam(SQUADS, currentSquad)
-                                    }
-                                    canAnotherCup={
-                                        !!currentSquad && hasAnotherCup(SQUADS, currentSquad)
-                                    }
-                                    openPositions={openPositions}
-                                    swapEligibleIds={swapEligibleIds}
-                                    swapsLeft={swapsLeft}
-                                    usedPersonIds={usedSet}
-                                    selectedPlayerId={selectedPlayerId}
-                                    onReroll={handleReroll}
-                                    onSelectPlayer={(playerId) =>
-                                        dispatch({ type: 'SELECT_PLAYER', playerId })
-                                    }
-                                    onReset={handleReset}
-                                />
-                            )}
+                            {homeView === 'draft' &&
+                                formation &&
+                                (isBudgetBuild ? (
+                                    <BudgetMarket
+                                        formation={formation}
+                                        filled={filled}
+                                        targetSlotId={budgetTargetSlot?.id ?? null}
+                                        heldId={heldId}
+                                        onHold={handleBudgetHold}
+                                        onAutoFill={handleBudgetAutoFill}
+                                        onClear={handleBudgetClear}
+                                        onStartOver={handleReset}
+                                    />
+                                ) : (
+                                    <SquadPanel
+                                        squad={panelSquad}
+                                        rolling={rolling}
+                                        rerollsLeft={rerollsLeft}
+                                        canAnotherTeam={
+                                            !!currentSquad && hasAnotherTeam(SQUADS, currentSquad)
+                                        }
+                                        canAnotherCup={
+                                            !!currentSquad && hasAnotherCup(SQUADS, currentSquad)
+                                        }
+                                        openPositions={openPositions}
+                                        swapEligibleIds={swapEligibleIds}
+                                        swapsLeft={swapsLeft}
+                                        usedPersonIds={usedSet}
+                                        selectedPlayerId={selectedPlayerId}
+                                        onReroll={handleReroll}
+                                        onSelectPlayer={(playerId) =>
+                                            dispatch({ type: 'SELECT_PLAYER', playerId })
+                                        }
+                                        onReset={handleReset}
+                                    />
+                                ))}
                             {homeView === 'complete' && formation && (
                                 <CompletePanel
                                     formation={formation}
@@ -813,10 +884,26 @@ export default function App() {
                                     <Pitch
                                         formation={activeFormation}
                                         filled={filled}
-                                        selectedPlayer={selectedPlayer}
-                                        onPlace={handlePlace}
-                                        onRemove={FEATURES.removePlayers ? handleRemove : undefined}
-                                        onSwap={STICKERS && swapsLeft > 0 ? handleSwap : undefined}
+                                        selectedPlayer={isBudgetBuild ? heldPlayer : selectedPlayer}
+                                        onPlace={isBudgetBuild ? handleBudgetPlace : handlePlace}
+                                        onRemove={
+                                            isBudgetBuild
+                                                ? handleBudgetRemove
+                                                : FEATURES.removePlayers
+                                                  ? handleRemove
+                                                  : undefined
+                                        }
+                                        onSwap={
+                                            isBudgetBuild
+                                                ? undefined
+                                                : STICKERS && swapsLeft > 0
+                                                  ? handleSwap
+                                                  : undefined
+                                        }
+                                        onSelectSlot={isBudgetBuild ? handleBudgetShop : undefined}
+                                        targetSlotId={
+                                            isBudgetBuild ? budgetTargetSlot?.id : undefined
+                                        }
                                     />
                                 </section>
                                 <section className="flex flex-col gap-[18px] [grid-area:stack]">
