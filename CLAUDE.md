@@ -369,19 +369,33 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   the `CompletePanel` CTA ("Enter the Cup Run") takes you in (the home-screen Cup Run card
   is a second entry). The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
   `playKnockoutRound` -> ... -> ended (`champion` or knocked out) - reusing the real
-  group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Matches
-  resolve instantly to a run log (no live clock yet). Between rounds you pick 1 of 3
-  **boons** (`domain/boons.ts`): rating tweaks (Golden Generation, Glass Cannon, ...)
-  and roster swaps (Transfer, Poach the next opponent, Wildcard Legend). A live
-  **title-odds %** readout uses `domain/odds.ts`. Chemistry is recomputed live per XI
+  group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Between
+  rounds you pick 1 of 3 **boons** (`domain/boons.ts`): rating tweaks (Golden Generation,
+  Glass Cannon, ...) and roster swaps (Transfer, Poach the next opponent, Wildcard Legend).
+  A live **title-odds %** readout uses `domain/odds.ts`. Chemistry is recomputed live per XI
   (`run.ts` `chemistryOf`), so roster boons don't leave it stale. The drafted XI enters
   via the reducer's `AUTOFILL`; each "New run" re-drafts (roguelike-fresh).
+- **Live match playback.** Matches are revealed with the same live clock + goal feed as the
+  main game, not resolved instantly. `run.ts` splits into `prepare*`/`play*`: `prepareGroupStage`
+  and `prepareKnockoutRound` simulate up front and return both the committed `next` RunState and
+  the match data (events, shootout); `playGroupStage`/`playKnockoutRound` (kept for the checks
+  harness) just return `next`. `CupRunScreen` reveals the three group matches one by one, then the
+  knockout tie, via a keyed `LiveCupMatch` (shared `useMatchClock` + `MatchdayCard`), committing
+  `next` when the reveal ends. A **Speed** control (shared with the game's `speed`) sets the pace.
+- **Persistence** (`state/runStorage.ts` key `wcsim_run_v1`): the in-progress run is mirrored to
+  its own key, so a refresh mid-run resumes it (the transient live-reveal is not persisted, so a
+  refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built
+  (`handleReset`/`handleStart`/random team/budget confirm), so a stale run never resumes onto a
+  new team.
+- **Stickers.** At a run's end the final XI's collectibles (boons included) are banked to the
+  album, guarded once-per-run by `RunState.stickersApplied`. `CupRunScreen` reports the end via
+  `onRunEnd`; `App` applies them (a loss banks immediately; a cup win shows `CupRewardPicker`
+  first), then the shared `RunEndStickerSummary` shows any new cards. Reload-safe via the flag.
 - **Career** (`domain/career.ts`, `state/careerStorage.ts` key `wcsim_career_v1`):
   a run awards XP (-> levels) and Prestige, spent in a small perk shop (Scout Network,
   Deep Squad, Extra Boon) that feeds the next run. A trophy record (runs/cups/best) sits
   in the `CupRunScreen` hub. Separate storage from the game + album.
-- Known gaps (prototype): no mid-run persistence, no album stickers awarded from a Cup
-  Run, no live match playback, no cup-win confetti.
+- Known gaps (prototype): no cup-win confetti in the Cup Run.
 
 ## Budget draft / Transfer Market (flagged)
 

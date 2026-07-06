@@ -41,6 +41,7 @@ import { validateSquads } from './domain/validateSquads';
 import { FEATURES, type StickerTier } from './config';
 import { gameReducer, initialState, type PlayMode } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
+import { clearRun } from './state/runStorage';
 import { loadAlbum, saveAlbum, loadStats, saveStats } from './state/albumStorage';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
@@ -109,6 +110,11 @@ export default function App() {
     );
     /** New (non-duplicate) ids earned this run -> shows the run-end summary. */
     const [newStickerIds, setNewStickerIds] = useState<string[] | null>(null);
+    /** A finished Cup Run's collectibles awaiting the sticker apply (its own path,
+     *  since a Cup Run lives outside the reducer's group/bracket run-end). */
+    const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean } | null>(
+        null,
+    );
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -261,6 +267,8 @@ export default function App() {
 
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
+        // A fresh draft means a fresh team, so drop any in-progress Cup Run.
+        if (FEATURES.careerMode) clearRun();
         // Just enter the draft; the draw-next-squad effect rolls the first squad
         // from committed state (an open slot with no squad in hand).
         dispatch({ type: 'START_DRAFT', formation: previewFormation });
@@ -271,6 +279,7 @@ export default function App() {
     const handleRandomTeam = useCallback(
         (tier: TeamStrength) => {
             if (!previewFormation) return;
+            if (FEATURES.careerMode) clearRun();
             const { filled, usedPersonIds } = randomXI(
                 previewFormation,
                 SQUADS,
@@ -286,6 +295,7 @@ export default function App() {
     const handleBudgetConfirm = useCallback(
         (filled: Filled, usedPersonIds: string[]) => {
             if (!previewFormation) return;
+            if (FEATURES.careerMode) clearRun();
             dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
             navigate('/');
         },
@@ -384,6 +394,8 @@ export default function App() {
     }, [bracket, group, navigate]);
 
     const handleReset = useCallback(() => {
+        // A reset is a brand-new team, so drop any in-progress Cup Run too.
+        if (FEATURES.careerMode) clearRun();
         dispatch({ type: 'RESET' });
         navigate('/');
     }, [navigate]);
@@ -412,11 +424,15 @@ export default function App() {
         return null;
     }, [STICKERS, bracket, group]);
 
+    // Merge a finished run's collectibles into the album. `collectibleIds` are the
+    // collectible ids from the final XI (the standard game passes the drafted XI's;
+    // a Cup Run passes its own, boons included). `markReducer` sets the once-per-run
+    // reducer guard, used only by the standard game (a Cup Run guards itself).
     const applyStickers = useCallback(
-        (wonCup: boolean, cupPickId: string | null) => {
-            const ids = cupPickId ? [...draftedCollectibleIds, cupPickId] : draftedCollectibleIds;
+        (collectibleIds: string[], wonCup: boolean, cupPickId: string | null, markReducer: boolean) => {
+            const ids = cupPickId ? [...collectibleIds, cupPickId] : collectibleIds;
             const newly = pendingNewStickers(album, ids);
-            const next = applyRunStickers(album, draftedCollectibleIds, wonCup, cupPickId);
+            const next = applyRunStickers(album, collectibleIds, wonCup, cupPickId);
             setAlbum(next);
             saveAlbum(next);
             const stats = loadStats();
@@ -425,18 +441,29 @@ export default function App() {
                 stickersEarned: stats.stickersEarned + newly.length,
                 tradesCompleted: stats.tradesCompleted,
             });
-            dispatch({ type: 'MARK_STICKERS_APPLIED' });
+            if (markReducer) dispatch({ type: 'MARK_STICKERS_APPLIED' });
             setNewStickerIds(newly);
         },
-        [album, draftedCollectibleIds],
+        [album],
     );
 
     // Bank stickers once when the run ends by loss/elimination. Cup wins wait for
     // the reward pick (CupRewardPicker below), which then calls applyStickers.
     useEffect(() => {
         if (!STICKERS || stickersApplied || !runEnd || runEnd.wonCup) return;
-        applyStickers(false, null);
-    }, [STICKERS, stickersApplied, runEnd, applyStickers]);
+        applyStickers(draftedCollectibleIds, false, null, true);
+    }, [STICKERS, stickersApplied, runEnd, applyStickers, draftedCollectibleIds]);
+
+    // A Cup Run reported its end (CupRunScreen calls this once). A loss banks
+    // immediately; a cup win waits for the reward pick (its overlay below).
+    const handleCupRunEnd = useCallback((xi: Player[], wonCup: boolean) => {
+        setCupRunSticker({ ids: xi.filter(isCollectible).map((p) => p.id), wonCup });
+    }, []);
+    useEffect(() => {
+        if (!STICKERS || !cupRunSticker || cupRunSticker.wonCup) return;
+        applyStickers(cupRunSticker.ids, false, null, false);
+        setCupRunSticker(null);
+    }, [STICKERS, cupRunSticker, applyStickers]);
 
     const handleTrade = useCallback(
         (tier: StickerTier, playerId: string) => {
@@ -593,7 +620,13 @@ export default function App() {
                 {isSquads ? (
                     <SquadBrowser />
                 ) : isCupRun ? (
-                    <CupRunScreen draftedXi={draftedXi} onReDraft={handleReset} />
+                    <CupRunScreen
+                        draftedXi={draftedXi}
+                        onReDraft={handleReset}
+                        speed={speed}
+                        onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                        onRunEnd={STICKERS ? handleCupRunEnd : undefined}
+                    />
                 ) : isBudget ? (
                     <BudgetDraftScreen
                         formation={previewFormation}
@@ -812,7 +845,17 @@ export default function App() {
                 <CupRewardPicker
                     album={album}
                     allPlayers={allPlayers}
-                    onPick={(playerId) => applyStickers(true, playerId)}
+                    onPick={(playerId) => applyStickers(draftedCollectibleIds, true, playerId, true)}
+                />
+            )}
+            {STICKERS && cupRunSticker?.wonCup && (
+                <CupRewardPicker
+                    album={album}
+                    allPlayers={allPlayers}
+                    onPick={(playerId) => {
+                        applyStickers(cupRunSticker.ids, true, playerId, false);
+                        setCupRunSticker(null);
+                    }}
                 />
             )}
             {STICKERS && newStickerIds && newStickerIds.length > 0 && (

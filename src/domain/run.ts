@@ -11,9 +11,17 @@ import {
   standings,
   pickOpponents,
   GROUP_MATCHDAYS,
+  USER_ID,
   type GroupTeam,
 } from './tournament';
-import { simulateMatch, simulateExtraTime, simulateShootout } from './match';
+import {
+  simulateMatch,
+  simulateExtraTime,
+  simulateShootout,
+  type MatchEvent,
+  type MatchResult,
+  type ShootoutResult,
+} from './match';
 import { drawOpponent, KO_ROUNDS, type KoDecided } from './knockout';
 import { offerBoons, boonById, type Boon } from './boons';
 
@@ -44,6 +52,41 @@ export interface RunState {
   outcome: RunOutcome | null;
   /** Narrative lines, oldest first. */
   log: string[];
+  /** Whether this run's collectibles have been merged into the sticker album. Guards
+   *  a once-per-run apply that survives a reload (mirrors the main game's flag). */
+  stickersApplied: boolean;
+}
+
+/** A finished knockout tie, normalised to the user's perspective (user = home).
+ *  Carries the goal events + shootout so the UI can reveal it minute by minute. */
+export interface KoMatch {
+  userGoals: number;
+  oppGoals: number;
+  decided: KoDecided;
+  events: MatchEvent[];
+  pens?: ShootoutResult;
+  userWon: boolean;
+}
+
+/** One of the user's group matches, normalised to the user-as-home perspective. */
+export interface UserMatch {
+  opp: GroupTeam;
+  result: MatchResult;
+}
+
+/** The group stage, computed up front: the committed next state plus the user's
+ *  three matches for live reveal (simulation is separate from playback). */
+export interface PreparedGroup {
+  next: RunState;
+  userMatches: UserMatch[];
+}
+
+/** A prepared knockout tie: the committed next state plus the revealed match. */
+export interface PreparedKnockout {
+  next: RunState;
+  match: KoMatch;
+  opp: GroupTeam;
+  roundName: string;
 }
 
 /** Cumulative score for reaching each stage. */
@@ -105,43 +148,84 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
     score: 0,
     outcome: null,
     log,
+    stickersApplied: false,
   };
 }
 
-/** Simulate the group stage; qualify -> draw the R16 opponent + offer a boon. */
-export function playGroupStage(run: RunState): RunState {
-  if (run.phase !== 'group') return run;
+/** Simulate the group stage up front, returning the committed next state plus the
+ *  user's three matches (for live reveal). Qualify -> draw the R16 opponent + offer
+ *  a boon; otherwise the run ends. */
+export function prepareGroupStage(run: RunState): PreparedGroup | null {
+  if (run.phase !== 'group') return null;
   const user = userGroupTeam(run.xi, chemistryOf(run.xi));
   const opponents = pickOpponents(3);
   let group = createGroup(user, opponents);
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
   }
+  // The user's three fixtures, normalised so the user is always the home side (the
+  // match card renders the user on the left). The user is scheduled home in every
+  // group fixture, but normalise generally to be safe.
+  const byId = new Map(group.teams.map((t) => [t.id, t]));
+  const userMatches: UserMatch[] = [];
+  const matchLines: string[] = [];
+  for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
+    const fx = group.fixtures.find(
+      (f) => f.matchday === md && (f.homeId === USER_ID || f.awayId === USER_ID),
+    );
+    if (!fx?.result) continue;
+    const userIsHome = fx.homeId === USER_ID;
+    const opp = byId.get(userIsHome ? fx.awayId : fx.homeId)!;
+    const ug = userIsHome ? fx.result.homeGoals : fx.result.awayGoals;
+    const og = userIsHome ? fx.result.awayGoals : fx.result.homeGoals;
+    const result: MatchResult = userIsHome
+      ? fx.result
+      : {
+          homeGoals: fx.result.awayGoals,
+          awayGoals: fx.result.homeGoals,
+          events: fx.result.events.map((e) => ({
+            ...e,
+            side: e.side === 'home' ? 'away' : 'home',
+          })),
+        };
+    userMatches.push({ opp, result });
+    matchLines.push(`Matchday ${md}: you ${ug}-${og} ${opp.name}.`);
+  }
+
   const table = standings(group);
   const pos = table.findIndex((s) => s.team.isUser) + 1;
-  const line = `Group stage: finished ${ordinal(pos)} of ${table.length}.`;
+  const posLine = `Group stage: finished ${ordinal(pos)} of ${table.length}.`;
   if (!userAdvanced(group)) {
     return {
-      ...run,
-      phase: 'ended',
-      outcome: 'group',
-      score: STAGE_SCORE.group,
-      log: [...run.log, line, 'Eliminated in the group stage.'],
+      next: {
+        ...run,
+        phase: 'ended',
+        outcome: 'group',
+        score: STAGE_SCORE.group,
+        log: [...run.log, ...matchLines, posLine, 'Eliminated in the group stage.'],
+      },
+      userMatches,
     };
   }
   // Exclude the group opponents from the knockout draw (no immediate rematch).
   const faced = [...run.facedIds, ...opponents.map((s) => s.id)];
   const opp = drawOpponent(new Set(faced));
   return {
-    ...run,
-    phase: 'boon',
-    offer: offerBoons(offerSize(run.perks)),
-    nextOpponent: opp,
-    facedIds: [...faced, opp.id],
-    score: STAGE_SCORE.group,
-    log: [...run.log, line, `Through to the ${KO_ROUNDS[0]}. Pick a boon.`],
+    next: {
+      ...run,
+      phase: 'boon',
+      offer: offerBoons(offerSize(run.perks)),
+      nextOpponent: opp,
+      facedIds: [...faced, opp.id],
+      score: STAGE_SCORE.group,
+      log: [...run.log, ...matchLines, posLine, `Through to the ${KO_ROUNDS[0]}. Pick a boon.`],
+    },
+    userMatches,
   };
 }
+
+/** Commit the group stage without revealing it (used by the checks harness). */
+export const playGroupStage = (run: RunState): RunState => prepareGroupStage(run)?.next ?? run;
 
 /** Apply the chosen boon and move to the pending knockout tie. */
 export function chooseBoon(run: RunState, boonId: string): RunState {
@@ -164,36 +248,42 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
   };
 }
 
-/** A single knockout tie: 90', extra time on a draw, then a shootout. */
-function simulateKoTie(
-  user: GroupTeam,
-  opp: GroupTeam,
-): { userWon: boolean; hg: number; ag: number; decided: KoDecided } {
+/** A single knockout tie: 90', extra time on a draw, then a shootout. Keeps the
+ *  goal events (regulation + extra time) and shootout so it can be revealed live.
+ *  `user` is the home side, so the returned goals are already user/opp. */
+function simulateKoTie(user: GroupTeam, opp: GroupTeam): KoMatch {
   const reg = simulateMatch(user, opp);
-  let hg = reg.homeGoals;
-  let ag = reg.awayGoals;
-  if (hg !== ag) return { userWon: hg > ag, hg, ag, decided: 'reg' };
+  let userGoals = reg.homeGoals;
+  let oppGoals = reg.awayGoals;
+  let events = [...reg.events];
+  if (userGoals !== oppGoals)
+    return { userGoals, oppGoals, decided: 'reg', events, userWon: userGoals > oppGoals };
   const et = simulateExtraTime(user, opp);
-  hg += et.homeGoals;
-  ag += et.awayGoals;
-  if (hg !== ag) return { userWon: hg > ag, hg, ag, decided: 'aet' };
+  userGoals += et.homeGoals;
+  oppGoals += et.awayGoals;
+  events = [...events, ...et.events];
+  if (userGoals !== oppGoals)
+    return { userGoals, oppGoals, decided: 'aet', events, userWon: userGoals > oppGoals };
   const so = simulateShootout({ penTakers: user.penTakers }, { penTakers: opp.penTakers });
-  return { userWon: so.homeWon, hg, ag, decided: 'pens' };
+  return { userGoals, oppGoals, decided: 'pens', events, pens: so, userWon: so.homeWon };
 }
 
-/** Play the pending knockout tie; win -> next round (+ boon) or the trophy. */
-export function playKnockoutRound(run: RunState): RunState {
-  if (run.phase !== 'match' || !run.nextOpponent) return run;
+/** Prepare the pending knockout tie: simulate it up front (keeping the events for a
+ *  live reveal) and compute the committed next state (win -> next round + boon, or
+ *  the trophy; loss -> ended). */
+export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
+  if (run.phase !== 'match' || !run.nextOpponent) return null;
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
-  const { userWon, hg, ag, decided } = simulateKoTie(userGroupTeam(run.xi, chemistryOf(run.xi)), opp);
-  const tag = decided === 'pens' ? ' (pens)' : decided === 'aet' ? ' (aet)' : '';
-  const scoreLine = `${roundName}: you ${hg}-${ag} ${opp.name}${tag}.`;
+  const match = simulateKoTie(userGroupTeam(run.xi, chemistryOf(run.xi)), opp);
+  const tag = match.decided === 'pens' ? ' (pens)' : match.decided === 'aet' ? ' (aet)' : '';
+  const scoreLine = `${roundName}: you ${match.userGoals}-${match.oppGoals} ${opp.name}${tag}.`;
 
-  if (!userWon) {
+  let next: RunState;
+  if (!match.userWon) {
     const outcome = KO_OUTCOME[round];
-    return {
+    next = {
       ...run,
       phase: 'ended',
       outcome,
@@ -201,9 +291,8 @@ export function playKnockoutRound(run: RunState): RunState {
       nextOpponent: null,
       log: [...run.log, `${scoreLine} Knocked out.`],
     };
-  }
-  if (round >= KO_ROUNDS.length - 1) {
-    return {
+  } else if (round >= KO_ROUNDS.length - 1) {
+    next = {
       ...run,
       phase: 'ended',
       outcome: 'champion',
@@ -211,17 +300,23 @@ export function playKnockoutRound(run: RunState): RunState {
       nextOpponent: null,
       log: [...run.log, `${scoreLine} You are World Cup champions!`],
     };
+  } else {
+    const nextRound = round + 1;
+    const nextOpp = drawOpponent(new Set(run.facedIds));
+    next = {
+      ...run,
+      phase: 'boon',
+      koRound: nextRound,
+      offer: offerBoons(offerSize(run.perks)),
+      nextOpponent: nextOpp,
+      facedIds: [...run.facedIds, nextOpp.id],
+      score: STAGE_SCORE[KO_OUTCOME[round]],
+      log: [...run.log, `${scoreLine} Into the ${KO_ROUNDS[nextRound]}. Pick a boon.`],
+    };
   }
-  const nextRound = round + 1;
-  const nextOpp = drawOpponent(new Set(run.facedIds));
-  return {
-    ...run,
-    phase: 'boon',
-    koRound: nextRound,
-    offer: offerBoons(offerSize(run.perks)),
-    nextOpponent: nextOpp,
-    facedIds: [...run.facedIds, nextOpp.id],
-    score: STAGE_SCORE[KO_OUTCOME[round]],
-    log: [...run.log, `${scoreLine} Into the ${KO_ROUNDS[nextRound]}. Pick a boon.`],
-  };
+  return { next, match, opp, roundName };
 }
+
+/** Commit the pending knockout tie without revealing it (used by the checks harness). */
+export const playKnockoutRound = (run: RunState): RunState =>
+  prepareKnockoutRound(run)?.next ?? run;
