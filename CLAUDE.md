@@ -387,10 +387,13 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   knockout tie, via a keyed `LiveCupMatch` (shared `useMatchClock` + `MatchdayCard`), committing
   `next` when the reveal ends. A **Speed** control (shared with the game's `speed`) sets the pace.
 - **In-run layout.** A `RunLadder` sits up top (Group -> R16 -> QF -> SF -> Final -> Cup; current
-  step lit and auto-scrolled to centre; past steps show W/L + opponent, read from
-  `RunState.history`). **Each played step is clickable**, revealing that round's result + the boost
-  taken going into it (`RoundRecord.boostId`, set in `prepareKnockoutRound` from the most recent
-  active boon). The career hub collapses to a slim strip with a chevron during a run (shown in full
+  step lit and auto-scrolled to centre). The bar itself is a clean stepper (node glyph ✓/✗ +
+  round label only, no scorelines); the round detail lives in a **panel below** it that defaults
+  to (and follows) the most recently played round and persists - clicking any played step reviews
+  it there. The detail shows the KO fixture + result + the boost taken going into it
+  (`RoundRecord.boostId`, set in `prepareKnockoutRound`), or the group's finishing position + its
+  three matchday scorelines (`RoundRecord.groupResults`), all from `RunState.history`. The career
+  hub collapses to a slim strip with a chevron during a run (shown in full
   only between runs). The XI panel lists **active boosts** as chips and tags players a roster boost
   brought in (`RunState.boostedIds`, an amber "Boost" mark). After the three group matches reveal,
   the **final group standings** show (the reused `StandingsTable`, from the `group`

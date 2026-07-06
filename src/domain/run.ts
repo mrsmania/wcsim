@@ -51,6 +51,8 @@ export interface RoundRecord {
   /** Group: finishing position + table size. */
   groupPos?: number;
   groupSize?: number;
+  /** Group: the user's three matchday scorelines (user perspective). */
+  groupResults?: { code: string; name: string; us: number; them: number }[];
 }
 
 export interface RunState {
@@ -233,6 +235,12 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
     won: advanced,
     groupPos: pos,
     groupSize: table.length,
+    groupResults: userMatches.map((m) => ({
+      code: m.opp.code,
+      name: m.opp.name,
+      us: m.result.homeGoals,
+      them: m.result.awayGoals,
+    })),
   };
   if (!advanced) {
     return {
