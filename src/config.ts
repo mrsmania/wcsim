@@ -7,6 +7,9 @@ export const FEATURES = {
     /** Remove placed players from the pitch via an x on the badge (testing aid).
      *  Off by default; set to true to show the control and enable removal. */
     removePlayers: true,
+    /** "Random team" shortcut on the setup screen: auto-fill a full valid XI of a
+     *  chosen strength and skip the draft (testing aid). Turn off for real users. */
+    randomTeam: true,
     /** Show each team's rating as a small chip next to it (desktop only). Set to
      *  false to hide all the rating chips everywhere. */
     teamRatings: true,

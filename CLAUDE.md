@@ -117,9 +117,9 @@ src/
                SquadBrowser + TeamRoster are the read-only squad archive (see below);
                CupRunScreen (Cup Run + career) and BudgetDraftScreen (transfer market)
                are lazy-loaded (React.lazy) route screens
-  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, squadBrowser,
-               stickerAlbum, stickerImages, careerMode, budgetDraft) + STICKER_TIERS /
-               STICKER_TRADE_COST + BUDGET_DRAFT
+  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, randomTeam,
+               squadBrowser, stickerAlbum, stickerImages, careerMode, budgetDraft) +
+               STICKER_TIERS / STICKER_TRADE_COST + BUDGET_DRAFT
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)

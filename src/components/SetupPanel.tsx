@@ -24,8 +24,9 @@ interface Props {
     onSelectName: (name: FormationName) => void;
     onSelectStyle: (style: Style) => void;
     onStart: () => void;
-    /** Testing shortcut: auto-fill a random valid XI of the chosen strength. */
-    onRandomTeam: (tier: TeamStrength) => void;
+    /** Testing shortcut: auto-fill a random valid XI of the chosen strength. Omitted
+     *  when FEATURES.randomTeam is off, which hides the whole control. */
+    onRandomTeam?: (tier: TeamStrength) => void;
     /** Build the XI in the budget market instead of rolling (budgetDraft feature). */
     onBudgetDraft?: () => void;
 }
@@ -109,42 +110,44 @@ export default function SetupPanel({
                         {ready ? 'Roll a squad' : 'Loading…'}
                         {ready && <Dices size={16} strokeWidth={2.5} />}
                     </button>
-                    <div className="relative flex-1">
-                        <button
-                            onClick={() => setMenuOpen((o) => !o)}
-                            disabled={!ready}
-                            title="Testing: auto-fill a random valid XI of a chosen strength and skip the draft"
-                            className={`flex w-full items-center justify-center gap-2 px-4 py-[11px] text-[13px] ${SECONDARY_BTN} disabled:cursor-not-allowed disabled:opacity-50`}
-                        >
-                            Random team
-                            <ChevronDown size={15} strokeWidth={2.5} />
-                        </button>
-                        {menuOpen && ready && (
-                            <>
-                                <div
-                                    className="fixed inset-0 z-10"
-                                    onClick={() => setMenuOpen(false)}
-                                />
-                                <div className="absolute right-0 z-20 mt-1.5 w-44 overflow-hidden rounded-md border border-line bg-white shadow-hard">
-                                    {STRENGTH_TIERS.map((t) => (
-                                        <button
-                                            key={t.value}
-                                            onClick={() => {
-                                                setMenuOpen(false);
-                                                onRandomTeam(t.value);
-                                            }}
-                                            className="flex w-full items-baseline justify-between gap-2 border-b border-line px-3 py-2 text-left transition last:border-b-0 hover:bg-pitch/5"
-                                        >
-                                            <span className="text-sm font-bold">{t.label}</span>
-                                            <span className="font-mono text-[10px] text-muted">
-                                                {t.hint}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                    {onRandomTeam && (
+                        <div className="relative flex-1">
+                            <button
+                                onClick={() => setMenuOpen((o) => !o)}
+                                disabled={!ready}
+                                title="Testing: auto-fill a random valid XI of a chosen strength and skip the draft"
+                                className={`flex w-full items-center justify-center gap-2 px-4 py-[11px] text-[13px] ${SECONDARY_BTN} disabled:cursor-not-allowed disabled:opacity-50`}
+                            >
+                                Random team
+                                <ChevronDown size={15} strokeWidth={2.5} />
+                            </button>
+                            {menuOpen && ready && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-10"
+                                        onClick={() => setMenuOpen(false)}
+                                    />
+                                    <div className="absolute right-0 z-20 mt-1.5 w-44 overflow-hidden rounded-md border border-line bg-white shadow-hard">
+                                        {STRENGTH_TIERS.map((t) => (
+                                            <button
+                                                key={t.value}
+                                                onClick={() => {
+                                                    setMenuOpen(false);
+                                                    onRandomTeam(t.value);
+                                                }}
+                                                className="flex w-full items-baseline justify-between gap-2 border-b border-line px-3 py-2 text-left transition last:border-b-0 hover:bg-pitch/5"
+                                            >
+                                                <span className="text-sm font-bold">{t.label}</span>
+                                                <span className="font-mono text-[10px] text-muted">
+                                                    {t.hint}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
                 {onBudgetDraft && (
                     <button

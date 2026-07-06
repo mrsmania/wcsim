@@ -698,7 +698,9 @@ export default function App() {
                                     }
                                     onSelectStyle={(s) => dispatch({ type: 'SET_STYLE', style: s })}
                                     onStart={handleStart}
-                                    onRandomTeam={handleRandomTeam}
+                                    onRandomTeam={
+                                        FEATURES.randomTeam ? handleRandomTeam : undefined
+                                    }
                                     onBudgetDraft={
                                         FEATURES.budgetDraft ? () => navigate('/build') : undefined
                                     }
