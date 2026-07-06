@@ -386,6 +386,14 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   harness) just return `next`. `CupRunScreen` reveals the three group matches one by one, then the
   knockout tie, via a keyed `LiveCupMatch` (shared `useMatchClock` + `MatchdayCard`), committing
   `next` when the reveal ends. A **Speed** control (shared with the game's `speed`) sets the pace.
+- **In-run layout.** A `RunLadder` sits up top (Group -> R16 -> QF -> SF -> Final -> Cup; current
+  step lit and auto-scrolled to centre; past steps show W/L + opponent, read from
+  `RunState.history`). The career hub collapses to a slim strip with a chevron during a run (shown
+  in full only between runs). The XI panel lists **active boosts** as chips and tags players a
+  roster boost brought in (`RunState.boostedIds`, an amber "Boost" mark). After the three group
+  matches reveal, the **final group standings** show (the reused `StandingsTable`, from the `group`
+  `prepareGroupStage` now returns) with a Continue button before the boost pick. The run log is a
+  collapsible feed.
 - **Persistence** (`state/runStorage.ts` key `wcsim_run_v1`): the in-progress run is mirrored to
   its own key, so a refresh mid-run resumes it (the transient live-reveal is not persisted, so a
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built

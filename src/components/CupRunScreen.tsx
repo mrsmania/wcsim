@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { primaryPosition, type Player } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import { xiStrength, type MatchEvent, type ShootoutResult } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
 import { KO_ROUNDS, type KoDecided } from '../domain/knockout';
 import type { MatchSpeed } from '../domain/clock';
-import type { GroupTeam } from '../domain/tournament';
-import type { Rarity } from '../domain/boons';
+import type { GroupState, GroupTeam } from '../domain/tournament';
+import { boonById, type Rarity } from '../domain/boons';
 import {
   beginRun,
   prepareGroupStage,
@@ -35,6 +35,8 @@ import { useFollowBottom } from '../hooks/useFollowBottom';
 import { liveMatchView, resultTag } from './matchView';
 import { ResultTag } from './matchUi';
 import MatchdayCard from './MatchdayCard';
+import StandingsTable from './StandingsTable';
+import RunLadder from './RunLadder';
 import Confetti from './Confetti';
 import Flag from './Flag';
 
@@ -71,9 +73,10 @@ interface Reward {
 
 /** The live-reveal state: which match(es) are being played out before the run
  *  commits to `next`. Transient (not persisted) - a refresh mid-reveal drops back
- *  to the pre-play run, which just replays. */
+ *  to the pre-play run, which just replays. The group carries its final table +
+ *  a `done` flag so the standings show after the three matches, before committing. */
 type Reveal =
-  | { kind: 'group'; next: RunState; matches: UserMatch[]; index: number }
+  | { kind: 'group'; next: RunState; matches: UserMatch[]; group: GroupState; index: number; done: boolean }
   | { kind: 'ko'; next: RunState; match: KoMatch; opp: GroupTeam; roundName: string };
 
 /** One match revealed minute by minute with the shared clock + goal feed (the same
@@ -139,6 +142,34 @@ function LiveCupMatch({
   );
 }
 
+/** A settled group match rendered as a finished card (used before the standings). */
+function GroupResultCard({ m, i, userRating }: { m: UserMatch; i: number; userRating: number }) {
+  const ug = m.result.homeGoals;
+  const og = m.result.awayGoals;
+  return (
+    <MatchdayCard
+      label={`Matchday ${i + 1}`}
+      tag={<ResultTag {...resultTag({ user: ug, opp: og })} />}
+      userRating={userRating}
+      oppName={m.opp.name}
+      oppCode={m.opp.code}
+      oppYear={m.opp.year}
+      oppRating={m.opp.strength.overall}
+      view={liveMatchView({
+        playing: false,
+        userSide: 'home',
+        liveMinute: 90,
+        liveMax: 90,
+        clockLabel: '',
+        finished: { userGoals: ug, oppGoals: og, status: 'Full time', statusDim: true, events: m.result.events },
+      })}
+      userSide="home"
+      playing={false}
+      clockLabel=""
+    />
+  );
+}
+
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
  *  the next run. The in-progress run persists to its own localStorage key, so a
@@ -166,6 +197,9 @@ export default function CupRunScreen({
   const [run, setRun] = useState<RunState | null>(loadRun);
   const [reward, setReward] = useState<Reward | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
+  // The career hub collapses to a slim strip during a run (perks are a between-runs
+  // thing); it always shows fully when there is no active run.
+  const [hubOpen, setHubOpen] = useState(false);
 
   // Persist the in-progress run (or clear it once there is none), so a refresh
   // mid-run resumes exactly where it left off.
@@ -218,7 +252,7 @@ export default function CupRunScreen({
   const playGroup = () => {
     if (!run) return;
     const p = prepareGroupStage(run);
-    if (p) setReveal({ kind: 'group', next: p.next, matches: p.userMatches, index: 0 });
+    if (p) setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
   };
   const playKo = () => {
     if (!run) return;
@@ -226,15 +260,23 @@ export default function CupRunScreen({
     if (p) setReveal({ kind: 'ko', next: p.next, match: p.match, opp: p.opp, roundName: p.roundName });
   };
 
-  // A revealed match finished: advance to the next group match, or commit the run.
+  // A revealed match finished: advance the group reveal (or show its final table when
+  // all three are done), or commit a knockout tie.
   const handleMatchEnd = () => {
     if (!reveal) return;
-    if (reveal.kind === 'group' && reveal.index < reveal.matches.length - 1) {
-      setReveal({ ...reveal, index: reveal.index + 1 });
+    if (reveal.kind === 'group') {
+      if (reveal.index < reveal.matches.length - 1) setReveal({ ...reveal, index: reveal.index + 1 });
+      else setReveal({ ...reveal, done: true }); // all three played -> show the table
     } else {
       advance(reveal.next);
       setReveal(null);
     }
+  };
+  // Commit the group after the standings overview.
+  const continueFromGroup = () => {
+    if (reveal?.kind !== 'group') return;
+    advance(reveal.next);
+    setReveal(null);
   };
 
   const purchase = (perkId: string) => {
@@ -244,11 +286,12 @@ export default function CupRunScreen({
   };
 
   const prog = levelProgress(career.xp);
+  const showHubBody = !run || hubOpen;
+  const boostedIds = new Set(run?.boostedIds ?? []);
 
   return (
     <div ref={rootRef} className="mx-auto max-w-[1000px]">
-      {/* Cup-win celebration: rains once when the run ends as champion (same
-          self-contained canvas as the main game; respects reduced-motion). */}
+      {/* Cup-win celebration: rains once when the run ends as champion. */}
       {run?.outcome === 'champion' && <Confetti />}
       <Link
         to="/"
@@ -258,92 +301,98 @@ export default function CupRunScreen({
         Back to game
       </Link>
 
-      <div className="mb-5 mt-1">
-        <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-          Career &middot; prototype
-        </div>
-        <h2 className="mt-0.5 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
-          Cup Run
-        </h2>
-      </div>
-
-      {/* Career hub */}
-      <section className="mb-4 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
-        <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="bg-panel p-4">
-            <div className="flex items-baseline justify-between">
-              <span className="font-display text-lg font-extrabold">Level {career.level}</span>
-              <span className="font-mono text-[12px] font-semibold text-amber">
-                {career.prestige} Prestige
-              </span>
-            </div>
-            <div className="mt-2 h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
-              <div
-                className="h-full bg-pitch"
-                style={{ width: `${(prog.into / prog.needed) * 100}%` }}
-              />
-            </div>
-            <div className="mt-1 font-mono text-[10px] text-muted">
-              {prog.into} / {prog.needed} XP to level {career.level + 1}
-            </div>
+      {/* Career hub - full between runs, a slim collapsible strip during a run. */}
+      <section className="mb-4 mt-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <div className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 ${showHubBody ? 'border-b border-line' : ''}`}>
+          <div className="flex items-baseline gap-2.5">
+            <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">Cup Run</span>
+            <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-pitch-dark">
+              Level {career.level}
+            </span>
+            <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
+              {career.prestige} Prestige
+            </span>
           </div>
-          <div className="grid grid-cols-3 gap-px bg-line sm:w-[300px]">
-            {(
-              [
-                ['Runs', String(career.stats.runs)],
-                ['Cups', String(career.stats.cups)],
-                ['Best', career.stats.bestFinish ? FINISH_LABEL[career.stats.bestFinish] : '-'],
-              ] as const
-            ).map(([label, val]) => (
-              <div key={label} className="bg-panel px-2 py-4 text-center">
-                <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  {label}
+          {run && (
+            <button
+              onClick={() => setHubOpen((o) => !o)}
+              className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-pitch"
+            >
+              {hubOpen ? 'Hide hub' : 'Career hub'}
+              {hubOpen ? <ChevronUp size={13} strokeWidth={2.5} /> : <ChevronDown size={13} strokeWidth={2.5} />}
+            </button>
+          )}
+        </div>
+
+        {showHubBody && (
+          <>
+            <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="bg-panel p-4">
+                <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Progress
                 </div>
-                <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight">
-                  {val}
+                <div className="h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
+                  <div className="h-full bg-pitch" style={{ width: `${(prog.into / prog.needed) * 100}%` }} />
+                </div>
+                <div className="mt-1 font-mono text-[10px] text-muted">
+                  {prog.into} / {prog.needed} XP to level {career.level + 1}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Perk shop */}
-        <div className="border-t border-line p-4">
-          <div className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-            Perks (spend Prestige - applies to future runs)
-          </div>
-          <div className="grid gap-2.5 sm:grid-cols-3">
-            {PERKS.map((perk) => {
-              const owned = career.unlocked.includes(perk.id);
-              const affordable = career.prestige >= perk.cost;
-              return (
-                <div key={perk.id} className="rounded-md border border-line bg-white p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-[13.5px] font-extrabold">{perk.name}</span>
-                    <span className="font-mono text-[11px] font-semibold text-amber">
-                      {perk.cost}
-                    </span>
+              <div className="grid grid-cols-3 gap-px bg-line sm:w-[300px]">
+                {(
+                  [
+                    ['Runs', String(career.stats.runs)],
+                    ['Cups', String(career.stats.cups)],
+                    ['Best', career.stats.bestFinish ? FINISH_LABEL[career.stats.bestFinish] : '-'],
+                  ] as const
+                ).map(([label, val]) => (
+                  <div key={label} className="bg-panel px-2 py-4 text-center">
+                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
+                      {label}
+                    </div>
+                    <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight">{val}</div>
                   </div>
-                  <p className="mt-1 text-[11.5px] leading-snug text-muted">{perk.description}</p>
-                  <button
-                    disabled={owned || !affordable}
-                    onClick={() => purchase(perk.id)}
-                    className={[
-                      'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
-                      owned
-                        ? 'cursor-default bg-pitch/10 text-pitch'
-                        : affordable
-                          ? 'bg-pitch text-white hover:bg-pitch-dark'
-                          : 'cursor-not-allowed border border-line bg-white text-muted/50',
-                    ].join(' ')}
-                  >
-                    {owned ? 'Owned' : affordable ? 'Unlock' : `Need ${perk.cost}`}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Perk shop */}
+            <div className="border-t border-line p-4">
+              <div className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Perks (spend Prestige - applies to future runs)
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-3">
+                {PERKS.map((perk) => {
+                  const owned = career.unlocked.includes(perk.id);
+                  const affordable = career.prestige >= perk.cost;
+                  return (
+                    <div key={perk.id} className="rounded-md border border-line bg-white p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-display text-[13.5px] font-extrabold">{perk.name}</span>
+                        <span className="font-mono text-[11px] font-semibold text-amber">{perk.cost}</span>
+                      </div>
+                      <p className="mt-1 text-[11.5px] leading-snug text-muted">{perk.description}</p>
+                      <button
+                        disabled={owned || !affordable}
+                        onClick={() => purchase(perk.id)}
+                        className={[
+                          'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
+                          owned
+                            ? 'cursor-default bg-pitch/10 text-pitch'
+                            : affordable
+                              ? 'bg-pitch text-white hover:bg-pitch-dark'
+                              : 'cursor-not-allowed border border-line bg-white text-muted/50',
+                        ].join(' ')}
+                      >
+                        {owned ? 'Owned' : affordable ? 'Unlock' : `Need ${perk.cost}`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </section>
 
       {/* No active run: start with the drafted XI, or prompt to draft one. */}
@@ -371,281 +420,295 @@ export default function CupRunScreen({
 
       {/* Active run */}
       {run && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
-          {/* Your XI */}
-          <section className="overflow-hidden rounded-md border border-line bg-panel shadow-hard self-start">
-            <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3">
-              <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
-                Your XI
-              </span>
-              <span className="font-mono text-[11px] font-semibold text-muted">
-                Score <span className="text-ink">{run.score}</span>
-              </span>
-            </div>
-            <div className="grid grid-cols-4 gap-px border-b border-line bg-line text-center">
-              {(
-                [
-                  ['Title', pct(odds), true],
-                  ['Ovr', str.overall, false],
-                  ['Att', str.attack, false],
-                  ['Def', str.defense, false],
-                ] as const
-              ).map(([label, val, hero]) => (
-                <div key={label} className={hero ? 'bg-pitch-dark py-2 text-white' : 'bg-panel py-2'}>
-                  <div
-                    className={`font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${hero ? 'text-white/70' : 'text-muted'}`}
-                  >
-                    {label}
-                  </div>
-                  <div className="font-mono text-[17px] font-bold leading-tight">{val}</div>
-                </div>
-              ))}
-            </div>
-            <ul>
-              {run.xi.map((p) => {
-                const sq = SQUAD_BY_ID[p.squadId];
-                return (
-                  <li
-                    key={p.id}
-                    className="flex items-center gap-2.5 border-b border-line px-4 py-1.5 last:border-b-0"
-                  >
-                    <span className="w-8 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-pitch">
-                      {primaryPosition(p)}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">
-                      {p.name}
-                    </span>
-                    {sq && <Flag code={sq.code} className="h-3 w-[18px]" />}
-                    <span className="w-6 shrink-0 text-right font-mono text-[14px] font-bold">
-                      {p.elo}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+        <>
+          {/* Progress ladder: Group -> R16 -> QF -> SF -> Final -> Cup. */}
+          <div className="mb-4">
+            <RunLadder run={run} />
+          </div>
 
-          {/* Run panel + log */}
-          <section className="flex min-w-0 flex-col gap-4">
-            {run.phase !== 'ended' && (
-              <div className="flex items-center justify-end gap-2">
-                <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  Speed
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
+            {/* Your XI + active boosts */}
+            <section className="self-start overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+              <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3">
+                <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
+                  Your XI
                 </span>
-                <div className="flex overflow-hidden rounded-[5px] border border-line">
-                  {SPEEDS.map((s) => (
-                    <button
-                      key={s.value}
-                      onClick={() => onSetSpeed(s.value)}
-                      className={`border-l border-line px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition first:border-l-0 ${
-                        speed === s.value ? 'bg-ink text-ground' : 'bg-white text-muted hover:text-ink'
-                      }`}
+                <span className="font-mono text-[11px] font-semibold text-muted">
+                  Score <span className="text-ink">{run.score}</span>
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-px border-b border-line bg-line text-center">
+                {(
+                  [
+                    ['Title', pct(odds), true],
+                    ['Ovr', str.overall, false],
+                    ['Att', str.attack, false],
+                    ['Def', str.defense, false],
+                  ] as const
+                ).map(([label, val, hero]) => (
+                  <div key={label} className={hero ? 'bg-pitch-dark py-2 text-white' : 'bg-panel py-2'}>
+                    <div
+                      className={`font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${hero ? 'text-white/70' : 'text-muted'}`}
                     >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {reveal ? (
-              /* Live match reveal (group matches one by one, or the knockout tie) */
-              <div>
-                {reveal.kind === 'group'
-                  ? reveal.matches.map((m, i) => {
-                      if (i > reveal.index) return null;
-                      if (i < reveal.index) {
-                        const ug = m.result.homeGoals;
-                        const og = m.result.awayGoals;
-                        return (
-                          <MatchdayCard
-                            key={i}
-                            label={`Matchday ${i + 1}`}
-                            tag={<ResultTag {...resultTag({ user: ug, opp: og })} />}
-                            userRating={userRating}
-                            oppName={m.opp.name}
-                            oppCode={m.opp.code}
-                            oppYear={m.opp.year}
-                            oppRating={m.opp.strength.overall}
-                            view={liveMatchView({
-                              playing: false,
-                              userSide: 'home',
-                              liveMinute: 90,
-                              liveMax: 90,
-                              clockLabel: '',
-                              finished: {
-                                userGoals: ug,
-                                oppGoals: og,
-                                status: 'Full time',
-                                statusDim: true,
-                                events: m.result.events,
-                              },
-                            })}
-                            userSide="home"
-                            playing={false}
-                            clockLabel=""
-                          />
-                        );
-                      }
-                      return (
-                        <LiveCupMatch
-                          key={i}
-                          label={`Matchday ${i + 1}`}
-                          opp={m.opp}
-                          userRating={userRating}
-                          events={m.result.events}
-                          decided="reg"
-                          speed={speed}
-                          onEnd={handleMatchEnd}
-                        />
-                      );
-                    })
-                  : (
-                      <LiveCupMatch
-                        key="ko"
-                        label={reveal.roundName}
-                        opp={reveal.opp}
-                        userRating={userRating}
-                        events={reveal.match.events}
-                        decided={reveal.match.decided}
-                        pens={reveal.match.pens}
-                        speed={speed}
-                        onEnd={handleMatchEnd}
-                      />
-                    )}
-                <div ref={tailRef} aria-hidden className="h-0" />
-              </div>
-            ) : (
-              <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
-                {run.phase === 'group' && (
-                  <div className="text-center">
-                    <p className="mb-4 text-[13.5px] text-muted">
-                      Play the group stage. Finish in the top two to reach the knockouts.
-                    </p>
-                    <button onClick={playGroup} className={PRIMARY_BTN}>
-                      Play group stage
-                    </button>
+                      {label}
+                    </div>
+                    <div className="font-mono text-[17px] font-bold leading-tight">{val}</div>
                   </div>
-                )}
-
-                {run.phase === 'boon' && run.offer && (
-                  <div>
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                        Pick a boost
+                ))}
+              </div>
+              <ul>
+                {run.xi.map((p) => {
+                  const sq = SQUAD_BY_ID[p.squadId];
+                  return (
+                    <li
+                      key={p.id}
+                      className="flex items-center gap-2 border-b border-line px-4 py-1.5 last:border-b-0"
+                    >
+                      <span className="w-7 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-pitch">
+                        {primaryPosition(p)}
                       </span>
-                      {run.nextOpponent && (
-                        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">
-                          Next: <Flag code={run.nextOpponent.code} className="h-3 w-[18px]" />
-                          <b className="text-ink">{run.nextOpponent.name}</b> in {KO_ROUNDS[run.koRound]}
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{p.name}</span>
+                      {boostedIds.has(p.id) && (
+                        <span className="shrink-0 rounded-[3px] bg-amber px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.04em] text-white">
+                          Boost
                         </span>
                       )}
-                    </div>
-                    <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                      {run.offer.map((b) => (
-                        <button
-                          key={b.id}
-                          onClick={() => setRun(chooseBoon(run, b.id))}
-                          className="flex flex-col gap-1.5 rounded-md border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
-                          style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
-                        >
-                          <span
-                            className="font-mono text-[9px] font-bold uppercase tracking-[0.12em]"
-                            style={{ color: RARITY_COLOR[b.rarity] }}
-                          >
-                            {b.rarity}
-                          </span>
-                          <span className="font-display text-[14px] font-extrabold leading-tight">
-                            {b.name}
-                          </span>
-                          <span className="text-[11.5px] leading-snug text-muted">{b.description}</span>
-                        </button>
-                      ))}
-                    </div>
+                      {sq && <Flag code={sq.code} className="h-3 w-[18px]" />}
+                      <span className="w-6 shrink-0 text-right font-mono text-[14px] font-bold">{p.elo}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              {run.activeBoons.length > 0 && (
+                <div className="border-t border-line p-3">
+                  <div className="mb-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted">
+                    Active boosts
                   </div>
-                )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {run.activeBoons.map((id, i) => {
+                      const b = boonById(id);
+                      if (!b) return null;
+                      return (
+                        <span
+                          key={`${id}-${i}`}
+                          className="rounded-[4px] border border-l-[3px] border-line bg-white px-2 py-1 text-[11px] font-semibold"
+                          style={{ borderLeftColor: RARITY_COLOR[b.rarity] }}
+                        >
+                          {b.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </section>
 
-                {run.phase === 'match' && run.nextOpponent && (
-                  <div className="text-center">
-                    <p className="mb-1 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                      {KO_ROUNDS[run.koRound]}
-                    </p>
-                    <p className="mb-4 inline-flex items-center gap-2 text-[15px] font-semibold">
-                      You <Flag code={run.nextOpponent.code} className="h-3.5 w-5" /> vs{' '}
-                      {run.nextOpponent.name}
-                    </p>
-                    <div>
-                      <button onClick={playKo} className={PRIMARY_BTN}>
-                        Play {KO_ROUNDS[run.koRound]}
+            {/* Run panel + log */}
+            <section className="flex min-w-0 flex-col gap-4">
+              {run.phase !== 'ended' && (
+                <div className="flex items-center justify-end gap-2">
+                  <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted">
+                    Speed
+                  </span>
+                  <div className="flex overflow-hidden rounded-[5px] border border-line">
+                    {SPEEDS.map((s) => (
+                      <button
+                        key={s.value}
+                        onClick={() => onSetSpeed(s.value)}
+                        className={`border-l border-line px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition first:border-l-0 ${
+                          speed === s.value ? 'bg-ink text-ground' : 'bg-white text-muted hover:text-ink'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reveal ? (
+                <div>
+                  {reveal.kind === 'group' ? (
+                    <>
+                      {reveal.matches.map((m, i) => {
+                        if (i > reveal.index) return null;
+                        if (i === reveal.index && !reveal.done)
+                          return (
+                            <LiveCupMatch
+                              key={i}
+                              label={`Matchday ${i + 1}`}
+                              opp={m.opp}
+                              userRating={userRating}
+                              events={m.result.events}
+                              decided="reg"
+                              speed={speed}
+                              onEnd={handleMatchEnd}
+                            />
+                          );
+                        return <GroupResultCard key={i} m={m} i={i} userRating={userRating} />;
+                      })}
+                      {reveal.done && (
+                        <>
+                          <div className="mt-6 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                            Final group table
+                          </div>
+                          <StandingsTable
+                            group={reveal.group}
+                            groupFinished
+                            advanced={reveal.next.phase !== 'ended'}
+                          />
+                          <div className="mt-4 flex justify-center">
+                            <button onClick={continueFromGroup} className={PRIMARY_BTN}>
+                              {reveal.next.phase === 'ended' ? 'Continue' : 'Enter the knockouts'}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <LiveCupMatch
+                      key="ko"
+                      label={reveal.roundName}
+                      opp={reveal.opp}
+                      userRating={userRating}
+                      events={reveal.match.events}
+                      decided={reveal.match.decided}
+                      pens={reveal.match.pens}
+                      speed={speed}
+                      onEnd={handleMatchEnd}
+                    />
+                  )}
+                  <div ref={tailRef} aria-hidden className="h-0" />
+                </div>
+              ) : (
+                <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
+                  {run.phase === 'group' && (
+                    <div className="text-center">
+                      <p className="mb-4 text-[13.5px] text-muted">
+                        Play the group stage. Finish in the top two to reach the knockouts.
+                      </p>
+                      <button onClick={playGroup} className={PRIMARY_BTN}>
+                        Play group stage
                       </button>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {run.phase === 'ended' && run.outcome && (
-                  <div className="text-center">
-                    <div
-                      className="mx-auto mb-3 inline-block rounded-md px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
-                      style={
-                        run.outcome === 'champion'
-                          ? { background: 'linear-gradient(135deg,#f0cf8a,#c99a3a)', color: '#3a2a06' }
-                          : { background: '#eee', color: '#555' }
-                      }
-                    >
-                      {run.outcome === 'champion'
-                        ? '★ Champions ★'
-                        : `Out in ${OUTCOME_LABEL[run.outcome]}`}
-                    </div>
-                    <div className="font-display text-2xl font-black">Final score {run.score}</div>
-                    {reward && (
-                      <div className="mt-1.5 font-mono text-[12px] text-muted">
-                        +{reward.xpGained} XP &middot;{' '}
-                        <span className="text-amber">+{reward.prestigeGained} Prestige</span>
-                        {reward.leveledUp && (
-                          <span className="ml-2 font-bold text-pitch">Level up!</span>
+                  {run.phase === 'boon' && run.offer && (
+                    <div>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                          Pick a boost
+                        </span>
+                        {run.nextOpponent && (
+                          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">
+                            Next: <Flag code={run.nextOpponent.code} className="h-3 w-[18px]" />
+                            <b className="text-ink">{run.nextOpponent.name}</b> in {KO_ROUNDS[run.koRound]}
+                          </span>
                         )}
                       </div>
-                    )}
-                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
-                      <button onClick={onReDraft} className={PRIMARY_BTN}>
-                        Draft a new XI
-                      </button>
-                      <button
-                        onClick={startRun}
-                        className="rounded-md border border-line bg-white px-4 py-3 font-display font-extrabold uppercase tracking-[0.02em] text-ink transition hover:border-pitch hover:text-pitch"
-                      >
-                        Replay same XI
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRun(null);
-                          setReward(null);
-                        }}
-                        className="rounded-md border border-line bg-white px-4 py-3 font-display font-extrabold uppercase tracking-[0.02em] text-ink transition hover:border-pitch hover:text-pitch"
-                      >
-                        Career
-                      </button>
+                      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                        {run.offer.map((b) => (
+                          <button
+                            key={b.id}
+                            onClick={() => setRun(chooseBoon(run, b.id))}
+                            className="flex flex-col gap-1.5 rounded-md border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
+                            style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
+                          >
+                            <span
+                              className="font-mono text-[9px] font-bold uppercase tracking-[0.12em]"
+                              style={{ color: RARITY_COLOR[b.rarity] }}
+                            >
+                              {b.rarity}
+                            </span>
+                            <span className="font-display text-[14px] font-extrabold leading-tight">
+                              {b.name}
+                            </span>
+                            <span className="text-[11.5px] leading-snug text-muted">{b.description}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
 
-            {/* Run log */}
-            <div className="rounded-md border border-line bg-panel p-4 shadow-hard">
-              <div className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                Run log
-              </div>
-              <ul className="flex flex-col gap-1.5">
-                {run.log.map((line, i) => (
-                  <li key={i} className="text-[12.5px] leading-snug text-ink">
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        </div>
+                  {run.phase === 'match' && run.nextOpponent && (
+                    <div className="text-center">
+                      <p className="mb-1 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                        {KO_ROUNDS[run.koRound]}
+                      </p>
+                      <p className="mb-4 inline-flex items-center gap-2 text-[15px] font-semibold">
+                        You <Flag code={run.nextOpponent.code} className="h-3.5 w-5" /> vs{' '}
+                        {run.nextOpponent.name}
+                      </p>
+                      <div>
+                        <button onClick={playKo} className={PRIMARY_BTN}>
+                          Play {KO_ROUNDS[run.koRound]}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {run.phase === 'ended' && run.outcome && (
+                    <div className="text-center">
+                      <div
+                        className="mx-auto mb-3 inline-block rounded-md px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
+                        style={
+                          run.outcome === 'champion'
+                            ? { background: 'linear-gradient(135deg,#f0cf8a,#c99a3a)', color: '#3a2a06' }
+                            : { background: '#eee', color: '#555' }
+                        }
+                      >
+                        {run.outcome === 'champion' ? '★ Champions ★' : `Out in ${OUTCOME_LABEL[run.outcome]}`}
+                      </div>
+                      <div className="font-display text-2xl font-black">Final score {run.score}</div>
+                      {reward && (
+                        <div className="mt-1.5 font-mono text-[12px] text-muted">
+                          +{reward.xpGained} XP &middot;{' '}
+                          <span className="text-amber">+{reward.prestigeGained} Prestige</span>
+                          {reward.leveledUp && <span className="ml-2 font-bold text-pitch">Level up!</span>}
+                        </div>
+                      )}
+                      <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                        <button onClick={onReDraft} className={PRIMARY_BTN}>
+                          Draft a new XI
+                        </button>
+                        <button
+                          onClick={startRun}
+                          className="rounded-md border border-line bg-white px-4 py-3 font-display font-extrabold uppercase tracking-[0.02em] text-ink transition hover:border-pitch hover:text-pitch"
+                        >
+                          Replay same XI
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRun(null);
+                            setReward(null);
+                          }}
+                          className="rounded-md border border-line bg-white px-4 py-3 font-display font-extrabold uppercase tracking-[0.02em] text-ink transition hover:border-pitch hover:text-pitch"
+                        >
+                          Career
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Run log - secondary, collapsible. */}
+              <details className="rounded-md border border-line bg-panel shadow-hard">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted [&::-webkit-details-marker]:hidden">
+                  <span>Run log</span>
+                  <ChevronDown size={13} strokeWidth={2.5} />
+                </summary>
+                <ul className="flex flex-col gap-1.5 px-4 pb-3">
+                  {run.log.map((line, i) => (
+                    <li key={i} className="text-[12.5px] leading-snug text-ink">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </section>
+          </div>
+        </>
       )}
     </div>
   );
