@@ -180,6 +180,12 @@ interface Props {
     /** Swap the selected player into an already-filled slot they are eligible for
      *  (sticker album feature). When set, matching filled slots become swap targets. */
     onSwap?: (slotId: string) => void;
+    /** Budget draft: tap an empty slot to shop that position (no player held). When
+     *  set, empty slots are clickable even without a selected player; the tapped slot
+     *  becomes the market's target. Undefined in the roll draft (no behaviour change). */
+    onSelectSlot?: (slotId: string) => void;
+    /** Budget draft: the empty slot currently being shopped for (highlighted). */
+    targetSlotId?: string;
 }
 
 /** One placed player or open slot, rendered flat over the pitch at a position
@@ -189,12 +195,14 @@ function OverlayMarker({
     player,
     target,
     swapTarget,
+    isTarget,
     left,
     top,
     scale,
     onPlace,
     onRemove,
     onSwap,
+    onSelectSlot,
 }: {
     slot: Slot;
     player: Player | null;
@@ -203,6 +211,8 @@ function OverlayMarker({
     target: 'none' | 'primary' | 'secondary';
     /** Whether this FILLED slot can accept the selected player via a swap. */
     swapTarget: boolean;
+    /** Budget draft: this empty slot is the one currently being shopped for. */
+    isTarget: boolean;
     left: string;
     top: string;
     scale: number;
@@ -210,6 +220,7 @@ function OverlayMarker({
     /** Testing aid: clear this slot (only shown for placed players). */
     onRemove?: () => void;
     onSwap?: (slotId: string) => void;
+    onSelectSlot?: (slotId: string) => void;
 }) {
     const transform = `translate(-50%, -50%) scale(${scale})`;
     // Slide to the new spot when the formation changes.
@@ -240,12 +251,16 @@ function OverlayMarker({
         );
     }
 
+    // A held player eligible for this slot -> place it (roll behaviour). Otherwise, if
+    // the budget draft passed onSelectSlot, tapping shops this position instead.
+    const canPlace = target !== 'none';
+    const clickable = canPlace || !!onSelectSlot;
     return (
         <button
             className="absolute flex flex-col items-center"
             style={style}
-            disabled={target === 'none'}
-            onClick={() => onPlace(slot.id)}
+            disabled={!clickable}
+            onClick={() => (canPlace ? onPlace(slot.id) : onSelectSlot?.(slot.id))}
         >
             <div
                 className={[
@@ -254,10 +269,14 @@ function OverlayMarker({
                         ? 'animate-slot-pulse-primary cursor-pointer border-amber bg-amber/90 text-ink'
                         : target === 'secondary'
                           ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
-                          : 'border-dashed border-white/55 bg-white/10 text-white',
+                          : isTarget
+                            ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
+                            : onSelectSlot
+                              ? 'cursor-pointer border-dashed border-white/55 bg-white/10 text-white hover:border-white'
+                              : 'border-dashed border-white/55 bg-white/10 text-white',
                 ].join(' ')}
             >
-                {target !== 'none' ? '+' : null}
+                {canPlace || isTarget ? '+' : null}
             </div>
             <span className="mt-1.5 rounded-[3px] bg-ink/60 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
                 {slot.label}
@@ -266,7 +285,16 @@ function OverlayMarker({
     );
 }
 
-export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRemove, onSwap }: Props) {
+export default function Pitch({
+    formation,
+    filled,
+    selectedPlayer,
+    onPlace,
+    onRemove,
+    onSwap,
+    onSelectSlot,
+    targetSlotId,
+}: Props) {
     // 11 persistent circles (keyed by index). On a formation change each circle
     // slides to its nearest new slot instead of mounting/unmounting.
     const [circles, setCircles] = useState<Slot[]>(() => formation.slots);
@@ -399,12 +427,14 @@ export default function Pitch({ formation, filled, selectedPlayer, onPlace, onRe
                                 player={player}
                                 target={target}
                                 swapTarget={swapTarget}
+                                isTarget={!player && slot.id === targetSlotId}
                                 left={`${ox + qx * fit}px`}
                                 top={`${oy + qy * fit}px`}
                                 scale={Math.min(fit, 1)}
                                 onPlace={onPlace}
                                 onRemove={player && onRemove ? () => onRemove(slot.id) : undefined}
                                 onSwap={onSwap}
+                                onSelectSlot={onSelectSlot}
                             />
                         );
                     })}

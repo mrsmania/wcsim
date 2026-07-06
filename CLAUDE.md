@@ -407,12 +407,22 @@ A second way to build the XI, alongside the random roll. Spec:
   players from all squads into the chosen formation's slots within a fixed budget
   (`BUDGET_DRAFT` in config, $110), each priced by rating via **`domain/pricing.ts`**
   (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so the budget forces trade-offs).
-  A budget bar, one-per-person, an "Auto-fill & spend" helper (randomized: fills the empty
-  slots in a shuffled order, each a random pick from the best few players it can still afford
-  while reserving the minimum for the rest, then a random upgrade pass spends the leftover -
-  so every click yields a different XI that still spends most of the budget), and a "Clear".
-  Confirm loads the XI via the reducer's `AUTOFILL`, so it plays through Quick Play + Cup Run
-  like a rolled XI.
+- **Same layout as the roll draft** (so it doesn't feel like a different app): the 3-column
+  grid (market | pitch | ratings+chemistry+line-up) reusing the real `Pitch`, `BoxScore`, and
+  `XiTable`. The left column is the transfer market (the player source, like the drawn squad):
+  a budget bar + "Auto-fill & spend" + "Clear" on top, then the rating-sorted, searchable list
+  for the targeted position (all shown; unaffordable/used rows disabled; collectible tier stars).
+- **Position selection is on the pitch, both directions.** `Pitch` gained two optional props
+  (`onSelectSlot` + `targetSlotId`, unused/no-op in the roll draft): tap an empty slot to *shop*
+  that position (the market filters to it), OR tap a market player to hold it (its eligible slots
+  pulse amber/white) then tap a highlighted slot to buy - mirroring the roll draft's
+  select-then-place. Placed players show the badge + a remove `x`; buying advances the target to
+  the next empty slot.
+- The "Auto-fill & spend" helper is randomized: fills the empty slots in a shuffled order, each a
+  random pick from the best few players it can still afford (reserving the minimum for the rest),
+  then a random upgrade pass spends the leftover - so every click yields a different XI that still
+  spends most of the budget. Confirm loads the XI via the reducer's `AUTOFILL`, so it plays
+  through Quick Play + Cup Run like a rolled XI.
 
 ## Conventions and working agreements
 
