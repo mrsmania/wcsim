@@ -104,9 +104,8 @@ src/
                career.ts     (Cup Run career: XP/level/Prestige/perks; gated)
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
-               fully built XI; a `mode` "quick|cup" play-mode field set via SET_MODE;
-               a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER for the
-               in-page budget build), persist.ts (the whole
+               fully built XI; a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER
+               for the in-page budget build), persist.ts (the whole
                game <-> localStorage, so routes survive a refresh), albumStorage.ts
                (the sticker album <-> its own localStorage keys), careerStorage.ts
                (the Cup Run career <-> wcsim_career_v1)
@@ -128,17 +127,14 @@ src/
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
 ```
 
-**Play mode.** A `mode` ("quick" | "cup", default `cup`, gated by `FEATURES.careerMode`)
-in the reducer is chosen up front by a **Play mode** segmented toggle on `SetupPanel`
-(hidden when careerMode is off - the game is always a standard World Cup then). It is
-the single knob for the "main" mode a fresh player lands on. `CompletePanel` then shows
-one mode-aware CTA ("Start the World Cup" -> `/group`, or "Enter the Cup Run" ->
-`/cup-run`) instead of two buttons. `App` derives an effective `playMode` (forced to
-"quick" when careerMode is off) and a `completeMode` (an in-progress quick game with a
-group/bracket stays "quick" regardless of the stored mode, covering a legacy save that
-loaded with the `cup` default mid-tournament); `gameRoute` (the masthead "Play" target)
-follows it, pointing at `/cup-run` once a cup-mode XI is drafted. `mode` survives a
-`RESET` so "start over" re-drafts into the same mode.
+**Play mode = decided after the build, not before.** The play mode (standard World Cup
+vs Cup Run) has no effect on how the XI is assembled (Cup Run's perks/boons apply at run
+start, not at draft), so there is no up-front mode toggle. You build the XI, then
+`CompletePanel` shows two equal-weight CTAs: "Start the World Cup" (-> `handleStartGroup`
+-> `/group`) and "Enter the Cup Run" (-> `/cup-run`, shown only when `FEATURES.careerMode`).
+No `mode` state; each CTA triggers its own path. (`gameRoute`, the masthead "Play" target,
+is just `bracket ? /knockout : group ? /group : /`; an in-progress Cup Run is resumed from
+the complete panel or the home Cup Run card.)
 
 **Data flow / phases.** `gameReducer` drives `phase: setup -> draft -> complete ->
 group -> knockout`. `group` (`TournamentScreen.tsx`) and `knockout`
@@ -366,11 +362,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 A roguelike layer over the core loop, plus a persistent career. Design:
 `docs/roguelike-career-design.md`. Entirely behind **`FEATURES.careerMode`**.
 
-- **Cup Run** (`domain/run.ts`, route `/cup-run`, `CupRunScreen.tsx`): you pick "Cup Run"
-  as the play mode on setup (see "Play mode" above), draft your XI the normal way, then
-  the `CompletePanel` CTA ("Enter the Cup Run") takes you in. A "Cup Run career" card on the
-  home **setup** sub-view (hidden once drafting) is the door to the career hub (perks/trophies)
-  before a run. The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
+- **Cup Run** (`domain/run.ts`, route `/cup-run`, `CupRunScreen.tsx`): build your XI the
+  normal way, then pick the "Enter the Cup Run" CTA on `CompletePanel` (see "Play mode"
+  above). A "Cup Run career" card on the home **setup** sub-view (hidden once drafting) is
+  the door to the career hub (perks/trophies) before a run. The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
   `playKnockoutRound` -> ... -> ended (`champion` or knocked out) - reusing the real
   group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Between
   rounds you pick 1 of 3 **boons** (`domain/boons.ts`): rating tweaks (Golden Generation,

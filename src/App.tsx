@@ -39,7 +39,7 @@ import {
 } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { FEATURES, type StickerTier } from './config';
-import { gameReducer, initialState, type PlayMode } from './state/gameReducer';
+import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
 import { clearRun } from './state/runStorage';
 import { loadAlbum, saveAlbum, loadStats, saveStats } from './state/albumStorage';
@@ -161,7 +161,6 @@ export default function App() {
         phase,
         formationName,
         style,
-        mode,
         build,
         formation,
         filled,
@@ -587,14 +586,6 @@ export default function App() {
         })();
     const draftedXi = cupRunXi || null;
 
-    // Effective play mode. Forced to 'quick' when Cup Run is off, so the stored
-    // default ('cup') never leaks into a build without the feature.
-    const playMode: PlayMode = FEATURES.careerMode ? mode : 'quick';
-    // The mode the complete panel commits to. Once a group/bracket exists the XI is
-    // already in a standard World Cup, so stay 'quick' regardless of the stored mode
-    // (covers a legacy save that loaded with the 'cup' default mid-tournament).
-    const completeMode: PlayMode = group || bracket ? 'quick' : playMode;
-
     // Route -> which screen. `location.pathname` is basename-relative.
     const path = location.pathname;
     const squadsEnabled = FEATURES.squadBrowser;
@@ -604,15 +595,9 @@ export default function App() {
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
     const isHome = path === '/';
-    // Where "Play" returns to: the furthest game screen reached. In Cup Run mode,
-    // once an XI is drafted that's the Cup Run screen (it owns its own run state).
-    const gameRoute = bracket
-        ? '/knockout'
-        : group
-          ? '/group'
-          : playMode === 'cup' && draftedXi
-            ? '/cup-run'
-            : '/';
+    // Where "Play" returns to: the furthest game screen reached (an in-progress Cup
+    // Run is resumed from the home complete panel / the Cup Run card, not here).
+    const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
     const albumSummary = STICKERS ? albumStats(album, allPlayers) : null;
     const stampText = isSquads
         ? null
@@ -777,9 +762,9 @@ export default function App() {
                                 </Link>
                             )}
                             {/* Career hub entry. Only on the setup sub-view: mid-draft /
-                                complete it would be noise (the play path there is the
-                                Play-mode toggle + the complete CTA). Here it's the door to
-                                the perk shop + trophies before a run. */}
+                                complete it would be noise (the complete panel's two CTAs
+                                pick the mode there). Here it's the door to the perk shop +
+                                trophies before a run. */}
                             {FEATURES.careerMode && homeView === 'setup' && (
                                 <Link
                                     to="/cup-run"
@@ -810,12 +795,6 @@ export default function App() {
                                         dispatch({ type: 'SET_FORMATION', name })
                                     }
                                     onSelectStyle={(s) => dispatch({ type: 'SET_STYLE', style: s })}
-                                    mode={playMode}
-                                    onSelectMode={
-                                        FEATURES.careerMode
-                                            ? (m) => dispatch({ type: 'SET_MODE', mode: m })
-                                            : undefined
-                                    }
                                     onStart={handleStart}
                                     onRandomTeam={
                                         FEATURES.randomTeam ? handleRandomTeam : undefined
@@ -864,11 +843,9 @@ export default function App() {
                                     formation={formation}
                                     filled={filled}
                                     style={style}
-                                    mode={completeMode}
-                                    onStart={
-                                        completeMode === 'cup'
-                                            ? () => navigate('/cup-run')
-                                            : handleStartGroup
+                                    onStart={handleStartGroup}
+                                    onCupRun={
+                                        FEATURES.careerMode ? () => navigate('/cup-run') : undefined
                                     }
                                     onReset={handleReset}
                                 />
