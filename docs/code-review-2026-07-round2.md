@@ -33,7 +33,9 @@ editing, they will drift as fixes land.
   3. Remaining Priority 2 (domain constants and helpers).
   4. Priority 1 structural moves last, when the files they move are smallest:
      CR-04, CR-02, CR-03, CR-06, and finally CR-01.
-- Decision items (CR-D1 to CR-D4) need the owner's call before acting.
+- Decision items (CR-D1 to CR-D4) were resolved with the owner on 2026-07-07;
+  see the section for outcomes. CR-D2 and CR-D3 close with no action; CR-D1 and
+  CR-D4 carry one small remaining action each for the implementing agent.
 
 ## Summary
 
@@ -77,10 +79,10 @@ editing, they will drift as fixes land.
 | CR-36 | Stale comments batch | YAGNI | low | S |
 | CR-37 | AlbumScreen lightbox as 60-line JSX IIFE | KISS | low | S |
 | CR-38 | Em-dash sweep (house rule violation) | rule | medium | S |
-| CR-D1 | Confetti duration: 3000ms code vs 9s doc | decision | - | S |
-| CR-D2 | Hungarian assignment for badge slides | decision | - | S |
-| CR-D3 | public/ ships unreferenced dev/source assets | decision | - | S |
-| CR-D4 | esbuild is only a transitive dependency | decision | - | S |
+| CR-D1 | Confetti duration: resolved, keep 3s (fold the prop) | decision | resolved | S |
+| CR-D2 | Hungarian assignment: resolved, keep as is | decision | resolved | - |
+| CR-D3 | public/ assets: resolved, keep shipping as is | decision | resolved | - |
+| CR-D4 | esbuild: resolved, add to devDependencies | decision | resolved | S |
 
 ---
 
@@ -557,38 +559,41 @@ editing, they will drift as fixes land.
 
 ---
 
-## Decision items (need the owner's call)
+## Decision items (RESOLVED 2026-07-07)
 
-### CR-D1 [ ] Confetti duration: 3000ms code vs 9s doc
+All four were put to the owner and decided. CR-D2 and CR-D3 are closed with no
+action; CR-D1 and CR-D4 each leave one small task for the implementing agent.
+
+### CR-D1 [ ] Confetti duration. Resolved: keep 3s
 
 `src/components/Confetti.tsx:119` defaults `durationMs` to 3000 and neither
-caller passes it, but CLAUDE.md documents the rain as "kept heavy for durationMs
-(9s)". Either restore 9000 (if the doc reflects intent) or fix CLAUDE.md, and in
-both cases fold the never-passed prop into a module constant.
+caller passes it; CLAUDE.md documented the rain as 9s. Decision: 3 seconds is
+the intended feel. CLAUDE.md's claim was corrected to 3s alongside this
+resolution. Remaining action (S): fold the never-passed `durationMs` prop into
+a module constant (e.g. `const RAIN_MS = 3000`) and drop it from the signature.
+Verify: build; win a cup, confetti rains ~3s.
 
-### CR-D2 [ ] Hungarian assignment for badge slides
+### CR-D2 [x] Hungarian assignment for badge slides. Resolved: keep as is
 
-`src/components/Pitch.tsx:14-75` implements an O(n^3) Hungarian min-cost
-assignment solely to pick which badge slides to which slot during the 0.45s
-formation-change animation. A ~10-line greedy nearest-first match would rarely
-differ visibly at this scale. Keep (it is correct and isolated) or simplify;
-owner's taste.
+`src/components/Pitch.tsx:14-75` (the O(n^3) min-cost assignment for the
+formation-change badge animation) stays deliberately: it is correct, isolated,
+and working, and replacing it risks visual regressions for no functional gain.
+No action; do not re-litigate in future reviews.
 
-### CR-D3 [ ] public/ ships unreferenced dev/source assets
+### CR-D3 [x] public/ ships unreferenced dev/source assets. Resolved: keep as is
 
-`public/formations/` (formations.html, formations_summary.csv, a
-`.claude/launch.json`), `public/formations.csv`, `public/img/image.png`, and the
-whole `public/jerseys/` collection are committed and copied into every build,
-but nothing in src/ references them (grep-verified; sticker art is documented to
-live in `public/stickers/`). Move them out of `public/` (docs/ or an untracked
-folder) or accept shipping them. The jerseys look like source material worth
-keeping in the repo, just not in `public/`.
+`public/formations/`, `public/formations.csv`, `public/img/image.png`, and
+`public/jerseys/` ship in every build without being referenced by src/. The
+owner accepts the deploy weight; the assets stay where they are. No action; do
+not re-litigate in future reviews.
 
-### CR-D4 [ ] esbuild is only a transitive dependency
+### CR-D4 [ ] esbuild is only a transitive dependency. Resolved: declare it
 
 `npm run checks` invokes the `esbuild` binary directly, but esbuild is only
-present as vite's transitive dependency. A vite internals change could break the
-checks script. Add esbuild to devDependencies (pin to the major vite ships).
+present as vite's transitive dependency. Remaining action (S): add esbuild to
+devDependencies, pinned to the major vite currently ships (0.25.x), so the
+checks script survives a vite internals change. Verify: `npm install` clean,
+`npm run checks` passes.
 
 ---
 
