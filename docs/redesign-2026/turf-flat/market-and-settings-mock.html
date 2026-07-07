@@ -1,0 +1,506 @@
+<!--
+  TURF FLAT — idea-mocks: (1) Transfer Market browsing rework, (2) Settings panel.
+  Exploratory. Matches the turf-flat tokens/fonts of the shipped app. Interactive
+  toggles let you compare the options. Not wired to real data.
+-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+:root{
+  --pitch-deep:#0E5C34; --pitch:#15924C; --chalk:#E8F0E8; --paper:#F4F2EC;
+  --ink:#13211A; --muted:#5C6A60; --line:#D4DED5; --amber:#E4922B; --loss:#C8453C;
+  --white:#ffffff; --wash:rgba(14,92,52,.05); --flag-edge:rgba(19,33,26,.18);
+  --disp:'Archivo',system-ui,sans-serif; --body:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+}
+:root[data-theme="dark"]{
+  --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+  --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+  --white:#16231D; --wash:rgba(47,180,106,.07); --flag-edge:rgba(232,242,234,.22);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.45;
+  -webkit-font-smoothing:antialiased;background-image:linear-gradient(180deg,var(--wash),transparent 220px);
+  background-repeat:no-repeat}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px 90px}
+
+/* masthead */
+.mast{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:2px solid var(--ink)}
+.crest{width:34px;height:34px;flex:0 0 auto;border-radius:3px;
+  background:repeating-linear-gradient(90deg,var(--pitch-deep) 0 5px,var(--pitch) 5px 10px)}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:20px;letter-spacing:-.02em;margin:0;text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12px;color:var(--muted);border-left:1px solid var(--line);padding-left:12px}
+.mast .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.toggle-nav{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.toggle-nav b,.toggle-nav span{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px}
+.toggle-nav b{background:var(--ink);color:var(--paper)}
+.toggle-nav span{color:var(--muted);background:var(--white)}
+.gear{width:33px;height:33px;border:1px solid var(--line);border-radius:5px;background:var(--white);
+  display:grid;place-items:center;color:var(--muted);position:relative}
+.gear.pulse{border-color:var(--pitch);color:var(--pitch);box-shadow:0 0 0 3px rgba(21,146,76,.14)}
+.gear svg{width:17px;height:17px}
+
+/* section headers */
+.sec-h{display:flex;align-items:baseline;gap:14px;margin:34px 0 6px}
+.sec-h h2{font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:-.02em;margin:0;line-height:1}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+.lead{color:var(--muted);font-size:14px;margin:8px 0 18px;max-width:660px}
+.note{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:10px 0 0}
+.note b{color:var(--amber)}
+
+/* cards */
+.card{background:var(--white);border:1px solid var(--line);border-radius:6px;box-shadow:6px 6px 0 var(--pitch-deep)}
+.seglbl{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.flag{width:20px;height:13px;border-radius:2px;flex:0 0 auto;display:inline-block;box-shadow:inset 0 0 0 1px var(--flag-edge);background:#bbb;vertical-align:middle;position:relative;overflow:hidden}
+.star{color:var(--amber);font-size:11px}
+
+/* variant tabs */
+.vtabs{display:inline-flex;gap:6px;margin:0 0 14px;flex-wrap:wrap}
+.vtab{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--line);background:var(--white);color:var(--muted);border-radius:20px;padding:7px 14px;cursor:pointer}
+.vtab.on{background:var(--pitch);border-color:var(--pitch-deep);color:#fff}
+.vwrap{display:none}
+.vwrap.on{display:block}
+
+/* two-up layout: desktop panel + phone */
+.twoup{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.col-desk{flex:1;min-width:340px}
+.col-mob{flex:0 0 auto}
+.capt{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+
+/* market panel */
+.mkt{overflow:hidden}
+.mkt .budget{border-bottom:1px solid var(--line);padding:13px 14px}
+.mkt .budget .row1{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px}
+.mkt .budget .row1 b{color:var(--ink)}
+.bar{margin-top:8px;height:8px;border:1px solid var(--line);border-radius:20px;background:var(--chalk);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--pitch)}
+.buying{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 8px}
+.buying .lbl{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.buying .lbl b{color:var(--ink)}
+.search{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:5px;background:var(--white);padding:6px 9px;color:var(--muted);font-size:12.5px}
+.search svg{width:13px;height:13px}
+
+/* sort + filter chips */
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 14px 10px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;
+  border:1px solid var(--line);background:var(--white);color:var(--muted);border-radius:20px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+.chip .cv{color:var(--ink);font-weight:700}
+.chip.on{border-color:var(--pitch);background:rgba(21,146,76,.08);color:var(--pitch)}
+.chip .x{opacity:.6}
+.chip.sort{margin-right:auto}
+.chip.sort .cv{color:var(--pitch)}
+
+/* player rows */
+.plist{max-height:none;overflow:visible;padding:2px 8px 8px}
+.rowp{display:grid;grid-template-columns:20px 1fr auto auto auto;align-items:center;gap:10px;padding:9px 8px;border-radius:6px}
+.rowp+.rowp{border-top:1px solid var(--line)}
+.rowp .nm{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px;min-width:0}
+.rowp .nm .sub{font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:500}
+.rowp .rt{font-family:var(--mono);font-weight:700;font-size:14px}
+.rowp .pr{font-family:var(--mono);font-weight:700;font-size:12.5px;color:var(--pitch);width:34px;text-align:right}
+.rowp .val{display:flex;align-items:center;gap:5px}
+.vlab{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em}
+.vmini{width:34px;height:5px;border-radius:20px;background:var(--chalk);overflow:hidden}
+.vmini>i{display:block;height:100%;background:var(--amber)}
+.rowp.dim{opacity:.42}
+.rowp.hot{background:rgba(21,146,76,.06);box-shadow:inset 0 0 0 1px rgba(21,146,76,.35)}
+
+/* grid variant */
+.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;padding:10px 14px 14px}
+.pcard{border:1px solid var(--line);border-radius:8px;padding:11px;position:relative;background:var(--white)}
+.pcard .tier{position:absolute;top:8px;right:9px}
+.pcard .pf{width:34px;height:22px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--flag-edge);background:#bbb;display:block}
+.pcard .pn{font-weight:700;font-size:13.5px;margin:8px 0 1px;line-height:1.15}
+.pcard .pmeta{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.pcard .pbtm{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+.pcard .pbtm .rt{font-family:var(--mono);font-weight:800;font-size:16px}
+.pcard .buy{font-family:var(--mono);font-weight:700;font-size:11px;color:#fff;background:var(--pitch);border:1px solid var(--pitch-deep);border-radius:5px;padding:5px 9px;text-transform:uppercase;letter-spacing:.04em}
+
+/* browse-by tabs (option C) */
+.brtabs{display:flex;border-bottom:1px solid var(--line)}
+.brtabs button{flex:1;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:none;border:0;border-bottom:2px solid transparent;padding:11px 4px;color:var(--muted);cursor:pointer}
+.brtabs button.on{color:var(--pitch);border-bottom-color:var(--pitch)}
+.wcgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:12px 14px}
+.wcbtn{border:1px solid var(--line);background:var(--white);border-radius:6px;padding:10px 4px;text-align:center;cursor:pointer}
+.wcbtn .y{font-family:var(--mono);font-weight:800;font-size:15px}
+.wcbtn .c{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.wcbtn.on{border-color:var(--pitch);background:rgba(21,146,76,.08)}
+
+/* phone frame */
+.phone{width:300px;border:1px solid var(--line);border-radius:18px;background:var(--paper);
+  box-shadow:6px 6px 0 var(--pitch-deep);overflow:hidden;padding:8px}
+.phone .scr{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--white)}
+.phone .notch{height:18px;display:flex;align-items:center;justify-content:center}
+.phone .notch i{width:52px;height:5px;border-radius:20px;background:var(--line);display:block}
+.hscroll{display:flex;gap:6px;overflow:hidden;padding:0 12px 10px;position:relative}
+.hscroll::after{content:"";position:absolute;right:0;top:0;bottom:10px;width:26px;background:linear-gradient(90deg,transparent,var(--white))}
+.fbtn{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;font-weight:700;
+  border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:20px;padding:6px 11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
+
+/* settings modal */
+.stage{position:relative;border:1px dashed var(--line);border-radius:10px;padding:22px;margin-top:8px;
+  background:repeating-linear-gradient(45deg,transparent 0 12px,rgba(19,33,26,.015) 12px 24px)}
+.dim{position:absolute;inset:0;background:rgba(19,33,26,.28);border-radius:10px}
+.sheet{position:relative;max-width:560px;margin:0 auto;background:var(--paper);border:1px solid var(--line);
+  border-radius:10px;box-shadow:6px 6px 0 var(--pitch-deep);overflow:hidden}
+.sheet .sh-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:2px solid var(--ink)}
+.sheet .sh-head h3{font-family:var(--disp);font-weight:800;font-size:19px;margin:0;text-transform:uppercase;letter-spacing:-.01em}
+.sheet .sh-head .x{border:1px solid var(--line);background:var(--white);border-radius:5px;width:28px;height:28px;color:var(--muted);cursor:pointer}
+.setgrp{padding:16px 18px;border-bottom:1px solid var(--line)}
+.setgrp:last-child{border-bottom:0}
+.setgrp .gh{display:flex;align-items:center;gap:8px;margin:0 0 4px}
+.setgrp .gh .ttl{font-family:var(--disp);font-weight:800;font-size:14px}
+.tagnew{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:#fff;background:var(--amber);border-radius:20px;padding:2px 7px}
+.tagsoon{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 7px}
+.ghint{color:var(--muted);font-size:12px;margin:0 0 11px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font-family:var(--body);font-weight:700;font-size:12.5px;padding:8px 15px;border:0;border-right:1px solid var(--line);
+  background:var(--white);color:var(--muted);cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--pitch-deep);color:#fff}
+.diffdesc{font-family:var(--mono);font-size:11px;color:var(--muted);margin:8px 0 0}
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.pill{font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--white);
+  color:var(--muted);border-radius:6px;padding:8px 12px;cursor:pointer;position:relative}
+.pill.on{border-color:var(--pitch);background:rgba(21,146,76,.1);color:var(--pitch-deep)}
+.pill.on::after{content:"\2713";margin-left:6px;font-size:10px}
+.pill .ap{color:var(--amber);font-size:10px;vertical-align:super}
+.pill.dark-txt.on{color:var(--pitch)}
+.shortcuts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.shortcuts button{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--line);background:none;color:var(--muted);border-radius:20px;padding:5px 10px;cursor:pointer}
+.poolsum{font-family:var(--mono);font-size:11.5px;color:var(--ink);background:var(--chalk);border-radius:6px;padding:9px 11px}
+.poolsum b{color:var(--pitch-deep)}
+.switch{width:42px;height:24px;border-radius:20px;background:var(--line);position:relative;cursor:pointer;flex:0 0 auto}
+.switch>i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+.switch.on{background:var(--pitch)}
+.switch.on>i{left:20px}
+.rowset{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:12px}
+.legend b{color:var(--ink)}
+.foot{margin-top:40px;border-top:1px solid var(--line);padding-top:14px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <!-- MASTHEAD (shows where the new gear lives) -->
+  <div class="mast">
+    <div class="crest"></div>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">idea-mocks &middot; market rework + settings</span>
+    <div class="right">
+      <div class="toggle-nav"><b>Play</b><span>Squads</span></div>
+      <button class="gear pulse" title="Settings (new)" onclick="openSet()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================ PART 1: MARKET ============================ -->
+  <div class="sec-h"><div><div class="eyebrow">Part 1</div><h2>Transfer market, browsable</h2></div></div>
+  <p class="lead">Today the market is one rating-sorted list for the slot you tapped, with only a text
+    search. These options add real browsing: a <b>sort</b> control and <b>filter chips</b> (World Cup,
+    region, price, collectibles), and a "browse by World Cup / nation" entry. Flip between the ideas:</p>
+
+  <div class="vtabs" id="mtabs">
+    <button class="vtab on" data-m="A" onclick="mvar('A')">A &middot; Chips + sort (list)</button>
+    <button class="vtab" data-m="B" onclick="mvar('B')">B &middot; Card grid</button>
+    <button class="vtab" data-m="C" onclick="mvar('C')">C &middot; Browse by World Cup / nation</button>
+  </div>
+
+  <!-- Variant A: chips + sort, list -->
+  <div class="vwrap on" id="mA">
+    <div class="twoup">
+      <div class="col-desk">
+        <p class="capt">Desktop &middot; left column of the build page</p>
+        <div class="card mkt">
+          <div class="budget">
+            <div class="row1"><span>Spent <b>$78</b> / $110</span><span style="color:var(--muted)">$32 left &middot; 8/11</span></div>
+            <div class="bar"><i style="width:71%"></i></div>
+          </div>
+          <div class="buying">
+            <span class="lbl">Buying: <b>LW</b></span>
+            <span class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Search</span>
+          </div>
+          <div class="controls">
+            <span class="chip sort">Sort: <span class="cv">Rating &#9662;</span></span>
+            <span class="chip on">World Cup: <span class="cv">2014, 2018</span> <span class="x">&times;</span></span>
+            <span class="chip">Region <span class="cv">&#9662;</span></span>
+            <span class="chip">Max $ <span class="cv">&#9662;</span></span>
+            <span class="chip">&#9733; Collectible</span>
+          </div>
+          <div class="plist" id="listA"></div>
+        </div>
+        <p class="note">Chips are optional and stack; the count of matches updates live. Sort adds
+          <b>Value</b> (rating per $) so you can hunt bargains, plus Price, Newest, and A-Z.</p>
+      </div>
+      <div class="col-mob">
+        <p class="capt">Mobile</p>
+        <div class="phone"><div class="notch"><i></i></div><div class="scr">
+          <div class="budget" style="border-bottom:1px solid var(--line);padding:11px 12px">
+            <div class="row1" style="font-size:11px"><span>Spent <b>$78</b>/$110</span><span style="color:var(--muted)">8/11</span></div>
+            <div class="bar"><i style="width:71%"></i></div>
+          </div>
+          <div class="buying" style="padding:10px 12px 6px"><span class="lbl">Buying: <b>LW</b></span>
+            <span class="fbtn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 5h18M6 12h12M10 19h4"/></svg> Filters &middot; 2</span>
+          </div>
+          <div class="hscroll">
+            <span class="chip sort" style="font-size:10px">Rating &#9662;</span>
+            <span class="chip on" style="font-size:10px">2014, 2018 &times;</span>
+            <span class="chip" style="font-size:10px">Region &#9662;</span>
+            <span class="chip" style="font-size:10px">&#9733;</span>
+          </div>
+          <div class="plist" id="listAm" style="padding:0 6px 8px"></div>
+        </div></div>
+        <p class="note" style="max-width:300px">Chips scroll sideways; a <b>Filters</b> button opens a
+          bottom sheet with the full facet set (kept off the tight main view).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variant B: card grid -->
+  <div class="vwrap" id="mB">
+    <div class="twoup">
+      <div class="col-desk">
+        <p class="capt">Desktop &middot; same controls, results as a pack-style grid</p>
+        <div class="card mkt">
+          <div class="controls" style="padding:12px 14px">
+            <span class="chip sort">Sort: <span class="cv">Value &#9662;</span></span>
+            <span class="chip on">World Cup: <span class="cv">2022</span> <span class="x">&times;</span></span>
+            <span class="chip on">&#9733; Collectible</span>
+            <span class="chip">Region <span class="cv">&#9662;</span></span>
+          </div>
+          <div class="pgrid" id="gridB"></div>
+        </div>
+        <p class="note">A grid reads like opening a shop / sticker pack (nice with the collectible art),
+          but shows fewer per screen. A small list/grid toggle could let users pick.</p>
+      </div>
+      <div class="col-mob">
+        <p class="capt">Mobile &middot; single column</p>
+        <div class="phone"><div class="notch"><i></i></div><div class="scr">
+          <div class="buying" style="padding:10px 12px 6px"><span class="lbl">Buying: <b>ST</b></span>
+            <span class="fbtn">Filters &middot; 2</span></div>
+          <div class="pgrid" id="gridBm" style="grid-template-columns:1fr;padding:10px 12px"></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variant C: browse-by -->
+  <div class="vwrap" id="mC">
+    <div class="twoup">
+      <div class="col-desk">
+        <p class="capt">Desktop &middot; tabs mirroring the existing Squad browser</p>
+        <div class="card mkt">
+          <div class="brtabs">
+            <button class="on">Best available</button>
+            <button>By World Cup</button>
+            <button>By nation</button>
+          </div>
+          <div class="buying"><span class="lbl">Pick a World Cup to browse its <b>RW</b> options</span></div>
+          <div class="wcgrid">
+            <div class="wcbtn"><div class="y">2022</div><div class="c">26-man</div></div>
+            <div class="wcbtn on"><div class="y">2018</div><div class="c">23-man</div></div>
+            <div class="wcbtn"><div class="y">2014</div><div class="c">23-man</div></div>
+            <div class="wcbtn"><div class="y">2010</div><div class="c">23-man</div></div>
+            <div class="wcbtn"><div class="y">2006</div><div class="c">23-man</div></div>
+            <div class="wcbtn" style="opacity:.5"><div class="y">2002</div><div class="c">approx</div></div>
+            <div class="wcbtn" style="opacity:.5"><div class="y">1998</div><div class="c">approx</div></div>
+          </div>
+          <div class="plist" id="listC" style="padding-top:0"></div>
+        </div>
+        <p class="note">Best for "I want a 2014 Germany winger" browsing. Reuses the mental model from the
+          read-only Squad browser, so it is already familiar. Heaviest of the three to build.</p>
+      </div>
+      <div class="col-mob">
+        <p class="capt">Mobile</p>
+        <div class="phone"><div class="notch"><i></i></div><div class="scr">
+          <div class="brtabs"><button class="on" style="font-size:9.5px">Best</button><button style="font-size:9.5px">By WC</button><button style="font-size:9.5px">By nation</button></div>
+          <div class="wcgrid" style="grid-template-columns:repeat(3,1fr);padding:10px 10px">
+            <div class="wcbtn"><div class="y" style="font-size:13px">2022</div></div>
+            <div class="wcbtn on"><div class="y" style="font-size:13px">2018</div></div>
+            <div class="wcbtn"><div class="y" style="font-size:13px">2014</div></div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><b>&#9733;</b> collectible (album tier)</span>
+    <span><b>$</b> price (by rating, convex)</span>
+    <span><b>Value</b> = rating gained per $</span>
+    <span>dim row = unaffordable / already used</span>
+  </div>
+
+  <!-- ============================ PART 2: SETTINGS ============================ -->
+  <div class="sec-h"><div><div class="eyebrow">Part 2</div><h2>Settings</h2></div></div>
+  <p class="lead">A gear in the masthead (top-right, pulsing above) opens one settings sheet. It gathers
+    the scattered controls (speed, auto/manual) and adds the two new ones: <b>limit the squad pool</b> by
+    World Cup, and a <b>difficulty</b> level. Dark mode is stubbed for later. Click the gear, or:</p>
+  <p><button class="fbtn" style="background:var(--pitch);border-color:var(--pitch-deep)" onclick="openSet()">Open the settings sheet</button></p>
+
+  <div class="stage" id="setStage">
+    <div class="dim" onclick="closeSet()"></div>
+    <div class="sheet">
+      <div class="sh-head"><h3>Settings</h3><button class="x" onclick="closeSet()">&times;</button></div>
+
+      <!-- Squad pool -->
+      <div class="setgrp">
+        <div class="gh"><span class="ttl">Squad pool</span><span class="tagnew">New</span></div>
+        <p class="ghint">Which World Cups the game draws from - your squad rolls, the transfer market, and
+          your opponents. Turn off eras you do not care about.</p>
+        <div class="shortcuts">
+          <button onclick="poolPreset('all')">All</button>
+          <button onclick="poolPreset('researched')">2006 and newer</button>
+          <button onclick="poolPreset('recent')">Last 3</button>
+        </div>
+        <div class="pills" id="wcpills">
+          <span class="pill" data-y="1998">1998<span class="ap">*</span></span>
+          <span class="pill" data-y="2002">2002<span class="ap">*</span></span>
+          <span class="pill on" data-y="2006">2006</span>
+          <span class="pill on" data-y="2010">2010</span>
+          <span class="pill on" data-y="2014">2014</span>
+          <span class="pill on" data-y="2018">2018</span>
+          <span class="pill on" data-y="2022">2022</span>
+        </div>
+        <div class="poolsum" id="poolsum"></div>
+        <p class="note"><b>*</b> 1998 &amp; 2002 are approximate placeholder squads. Design Q: should limiting
+          the pool also shrink the sticker album target (fewer collectibles to complete)?</p>
+      </div>
+
+      <!-- Difficulty -->
+      <div class="setgrp">
+        <div class="gh"><span class="ttl">Difficulty</span><span class="tagnew">New</span></div>
+        <p class="ghint">How hard it is to lift the cup.</p>
+        <div class="seg" id="diffseg">
+          <button data-d="casual">Casual</button>
+          <button class="on" data-d="normal">Normal</button>
+          <button data-d="hard">Hard</button>
+        </div>
+        <p class="diffdesc" id="diffdesc">Balanced. Opponents drawn as today; results follow the ratings.</p>
+      </div>
+
+      <!-- Match playback -->
+      <div class="setgrp">
+        <div class="gh"><span class="ttl">Match playback</span></div>
+        <p class="ghint">Speed of the live reveal, and whether tournament rounds auto-play or wait for you.
+          (Moved here from the match screens.)</p>
+        <div class="rowset" style="margin-bottom:12px">
+          <span class="seglbl" style="margin:0">Speed</span>
+          <div class="seg"><button data-s>Slow</button><button class="on" data-s>Normal</button><button data-s>Fast</button></div>
+        </div>
+        <div class="rowset">
+          <span class="seglbl" style="margin:0">Rounds</span>
+          <div class="seg"><button class="on" data-r>Manual</button><button data-r>Auto-play</button></div>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="setgrp">
+        <div class="gh"><span class="ttl">Appearance</span><span class="tagsoon">Later</span></div>
+        <div class="rowset">
+          <div><div style="font-weight:600;font-size:13.5px">Dark mode</div>
+            <div class="ghint" style="margin:0">Night-match theme. (Live preview - the tokens already exist.)</div></div>
+          <div class="switch" id="darkSwitch" onclick="toggleDark()"><i></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Mock only, not wired to data. Tokens/fonts match the shipped turf-flat app.
+    Toggle the market options up top; the pills / segments / dark switch in the sheet are live.</div>
+</div>
+
+<script>
+/* ---- sample data (names/years are illustrative) ---- */
+const P = [
+  {n:'Arjen Robben', c:'NED', y:2014, r:90, pr:16, tier:1},
+  {n:'Kylian Mbappe', c:'FRA', y:2018, r:90, pr:16, tier:1},
+  {n:'Eden Hazard', c:'BEL', y:2018, r:92, pr:18, tier:1},
+  {n:'Antoine Griezmann', c:'FRA', y:2018, r:90, pr:16, tier:1},
+  {n:'James Rodriguez', c:'COL', y:2014, r:89, pr:15, tier:0},
+  {n:'Sadio Mane', c:'SEN', y:2018, r:88, pr:14, tier:0},
+  {n:'Angel Di Maria', c:'ARG', y:2014, r:88, pr:14, tier:0},
+  {n:'Xherdan Shaqiri', c:'SUI', y:2018, r:85, pr:11, tier:0},
+];
+const flag = 'style="background:linear-gradient(180deg,#c8102e 40%,#fff 40% 60%,#012169 60%)"';
+function rowHTML(p, held){
+  const aff = p.pr<=32;
+  const val = Math.round((p.r-58)/p.pr*10); // illustrative "value"
+  return `<div class="rowp ${held?'hot':''} ${aff?'':'dim'}">
+    <span class="flag" ${flag}></span>
+    <span class="nm">${p.n} ${p.tier?'<span class="star">&#9733;</span>':''}
+      <span class="sub">${p.c} &middot; ${p.y}</span></span>
+    <span class="val"><span class="vlab">VAL</span><span class="vmini"><i style="width:${Math.min(100,val*7)}%"></i></span></span>
+    <span class="rt">${p.r}</span>
+    <span class="pr">$${p.pr}</span>
+  </div>`;
+}
+function fill(id, held){ const el=document.getElementById(id); if(el) el.innerHTML = P.map((p,i)=>rowHTML(p, held&&i===0)).join(''); }
+fill('listA', true); fill('listAm', true); fill('listC', false);
+
+function cardHTML(p){
+  return `<div class="pcard"><span class="tier star">${p.tier?'&#9733;':''}</span>
+    <span class="pf" ${flag}></span>
+    <div class="pn">${p.n}</div><div class="pmeta">${p.c} &middot; ${p.y}</div>
+    <div class="pbtm"><span class="rt">${p.r}</span><span class="buy">$${p.pr}</span></div></div>`;
+}
+function fillGrid(id){ const el=document.getElementById(id); if(el) el.innerHTML = P.slice(0,6).map(cardHTML).join(''); }
+fillGrid('gridB'); fillGrid('gridBm');
+
+/* market variant tabs */
+function mvar(v){
+  document.querySelectorAll('#mtabs .vtab').forEach(b=>b.classList.toggle('on', b.dataset.m===v));
+  ['A','B','C'].forEach(k=>document.getElementById('m'+k).classList.toggle('on', k===v));
+}
+
+/* settings sheet */
+function openSet(){ document.getElementById('setStage').scrollIntoView({behavior:'smooth',block:'center'}); }
+function closeSet(){ /* mock: stage is always shown */ }
+
+/* pool pills + summary */
+const WC = {1998:[16,352],2002:[16,352],2006:[32,736],2010:[32,736],2014:[32,736],2018:[32,736],2022:[32,829]};
+function poolSum(){
+  const on=[...document.querySelectorAll('#wcpills .pill.on')].map(p=>+p.dataset.y);
+  let teams=0,players=0; on.forEach(y=>{teams+=WC[y][0];players+=WC[y][1]});
+  const coll = Math.round(players*0.014);
+  document.getElementById('poolsum').innerHTML =
+    `Pool: <b>${on.length}</b> World Cups &middot; <b>${teams}</b> teams &middot; <b>${players.toLocaleString()}</b> players &middot; <b>${coll}</b> collectibles`;
+}
+document.querySelectorAll('#wcpills .pill').forEach(p=>p.addEventListener('click',()=>{p.classList.toggle('on');poolSum();}));
+function poolPreset(k){
+  const keep = k==='all'?[1998,2002,2006,2010,2014,2018,2022]:k==='researched'?[2006,2010,2014,2018,2022]:[2014,2018,2022];
+  document.querySelectorAll('#wcpills .pill').forEach(p=>p.classList.toggle('on', keep.includes(+p.dataset.y)));
+  poolSum();
+}
+poolSum();
+
+/* difficulty */
+const DIFF={casual:'Forgiving. Opponents drawn a touch weaker, upsets swing your way more often.',
+  normal:'Balanced. Opponents drawn as today; results follow the ratings.',
+  hard:'Ruthless. Stronger opponents deeper in the draw, less variance to hide behind.'};
+document.querySelectorAll('#diffseg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#diffseg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); document.getElementById('diffdesc').textContent=DIFF[b.dataset.d];
+}));
+
+/* generic segmented (speed / rounds) */
+document.querySelectorAll('.seg').forEach(seg=>seg.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||seg.id==='diffseg')return;
+  seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+}));
+
+/* dark mode live preview */
+function toggleDark(){
+  const on=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', on?'':'dark');
+  document.getElementById('darkSwitch').classList.toggle('on', !on);
+}
+</script>

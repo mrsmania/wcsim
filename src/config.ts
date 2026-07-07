@@ -6,7 +6,7 @@ export const FEATURES = {
     chemistry: true,
     /** Remove placed players from the pitch via an x on the badge (testing aid).
      *  Off by default; set to true to show the control and enable removal. */
-    removePlayers: true,
+    removePlayers: false,
     /** "Random team" shortcut on the setup screen: auto-fill a full valid XI of a
      *  chosen strength and skip the draft (testing aid). Turn off for real users. */
     randomTeam: false,
