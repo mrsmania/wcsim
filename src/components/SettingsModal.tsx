@@ -86,7 +86,7 @@ export default function SettingsModal({
                 <div className={GROUP}>
                     <div className={GH}>Difficulty</div>
                     <p className={HINT}>How hard it is to win a tie, and so to lift the cup.</p>
-                    <div className="mt-3">
+                    <div className="mt-3 flex">
                         <SegControl
                             ariaLabel="Difficulty"
                             label="Level"
