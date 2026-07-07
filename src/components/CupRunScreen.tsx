@@ -1080,21 +1080,6 @@ export default function CupRunScreen({
               )}
               </>
             )}
-
-              {/* Run log - secondary, collapsible. */}
-              <details className="rounded-md border border-line bg-panel shadow-hard">
-                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted [&::-webkit-details-marker]:hidden">
-                  <span>Run log</span>
-                  <ChevronDown size={13} strokeWidth={2.5} />
-                </summary>
-                <ul className="flex flex-col gap-1.5 px-4 pb-3">
-                  {run.log.map((line, i) => (
-                    <li key={i} className="text-[12.5px] leading-snug text-ink">
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </details>
             </section>
           </div>
         </>

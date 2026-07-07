@@ -413,9 +413,10 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   through the following boost pick, with a green `RunBanner` ("Won 2-1 · Through to the
   Quarter-final") between it and the picker, auto-scrolled into view (`boostRef` + effect on
   `phase === 'boon'`). Picking a boost fires a **toast** of what it did (a roster swap names the
-  players in/out, e.g. Poach; otherwise the boost's description), so the run log (a collapsible
-  feed) isn't needed. The ended screen uses the same `RunBanner`: green for the cup win, flat
-  white for a knockout loss / group exit.
+  players in/out, e.g. Poach; otherwise the boost's description). The ended screen uses the same
+  `RunBanner`: green for the cup win, flat white for a knockout loss / group exit. (There is **no
+  run-log feed**: every per-round fact - match scores + goal feeds, results, the boost taken - is
+  in the ladder's `RoundReview`s, so `RunState` carries no narrative `log`.)
 - **Persistence** (`state/runStorage.ts` key `wcsim_run_v1`): the in-progress run is mirrored to
   its own key, so a refresh mid-run resumes it (the transient live-reveal is not persisted, so a
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built

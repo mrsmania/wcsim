@@ -78,8 +78,6 @@ export interface RunState {
   nextOpponent: GroupTeam | null;
   score: number;
   outcome: RunOutcome | null;
-  /** Narrative lines, oldest first. */
-  log: string[];
   /** Per-round results for the progress ladder (oldest first). */
   history: RoundRecord[];
   /** Ids of players brought into the XI by a roster boost, for tagging on the XI. */
@@ -135,12 +133,6 @@ const STAGE_SCORE: Record<RunOutcome, number> = {
 /** The Finish tag for losing in KO round i (0..3). */
 const KO_OUTCOME: RunOutcome[] = ['r16', 'qf', 'sf', 'final'];
 
-function ordinal(n: number): string {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
-}
-
 /** Team chemistry bonus for the current XI (0 when the feature is off). Recomputed
  *  live from the players so it stays correct after a roster boon changes the XI;
  *  every player is treated as in their natural role (a run tracks players, not slots). */
@@ -156,11 +148,9 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
   let players = xi;
   const activeBoons: string[] = [];
   const boostedIds: string[] = [];
-  const log = ['Cup run started. Win the group, then the knockouts.'];
   // Deep Squad perk: a flat +1 to the drafted XI at kickoff.
   if (perks.includes('deep-squad')) {
     players = players.map((p) => ({ ...p, elo: Math.min(99, p.elo + 1) }));
-    log.push('Deep Squad: +1 to your XI.');
   }
   // Scout Network perk: begin with one random boon already applied.
   if (perks.includes('scout')) {
@@ -171,7 +161,6 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
       const inP = players.find((p) => !before.some((b) => b.id === p.id));
       if (inP) boostedIds.push(inP.id);
       activeBoons.push(boon.id);
-      log.push(`Scout Network boost: ${boon.name} (${boon.description})`);
     }
   }
   return {
@@ -185,7 +174,6 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
     nextOpponent: null,
     score: 0,
     outcome: null,
-    log,
     history: [],
     boostedIds,
     stickersApplied: false,
@@ -208,7 +196,6 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
   // group fixture, but normalise generally to be safe.
   const byId = new Map(group.teams.map((t) => [t.id, t]));
   const userMatches: UserMatch[] = [];
-  const matchLines: string[] = [];
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     const fx = group.fixtures.find(
       (f) => f.matchday === md && (f.homeId === USER_ID || f.awayId === USER_ID),
@@ -216,8 +203,6 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
     if (!fx?.result) continue;
     const userIsHome = fx.homeId === USER_ID;
     const opp = byId.get(userIsHome ? fx.awayId : fx.homeId)!;
-    const ug = userIsHome ? fx.result.homeGoals : fx.result.awayGoals;
-    const og = userIsHome ? fx.result.awayGoals : fx.result.homeGoals;
     const result: MatchResult = userIsHome
       ? fx.result
       : {
@@ -229,12 +214,10 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
           })),
         };
     userMatches.push({ opp, result });
-    matchLines.push(`Matchday ${md}: you ${ug}-${og} ${opp.name}.`);
   }
 
   const table = standings(group);
   const pos = table.findIndex((s) => s.team.isUser) + 1;
-  const posLine = `Group stage: finished ${ordinal(pos)} of ${table.length}.`;
   const advanced = userAdvanced(group);
   const groupRecord: RoundRecord = {
     stage: 'group',
@@ -256,7 +239,6 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
         outcome: 'group',
         score: STAGE_SCORE.group,
         history: [...run.history, groupRecord],
-        log: [...run.log, ...matchLines, posLine, 'Eliminated in the group stage.'],
       },
       userMatches,
       group,
@@ -274,7 +256,6 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
       facedIds: [...faced, opp.id],
       score: STAGE_SCORE.group,
       history: [...run.history, groupRecord],
-      log: [...run.log, ...matchLines, posLine, `Through to the ${KO_ROUNDS[0]}. Pick a boost.`],
     },
     userMatches,
     group,
@@ -291,11 +272,8 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
   if (!boon) return run;
   const before = run.xi;
   const xi = boon.apply(before, { opponentSquadId: run.nextOpponent?.id ?? null });
-  // If the boon swapped the roster, name the change (and tag the incoming player);
-  // otherwise show its description.
+  // If the boon swapped the roster, tag the incoming player (an amber "Boost" mark).
   const inP = xi.find((p) => !before.some((b) => b.id === p.id));
-  const outP = before.find((p) => !xi.some((a) => a.id === p.id));
-  const note = inP && outP ? `${inP.name} in for ${outP.name}` : boon.description;
   // The boost is chosen right after a round's games, so record it on that round (the
   // most recent history entry) - e.g. the after-group boost lands on the group step.
   const last = run.history.length - 1;
@@ -309,7 +287,6 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
     offer: null,
     phase: 'match',
     history,
-    log: [...run.log, `Boost: ${boon.name} (${note})`],
   };
 }
 
@@ -343,8 +320,6 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
   const opp = run.nextOpponent;
   const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi));
   const match = simulateKoTie(userTeam, opp);
-  const tag = match.decided === 'pens' ? ' (pens)' : match.decided === 'aet' ? ' (aet)' : '';
-  const scoreLine = `${roundName}: you ${match.userGoals}-${match.oppGoals} ${opp.name}${tag}.`;
   const record: RoundRecord = {
     stage: round,
     won: match.userWon,
@@ -373,7 +348,6 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
       score: STAGE_SCORE[outcome],
       nextOpponent: null,
       history,
-      log: [...run.log, `${scoreLine} Knocked out.`],
     };
   } else if (round >= KO_ROUNDS.length - 1) {
     next = {
@@ -383,7 +357,6 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
       score: STAGE_SCORE.champion,
       nextOpponent: null,
       history,
-      log: [...run.log, `${scoreLine} You are World Cup champions!`],
     };
   } else {
     const nextRound = round + 1;
@@ -397,7 +370,6 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
       facedIds: [...run.facedIds, nextOpp.id],
       score: STAGE_SCORE[KO_OUTCOME[round]],
       history,
-      log: [...run.log, `${scoreLine} Into the ${KO_ROUNDS[nextRound]}. Pick a boost.`],
     };
   }
   return { next, match, opp, roundName };
