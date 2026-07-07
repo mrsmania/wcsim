@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { primaryPosition, type Player } from '../data/types';
-import { SQUAD_BY_ID } from '../data/squads';
-import { xiStrength, type MatchEvent, type ShootoutResult } from '../domain/match';
+import type { Player } from '../data/types';
+import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
-import { KO_ROUNDS, type KoDecided } from '../domain/knockout';
+import { KO_ROUNDS } from '../domain/knockout';
 import type { MatchSpeed } from '../domain/clock';
-import type { GroupState, GroupTeam } from '../domain/tournament';
-import { boonById, type Boon, type Rarity } from '../domain/boons';
+import type { GroupTeam } from '../domain/tournament';
+import { type Boon } from '../domain/boons';
 import {
   beginRun,
   prepareGroupStage,
@@ -16,368 +14,39 @@ import {
   chooseBoon,
   chemistryOf,
   type RunState,
-  type RunOutcome,
-  type UserMatch,
   type KoMatch,
   type RoundRecord,
 } from '../domain/run';
 import {
-  PERKS,
   applyRunResult,
   buyPerk,
   levelProgress,
-  FINISH_LABEL,
   type CareerState,
 } from '../domain/career';
 import { loadCareer, saveCareer } from '../state/careerStorage';
 import { loadRun, saveRun, clearRun } from '../state/runStorage';
-import { useMatchClock, FT_HOLD_MS, KO_END_HOLD_MS } from '../hooks/useMatchClock';
 import { useFollowBottom } from '../hooks/useFollowBottom';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
 import {
-  koEndLabel,
-  koFinishedStatus,
-  koResultLabel,
-  liveMatchView,
-  resultTag,
-} from './matchView';
-import {
   Banner,
-  maxMinute,
   ordinal,
   PRIMARY_BTN,
-  ResultTag,
-  SECONDARY_BTN,
   SpeedControl,
   StageCrumb,
 } from './matchUi';
-import MatchdayCard from './MatchdayCard';
 import StandingsTable from './StandingsTable';
 import RunLadder from './RunLadder';
 import Confetti from './Confetti';
 import Flag from './Flag';
-import { TIER_META } from './StickerCard';
-
-// The boon rarity ramp reuses the sticker tier accents (single source of the hexes;
-// the amber/pitch values also match --color-amber / --color-pitch from index.css).
-const RARITY_COLOR: Record<Rarity, string> = {
-  legendary: TIER_META.monumental.accent,
-  rare: TIER_META.iconic.accent,
-  common: TIER_META.legendary.accent,
-};
-
-const OUTCOME_LABEL: Record<RunOutcome, string> = {
-  group: 'the group stage',
-  r16: 'the Round of 16',
-  qf: 'the Quarter-finals',
-  sf: 'the Semi-finals',
-  final: 'the Final',
-  champion: 'World Cup Champions',
-};
-
-const pct = (x: number) => (x > 0 && x < 0.01 ? '<1%' : `${Math.round(x * 100)}%`);
-
-interface Reward {
-  xpGained: number;
-  prestigeGained: number;
-  leveledUp: boolean;
-}
-
-/** The live-reveal state: which match(es) are being played out before the run
- *  commits to `next`. Transient (not persisted) - a refresh mid-reveal drops back
- *  to the pre-play run, which just replays. The group carries its final table +
- *  a `done` flag so the standings show after the three matches, before committing. */
-type Reveal =
-  | { kind: 'group'; next: RunState; matches: UserMatch[]; group: GroupState; index: number; done: boolean }
-  | { kind: 'ko'; next: RunState; match: KoMatch; opp: GroupTeam; roundName: string };
-
-/** One match revealed minute by minute with the shared clock + goal feed (the same
- *  playback the main game uses). The user is always the home side. Keyed by the
- *  caller so each match remounts and restarts its own clock. Fires `onEnd` once the
- *  reveal (and any shootout) finishes. */
-function LiveCupMatch({
-  label,
-  opp,
-  userRating,
-  events,
-  decided,
-  pens,
-  speed,
-  onEnd,
-}: {
-  label: string;
-  opp: GroupTeam;
-  userRating: number;
-  events: MatchEvent[];
-  decided: KoDecided;
-  pens?: ShootoutResult;
-  speed: MatchSpeed;
-  onEnd: () => void;
-}) {
-  const liveMax = maxMinute(decided);
-  const { liveMinute, clockLabel, penShown } = useMatchClock({
-    active: true,
-    speed,
-    maxMinute: liveMax,
-    endLabel: koEndLabel(decided),
-    penKicks: decided === 'pens' ? pens?.kicks : undefined,
-    endHoldMs: decided === 'reg' ? FT_HOLD_MS : KO_END_HOLD_MS,
-    onEnd,
-  });
-  const view = liveMatchView({
-    playing: true,
-    userSide: 'home',
-    liveMinute,
-    liveMax,
-    clockLabel,
-    playingEvents: events,
-  });
-  const penKicks = decided === 'pens' ? pens?.kicks : undefined;
-  const showShootout = !!penKicks && liveMinute >= liveMax;
-  return (
-    <MatchdayCard
-      label={label}
-      tag={<ResultTag kind="next" label="Live now" />}
-      userRating={userRating}
-      oppName={opp.name}
-      oppCode={opp.code}
-      oppYear={opp.year}
-      oppRating={opp.strength.overall}
-      view={view}
-      userSide="home"
-      playing
-      clockLabel={clockLabel}
-      penKicks={penKicks}
-      penShown={penShown}
-      showShootout={showShootout}
-    />
-  );
-}
-
-/** A settled group match rendered as a finished card (used before the standings). */
-function GroupResultCard({ m, i, userRating }: { m: UserMatch; i: number; userRating: number }) {
-  const ug = m.result.homeGoals;
-  const og = m.result.awayGoals;
-  return (
-    <MatchdayCard
-      label={`Matchday ${i + 1}`}
-      tag={<ResultTag {...resultTag({ user: ug, opp: og })} />}
-      userRating={userRating}
-      oppName={m.opp.name}
-      oppCode={m.opp.code}
-      oppYear={m.opp.year}
-      oppRating={m.opp.strength.overall}
-      view={liveMatchView({
-        playing: false,
-        userSide: 'home',
-        liveMinute: 90,
-        liveMax: 90,
-        clockLabel: '',
-        finished: { userGoals: ug, oppGoals: og, status: 'Full time', statusDim: true, events: m.result.events },
-      })}
-      userSide="home"
-      playing={false}
-      clockLabel=""
-    />
-  );
-}
-
-/** A finished knockout tie rendered as a settled card (goal feed + shootout). Built
- *  from primitives so it serves both the just-played tie (kept above the boost pick)
- *  and a past-round review opened from the ladder. */
-function FinishedKoCard({
-  roundName,
-  oppName,
-  oppCode,
-  oppYear,
-  oppRating,
-  userRating,
-  userGoals,
-  oppGoals,
-  decided,
-  events,
-  pens,
-  userWon,
-}: {
-  roundName: string;
-  oppName: string;
-  oppCode: string;
-  oppYear?: number;
-  oppRating?: number;
-  userRating: number;
-  userGoals: number;
-  oppGoals: number;
-  decided: KoDecided;
-  events: MatchEvent[];
-  pens?: ShootoutResult;
-  userWon: boolean;
-}) {
-  const liveMax = maxMinute(decided);
-  const { status, statusDim } = koFinishedStatus(decided);
-  const penKicks = decided === 'pens' ? pens?.kicks : undefined;
-  return (
-    <MatchdayCard
-      label={roundName}
-      tag={<ResultTag kind={userWon ? 'w' : 'l'} label={koResultLabel(userWon, decided)} />}
-      userRating={userRating}
-      oppName={oppName}
-      oppCode={oppCode}
-      oppYear={oppYear}
-      oppRating={oppRating ?? 0}
-      view={liveMatchView({
-        playing: false,
-        userSide: 'home',
-        liveMinute: liveMax,
-        liveMax,
-        clockLabel: '',
-        finished: { userGoals, oppGoals, status, statusDim, events },
-      })}
-      userSide="home"
-      playing={false}
-      clockLabel=""
-      penKicks={penKicks}
-      penShown={penKicks?.length ?? 0}
-      showShootout={!!penKicks}
-    />
-  );
-}
-
-/** The read-only review shown in the content area when a past round is opened from
- *  the ladder: the round's result (+ boost taken), or the group's finishing summary. */
-function RoundReview({ record, onBack }: { record: RoundRecord; onBack: () => void }) {
-  const backBtn = (
-    <StageCrumb dir="back" label="Back to the current round" onClick={onBack} className="mt-4" />
-  );
-
-  const boost = record.boostId ? boonById(record.boostId) : undefined;
-  const boostLine = boost && (
-    <div className="mt-3 flex items-start gap-2 text-[12.5px]">
-      <span
-        className="mt-[3px] h-2 w-2 shrink-0 rounded-full"
-        style={{ background: RARITY_COLOR[boost.rarity] }}
-      />
-      <span className="text-muted">
-        Boost taken: <b className="text-ink">{boost.name}</b> &middot; {boost.description}
-      </span>
-    </div>
-  );
-
-  if (record.stage === 'group') {
-    return (
-      <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
-        <div className="mb-3 text-[14px] font-semibold">
-          Group stage, finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
-          <span className={record.won ? 'text-pitch' : 'text-loss'}>
-            {record.won ? 'through to the knockouts' : 'eliminated'}
-          </span>
-        </div>
-        {record.groupResults && (
-          <div className="flex flex-col gap-1.5">
-            {record.groupResults.map((r, i) => {
-              const res = r.us > r.them ? 'text-pitch' : r.us < r.them ? 'text-loss' : 'text-muted';
-              return (
-                <div key={i} className="flex items-center gap-2 text-[13px]">
-                  <span className="w-[74px] shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
-                    Matchday {i + 1}
-                  </span>
-                  <span className="font-semibold">Your XI</span>
-                  <span className={`font-mono font-bold ${res}`}>
-                    {r.us}-{r.them}
-                  </span>
-                  <Flag code={r.code} className="h-3 w-[18px]" />
-                  <span className="min-w-0 truncate">{r.name}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {boostLine}
-        {backBtn}
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <FinishedKoCard
-        roundName={KO_ROUNDS[record.stage as number]}
-        oppName={record.oppName ?? ''}
-        oppCode={record.oppCode ?? ''}
-        oppYear={record.oppYear}
-        oppRating={record.oppRating}
-        userRating={record.userRating ?? 0}
-        userGoals={record.userGoals ?? 0}
-        oppGoals={record.oppGoals ?? 0}
-        decided={record.decided ?? 'reg'}
-        events={record.events ?? []}
-        pens={record.pens}
-        userWon={record.won}
-      />
-      <div className="mt-4 rounded-md border border-line bg-panel p-4 shadow-hard">
-        {boost ? boostLine : <div className="text-[12.5px] text-muted">No boost this round.</div>}
-        {backBtn}
-      </div>
-    </div>
-  );
-}
-
-/** The win result headline for a finished knockout tie. */
-function koWinHeading(m: KoMatch): string {
-  if (m.decided === 'pens') return 'Won on penalties';
-  if (m.decided === 'aet') return `Won ${m.userGoals}-${m.oppGoals} (a.e.t.)`;
-  return `Won ${m.userGoals}-${m.oppGoals}`;
-}
-
-/** The three-boost picker (rarity-topped cards) plus the "Next: opponent" line. Shared
- *  by the after-group screen (first boost) and the between-knockout-rounds boost phase.
- *  The next opponent shows flag + name + year so the year isn't lost. */
-function BoostOffer({
-  offer,
-  nextOpponent,
-  roundName,
-  onPick,
-}: {
-  offer: Boon[];
-  nextOpponent: GroupTeam | null;
-  roundName: string;
-  onPick: (b: Boon) => void;
-}) {
-  return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-          Pick a boost
-        </span>
-        {nextOpponent && (
-          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">
-            Next: <Flag code={nextOpponent.code} className="h-3 w-[18px]" />
-            <b className="text-ink">{nextOpponent.name}</b>
-            {nextOpponent.year != null && <span>{nextOpponent.year}</span>} in {roundName}
-          </span>
-        )}
-      </div>
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-        {offer.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => onPick(b)}
-            className="flex flex-col gap-1.5 rounded-md border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
-            style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
-          >
-            <span
-              className="font-mono text-[9px] font-bold uppercase tracking-[0.12em]"
-              style={{ color: RARITY_COLOR[b.rarity] }}
-            >
-              {b.rarity}
-            </span>
-            <span className="font-display text-[14px] font-extrabold leading-tight">{b.name}</span>
-            <span className="text-[11.5px] leading-snug text-muted">{b.description}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+import LiveCupMatch from './cupRun/LiveCupMatch';
+import GroupResultCard from './cupRun/GroupResultCard';
+import FinishedKoCard from './cupRun/FinishedKoCard';
+import RoundReview from './cupRun/RoundReview';
+import BoostOffer from './cupRun/BoostOffer';
+import CareerHub from './cupRun/CareerHub';
+import RunXiPanel from './cupRun/RunXiPanel';
+import RunEndPanel from './cupRun/RunEndPanel';
+import { OUTCOME_LABEL, koWinHeading, type Reveal, type Reward } from './cupRun/types';
 
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
@@ -601,98 +270,15 @@ export default function CupRunScreen({
       <StageCrumb dir="back" label="Back to game" to="/" className="mt-7" />
 
       {/* Career hub - full between runs, a slim collapsible strip during a run. */}
-      <section className="mb-4 mt-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
-        <div className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 ${showHubBody ? 'border-b border-line' : ''}`}>
-          <div className="flex items-baseline gap-2.5">
-            <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">Cup Run</span>
-            <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-pitch-dark">
-              Level {career.level}
-            </span>
-            <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
-              {career.prestige} Prestige
-            </span>
-          </div>
-          {run && (
-            <button
-              onClick={() => setHubOpen((o) => !o)}
-              className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-pitch"
-            >
-              {hubOpen ? 'Hide hub' : 'Career hub'}
-              {hubOpen ? <ChevronUp size={13} strokeWidth={2.5} /> : <ChevronDown size={13} strokeWidth={2.5} />}
-            </button>
-          )}
-        </div>
-
-        {showHubBody && (
-          <>
-            <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="bg-panel p-4">
-                <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                  Progress
-                </div>
-                <div className="h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
-                  <div className="h-full bg-pitch" style={{ width: `${(prog.into / prog.needed) * 100}%` }} />
-                </div>
-                <div className="mt-1 font-mono text-[10px] text-muted">
-                  {prog.into} / {prog.needed} XP to level {career.level + 1}
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-px bg-line sm:w-[300px]">
-                {(
-                  [
-                    ['Runs', String(career.stats.runs)],
-                    ['Cups', String(career.stats.cups)],
-                    ['Best', career.stats.bestFinish ? FINISH_LABEL[career.stats.bestFinish] : '-'],
-                  ] as const
-                ).map(([label, val]) => (
-                  <div key={label} className="bg-panel px-2 py-4 text-center">
-                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
-                      {label}
-                    </div>
-                    <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight">{val}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Perk shop */}
-            <div className="border-t border-line p-4">
-              <div className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                Perks (spend Prestige - applies to future runs)
-              </div>
-              <div className="grid gap-2.5 sm:grid-cols-3">
-                {PERKS.map((perk) => {
-                  const owned = career.unlocked.includes(perk.id);
-                  const affordable = career.prestige >= perk.cost;
-                  return (
-                    <div key={perk.id} className="rounded-md border border-line bg-white p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="font-display text-[13.5px] font-extrabold">{perk.name}</span>
-                        <span className="font-mono text-[11px] font-semibold text-amber">{perk.cost}</span>
-                      </div>
-                      <p className="mt-1 text-[11.5px] leading-snug text-muted">{perk.description}</p>
-                      <button
-                        disabled={owned || !affordable}
-                        onClick={() => purchase(perk.id)}
-                        className={[
-                          'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
-                          owned
-                            ? 'cursor-default bg-pitch/10 text-pitch'
-                            : affordable
-                              ? 'bg-pitch text-white hover:bg-pitch-dark'
-                              : 'cursor-not-allowed border border-line bg-white text-muted/50',
-                        ].join(' ')}
-                      >
-                        {owned ? 'Owned' : affordable ? 'Unlock' : `Need ${perk.cost}`}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        )}
-      </section>
+      <CareerHub
+        career={career}
+        prog={prog}
+        hubOpen={hubOpen}
+        onToggleHub={() => setHubOpen((o) => !o)}
+        showBody={showHubBody}
+        showToggle={!!run}
+        onPurchase={purchase}
+      />
 
       {/* No active run: start with the drafted XI, or prompt to draft one. */}
       {!run &&
@@ -735,80 +321,14 @@ export default function CupRunScreen({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
             {/* Your XI + active boosts */}
-            <section className="self-start overflow-hidden rounded-md border border-line bg-panel shadow-hard">
-              <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3">
-                <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
-                  Your XI
-                </span>
-                <span className="font-mono text-[11px] font-semibold text-muted">
-                  Score <span className="text-ink">{run.score}</span>
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-px border-b border-line bg-line text-center">
-                {(
-                  [
-                    ['Title', pct(odds), true],
-                    ['Ovr', str.overall, false],
-                    ['Att', str.attack, false],
-                    ['Def', str.defense, false],
-                  ] as const
-                ).map(([label, val, hero]) => (
-                  <div key={label} className={hero ? 'bg-pitch-dark py-2 text-white' : 'bg-panel py-2'}>
-                    <div
-                      className={`font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${hero ? 'text-white/70' : 'text-muted'}`}
-                    >
-                      {label}
-                    </div>
-                    <div className="font-mono text-[17px] font-bold leading-tight">{val}</div>
-                  </div>
-                ))}
-              </div>
-              <ul>
-                {run.xi.map((p) => {
-                  const sq = SQUAD_BY_ID[p.squadId];
-                  return (
-                    <li
-                      key={p.id}
-                      className="flex items-center gap-2 border-b border-line px-4 py-1.5 last:border-b-0"
-                    >
-                      <span className="w-7 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-pitch">
-                        {primaryPosition(p)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{p.name}</span>
-                      {boostedIds.has(p.id) && (
-                        <span className="shrink-0 rounded-[3px] bg-amber px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.04em] text-white">
-                          Boost
-                        </span>
-                      )}
-                      {sq && <Flag code={sq.code} className="h-3 w-[18px]" />}
-                      <span className="w-6 shrink-0 text-right font-mono text-[14px] font-bold">{p.elo}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-              {run.activeBoons.length > 0 && (
-                <div className="border-t border-line p-3">
-                  <div className="mb-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted">
-                    Active boosts
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {run.activeBoons.map((id, i) => {
-                      const b = boonById(id);
-                      if (!b) return null;
-                      return (
-                        <span
-                          key={`${id}-${i}`}
-                          className="rounded-[4px] border border-l-[3px] border-line bg-white px-2 py-1 text-[11px] font-semibold"
-                          style={{ borderLeftColor: RARITY_COLOR[b.rarity] }}
-                        >
-                          {b.name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </section>
+            <RunXiPanel
+              xi={run.xi}
+              score={run.score}
+              activeBoons={run.activeBoons}
+              boostedIds={boostedIds}
+              odds={odds}
+              str={str}
+            />
 
             {/* Run panel: the live/interactive round view, or a past round's review */}
             <section className="flex min-w-0 flex-col gap-4">
@@ -986,37 +506,17 @@ export default function CupRunScreen({
                   )}
 
                   {run.phase === 'ended' && run.outcome && (
-                    <div className="text-center">
-                      <div className="font-display text-2xl font-black">Final score {run.score}</div>
-                      {reward && (
-                        <div className="mt-1.5 font-mono text-[12px] text-muted">
-                          +{reward.xpGained} XP &middot;{' '}
-                          <span className="text-amber">+{reward.prestigeGained} Prestige</span>
-                          {reward.leveledUp && <span className="ml-2 font-bold text-pitch">Level up!</span>}
-                        </div>
-                      )}
-                      <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
-                        <button onClick={onReDraft} className={PRIMARY_BTN}>
-                          Draft a new XI
-                        </button>
-                        <button
-                          onClick={startRun}
-                          className={`px-4 py-3 ${SECONDARY_BTN}`}
-                        >
-                          Replay same XI
-                        </button>
-                        <button
-                          onClick={() => {
-                            setRun(null);
-                            setReward(null);
-                            setLastKoMatch(null);
-                          }}
-                          className={`px-4 py-3 ${SECONDARY_BTN}`}
-                        >
-                          Career
-                        </button>
-                      </div>
-                    </div>
+                    <RunEndPanel
+                      score={run.score}
+                      reward={reward}
+                      onReDraft={onReDraft}
+                      onReplay={startRun}
+                      onCareer={() => {
+                        setRun(null);
+                        setReward(null);
+                        setLastKoMatch(null);
+                      }}
+                    />
                   )}
                 </div>
                 </>

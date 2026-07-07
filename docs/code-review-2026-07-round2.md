@@ -41,7 +41,7 @@ editing, they will drift as fixes land.
 
 | ID | Title | Principle | Severity | Effort |
 |----|-------|-----------|----------|--------|
-| CR-01 | Split CupRunScreen.tsx | KISS | high | M |
+| CR-01 | Split CupRunScreen.tsx (done) | KISS | high | M |
 | CR-02 | Budget auto-fill algorithm belongs in domain (done) | SoC | medium | M |
 | CR-03 | Sticker-swap eligibility rule implemented 3x (done) | SoC | medium | S |
 | CR-04 | Knockout-tie resolver implemented 2x (regression) | DRY | medium | M |
@@ -88,7 +88,7 @@ editing, they will drift as fixes land.
 
 ## Priority 1: structural
 
-### CR-01 [ ] Split CupRunScreen.tsx (KISS, high, M)
+### CR-01 [x] Split CupRunScreen.tsx (KISS, high, M)
 
 - Location: `src/components/CupRunScreen.tsx` (whole file, ~1090 lines)
 - Problem: one file holds eight components (LiveCupMatch ~87-144, GroupResultCard
