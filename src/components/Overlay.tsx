@@ -35,7 +35,7 @@ export default function Overlay({
 
   return (
     <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-ink/55 p-6"
+      className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

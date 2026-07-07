@@ -86,7 +86,7 @@ export default function CareerHub({
                 const owned = career.unlocked.includes(perk.id);
                 const affordable = career.prestige >= perk.cost;
                 return (
-                  <div key={perk.id} className="rounded-md border border-line bg-white p-3">
+                  <div key={perk.id} className="rounded-md border border-line bg-panel p-3">
                     <div className="flex items-center justify-between">
                       <span className="font-display text-[13.5px] font-extrabold">{perk.name}</span>
                       <span className="font-mono text-[11px] font-semibold text-amber">{perk.cost}</span>
@@ -101,7 +101,7 @@ export default function CareerHub({
                           ? 'cursor-default bg-pitch/10 text-pitch'
                           : affordable
                             ? 'bg-pitch text-white hover:bg-pitch-dark'
-                            : 'cursor-not-allowed border border-line bg-white text-muted/50',
+                            : 'cursor-not-allowed border border-line bg-panel text-muted/50',
                       ].join(' ')}
                     >
                       {owned ? 'Owned' : affordable ? 'Unlock' : `Need ${perk.cost}`}

@@ -168,7 +168,7 @@ export default function SquadBrowser() {
                                     'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
                                     mode === m
                                         ? 'bg-ink text-ground'
-                                        : 'bg-white text-muted hover:text-pitch',
+                                        : 'bg-panel text-muted hover:text-pitch',
                                 ].join(' ')}
                             >
                                 {label}
@@ -187,7 +187,7 @@ export default function SquadBrowser() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search players or teams…"
-                        className="w-full rounded-[5px] border border-line bg-white py-2 pl-8 pr-8 text-sm outline-none transition placeholder:text-muted/70 focus:border-pitch"
+                        className="w-full rounded-[5px] border border-line bg-panel py-2 pl-8 pr-8 text-sm outline-none transition placeholder:text-muted/70 focus:border-pitch"
                     />
                     {query && (
                         <button
@@ -212,7 +212,7 @@ export default function SquadBrowser() {
                     ) : selected ? (
                         <button
                             onClick={backFromRoster}
-                            className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-white px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
+                            className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
                         >
                             <ArrowLeft size={14} strokeWidth={2.5} />
                             Back
@@ -220,7 +220,7 @@ export default function SquadBrowser() {
                     ) : team ? (
                         <Link
                             to="/squads/by-team"
-                            className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-white px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
+                            className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
                         >
                             <ArrowLeft size={14} strokeWidth={2.5} />
                             All teams
@@ -237,7 +237,7 @@ export default function SquadBrowser() {
                                             'rounded-[5px] border px-3 py-2 font-mono text-[12px] font-semibold tabular-nums transition',
                                             active
                                                 ? 'border-pitch-dark bg-pitch-dark text-white'
-                                                : 'border-line bg-white text-muted hover:border-pitch hover:text-pitch',
+                                                : 'border-line bg-panel text-muted hover:border-pitch hover:text-pitch',
                                         ].join(' ')}
                                     >
                                         {y}

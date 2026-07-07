@@ -64,7 +64,7 @@ export default function SetupPanel({
                                     'whitespace-nowrap rounded-[4px] border px-px py-2.5 text-center font-mono text-[11.5px] font-semibold tracking-[-0.01em] transition',
                                     active
                                         ? 'border-ink bg-ink text-ground'
-                                        : 'border-line bg-white text-ink hover:border-pitch hover:text-pitch',
+                                        : 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch',
                                 ].join(' ')}
                             >
                                 {name}
@@ -91,7 +91,7 @@ export default function SetupPanel({
                                     active
                                         ? 'bg-pitch-dark text-white'
                                         : enabled
-                                          ? 'bg-white text-muted hover:text-pitch'
+                                          ? 'bg-panel text-muted hover:text-pitch'
                                           : 'cursor-not-allowed bg-pitch/5 text-muted/40',
                                 ].join(' ')}
                             >
@@ -131,7 +131,7 @@ export default function SetupPanel({
                                         className="fixed inset-0 z-10"
                                         onClick={() => setMenuOpen(false)}
                                     />
-                                    <div className="absolute right-0 z-20 mt-1.5 w-44 overflow-hidden rounded-md border border-line bg-white shadow-hard">
+                                    <div className="absolute right-0 z-20 mt-1.5 w-44 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
                                         {STRENGTH_TIERS.map((t) => (
                                             <button
                                                 key={t.value}

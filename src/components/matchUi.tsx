@@ -38,7 +38,7 @@ export const PRIMARY_BTN =
 /** Shared outline action button (the turf-flat `.btn.secondary`). Visual identity
  *  only, so callers append their own layout/sizing (width, padding, gap, disabled). */
 export const SECONDARY_BTN =
-  'rounded-[5px] border border-ink bg-white font-display font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch';
+  'rounded-[5px] border border-ink bg-panel font-display font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch';
 
 /** The solid-red destructive confirm button (used to confirm a start-over / reset). */
 export const DANGER_BTN =

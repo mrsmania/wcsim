@@ -4401,3 +4401,9 @@ export const SQUAD_BY_ID: Record<string, Squad | undefined> = Object.fromEntries
 /** Every player in the dataset, flattened once (the market, roster boons, and
  *  the sticker album all iterate the whole pool). */
 export const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
+
+/** The distinct World Cup years present in the dataset, oldest first. Drives the
+ *  squad-pool setting (which tournaments the game draws from). */
+export const WORLD_CUP_YEARS: number[] = [...new Set(SQUADS.map((s) => s.year))].sort(
+    (a, b) => a - b,
+);

@@ -106,7 +106,7 @@ export default function BudgetMarket({
           {emptySlots.length > 0 && (
             <button
               onClick={autoFill}
-              className="rounded-[5px] border border-line bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink transition hover:border-pitch hover:text-pitch"
+              className="rounded-[5px] border border-line bg-panel px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink transition hover:border-pitch hover:text-pitch"
             >
               Auto-fill &amp; spend
             </button>
@@ -114,7 +114,7 @@ export default function BudgetMarket({
           {placed.length > 0 && (
             <button
               onClick={onClear}
-              className="rounded-[5px] border border-line bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-muted transition hover:border-loss hover:text-loss"
+              className="rounded-[5px] border border-line bg-panel px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-muted transition hover:border-loss hover:text-loss"
             >
               Clear
             </button>
@@ -138,7 +138,7 @@ export default function BudgetMarket({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search…"
-                className="w-28 rounded-[5px] border border-line bg-white py-1.5 pl-7 pr-2 text-[13px] outline-none transition placeholder:text-muted/70 focus:border-pitch"
+                className="w-28 rounded-[5px] border border-line bg-panel py-1.5 pl-7 pr-2 text-[13px] outline-none transition placeholder:text-muted/70 focus:border-pitch"
               />
             </div>
           </div>

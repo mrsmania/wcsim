@@ -36,7 +36,7 @@ export default function BoostOffer({
           <button
             key={b.id}
             onClick={() => onPick(b)}
-            className="flex flex-col gap-1.5 rounded-md border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
+            className="flex flex-col gap-1.5 rounded-md border border-line bg-panel p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
             style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
           >
             <span

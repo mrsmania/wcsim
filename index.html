@@ -7,6 +7,15 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><rect width='28' height='28' rx='6' fill='%230e5c34'/><g fill='none' stroke='%23e4922b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate(2 2)'><path d='M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978'/><path d='M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978'/><path d='M18 9h1.5a1 1 0 0 0 0-5H18'/><path d='M4 22h16'/><path d='M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z'/><path d='M6 9H4.5a1 1 0 0 1 0-5H6'/></g></svg>"
     />
+    <script>
+      /* Apply the saved theme before paint to avoid a flash of the light theme. */
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem('wcsim_settings_v1') || '{}');
+          if (s && s.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

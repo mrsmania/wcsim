@@ -85,7 +85,7 @@ export default function RunXiPanel({
               return (
                 <span
                   key={`${id}-${i}`}
-                  className="rounded-[4px] border border-l-[3px] border-line bg-white px-2 py-1 text-[11px] font-semibold"
+                  className="rounded-[4px] border border-l-[3px] border-line bg-panel px-2 py-1 text-[11px] font-semibold"
                   style={{ borderLeftColor: RARITY_COLOR[b.rarity] }}
                 >
                   {b.name}

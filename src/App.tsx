@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Swords, Trophy } from 'lucide-react';
+import { ArrowRight, Settings as SettingsIcon, Swords, Trophy } from 'lucide-react';
 import { ALL_PLAYERS, SQUADS } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -36,6 +36,8 @@ import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
 import { clearRun } from './state/runStorage';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
+import { useSettings } from './hooks/useSettings';
+import SettingsModal from './components/SettingsModal';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import BudgetMarket from './components/BudgetMarket';
@@ -103,6 +105,8 @@ export default function App() {
     // key, so resetting a run never touches the collection (FR-7).
     const STICKERS = FEATURES.stickerAlbum;
     const stickers = useStickerAlbum(state, dispatch);
+    const settings = useSettings();
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -550,7 +554,7 @@ export default function App() {
                                             'border-r border-line px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] transition last:border-r-0',
                                             active
                                                 ? 'bg-ink text-ground'
-                                                : 'bg-white text-muted hover:text-pitch',
+                                                : 'bg-panel text-muted hover:text-pitch',
                                         ].join(' ')}
                                     >
                                         {label}
@@ -558,6 +562,15 @@ export default function App() {
                                 ))}
                             </div>
                         )}
+                        <button
+                            type="button"
+                            onClick={() => setSettingsOpen(true)}
+                            aria-label="Settings"
+                            title="Settings"
+                            className="grid h-[33px] w-[33px] shrink-0 place-items-center rounded-[5px] border border-line bg-panel text-muted transition hover:border-pitch hover:text-pitch"
+                        >
+                            <SettingsIcon size={17} strokeWidth={2} />
+                        </button>
                     </div>
                 </header>
 
@@ -822,6 +835,17 @@ export default function App() {
                         stickers.clearNewStickers();
                         navigate('/album');
                     }}
+                />
+            )}
+
+            {settingsOpen && (
+                <SettingsModal
+                    onClose={() => setSettingsOpen(false)}
+                    settings={settings}
+                    speed={speed}
+                    onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                    auto={auto}
+                    onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
                 />
             )}
         </div>
