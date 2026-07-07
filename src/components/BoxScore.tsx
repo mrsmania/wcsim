@@ -2,7 +2,7 @@ import { HelpCircle } from 'lucide-react';
 import type { Player } from '../data/types';
 import { categoryOf, DEF_CATS } from '../data/types';
 import type { Formation } from '../domain/formations';
-import type { Filled } from '../domain/draft';
+import { placedPlayers, type Filled } from '../domain/draft';
 import { teamChemistry, MAX_BONUS } from '../domain/chemistry';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
@@ -81,13 +81,11 @@ function Cell({ label, value, ovr = false }: { label: string; value: number; ovr
  *  it, the chemistry card (donut + effective overall + the per-category breakdown).
  *  Both render as siblings so the surrounding stack spaces them. */
 export default function BoxScore({ formation, filled, showChemistry = false }: Props) {
-    const placedPlayers = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
-    const attack = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
-    const midfield = avgElo(placedPlayers.filter((p) => categoryOf(p.positions[0]) === 'MID'));
-    const defense = avgElo(
-        placedPlayers.filter((p) => DEF_CATS.includes(categoryOf(p.positions[0]))),
-    );
-    const overall = avgElo(placedPlayers);
+    const placed = placedPlayers(formation, filled);
+    const attack = avgElo(placed.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
+    const midfield = avgElo(placed.filter((p) => categoryOf(p.positions[0]) === 'MID'));
+    const defense = avgElo(placed.filter((p) => DEF_CATS.includes(categoryOf(p.positions[0]))));
+    const overall = avgElo(placed);
 
     const chem = FEATURES.chemistry && showChemistry ? teamChemistry(formation, filled) : null;
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;

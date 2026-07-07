@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MatchSpeed } from '../domain/clock';
 import {
-    BRACKET_ROUNDS,
     bracketChampionId,
     currentGame,
     opponentOf,
@@ -10,6 +9,7 @@ import {
     type BracketGame,
     type BracketState,
 } from '../domain/bracket';
+import { KO_ROUNDS } from '../domain/knockout';
 import { USER_ID, type GroupState } from '../domain/tournament';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
@@ -69,7 +69,7 @@ export default function KnockoutScreen({
     const b = bracket;
     const champion = b.outcome === 'champion';
     const over = b.outcome !== 'alive';
-    const lastRunRound = champion ? BRACKET_ROUNDS.length - 1 : b.current;
+    const lastRunRound = champion ? KO_ROUNDS.length - 1 : b.current;
     const cur = currentGame(b);
 
     // The round currently being revealed: its round index + the freshly simulated
@@ -184,7 +184,7 @@ export default function KnockoutScreen({
                     const isPlayingRound = playing?.round === r;
                     const roundRes = isPlayingRound ? playing!.games[0].result! : undefined;
                     const decided = roundRes?.decided ?? g.result?.decided;
-                    const isFinal = r === BRACKET_ROUNDS.length - 1;
+                    const isFinal = r === KO_ROUNDS.length - 1;
                     const liveMax = decided ? maxMinute(decided) : 90;
 
                     let finishedStatus = 'Full time';
@@ -252,7 +252,7 @@ export default function KnockoutScreen({
                             className={isLastRun ? 'scroll-mt-4' : undefined}
                         >
                             <MatchdayCard
-                                label={BRACKET_ROUNDS[r]}
+                                label={KO_ROUNDS[r]}
                                 tag={tag}
                                 userRating={b.teams[USER_ID].strength.overall}
                                 oppName={opp.name}
@@ -289,9 +289,9 @@ export default function KnockoutScreen({
                             return (
                                 <Banner
                                     champion={false}
-                                    eyebrow={`Knocked out · ${BRACKET_ROUNDS[b.current]}`}
+                                    eyebrow={`Knocked out · ${KO_ROUNDS[b.current]}`}
                                     heading="Knocked out."
-                                    body={`Beaten in the ${BRACKET_ROUNDS[b.current]}.${
+                                    body={`Beaten in the ${KO_ROUNDS[b.current]}.${
                                         champ ? ` ${champ.name} went on to lift the cup.` : ''
                                     } Draft a new XI and run it back.`}
                                     onReset={onReset}

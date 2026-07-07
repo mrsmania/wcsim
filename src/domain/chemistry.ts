@@ -1,6 +1,7 @@
 import type { Player, Position, Squad } from '../data/types';
 import { primaryPosition } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
+import { CONFEDERATION, type Confederation } from '../data/confederations';
 import type { Formation } from './formations';
 import type { Filled } from './draft';
 
@@ -17,32 +18,6 @@ import type { Filled } from './draft';
 // and the per-category points add up to the bonus (until the cap), so the final
 // value is fully reconstructable from what is displayed.
 // ---------------------------------------------------------------------------
-
-export type Confederation = 'UEFA' | 'CONMEBOL' | 'CONCACAF' | 'CAF' | 'AFC' | 'OFC';
-
-/** Nation code -> confederation, for the "Same continent" category. A miss
- *  returns `undefined`, so callers must guard the lookup (validateSquads asserts
- *  every squad code is mapped). */
-export const CONFEDERATION: Record<string, Confederation | undefined> = {
-  // UEFA
-  FRA: 'UEFA', ITA: 'UEFA', NED: 'UEFA', GER: 'UEFA', ESP: 'UEFA', ENG: 'UEFA',
-  POR: 'UEFA', BEL: 'UEFA', CRO: 'UEFA', SRB: 'UEFA', SUI: 'UEFA', DEN: 'UEFA',
-  POL: 'UEFA', WAL: 'UEFA', SVN: 'UEFA', SVK: 'UEFA', GRE: 'UEFA', RUS: 'UEFA',
-  BIH: 'UEFA', ISL: 'UEFA', SWE: 'UEFA', SCG: 'UEFA', CZE: 'UEFA', UKR: 'UEFA',
-  // CONMEBOL
-  BRA: 'CONMEBOL', ARG: 'CONMEBOL', URU: 'CONMEBOL', COL: 'CONMEBOL',
-  ECU: 'CONMEBOL', CHI: 'CONMEBOL', PER: 'CONMEBOL', PAR: 'CONMEBOL',
-  // CONCACAF
-  MEX: 'CONCACAF', USA: 'CONCACAF', CRC: 'CONCACAF', CAN: 'CONCACAF',
-  HON: 'CONCACAF', PAN: 'CONCACAF', TRI: 'CONCACAF',
-  // CAF
-  SEN: 'CAF', CMR: 'CAF', MAR: 'CAF', TUN: 'CAF', GHA: 'CAF', NGA: 'CAF',
-  CIV: 'CAF', EGY: 'CAF', ALG: 'CAF', RSA: 'CAF', ANG: 'CAF', TOG: 'CAF',
-  // AFC (Australia has competed in the AFC since 2006)
-  KSA: 'AFC', IRN: 'AFC', JPN: 'AFC', KOR: 'AFC', QAT: 'AFC', AUS: 'AFC', PRK: 'AFC',
-  // OFC
-  NZL: 'OFC',
-};
 
 export type ChemDimension = 'squad' | 'nation' | 'tournament' | 'continent' | 'era' | 'fit';
 

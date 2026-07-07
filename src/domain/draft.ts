@@ -38,9 +38,14 @@ export function isComplete(formation: Formation, filled: Filled): boolean {
   return filledCount(formation, filled) === formation.slots.length;
 }
 
+/** The players placed so far, in slot order. */
+export function placedPlayers(formation: Formation, filled: Filled): Player[] {
+  return formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
+}
+
 /** Average elo of the players placed so far (0 when none). */
 export function teamRating(formation: Formation, filled: Filled): number {
-  const players = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
+  const players = placedPlayers(formation, filled);
   if (players.length === 0) return 0;
   return Math.round(players.reduce((sum, p) => sum + p.elo, 0) / players.length);
 }

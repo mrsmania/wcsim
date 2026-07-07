@@ -1,6 +1,7 @@
 import type { Player } from '../data/types';
-import { categoryOf, primaryPosition, ATTACK_CATS, DEF_CATS } from '../data/types';
-import { SQUAD_BY_ID, SQUADS } from '../data/squads';
+import { categoryOf, isAttacker, isDefender, primaryPosition, ELO_MAX, ELO_MIN } from '../data/types';
+import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
+import { shuffled } from './random';
 
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
 export type Rarity = 'common' | 'rare' | 'legendary';
@@ -21,8 +22,6 @@ export interface Boon {
   apply: (xi: Player[], ctx: BoonContext) => Player[];
 }
 
-/** Every player in the dataset, for roster boons (Transfer / Wildcard). */
-const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
 const catOf = (p: Player) => categoryOf(primaryPosition(p));
 const weakest = (xi: Player[]) => xi.reduce((lo, p) => (p.elo < lo.elo ? p : lo), xi[0]);
 const weakestOfCat = (xi: Player[], cat: ReturnType<typeof catOf>): Player | null => {
@@ -32,14 +31,10 @@ const weakestOfCat = (xi: Player[], cat: ReturnType<typeof catOf>): Player | nul
 const swap = (xi: Player[], outId: string, inP: Player) =>
   xi.map((p) => (p.id === outId ? inP : p));
 
-const MIN = 60;
-const MAX = 99;
 const bump = (p: Player, d: number): Player => ({
   ...p,
-  elo: Math.max(MIN, Math.min(MAX, p.elo + d)),
+  elo: Math.max(ELO_MIN, Math.min(ELO_MAX, p.elo + d)),
 });
-const isAttack = (p: Player) => ATTACK_CATS.includes(categoryOf(primaryPosition(p)));
-const isDef = (p: Player) => DEF_CATS.includes(categoryOf(primaryPosition(p)));
 
 /** Bump the `n` lowest-rated players by `d`. */
 function bumpLowest(xi: Player[], n: number, d: number): Player[] {
@@ -93,7 +88,7 @@ export const BOONS: Boon[] = [
     name: 'Glass Cannon',
     rarity: 'rare',
     description: '+4 to attackers, -3 to defenders. High risk.',
-    apply: (xi) => xi.map((p) => (isAttack(p) ? bump(p, 4) : isDef(p) ? bump(p, -3) : p)),
+    apply: (xi) => xi.map((p) => (isAttacker(p) ? bump(p, 4) : isDefender(p) ? bump(p, -3) : p)),
   },
   {
     id: 'veteran-core',
@@ -107,14 +102,14 @@ export const BOONS: Boon[] = [
     name: 'Attacking Masterclass',
     rarity: 'common',
     description: '+2 to your midfielders and forwards.',
-    apply: (xi) => xi.map((p) => (isAttack(p) ? bump(p, 2) : p)),
+    apply: (xi) => xi.map((p) => (isAttacker(p) ? bump(p, 2) : p)),
   },
   {
     id: 'defensive-drills',
     name: 'Defensive Drills',
     rarity: 'common',
     description: '+2 to your goalkeeper and defenders.',
-    apply: (xi) => xi.map((p) => (isDef(p) ? bump(p, 2) : p)),
+    apply: (xi) => xi.map((p) => (isDefender(p) ? bump(p, 2) : p)),
   },
   {
     id: 'chemistry-catalyst',
@@ -179,10 +174,5 @@ export const boonById = (id: string): Boon | undefined => BY_ID.get(id);
 
 /** Offer `n` distinct random boons (the 1-of-3 pick between rounds). */
 export function offerBoons(n = 3): Boon[] {
-  const pool = [...BOONS];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool.slice(0, n);
+  return shuffled(BOONS).slice(0, n);
 }

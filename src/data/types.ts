@@ -50,11 +50,15 @@ export interface Player {
   name: string;
   /** One or more roles this player is eligible for. */
   positions: Position[];
-  /** Holistic strength at the time of that tournament, on a 60-99 scale
-   *  (shown in the UI as "rating"). The 1998/2002 squads are partial
+  /** Holistic strength at the time of that tournament, on the ELO_MIN-ELO_MAX
+   *  scale (shown in the UI as "rating"). The 1998/2002 squads are partial
    *  placeholders; 2006 onward are researched. */
   elo: number;
 }
+
+/** Bounds of the rating (elo) scale documented on `Player.elo`. */
+export const ELO_MIN = 60;
+export const ELO_MAX = 99;
 
 /** A single national team at one specific World Cup. */
 export interface Squad {
@@ -81,8 +85,18 @@ export function primaryPosition(player: Player): Position {
   return player.positions[0];
 }
 
-/** Categories counted as attack in match strength (mirrors match.ts). */
+/** Categories counted as attack in match strength. */
 export const ATTACK_CATS: PositionCategory[] = ['MID', 'FWD'];
 
-/** Categories counted as defense in match strength (mirrors match.ts). */
+/** Categories counted as defense in match strength. */
 export const DEF_CATS: PositionCategory[] = ['GK', 'DEF'];
+
+/** True when the player's natural role counts toward attack in match strength. */
+export function isAttacker(player: Player): boolean {
+  return ATTACK_CATS.includes(primaryCategory(player));
+}
+
+/** True when the player's natural role counts toward defense in match strength. */
+export function isDefender(player: Player): boolean {
+  return DEF_CATS.includes(primaryCategory(player));
+}

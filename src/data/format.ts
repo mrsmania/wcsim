@@ -8,6 +8,12 @@ export function formatPositions(positions: Position[]): string {
   return positions.join('/');
 }
 
+/** Search normalizer: lowercase + strip combining diacritics (NFD splits 'ü'
+ *  into 'u' + accent, U+0300..U+036F), so "Muller" matches "Müller". */
+export function normalizeSearch(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
 /** Surname particles kept with the last name (e.g. "Van der Sar", "de Boer"). */
 const NAME_PARTICLES = new Set([
   'de', 'del', 'der', 'den', 'van', 'von', 'di', 'da', 'dos', 'das',

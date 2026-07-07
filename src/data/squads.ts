@@ -4397,3 +4397,7 @@ export const SQUADS: Squad[] = [
 export const SQUAD_BY_ID: Record<string, Squad | undefined> = Object.fromEntries(
     SQUADS.map((s) => [s.id, s]),
 );
+
+/** Every player in the dataset, flattened once (the market, roster boons, and
+ *  the sticker album all iterate the whole pool). */
+export const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);

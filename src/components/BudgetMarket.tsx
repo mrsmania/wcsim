@@ -1,30 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { Player, Position } from '../data/types';
-import { lastName } from '../data/format';
-import { SQUADS, SQUAD_BY_ID } from '../data/squads';
+import { lastName, normalizeSearch } from '../data/format';
+import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
 import type { Formation, Slot } from '../domain/formations';
-import type { Filled } from '../domain/draft';
-import { priceOf, BUDGET } from '../domain/pricing';
+import { placedPlayers, type Filled } from '../domain/draft';
+import { priceOf } from '../domain/pricing';
+import { shuffled } from '../domain/random';
 import { tierOf } from '../domain/album';
-import { FEATURES } from '../config';
+import { BUDGET_DRAFT, FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
 
-const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
-const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const MAX_RESULTS = 60;
-
-/** A shuffled copy (Fisher-Yates). Uses Math.random intentionally, like the sim. */
-function shuffle<T>(arr: readonly T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /** Cheapest possible price for any player, reserved per still-empty slot so a random
  *  auto-fill never strands a slot it can no longer afford. */
@@ -75,19 +64,19 @@ export default function BudgetMarket({
   const [query, setQuery] = useState('');
 
   const slots = formation.slots;
-  const placed = slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
+  const placed = placedPlayers(formation, filled);
   const used = new Set(placed.map((p) => p.personId));
   const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
-  const remaining = BUDGET - spent;
+  const remaining = BUDGET_DRAFT - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
 
   const results = useMemo(() => {
     if (!targetSlot) return [];
-    const q = norm(query.trim());
+    const q = normalizeSearch(query.trim());
     const list = (BY_POSITION[targetSlot.position] ?? []).filter((p) => {
       if (!q) return true;
       const sq = SQUAD_BY_ID[p.squadId];
-      const hay = `${norm(p.name)} ${norm(sq?.nation ?? '')} ${(sq?.code ?? '').toLowerCase()} ${sq?.year ?? ''}`;
+      const hay = `${normalizeSearch(p.name)} ${normalizeSearch(sq?.nation ?? '')} ${(sq?.code ?? '').toLowerCase()} ${sq?.year ?? ''}`;
       return hay.includes(q);
     });
     return list.slice(0, MAX_RESULTS);
@@ -103,7 +92,7 @@ export default function BudgetMarket({
     let left = remaining;
     const autoIds: string[] = [];
 
-    const order = shuffle(slots.filter((s) => !next[s.id]));
+    const order = shuffled(slots.filter((s) => !next[s.id]));
     order.forEach((s, i) => {
       const reserve = (order.length - 1 - i) * MIN_PRICE;
       const cap = left - reserve;
@@ -121,7 +110,7 @@ export default function BudgetMarket({
 
     for (let guard = 0; guard < 300 && left > 0; guard++) {
       let upgraded = false;
-      for (const slotId of shuffle(autoIds)) {
+      for (const slotId of shuffled(autoIds)) {
         const cur = next[slotId]!;
         const slot = slots.find((s) => s.id === slotId)!;
         const curPrice = priceOf(cur.elo);
@@ -151,7 +140,7 @@ export default function BudgetMarket({
       <div className="border-b border-line p-4">
         <div className="flex items-baseline justify-between font-mono text-[12px]">
           <span>
-            Spent <b className="text-ink">${spent}</b> / ${BUDGET}
+            Spent <b className="text-ink">${spent}</b> / ${BUDGET_DRAFT}
           </span>
           <span className={remaining < 0 ? 'font-bold text-loss' : 'text-muted'}>
             ${remaining} left &middot; {placed.length}/{slots.length}
@@ -160,7 +149,7 @@ export default function BudgetMarket({
         <div className="mt-2 h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
           <div
             className={`h-full ${remaining < 0 ? 'bg-loss' : 'bg-pitch'}`}
-            style={{ width: `${Math.min(100, (spent / BUDGET) * 100)}%` }}
+            style={{ width: `${Math.min(100, (spent / BUDGET_DRAFT) * 100)}%` }}
           />
         </div>
         <div className="mt-3 flex gap-2">

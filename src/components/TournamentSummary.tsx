@@ -1,8 +1,8 @@
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { standings, teamById, USER_ID, type GroupState, type GroupTeam } from '../domain/tournament';
-import { BRACKET_ROUNDS, type BracketState } from '../domain/bracket';
-import type { KoDecided } from '../domain/knockout';
+import type { BracketState } from '../domain/bracket';
+import { KO_ROUNDS, type KoDecided } from '../domain/knockout';
 import { CATEGORY_ORDER, categoryOf } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import Flag from './Flag';
@@ -11,7 +11,7 @@ import { EYEBROW, TABLE_HEAD, ordinal, RatingChip } from './matchUi';
 /** Short recap labels, one per knockout round, keyed to the domain's round list so
  *  the two cannot drift. The recap shows abbreviations; the last round keeps its
  *  full name (which is already short). */
-const KO_ABBR: Record<(typeof BRACKET_ROUNDS)[number], string> = {
+const KO_ABBR: Record<(typeof KO_ROUNDS)[number], string> = {
   'Round of 16': 'R16',
   'Quarter-final': 'QF',
   'Semi-final': 'SF',
@@ -134,7 +134,7 @@ function KnockoutRecap({ bracket }: { bracket: BracketState }) {
                 <RatingChip value={r.opp.strength.overall} />
               </span>
               <span className="shrink-0 font-mono text-[11px] text-muted">
-                {KO_ABBR[BRACKET_ROUNDS[r.round]]}
+                {KO_ABBR[KO_ROUNDS[r.round]]}
                 {extra}
               </span>
               <span className="shrink-0 font-mono text-[13px] font-bold text-ink">

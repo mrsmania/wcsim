@@ -1,5 +1,5 @@
 import type { Player } from '../data/types';
-import { categoryOf, primaryPosition, ATTACK_CATS, DEF_CATS } from '../data/types';
+import { categoryOf, isAttacker, isDefender, primaryPosition } from '../data/types';
 
 export interface Strength {
   attack: number;
@@ -31,8 +31,8 @@ const avg = (nums: number[]) => (nums.length ? nums.reduce((a, b) => a + b, 0) /
 /** Strength of a set of players, split into attack (MID/FWD) and defense (GK/DEF). */
 export function xiStrength(players: Player[]): Strength {
   const all = players.map((p) => p.elo);
-  const attack = players.filter((p) => ATTACK_CATS.includes(categoryOf(primaryPosition(p)))).map((p) => p.elo);
-  const defense = players.filter((p) => DEF_CATS.includes(categoryOf(primaryPosition(p)))).map((p) => p.elo);
+  const attack = players.filter(isAttacker).map((p) => p.elo);
+  const defense = players.filter(isDefender).map((p) => p.elo);
   return {
     attack: Math.round(attack.length ? avg(attack) : avg(all)),
     defense: Math.round(defense.length ? avg(defense) : avg(all)),

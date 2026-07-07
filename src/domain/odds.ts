@@ -10,10 +10,9 @@ import {
   GROUP_MATCHDAYS,
 } from './tournament';
 import { buildBracket, playRound, recordRound } from './bracket';
+import { LOST_IN, type Finish } from './knockout';
 
-/** How far a run ended: eliminated in the group, or knocked out in a given
- *  knockout round, or crowned champion. */
-export type Finish = 'group' | 'r16' | 'qf' | 'sf' | 'final' | 'champion';
+export type { Finish };
 
 export interface TitleOdds {
   /** Number of tournaments simulated. */
@@ -27,10 +26,6 @@ export interface TitleOdds {
   /** Fraction ending at each stage; sums to 1. */
   distribution: Record<Finish, number>;
 }
-
-/** The bracket round index a knocked-out user lost in, mapped to a Finish.
- *  Round 0 = round of 16 ... round 3 = final (runner-up). */
-const LOST_IN: Finish[] = ['r16', 'qf', 'sf', 'final'];
 
 /** Simulate one full tournament (group + knockout) for `players` and report how
  *  far the user got. Mirrors the real game's flow: a random group, top-2 advance,

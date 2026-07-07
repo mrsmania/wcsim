@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Trophy } from 'lucide-react';
-import { BRACKET_ROUNDS, bracketChampion, type BracketState } from '../domain/bracket';
+import { bracketChampion, type BracketState } from '../domain/bracket';
+import { KO_ROUNDS } from '../domain/knockout';
 import { USER_ID, type GroupTeam } from '../domain/tournament';
 import { confettiBurst } from './Confetti';
 import Flag from './Flag';
@@ -194,7 +195,7 @@ function Cup({ b, stacked }: { b: BracketState; stacked: boolean }) {
 export default function Bracket({ bracket }: { bracket: BracketState }) {
   const b = bracket;
   const v = (round: number, g: number) => gameView(b, round, g);
-  const heads = [...BRACKET_ROUNDS, 'Champion'];
+  const heads = [...KO_ROUNDS, 'Champion'];
   const nowIdx = b.outcome === 'champion' ? heads.length - 1 : b.outcome === 'out' ? -1 : b.current;
 
   return (

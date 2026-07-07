@@ -1,5 +1,6 @@
 import type { Player } from '../data/types';
 import { STICKER_TIERS, STICKER_TRADE_COST, type StickerTier } from '../config';
+import { shuffled } from './random';
 
 /**
  * The persisted sticker collection. Kept deliberately flat (collected ids + a
@@ -91,12 +92,7 @@ export function tradeOptions(
     const pool = allPlayers.filter(
         (p) => tierOf(p) === targetTier && !album.collected.includes(p.id),
     );
-    // Fisher-Yates shuffle, then take the first 3.
-    for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    return pool.slice(0, 3);
+    return shuffled(pool).slice(0, 3);
 }
 
 /**

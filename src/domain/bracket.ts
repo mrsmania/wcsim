@@ -1,17 +1,7 @@
-import {
-  simulateExtraTime,
-  simulateMatch,
-  simulateShootout,
-  type MatchEvent,
-  type MatchResult,
-  type PenKick,
-  type Side,
-} from './match';
+import type { MatchEvent, PenKick } from './match';
 import { USER_ID, type GroupTeam } from './tournament';
-import { drawOpponent, KO_ROUNDS, type KoDecided } from './knockout';
+import { drawOpponent, KO_ROUNDS, resolveKoTie, type KoDecided } from './knockout';
 
-/** Round labels, longest to the final. Reused from the knockout module. */
-export const BRACKET_ROUNDS = KO_ROUNDS;
 export const FIELD_SIZE = 16;
 
 export interface BracketResult {
@@ -40,46 +30,9 @@ export interface BracketState {
    *  start; each later round is appended only once its feeder round is played. */
   rounds: BracketGame[][];
   /** The round the user plays next (0..3) while alive; the round they lost when
-   *  'out'; BRACKET_ROUNDS.length when 'champion'. */
+   *  'out'; KO_ROUNDS.length when 'champion'. */
   current: number;
   outcome: 'alive' | 'champion' | 'out';
-}
-
-const sideOf = (t: GroupTeam): Side => ({ strength: t.strength, scorers: t.scorers });
-
-/** Simulate one knockout game to a definite winner: regulation, then extra time,
- *  then a shootout if still level. The single reg -> ET -> shootout resolver. */
-function simGame(home: GroupTeam, away: GroupTeam): {
-  result: MatchResult;
-  decided: KoDecided;
-  pens?: { home: number; away: number; kicks: PenKick[] };
-  homeWon: boolean;
-} {
-  const h = sideOf(home);
-  const a = sideOf(away);
-
-  const reg = simulateMatch(h, a);
-  if (reg.homeGoals !== reg.awayGoals) {
-    return { result: reg, decided: 'reg', homeWon: reg.homeGoals > reg.awayGoals };
-  }
-
-  const et = simulateExtraTime(h, a);
-  const combined: MatchResult = {
-    homeGoals: reg.homeGoals + et.homeGoals,
-    awayGoals: reg.awayGoals + et.awayGoals,
-    events: [...reg.events, ...et.events],
-  };
-  if (combined.homeGoals !== combined.awayGoals) {
-    return { result: combined, decided: 'aet', homeWon: combined.homeGoals > combined.awayGoals };
-  }
-
-  const sh = simulateShootout({ penTakers: home.penTakers }, { penTakers: away.penTakers });
-  return {
-    result: combined,
-    decided: 'pens',
-    pens: { home: sh.home, away: sh.away, kicks: sh.kicks },
-    homeWon: sh.homeWon,
-  };
 }
 
 /** Pair a flat list of team ids into games (adjacent pairs). */
@@ -133,20 +86,20 @@ export function currentGame(b: BracketState): BracketGame | null {
 }
 
 /** Simulate a set of ties, returning the games with their results filled in.
- *  Stronger teams (higher rating) win more often, since `simGame` scores from
- *  each side's overall rating. */
+ *  Stronger teams (higher rating) win more often, since `resolveKoTie` scores
+ *  from each side's ratings. */
 function simulateGames(teams: Record<string, GroupTeam>, games: BracketGame[]): BracketGame[] {
   return games.map((g) => {
-    const sim = simGame(teams[g.homeId], teams[g.awayId]);
+    const tie = resolveKoTie(teams[g.homeId], teams[g.awayId]);
     return {
       ...g,
       result: {
-        homeGoals: sim.result.homeGoals,
-        awayGoals: sim.result.awayGoals,
-        decided: sim.decided,
-        pens: sim.pens,
-        events: sim.result.events,
-        winnerId: sim.homeWon ? g.homeId : g.awayId,
+        homeGoals: tie.homeGoals,
+        awayGoals: tie.awayGoals,
+        decided: tie.decided,
+        pens: tie.pens,
+        events: tie.events,
+        winnerId: tie.homeWon ? g.homeId : g.awayId,
       },
     };
   });
@@ -167,7 +120,7 @@ function completeFrom(
 ): BracketGame[][] {
   const rest: BracketGame[][] = [];
   let advancing = winners;
-  for (let round = fromRound; round < BRACKET_ROUNDS.length; round++) {
+  for (let round = fromRound; round < KO_ROUNDS.length; round++) {
     const games = simulateGames(teams, pairGames(advancing));
     rest.push(games);
     advancing = games.map((g) => g.result!.winnerId);
@@ -185,8 +138,8 @@ export function recordRound(b: BracketState, played: BracketGame[]): BracketStat
   const userWon = played[0].result?.winnerId === USER_ID;
 
   if (userWon) {
-    if (cur >= BRACKET_ROUNDS.length - 1) {
-      return { ...b, rounds, outcome: 'champion', current: BRACKET_ROUNDS.length };
+    if (cur >= KO_ROUNDS.length - 1) {
+      return { ...b, rounds, outcome: 'champion', current: KO_ROUNDS.length };
     }
     return { ...b, rounds: [...rounds, pairGames(winners)], current: cur + 1 };
   }
@@ -199,7 +152,7 @@ export function recordRound(b: BracketState, played: BracketGame[]): BracketStat
 /** The eventual winner of the whole bracket, once the final has been played
  *  (whether the user lifted it or not); null while the run is still going. */
 export function bracketChampionId(b: BracketState): string | null {
-  const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
+  const finalGame = b.rounds[KO_ROUNDS.length - 1]?.[0];
   return finalGame?.result?.winnerId ?? null;
 }
 
@@ -227,7 +180,7 @@ export function userGameInRound(b: BracketState, round: number): BracketGame | u
 export function bracketChampion(
   b: BracketState,
 ): { team: GroupTeam; homeGoals: number; awayGoals: number } | null {
-  const finalGame = b.rounds[BRACKET_ROUNDS.length - 1]?.[0];
+  const finalGame = b.rounds[KO_ROUNDS.length - 1]?.[0];
   const r = finalGame?.result;
   if (!finalGame || !r) return null;
   const teamId = b.outcome === 'champion' ? USER_ID : r.winnerId;

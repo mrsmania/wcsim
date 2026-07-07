@@ -1,6 +1,7 @@
 import type { Player, Squad } from '../data/types';
 import { SQUADS } from '../data/squads';
 import { scorerPool, simulateMatch, xiStrength, type MatchResult, type Strength } from './match';
+import { shuffled } from './random';
 
 export const GROUP_MATCHDAYS = 3;
 export const USER_ID = 'user';
@@ -69,13 +70,13 @@ export function userGroupTeam(players: Player[], chemistryBonus = 0): GroupTeam 
   };
 }
 
-/** The best 11 of a squad by elo (used as its match XI). */
-function bestEleven(squad: Squad): Player[] {
-  return [...squad.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
+/** The best 11 of a set of players by elo (used as a squad's match XI). */
+export function bestEleven(players: Player[]): Player[] {
+  return [...players].sort((a, b) => b.elo - a.elo).slice(0, 11);
 }
 
 export function squadGroupTeam(squad: Squad): GroupTeam {
-  const bestXI = bestEleven(squad);
+  const bestXI = bestEleven(squad.players);
   return {
     id: squad.id,
     name: squad.nation,
@@ -90,17 +91,12 @@ export function squadGroupTeam(squad: Squad): GroupTeam {
 
 /** A squad's overall rating (avg elo of its best XI). Used to weight draws. */
 export function squadOverall(squad: Squad): number {
-  return xiStrength(bestEleven(squad)).overall;
+  return xiStrength(bestEleven(squad.players)).overall;
 }
 
 /** Pick `count` distinct random squads as opponents. */
 export function pickOpponents(count: number): Squad[] {
-  const pool = [...SQUADS];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool.slice(0, count);
+  return shuffled(SQUADS).slice(0, count);
 }
 
 /** Build a 4-team group (user + 3 opponents) with a round-robin schedule where

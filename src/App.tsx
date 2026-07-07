@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Swords, Trophy } from 'lucide-react';
-import { SQUADS } from './data/squads';
+import { ALL_PLAYERS, SQUADS } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
@@ -10,6 +10,7 @@ import {
     isComplete,
     hasAnotherCup,
     hasAnotherTeam,
+    placedPlayers,
     positionsWithOpenSlot,
     randomXI,
     rollAnotherCup,
@@ -28,7 +29,8 @@ import {
     userGroupTeam,
 } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
-import { buildBracket, BRACKET_ROUNDS, type BracketState } from './domain/bracket';
+import { KO_ROUNDS } from './domain/knockout';
+import { buildBracket, type BracketState } from './domain/bracket';
 import {
     albumStats,
     applyRunStickers,
@@ -71,7 +73,7 @@ const isStackedLayout = () =>
 function knockoutStamp(bracket: BracketState | null): string {
     if (bracket?.outcome === 'champion') return 'Champions';
     if (bracket?.outcome === 'out') return 'Eliminated';
-    return BRACKET_ROUNDS[bracket?.current ?? 0];
+    return KO_ROUNDS[bracket?.current ?? 0];
 }
 
 type HomeView = 'setup' | 'draft' | 'complete';
@@ -109,7 +111,6 @@ export default function App() {
     // Sticker album (gated). Lives outside the reducer / game state and in its own
     // localStorage key, so resetting a run never touches the collection (FR-7).
     const STICKERS = FEATURES.stickerAlbum;
-    const allPlayers = useMemo(() => SQUADS.flatMap((s) => s.players), []);
     const [album, setAlbum] = useState<AlbumState>(() =>
         STICKERS ? loadAlbum() : { version: 1, collected: [], duplicates: {} },
     );
@@ -379,14 +380,14 @@ export default function App() {
     // Buy the held market player into an eligible slot, then shop the next empty one.
     const handleBudgetPlace = useCallback(
         (slotId: string) => {
-            const player = heldId ? allPlayers.find((p) => p.id === heldId) : null;
+            const player = heldId ? ALL_PLAYERS.find((p) => p.id === heldId) : null;
             if (!player || !formation) return;
             dispatch({ type: 'BUY_PLAYER', slotId, player });
             setHeldId(null);
             const next = formation.slots.find((s) => s.id !== slotId && !filled[s.id]);
             setBudgetTargetId(next ? next.id : null);
         },
-        [heldId, allPlayers, formation, filled],
+        [heldId, formation, filled],
     );
     // Tap an empty slot with no eligible held player: shop that position instead.
     const handleBudgetShop = useCallback((slotId: string) => {
@@ -423,7 +424,7 @@ export default function App() {
             return;
         }
         if (!formation) return;
-        const players = formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
+        const players = placedPlayers(formation, filled);
         const bonus = FEATURES.chemistry ? teamChemistry(formation, filled).bonus : 0;
         dispatch({
             type: 'START_GROUP',
@@ -576,7 +577,7 @@ export default function App() {
               null
             : null;
     const heldPlayer =
-        isBudgetBuild && heldId ? allPlayers.find((p) => p.id === heldId) ?? null : null;
+        isBudgetBuild && heldId ? ALL_PLAYERS.find((p) => p.id === heldId) ?? null : null;
 
     // Page section header (eyebrow + heading) and the masthead status stamp, both
     // phase-dependent. The stamp is null on the tournament screens (their own header).
@@ -587,9 +588,7 @@ export default function App() {
     const cupRunXi =
         formation &&
         (() => {
-            const ps = formation.slots
-                .map((s) => filled[s.id])
-                .filter((p): p is Player => !!p);
+            const ps = placedPlayers(formation, filled);
             return ps.length === formation.slots.length ? ps : null;
         })();
     const draftedXi = cupRunXi || null;
@@ -606,7 +605,7 @@ export default function App() {
     // Where "Play" returns to: the furthest game screen reached (an in-progress Cup
     // Run is resumed from the home complete panel / the Cup Run card, not here).
     const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
-    const albumSummary = STICKERS ? albumStats(album, allPlayers) : null;
+    const albumSummary = STICKERS ? albumStats(album, ALL_PLAYERS) : null;
     const stampText = isSquads
         ? null
         : isAlbum
@@ -688,7 +687,7 @@ export default function App() {
                 ) : isAlbum ? (
                     <AlbumScreen
                         album={album}
-                        allPlayers={allPlayers}
+                        allPlayers={ALL_PLAYERS}
                         onTrade={handleTrade}
                         onReset={handleResetAlbum}
                         onClose={() => navigate('/')}
@@ -921,14 +920,14 @@ export default function App() {
             {STICKERS && runEnd?.wonCup && !stickersApplied && (
                 <CupRewardPicker
                     album={album}
-                    allPlayers={allPlayers}
+                    allPlayers={ALL_PLAYERS}
                     onPick={(playerId) => applyStickers(draftedCollectibleIds, true, playerId, true)}
                 />
             )}
             {STICKERS && cupRunSticker?.wonCup && (
                 <CupRewardPicker
                     album={album}
-                    allPlayers={allPlayers}
+                    allPlayers={ALL_PLAYERS}
                     onPick={(playerId) => {
                         applyStickers(cupRunSticker.ids, true, playerId, false);
                         setCupRunSticker(null);
@@ -938,7 +937,7 @@ export default function App() {
             {STICKERS && newStickerIds && newStickerIds.length > 0 && (
                 <RunEndStickerSummary
                     newPlayerIds={newStickerIds}
-                    allPlayers={allPlayers}
+                    allPlayers={ALL_PLAYERS}
                     onClose={() => setNewStickerIds(null)}
                     onViewAlbum={() => {
                         setNewStickerIds(null);

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, Navigate, useMatch, useNavigate } from 'react-router-dom';
 import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
+import { normalizeSearch } from '../data/format';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { tierOf } from '../domain/album';
 import { squadOverall } from '../domain/tournament';
@@ -13,9 +14,6 @@ import TeamRoster from './TeamRoster';
 
 /** Distinct tournament years, newest first for the selector. */
 const YEARS = [...new Set(SQUADS.map((s) => s.year))].sort((a, b) => b - a);
-
-/** Lowercase + strip diacritics, so "Muller" matches "Müller". */
-const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /** A full 32-nation field; below this a year is hand-authored placeholder data. */
 const FULL_FIELD = 32;
@@ -92,15 +90,15 @@ export default function SquadBrowser() {
     // code / year) matches, strongest first.
     const results = useMemo(() => {
         if (!searching) return [];
-        const nq = norm(q);
+        const nq = normalizeSearch(q);
         const hits: { player: Player; squad: Squad }[] = [];
         for (const squad of SQUADS) {
             const teamHit =
-                norm(squad.nation).includes(nq) ||
+                normalizeSearch(squad.nation).includes(nq) ||
                 squad.code.toLowerCase().includes(nq) ||
                 String(squad.year).includes(q);
             for (const player of squad.players) {
-                if (teamHit || norm(player.name).includes(nq)) hits.push({ player, squad });
+                if (teamHit || normalizeSearch(player.name).includes(nq)) hits.push({ player, squad });
             }
         }
         return hits.sort((a, b) => b.player.elo - a.player.elo);

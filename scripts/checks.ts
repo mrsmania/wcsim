@@ -11,10 +11,11 @@
  * the knockout bracket, standings, chemistry) - not a UI or behaviour change.
  */
 import { SQUADS, SQUAD_BY_ID } from '../src/data/squads';
-import { primaryPosition, type Player } from '../src/data/types';
+import { primaryPosition } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
-import { simulateMatch, simulateShootout, type Side } from '../src/domain/match';
+import { simulateMatch, simulateShootout } from '../src/domain/match';
 import {
+  bestEleven,
   createGroup,
   pickOpponents,
   recordMatchday,
@@ -23,7 +24,6 @@ import {
   standings,
   userGroupTeam,
   GROUP_MATCHDAYS,
-  type GroupTeam,
 } from '../src/domain/tournament';
 import {
   buildBracket,
@@ -32,10 +32,11 @@ import {
   opponentOf,
   playRound,
   recordRound,
-  BRACKET_ROUNDS,
 } from '../src/domain/bracket';
+import { sideOf, KO_ROUNDS } from '../src/domain/knockout';
 import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemistry';
-import { priceOf, BUDGET } from '../src/domain/pricing';
+import { priceOf } from '../src/domain/pricing';
+import { BUDGET_DRAFT } from '../src/config';
 import { BOONS, offerBoons } from '../src/domain/boons';
 import {
   beginRun,
@@ -53,10 +54,6 @@ function check(name: string, ok: boolean): void {
   if (ok) passed++;
   else failures.push(name);
 }
-
-const bestEleven = (players: Player[]): Player[] =>
-  [...players].sort((a, b) => b.elo - a.elo).slice(0, 11);
-const sideOf = (t: GroupTeam): Side => ({ strength: t.strength, scorers: t.scorers });
 
 // --- Dataset integrity -----------------------------------------------------
 check('dataset: validateSquads reports no problems', validateSquads(SQUADS).length === 0);
@@ -147,14 +144,14 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       const game = currentGame(b);
       if (game) {
         const opp = opponentOf(b, game);
-        if (opp && opp.id === coQualifier.id && b.current !== BRACKET_ROUNDS.length - 1) {
+        if (opp && opp.id === coQualifier.id && b.current !== KO_ROUNDS.length - 1) {
           metCoQualifierEarly = true;
         }
       }
       b = recordRound(b, playRound(b));
     }
     if (bracketChampionId(b) === null) completesOk = false; // a champion is always crowned
-    if (b.rounds.length !== BRACKET_ROUNDS.length) completesOk = false; // whole tree filled
+    if (b.rounds.length !== KO_ROUNDS.length) completesOk = false; // whole tree filled
   }
   check('bracket: always completes with exactly one champion', completesOk);
   check('bracket: the co-qualifier can only be met in the final', !metCoQualifierEarly);
@@ -194,7 +191,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 
 // --- Budget draft pricing: monotonic, floored at 1 -------------------------
 {
-  let ok = BUDGET > 0;
+  let ok = BUDGET_DRAFT > 0;
   for (let e = 60; e <= 99; e++) {
     if (priceOf(e) < 1) ok = false;
     if (e > 60 && priceOf(e) < priceOf(e - 1)) ok = false; // non-decreasing in rating

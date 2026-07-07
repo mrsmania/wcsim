@@ -1,5 +1,6 @@
 import type { Squad } from '../data/types';
-import { CONFEDERATION } from './chemistry';
+import { ELO_MAX, ELO_MIN } from '../data/types';
+import { CONFEDERATION } from '../data/confederations';
 
 // ---------------------------------------------------------------------------
 // Dataset integrity checks. `validateSquads` is a pure function that walks the
@@ -9,11 +10,8 @@ import { CONFEDERATION } from './chemistry';
 // app, in a build step, or standalone in node.
 // ---------------------------------------------------------------------------
 
-const MIN_RATING = 60;
-const MAX_RATING = 99;
-
 function inRange(n: number): boolean {
-  return Number.isFinite(n) && n >= MIN_RATING && n <= MAX_RATING;
+  return Number.isFinite(n) && n >= ELO_MIN && n <= ELO_MAX;
 }
 
 /** Validate the squad dataset. Returns problem strings; [] means clean. */
@@ -55,7 +53,7 @@ export function validateSquads(squads: Squad[]): string[] {
       // Player.elo within range.
       if (!inRange(p.elo)) {
         problems.push(
-          `Player "${p.id}" (${p.name}) rating ${p.elo} is outside ${MIN_RATING}-${MAX_RATING}`,
+          `Player "${p.id}" (${p.name}) rating ${p.elo} is outside ${ELO_MIN}-${ELO_MAX}`,
         );
       }
 

@@ -140,7 +140,7 @@ editing, they will drift as fixes land.
   slots light up, swap a different person, upgrade the same person in place,
   confirm a used person's own slot is the only one that lights.
 
-### CR-04 [ ] Knockout-tie resolver implemented 2x (DRY, medium, M)
+### CR-04 [x] Knockout-tie resolver implemented 2x (DRY, medium, M)
 
 - Location: `src/domain/bracket.ts:52-83` (`simGame`),
   `src/domain/run.ts` (`simulateKoTie`)
@@ -290,7 +290,7 @@ editing, they will drift as fixes land.
   matchUi.tsx; import in both screens.
 - Verify: build; click "Next game" on both screens; auto mode still paces.
 
-### CR-14 [ ] Finish/RunOutcome union + loss mapping duplicated (DRY, medium, S)
+### CR-14 [x] Finish/RunOutcome union + loss mapping duplicated (DRY, medium, S)
 
 - Location: `src/domain/odds.ts:16` (`Finish`) vs `src/domain/run.ts:35`
   (`RunOutcome`), identical six-member unions; `odds.ts:33` (`LOST_IN`) vs
@@ -301,7 +301,7 @@ editing, they will drift as fixes land.
   RunOutcome, so keep the name available.
 - Verify: build + checks.
 
-### CR-15 [ ] Fisher-Yates shuffle written 4x (DRY, low, S)
+### CR-15 [x] Fisher-Yates shuffle written 4x (DRY, low, S)
 
 - Location: `src/domain/tournament.ts:98-103` (pickOpponents),
   `src/domain/album.ts:94-99` (tradeOptions), `src/domain/boons.ts:182-187`
@@ -326,7 +326,7 @@ editing, they will drift as fixes land.
   `scrollIntoViewRespectingMotion(el, block)` helper in the same file.
 - Verify: build; confirm end-of-run auto-scrolls still land on each screen.
 
-### CR-17 [ ] placedPlayers idiom written 5x (DRY, low, S)
+### CR-17 [x] placedPlayers idiom written 5x (DRY, low, S)
 
 - Location: `src/domain/draft.ts:43` (inside teamRating), `src/App.tsx:426`,
   `src/App.tsx:590-592`, `src/components/BoxScore.tsx:84`,
@@ -335,7 +335,7 @@ editing, they will drift as fixes land.
   in teamRating and the four call sites (slot order preserved).
 - Verify: build + checks.
 
-### CR-18 [ ] All-players flatten materialized 3x (DRY, low, S)
+### CR-18 [x] All-players flatten materialized 3x (DRY, low, S)
 
 - Location: `src/components/BudgetMarket.tsx:15`, `src/App.tsx:112`,
   `src/domain/boons.ts:25` (each `SQUADS.flatMap(s => s.players)`, ~3,878 rows)
@@ -343,7 +343,7 @@ editing, they will drift as fixes land.
   import in all three (App drops its useMemo).
 - Verify: build + checks.
 
-### CR-19 [ ] Diacritic search normalizer duplicated (DRY, low, S)
+### CR-19 [x] Diacritic search normalizer duplicated (DRY, low, S)
 
 - Location: `src/components/SquadBrowser.tsx:18`,
   `src/components/BudgetMarket.tsx:16` (identical `norm`); `squads.ts:36` uses
@@ -352,7 +352,7 @@ editing, they will drift as fixes land.
   components (slug can stay as is).
 - Verify: build; search "Muller" in the squad browser and the market.
 
-### CR-20 [ ] Rating-scale bounds declared 3x (DRY, low, S)
+### CR-20 [x] Rating-scale bounds declared 3x (DRY, low, S)
 
 - Location: `src/domain/boons.ts:35-36`, `src/domain/validateSquads.ts:12-13`,
   `src/domain/run.ts` (hardcoded `Math.min(99, ...)` in the deep-squad perk)
@@ -360,7 +360,7 @@ editing, they will drift as fixes land.
   documented on Player.elo); use in all three.
 - Verify: build + checks (rating-range check).
 
-### CR-21 [ ] Attacker/defender predicates duplicated (DRY, low, S)
+### CR-21 [x] Attacker/defender predicates duplicated (DRY, low, S)
 
 - Location: `src/domain/match.ts:34-35` (inline in xiStrength),
   `src/domain/boons.ts:41-42` (isAttack/isDef, which bypass boons' own catOf)
@@ -368,7 +368,7 @@ editing, they will drift as fixes land.
   ATTACK_CATS/DEF_CATS; use in match.ts and boons.ts.
 - Verify: build + checks (xiStrength invariants, Glass Cannon boon).
 
-### CR-22 [ ] checks.ts re-implements private domain helpers (DRY, low, S)
+### CR-22 [x] checks.ts re-implements private domain helpers (DRY, low, S)
 
 - Location: `scripts/checks.ts:57-59` copies `bestEleven`
   (tournament.ts:72-75) and `sideOf` (bracket.ts:48) character-for-character
@@ -378,7 +378,7 @@ editing, they will drift as fixes land.
   sideOf copy disappears with CR-04; otherwise export it from match.ts.
 - Verify: checks + build.
 
-### CR-23 [ ] BRACKET_ROUNDS is a bare alias of KO_ROUNDS (DRY, low, S)
+### CR-23 [x] BRACKET_ROUNDS is a bare alias of KO_ROUNDS (DRY, low, S)
 
 - Location: `src/domain/bracket.ts:14` (`export const BRACKET_ROUNDS =
   KO_ROUNDS;`); consumers split between the two names (App, Bracket,
@@ -386,7 +386,7 @@ editing, they will drift as fixes land.
 - Fix: delete the alias; import KO_ROUNDS from knockout.ts everywhere.
 - Verify: build.
 
-### CR-24 [ ] BUDGET alias + stale priceOf comment (DRY, low, S)
+### CR-24 [x] BUDGET alias + stale priceOf comment (DRY, low, S)
 
 - Location: `src/domain/pricing.ts:11` (`export const BUDGET = BUDGET_DRAFT;`),
   `:17-22` (comment narrates a 100 budget; actual is 110, config.ts has the
@@ -422,7 +422,7 @@ editing, they will drift as fixes land.
 - Verify: build + checks; pick a roster boost (toast names both players) and a
   rating boost (toast shows the description).
 
-### CR-27 [ ] CONFEDERATION table lives in chemistry.ts (SoC, low, S)
+### CR-27 [x] CONFEDERATION table lives in chemistry.ts (SoC, low, S)
 
 - Location: `src/domain/chemistry.ts:21-45`, imported by
   `src/domain/validateSquads.ts:2,33`

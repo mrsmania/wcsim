@@ -1,5 +1,5 @@
 import type { Player } from '../data/types';
-import { primaryPosition } from '../data/types';
+import { ELO_MAX, primaryPosition } from '../data/types';
 import { FEATURES } from '../config';
 import { computeChemistry } from './chemistry';
 import {
@@ -15,15 +15,15 @@ import {
   type GroupState,
   type GroupTeam,
 } from './tournament';
+import type { MatchEvent, MatchResult, ShootoutResult } from './match';
 import {
-  simulateMatch,
-  simulateExtraTime,
-  simulateShootout,
-  type MatchEvent,
-  type MatchResult,
-  type ShootoutResult,
-} from './match';
-import { drawOpponent, KO_ROUNDS, type KoDecided } from './knockout';
+  drawOpponent,
+  resolveKoTie,
+  KO_ROUNDS,
+  LOST_IN,
+  type Finish,
+  type KoDecided,
+} from './knockout';
 import { offerBoons, boonById, type Boon } from './boons';
 
 // ---------------------------------------------------------------------------
@@ -32,7 +32,9 @@ import { offerBoons, boonById, type Boon } from './boons';
 // ---------------------------------------------------------------------------
 
 export type RunPhase = 'group' | 'boon' | 'match' | 'ended';
-export type RunOutcome = 'group' | 'r16' | 'qf' | 'sf' | 'final' | 'champion';
+/** How far the run ended: the shared Finish union, under the run's own name
+ *  (career.ts and the checks harness key off RunOutcome). */
+export type RunOutcome = Finish;
 
 /** One completed round, for the progress ladder. `stage` is 'group' or a KO round
  *  index (0 = Round of 16). `won` = advanced (group) / won the tie (knockout). */
@@ -130,9 +132,6 @@ const STAGE_SCORE: Record<RunOutcome, number> = {
   final: 95,
   champion: 140,
 };
-/** The Finish tag for losing in KO round i (0..3). */
-const KO_OUTCOME: RunOutcome[] = ['r16', 'qf', 'sf', 'final'];
-
 /** Team chemistry bonus for the current XI (0 when the feature is off). Recomputed
  *  live from the players so it stays correct after a roster boon changes the XI;
  *  every player is treated as in their natural role (a run tracks players, not slots). */
@@ -150,7 +149,7 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
   const boostedIds: string[] = [];
   // Deep Squad perk: a flat +1 to the drafted XI at kickoff.
   if (perks.includes('deep-squad')) {
-    players = players.map((p) => ({ ...p, elo: Math.min(99, p.elo + 1) }));
+    players = players.map((p) => ({ ...p, elo: Math.min(ELO_MAX, p.elo + 1) }));
   }
   // Scout Network perk: begin with one random boon already applied.
   if (perks.includes('scout')) {
@@ -281,24 +280,19 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
   };
 }
 
-/** A single knockout tie: 90', extra time on a draw, then a shootout. Keeps the
- *  goal events (regulation + extra time) and shootout so it can be revealed live.
- *  `user` is the home side, so the returned goals are already user/opp. */
+/** A single knockout tie via the shared resolver (reg -> ET -> shootout), with
+ *  the goal events + shootout kept so it can be revealed live. `user` is the
+ *  home side, so the resolver's home fields map straight to user/opp. */
 function simulateKoTie(user: GroupTeam, opp: GroupTeam): KoMatch {
-  const reg = simulateMatch(user, opp);
-  let userGoals = reg.homeGoals;
-  let oppGoals = reg.awayGoals;
-  let events = [...reg.events];
-  if (userGoals !== oppGoals)
-    return { userGoals, oppGoals, decided: 'reg', events, userWon: userGoals > oppGoals };
-  const et = simulateExtraTime(user, opp);
-  userGoals += et.homeGoals;
-  oppGoals += et.awayGoals;
-  events = [...events, ...et.events];
-  if (userGoals !== oppGoals)
-    return { userGoals, oppGoals, decided: 'aet', events, userWon: userGoals > oppGoals };
-  const so = simulateShootout({ penTakers: user.penTakers }, { penTakers: opp.penTakers });
-  return { userGoals, oppGoals, decided: 'pens', events, pens: so, userWon: so.homeWon };
+  const tie = resolveKoTie(user, opp);
+  return {
+    userGoals: tie.homeGoals,
+    oppGoals: tie.awayGoals,
+    decided: tie.decided,
+    events: tie.events,
+    pens: tie.pens,
+    userWon: tie.homeWon,
+  };
 }
 
 /** Prepare the pending knockout tie: simulate it up front (keeping the events for a
@@ -331,7 +325,7 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
 
   let next: RunState;
   if (!match.userWon) {
-    const outcome = KO_OUTCOME[round];
+    const outcome = LOST_IN[round];
     next = {
       ...run,
       phase: 'ended',
@@ -359,7 +353,7 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
       offer: offerBoons(offerSize(run.perks)),
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
-      score: STAGE_SCORE[KO_OUTCOME[round]],
+      score: STAGE_SCORE[LOST_IN[round]],
       history,
     };
   }
