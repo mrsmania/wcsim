@@ -396,7 +396,12 @@ editing, they will drift as fixes land.
   number.
 - Verify: build.
 
-### CR-25 [ ] localStorage try/catch boilerplate 5x (DRY, low, S)
+### CR-25 [skipped: opportunistic] localStorage try/catch boilerplate 5x (DRY, low, S)
+
+_Deferred by design (as the finding itself recommends): a shared readJson/writeJson
+is only worth adding when these storage modules are next touched, so it was left out
+of the review sweep. Do it opportunistically._
+
 
 - Location: `src/state/persist.ts:14-37`, `albumStorage.ts:24-84`,
   `careerStorage.ts:7-30`, `runStorage.ts:11-40`
@@ -432,7 +437,12 @@ editing, they will drift as fixes land.
   `data/confederations.ts`); import from chemistry.ts and validateSquads.ts.
 - Verify: build + checks (clean-dataset check).
 
-### CR-28 [ ] Card scaffold class string repeats 29x (DRY, low, M, optional)
+### CR-28 [skipped: low value] Card scaffold class string repeats 29x (DRY, low, M, optional)
+
+_Not done: the finding is marked optional and recommends against a Card component;
+the class string is a locked design-token combination unlikely to change, so a 17-file
+mechanical churn was judged not worth the risk. Left as is intentionally._
+
 
 - Location: `rounded-md border border-line bg-panel ... shadow-hard` across 17
   files (App, AlbumScreen, BudgetMarket, BoxScore, CompletePanel, CupRunScreen
@@ -449,7 +459,7 @@ editing, they will drift as fixes land.
 
 ## Priority 3: dead code, stale docs, small KISS
 
-### CR-29 [ ] Overlay `bare` mode is dead (YAGNI, medium, S)
+### CR-29 [x] Overlay `bare` mode is dead (YAGNI, medium, S)
 
 - Location: `src/components/Overlay.tsx:3-8, 13, 18, 47-56, 61-65, 67-76`
 - Problem: no caller passes `bare` (grep-verified); the doc claims the sticker
@@ -459,7 +469,7 @@ editing, they will drift as fixes land.
   the doc comment.
 - Verify: build; open trade, cup-reward, run-end, and lightbox overlays.
 
-### CR-30 [ ] Flag `round` prop is dead (YAGNI, low, S)
+### CR-30 [x] Flag `round` prop is dead (YAGNI, low, S)
 
 - Location: `src/components/Flag.tsx:76-81, 84, 89, 99-106`
 - Problem: no call site passes `round` (grep-verified); the circular-crop branch
@@ -467,7 +477,7 @@ editing, they will drift as fixes land.
 - Fix: delete the prop and both branches.
 - Verify: build.
 
-### CR-31 [ ] `--color-win` token unused (YAGNI, low, S)
+### CR-31 [x] `--color-win` token unused (YAGNI, low, S)
 
 - Location: `src/index.css:20`
 - Problem: no `bg-win`/`text-win`/`border-win`/`var(--color-win)` usage
@@ -475,7 +485,7 @@ editing, they will drift as fixes land.
 - Fix: delete the token.
 - Verify: build.
 
-### CR-32 [ ] ChemistryReport.fitCount unread (YAGNI, low, S)
+### CR-32 [x] ChemistryReport.fitCount unread (YAGNI, low, S)
 
 - Location: `src/domain/chemistry.ts:113-115 (field), 138, 193 (population)`
 - Problem: no consumer reads the field (grep-verified); the UI value travels in
@@ -484,7 +494,7 @@ editing, they will drift as fixes land.
   local variable feeding the category).
 - Verify: build + checks.
 
-### CR-33 [ ] Unreachable away-normalisation branch in run.ts (YAGNI, low, S)
+### CR-33 [x] Unreachable away-normalisation branch in run.ts (YAGNI, low, S)
 
 - Location: `src/domain/run.ts` prepareGroupStage (the user-away flip branch);
   `src/domain/tournament.ts:111-118` (createGroup hardcodes the user as home)
@@ -496,7 +506,7 @@ editing, they will drift as fixes land.
   line, and document the invariant on createGroup.
 - Verify: checks + one manual Cup Run group stage.
 
-### CR-34 [ ] Four dead `export` keywords (YAGNI, low, S)
+### CR-34 [x] Four dead `export` keywords (YAGNI, low, S)
 
 - Location: `src/state/albumStorage.ts:6-7` (ALBUM_KEY, STATS_KEY),
   `src/state/gameReducer.ts:16, 19` (INITIAL_REROLLS, INITIAL_SWAPS)
@@ -505,7 +515,7 @@ editing, they will drift as fixes land.
 - Fix: drop the `export` keywords, keep the constants.
 - Verify: build (tsc errors if anything did import them).
 
-### CR-35 [ ] BudgetMarket re-resolves the target slot (YAGNI, low, S)
+### CR-35 [x] BudgetMarket re-resolves the target slot (YAGNI, low, S)
 
 - Location: `src/components/BudgetMarket.tsx:82-84` vs `src/App.tsx:572-579`
   (App already resolves the effective target incl. first-empty fallback);
@@ -515,7 +525,7 @@ editing, they will drift as fixes land.
 - Verify: build; full budget draft incl. Clear and Auto-fill; "XI complete."
   state still renders when done.
 
-### CR-36 [ ] Stale comments batch (YAGNI, low, S)
+### CR-36 [x] Stale comments batch (YAGNI, low, S)
 
 - Locations and fixes (comments only unless noted):
   - `src/components/SetupPanel.tsx:23`: "False while the CSV is still loading";
@@ -529,7 +539,7 @@ editing, they will drift as fixes land.
     field. Reword to "(players, ids, history)".
 - Verify: build (only needed for the prop rename).
 
-### CR-37 [ ] AlbumScreen lightbox as 60-line JSX IIFE (KISS, low, S)
+### CR-37 [x] AlbumScreen lightbox as 60-line JSX IIFE (KISS, low, S)
 
 - Location: `src/components/AlbumScreen.tsx:268-328`
 - Problem: the expanded-sticker lightbox is an IIFE embedded in the return,
@@ -539,7 +549,7 @@ editing, they will drift as fixes land.
   this file or beside StickerCard).
 - Verify: build; click a collected sticker to enlarge, close it.
 
-### CR-38 [ ] Em-dash sweep (house rule, medium, S)
+### CR-38 [x] Em-dash sweep (house rule, medium, S)
 
 - Problem: the project rule forbids the em-dash character everywhere, including
   UI copy and comments, yet occurrences exist:
@@ -564,7 +574,7 @@ editing, they will drift as fixes land.
 All four were put to the owner and decided. CR-D2 and CR-D3 are closed with no
 action; CR-D1 and CR-D4 each leave one small task for the implementing agent.
 
-### CR-D1 [ ] Confetti duration. Resolved: keep 3s
+### CR-D1 [x] Confetti duration. Resolved: keep 3s
 
 `src/components/Confetti.tsx:119` defaults `durationMs` to 3000 and neither
 caller passes it; CLAUDE.md documented the rain as 9s. Decision: 3 seconds is
@@ -587,7 +597,7 @@ No action; do not re-litigate in future reviews.
 owner accepts the deploy weight; the assets stay where they are. No action; do
 not re-litigate in future reviews.
 
-### CR-D4 [ ] esbuild is only a transitive dependency. Resolved: declare it
+### CR-D4 [x] esbuild is only a transitive dependency. Resolved: declare it
 
 `npm run checks` invokes the `esbuild` binary directly, but esbuild is only
 present as vite's transitive dependency. Remaining action (S): add esbuild to
