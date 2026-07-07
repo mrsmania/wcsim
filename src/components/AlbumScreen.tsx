@@ -265,67 +265,84 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
                 />
             )}
 
-            {expanded &&
-                (() => {
-                    const p = expanded.player;
-                    const sq = SQUAD_BY_ID[p.squadId];
-                    const meta = TIER_META[expanded.tier];
-                    const dup = album.duplicates[p.id] ?? 0;
-                    // One card: the modal panel itself. The sticker is its content (big
-                    // image + details), not a nested card - so no card-in-card.
-                    return (
-                        <Overlay onClose={() => setExpanded(null)} ariaLabel={`${p.name} sticker`}>
-                            <div
-                                className="-mx-6 -mt-6 mb-4 h-1.5 rounded-t-lg"
-                                style={{ background: meta.accent }}
-                            />
-                            <div className="flex flex-col items-center text-center">
-                                <div className="mb-1 flex w-full items-center justify-between pr-8">
-                                    <span
-                                        className="font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
-                                        style={{ color: meta.accent }}
-                                    >
-                                        {meta.name}
-                                    </span>
-                                    {dup > 0 && (
-                                        <span className="rounded-full bg-amber px-2 py-0.5 font-mono text-[11px] font-bold leading-none text-white">
-                                            &times;{dup}
-                                        </span>
-                                    )}
-                                </div>
-                                {FEATURES.stickerImages && (
-                                    <img
-                                        src={`${import.meta.env.BASE_URL}stickers/${p.id}.png`}
-                                        alt=""
-                                        className="mb-3 aspect-square w-full max-w-[440px] object-contain"
-                                        onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                        }}
-                                    />
-                                )}
-                                <Flag code={sq?.code ?? ''} className="h-6 w-9" />
-                                <div className="mt-2 font-display text-2xl font-extrabold leading-tight">
-                                    {p.name}
-                                </div>
-                                <div className="font-mono text-[13px] text-muted">
-                                    {sq?.nation}
-                                    {sq?.year ? ` · ${sq.year}` : ''}
-                                </div>
-                                <div
-                                    className="mt-3 inline-flex items-baseline gap-2 rounded-md px-4 py-2"
-                                    style={{ background: meta.strip, color: meta.stripText }}
-                                >
-                                    <span className="font-mono text-3xl font-bold leading-none">
-                                        {p.elo}
-                                    </span>
-                                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] opacity-80">
-                                        Rating
-                                    </span>
-                                </div>
-                            </div>
-                        </Overlay>
-                    );
-                })()}
+            {expanded && (
+                <StickerLightbox
+                    player={expanded.player}
+                    tier={expanded.tier}
+                    duplicateCount={album.duplicates[expanded.player.id] ?? 0}
+                    onClose={() => setExpanded(null)}
+                />
+            )}
         </div>
+    );
+}
+
+/** A collected sticker enlarged to full size in a modal. One card: the modal panel
+ *  itself. The sticker is its content (big image + details), not a nested card -
+ *  so no card-in-card. */
+function StickerLightbox({
+    player,
+    tier,
+    duplicateCount,
+    onClose,
+}: {
+    player: Player;
+    tier: StickerTier;
+    duplicateCount: number;
+    onClose: () => void;
+}) {
+    const sq = SQUAD_BY_ID[player.squadId];
+    const meta = TIER_META[tier];
+    return (
+        <Overlay onClose={onClose} ariaLabel={`${player.name} sticker`}>
+            <div
+                className="-mx-6 -mt-6 mb-4 h-1.5 rounded-t-lg"
+                style={{ background: meta.accent }}
+            />
+            <div className="flex flex-col items-center text-center">
+                <div className="mb-1 flex w-full items-center justify-between pr-8">
+                    <span
+                        className="font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
+                        style={{ color: meta.accent }}
+                    >
+                        {meta.name}
+                    </span>
+                    {duplicateCount > 0 && (
+                        <span className="rounded-full bg-amber px-2 py-0.5 font-mono text-[11px] font-bold leading-none text-white">
+                            &times;{duplicateCount}
+                        </span>
+                    )}
+                </div>
+                {FEATURES.stickerImages && (
+                    <img
+                        src={`${import.meta.env.BASE_URL}stickers/${player.id}.png`}
+                        alt=""
+                        className="mb-3 aspect-square w-full max-w-[440px] object-contain"
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                        }}
+                    />
+                )}
+                <Flag code={sq?.code ?? ''} className="h-6 w-9" />
+                <div className="mt-2 font-display text-2xl font-extrabold leading-tight">
+                    {player.name}
+                </div>
+                <div className="font-mono text-[13px] text-muted">
+                    {sq?.nation}
+                    {sq?.year ? ` · ${sq.year}` : ''}
+                </div>
+                <div
+                    className="mt-3 inline-flex items-baseline gap-2 rounded-md px-4 py-2"
+                    style={{ background: meta.strip, color: meta.stripText }}
+                >
+                    <span className="font-mono text-3xl font-bold leading-none">
+                        {player.elo}
+                    </span>
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] opacity-80">
+                        Rating
+                    </span>
+                </div>
+            </div>
+        </Overlay>
     );
 }

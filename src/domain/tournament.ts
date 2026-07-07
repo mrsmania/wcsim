@@ -104,7 +104,9 @@ export function pickOpponents(count: number): Squad[] {
 }
 
 /** Build a 4-team group (user + 3 opponents) with a round-robin schedule where
- *  the user plays once per matchday. */
+ *  the user plays once per matchday, always as the home side. Consumers rely on
+ *  that user-is-home invariant (run.ts's prepareGroupStage reads the user's
+ *  results without normalising sides). */
 export function createGroup(user: GroupTeam, opponents: Squad[]): GroupState {
   const teams = [user, ...opponents.map(squadGroupTeam)];
   const [u, a, b, c] = teams.map((t) => t.id);

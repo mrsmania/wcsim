@@ -13,10 +13,10 @@ export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
  *  (`filled`) and the same pitch/ratings/line-up; only the left column differs. */
 export type BuildMethod = 'roll' | 'budget';
 
-export const INITIAL_REROLLS = 3;
+const INITIAL_REROLLS = 3;
 /** Player swaps allowed per game (sticker album feature). Only collectibles can be
  *  swapped in, and only this many times per run. */
-export const INITIAL_SWAPS = 2;
+const INITIAL_SWAPS = 2;
 
 export interface GameState {
   phase: Phase;

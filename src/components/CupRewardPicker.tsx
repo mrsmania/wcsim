@@ -48,7 +48,7 @@ export default function CupRewardPicker({ album, allPlayers, onPick }: Props) {
       </div>
       {allDone && (
         <p className="mt-4 text-xs italic text-muted">
-          You have collected every Legendary and Iconic sticker &mdash; your pick will add a duplicate to the trade pool.
+          You have collected every Legendary and Iconic sticker, so your pick will add a duplicate to the trade pool.
         </p>
       )}
     </Overlay>

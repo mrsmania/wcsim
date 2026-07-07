@@ -855,7 +855,7 @@ export default function CupRunScreen({
               )}
             </section>
 
-            {/* Run panel + log */}
+            {/* Run panel: the live/interactive round view, or a past round's review */}
             <section className="flex min-w-0 flex-col gap-4">
               {reviewRecord ? (
                 <RoundReview record={reviewRecord} onBack={() => setReviewIndex(null)} />
@@ -982,7 +982,7 @@ export default function CupRunScreen({
                     tone="win"
                     eyebrow={lastKoMatch.roundName}
                     heading={koWinHeading(lastKoMatch.match)}
-                    body={`Through to the ${KO_ROUNDS[run.koRound]} — pick a boost below.`}
+                    body={`Through to the ${KO_ROUNDS[run.koRound]}. Pick a boost below.`}
                   />
                 )}
                 {run.phase === 'ended' && run.outcome && (

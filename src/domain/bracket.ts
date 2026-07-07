@@ -95,7 +95,7 @@ function pairGames(ids: string[]): BracketGame[] {
 
 /**
  * Build the opening bracket: the 16-team field and the Round of 16 ties, with no
- * results yet. Nothing beyond the current round is simulated — rounds are played
+ * results yet. Nothing beyond the current round is simulated - rounds are played
  * (and their winners revealed) one at a time, exactly like the group stage.
  *
  * The user is seeded at index 0 and the team that qualified alongside them at
@@ -176,8 +176,8 @@ function completeFrom(
 }
 
 /** Record a played round's results (from {@link playRound}) and advance: the user
- *  moves on and the next round's ties are created, or — if the user is knocked
- *  out — the remaining rounds are simulated so a champion is still crowned. */
+ *  moves on and the next round's ties are created, or, if the user is knocked
+ *  out, the remaining rounds are simulated so a champion is still crowned. */
 export function recordRound(b: BracketState, played: BracketGame[]): BracketState {
   const cur = b.current;
   const rounds = b.rounds.map((r, i) => (i === cur ? played : r));

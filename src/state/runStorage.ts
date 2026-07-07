@@ -6,8 +6,8 @@ import type { RunState } from '../domain/run';
 const KEY = 'wcsim_run_v1';
 
 /** Load an in-progress Cup Run, or null if absent / unreadable. The stored RunState
- *  is a plain data object (players, ids, log), so a JSON round-trip restores it. A
- *  quick shape check guards against a stale/corrupt value. */
+ *  is a plain data object (players, ids, history), so a JSON round-trip restores it.
+ *  A quick shape check guards against a stale/corrupt value. */
 export function loadRun(): RunState | null {
   try {
     const raw = localStorage.getItem(KEY);

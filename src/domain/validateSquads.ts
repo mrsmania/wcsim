@@ -20,7 +20,7 @@ function inRange(n: number): boolean {
 export function validateSquads(squads: Squad[]): string[] {
   const problems: string[] = [];
 
-  // Unique Squad.id — duplicates would be silently dropped by Object.fromEntries.
+  // Unique Squad.id - duplicates would be silently dropped by Object.fromEntries.
   const seenSquadIds = new Set<string>();
   for (const s of squads) {
     if (seenSquadIds.has(s.id)) {

@@ -3,7 +3,7 @@ import { Search } from 'lucide-react';
 import type { Player, Position } from '../data/types';
 import { lastName } from '../data/format';
 import { SQUADS, SQUAD_BY_ID } from '../data/squads';
-import type { Formation } from '../domain/formations';
+import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { priceOf, BUDGET } from '../domain/pricing';
 import { tierOf } from '../domain/album';
@@ -43,10 +43,11 @@ const BY_POSITION: Partial<Record<Position, Player[]>> = (() => {
 interface Props {
   formation: Formation;
   filled: Filled;
-  /** The empty slot currently being shopped for (drives the market's position). */
-  targetSlotId: string | null;
+  /** The empty slot currently being shopped for (drives the market's position),
+   *  resolved by App (incl. the first-empty fallback); null once the XI is full. */
+  targetSlot: Slot | null;
   /** The market player currently held (its eligible slots pulse on the pitch). */
-  heldId: string | null;
+  heldPlayer: Player | null;
   /** Hold / release a market player. */
   onHold: (player: Player) => void;
   /** Fill every empty slot within budget (randomized). App dispatches AUTOFILL. */
@@ -64,8 +65,8 @@ interface Props {
 export default function BudgetMarket({
   formation,
   filled,
-  targetSlotId,
-  heldId,
+  targetSlot,
+  heldPlayer,
   onHold,
   onAutoFill,
   onClear,
@@ -79,9 +80,6 @@ export default function BudgetMarket({
   const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
   const remaining = BUDGET - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
-  const targetSlot =
-    slots.find((s) => s.id === targetSlotId && !filled[s.id]) ?? emptySlots[0] ?? null;
-  const heldPlayer = heldId ? ALL_PLAYERS.find((p) => p.id === heldId) ?? null : null;
 
   const results = useMemo(() => {
     if (!targetSlot) return [];
@@ -215,7 +213,7 @@ export default function BudgetMarket({
               const isUsed = used.has(p.personId);
               const affordable = price <= remaining;
               const selectable = !isUsed && affordable;
-              const held = p.id === heldId;
+              const held = p.id === heldPlayer?.id;
               const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
               return (
                 <li key={p.id}>

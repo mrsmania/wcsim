@@ -6,7 +6,7 @@ import { confettiBurst } from './Confetti';
 import Flag from './Flag';
 import { RatingChip } from './matchUi';
 
-/** Games per round, longest to the final — the fixed shape the tree always draws
+/** Games per round, longest to the final - the fixed shape the tree always draws
  *  (later rounds show as "?" until their feeder round is played). */
 const ROUND_GAMES = [8, 4, 2, 1];
 
@@ -149,7 +149,7 @@ function pairs<T>(arr: T[]): T[][] {
 }
 
 /** The champion node ("the cup"): the winner of the final once it has been played
- *  — the user when they lift it, otherwise whichever team went on to win it — or
+ *  (the user when they lift it, otherwise whichever team went on to win it), or
  *  "?" while the run is still going. */
 function Cup({ b, stacked }: { b: BracketState; stacked: boolean }) {
   const won = bracketChampion(b);

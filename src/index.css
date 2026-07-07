@@ -17,7 +17,6 @@
     --color-pitch: #15924c;
     --color-pitch-dark: #0e5c34;
     --color-amber: #e4922b;
-    --color-win: #15924c;
     --color-loss: #c8453c;
     --shadow-soft: 0 1px 2px rgba(19, 33, 26, 0.05), 0 12px 30px rgba(19, 33, 26, 0.07);
     /* Tifo-style hard drop shadow for cards: solid colour, zero blur, offset. */
@@ -444,7 +443,7 @@ button:not(:disabled) {
     text-transform: uppercase;
     color: var(--color-muted);
 }
-/* narrow connectors — top half flows DOWN */
+/* narrow connectors - top half flows DOWN */
 .bkt-mband:not(.bkt-up) .bkt-match::after {
     content: '';
     position: absolute;
@@ -472,7 +471,7 @@ button:not(:disabled) {
 .bkt-mband.bkt-sf:not(.bkt-up) .bkt-match::after {
     height: 30px;
 }
-/* narrow connectors — bottom half flows UP */
+/* narrow connectors - bottom half flows UP */
 .bkt-mband.bkt-up .bkt-match::after {
     content: '';
     position: absolute;

@@ -3,8 +3,8 @@ import { emptyAlbum, type AlbumState } from '../domain/album';
 // The album lives under its own versioned key, separate from the game state
 // (`wcsim:game:v1`), so resetting or clearing a run never touches the collection
 // (FR-7). This module is the only place that reads or writes these keys.
-export const ALBUM_KEY = 'wcsim_album_v1';
-export const STATS_KEY = 'wcsim_album_stats_v1';
+const ALBUM_KEY = 'wcsim_album_v1';
+const STATS_KEY = 'wcsim_album_stats_v1';
 
 /** Lightweight telemetry for calibrating the trade costs (D-5). Inspect in the
  *  browser console after a few dozen runs. */

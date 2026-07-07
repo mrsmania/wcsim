@@ -46,7 +46,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
 
 export type ChemDimension = 'squad' | 'nation' | 'tournament' | 'continent' | 'era' | 'fit';
 
-/** Display name per category — reused verbatim in the rules tooltip and breakdown. */
+/** Display name per category - reused verbatim in the rules tooltip and breakdown. */
 export const CHEM_NAME: Record<ChemDimension, string> = {
   squad: 'Same squad',
   nation: 'Same nation',
@@ -111,8 +111,6 @@ export interface ChemistryReport {
   rawTotal: number;
   /** True when rawTotal exceeded MAX_BONUS. */
   capped: boolean;
-  /** Players standing in their natural (primary) position. */
-  fitCount: number;
   /** Earned categories (points > 0), largest first. */
   categories: ChemistryCategory[];
 }
@@ -135,7 +133,7 @@ function topCluster<T>(items: T[], key: (t: T) => string): { key: string; size: 
 export function computeChemistry(placements: Placement[]): ChemistryReport {
   const placed = placements.length;
   if (placed === 0) {
-    return { placed: 0, bonus: 0, rawTotal: 0, capped: false, fitCount: 0, categories: [] };
+    return { placed: 0, bonus: 0, rawTotal: 0, capped: false, categories: [] };
   }
 
   const squads: Squad[] = placements
@@ -143,7 +141,7 @@ export function computeChemistry(placements: Placement[]): ChemistryReport {
     .filter((s): s is Squad => !!s);
   const cats: ChemistryCategory[] = [];
 
-  // Same squad — real teammates (same nation & year). Largest such group.
+  // Same squad - real teammates (same nation & year). Largest such group.
   const sc = topCluster(squads, (s) => s.id);
   const squadPts = tierPoints(sc.size, SQUAD_TIERS);
   if (squadPts > 0) {
@@ -166,7 +164,7 @@ export function computeChemistry(placements: Placement[]): ChemistryReport {
     cats.push({ key: 'tournament', name: CHEM_NAME.tournament, detail: `Class of ${yc.key} ×${yc.size}`, points: tournPts });
   }
 
-  // Same continent — largest confederation group.
+  // Same continent - largest confederation group.
   const confs = squads.map((s) => CONFEDERATION[s.code]).filter((c): c is Confederation => !!c);
   const cc = topCluster(confs, (c) => c);
   const contPts = tierPoints(cc.size, CONTINENT_TIERS);
@@ -174,14 +172,14 @@ export function computeChemistry(placements: Placement[]): ChemistryReport {
     cats.push({ key: 'continent', name: CHEM_NAME.continent, detail: `${cc.key} ×${cc.size}`, points: contPts });
   }
 
-  // Same era — tight tournament-year span.
+  // Same era - tight tournament-year span.
   const years = squads.map((s) => s.year);
   const span = Math.max(...years) - Math.min(...years);
   if (placed >= 2 && span <= ERA_SPAN_YEARS) {
     cats.push({ key: 'era', name: CHEM_NAME.era, detail: span === 0 ? 'same year' : `within ${span} yrs`, points: ERA_POINTS });
   }
 
-  // In position — natural (primary) role only.
+  // In position - natural (primary) role only.
   const fitCount = placements.filter((pl) => primaryPosition(pl.player) === pl.slotPosition).length;
   if (fitCount >= FIT_MIN) {
     cats.push({ key: 'fit', name: CHEM_NAME.fit, detail: `${fitCount}/${placed}`, points: FIT_POINTS });
@@ -190,7 +188,7 @@ export function computeChemistry(placements: Placement[]): ChemistryReport {
   cats.sort((a, b) => b.points - a.points);
   const rawTotal = cats.reduce((sum, c) => sum + c.points, 0);
   const bonus = Math.min(MAX_BONUS, rawTotal);
-  return { placed, bonus, rawTotal, capped: rawTotal > MAX_BONUS, fitCount, categories: cats };
+  return { placed, bonus, rawTotal, capped: rawTotal > MAX_BONUS, categories: cats };
 }
 
 /** Convenience: build placements from a formation + filled map, then score. */

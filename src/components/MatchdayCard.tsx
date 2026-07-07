@@ -77,8 +77,8 @@ export default function MatchdayCard({
           score={view.score}
           status={view.status}
           statusDim={view.statusDim}
-          userElo={userRating}
-          oppElo={oppRating}
+          userRating={userRating}
+          oppRating={oppRating}
         />
         {showFeed && (
           <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">

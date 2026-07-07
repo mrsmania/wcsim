@@ -110,13 +110,16 @@ export function confettiBurst(originX: number, originY: number, count = 80) {
     raf = requestAnimationFrame(tick);
 }
 
+/** How long the rain stays heavy (ms) before the last pieces fall out. */
+const RAIN_MS = 3000;
+
 /**
- * A full-viewport canvas that rains heavy confetti for `durationMs`, then lets the
+ * A full-viewport canvas that rains heavy confetti for RAIN_MS, then lets the
  * last pieces fall out. Self-contained (no deps), pointer-events-none so it never
  * blocks the "Draft a new XI" button, and disabled under prefers-reduced-motion.
  * Piece size / density scale down on narrow screens.
  */
-export default function Confetti({ durationMs = 3000 }: { durationMs?: number }) {
+export default function Confetti() {
     const ref = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -187,7 +190,7 @@ export default function Confetti({ durationMs = 3000 }: { durationMs?: number })
             const dt = Math.min((t - last) / FRAME, 3);
             last = t;
             ctx.clearRect(0, 0, w, h);
-            if (t - start < durationMs && pieces.length < maxPieces) {
+            if (t - start < RAIN_MS && pieces.length < maxPieces) {
                 spawnAcc += perFrame * dt; // keep it heavy, at a refresh-independent rate
                 const n = Math.floor(spawnAcc);
                 if (n > 0) {
@@ -216,7 +219,7 @@ export default function Confetti({ durationMs = 3000 }: { durationMs?: number })
             // Wipe the canvas so a torn-down instance leaves nothing behind for the next.
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         };
-    }, [durationMs]);
+    }, []);
 
     // h-full w-full is load-bearing: a <canvas> is a replaced element, so fixed
     // inset-0 alone leaves it at its intrinsic 300x150 (pinned top-left). A definite

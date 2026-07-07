@@ -28,7 +28,7 @@ export default function TradeModal({ targetTier, costDuplicates, options, onPick
       </h3>
       <p className="mb-4 mt-1.5 text-[13.5px] text-muted">
         Spend <b className="text-ink">{costDuplicates} duplicates</b> (any mix). The options are
-        always uncollected &mdash; no risk of a duplicate.
+        always uncollected, so no risk of a duplicate.
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {options.map((p) => (

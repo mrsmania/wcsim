@@ -171,7 +171,7 @@ function SquadList({ formation, filled }: { formation: Formation; filled: Filled
               </span>
               <span className="flex min-w-0 items-center gap-[9px]">
                 <span className={`truncate ${player ? 'font-semibold text-ink' : 'text-muted'}`}>
-                  {player ? player.name : '—'}
+                  {player ? player.name : '-'}
                 </span>
                 {squad && <Flag code={squad.code} className="h-[15px] w-[22px]" />}
                 {squad?.year && (
@@ -179,7 +179,7 @@ function SquadList({ formation, filled }: { formation: Formation; filled: Filled
                 )}
               </span>
               <span className="shrink-0 font-mono text-[13px] font-bold text-ink">
-                {player ? player.elo : '—'}
+                {player ? player.elo : '-'}
               </span>
             </li>
           );

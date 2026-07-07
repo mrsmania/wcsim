@@ -19,7 +19,7 @@ interface Props {
     selectedStyle: Style;
     /** Styles available for the selected formation. */
     availableStyles: Style[];
-    /** False while the CSV is still loading. */
+    /** False until the selected formation/style resolves (App passes !!previewFormation). */
     ready: boolean;
     onSelectName: (name: FormationName) => void;
     onSelectStyle: (style: Style) => void;

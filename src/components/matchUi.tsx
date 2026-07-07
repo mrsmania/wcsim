@@ -290,8 +290,8 @@ export function FixtureHead({
   score,
   status,
   statusDim,
-  userElo,
-  oppElo,
+  userRating,
+  oppRating,
 }: {
   oppName?: string;
   oppCode?: string;
@@ -300,15 +300,15 @@ export function FixtureHead({
   score?: { user: number; opp: number };
   status?: string;
   statusDim?: boolean;
-  /** Team ratings, shown as a hover title on each side. */
-  userElo?: number;
-  oppElo?: number;
+  /** Team ratings, shown as a RatingChip on each side. */
+  userRating?: number;
+  oppRating?: number;
 }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-[18px] py-[14px] max-sm:gap-1.5 max-sm:px-3 max-sm:text-[13px] sm:text-[14.5px]">
       <div className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5">
         <span className="truncate">Your XI</span>
-        {userElo != null && <RatingChip value={userElo} />}
+        {userRating != null && <RatingChip value={userRating} />}
         <Flag isUser code="" className="h-[15px] w-[22px]" />
       </div>
       <div className="flex flex-col items-center gap-[3px] max-sm:min-w-[58px] sm:min-w-[74px]">
@@ -337,7 +337,7 @@ export function FixtureHead({
         {oppYear && (
           <span className="shrink-0 font-mono text-[11px] font-medium text-muted">{oppYear}</span>
         )}
-        {oppElo != null && <RatingChip value={oppElo} />}
+        {oppRating != null && <RatingChip value={oppRating} />}
       </div>
     </div>
   );

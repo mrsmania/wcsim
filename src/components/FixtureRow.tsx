@@ -19,7 +19,7 @@ interface Props {
   awayRating?: number;
 }
 
-/** A compact one-line match row: home — score — away. */
+/** A compact one-line match row: home / score / away. */
 export default function FixtureRow({ home, away, score, homeRating, awayRating }: Props) {
   const tint = home.isUser || away.isUser ? 'bg-pitch/[0.06]' : '';
   const scoreText = score ? `${score.home}–${score.away}` : 'v';

@@ -48,7 +48,7 @@ export default function Tooltip({ label, children, className, wide = false }: Pr
         setPlacement(fitsAbove || !fitsBelow ? 'above' : 'below');
     }, [anchor]);
 
-    // A fixed bubble would stay put while the page/list scrolls — dismiss instead.
+    // A fixed bubble would stay put while the page/list scrolls - dismiss instead.
     useEffect(() => {
         if (!anchor) return;
         const onMove = () => hide();

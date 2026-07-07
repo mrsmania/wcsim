@@ -14,7 +14,7 @@ export interface ClockStep {
   reveal: number;
   /** Display label, e.g. "73'", "45+2'", "HT". */
   label: string;
-  /** Extra hold (ms) after this step before the next — used for half-time. */
+  /** Extra hold (ms) after this step before the next - used for half-time. */
   hold?: number;
 }
 

@@ -191,9 +191,9 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
   }
-  // The user's three fixtures, normalised so the user is always the home side (the
-  // match card renders the user on the left). The user is scheduled home in every
-  // group fixture, but normalise generally to be safe.
+  // The user's three fixtures. createGroup schedules the user as the home side of
+  // every group fixture (the match card renders the user on the left), so the
+  // results are already in the user's perspective; the throw guards that invariant.
   const byId = new Map(group.teams.map((t) => [t.id, t]));
   const userMatches: UserMatch[] = [];
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
@@ -201,19 +201,10 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
       (f) => f.matchday === md && (f.homeId === USER_ID || f.awayId === USER_ID),
     );
     if (!fx?.result) continue;
-    const userIsHome = fx.homeId === USER_ID;
-    const opp = byId.get(userIsHome ? fx.awayId : fx.homeId)!;
-    const result: MatchResult = userIsHome
-      ? fx.result
-      : {
-          homeGoals: fx.result.awayGoals,
-          awayGoals: fx.result.homeGoals,
-          events: fx.result.events.map((e) => ({
-            ...e,
-            side: e.side === 'home' ? 'away' : 'home',
-          })),
-        };
-    userMatches.push({ opp, result });
+    if (fx.homeId !== USER_ID) {
+      throw new Error('prepareGroupStage: user fixture must be home (createGroup invariant)');
+    }
+    userMatches.push({ opp: byId.get(fx.awayId)!, result: fx.result });
   }
 
   const table = standings(group);

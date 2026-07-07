@@ -817,8 +817,8 @@ export default function App() {
                                     <BudgetMarket
                                         formation={formation}
                                         filled={filled}
-                                        targetSlotId={budgetTargetSlot?.id ?? null}
-                                        heldId={heldId}
+                                        targetSlot={budgetTargetSlot}
+                                        heldPlayer={heldPlayer}
                                         onHold={handleBudgetHold}
                                         onAutoFill={handleBudgetAutoFill}
                                         onClear={handleBudgetClear}
