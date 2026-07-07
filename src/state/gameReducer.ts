@@ -3,7 +3,7 @@ import type { Formation, FormationName, Style } from '../domain/formations';
 import { canPlace, isComplete, type Filled } from '../domain/draft';
 import { recordMatchday, type GroupState, type MatchdayResult } from '../domain/tournament';
 import { recordRound, type BracketGame, type BracketState } from '../domain/bracket';
-import { isCollectible } from '../domain/album';
+import { canSwapInto } from '../domain/album';
 import type { MatchSpeed } from '../domain/clock';
 
 export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
@@ -210,11 +210,7 @@ export function gameReducer(state: GameState, action: Action): GameState {
         !!slot &&
         !!outgoing &&
         state.swapsLeft > 0 &&
-        isCollectible(player) &&
-        player.positions.includes(slot.position) &&
-        (outgoing.personId === player.personId
-          ? outgoing.id !== player.id
-          : !state.usedPersonIds.includes(player.personId));
+        canSwapInto(player, outgoing, slot.position, new Set(state.usedPersonIds));
       if (!formation || !player || !slot || !outgoing || !eligible) {
         return state; // invalid swap: ignore
       }

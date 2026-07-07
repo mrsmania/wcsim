@@ -36,6 +36,8 @@ import {
 import { sideOf, KO_ROUNDS } from '../src/domain/knockout';
 import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemistry';
 import { priceOf } from '../src/domain/pricing';
+import { autoFillBudget } from '../src/domain/budget';
+import { FORMATIONS_DATA } from '../src/domain/formations';
 import { BUDGET_DRAFT } from '../src/config';
 import { BOONS, offerBoons } from '../src/domain/boons';
 import {
@@ -197,6 +199,36 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (e > 60 && priceOf(e) < priceOf(e - 1)) ok = false; // non-decreasing in rating
   }
   check('pricing: price is >= 1 and never decreases with rating', ok);
+}
+
+// --- Budget auto-fill: within budget, no duplicate person, fills every slot ---
+{
+  const formations = Object.values(FORMATIONS_DATA.byKey);
+  let withinBudget = true;
+  let noDupes = true;
+  let fillsAll = true;
+  let usedMatches = true;
+  for (let i = 0; i < 3000; i++) {
+    const f = formations[i % formations.length];
+    const { filled, usedPersonIds } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
+    const placed = f.slots.map((s) => filled[s.id]).filter((p): p is NonNullable<typeof p> => !!p);
+    const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
+    if (spent > BUDGET_DRAFT) withinBudget = false; // never overspends
+    if (new Set(placed.map((p) => p.personId)).size !== placed.length) noDupes = false;
+    // Every position in the dataset is fillable within the budget, so a fresh XI fills.
+    if (placed.length !== f.slots.length) fillsAll = false;
+    const usedFromPlaced = new Set(placed.map((p) => p.personId));
+    if (
+      usedPersonIds.length !== usedFromPlaced.size ||
+      !usedPersonIds.every((id) => usedFromPlaced.has(id))
+    ) {
+      usedMatches = false; // reported personIds match the players actually placed
+    }
+  }
+  check('budget: auto-fill never exceeds the budget', withinBudget);
+  check('budget: auto-fill never uses a personId twice', noDupes);
+  check('budget: auto-fill fills every slot when the budget allows', fillsAll);
+  check('budget: auto-fill reports exactly the placed personIds', usedMatches);
 }
 
 // --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------

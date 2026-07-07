@@ -23,29 +23,19 @@ import {
 import {
     bracketSeedFromGroup,
     createGroup,
-    isGroupFinished,
     pickOpponents,
-    userAdvanced,
     userGroupTeam,
 } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
 import { KO_ROUNDS } from './domain/knockout';
 import { buildBracket, type BracketState } from './domain/bracket';
-import {
-    albumStats,
-    applyRunStickers,
-    emptyAlbum,
-    executeTrade,
-    isCollectible,
-    pendingNewStickers,
-    type AlbumState,
-} from './domain/album';
+import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
-import { FEATURES, type StickerTier } from './config';
+import { FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
 import { clearRun } from './state/runStorage';
-import { loadAlbum, saveAlbum, loadStats, saveStats, clearAlbum } from './state/albumStorage';
+import { useStickerAlbum } from './hooks/useStickerAlbum';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import BudgetMarket from './components/BudgetMarket';
@@ -59,8 +49,7 @@ const KnockoutScreen = lazy(() => import('./components/KnockoutScreen'));
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
-import CupRewardPicker from './components/CupRewardPicker';
-import RunEndStickerSummary from './components/RunEndStickerSummary';
+import RunEndOverlays from './components/RunEndOverlays';
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
@@ -108,19 +97,12 @@ export default function App() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Sticker album (gated). Lives outside the reducer / game state and in its own
-    // localStorage key, so resetting a run never touches the collection (FR-7).
+    // Sticker album (gated). The whole lifecycle - collection state, run-end banking
+    // (standard game + Cup Run), the normalized cup-win reward pick, trades, and reset -
+    // lives in this hook, outside the reducer / game state and in its own localStorage
+    // key, so resetting a run never touches the collection (FR-7).
     const STICKERS = FEATURES.stickerAlbum;
-    const [album, setAlbum] = useState<AlbumState>(() =>
-        STICKERS ? loadAlbum() : { version: 1, collected: [], duplicates: {} },
-    );
-    /** New (non-duplicate) ids earned this run -> shows the run-end summary. */
-    const [newStickerIds, setNewStickerIds] = useState<string[] | null>(null);
-    /** A finished Cup Run's collectibles awaiting the sticker apply (its own path,
-     *  since a Cup Run lives outside the reducer's group/bracket run-end). */
-    const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean } | null>(
-        null,
-    );
+    const stickers = useStickerAlbum(state, dispatch);
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -175,7 +157,6 @@ export default function App() {
         bracket,
         speed,
         auto,
-        stickersApplied,
         swapsLeft,
     } = state;
 
@@ -455,89 +436,6 @@ export default function App() {
         navigate('/');
     }, [navigate]);
 
-    // --- sticker album -----------------------------------------------------
-    // Collectibles in the final XI (derived, so autofill and swaps are handled for
-    // free - no incremental pending log to keep in sync).
-    const draftedCollectibleIds = useMemo(
-        () =>
-            Object.values(filled)
-                .filter((p): p is Player => !!p)
-                .filter(isCollectible)
-                .map((p) => p.id),
-        [filled],
-    );
-
-    // The run's terminal state (persistent): group elimination, or the bracket end.
-    const runEnd = useMemo<{ wonCup: boolean } | null>(() => {
-        if (!STICKERS) return null;
-        if (bracket) {
-            if (bracket.outcome === 'champion') return { wonCup: true };
-            if (bracket.outcome === 'out') return { wonCup: false };
-            return null;
-        }
-        if (group && isGroupFinished(group) && !userAdvanced(group)) return { wonCup: false };
-        return null;
-    }, [STICKERS, bracket, group]);
-
-    // Merge a finished run's collectibles into the album. `collectibleIds` are the
-    // collectible ids from the final XI (the standard game passes the drafted XI's;
-    // a Cup Run passes its own, boons included). `markReducer` sets the once-per-run
-    // reducer guard, used only by the standard game (a Cup Run guards itself).
-    const applyStickers = useCallback(
-        (collectibleIds: string[], wonCup: boolean, cupPickId: string | null, markReducer: boolean) => {
-            const ids = cupPickId ? [...collectibleIds, cupPickId] : collectibleIds;
-            const newly = pendingNewStickers(album, ids);
-            const next = applyRunStickers(album, collectibleIds, wonCup, cupPickId);
-            setAlbum(next);
-            saveAlbum(next);
-            const stats = loadStats();
-            saveStats({
-                runsPlayed: stats.runsPlayed + 1,
-                stickersEarned: stats.stickersEarned + newly.length,
-                tradesCompleted: stats.tradesCompleted,
-            });
-            if (markReducer) dispatch({ type: 'MARK_STICKERS_APPLIED' });
-            setNewStickerIds(newly);
-        },
-        [album],
-    );
-
-    // Bank stickers once when the run ends by loss/elimination. Cup wins wait for
-    // the reward pick (CupRewardPicker below), which then calls applyStickers.
-    useEffect(() => {
-        if (!STICKERS || stickersApplied || !runEnd || runEnd.wonCup) return;
-        applyStickers(draftedCollectibleIds, false, null, true);
-    }, [STICKERS, stickersApplied, runEnd, applyStickers, draftedCollectibleIds]);
-
-    // A Cup Run reported its end (CupRunScreen calls this once). A loss banks
-    // immediately; a cup win waits for the reward pick (its overlay below).
-    const handleCupRunEnd = useCallback((xi: Player[], wonCup: boolean) => {
-        setCupRunSticker({ ids: xi.filter(isCollectible).map((p) => p.id), wonCup });
-    }, []);
-    useEffect(() => {
-        if (!STICKERS || !cupRunSticker || cupRunSticker.wonCup) return;
-        applyStickers(cupRunSticker.ids, false, null, false);
-        setCupRunSticker(null);
-    }, [STICKERS, cupRunSticker, applyStickers]);
-
-    const handleTrade = useCallback(
-        (tier: StickerTier, playerId: string) => {
-            const next = executeTrade(album, tier, playerId);
-            setAlbum(next);
-            saveAlbum(next);
-            const stats = loadStats();
-            saveStats({ ...stats, tradesCompleted: stats.tradesCompleted + 1 });
-        },
-        [album],
-    );
-
-    // Manual album reset: wipe the album's localStorage (collection + trade stats)
-    // and clear the in-memory album. Leaves the game / career / run untouched.
-    const handleResetAlbum = useCallback(() => {
-        clearAlbum();
-        setAlbum(emptyAlbum());
-    }, []);
-
     const openPositions = useMemo<Set<Position>>(
         () =>
             activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>(),
@@ -552,11 +450,9 @@ export default function App() {
         if (!STICKERS || swapsLeft <= 0 || !activeFormation || !currentSquad) return ids;
         const used = new Set(usedPersonIds);
         for (const p of currentSquad.players) {
-            if (!isCollectible(p)) continue;
             const ok = activeFormation.slots.some((s) => {
                 const occ = filled[s.id];
-                if (!occ || !p.positions.includes(s.position)) return false;
-                return occ.personId === p.personId ? occ.id !== p.id : !used.has(p.personId);
+                return !!occ && canSwapInto(p, occ, s.position, used);
             });
             if (ok) ids.add(p.id);
         }
@@ -584,14 +480,12 @@ export default function App() {
     const placed = activeFormation ? filledCount(activeFormation, filled) : 0;
     const home = homeCopy(homeView, placed);
 
-    // The completed XI (all slots filled) handed to a Cup Run, with its chemistry bonus.
-    const cupRunXi =
-        formation &&
-        (() => {
-            const ps = placedPlayers(formation, filled);
-            return ps.length === formation.slots.length ? ps : null;
-        })();
-    const draftedXi = cupRunXi || null;
+    // The completed XI (all slots filled) handed to a Cup Run; null until full.
+    const draftedXi = useMemo<Player[] | null>(() => {
+        if (!formation) return null;
+        const ps = placedPlayers(formation, filled);
+        return ps.length === formation.slots.length ? ps : null;
+    }, [formation, filled]);
 
     // Route -> which screen. `location.pathname` is basename-relative.
     const path = location.pathname;
@@ -605,7 +499,7 @@ export default function App() {
     // Where "Play" returns to: the furthest game screen reached (an in-progress Cup
     // Run is resumed from the home complete panel / the Cup Run card, not here).
     const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
-    const albumSummary = STICKERS ? albumStats(album, ALL_PLAYERS) : null;
+    const albumSummary = stickers.summary;
     const stampText = isSquads
         ? null
         : isAlbum
@@ -682,14 +576,14 @@ export default function App() {
                         onReDraft={handleReset}
                         speed={speed}
                         onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                        onRunEnd={STICKERS ? handleCupRunEnd : undefined}
+                        onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                     />
                 ) : isAlbum ? (
                     <AlbumScreen
-                        album={album}
+                        album={stickers.album}
                         allPlayers={ALL_PLAYERS}
-                        onTrade={handleTrade}
-                        onReset={handleResetAlbum}
+                        onTrade={stickers.onTrade}
+                        onReset={stickers.onResetAlbum}
                         onClose={() => navigate('/')}
                     />
                 ) : isGroup ? (
@@ -913,34 +807,19 @@ export default function App() {
                 </Suspense>
             </div>
 
-            {/* Run-end sticker flow (global overlays, layered over any screen).
-                Cup win: pick a bonus sticker first (blocks until picked), then the
-                summary. Loss/elimination: the effect above already applied, so only
-                the summary shows (when at least one new sticker was earned). */}
-            {STICKERS && runEnd?.wonCup && !stickersApplied && (
-                <CupRewardPicker
-                    album={album}
+            {/* Run-end sticker flow (global overlays, layered over any screen), driven
+                by the hook's normalized state: a cup win picks a bonus sticker first
+                (blocks until picked), then the summary; a loss banked in the hook, so
+                only the summary shows (when at least one new sticker was earned). */}
+            {STICKERS && (
+                <RunEndOverlays
+                    album={stickers.album}
                     allPlayers={ALL_PLAYERS}
-                    onPick={(playerId) => applyStickers(draftedCollectibleIds, true, playerId, true)}
-                />
-            )}
-            {STICKERS && cupRunSticker?.wonCup && (
-                <CupRewardPicker
-                    album={album}
-                    allPlayers={ALL_PLAYERS}
-                    onPick={(playerId) => {
-                        applyStickers(cupRunSticker.ids, true, playerId, false);
-                        setCupRunSticker(null);
-                    }}
-                />
-            )}
-            {STICKERS && newStickerIds && newStickerIds.length > 0 && (
-                <RunEndStickerSummary
-                    newPlayerIds={newStickerIds}
-                    allPlayers={ALL_PLAYERS}
-                    onClose={() => setNewStickerIds(null)}
+                    pendingReward={stickers.pendingReward}
+                    newStickerIds={stickers.newStickerIds}
+                    onCloseSummary={stickers.clearNewStickers}
                     onViewAlbum={() => {
-                        setNewStickerIds(null);
+                        stickers.clearNewStickers();
                         navigate('/album');
                     }}
                 />

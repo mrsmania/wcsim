@@ -42,11 +42,11 @@ editing, they will drift as fixes land.
 | ID | Title | Principle | Severity | Effort |
 |----|-------|-----------|----------|--------|
 | CR-01 | Split CupRunScreen.tsx | KISS | high | M |
-| CR-02 | Budget auto-fill algorithm belongs in domain | SoC | medium | M |
-| CR-03 | Sticker-swap eligibility rule implemented 3x | SoC | medium | S |
+| CR-02 | Budget auto-fill algorithm belongs in domain (done) | SoC | medium | M |
+| CR-03 | Sticker-swap eligibility rule implemented 3x (done) | SoC | medium | S |
 | CR-04 | Knockout-tie resolver implemented 2x (regression) | DRY | medium | M |
 | CR-05 | KoDecided display mappings re-derived at 7 sites | DRY | medium | S |
-| CR-06 | App.tsx sticker lifecycle extraction | KISS | medium | M |
+| CR-06 | App.tsx sticker lifecycle extraction (done) | KISS | medium | M |
 | CR-07 | PRIMARY_BTN defined 5x, one copy drifted | DRY | medium | S |
 | CR-08 | RunBanner clones Banner | DRY | medium | M |
 | CR-09 | Inline destructive-confirm pattern 3x | DRY | medium | S |
@@ -108,7 +108,7 @@ editing, they will drift as fixes land.
 - Verify: build + checks, then a full manual Cup Run (group, boost, KO tie,
   review a past round via the ladder, end screen, replay).
 
-### CR-02 [ ] Budget auto-fill algorithm belongs in domain (SoC, medium, M)
+### CR-02 [x] Budget auto-fill algorithm belongs in domain (SoC, medium, M)
 
 - Location: `src/components/BudgetMarket.tsx:19-41, 102-148`
 - Problem: the randomized auto-fill (shuffle, MIN_PRICE reserve accounting,
@@ -123,7 +123,7 @@ editing, they will drift as fixes land.
 - Verify: build + checks; click "Auto-fill & spend" several times, confirm
   varied full XIs within budget.
 
-### CR-03 [ ] Sticker-swap eligibility rule implemented 3x (SoC, medium, S)
+### CR-03 [x] Sticker-swap eligibility rule implemented 3x (SoC, medium, S)
 
 - Location: `src/state/gameReducer.ts:208-217`, `src/App.tsx:549-563`,
   `src/components/Pitch.tsx:333-335, 412-420`
@@ -177,7 +177,7 @@ editing, they will drift as fixes land.
 - Verify: build; play one knockout tie to penalties in the quick game and one in
   the Cup Run, compare labels.
 
-### CR-06 [ ] App.tsx sticker lifecycle extraction (KISS, medium, M)
+### CR-06 [x] App.tsx sticker lifecycle extraction (KISS, medium, M)
 
 - Location: `src/App.tsx` (~951 lines; sticker orchestration at 109-122,
   457-538, 917-948; also 506-520 two mirrored bank-on-loss effects, 921-937 two

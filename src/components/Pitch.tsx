@@ -3,7 +3,7 @@ import type { Player } from '../data/types';
 import { lastName } from '../data/format';
 import type { Formation, Slot } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { isCollectible } from '../domain/album';
+import { canSwapInto } from '../domain/album';
 import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
@@ -327,12 +327,14 @@ export default function Pitch({
     const ox = (box.w - VBW * fit) / 2;
     const oy = (box.h - VBH * fit) / 2;
 
-    // Is the selected player's person already in the XI? A used collectible may only
-    // swap into the slot where that person sits (an upgrade); an unused one may swap
-    // into any filled slot it fits.
-    const selectedIsUsed =
-        !!selectedPlayer &&
-        Object.values(filled).some((pl) => !!pl && pl.personId === selectedPlayer.personId);
+    // The personIds currently placed (drives the swap rule: a used collectible may
+    // only swap into the slot where that person sits, as an upgrade; an unused one may
+    // swap into any filled slot it fits).
+    const usedPersonIds = new Set(
+        Object.values(filled)
+            .filter((pl): pl is Player => !!pl)
+            .map((pl) => pl.personId),
+    );
 
     const marks = markingsPath();
     const spots = [
@@ -405,19 +407,13 @@ export default function Pitch({
                               : 'secondary';
                         // A filled slot a selected COLLECTIBLE is eligible for = a swap
                         // target (only collectibles can be swapped in). `onSwap` is
-                        // undefined when the album is off or no swaps remain. A swap is
-                        // allowed when the occupant is a different person (and the
-                        // collectible isn't already in the XI), or the SAME person as a
-                        // different card (upgrade in place - only their own slot lights up).
+                        // undefined when the album is off or no swaps remain. The
+                        // eligibility rule itself lives in domain/album (canSwapInto).
                         const swapTarget =
                             !!onSwap &&
                             !!selectedPlayer &&
-                            isCollectible(selectedPlayer) &&
                             !!player &&
-                            selectedPlayer.positions.includes(slot.position) &&
-                            (player.personId === selectedPlayer.personId
-                                ? player.id !== selectedPlayer.id
-                                : !selectedIsUsed);
+                            canSwapInto(selectedPlayer, player, slot.position, usedPersonIds);
                         const qx = px((slot.x / 100) * 300);
                         const qy = py((slot.y / 100) * 400);
                         return (

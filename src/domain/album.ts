@@ -1,4 +1,4 @@
-import type { Player } from '../data/types';
+import type { Player, Position } from '../data/types';
 import { STICKER_TIERS, STICKER_TRADE_COST, type StickerTier } from '../config';
 import { shuffled } from './random';
 
@@ -34,6 +34,28 @@ export function tierOf(player: Player): StickerTier | null {
 
 export function isCollectible(player: Player): boolean {
     return tierOf(player) !== null;
+}
+
+/**
+ * The sticker-swap eligibility rule (the single source, shared by the reducer, the
+ * App swap-eligible memo, and the pitch's swap targets). A collectible `incoming`
+ * may swap into a filled slot when its role fits the slot AND either the occupant is
+ * the SAME person as a different card (upgrade a version in place - a different id,
+ * not a no-op) or the occupant is a DIFFERENT person and `incoming` isn't already in
+ * the XI (`usedPersonIds` holds the personIds currently placed). Callers keep their
+ * own swapsLeft / flag / occupant-present gating; this is only the predicate.
+ */
+export function canSwapInto(
+    incoming: Player,
+    occupant: Player,
+    slotPosition: Position,
+    usedPersonIds: Set<string>,
+): boolean {
+    if (!isCollectible(incoming)) return false;
+    if (!incoming.positions.includes(slotPosition)) return false;
+    return occupant.personId === incoming.personId
+        ? occupant.id !== incoming.id
+        : !usedPersonIds.has(incoming.personId);
 }
 
 /** Every collectible player in a flat list (the caller passes the dataset in, so

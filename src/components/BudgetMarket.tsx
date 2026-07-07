@@ -6,7 +6,7 @@ import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
 import type { Formation, Slot } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
 import { priceOf } from '../domain/pricing';
-import { shuffled } from '../domain/random';
+import { autoFillBudget } from '../domain/budget';
 import { tierOf } from '../domain/album';
 import { BUDGET_DRAFT, FEATURES } from '../config';
 import Flag from './Flag';
@@ -14,12 +14,6 @@ import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
 
 const MAX_RESULTS = 60;
-
-/** Cheapest possible price for any player, reserved per still-empty slot so a random
- *  auto-fill never strands a slot it can no longer afford. */
-const MIN_PRICE = 1;
-/** How many of the best affordable options each random pick draws from. */
-const PICK_POOL = 15;
 
 /** Players eligible for each position, highest-rated first. */
 const BY_POSITION: Partial<Record<Position, Player[]>> = (() => {
@@ -83,55 +77,11 @@ export default function BudgetMarket({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetSlot?.position, query]);
 
-  // Fill every empty slot and spend most of the budget, differently each time (see
-  // the randomized fill: shuffled order, random best-affordable pick per slot with a
-  // reserve, then a random upgrade pass). Hands the result to App to commit.
+  // Fill every empty slot and spend most of the budget, differently each time (the
+  // randomized fill lives in domain/budget). Hands the result to App to commit.
   const autoFill = () => {
-    const next: Filled = { ...filled };
-    const usedIds = new Set(placed.map((p) => p.personId));
-    let left = remaining;
-    const autoIds: string[] = [];
-
-    const order = shuffled(slots.filter((s) => !next[s.id]));
-    order.forEach((s, i) => {
-      const reserve = (order.length - 1 - i) * MIN_PRICE;
-      const cap = left - reserve;
-      const pool = (BY_POSITION[s.position] ?? []).filter(
-        (p) => !usedIds.has(p.personId) && priceOf(p.elo) <= cap,
-      );
-      if (pool.length === 0) return;
-      const topK = pool.slice(0, Math.min(PICK_POOL, pool.length));
-      const pick = topK[Math.floor(Math.random() * topK.length)];
-      next[s.id] = pick;
-      usedIds.add(pick.personId);
-      left -= priceOf(pick.elo);
-      autoIds.push(s.id);
-    });
-
-    for (let guard = 0; guard < 300 && left > 0; guard++) {
-      let upgraded = false;
-      for (const slotId of shuffled(autoIds)) {
-        const cur = next[slotId]!;
-        const slot = slots.find((s) => s.id === slotId)!;
-        const curPrice = priceOf(cur.elo);
-        const options = (BY_POSITION[slot.position] ?? []).filter(
-          (p) =>
-            p.elo > cur.elo && !usedIds.has(p.personId) && priceOf(p.elo) - curPrice <= left,
-        );
-        if (options.length === 0) continue;
-        const topK = options.slice(0, Math.min(PICK_POOL, options.length));
-        const up = topK[Math.floor(Math.random() * topK.length)];
-        usedIds.delete(cur.personId);
-        usedIds.add(up.personId);
-        next[slotId] = up;
-        left -= priceOf(up.elo) - curPrice;
-        upgraded = true;
-        break;
-      }
-      if (!upgraded) break;
-    }
-
-    onAutoFill(next, [...usedIds]);
+    const { filled: next, usedPersonIds } = autoFillBudget(slots, filled, remaining);
+    onAutoFill(next, usedPersonIds);
   };
 
   return (
