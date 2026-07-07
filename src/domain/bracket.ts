@@ -1,4 +1,6 @@
 import type { MatchEvent, PenKick } from './match';
+import { SQUADS } from '../data/squads';
+import type { Squad } from '../data/types';
 import { USER_ID, type GroupTeam } from './tournament';
 import { drawOpponent, KO_ROUNDS, resolveKoTie, type KoDecided } from './knockout';
 
@@ -60,6 +62,7 @@ export function buildBracket(
   user: GroupTeam,
   coQualifier: GroupTeam,
   excludeIds: string[],
+  pool: Squad[] = SQUADS,
 ): BracketState {
   const faced = new Set<string>([USER_ID, coQualifier.id, ...excludeIds]);
   const teams: Record<string, GroupTeam> = { [USER_ID]: user, [coQualifier.id]: coQualifier };
@@ -69,7 +72,7 @@ export function buildBracket(
   seeds[FIELD_SIZE / 2] = coQualifier.id; // index 8: the other half of the draw
   for (let i = 0; i < FIELD_SIZE; i++) {
     if (seeds[i]) continue;
-    const t = drawOpponent(faced);
+    const t = drawOpponent(faced, pool);
     faced.add(t.id);
     teams[t.id] = t;
     seeds[i] = t.id;

@@ -1,4 +1,5 @@
 import { SQUADS } from '../data/squads';
+import type { Squad } from '../data/types';
 import {
   REFERENCE_RATING,
   simulateExtraTime,
@@ -77,10 +78,11 @@ const OVERALL_BY_ID: Map<string, number> = new Map(
 const overallOf = (id: string): number => OVERALL_BY_ID.get(id) ?? REFERENCE_RATING;
 
 /** Draw the next opponent, avoiding any already faced and weighting stronger
- *  squads higher so better teams turn up more often deeper in the bracket. */
-export function drawOpponent(faced: Set<string>): GroupTeam {
-  const pool = SQUADS.filter((s) => !faced.has(s.id));
-  const src = pool.length ? pool : SQUADS;
+ *  squads higher so better teams turn up more often deeper in the bracket. Drawn
+ *  from `pool` (the squad-pool setting; defaults to the whole dataset). */
+export function drawOpponent(faced: Set<string>, pool: Squad[] = SQUADS): GroupTeam {
+  const candidates = pool.filter((s) => !faced.has(s.id));
+  const src = candidates.length ? candidates : pool;
   const weights = src.map((s) => Math.exp((overallOf(s.id) - REFERENCE_RATING) * DRAW_WEIGHT_SLOPE));
   const total = weights.reduce((sum, w) => sum + w, 0);
   let r = Math.random() * total;

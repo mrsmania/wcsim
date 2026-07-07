@@ -97,9 +97,10 @@ export function squadOverall(squad: Squad): number {
   return xiStrength(bestEleven(squad.players)).overall;
 }
 
-/** Pick `count` distinct random squads as opponents. */
-export function pickOpponents(count: number): Squad[] {
-  return shuffled(SQUADS).slice(0, count);
+/** Pick `count` distinct random squads as opponents, from `pool` (the squad-pool
+ *  setting; defaults to the whole dataset). */
+export function pickOpponents(count: number, pool: Squad[] = SQUADS): Squad[] {
+  return shuffled(pool).slice(0, count);
 }
 
 /** Build a 4-team group (user + 3 opponents) with a round-robin schedule where

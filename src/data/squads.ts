@@ -4407,3 +4407,12 @@ export const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
 export const WORLD_CUP_YEARS: number[] = [...new Set(SQUADS.map((s) => s.year))].sort(
     (a, b) => a - b,
 );
+
+/** The squads within a pool of World Cup `years` (the squad-pool setting). An empty
+ *  or all-inclusive selection returns every squad (the shared SQUADS reference), so
+ *  callers pay no filtering cost in the common case. */
+export function squadsInPool(years: readonly number[]): Squad[] {
+    if (!years.length || years.length >= WORLD_CUP_YEARS.length) return SQUADS;
+    const set = new Set(years);
+    return SQUADS.filter((s) => set.has(s.year));
+}

@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import type { Player, Position } from '../data/types';
+import type { Player } from '../data/types';
 import { lastName, normalizeSearch } from '../data/format';
-import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
+import { SQUAD_BY_ID } from '../data/squads';
 import type { Formation, Slot } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
 import { priceOf } from '../domain/pricing';
-import { autoFillBudget } from '../domain/budget';
+import { autoFillBudget, playersByPosition } from '../domain/budget';
 import { tierOf } from '../domain/album';
 import { BUDGET_DRAFT, FEATURES } from '../config';
 import Flag from './Flag';
@@ -15,17 +15,11 @@ import StartOverButton from './StartOverButton';
 
 const MAX_RESULTS = 60;
 
-/** Players eligible for each position, highest-rated first. */
-const BY_POSITION: Partial<Record<Position, Player[]>> = (() => {
-  const m: Partial<Record<Position, Player[]>> = {};
-  for (const p of ALL_PLAYERS) for (const pos of p.positions) (m[pos] ??= []).push(p);
-  for (const pos of Object.keys(m) as Position[]) m[pos]!.sort((a, b) => b.elo - a.elo);
-  return m;
-})();
-
 interface Props {
   formation: Formation;
   filled: Filled;
+  /** The player pool (squad-pool setting); the market lists and prices only these. */
+  poolPlayers: Player[];
   /** The empty slot currently being shopped for (drives the market's position),
    *  resolved by App (incl. the first-empty fallback); null once the XI is full. */
   targetSlot: Slot | null;
@@ -48,6 +42,7 @@ interface Props {
 export default function BudgetMarket({
   formation,
   filled,
+  poolPlayers,
   targetSlot,
   heldPlayer,
   onHold,
@@ -57,6 +52,8 @@ export default function BudgetMarket({
 }: Props) {
   const [query, setQuery] = useState('');
 
+  // Players eligible for each position, highest-rated first, from the active pool.
+  const byPosition = useMemo(() => playersByPosition(poolPlayers), [poolPlayers]);
   const slots = formation.slots;
   const placed = placedPlayers(formation, filled);
   const used = new Set(placed.map((p) => p.personId));
@@ -67,20 +64,19 @@ export default function BudgetMarket({
   const results = useMemo(() => {
     if (!targetSlot) return [];
     const q = normalizeSearch(query.trim());
-    const list = (BY_POSITION[targetSlot.position] ?? []).filter((p) => {
+    const list = (byPosition[targetSlot.position] ?? []).filter((p) => {
       if (!q) return true;
       const sq = SQUAD_BY_ID[p.squadId];
       const hay = `${normalizeSearch(p.name)} ${normalizeSearch(sq?.nation ?? '')} ${(sq?.code ?? '').toLowerCase()} ${sq?.year ?? ''}`;
       return hay.includes(q);
     });
     return list.slice(0, MAX_RESULTS);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetSlot?.position, query]);
+  }, [targetSlot?.position, query, byPosition]);
 
   // Fill every empty slot and spend most of the budget, differently each time (the
   // randomized fill lives in domain/budget). Hands the result to App to commit.
   const autoFill = () => {
-    const { filled: next, usedPersonIds } = autoFillBudget(slots, filled, remaining);
+    const { filled: next, usedPersonIds } = autoFillBudget(slots, filled, remaining, poolPlayers);
     onAutoFill(next, usedPersonIds);
   };
 

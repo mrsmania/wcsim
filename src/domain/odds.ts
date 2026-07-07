@@ -1,4 +1,5 @@
-import type { Player } from '../data/types';
+import type { Player, Squad } from '../data/types';
+import { SQUADS } from '../data/squads';
 import {
   userGroupTeam,
   createGroup,
@@ -30,16 +31,21 @@ export interface TitleOdds {
 /** Simulate one full tournament (group + knockout) for `players` and report how
  *  far the user got. Mirrors the real game's flow: a random group, top-2 advance,
  *  then an elo-weighted 16-team bracket. */
-function simulateFinish(players: Player[], chemistryBonus: number, atkDefDelta: number): Finish {
+function simulateFinish(
+  players: Player[],
+  chemistryBonus: number,
+  atkDefDelta: number,
+  pool: Squad[],
+): Finish {
   const user = userGroupTeam(players, chemistryBonus, atkDefDelta);
-  let group = createGroup(user, pickOpponents(3));
+  let group = createGroup(user, pickOpponents(3, pool));
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
   }
   if (!userAdvanced(group)) return 'group';
 
   const { user: u, coQualifier, excludeIds } = bracketSeedFromGroup(group);
-  let bracket = buildBracket(u, coQualifier, excludeIds);
+  let bracket = buildBracket(u, coQualifier, excludeIds, pool);
   // Play round by round to a resolution (guard is a safety net; a 4-round bracket
   // always resolves in <= 4 iterations).
   let guard = 0;
@@ -64,6 +70,7 @@ export function simulateTitleOdds(
   sims = 1500,
   chemistryBonus = 0,
   atkDefDelta = 0,
+  pool: Squad[] = SQUADS,
 ): TitleOdds {
   const counts: Record<Finish, number> = {
     group: 0,
@@ -73,7 +80,8 @@ export function simulateTitleOdds(
     final: 0,
     champion: 0,
   };
-  for (let i = 0; i < sims; i++) counts[simulateFinish(players, chemistryBonus, atkDefDelta)]++;
+  for (let i = 0; i < sims; i++)
+    counts[simulateFinish(players, chemistryBonus, atkDefDelta, pool)]++;
 
   const f = (n: number) => n / sims;
   const distribution: Record<Finish, number> = {

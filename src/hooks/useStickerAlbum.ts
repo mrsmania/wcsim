@@ -55,7 +55,11 @@ export interface StickerAlbumApi {
  * (RunState.stickersApplied, so it only calls back once). A cup win banks only after the
  * reward is picked; a loss banks immediately (then the summary shows).
  */
-export function useStickerAlbum(state: GameState, dispatch: Dispatch<Action>): StickerAlbumApi {
+export function useStickerAlbum(
+  state: GameState,
+  dispatch: Dispatch<Action>,
+  allPlayers: Player[] = ALL_PLAYERS,
+): StickerAlbumApi {
   const enabled = FEATURES.stickerAlbum;
   const { filled, stickersApplied, group, bracket } = state;
 
@@ -173,8 +177,8 @@ export function useStickerAlbum(state: GameState, dispatch: Dispatch<Action>): S
   }, [enabled, runEnd, stickersApplied, cupRunSticker, applyStickers, draftedCollectibleIds]);
 
   const summary = useMemo(
-    () => (enabled ? albumStats(album, ALL_PLAYERS) : null),
-    [enabled, album],
+    () => (enabled ? albumStats(album, allPlayers) : null),
+    [enabled, album, allPlayers],
   );
 
   return {

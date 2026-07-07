@@ -1,5 +1,6 @@
-import type { Player } from '../data/types';
+import type { Player, Squad } from '../data/types';
 import { ELO_MAX, primaryPosition } from '../data/types';
+import { SQUADS } from '../data/squads';
 import { FEATURES } from '../config';
 import { computeChemistry } from './chemistry';
 import {
@@ -182,10 +183,14 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
 /** Simulate the group stage up front, returning the committed next state plus the
  *  user's three matches (for live reveal). Qualify -> draw the R16 opponent + offer
  *  a boon; otherwise the run ends. */
-export function prepareGroupStage(run: RunState, atkDefDelta = 0): PreparedGroup | null {
+export function prepareGroupStage(
+  run: RunState,
+  atkDefDelta = 0,
+  pool: Squad[] = SQUADS,
+): PreparedGroup | null {
   if (run.phase !== 'group') return null;
   const user = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta);
-  const opponents = pickOpponents(3);
+  const opponents = pickOpponents(3, pool);
   let group = createGroup(user, opponents);
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
@@ -236,7 +241,7 @@ export function prepareGroupStage(run: RunState, atkDefDelta = 0): PreparedGroup
   }
   // Exclude the group opponents from the knockout draw (no immediate rematch).
   const faced = [...run.facedIds, ...opponents.map((s) => s.id)];
-  const opp = drawOpponent(new Set(faced));
+  const opp = drawOpponent(new Set(faced), pool);
   return {
     next: {
       ...run,
@@ -312,7 +317,11 @@ function simulateKoTie(user: GroupTeam, opp: GroupTeam): KoMatch {
 /** Prepare the pending knockout tie: simulate it up front (keeping the events for a
  *  live reveal) and compute the committed next state (win -> next round + boon, or
  *  the trophy; loss -> ended). */
-export function prepareKnockoutRound(run: RunState, atkDefDelta = 0): PreparedKnockout | null {
+export function prepareKnockoutRound(
+  run: RunState,
+  atkDefDelta = 0,
+  pool: Squad[] = SQUADS,
+): PreparedKnockout | null {
   if (run.phase !== 'match' || !run.nextOpponent) return null;
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
@@ -359,7 +368,7 @@ export function prepareKnockoutRound(run: RunState, atkDefDelta = 0): PreparedKn
     };
   } else {
     const nextRound = round + 1;
-    const nextOpp = drawOpponent(new Set(run.facedIds));
+    const nextOpp = drawOpponent(new Set(run.facedIds), pool);
     next = {
       ...run,
       phase: 'boon',

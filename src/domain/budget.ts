@@ -22,13 +22,13 @@ const PICK_POOL = 15;
 /** Upper bound on the upgrade-pass loop so it can never spin forever. */
 const UPGRADE_GUARD = 300;
 
-/** Players eligible for each position, highest-rated first. */
-const BY_POSITION: Partial<Record<Position, Player[]>> = (() => {
+/** Players eligible for each position, highest-rated first, from a given pool. */
+export function playersByPosition(players: Player[]): Partial<Record<Position, Player[]>> {
   const m: Partial<Record<Position, Player[]>> = {};
-  for (const p of ALL_PLAYERS) for (const pos of p.positions) (m[pos] ??= []).push(p);
+  for (const p of players) for (const pos of p.positions) (m[pos] ??= []).push(p);
   for (const pos of Object.keys(m) as Position[]) m[pos]!.sort((a, b) => b.elo - a.elo);
   return m;
-})();
+}
 
 /**
  * Fill every empty slot in `filled` within `remaining` dollars, at random.
@@ -44,7 +44,9 @@ export function autoFillBudget(
   slots: Slot[],
   filled: Filled,
   remaining: number,
+  pool: Player[] = ALL_PLAYERS,
 ): { filled: Filled; usedPersonIds: string[] } {
+  const BY_POSITION = playersByPosition(pool);
   const next: Filled = { ...filled };
   const usedIds = new Set<string>();
   for (const s of slots) {

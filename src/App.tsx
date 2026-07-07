@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Settings as SettingsIcon, Swords, Trophy } from 'lucide-react';
-import { ALL_PLAYERS, SQUADS } from './data/squads';
+import { ALL_PLAYERS, SQUADS, squadsInPool } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
@@ -105,8 +105,16 @@ export default function App() {
     // lives in this hook, outside the reducer / game state and in its own localStorage
     // key, so resetting a run never touches the collection (FR-7).
     const STICKERS = FEATURES.stickerAlbum;
-    const stickers = useStickerAlbum(state, dispatch);
     const settings = useSettings();
+    // The active squad pool (squad-pool setting): the squads and players the game draws
+    // from - the user's rolls, the transfer market, the opponents, and the album target.
+    // Recomputed only when the setting changes.
+    const poolSquads = useMemo(
+        () => squadsInPool(settings.settings.poolYears),
+        [settings.settings.poolYears],
+    );
+    const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
+    const stickers = useStickerAlbum(state, dispatch, poolPlayers);
     const [settingsOpen, setSettingsOpen] = useState(false);
     // Changing difficulty resets the sticker album (it is scoped to the difficulty it
     // was earned under; the same will hold for future challenge modes). The modal
@@ -263,8 +271,8 @@ export default function App() {
         drawGuardRef.current = true;
         const open = positionsWithOpenSlot(formation, filled);
         const used = new Set(usedPersonIds);
-        runRoll(rollAny(SQUADS, open, used, lastSquadIdRef.current), false);
-    }, [phase, build, formation, currentSquad, rolling, filled, usedPersonIds, runRoll]);
+        runRoll(rollAny(poolSquads, open, used, lastSquadIdRef.current), false);
+    }, [phase, build, formation, currentSquad, rolling, filled, usedPersonIds, runRoll, poolSquads]);
 
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
@@ -283,12 +291,12 @@ export default function App() {
             if (FEATURES.careerMode) clearRun();
             const { filled, usedPersonIds } = randomXI(
                 previewFormation,
-                SQUADS,
+                poolSquads,
                 STRENGTH_BANDS[tier],
             );
             dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
         },
-        [previewFormation],
+        [previewFormation, poolSquads],
     );
 
     // Budget build: enter it in place (no route change) - the left column swaps to
@@ -401,13 +409,13 @@ export default function App() {
             const used = new Set(usedPersonIds);
             const target =
                 kind === 'team'
-                    ? rollAnotherTeam(SQUADS, currentSquad, open, used)
+                    ? rollAnotherTeam(poolSquads, currentSquad, open, used)
                     : kind === 'cup'
-                      ? rollAnotherCup(SQUADS, currentSquad, open, used)
-                      : rollAny(SQUADS, open, used, currentSquad.id);
+                      ? rollAnotherCup(poolSquads, currentSquad, open, used)
+                      : rollAny(poolSquads, open, used, currentSquad.id);
             runRoll(target, true);
         },
-        [formation, currentSquad, filled, usedPersonIds, rerollsLeft, rolling, runRoll],
+        [formation, currentSquad, filled, usedPersonIds, rerollsLeft, rolling, runRoll, poolSquads],
     );
 
     const handleStartGroup = useCallback(() => {
@@ -423,11 +431,11 @@ export default function App() {
             type: 'START_GROUP',
             group: createGroup(
                 userGroupTeam(players, bonus, userRatingDelta(settings.settings.difficulty)),
-                pickOpponents(3),
+                pickOpponents(3, poolSquads),
             ),
         });
         navigate('/group');
-    }, [group, formation, filled, navigate, settings.settings.difficulty]);
+    }, [group, formation, filled, navigate, settings.settings.difficulty, poolSquads]);
 
     const handleEnterKnockout = useCallback(() => {
         // Already built (navigated Back to the group): just return to the bracket.
@@ -439,10 +447,10 @@ export default function App() {
         const { user, coQualifier, excludeIds } = bracketSeedFromGroup(group);
         dispatch({
             type: 'START_BRACKET',
-            bracket: buildBracket(user, coQualifier, excludeIds),
+            bracket: buildBracket(user, coQualifier, excludeIds, poolSquads),
         });
         navigate('/knockout');
-    }, [bracket, group, navigate]);
+    }, [bracket, group, navigate, poolSquads]);
 
     const handleReset = useCallback(() => {
         // A reset is a brand-new team, so drop any in-progress Cup Run too.
@@ -601,12 +609,13 @@ export default function App() {
                         speed={speed}
                         onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
                         difficulty={settings.settings.difficulty}
+                        pool={poolSquads}
                         onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                     />
                 ) : isAlbum ? (
                     <AlbumScreen
                         album={stickers.album}
-                        allPlayers={ALL_PLAYERS}
+                        allPlayers={poolPlayers}
                         onTrade={stickers.onTrade}
                         onReset={stickers.onResetAlbum}
                         onClose={() => navigate('/')}
@@ -735,6 +744,7 @@ export default function App() {
                                     <BudgetMarket
                                         formation={formation}
                                         filled={filled}
+                                        poolPlayers={poolPlayers}
                                         targetSlot={budgetTargetSlot}
                                         heldPlayer={heldPlayer}
                                         onHold={handleBudgetHold}
@@ -748,10 +758,10 @@ export default function App() {
                                         rolling={rolling}
                                         rerollsLeft={rerollsLeft}
                                         canAnotherTeam={
-                                            !!currentSquad && hasAnotherTeam(SQUADS, currentSquad)
+                                            !!currentSquad && hasAnotherTeam(poolSquads, currentSquad)
                                         }
                                         canAnotherCup={
-                                            !!currentSquad && hasAnotherCup(SQUADS, currentSquad)
+                                            !!currentSquad && hasAnotherCup(poolSquads, currentSquad)
                                         }
                                         openPositions={openPositions}
                                         swapEligibleIds={swapEligibleIds}
@@ -839,7 +849,7 @@ export default function App() {
             {STICKERS && (
                 <RunEndOverlays
                     album={stickers.album}
-                    allPlayers={ALL_PLAYERS}
+                    allPlayers={poolPlayers}
                     pendingReward={stickers.pendingReward}
                     newStickerIds={stickers.newStickerIds}
                     onCloseSummary={stickers.clearNewStickers}

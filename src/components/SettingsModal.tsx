@@ -3,11 +3,18 @@ import Overlay from './Overlay';
 import { DANGER_BTN, SECONDARY_BTN, SegControl, SpeedControl } from './matchUi';
 import type { MatchSpeed } from '../domain/clock';
 import type { Difficulty } from '../domain/difficulty';
+import { WORLD_CUP_YEARS, squadsInPool } from '../data/squads';
+import { collectiblePlayers } from '../domain/album';
 import type { SettingsApi } from '../hooks/useSettings';
 
 const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
 const GH = 'font-display text-[14px] font-extrabold';
 const HINT = 'mt-0.5 text-[12px] leading-snug text-muted';
+
+/** World Cups whose squads are hand-authored approximations (flagged in the pool). */
+const APPROX_YEARS = new Set([1998, 2002]);
+const SHORTCUT_BTN =
+    'rounded-full border border-line bg-panel px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted transition hover:border-pitch hover:text-pitch';
 
 const DIFFICULTIES: { value: Difficulty; label: string }[] = [
     { value: 'casual', label: 'Casual' },
@@ -66,7 +73,7 @@ export default function SettingsModal({
     /** Collected stickers at risk when difficulty changes (0 hides the confirm). */
     albumCount: number;
 }) {
-    const { settings: s, setTheme } = settings;
+    const { settings: s, setTheme, setPoolYears } = settings;
     // A difficulty awaiting confirmation (changing difficulty wipes the album).
     const [pending, setPending] = useState<Difficulty | null>(null);
 
@@ -76,12 +83,86 @@ export default function SettingsModal({
         else onChangeDifficulty(d);
     };
 
+    // Toggle a World Cup in/out of the pool, keeping at least one selected.
+    const togglePool = (y: number) => {
+        const next = s.poolYears.includes(y)
+            ? s.poolYears.filter((x) => x !== y)
+            : [...s.poolYears, y].sort((a, b) => a - b);
+        if (next.length) setPoolYears(next);
+    };
+    const pooled = squadsInPool(s.poolYears);
+    const poolCounts = {
+        cups: s.poolYears.length,
+        teams: pooled.length,
+        players: pooled.reduce((n, sq) => n + sq.players.length, 0),
+        collectibles: collectiblePlayers(pooled.flatMap((sq) => sq.players)).length,
+    };
+
     return (
         <Overlay onClose={onClose} ariaLabel="Settings">
             <h2 className="mb-3 font-display text-[20px] font-extrabold uppercase tracking-[-0.01em]">
                 Settings
             </h2>
             <div className="overflow-hidden rounded-md border border-line bg-panel">
+                {/* Squad pool */}
+                <div className={GROUP}>
+                    <div className={GH}>Squad pool</div>
+                    <p className={HINT}>
+                        Which World Cups the game draws from - your squad rolls, the transfer market,
+                        your opponents, and the sticker album.
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        <button className={SHORTCUT_BTN} onClick={() => setPoolYears(WORLD_CUP_YEARS)}>
+                            All
+                        </button>
+                        <button
+                            className={SHORTCUT_BTN}
+                            onClick={() => setPoolYears(WORLD_CUP_YEARS.filter((y) => y >= 2006))}
+                        >
+                            2006 and newer
+                        </button>
+                        <button
+                            className={SHORTCUT_BTN}
+                            onClick={() => setPoolYears(WORLD_CUP_YEARS.slice(-3))}
+                        >
+                            Last 3
+                        </button>
+                    </div>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {WORLD_CUP_YEARS.map((y) => {
+                            const on = s.poolYears.includes(y);
+                            return (
+                                <button
+                                    key={y}
+                                    type="button"
+                                    aria-pressed={on}
+                                    onClick={() => togglePool(y)}
+                                    className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${
+                                        on
+                                            ? 'border-pitch bg-pitch/10 text-pitch-dark'
+                                            : 'border-line bg-panel text-muted hover:border-pitch'
+                                    }`}
+                                >
+                                    {y}
+                                    {APPROX_YEARS.has(y) && (
+                                        <span className="align-super text-[9px] text-amber">*</span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="mt-2.5 rounded-md bg-chalk px-3 py-2 font-mono text-[11px] text-ink">
+                        Pool: <b className="text-pitch-dark">{poolCounts.cups}</b> World Cups &middot;{' '}
+                        <b className="text-pitch-dark">{poolCounts.teams}</b> teams &middot;{' '}
+                        <b className="text-pitch-dark">{poolCounts.players.toLocaleString()}</b> players
+                        &middot; <b className="text-pitch-dark">{poolCounts.collectibles}</b> collectibles
+                    </div>
+                    <p className="mt-1.5 font-mono text-[10.5px] leading-snug text-muted">
+                        <span className="text-amber">*</span> 1998 &amp; 2002 are approximate
+                        placeholder squads.
+                    </p>
+                </div>
+
                 {/* Difficulty */}
                 <div className={GROUP}>
                     <div className={GH}>Difficulty</div>
