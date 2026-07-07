@@ -11,7 +11,7 @@ import {
     type MatchdayResult,
 } from '../domain/tournament';
 import type { MatchSpeed } from '../domain/clock';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import GroupDrawReveal from './GroupDrawReveal';
@@ -20,9 +20,12 @@ import MatchdayCard from './MatchdayCard';
 import TournamentSummary from './TournamentSummary';
 import { useMatchClock, FT_HOLD_MS } from '../hooks/useMatchClock';
 import { useFollowBottom } from '../hooks/useFollowBottom';
+import { prefersReducedMotion } from '../hooks/motion';
 import { liveMatchView, resultTag } from './matchView';
 import {
+    AUTO_PLAY_DELAY_MS,
     Banner,
+    NextGameButton,
     ordinal,
     PlaybackControls,
     PRIMARY_BTN,
@@ -49,9 +52,6 @@ interface Props {
     hasBracket: boolean;
     onReset: () => void;
 }
-
-/** Delay (ms) between an idle beat and auto-playing the next matchday/round. */
-const AUTO_PLAY_DELAY_MS = 700;
 
 /** The group-stage screen: the opening draw, the standings + all results, and the
  *  three matchdays played one at a time with live goal feeds. Once the user has
@@ -97,9 +97,8 @@ export default function TournamentScreen({
         const id = requestAnimationFrame(() => {
             const el = stageTopRef.current;
             if (!el) return;
-            const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
             const top = el.getBoundingClientRect().top + window.scrollY - 16; // shy of the top
-            window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' });
+            window.scrollTo({ top: Math.max(0, top), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
         });
         return () => cancelAnimationFrame(id);
     }, [eliminated]);
@@ -143,16 +142,6 @@ export default function TournamentScreen({
     const playNext = () => {
         if (nextMatchday !== null) play(nextMatchday);
     };
-
-    const nextGameButton = (
-        <div className="mt-[22px] flex justify-center">
-            <button onClick={playNext} className={PRIMARY_BTN}>
-                <Play size={13} fill="currentColor" strokeWidth={0} />
-                Next game
-                <ArrowRight size={15} strokeWidth={2.5} />
-            </button>
-        </div>
-    );
 
     const controls = !groupFinished ? (
         <PlaybackControls auto={auto} speed={speed} onSetAuto={onSetAuto} onSetSpeed={onSetSpeed} />
@@ -250,7 +239,7 @@ export default function TournamentScreen({
                             playing={isPlayingMd}
                             clockLabel={clockLabel}
                         />
-                        {`md-${md}` === nextAnchorKey && nextGameButton}
+                        {`md-${md}` === nextAnchorKey && <NextGameButton onClick={playNext} />}
                     </div>
                 );
             })}

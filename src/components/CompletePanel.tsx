@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { STYLE_LABEL, type Formation, type Style } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
-import { SECONDARY_BTN } from './matchUi';
+import { PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
+import ConfirmAction from './ConfirmAction';
 
 interface Props {
     formation: Formation;
@@ -17,8 +17,7 @@ interface Props {
     onReset: () => void;
 }
 
-const CTA =
-    'flex w-full items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-4 py-3 font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99]';
+const CTA = `flex w-full items-center justify-center gap-2 px-4 py-3 text-[13px] ${PRIMARY_BTN_BASE}`;
 
 export default function CompletePanel({
     formation,
@@ -28,7 +27,6 @@ export default function CompletePanel({
     onCupRun,
     onReset,
 }: Props) {
-    const [confirmReset, setConfirmReset] = useState(false);
     const base = teamRating(formation, filled);
     const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
     const total = formation.slots.length;
@@ -81,30 +79,14 @@ export default function CompletePanel({
                         </button>
                     )}
 
-                    {confirmReset ? (
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-muted">Discard your XI?</span>
-                            <button
-                                onClick={onReset}
-                                className="rounded-[5px] border border-loss bg-loss px-3 py-2 font-display text-[12px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:opacity-90"
-                            >
-                                Yes, reset
-                            </button>
-                            <button
-                                onClick={() => setConfirmReset(false)}
-                                className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => setConfirmReset(true)}
-                            className={`flex w-full items-center justify-center px-4 py-3 text-[13px] ${SECONDARY_BTN}`}
-                        >
-                            Start over
-                        </button>
-                    )}
+                    <ConfirmAction
+                        prompt="Discard your XI?"
+                        confirmLabel="Yes, reset"
+                        onConfirm={onReset}
+                        triggerLabel="Start over"
+                        triggerClassName={`flex w-full items-center justify-center px-4 py-3 text-[13px] ${SECONDARY_BTN}`}
+                        rowClassName="flex items-center gap-2"
+                    />
                 </div>
             </div>
         </div>

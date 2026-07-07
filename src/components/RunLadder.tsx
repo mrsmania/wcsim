@@ -1,5 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { RunState } from '../domain/run';
+import { prefersReducedMotion } from '../hooks/motion';
+import { GOLD_ACCENT, GOLD_FOIL, GOLD_INK } from './StickerCard';
 
 /** Short labels for the six ladder slots (group, four KO rounds, the cup). */
 const SHORT = ['GRP', 'R16', 'QF', 'SF', 'FIN', 'CUP'];
@@ -22,7 +24,9 @@ const NODE_BY_STATUS: Record<Status, string> = {
   loss: 'border-loss bg-loss text-white',
   current: 'border-amber bg-amber/90 text-ink ring-4 ring-amber/25',
   upcoming: 'border-line bg-panel text-muted',
-  'cup-won': 'border-[#c99a3a] text-[#3a2a06]',
+  // cup-won's gold border/text/foil come from the shared GOLD_* style (below), so no
+  // colour utilities here (only NODE_BASE's border width).
+  'cup-won': '',
   'cup-upcoming': 'border-line bg-panel text-muted',
 };
 
@@ -100,8 +104,7 @@ export default function RunLadder({
     const cRect = c.getBoundingClientRect();
     const sRect = s.getBoundingClientRect();
     const target = c.scrollLeft + (sRect.left - cRect.left) - (c.clientWidth - sRect.width) / 2;
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    c.scrollTo({ left: Math.max(0, target), behavior: reduced ? 'auto' : 'smooth' });
+    c.scrollTo({ left: Math.max(0, target), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }, [currentIndex]);
 
   return (
@@ -135,7 +138,11 @@ export default function RunLadder({
                     isCup ? 'h-[42px] w-[42px] text-[18px]' : 'h-[38px] w-[38px] text-[11px]',
                     NODE_BY_STATUS[s.status],
                   ].join(' ')}
-                  style={s.status === 'cup-won' ? { background: 'linear-gradient(135deg,#f0cf8a,#c99a3a)' } : undefined}
+                  style={
+                    s.status === 'cup-won'
+                      ? { background: GOLD_FOIL, borderColor: GOLD_ACCENT, color: GOLD_INK }
+                      : undefined
+                  }
                 >
                   {s.node}
                 </span>

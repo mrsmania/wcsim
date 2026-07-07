@@ -255,28 +255,42 @@ export function prepareGroupStage(run: RunState): PreparedGroup | null {
 /** Commit the group stage without revealing it (used by the checks harness). */
 export const playGroupStage = (run: RunState): RunState => prepareGroupStage(run)?.next ?? run;
 
-/** Apply the chosen boon and move to the pending knockout tie. */
-export function chooseBoon(run: RunState, boonId: string): RunState {
-  if (run.phase !== 'boon') return run;
+/** The result of applying a boon: the committed next state plus the roster swap it
+ *  made, if any (for the "X in for Y" toast). A rating boon leaves both unset. */
+export interface BoonChoice {
+  next: RunState;
+  swappedIn?: Player;
+  swappedOut?: Player;
+}
+
+/** Apply the chosen boon and move to the pending knockout tie. Returns the next state
+ *  plus any roster swap the boon made (so the UI can describe it without re-diffing). */
+export function chooseBoon(run: RunState, boonId: string): BoonChoice {
+  if (run.phase !== 'boon') return { next: run };
   const boon = boonById(boonId);
-  if (!boon) return run;
+  if (!boon) return { next: run };
   const before = run.xi;
   const xi = boon.apply(before, { opponentSquadId: run.nextOpponent?.id ?? null });
   // If the boon swapped the roster, tag the incoming player (an amber "Boost" mark).
-  const inP = xi.find((p) => !before.some((b) => b.id === p.id));
+  const swappedIn = xi.find((p) => !before.some((b) => b.id === p.id));
+  const swappedOut = before.find((p) => !xi.some((b) => b.id === p.id));
   // The boost is chosen right after a round's games, so record it on that round (the
   // most recent history entry) - e.g. the after-group boost lands on the group step.
   const last = run.history.length - 1;
   const history =
     last >= 0 ? run.history.map((r, i) => (i === last ? { ...r, boostId: boon.id } : r)) : run.history;
   return {
-    ...run,
-    xi,
-    activeBoons: [...run.activeBoons, boon.id],
-    boostedIds: inP ? [...run.boostedIds, inP.id] : run.boostedIds,
-    offer: null,
-    phase: 'match',
-    history,
+    next: {
+      ...run,
+      xi,
+      activeBoons: [...run.activeBoons, boon.id],
+      boostedIds: swappedIn ? [...run.boostedIds, swappedIn.id] : run.boostedIds,
+      offer: null,
+      phase: 'match',
+      history,
+    },
+    swappedIn,
+    swappedOut,
   };
 }
 

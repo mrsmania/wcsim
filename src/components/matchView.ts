@@ -1,4 +1,5 @@
 import type { MatchEvent } from '../domain/match';
+import type { KoDecided } from '../domain/knockout';
 
 /** The user-perspective score of a match card. */
 export interface MatchScore {
@@ -102,4 +103,28 @@ export function resultTag(score: MatchScore): MatchTag {
   if (score.user > score.opp) return { kind: 'w', label: 'Won' };
   if (score.user < score.opp) return { kind: 'l', label: 'Lost' };
   return { kind: 'd', label: 'Draw' };
+}
+
+/** The short end-of-match label fed to the match clock's `endLabel`, by how a
+ *  knockout tie was settled ('FT' / 'a.e.t.' / 'pens'). */
+export function koEndLabel(decided: KoDecided): string {
+  return decided === 'reg' ? 'FT' : decided === 'aet' ? 'a.e.t.' : 'pens';
+}
+
+/** The settled status line for a finished knockout tie ('Full time' / 'a.e.t.' /
+ *  'Penalties'), with `statusDim` true only for a plain full-time regulation win. */
+export function koFinishedStatus(decided: KoDecided): { status: string; statusDim: boolean } {
+  if (decided === 'aet') return { status: 'a.e.t.', statusDim: false };
+  if (decided === 'pens') return { status: 'Penalties', statusDim: false };
+  return { status: 'Full time', statusDim: true };
+}
+
+/** The win/loss result-tag label for a settled knockout tie, from the user's
+ *  perspective ('Won' / 'Won a.e.t.' / 'Won on penalties' / 'Lost' /
+ *  'Lost on penalties'). */
+export function koResultLabel(won: boolean, decided: KoDecided): string {
+  if (won) {
+    return decided === 'pens' ? 'Won on penalties' : decided === 'aet' ? 'Won a.e.t.' : 'Won';
+  }
+  return decided === 'pens' ? 'Lost on penalties' : 'Lost';
 }

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import type { Player } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES, STICKER_TRADE_COST, type StickerTier } from '../config';
@@ -12,11 +11,12 @@ import {
     tradeOptions,
     type AlbumState,
 } from '../domain/album';
-import StickerCard, { TIER_META } from './StickerCard';
+import StickerCard, { GOLD_ACCENT, GOLD_FOIL, GOLD_INK, TIER_META } from './StickerCard';
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
-import { SECONDARY_BTN } from './matchUi';
+import { StageCrumb, StageHeader } from './matchUi';
+import ConfirmAction from './ConfirmAction';
 
 interface Props {
     album: AlbumState;
@@ -27,14 +27,16 @@ interface Props {
     onClose: () => void;
 }
 
-const TIER_ORDER: StickerTier[] = ['monumental', 'iconic', 'legendary'];
+// The album's display order (Monumental first), derived from TIER_META so there is
+// one source of tier ordering.
+const TIER_ORDER = (Object.keys(TIER_META) as StickerTier[]).sort(
+    (a, b) => TIER_META[a].order - TIER_META[b].order,
+);
 
 export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClose }: Props) {
     const [trade, setTrade] = useState<{ tier: StickerTier; options: Player[] } | null>(null);
     // A collected sticker enlarged to full size in a lightbox (click to open).
     const [expanded, setExpanded] = useState<{ player: Player; tier: StickerTier } | null>(null);
-    // Inline confirm for the destructive album reset.
-    const [confirmReset, setConfirmReset] = useState(false);
 
     const stats = useMemo(() => albumStats(album, allPlayers), [album, allPlayers]);
     const dupes = totalDuplicates(album);
@@ -58,26 +60,11 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
 
     return (
         <div className="mx-auto max-w-[1000px]">
-            <button
-                onClick={onClose}
-                className="group mt-7 inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch"
-            >
-                <ArrowLeft
-                    size={13}
-                    strokeWidth={2.5}
-                    className="transition group-hover:-translate-x-0.5"
-                />
-                Back to game
-            </button>
-
-            <div className="mb-[18px] mt-1">
-                <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-                    Your collection
-                </div>
-                <h2 className="mt-0.5 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
-                    The Sticker Album
-                </h2>
-            </div>
+            <StageHeader
+                eyebrow="Your collection"
+                title="The Sticker Album"
+                crumb={<StageCrumb dir="back" label="Back to game" onClick={onClose} />}
+            />
 
             {/* Completion counter + duplicate pool */}
             <section className="grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard sm:grid-cols-[minmax(0,1fr)_210px]">
@@ -128,9 +115,9 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
                 <div
                     className="mt-6 rounded-lg border p-6 text-center shadow-hard"
                     style={{
-                        borderColor: '#c99a3a',
-                        background: 'linear-gradient(135deg,#f0cf8a,#c99a3a)',
-                        color: '#3a2a06',
+                        borderColor: GOLD_ACCENT,
+                        background: GOLD_FOIL,
+                        color: GOLD_INK,
                     }}
                 >
                     <div className="font-mono text-[11px] font-bold uppercase tracking-[0.22em]">
@@ -221,35 +208,14 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
             {/* Manual reset (destructive; inline confirm). Clears the collection +
                 trade stats from browser storage. Tucked at the foot, out of the way. */}
             <div className="mt-12 flex justify-center border-t border-line pt-6">
-                {confirmReset ? (
-                    <div className="flex flex-wrap items-center justify-center gap-2.5 text-center">
-                        <span className="text-xs font-semibold text-muted">
-                            Reset the whole album? This clears every sticker and can't be undone.
-                        </span>
-                        <button
-                            onClick={() => {
-                                onReset();
-                                setConfirmReset(false);
-                            }}
-                            className="rounded-[5px] border border-loss bg-loss px-3 py-2 font-display text-[12px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:opacity-90"
-                        >
-                            Yes, reset album
-                        </button>
-                        <button
-                            onClick={() => setConfirmReset(false)}
-                            className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                ) : (
-                    <button
-                        onClick={() => setConfirmReset(true)}
-                        className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-loss"
-                    >
-                        Reset album
-                    </button>
-                )}
+                <ConfirmAction
+                    prompt="Reset the whole album? This clears every sticker and can't be undone."
+                    confirmLabel="Yes, reset album"
+                    onConfirm={onReset}
+                    triggerLabel="Reset album"
+                    triggerClassName="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-loss"
+                    rowClassName="flex flex-wrap items-center justify-center gap-2.5 text-center"
+                />
             </div>
 
             {trade && (

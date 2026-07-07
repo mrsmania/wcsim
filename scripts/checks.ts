@@ -228,7 +228,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     let r = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
     let guard = 0;
     while (r.phase !== 'ended' && guard++ < 20) {
-      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id);
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
       else if (r.phase === 'match') r = playKnockoutRound(r);
       else break;
     }
@@ -243,7 +243,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
   let guard = 0;
   while (run.phase !== 'ended' && guard++ < 20) {
-    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id);
+    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
     else if (run.phase === 'match') run = playKnockoutRound(run);
     else break;
   }

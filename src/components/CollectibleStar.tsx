@@ -1,5 +1,5 @@
 import type { StickerTier } from '../config';
-import { TIER_META } from './StickerCard';
+import { GOLD_INK, TIER_META } from './StickerCard';
 
 /** A small tier-coloured star marking a collectible player. Shared by the drawn-squad
  *  list, the line-up sheet, and the squad browser so the marker is identical
@@ -10,7 +10,7 @@ export default function CollectibleStar({ tier }: { tier: StickerTier }) {
       className="grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full font-mono text-[9px] font-bold leading-none"
       style={{
         background: TIER_META[tier].accent,
-        color: tier === 'monumental' ? '#3a2a06' : '#fff',
+        color: tier === 'monumental' ? GOLD_INK : '#fff',
       }}
       title={`Collectible · ${TIER_META[tier].name}`}
     >

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { prefersReducedMotion } from '../hooks/motion';
 
 /** Festive palette (gold + the pitch greens + amber + white + a warm red). */
 const COLORS = ['#F5C542', '#15924c', '#0E5C34', '#E4922B', '#ffffff', '#C8453C'];
@@ -41,7 +42,7 @@ function drawPiece(ctx: CanvasRenderingContext2D, p: Piece) {
  */
 export function confettiBurst(originX: number, originY: number, count = 80) {
     if (typeof window === 'undefined') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (prefersReducedMotion()) return;
 
     const canvas = document.createElement('canvas');
     canvas.setAttribute('aria-hidden', 'true');
@@ -123,7 +124,7 @@ export default function Confetti() {
     const ref = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
-        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        if (prefersReducedMotion()) return;
         const canvas = ref.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');

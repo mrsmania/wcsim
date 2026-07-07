@@ -158,7 +158,7 @@ editing, they will drift as fixes land.
 - Verify: checks (shootout/bracket/run invariants) + build; one manual knockout
   tie in each mode.
 
-### CR-05 [ ] KoDecided display mappings re-derived at 7 sites (DRY, medium, S)
+### CR-05 [x] KoDecided display mappings re-derived at 7 sites (DRY, medium, S)
 
 - Location: canonical `maxMinute` in `src/components/matchUi.tsx:49`; copies at
   `KnockoutScreen.tsx:111-119, 190-198, 220-239`; `CupRunScreen.tsx:106,
@@ -198,7 +198,7 @@ editing, they will drift as fixes land.
   again on reload) and one as a cup win (picker then summary), in both the
   standard game and the Cup Run. The once-per-run guards are the risk here.
 
-### CR-07 [ ] PRIMARY_BTN defined 5x, one copy drifted (DRY, medium, S)
+### CR-07 [x] PRIMARY_BTN defined 5x, one copy drifted (DRY, medium, S)
 
 - Location: canonical `src/components/matchUi.tsx:27-28`; duplicates
   `CompletePanel.tsx:20-21` (local `CTA`), `SetupPanel.tsx:108` and `:156`
@@ -223,7 +223,7 @@ editing, they will drift as fixes land.
 
 ## Priority 2: consolidation
 
-### CR-08 [ ] RunBanner clones Banner (DRY, medium, M)
+### CR-08 [x] RunBanner clones Banner (DRY, medium, M)
 
 - Location: `src/components/matchUi.tsx:357-405` (Banner),
   `src/components/CupRunScreen.tsx:331-367` (RunBanner)
@@ -235,7 +235,7 @@ editing, they will drift as fixes land.
 - Verify: build; eyeball all banner states: quick-game champion / knocked out /
   group-eliminated, Cup Run group banner, KO win banner, ended win/loss.
 
-### CR-09 [ ] Inline destructive-confirm pattern 3x (DRY, medium, S)
+### CR-09 [x] Inline destructive-confirm pattern 3x (DRY, medium, S)
 
 - Location: `src/components/StartOverButton.tsx:11-38`,
   `CompletePanel.tsx:84-107`, `AlbumScreen.tsx:224-252`; the red confirm-button
@@ -247,7 +247,7 @@ editing, they will drift as fixes land.
   becomes a thin wrapper or disappears.
 - Verify: build; click all three confirms through both confirm and cancel paths.
 
-### CR-10 [ ] Segmented control re-implemented in CupRunScreen (DRY, medium, S)
+### CR-10 [x] Segmented control re-implemented in CupRunScreen (DRY, medium, S)
 
 - Location: `src/components/matchUi.tsx:120-158` (private SegControl, used by
   PlaybackControls with the same slow/normal/fast options at 189-193);
@@ -257,7 +257,7 @@ editing, they will drift as fixes land.
   (158-179) is a third, Link-based variant; adapt only if it stays clean.
 - Verify: build; switch speed mid-reveal in the Cup Run.
 
-### CR-11 [ ] Gold-foil / rarity colors hardcoded in 5 files (DRY, medium, S)
+### CR-11 [x] Gold-foil / rarity colors hardcoded in 5 files (DRY, medium, S)
 
 - Location: canonical `src/components/StickerCard.tsx:9-22` (TIER_META); raw
   hexes at `AlbumScreen.tsx:131-133`, `RunLadder.tsx:25` and `:138`,
@@ -271,7 +271,7 @@ editing, they will drift as fixes land.
 - Verify: build; glance at the album complete banner, a won ladder's cup node, a
   collectible star, and the boost cards.
 
-### CR-12 [ ] Back-link atom re-typed 4x (DRY, low, S)
+### CR-12 [x] Back-link atom re-typed 4x (DRY, low, S)
 
 - Location: canonical `src/components/matchUi.tsx:211-225` (StageCrumb);
   copies `AlbumScreen.tsx:61-71`, `CupRunScreen.tsx:640-646`,
@@ -282,7 +282,7 @@ editing, they will drift as fixes land.
   `to`), use it in the three places; render AlbumScreen's title via StageHeader.
 - Verify: build; check the three back affordances and the album header.
 
-### CR-13 [ ] NextGameButton + AUTO_PLAY_DELAY_MS duplicated (DRY, low, S)
+### CR-13 [x] NextGameButton + AUTO_PLAY_DELAY_MS duplicated (DRY, low, S)
 
 - Location: `TournamentScreen.tsx:53-54, 147-155`;
   `KnockoutScreen.tsx:50-51, 140-148` (identical constant + byte-identical JSX)
@@ -313,7 +313,7 @@ editing, they will drift as fixes land.
 - Verify: build + checks (offers distinct, opponents distinct, trade options
   uncollected).
 
-### CR-16 [ ] prefers-reduced-motion idiom written 8x (DRY, low, S)
+### CR-16 [x] prefers-reduced-motion idiom written 8x (DRY, low, S)
 
 - Location: `useFollowBottom.ts:74` (holds the MediaQueryList; leave it),
   `Confetti.tsx:44, 123`, `KnockoutScreen.tsx:94`, `GroupDrawReveal.tsx:32`,
@@ -409,7 +409,7 @@ editing, they will drift as fixes land.
   do this only when next touching these files.
 - Verify: build; corrupt a key in devtools and confirm graceful fallback.
 
-### CR-26 [ ] pickBoost/pickGroupBoost near-duplicates (DRY, medium, S)
+### CR-26 [x] pickBoost/pickGroupBoost near-duplicates (DRY, medium, S)
 
 - Location: `src/components/CupRunScreen.tsx:593-602, 606-615`; the roster
   in/out diff they recompute also exists in `src/domain/run.ts` (chooseBoon's

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
 import type { TeamStrength } from '../domain/draft';
 import { ChevronDown, Coins, Dices } from 'lucide-react';
-import { SECONDARY_BTN } from './matchUi';
+import { PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'weak', label: 'Weak', hint: 'rating < 75' },
@@ -12,6 +12,10 @@ const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
 ];
 
 const SEGLBL = 'mb-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted';
+
+/** The two build-your-XI primary buttons share this sizing/disabled layout on top of
+ *  the shared primary-button identity; they differ only in width (flex-1 vs w-full). */
+const BUILD_BTN = `items-center justify-center gap-2 px-4 py-[11px] text-[13px] ${PRIMARY_BTN_BASE} disabled:cursor-not-allowed disabled:opacity-50`;
 
 interface Props {
     names: FormationName[];
@@ -105,7 +109,7 @@ export default function SetupPanel({
                     <button
                         onClick={onStart}
                         disabled={!ready}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-4 py-[11px] font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                        className={`flex flex-1 ${BUILD_BTN}`}
                     >
                         {ready ? 'Roll a squad' : 'Loading…'}
                         {ready && <Dices size={16} strokeWidth={2.5} />}
@@ -153,7 +157,7 @@ export default function SetupPanel({
                     <button
                         onClick={onBudgetDraft}
                         disabled={!ready}
-                        className="mt-[9px] flex w-full items-center justify-center gap-2 rounded-[5px] border border-pitch-dark bg-pitch px-4 py-[11px] font-display text-[13px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                        className={`mt-[9px] flex w-full ${BUILD_BTN}`}
                     >
                         Buy with a budget
                         <Coins size={16} strokeWidth={2.5} />

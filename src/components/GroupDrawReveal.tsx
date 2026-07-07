@@ -4,6 +4,7 @@ import type { GroupTeam } from '../domain/tournament';
 import { ArrowRight } from 'lucide-react';
 import Flag from './Flag';
 import { PRIMARY_BTN, RatingChip } from './matchUi';
+import { prefersReducedMotion } from '../hooks/motion';
 
 /** How often (ms) the drawn flags reshuffle while the draw scrambles. */
 const SCRAMBLE_STEP_MS = 90;
@@ -29,7 +30,7 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
 
   useEffect(() => {
     // Reduced motion: skip the scramble and reveal the real opponents at once.
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    if (prefersReducedMotion()) {
       setRevealCodes(opponents.map((o) => o.code));
       setSettled(true);
       return;

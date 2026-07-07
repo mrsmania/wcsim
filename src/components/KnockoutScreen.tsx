@@ -13,19 +13,20 @@ import { KO_ROUNDS } from '../domain/knockout';
 import { USER_ID, type GroupState } from '../domain/tournament';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
-import { ArrowRight, Play } from 'lucide-react';
 import Bracket from './Bracket';
 import Confetti from './Confetti';
 import MatchdayCard from './MatchdayCard';
 import TournamentSummary from './TournamentSummary';
 import { useMatchClock, KO_END_HOLD_MS } from '../hooks/useMatchClock';
 import { useFollowBottom } from '../hooks/useFollowBottom';
-import { liveMatchView } from './matchView';
+import { scrollIntoViewRespectingMotion } from '../hooks/motion';
+import { koEndLabel, koFinishedStatus, koResultLabel, liveMatchView } from './matchView';
 import {
+    AUTO_PLAY_DELAY_MS,
     Banner,
     maxMinute,
+    NextGameButton,
     PlaybackControls,
-    PRIMARY_BTN,
     ResultTag,
     StageCrumb,
     StageHeader,
@@ -46,9 +47,6 @@ interface Props {
     onViewGroup: () => void;
     onReset: () => void;
 }
-
-/** Delay (ms) between an idle beat and auto-playing the next round. */
-const AUTO_PLAY_DELAY_MS = 700;
 
 /** The knockout page: the 16-team bracket tree, then the user's run played one
  *  round at a time with live goal feeds. Each round is only simulated when the
@@ -91,8 +89,7 @@ export default function KnockoutScreen({
         const id = requestAnimationFrame(() => {
             const el = lastMatchRef.current ?? bannerRef.current;
             if (!el) return;
-            const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-            el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+            scrollIntoViewRespectingMotion(el, 'start');
         });
         return () => cancelAnimationFrame(id);
     }, [over]);
@@ -109,13 +106,7 @@ export default function KnockoutScreen({
         active: isPlaying,
         speed,
         maxMinute: playRes ? maxMinute(playRes.decided) : 90,
-        endLabel: playRes
-            ? playRes.decided === 'reg'
-                ? 'FT'
-                : playRes.decided === 'aet'
-                  ? 'a.e.t.'
-                  : 'pens'
-            : 'FT',
+        endLabel: playRes ? koEndLabel(playRes.decided) : 'FT',
         penKicks: playRes?.decided === 'pens' ? playRes.pens?.kicks : undefined,
         endHoldMs: KO_END_HOLD_MS,
         onEnd: () => {
@@ -136,16 +127,6 @@ export default function KnockoutScreen({
     }, [auto, playing, b]);
 
     const showNextButton = !auto && !isPlaying && !!cur;
-
-    const nextGameButton = (
-        <div className="mt-[22px] flex justify-center">
-            <button onClick={startPlay} className={PRIMARY_BTN}>
-                <Play size={13} fill="currentColor" strokeWidth={0} />
-                Next game
-                <ArrowRight size={15} strokeWidth={2.5} />
-            </button>
-        </div>
-    );
 
     return (
         <div ref={rootRef}>
@@ -187,15 +168,9 @@ export default function KnockoutScreen({
                     const isFinal = r === KO_ROUNDS.length - 1;
                     const liveMax = decided ? maxMinute(decided) : 90;
 
-                    let finishedStatus = 'Full time';
-                    let finishedDim = true;
-                    if (g.result?.decided === 'aet') {
-                        finishedStatus = 'a.e.t.';
-                        finishedDim = false;
-                    } else if (g.result?.decided === 'pens') {
-                        finishedStatus = 'Penalties';
-                        finishedDim = false;
-                    }
+                    const finished = g.result
+                        ? koFinishedStatus(g.result.decided)
+                        : undefined;
 
                     const view = liveMatchView({
                         playing: isPlayingRound && !!roundRes,
@@ -208,8 +183,8 @@ export default function KnockoutScreen({
                             ? {
                                   userGoals: g.result.homeGoals,
                                   oppGoals: g.result.awayGoals,
-                                  status: finishedStatus,
-                                  statusDim: finishedDim,
+                                  status: finished!.status,
+                                  statusDim: finished!.statusDim,
                                   events: g.result.events,
                               }
                             : undefined,
@@ -219,21 +194,10 @@ export default function KnockoutScreen({
                     let tag: React.ReactNode = null;
                     if (isPlayingRound) tag = <ResultTag kind="next" label="Live now" />;
                     else if (g.result)
-                        tag = won ? (
+                        tag = (
                             <ResultTag
-                                kind="w"
-                                label={
-                                    g.result.decided === 'pens'
-                                        ? 'Won on penalties'
-                                        : g.result.decided === 'aet'
-                                          ? 'Won a.e.t.'
-                                          : 'Won'
-                                }
-                            />
-                        ) : (
-                            <ResultTag
-                                kind="l"
-                                label={g.result.decided === 'pens' ? 'Lost on penalties' : 'Lost'}
+                                kind={won ? 'w' : 'l'}
+                                label={koResultLabel(won, g.result.decided)}
                             />
                         );
                     else tag = <ResultTag kind="next" label="Up next" />;
@@ -268,7 +232,7 @@ export default function KnockoutScreen({
                                 penShown={penShownCount}
                                 showShootout={showShootout}
                             />
-                            {upNext && showNextButton && nextGameButton}
+                            {upNext && showNextButton && <NextGameButton onClick={startPlay} />}
                         </div>
                     );
                 })}

@@ -21,6 +21,13 @@ export const TIER_META: Record<
   legendary: { name: 'Legendary', accent: '#15924c', strip: '#15924c', stripText: '#ffffff', order: 2 },
 };
 
+/** The gold-foil ramp of the top tier (Monumental), reused wherever a "best/complete"
+ *  gold treatment is needed (album-complete banner, the won ladder cup node). Single
+ *  source of the three values so they never drift apart. */
+export const GOLD_ACCENT = TIER_META.monumental.accent;
+export const GOLD_FOIL = TIER_META.monumental.strip;
+export const GOLD_INK = TIER_META.monumental.stripText;
+
 // Real images are gated by FEATURES.stickerImages (drop <player.id>.png into
 // public/stickers/); when on, StickerCard renders the image over the face with a
 // fallback to text+flag. Base-path aware so it resolves under '/' in dev and
