@@ -1,9 +1,9 @@
 import { WORLD_CUP_YEARS } from '../data/squads';
+import type { Difficulty } from '../domain/difficulty';
 
 /** Light (default) or dark theme. */
 export type Theme = 'light' | 'dark';
-/** How hard it is to win a tie (lower = the user wins direct duels less often). */
-export type Difficulty = 'casual' | 'normal' | 'hard';
+export type { Difficulty };
 
 /** User preferences. Persisted under their own key, separate from the game / album /
  *  career / run, so resetting any of those never touches these. */

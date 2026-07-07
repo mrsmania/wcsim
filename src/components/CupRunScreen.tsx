@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Player } from '../data/types';
 import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
+import { userRatingDelta, type Difficulty } from '../domain/difficulty';
 import { KO_ROUNDS } from '../domain/knockout';
 import type { MatchSpeed } from '../domain/clock';
 import type { GroupTeam } from '../domain/tournament';
@@ -58,6 +59,7 @@ export default function CupRunScreen({
   onReDraft,
   speed,
   onSetSpeed,
+  difficulty,
   onRunEnd,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
@@ -67,10 +69,13 @@ export default function CupRunScreen({
   /** Match playback speed (shared with the main game, so the preference persists). */
   speed: MatchSpeed;
   onSetSpeed: (s: MatchSpeed) => void;
+  /** Difficulty handicap applied to the user's matches + the odds readout. */
+  difficulty: Difficulty;
   /** Bank the finished run's collectibles to the sticker album (App owns the album).
    *  Omitted when the sticker feature is off. Called once per run at its end. */
   onRunEnd?: (xi: Player[], wonCup: boolean) => void;
 }) {
+  const diffDelta = userRatingDelta(difficulty);
   const [career, setCareer] = useState<CareerState>(loadCareer);
   const [run, setRun] = useState<RunState | null>(loadRun);
   const [reward, setReward] = useState<Reward | null>(null);
@@ -130,8 +135,8 @@ export default function CupRunScreen({
 
   const chem = useMemo(() => (run ? chemistryOf(run.xi) : 0), [run?.xi]);
   const odds = useMemo(
-    () => (run ? simulateTitleOdds(run.xi, 600, chem).champion : 0),
-    [run?.xi, chem],
+    () => (run ? simulateTitleOdds(run.xi, 600, chem, diffDelta).champion : 0),
+    [run?.xi, chem, diffDelta],
   );
   const str = useMemo(
     () => (run ? xiStrength(run.xi) : { attack: 0, defense: 0, overall: 0 }),
@@ -174,12 +179,12 @@ export default function CupRunScreen({
   // Kick off the live reveal of the group stage / the pending knockout tie.
   const playGroup = () => {
     if (!run) return;
-    const p = prepareGroupStage(run);
+    const p = prepareGroupStage(run, diffDelta);
     if (p) setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
   };
   const playKo = () => {
     if (!run) return;
-    const p = prepareKnockoutRound(run);
+    const p = prepareKnockoutRound(run, diffDelta);
     if (p) setReveal({ kind: 'ko', next: p.next, match: p.match, opp: p.opp, roundName: p.roundName });
   };
 

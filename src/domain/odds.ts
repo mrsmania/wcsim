@@ -30,8 +30,8 @@ export interface TitleOdds {
 /** Simulate one full tournament (group + knockout) for `players` and report how
  *  far the user got. Mirrors the real game's flow: a random group, top-2 advance,
  *  then an elo-weighted 16-team bracket. */
-function simulateFinish(players: Player[], chemistryBonus: number): Finish {
-  const user = userGroupTeam(players, chemistryBonus);
+function simulateFinish(players: Player[], chemistryBonus: number, atkDefDelta: number): Finish {
+  const user = userGroupTeam(players, chemistryBonus, atkDefDelta);
   let group = createGroup(user, pickOpponents(3));
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
@@ -63,6 +63,7 @@ export function simulateTitleOdds(
   players: Player[],
   sims = 1500,
   chemistryBonus = 0,
+  atkDefDelta = 0,
 ): TitleOdds {
   const counts: Record<Finish, number> = {
     group: 0,
@@ -72,7 +73,7 @@ export function simulateTitleOdds(
     final: 0,
     champion: 0,
   };
-  for (let i = 0; i < sims; i++) counts[simulateFinish(players, chemistryBonus)]++;
+  for (let i = 0; i < sims; i++) counts[simulateFinish(players, chemistryBonus, atkDefDelta)]++;
 
   const f = (n: number) => n / sims;
   const distribution: Record<Finish, number> = {

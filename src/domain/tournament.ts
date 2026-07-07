@@ -50,13 +50,16 @@ export interface GroupState {
 
 /** Build the user's match team. `chemistryBonus` (0 when the feature is off) lifts
  *  attack, defense, and overall equally, so a cohesive draft both scores a little
- *  more and concedes a little less. It must reach attack/defense: the match sim
- *  drives goals from those (not overall); overall carries it for the ratings strip. */
-export function userGroupTeam(players: Player[], chemistryBonus = 0): GroupTeam {
+ *  more and concedes a little less. `atkDefDelta` is the difficulty handicap (see
+ *  domain/difficulty.ts): it shifts attack/defense only - the match sim drives goals
+ *  from those, so it moves the user's win probability - while overall (the displayed
+ *  rating) is left untouched. Both must reach attack/defense; overall carries the
+ *  chemistry bonus for the ratings strip. */
+export function userGroupTeam(players: Player[], chemistryBonus = 0, atkDefDelta = 0): GroupTeam {
   const base = xiStrength(players);
   const strength: Strength = {
-    attack: base.attack + chemistryBonus,
-    defense: base.defense + chemistryBonus,
+    attack: base.attack + chemistryBonus + atkDefDelta,
+    defense: base.defense + chemistryBonus + atkDefDelta,
     overall: base.overall + chemistryBonus,
   };
   return {

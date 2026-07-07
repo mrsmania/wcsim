@@ -29,6 +29,7 @@ import {
 import { teamChemistry } from './domain/chemistry';
 import { KO_ROUNDS } from './domain/knockout';
 import { buildBracket, type BracketState } from './domain/bracket';
+import { userRatingDelta, type Difficulty } from './domain/difficulty';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { FEATURES } from './config';
@@ -107,6 +108,13 @@ export default function App() {
     const stickers = useStickerAlbum(state, dispatch);
     const settings = useSettings();
     const [settingsOpen, setSettingsOpen] = useState(false);
+    // Changing difficulty resets the sticker album (it is scoped to the difficulty it
+    // was earned under; the same will hold for future challenge modes). The modal
+    // confirms first when the album is non-empty.
+    const changeDifficulty = (d: Difficulty) => {
+        settings.setDifficulty(d);
+        if (STICKERS) stickers.onResetAlbum();
+    };
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -413,10 +421,13 @@ export default function App() {
         const bonus = FEATURES.chemistry ? teamChemistry(formation, filled).bonus : 0;
         dispatch({
             type: 'START_GROUP',
-            group: createGroup(userGroupTeam(players, bonus), pickOpponents(3)),
+            group: createGroup(
+                userGroupTeam(players, bonus, userRatingDelta(settings.settings.difficulty)),
+                pickOpponents(3),
+            ),
         });
         navigate('/group');
-    }, [group, formation, filled, navigate]);
+    }, [group, formation, filled, navigate, settings.settings.difficulty]);
 
     const handleEnterKnockout = useCallback(() => {
         // Already built (navigated Back to the group): just return to the bracket.
@@ -589,6 +600,7 @@ export default function App() {
                         onReDraft={handleReset}
                         speed={speed}
                         onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                        difficulty={settings.settings.difficulty}
                         onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                     />
                 ) : isAlbum ? (
@@ -846,6 +858,8 @@ export default function App() {
                     onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
                     auto={auto}
                     onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
+                    onChangeDifficulty={changeDifficulty}
+                    albumCount={STICKERS ? stickers.album.collected.length : 0}
                 />
             )}
         </div>

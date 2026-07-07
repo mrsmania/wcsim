@@ -182,9 +182,9 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
 /** Simulate the group stage up front, returning the committed next state plus the
  *  user's three matches (for live reveal). Qualify -> draw the R16 opponent + offer
  *  a boon; otherwise the run ends. */
-export function prepareGroupStage(run: RunState): PreparedGroup | null {
+export function prepareGroupStage(run: RunState, atkDefDelta = 0): PreparedGroup | null {
   if (run.phase !== 'group') return null;
-  const user = userGroupTeam(run.xi, chemistryOf(run.xi));
+  const user = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta);
   const opponents = pickOpponents(3);
   let group = createGroup(user, opponents);
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
@@ -312,12 +312,12 @@ function simulateKoTie(user: GroupTeam, opp: GroupTeam): KoMatch {
 /** Prepare the pending knockout tie: simulate it up front (keeping the events for a
  *  live reveal) and compute the committed next state (win -> next round + boon, or
  *  the trophy; loss -> ended). */
-export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
+export function prepareKnockoutRound(run: RunState, atkDefDelta = 0): PreparedKnockout | null {
   if (run.phase !== 'match' || !run.nextOpponent) return null;
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
-  const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi));
+  const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta);
   const match = simulateKoTie(userTeam, opp);
   const record: RoundRecord = {
     stage: round,
