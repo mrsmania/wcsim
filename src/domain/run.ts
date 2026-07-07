@@ -51,7 +51,8 @@ export interface RoundRecord {
   /** Knockout: the settled tie's goal events + shootout, for a full review. */
   events?: MatchEvent[];
   pens?: ShootoutResult;
-  /** Knockout: the boost taken going into this round (id, resolve via boonById). */
+  /** The boost picked right after this round's games (id, resolve via boonById);
+   *  unset on the final round and on a group-stage exit (no boost is chosen there). */
   boostId?: string;
   /** Group: finishing position + table size. */
   groupPos?: number;
@@ -295,6 +296,11 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
   const inP = xi.find((p) => !before.some((b) => b.id === p.id));
   const outP = before.find((p) => !xi.some((a) => a.id === p.id));
   const note = inP && outP ? `${inP.name} in for ${outP.name}` : boon.description;
+  // The boost is chosen right after a round's games, so record it on that round (the
+  // most recent history entry) - e.g. the after-group boost lands on the group step.
+  const last = run.history.length - 1;
+  const history =
+    last >= 0 ? run.history.map((r, i) => (i === last ? { ...r, boostId: boon.id } : r)) : run.history;
   return {
     ...run,
     xi,
@@ -302,6 +308,7 @@ export function chooseBoon(run: RunState, boonId: string): RunState {
     boostedIds: inP ? [...run.boostedIds, inP.id] : run.boostedIds,
     offer: null,
     phase: 'match',
+    history,
     log: [...run.log, `Boost: ${boon.name} (${note})`],
   };
 }
@@ -351,9 +358,8 @@ export function prepareKnockoutRound(run: RunState): PreparedKnockout | null {
     decided: match.decided,
     events: match.events,
     pens: match.pens,
-    // The boost picked between the previous round and this one is the most recent
-    // active boon (exactly one is chosen before each knockout round).
-    boostId: run.activeBoons[run.activeBoons.length - 1],
+    // boostId is left unset here: the boost is picked *after* this round's game, so
+    // chooseBoon stamps it onto this record when the next boost is chosen.
   };
   const history = [...run.history, record];
 

@@ -392,22 +392,30 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   that round (tab-like): the current step is the live/interactive view, a past step opens a
   read-only `RoundReview`. `CupRunScreen` owns `reviewIndex` (null = live) + `currentRoundIndex`;
   it maps a click to review-or-live and snaps back to live when the run advances (effect on
-  `currentRoundIndex`); the ladder is `locked` while a match is playing. A KO review re-renders the
+  `currentRoundIndex`); the ladder is `locked` while a match is playing. Both reviews show the
+  **boost taken after that round** (`RoundRecord.boostId`, see below): a KO review re-renders the
   finished match card (`FinishedKoCard`, from the record's stored `events`/`pens`/ratings) + the
-  boost taken (`RoundRecord.boostId`); the group review shows the finishing position + its three
-  matchday scorelines (`RoundRecord.groupResults`) - all from `RunState.history`. The career hub
+  boost; the group review shows the finishing position + its three matchday scorelines
+  (`RoundRecord.groupResults`) + the boost - all from `RunState.history`. The career hub
   collapses to a slim strip with a chevron during a run (shown in full
   only between runs). The XI panel lists **active boosts** as chips and tags players a roster boost
-  brought in (`RunState.boostedIds`, an amber "Boost" mark). After the three group matches reveal,
-  the **final group standings** show (the reused `StandingsTable`, from the `group`
-  `prepareGroupStage` now returns) with a Continue button before the boost pick.
-- **Boost pick flow.** A finished knockout tie stays on screen (as `FinishedKoCard`) through the
-  following boost pick, with a green **`RunBanner`** ("Won 2-1 · Through to the Quarter-final")
-  between it and the boost picker, and the boost panel is auto-scrolled into view (`boostRef` +
-  effect on `phase === 'boon'`). Picking a boost fires a **toast** of what it did (a roster swap
-  names the players in/out, e.g. Poach; otherwise the boost's description), so the run log (now a
-  collapsible feed) isn't needed. The ended screen uses the same `RunBanner` (a compact take on the
-  quick game's `Banner`): green for the cup win, flat white for a knockout loss / group exit.
+  brought in (`RunState.boostedIds`, an amber "Boost" mark).
+- **Boost pick flow.** A boost is picked right after each round's games (except the final /
+  a group exit), so the shared `BoostOffer` (the 3 rarity-topped cards + a "Next: flag name
+  **year** in round" line) shows in two places: on the **group-results screen** (the first
+  boost, before the Round of 16) and, for later rounds, in the `boon` phase after a knockout
+  tie. `chooseBoon` stamps the chosen boost onto the **most recent history record** (the round
+  just played), so `RoundRecord.boostId` reads as "the boost taken after this round" - the group
+  record carries the first boost; the final round carries none. The group-results screen shows a
+  green/white **`RunBanner`** ("Through to the knockouts" / "Knocked out") + the reused
+  `StandingsTable` (from the `group` `prepareGroupStage` returns) + the boost picker (advanced) or
+  a Continue button (group exit). A finished knockout tie stays on screen (as `FinishedKoCard`)
+  through the following boost pick, with a green `RunBanner` ("Won 2-1 · Through to the
+  Quarter-final") between it and the picker, auto-scrolled into view (`boostRef` + effect on
+  `phase === 'boon'`). Picking a boost fires a **toast** of what it did (a roster swap names the
+  players in/out, e.g. Poach; otherwise the boost's description), so the run log (a collapsible
+  feed) isn't needed. The ended screen uses the same `RunBanner`: green for the cup win, flat
+  white for a knockout loss / group exit.
 - **Persistence** (`state/runStorage.ts` key `wcsim_run_v1`): the in-progress run is mirrored to
   its own key, so a refresh mid-run resumes it (the transient live-reveal is not persisted, so a
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built

@@ -253,11 +253,24 @@ function RoundReview({ record, onBack }: { record: RoundRecord; onBack: () => vo
     </button>
   );
 
+  const boost = record.boostId ? boonById(record.boostId) : undefined;
+  const boostLine = boost && (
+    <div className="mt-3 flex items-start gap-2 text-[12.5px]">
+      <span
+        className="mt-[3px] h-2 w-2 shrink-0 rounded-full"
+        style={{ background: RARITY_COLOR[boost.rarity] }}
+      />
+      <span className="text-muted">
+        Boost taken: <b className="text-ink">{boost.name}</b> &middot; {boost.description}
+      </span>
+    </div>
+  );
+
   if (record.stage === 'group') {
     return (
       <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
         <div className="mb-3 text-[14px] font-semibold">
-          Group stage — finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
+          Group stage, finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
           <span className={record.won ? 'text-pitch' : 'text-loss'}>
             {record.won ? 'through to the knockouts' : 'eliminated'}
           </span>
@@ -282,12 +295,12 @@ function RoundReview({ record, onBack }: { record: RoundRecord; onBack: () => vo
             })}
           </div>
         )}
+        {boostLine}
         {backBtn}
       </div>
     );
   }
 
-  const boost = record.boostId ? boonById(record.boostId) : undefined;
   return (
     <div>
       <FinishedKoCard
@@ -305,19 +318,7 @@ function RoundReview({ record, onBack }: { record: RoundRecord; onBack: () => vo
         userWon={record.won}
       />
       <div className="mt-4 rounded-md border border-line bg-panel p-4 shadow-hard">
-        {boost ? (
-          <div className="flex items-start gap-2 text-[12.5px]">
-            <span
-              className="mt-[3px] h-2 w-2 shrink-0 rounded-full"
-              style={{ background: RARITY_COLOR[boost.rarity] }}
-            />
-            <span className="text-muted">
-              Boost taken: <b className="text-ink">{boost.name}</b> — {boost.description}
-            </span>
-          </div>
-        ) : (
-          <div className="text-[12.5px] text-muted">No boost this round.</div>
-        )}
+        {boost ? boostLine : <div className="text-[12.5px] text-muted">No boost this round.</div>}
         {backBtn}
       </div>
     </div>
@@ -370,6 +371,57 @@ function koWinHeading(m: KoMatch): string {
   if (m.decided === 'pens') return 'Won on penalties';
   if (m.decided === 'aet') return `Won ${m.userGoals}-${m.oppGoals} (a.e.t.)`;
   return `Won ${m.userGoals}-${m.oppGoals}`;
+}
+
+/** The three-boost picker (rarity-topped cards) plus the "Next: opponent" line. Shared
+ *  by the after-group screen (first boost) and the between-knockout-rounds boost phase.
+ *  The next opponent shows flag + name + year so the year isn't lost. */
+function BoostOffer({
+  offer,
+  nextOpponent,
+  roundName,
+  onPick,
+}: {
+  offer: Boon[];
+  nextOpponent: GroupTeam | null;
+  roundName: string;
+  onPick: (b: Boon) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          Pick a boost
+        </span>
+        {nextOpponent && (
+          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">
+            Next: <Flag code={nextOpponent.code} className="h-3 w-[18px]" />
+            <b className="text-ink">{nextOpponent.name}</b>
+            {nextOpponent.year != null && <span>{nextOpponent.year}</span>} in {roundName}
+          </span>
+        )}
+      </div>
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        {offer.map((b) => (
+          <button
+            key={b.id}
+            onClick={() => onPick(b)}
+            className="flex flex-col gap-1.5 rounded-md border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
+            style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
+          >
+            <span
+              className="font-mono text-[9px] font-bold uppercase tracking-[0.12em]"
+              style={{ color: RARITY_COLOR[b.rarity] }}
+            >
+              {b.rarity}
+            </span>
+            <span className="font-display text-[14px] font-extrabold leading-tight">{b.name}</span>
+            <span className="text-[11.5px] leading-snug text-muted">{b.description}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
@@ -528,10 +580,24 @@ export default function CupRunScreen({
       setReveal(null);
     }
   };
-  // Commit the group after the standings overview.
+  // Commit the group after the standings overview (used on a group-stage exit, where
+  // there is no boost to pick).
   const continueFromGroup = () => {
     if (reveal?.kind !== 'group') return;
     advance(reveal.next);
+    setReveal(null);
+  };
+
+  // The first boost is picked right on the group-results screen (before entering the
+  // knockouts): apply it, toast what it did, then commit straight into the Round of 16.
+  const pickGroupBoost = (b: Boon) => {
+    if (reveal?.kind !== 'group') return;
+    const before = reveal.next.xi;
+    const next = chooseBoon(reveal.next, b.id);
+    const inP = next.xi.find((p) => !before.some((x) => x.id === p.id));
+    const outP = before.find((p) => !next.xi.some((x) => x.id === p.id));
+    showToast(inP && outP ? `${b.name}: ${inP.name} in for ${outP.name}` : `${b.name}: ${b.description}`);
+    advance(next);
     setReveal(null);
   };
 
@@ -837,23 +903,46 @@ export default function CupRunScreen({
                           );
                         return <GroupResultCard key={i} m={m} i={i} userRating={userRating} />;
                       })}
-                      {reveal.done && (
-                        <>
-                          <div className="mt-6 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                            Final group table
-                          </div>
-                          <StandingsTable
-                            group={reveal.group}
-                            groupFinished
-                            advanced={reveal.next.phase !== 'ended'}
-                          />
-                          <div className="mt-4 flex justify-center">
-                            <button onClick={continueFromGroup} className={PRIMARY_BTN}>
-                              {reveal.next.phase === 'ended' ? 'Continue' : 'Enter the knockouts'}
-                            </button>
-                          </div>
-                        </>
-                      )}
+                      {reveal.done && (() => {
+                        const advanced = reveal.next.phase !== 'ended';
+                        const gr = reveal.next.history.find((h) => h.stage === 'group');
+                        return (
+                          <>
+                            <div className="mt-6">
+                              <RunBanner
+                                tone={advanced ? 'win' : 'loss'}
+                                eyebrow={
+                                  gr
+                                    ? `Group stage · finished ${ordinal(gr.groupPos ?? 0)} of ${gr.groupSize}`
+                                    : 'Group stage'
+                                }
+                                heading={advanced ? 'Through to the knockouts' : 'Knocked out'}
+                                body={advanced ? 'Pick your first boost, then into the Round of 16.' : undefined}
+                              />
+                            </div>
+                            <div className="mt-4 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                              Final group table
+                            </div>
+                            <StandingsTable group={reveal.group} groupFinished advanced={advanced} />
+                            {advanced && reveal.next.offer ? (
+                              <div className="mt-4 rounded-md border border-line bg-panel p-5 shadow-hard">
+                                <BoostOffer
+                                  offer={reveal.next.offer}
+                                  nextOpponent={reveal.next.nextOpponent}
+                                  roundName={KO_ROUNDS[0]}
+                                  onPick={pickGroupBoost}
+                                />
+                              </div>
+                            ) : (
+                              <div className="mt-4 flex justify-center">
+                                <button onClick={continueFromGroup} className={PRIMARY_BTN}>
+                                  Continue
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </>
                   ) : (
                     <LiveCupMatch
@@ -928,40 +1017,12 @@ export default function CupRunScreen({
                   )}
 
                   {run.phase === 'boon' && run.offer && (
-                    <div>
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                          Pick a boost
-                        </span>
-                        {run.nextOpponent && (
-                          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">
-                            Next: <Flag code={run.nextOpponent.code} className="h-3 w-[18px]" />
-                            <b className="text-ink">{run.nextOpponent.name}</b> in {KO_ROUNDS[run.koRound]}
-                          </span>
-                        )}
-                      </div>
-                      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                        {run.offer.map((b) => (
-                          <button
-                            key={b.id}
-                            onClick={() => pickBoost(b)}
-                            className="flex flex-col gap-1.5 rounded-md border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
-                            style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
-                          >
-                            <span
-                              className="font-mono text-[9px] font-bold uppercase tracking-[0.12em]"
-                              style={{ color: RARITY_COLOR[b.rarity] }}
-                            >
-                              {b.rarity}
-                            </span>
-                            <span className="font-display text-[14px] font-extrabold leading-tight">
-                              {b.name}
-                            </span>
-                            <span className="text-[11.5px] leading-snug text-muted">{b.description}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <BoostOffer
+                      offer={run.offer}
+                      nextOpponent={run.nextOpponent}
+                      roundName={KO_ROUNDS[run.koRound]}
+                      onPick={pickBoost}
+                    />
                   )}
 
                   {run.phase === 'match' && run.nextOpponent && (
