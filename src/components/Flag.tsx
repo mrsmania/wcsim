@@ -1,8 +1,10 @@
 import AO from 'country-flag-icons/react/3x2/AO';
 import AR from 'country-flag-icons/react/3x2/AR';
+import AT from 'country-flag-icons/react/3x2/AT';
 import AU from 'country-flag-icons/react/3x2/AU';
 import BA from 'country-flag-icons/react/3x2/BA';
 import BE from 'country-flag-icons/react/3x2/BE';
+import BG from 'country-flag-icons/react/3x2/BG';
 import BR from 'country-flag-icons/react/3x2/BR';
 import CA from 'country-flag-icons/react/3x2/CA';
 import CH from 'country-flag-icons/react/3x2/CH';
@@ -20,6 +22,7 @@ import EG from 'country-flag-icons/react/3x2/EG';
 import ES from 'country-flag-icons/react/3x2/ES';
 import FR from 'country-flag-icons/react/3x2/FR';
 import GBENG from 'country-flag-icons/react/3x2/GB-ENG';
+import GBSCT from 'country-flag-icons/react/3x2/GB-SCT';
 import GBWLS from 'country-flag-icons/react/3x2/GB-WLS';
 import GH from 'country-flag-icons/react/3x2/GH';
 import GR from 'country-flag-icons/react/3x2/GR';
@@ -28,6 +31,7 @@ import HR from 'country-flag-icons/react/3x2/HR';
 import IR from 'country-flag-icons/react/3x2/IR';
 import IS from 'country-flag-icons/react/3x2/IS';
 import IT from 'country-flag-icons/react/3x2/IT';
+import JM from 'country-flag-icons/react/3x2/JM';
 import JP from 'country-flag-icons/react/3x2/JP';
 import KP from 'country-flag-icons/react/3x2/KP';
 import KR from 'country-flag-icons/react/3x2/KR';
@@ -35,6 +39,7 @@ import MA from 'country-flag-icons/react/3x2/MA';
 import MX from 'country-flag-icons/react/3x2/MX';
 import NG from 'country-flag-icons/react/3x2/NG';
 import NL from 'country-flag-icons/react/3x2/NL';
+import NO from 'country-flag-icons/react/3x2/NO';
 import NZ from 'country-flag-icons/react/3x2/NZ';
 import PA from 'country-flag-icons/react/3x2/PA';
 import PE from 'country-flag-icons/react/3x2/PE';
@@ -42,6 +47,7 @@ import PL from 'country-flag-icons/react/3x2/PL';
 import PT from 'country-flag-icons/react/3x2/PT';
 import PY from 'country-flag-icons/react/3x2/PY';
 import QA from 'country-flag-icons/react/3x2/QA';
+import RO from 'country-flag-icons/react/3x2/RO';
 import RS from 'country-flag-icons/react/3x2/RS';
 import RU from 'country-flag-icons/react/3x2/RU';
 import SA from 'country-flag-icons/react/3x2/SA';
@@ -67,6 +73,9 @@ const BY_FIFA: Record<string, typeof BR> = {
   CHI: CL, GRE: GR, CIV: CI, HON: HN, BIH: BA, ALG: DZ,
   PAR: PY, TRI: TT, ANG: AO, CZE: CZ, TOG: TG, UKR: UA, RSA: ZA,
   SVN: SI, NZL: NZ, SVK: SK, PRK: KP, SCG: RS,
+  // 1998 nations. YUG (FR Yugoslavia) has no flag in country-flag-icons; use the
+  // Serbia flag as the closest real successor, matching how SCG is handled.
+  SCO: GBSCT, NOR: NO, AUT: AT, BUL: BG, ROU: RO, JAM: JM, YUG: RS,
 };
 
 interface Props {
