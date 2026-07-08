@@ -1,7 +1,8 @@
 # Career Depth - Implementation Spec (Economy 2.0)
 
 **Status:** In progress. **A shipped** (boon-pool unlocks + rarity-weighted offers).
-**B shipped** (tiered, level-gated perks + the CareerState v1->v2 migration). **C next.**
+**B shipped** (tiered, level-gated perks + the CareerState v1->v2 migration). **C next**,
+then **G** (Transfer Budget progression, accepted - see 6.5).
 Sits on top of `docs/roguelike-career-design.md` (the high-level vision). This document is
 the concrete, code-level plan; it supersedes that doc's section 6 where they disagree.
 **Scope:** clusters **A** (boon-pool unlocks + rarity-weighted offers), **B** (tiered,
@@ -355,6 +356,75 @@ defaulting to the highest selectable, showing the handicap + reward-multiplier p
 
 ---
 
+## 6.5 Cluster G - Transfer Budget progression (accepted; build after C)
+
+Tie the budget-draft ("Transfer Market") budget to career progression: start smaller and
+earn your way up to a stronger wallet. Decisions taken: budget ramps **$75 -> $130**, and
+it applies to **all budget builds while career mode is on** (with `careerMode` off it stays
+the fixed `BUDGET_DRAFT = 110`, so the plain game is unchanged). Reuses the cluster-B
+tiered-perk machinery.
+
+### G.1 Why it fits
+
+`BUDGET_DRAFT` maps tightly to team strength via `pricing.ts` (convex: ~$99 all-82, $110
+all-83, $121 all-84), so the budget is a clean progression dial. The random **roll** draft
+is untouched, so a new player is never locked out of stars entirely - only the deliberate
+buy-a-team path scales with the career.
+
+### G.2 Model
+
+A new perk track plus a pure tier -> dollars map (kept out of `PerkTier`, whose other
+tracks derive their effect from the tier index, not a payload):
+
+```ts
+// domain/career.ts - a fourth PERKS track (purchase + level gate only)
+{ id: 'transfer-budget', name: 'Transfer Budget', tiers: [
+  { level: 1, description: '$90 transfer budget.',  cost: 30,  levelReq: 2 },
+  { level: 2, description: '$105 transfer budget.', cost: 60,  levelReq: 5 },
+  { level: 3, description: '$120 transfer budget.', cost: 110, levelReq: 9 },
+  { level: 4, description: '$130 transfer budget.', cost: 180, levelReq: 14 },
+]}
+
+// domain/pricing.ts (or a small budget module) - tier -> dollars, base at index 0
+export const BUDGET_BY_TIER = [75, 90, 105, 120, 130] as const; // tunable; hits $75 -> $130
+
+/** The budget for a build: the career-scaled value when career mode is on, else the
+ *  fixed baseline. Pure; `career` is null when career mode is off / not loaded. */
+export function effectiveBudget(career: CareerState | null): number {
+  if (!FEATURES.careerMode || !career) return BUDGET_DRAFT;
+  const tier = Math.min(career.perkLevels['transfer-budget'] ?? 0, BUDGET_BY_TIER.length - 1);
+  return BUDGET_BY_TIER[tier];
+}
+```
+
+Adds ~380 Prestige of sink (30+60+110+180) and, at max, a real veteran buff ($130 vs the
+current $110).
+
+### G.3 Integration points
+
+- **`config.ts`:** `BUDGET_DRAFT` stays as the flag-off / baseline budget (its comment
+  already documents the strength mapping).
+- **`App.tsx`:** the budget draft lives here, but career state currently lives inside
+  `CupRunScreen`. Simplest: `App` reads `loadCareer()` (read-only, like it already reads
+  `loadAlbum`) to compute `effectiveBudget(...)` and passes it to `BudgetMarket` / the
+  `START_BUDGET` / autofill path in place of the `BUDGET_DRAFT` constant. If staleness
+  within a session becomes an issue (buy a budget perk in the hub, then build), lift the
+  career into `App` and prop-drill it into `CupRunScreen` instead.
+- **`state/gameReducer.ts`:** anywhere the budget build reads `BUDGET_DRAFT` (e.g.
+  `START_BUDGET`, `BUY_PLAYER` affordability, autofill) takes the effective budget as
+  input rather than importing the constant, so the reducer stays pure.
+- **UI:** `BudgetMarket` already shows the budget bar; it just reflects the passed-in
+  value. Show the current tier + next upgrade in the hub's perk shop like the other tracks.
+
+### G.4 Checks
+
+- `effectiveBudget` returns `BUDGET_DRAFT` when `careerMode` is off and the tier value when
+  on; monotonic non-decreasing in tier; clamps above the max tier.
+- `autoFillBudget` still returns a valid, within-budget XI at the smallest ($75) budget
+  (reuse the existing budget-autofill check at the new floor).
+
+---
+
 ## 7. UI changes
 
 - **CareerHub perk shop (`cupRun/CareerHub.tsx`):** render each perk as a track. Show
@@ -404,13 +474,14 @@ characterization harness:
 - **Guardrail:** Deep Squad + Scout stacking must not make Base trivial; that is what the
   Ascension ladder is for (climbers re-introduce the challenge). Keep `ELO_MAX` clamps.
 
-## 10. Build order within A/B/C
+## 10. Build order
 
-1. **A1 - rarity-weighted `offerBoons`** (tiny, immediate feel win; no schema change if
-   you keep the whole pool available at first).
-2. **A2 - boon unlocks** (schema v2 `unlockedBoons` + migration + library UI + starter tags).
-3. **B - tiered perks** (schema `perkLevels` + `buyPerkTier` + hub UI + `beginRun` reads).
+1. **A1 - rarity-weighted `offerBoons`** (done).
+2. **A2 - boon unlocks** (done: `unlockedBoons` + library UI + starter tags).
+3. **B - tiered perks** (done: `perkLevels` + `buyPerkTier` + v1->v2 migration + hub UI).
 4. **C - Ascension** (schema `ascension` + `ASCENSIONS` + threading + selector + rewards).
+5. **G - Transfer Budget progression** (see 6.5: `transfer-budget` track + `effectiveBudget`
+   threaded through the budget draft). After C, since it reuses the v2 perk schema.
 
 Each slice is independently shippable behind `FEATURES.careerMode` and validated by the
 checks harness before the next.
