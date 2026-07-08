@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home Launcher (marketing) - World Cup Simulator (mock)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+</style>
+<style>
+  /* HOME LAUNCHER MOCK v2 - marketing lean (standalone comp; also the Artifact source,
+     which strips this scaffold on publish). A hero that
+     sells the fantasy, a 3-beat "how it works", the two mode CTAs, and an aspirational
+     "chase the legends" showcase. Data pushed to the background. Fonts fall back to
+     system stacks (sandbox blocks the app's Archivo / Schibsted / Spline CDNs). */
+  .turf {
+    --pitch-deep: #0e5c34;
+    --pitch: #15924c;
+    --chalk: #e8f0e8;
+    --paper: #f4f2ec;
+    --panel: #ffffff;
+    --ink: #13211a;
+    --muted: #5c6a60;
+    --line: #d4ded5;
+    --amber: #e4922b;
+    --amber-ink: #9a6512;
+    --gold: #c99a2e;
+    --disp: "Archivo", system-ui, "Segoe UI", Roboto, sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    min-height: 100%;
+    padding: 22px clamp(16px, 4vw, 40px) 64px;
+    box-sizing: border-box;
+    line-height: 1.5;
+  }
+  .turf *, .turf *::before, .turf *::after { box-sizing: border-box; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  /* masthead */
+  .mast { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
+  .crest { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 6px; background: var(--pitch-deep); display: grid; place-items: center; color: var(--amber); }
+  .crest svg { width: 21px; height: 21px; }
+  .mast h1 { font-family: var(--disp); font-weight: 900; font-size: 23px; letter-spacing: -0.02em; text-transform: uppercase; line-height: 1; margin: 0; }
+  .mast h1 em { font-style: normal; color: var(--pitch); }
+  .mast .tag { font-size: 12.5px; color: var(--muted); border-left: 1px solid var(--line); padding-left: 14px; }
+  .mast .gear { margin-left: auto; width: 33px; height: 33px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--muted); display: grid; place-items: center; }
+  .mast .gear svg { width: 17px; height: 17px; }
+  @media (max-width: 520px) { .mast .tag { display: none; } }
+
+  /* HERO - the pitch as a tactics board, text laid over chalk markings */
+  .hero { position: relative; overflow: hidden; margin-top: 20px; border-radius: 14px; background: var(--pitch-deep); color: #fff; padding: clamp(30px, 5vw, 54px) clamp(22px, 5vw, 52px); box-shadow: 7px 7px 0 var(--ink); }
+  .hero .grass { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 46px, transparent 46px 92px); pointer-events: none; }
+  .hero .marks { position: absolute; right: -70px; top: 50%; transform: translateY(-50%); width: 380px; height: 380px; opacity: 0.14; color: #fff; pointer-events: none; }
+  @media (max-width: 680px) { .hero .marks { right: -140px; opacity: 0.09; } }
+  .hero .content { position: relative; max-width: 660px; }
+  .hero .kick { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--amber); }
+  .hero h2 { font-family: var(--disp); font-weight: 900; font-size: clamp(34px, 6.4vw, 60px); line-height: 1.0; letter-spacing: -0.03em; margin: 12px 0 0; text-wrap: balance; }
+  .hero h2 .amber { color: var(--amber); }
+  .hero .sub { margin: 16px 0 0; font-size: clamp(15px, 2.2vw, 17px); color: rgba(255,255,255,0.82); max-width: 52ch; }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; padding: 14px 22px; font-family: var(--disp); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; font-size: 14px; cursor: pointer; border: 0; }
+  .btn.light { background: #fff; color: var(--ink); }
+  .btn.amber { background: var(--amber); color: #23150a; }
+  .btn svg { width: 17px; height: 17px; }
+  .cta-note { margin-top: 14px; font-size: 12.5px; color: rgba(255,255,255,0.7); }
+  .cta-note b { color: #fff; font-weight: 700; }
+
+  .resume { position: relative; display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; padding: 7px 8px 7px 14px; }
+  .resume .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.75); }
+  .resume .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--amber); color: #23150a; border-radius: 999px; padding: 5px 12px; font-family: var(--disp); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; font-size: 11.5px; }
+  .resume .meta { font-size: 11.5px; color: rgba(255,255,255,0.7); }
+  @media (max-width: 520px) { .resume .meta { display: none; } }
+
+  /* HOW IT WORKS - 3 beats */
+  .beats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 30px; }
+  @media (max-width: 680px) { .beats { grid-template-columns: 1fr; } }
+  .beat { display: flex; gap: 14px; align-items: flex-start; }
+  .beat .num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; background: var(--chalk); color: var(--pitch-deep); display: grid; place-items: center; }
+  .beat .num svg { width: 21px; height: 21px; }
+  .beat h3 { margin: 2px 0 0; font-family: var(--disp); font-weight: 800; font-size: 16px; letter-spacing: -0.01em; }
+  .beat p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* CHASE THE LEGENDS */
+  .sec { margin-top: 42px; }
+  .sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .sec-h .l h2 { font-family: var(--disp); font-weight: 800; font-size: 22px; letter-spacing: -0.02em; margin: 0; }
+  .sec-h .l p { margin: 5px 0 0; color: var(--muted); font-size: 13.5px; }
+  .sec-h .see { font-family: var(--mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--pitch); white-space: nowrap; }
+  .legends { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .legends { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 460px) { .legends { grid-template-columns: repeat(2, 1fr); } }
+  .lg { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); box-shadow: 4px 4px 0 var(--line); }
+  .lg .top { height: 6px; background: linear-gradient(90deg, var(--gold), #e7c86a); }
+  .lg .in { padding: 14px 12px 13px; text-align: center; }
+  .lg .code { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); background: var(--chalk); padding: 3px 7px; border-radius: 4px; }
+  .lg .nm { margin-top: 8px; font-family: var(--disp); font-weight: 800; font-size: 14px; line-height: 1.15; }
+  .lg .rt { margin-top: 6px; font-family: var(--mono); font-weight: 700; font-size: 23px; color: var(--pitch-deep); font-variant-numeric: tabular-nums; }
+  .lg .tier { margin-top: 2px; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+
+  /* closing line + quiet links */
+  .close { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+  .close .line { font-family: var(--disp); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; max-width: 40ch; }
+  .close .line span { color: var(--muted); font-weight: 500; }
+  .close .links { display: flex; gap: 8px; }
+  .close .links a { font-family: var(--mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; text-decoration: none; }
+
+  .foot-note { margin-top: 30px; font-size: 12px; color: var(--muted); max-width: 74ch; }
+  .foot-note b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="turf">
+  <div class="wrap">
+
+    <header class="mast">
+      <span class="crest" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span>
+      <h1>World Cup <em>Simulator</em></h1>
+      <span class="tag">Draft a random XI. Win the cup.</span>
+      <span class="gear" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></span>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="grass" aria-hidden="true"></div>
+      <svg class="marks" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="100" cy="100" r="52"/>
+        <circle cx="100" cy="100" r="3" fill="currentColor" stroke="none"/>
+        <line x1="100" y1="0" x2="100" y2="200"/>
+        <rect x="150" y="55" width="50" height="90"/>
+        <path d="M150 78 A 30 30 0 0 1 150 122"/>
+      </svg>
+      <div class="content">
+        <p class="kick">World Cup Simulator</p>
+        <h2>Draft your dream XI.<br /><span class="amber">Win the World Cup.</span></h2>
+        <p class="sub">Spin real squads from every World Cup since 1990, pick your eleven one slot at a time, then run the gauntlet - group stage to final, live and minute by minute.</p>
+
+        <div class="cta-row">
+          <button class="btn light">Play a Quick Run <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button class="btn amber">Enter Career Mode <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+        <p class="cta-note"><b>Quick Run</b> is a one-off. <b>Career Mode</b> keeps your progress - boosts, Prestige and unlocks that carry between runs.</p>
+
+        <div class="resume">
+          <span class="k">Or pick up where you left off</span>
+          <span class="pill">Resume Cup Run <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l14 9-14 9V3z"/></svg></span>
+          <span class="meta">R16 &middot; vs Brazil 2002</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <div class="beats">
+      <div class="beat">
+        <span class="num"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span>
+        <div><h3>Draft your XI</h3><p>Roll real squads (or shop a transfer budget) and pick your eleven, one position at a time.</p></div>
+      </div>
+      <div class="beat">
+        <span class="num"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg></span>
+        <div><h3>Play the tournament</h3><p>Group stage, then knockouts - revealed live, goal by goal, just like the real thing.</p></div>
+      </div>
+      <div class="beat">
+        <span class="num"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span>
+        <div><h3>Lift the cup</h3><p>Win it all - and keep the legends you drafted in a Panini-style sticker album.</p></div>
+      </div>
+    </div>
+
+    <!-- CHASE THE LEGENDS -->
+    <section class="sec">
+      <div class="sec-h">
+        <div class="l">
+          <h2>Chase the legends</h2>
+          <p>Draft an all-time great and the sticker is yours to keep. These five are the rarest of all.</p>
+        </div>
+        <span class="see">Open the album &rarr;</span>
+      </div>
+      <div class="legends">
+        <div class="lg"><div class="top"></div><div class="in"><span class="code">ARG</span><div class="nm">Lionel Messi</div><div class="rt">99</div><div class="tier">Monumental</div></div></div>
+        <div class="lg"><div class="top"></div><div class="in"><span class="code">BRA</span><div class="nm">Ronaldo</div><div class="rt">98</div><div class="tier">Monumental</div></div></div>
+        <div class="lg"><div class="top"></div><div class="in"><span class="code">FRA</span><div class="nm">Zinedine Zidane</div><div class="rt">97</div><div class="tier">Monumental</div></div></div>
+        <div class="lg"><div class="top"></div><div class="in"><span class="code">GER</span><div class="nm">Manuel Neuer</div><div class="rt">97</div><div class="tier">Monumental</div></div></div>
+        <div class="lg"><div class="top"></div><div class="in"><span class="code">FRA</span><div class="nm">Kylian Mbapp&eacute;</div><div class="rt">97</div><div class="tier">Monumental</div></div></div>
+      </div>
+    </section>
+
+    <!-- CLOSING -->
+    <div class="close">
+      <div class="line">From Maradona in '90 to Mbapp&eacute; in '22. <span>Nine World Cups, every squad, one trophy.</span></div>
+      <div class="links">
+        <a href="#">Sticker Album</a>
+        <a href="#">Squad Browser</a>
+      </div>
+    </div>
+
+    <p class="foot-note">
+      <b>Mock, not final.</b> Marketing-lean take: a tactics-board hero, a 3-beat "how it works",
+      and an aspirational legends showcase; the raw counts are gone. Colours/spacing follow the
+      shipped turf-flat identity; fonts fall back to system faces (sandbox blocks the app's Google
+      Fonts). The five legends are the real Monumental-tier cards.
+    </p>
+
+  </div>
+</div>
+</body>
+</html>

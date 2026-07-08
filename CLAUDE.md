@@ -3,6 +3,9 @@
 Project context for AI assistants and developers. Read this first when working in
 this repo. (User-facing setup/hosting notes live in `README.md`.)
 
+**Where to pick up work:** `docs/ROADMAP.md` is the living pipeline (what shipped, what
+is next, loose ends). Check it first if you are continuing the project.
+
 ## What this is
 
 **World Cup Simulator** - a single-page game. You draft an XI of real World Cup
