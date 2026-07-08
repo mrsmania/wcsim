@@ -1,4 +1,14 @@
-import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+    Fragment,
+    lazy,
+    Suspense,
+    useCallback,
+    useEffect,
+    useMemo,
+    useReducer,
+    useRef,
+    useState,
+} from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Settings as SettingsIcon, Swords, Trophy } from 'lucide-react';
 import { ALL_PLAYERS, SQUADS, squadsInPool } from './data/squads';
@@ -73,7 +83,10 @@ type HomeView = 'setup' | 'draft' | 'complete';
 /** Section eyebrow/title + masthead stamp for the home screen, by sub-view. The
  *  home sub-view is derived from the drafted data (not `phase`), so navigating
  *  Back to home mid-tournament still reads as the locked XI. */
-function homeCopy(view: HomeView, placed: number): { eyebrow: string; title: string; stamp: string } {
+function homeCopy(
+    view: HomeView,
+    placed: number,
+): { eyebrow: string; title: string; stamp: string } {
     const eyebrow = view === 'complete' ? 'Confirmed line-up' : 'Team sheet';
     const title =
         view === 'setup'
@@ -91,7 +104,11 @@ function homeCopy(view: HomeView, placed: number): { eyebrow: string; title: str
 }
 
 export default function App() {
-    const [state, dispatch] = useReducer(gameReducer, initialState, () => loadGame() ?? initialState);
+    const [state, dispatch] = useReducer(
+        gameReducer,
+        initialState,
+        () => loadGame() ?? initialState,
+    );
     const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
     // Budget build (transient, not persisted): the market player currently held and
     // the empty slot being shopped for. Both drive the shared pitch in budget mode.
@@ -272,7 +289,17 @@ export default function App() {
         const open = positionsWithOpenSlot(formation, filled);
         const used = new Set(usedPersonIds);
         runRoll(rollAny(poolSquads, open, used, lastSquadIdRef.current), false);
-    }, [phase, build, formation, currentSquad, rolling, filled, usedPersonIds, runRoll, poolSquads]);
+    }, [
+        phase,
+        build,
+        formation,
+        currentSquad,
+        rolling,
+        filled,
+        usedPersonIds,
+        runRoll,
+        poolSquads,
+    ]);
 
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
@@ -357,25 +384,19 @@ export default function App() {
     // Swap the selected player into an already-filled slot (sticker album feature).
     // The reducer validates eligibility; the draw effect then rolls the next squad
     // for any still-open slot, exactly like a placement.
-    const handleSwap = useCallback(
-        (slotId: string) => {
-            dispatch({ type: 'SWAP_PLAYER', slotId });
-            if (isStackedLayout()) {
-                squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        },
-        [],
-    );
+    const handleSwap = useCallback((slotId: string) => {
+        dispatch({ type: 'SWAP_PLAYER', slotId });
+        if (isStackedLayout()) {
+            squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, []);
 
     // Testing aid: remove a placed player. The XI drops back to 'draft'; if no
     // squad is in hand (we were "complete"), the draw-next-squad effect rolls one
     // for the freed slot from committed state so a replacement can be drafted.
-    const handleRemove = useCallback(
-        (slotId: string) => {
-            dispatch({ type: 'REMOVE_PLAYER', slotId });
-        },
-        [],
-    );
+    const handleRemove = useCallback((slotId: string) => {
+        dispatch({ type: 'REMOVE_PLAYER', slotId });
+    }, []);
 
     // --- budget build: place / shop / remove on the shared pitch ---------------
     // Buy the held market player into an eligible slot, then shop the next empty one.
@@ -491,12 +512,12 @@ export default function App() {
     const isBudgetBuild = build === 'budget';
     const budgetTargetSlot =
         isBudgetBuild && activeFormation
-            ? activeFormation.slots.find((s) => s.id === budgetTargetId && !filled[s.id]) ??
+            ? (activeFormation.slots.find((s) => s.id === budgetTargetId && !filled[s.id]) ??
               activeFormation.slots.find((s) => !filled[s.id]) ??
-              null
+              null)
             : null;
     const heldPlayer =
-        isBudgetBuild && heldId ? ALL_PLAYERS.find((p) => p.id === heldId) ?? null : null;
+        isBudgetBuild && heldId ? (ALL_PLAYERS.find((p) => p.id === heldId) ?? null) : null;
 
     // Page section header (eyebrow + heading) and the masthead status stamp, both
     // phase-dependent. The stamp is null on the tournament screens (their own header).
@@ -586,245 +607,280 @@ export default function App() {
                         </div>
                     }
                 >
-                {isSquads ? (
-                    <SquadBrowser />
-                ) : isCupRun ? (
-                    <CupRunScreen
-                        draftedXi={draftedXi}
-                        onReDraft={handleReset}
-                        speed={speed}
-                        onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                        difficulty={settings.settings.difficulty}
-                        pool={poolSquads}
-                        onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
-                    />
-                ) : isAlbum ? (
-                    <AlbumScreen
-                        album={stickers.album}
-                        allPlayers={poolPlayers}
-                        onTrade={stickers.onTrade}
-                        onReset={stickers.onResetAlbum}
-                        onClose={() => navigate('/')}
-                    />
-                ) : isGroup ? (
-                    group && formation ? (
-                        <TournamentScreen
-                            group={group}
-                            formation={formation}
-                            filled={filled}
+                    {isSquads ? (
+                        <SquadBrowser />
+                    ) : isCupRun ? (
+                        <CupRunScreen
+                            draftedXi={draftedXi}
+                            onReDraft={handleReset}
                             speed={speed}
-                            auto={auto}
-                            onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
                             onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                            onRecordMatchday={(results) =>
-                                dispatch({ type: 'RECORD_MATCHDAY', results })
-                            }
-                            onEnterKnockout={handleEnterKnockout}
-                            hasBracket={!!bracket}
-                            onReset={handleReset}
+                            difficulty={settings.settings.difficulty}
+                            pool={poolSquads}
+                            onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                         />
-                    ) : (
-                        <Navigate to="/" replace />
-                    )
-                ) : isKnockout ? (
-                    bracket && group && formation ? (
-                        <KnockoutScreen
-                            bracket={bracket}
-                            group={group}
-                            formation={formation}
-                            filled={filled}
-                            speed={speed}
-                            auto={auto}
-                            onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
-                            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                            onRecordRound={(games) =>
-                                dispatch({ type: 'RECORD_BRACKET_ROUND', games })
-                            }
-                            onViewGroup={() => navigate('/group')}
-                            onReset={handleReset}
+                    ) : isAlbum ? (
+                        <AlbumScreen
+                            album={stickers.album}
+                            allPlayers={poolPlayers}
+                            onTrade={stickers.onTrade}
+                            onReset={stickers.onResetAlbum}
+                            onClose={() => navigate('/')}
                         />
-                    ) : (
-                        <Navigate to="/" replace />
-                    )
-                ) : isHome ? (
-                    <>
-                    <div className="mb-5 mt-7 flex items-center gap-4">
-                        <div>
-                            <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-                                {home.eyebrow}
+                    ) : isGroup ? (
+                        group && formation ? (
+                            <TournamentScreen
+                                group={group}
+                                formation={formation}
+                                filled={filled}
+                                speed={speed}
+                                auto={auto}
+                                onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
+                                onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                                onRecordMatchday={(results) =>
+                                    dispatch({ type: 'RECORD_MATCHDAY', results })
+                                }
+                                onEnterKnockout={handleEnterKnockout}
+                                hasBracket={!!bracket}
+                                onReset={handleReset}
+                            />
+                        ) : (
+                            <Navigate to="/" replace />
+                        )
+                    ) : isKnockout ? (
+                        bracket && group && formation ? (
+                            <KnockoutScreen
+                                bracket={bracket}
+                                group={group}
+                                formation={formation}
+                                filled={filled}
+                                speed={speed}
+                                auto={auto}
+                                onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
+                                onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                                onRecordRound={(games) =>
+                                    dispatch({ type: 'RECORD_BRACKET_ROUND', games })
+                                }
+                                onViewGroup={() => navigate('/group')}
+                                onReset={handleReset}
+                            />
+                        ) : (
+                            <Navigate to="/" replace />
+                        )
+                    ) : isHome ? (
+                        <>
+                            <div className="mb-5 mt-7 flex items-center gap-4">
+                                <div>
+                                    <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                                        {home.eyebrow}
+                                    </div>
+                                    <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
+                                        {home.title}
+                                    </h2>
+                                </div>
+                                <div className="relative h-0 flex-1 border-t-2 border-line">
+                                    <span className="absolute -top-[5px] left-0 h-2 w-2 rounded-full border-2 border-line bg-panel" />
+                                </div>
                             </div>
-                            <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
-                                {home.title}
-                            </h2>
-                        </div>
-                        <div className="relative h-0 flex-1 border-t-2 border-line">
-                            <span className="absolute -top-[5px] left-0 h-2 w-2 rounded-full border-2 border-line bg-panel" />
-                        </div>
-                    </div>
-                    <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
-                        {/* Col 1: setup -> drawn squad -> complete */}
-                        <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
-                            {STICKERS && albumSummary && (
-                                <Link
-                                    to="/album"
-                                    className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
-                                >
-                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
-                                        <Trophy size={18} strokeWidth={2} className="text-amber" />
-                                    </span>
-                                    <span className="flex flex-col leading-tight">
-                                        <b className="font-display text-[14px] font-extrabold">
-                                            Sticker album
-                                        </b>
-                                        <span className="font-mono text-[11px] text-muted">
-                                            {albumSummary.collected} / {albumSummary.total} collected
-                                        </span>
-                                    </span>
-                                    <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />
-                                </Link>
-                            )}
-                            {/* Career hub entry. Only on the setup sub-view: mid-draft /
+                            <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
+                                {/* Col 1: setup -> drawn squad -> complete */}
+                                <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
+                                    {STICKERS && albumSummary && (
+                                        <Link
+                                            to="/album"
+                                            className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
+                                        >
+                                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
+                                                <Trophy
+                                                    size={18}
+                                                    strokeWidth={2}
+                                                    className="text-amber"
+                                                />
+                                            </span>
+                                            <span className="flex flex-col leading-tight">
+                                                <b className="font-display text-[14px] font-extrabold">
+                                                    Sticker album
+                                                </b>
+                                                <span className="font-mono text-[11px] text-muted">
+                                                    {albumSummary.collected} / {albumSummary.total}{' '}
+                                                    collected
+                                                </span>
+                                            </span>
+                                            <ArrowRight
+                                                size={15}
+                                                strokeWidth={2.5}
+                                                className="ml-auto text-pitch"
+                                            />
+                                        </Link>
+                                    )}
+                                    {/* Career hub entry. Only on the setup sub-view: mid-draft /
                                 complete it would be noise (the complete panel's two CTAs
                                 pick the mode there). Here it's the door to the perk shop +
                                 trophies before a run. */}
-                            {FEATURES.careerMode && homeView === 'setup' && (
-                                <Link
-                                    to="/cup-run"
-                                    className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
-                                >
-                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
-                                        <Swords size={18} strokeWidth={2} className="text-amber" />
-                                    </span>
-                                    <span className="flex flex-col leading-tight">
-                                        <b className="font-display text-[14px] font-extrabold">
-                                            Cup Run career <span className="text-muted">(beta)</span>
-                                        </b>
-                                        <span className="font-mono text-[11px] text-muted">
-                                            Perks, Prestige &amp; trophies
-                                        </span>
-                                    </span>
-                                    <ArrowRight size={15} strokeWidth={2.5} className="ml-auto text-pitch" />
-                                </Link>
-                            )}
-                            {homeView === 'setup' && (
-                                <SetupPanel
-                                    names={FORMATIONS_DATA.names}
-                                    selectedName={formationName}
-                                    selectedStyle={style}
-                                    availableStyles={availableStyles}
-                                    ready={!!previewFormation}
-                                    onSelectName={(name) =>
-                                        dispatch({ type: 'SET_FORMATION', name })
-                                    }
-                                    onSelectStyle={(s) => dispatch({ type: 'SET_STYLE', style: s })}
-                                    onStart={handleStart}
-                                    onRandomTeam={
-                                        FEATURES.randomTeam ? handleRandomTeam : undefined
-                                    }
-                                    onBudgetDraft={FEATURES.budgetDraft ? handleBudget : undefined}
-                                />
-                            )}
-                            {homeView === 'draft' &&
-                                formation &&
-                                (isBudgetBuild ? (
-                                    <BudgetMarket
-                                        formation={formation}
-                                        filled={filled}
-                                        poolPlayers={poolPlayers}
-                                        targetSlot={budgetTargetSlot}
-                                        heldPlayer={heldPlayer}
-                                        onHold={handleBudgetHold}
-                                        onAutoFill={handleBudgetAutoFill}
-                                        onClear={handleBudgetClear}
-                                        onStartOver={handleReset}
-                                    />
-                                ) : (
-                                    <SquadPanel
-                                        squad={panelSquad}
-                                        rolling={rolling}
-                                        rerollsLeft={rerollsLeft}
-                                        canAnotherTeam={
-                                            !!currentSquad && hasAnotherTeam(poolSquads, currentSquad)
-                                        }
-                                        canAnotherCup={
-                                            !!currentSquad && hasAnotherCup(poolSquads, currentSquad)
-                                        }
-                                        openPositions={openPositions}
-                                        swapEligibleIds={swapEligibleIds}
-                                        swapsLeft={swapsLeft}
-                                        usedPersonIds={usedSet}
-                                        selectedPlayerId={selectedPlayerId}
-                                        onReroll={handleReroll}
-                                        onSelectPlayer={(playerId) =>
-                                            dispatch({ type: 'SELECT_PLAYER', playerId })
-                                        }
-                                        onReset={handleReset}
-                                    />
-                                ))}
-                            {homeView === 'complete' && formation && (
-                                <CompletePanel
-                                    formation={formation}
-                                    filled={filled}
-                                    style={style}
-                                    onStart={handleStartGroup}
-                                    onCupRun={
-                                        FEATURES.careerMode ? () => navigate('/cup-run') : undefined
-                                    }
-                                    onReset={handleReset}
-                                />
-                            )}
-                        </aside>
+                                    {FEATURES.careerMode && homeView === 'setup' && (
+                                        <Link
+                                            to="/cup-run"
+                                            className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
+                                        >
+                                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
+                                                <Swords
+                                                    size={18}
+                                                    strokeWidth={2}
+                                                    className="text-amber"
+                                                />
+                                            </span>
+                                            <span className="flex flex-col leading-tight">
+                                                <b className="font-display text-[14px] font-extrabold">
+                                                    Cup Run career{' '}
+                                                    <span className="text-muted">(beta)</span>
+                                                </b>
+                                                <span className="font-mono text-[11px] text-muted">
+                                                    Perks, Prestige &amp; trophies
+                                                </span>
+                                            </span>
+                                            <ArrowRight
+                                                size={15}
+                                                strokeWidth={2.5}
+                                                className="ml-auto text-pitch"
+                                            />
+                                        </Link>
+                                    )}
+                                    {homeView === 'setup' && (
+                                        <SetupPanel
+                                            names={FORMATIONS_DATA.names}
+                                            selectedName={formationName}
+                                            selectedStyle={style}
+                                            availableStyles={availableStyles}
+                                            ready={!!previewFormation}
+                                            onSelectName={(name) =>
+                                                dispatch({ type: 'SET_FORMATION', name })
+                                            }
+                                            onSelectStyle={(s) =>
+                                                dispatch({ type: 'SET_STYLE', style: s })
+                                            }
+                                            onStart={handleStart}
+                                            onRandomTeam={
+                                                FEATURES.randomTeam ? handleRandomTeam : undefined
+                                            }
+                                            onBudgetDraft={
+                                                FEATURES.budgetDraft ? handleBudget : undefined
+                                            }
+                                        />
+                                    )}
+                                    {homeView === 'draft' &&
+                                        formation &&
+                                        (isBudgetBuild ? (
+                                            <BudgetMarket
+                                                formation={formation}
+                                                filled={filled}
+                                                poolPlayers={poolPlayers}
+                                                targetSlot={budgetTargetSlot}
+                                                heldPlayer={heldPlayer}
+                                                onHold={handleBudgetHold}
+                                                onAutoFill={handleBudgetAutoFill}
+                                                onClear={handleBudgetClear}
+                                                onStartOver={handleReset}
+                                            />
+                                        ) : (
+                                            <SquadPanel
+                                                squad={panelSquad}
+                                                rolling={rolling}
+                                                rerollsLeft={rerollsLeft}
+                                                canAnotherTeam={
+                                                    !!currentSquad &&
+                                                    hasAnotherTeam(poolSquads, currentSquad)
+                                                }
+                                                canAnotherCup={
+                                                    !!currentSquad &&
+                                                    hasAnotherCup(poolSquads, currentSquad)
+                                                }
+                                                openPositions={openPositions}
+                                                swapEligibleIds={swapEligibleIds}
+                                                swapsLeft={swapsLeft}
+                                                usedPersonIds={usedSet}
+                                                selectedPlayerId={selectedPlayerId}
+                                                onReroll={handleReroll}
+                                                onSelectPlayer={(playerId) =>
+                                                    dispatch({ type: 'SELECT_PLAYER', playerId })
+                                                }
+                                                onReset={handleReset}
+                                            />
+                                        ))}
+                                    {homeView === 'complete' && formation && (
+                                        <CompletePanel
+                                            formation={formation}
+                                            filled={filled}
+                                            style={style}
+                                            onStart={handleStartGroup}
+                                            onCupRun={
+                                                FEATURES.careerMode
+                                                    ? () => navigate('/cup-run')
+                                                    : undefined
+                                            }
+                                            onReset={handleReset}
+                                        />
+                                    )}
+                                </aside>
 
-                        {/* Col 2: the pitch. Col 3: ratings + chemistry + line-up sheet
+                                {/* Col 2: the pitch. Col 3: ratings + chemistry + line-up sheet
               stacked, matching the turf-flat comp. On narrow widths the grid
               areas restack to settings, pitch, then the stack. */}
-                        {activeFormation ? (
-                            <>
-                                <section ref={pitchRef} className="scroll-mt-6 [grid-area:board]">
-                                    <Pitch
-                                        formation={activeFormation}
-                                        filled={filled}
-                                        selectedPlayer={isBudgetBuild ? heldPlayer : selectedPlayer}
-                                        onPlace={isBudgetBuild ? handleBudgetPlace : handlePlace}
-                                        onRemove={
-                                            isBudgetBuild
-                                                ? handleBudgetRemove
-                                                : FEATURES.removePlayers
-                                                  ? handleRemove
-                                                  : undefined
-                                        }
-                                        onSwap={
-                                            isBudgetBuild
-                                                ? undefined
-                                                : STICKERS && swapsLeft > 0
-                                                  ? handleSwap
-                                                  : undefined
-                                        }
-                                        onSelectSlot={isBudgetBuild ? handleBudgetShop : undefined}
-                                        targetSlotId={
-                                            isBudgetBuild ? budgetTargetSlot?.id : undefined
-                                        }
-                                    />
-                                </section>
-                                <section className="flex flex-col gap-[18px] [grid-area:stack]">
-                                    <BoxScore
-                                        formation={activeFormation}
-                                        filled={filled}
-                                        showChemistry
-                                    />
-                                    <XiTable formation={activeFormation} filled={filled} />
-                                </section>
-                            </>
-                        ) : (
-                            <div className="mx-auto flex aspect-[3/4] w-full max-w-[560px] items-center justify-center rounded-md border border-dashed border-line text-muted [grid-area:board]">
-                                Loading formations…
+                                {activeFormation ? (
+                                    <>
+                                        <section
+                                            ref={pitchRef}
+                                            className="scroll-mt-6 [grid-area:board]"
+                                        >
+                                            <Pitch
+                                                formation={activeFormation}
+                                                filled={filled}
+                                                selectedPlayer={
+                                                    isBudgetBuild ? heldPlayer : selectedPlayer
+                                                }
+                                                onPlace={
+                                                    isBudgetBuild ? handleBudgetPlace : handlePlace
+                                                }
+                                                onRemove={
+                                                    isBudgetBuild
+                                                        ? handleBudgetRemove
+                                                        : FEATURES.removePlayers
+                                                          ? handleRemove
+                                                          : undefined
+                                                }
+                                                onSwap={
+                                                    isBudgetBuild
+                                                        ? undefined
+                                                        : STICKERS && swapsLeft > 0
+                                                          ? handleSwap
+                                                          : undefined
+                                                }
+                                                onSelectSlot={
+                                                    isBudgetBuild ? handleBudgetShop : undefined
+                                                }
+                                                targetSlotId={
+                                                    isBudgetBuild ? budgetTargetSlot?.id : undefined
+                                                }
+                                            />
+                                        </section>
+                                        <section className="flex flex-col gap-[18px] [grid-area:stack]">
+                                            <BoxScore
+                                                formation={activeFormation}
+                                                filled={filled}
+                                                showChemistry
+                                            />
+                                            <XiTable formation={activeFormation} filled={filled} />
+                                        </section>
+                                    </>
+                                ) : (
+                                    <div className="mx-auto flex aspect-[3/4] w-full max-w-[560px] items-center justify-center rounded-md border border-dashed border-line text-muted [grid-area:board]">
+                                        Loading formations…
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                    </>
-                ) : (
-                    <Navigate to="/" replace />
-                )}
+                        </>
+                    ) : (
+                        <Navigate to="/" replace />
+                    )}
                 </Suspense>
 
                 {/* Footer, shown on every page: the app's secondary nav (Play returns
@@ -855,7 +911,7 @@ export default function App() {
                         <img
                             src={`${import.meta.env.BASE_URL}img/swiss.svg`}
                             alt="Swiss flag"
-                            className="h-[13px] w-[13px]"
+                            className="h-[15px] w-[15px]"
                         />
                         - not affiliated with FIFA
                     </p>

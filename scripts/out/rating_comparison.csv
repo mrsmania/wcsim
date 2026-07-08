@@ -1,0 +1,3037 @@
+year;team;name;position;rating;rating_ext;diff;is_collectible;is_legend
+2002;ARG;Claudio Caniggia;ST;72;85;13;false;false
+1990;YUG;Davor Šuker;ST;66;79;13;false;false
+2022;CRC;Celso Borges;CM;73;85;12;false;false
+2002;ARG;Pablo Cavallero;GK;68;80;12;false;false
+1990;YUG;Alen Bokšić;ST;66;78;12;false;false
+2002;NGA;Rabiu Afolabi;CB;65;77;12;false;false
+2002;ARG;Gabriel Batistuta;ST;82;93;11;false;true
+1994;MEX;Hugo Sánchez;ST;80;91;11;false;true
+2010;JPN;Kengo Nakamura;CM;75;86;11;false;true
+2002;NGA;Jay-Jay Okocha;AM;82;92;10;false;true
+2002;ARG;Juan Sebastián Verón;CM;80;90;10;false;true
+1990;CMR;Roger Milla;ST;78;88;10;false;true
+2002;NGA;Nwankwo Kanu;ST;78;88;10;false;true
+1990;ROU;Florin Răducioiu;ST;74;84;10;false;false
+1994;GER;Oliver Kahn;GK;74;84;10;false;false
+2022;KOR;Hwang Ui-jo;ST;74;84;10;false;false
+2022;KOR;Jung Woo-young;DM;73;83;10;false;false
+2014;ALG;Riyad Mahrez;RW;72;82;10;false;false
+1990;EGY;Tarek Soliman;LM;66;76;10;false;false
+1994;NED;John de Wolf;CB;66;76;10;false;false
+2002;NGA;Efe Sodje;CB;64;74;10;false;false
+2002;NGA;Benedict Akwuegbu;ST;64;74;10;false;false
+2022;KOR;Lee Jae-sung;AM;77;86;9;false;false
+2022;CRC;Bryan Ruiz;AM;75;84;9;false;false
+2022;KOR;Kim Young-gwon;CB;75;84;9;false;false
+1994;COL;Mauricio Serna;DM;70;79;9;false;false
+1990;YUG;Vujadin Stanojković;RB;68;77;9;false;false
+2002;NGA;Isaac Okoronkwo;CB;68;77;9;false;false
+1994;MEX;Missael Espinoza;CM;66;75;9;false;false
+1994;MEX;Jorge Rodríguez;CM;66;75;9;false;false
+2002;NGA;Bartholomew Ogbeche;ST;66;75;9;false;false
+2002;NGA;Pius Ikedia;RW;65;74;9;false;false
+1990;EGY;Ayman Shawky;AM;64;73;9;false;false
+1990;EGY;Adel Abdel Rahman;CM;64;73;9;false;false
+1990;ROU;Zsolt Muzsnay;CM;64;73;9;false;false
+1990;TCH;Vladimír Kinier;CB;64;73;9;false;false
+1990;TCH;Peter Palúch;GK;64;73;9;false;false
+1990;TCH;Viliam Hýravý;ST;64;73;9;false;false
+2006;BRA;Ronaldinho;AM;87;95;8;false;true
+1994;ARG;Gabriel Batistuta;ST;84;92;8;false;true
+2002;FRA;Thierry Henry;ST;84;92;8;false;true
+2002;ARG;Hernán Crespo;ST;80;88;8;false;false
+2006;ARG;Lionel Messi;RW;80;88;8;false;true
+1990;ROU;Gheorghe Popescu;CB;79;87;8;false;true
+1994;ARG;Claudio Caniggia;ST;79;87;8;false;false
+2002;ARG;Diego Simeone;DM;79;87;8;false;false
+2022;KOR;Hwang Hee-chan;LW;78;86;8;false;false
+1990;BRA;Valdo;CM;76;84;8;false;false
+1990;BRA;Müller;ST;76;84;8;false;false
+2002;CMR;Geremi;RM;76;84;8;false;false
+2010;KOR;Ki Sung-yueng;CM;76;84;8;false;true
+2010;KOR;Lee Woon-jae;GK;74;82;8;false;true
+2018;ARG;Franco Armani;GK;74;82;8;false;false
+2022;CRC;Joel Campbell;RW;73;81;8;false;false
+2022;KOR;Kwon Chang-hoon;AM;73;81;8;false;false
+1990;NED;John van 't Schip;RW;72;80;8;false;false
+2002;MEX;Jorge Campos;GK;72;80;8;false;false
+2022;KOR;Hong Chul;LB;72;80;8;false;false
+1990;NED;Stanley Menzo;GK;70;78;8;false;false
+1990;NED;Hans Gillhaus;ST;70;78;8;false;false
+1994;ARG;Luis Islas;GK;70;78;8;false;false
+1994;NED;Theo Snelders;GK;70;78;8;false;false
+1990;EGY;Ashraf Kasem;RB;68;76;8;false;false
+1994;ROU;Viorel Moldovan;ST;68;76;8;false;false
+2002;NGA;Vincent Enyeama;GK;68;76;8;false;false
+2002;NGA;Ifeanyi Udeze;LB;68;76;8;false;false
+2002;USA;Tony Meola;GK;68;76;8;false;false
+2010;JPN;Yoshikatsu Kawaguchi;GK;68;76;8;false;false
+2014;GHA;Fatau Dauda;GK;68;76;8;false;false
+1990;COL;Rubén Darío Hernández;ST;66;74;8;false;false
+1990;EGY;Ahmed Ramzy;RM;66;74;8;false;false
+1990;TCH;Peter Fieber;RB;66;74;8;false;false
+2002;CMR;Eric Djemba-Djemba;DM;66;74;8;false;false
+2002;IRL;Steven Reid;CM;66;74;8;false;false
+2002;IRL;David Connolly;ST;66;74;8;false;false
+2002;IRL;Clinton Morrison;ST;66;74;8;false;false
+2002;NGA;Austin Ejide;GK;66;74;8;false;false
+2002;NGA;Justice Christopher;CM;65;73;8;false;false
+1990;COL;Miguel Guerrero;ST;64;72;8;false;false
+1990;EGY;Ayman Taher;GK;64;72;8;false;false
+1990;EGY;Thabet El-Batal;GK;64;72;8;false;false
+1990;EGY;Osama Orabi;CM;64;72;8;false;false
+1990;YUG;Andrej Panađić;CB;64;72;8;false;false
+2002;CMR;Patrick Suffo;ST;64;72;8;false;false
+2002;NGA;Eric Ejiofor;CB;64;72;8;false;false
+2002;NGA;Femi Opabunmi;LW;64;72;8;false;false
+1990;NED;Frank Rijkaard;DM;85;92;7;false;true
+1994;ARG;Diego Maradona;AM;85;92;7;false;true
+1994;COL;Carlos Valderrama;AM;85;92;7;false;true
+1994;MEX;Jorge Campos;GK;80;87;7;false;true
+1990;BRA;Bebeto;ST;79;86;7;false;false
+1994;ARG;Diego Simeone;CM;79;86;7;false;false
+2002;ARG;Pablo Aimar;AM;79;86;7;false;false
+1990;BRA;Branco;LB;78;85;7;false;false
+1990;BRA;Alemão;DM;78;85;7;false;false
+1990;YUG;Safet Sušić;AM;78;85;7;false;false
+2002;TUR;Hasan Şaş;LW;78;85;7;false;false
+1990;COL;Freddy Rincón;CM;76;83;7;false;false
+2006;ECU;Antonio Valencia;RM;76;83;7;false;true
+2002;NGA;Taribo West;CB;75;82;7;false;true
+1990;NED;Aron Winter;CM;74;81;7;false;false
+2002;CMR;Lauren;RB;74;81;7;false;false
+2002;ESP;Joaquín;RW;74;81;7;false;false
+2010;KOR;Lee Jung-soo;CB;74;81;7;false;false
+2022;KOR;Kim Jin-su;LB;74;81;7;false;false
+2010;KOR;Lee Dong-gook;ST;73;80;7;false;true
+1990;NED;Richard Witschge;LW;72;79;7;false;false
+2014;GHA;Jordan Ayew;ST;72;79;7;false;false
+2018;ARG;Nahuel Guzmán;GK;72;79;7;false;false
+2018;BRA;Cássio;GK;72;79;7;false;false
+2010;KOR;Kim Jae-sung;RM;71;78;7;false;false
+2018;ARG;Willy Caballero;GK;71;78;7;false;false
+1994;NED;Stan Valckx;CB;70;77;7;false;false
+2022;CRC;Kendall Waston;CB;70;77;7;false;false
+2002;JPN;Akinori Nishizawa;ST;68;75;7;false;false
+2002;NGA;John Utaka;RW;68;75;7;false;false
+2014;SUI;Marco Bürki;RB;68;75;7;false;false
+2010;KOR;Kim Young-kwang;GK;67;74;7;false;false
+1990;EGY;Saber Eid;LB;66;73;7;false;false
+1990;EGY;Magdy Tolba;RM;66;73;7;false;false
+1990;IRL;Gerry Peyton;GK;66;73;7;false;false
+1990;IRL;Alan McLoughlin;CM;66;73;7;false;false
+1990;IRL;Bernie Slaven;ST;66;73;7;false;false
+1990;IRL;David Kelly;ST;66;73;7;false;false
+1990;IRL;John Byrne;ST;66;73;7;false;false
+1990;NED;John van Loen;ST;66;73;7;false;false
+1990;YUG;Fahrudin Omerović;GK;66;73;7;false;false
+1994;ARG;Hugo Pérez;CM;66;73;7;false;false
+1994;MEX;Luis Antonio Valdéz;ST;66;73;7;false;false
+1994;MEX;Luis Miguel Salvador;ST;66;73;7;false;false
+2002;IRL;Alan Kelly;GK;66;73;7;false;false
+1990;COL;Geovanis Cassiani;CB;64;71;7;false;false
+2002;NGA;James Obiorah;ST;64;71;7;false;false
+1990;GER;Lothar Matthäus;CM;90;96;6;true;true
+1990;ITA;Franco Baresi;CB;88;94;6;false;true
+1990;GER;Andreas Brehme;LB;85;91;6;false;true
+2002;GER;Michael Ballack;CM;85;91;6;false;true
+1990;ITA;Roberto Baggio;AM;84;90;6;false;true
+1990;NED;Ronald Koeman;CB;84;90;6;false;false
+1990;YUG;Dragan Stojković;AM;84;90;6;false;false
+2002;FRA;Patrick Vieira;CM;84;90;6;false;true
+1994;ARG;Fernando Redondo;DM;83;89;6;false;false
+1990;BRA;Cláudio Taffarel;GK;82;88;6;false;true
+1990;ITA;Walter Zenga;GK;82;88;6;false;false
+2002;ARG;Javier Zanetti;RB;82;88;6;false;true
+2010;KOR;Park Ji-sung;RM;82;88;6;false;true
+2014;CRC;Keylor Navas;GK;82;88;6;false;true
+1994;GER;Matthias Sammer;CM;81;87;6;false;true
+2010;CHI;Alexis Sánchez;RW;81;87;6;false;true
+2022;CRO;Dominik Livaković;GK;81;87;6;false;false
+1990;YUG;Robert Prosinečki;CM;80;86;6;false;false
+1994;GER;Andreas Brehme;LB;80;86;6;false;false
+1994;NGA;Jay-Jay Okocha;AM;79;85;6;false;true
+1990;COL;René Higuita;GK;78;84;6;false;true
+2002;ARG;Ariel Ortega;AM;78;84;6;false;false
+2002;DEN;Martin Laursen;CB;77;83;6;false;false
+2014;URU;Diego Forlán;ST;77;83;6;false;false
+1990;GER;Andreas Möller;AM;76;82;6;false;false
+1994;NED;Ed de Goey;GK;76;82;6;false;false
+1994;NED;Bryan Roy;LW;76;82;6;false;false
+2002;CMR;Rigobert Song;CB;76;82;6;false;false
+1990;ARG;Sergio Batista;DM;74;80;6;false;false
+1990;COL;Arnoldo Iguarán;ST;74;80;6;false;false
+1990;GER;Uwe Bein;AM;74;80;6;false;false
+1990;NED;Adri van Tiggelen;LB;74;80;6;false;false
+1990;NED;Wim Kieft;ST;74;80;6;false;false
+1990;ROU;Ilie Dumitrescu;RW;74;80;6;false;false
+1990;YUG;Zlatko Vujović;LW;74;80;6;false;false
+2002;ARG;Marcelo Gallardo;AM;74;80;6;false;false
+2002;JPN;Yoshikatsu Kawaguchi;GK;74;80;6;false;true
+2002;NGA;Joseph Yobo;CB;74;80;6;false;false
+2010;KOR;Ahn Jung-hwan;ST;74;80;6;false;true
+2018;MAR;Mbark Boussoufa;AM;74;80;6;false;true
+2018;RUS;Denis Cheryshev;LW;74;80;6;false;false
+2022;CRO;Borna Sosa;LB;74;80;6;false;false
+2002;ENG;Robbie Fowler;ST;73;79;6;false;false
+2002;NGA;Mutiu Adepoju;CM;73;79;6;false;false
+2002;NGA;Garba Lawal;LM;73;79;6;false;false
+2018;MAR;Fayçal Fajr;CM;73;79;6;false;false
+2022;AUS;Jackson Irvine;CM;73;79;6;false;false
+1990;BRA;Renato Gaúcho;RW;72;78;6;false;false
+1990;YUG;Robert Jarni;LB;72;78;6;false;false
+2010;BRA;Gilberto;LB;72;78;6;false;false
+2014;GHA;Mubarak Wakaso;LM;72;78;6;false;false
+2022;CRC;Óscar Duarte;CB;72;78;6;false;false
+2022;SRB;Vanja Milinković-Savić;GK;72;78;6;false;false
+1990;ROU;Dănuț Lupu;AM;70;76;6;false;false
+1990;YUG;Zoran Vulić;CB;70;76;6;false;false
+1994;NED;Ulrich van Gobbel;RB;70;76;6;false;false
+2002;ARG;Gustavo López;LM;70;76;6;false;false
+2002;IRL;Mark Kinsella;CM;70;76;6;false;false
+2006;SUI;Diego Benaglio;GK;70;76;6;false;false
+2010;ARG;Mariano Andújar;GK;70;76;6;false;false
+2018;KOR;Kim Shin-wook;ST;70;76;6;false;false
+2022;CRC;Bryan Oviedo;LB;70;76;6;false;false
+2006;CIV;Boubacar Barry;GK;69;75;6;false;false
+1994;MEX;Raúl Gutiérrez;CB;68;74;6;false;false
+2002;IRL;Dean Kiely;GK;68;74;6;false;false
+2002;IRL;Andy O'Brien;CB;68;74;6;false;false
+2002;MEX;Rafael García;CM;68;74;6;false;false
+2002;POR;Beto;CB;68;74;6;false;false
+2014;ALG;Cédric Si Mohamed;GK;67;73;6;false;false
+2014;GRE;Stefanos Kapino;GK;67;73;6;false;false
+1990;COL;José Ricardo Pérez;CB;66;72;6;false;false
+1990;COL;Carlos Estrada;ST;66;72;6;false;false
+1990;NED;Henk Fraser;CB;66;72;6;false;false
+1990;ROU;Adrian Popescu;CB;66;72;6;false;false
+1994;ARG;Jorge Borelli;CB;66;72;6;false;false
+1994;COL;Óscar Cortés;RM;66;72;6;false;false
+1994;ROU;Iulian Chiriță;CM;66;72;6;false;false
+1994;ROU;Ion Vlădoiu;ST;66;72;6;false;false
+1994;SWE;Mikael Nilsson;CB;66;72;6;false;false
+2002;CMR;Alioum Boukar;GK;66;72;6;false;false
+2002;MEX;Sigifredo Mercado;CM;66;72;6;false;false
+2022;SEN;Moussa N'Diaye;LB;66;72;6;false;false
+2002;MEX;Alberto Rodríguez;CB;65;71;6;false;false
+1990;CMR;Bonaventure Djonkep;LW;64;70;6;false;false
+1990;COL;Luis Fajardo;CM;64;70;6;false;false
+2002;FRA;Zinedine Zidane;AM;90;95;5;true;true
+2002;GER;Oliver Kahn;GK;90;95;5;true;true
+2006;ITA;Fabio Cannavaro;CB;90;95;5;true;true
+1990;NED;Marco van Basten;ST;88;93;5;false;true
+1990;NED;Ruud Gullit;AM;87;92;5;false;true
+2010;URU;Diego Forlán;ST;87;92;5;false;true
+2006;GER;Oliver Kahn;GK;86;91;5;false;true
+2018;BRA;Alisson;GK;86;91;5;false;true
+1990;BRA;Careca;ST;85;90;5;false;true
+1994;NED;Ronald Koeman;CB;85;90;5;false;true
+1990;BRA;Romário;ST;82;87;5;false;true
+2002;FRA;Claude Makélélé;DM;82;87;5;false;false
+1994;NED;Marc Overmars;LW;81;86;5;false;false
+2010;CHI;Arturo Vidal;CM;81;86;5;false;false
+1990;NED;Hans van Breukelen;GK;80;85;5;false;false
+1994;COL;Freddy Rincón;CM;80;85;5;false;false
+2010;BRA;Elano;RM;80;85;5;false;false
+2014;GHA;Kwadwo Asamoah;LM;80;85;5;false;false
+1994;BRA;Jorginho;RB;79;84;5;false;false
+1994;GER;Stefan Effenberg;CM;79;84;5;false;false
+1994;MEX;Luis García;ST;79;84;5;false;false
+2014;GHA;Kevin-Prince Boateng;AM;79;84;5;false;false
+2014;GHA;André Ayew;LW;79;84;5;false;false
+1994;ARG;Ariel Ortega;AM;78;83;5;false;false
+2002;CMR;Marc-Vivien Foé;DM;78;83;5;false;true
+2002;CMR;Samuel Eto'o;ST;78;83;5;false;true
+2002;CMR;Patrick Mboma;ST;78;83;5;false;false
+2010;CHI;Jorge Valdivia;AM;78;83;5;false;false
+2018;MAR;Achraf Hakimi;RB;78;83;5;false;false
+1994;ARG;Roberto Sensini;CB;77;82;5;false;false
+1994;NED;Wim Jonk;CM;77;82;5;false;false
+2002;DEN;Dennis Rommedahl;RW;77;82;5;false;false
+2010;ARG;Sergio Romero;GK;77;82;5;false;false
+2010;CHI;Gary Medel;DM;77;82;5;false;false
+2014;NED;Georginio Wijnaldum;CM;77;82;5;false;false
+2014;URU;Egidio Arévalo Ríos;DM;77;82;5;false;false
+2018;SWE;Marcus Berg;ST;77;82;5;false;false
+2022;CRO;Nikola Vlašić;AM;77;82;5;false;false
+1990;BRA;Carlos Mozer;CB;76;81;5;false;false
+1990;COL;Andrés Escobar;CB;76;81;5;false;false
+1994;GER;Thomas Berthold;RB;76;81;5;false;false
+2002;MEX;Alberto García Aspe;CM;76;81;5;false;false
+2022;AUS;Mathew Leckie;RW;76;81;5;false;false
+2002;NGA;Celestine Babayaro;LB;75;80;5;false;false
+2022;SEN;Pape Matar Sarr;CM;75;80;5;false;false
+1990;BRA;Mazinho;DM;74;79;5;false;false
+1990;BRA;Mauro Galvão;CB;74;79;5;false;false
+1990;IRL;John Aldridge;ST;74;79;5;false;false
+1990;NED;Berry van Aerle;RB;74;79;5;false;false
+1990;NED;Gerald Vanenburg;RM;74;79;5;false;false
+1994;MEX;Luís Roberto Alves;ST;74;79;5;false;false
+2002;JPN;Alessandro Santos;LM;74;79;5;false;false
+2002;MEX;Luis Hernández;ST;74;79;5;false;false
+2006;POR;Miguel;RB;74;79;5;false;false
+2010;GRE;Sokratis Papastathopoulos;CB;74;79;5;false;false
+2022;AUS;Harry Souttar;CB;74;79;5;false;false
+2006;ARG;Leo Franco;GK;73;78;5;false;false
+2010;ARG;Martín Palermo;ST;73;78;5;false;false
+1990;ARG;Abel Balbo;ST;72;77;5;false;false
+1990;BRA;Bismarck;AM;72;77;5;false;false
+1990;EGY;Rabie Yassin;CB;72;77;5;false;false
+1990;IRL;David O'Leary;CB;72;77;5;false;false
+1990;YUG;Refik Šabanadžović;DM;72;77;5;false;false
+2002;MEX;Francisco Palencia;ST;72;77;5;false;false
+2002;NGA;Ike Shorunmu;GK;72;77;5;false;false
+2014;ALG;Aïssa Mandi;CB;72;77;5;false;false
+2014;GHA;Emmanuel Agyemang-Badu;CM;72;77;5;false;false
+2018;EGY;Mohamed El Shenawy;GK;72;77;5;false;false
+2018;EGY;Tarek Hamed;DM;72;77;5;false;false
+2010;GRE;Alexandros Tzorvas;GK;71;76;5;false;false
+2014;ALG;Rafik Halliche;CB;71;76;5;false;false
+2022;KOR;Na Sang-ho;RW;71;76;5;false;false
+1990;EGY;Hesham Yakan;CB;70;75;5;false;false
+1990;IRL;Chris Morris;RB;70;75;5;false;false
+1990;ROU;Daniel Timofte;CM;70;75;5;false;false
+1990;TCH;Vladimír Weiss;LM;70;75;5;false;false
+1994;ARG;Leonardo Rodríguez;AM;70;75;5;false;false
+1994;NED;John Bosman;ST;70;75;5;false;false
+1994;ROU;Gheorghe Mihali;CB;70;75;5;false;false
+1994;SWE;Pontus Kåmark;RB;70;75;5;false;false
+2002;DEN;Brian Steen Nielsen;CM;70;75;5;false;false
+2002;ENG;Wayne Bridge;LB;70;75;5;false;false
+2002;IRL;Lee Carsley;DM;70;75;5;false;false
+2006;ECU;Christian Benítez;ST;70;75;5;false;false
+2014;ALG;Djamel Mesbah;LB;70;75;5;false;false
+2018;EGY;Essam El Hadary;GK;70;75;5;false;false
+2022;CRC;Keysher Fuller;RB;70;75;5;false;false
+2010;GRE;Michalis Sifakis;GK;69;74;5;false;false
+2014;ALG;Nabil Ghilas;ST;69;74;5;false;false
+1990;ARG;Néstor Fabbri;CB;68;73;5;false;false
+1990;EGY;Alaa Mayhoub;CM;68;73;5;false;false
+1990;GER;Paul Steiner;CB;68;73;5;false;false
+1990;ROU;Emil Săndoi;CB;68;73;5;false;false
+1994;NGA;Samson Siasia;ST;68;73;5;false;false
+2002;KOR;Choi Tae-uk;ST;68;73;5;false;false
+2002;SEN;Amdy Faye;DM;68;73;5;false;false
+2010;GRE;Stelios Malezas;CB;68;73;5;false;false
+2010;KOR;Kang Min-soo;CB;68;73;5;false;false
+2014;ALG;Mohamed Lamine Zemmamouche;GK;68;73;5;false;false
+2014;CIV;Sylvain Gbohouo;GK;68;73;5;false;false
+2014;CIV;Jean-Daniel Akpa Akpro;CB;68;73;5;false;false
+2018;EGY;Amr Warda;AM;68;73;5;false;false
+2022;KOR;Kim Tae-hwan;RB;68;73;5;false;false
+2010;GRE;Sakis Prittas;CM;67;72;5;false;false
+2018;EGY;Ayman Ashraf;LB;67;72;5;false;false
+2018;EGY;Mahmoud Hamdy;CB;67;72;5;false;false
+2018;EGY;Saad Samir;CB;67;72;5;false;false
+1990;COL;Eduardo Niño;GK;66;71;5;false;false
+1994;BUL;Georgi Georgiev;CM;66;71;5;false;false
+1994;BUL;Ivaylo Andonov;ST;66;71;5;false;false
+1994;MEX;Adrián Chávez;GK;66;71;5;false;false
+1994;NGA;Michael Emenalo;LB;66;71;5;false;false
+1994;NGA;Emeka Ezeugo;DM;66;71;5;false;false
+1994;ROU;Corneliu Papură;CB;66;71;5;false;false
+1994;ROU;Marian Ivan;AM;66;71;5;false;false
+1994;SWE;Teddy Lučić;CB;66;71;5;false;false
+2002;MEX;Johan Rodríguez;CM;66;71;5;false;false
+2002;SEN;Souleymane Camara;ST;66;71;5;false;false
+2014;CIV;Sayouba Mandé;GK;66;71;5;false;false
+1994;BRA;Romário;ST;92;96;4;true;true
+2006;FRA;Zinedine Zidane;AM;90;94;4;true;true
+2018;FRA;Kylian Mbappé;RW;90;94;4;true;true
+1990;ARG;Diego Maradona;AM;88;92;4;false;true
+1998;DEN;Michael Laudrup;AM;88;92;4;false;true
+1994;NED;Dennis Bergkamp;ST;87;91;4;false;true
+1994;BRA;Bebeto;ST;86;90;4;false;false
+1994;GER;Lothar Matthäus;CM;86;90;4;false;true
+2006;ENG;Wayne Rooney;ST;86;90;4;false;true
+2002;ITA;Francesco Totti;AM;85;89;4;false;true
+2002;POR;Luís Figo;RW;85;89;4;false;true
+1990;ENG;Paul Gascoigne;AM;84;88;4;false;true
+1994;BRA;Dunga;DM;84;88;4;false;false
+1998;GER;Lothar Matthäus;CB;84;88;4;false;true
+2002;FRA;Fabien Barthez;GK;84;88;4;false;false
+2002;FRA;Lilian Thuram;RB;84;88;4;false;false
+2006;ARG;Carlos Tévez;ST;84;88;4;false;false
+2002;FRA;Marcel Desailly;CB;83;87;4;false;false
+2022;CRO;Joško Gvardiol;CB;83;87;4;false;false
+1994;GER;Rudi Völler;ST;82;86;4;false;false
+2002;ARG;Roberto Ayala;CB;82;86;4;false;false
+2002;FRA;David Trezeguet;ST;82;86;4;false;false
+2002;POR;Rui Costa;AM;82;86;4;false;true
+2002;TUR;Hakan Şükür;ST;82;86;4;false;false
+2006;ARG;Javier Mascherano;DM;82;86;4;false;false
+2006;GER;Lukas Podolski;ST;82;86;4;false;false
+2014;FRA;Paul Pogba;CM;82;86;4;false;false
+2018;MAR;Hakim Ziyech;AM;82;86;4;false;false
+2022;MAR;Sofyan Amrabat;DM;82;86;4;false;false
+1994;ITA;Demetrio Albertini;CM;81;85;4;false;false
+2002;ENG;Sol Campbell;CB;81;85;4;false;false
+1990;ARG;Claudio Caniggia;ST;80;84;4;false;false
+1990;ENG;Chris Waddle;LW;80;84;4;false;false
+1990;ENG;John Barnes;LW;80;84;4;false;false
+1990;ITA;Roberto Donadoni;LW;80;84;4;false;false
+1990;ITA;Gianluca Vialli;ST;80;84;4;false;false
+1990;YUG;Dejan Savićević;AM;80;84;4;false;false
+1990;YUG;Darko Pančev;ST;80;84;4;false;false
+1998;GER;Andreas Köpke;GK;80;84;4;false;false
+2002;ARG;Walter Samuel;CB;80;84;4;false;false
+2002;MEX;Jared Borgetti;ST;80;84;4;false;true
+2006;ARG;Roberto Abbondanzieri;GK;80;84;4;false;false
+2010;ARG;Juan Sebastián Verón;CM;80;84;4;false;false
+2010;BRA;Thiago Silva;CB;80;84;4;false;false
+2014;NED;Stefan de Vrij;CB;80;84;4;false;false
+1994;ITA;Gianfranco Zola;AM;79;83;4;false;false
+1994;MEX;Alberto García Aspe;CM;79;83;4;false;false
+1994;NED;Aron Winter;CM;79;83;4;false;false
+1994;NGA;Finidi George;RW;79;83;4;false;false
+2002;ARG;Juan Pablo Sorín;LB;79;83;4;false;false
+2002;FRA;Sylvain Wiltord;RW;79;83;4;false;false
+2002;POR;Fernando Couto;CB;79;83;4;false;false
+2010;GRE;Giorgos Karagounis;CM;79;83;4;false;true
+2018;RUS;Aleksandr Golovin;AM;79;83;4;false;false
+1990;BRA;Jorginho;RB;78;82;4;false;false
+1990;GER;Karl-Heinz Riedle;ST;78;82;4;false;false
+1990;ROU;Marius Lăcătuș;RW;78;82;4;false;false
+1994;MEX;Ramón Ramírez;LM;78;82;4;false;false
+1994;NED;Ronald de Boer;AM;78;82;4;false;false
+1994;NGA;Daniel Amokachi;ST;78;82;4;false;false
+2002;IRL;Shay Given;GK;78;82;4;false;false
+2006;BRA;Júlio César;GK;78;82;4;false;false
+2010;CHI;Mauricio Isla;RB;78;82;4;false;false
+2010;ENG;Jamie Carragher;CB;78;82;4;false;false
+2010;GRE;Giorgos Samaras;LW;78;82;4;false;false
+2010;KOR;Lee Young-pyo;LB;78;82;4;false;true
+2010;KOR;Park Chu-young;ST;78;82;4;false;false
+2014;NED;Jasper Cillessen;GK;78;82;4;false;false
+2014;URU;Diego Lugano;CB;78;82;4;false;false
+2018;RUS;Igor Akinfeev;GK;78;82;4;false;false
+2022;AUS;Mathew Ryan;GK;78;82;4;false;true
+2022;SEN;Krépin Diatta;RW;78;82;4;false;false
+2022;SEN;Boulaye Dia;ST;78;82;4;false;false
+1994;ARG;José Chamot;LB;77;81;4;false;false
+2002;POR;Jorge Costa;CB;77;81;4;false;false
+1990;COL;Leonel Álvarez;DM;76;80;4;false;false
+1990;ITA;Luigi De Agostini;LB;76;80;4;false;false
+1990;ITA;Riccardo Ferri;CB;76;80;4;false;false
+1990;YUG;Faruk Hadžibegić;CB;76;80;4;false;false
+1990;YUG;Srećko Katanec;CM;76;80;4;false;false
+2002;ENG;Gareth Southgate;CB;76;80;4;false;false
+2002;POR;Paulo Sousa;DM;76;80;4;false;false
+2002;POR;João Pinto;AM;76;80;4;false;false
+2014;ALG;Raïs M'Bolhi;GK;76;80;4;false;false
+2014;NED;Memphis Depay;LW;76;80;4;false;false
+2018;JPN;Makoto Hasebe;DM;76;80;4;false;false
+2018;MAR;Yassine Bounou;GK;76;80;4;false;false
+2018;RUS;Artem Dzyuba;ST;76;80;4;false;false
+2018;JPN;Gaku Shibasaki;CM;75;79;4;false;false
+2022;SEN;Iliman Ndiaye;AM;75;79;4;false;false
+1990;BRA;Ricardo Rocha;CB;74;78;4;false;false
+1990;COL;Luis Carlos Perea;CB;74;78;4;false;false
+1990;EGY;Magdi Abdelghani;CM;74;78;4;false;false
+1990;IRL;Steve Staunton;LB;74;78;4;false;false
+1990;IRL;Mick McCarthy;CB;74;78;4;false;false
+1990;IRL;Kevin Moran;CB;74;78;4;false;false
+1990;IRL;Kevin Sheedy;LM;74;78;4;false;false
+1990;IRL;Niall Quinn;ST;74;78;4;false;false
+1990;ITA;Stefano Tacconi;GK;74;78;4;false;false
+1990;ROU;Silviu Lung;GK;74;78;4;false;false
+1990;ROU;Dorin Mateuț;RW;74;78;4;false;false
+1990;YUG;Tomislav Ivković;GK;74;78;4;false;false
+1994;GER;Thomas Strunz;RB;74;78;4;false;false
+1994;MEX;Ignacio Ambríz;DM;74;78;4;false;false
+2002;ARG;Matías Almeyda;DM;74;78;4;false;false
+2002;ENG;Martin Keown;CB;74;78;4;false;false
+2002;IRL;Steve Staunton;CB;74;78;4;false;false
+2002;JPN;Masashi Nakayama;ST;74;78;4;false;false
+2010;KOR;Jung Sung-ryong;GK;74;78;4;false;false
+2014;ALG;Nabil Bentaleb;CM;74;78;4;false;false
+2014;ALG;Hillal Soudani;ST;74;78;4;false;false
+2014;MEX;José de Jesús Corona;GK;74;78;4;false;false
+2014;MEX;Raúl Jiménez;ST;74;78;4;false;false
+2014;SUI;Fabian Schär;CB;74;78;4;false;false
+2014;URU;Diego Pérez;DM;74;78;4;false;false
+2018;ENG;Trent Alexander-Arnold;RB;74;78;4;false;false
+2018;JPN;Genki Haraguchi;RM;74;78;4;false;false
+2018;RUS;Yuri Zhirkov;LB;74;78;4;false;false
+2022;SEN;Nicolas Jackson;ST;74;78;4;false;false
+2022;SEN;Famara Diédhiou;ST;74;78;4;false;false
+2006;ECU;Edwin Tenorio;DM;73;77;4;false;false
+2014;MEX;José Juan Vázquez;DM;73;77;4;false;false
+2018;KOR;Jo Hyeon-woo;GK;73;77;4;false;false
+2018;RUS;Sergei Ignashevich;CB;73;77;4;false;false
+2018;SWE;John Guidetti;ST;73;77;4;false;false
+2022;CRC;Francisco Calvo;CB;73;77;4;false;false
+1990;BRA;Tita;AM;72;76;4;false;false
+1990;COL;Luis Fernando Herrera;RB;72;76;4;false;false
+1990;EGY;Ismail Youssef;DM;72;76;4;false;false
+1990;EGY;Taher Abouzeid;RW;72;76;4;false;false
+1990;IRL;Tony Cascarino;ST;72;76;4;false;false
+1990;NED;Bryan Roy;LW;72;76;4;false;false
+2002;DEN;Christian Poulsen;DM;72;76;4;false;false
+2002;ENG;Joe Cole;AM;72;76;4;false;false
+2002;ENG;Kieron Dyer;CM;72;76;4;false;false
+2002;ENG;Trevor Sinclair;LM;72;76;4;false;false
+2002;IRL;Jason McAteer;RM;72;76;4;false;false
+2002;JPN;Takayuki Suzuki;ST;72;76;4;false;false
+2006;CIV;Emerse Faé;CM;72;76;4;false;false
+2006;GER;Marcell Jansen;LB;72;76;4;false;false
+2006;GER;David Odonkor;RM;72;76;4;false;false
+2010;CHI;Fabián Orellana;RW;72;76;4;false;false
+2010;KOR;Kim Dong-jin;LB;72;76;4;false;false
+2010;KOR;Yeom Ki-hun;LW;72;76;4;false;false
+2014;ALG;Carl Medjani;CB;72;76;4;false;false
+2014;CIV;Boubacar Barry;GK;72;76;4;false;false
+2014;GHA;Harrison Afful;RB;72;76;4;false;false
+2014;NED;Joël Veltman;CB;72;76;4;false;false
+2018;CRO;Dominik Livaković;GK;72;76;4;false;false
+2018;EGY;Ahmed Fathy;RB;72;76;4;false;false
+2018;MAR;Sofyan Amrabat;DM;72;76;4;false;false
+2018;RUS;Daler Kuzyayev;CM;72;76;4;false;false
+2018;RUS;Roman Zobnin;CM;72;76;4;false;false
+2022;CRO;Luka Sučić;CM;72;76;4;false;false
+2022;SEN;Bamba Dieng;ST;72;76;4;false;false
+2006;SUI;Johan Djourou;CB;71;75;4;false;false
+2018;SWE;Kristoffer Nordfeldt;GK;71;75;4;false;false
+1990;ARG;José Serrizuela;CB;70;74;4;false;false
+1990;IRL;Chris Hughton;LB;70;74;4;false;false
+1990;IRL;Frank Stapleton;ST;70;74;4;false;false
+1990;TCH;Július Bielik;CB;70;74;4;false;false
+1990;YUG;Mirsad Baljić;AM;70;74;4;false;false
+1994;BUL;Boncho Genchev;CM;70;74;4;false;false
+1994;NED;Gaston Taument;RW;70;74;4;false;false
+1994;ROU;Ovidiu Stângă;RM;70;74;4;false;false
+1994;ROU;Basarab Panduru;CM;70;74;4;false;false
+2002;ARG;Claudio Husain;CM;70;74;4;false;false
+2002;JPN;Takashi Fukunishi;CM;70;74;4;false;false
+2002;KOR;Choi Yong-soo;ST;70;74;4;false;false
+2002;MEX;Manuel Vidrio;CB;70;74;4;false;false
+2002;POR;Marco Caneira;LB;70;74;4;false;false
+2006;CIV;Marco Zoro;CB;70;74;4;false;false
+2006;CZE;Jaromír Blažek;GK;70;74;4;false;false
+2006;NED;Kew Jaliens;RB;70;74;4;false;false
+2014;ALG;Essaïd Belkalem;CB;70;74;4;false;false
+2014;BRA;Victor;GK;70;74;4;false;false
+2014;GHA;Afriyie Acquah;CM;70;74;4;false;false
+2014;GHA;Majeed Waris;ST;70;74;4;false;false
+2018;EGY;Ali Gabr;CB;70;74;4;false;false
+2018;EGY;Sam Morsy;DM;70;74;4;false;false
+2018;EGY;Kahraba;LW;70;74;4;false;false
+2018;RUS;Fyodor Kudryashov;CB;70;74;4;false;false
+2022;CRO;Ivica Grbić;GK;70;74;4;false;false
+2022;SRB;Stefan Mitrović;CB;70;74;4;false;false
+2002;DEN;Peter Madsen;ST;69;73;4;false;false
+2006;ECU;Edwin Villafuerte;GK;69;73;4;false;false
+2006;SUI;Blerim Džemaili;CM;69;73;4;false;false
+2010;GRE;Pantelis Kapetanos;ST;69;73;4;false;false
+2014;ALG;Liassine Cadamuro-Bentaïba;CB;69;73;4;false;false
+2014;GHA;Mohammed Rabiu;DM;69;73;4;false;false
+2014;GRE;Panagiotis Glykos;GK;69;73;4;false;false
+2018;EGY;Marwan Mohsen;ST;69;73;4;false;false
+1990;CMR;Victor N'Dip;RB;68;72;4;false;false
+1990;COL;León Villa;DM;68;72;4;false;false
+1994;BUL;Petar Mihtarski;ST;68;72;4;false;false
+1994;NGA;Chidi Nwanu;CB;68;72;4;false;false
+2002;DEN;Kasper Bøgelund;RB;68;72;4;false;false
+2002;JPN;Mitsuo Ogasawara;AM;68;72;4;false;false
+2002;KOR;Yoon Jong-hwan;AM;68;72;4;false;false
+2002;KOR;Cha Du-ri;ST;68;72;4;false;false
+2006;CIV;Gérard Gnanhouan;GK;68;72;4;false;false
+2006;CZE;Antonín Kinský;GK;68;72;4;false;false
+2010;ARG;Ariel Garcé;RB;68;72;4;false;false
+2018;COL;José Fernando Cuadrado;GK;68;72;4;false;false
+2018;RUS;Vladimir Granat;CB;68;72;4;false;false
+2018;RUS;Aleksandr Yerokhin;CM;68;72;4;false;false
+2022;CRC;Esteban Alvarado;GK;68;72;4;false;false
+2022;CRO;Ivica Ivušić;GK;68;72;4;false;false
+2022;ECU;Djorkaeff Reasco;ST;68;72;4;false;false
+2022;ECU;Kevin Rodríguez;ST;68;72;4;false;false
+2006;ECU;Damián Lanza;GK;67;71;4;false;false
+1990;COL;Carlos Hoyos;CB;66;70;4;false;false
+1994;ARG;Norberto Scoponi;GK;66;70;4;false;false
+1994;ARG;Alejandro Mancuso;CM;66;70;4;false;false
+1994;BUL;Velko Yotov;AM;66;70;4;false;false
+1994;ROU;Ștefan Preda;GK;66;70;4;false;false
+2002;CMR;Carlos Kameni;GK;66;70;4;false;false
+2002;JPN;Daisuke Ichikawa;RB;66;70;4;false;false
+2002;USA;Carlos Llamosa;CB;66;70;4;false;false
+2010;CIV;Daniel Yeboah;GK;66;70;4;false;false
+2018;MAR;Ahmed Reda Tagnaouti;GK;66;70;4;false;false
+2022;CRC;Jewison Bennette;LW;66;70;4;false;false
+1990;ROU;Gheorghe Liliac;GK;64;68;4;false;false
+2002;SEN;Makhtar N'Diaye;CM;64;68;4;false;false
+2022;CRC;Gerson Torres;RW;64;68;4;false;false
+1998;ITA;Paolo Maldini;LB;92;95;3;true;true
+2018;CRO;Luka Modrić;CM;92;95;3;true;true
+2006;BRA;Ronaldo;ST;90;93;3;true;true
+2006;BRA;Kaká;AM;89;92;3;false;true
+2010;NED;Arjen Robben;RW;89;92;3;false;true
+2006;ENG;Steven Gerrard;CM;88;91;3;false;true
+2010;BRA;Kaká;AM;88;91;3;false;true
+2018;ENG;Harry Kane;ST;87;90;3;false;false
+1990;ITA;Paolo Maldini;LB;86;89;3;false;true
+1990;ROU;Gheorghe Hagi;AM;86;89;3;false;true
+2002;ESP;Raúl;ST;86;89;3;false;true
+2006;ENG;David Beckham;RM;86;89;3;false;true
+2018;FRA;Raphaël Varane;CB;86;89;3;false;false
+1990;GER;Rudi Völler;ST;85;88;3;false;false
+1998;ENG;Michael Owen;ST;85;88;3;false;true
+1998;FRA;Fabien Barthez;GK;85;88;3;false;false
+1998;NGA;Nwankwo Kanu;ST;85;88;3;false;true
+1998;PAR;Carlos Gamarra;CB;85;88;3;false;true
+2006;CZE;Pavel Nedvěd;AM;85;88;3;false;true
+2006;GER;Miroslav Klose;ST;85;88;3;false;true
+2010;BRA;Júlio César;GK;85;88;3;false;true
+2010;BRA;Maicon;RB;85;88;3;false;false
+1990;GER;Jürgen Kohler;CB;84;87;3;false;false
+1994;COL;Faustino Asprilla;ST;84;87;3;false;false
+1998;FRA;Bixente Lizarazu;LB;84;87;3;false;false
+2006;ARG;Esteban Cambiasso;DM;84;87;3;false;false
+2022;CRO;Ivan Perišić;LW;84;87;3;false;true
+2022;MAR;Yassine Bounou;GK;84;87;3;false;false
+2006;GER;Philipp Lahm;LB;83;86;3;false;false
+2006;SWE;Henrik Larsson;ST;83;86;3;false;true
+2010;BRA;Robinho;LW;83;86;3;false;false
+2022;SEN;Idrissa Gueye;DM;83;86;3;false;false
+1990;GER;Bodo Illgner;GK;82;85;3;false;false
+1994;GER;Bodo Illgner;GK;82;85;3;false;false
+1994;GER;Andreas Möller;AM;82;85;3;false;false
+1998;NGA;Finidi George;RW;82;85;3;false;false
+2002;BRA;Gilberto Silva;DM;82;85;3;false;false
+2002;ENG;Paul Scholes;CM;82;85;3;false;false
+2002;FRA;Bixente Lizarazu;LB;82;85;3;false;false
+2002;JPN;Hidetoshi Nakata;AM;82;85;3;false;true
+2002;KOR;Hong Myung-bo;CB;82;85;3;false;false
+2006;GER;Bastian Schweinsteiger;LM;82;85;3;false;false
+2010;BRA;Luís Fabiano;ST;82;85;3;false;false
+2014;FRA;Raphaël Varane;CB;82;85;3;false;false
+2018;ARG;Javier Mascherano;DM;82;85;3;false;false
+2022;CRO;Andrej Kramarić;ST;82;85;3;false;false
+1990;GER;Thomas Häßler;AM;81;84;3;false;false
+2002;MEX;Rafael Márquez;CB;81;84;3;false;true
+2006;SUI;Alexander Frei;ST;81;84;3;false;true
+2006;UKR;Anatoliy Tymoshchuk;DM;81;84;3;false;false
+2014;NED;Klaas-Jan Huntelaar;ST;81;84;3;false;false
+2018;SWE;Victor Lindelöf;CB;81;84;3;false;true
+1990;ARG;Oscar Ruggeri;CB;80;83;3;false;false
+1990;BRA;Aldair;CB;80;83;3;false;false
+1994;ARG;Sergio Goycochea;GK;80;83;3;false;false
+1994;NED;Frank de Boer;CB;80;83;3;false;false
+1994;NGA;Rashidi Yekini;ST;80;83;3;false;false
+2002;MEX;Cuauhtémoc Blanco;AM;80;83;3;false;true
+2002;USA;Landon Donovan;AM;80;83;3;false;false
+2006;CIV;Yaya Touré;CM;80;83;3;false;false
+2006;NED;Robin van Persie;ST;80;83;3;false;false
+2014;GHA;Asamoah Gyan;ST;80;83;3;false;true
+2014;NGA;Ahmed Musa;LW;80;83;3;false;false
+2018;JPN;Keisuke Honda;AM;80;83;3;false;false
+1990;ENG;Peter Beardsley;AM;79;82;3;false;false
+1990;GER;Thomas Berthold;RB;79;82;3;false;false
+1990;ITA;Pietro Vierchowod;CB;79;82;3;false;false
+1990;ITA;Roberto Mancini;ST;79;82;3;false;false
+1990;NED;Jan Wouters;DM;79;82;3;false;false
+1994;GER;Thomas Helmer;CB;79;82;3;false;false
+1994;NGA;Emmanuel Amunike;LW;79;82;3;false;false
+2002;DEN;Thomas Gravesen;CM;79;82;3;false;false
+2002;ENG;David Seaman;GK;79;82;3;false;false
+2002;FRA;Emmanuel Petit;CM;79;82;3;false;false
+2002;FRA;Youri Djorkaeff;AM;79;82;3;false;false
+2002;POR;Sérgio Conceição;RM;79;82;3;false;false
+2002;POR;Nuno Gomes;ST;79;82;3;false;false
+2002;TUR;Emre Belözoğlu;CM;79;82;3;false;false
+2010;CHI;Humberto Suazo;ST;79;82;3;false;false
+2014;GHA;Michael Essien;DM;79;82;3;false;true
+1990;ARG;Jorge Burruchaga;AM;78;81;3;false;false
+1990;GER;Stefan Reuter;RB;78;81;3;false;false
+1994;ROU;Dorinel Munteanu;CM;78;81;3;false;false
+2002;ARG;Claudio López;ST;78;81;3;false;false
+2002;ESP;Gaizka Mendieta;RM;78;81;3;false;false
+2010;JPN;Yūto Nagatomo;LB;78;81;3;false;false
+2014;ALG;Islam Slimani;ST;78;81;3;false;false
+2014;CIV;Serge Aurier;RB;78;81;3;false;false
+2014;NED;Dirk Kuyt;RM;78;81;3;false;false
+2018;JPN;Yūto Nagatomo;LB;78;81;3;false;false
+2018;URU;Rodrigo Bentancur;CM;78;81;3;false;false
+2022;CRO;Dejan Lovren;CB;78;81;3;false;false
+2022;CRO;Mario Pašalić;AM;78;81;3;false;false
+2002;DEN;Martin Jørgensen;RM;77;80;3;false;false
+2006;SWE;Mikael Nilsson;RB;77;80;3;false;false
+2010;CIV;Arthur Boka;LB;77;80;3;false;false
+2010;CIV;Cheick Tioté;DM;77;80;3;false;false
+2014;GHA;Sulley Muntari;CM;77;80;3;false;false
+2014;NED;Tim Krul;GK;77;80;3;false;false
+2014;NGA;Joseph Yobo;CB;77;80;3;false;false
+2018;JPN;Takashi Inui;LW;77;80;3;false;false
+2018;SWE;Pontus Jansson;CB;77;80;3;false;false
+2022;AUS;Aaron Mooy;CM;77;80;3;false;false
+2022;CRO;Josip Juranović;RB;77;80;3;false;false
+2022;CRO;Lovro Majer;CM;77;80;3;false;false
+1990;ARG;Nery Pumpido;GK;76;79;3;false;false
+1990;EGY;Hossam Hassan;ST;76;79;3;false;false
+1990;NED;Erwin Koeman;LM;76;79;3;false;false
+1990;ROU;Gabi Balint;AM;76;79;3;false;false
+1994;NED;Peter van Vossen;ST;76;79;3;false;false
+1994;NGA;Peter Rufai;GK;76;79;3;false;false
+2002;ARG;Kily González;LM;76;79;3;false;false
+2002;DEN;Stig Tøfting;DM;76;79;3;false;false
+2002;FRA;Christophe Dugarry;ST;76;79;3;false;false
+2002;MEX;Óscar Pérez;GK;76;79;3;false;false
+2002;MEX;Gerardo Torrado;DM;76;79;3;false;false
+2010;CHI;Gonzalo Jara;CB;76;79;3;false;false
+2014;GHA;Christian Atsu;LW;76;79;3;false;false
+2014;MEX;Miguel Layún;LB;76;79;3;false;false
+2014;MEX;Paul Aguilar;RB;76;79;3;false;false
+2014;NGA;Efe Ambrose;CB;76;79;3;false;false
+2018;COL;Carlos Sánchez;DM;76;79;3;false;false
+2018;JPN;Yuya Osako;ST;76;79;3;false;false
+2018;KOR;Koo Ja-cheol;CM;76;79;3;false;false
+2022;CRO;Mislav Oršić;LW;76;79;3;false;false
+2022;SEN;Youssouf Sabaly;RB;76;79;3;false;false
+2022;SRB;Strahinja Pavlović;CB;76;79;3;false;false
+2002;IRL;Steve Finnan;RB;75;78;3;false;false
+2002;IRL;Ian Harte;LB;75;78;3;false;false
+2002;IRL;Richard Dunne;CB;75;78;3;false;false
+2006;BRA;Fred Guedes;ST;75;78;3;false;false
+2006;SUI;Marco Streller;ST;75;78;3;false;false
+2010;GRE;Avraam Papadopoulos;CB;75;78;3;false;false
+2018;JPN;Gen Shoji;CB;75;78;3;false;false
+2022;CRO;Borna Barišić;LB;75;78;3;false;false
+1990;ARG;José Basualdo;CM;74;77;3;false;false
+1990;CMR;Cyrille Makanaky;AM;74;77;3;false;false
+1990;COL;Bernardo Redín;AM;74;77;3;false;false
+1990;EGY;Gamal Abdel-Hamid;AM;74;77;3;false;false
+1990;EGY;Ahmed Shobair;GK;74;77;3;false;false
+1990;EGY;Ibrahim Hassan;RB;74;77;3;false;false
+1990;ITA;Andrea Carnevale;ST;74;77;3;false;false
+1990;NED;Danny Blind;CB;74;77;3;false;false
+1990;YUG;Predrag Spasić;CB;74;77;3;false;false
+1990;YUG;Davor Jozić;CB;74;77;3;false;false
+1990;YUG;Dragoljub Brnović;LM;74;77;3;false;false
+1994;NED;Edwin van der Sar;GK;74;77;3;false;false
+1998;ARG;Nelson Vivas;RB;74;77;3;false;false
+2002;ENG;Danny Mills;RB;74;77;3;false;false
+2002;IRL;Niall Quinn;ST;74;77;3;false;false
+2002;MEX;Oswaldo Sánchez;GK;74;77;3;false;false
+2006;CZE;Martin Jiránek;CB;74;77;3;false;false
+2010;CHI;Pablo Contreras;CB;74;77;3;false;false
+2010;CIV;Boubacar Barry;GK;74;77;3;false;false
+2010;GER;Toni Kroos;CM;74;77;3;false;false
+2010;JPN;Seigo Narazaki;GK;74;77;3;false;false
+2010;KOR;Cha Du-ri;RB;74;77;3;false;false
+2014;COL;Juan Fernando Quintero;AM;74;77;3;false;false
+2018;COL;Abel Aguilar;CM;74;77;3;false;false
+2018;EGY;Mahmoud Trézéguet;LW;74;77;3;false;false
+2018;POR;Rúben Dias;CB;74;77;3;false;false
+2018;URU;Cristian Rodríguez;LM;74;77;3;false;false
+2022;SEN;Ismail Jakobs;LB;74;77;3;false;false
+2002;MEX;Germán Villa;RB;73;76;3;false;false
+2014;ALG;Hassan Yebda;DM;73;76;3;false;false
+2014;ALG;Mehdi Lacen;DM;73;76;3;false;false
+2014;ALG;Abdelmoumene Djabou;LW;73;76;3;false;false
+2014;GHA;John Boye;CB;73;76;3;false;false
+2014;MEX;Alfredo Talavera;GK;73;76;3;false;false
+2018;COL;Óscar Murillo;CB;73;76;3;false;false
+2018;EGY;Abdallah El Said;AM;73;76;3;false;false
+2018;KOR;Hwang Hee-chan;ST;73;76;3;false;false
+2018;RUS;Aleksei Miranchuk;AM;73;76;3;false;false
+2022;AUS;Awer Mabil;LW;73;76;3;false;false
+2022;KOR;Kwon Kyung-won;CB;73;76;3;false;false
+2022;SEN;Pape Abou Cissé;CB;73;76;3;false;false
+2022;SRB;Predrag Rajković;GK;73;76;3;false;false
+1990;COL;Wílmer Cabrera;RB;72;75;3;false;false
+1990;IRL;John Sheridan;CM;72;75;3;false;false
+2002;CMR;Joseph-Désiré Job;ST;72;75;3;false;false
+2002;ENG;Wes Brown;CB;72;75;3;false;false
+2002;ENG;Darius Vassell;ST;72;75;3;false;false
+2002;POR;Pedro Barbosa;CM;72;75;3;false;false
+2006;CIV;Jean-Jacques Tizié;GK;72;75;3;false;false
+2006;CIV;Romaric;CM;72;75;3;false;false
+2010;CHI;Rodrigo Tello;LM;72;75;3;false;false
+2010;CIV;Souleymane Bamba;CB;72;75;3;false;false
+2010;GRE;Kostas Chalkias;GK;72;75;3;false;false
+2014;CRC;Michael Umaña;CB;72;75;3;false;false
+2014;GRE;Loukas Vyntra;CB;72;75;3;false;false
+2014;NED;Paul Verhaegh;RB;72;75;3;false;false
+2018;RUS;Ilya Kutepov;CB;72;75;3;false;false
+2018;SUI;Mario Gavranović;ST;72;75;3;false;false
+2018;URU;Guillermo Varela;RB;72;75;3;false;false
+2022;SRB;Strahinja Eraković;RB;72;75;3;false;false
+2010;CHI;Marco Estrada;DM;71;74;3;false;false
+2010;GRE;Nikos Spyropoulos;LB;71;74;3;false;false
+2010;GRE;Sotiris Ninis;AM;71;74;3;false;false
+2014;ALG;Mehdi Mostefa;DM;71;74;3;false;false
+2014;BEL;Divock Origi;ST;71;74;3;false;false
+2014;MEX;Isaác Brizuela;RM;71;74;3;false;false
+2014;NGA;Azubuike Egwuekwe;CB;71;74;3;false;false
+2018;EGY;Omar Gaber;RB;71;74;3;false;false
+2018;EGY;Mohamed Abdel Shafy;LB;71;74;3;false;false
+2018;KOR;Jung Woo-young;DM;71;74;3;false;false
+2018;MAR;Ayoub El Kaabi;ST;71;74;3;false;false
+2018;RUS;Igor Smolnikov;RB;71;74;3;false;false
+2018;SWE;Isaac Kiese Thelin;ST;71;74;3;false;false
+2018;URU;Martín Silva;GK;71;74;3;false;false
+2022;CRC;Juan Pablo Vargas;CB;71;74;3;false;false
+2022;CRC;Rónald Matarrita;LB;71;74;3;false;false
+2022;SEN;Seny Dieng;GK;71;74;3;false;false
+2022;SRB;Filip Mladenović;LB;71;74;3;false;false
+1990;CMR;Eugène Ekéké;ST;70;73;3;false;false
+1990;COL;Gildardo Gómez;CB;70;73;3;false;false
+1990;GER;Günter Hermann;LM;70;73;3;false;false
+1990;NED;Joop Hiele;GK;70;73;3;false;false
+1990;NED;Graeme Rutjes;CB;70;73;3;false;false
+1994;ARG;Hernán Díaz;RB;70;73;3;false;false
+1994;BUL;Petar Aleksandrov;ST;70;73;3;false;false
+1994;SWE;Stefan Rehn;AM;70;73;3;false;false
+2002;JPN;Ryuzo Morioka;CB;70;73;3;false;false
+2002;JPN;Kazuyuki Toda;DM;70;73;3;false;false
+2002;POR;Nélson Pereira;GK;70;73;3;false;false
+2002;POR;Nuno Frechaut;RB;70;73;3;false;false
+2006;ECU;Luis Saritama;CM;70;73;3;false;false
+2006;SUI;Xavier Margairaz;CM;70;73;3;false;false
+2010;POR;Beto;GK;70;73;3;false;false
+2014;MEX;Miguel Ángel Ponce;LB;70;73;3;false;false
+2014;NGA;Ejike Uzoenyi;LM;70;73;3;false;false
+2014;NGA;Uche Nwofor;ST;70;73;3;false;false
+2018;EGY;Shikabala;AM;70;73;3;false;false
+2018;RUS;Yury Gazinsky;CM;70;73;3;false;false
+2018;URU;Jonathan Urretaviscaya;RW;70;73;3;false;false
+2022;AUS;Mitchell Duke;ST;70;73;3;false;false
+2022;ECU;Moisés Ramírez;GK;70;73;3;false;false
+2014;NGA;Austin Ejide;GK;69;72;3;false;false
+2014;NGA;Michael Uchebo;ST;69;72;3;false;false
+2018;EGY;Sherif Ekramy;GK;69;72;3;false;false
+2018;RUS;Andrey Lunyov;GK;69;72;3;false;false
+1990;CMR;Bertin Ebwellé;CB;68;71;3;false;false
+1990;CMR;Jean-Claude Pagal;DM;68;71;3;false;false
+1994;MEX;José Luis Salgado;CB;68;71;3;false;false
+2002;KOR;Hyun Young-min;CB;68;71;3;false;false
+2002;SEN;Sylvain N'Diaye;CM;68;71;3;false;false
+2002;SEN;Pape Thiaw;ST;68;71;3;false;false
+2002;USA;David Regis;LB;68;71;3;false;false
+2010;KOR;Lee Seung-yeoul;ST;68;71;3;false;false
+2014;GHA;Rashid Sumaila;CB;68;71;3;false;false
+2018;RUS;Andrei Semyonov;CB;68;71;3;false;false
+2018;RUS;Anton Miranchuk;AM;68;71;3;false;false
+2022;AUS;Andrew Redmayne;GK;68;71;3;false;false
+2022;KOR;Song Min-kyu;ST;68;71;3;false;false
+2014;NGA;Chigozie Agbim;GK;67;70;3;false;false
+2002;SEN;Omar Diallo;GK;66;69;3;false;false
+2002;CMR;Pius N'Diefi;ST;65;68;3;false;false
+1990;CMR;Roger Feutmba;CM;64;67;3;false;false
+2002;CMR;Nicolas Alnoudji;LM;64;67;3;false;false
+2002;CMR;Daniel N'Gom Kome;CM;64;67;3;false;false
+2014;GER;Manuel Neuer;GK;97;99;2;true;true
+1998;NED;Dennis Bergkamp;ST;91;93;2;true;true
+2018;BRA;Neymar;LW;91;93;2;true;true
+1994;ITA;Roberto Baggio;AM;90;92;2;true;true
+2002;BRA;Rivaldo;AM;90;92;2;true;true
+2010;NED;Wesley Sneijder;AM;90;92;2;true;true
+2018;EGY;Mohamed Salah;RW;89;91;2;false;true
+2018;FRA;N'Golo Kanté;DM;89;91;2;false;false
+2018;FRA;Paul Pogba;CM;88;90;2;false;false
+1994;ITA;Paolo Maldini;LB;87;89;2;false;true
+1998;NGA;Jay-Jay Okocha;AM;87;89;2;false;true
+1998;PAR;José Luis Chilavert;GK;87;89;2;false;true
+2010;ESP;Sergio Ramos;RB;87;89;2;false;true
+1990;ENG;Gary Lineker;ST;86;88;2;false;true
+1998;ARG;Juan Sebastián Verón;CM;86;88;2;false;true
+1998;DEN;Brian Laudrup;LW;86;88;2;false;true
+1998;FRA;Lilian Thuram;RB;86;88;2;false;false
+1998;ITA;Roberto Baggio;AM;86;88;2;false;true
+2002;BRA;Marcos;GK;86;88;2;false;false
+2002;ENG;David Beckham;RM;86;88;2;false;true
+2002;ITA;Paolo Maldini;LB;86;88;2;false;true
+2006;BRA;Dida;GK;86;88;2;false;false
+2006;CIV;Didier Drogba;ST;86;88;2;false;true
+2006;CZE;Petr Čech;GK;86;88;2;false;true
+2006;POR;Ricardo Carvalho;CB;86;88;2;false;false
+2010;ARG;Javier Mascherano;DM;86;88;2;false;true
+2010;CIV;Didier Drogba;ST;86;88;2;false;true
+2014;BRA;Dani Alves;RB;86;88;2;false;true
+2014;CHI;Alexis Sánchez;RW;86;88;2;false;true
+1994;NED;Frank Rijkaard;DM;85;87;2;false;true
+2002;ENG;Michael Owen;ST;85;87;2;false;true
+2006;BRA;Cafu;RB;85;87;2;false;false
+2006;ENG;Ashley Cole;LB;85;87;2;false;false
+2006;GER;Jens Lehmann;GK;85;87;2;false;false
+2006;SWE;Zlatan Ibrahimović;ST;85;87;2;false;true
+2010;ARG;Diego Milito;ST;85;87;2;false;false
+2022;SEN;Édouard Mendy;GK;85;87;2;false;true
+1990;ITA;Salvatore Schillaci;ST;84;86;2;false;false
+1994;GER;Jürgen Kohler;CB;84;86;2;false;false
+1998;FRA;Laurent Blanc;CB;84;86;2;false;false
+2006;POR;Maniche;CM;84;86;2;false;false
+2010;ARG;Ángel Di María;RW;84;86;2;false;false
+2010;BRA;Lúcio;CB;84;86;2;false;false
+2010;BRA;Dani Alves;RB;84;86;2;false;false
+2010;URU;Luis Suárez;ST;84;86;2;false;true
+2014;CHI;Claudio Bravo;GK;84;86;2;false;false
+2014;GER;Sami Khedira;DM;84;86;2;false;false
+2018;ARG;Nicolás Otamendi;CB;84;86;2;false;false
+2018;ESP;Thiago;CM;84;86;2;false;false
+1994;ROU;Gheorghe Popescu;DM;83;85;2;false;true
+1998;BRA;Dunga;DM;83;85;2;false;false
+1998;FRA;Didier Deschamps;DM;83;85;2;false;false
+1998;FRA;Emmanuel Petit;DM;83;85;2;false;false
+2002;DEN;Jon Dahl Tomasson;ST;83;85;2;false;true
+2006;ARG;Gabriel Heinze;LB;83;85;2;false;false
+2006;CZE;Tomáš Rosický;AM;83;85;2;false;false
+2010;GER;Miroslav Klose;ST;83;85;2;false;true
+2018;BRA;Ederson;GK;83;85;2;false;false
+2018;BRA;Marquinhos;CB;83;85;2;false;false
+2018;SWE;Emil Forsberg;LW;83;85;2;false;true
+1990;GER;Guido Buchwald;CB;82;84;2;false;false
+1990;IRL;Paul McGrath;CB;82;84;2;false;true
+1998;ARG;Hernán Crespo;ST;82;84;2;false;false
+1998;BRA;Aldair;CB;82;84;2;false;false
+1998;FRA;Patrick Vieira;DM;82;84;2;false;false
+2006;ARG;Maxi Rodríguez;RM;82;84;2;false;false
+2010;ESP;Sergio Busquets;DM;82;84;2;false;false
+2010;POR;Deco;AM;82;84;2;false;true
+2014;MEX;Guillermo Ochoa;GK;82;84;2;false;false
+1994;GER;Guido Buchwald;CB;81;83;2;false;false
+1994;GER;Thomas Häßler;AM;81;83;2;false;false
+2006;AUS;Tim Cahill;CM;81;83;2;false;false
+2010;ARG;Gabriel Heinze;CB;81;83;2;false;false
+2010;NED;Klaas-Jan Huntelaar;ST;81;83;2;false;false
+2010;URU;Edinson Cavani;ST;81;83;2;false;false
+2014;BEL;Romelu Lukaku;ST;81;83;2;false;false
+2014;MEX;Rafael Márquez;CB;81;83;2;false;true
+2014;MEX;Héctor Herrera;CM;81;83;2;false;false
+2014;MEX;Giovani dos Santos;AM;81;83;2;false;false
+2014;NED;Daley Blind;LB;81;83;2;false;false
+2018;SWE;Andreas Granqvist;CB;81;83;2;false;false
+2022;JPN;Kaoru Mitoma;LW;81;83;2;false;false
+1990;ENG;Stuart Pearce;LB;80;82;2;false;false
+1990;GER;Pierre Littbarski;RW;80;82;2;false;false
+1990;ITA;Giuseppe Giannini;AM;80;82;2;false;false
+1990;TCH;Ľubomír Moravčík;LM;80;82;2;false;false
+1994;ARG;Oscar Ruggeri;CB;80;82;2;false;false
+1994;BUL;Emil Kostadinov;ST;80;82;2;false;false
+1994;GER;Andreas Köpke;GK;80;82;2;false;false
+1994;ITA;Roberto Donadoni;LM;80;82;2;false;false
+1994;MEX;Claudio Suárez;CB;80;82;2;false;false
+1998;ARG;José Chamot;CB;80;82;2;false;false
+1998;NGA;Peter Rufai;GK;80;82;2;false;false
+1998;YUG;Vladimir Jugović;DM;80;82;2;false;false
+2002;DEN;Ebbe Sand;ST;80;82;2;false;false
+2002;ENG;Ashley Cole;LB;80;82;2;false;false
+2002;IRL;Robbie Keane;ST;80;82;2;false;true
+2002;USA;Claudio Reyna;CM;80;82;2;false;false
+2006;CZE;Karel Poborský;RM;80;82;2;false;false
+2006;GER;Christoph Metzelder;CB;80;82;2;false;false
+2010;BRA;Juan;CB;80;82;2;false;false
+2010;GER;Sami Khedira;DM;80;82;2;false;false
+2010;JPN;Keisuke Honda;AM;80;82;2;false;false
+2010;MEX;Giovani dos Santos;AM;80;82;2;false;false
+2010;URU;Fernando Muslera;GK;80;82;2;false;false
+2014;CHI;Eduardo Vargas;ST;80;82;2;false;false
+2014;FRA;Antoine Griezmann;LW;80;82;2;false;false
+2014;NED;Ron Vlaar;CB;80;82;2;false;false
+2018;ARG;Nicolás Tagliafico;LB;80;82;2;false;false
+2018;ESP;Nacho;CB;80;82;2;false;false
+2018;FRA;Blaise Matuidi;CM;80;82;2;false;false
+2018;JPN;Shinji Kagawa;AM;80;82;2;false;false
+1994;GER;Karl-Heinz Riedle;ST;79;81;2;false;false
+2002;KOR;Park Ji-sung;CM;79;81;2;false;false
+2010;BRA;Michel Bastos;LB;79;81;2;false;false
+2010;BRA;Ramires;CM;79;81;2;false;false
+2014;MEX;Héctor Moreno;CB;79;81;2;false;false
+2014;MEX;Oribe Peralta;ST;79;81;2;false;false
+2018;JPN;Maya Yoshida;CB;79;81;2;false;false
+2018;SWE;Robin Olsen;GK;79;81;2;false;false
+1990;CMR;Thomas N'Kono;GK;78;80;2;false;true
+1990;CMR;François Omam-Biyik;ST;78;80;2;false;false
+1990;GER;Olaf Thon;CM;78;80;2;false;false
+1990;ITA;Nicola Berti;CM;78;80;2;false;false
+1994;BRA;Ronaldo;ST;78;80;2;false;true
+1994;ROU;Ioan Lupescu;CM;78;80;2;false;false
+1994;SWE;Patrik Andersson;CB;78;80;2;false;false
+1994;USA;Tab Ramos;AM;78;80;2;false;false
+1994;USA;Eric Wynalda;ST;78;80;2;false;false
+1998;PAR;Celso Ayala;CB;78;80;2;false;false
+2002;DEN;Thomas Helveg;RB;78;80;2;false;false
+2002;ENG;Nicky Butt;CM;78;80;2;false;false
+2002;FRA;Frank Leboeuf;CB;78;80;2;false;false
+2002;POR;Vítor Baía;GK;78;80;2;false;false
+2002;USA;Brian McBride;ST;78;80;2;false;false
+2006;ARG;Nicolás Burdisso;CB;78;80;2;false;false
+2006;BRA;Cicinho;RB;78;80;2;false;false
+2006;SWE;Erik Edman;LB;78;80;2;false;false
+2006;SWE;Tobias Linderoth;DM;78;80;2;false;false
+2010;BRA;Luisão;CB;78;80;2;false;false
+2010;CIV;Gervinho;RW;78;80;2;false;false
+2010;ENG;Joe Cole;LW;78;80;2;false;false
+2010;GRE;Kostas Katsouranis;DM;78;80;2;false;false
+2010;KOR;Lee Chung-yong;RW;78;80;2;false;false
+2010;MEX;Cuauhtémoc Blanco;AM;78;80;2;false;false
+2018;JPN;Shinji Okazaki;ST;78;80;2;false;false
+2022;SEN;Abdou Diallo;CB;78;80;2;false;false
+1994;NED;Arthur Numan;LB;77;79;2;false;false
+1994;USA;John Harkes;CM;77;79;2;false;false
+1998;ITA;Angelo Di Livio;RM;77;79;2;false;false
+1998;YUG;Zoran Mirković;RB;77;79;2;false;false
+2002;DEN;Jesper Grønkjær;RW;77;79;2;false;false
+2002;GER;Thomas Linke;CB;77;79;2;false;false
+2002;KOR;Lee Young-pyo;LB;77;79;2;false;false
+2006;CIV;Arthur Boka;LB;77;79;2;false;false
+2006;UKR;Oleh Husyev;RM;77;79;2;false;false
+2010;BRA;Nilmar;ST;77;79;2;false;false
+2010;CHI;Jean Beausejour;LM;77;79;2;false;false
+2010;GRE;Angelos Charisteas;ST;77;79;2;false;false
+2014;SUI;Tranquillo Barnetta;AM;77;79;2;false;false
+2018;BRA;Renato Augusto;CM;77;79;2;false;false
+2018;MAR;Younès Belhanda;AM;77;79;2;false;false
+2018;SWE;Ludwig Augustinsson;LB;77;79;2;false;false
+2022;KOR;Kim Seung-gyu;GK;77;79;2;false;false
+2022;SRB;Nemanja Gudelj;DM;77;79;2;false;false
+1990;ARG;Roberto Sensini;CB;76;78;2;false;false
+1990;ARG;Ricardo Giusti;RM;76;78;2;false;false
+1990;BRA;Paulo Silas;CM;76;78;2;false;false
+1990;CMR;Emmanuel Kundé;CB;76;78;2;false;false
+1990;EGY;Hany Ramzy;CB;76;78;2;false;false
+1990;IRL;Ronnie Whelan;CM;76;78;2;false;false
+1990;IRL;Ray Houghton;RM;76;78;2;false;false
+1990;IRL;Andy Townsend;CM;76;78;2;false;false
+1990;ITA;Aldo Serena;ST;76;78;2;false;false
+1990;TCH;Luděk Mikloško;GK;76;78;2;false;false
+1990;TCH;Ján Kocian;CB;76;78;2;false;false
+1990;TCH;Michal Bílek;CM;76;78;2;false;false
+1990;TCH;Milan Luhový;ST;76;78;2;false;false
+1994;COL;Gabriel Gómez;DM;76;78;2;false;false
+1994;GER;Mario Basler;RM;76;78;2;false;false
+1994;NED;Rob Witschge;LM;76;78;2;false;false
+1994;NGA;Victor Ikpeba;LW;76;78;2;false;false
+1994;SWE;Henrik Larsson;ST;76;78;2;false;false
+1998;GER;Steffen Freund;DM;76;78;2;false;false
+2002;ARG;Mauricio Pochettino;CB;76;78;2;false;false
+2002;DEN;Claus Jensen;CM;76;78;2;false;false
+2002;ENG;Teddy Sheringham;ST;76;78;2;false;false
+2002;JPN;Tsuneyasu Miyamoto;CB;76;78;2;false;false
+2002;KOR;Seol Ki-hyeon;ST;76;78;2;false;false
+2002;MEX;Ramón Morales;LM;76;78;2;false;false
+2002;POR;Abel Xavier;RB;76;78;2;false;false
+2002;POR;Paulo Bento;DM;76;78;2;false;false
+2002;POR;Petit;DM;76;78;2;false;false
+2002;SEN;Tony Sylva;GK;76;78;2;false;false
+2002;TUR;Bülent Korkmaz;CB;76;78;2;false;false
+2002;TUR;Nihat Kahveci;ST;76;78;2;false;false
+2002;USA;DaMarcus Beasley;LM;76;78;2;false;false
+2006;ARG;Fabricio Coloccini;CB;76;78;2;false;false
+2006;ECU;Cristian Mora;GK;76;78;2;false;false
+2006;GER;Robert Huth;CB;76;78;2;false;false
+2006;NED;André Ooijer;CB;76;78;2;false;false
+2010;ARG;Nicolás Otamendi;CB;76;78;2;false;false
+2010;BRA;Josué;DM;76;78;2;false;false
+2010;CHI;Mark González;LW;76;78;2;false;false
+2010;CIV;Seydou Doumbia;ST;76;78;2;false;false
+2010;ENG;Joe Hart;GK;76;78;2;false;false
+2010;JPN;Atsuto Uchida;RB;76;78;2;false;false
+2010;KOR;Kim Nam-il;DM;76;78;2;false;false
+2014;BRA;Bernard;LW;76;78;2;false;false
+2014;CHI;Jean Beausejour;LM;76;78;2;false;false
+2014;COL;Santiago Arias;RB;76;78;2;false;false
+2014;GRE;Orestis Karnezis;GK;76;78;2;false;false
+2014;MEX;Francisco Javier Rodríguez;CB;76;78;2;false;false
+2014;NED;Michel Vorm;GK;76;78;2;false;false
+2014;URU;Gastón Ramírez;AM;76;78;2;false;false
+2018;CRO;Vedran Ćorluka;CB;76;78;2;false;false
+2018;EGY;Ahmed Hegazi;CB;76;78;2;false;false
+2018;MAR;Karim El Ahmadi;DM;76;78;2;false;false
+2018;RUS;Alan Dzagoev;AM;76;78;2;false;false
+2018;SUI;Roman Bürki;GK;76;78;2;false;false
+2018;URU;Martín Cáceres;RB;76;78;2;false;false
+2018;URU;Nahitan Nández;RM;76;78;2;false;false
+2022;CRO;Bruno Petković;ST;76;78;2;false;false
+2022;ECU;Gonzalo Plata;RW;76;78;2;false;false
+2022;SRB;Marko Dmitrović;GK;76;78;2;false;false
+1998;PAR;Denis Caniza;RB;75;77;2;false;false
+2002;FRA;Djibril Cissé;ST;75;77;2;false;false
+2002;IRL;Kenny Cunningham;CB;75;77;2;false;false
+2002;IRL;Gary Breen;CB;75;77;2;false;false
+2014;CHI;Eugenio Mena;LB;75;77;2;false;false
+2014;CHI;Gonzalo Jara;CB;75;77;2;false;false
+2014;CIV;Arthur Boka;LB;75;77;2;false;false
+2014;CIV;Sol Bamba;CB;75;77;2;false;false
+2014;GRE;Andreas Samaris;DM;75;77;2;false;false
+2018;KOR;Kim Young-gwon;CB;75;77;2;false;false
+2018;MAR;Nabil Dirar;RB;75;77;2;false;false
+2018;SUI;Nico Elvedi;CB;75;77;2;false;false
+2022;CRO;Marko Livaja;ST;75;77;2;false;false
+2022;SEN;Nampalys Mendy;DM;75;77;2;false;false
+1990;ARG;Juan Simón;CB;74;76;2;false;false
+1990;CMR;Joseph-Antoine Bell;GK;74;76;2;false;false
+1990;CMR;Stephen Tataw;RB;74;76;2;false;false
+1990;COL;Gabriel Gómez;DM;74;76;2;false;false
+1990;ROU;Ioan Andone;CB;74;76;2;false;false
+1990;ROU;Iosif Rotariu;RB;74;76;2;false;false
+1990;ROU;Ioan Lupescu;DM;74;76;2;false;false
+1994;ITA;Antonio Conte;CM;74;76;2;false;false
+1994;MEX;Juan de Dios Ramírez;LB;74;76;2;false;false
+1994;NGA;Augustine Eguavoen;RB;74;76;2;false;false
+1994;SWE;Jesper Blomqvist;LM;74;76;2;false;false
+1994;USA;Claudio Reyna;CM;74;76;2;false;false
+1998;CHI;Cristián Castañeda;RB;74;76;2;false;false
+2002;CMR;Jacques Songo'o;GK;74;76;2;false;false
+2002;ENG;Nigel Martyn;GK;74;76;2;false;false
+2002;IRL;Kevin Kilbane;LM;74;76;2;false;false
+2002;KOR;Lee Chun-soo;LW;74;76;2;false;false
+2006;CIV;Guy Demel;RB;74;76;2;false;false
+2006;CZE;Radoslav Kováč;CB;74;76;2;false;false
+2006;CZE;David Jarolím;CM;74;76;2;false;false
+2006;CZE;Jan Polák;DM;74;76;2;false;false
+2006;ECU;Marlon Ayoví;LM;74;76;2;false;false
+2006;GER;Timo Hildebrand;GK;74;76;2;false;false
+2006;ITA;Angelo Peruzzi;GK;74;76;2;false;false
+2006;SWE;Daniel Andersson;DM;74;76;2;false;false
+2006;UKR;Vladimir Yezerskiy;CB;74;76;2;false;false
+2010;CHI;Esteban Paredes;ST;74;76;2;false;false
+2010;GER;Holger Badstuber;CB;74;76;2;false;false
+2010;KOR;Oh Beom-seok;RB;74;76;2;false;false
+2014;ALG;Saphir Taïder;CM;74;76;2;false;false
+2014;CHI;Mauricio Pinilla;ST;74;76;2;false;false
+2014;MEX;Marco Fabián;AM;74;76;2;false;false
+2014;MEX;Carlos Peña;CM;74;76;2;false;false
+2014;NGA;Godfrey Oboabona;CB;74;76;2;false;false
+2014;SUI;Philippe Senderos;CB;74;76;2;false;false
+2014;SUI;Haris Seferović;ST;74;76;2;false;false
+2014;URU;Jorge Fucile;RB;74;76;2;false;false
+2018;COL;Miguel Borja;ST;74;76;2;false;false
+2018;JPN;Eiji Kawashima;GK;74;76;2;false;false
+2018;JPN;Hotaru Yamaguchi;DM;74;76;2;false;false
+2018;MAR;Manuel da Costa;CB;74;76;2;false;false
+2022;CRO;Ante Budimir;ST;74;76;2;false;false
+2022;ECU;Hernán Galíndez;GK;74;76;2;false;false
+2022;ECU;Willian Pacho;CB;74;76;2;false;false
+2022;KOR;Cho Gue-sung;ST;74;76;2;false;false
+2022;SRB;Ivan Ilić;CM;74;76;2;false;false
+1998;ARG;Pablo Cavallero;GK;73;75;2;false;false
+2002;DEN;Niclas Jensen;LB;73;75;2;false;false
+2002;IRL;Gary Kelly;RB;73;75;2;false;false
+2002;USA;Cobi Jones;RM;73;75;2;false;false
+2006;CIV;Gilles Yapi Yapo;CM;73;75;2;false;false
+2006;CZE;Vratislav Lokvenc;ST;73;75;2;false;false
+2010;BRA;Kléberson;CM;73;75;2;false;false
+2010;GRE;Vangelis Moras;CB;73;75;2;false;false
+2010;GRE;Loukas Vyntra;RB;73;75;2;false;false
+2010;KOR;Cho Yong-hyung;CB;73;75;2;false;false
+2014;CIV;Didier Ya Konan;ST;73;75;2;false;false
+2014;CIV;Giovanni Sio;ST;73;75;2;false;false
+2014;GRE;Giannis Fetfatzidis;RW;73;75;2;false;false
+2014;NGA;Shola Ameobi;ST;73;75;2;false;false
+2014;SUI;Valentin Stocker;LW;73;75;2;false;false
+2014;URU;Álvaro González;CM;73;75;2;false;false
+2014;URU;Cristhian Stuani;ST;73;75;2;false;false
+2018;EGY;Ramadan Sobhi;LW;73;75;2;false;false
+2018;JPN;Gōtoku Sakai;LB;73;75;2;false;false
+2018;JPN;Yoshinori Muto;ST;73;75;2;false;false
+2018;KOR;Jang Hyun-soo;CB;73;75;2;false;false
+2018;SUI;Johan Djourou;CB;73;75;2;false;false
+2018;SUI;Josip Drmić;ST;73;75;2;false;false
+2018;SWE;Filip Helander;CB;73;75;2;false;false
+2022;ECU;Alan Franco;DM;73;75;2;false;false
+2022;ECU;Romario Ibarra;LW;73;75;2;false;false
+2022;ECU;Jeremy Sarmiento;LW;73;75;2;false;false
+2022;FRA;Alphonse Areola;GK;73;75;2;false;false
+2022;SRB;Uroš Račić;DM;73;75;2;false;false
+1990;ARG;Edgardo Bauza;CB;72;74;2;false;false
+1990;CMR;Emile M'Bouh;DM;72;74;2;false;false
+1990;CMR;Benjamin Massing;RB;72;74;2;false;false
+1990;EGY;Ahmed El-Kass;ST;72;74;2;false;false
+1990;GER;Raimond Aumann;GK;72;74;2;false;false
+1990;GER;Frank Mill;ST;72;74;2;false;false
+1990;ITA;Giancarlo Marocchi;CM;72;74;2;false;false
+1990;ROU;Bogdan Stelea;GK;72;74;2;false;false
+2002;ARG;Diego Placente;LB;72;74;2;false;false
+2002;CMR;Salomon Olembé;LM;72;74;2;false;false
+2002;JPN;Yutaka Akita;CB;72;74;2;false;false
+2002;POR;Hugo Viana;CM;72;74;2;false;false
+2002;USA;Steve Cherundolo;RB;72;74;2;false;false
+2006;CIV;Blaise Kouassi;CB;72;74;2;false;false
+2006;CZE;Pavel Mareš;LB;72;74;2;false;false
+2006;CZE;Marek Heinz;ST;72;74;2;false;false
+2006;CZE;Jiří Štajner;ST;72;74;2;false;false
+2006;ECU;Jorge Guagua;CB;72;74;2;false;false
+2006;GER;Mike Hanke;ST;72;74;2;false;false
+2006;SUI;Valon Behrami;CM;72;74;2;false;false
+2010;CIV;Aristide Zogbo;GK;72;74;2;false;false
+2010;GHA;Hans Sarpei;LB;72;74;2;false;false
+2010;KOR;Kim Bo-kyung;AM;72;74;2;false;false
+2010;POR;Duda;LB;72;74;2;false;false
+2010;POR;Ricardo Costa;CB;72;74;2;false;false
+2014;BEL;Laurent Ciman;CB;72;74;2;false;false
+2014;BRA;Jô;ST;72;74;2;false;false
+2014;CHI;José Manuel Rojas;CB;72;74;2;false;false
+2014;CIV;Ismaël Diomandé;CM;72;74;2;false;false
+2014;COL;Éder Álvarez Balanta;CB;72;74;2;false;false
+2014;CRC;Johnny Acosta;CB;72;74;2;false;false
+2014;GER;Roman Weidenfeller;GK;72;74;2;false;false
+2014;GHA;Daniel Opare;RB;72;74;2;false;false
+2014;GRE;Vangelis Moras;CB;72;74;2;false;false
+2014;GRE;Panagiotis Tachtsidis;DM;72;74;2;false;false
+2014;MEX;Alan Pulido;ST;72;74;2;false;false
+2014;NGA;Juwon Oshaniwa;LB;72;74;2;false;false
+2014;SUI;Michael Lang;RB;72;74;2;false;false
+2014;SUI;Mario Gavranović;ST;72;74;2;false;false
+2018;COL;Camilo Vargas;GK;72;74;2;false;false
+2018;JPN;Takashi Usami;LW;72;74;2;false;false
+2018;KOR;Park Joo-ho;LB;72;74;2;false;false
+2018;RUS;Aleksandr Samedov;RM;72;74;2;false;false
+2018;URU;Gastón Silva;LB;72;74;2;false;false
+2022;AUS;Riley McGree;AM;72;74;2;false;false
+2022;AUS;Jamie Maclaren;ST;72;74;2;false;false
+2022;ECU;Alexander Domínguez;GK;72;74;2;false;false
+2022;ECU;Xavier Arreaga;CB;72;74;2;false;false
+2022;JPN;Yūto Nagatomo;LB;72;74;2;false;false
+2022;KOR;Kim Moon-hwan;RB;72;74;2;false;false
+2022;KOR;Paik Seung-ho;CM;72;74;2;false;false
+2006;ECU;Paúl Ambrosi;CB;71;73;2;false;false
+2006;NED;Tim de Cler;LB;71;73;2;false;false
+2006;UKR;Vyacheslav Sviderskyi;CB;71;73;2;false;false
+2010;GRE;Christos Patsatzoglou;RB;71;73;2;false;false
+2014;GHA;Adam Kwarasey;GK;71;73;2;false;false
+2014;NGA;Reuben Gabriel;DM;71;73;2;false;false
+2018;JPN;Masaaki Higashiguchi;GK;71;73;2;false;false
+2018;SUI;Yvon Mvogo;GK;71;73;2;false;false
+2022;ECU;Jackson Porozo;CB;71;73;2;false;false
+2022;SRB;Srđan Babić;CB;71;73;2;false;false
+1990;ARG;Gustavo Dezotti;ST;70;72;2;false;false
+1990;YUG;Dragoje Leković;GK;70;72;2;false;false
+1994;ARG;Ramón Medina Bello;ST;70;72;2;false;false
+1994;MEX;Félix Fernández;GK;70;72;2;false;false
+1994;MEX;Juan Carlos Chávez;LB;70;72;2;false;false
+1994;SWE;Magnus Hedman;GK;70;72;2;false;false
+1994;USA;Joe-Max Moore;ST;70;72;2;false;false
+2002;CMR;Lucien Mettomo;CB;70;72;2;false;false
+2002;DEN;Jan Michaelsen;CM;70;72;2;false;false
+2002;KOR;Kim Byung-ji;GK;70;72;2;false;false
+2002;MEX;Francisco Gabriel de Anda;CB;70;72;2;false;false
+2002;SEN;Habib Beye;RB;70;72;2;false;false
+2002;SEN;Amara Traoré;ST;70;72;2;false;false
+2002;USA;Josh Wolff;ST;70;72;2;false;false
+2006;ECU;José Luis Perlaza;CB;70;72;2;false;false
+2006;ENG;Scott Carson;GK;70;72;2;false;false
+2010;CHI;Miguel Pinto;GK;70;72;2;false;false
+2014;BRA;Henrique;CB;70;72;2;false;false
+2014;CHI;Miiko Albornoz;LB;70;72;2;false;false
+2014;CIV;Ousmane Viera;CB;70;72;2;false;false
+2014;CIV;Mathis Bolly;RW;70;72;2;false;false
+2014;GER;Ron-Robert Zieler;GK;70;72;2;false;false
+2014;GHA;Samuel Inkoom;RB;70;72;2;false;false
+2018;CRO;Lovre Kalinić;GK;70;72;2;false;false
+2018;KOR;Kim Min-woo;LB;70;72;2;false;false
+2018;KOR;Go Yo-han;RM;70;72;2;false;false
+2018;SUI;François Moubandje;LB;70;72;2;false;false
+2018;URU;Martín Campaña;GK;70;72;2;false;false
+2022;KOR;Son Jun-ho;CM;70;72;2;false;false
+2006;SUI;Mauro Lustrinelli;ST;69;71;2;false;false
+2018;MAR;Aziz Bouhaddouz;ST;69;71;2;false;false
+1990;CMR;Emmanuel Maboang;RM;68;70;2;false;false
+1994;SWE;Magnus Erlingmark;CM;68;70;2;false;false
+1994;USA;Fernando Clavijo;RB;68;70;2;false;false
+2002;CMR;Joseph Ndo;AM;68;70;2;false;false
+2002;DEN;Jesper Christiansen;GK;68;70;2;false;false
+2002;DEN;Steven Lustü;CB;68;70;2;false;false
+2002;SEN;Moussa N'Diaye;CM;68;70;2;false;false
+2006;UKR;Bohdan Shust;GK;68;70;2;false;false
+2010;POR;Daniel Fernandes;GK;68;70;2;false;false
+2014;CHI;Cristopher Toselli;GK;68;70;2;false;false
+2014;COL;Faryd Mondragón;GK;68;70;2;false;false
+2014;NGA;Kunle Odunlami;RB;68;70;2;false;false
+2014;URU;Rodrigo Muñoz;GK;68;70;2;false;false
+2018;RUS;Vladimir Gabulov;GK;68;70;2;false;false
+2022;AUS;Danny Vukovic;GK;68;70;2;false;false
+2022;KOR;Cho Yu-min;CB;68;70;2;false;false
+1994;NGA;Alloysius Agu;GK;66;68;2;false;false
+1994;USA;Frank Klopas;ST;66;68;2;false;false
+2002;KOR;Choi Eun-sung;GK;66;68;2;false;false
+2014;BEL;Sammy Bossut;GK;66;68;2;false;false
+2022;CRC;Daniel Chacón;CB;66;68;2;false;false
+2022;CRC;Anthony Contreras;ST;66;68;2;false;false
+1990;CMR;Alphonse Yombi;CB;64;66;2;false;false
+1994;NGA;Wilfred Agbonavbare;GK;64;66;2;false;false
+2002;SEN;Kalidou Cissokho;GK;64;66;2;false;false
+2022;CRC;Youstin Salas;CM;63;65;2;false;false
+2014;ARG;Lionel Messi;RW;95;96;1;true;true
+2014;BRA;Neymar;LW;92;93;1;true;true
+1998;ARG;Gabriel Batistuta;ST;91;92;1;true;true
+2014;GER;Thomas Müller;RW;91;92;1;true;true
+2002;BRA;Roberto Carlos;LB;90;91;1;true;true
+2010;ESP;Iker Casillas;GK;90;91;1;true;true
+2010;POR;Cristiano Ronaldo;RW;90;91;1;true;true
+2014;BRA;Thiago Silva;CB;90;91;1;true;true
+2014;GER;Toni Kroos;CM;90;91;1;true;true
+2014;NED;Arjen Robben;RW;90;91;1;true;true
+2014;URU;Luis Suárez;ST;90;91;1;true;true
+1998;BRA;Rivaldo;AM;89;90;1;false;true
+2006;FRA;Thierry Henry;ST;89;90;1;false;true
+2006;GER;Michael Ballack;AM;89;90;1;false;true
+2014;COL;James Rodríguez;AM;89;90;1;false;true
+2014;URU;Diego Godín;CB;89;90;1;false;true
+1994;BUL;Hristo Stoichkov;LW;88;89;1;false;true
+1998;BRA;Roberto Carlos;LB;88;89;1;false;true
+1998;NED;Jaap Stam;CB;88;89;1;false;true
+2002;BRA;Cafu;RB;88;89;1;false;true
+2006;ARG;Juan Román Riquelme;AM;88;89;1;false;true
+2006;ENG;Frank Lampard;CM;88;89;1;false;false
+2010;ESP;Carles Puyol;CB;88;89;1;false;true
+2014;GER;Mats Hummels;CB;88;89;1;false;false
+2014;URU;Edinson Cavani;ST;88;89;1;false;false
+2018;ESP;David Silva;AM;88;89;1;false;false
+1994;GER;Jürgen Klinsmann;ST;87;88;1;false;true
+1998;ARG;Javier Zanetti;RB;87;88;1;false;true
+1998;DEN;Peter Schmeichel;GK;87;88;1;false;true
+1998;ENG;Alan Shearer;ST;87;88;1;false;true
+1998;FRA;Marcel Desailly;CB;87;88;1;false;true
+2006;BRA;Lúcio;CB;87;88;1;false;false
+2006;BRA;Roberto Carlos;LB;87;88;1;false;false
+2006;BRA;Adriano;ST;87;88;1;false;false
+2006;ENG;John Terry;CB;87;88;1;false;false
+2006;POR;Luís Figo;RW;87;88;1;false;true
+2010;ESP;Gerard Piqué;CB;87;88;1;false;false
+2010;ESP;Xabi Alonso;CM;87;88;1;false;false
+2014;BRA;Marcelo;LB;87;88;1;false;false
+2014;GER;Jérôme Boateng;CB;87;88;1;false;false
+2014;NED;Wesley Sneijder;AM;87;88;1;false;true
+2018;ARG;Ángel Di María;LW;87;88;1;false;true
+2018;BRA;Thiago Silva;CB;87;88;1;false;true
+2018;BRA;Marcelo;LB;87;88;1;false;false
+2022;MAR;Achraf Hakimi;RB;87;88;1;false;true
+1998;GER;Oliver Kahn;GK;86;87;1;false;true
+1998;NED;Patrick Kluivert;ST;86;87;1;false;false
+1998;NED;Marc Overmars;LW;86;87;1;false;false
+2002;ITA;Alessandro Nesta;CB;86;87;1;false;true
+2006;ENG;Rio Ferdinand;CB;86;87;1;false;false
+2006;ITA;Alessandro Nesta;CB;86;87;1;false;true
+2006;POR;Deco;AM;86;87;1;false;true
+2010;ARG;Gonzalo Higuaín;ST;86;87;1;false;false
+2010;ARG;Sergio Agüero;ST;86;87;1;false;false
+2010;ENG;Ashley Cole;LB;86;87;1;false;false
+2010;ENG;Frank Lampard;CM;86;87;1;false;true
+2010;GER;Bastian Schweinsteiger;CM;86;87;1;false;true
+2014;ARG;Javier Mascherano;DM;86;87;1;false;false
+2018;KOR;Son Heung-min;LW;86;87;1;false;false
+2018;URU;Edinson Cavani;ST;86;87;1;false;true
+2022;CRO;Mateo Kovačić;CM;86;87;1;false;false
+1998;ARG;Roberto Ayala;CB;85;86;1;false;false
+1998;ARG;Ariel Ortega;AM;85;86;1;false;false
+1998;BRA;Cafu;RB;85;86;1;false;true
+1998;CHI;Marcelo Salas;ST;85;86;1;false;true
+1998;COL;Faustino Asprilla;ST;85;86;1;false;true
+1998;CRO;Zvonimir Boban;AM;85;86;1;false;true
+1998;ENG;David Seaman;GK;85;86;1;false;false
+1998;ENG;David Beckham;RM;85;86;1;false;true
+1998;GER;Jürgen Klinsmann;ST;85;86;1;false;true
+1998;NED;Edwin van der Sar;GK;85;86;1;false;false
+1998;NED;Frank de Boer;CB;85;86;1;false;false
+2002;ITA;Fabio Cannavaro;CB;85;86;1;false;true
+2006;ARG;Roberto Ayala;CB;85;86;1;false;false
+2010;CIV;Yaya Touré;CM;85;86;1;false;false
+2010;ENG;John Terry;CB;85;86;1;false;false
+2014;BEL;Thibaut Courtois;GK;85;86;1;false;false
+2014;FRA;Hugo Lloris;GK;85;86;1;false;true
+2018;ARG;Gonzalo Higuaín;ST;85;86;1;false;false
+2018;FRA;Hugo Lloris;GK;85;86;1;false;false
+2022;CRO;Marcelo Brozović;DM;85;86;1;false;false
+1990;COL;Carlos Valderrama;AM;84;85;1;false;true
+1994;SWE;Tomas Brolin;AM;84;85;1;false;true
+1998;ARG;Diego Simeone;DM;84;85;1;false;false
+1998;CRO;Robert Prosinečki;AM;84;85;1;false;true
+1998;ENG;Tony Adams;CB;84;85;1;false;false
+1998;ENG;Paul Scholes;CM;84;85;1;false;false
+1998;YUG;Predrag Mijatović;ST;84;85;1;false;false
+2002;ESP;Iker Casillas;GK;84;85;1;false;false
+2006;ITA;Fabio Grosso;LB;84;85;1;false;false
+2006;ITA;Gianluca Zambrotta;RB;84;85;1;false;false
+2010;GER;Mesut Özil;AM;84;85;1;false;false
+2010;POR;Ricardo Carvalho;CB;84;85;1;false;false
+2014;URU;Fernando Muslera;GK;84;85;1;false;false
+2018;ESP;Diego Costa;ST;84;85;1;false;false
+2018;FRA;Samuel Umtiti;CB;84;85;1;false;false
+1994;BRA;Aldair;CB;83;84;1;false;false
+1998;COL;Carlos Valderrama;AM;83;84;1;false;true
+1998;FRA;Youri Djorkaeff;AM;83;84;1;false;false
+1998;ITA;Filippo Inzaghi;ST;83;84;1;false;false
+1998;NGA;Taribo West;CB;83;84;1;false;false
+1998;YUG;Dragan Stojković;AM;83;84;1;false;false
+2002;ENG;Rio Ferdinand;CB;83;84;1;false;true
+2006;BRA;Robinho;LW;83;84;1;false;false
+2006;GER;Torsten Frings;DM;83;84;1;false;false
+2006;SWE;Olof Mellberg;CB;83;84;1;false;false
+2006;SWE;Fredrik Ljungberg;RM;83;84;1;false;false
+2010;CIV;Kolo Touré;CB;83;84;1;false;false
+2018;MAR;Medhi Benatia;CB;83;84;1;false;true
+1990;ARG;Sergio Goycochea;GK;82;83;1;false;false
+1990;BRA;Dunga;DM;82;83;1;false;false
+1990;GER;Klaus Augenthaler;CB;82;83;1;false;false
+1990;ITA;Giuseppe Bergomi;RB;82;83;1;false;false
+1994;BUL;Krasimir Balakov;AM;82;83;1;false;false
+1994;ITA;Alessandro Costacurta;CB;82;83;1;false;false
+1994;ROU;Florin Răducioiu;ST;82;83;1;false;false
+1994;SWE;Kennet Andersson;ST;82;83;1;false;false
+1998;BRA;Cláudio Taffarel;GK;82;83;1;false;false
+1998;COL;Freddy Rincón;CM;82;83;1;false;false
+1998;CRO;Robert Jarni;LB;82;83;1;false;false
+1998;CRO;Aljoša Asanović;AM;82;83;1;false;false
+1998;ENG;Paul Ince;DM;82;83;1;false;false
+1998;FRA;Thierry Henry;RW;82;83;1;false;true
+1998;GER;Andreas Möller;AM;82;83;1;false;false
+1998;YUG;Siniša Mihajlović;CB;82;83;1;false;false
+2002;GER;Dietmar Hamann;DM;82;83;1;false;false
+2006;FRA;Willy Sagnol;RB;82;83;1;false;false
+2006;NED;Wesley Sneijder;AM;82;83;1;false;false
+2006;POR;Ricardo;GK;82;83;1;false;false
+2006;POR;Pauleta;ST;82;83;1;false;false
+2006;SWE;Andreas Isaksson;GK;82;83;1;false;false
+2010;CHI;Claudio Bravo;GK;82;83;1;false;true
+2014;GER;Miroslav Klose;ST;82;83;1;false;true
+2014;MEX;Andrés Guardado;LM;82;83;1;false;false
+2014;NGA;John Obi Mikel;DM;82;83;1;false;true
+2022;SEN;Ismaïla Sarr;RW;82;83;1;false;false
+1994;ROU;Dan Petrescu;RB;81;82;1;false;false
+1994;SWE;Jonas Thern;DM;81;82;1;false;false
+1998;ARG;Carlos Roa;GK;81;82;1;false;false
+1998;ARG;Matías Almeyda;DM;81;82;1;false;false
+1998;CHI;José Luis Sierra;AM;81;82;1;false;false
+1998;COL;Óscar Córdoba;GK;81;82;1;false;false
+1998;ENG;Teddy Sheringham;ST;81;82;1;false;false
+1998;GER;Jürgen Kohler;CB;81;82;1;false;false
+1998;GER;Christian Ziege;LB;81;82;1;false;false
+1998;ITA;Francesco Toldo;GK;81;82;1;false;false
+1998;ITA;Alessandro Costacurta;CB;81;82;1;false;false
+1998;NED;Michael Reiziger;RB;81;82;1;false;false
+1998;NGA;Daniel Amokachi;ST;81;82;1;false;false
+1998;PAR;José Cardozo;ST;81;82;1;false;false
+2002;IRL;Damien Duff;LW;81;82;1;false;true
+2006;ARG;Javier Saviola;ST;81;82;1;false;false
+2006;FRA;Éric Abidal;LB;81;82;1;false;false
+2006;SWE;Kim Källström;CM;81;82;1;false;false
+2006;UKR;Oleksandr Shovkovskyi;GK;81;82;1;false;false
+2010;ARG;Maxi Rodríguez;RM;81;82;1;false;false
+2014;BRA;Luiz Gustavo;DM;81;82;1;false;false
+2014;COL;Jackson Martínez;ST;81;82;1;false;false
+2014;GER;Benedikt Höwedes;CB;81;82;1;false;false
+2014;NGA;Victor Moses;LW;81;82;1;false;false
+1990;ITA;Carlo Ancelotti;CM;80;81;1;false;false
+1990;TCH;Ivan Hašek;CM;80;81;1;false;false
+1998;ENG;Gary Neville;RB;80;81;1;false;false
+1998;GER;Markus Babbel;RB;80;81;1;false;false
+1998;NED;Arthur Numan;LB;80;81;1;false;false
+1998;NGA;Victor Ikpeba;ST;80;81;1;false;false
+1998;YUG;Savo Milošević;ST;80;81;1;false;false
+1998;YUG;Darko Kovačević;ST;80;81;1;false;false
+2006;BRA;Luisão;CB;80;81;1;false;false
+2006;CZE;Marek Jankulovski;LB;80;81;1;false;false
+2006;FRA;Grégory Coupet;GK;80;81;1;false;false
+2006;UKR;Andriy Voronin;ST;80;81;1;false;false
+2010;BRA;Felipe Melo;DM;80;81;1;false;false
+2010;CIV;Didier Zokora;DM;80;81;1;false;false
+2010;CIV;Salomon Kalou;LW;80;81;1;false;false
+2010;GHA;Asamoah Gyan;ST;80;81;1;false;false
+2010;MEX;Andrés Guardado;LM;80;81;1;false;false
+2014;ALG;Sofiane Feghouli;RW;80;81;1;false;false
+2014;ALG;Yacine Brahimi;AM;80;81;1;false;false
+2014;BEL;Dries Mertens;LW;80;81;1;false;false
+2014;COL;Mario Yepes;CB;80;81;1;false;false
+2014;GRE;Giorgos Samaras;LW;80;81;1;false;false
+2014;NGA;Emmanuel Emenike;ST;80;81;1;false;false
+2014;URU;Maxi Pereira;RB;80;81;1;false;false
+2014;URU;Martín Cáceres;RB;80;81;1;false;false
+2018;BRA;Paulinho;CM;80;81;1;false;false
+2018;FRA;Benjamin Pavard;RB;80;81;1;false;false
+2018;URU;Lucas Torreira;DM;80;81;1;false;false
+2022;ECU;Enner Valencia;ST;80;81;1;false;false
+1990;BRA;Ricardo Gomes;CB;79;80;1;false;false
+1994;GER;Ulf Kirsten;ST;79;80;1;false;false
+1998;ARG;Roberto Sensini;CB;79;80;1;false;false
+1998;CHI;Clarence Acuña;DM;79;80;1;false;false
+1998;COL;Jorge Bermúdez;CB;79;80;1;false;false
+1998;CRO;Dražen Ladić;GK;79;80;1;false;false
+1998;CRO;Igor Štimac;CB;79;80;1;false;false
+1998;CRO;Slaven Bilić;CB;79;80;1;false;false
+1998;DEN;Ebbe Sand;ST;79;80;1;false;false
+1998;ENG;Darren Anderton;RM;79;80;1;false;false
+1998;FRA;Robert Pirès;RW;79;80;1;false;false
+1998;FRA;David Trezeguet;ST;79;80;1;false;false
+1998;ITA;Giuseppe Bergomi;CB;79;80;1;false;false
+1998;NGA;Tijani Babangida;LW;79;80;1;false;false
+1998;PAR;Roberto Acuña;CM;79;80;1;false;false
+1998;YUG;Miroslav Đukić;CB;79;80;1;false;false
+2002;FRA;Mikaël Silvestre;LB;79;80;1;false;false
+2002;GER;Carsten Ramelow;CB;79;80;1;false;false
+2006;FRA;Fabien Barthez;GK;79;80;1;false;false
+2006;SUI;Tranquillo Barnetta;RM;79;80;1;false;false
+2006;UKR;Serhiy Rebrov;ST;79;80;1;false;false
+2010;MEX;Carlos Vela;LW;79;80;1;false;false
+2010;POR;Tiago;CM;79;80;1;false;false
+2014;BRA;Hernanes;CM;79;80;1;false;false
+2014;GRE;Giorgos Karagounis;CM;79;80;1;false;true
+2014;URU;Cristian Rodríguez;LM;79;80;1;false;false
+2018;ARG;Lucas Biglia;DM;79;80;1;false;false
+2018;CRO;Danijel Subašić;GK;79;80;1;false;false
+2018;KOR;Ki Sung-yueng;DM;79;80;1;false;false
+1990;TCH;Miroslav Kadlec;CB;78;79;1;false;false
+1994;ARG;Abel Balbo;ST;78;79;1;false;false
+1994;SWE;Roland Nilsson;RB;78;79;1;false;false
+1998;ARG;Abel Balbo;ST;78;79;1;false;false
+1998;BRA;Zé Roberto;LM;78;79;1;false;false
+1998;CRO;Zvonimir Soldo;DM;78;79;1;false;false
+1998;CRO;Goran Vlaović;ST;78;79;1;false;false
+1998;ENG;Gareth Southgate;CB;78;79;1;false;false
+1998;ENG;Rio Ferdinand;CB;78;79;1;false;false
+1998;ENG;Paul Merson;AM;78;79;1;false;false
+1998;ENG;Les Ferdinand;ST;78;79;1;false;false
+1998;NGA;Rashidi Yekini;ST;78;79;1;false;false
+1998;YUG;Slaviša Jokanović;DM;78;79;1;false;false
+2006;BRA;Rogério Ceni;GK;78;79;1;false;false
+2006;BRA;Cris;CB;78;79;1;false;false
+2006;CIV;Emmanuel Eboué;RB;78;79;1;false;false
+2006;CIV;Abdul Kader Keïta;RW;78;79;1;false;false
+2006;CZE;Zdeněk Grygera;RB;78;79;1;false;false
+2006;NED;Joris Mathijsen;CB;78;79;1;false;false
+2006;SWE;Niclas Alexandersson;RM;78;79;1;false;false
+2010;BRA;Júlio Baptista;CM;78;79;1;false;false
+2010;CHI;Matías Fernández;AM;78;79;1;false;false
+2014;ALG;Faouzi Ghoulam;LB;78;79;1;false;false
+2014;CHI;Marcelo Díaz;DM;78;79;1;false;false
+2014;CRC;Joel Campbell;RW;78;79;1;false;false
+2014;NED;Daryl Janmaat;RB;78;79;1;false;false
+2014;NGA;Peter Odemwingie;RW;78;79;1;false;false
+2014;SUI;Yann Sommer;GK;78;79;1;false;false
+2014;URU;Álvaro Pereira;LB;78;79;1;false;false
+2018;COL;Cristián Zapata;CB;78;79;1;false;false
+2018;COL;Wilmar Barrios;DM;78;79;1;false;false
+2018;COL;Carlos Bacca;ST;78;79;1;false;false
+2018;JPN;Hiroki Sakai;RB;78;79;1;false;false
+2018;SUI;Fabian Schär;CB;78;79;1;false;false
+2018;SWE;Viktor Claesson;RM;78;79;1;false;false
+2018;URU;Giorgian de Arrascaeta;AM;78;79;1;false;false
+2022;KOR;Hwang In-beom;CM;78;79;1;false;false
+1990;ITA;Fernando De Napoli;CM;77;78;1;false;false
+1994;ROU;Daniel Prodan;CB;77;78;1;false;false
+1994;SWE;Joachim Björklund;CB;77;78;1;false;false
+1994;USA;Tony Meola;GK;77;78;1;false;false
+1994;USA;Alexi Lalas;CB;77;78;1;false;false
+1998;CHI;Fabián Estay;AM;77;78;1;false;false
+1998;COL;Adolfo Valencia;ST;77;78;1;false;false
+1998;CRO;Igor Tudor;CB;77;78;1;false;false
+1998;ENG;David Batty;DM;77;78;1;false;false
+1998;FRA;Alain Boghossian;DM;77;78;1;false;false
+1998;FRA;Christophe Dugarry;ST;77;78;1;false;false
+1998;GER;Thomas Helmer;CB;77;78;1;false;false
+1998;GER;Stefan Reuter;RB;77;78;1;false;false
+1998;PAR;Francisco Arce;RB;77;78;1;false;false
+1998;YUG;Ivica Kralj;GK;77;78;1;false;false
+2002;ENG;Emile Heskey;ST;77;78;1;false;false
+2002;FRA;Vincent Candela;LB;77;78;1;false;false
+2006;ECU;Iván Kaviedes;ST;77;78;1;false;false
+2006;GER;Thomas Hitzlsperger;CM;77;78;1;false;false
+2006;GER;Tim Borowski;CM;77;78;1;false;false
+2006;SWE;Teddy Lučić;CB;77;78;1;false;false
+2006;SWE;Marcus Allbäck;ST;77;78;1;false;false
+2006;UKR;Andriy Nesmachnyi;LB;77;78;1;false;false
+2006;UKR;Andriy Rusol;CB;77;78;1;false;false
+2010;ESP;Juan Mata;LW;77;78;1;false;false
+2014;ALG;Madjid Bougherra;CB;77;78;1;false;false
+2014;CIV;Didier Zokora;DM;77;78;1;false;false
+2014;CIV;Max Gradel;LW;77;78;1;false;false
+2014;CRC;Giancarlo González;CB;77;78;1;false;false
+2014;FRA;Morgan Schneiderlin;DM;77;78;1;false;false
+2014;GRE;Kostas Katsouranis;DM;77;78;1;false;false
+2014;NGA;Ogenyi Onazi;DM;77;78;1;false;false
+2018;FRA;Presnel Kimpembe;CB;77;78;1;false;false
+2018;RUS;Mário Fernandes;RB;77;78;1;false;false
+2018;SUI;Haris Seferović;ST;77;78;1;false;false
+2018;SWE;Ola Toivonen;ST;77;78;1;false;false
+2018;URU;Carlos A. Sánchez;DM;77;78;1;false;false
+2022;SEN;Cheikhou Kouyaté;DM;77;78;1;false;false
+2022;SRB;Nemanja Maksimović;DM;77;78;1;false;false
+2022;SRB;Saša Lukić;CM;77;78;1;false;false
+1990;TCH;František Straka;RB;76;77;1;false;false
+1990;TCH;Ivo Knoflíček;LW;76;77;1;false;false
+1990;TCH;Stanislav Griga;ST;76;77;1;false;false
+1994;GER;Stefan Kuntz;ST;76;77;1;false;false
+1994;NGA;Sunday Oliseh;DM;76;77;1;false;false
+1994;USA;Earnie Stewart;ST;76;77;1;false;false
+1998;CHI;Pedro Reyes;CB;76;77;1;false;false
+1998;GER;Olaf Thon;DM;76;77;1;false;false
+1998;NGA;Wilson Oruma;AM;76;77;1;false;false
+2002;ARG;José Chamot;CB;76;77;1;false;false
+2002;ENG;Owen Hargreaves;DM;76;77;1;false;false
+2002;GER;Sebastian Kehl;DM;76;77;1;false;false
+2002;IRL;Matt Holland;CM;76;77;1;false;false
+2002;NGA;Julius Aghahowa;ST;76;77;1;false;false
+2006;CIV;Bakari Koné;ST;76;77;1;false;false
+2006;CZE;David Rozehnal;CB;76;77;1;false;false
+2006;ECU;Segundo Castillo;DM;76;77;1;false;false
+2006;UKR;Vladyslav Vashchuk;CB;76;77;1;false;false
+2006;UKR;Andriy Husin;CM;76;77;1;false;false
+2010;ARG;Jonás Gutiérrez;RM;76;77;1;false;false
+2010;CIV;Guy Demel;RB;76;77;1;false;false
+2010;GRE;Dimitris Salpingidis;ST;76;77;1;false;false
+2014;MEX;Carlos Salcido;LB;76;77;1;false;false
+2014;URU;Walter Gargano;DM;76;77;1;false;false
+2014;URU;Nicolás Lodeiro;AM;76;77;1;false;false
+2018;ARG;Enzo Pérez;CM;76;77;1;false;false
+2018;ARG;Cristian Pavón;RW;76;77;1;false;false
+2018;CRO;Ivan Strinić;LB;76;77;1;false;false
+2018;FRA;Steve Mandanda;GK;76;77;1;false;false
+2018;MAR;Nordin Amrabat;RW;76;77;1;false;false
+2018;RUS;Fyodor Smolov;ST;76;77;1;false;false
+2018;URU;Maxi Pereira;RB;76;77;1;false;false
+2018;URU;Diego Laxalt;LB;76;77;1;false;false
+2018;URU;Cristhian Stuani;ST;76;77;1;false;false
+2022;ECU;Félix Torres;CB;76;77;1;false;false
+2022;ECU;Ángelo Preciado;RB;76;77;1;false;false
+2022;SRB;Miloš Veljković;CB;76;77;1;false;false
+1998;CHI;Marcelo Vega;AM;75;76;1;false;false
+1998;PAR;M. Benítez;ST;75;76;1;false;false
+2006;ARG;Rodrigo Palacio;ST;75;76;1;false;false
+2006;BRA;Ricardinho;CM;75;76;1;false;false
+2006;CZE;Libor Sionko;RM;75;76;1;false;false
+2006;NED;Ryan Babel;LW;75;76;1;false;false
+2006;SUI;Christoph Spycher;LB;75;76;1;false;false
+2006;UKR;Oleh Shelayev;DM;75;76;1;false;false
+2006;UKR;Ruslan Rotan;CM;75;76;1;false;false
+2010;CIV;Siaka Tiéné;LB;75;76;1;false;false
+2010;ENG;Shaun Wright-Phillips;RM;75;76;1;false;false
+2010;JPN;Yoshito Ōkubo;ST;75;76;1;false;false
+2010;POR;Miguel;RB;75;76;1;false;false
+2014;BEL;Nicolas Lombaerts;CB;75;76;1;false;false
+2014;CHI;Carlos Carmona;DM;75;76;1;false;false
+2014;CIV;Serey Dié;DM;75;76;1;false;false
+2014;GRE;Giorgos Tzavellas;LB;75;76;1;false;false
+2014;MEX;Diego Reyes;CB;75;76;1;false;false
+2014;NED;Leroy Fer;CM;75;76;1;false;false
+2014;SUI;Gelson Fernandes;DM;75;76;1;false;false
+2014;URU;Abel Hernández;ST;75;76;1;false;false
+2018;CRO;Duje Ćaleta-Car;CB;75;76;1;false;false
+2018;MAR;Amine Harit;AM;75;76;1;false;false
+2018;SUI;Steven Zuber;LM;75;76;1;false;false
+2018;URU;Sebastián Coates;CB;75;76;1;false;false
+2022;SRB;Marko Grujić;CM;75;76;1;false;false
+2022;SRB;Nemanja Radonjić;RW;75;76;1;false;false
+1990;ARG;Pedro Troglio;CM;74;75;1;false;false
+1990;CMR;André Kana-Biyik;CB;74;75;1;false;false
+1990;CMR;Louis-Paul M'Fédé;AM;74;75;1;false;false
+1990;ENG;Gary Stevens;RB;74;75;1;false;false
+1990;ROU;Mircea Rednic;RB;74;75;1;false;false
+1990;ROU;Rodion Cămătaru;ST;74;75;1;false;false
+1994;BRA;Ricardo Rocha;CB;74;75;1;false;false
+1994;BUL;Tsanko Tsvetanov;LB;74;75;1;false;false
+1994;NGA;Ben Iroha;LB;74;75;1;false;false
+1994;NGA;Efan Ekoku;ST;74;75;1;false;false
+1994;USA;Roy Wegerle;ST;74;75;1;false;false
+1994;USA;Cobi Jones;RW;74;75;1;false;false
+1998;CHI;Ronald Fuentes;CB;74;75;1;false;false
+1998;CHI;Francisco Rojas;CB;74;75;1;false;false
+1998;CHI;Nelson Parraguez;DM;74;75;1;false;false
+1998;CHI;Miguel Ramírez;DM;74;75;1;false;false
+1998;CHI;Luis Musrri;DM;74;75;1;false;false
+1998;COL;Santa;CB;74;75;1;false;false
+1998;COL;Wílmer Cabrera;LB;74;75;1;false;false
+1998;PAR;Carlos Paredes;DM;74;75;1;false;false
+2002;CMR;Pierre Womé;LB;74;75;1;false;false
+2002;ENG;David James;GK;74;75;1;false;false
+2002;FRA;Alain Boghossian;CM;74;75;1;false;false
+2002;JPN;Atsushi Yanagisawa;ST;74;75;1;false;false
+2002;MEX;Salvador Carmona;RB;74;75;1;false;false
+2002;POR;Rui Jorge;LB;74;75;1;false;false
+2002;TUR;Fatih Akyel;RB;74;75;1;false;false
+2002;TUR;Arif Erdem;ST;74;75;1;false;false
+2002;USA;Eddie Lewis;LM;74;75;1;false;false
+2006;CZE;Jaroslav Plašil;CM;74;75;1;false;false
+2006;FRA;Pascal Chimbonda;RB;74;75;1;false;false
+2010;ARG;Clemente Rodríguez;LB;74;75;1;false;false
+2010;ENG;Robert Green;GK;74;75;1;false;false
+2010;GER;Cacau;ST;74;75;1;false;false
+2010;GHA;John Pantsil;RB;74;75;1;false;false
+2010;GRE;Alexandros Tziolis;DM;74;75;1;false;false
+2010;JPN;Eiji Kawashima;GK;74;75;1;false;false
+2010;KOR;Kim Jung-woo;CM;74;75;1;false;false
+2010;PAR;Denis Caniza;RB;74;75;1;false;false
+2014;GHA;Jonathan Mensah;CB;74;75;1;false;false
+2014;GRE;Alexandros Tziolis;DM;74;75;1;false;false
+2014;MEX;Javier Aquino;LW;74;75;1;false;false
+2014;SUI;Steve von Bergen;CB;74;75;1;false;false
+2018;COL;Johan Mojica;LB;74;75;1;false;false
+2018;FRA;Adil Rami;CB;74;75;1;false;false
+2018;KOR;Kim Seung-gyu;GK;74;75;1;false;false
+2018;MAR;Mehdi Carcela;RW;74;75;1;false;false
+2018;SUI;Michael Lang;RB;74;75;1;false;false
+2018;SUI;Blerim Džemaili;CM;74;75;1;false;false
+2022;AUS;Ajdin Hrustic;AM;74;75;1;false;false
+2022;KOR;Jo Hyeon-woo;GK;74;75;1;false;false
+2022;SEN;Fodé Ballo-Touré;LB;74;75;1;false;false
+2022;SRB;Darko Lazović;LM;74;75;1;false;false
+1994;NGA;Mutiu Adepoju;CM;73;74;1;false;false
+1998;ARG;Rafael Pineda;CB;73;74;1;false;false
+1998;ARG;Fernando Paz;CB;73;74;1;false;false
+1998;CHI;Moisés Villarroel;DM;73;74;1;false;false
+1998;CHI;Mauricio Aros;LM;73;74;1;false;false
+1998;CHI;Fernando Cornejo;CM;73;74;1;false;false
+1998;CRO;Goran Jurić;CB;73;74;1;false;false
+1998;CRO;Zoran Mamić;RB;73;74;1;false;false
+1998;CRO;Silvio Marić;AM;73;74;1;false;false
+1998;ENG;Tim Flowers;GK;73;74;1;false;false
+2002;GER;Gerald Asamoah;ST;73;74;1;false;false
+2006;CIV;Cyril Domoraud;CB;73;74;1;false;false
+2006;NED;Jan Kromkamp;RB;73;74;1;false;false
+2006;POR;Quim;GK;73;74;1;false;false
+2006;SUI;Stéphane Grichting;CB;73;74;1;false;false
+2010;CIV;Steve Gohouri;CB;73;74;1;false;false
+2010;CIV;Jean-Jacques Gosso;DM;73;74;1;false;false
+2010;JPN;Yūichi Komano;LB;73;74;1;false;false
+2010;NED;Michel Vorm;GK;73;74;1;false;false
+2014;BEL;Anthony Vanden Borre;RB;73;74;1;false;false
+2014;CIV;Constant Djakpa;LB;73;74;1;false;false
+2014;CRC;Yeltsin Tejeda;DM;73;74;1;false;false
+2018;CRO;Josip Pivarić;LB;73;74;1;false;false
+2018;ENG;Jack Butland;GK;73;74;1;false;false
+2018;SUI;Gelson Fernandes;DM;73;74;1;false;false
+2018;SWE;Marcus Rohdén;CM;73;74;1;false;false
+2022;ECU;Diego Palacios;LB;73;74;1;false;false
+2022;ECU;Ayrton Preciado;LW;73;74;1;false;false
+2022;ECU;Michael Estrada;ST;73;74;1;false;false
+2022;JPN;Takuma Asano;ST;73;74;1;false;false
+2022;MAR;Abde Ezzalzouli;LW;73;74;1;false;false
+1990;ARG;Néstor Lorenzo;CB;72;73;1;false;false
+1990;ARG;Pedro Monzón;CB;72;73;1;false;false
+1990;COL;Alexis Mendoza;CB;72;73;1;false;false
+1994;BUL;Ivaylo Yordanov;RM;72;73;1;false;false
+1994;COL;Hernán Gaviria;CM;72;73;1;false;false
+1994;ITA;Lorenzo Minotti;CB;72;73;1;false;false
+1998;CHI;Marcelo Ramírez;GK;72;73;1;false;false
+1998;CHI;Manuel Neira;ST;72;73;1;false;false
+1998;CHI;Rodrigo Barrera;ST;72;73;1;false;false
+1998;COL;Pérez;DM;72;73;1;false;false
+1998;CRO;Krunoslav Jurčić;DM;72;73;1;false;false
+2002;ARG;Roberto Bonano;GK;72;73;1;false;false
+2002;CMR;Raymond Kalla;CB;72;73;1;false;false
+2002;DEN;Peter Løvenkrands;LW;72;73;1;false;false
+2002;ESP;Sergio;CM;72;73;1;false;false
+2002;ESP;Albert Luque;LW;72;73;1;false;false
+2006;ECU;Christian Lara;CM;72;73;1;false;false
+2006;ENG;Theo Walcott;RW;72;73;1;false;false
+2006;UKR;Andriy Pyatov;GK;72;73;1;false;false
+2006;UKR;Dmytro Chyhrynskyi;CB;72;73;1;false;false
+2010;CIV;Benjamin Angoua;CB;72;73;1;false;false
+2010;ENG;Michael Dawson;CB;72;73;1;false;false
+2010;GER;Hans-Jörg Butt;GK;72;73;1;false;false
+2010;GHA;Samuel Inkoom;RB;72;73;1;false;false
+2010;MEX;Adolfo Bautista;AM;72;73;1;false;false
+2014;CHI;José Pedro Fuenzalida;RM;72;73;1;false;false
+2014;CHI;Esteban Paredes;ST;72;73;1;false;false
+2014;COL;Carlos Valdés;CB;72;73;1;false;false
+2014;CRC;Marco Ureña;ST;72;73;1;false;false
+2014;GER;Matthias Ginter;CB;72;73;1;false;false
+2014;GER;Christoph Kramer;DM;72;73;1;false;false
+2018;COL;Farid Díaz;LB;72;73;1;false;false
+2018;CRO;Filip Bradarić;CM;72;73;1;false;false
+2018;JPN;Tomoaki Makino;CB;72;73;1;false;false
+2018;JPN;Wataru Endō;DM;72;73;1;false;false
+2018;JPN;Ryota Oshima;CM;72;73;1;false;false
+2018;KOR;Kim Jin-hyeon;GK;72;73;1;false;false
+2018;KOR;Lee Yong;RB;72;73;1;false;false
+2018;MAR;Hamza Mendyl;LB;72;73;1;false;false
+2022;AUS;Miloš Degenek;CB;72;73;1;false;false
+2022;SEN;Alfred Gomis;GK;72;73;1;false;false
+1998;CHI;Carlos Tejas;GK;71;72;1;false;false
+2002;ESP;Juanfran;LB;71;72;1;false;false
+2006;NED;Henk Timmer;GK;71;72;1;false;false
+2006;SUI;David Degen;RM;71;72;1;false;false
+2018;BEL;Koen Casteels;GK;71;72;1;false;false
+2018;ENG;Nick Pope;GK;71;72;1;false;false
+1998;CRO;Marijan Mrmić;GK;70;71;1;false;false
+1998;CRO;Anthony Šerić;LB;70;71;1;false;false
+2002;DEN;Peter Kjær;GK;70;71;1;false;false
+2002;KOR;Lee Min-sung;RB;70;71;1;false;false
+2002;MEX;Melvin Brown;CB;70;71;1;false;false
+2002;SEN;Alassane N'Dour;CB;70;71;1;false;false
+2002;TUR;Ergün Penbe;DM;70;71;1;false;false
+2006;SUI;Fabio Coltorti;GK;70;71;1;false;false
+2010;GHA;Jonathan Mensah;CB;70;71;1;false;false
+2010;JPN;Daiki Iwamasa;CB;70;71;1;false;false
+2010;PAR;Diego Barreto;GK;70;71;1;false;false
+2014;CHI;Johnny Herrera;GK;70;71;1;false;false
+2014;COL;Camilo Vargas;GK;70;71;1;false;false
+2014;COL;Carlos Carbonero;CM;70;71;1;false;false
+2014;CRC;David Myrie;RB;70;71;1;false;false
+2014;CRC;Randall Brenes;ST;70;71;1;false;false
+2018;JPN;Kosuke Nakamura;GK;70;71;1;false;false
+2018;KOR;Hong Chul;LB;70;71;1;false;false
+2022;KOR;Song Bum-keun;GK;70;71;1;false;false
+2022;MAR;El Khannouss;CM;70;71;1;false;false
+2022;MAR;Walid Cheddira;ST;70;71;1;false;false
+2010;JPN;Kisho Yano;ST;69;70;1;false;false
+2018;KOR;Moon Seon-min;RW;69;70;1;false;false
+2022;AUS;Cameron Devlin;CM;69;70;1;false;false
+1998;CRO;Vladimir Vasilj;GK;68;69;1;false;false
+2002;CMR;Joël Epalle;CM;68;69;1;false;false
+2022;AUS;Joel King;ST;68;69;1;false;false
+2022;MAR;Ahmed Reda Tagnaouti;GK;68;69;1;false;false
+2022;CRC;Brandon Aguilera;CM;67;68;1;false;false
+1994;USA;Mike Burns;RB;66;67;1;false;false
+2002;TUR;Zafer Özgültekin;GK;66;67;1;false;false
+2010;GHA;Daniel Agyei;GK;66;67;1;false;false
+2022;ARG;Lionel Messi;AM;99;99;0;true;true
+1998;FRA;Zinedine Zidane;AM;95;95;0;true;true
+2006;ITA;Gianluigi Buffon;GK;95;95;0;true;true
+2010;ESP;Xavi;CM;94;94;0;true;true
+2018;ARG;Lionel Messi;RW;94;94;0;true;true
+2010;ARG;Lionel Messi;RW;93;93;0;true;true
+2010;ESP;Andrés Iniesta;CM;93;93;0;true;true
+2018;POR;Cristiano Ronaldo;ST;93;93;0;true;true
+2018;BEL;Eden Hazard;LW;92;92;0;true;true
+2022;CRO;Luka Modrić;CM;92;92;0;true;true
+2006;ITA;Andrea Pirlo;DM;91;91;0;true;true
+2010;ESP;David Villa;ST;91;91;0;true;false
+2014;GER;Philipp Lahm;RB;91;91;0;true;true
+2018;ESP;Andrés Iniesta;CM;91;91;0;true;true
+2006;ITA;Francesco Totti;AM;90;90;0;true;true
+2018;ESP;Sergio Busquets;DM;90;90;0;true;false
+2018;FRA;Antoine Griezmann;AM;90;90;0;true;false
+1998;ITA;Alessandro Del Piero;ST;89;89;0;false;true
+2006;UKR;Andriy Shevchenko;ST;89;89;0;false;true
+2018;ARG;Sergio Agüero;ST;89;89;0;false;true
+2022;KOR;Son Heung-min;LW;89;89;0;false;true
+1994;ROU;Gheorghe Hagi;AM;88;88;0;false;true
+2002;ITA;Gianluigi Buffon;GK;88;88;0;false;true
+2010;ARG;Carlos Tévez;ST;88;88;0;false;false
+2010;ENG;Steven Gerrard;CM;88;88;0;false;true
+2010;NED;Robin van Persie;ST;88;88;0;false;true
+2014;ARG;Ángel Di María;RW;88;88;0;false;false
+2014;FRA;Karim Benzema;ST;88;88;0;false;true
+2014;GER;Bastian Schweinsteiger;CM;88;88;0;false;true
+2018;BRA;Philippe Coutinho;AM;88;88;0;false;false
+1990;GER;Jürgen Klinsmann;ST;87;87;0;false;false
+2006;NED;Ruud van Nistelrooy;ST;87;87;0;false;true
+2014;CHI;Arturo Vidal;CM;87;87;0;false;true
+2014;GER;Mesut Özil;AM;87;87;0;false;false
+2018;BRA;Casemiro;DM;87;87;0;false;false
+2018;COL;James Rodríguez;AM;87;87;0;false;true
+2018;ESP;Jordi Alba;LB;87;87;0;false;false
+2022;SEN;Kalidou Koulibaly;CB;87;87;0;false;false
+1998;NED;Edgar Davids;DM;86;86;0;false;false
+2002;ITA;Alessandro Del Piero;ST;86;86;0;false;true
+2002;ITA;Christian Vieri;ST;86;86;0;false;false
+2006;ARG;Hernán Crespo;ST;86;86;0;false;false
+2006;NED;Arjen Robben;LW;86;86;0;false;true
+2014;BEL;Vincent Kompany;CB;86;86;0;false;false
+2014;BRA;David Luiz;CB;86;86;0;false;false
+2022;KOR;Kim Min-jae;CB;86;86;0;false;false
+1998;CHI;Iván Zamorano;ST;85;85;0;false;true
+1998;ITA;Christian Vieri;ST;85;85;0;false;false
+2002;BRA;Lúcio;CB;85;85;0;false;false
+2006;FRA;Claude Makélélé;DM;85;85;0;false;false
+2006;POR;Cristiano Ronaldo;RW;85;85;0;false;true
+2010;ESP;David Silva;AM;85;85;0;false;false
+2010;MEX;Rafael Márquez;CB;85;85;0;false;false
+2014;BRA;Oscar;AM;85;85;0;false;false
+2018;BEL;Vincent Kompany;CB;85;85;0;false;false
+2018;ESP;Dani Carvajal;RB;85;85;0;false;false
+2022;BRA;Éder Militão;CB;85;85;0;false;false
+1998;GER;Oliver Bierhoff;ST;84;84;0;false;false
+1998;NED;Clarence Seedorf;CM;84;84;0;false;false
+2002;ESP;Fernando Hierro;CB;84;84;0;false;false
+2002;ESP;Fernando Morientes;ST;84;84;0;false;false
+2002;GER;Miroslav Klose;ST;84;84;0;false;true
+2006;CIV;Kolo Touré;CB;84;84;0;false;false
+2006;FRA;Lilian Thuram;CB;84;84;0;false;false
+2010;NED;Rafael van der Vaart;AM;84;84;0;false;false
+2010;POR;Pepe;CB;84;84;0;false;false
+2014;COL;Juan Cuadrado;RW;84;84;0;false;false
+2014;GER;Mario Götze;AM;84;84;0;false;false
+2014;MEX;Javier Hernández;ST;84;84;0;false;false
+2014;NGA;Vincent Enyeama;GK;84;84;0;false;true
+2018;BRA;Gabriel Jesus;ST;84;84;0;false;false
+2018;COL;Radamel Falcao;ST;84;84;0;false;true
+2018;CRO;Mario Mandžukić;ST;84;84;0;false;false
+2018;ENG;Kyle Walker;RB;84;84;0;false;false
+2018;ESP;Marco Asensio;LW;84;84;0;false;false
+2022;CRC;Keylor Navas;GK;84;84;0;false;true
+2022;FRA;Theo Hernández;LB;84;84;0;false;false
+2022;SRB;Dušan Vlahović;ST;84;84;0;false;false
+1994;ITA;Gianluca Pagliuca;GK;83;83;0;false;false
+1998;ARG;Claudio López;ST;83;83;0;false;false
+1998;ENG;Sol Campbell;CB;83;83;0;false;false
+1998;ITA;Gianluca Pagliuca;GK;83;83;0;false;false
+1998;ITA;Alessandro Nesta;CB;83;83;0;false;false
+1998;NED;Phillip Cocu;CM;83;83;0;false;false
+2002;POR;Pauleta;ST;83;83;0;false;false
+2006;ARG;Pablo Aimar;AM;83;83;0;false;false
+2006;AUS;Harry Kewell;LW;83;83;0;false;false
+2006;BRA;Gilberto Silva;DM;83;83;0;false;false
+2006;BRA;Juninho Pernambucano;CM;83;83;0;false;false
+2006;ENG;Sol Campbell;CB;83;83;0;false;false
+2006;FRA;William Gallas;CB;83;83;0;false;false
+2006;ITA;Gennaro Gattuso;DM;83;83;0;false;false
+2010;GER;Thomas Müller;RM;83;83;0;false;false
+2014;BEL;Toby Alderweireld;CB;83;83;0;false;false
+2014;BEL;Axel Witsel;DM;83;83;0;false;false
+2014;BEL;Kevin De Bruyne;AM;83;83;0;false;false
+2014;BRA;Hulk;RW;83;83;0;false;false
+2014;FRA;Blaise Matuidi;CM;83;83;0;false;false
+2014;SUI;Xherdan Shaqiri;RW;83;83;0;false;false
+2018;SUI;Yann Sommer;GK;83;83;0;false;false
+2022;SRB;Aleksandar Mitrović;ST;83;83;0;false;false
+1990;ENG;Peter Shilton;GK;82;82;0;false;true
+1990;TCH;Tomáš Skuhravý;ST;82;82;0;false;false
+1994;BRA;Cafu;RB;82;82;0;false;true
+1994;BRA;Mauro Silva;DM;82;82;0;false;false
+1994;ROU;Ilie Dumitrescu;AM;82;82;0;false;false
+1994;SWE;Thomas Ravelli;GK;82;82;0;false;false
+1998;ITA;Fabio Cannavaro;CB;82;82;0;false;false
+1998;ITA;Demetrio Albertini;CM;82;82;0;false;false
+1998;NED;Ronald de Boer;AM;82;82;0;false;false
+1998;YUG;Dejan Savićević;AM;82;82;0;false;false
+2002;ESP;Carles Puyol;CB;82;82;0;false;false
+2002;ITA;Gianluca Zambrotta;LB;82;82;0;false;false
+2006;CZE;Jan Koller;ST;82;82;0;false;false
+2006;ENG;Paul Robinson;GK;82;82;0;false;false
+2006;POR;Simão;LW;82;82;0;false;false
+2010;POR;Raul Meireles;CM;82;82;0;false;false
+2014;BRA;Júlio César;GK;82;82;0;false;false
+2014;CIV;Wilfried Bony;ST;82;82;0;false;false
+2014;COL;Fredy Guarín;CM;82;82;0;false;false
+2014;FRA;Patrice Evra;LB;82;82;0;false;false
+2014;FRA;Olivier Giroud;ST;82;82;0;false;false
+2014;GER;Per Mertesacker;CB;82;82;0;false;false
+2014;GRE;Sokratis Papastathopoulos;CB;82;82;0;false;false
+2014;NED;Nigel de Jong;DM;82;82;0;false;false
+2018;CRO;Marcelo Brozović;DM;82;82;0;false;false
+2018;FRA;Lucas Hernández;LB;82;82;0;false;false
+2018;FRA;Olivier Giroud;ST;82;82;0;false;false
+2018;POR;João Moutinho;CM;82;82;0;false;false
+2022;ECU;Moisés Caicedo;DM;82;82;0;false;false
+2022;SRB;Nikola Milenković;CB;82;82;0;false;false
+1994;SWE;Stefan Schwarz;CM;81;81;0;false;false
+1998;NGA;Sunday Oliseh;DM;81;81;0;false;false
+2002;BRA;Edmílson;CB;81;81;0;false;false
+2006;AUS;Mark Schwarzer;GK;81;81;0;false;false
+2006;CIV;Didier Zokora;DM;81;81;0;false;false
+2006;FRA;Florent Malouda;LM;81;81;0;false;false
+2006;GER;Per Mertesacker;CB;81;81;0;false;false
+2006;ITA;Marco Materazzi;CB;81;81;0;false;false
+2010;MEX;Javier Hernández;ST;81;81;0;false;false
+2010;POR;Simão;LW;81;81;0;false;false
+2014;CIV;Kolo Touré;CB;81;81;0;false;false
+2018;ARG;Éver Banega;CM;81;81;0;false;false
+2018;COL;David Ospina;GK;81;81;0;false;false
+2018;COL;Yerry Mina;CB;81;81;0;false;false
+2018;ESP;Iago Aspas;ST;81;81;0;false;false
+2022;JPN;Takehiro Tomiyasu;RB;81;81;0;false;false
+1990;ENG;Des Walker;CB;80;80;0;false;false
+1990;ENG;Bryan Robson;CM;80;80;0;false;true
+1990;TCH;Luboš Kubík;CM;80;80;0;false;false
+1990;TCH;Jozef Chovanec;CM;80;80;0;false;false
+1994;BRA;Leonardo;LB;80;80;0;false;false
+1994;BRA;Raí;AM;80;80;0;false;false
+1994;BUL;Yordan Letchkov;AM;80;80;0;false;false
+1994;ITA;Giuseppe Signori;ST;80;80;0;false;false
+1994;NED;Danny Blind;CB;80;80;0;false;false
+1994;NED;Jan Wouters;DM;80;80;0;false;false
+1994;ROU;Miodrag Belodedici;CB;80;80;0;false;false
+1994;SWE;Anders Limpar;RW;80;80;0;false;false
+1998;ARG;Marcelo Gallardo;AM;80;80;0;false;false
+1998;CHI;Javier Margas;CB;80;80;0;false;false
+1998;CRO;Mario Stanić;RM;80;80;0;false;false
+1998;ENG;Steve McManaman;LW;80;80;0;false;false
+1998;FRA;Frank Leboeuf;CB;80;80;0;false;false
+1998;GER;Thomas Häßler;RM;80;80;0;false;false
+1998;GER;Dietmar Hamann;DM;80;80;0;false;false
+1998;ITA;Gianluigi Buffon;GK;80;80;0;false;false
+1998;ITA;Enrico Chiesa;RW;80;80;0;false;false
+1998;NED;Wim Jonk;CM;80;80;0;false;false
+1998;NED;Jimmy Floyd Hasselbaink;ST;80;80;0;false;false
+1998;NGA;Celestine Babayaro;LB;80;80;0;false;false
+1998;YUG;Dejan Stanković;CM;80;80;0;false;false
+2002;BRA;Roque Júnior;CB;80;80;0;false;false
+2002;ESP;Juan Carlos Valerón;AM;80;80;0;false;false
+2002;GER;Christian Ziege;LB;80;80;0;false;false
+2002;ITA;Christian Panucci;RB;80;80;0;false;false
+2002;JPN;Shinji Ono;CM;80;80;0;false;false
+2002;TUR;Tugay Kerimoğlu;CM;80;80;0;false;false
+2002;TUR;Yıldıray Baştürk;AM;80;80;0;false;false
+2002;TUR;İlhan Mansız;ST;80;80;0;false;false
+2002;USA;Kasey Keller;GK;80;80;0;false;false
+2006;ARG;Gabriel Milito;CB;80;80;0;false;false
+2006;AUS;Mark Bresciano;AM;80;80;0;false;false
+2006;CZE;Tomáš Ujfaluší;CB;80;80;0;false;false
+2006;ECU;Iván Hurtado;CB;80;80;0;false;true
+2006;ECU;Agustín Delgado;ST;80;80;0;false;true
+2006;FRA;Franck Ribéry;LW;80;80;0;false;false
+2006;GER;Arne Friedrich;RB;80;80;0;false;false
+2006;ITA;Mauro Camoranesi;RM;80;80;0;false;false
+2010;BRA;Gilberto Silva;DM;80;80;0;false;false
+2010;CIV;Emmanuel Eboué;RB;80;80;0;false;false
+2010;ENG;Glen Johnson;RB;80;80;0;false;false
+2010;ENG;Jermain Defoe;ST;80;80;0;false;false
+2010;ESP;Pedro Rodríguez;RW;80;80;0;false;false
+2010;PAR;Justo Villar;GK;80;80;0;false;false
+2010;PAR;Nelson Valdez;ST;80;80;0;false;false
+2010;POR;Bruno Alves;CB;80;80;0;false;false
+2014;BEL;Marouane Fellaini;CM;80;80;0;false;false
+2014;BEL;Mousa Dembélé;CM;80;80;0;false;false
+2014;CHI;Charles Aránguiz;CM;80;80;0;false;false
+2014;CIV;Cheick Tioté;DM;80;80;0;false;false
+2014;COL;Teófilo Gutiérrez;ST;80;80;0;false;false
+2014;COL;Carlos Bacca;ST;80;80;0;false;false
+2014;CRC;Bryan Ruiz;AM;80;80;0;false;false
+2014;GER;Lukas Podolski;LW;80;80;0;false;false
+2014;GRE;Kostas Manolas;CB;80;80;0;false;false
+2014;SUI;Granit Xhaka;CM;80;80;0;false;false
+2018;COL;Santiago Arias;RB;80;80;0;false;false
+2018;CRO;Domagoj Vida;CB;80;80;0;false;false
+2018;CRO;Andrej Kramarić;ST;80;80;0;false;false
+2018;ENG;Kieran Trippier;RB;80;80;0;false;false
+2018;ENG;Harry Maguire;CB;80;80;0;false;false
+2018;ESP;Rodrigo;ST;80;80;0;false;false
+2018;SUI;Stephan Lichtsteiner;RB;80;80;0;false;false
+2018;SUI;Manuel Akanji;CB;80;80;0;false;false
+2018;URU;Fernando Muslera;GK;80;80;0;false;false
+2018;URU;Matías Vecino;CM;80;80;0;false;false
+1994;BRA;Branco;LB;79;79;0;false;false
+1994;BUL;Trifon Ivanov;CB;79;79;0;false;false
+1994;MEX;Carlos Hermosillo;ST;79;79;0;false;false
+1994;USA;Marcelo Balboa;CB;79;79;0;false;false
+1998;BRA;Emerson;DM;79;79;0;false;false
+1998;COL;Iván Córdoba;CB;79;79;0;false;false
+1998;COL;Víctor Aristizábal;ST;79;79;0;false;false
+1998;CRO;Dario Šimić;RB;79;79;0;false;false
+1998;ENG;Graeme Le Saux;LB;79;79;0;false;false
+1998;ENG;Martin Keown;CB;79;79;0;false;false
+1998;FRA;Vincent Candela;LB;79;79;0;false;false
+1998;FRA;Christian Karembeu;RM;79;79;0;false;false
+1998;ITA;Dino Baggio;DM;79;79;0;false;false
+1998;ITA;Roberto Di Matteo;DM;79;79;0;false;false
+1998;NED;Giovanni van Bronckhorst;LB;79;79;0;false;false
+1998;NGA;Garba Lawal;DM;79;79;0;false;false
+2002;FRA;Willy Sagnol;RB;79;79;0;false;false
+2002;JPN;Junichi Inamoto;DM;79;79;0;false;false
+2002;SEN;Khalilou Fadiga;AM;79;79;0;false;false
+2006;ARG;Julio Cruz;ST;79;79;0;false;false
+2006;CIV;Aruna Dindane;ST;79;79;0;false;false
+2006;CZE;Tomáš Galásek;DM;79;79;0;false;false
+2006;GER;Sebastian Kehl;DM;79;79;0;false;false
+2006;GER;Oliver Neuville;ST;79;79;0;false;false
+2006;SUI;Pascal Zuberbühler;GK;79;79;0;false;false
+2006;SWE;Christian Wilhelmsson;RW;79;79;0;false;false
+2010;ENG;Michael Carrick;DM;79;79;0;false;false
+2010;ESP;Jesús Navas;RW;79;79;0;false;false
+2014;CHI;Jorge Valdivia;AM;79;79;0;false;false
+2014;COL;Cristián Zapata;CB;79;79;0;false;false
+2014;FRA;Moussa Sissoko;CM;79;79;0;false;false
+2018;COL;Juan Fernando Quintero;AM;79;79;0;false;false
+2018;ESP;Nacho Monreal;LB;79;79;0;false;false
+2022;JPN;Wataru Endō;DM;79;79;0;false;false
+2022;JPN;Takefusa Kubo;RW;79;79;0;false;false
+1990;IRL;Packie Bonner;GK;78;78;0;false;false
+1990;ROU;Ioan Sabău;CM;78;78;0;false;false
+1990;TCH;Jan Stejskal;GK;78;78;0;false;false
+1994;BUL;Nasko Sirakov;ST;78;78;0;false;false
+1994;ITA;Nicola Berti;CM;78;78;0;false;false
+1994;NGA;Stephen Keshi;CB;78;78;0;false;false
+1998;BRA;César Sampaio;DM;78;78;0;false;false
+1998;COL;Faryd Mondragón;GK;78;78;0;false;false
+1998;ENG;Nigel Martyn;GK;78;78;0;false;false
+1998;FRA;Bernard Lama;GK;78;78;0;false;false
+1998;GER;Jens Lehmann;GK;78;78;0;false;false
+1998;GER;Christian Wörns;CB;78;78;0;false;false
+1998;GER;Ulf Kirsten;ST;78;78;0;false;false
+1998;ITA;Luigi Di Biagio;DM;78;78;0;false;false
+1998;NED;Boudewijn Zenden;LM;78;78;0;false;false
+1998;NED;Pierre van Hooijdonk;ST;78;78;0;false;false
+1998;NGA;Uche Okechukwu;CB;78;78;0;false;false
+1998;YUG;Ljubinko Drulović;LW;78;78;0;false;false
+2002;ESP;Xavi;CM;78;78;0;false;false
+2006;ECU;Carlos Tenorio;ST;78;78;0;false;false
+2006;ENG;David James;GK;78;78;0;false;false
+2006;FRA;Jean-Alain Boumsong;CB;78;78;0;false;false
+2006;SUI;Raphaël Wicky;CM;78;78;0;false;false
+2010;CIV;Aruna Dindane;ST;78;78;0;false;false
+2010;ENG;Aaron Lennon;RM;78;78;0;false;false
+2010;GER;Jérôme Boateng;RB;78;78;0;false;false
+2010;GRE;Vasilis Torosidis;RB;78;78;0;false;false
+2010;JPN;Yuji Nakazawa;CB;78;78;0;false;true
+2010;MEX;Guillermo Ochoa;GK;78;78;0;false;false
+2010;POR;Danny;AM;78;78;0;false;false
+2014;BEL;Daniel Van Buyten;CB;78;78;0;false;false
+2014;BEL;Nacer Chadli;LW;78;78;0;false;false
+2014;CRC;Celso Borges;CM;78;78;0;false;false
+2014;FRA;Loïc Rémy;ST;78;78;0;false;false
+2014;NED;Bruno Martins Indi;CB;78;78;0;false;false
+2018;ARG;Gabriel Mercado;RB;78;78;0;false;false
+2018;ARG;Marcos Rojo;CB;78;78;0;false;false
+2018;ARG;Giovani Lo Celso;CM;78;78;0;false;false
+2018;COL;Jefferson Lerma;DM;78;78;0;false;false
+2018;COL;Luis Muriel;ST;78;78;0;false;false
+2018;EGY;Mohamed Elneny;CM;78;78;0;false;false
+2018;FRA;Djibril Sidibé;RB;78;78;0;false;false
+2018;MAR;Romain Saïss;CB;78;78;0;false;false
+2018;SUI;Remo Freuler;CM;78;78;0;false;false
+2018;SUI;Denis Zakaria;DM;78;78;0;false;false
+2018;SWE;Albin Ekdal;DM;78;78;0;false;false
+2022;JPN;Maya Yoshida;CB;78;78;0;false;false
+2022;JPN;Junya Itō;RW;78;78;0;false;false
+2022;SRB;Luka Jović;ST;78;78;0;false;false
+1998;BRA;Júnior Baiano;CB;77;77;0;false;false
+1998;COL;Mauricio Serna;DM;77;77;0;false;false
+1998;NED;Aron Winter;DM;77;77;0;false;false
+2002;DEN;René Henriksen;CB;77;77;0;false;false
+2002;KOR;Kim Nam-il;DM;77;77;0;false;false
+2002;SEN;Aliou Cissé;DM;77;77;0;false;false
+2002;USA;Eddie Pope;CB;77;77;0;false;false
+2006;CIV;Abdoulaye Méïté;CB;77;77;0;false;false
+2006;CIV;Bonaventure Kalou;AM;77;77;0;false;false
+2006;CIV;Arouna Koné;ST;77;77;0;false;false
+2006;ECU;Giovanny Espinoza;CB;77;77;0;false;false
+2006;GER;Jens Nowotny;CB;77;77;0;false;false
+2006;UKR;Maksym Kalynychenko;LM;77;77;0;false;false
+2010;GHA;Kwadwo Asamoah;CM;77;77;0;false;false
+2010;GRE;Sotirios Kyrgiakos;CB;77;77;0;false;false
+2010;GRE;Theofanis Gekas;ST;77;77;0;false;false
+2010;PAR;Julio César Cáceres;CB;77;77;0;false;false
+2010;POR;Paulo Ferreira;RB;77;77;0;false;false
+2010;POR;Miguel Veloso;DM;77;77;0;false;false
+2010;POR;Hugo Almeida;ST;77;77;0;false;false
+2014;BRA;Fred Guedes;ST;77;77;0;false;false
+2014;NED;Jonathan de Guzmán;CM;77;77;0;false;false
+2014;NGA;Kenneth Omeruo;CB;77;77;0;false;false
+2014;SUI;Josip Drmić;ST;77;77;0;false;false
+2018;COL;Mateus Uribe;CM;77;77;0;false;false
+2018;SUI;Breel Embolo;ST;77;77;0;false;false
+2018;SWE;Sebastian Larsson;CM;77;77;0;false;false
+1990;ARG;Julio Olarticoechea;LB;76;76;0;false;false
+1990;ARG;Gabriel Calderón;AM;76;76;0;false;false
+1990;ENG;Paul Parker;RB;76;76;0;false;false
+1990;ENG;Mark Wright;CB;76;76;0;false;false
+1990;ITA;Gianluca Pagliuca;GK;76;76;0;false;false
+1990;TCH;Jiří Němec;CM;76;76;0;false;false
+1994;BRA;Paulo Sérgio;LW;76;76;0;false;false
+1994;BRA;Müller;ST;76;76;0;false;false
+1994;BUL;Petar Hubchev;CB;76;76;0;false;false
+1994;BUL;Daniel Borimirov;CM;76;76;0;false;false
+1994;ITA;Mauro Tassotti;RB;76;76;0;false;false
+1994;MEX;Marcelino Bernal;CM;76;76;0;false;false
+1994;NGA;Uche Okechukwu;CB;76;76;0;false;false
+1994;ROU;Florin Prunea;GK;76;76;0;false;false
+1994;ROU;Tibor Selymes;LB;76;76;0;false;false
+1998;ARG;Germán Burgos;GK;76;76;0;false;false
+1998;ARG;Leonardo Astrada;DM;76;76;0;false;false
+1998;ARG;Marcelo Delgado;ST;76;76;0;false;false
+1998;COL;Antony de Ávila;ST;76;76;0;false;false
+1998;GER;Michael Tarnat;LB;76;76;0;false;false
+1998;ITA;Moreno Torricelli;RB;76;76;0;false;false
+1998;NED;Ed de Goey;GK;76;76;0;false;false
+1998;NGA;Mutiu Adepoju;DM;76;76;0;false;false
+1998;YUG;Goran Đorović;CB;76;76;0;false;false
+1998;YUG;Slobodan Komljenović;CB;76;76;0;false;false
+1998;YUG;Nisa Saveljić;CB;76;76;0;false;false
+1998;YUG;Branko Brnović;CM;76;76;0;false;false
+1998;YUG;Ognjenović;RW;76;76;0;false;false
+2002;ARG;Germán Burgos;GK;76;76;0;false;false
+2002;GER;Marco Bode;LM;76;76;0;false;false
+2002;JPN;Naoki Matsuda;CB;76;76;0;false;false
+2002;KOR;Choi Jin-cheul;CB;76;76;0;false;false
+2002;KOR;Hwang Sun-hong;ST;76;76;0;false;false
+2002;POR;Ricardo;GK;76;76;0;false;false
+2002;POR;Jorge Andrade;CB;76;76;0;false;false
+2002;SEN;Salif Diao;DM;76;76;0;false;false
+2002;TUR;Muzzy Izzet;CM;76;76;0;false;false
+2002;TUR;Ümit Davala;RM;76;76;0;false;false
+2002;USA;Earnie Stewart;CM;76;76;0;false;false
+2006;BRA;Gilberto;LB;76;76;0;false;false
+2006;BRA;Mineiro;DM;76;76;0;false;false
+2006;FRA;Alou Diarra;DM;76;76;0;false;false
+2006;FRA;Mickaël Landreau;GK;76;76;0;false;false
+2006;UKR;Andriy Vorobey;RW;76;76;0;false;false
+2010;GHA;Anthony Annan;DM;76;76;0;false;false
+2010;GHA;Stephen Appiah;CM;76;76;0;false;false
+2010;GHA;André Ayew;LW;76;76;0;false;false
+2010;MEX;Héctor Moreno;CB;76;76;0;false;false
+2010;MEX;Pablo Barrera;RW;76;76;0;false;false
+2010;PAR;Édgar Barreto;RM;76;76;0;false;false
+2010;POR;Rolando;CB;76;76;0;false;false
+2010;POR;Liédson;ST;76;76;0;false;false
+2014;CRC;Christian Bolaños;RM;76;76;0;false;false
+2014;GRE;José Holebas;LB;76;76;0;false;false
+2014;GRE;Giannis Maniatis;DM;76;76;0;false;false
+2014;GRE;Panagiotis Kone;CM;76;76;0;false;false
+2014;GRE;Dimitris Salpingidis;RW;76;76;0;false;false
+2014;SUI;Johan Djourou;CB;76;76;0;false;false
+2014;SUI;Blerim Džemaili;CM;76;76;0;false;false
+2014;SUI;Admir Mehmedi;LW;76;76;0;false;false
+2018;ARG;Cristian Ansaldi;RB;76;76;0;false;false
+2018;ARG;Federico Fazio;CB;76;76;0;false;false
+2018;BRA;Fágner;RB;76;76;0;false;false
+2018;EGY;Ahmed Elmohamady;RB;76;76;0;false;false
+2018;SUI;Valon Behrami;DM;76;76;0;false;false
+2018;SWE;Martin Olsson;LB;76;76;0;false;false
+2022;CRO;Domagoj Vida;CB;76;76;0;false;false
+2022;ECU;José Cifuentes;CM;76;76;0;false;false
+2022;ECU;Carlos Gruezo;DM;76;76;0;false;false
+2022;FRA;Axel Disasi;CB;76;76;0;false;false
+2022;FRA;Youssouf Fofana;DM;76;76;0;false;false
+2022;POR;Gonçalo Ramos;ST;76;76;0;false;false
+2022;SRB;Andrija Živković;RW;76;76;0;false;false
+1994;COL;Luis Fernando Herrera;RB;75;75;0;false;false
+1998;ARG;Sergio Berti;RW;75;75;0;false;false
+1998;COL;H. Lozano;RB;75;75;0;false;false
+1998;COL;Hamilton Ricard;ST;75;75;0;false;false
+1998;GER;Jörg Heinrich;LB;75;75;0;false;false
+1998;GER;Olaf Marschall;ST;75;75;0;false;false
+1998;YUG;Petrović;RB;75;75;0;false;false
+2002;TUR;Hakan Ünsal;LB;75;75;0;false;false
+2002;USA;Pablo Mastroeni;DM;75;75;0;false;false
+2006;SWE;Mattias Jonson;RM;75;75;0;false;false
+2010;POR;Pedro Mendes;DM;75;75;0;false;false
+2014;BEL;Adnan Januzaj;RW;75;75;0;false;false
+2014;CHI;Fabián Orellana;RW;75;75;0;false;false
+2014;FRA;Rio Mavuba;CM;75;75;0;false;false
+2014;GRE;Lazaros Christodoulopoulos;AM;75;75;0;false;false
+2014;GRE;Theofanis Gekas;ST;75;75;0;false;false
+2014;NED;Jordy Clasie;DM;75;75;0;false;false
+2018;KOR;Lee Jae-sung;AM;75;75;0;false;false
+2018;SWE;Jimmy Durmaz;RM;75;75;0;false;false
+2022;MAR;Zakaria Aboukhlal;RW;75;75;0;false;false
+2022;SRB;Filip Đuričić;AM;75;75;0;false;false
+1990;ENG;Steve McMahon;CM;74;74;0;false;false
+1990;GER;Hans Pflügler;LB;74;74;0;false;false
+1990;ROU;Michael Klein;LB;74;74;0;false;false
+1994;ARG;José Basualdo;CM;74;74;0;false;false
+1994;BRA;Viola;ST;74;74;0;false;false
+1994;BUL;Iliyan Kiryakov;RB;74;74;0;false;false
+1994;ITA;Luigi Apolloni;RB;74;74;0;false;false
+1994;MEX;Joaquín del Olmo;CM;74;74;0;false;false
+1994;NGA;Thompson Oliha;DM;74;74;0;false;false
+1994;ROU;Constantin Gâlcă;CM;74;74;0;false;false
+1994;USA;Brad Friedel;GK;74;74;0;false;false
+1994;USA;Hugo Perez;AM;74;74;0;false;false
+1998;FRA;Stéphane Guivarc'h;ST;74;74;0;false;false
+1998;FRA;Bernard Diomède;LW;74;74;0;false;false
+1998;NED;André Ooijer;CB;74;74;0;false;false
+1998;NGA;Augustine Eguavoen;RB;74;74;0;false;false
+1998;PAR;Rivarola;CB;74;74;0;false;false
+1998;PAR;Sarabia;CB;74;74;0;false;false
+1998;YUG;Dejan Govedarica;LM;74;74;0;false;false
+1998;YUG;Stević;DM;74;74;0;false;false
+2002;DEN;Jan Heintze;LB;74;74;0;false;false
+2002;JPN;Hiroaki Morishima;AM;74;74;0;false;false
+2002;SEN;Omar Daf;RB;74;74;0;false;false
+2002;SEN;Ferdinand Coly;RB;74;74;0;false;false
+2002;USA;Frankie Hejduk;RB;74;74;0;false;false
+2002;USA;Gregg Berhalter;CB;74;74;0;false;false
+2002;USA;Tony Sanneh;RB;74;74;0;false;false
+2006;CIV;Kanga Akalé;RM;74;74;0;false;false
+2006;NED;Maarten Stekelenburg;GK;74;74;0;false;false
+2006;SUI;Philipp Degen;RB;74;74;0;false;false
+2006;UKR;Artem Milevskyi;ST;74;74;0;false;false
+2010;ARG;Javier Pastore;AM;74;74;0;false;false
+2010;CHI;Rodrigo Millar;CM;74;74;0;false;false
+2010;ENG;Matthew Upson;CB;74;74;0;false;false
+2010;ENG;Emile Heskey;ST;74;74;0;false;false
+2010;GER;Tim Wiese;GK;74;74;0;false;false
+2010;GER;Dennis Aogo;LB;74;74;0;false;false
+2010;GHA;Richard Kingson;GK;74;74;0;false;false
+2010;JPN;Yasuyuki Konno;CB;74;74;0;false;false
+2010;MEX;Óscar Pérez;GK;74;74;0;false;false
+2010;PAR;Carlos Bonet;RB;74;74;0;false;false
+2010;URU;Sebastián Eguren;DM;74;74;0;false;false
+2014;CHI;Francisco Silva;DM;74;74;0;false;false
+2014;COL;Víctor Ibarbo;LW;74;74;0;false;false
+2014;CRC;Cristian Gamboa;RB;74;74;0;false;false
+2014;GER;Shkodran Mustafi;CB;74;74;0;false;false
+2014;SUI;Reto Ziegler;LB;74;74;0;false;false
+2014;URU;Sebastián Coates;CB;74;74;0;false;false
+2018;BEL;Simon Mignolet;GK;74;74;0;false;false
+2018;CRO;Tin Jedvaj;CB;74;74;0;false;false
+2018;CRO;Marko Pjaca;LW;74;74;0;false;false
+2018;SWE;Gustav Svensson;DM;74;74;0;false;false
+2022;ECU;Ángel Mena;RW;74;74;0;false;false
+2022;JPN;Hiroki Sakai;RB;74;74;0;false;false
+2022;MAR;Selim Amallah;CM;74;74;0;false;false
+2022;POR;António Silva;CB;74;74;0;false;false
+2022;SEN;Pape Gueye;CM;74;74;0;false;false
+1998;ITA;Francesco Moriero;RW;73;73;0;false;false
+1998;NED;Winston Bogarde;CB;73;73;0;false;false
+1998;NGA;Mobi Oparaku;RB;73;73;0;false;false
+2002;KOR;Choi Sung-yong;RB;73;73;0;false;false
+2002;SEN;Pape Sarr;DM;73;73;0;false;false
+2006;ECU;Félix Borja;ST;73;73;0;false;false
+2006;SWE;Karl Svensson;CB;73;73;0;false;false
+2010;CHI;Gonzalo Fierro;RM;73;73;0;false;false
+2010;JPN;Junichi Inamoto;DM;73;73;0;false;false
+2010;JPN;Keiji Tamada;ST;73;73;0;false;false
+2010;MEX;Paul Aguilar;RB;73;73;0;false;false
+2010;MEX;Alberto Medina;LM;73;73;0;false;false
+2010;NED;Stijn Schaars;CM;73;73;0;false;false
+2018;SWE;Emil Krafth;RB;73;73;0;false;false
+2022;AUS;Aziz Behich;LB;73;73;0;false;false
+2022;JPN;Miki Yamane;RB;73;73;0;false;false
+2022;JPN;Shōgo Taniguchi;CB;73;73;0;false;false
+2022;MAR;Ilias Chair;AM;73;73;0;false;false
+1990;CMR;Jules Onana;CB;72;72;0;false;false
+1990;ENG;Chris Woods;GK;72;72;0;false;false
+1990;ENG;Tony Dorigo;LB;72;72;0;false;false
+1990;ENG;Steve Hodge;LM;72;72;0;false;false
+1998;BRA;Zé Carlos;RB;72;72;0;false;false
+1998;COL;Moreno;RB;72;72;0;false;false
+1998;CRO;Ardian Kozniku;LW;72;72;0;false;false
+1998;NGA;Okafor;CB;72;72;0;false;false
+1998;NGA;Ben Iroha;LB;72;72;0;false;false
+1998;PAR;R. Rojas;CB;72;72;0;false;false
+1998;PAR;Yegros;AM;72;72;0;false;false
+1998;YUG;Dragoje Leković;GK;72;72;0;false;false
+2002;ESP;Curro Torres;RB;72;72;0;false;false
+2006;UKR;Oleksiy Bielik;ST;72;72;0;false;false
+2010;CHI;Ismael Fuentes;CB;72;72;0;false;false
+2010;GHA;Derek Boateng;DM;72;72;0;false;false
+2010;NED;Edson Braafheid;LB;72;72;0;false;false
+2010;POR;Rúben Amorim;CM;72;72;0;false;false
+2014;CRC;Roy Miller;LB;72;72;0;false;false
+2014;CRC;Michael Barrantes;LM;72;72;0;false;false
+2014;FRA;Mickaël Landreau;GK;72;72;0;false;false
+2014;NGA;Michael Babatunde;RM;72;72;0;false;false
+2018;JPN;Naomichi Ueda;CB;72;72;0;false;false
+2018;MAR;Khalid Boutaïb;ST;72;72;0;false;false
+2018;SWE;Karl-Johan Johnsson;GK;72;72;0;false;false
+2022;AUS;Bailey Wright;CM;72;72;0;false;false
+2022;JPN;Ayase Ueda;ST;72;72;0;false;false
+2022;KOR;Jeong Woo-yeong;AM;72;72;0;false;false
+1998;NGA;Godwin Okpara;CB;71;71;0;false;false
+1998;PAR;Enciso;DM;71;71;0;false;false
+1998;PAR;Brizuela;ST;71;71;0;false;false
+2006;AUS;Joshua Kennedy;ST;71;71;0;false;false
+2010;GHA;Isaac Vorsah;CB;71;71;0;false;false
+2010;JPN;Takayuki Morimoto;ST;71;71;0;false;false
+1990;CMR;Jacques Songo'o;GK;70;70;0;false;false
+1990;ENG;Steve Bull;ST;70;70;0;false;false
+1994;BUL;Plamen Nikolov;GK;70;70;0;false;false
+1994;GER;Martin Wagner;LB;70;70;0;false;false
+1994;ITA;Luca Bucci;GK;70;70;0;false;false
+1998;BRA;Carlos Germano;GK;70;70;0;false;false
+1998;BRA;Doriva;DM;70;70;0;false;false
+1998;COL;A. Estrada;AM;70;70;0;false;false
+1998;COL;Léider Preciado;LW;70;70;0;false;false
+1998;CRO;Tomislav Krpan;ST;70;70;0;false;false
+1998;FRA;Lionel Charbonnier;GK;70;70;0;false;false
+1998;NED;Ruud Hesp;GK;70;70;0;false;false
+1998;PAR;J. Campos;AM;70;70;0;false;false
+1998;PAR;A. Rojas;ST;70;70;0;false;false
+2002;ESP;Enrique Romero;LB;70;70;0;false;false
+2002;TUR;Ömer Çatkıç;GK;70;70;0;false;false
+2006;ITA;Marco Amelia;GK;70;70;0;false;false
+2006;SWE;Rami Shaaban;GK;70;70;0;false;false
+2010;GHA;Prince Tagoe;ST;70;70;0;false;false
+2010;GHA;Matthew Amoah;ST;70;70;0;false;false
+2010;PAR;Aldo Bobadilla;GK;70;70;0;false;false
+2014;CRC;Diego Calvo;LM;70;70;0;false;false
+2014;CRC;José Miguel Cubero;CM;70;70;0;false;false
+2018;KOR;Jung Seung-hyun;CB;70;70;0;false;false
+2018;KOR;Lee Seung-woo;AM;70;70;0;false;false
+2022;KOR;Yoon Jong-gyu;RB;70;70;0;false;false
+2022;MAR;Munir;GK;70;70;0;false;false
+2022;MAR;Badr Benoun;CB;70;70;0;false;false
+2022;MAR;Yahya Jabrane;DM;70;70;0;false;false
+1998;PAR;C. Ramírez;ST;69;69;0;false;false
+1990;BRA;Zé Carlos;GK;68;68;0;false;false
+1990;CMR;Thomas Libiih;CB;68;68;0;false;false
+1998;ITA;Sandro Cois;CM;68;68;0;false;false
+1998;NGA;Abiodun Baruwa;GK;68;68;0;false;false
+1998;PAR;Aguilera;CB;68;68;0;false;false
+1998;PAR;Morales;AM;68;68;0;false;false
+2006;SWE;John Alvbåge;GK;68;68;0;false;false
+2010;NED;Sander Boschker;GK;68;68;0;false;false
+2010;PAR;Rodolfo Gamarra;AM;68;68;0;false;false
+2014;CRC;Óscar Granados;CM;68;68;0;false;false
+2022;JPN;Eiji Kawashima;GK;68;68;0;false;false
+1998;PAR;Rubén Aceval;GK;67;67;0;false;false
+1998;PAR;Ruiz Díaz;GK;67;67;0;false;false
+1990;ARG;Fabián Cancelarich;GK;66;66;0;false;false
+1994;USA;Mike Lapper;CB;66;66;0;false;false
+2014;GHA;Stephen Adams;GK;66;66;0;false;false
+2010;GHA;Stephen Ahorlu;GK;64;64;0;false;false
+2002;BRA;Ronaldo;ST;98;97;-1;true;true
+2018;ESP;Sergio Ramos;CB;92;91;-1;true;true
+1998;CRO;Davor Šuker;ST;91;90;-1;true;true
+2002;BRA;Ronaldinho;AM;91;90;-1;true;true
+2018;BEL;Thibaut Courtois;GK;90;89;-1;true;false
+2022;FRA;Antoine Griezmann;AM;90;89;-1;true;false
+2010;ENG;Wayne Rooney;ST;89;88;-1;false;true
+2014;CIV;Yaya Touré;CM;89;88;-1;false;false
+2018;URU;Luis Suárez;ST;89;88;-1;false;true
+2022;ARG;Emiliano Martínez;GK;89;88;-1;false;false
+1994;ITA;Franco Baresi;CB;88;87;-1;false;true
+2014;ARG;Sergio Agüero;ST;88;87;-1;false;false
+2014;BEL;Eden Hazard;LW;88;87;-1;false;true
+2014;NED;Robin van Persie;ST;88;87;-1;false;true
+2010;GER;Philipp Lahm;RB;87;86;-1;false;true
+2018;ESP;Isco;AM;87;86;-1;false;false
+2018;URU;Diego Godín;CB;87;86;-1;false;true
+2022;POR;Cristiano Ronaldo;ST;87;86;-1;false;true
+2006;NED;Edwin van der Sar;GK;86;85;-1;false;true
+2018;ARG;Paulo Dybala;AM;86;85;-1;false;false
+2018;BEL;Romelu Lukaku;ST;86;85;-1;false;false
+2022;BRA;Thiago Silva;CB;86;85;-1;false;false
+2022;SRB;Sergej Milinković-Savić;CM;86;85;-1;false;false
+2002;TUR;Rüştü Reçber;GK;85;84;-1;false;false
+2006;ENG;Michael Owen;ST;85;84;-1;false;false
+2006;ITA;Alessandro Del Piero;ST;85;84;-1;false;true
+2010;ESP;Cesc Fàbregas;CM;85;84;-1;false;false
+2014;ARG;Gonzalo Higuaín;ST;85;84;-1;false;false
+2018;CRO;Ivan Perišić;LW;85;84;-1;false;false
+2018;ENG;Raheem Sterling;RW;85;84;-1;false;false
+2018;POR;Rui Patrício;GK;85;84;-1;false;false
+2018;POR;Pepe;CB;85;84;-1;false;false
+2018;POR;Bernardo Silva;RW;85;84;-1;false;false
+2022;ARG;Julián Álvarez;ST;85;84;-1;false;false
+2022;POR;João Cancelo;RB;85;84;-1;false;false
+1994;BRA;Cláudio Taffarel;GK;84;83;-1;false;false
+2006;BRA;Juan;CB;84;83;-1;false;false
+2006;FRA;David Trezeguet;ST;84;83;-1;false;false
+2006;ITA;Luca Toni;ST;84;83;-1;false;false
+2010;ESP;Fernando Torres;ST;84;83;-1;false;false
+2010;NED;Mark van Bommel;DM;84;83;-1;false;false
+2010;URU;Diego Godín;CB;84;83;-1;false;false
+2014;BEL;Jan Vertonghen;CB;84;83;-1;false;false
+2014;COL;David Ospina;GK;84;83;-1;false;false
+2018;BEL;Dries Mertens;RW;84;83;-1;false;false
+2018;ESP;César Azpilicueta;RB;84;83;-1;false;false
+2018;ESP;Koke;CM;84;83;-1;false;false
+2018;SUI;Granit Xhaka;CM;84;83;-1;false;false
+2022;SRB;Dušan Tadić;AM;84;83;-1;false;false
+1994;SWE;Martin Dahlin;ST;83;82;-1;false;false
+2002;ITA;Filippo Inzaghi;ST;83;82;-1;false;false
+2002;USA;Brad Friedel;GK;83;82;-1;false;false
+2006;ARG;Juan Pablo Sorín;LB;83;82;-1;false;false
+2006;AUS;Mark Viduka;ST;83;82;-1;false;false
+2006;BRA;Zé Roberto;LM;83;82;-1;false;false
+2006;ENG;Gary Neville;RB;83;82;-1;false;false
+2006;ENG;Jamie Carragher;CB;83;82;-1;false;false
+2006;NED;Giovanni van Bronckhorst;LB;83;82;-1;false;false
+2010;ARG;Martín Demichelis;CB;83;82;-1;false;false
+2010;GER;Lukas Podolski;LW;83;82;-1;false;false
+2010;NED;Nigel de Jong;DM;83;82;-1;false;false
+2010;NED;Dirk Kuyt;RW;83;82;-1;false;false
+2010;PAR;Roque Santa Cruz;ST;83;82;-1;false;false
+2014;CHI;Gary Medel;CB;83;82;-1;false;false
+2014;CIV;Didier Drogba;ST;83;82;-1;false;true
+2014;FRA;Yohan Cabaye;CM;83;82;-1;false;false
+2014;SUI;Stephan Lichtsteiner;RB;83;82;-1;false;false
+2018;BRA;Miranda;CB;83;82;-1;false;false
+2018;COL;Davinson Sánchez;CB;83;82;-1;false;false
+2018;COL;Juan Cuadrado;RM;83;82;-1;false;false
+2018;CRO;Mateo Kovačić;CM;83;82;-1;false;false
+2018;URU;José María Giménez;CB;83;82;-1;false;false
+2022;SRB;Filip Kostić;LM;83;82;-1;false;false
+1998;BRA;Leonardo;AM;82;81;-1;false;false
+2002;GER;Jens Lehmann;GK;82;81;-1;false;false
+2006;CZE;Milan Baroš;ST;82;81;-1;false;false
+2006;ITA;Daniele De Rossi;DM;82;81;-1;false;false
+2006;ITA;Filippo Inzaghi;ST;82;81;-1;false;false
+2006;NED;Phillip Cocu;CM;82;81;-1;false;false
+2010;GER;Per Mertesacker;CB;82;81;-1;false;false
+2010;NED;Giovanni van Bronckhorst;LB;82;81;-1;false;false
+2010;PAR;Óscar Cardozo;ST;82;81;-1;false;false
+2014;CIV;Gervinho;RW;82;81;-1;false;false
+2018;CRO;Šime Vrsaljko;RB;82;81;-1;false;false
+2018;POR;Raphaël Guerreiro;LB;82;81;-1;false;false
+2018;SUI;Ricardo Rodríguez;LB;82;81;-1;false;false
+1998;BRA;Bebeto;ST;81;80;-1;false;false
+2002;ESP;Iván Helguera;CB;81;80;-1;false;false
+2002;GER;Bernd Schneider;RM;81;80;-1;false;false
+2002;GER;Torsten Frings;DM;81;80;-1;false;false
+2002;ITA;Gennaro Gattuso;DM;81;80;-1;false;false
+2006;ARG;Lucho González;CM;81;80;-1;false;false
+2006;POR;Paulo Ferreira;RB;81;80;-1;false;false
+2006;POR;Costinha;DM;81;80;-1;false;false
+2006;SUI;Johann Vogel;DM;81;80;-1;false;false
+2010;ENG;Gareth Barry;DM;81;80;-1;false;false
+2010;NED;Gregory van der Wiel;RB;81;80;-1;false;false
+2014;BEL;Thomas Vermaelen;CB;81;80;-1;false;false
+2014;CHI;Mauricio Isla;RB;81;80;-1;false;false
+2014;CIV;Salomon Kalou;LW;81;80;-1;false;false
+2014;FRA;Mathieu Valbuena;AM;81;80;-1;false;false
+2014;GER;André Schürrle;LW;81;80;-1;false;false
+2022;ECU;Piero Hincapié;CB;81;80;-1;false;false
+2022;JPN;Daichi Kamada;AM;81;80;-1;false;false
+1998;BRA;Edmundo;ST;80;79;-1;false;false
+2006;SUI;Philippe Senderos;CB;80;79;-1;false;false
+2010;ENG;James Milner;CM;80;79;-1;false;false
+2010;GHA;Sulley Muntari;CM;80;79;-1;false;false
+2010;MEX;Carlos Salcido;LB;80;79;-1;false;false
+2010;PAR;Cristian Riveros;CM;80;79;-1;false;false
+2010;POR;Eduardo Carvalho;GK;80;79;-1;false;false
+2010;URU;Maxi Pereira;RB;80;79;-1;false;false
+2014;BRA;Dante;CB;80;79;-1;false;false
+2014;BRA;Paulinho;CM;80;79;-1;false;false
+2014;FRA;Mamadou Sakho;CB;80;79;-1;false;false
+2014;GRE;Kostas Mitroglou;ST;80;79;-1;false;false
+2018;BEL;Thomas Meunier;RB;80;79;-1;false;false
+2018;CRO;Ante Rebić;LW;80;79;-1;false;false
+2018;ESP;Lucas Vázquez;RW;80;79;-1;false;false
+2018;FRA;Corentin Tolisso;CM;80;79;-1;false;false
+2018;FRA;Nabil Fekir;AM;80;79;-1;false;false
+2022;ARG;Nicolás Tagliafico;LB;80;79;-1;false;false
+2022;FRA;Kolo Muani;ST;80;79;-1;false;false
+1990;ENG;Terry Butcher;CB;79;78;-1;false;false
+1994;BRA;Zinho;LM;79;78;-1;false;false
+1994;USA;Thomas Dooley;CB;79;78;-1;false;false
+2002;ESP;Rubén Baraja;CM;79;78;-1;false;false
+2002;GER;Christoph Metzelder;CB;79;78;-1;false;false
+2002;GER;Oliver Neuville;RW;79;78;-1;false;false
+2002;ITA;Vincenzo Montella;ST;79;78;-1;false;false
+2002;ITA;Damiano Tommasi;CM;79;78;-1;false;false
+2002;TUR;Alpay Özalan;CB;79;78;-1;false;false
+2002;TUR;Okan Buruk;RM;79;78;-1;false;false
+2006;FRA;Mikaël Silvestre;CB;79;78;-1;false;false
+2006;ITA;Simone Perrotta;CM;79;78;-1;false;false
+2006;NED;Khalid Boulahrouz;CB;79;78;-1;false;false
+2006;POR;Petit;DM;79;78;-1;false;false
+2006;POR;Nuno Gomes;ST;79;78;-1;false;false
+2006;SUI;Hakan Yakin;AM;79;78;-1;false;false
+2006;SWE;Anders Svensson;CM;79;78;-1;false;false
+2010;GHA;Kevin-Prince Boateng;CM;79;78;-1;false;false
+2010;PAR;Paulo da Silva;CB;79;78;-1;false;false
+2010;PAR;Lucas Barrios;ST;79;78;-1;false;false
+2010;POR;Fábio Coentrão;LB;79;78;-1;false;false
+2010;URU;Álvaro Pereira;LB;79;78;-1;false;false
+2014;BEL;Kevin Mirallas;RW;79;78;-1;false;false
+2014;COL;Pablo Armero;LB;79;78;-1;false;false
+2014;COL;Abel Aguilar;CM;79;78;-1;false;false
+2014;GRE;Vasilis Torosidis;RB;79;78;-1;false;false
+2014;SUI;Valon Behrami;DM;79;78;-1;false;false
+2018;BRA;Danilo;RB;79;78;-1;false;false
+2018;SWE;Mikael Lustig;RB;79;78;-1;false;false
+2022;JPN;Ritsu Dōan;RW;79;78;-1;false;false
+1994;ITA;Pierluigi Casiraghi;ST;78;77;-1;false;false
+1994;MEX;Benjamín Galindo;AM;78;77;-1;false;false
+1994;SWE;Klas Ingesson;CM;78;77;-1;false;false
+1998;CHI;Nelson Tapia;GK;78;77;-1;false;false
+1998;GER;Jens Jeremies;DM;78;77;-1;false;false
+2002;GER;Jens Jeremies;DM;78;77;-1;false;false
+2002;ITA;Luigi Di Biagio;DM;78;77;-1;false;false
+2002;USA;John O'Brien;CM;78;77;-1;false;false
+2006;FRA;Sidney Govou;RW;78;77;-1;false;false
+2006;SUI;Ludovic Magnin;LB;78;77;-1;false;false
+2006;SWE;Johan Elmander;ST;78;77;-1;false;false
+2010;ENG;David James;GK;78;77;-1;false;false
+2014;BEL;Simon Mignolet;GK;78;77;-1;false;false
+2014;COL;Adrián Ramos;ST;78;77;-1;false;false
+2014;FRA;Eliaquim Mangala;CB;78;77;-1;false;false
+2014;GER;Julian Draxler;LW;78;77;-1;false;false
+2018;CRO;Nikola Kalinić;ST;78;77;-1;false;false
+2018;FRA;Benjamin Mendy;LB;78;77;-1;false;false
+2018;FRA;Steven Nzonzi;DM;78;77;-1;false;false
+2018;POR;Ricardo Quaresma;RW;78;77;-1;false;false
+2022;ECU;Robert Arboleda;CB;78;77;-1;false;false
+2022;JPN;Kō Itakura;CB;78;77;-1;false;false
+2022;KOR;Lee Kang-in;AM;78;77;-1;false;false
+2022;MAR;Azzedine Ounahi;CM;78;77;-1;false;false
+1998;BRA;Giovanni;AM;77;76;-1;false;false
+2002;BRA;Júnior;LB;77;76;-1;false;false
+2002;ESP;Miguel Ángel Nadal;CB;77;76;-1;false;false
+2002;FRA;Ulrich Ramé;GK;77;76;-1;false;false
+2002;FRA;Johan Micoud;AM;77;76;-1;false;false
+2002;GER;Marko Rehmer;CB;77;76;-1;false;false
+2006;AUS;Jason Culina;CM;77;76;-1;false;false
+2006;ECU;Néicer Reasco;RB;77;76;-1;false;false
+2006;ITA;Andrea Barzagli;CB;77;76;-1;false;false
+2006;NED;Jan Vennegoor of Hesselink;ST;77;76;-1;false;false
+2006;SUI;Ricardo Cabanas;CM;77;76;-1;false;false
+2010;CIV;Romaric;CM;77;76;-1;false;false
+2010;GRE;Giourkas Seitaridis;RB;77;76;-1;false;false
+2010;JPN;Daisuke Matsui;RM;77;76;-1;false;false
+2010;NED;Ryan Babel;LW;77;76;-1;false;false
+2010;PAR;Claudio Morel;LB;77;76;-1;false;false
+2014;BEL;Steven Defour;CM;77;76;-1;false;false
+2014;NED;Jeremain Lens;RW;77;76;-1;false;false
+2018;ARG;Eduardo Salvio;RM;77;76;-1;false;false
+2018;COL;José Izquierdo;LW;77;76;-1;false;false
+2018;CRO;Milan Badelj;DM;77;76;-1;false;false
+1990;TCH;Václav Němeček;CM;76;75;-1;false;false
+1994;BUL;Emil Kremenliev;RB;76;75;-1;false;false
+1994;COL;Antony de Ávila;ST;76;75;-1;false;false
+1994;ROU;Bogdan Stelea;GK;76;75;-1;false;false
+1994;SWE;Roger Ljung;LB;76;75;-1;false;false
+1998;ENG;Rob Lee;CM;76;75;-1;false;false
+2002;ITA;Angelo Di Livio;RM;76;75;-1;false;false
+2002;JPN;Seigo Narazaki;GK;76;75;-1;false;false
+2002;POR;Capucho;RW;76;75;-1;false;false
+2002;SEN;Lamine Diatta;CB;76;75;-1;false;false
+2002;USA;Clint Mathis;ST;76;75;-1;false;false
+2006;FRA;Gaël Givet;CB;76;75;-1;false;false
+2006;SUI;Daniel Gygax;RW;76;75;-1;false;false
+2006;UKR;Serhiy Nazarenko;AM;76;75;-1;false;false
+2010;BRA;Heurelho Gomes;GK;76;75;-1;false;false
+2010;CHI;Carlos Carmona;DM;76;75;-1;false;false
+2010;GER;Stefan Kießling;ST;76;75;-1;false;false
+2010;NED;Demy de Zeeuw;CM;76;75;-1;false;false
+2010;PAR;Jonathan Santana;CM;76;75;-1;false;false
+2014;CRC;Óscar Duarte;CB;76;75;-1;false;false
+2018;ARG;Maximiliano Meza;AM;76;75;-1;false;false
+2018;URU;Maxi Gómez;ST;76;75;-1;false;false
+2022;ARG;Franco Armani;GK;76;75;-1;false;false
+1998;ITA;Gianluca Pessotto;RB;75;74;-1;false;false
+2002;JPN;Kōji Nakata;CB;75;74;-1;false;false
+2002;KOR;Kim Tae-young;CB;75;74;-1;false;false
+2002;KOR;Song Chong-gug;RB;75;74;-1;false;false
+2006;ECU;Patricio Urrutia;CM;75;74;-1;false;false
+2006;NED;Hedwiges Maduro;DM;75;74;-1;false;false
+2006;SWE;Petter Hansson;CB;75;74;-1;false;false
+2010;CHI;Waldo Ponce;CB;75;74;-1;false;false
+2010;GER;Serdar Tasci;CB;75;74;-1;false;false
+2010;PAR;Víctor Cáceres;DM;75;74;-1;false;false
+2014;COL;Alexander Mejía;DM;75;74;-1;false;false
+2014;CRC;Júnior Díaz;LB;75;74;-1;false;false
+2018;BRA;Taison;LW;75;74;-1;false;false
+2022;ECU;Sebas Méndez;DM;75;74;-1;false;false
+2022;JPN;Hiroki Itō;CB;75;74;-1;false;false
+2022;JPN;Gaku Shibasaki;CM;75;74;-1;false;false
+2022;JPN;Ao Tanaka;CM;75;74;-1;false;false
+2022;JPN;Daizen Maeda;ST;75;74;-1;false;false
+1990;ENG;Neil Webb;CM;74;73;-1;false;false
+1994;GER;Maurizio Gaudino;AM;74;73;-1;false;false
+1994;USA;Paul Caligiuri;LB;74;73;-1;false;false
+1998;BRA;André Cruz;CB;74;73;-1;false;false
+1998;COL;Miguel Calero;GK;74;73;-1;false;false
+2002;JPN;Toshihiro Hattori;LB;74;73;-1;false;false
+2002;KOR;Lee Eul-yong;LM;74;73;-1;false;false
+2002;SEN;Pape Malick Diop;CB;74;73;-1;false;false
+2002;TUR;Tayfur Havutçu;CM;74;73;-1;false;false
+2006;AUS;Stan Lazaridis;LM;74;73;-1;false;false
+2006;SWE;Markus Rosenberg;ST;74;73;-1;false;false
+2010;MEX;Israel Castro;DM;74;73;-1;false;false
+2010;NED;Khalid Boulahrouz;RB;74;73;-1;false;false
+2010;NED;André Ooijer;CB;74;73;-1;false;false
+2010;PAR;Darío Verón;CB;74;73;-1;false;false
+2010;PAR;Néstor Ortigoza;DM;74;73;-1;false;false
+2010;PAR;Édgar Benítez;RW;74;73;-1;false;false
+2010;URU;Sebastián Abreu;ST;74;73;-1;false;false
+2014;CHI;Felipe Gutiérrez;CM;74;73;-1;false;false
+2018;BEL;Adnan Januzaj;RW;74;73;-1;false;false
+2018;FRA;Alphonse Areola;GK;74;73;-1;false;false
+2018;SWE;Oscar Hiljemark;CM;74;73;-1;false;false
+2022;FRA;Steve Mandanda;GK;74;73;-1;false;false
+2022;JPN;Shūichi Gonda;GK;74;73;-1;false;false
+2022;MAR;El Yamiq;CB;74;73;-1;false;false
+2022;MAR;Abderrazak Hamdallah;ST;74;73;-1;false;false
+2002;FRA;Philippe Christanval;CB;73;72;-1;false;false
+2002;USA;Jeff Agoos;CB;73;72;-1;false;false
+2006;ARG;Lionel Scaloni;RB;73;72;-1;false;false
+2006;SWE;Fredrik Stenman;LB;73;72;-1;false;false
+2010;MEX;Jonny Magallón;CB;73;72;-1;false;false
+2010;PAR;Aureliano Torres;LB;73;72;-1;false;false
+2022;AUS;Craig Goodwin;LW;73;72;-1;false;false
+2022;MAR;Abdelhamid Sabiri;AM;73;72;-1;false;false
+1990;BRA;Acácio;GK;72;71;-1;false;false
+1994;BRA;Ronaldão;CB;72;71;-1;false;false
+1994;SWE;Lars Eriksson;GK;72;71;-1;false;false
+1998;BRA;Marcelo Gonçalves;CB;72;71;-1;false;false
+2002;USA;Joe-Max Moore;ST;72;71;-1;false;false
+2006;ARG;Leandro Cufré;CB;72;71;-1;false;false
+2006;UKR;Oleksandr Yatsenko;RB;72;71;-1;false;false
+2010;GHA;Quincy Owusu-Abeyie;LW;72;71;-1;false;false
+2010;MEX;Jorge Torres Nilo;LB;72;71;-1;false;false
+2014;ARG;Mariano Andújar;GK;72;71;-1;false;false
+2014;CRC;Waylon Francis;LB;72;71;-1;false;false
+2018;KOR;Ju Se-jong;DM;72;71;-1;false;false
+2022;AUS;Kye Rowles;CB;72;71;-1;false;false
+2022;MAR;Achraf Dari;CB;72;71;-1;false;false
+2022;MAR;Attiyat Allah;LB;72;71;-1;false;false
+2010;KOR;Kim Hyung-il;CB;71;70;-1;false;false
+2010;MEX;Luis Ernesto Michel;GK;71;70;-1;false;false
+2014;ARG;Agustín Orión;GK;71;70;-1;false;false
+2014;GER;Erik Durm;LB;71;70;-1;false;false
+2022;AUS;Nathaniel Atkinson;RB;71;70;-1;false;false
+2022;AUS;Fran Karačić;RB;71;70;-1;false;false
+2018;KOR;Yun Young-sun;CB;70;69;-1;false;false
+2022;AUS;Keanu Baccus;CM;70;69;-1;false;false
+2010;GHA;Dominic Adiyiah;ST;69;68;-1;false;false
+2010;URU;Martín Silva;GK;69;68;-1;false;false
+2014;CRC;Patrick Pemberton;GK;69;68;-1;false;false
+2022;AUS;Marco Tilio;RW;69;68;-1;false;false
+2022;AUS;Garang Kuol;ST;69;68;-1;false;false
+1994;USA;Cle Kooiman;RB;68;67;-1;false;false
+1998;COL;Palacios;LB;68;67;-1;false;false
+2022;AUS;Jason Cummings;ST;68;67;-1;false;false
+2010;GHA;Ibrahim Ayew;RM;67;66;-1;false;false
+2010;GHA;Lee Addy;CB;67;66;-1;false;false
+2014;CRC;Daniel Cambronero;GK;67;66;-1;false;false
+1998;BRA;Ronaldo;ST;97;95;-2;true;true
+2018;BEL;Kevin De Bruyne;CM;93;91;-2;true;true
+2022;BRA;Neymar;AM;93;91;-2;true;true
+2022;BRA;Alisson;GK;91;89;-2;true;false
+2018;ESP;Gerard Piqué;CB;90;88;-2;true;false
+2022;BRA;Casemiro;DM;89;87;-2;false;false
+2022;FRA;Raphaël Varane;CB;87;85;-2;false;false
+2006;FRA;Patrick Vieira;CM;86;84;-2;false;false
+2022;ARG;Cristian Romero;CB;86;84;-2;false;false
+2018;BRA;Roberto Firmino;ST;85;83;-2;false;false
+2018;SUI;Xherdan Shaqiri;RW;85;83;-2;false;false
+2022;ARG;Rodrigo De Paul;CM;85;83;-2;false;false
+2022;FRA;Ousmane Dembélé;RW;85;83;-2;false;false
+2002;SEN;El Hadji Diouf;RW;84;82;-2;false;false
+2010;GER;Manuel Neuer;GK;84;82;-2;false;false
+2010;NED;Maarten Stekelenburg;GK;84;82;-2;false;false
+2018;BEL;Axel Witsel;DM;84;82;-2;false;false
+2022;ARG;Enzo Fernández;CM;84;82;-2;false;false
+2022;BRA;Richarlison;ST;84;82;-2;false;false
+2022;BRA;Raphinha;RW;84;82;-2;false;false
+2022;FRA;Benjamin Pavard;RB;84;82;-2;false;false
+2022;FRA;Dayot Upamecano;CB;84;82;-2;false;false
+2022;FRA;Adrien Rabiot;CM;84;82;-2;false;false
+2022;FRA;Olivier Giroud;ST;84;82;-2;false;false
+2022;MAR;Hakim Ziyech;RW;84;82;-2;false;false
+2006;NED;Mark van Bommel;DM;83;81;-2;false;false
+2010;ARG;Walter Samuel;CB;83;81;-2;false;false
+2010;URU;Diego Lugano;CB;83;81;-2;false;false
+2014;BRA;Fernandinho;DM;83;81;-2;false;false
+2014;FRA;Laurent Koscielny;CB;83;81;-2;false;false
+2018;CRO;Dejan Lovren;CB;83;81;-2;false;false
+2022;ARG;Alexis Mac Allister;CM;83;81;-2;false;false
+2022;FRA;William Saliba;CB;83;81;-2;false;false
+2022;POR;Rui Patrício;GK;83;81;-2;false;false
+1994;ITA;Dino Baggio;CM;82;80;-2;false;false
+2002;BRA;Dida;GK;82;80;-2;false;false
+2002;DEN;Thomas Sørensen;GK;82;80;-2;false;false
+2006;ECU;Édison Méndez;AM;82;80;-2;false;false
+2006;GER;Bernd Schneider;RM;82;80;-2;false;false
+2010;ESP;Víctor Valdés;GK;82;80;-2;false;false
+2014;ARG;Sergio Romero;GK;82;80;-2;false;false
+2014;BRA;Willian;RW;82;80;-2;false;false
+2014;SUI;Diego Benaglio;GK;82;80;-2;false;false
+2014;SUI;Ricardo Rodríguez;LB;82;80;-2;false;false
+2014;SUI;Gökhan Inler;DM;82;80;-2;false;false
+2018;BRA;Filipe Luís;LB;82;80;-2;false;false
+2018;ENG;John Stones;CB;82;80;-2;false;false
+2022;ARG;Marcos Acuña;LB;82;80;-2;false;false
+2022;ECU;Pervis Estupiñán;LB;82;80;-2;false;false
+2022;FRA;Ibrahima Konaté;CB;82;80;-2;false;false
+2002;ESP;Luis Enrique;RM;81;79;-2;false;false
+2002;ITA;Francesco Toldo;GK;81;79;-2;false;false
+2002;KOR;Lee Woon-jae;GK;81;79;-2;false;false
+2002;KOR;Ahn Jung-hwan;ST;81;79;-2;false;false
+2006;NED;Dirk Kuyt;ST;81;79;-2;false;false
+2010;GER;Mario Gómez;ST;81;79;-2;false;false
+2014;ARG;Lucas Biglia;DM;81;79;-2;false;false
+2014;ARG;Ezequiel Lavezzi;LW;81;79;-2;false;false
+2014;FRA;Bacary Sagna;RB;81;79;-2;false;false
+2018;POR;William Carvalho;DM;81;79;-2;false;false
+2022;BRA;Bremer;CB;81;79;-2;false;false
+2022;MAR;Noussair Mazraoui;RB;81;79;-2;false;false
+2022;POR;Diogo Costa;GK;81;79;-2;false;false
+1990;ENG;David Platt;CM;80;78;-2;false;false
+1990;ITA;Ciro Ferrara;CB;80;78;-2;false;false
+1994;BUL;Borislav Mihaylov;GK;80;78;-2;false;false
+2002;BRA;Kaká;AM;80;78;-2;false;true
+2002;BRA;Denílson;LW;80;78;-2;false;false
+2002;KOR;Yoo Sang-chul;CM;80;78;-2;false;false
+2002;SEN;Henri Camara;ST;80;78;-2;false;false
+2006;ECU;Ulises de la Cruz;RB;80;78;-2;false;false
+2006;FRA;Louis Saha;ST;80;78;-2;false;false
+2006;ITA;Alberto Gilardino;ST;80;78;-2;false;false
+2006;NED;John Heitinga;CB;80;78;-2;false;false
+2006;POR;Fernando Meira;CB;80;78;-2;false;false
+2006;POR;Tiago;CM;80;78;-2;false;false
+2010;ARG;Nicolás Burdisso;CB;80;78;-2;false;false
+2010;ESP;Joan Capdevila;LB;80;78;-2;false;false
+2010;ESP;Fernando Llorente;ST;80;78;-2;false;false
+2010;GER;Arne Friedrich;CB;80;78;-2;false;false
+2014;COL;Carlos Sánchez;DM;80;78;-2;false;false
+2014;FRA;Mathieu Debuchy;RB;80;78;-2;false;false
+2018;BEL;Yannick Carrasco;LW;80;78;-2;false;false
+2018;ENG;Marcus Rashford;LW;80;78;-2;false;false
+2018;FRA;Thomas Lemar;LM;80;78;-2;false;false
+2018;POR;Bruno Fernandes;AM;80;78;-2;false;false
+2022;FRA;Marcus Thuram;ST;80;78;-2;false;false
+2022;MAR;Nayef Aguerd;CB;80;78;-2;false;false
+2022;MAR;Romain Saïss;CB;80;78;-2;false;false
+2022;MAR;Youssef En-Nesyri;ST;80;78;-2;false;false
+2022;POR;Vitinha;CM;80;78;-2;false;false
+1998;BRA;Denílson;LW;79;77;-2;false;false
+2002;ESP;Diego Tristán;ST;79;77;-2;false;false
+2002;ITA;Cristiano Zanetti;DM;79;77;-2;false;false
+2006;AUS;Craig Moore;CB;79;77;-2;false;false
+2006;SUI;Patrick Müller;CB;79;77;-2;false;false
+2010;GHA;John Mensah;CB;79;77;-2;false;false
+2010;NED;Ibrahim Afellay;AM;79;77;-2;false;false
+2010;URU;Walter Gargano;DM;79;77;-2;false;false
+2014;COL;Juan Camilo Zúñiga;RB;79;77;-2;false;false
+2018;BEL;Marouane Fellaini;CM;79;77;-2;false;false
+2018;FRA;Florian Thauvin;RW;79;77;-2;false;false
+2018;POR;Ricardo Pereira;RB;79;77;-2;false;false
+2022;ARG;Exequiel Palacios;CM;79;77;-2;false;false
+2022;BRA;Fred;CM;79;77;-2;false;false
+2022;BRA;Pedro;ST;79;77;-2;false;false
+2022;JPN;Takumi Minamino;AM;79;77;-2;false;false
+2022;POR;William Carvalho;DM;79;77;-2;false;false
+1994;BRA;Márcio Santos;CB;78;76;-2;false;false
+1994;BRA;Mazinho;CM;78;76;-2;false;false
+1994;COL;Adolfo Valencia;ST;78;76;-2;false;false
+1994;SWE;Håkan Mild;CM;78;76;-2;false;false
+1998;BRA;Dida;GK;78;76;-2;false;false
+2002;BRA;Kléberson;CM;78;76;-2;false;false
+2002;BRA;Edílson;RW;78;76;-2;false;false
+2002;ESP;David Albelda;DM;78;76;-2;false;false
+2002;GER;Frank Baumann;DM;78;76;-2;false;false
+2002;ITA;Francesco Coco;LB;78;76;-2;false;false
+2002;ITA;Marco Materazzi;CB;78;76;-2;false;false
+2006;ENG;Jermaine Jenas;CM;78;76;-2;false;false
+2006;ENG;Aaron Lennon;RW;78;76;-2;false;false
+2006;FRA;Sylvain Wiltord;ST;78;76;-2;false;false
+2010;ENG;Ledley King;CB;78;76;-2;false;false
+2010;ESP;Carlos Marchena;CB;78;76;-2;false;false
+2010;JPN;Shinji Okazaki;ST;78;76;-2;false;false
+2010;MEX;Francisco Javier Rodríguez;CB;78;76;-2;false;false
+2010;MEX;Gerardo Torrado;DM;78;76;-2;false;false
+2010;URU;Jorge Fucile;RB;78;76;-2;false;false
+2010;URU;Diego Pérez;DM;78;76;-2;false;false
+2018;BEL;Thomas Vermaelen;CB;78;76;-2;false;false
+2018;BEL;Thorgan Hazard;LW;78;76;-2;false;false
+2018;ESP;Kepa Arrizabalaga;GK;78;76;-2;false;false
+2018;POR;Anthony Lopes;GK;78;76;-2;false;false
+2018;POR;André Silva;ST;78;76;-2;false;false
+2022;ARG;Gonzalo Montiel;RB;78;76;-2;false;false
+2022;FRA;Matteo Guendouzi;CM;78;76;-2;false;false
+2022;JPN;Hidemasa Morita;DM;78;76;-2;false;false
+1994;BUL;Zlatko Yankov;CM;77;75;-2;false;false
+2002;BRA;Luizão;ST;77;75;-2;false;false
+2002;GER;Jörg Böhme;LM;77;75;-2;false;false
+2010;ESP;Javi Martínez;DM;77;75;-2;false;false
+2010;GER;Marcell Jansen;LB;77;75;-2;false;false
+2010;MEX;Ricardo Osorio;CB;77;75;-2;false;false
+2010;MEX;Guillermo Franco;ST;77;75;-2;false;false
+2010;NED;Eljero Elia;LW;77;75;-2;false;false
+2010;URU;Egidio Arévalo Ríos;DM;77;75;-2;false;false
+2018;BEL;Michy Batshuayi;ST;77;75;-2;false;false
+2018;POR;João Mário;CM;77;75;-2;false;false
+1990;ENG;Trevor Steven;RM;76;74;-2;false;false
+1994;COL;Óscar Córdoba;GK;76;74;-2;false;false
+2002;MEX;Jesús Arellano;RM;76;74;-2;false;false
+2002;TUR;Emre Aşık;CB;76;74;-2;false;false
+2006;AUS;Tony Popovic;CB;76;74;-2;false;false
+2006;FRA;Vikash Dhorasoo;CM;76;74;-2;false;false
+2006;POR;Marco Caneira;LB;76;74;-2;false;false
+2006;POR;Hélder Postiga;ST;76;74;-2;false;false
+2010;GER;Piotr Trochowski;AM;76;74;-2;false;false
+2010;JPN;Yuki Abe;DM;76;74;-2;false;false
+2014;ARG;Hugo Campagnaro;CB;76;74;-2;false;false
+2014;ARG;Augusto Fernández;CM;76;74;-2;false;false
+2014;BRA;Maxwell;LB;76;74;-2;false;false
+2014;FRA;Stéphane Ruffier;GK;76;74;-2;false;false
+2014;URU;José María Giménez;CB;76;74;-2;false;false
+2018;POR;Bruno Alves;CB;76;74;-2;false;false
+2018;POR;José Fonte;CB;76;74;-2;false;false
+2018;POR;Cédric;RB;76;74;-2;false;false
+2022;BRA;Dani Alves;RB;76;74;-2;false;false
+2022;FRA;Jordan Veretout;CM;76;74;-2;false;false
+2002;TUR;Ümit Özat;CB;75;73;-2;false;false
+2010;MEX;Efraín Juárez;RB;75;73;-2;false;false
+2014;FRA;Lucas Digne;LB;75;73;-2;false;false
+2014;GER;Kevin Großkreutz;RB;75;73;-2;false;false
+2022;ARG;Thiago Almada;AM;75;73;-2;false;false
+2022;POR;Ricardo Horta;LW;75;73;-2;false;false
+1994;BRA;Zetti;GK;74;72;-2;false;false
+1994;COL;Alexis Mendoza;CB;74;72;-2;false;false
+1994;NGA;Uche Okafor;CB;74;72;-2;false;false
+2002;MEX;Braulio Luna;LM;74;72;-2;false;false
+2010;GER;Marko Marin;LW;74;72;-2;false;false
+2010;URU;Mauricio Victorino;CB;74;72;-2;false;false
+2010;URU;Nicolás Lodeiro;AM;74;72;-2;false;false
+2014;ARG;Ricky Álvarez;AM;74;72;-2;false;false
+2018;BEL;Dedryck Boyata;CB;74;72;-2;false;false
+2018;BRA;Pedro Geromel;CB;74;72;-2;false;false
+2018;ENG;Fabian Delph;CM;74;72;-2;false;false
+2002;CMR;Bill Tchato;RB;73;71;-2;false;false
+2002;TUR;Abdullah Ercan;LM;73;71;-2;false;false
+2006;AUS;Luke Wilkshire;RM;73;71;-2;false;false
+2010;URU;Andrés Scotti;CB;73;71;-2;false;false
+1994;ITA;Alberico Evani;LM;72;70;-2;false;false
+2002;CMR;Pierre Njanka;CB;72;70;-2;false;false
+2010;URU;Ignacio González;CM;72;70;-2;false;false
+2022;BRA;Weverton;GK;72;70;-2;false;false
+2022;JPN;Daniel Schmidt;GK;72;70;-2;false;false
+2022;MAR;Anass Zaroury;LW;72;70;-2;false;false
+2006;AUS;Archie Thompson;ST;71;69;-2;false;false
+2022;JPN;Yūki Sōma;LW;71;69;-2;false;false
+1990;ENG;Dave Beasant;GK;70;68;-2;false;false
+1994;BRA;Gilmar Rinaldi;GK;70;68;-2;false;false
+1994;USA;Juergen Sommer;GK;70;68;-2;false;false
+1998;COL;Jorge Bolaño;CM;70;68;-2;false;false
+2010;ARG;Diego Pozo;GK;70;68;-2;false;false
+2018;KOR;Oh Ban-suk;CB;70;68;-2;false;false
+2022;AUS;Thomas Deng;CB;70;68;-2;false;false
+2010;URU;Juan Castillo;GK;69;67;-2;false;false
+2006;AUS;Ante Čović;GK;68;66;-2;false;false
+2006;POR;Paulo Santos;GK;68;66;-2;false;false
+2010;JPN;Shunsuke Nakamura;AM;74;71;-3;false;false
+2006;POR;Ricardo Costa;CB;71;68;-3;false;false
+2022;FRA;Kylian Mbappé;LW;97;94;-3;true;true
+2022;BRA;Marquinhos;CB;89;86;-3;false;false
+2022;POR;Rúben Dias;CB;89;86;-3;false;false
+2022;POR;Bernardo Silva;RW;89;86;-3;false;false
+2018;CRO;Ivan Rakitić;CM;88;85;-3;false;false
+2022;BRA;Ederson;GK;88;85;-3;false;false
+2018;BEL;Toby Alderweireld;CB;87;84;-3;false;false
+2022;ARG;Ángel Di María;RW;87;84;-3;false;false
+2022;FRA;Hugo Lloris;GK;87;84;-3;false;false
+2022;FRA;Aurélien Tchouaméni;DM;87;84;-3;false;false
+2018;BEL;Jan Vertonghen;CB;86;83;-3;false;false
+2014;ARG;Ezequiel Garay;CB;85;82;-3;false;false
+2014;ARG;Pablo Zabaleta;RB;85;82;-3;false;false
+2022;FRA;Jules Koundé;RB;85;82;-3;false;false
+2006;BRA;Emerson;DM;84;81;-3;false;false
+2006;ENG;Joe Cole;LW;84;81;-3;false;false
+2018;BRA;Douglas Costa;LW;84;81;-3;false;false
+2022;ARG;Nicolás Otamendi;CB;84;81;-3;false;false
+2022;BRA;Lucas Paquetá;CM;84;81;-3;false;false
+2022;FRA;Eduardo Camavinga;CM;84;81;-3;false;false
+2006;ENG;Owen Hargreaves;DM;83;80;-3;false;false
+2006;NED;Rafael van der Vaart;AM;83;80;-3;false;false
+2010;ESP;Pepe Reina;GK;83;80;-3;false;false
+2010;NED;John Heitinga;CB;83;80;-3;false;false
+2018;BRA;Fernandinho;DM;83;80;-3;false;false
+2018;ENG;Dele Alli;AM;83;80;-3;false;false
+2018;ESP;Saúl Ñíguez;CM;83;80;-3;false;false
+2022;BRA;Danilo;RB;83;80;-3;false;false
+2022;POR;Pepe;CB;83;80;-3;false;false
+2022;POR;Raphaël Guerreiro;LB;83;80;-3;false;false
+2022;POR;Nuno Mendes;LB;83;80;-3;false;false
+2006;AUS;Lucas Neill;RB;82;79;-3;false;false
+2018;FRA;Ousmane Dembélé;RW;82;79;-3;false;false
+2022;ARG;Leandro Paredes;DM;82;79;-3;false;false
+2022;BRA;Gabriel Martinelli;LW;82;79;-3;false;false
+2006;AUS;Brett Emerton;RM;81;78;-3;false;false
+2006;ENG;Michael Carrick;DM;81;78;-3;false;false
+2010;NED;Joris Mathijsen;CB;81;78;-3;false;false
+2014;ARG;Marcos Rojo;LB;81;78;-3;false;false
+2014;ARG;Fernando Gago;DM;81;78;-3;false;false
+2018;ENG;Jordan Pickford;GK;81;78;-3;false;false
+2022;ARG;Nahuel Molina;RB;81;78;-3;false;false
+2022;BRA;Alex Sandro;LB;81;78;-3;false;false
+2022;BRA;Antony;RW;81;78;-3;false;false
+2002;SEN;Papa Bouba Diop;CM;80;77;-3;false;false
+2010;JPN;Yasuhito Endō;CM;80;77;-3;false;false
+2014;ARG;Rodrigo Palacio;ST;80;77;-3;false;false
+2022;ARG;Juan Foyth;RB;80;77;-3;false;false
+2022;ARG;Guido Rodríguez;DM;80;77;-3;false;false
+1994;COL;Andrés Escobar;CB;79;76;-3;false;false
+2002;BRA;Juliano Belletti;RB;79;76;-3;false;false
+2006;ENG;Wayne Bridge;LB;79;76;-3;false;false
+2006;ITA;Vincenzo Iaquinta;ST;79;76;-3;false;false
+2010;ESP;Raúl Albiol;CB;79;76;-3;false;false
+2010;ESP;Álvaro Arbeloa;RB;79;76;-3;false;false
+2010;URU;Martín Cáceres;CB;79;76;-3;false;false
+2014;ARG;Enzo Pérez;CM;79;76;-3;false;false
+2014;BRA;Maicon;RB;79;76;-3;false;false
+2018;ENG;Danny Rose;LB;79;76;-3;false;false
+2018;ENG;Jamie Vardy;ST;79;76;-3;false;false
+2022;ARG;Ángel Correa;RW;79;76;-3;false;false
+2022;MAR;Sofiane Boufal;LW;79;76;-3;false;false
+2022;POR;André Silva;ST;79;76;-3;false;false
+1990;GER;Andreas Köpke;GK;78;75;-3;false;false
+1998;DEN;Jes Høgh;CB;78;75;-3;false;false
+2002;BRA;Rogério Ceni;GK;78;75;-3;false;false
+2002;BRA;Ricardinho;CM;78;75;-3;false;false
+2002;ITA;Mark Iuliano;CB;78;75;-3;false;false
+2010;JPN;Marcus Tulio Tanaka;CB;78;75;-3;false;false
+2010;JPN;Makoto Hasebe;DM;78;75;-3;false;false
+2014;BRA;Jefferson;GK;78;75;-3;false;false
+2018;BEL;Youri Tielemans;CM;78;75;-3;false;false
+2018;POR;Gelson Martins;RW;78;75;-3;false;false
+2022;ARG;Germán Pezzella;CB;78;75;-3;false;false
+2022;BRA;Alex Telles;LB;78;75;-3;false;false
+2022;POR;Otávio;RM;78;75;-3;false;false
+2002;ESP;Javier de Pedro;LM;77;74;-3;false;false
+2002;GER;Hans-Jörg Butt;GK;77;74;-3;false;false
+2002;ITA;Marco Delvecchio;ST;77;74;-3;false;false
+2006;AUS;Scott Chipperfield;LB;77;74;-3;false;false
+2006;AUS;John Aloisi;ST;77;74;-3;false;false
+2006;ITA;Massimo Oddo;RB;77;74;-3;false;false
+2010;PAR;Enrique Vera;CM;77;74;-3;false;false
+2018;ENG;Gary Cahill;CB;77;74;-3;false;false
+2018;ENG;Ashley Young;LB;77;74;-3;false;false
+2022;BRA;Éverton Ribeiro;AM;77;74;-3;false;false
+1994;ARG;Fernando Cáceres;CB;76;73;-3;false;false
+1994;ITA;Antonio Benarrivo;LB;76;73;-3;false;false
+1994;ITA;Roberto Mussi;RB;76;73;-3;false;false
+2002;GER;Lars Ricken;AM;76;73;-3;false;false
+2006;AUS;Josip Skoko;CM;76;73;-3;false;false
+2010;CIV;Bakari Koné;ST;76;73;-3;false;false
+2014;ARG;José María Basanta;LB;76;73;-3;false;false
+2018;POR;Adrien Silva;CM;76;73;-3;false;false
+2006;AUS;Željko Kalac;GK;75;72;-3;false;false
+2006;AUS;Mile Sterjovski;RM;75;72;-3;false;false
+2018;ENG;Ruben Loftus-Cheek;CM;75;72;-3;false;false
+2018;ENG;Danny Welbeck;ST;75;72;-3;false;false
+2018;POR;Manuel Fernandes;CM;75;72;-3;false;false
+1994;BUL;Nikolay Iliev;CB;74;71;-3;false;false
+2002;JPN;Tomokazu Myojin;RM;74;71;-3;false;false
+2018;BEL;Leander Dendoncker;DM;74;71;-3;false;false
+2018;POR;Mário Rui;LB;74;71;-3;false;false
+2006;AUS;Michael Beauchamp;CB;71;68;-3;false;false
+2022;JPN;Shūto Machino;ST;71;68;-3;false;false
+2006;AUS;Mark Milligan;RB;70;67;-3;false;false
+2022;BRA;Vinícius Júnior;LW;90;86;-4;true;false
+2018;ESP;David de Gea;GK;89;85;-4;false;false
+2022;POR;Bruno Fernandes;AM;89;85;-4;false;false
+2022;ARG;Lautaro Martínez;ST;86;82;-4;false;false
+2022;POR;Rafael Leão;LW;86;82;-4;false;false
+2022;BRA;Fabinho;DM;85;81;-4;false;false
+2022;BRA;Bruno Guimarães;CM;85;81;-4;false;false
+2022;BRA;Gabriel Jesus;ST;85;81;-4;false;false
+2022;FRA;Kingsley Coman;RW;85;81;-4;false;false
+2018;BRA;Willian;RW;84;80;-4;false;false
+2022;ARG;Lisandro Martínez;CB;84;80;-4;false;false
+2022;BRA;Rodrygo;RW;84;80;-4;false;false
+2022;FRA;Lucas Hernández;LB;84;80;-4;false;false
+2022;ARG;Paulo Dybala;AM;83;79;-4;false;false
+2022;POR;João Palhinha;DM;83;79;-4;false;false
+2014;ARG;Martín Demichelis;CB;82;78;-4;false;false
+2014;BRA;Ramires;CM;82;78;-4;false;false
+2018;BEL;Mousa Dembélé;DM;82;78;-4;false;false
+2002;BRA;Juninho;AM;80;76;-4;false;false
+2002;GER;Oliver Bierhoff;ST;80;76;-4;false;false
+2006;AUS;Vince Grella;DM;80;76;-4;false;false
+2014;ARG;Federico Fernández;CB;80;76;-4;false;false
+2018;POR;Gonçalo Guedes;LW;80;76;-4;false;false
+2022;ARG;Papu Gómez;AM;80;76;-4;false;false
+2022;POR;Matheus Nunes;CM;80;76;-4;false;false
+2010;PAR;Antolín Alcaraz;CB;79;75;-4;false;false
+2014;ARG;Maxi Rodríguez;RM;79;75;-4;false;false
+2018;ENG;Jesse Lingard;AM;79;75;-4;false;false
+1994;ITA;Luca Marchegiani;GK;78;74;-4;false;false
+2002;BRA;Vampeta;DM;78;74;-4;false;false
+2002;GER;Carsten Jancker;ST;78;74;-4;false;false
+2002;ITA;Cristiano Doni;AM;78;74;-4;false;false
+2006;POR;Nuno Valente;LB;78;74;-4;false;false
+2018;BEL;Nacer Chadli;LM;78;74;-4;false;false
+2018;ENG;Eric Dier;DM;78;74;-4;false;false
+2006;ITA;Cristian Zaccardo;RB;77;73;-4;false;false
+2010;ENG;Peter Crouch;ST;77;73;-4;false;false
+1994;ARG;Sergio Vázquez;CB;76;72;-4;false;false
+2022;ARG;Gerónimo Rulli;GK;76;72;-4;false;false
+2006;POR;Hugo Viana;CM;75;71;-4;false;false
+1994;USA;Mike Sorber;DM;74;70;-4;false;false
+2002;ESP;Ricardo;GK;74;70;-4;false;false
+2006;ITA;Simone Barone;CM;74;70;-4;false;false
+2010;BRA;Doni;GK;74;70;-4;false;false
+2010;URU;Álvaro Fernández;LM;74;70;-4;false;false
+2018;ENG;Phil Jones;CB;74;70;-4;false;false
+2010;URU;Sebastián Fernández;RW;73;69;-4;false;false
+2002;ESP;Pedro Contreras;GK;72;68;-4;false;false
+2018;POR;Beto;GK;70;66;-4;false;false
+2022;POR;João Félix;AM;85;80;-5;false;false
+2022;POR;Diogo Dalot;RB;83;78;-5;false;false
+2022;POR;Rúben Neves;DM;83;78;-5;false;false
+2006;ENG;Peter Crouch;ST;81;76;-5;false;false
+2018;ENG;Jordan Henderson;DM;81;76;-5;false;false
+2022;POR;Danilo Pereira;DM;81;76;-5;false;false
+1994;ITA;Daniele Massaro;ST;80;75;-5;false;false
+2022;POR;João Mário;CM;80;75;-5;false;false
+2022;POR;José Sá;GK;79;74;-5;false;false
+2002;ITA;Christian Abbiati;GK;80;74;-6;false;false
+2006;POR;Luís Boa Morte;LW;78;72;-6;false;false
+2002;BRA;Anderson Polga;CB;77;71;-6;false;false
