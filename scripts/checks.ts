@@ -63,6 +63,7 @@ import {
   PERKS,
 } from '../src/domain/career';
 import { simulateTitleOdds } from '../src/domain/odds';
+import { ASCENSIONS, ascensionAt, maxSelectableAscension } from '../src/domain/ascension';
 
 let passed = 0;
 const failures: string[] = [];
@@ -367,6 +368,51 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   for (let i = 0; i < 5; i++) maxed = buyPerkTier({ ...maxed, prestige: 9999, level: 99 }, perk.id);
   if (perkLevelOf(maxed, perk.id) !== perk.tiers.length) ok = false;
   check('career: tiered perks respect cost, level gate, and max tier', ok);
+}
+
+// --- Ascension: reward scaling, unlock bookkeeping, selection gates ---------
+{
+  let ok = true;
+  // Reward multiplier is monotonic non-decreasing up the ladder.
+  for (let t = 1; t < ASCENSIONS.length; t++) {
+    if (ASCENSIONS[t].rewardMult < ASCENSIONS[t - 1].rewardMult) ok = false;
+  }
+  // Selection gate: bounded by the unlocked ceiling AND the per-tier level requirement.
+  if (maxSelectableAscension(0, 99) !== 0) ok = false; // nothing unlocked -> only Base
+  if (maxSelectableAscension(5, 1) !== 0) ok = false; // level 1 gates everything above Base
+  if (maxSelectableAscension(5, 99) !== ASCENSIONS.length - 1) ok = false; // all unlocked, high level
+  if (maxSelectableAscension(2, 6) !== 2) ok = false; // ceiling 2, meets tier-2 level req
+  if (maxSelectableAscension(2, 5) !== 1) ok = false; // below tier-2 level req -> capped at 1
+
+  // Reward scaling + cup unlock bookkeeping (build a full RunState, then override).
+  const base = beginRun(bestEleven(SQUADS[0].players));
+  const champ = { ...base, score: 140, outcome: 'champion' as RunOutcome, ascension: 2 };
+  const rc = applyRunResult(INITIAL_CAREER, champ);
+  const m2 = ascensionAt(2).rewardMult;
+  if (rc.xpGained !== Math.round(140 * m2)) ok = false;
+  if (rc.prestigeGained !== Math.max(1, Math.round((140 * m2) / 5))) ok = false;
+  if (rc.career.ascension !== 3) ok = false; // won at 2 -> unlock ceiling 3
+  if (rc.career.stats.bestCupAscension !== 2) ok = false;
+
+  // A non-cup finish still scales its reward but never raises the unlock ceiling / best.
+  const lost = { ...base, score: 25, outcome: 'r16' as RunOutcome, ascension: 2 };
+  const rl = applyRunResult(INITIAL_CAREER, lost);
+  if (rl.xpGained !== Math.round(25 * m2)) ok = false;
+  if (rl.career.ascension !== INITIAL_CAREER.ascension) ok = false;
+  if (rl.career.stats.bestCupAscension !== 0) ok = false;
+
+  // A full run at every tier terminates validly and carries its tier through.
+  for (let t = 0; t < ASCENSIONS.length && ok; t++) {
+    let r = playGroupStage(beginRun(bestEleven(SQUADS[t % SQUADS.length].players), {}, [], t));
+    let guard = 0;
+    while (r.phase !== 'ended' && guard++ < 20) {
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
+      else if (r.phase === 'match') r = playKnockoutRound(r);
+      else break;
+    }
+    if (r.phase !== 'ended' || !r.outcome || r.xi.length !== 11 || r.ascension !== t) ok = false;
+  }
+  check('ascension: reward scaling, unlock bookkeeping, and selection gates hold', ok);
 }
 
 // --- Title odds: a valid probability distribution ---------------------------

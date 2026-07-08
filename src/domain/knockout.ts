@@ -79,11 +79,13 @@ const overallOf = (id: string): number => OVERALL_BY_ID.get(id) ?? REFERENCE_RAT
 
 /** Draw the next opponent, avoiding any already faced and weighting stronger
  *  squads higher so better teams turn up more often deeper in the bracket. Drawn
- *  from `pool` (the squad-pool setting; defaults to the whole dataset). */
-export function drawOpponent(faced: Set<string>, pool: Squad[] = SQUADS): GroupTeam {
+ *  from `pool` (the squad-pool setting; defaults to the whole dataset). `slopeBonus`
+ *  steepens the weighting toward stronger squads (Cup Run Ascension; 0 = base). */
+export function drawOpponent(faced: Set<string>, pool: Squad[] = SQUADS, slopeBonus = 0): GroupTeam {
   const candidates = pool.filter((s) => !faced.has(s.id));
   const src = candidates.length ? candidates : pool;
-  const weights = src.map((s) => Math.exp((overallOf(s.id) - REFERENCE_RATING) * DRAW_WEIGHT_SLOPE));
+  const slope = DRAW_WEIGHT_SLOPE + slopeBonus;
+  const weights = src.map((s) => Math.exp((overallOf(s.id) - REFERENCE_RATING) * slope));
   const total = weights.reduce((sum, w) => sum + w, 0);
   let r = Math.random() * total;
   for (let i = 0; i < src.length; i++) {

@@ -19,6 +19,7 @@ export function loadRun(): RunState | null {
     // Default fields added after a save may predate them (older in-progress runs).
     if (!Array.isArray(run.unlockedBoons)) run.unlockedBoons = [];
     if (!run.perkLevels || typeof run.perkLevels !== 'object') run.perkLevels = {};
+    if (typeof run.ascension !== 'number') run.ascension = 0;
     return run;
   } catch {
     return null;

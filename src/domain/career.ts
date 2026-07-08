@@ -1,5 +1,6 @@
 import type { RunOutcome, RunState } from './run';
 import { boonById, BOON_UNLOCK_COST } from './boons';
+import { ascensionAt, MAX_ASCENSION } from './ascension';
 
 // ---------------------------------------------------------------------------
 // Manager Career - the persistent meta-layer over Cup Runs. Pure model: XP/level,
@@ -12,6 +13,8 @@ export interface CareerStats {
   cups: number;
   bestScore: number;
   bestFinish: RunOutcome | null;
+  /** Highest Ascension tier a cup has been won at (0 = only Base, shown when cups > 0). */
+  bestCupAscension: number;
 }
 
 export interface CareerState {
@@ -24,6 +27,9 @@ export interface CareerState {
   perkLevels: Record<string, number>;
   /** Boon ids unlocked into the offer pool with Prestige (beyond the starter set). */
   unlockedBoons: string[];
+  /** Highest Ascension tier UNLOCKED (0 = Base; raised to T+1 on a cup won at tier T).
+   *  The tier PLAYED is chosen per run and lives on RunState. */
+  ascension: number;
   stats: CareerStats;
 }
 
@@ -34,7 +40,8 @@ export const INITIAL_CAREER: CareerState = {
   prestige: 0,
   perkLevels: {},
   unlockedBoons: [],
-  stats: { runs: 0, cups: 0, bestScore: 0, bestFinish: null },
+  ascension: 0,
+  stats: { runs: 0, cups: 0, bestScore: 0, bestFinish: null, bestCupAscension: 0 },
 };
 
 /** Flat 100 XP per level - simple and readable. */
@@ -127,22 +134,31 @@ export interface RunReward {
   leveledUp: boolean;
 }
 export function applyRunResult(career: CareerState, run: RunState): RunReward {
-  const xpGained = run.score;
-  const prestigeGained = Math.max(1, Math.round(run.score / 5));
+  // Ascension scales the run's reward; a cup win raises the unlocked ceiling + best.
+  const mult = ascensionAt(run.ascension).rewardMult;
+  const xpGained = Math.round(run.score * mult);
+  const prestigeGained = Math.max(1, Math.round((run.score * mult) / 5));
   const xp = career.xp + xpGained;
   const level = levelForXp(xp);
   const outcome = run.outcome;
+  const wonCup = outcome === 'champion';
   return {
     career: {
       ...career,
       xp,
       level,
       prestige: career.prestige + prestigeGained,
+      ascension: wonCup
+        ? Math.min(MAX_ASCENSION, Math.max(career.ascension, run.ascension + 1))
+        : career.ascension,
       stats: {
         runs: career.stats.runs + 1,
-        cups: career.stats.cups + (outcome === 'champion' ? 1 : 0),
+        cups: career.stats.cups + (wonCup ? 1 : 0),
         bestScore: Math.max(career.stats.bestScore, run.score),
         bestFinish: betterFinish(career.stats.bestFinish, outcome),
+        bestCupAscension: wonCup
+          ? Math.max(career.stats.bestCupAscension, run.ascension)
+          : career.stats.bestCupAscension,
       },
     },
     xpGained,

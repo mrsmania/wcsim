@@ -5,6 +5,11 @@ import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
 import { userRatingDelta, type Difficulty } from '../domain/difficulty';
 import { KO_ROUNDS } from '../domain/knockout';
+import {
+  ASCENSIONS,
+  ascensionAt,
+  maxSelectableAscension,
+} from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
 import type { GroupTeam } from '../domain/tournament';
 import { type Boon } from '../domain/boons';
@@ -94,6 +99,13 @@ export default function CupRunScreen({
   // The career hub collapses to a slim strip during a run (perks are a between-runs
   // thing); it always shows fully when there is no active run.
   const [hubOpen, setHubOpen] = useState(false);
+  // The Ascension tier chosen for the next run. Defaults to the highest the career can
+  // select, and is clamped down if that ceiling shrinks (e.g. a fresh/other career).
+  const maxAsc = maxSelectableAscension(career.ascension, career.level);
+  const [ascSel, setAscSel] = useState(maxAsc);
+  useEffect(() => {
+    setAscSel((s) => Math.min(s, maxAsc));
+  }, [maxAsc]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -139,8 +151,12 @@ export default function CupRunScreen({
 
   const chem = useMemo(() => (run ? chemistryOf(run.xi) : 0), [run?.xi]);
   const odds = useMemo(
-    () => (run ? simulateTitleOdds(run.xi, 600, chem, diffDelta, pool).champion : 0),
-    [run?.xi, chem, diffDelta, pool],
+    () =>
+      run
+        ? simulateTitleOdds(run.xi, 600, chem, diffDelta + ascensionAt(run.ascension).userDelta, pool)
+            .champion
+        : 0,
+    [run?.xi, run?.ascension, chem, diffDelta, pool],
   );
   const str = useMemo(
     () => (run ? xiStrength(run.xi) : { attack: 0, defense: 0, overall: 0 }),
@@ -166,7 +182,7 @@ export default function CupRunScreen({
     setReveal(null);
     setLastKoMatch(null);
     setReviewIndex(null);
-    setRun(beginRun(draftedXi, career.perkLevels, career.unlockedBoons));
+    setRun(beginRun(draftedXi, career.perkLevels, career.unlockedBoons, Math.min(ascSel, maxAsc)));
   };
 
   // Step the run; award XP/Prestige exactly once when it ends.
@@ -175,7 +191,12 @@ export default function CupRunScreen({
       const r = applyRunResult(career, next);
       setCareer(r.career);
       saveCareer(r.career);
-      setReward({ xpGained: r.xpGained, prestigeGained: r.prestigeGained, leveledUp: r.leveledUp });
+      setReward({
+        xpGained: r.xpGained,
+        prestigeGained: r.prestigeGained,
+        leveledUp: r.leveledUp,
+        ascensionMult: ascensionAt(next.ascension).rewardMult,
+      });
     }
     setRun(next);
   };
@@ -269,6 +290,17 @@ export default function CupRunScreen({
   const showHubBody = !run || hubOpen;
   const boostedIds = new Set(run?.boostedIds ?? []);
 
+  // Ascension selector (pre-run): the chosen tier and the requirement to unlock the
+  // next one (a cup at the tier below + the career level gate).
+  const selAsc = ascensionAt(Math.min(ascSel, maxAsc));
+  const nextAsc = ASCENSIONS[maxAsc + 1];
+  const nextAscHint = nextAsc
+    ? [
+        career.ascension < nextAsc.tier ? `win a ${ascensionAt(maxAsc).label} cup` : null,
+        career.level < nextAsc.levelReq ? `reach level ${nextAsc.levelReq}` : null,
+      ].filter(Boolean)
+    : [];
+
   return (
     <div ref={rootRef} className="mx-auto max-w-[1000px]">
       {/* Cup-win celebration: rains once when the run ends as champion. */}
@@ -304,6 +336,47 @@ export default function CupRunScreen({
               Take your drafted XI on a Cup Run. Pick a team boost between rounds; every run earns
               XP and Prestige for your career.
             </p>
+            {/* Ascension selector: a harder run for a bigger reward. */}
+            <div className="mx-auto mb-5 max-w-[380px] rounded-md border border-line bg-chalk p-3">
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                Ascension
+              </div>
+              <div className="mt-1.5 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  aria-label="Lower Ascension"
+                  disabled={ascSel <= 0}
+                  onClick={() => setAscSel((s) => Math.max(0, s - 1))}
+                  className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
+                >
+                  &minus;
+                </button>
+                <div className="min-w-[150px]">
+                  <div className="font-display text-[15px] font-extrabold leading-tight">
+                    {selAsc.label}
+                  </div>
+                  <div className="font-mono text-[11px] text-muted">
+                    {selAsc.tier === 0
+                      ? 'Standard difficulty'
+                      : `You ${selAsc.userDelta} rating, rewards x${selAsc.rewardMult}`}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Higher Ascension"
+                  disabled={ascSel >= maxAsc}
+                  onClick={() => setAscSel((s) => Math.min(maxAsc, s + 1))}
+                  className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
+                >
+                  +
+                </button>
+              </div>
+              {nextAscHint.length > 0 && (
+                <div className="mt-2 font-mono text-[10px] leading-snug text-muted">
+                  Unlock {nextAsc.label}: {nextAscHint.join(' and ')}
+                </div>
+              )}
+            </div>
             <button onClick={startRun} className={PRIMARY_BTN}>
               Start a Cup Run
             </button>
@@ -326,6 +399,13 @@ export default function CupRunScreen({
               switches the content area below to that round; the current step returns
               to the live view. Locked while a match is playing out. */}
           <div className="mb-4">
+            {run.ascension > 0 && (
+              <div className="mb-2 flex justify-center">
+                <span className="rounded-full border border-amber/40 bg-amber/[0.12] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a6512]">
+                  {ascensionAt(run.ascension).label} &middot; rewards x{ascensionAt(run.ascension).rewardMult}
+                </span>
+              </div>
+            )}
             <RunLadder
               run={run}
               currentIndex={currentRoundIndex}

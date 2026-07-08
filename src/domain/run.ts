@@ -26,6 +26,7 @@ import {
   type KoDecided,
 } from './knockout';
 import { offerBoons, availableBoons, boonById, type Boon } from './boons';
+import { ascensionAt } from './ascension';
 
 // ---------------------------------------------------------------------------
 // Cup Run - prototype run state machine. Pure over Math.random via
@@ -77,6 +78,9 @@ export interface RunState {
   perkLevels: Record<string, number>;
   /** Career-unlocked boon ids, added to the offer pool alongside the starters. */
   unlockedBoons: string[];
+  /** Ascension tier this run is played at (0 = Base). Set at beginRun; drives the
+   *  user handicap, the knockout draw strength, and the end-of-run reward multiplier. */
+  ascension: number;
   /** The pending 1-of-3 boon offer, when phase === 'boon'. */
   offer: Boon[] | null;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played). */
@@ -150,6 +154,7 @@ export function beginRun(
   xi: Player[],
   perkLevels: Record<string, number> = {},
   unlockedBoons: string[] = [],
+  ascension = 0,
 ): RunState {
   let players = xi;
   const activeBoons: string[] = [];
@@ -178,6 +183,7 @@ export function beginRun(
     activeBoons,
     perkLevels,
     unlockedBoons,
+    ascension,
     offer: null,
     nextOpponent: null,
     score: 0,
@@ -197,7 +203,8 @@ export function prepareGroupStage(
   pool: Squad[] = SQUADS,
 ): PreparedGroup | null {
   if (run.phase !== 'group') return null;
-  const user = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta);
+  const asc = ascensionAt(run.ascension);
+  const user = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta + asc.userDelta);
   const opponents = pickOpponents(3, pool);
   let group = createGroup(user, opponents);
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
@@ -249,7 +256,7 @@ export function prepareGroupStage(
   }
   // Exclude the group opponents from the knockout draw (no immediate rematch).
   const faced = [...run.facedIds, ...opponents.map((s) => s.id)];
-  const opp = drawOpponent(new Set(faced), pool);
+  const opp = drawOpponent(new Set(faced), pool, asc.drawSlopeBonus);
   return {
     next: {
       ...run,
@@ -331,10 +338,11 @@ export function prepareKnockoutRound(
   pool: Squad[] = SQUADS,
 ): PreparedKnockout | null {
   if (run.phase !== 'match' || !run.nextOpponent) return null;
+  const asc = ascensionAt(run.ascension);
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
-  const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta);
+  const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta + asc.userDelta);
   const match = simulateKoTie(userTeam, opp);
   const record: RoundRecord = {
     stage: round,
@@ -376,7 +384,7 @@ export function prepareKnockoutRound(
     };
   } else {
     const nextRound = round + 1;
-    const nextOpp = drawOpponent(new Set(run.facedIds), pool);
+    const nextOpp = drawOpponent(new Set(run.facedIds), pool, asc.drawSlopeBonus);
     next = {
       ...run,
       phase: 'boon',

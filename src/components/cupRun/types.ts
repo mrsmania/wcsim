@@ -26,6 +26,8 @@ export interface Reward {
   xpGained: number;
   prestigeGained: number;
   leveledUp: boolean;
+  /** The Ascension reward multiplier the run was scored at (1 = Base). */
+  ascensionMult: number;
 }
 
 /** The live-reveal state: which match(es) are being played out before the run

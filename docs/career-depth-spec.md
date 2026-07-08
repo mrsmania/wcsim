@@ -1,8 +1,9 @@
 # Career Depth - Implementation Spec (Economy 2.0)
 
 **Status:** In progress. **A shipped** (boon-pool unlocks + rarity-weighted offers).
-**B shipped** (tiered, level-gated perks + the CareerState v1->v2 migration). **C next**,
-then **G** (Transfer Budget progression, accepted - see 6.5).
+**B shipped** (tiered, level-gated perks + the CareerState v1->v2 migration). **C shipped**
+(Ascension tiers: handicap + steeper knockout draw + reward multiplier, earned + level-gated).
+**G next** (Transfer Budget progression, accepted - see 6.5).
 Sits on top of `docs/roguelike-career-design.md` (the high-level vision). This document is
 the concrete, code-level plan; it supersedes that doc's section 6 where they disagree.
 **Scope:** clusters **A** (boon-pool unlocks + rarity-weighted offers), **B** (tiered,
@@ -479,9 +480,10 @@ characterization harness:
 1. **A1 - rarity-weighted `offerBoons`** (done).
 2. **A2 - boon unlocks** (done: `unlockedBoons` + library UI + starter tags).
 3. **B - tiered perks** (done: `perkLevels` + `buyPerkTier` + v1->v2 migration + hub UI).
-4. **C - Ascension** (schema `ascension` + `ASCENSIONS` + threading + selector + rewards).
+4. **C - Ascension** (done: `domain/ascension.ts` + `RunState.ascension` +
+   `CareerState.ascension`/`stats.bestCupAscension` + selector + reward multiplier).
 5. **G - Transfer Budget progression** (see 6.5: `transfer-budget` track + `effectiveBudget`
-   threaded through the budget draft). After C, since it reuses the v2 perk schema.
+   threaded through the budget draft). Next; reuses the v2 perk schema.
 
 Each slice is independently shippable behind `FEATURES.careerMode` and validated by the
 checks harness before the next.
