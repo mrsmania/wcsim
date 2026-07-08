@@ -10,10 +10,11 @@ interface Props {
     formation: Formation;
     filled: Filled;
     style: Style;
-    /** Play a standard World Cup with this XI. */
-    onStart: () => void;
-    /** Take this XI on a Cup Run (career mode); omitted when off. */
-    onCupRun?: () => void;
+    /** Which path this build is on (chosen up front on the launcher). Decides the
+     *  single "Start Run" destination and the surrounding copy. */
+    mode: 'quick' | 'career';
+    /** Start the run: a standard World Cup (quick) or the Cup Run screen (career). */
+    onStartRun: () => void;
     onReset: () => void;
 }
 
@@ -23,8 +24,8 @@ export default function CompletePanel({
     formation,
     filled,
     style,
-    onStart,
-    onCupRun,
+    mode,
+    onStartRun,
     onReset,
 }: Props) {
     const base = teamRating(formation, filled);
@@ -62,22 +63,15 @@ export default function CompletePanel({
 
             <div className="p-[18px]">
                 <p className="mb-4 text-[13px] text-muted">
-                    {onCupRun
-                        ? 'Your XI is set. Play a standard World Cup, or take it on a Cup Run (a knockout run where you pick a team boost between rounds).'
-                        : "You'll be drawn into a group of four. Play all three matchdays, finish in the top two, and reach the knockouts."}
+                    {mode === 'career'
+                        ? 'Your XI is set. Take it on a Cup Run: pick a team boost between rounds and climb the Ascension tiers, earning XP and Prestige for your career.'
+                        : "Your XI is set. You'll be drawn into a group of four - finish in the top two, reach the knockouts, and win the cup."}
                 </p>
                 <div className="flex flex-col gap-2.5">
-                    <button onClick={onStart} className={CTA}>
-                        Start the World Cup
+                    <button onClick={onStartRun} className={CTA}>
+                        Start Run
                         <ArrowRight size={16} strokeWidth={2.5} />
                     </button>
-
-                    {onCupRun && (
-                        <button onClick={onCupRun} className={CTA}>
-                            Enter the Cup Run
-                            <ArrowRight size={16} strokeWidth={2.5} />
-                        </button>
-                    )}
 
                     <ConfirmAction
                         prompt="Discard your XI?"

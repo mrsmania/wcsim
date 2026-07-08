@@ -43,7 +43,8 @@ import { validateSquads } from './domain/validateSquads';
 import { FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
-import { clearRun } from './state/runStorage';
+import { clearRun, loadRun } from './state/runStorage';
+import { loadCareer } from './state/careerStorage';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import SettingsModal from './components/SettingsModal';
@@ -51,6 +52,7 @@ import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import BudgetMarket from './components/BudgetMarket';
 import CompletePanel from './components/CompletePanel';
+import ModeSelect from './components/ModeSelect';
 import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
 import XiTable from './components/XiTable';
@@ -458,8 +460,20 @@ export default function App() {
         // A reset is a brand-new team, so drop any in-progress Cup Run too.
         if (FEATURES.careerMode) clearRun();
         dispatch({ type: 'RESET' });
-        navigate('/');
-    }, [navigate]);
+        // Re-open setup in the path that matches where the reset came from: stay on a
+        // build route; a Cup Run -> the career build; a World Cup -> the quick build;
+        // anywhere else -> the launcher.
+        const p = location.pathname;
+        const target =
+            p === '/quick-run' || p === '/career-mode'
+                ? p
+                : p === '/cup-run'
+                  ? '/career-mode'
+                  : p === '/group' || p === '/knockout'
+                    ? '/quick-run'
+                    : '/';
+        navigate(target);
+    }, [navigate, location.pathname]);
 
     const openPositions = useMemo<Set<Position>>(
         () =>
@@ -510,7 +524,10 @@ export default function App() {
         return ps.length === formation.slots.length ? ps : null;
     }, [formation, filled]);
 
-    // Route -> which screen. `location.pathname` is basename-relative.
+    // Route -> which screen. `location.pathname` is basename-relative. The flow is
+    // mode-first: `/` is the launcher (Quick Run vs Career Mode), and both modes build
+    // on the same 3-column page at `/quick-run` and `/career-mode`. With careerMode off
+    // there is no launcher - `/` is the build page directly (the plain game, unchanged).
     const path = location.pathname;
     const squadsEnabled = FEATURES.squadBrowser;
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
@@ -518,18 +535,36 @@ export default function App() {
     const isCupRun = FEATURES.careerMode && path === '/cup-run';
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
-    const isHome = path === '/';
-    // Where "Play" returns to: the furthest game screen reached (an in-progress Cup
-    // Run is resumed from the home complete panel / the Cup Run card, not here).
-    const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
+    const isLauncher = FEATURES.careerMode && path === '/';
+    const isBuild =
+        path === '/quick-run' ||
+        (FEATURES.careerMode && path === '/career-mode') ||
+        (!FEATURES.careerMode && path === '/');
+    // The build's chosen path (decides the single "Start Run" destination + copy).
+    const mode: 'quick' | 'career' =
+        FEATURES.careerMode && path === '/career-mode' ? 'career' : 'quick';
+    // The furthest World Cup screen reached, for the launcher's resume action (null
+    // when no group has been drawn yet).
+    const worldCupRoute = bracket ? '/knockout' : group ? '/group' : null;
     const albumSummary = stickers.summary;
 
-    // Footer navigation, shown on every page. "Play" returns to the furthest game
-    // screen reached; the rest are the app's secondary areas, each gated by its flag.
+    // Launcher-only reads (localStorage), refreshed whenever we land on `/`: whether a
+    // Cup Run is mid-flight (resume) and the career headline stats for the Career card.
+    const cupRunInProgress = useMemo(
+        () => (isLauncher ? !!loadRun() : false),
+        [isLauncher],
+    );
+    const launcherCareer = useMemo(
+        () => (isLauncher ? loadCareer() : null),
+        [isLauncher],
+    );
+
+    // Footer navigation, shown on every page: Home (the launcher) plus the app's
+    // secondary areas, each gated by its flag. Modes are chosen on the launcher, and
+    // in-progress runs are resumed from there, so there is no separate "Play" link.
     const footerNav = [
-        { label: 'Play', to: gameRoute, active: !isSquads && !isAlbum && !isCupRun },
+        { label: 'Home', to: '/', active: isLauncher || isBuild },
         squadsEnabled && { label: 'Squads', to: '/squads/by-world-cup', active: isSquads },
-        FEATURES.careerMode && { label: 'Cup Run', to: '/cup-run', active: isCupRun },
         STICKERS && { label: 'Album', to: '/album', active: isAlbum },
     ].filter(Boolean) as { label: string; to: string; active: boolean }[];
 
@@ -632,7 +667,18 @@ export default function App() {
                         ) : (
                             <Navigate to="/" replace />
                         )
-                    ) : isHome ? (
+                    ) : isLauncher ? (
+                        <ModeSelect
+                            onQuick={() => navigate('/quick-run')}
+                            onCareer={() => navigate('/career-mode')}
+                            worldCupRoute={worldCupRoute}
+                            onResumeWorldCup={() => navigate(worldCupRoute ?? '/')}
+                            cupRunInProgress={cupRunInProgress}
+                            onResumeCupRun={() => navigate('/cup-run')}
+                            careerLevel={launcherCareer?.level}
+                            careerPrestige={launcherCareer?.prestige}
+                        />
+                    ) : isBuild ? (
                         <>
                             <div className="mb-5 mt-7 flex items-center gap-4">
                                 <div>
@@ -678,11 +724,10 @@ export default function App() {
                                             />
                                         </Link>
                                     )}
-                                    {/* Career hub entry. Only on the setup sub-view: mid-draft /
-                                complete it would be noise (the complete panel's two CTAs
-                                pick the mode there). Here it's the door to the perk shop +
-                                trophies before a run. */}
-                                    {FEATURES.careerMode && homeView === 'setup' && (
+                                    {/* Career hub entry. Career-mode build, setup sub-view only:
+                                the door to the perk shop + trophies before a run. Hidden in
+                                Quick Run (no career) and once drafting (it would be noise). */}
+                                    {mode === 'career' && homeView === 'setup' && (
                                         <Link
                                             to="/cup-run"
                                             className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
@@ -776,11 +821,11 @@ export default function App() {
                                             formation={formation}
                                             filled={filled}
                                             style={style}
-                                            onStart={handleStartGroup}
-                                            onCupRun={
-                                                FEATURES.careerMode
+                                            mode={mode}
+                                            onStartRun={
+                                                mode === 'career'
                                                     ? () => navigate('/cup-run')
-                                                    : undefined
+                                                    : handleStartGroup
                                             }
                                             onReset={handleReset}
                                         />
@@ -872,7 +917,7 @@ export default function App() {
                         ))}
                     </nav>
                     <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-                        Swiss made
+                        Made in Switzerland
                         <img
                             src={`${import.meta.env.BASE_URL}img/swiss.svg`}
                             alt="Swiss flag"

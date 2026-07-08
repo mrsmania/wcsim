@@ -127,14 +127,17 @@ src/
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
 ```
 
-**Play mode = decided after the build, not before.** The play mode (standard World Cup
-vs Cup Run) has no effect on how the XI is assembled (Cup Run's perks/boons apply at run
-start, not at draft), so there is no up-front mode toggle. You build the XI, then
-`CompletePanel` shows two equal-weight CTAs: "Start the World Cup" (-> `handleStartGroup`
--> `/group`) and "Enter the Cup Run" (-> `/cup-run`, shown only when `FEATURES.careerMode`).
-No `mode` state; each CTA triggers its own path. (`gameRoute`, the masthead "Play" target,
-is just `bracket ? /knockout : group ? /group : /`; an in-progress Cup Run is resumed from
-the complete panel or the home Cup Run card.)
+**Play mode = chosen up front on the launcher.** With `FEATURES.careerMode` on, `/` is a
+launcher (`ModeSelect`) with two cards: **Quick Run** (-> `/quick-run`) and **Career Mode**
+(-> `/career-mode`). Both lead to the *same* 3-column build page (roll a squad or buy within
+a budget - both build methods are available in either mode); the chosen path is derived from
+the route (`mode: 'quick' | 'career'`) and only decides what the single `CompletePanel`
+"Start Run" CTA does: quick -> `handleStartGroup` -> `/group`; career -> `/cup-run`. The
+launcher surfaces resume actions for an in-progress World Cup (`worldCupRoute`) or Cup Run
+(`loadRun()`), and shows the career headline (level/Prestige) on the Career card. With
+`careerMode` off there is **no launcher**: `/` is the build page directly (a single "Start
+Run" -> World Cup), i.e. the plain game unchanged. `handleReset` returns to the build route
+that matches where it was triggered (Cup Run -> `/career-mode`, World Cup -> `/quick-run`).
 
 **Data flow / phases.** `gameReducer` drives `phase: setup -> draft -> complete ->
 group -> knockout`. `group` (`TournamentScreen.tsx`) and `knockout`
@@ -151,10 +154,11 @@ from playback.
 
 **Routing & persistence.** The URL is the source of truth for *which screen*; the
 reducer stays the source of truth for *game data*. `App` branches on
-`location.pathname`: `/` (home = setup/draft/complete, sub-view derived from
+`location.pathname`: `/` (the launcher when `careerMode` is on, else the build page),
+`/quick-run` + `/career-mode` (the build page = setup/draft/complete, sub-view derived from
 `formation` + `isComplete`, not `phase`), `/group`, `/knockout` (both redirect `/` when
-their data is missing), and `/squads/*`. Navigation happens via `useNavigate` in the
-masthead Play/Squads toggle and the transition handlers (`handleStartGroup`,
+their data is missing), `/cup-run`, `/album`, and `/squads/*`. Navigation happens via
+`useNavigate` in the footer nav and the transition handlers (`handleStartGroup`,
 `handleEnterKnockout`, `handleReset`), which never rebuild existing state. So Back/
 Forward move between screens (knockout <-> group <-> home) without losing progress. On
 top of browser Back/Forward, each tournament screen carries a `StageCrumb` link in its

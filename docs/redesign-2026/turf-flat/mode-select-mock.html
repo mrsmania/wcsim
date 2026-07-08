@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mode Select - World Cup Simulator (mock)</title>
+<!--
+  MODE-SELECT MOCK - standalone comp (opens directly in a browser; also the source
+  for the published Artifact, which strips this scaffold and adds its own reset).
+  Proposes a mode-first flow for World Cup Simulator:
+    /            -> choose Quick Run or Career Mode
+    /quick-run   -> the 3-column build page (roll OR budget), then a single START RUN
+    /career-mode -> the same 3-column build page, then a single START RUN
+  Matches the shipped "turf-flat" identity. Fonts: the app uses Archivo /
+  Schibsted Grotesk / Spline Sans Mono; offline this falls back to system stacks.
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  .turf {
+    --pitch-deep: #0e5c34;
+    --pitch: #15924c;
+    --chalk: #e8f0e8;
+    --paper: #f4f2ec;
+    --panel: #ffffff;
+    --ink: #13211a;
+    --muted: #5c6a60;
+    --line: #d4ded5;
+    --amber: #e4922b;
+    --amber-ink: #9a6512;
+    --disp: "Archivo", system-ui, "Segoe UI", Roboto, sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    min-height: 100%;
+    padding: 22px clamp(16px, 4vw, 40px) 64px;
+    box-sizing: border-box;
+    line-height: 1.5;
+  }
+  .turf *,
+  .turf *::before,
+  .turf *::after { box-sizing: border-box; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+
+  /* ---- masthead ---- */
+  .mast {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .crest {
+    width: 38px; height: 38px; flex: 0 0 auto;
+    border-radius: 6px;
+    background: var(--pitch-deep);
+    display: grid; place-items: center;
+    color: var(--amber);
+  }
+  .crest svg { width: 21px; height: 21px; }
+  .mast h1 {
+    font-family: var(--disp);
+    font-weight: 900; font-size: 23px;
+    letter-spacing: -0.02em; text-transform: uppercase;
+    line-height: 1; margin: 0;
+  }
+  .mast h1 em { font-style: normal; color: var(--pitch); }
+  .mast .tag {
+    font-size: 12.5px; color: var(--muted);
+    border-left: 1px solid var(--line); padding-left: 14px;
+  }
+  .mast .gear {
+    margin-left: auto; width: 33px; height: 33px;
+    border: 1px solid var(--line); border-radius: 5px;
+    background: var(--panel); color: var(--muted);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .mast .gear svg { width: 17px; height: 17px; }
+  @media (max-width: 520px) { .mast .tag { display: none; } }
+
+  /* ---- section heading ---- */
+  .sec-h { margin: 30px 0 18px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--pitch); margin: 0 0 6px;
+  }
+  .sec-h h2 {
+    font-family: var(--disp);
+    font-weight: 800; font-size: clamp(26px, 4vw, 34px);
+    letter-spacing: -0.02em; margin: 0; text-wrap: balance;
+  }
+  .sec-h p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; font-size: 14.5px; }
+
+  /* ---- mode cards ---- */
+  .modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 720px) { .modes { grid-template-columns: 1fr; } }
+
+  .card {
+    position: relative;
+    display: flex; flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-shadow: 6px 6px 0 var(--pitch-deep);
+    padding: 24px;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+  }
+  .card.career { box-shadow: 6px 6px 0 var(--amber); border-color: color-mix(in srgb, var(--amber) 40%, var(--line)); }
+  .card:focus-within,
+  .card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--pitch-deep); }
+  .card.career:hover,
+  .card.career:focus-within { box-shadow: 8px 8px 0 var(--amber); }
+
+  .ribbon {
+    position: absolute; top: 16px; right: 16px;
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 8px; border-radius: 999px;
+  }
+  .ribbon.one { background: var(--chalk); color: var(--muted); }
+  .ribbon.persist { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber-ink); }
+
+  .icon-tile {
+    width: 46px; height: 46px; border-radius: 8px;
+    display: grid; place-items: center; margin-bottom: 14px;
+  }
+  .icon-tile svg { width: 24px; height: 24px; }
+  .icon-tile.q { background: var(--chalk); color: var(--pitch-deep); }
+  .icon-tile.c { background: var(--pitch-deep); color: var(--amber); }
+
+  .card h3 {
+    font-family: var(--disp);
+    font-weight: 800; font-size: 22px;
+    letter-spacing: -0.01em; margin: 0;
+    text-transform: uppercase;
+  }
+  .card .lede { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+
+  .career-strip {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .chip {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip.lvl { background: var(--chalk); color: var(--pitch-deep); }
+  .chip.pre { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber-ink); }
+  .chip.asc { background: color-mix(in srgb, var(--pitch) 12%, transparent); color: var(--pitch-deep); }
+
+  .feats { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .feats li { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink); }
+  .feats svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--pitch); margin-top: 2px; }
+  .feats .dim { color: var(--muted); }
+
+  .card-foot { margin-top: auto; padding-top: 20px; display: flex; align-items: center; gap: 12px; }
+  .route {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    background: var(--chalk); padding: 4px 8px; border-radius: 4px;
+  }
+  .btn {
+    font-family: var(--disp);
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+    font-size: 13px; color: #fff; background: var(--pitch);
+    border: 1px solid var(--pitch-deep); border-radius: 6px;
+    padding: 12px 18px; cursor: pointer; margin-left: auto;
+    transition: background 0.14s ease;
+  }
+  .btn:hover { background: var(--pitch-deep); }
+  .btn.amber { background: var(--amber); border-color: var(--amber-ink); }
+  .btn.amber:hover { background: var(--amber-ink); }
+  .turf a { color: inherit; text-decoration: none; }
+  .turf a:focus-visible,
+  .turf button:focus-visible { outline: 2px solid var(--pitch); outline-offset: 2px; }
+
+  /* ---- flow / after-build section ---- */
+  .rule { height: 1px; background: var(--line); margin: 40px 0 30px; }
+
+  .after { display: grid; grid-template-columns: 1.1fr 1fr; gap: 22px; align-items: center; }
+  @media (max-width: 720px) { .after { grid-template-columns: 1fr; } }
+
+  .complete {
+    border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 6px 6px 0 var(--pitch-deep);
+    background: var(--panel); padding: 22px; text-align: center;
+  }
+  .complete .ok {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--pitch);
+  }
+  .complete h4 {
+    font-family: var(--disp); font-weight: 800; font-size: 22px;
+    margin: 6px 0 2px; text-transform: uppercase; letter-spacing: -0.01em;
+  }
+  .complete .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  .startrun {
+    width: 100%;
+    font-family: var(--disp); font-weight: 900; font-size: 17px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: #fff;
+    background: var(--pitch); border: 1px solid var(--pitch-deep);
+    border-radius: 6px; padding: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: background 0.14s ease;
+  }
+  .startrun:hover { background: var(--pitch-deep); }
+  .startrun svg { width: 18px; height: 18px; }
+  .startover {
+    margin-top: 12px; font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+    background: none; border: none; cursor: pointer;
+  }
+  .startover:hover { color: var(--ink); }
+  .mode-tag {
+    display: inline-block; margin-bottom: 12px;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--amber-ink); background: color-mix(in srgb, var(--amber) 16%, transparent);
+    padding: 4px 9px; border-radius: 999px;
+  }
+
+  .after-note h3 {
+    font-family: var(--disp); font-weight: 800; font-size: 19px;
+    margin: 0 0 8px; letter-spacing: -0.01em;
+  }
+  .after-note p { color: var(--muted); font-size: 14px; margin: 0 0 12px; max-width: 48ch; }
+  .beforeafter { display: flex; flex-direction: column; gap: 8px; }
+  .ba-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .ba-k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); width: 52px; flex: 0 0 auto; }
+  .pill { border-radius: 5px; padding: 5px 10px; font-size: 12px; font-weight: 600; }
+  .pill.old { background: var(--chalk); color: var(--muted); text-decoration: line-through; }
+  .pill.new { background: var(--pitch); color: #fff; }
+
+  /* ---- 3-column schematic + route flow ---- */
+  .schema-wrap { margin-top: 34px; }
+  .schema {
+    display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 10px;
+    border: 1px dashed var(--line); border-radius: 6px; padding: 12px; background: var(--panel);
+  }
+  .col {
+    background: var(--chalk); border-radius: 4px; padding: 12px 10px; text-align: center;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+  }
+  .col b { display: block; color: var(--pitch-deep); font-size: 12px; margin-bottom: 4px; font-family: var(--body); font-weight: 700; }
+  .col.pitch-col { background: var(--pitch-deep); color: rgba(255,255,255,0.75); }
+  .col.pitch-col b { color: #fff; }
+
+  .flow {
+    margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+  }
+  .flow .node { background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 5px 9px; color: var(--ink); }
+  .flow .node.hl { background: var(--pitch); color: #fff; border-color: var(--pitch-deep); }
+  .flow .node.amber { background: var(--amber); color: #fff; border-color: var(--amber-ink); }
+  .flow .arw { color: var(--line); font-weight: 700; }
+
+  .foot-note {
+    margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); max-width: 70ch;
+  }
+  .foot-note b { color: var(--ink); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card { animation: rise 0.4s ease both; }
+    .card:nth-child(2) { animation-delay: 0.06s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+
+<div class="turf">
+  <div class="wrap">
+
+    <header class="mast">
+      <span class="crest" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+        </svg>
+      </span>
+      <h1>World Cup <em>Simulator</em></h1>
+      <span class="tag">Draft a random XI. Win the cup.</span>
+      <button class="gear" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="sec-h">
+      <p class="eyebrow">Start here</p>
+      <h2>Choose how you play</h2>
+      <p>Pick a path first. Both build an XI on the same board (roll random squads or buy within a budget) then send it out for the cup. The difference is what happens around the run.</p>
+    </div>
+
+    <div class="modes">
+
+      <!-- QUICK RUN -->
+      <section class="card quick">
+        <span class="ribbon one">One-off</span>
+        <span class="icon-tile q" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>
+          </svg>
+        </span>
+        <h3>Quick Run</h3>
+        <p class="lede">Just build a team and go. Play the group stage and knockouts, chase the trophy. Nothing to save, nothing to grind.</p>
+        <ul class="feats">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Build by <b>rolling squads</b> or <b>buying within a budget</b></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Full group stage and knockout bracket</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> <span class="dim">No career, no unlocks - a clean slate every time</span></li>
+        </ul>
+        <div class="card-foot">
+          <span class="route">/quick-run</span>
+          <button class="btn">Play a Quick Run</button>
+        </div>
+      </section>
+
+      <!-- CAREER MODE -->
+      <section class="card career">
+        <span class="ribbon persist">Persistent</span>
+        <span class="icon-tile c" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+          </svg>
+        </span>
+        <h3>Career Mode</h3>
+        <div class="career-strip">
+          <span class="chip lvl">Level 7</span>
+          <span class="chip pre">240 Prestige</span>
+          <span class="chip asc">Ascension II</span>
+        </div>
+        <p class="lede">Your manager career. Take runs, pick boosts between rounds, and spend what you earn on a growing pool of perks, boosts and harder Ascension tiers.</p>
+        <ul class="feats">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Same build: <b>roll</b> or <b>buy within a (growing) budget</b></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Boosts between rounds, Ascension tiers for bigger rewards</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> XP, Prestige and unlocks that <b>carry over</b> between runs</li>
+        </ul>
+        <div class="card-foot">
+          <span class="route">/career-mode</span>
+          <button class="btn amber">Enter Career Mode</button>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="rule"></div>
+
+    <!-- AFTER YOU BUILD -->
+    <div class="after">
+      <div class="complete">
+        <span class="mode-tag">Career Mode &middot; building</span>
+        <div class="ok">&#10003; Eleven picked</div>
+        <h4>Your XI is set</h4>
+        <p class="sub">Mode is already chosen, so there is just one way forward.</p>
+        <button class="startrun">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 3 14 9-14 9V3z"/></svg>
+          Start Run
+        </button>
+        <div><button class="startover">Start over</button></div>
+      </div>
+
+      <div class="after-note">
+        <h3>One button after the build</h3>
+        <p>Because the path is picked up front, the finished-XI screen no longer asks you to choose. It collapses the two old calls-to-action into a single <b>Start Run</b> (plus Start over).</p>
+        <div class="beforeafter">
+          <div class="ba-row"><span class="ba-k">Before</span> <span class="pill old">Start the World Cup</span> <span class="pill old">Enter the Cup Run</span></div>
+          <div class="ba-row"><span class="ba-k">After</span> <span class="pill new">Start Run</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHARED BUILD PAGE + ROUTE FLOW -->
+    <div class="schema-wrap">
+      <div class="sec-h" style="margin-bottom:12px">
+        <p class="eyebrow">Under both</p>
+        <h2 style="font-size:20px">The same 3-column build page</h2>
+      </div>
+      <div class="schema" aria-label="Three column build layout">
+        <div class="col"><b>Build</b>Roll a squad<br/>or Transfer Market</div>
+        <div class="col pitch-col"><b>Pitch</b>Place your XI<br/>(tactics board)</div>
+        <div class="col"><b>Read-out</b>Ratings, chemistry,<br/>line-up</div>
+      </div>
+
+      <div class="flow" aria-label="Route flow">
+        <span class="node">/</span>
+        <span class="arw">&rarr;</span>
+        <span class="node hl">Quick Run</span>
+        <span class="arw">&rarr;</span>
+        <span class="node">/quick-run</span>
+        <span class="arw">&rarr;</span>
+        <span class="node">build XI</span>
+        <span class="arw">&rarr;</span>
+        <span class="node hl">Start Run</span>
+        <span class="arw">&rarr;</span>
+        <span class="node">World Cup</span>
+      </div>
+      <div class="flow" aria-label="Route flow career">
+        <span class="node">/</span>
+        <span class="arw">&rarr;</span>
+        <span class="node amber">Career Mode</span>
+        <span class="arw">&rarr;</span>
+        <span class="node">/career-mode</span>
+        <span class="arw">&rarr;</span>
+        <span class="node">build XI</span>
+        <span class="arw">&rarr;</span>
+        <span class="node amber">Start Run</span>
+        <span class="arw">&rarr;</span>
+        <span class="node">Cup Run + career</span>
+      </div>
+    </div>
+
+    <p class="foot-note">
+      <b>Mock, not final.</b> Colours and layout follow the shipped turf-flat identity; fonts fall back to
+      system faces here because the preview sandbox blocks the Google Fonts the app uses (Archivo /
+      Schibsted Grotesk / Spline Sans Mono). Open questions to settle: the single CTA reads
+      <b>Start Run</b> in both, but could be mode-aware ("Start the World Cup" vs "Start the Cup Run");
+      and whether <b>Squads</b> / <b>Album</b> stay reachable from this landing (e.g. small masthead links).
+    </p>
+
+  </div>
+</div>
+</body>
+</html>
