@@ -16,7 +16,6 @@ import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
     canPlace,
-    filledCount,
     isComplete,
     hasAnotherCup,
     hasAnotherTeam,
@@ -37,8 +36,7 @@ import {
     userGroupTeam,
 } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
-import { KO_ROUNDS } from './domain/knockout';
-import { buildBracket, type BracketState } from './domain/bracket';
+import { buildBracket } from './domain/bracket';
 import { userRatingDelta, type Difficulty } from './domain/difficulty';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
@@ -70,23 +68,12 @@ import RunEndOverlays from './components/RunEndOverlays';
 const isStackedLayout = () =>
     typeof window !== 'undefined' && !window.matchMedia('(min-width: 1080px)').matches;
 
-/** The masthead status stamp for the knockout screen (round name, or the outcome
- *  once the run is over). */
-function knockoutStamp(bracket: BracketState | null): string {
-    if (bracket?.outcome === 'champion') return 'Champions';
-    if (bracket?.outcome === 'out') return 'Eliminated';
-    return KO_ROUNDS[bracket?.current ?? 0];
-}
-
 type HomeView = 'setup' | 'draft' | 'complete';
 
-/** Section eyebrow/title + masthead stamp for the home screen, by sub-view. The
- *  home sub-view is derived from the drafted data (not `phase`), so navigating
- *  Back to home mid-tournament still reads as the locked XI. */
-function homeCopy(
-    view: HomeView,
-    placed: number,
-): { eyebrow: string; title: string; stamp: string } {
+/** Section eyebrow/title for the home screen, by sub-view. The home sub-view is
+ *  derived from the drafted data (not `phase`), so navigating Back to home
+ *  mid-tournament still reads as the locked XI. */
+function homeCopy(view: HomeView): { eyebrow: string; title: string } {
     const eyebrow = view === 'complete' ? 'Confirmed line-up' : 'Team sheet';
     const title =
         view === 'setup'
@@ -94,13 +81,7 @@ function homeCopy(
             : view === 'draft'
               ? 'Build your XI'
               : 'Your XI is set';
-    const stamp =
-        view === 'setup'
-            ? 'Set up · 11 to pick'
-            : view === 'draft'
-              ? `Drafting · ${placed}/11`
-              : 'Team sheet · locked';
-    return { eyebrow, title, stamp };
+    return { eyebrow, title };
 }
 
 export default function App() {
@@ -519,10 +500,8 @@ export default function App() {
     const heldPlayer =
         isBudgetBuild && heldId ? (ALL_PLAYERS.find((p) => p.id === heldId) ?? null) : null;
 
-    // Page section header (eyebrow + heading) and the masthead status stamp, both
-    // phase-dependent. The stamp is null on the tournament screens (their own header).
-    const placed = activeFormation ? filledCount(activeFormation, filled) : 0;
-    const home = homeCopy(homeView, placed);
+    // Page section header (eyebrow + heading), derived from the home sub-view.
+    const home = homeCopy(homeView);
 
     // The completed XI (all slots filled) handed to a Cup Run; null until full.
     const draftedXi = useMemo<Player[] | null>(() => {
@@ -544,15 +523,6 @@ export default function App() {
     // Run is resumed from the home complete panel / the Cup Run card, not here).
     const gameRoute = bracket ? '/knockout' : group ? '/group' : '/';
     const albumSummary = stickers.summary;
-    const stampText = isSquads
-        ? null
-        : isAlbum
-          ? 'Sticker album'
-          : isGroup
-            ? 'Group stage'
-            : isKnockout
-              ? knockoutStamp(bracket)
-              : home.stamp;
 
     // Footer navigation, shown on every page. "Play" returns to the furthest game
     // screen reached; the rest are the app's secondary areas, each gated by its flag.
@@ -583,11 +553,6 @@ export default function App() {
                         Draft a random XI. Win the cup.
                     </span>
                     <div className="ml-auto flex items-center gap-2.5">
-                        {stampText && (
-                            <span className="rounded-[3px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted max-sm:hidden">
-                                {stampText}
-                            </span>
-                        )}
                         <button
                             type="button"
                             onClick={() => setSettingsOpen(true)}
