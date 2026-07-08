@@ -201,7 +201,8 @@ codes in URLs are lowercase and matched case-insensitively.
   24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for 1990/1994/1998,
   23-man for 2002-2018, 26-man for 2022 (Iran 25). ~6,270 player rows total.
   (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders.)
-  Historical nations keep their period identity: West Germany (1990) uses code `GER`;
+  Historical nations keep their period identity: the 1990 champions (West Germany) are
+  recorded as Germany on code `GER`;
   Soviet Union (`URS`), Czechoslovakia (`TCH`) and Yugoslavia (`YUG`) are their own
   codes. A player who continued for a successor nation (Prosinecki YUG->Croatia,
   Gorlukovich URS->Russia) shares one `personId` across both, so the cross-nation

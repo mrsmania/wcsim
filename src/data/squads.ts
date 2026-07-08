@@ -8,7 +8,8 @@ import type { Player, Position, Squad } from './types';
 // "<year> FIFA World Cup squads" lists; ratings are a BLEND of each player's ability
 // entering the tournament and how he actually performed there (standouts up, players
 // caught in heavy defeats nudged down, bench/unused players left at their baseline).
-// Historical nations keep their period identity: West Germany (1990) uses the GER code;
+// Historical nations keep their period identity: the 1990 champions (West Germany) are
+// recorded as Germany on the GER code;
 // the Soviet Union (URS), Czechoslovakia (TCH) and Yugoslavia (YUG) are their own codes,
 // with players who continued for a successor nation (e.g. Prosinecki YUG -> Croatia,
 // Gorlukovich URS -> Russia) sharing one identity across both.
@@ -67,11 +68,12 @@ function squad(code: string, nation: string, year: number, rows: Row[]): Squad {
 export const SQUADS: Squad[] = [
     // ===== 1990 FIFA World Cup (Italy) - full 24-nation researched dataset (22-man
     // squads). Rosters/numbers/positions from the Wikipedia "1990 FIFA World Cup squads"
-    // lists; ratings blend pre-tournament ability with the Italia 90 showing (West
-    // Germany's title, Schillaci's Golden Boot, Milla/Cameroon's run to the quarters,
-    // Maradona hobbling Argentina to the final). West Germany uses the GER code; the
-    // Soviet Union (URS) and Czechoslovakia (TCH) are their historical selves. =====
-    squad('GER', 'West Germany', 1990, [
+    // lists; ratings blend pre-tournament ability with the Italia 90 showing (Germany's
+    // title, Schillaci's Golden Boot, Milla/Cameroon's run to the quarters,
+    // Maradona hobbling Argentina to the final). The 1990 champions (West Germany) are
+    // recorded as Germany on the GER code; the Soviet Union (URS) and Czechoslovakia
+    // (TCH) keep their own historical codes. =====
+    squad('GER', 'Germany', 1990, [
         [1, 'Bodo Illgner', ['GK'], 82],
         [12, 'Raimond Aumann', ['GK'], 72],
         [22, 'Andreas Köpke', ['GK'], 78],
