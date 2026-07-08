@@ -5,6 +5,7 @@ import AU from 'country-flag-icons/react/3x2/AU';
 import BA from 'country-flag-icons/react/3x2/BA';
 import BE from 'country-flag-icons/react/3x2/BE';
 import BG from 'country-flag-icons/react/3x2/BG';
+import BO from 'country-flag-icons/react/3x2/BO';
 import BR from 'country-flag-icons/react/3x2/BR';
 import CA from 'country-flag-icons/react/3x2/CA';
 import CH from 'country-flag-icons/react/3x2/CH';
@@ -81,6 +82,8 @@ const BY_FIFA: Record<string, typeof BR> = {
   SCO: GBSCT, NOR: NO, AUT: AT, BUL: BG, ROU: RO, JAM: JM, YUG: RS,
   // 2002 nations.
   TUR: TR, CHN: CN, IRL: IE,
+  // 1994 nations.
+  BOL: BO,
 };
 
 interface Props {

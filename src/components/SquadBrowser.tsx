@@ -15,8 +15,6 @@ import TeamRoster from './TeamRoster';
 /** Distinct tournament years, newest first for the selector. */
 const YEARS = [...new Set(SQUADS.map((s) => s.year))].sort((a, b) => b - a);
 
-/** A full 32-nation field; below this a year is hand-authored placeholder data. */
-const FULL_FIELD = 32;
 const MAX_RESULTS = 80;
 
 /** Route to a single squad's roster. Used as a real href so the row links can be
@@ -67,7 +65,6 @@ export default function SquadBrowser() {
             ),
         [year],
     );
-    const yearIsPartial = nations.length < FULL_FIELD;
 
     // Every nation with the World Cups it appears in, most participations first.
     // "Participations" are occurrences in this dataset, not real-world history.
@@ -279,15 +276,7 @@ export default function SquadBrowser() {
                     ))}
                 </div>
             ) : (
-                <>
-                    {yearIsPartial && (
-                        <p className="mb-3 font-mono text-[11px] text-muted">
-                            {year} is an approximate placeholder set ({nations.length} teams), not a
-                            full researched field.
-                        </p>
-                    )}
-                    <CupTable squads={nations} />
-                </>
+                <CupTable squads={nations} />
             )}
         </>
     );
