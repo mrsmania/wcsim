@@ -11,6 +11,7 @@ import CH from 'country-flag-icons/react/3x2/CH';
 import CI from 'country-flag-icons/react/3x2/CI';
 import CL from 'country-flag-icons/react/3x2/CL';
 import CM from 'country-flag-icons/react/3x2/CM';
+import CN from 'country-flag-icons/react/3x2/CN';
 import CO from 'country-flag-icons/react/3x2/CO';
 import CR from 'country-flag-icons/react/3x2/CR';
 import CZ from 'country-flag-icons/react/3x2/CZ';
@@ -28,6 +29,7 @@ import GH from 'country-flag-icons/react/3x2/GH';
 import GR from 'country-flag-icons/react/3x2/GR';
 import HN from 'country-flag-icons/react/3x2/HN';
 import HR from 'country-flag-icons/react/3x2/HR';
+import IE from 'country-flag-icons/react/3x2/IE';
 import IR from 'country-flag-icons/react/3x2/IR';
 import IS from 'country-flag-icons/react/3x2/IS';
 import IT from 'country-flag-icons/react/3x2/IT';
@@ -57,6 +59,7 @@ import SK from 'country-flag-icons/react/3x2/SK';
 import SN from 'country-flag-icons/react/3x2/SN';
 import TG from 'country-flag-icons/react/3x2/TG';
 import TN from 'country-flag-icons/react/3x2/TN';
+import TR from 'country-flag-icons/react/3x2/TR';
 import TT from 'country-flag-icons/react/3x2/TT';
 import UA from 'country-flag-icons/react/3x2/UA';
 import US from 'country-flag-icons/react/3x2/US';
@@ -76,6 +79,8 @@ const BY_FIFA: Record<string, typeof BR> = {
   // 1998 nations. YUG (FR Yugoslavia) has no flag in country-flag-icons; use the
   // Serbia flag as the closest real successor, matching how SCG is handled.
   SCO: GBSCT, NOR: NO, AUT: AT, BUL: BG, ROU: RO, JAM: JM, YUG: RS,
+  // 2002 nations.
+  TUR: TR, CHN: CN, IRL: IE,
 };
 
 interface Props {

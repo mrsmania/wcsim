@@ -15,6 +15,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   BIH: 'UEFA', ISL: 'UEFA', SWE: 'UEFA', SCG: 'UEFA', CZE: 'UEFA', UKR: 'UEFA',
   YUG: 'UEFA', // FR Yugoslavia (1998 / 2002)
   SCO: 'UEFA', NOR: 'UEFA', AUT: 'UEFA', BUL: 'UEFA', ROU: 'UEFA', // 1998 qualifiers
+  TUR: 'UEFA', IRL: 'UEFA', // 2002 qualifiers
   // CONMEBOL
   BRA: 'CONMEBOL', ARG: 'CONMEBOL', URU: 'CONMEBOL', COL: 'CONMEBOL',
   ECU: 'CONMEBOL', CHI: 'CONMEBOL', PER: 'CONMEBOL', PAR: 'CONMEBOL',
@@ -26,6 +27,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   CIV: 'CAF', EGY: 'CAF', ALG: 'CAF', RSA: 'CAF', ANG: 'CAF', TOG: 'CAF',
   // AFC (Australia has competed in the AFC since 2006)
   KSA: 'AFC', IRN: 'AFC', JPN: 'AFC', KOR: 'AFC', QAT: 'AFC', AUS: 'AFC', PRK: 'AFC',
+  CHN: 'AFC', // 2002
   // OFC
   NZL: 'OFC',
 };

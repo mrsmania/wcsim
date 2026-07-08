@@ -197,12 +197,15 @@ codes in URLs are lowercase and matched case-insensitively.
 
 ## The dataset (`src/data/squads.ts`)
 
-- Tournaments: **1998** and **2002** are partial, hand-authored **placeholder**
-  squads (approximate, not verified). **2006, 2010, 2014, 2018, 2022** are full
-  32-nation researched datasets (23-man squads for 2006-2018; 26-man for 2022, with
-  Iran 25). ~3,878 player rows total.
+- Tournaments: **all seven (1998-2022)** are full 32-nation researched datasets
+  (22-man squads for 1998; 23-man for 2002-2018; 26-man for 2022, with Iran 25).
+  ~5,214 player rows total. (1998 and 2002 were finished off in 2026, replacing the
+  earlier hand-from-memory placeholders.)
 - **Ratings** are a holistic judgement of each player's strength *at the time of
   that tournament* on the 60-99 scale (not current ability, not a FIFA-game number).
+  For **1998 and 2002** the rating is a *blend* of pre-tournament ability and how the
+  player actually performed at that World Cup (standouts up, heavy-defeat/flop players
+  down, bench/unused left at baseline).
 - The `squad(code, nation, year, rows)` helper builds the `Player[]`;
   `SQUAD_BY_ID` is the lookup table. **Editing `squads.ts` is the only thing needed
   to change rosters/ratings** - `App`, the draft, and the sim all derive everything
