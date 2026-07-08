@@ -116,7 +116,7 @@ export const SQUADS: Squad[] = [
         [21, 'Pedro Troglio', ['CM', 'RM'], 77],
         [6, 'Gabriel Calderón', ['AM', 'CM'], 79],
         [7, 'Jorge Burruchaga', ['AM', 'RW', 'ST'], 81],
-        [10, 'Diego Maradona', ['AM'], 94],
+        [10, 'Diego Maradona', ['AM'], 92],
         [8, 'Claudio Caniggia', ['ST', 'RW'], 83],
         [9, 'Gustavo Dezotti', ['ST'], 71],
         [3, 'Abel Balbo', ['ST'], 73],
