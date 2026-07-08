@@ -137,7 +137,7 @@ export default function SettingsModal({
                                     onClick={() => togglePool(y)}
                                     className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${
                                         on
-                                            ? 'border-pitch bg-pitch/10 text-pitch-dark'
+                                            ? 'border-pitch bg-pitch/10 text-accent'
                                             : 'border-line bg-panel text-muted hover:border-pitch'
                                     }`}
                                 >
@@ -147,10 +147,10 @@ export default function SettingsModal({
                         })}
                     </div>
                     <div className="mt-2.5 rounded-md bg-chalk px-3 py-2 font-mono text-[11px] text-ink">
-                        Pool: <b className="text-pitch-dark">{poolCounts.cups}</b> World Cups &middot;{' '}
-                        <b className="text-pitch-dark">{poolCounts.teams}</b> teams &middot;{' '}
-                        <b className="text-pitch-dark">{poolCounts.players.toLocaleString()}</b> players
-                        &middot; <b className="text-pitch-dark">{poolCounts.collectibles}</b> collectibles
+                        Pool: <b className="text-accent">{poolCounts.cups}</b> World Cups &middot;{' '}
+                        <b className="text-accent">{poolCounts.teams}</b> teams &middot;{' '}
+                        <b className="text-accent">{poolCounts.players.toLocaleString()}</b> players
+                        &middot; <b className="text-accent">{poolCounts.collectibles}</b> collectibles
                     </div>
                 </div>
 

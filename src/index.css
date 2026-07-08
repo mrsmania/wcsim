@@ -16,6 +16,11 @@
     --color-line: #d4ded5;
     --color-pitch: #15924c;
     --color-pitch-dark: #0e5c34;
+    /* Green ACCENT TEXT (numbers/labels on the tinted chalk/pitch surfaces). Split
+       from pitch-dark, which is a deep SURFACE colour: on light chalk the dark green
+       reads well, but in dark mode a surface-dark green is illegible as text, so the
+       dark override flips this to a brighter green while pitch-dark stays deep. */
+    --color-accent: #0e5c34;
     --color-amber: #e4922b;
     --color-loss: #c8453c;
     --shadow-soft: 0 1px 2px rgba(19, 33, 26, 0.05), 0 12px 30px rgba(19, 33, 26, 0.07);
@@ -42,6 +47,9 @@
     --color-line: #2c3a33;
     --color-pitch: #23a25e;
     --color-pitch-dark: #0b5230;
+    /* Brighter than pitch so green accent text clears AA (>= 4.5) on bg-chalk /
+       bg-pitch/10; pitch-dark stays a deep surface. */
+    --color-accent: #2eb56a;
     --color-amber: #eea23a;
     --color-loss: #e86b5b;
 }

@@ -26,7 +26,7 @@ export default function CareerHub({
       <div className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 ${showBody ? 'border-b border-line' : ''}`}>
         <div className="flex items-baseline gap-2.5">
           <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">Cup Run</span>
-          <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-pitch-dark">
+          <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent">
             Level {career.level}
           </span>
           <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
