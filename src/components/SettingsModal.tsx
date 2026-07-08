@@ -11,8 +11,6 @@ const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
 const GH = 'font-display text-[14px] font-extrabold';
 const HINT = 'mt-0.5 text-[12px] leading-snug text-muted';
 
-/** World Cups whose squads are hand-authored approximations (flagged in the pool). */
-const APPROX_YEARS = new Set([1998, 2002]);
 const SHORTCUT_BTN =
     'rounded-full border border-line bg-panel px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted transition hover:border-pitch hover:text-pitch';
 
@@ -144,9 +142,6 @@ export default function SettingsModal({
                                     }`}
                                 >
                                     {y}
-                                    {APPROX_YEARS.has(y) && (
-                                        <span className="align-super text-[9px] text-amber">*</span>
-                                    )}
                                 </button>
                             );
                         })}
@@ -157,10 +152,6 @@ export default function SettingsModal({
                         <b className="text-pitch-dark">{poolCounts.players.toLocaleString()}</b> players
                         &middot; <b className="text-pitch-dark">{poolCounts.collectibles}</b> collectibles
                     </div>
-                    <p className="mt-1.5 font-mono text-[10.5px] leading-snug text-muted">
-                        <span className="text-amber">*</span> 1998 &amp; 2002 are approximate
-                        placeholder squads.
-                    </p>
                 </div>
 
                 {/* Difficulty */}
