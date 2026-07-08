@@ -8,10 +8,13 @@ export default function Overlay({
   onClose,
   children,
   ariaLabel,
+  backdropClassName = 'bg-black/60',
 }: {
   onClose: () => void;
   children: ReactNode;
   ariaLabel: string;
+  /** Backdrop tint (default `bg-black/60`); the sticker lightbox darkens it. */
+  backdropClassName?: string;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -35,7 +38,7 @@ export default function Overlay({
 
   return (
     <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-6"
+      className={`fixed inset-0 z-[80] grid place-items-center p-6 ${backdropClassName}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

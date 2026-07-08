@@ -312,7 +312,11 @@ function StickerLightbox({
     const touchStartX = useRef<number | null>(null);
 
     return (
-        <Overlay onClose={onClose} ariaLabel={`${player.name} sticker`}>
+        <Overlay
+            onClose={onClose}
+            ariaLabel={`${player.name} sticker`}
+            backdropClassName="bg-black/80"
+        >
             <div
                 className="-mx-6 -mt-6 mb-4 h-1.5 rounded-t-lg"
                 style={{ background: meta.accent }}
@@ -379,23 +383,28 @@ function StickerLightbox({
                 )}
             </div>
 
+            {/* Prev/next arrows, sat just OUTSIDE the 640px panel (fixed, so they
+                escape the panel's overflow). Hidden below ~800px, where there is no
+                room beside the panel - swipe covers touch devices there. */}
             {count > 1 && (
                 <>
                     <button
                         type="button"
                         onClick={() => go(-1)}
                         aria-label="Previous sticker"
-                        className="absolute left-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-ground/85 text-muted shadow-hard transition hover:bg-ink/10 hover:text-ink"
+                        className="fixed top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white min-[800px]:grid"
+                        style={{ right: 'calc(50% + 320px + 16px)' }}
                     >
-                        <ChevronLeft size={22} strokeWidth={2.5} />
+                        <ChevronLeft size={32} strokeWidth={2.5} />
                     </button>
                     <button
                         type="button"
                         onClick={() => go(1)}
                         aria-label="Next sticker"
-                        className="absolute right-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-ground/85 text-muted shadow-hard transition hover:bg-ink/10 hover:text-ink"
+                        className="fixed top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white min-[800px]:grid"
+                        style={{ left: 'calc(50% + 320px + 16px)' }}
                     >
-                        <ChevronRight size={22} strokeWidth={2.5} />
+                        <ChevronRight size={32} strokeWidth={2.5} />
                     </button>
                 </>
             )}
