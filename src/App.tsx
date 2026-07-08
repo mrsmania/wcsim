@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Settings as SettingsIcon, Swords, Trophy } from 'lucide-react';
 import { ALL_PLAYERS, SQUADS, squadsInPool } from './data/squads';
@@ -533,6 +533,15 @@ export default function App() {
               ? knockoutStamp(bracket)
               : home.stamp;
 
+    // Footer navigation, shown on every page. "Play" returns to the furthest game
+    // screen reached; the rest are the app's secondary areas, each gated by its flag.
+    const footerNav = [
+        { label: 'Play', to: gameRoute, active: !isSquads && !isAlbum && !isCupRun },
+        squadsEnabled && { label: 'Squads', to: '/squads/by-world-cup', active: isSquads },
+        FEATURES.careerMode && { label: 'Cup Run', to: '/cup-run', active: isCupRun },
+        STICKERS && { label: 'Album', to: '/album', active: isAlbum },
+    ].filter(Boolean) as { label: string; to: string; active: boolean }[];
+
     return (
         <div className="min-h-full text-ink">
             <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5">
@@ -557,29 +566,6 @@ export default function App() {
                             <span className="rounded-[3px] border border-line bg-panel px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted max-sm:hidden">
                                 {stampText}
                             </span>
-                        )}
-                        {squadsEnabled && (
-                            <div className="flex overflow-hidden rounded-[5px] border border-line">
-                                {(
-                                    [
-                                        ['Play', gameRoute, !isSquads],
-                                        ['Squads', '/squads/by-world-cup', isSquads],
-                                    ] as const
-                                ).map(([label, to, active]) => (
-                                    <Link
-                                        key={label}
-                                        to={to}
-                                        className={[
-                                            'border-r border-line px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] transition last:border-r-0',
-                                            active
-                                                ? 'bg-ink text-ground'
-                                                : 'bg-panel text-muted hover:text-pitch',
-                                        ].join(' ')}
-                                    >
-                                        {label}
-                                    </Link>
-                                ))}
-                            </div>
                         )}
                         <button
                             type="button"
@@ -840,6 +826,34 @@ export default function App() {
                     <Navigate to="/" replace />
                 )}
                 </Suspense>
+
+                {/* Footer, shown on every page: the app's secondary nav (Play returns
+                    to the furthest game screen reached) plus a fan-made disclaimer. */}
+                <footer className="mt-16 flex flex-col items-center gap-2.5 border-t border-line pt-5 sm:flex-row sm:justify-between">
+                    <nav className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5">
+                        {footerNav.map(({ label, to, active }, i) => (
+                            <Fragment key={label}>
+                                {i > 0 && (
+                                    <span aria-hidden className="text-line">
+                                        &middot;
+                                    </span>
+                                )}
+                                <Link
+                                    to={to}
+                                    className={[
+                                        'font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition',
+                                        active ? 'text-pitch' : 'text-muted hover:text-pitch',
+                                    ].join(' ')}
+                                >
+                                    {label}
+                                </Link>
+                            </Fragment>
+                        ))}
+                    </nav>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                        Fan-made - not affiliated with FIFA
+                    </p>
+                </footer>
             </div>
 
             {/* Run-end sticker flow (global overlays, layered over any screen), driven
