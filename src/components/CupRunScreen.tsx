@@ -20,7 +20,7 @@ import {
 } from '../domain/run';
 import {
   applyRunResult,
-  buyPerk,
+  buyPerkTier,
   unlockBoon,
   levelProgress,
   type CareerState,
@@ -166,7 +166,7 @@ export default function CupRunScreen({
     setReveal(null);
     setLastKoMatch(null);
     setReviewIndex(null);
-    setRun(beginRun(draftedXi, career.unlocked, career.unlockedBoons));
+    setRun(beginRun(draftedXi, career.perkLevels, career.unlockedBoons));
   };
 
   // Step the run; award XP/Prestige exactly once when it ends.
@@ -254,7 +254,7 @@ export default function CupRunScreen({
   };
 
   const purchase = (perkId: string) => {
-    const c = buyPerk(career, perkId);
+    const c = buyPerkTier(career, perkId);
     setCareer(c);
     saveCareer(c);
   };

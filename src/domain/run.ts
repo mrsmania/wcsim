@@ -73,8 +73,8 @@ export interface RunState {
   /** Squad ids already drawn as opponents (avoid repeats). */
   facedIds: string[];
   activeBoons: string[];
-  /** Career perks active for this run (affects offers / start). */
-  perks: string[];
+  /** Career perks active for this run, as perk id -> owned tier (affects offers / start). */
+  perkLevels: Record<string, number>;
   /** Career-unlocked boon ids, added to the offer pool alongside the starters. */
   unlockedBoons: string[];
   /** The pending 1-of-3 boon offer, when phase === 'boon'. */
@@ -143,25 +143,26 @@ export function chemistryOf(xi: Player[]): number {
   return computeChemistry(xi.map((p) => ({ player: p, slotPosition: primaryPosition(p) }))).bonus;
 }
 
-/** Boon offer size, widened by the Extra Boon perk. */
-const offerSize = (perks: string[]) => (perks.includes('extra-boon') ? 4 : 3);
+/** Boon offer size (3), widened by the Extra Choice perk (+1 per owned tier). */
+const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra-boon'] ?? 0);
 
 export function beginRun(
   xi: Player[],
-  perks: string[] = [],
+  perkLevels: Record<string, number> = {},
   unlockedBoons: string[] = [],
 ): RunState {
   let players = xi;
   const activeBoons: string[] = [];
   const boostedIds: string[] = [];
-  // Deep Squad perk: a flat +1 to the drafted XI at kickoff.
-  if (perks.includes('deep-squad')) {
-    players = players.map((p) => ({ ...p, elo: Math.min(ELO_MAX, p.elo + 1) }));
+  // Deep Squad perk: a flat +N to the drafted XI at kickoff (N = owned tier).
+  const deepSquad = perkLevels['deep-squad'] ?? 0;
+  if (deepSquad > 0) {
+    players = players.map((p) => ({ ...p, elo: Math.min(ELO_MAX, p.elo + deepSquad) }));
   }
-  // Scout Network perk: begin with one random boon already applied.
-  if (perks.includes('scout')) {
-    const boon = offerBoons(availableBoons(unlockedBoons), 1)[0];
-    if (boon) {
+  // Scout Network perk: begin with N distinct team boosts already applied (N = tier).
+  const scout = perkLevels['scout'] ?? 0;
+  if (scout > 0) {
+    for (const boon of offerBoons(availableBoons(unlockedBoons), scout)) {
       const before = players;
       players = boon.apply(players, { opponentSquadId: null });
       const inP = players.find((p) => !before.some((b) => b.id === p.id));
@@ -175,7 +176,7 @@ export function beginRun(
     koRound: 0,
     facedIds: [],
     activeBoons,
-    perks,
+    perkLevels,
     unlockedBoons,
     offer: null,
     nextOpponent: null,
@@ -253,7 +254,7 @@ export function prepareGroupStage(
     next: {
       ...run,
       phase: 'boon',
-      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perks)),
+      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
       nextOpponent: opp,
       facedIds: [...faced, opp.id],
       score: STAGE_SCORE.group,
@@ -380,7 +381,7 @@ export function prepareKnockoutRound(
       ...run,
       phase: 'boon',
       koRound: nextRound,
-      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perks)),
+      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
       score: STAGE_SCORE[LOST_IN[round]],

@@ -1,8 +1,9 @@
 # Career Depth - Implementation Spec (Economy 2.0)
 
-**Status:** Spec, ready to build. Sits on top of `docs/roguelike-career-design.md` (the
-high-level vision). This document is the concrete, code-level plan for the next three
-slices; it supersedes that doc's section 6 where they disagree.
+**Status:** In progress. **A shipped** (boon-pool unlocks + rarity-weighted offers).
+**B shipped** (tiered, level-gated perks + the CareerState v1->v2 migration). **C next.**
+Sits on top of `docs/roguelike-career-design.md` (the high-level vision). This document is
+the concrete, code-level plan; it supersedes that doc's section 6 where they disagree.
 **Scope:** clusters **A** (boon-pool unlocks + rarity-weighted offers), **B** (tiered,
 level-gated perks), and **C** (Ascension tiers). Clusters **D/E/F** are kept as future
 work at the end, with **Challenges** (E) written up in most detail because it is the

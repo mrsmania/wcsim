@@ -1,5 +1,11 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { PERKS, FINISH_LABEL, type CareerState } from '../../domain/career';
+import {
+  PERKS,
+  FINISH_LABEL,
+  perkLevelOf,
+  nextPerkTier,
+  type CareerState,
+} from '../../domain/career';
 import { BOONS, BOON_UNLOCK_COST, type Rarity } from '../../domain/boons';
 
 /** Rarity dot colour in the boost library (reuses the palette tokens). */
@@ -8,6 +14,9 @@ const RARITY_DOT: Record<Rarity, string> = {
   rare: 'bg-pitch',
   legendary: 'bg-amber',
 };
+
+/** Owned-tier numeral shown next to a perk name (tiers are small). */
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 /** The career hub - full between runs, a slim collapsible strip during a run. The
  *  toggle only shows while a run is active (`showToggle`); `showBody` gates the
@@ -93,28 +102,46 @@ export default function CareerHub({
             </div>
             <div className="grid gap-2.5 sm:grid-cols-3">
               {PERKS.map((perk) => {
-                const owned = career.unlocked.includes(perk.id);
-                const affordable = career.prestige >= perk.cost;
+                const lvl = perkLevelOf(career, perk.id);
+                const next = nextPerkTier(career, perk.id); // null => maxed
+                const affordable = !!next && career.prestige >= next.cost;
+                const levelOk = !!next && career.level >= next.levelReq;
+                const canBuy = !!next && affordable && levelOk;
+                // Show the next tier's effect (what you would buy); when maxed, the top tier's.
+                const shown = next ?? perk.tiers[perk.tiers.length - 1];
                 return (
                   <div key={perk.id} className="rounded-md border border-line bg-panel p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-display text-[13.5px] font-extrabold">{perk.name}</span>
-                      <span className="font-mono text-[11px] font-semibold text-amber">{perk.cost}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-display text-[13.5px] font-extrabold">
+                        {perk.name}
+                        {lvl > 0 && <span className="ml-1 text-accent">{ROMAN[lvl] ?? lvl}</span>}
+                      </span>
+                      {next && (
+                        <span className="font-mono text-[11px] font-semibold text-amber">{next.cost}</span>
+                      )}
                     </div>
-                    <p className="mt-1 text-[11.5px] leading-snug text-muted">{perk.description}</p>
+                    <p className="mt-1 text-[11.5px] leading-snug text-muted">{shown.description}</p>
                     <button
-                      disabled={owned || !affordable}
+                      disabled={!canBuy}
                       onClick={() => onPurchase(perk.id)}
                       className={[
                         'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
-                        owned
+                        !next
                           ? 'cursor-default bg-pitch/10 text-pitch'
-                          : affordable
+                          : canBuy
                             ? 'bg-pitch text-white hover:bg-pitch-dark'
                             : 'cursor-not-allowed border border-line bg-panel text-muted/50',
                       ].join(' ')}
                     >
-                      {owned ? 'Owned' : affordable ? 'Unlock' : `Need ${perk.cost}`}
+                      {!next
+                        ? 'Maxed'
+                        : !levelOk
+                          ? `Reach level ${next.levelReq}`
+                          : !affordable
+                            ? `Need ${next.cost}`
+                            : lvl > 0
+                              ? 'Upgrade'
+                              : 'Unlock'}
                     </button>
                   </div>
                 );

@@ -55,7 +55,8 @@ import {
 } from '../src/domain/run';
 import {
   applyRunResult,
-  buyPerk,
+  buyPerkTier,
+  perkLevelOf,
   unlockBoon,
   INITIAL_CAREER,
   levelForXp,
@@ -341,12 +342,31 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     res.prestigeGained >= 1 &&
     res.career.level === levelForXp(res.career.xp) &&
     (run.outcome === 'champion') === (res.career.stats.cups === INITIAL_CAREER.stats.cups + 1);
-  // Perk economy: no unlock with 0 prestige; unlock (and deduct) when affordable; no re-buy.
-  if (buyPerk(INITIAL_CAREER, PERKS[0].id).unlocked.length !== 0) ok = false;
-  const rich = buyPerk({ ...INITIAL_CAREER, prestige: PERKS[0].cost }, PERKS[0].id);
-  if (!rich.unlocked.includes(PERKS[0].id) || rich.prestige !== 0) ok = false;
-  if (buyPerk(rich, PERKS[0].id).unlocked.length !== 1) ok = false;
-  check('career: run rewards accrue and perk purchases respect affordability', ok);
+  check('career: run rewards accrue and account correctly', ok);
+}
+
+// --- Career: tiered perks respect cost, level gate, and max tier -------------
+{
+  const perk = PERKS.find((p) => p.tiers.length >= 2)!; // a multi-tier track
+  const t1 = perk.tiers[0];
+  const t2 = perk.tiers[1];
+  let ok = true;
+  // No buy with 0 prestige.
+  if (perkLevelOf(buyPerkTier(INITIAL_CAREER, perk.id), perk.id) !== 0) ok = false;
+  // Buy tier 1 when affordable and at/above its level requirement (deducts cost).
+  const c1 = buyPerkTier({ ...INITIAL_CAREER, prestige: t1.cost, level: t1.levelReq }, perk.id);
+  if (perkLevelOf(c1, perk.id) !== 1 || c1.prestige !== 0) ok = false;
+  // Level gate: tier 2 refused below its levelReq, even with the Prestige.
+  const under = buyPerkTier({ ...c1, prestige: t2.cost, level: t2.levelReq - 1 }, perk.id);
+  if (perkLevelOf(under, perk.id) !== 1) ok = false;
+  // Tier 2 allowed once the level requirement is met.
+  const c2 = buyPerkTier({ ...c1, prestige: t2.cost, level: t2.levelReq }, perk.id);
+  if (perkLevelOf(c2, perk.id) !== 2 || c2.prestige !== 0) ok = false;
+  // Never exceeds the track's max tier, however rich / high-level.
+  let maxed = c2;
+  for (let i = 0; i < 5; i++) maxed = buyPerkTier({ ...maxed, prestige: 9999, level: 99 }, perk.id);
+  if (perkLevelOf(maxed, perk.id) !== perk.tiers.length) ok = false;
+  check('career: tiered perks respect cost, level gate, and max tier', ok);
 }
 
 // --- Title odds: a valid probability distribution ---------------------------

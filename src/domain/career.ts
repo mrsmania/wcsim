@@ -19,19 +19,20 @@ export interface CareerState {
   xp: number;
   level: number;
   prestige: number;
-  /** Purchased perk ids. */
-  unlocked: string[];
+  /** Perk id -> owned tier (1-based). Absent / 0 = not owned. (v1 stored a boolean
+   *  `unlocked: string[]`; the storage migration maps each owned perk to tier 1.) */
+  perkLevels: Record<string, number>;
   /** Boon ids unlocked into the offer pool with Prestige (beyond the starter set). */
   unlockedBoons: string[];
   stats: CareerStats;
 }
 
 export const INITIAL_CAREER: CareerState = {
-  version: 1,
+  version: 2,
   xp: 0,
   level: 1,
   prestige: 0,
-  unlocked: [],
+  perkLevels: {},
   unlockedBoons: [],
   stats: { runs: 0, cups: 0, bestScore: 0, bestFinish: null },
 };
@@ -61,36 +62,61 @@ function betterFinish(a: RunOutcome | null, b: RunOutcome | null): RunOutcome | 
   return FINISH_ORDER.indexOf(b) > FINISH_ORDER.indexOf(a) ? b : a;
 }
 
-/** Perks bought with Prestige; each changes how the next run starts. */
+/** One purchasable step of a perk track. `cost` is Prestige for THIS tier; `levelReq`
+ *  is the career level needed to buy it (this is where Level earns its keep). */
+export interface PerkTier {
+  level: number; // 1-based tier index
+  description: string;
+  cost: number;
+  levelReq: number;
+}
+
+/** A perk track: several tiers bought in order, each stronger than the last. */
 export interface Perk {
   id: string;
   name: string;
-  description: string;
-  cost: number;
+  tiers: PerkTier[];
 }
 
 export const PERKS: Perk[] = [
   {
     id: 'scout',
     name: 'Scout Network',
-    description: 'Start every run with one random team boost already applied.',
-    cost: 25,
+    tiers: [
+      { level: 1, description: 'Start each run with 1 team boost applied.', cost: 25, levelReq: 1 },
+      { level: 2, description: 'Start each run with 2 team boosts applied.', cost: 70, levelReq: 5 },
+    ],
   },
   {
     id: 'deep-squad',
     name: 'Deep Squad',
-    description: '+1 to your entire XI at the start of each run.',
-    cost: 45,
+    tiers: [
+      { level: 1, description: '+1 to your entire XI at run start.', cost: 45, levelReq: 1 },
+      { level: 2, description: '+2 to your entire XI at run start.', cost: 95, levelReq: 4 },
+      { level: 3, description: '+3 to your entire XI at run start.', cost: 170, levelReq: 8 },
+    ],
   },
   {
     id: 'extra-boon',
     name: 'Extra Choice',
-    description: '4 team boosts to choose from each round instead of 3.',
-    cost: 75,
+    tiers: [
+      { level: 1, description: '4 team boosts offered each round.', cost: 75, levelReq: 3 },
+      { level: 2, description: '5 team boosts offered each round.', cost: 150, levelReq: 7 },
+    ],
   },
 ];
 
 export const perkById = (id: string): Perk | undefined => PERKS.find((p) => p.id === id);
+
+/** The owned tier of a perk (0 = not owned). */
+export const perkLevelOf = (career: CareerState, id: string): number => career.perkLevels[id] ?? 0;
+
+/** The next unbought tier of a perk, or null if it is maxed / unknown. */
+export function nextPerkTier(career: CareerState, id: string): PerkTier | null {
+  const perk = perkById(id);
+  if (!perk) return null;
+  return perk.tiers[perkLevelOf(career, id)] ?? null; // owned N -> tiers[N] is tier N+1
+}
 
 /** Reward for a finished run applied to the career. Returns the updated career plus
  *  what was gained (for a one-shot "run rewards" readout). */
@@ -125,11 +151,16 @@ export function applyRunResult(career: CareerState, run: RunState): RunReward {
   };
 }
 
-/** Buy a perk if affordable and not already owned; otherwise returns the career unchanged. */
-export function buyPerk(career: CareerState, perkId: string): CareerState {
-  const perk = perkById(perkId);
-  if (!perk || career.unlocked.includes(perkId) || career.prestige < perk.cost) return career;
-  return { ...career, prestige: career.prestige - perk.cost, unlocked: [...career.unlocked, perkId] };
+/** Buy the next tier of a perk track. Refuses when maxed, under the tier's level
+ *  requirement, or unaffordable (returns the career unchanged). */
+export function buyPerkTier(career: CareerState, perkId: string): CareerState {
+  const tier = nextPerkTier(career, perkId);
+  if (!tier || career.level < tier.levelReq || career.prestige < tier.cost) return career;
+  return {
+    ...career,
+    prestige: career.prestige - tier.cost,
+    perkLevels: { ...career.perkLevels, [perkId]: tier.level },
+  };
 }
 
 /** Unlock a locked (non-starter) boon into the offer pool with Prestige. Refuses
