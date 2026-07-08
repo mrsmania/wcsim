@@ -197,11 +197,15 @@ codes in URLs are lowercase and matched case-insensitively.
 
 ## The dataset (`src/data/squads.ts`)
 
-- Tournaments: **all eight (1994-2022)** are full researched datasets. 1994 is the
-  24-nation field (last 24-team World Cup); 1998-2022 are 32 nations. Squad sizes:
-  22-man for 1994/1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25).
-  ~5,742 player rows total. (1994/1998/2002 were researched in 2026, replacing the
-  earlier hand-from-memory placeholders.)
+- Tournaments: **all nine (1990-2022)** are full researched datasets. 1990 and 1994 are
+  24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for 1990/1994/1998,
+  23-man for 2002-2018, 26-man for 2022 (Iran 25). ~6,270 player rows total.
+  (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders.)
+  Historical nations keep their period identity: West Germany (1990) uses code `GER`;
+  Soviet Union (`URS`), Czechoslovakia (`TCH`) and Yugoslavia (`YUG`) are their own
+  codes. A player who continued for a successor nation (Prosinecki YUG->Croatia,
+  Gorlukovich URS->Russia) shares one `personId` across both, so the cross-nation
+  dedup check intentionally lists them.
 - **Ratings** are a holistic judgement of each player's strength *at the time of
   that tournament* on the 60-99 scale (not current ability, not a FIFA-game number).
   For **1998 and 2002** the rating is a *blend* of pre-tournament ability and how the

@@ -1,3 +1,4 @@
+import AE from 'country-flag-icons/react/3x2/AE';
 import AO from 'country-flag-icons/react/3x2/AO';
 import AR from 'country-flag-icons/react/3x2/AR';
 import AT from 'country-flag-icons/react/3x2/AT';
@@ -84,6 +85,10 @@ const BY_FIFA: Record<string, typeof BR> = {
   TUR: TR, CHN: CN, IRL: IE,
   // 1994 nations.
   BOL: BO,
+  // 1990 historical nations. Czechoslovakia's flag is identical to the modern Czech
+  // one (CZ); the USSR has no flag in country-flag-icons, so use Russia as the closest
+  // successor (as YUG uses Serbia). West Germany reuses GER -> DE (same tricolour).
+  TCH: CZ, URS: RU, UAE: AE,
 };
 
 interface Props {
