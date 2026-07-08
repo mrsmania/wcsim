@@ -3353,7 +3353,7 @@ export const SQUADS: Squad[] = [
         [20, 'Ricardinho', ['CM', 'AM'], 75],
         [10, 'Ronaldinho', ['AM', 'LW'], 87],
         [7, 'Adriano', ['ST'], 87],
-        [9, 'Ronaldo', ['ST'], 89],
+        [9, 'Ronaldo', ['ST'], 90],
         [21, 'Fred Guedes', ['ST'], 75],
         [23, 'Robinho', ['LW', 'ST'], 83],
     ]),

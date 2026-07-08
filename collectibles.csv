@@ -20,22 +20,22 @@ Neymar;Brazil;2018;10;x;
 Luka Modrić;Croatia;2018;10;x;
 Antoine Griezmann;France;2018;7;x;
 Kylian Mbappé;France;2018;10;x;
-Philipp Lahm;Germany;2014;16;x;
-Thomas Müller;Germany;2014;13;x;
-Toni Kroos;Germany;2014;18;x;
 Toni Kroos;Germany;2018;8;x;
 Robert Lewandowski;Poland;2018;9;x;white
 Cristiano Ronaldo;Portugal;2018;7;x;same color
 Gerard Piqué;Spain;2018;3;x;blue
 Sergio Ramos;Spain;2018;15;x;blue
+Andrés Iniesta;Spain;2018;6;x;blue
+Sergio Busquets;Spain;2018;5;x;blue
+Philipp Lahm;Germany;2014;16;x;
+Thomas Müller;Germany;2014;13;x;
+Toni Kroos;Germany;2014;18;x;
 Lionel Messi;Argentina;2014;10;x;
 Thiago Silva;Brazil;2014;3;x;
 Neymar;Brazil;2014;10;x;
 Manuel Neuer;Germany;2014;1;x;
 Arjen Robben;Netherlands;2014;11;x;white
 Cristiano Ronaldo;Portugal;2014;7;x;same color
-Andrés Iniesta;Spain;2018;6;x;blue
-Sergio Busquets;Spain;2018;5;x;blue
 Andrés Iniesta;Spain;2014;6;x;same color
 Luis Suárez;Uruguay;2014;9;x;
 Lionel Messi;Argentina;2010;10;x;
@@ -43,26 +43,27 @@ Wesley Sneijder;Netherlands;2010;10;x;same color
 Iker Casillas;Spain;2010;1;x;same color
 Andrés Iniesta;Spain;2010;6;x;
 Xavi;Spain;2010;8;x;
+Cristiano Ronaldo;Portugal;2010;7;x;white
+David Villa;Spain;2010;7;x;
+Diego Forlan;Uruguay;2010;10;x;black
 Zinedine Zidane;France;2006;10;x;
 Andrea Pirlo;Italy;2006;21;x;
 Francesco Totti;Italy;2006;10;x;
 Fabio Cannavaro;Italy;2006;5;x;
 Gianluigi Buffon;Italy;2006;1;x;
-Ronaldo;Brazil;2002;9;x;
-Ronaldo;Brazil;1998;9;x;
-Zinedine Zidane;France;1998;10;x;
-Cristiano Ronaldo;Portugal;2010;7;x;white
-David Villa;Spain;2010;7;x;
 Ronaldo;Brazil;2006;9;x;
+Ronaldo;Brazil;2002;9;x;
 Roberto Carlos;Brazil;2002;6;x;
 Rivaldo;Brazil;2002;10;x;
 Ronaldinho;Brazil;2002;11;x;
-Zinedine Zidane;France;2002;10;;
-Oliver Kahn;Germany;2002;1;;
-Gabriel Batistuta;Argentina;1998;9;;
-Davor Šuker;Croatia;1998;9;;
-Paolo Maldini;Italy;1998;3;;
-Dennis Bergkamp;Netherlands;1998;8;;
-Romário;Brazil;1994;11;;
-Roberto Baggio;Italy;1994;10;;
-Lothar Matthäus;Germany;1990;10;;
+Zinedine Zidane;France;2002;10;x;white
+Oliver Kahn;Germany;2002;1;x;black
+Ronaldo;Brazil;1998;9;x;
+Zinedine Zidane;France;1998;10;x;
+Gabriel Batistuta;Argentina;1998;9;x;black
+Davor Šuker;Croatia;1998;9;x;same
+Paolo Maldini;Italy;1998;3;x;same
+Dennis Bergkamp;Netherlands;1998;8;x;white
+Romário;Brazil;1994;11;x;
+Roberto Baggio;Italy;1994;10;x;white
+Lothar Matthäus;Germany;1990;10;x;
