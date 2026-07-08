@@ -25,7 +25,7 @@ import {
   type Finish,
   type KoDecided,
 } from './knockout';
-import { offerBoons, boonById, type Boon } from './boons';
+import { offerBoons, availableBoons, boonById, type Boon } from './boons';
 
 // ---------------------------------------------------------------------------
 // Cup Run - prototype run state machine. Pure over Math.random via
@@ -75,6 +75,8 @@ export interface RunState {
   activeBoons: string[];
   /** Career perks active for this run (affects offers / start). */
   perks: string[];
+  /** Career-unlocked boon ids, added to the offer pool alongside the starters. */
+  unlockedBoons: string[];
   /** The pending 1-of-3 boon offer, when phase === 'boon'. */
   offer: Boon[] | null;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played). */
@@ -144,7 +146,11 @@ export function chemistryOf(xi: Player[]): number {
 /** Boon offer size, widened by the Extra Boon perk. */
 const offerSize = (perks: string[]) => (perks.includes('extra-boon') ? 4 : 3);
 
-export function beginRun(xi: Player[], perks: string[] = []): RunState {
+export function beginRun(
+  xi: Player[],
+  perks: string[] = [],
+  unlockedBoons: string[] = [],
+): RunState {
   let players = xi;
   const activeBoons: string[] = [];
   const boostedIds: string[] = [];
@@ -154,7 +160,7 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
   }
   // Scout Network perk: begin with one random boon already applied.
   if (perks.includes('scout')) {
-    const boon = offerBoons(1)[0];
+    const boon = offerBoons(availableBoons(unlockedBoons), 1)[0];
     if (boon) {
       const before = players;
       players = boon.apply(players, { opponentSquadId: null });
@@ -170,6 +176,7 @@ export function beginRun(xi: Player[], perks: string[] = []): RunState {
     facedIds: [],
     activeBoons,
     perks,
+    unlockedBoons,
     offer: null,
     nextOpponent: null,
     score: 0,
@@ -246,7 +253,7 @@ export function prepareGroupStage(
     next: {
       ...run,
       phase: 'boon',
-      offer: offerBoons(offerSize(run.perks)),
+      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perks)),
       nextOpponent: opp,
       facedIds: [...faced, opp.id],
       score: STAGE_SCORE.group,
@@ -373,7 +380,7 @@ export function prepareKnockoutRound(
       ...run,
       phase: 'boon',
       koRound: nextRound,
-      offer: offerBoons(offerSize(run.perks)),
+      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perks)),
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
       score: STAGE_SCORE[LOST_IN[round]],

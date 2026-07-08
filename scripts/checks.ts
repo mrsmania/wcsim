@@ -39,7 +39,13 @@ import { priceOf } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA } from '../src/domain/formations';
 import { BUDGET_DRAFT } from '../src/config';
-import { BOONS, offerBoons } from '../src/domain/boons';
+import {
+  BOONS,
+  offerBoons,
+  availableBoons,
+  lockableBoons,
+  BOON_UNLOCK_COST,
+} from '../src/domain/boons';
 import {
   beginRun,
   playGroupStage,
@@ -47,7 +53,14 @@ import {
   playKnockoutRound,
   type RunOutcome,
 } from '../src/domain/run';
-import { applyRunResult, buyPerk, INITIAL_CAREER, levelForXp, PERKS } from '../src/domain/career';
+import {
+  applyRunResult,
+  buyPerk,
+  unlockBoon,
+  INITIAL_CAREER,
+  levelForXp,
+  PERKS,
+} from '../src/domain/career';
 import { simulateTitleOdds } from '../src/domain/odds';
 
 let passed = 0;
@@ -240,9 +253,50 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (after.length !== xi.length) ok = false; // roster boons swap, never grow/shrink
     if (new Set(after.map((p) => p.personId)).size !== after.length) ok = false; // no dupes
   }
-  const offer = offerBoons(3);
+  const pool = availableBoons([]);
+  const offer = offerBoons(pool, 3);
   if (offer.length !== 3 || new Set(offer.map((b) => b.id)).size !== 3) ok = false;
-  check('boons: every boon keeps 11 distinct players; offers are distinct', ok);
+  // Offers only ever contain boons from the given pool, and n clamps to the pool size.
+  if (offer.some((b) => !pool.some((p) => p.id === b.id))) ok = false;
+  if (offerBoons(pool, pool.length + 5).length !== pool.length) ok = false;
+  check('boons: every boon keeps 11 distinct players; offers are distinct + in pool', ok);
+}
+
+// --- Boon availability + unlock economy ------------------------------------
+{
+  let ok = true;
+  // Starters are always available; locked boons are not until unlocked.
+  const starters = availableBoons([]);
+  if (!starters.length || starters.some((b) => !b.starter)) ok = false;
+  const locked = lockableBoons();
+  if (locked.some((b) => b.starter)) ok = false;
+  const sample = locked[0];
+  if (availableBoons([]).some((b) => b.id === sample.id)) ok = false;
+  if (!availableBoons([sample.id]).some((b) => b.id === sample.id)) ok = false;
+
+  // Unlock economy: no unlock with 0 prestige; a starter is never buyable; unlock (and
+  // deduct) when affordable; no re-buy of the same boon.
+  const cost = BOON_UNLOCK_COST[sample.rarity];
+  if (unlockBoon(INITIAL_CAREER, sample.id).unlockedBoons.length !== 0) ok = false;
+  const starterId = starters[0].id;
+  const starterBuy = unlockBoon({ ...INITIAL_CAREER, prestige: 999 }, starterId);
+  if (starterBuy.unlockedBoons.length !== 0 || starterBuy.prestige !== 999) ok = false;
+  const bought = unlockBoon({ ...INITIAL_CAREER, prestige: cost }, sample.id);
+  if (!bought.unlockedBoons.includes(sample.id) || bought.prestige !== 0) ok = false;
+  if (unlockBoon(bought, sample.id).unlockedBoons.length !== 1) ok = false;
+
+  // Rarity weighting: over many single draws from the full pool, commons out-appear
+  // legendaries (they are weighted 6:1).
+  const full = availableBoons(locked.map((b) => b.id));
+  let commons = 0;
+  let legendaries = 0;
+  for (let i = 0; i < 4000; i++) {
+    const r = offerBoons(full, 1)[0].rarity;
+    if (r === 'common') commons++;
+    else if (r === 'legendary') legendaries++;
+  }
+  if (!(commons > legendaries)) ok = false;
+  check('boons: availability, unlock economy, and rarity-weighted offers hold', ok);
 }
 
 // --- Cup Run: always ends with a valid outcome, score, and 11 players -------

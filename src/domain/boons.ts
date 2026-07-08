@@ -1,7 +1,6 @@
 import type { Player } from '../data/types';
 import { categoryOf, isAttacker, isDefender, primaryPosition, ELO_MAX, ELO_MIN } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
-import { shuffled } from './random';
 
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
 export type Rarity = 'common' | 'rare' | 'legendary';
@@ -19,8 +18,17 @@ export interface Boon {
   name: string;
   rarity: Rarity;
   description: string;
+  /** In the offer pool from the start (no Prestige unlock needed). Locked boons are
+   *  bought into the pool via career Prestige (see `BOON_UNLOCK_COST` / `unlockBoon`). */
+  starter?: boolean;
   apply: (xi: Player[], ctx: BoonContext) => Player[];
 }
+
+/** Prestige price to unlock a locked (non-starter) boon into the offer pool, by rarity. */
+export const BOON_UNLOCK_COST: Record<Rarity, number> = { common: 15, rare: 30, legendary: 55 };
+
+/** Relative offer weight by rarity, so legendaries turn up rarely in a 1-of-N offer. */
+const RARITY_WEIGHT: Record<Rarity, number> = { common: 6, rare: 3, legendary: 1 };
 
 const catOf = (p: Player) => categoryOf(primaryPosition(p));
 const weakest = (xi: Player[]) => xi.reduce((lo, p) => (p.elo < lo.elo ? p : lo), xi[0]);
@@ -80,6 +88,7 @@ export const BOONS: Boon[] = [
     id: 'star-signing',
     name: 'Star Signing',
     rarity: 'rare',
+    starter: true,
     description: '+5 to your weakest player.',
     apply: (xi) => bumpLowest(xi, 1, 5),
   },
@@ -94,6 +103,7 @@ export const BOONS: Boon[] = [
     id: 'veteran-core',
     name: 'Veteran Core',
     rarity: 'common',
+    starter: true,
     description: '+2 to your three lowest-rated players.',
     apply: (xi) => bumpLowest(xi, 3, 2),
   },
@@ -101,6 +111,7 @@ export const BOONS: Boon[] = [
     id: 'attacking-masterclass',
     name: 'Attacking Masterclass',
     rarity: 'common',
+    starter: true,
     description: '+2 to your midfielders and forwards.',
     apply: (xi) => xi.map((p) => (isAttacker(p) ? bump(p, 2) : p)),
   },
@@ -108,6 +119,7 @@ export const BOONS: Boon[] = [
     id: 'defensive-drills',
     name: 'Defensive Drills',
     rarity: 'common',
+    starter: true,
     description: '+2 to your goalkeeper and defenders.',
     apply: (xi) => xi.map((p) => (isDefender(p) ? bump(p, 2) : p)),
   },
@@ -125,6 +137,7 @@ export const BOONS: Boon[] = [
     id: 'transfer',
     name: 'Transfer',
     rarity: 'rare',
+    starter: true,
     description: 'Swap your weakest player for a stronger one in the same position.',
     apply: (xi) => {
       const out = weakest(xi);
@@ -172,7 +185,34 @@ export const BOONS: Boon[] = [
 const BY_ID = new Map(BOONS.map((b) => [b.id, b]));
 export const boonById = (id: string): Boon | undefined => BY_ID.get(id);
 
-/** Offer `n` distinct random boons (the 1-of-3 pick between rounds). */
-export function offerBoons(n = 3): Boon[] {
-  return shuffled(BOONS).slice(0, n);
+/** The offer pool for a career: the always-available starters plus everything the
+ *  player has unlocked with Prestige. Pure; the caller passes its unlocked ids. */
+export function availableBoons(unlockedBoonIds: string[] = []): Boon[] {
+  const unlocked = new Set(unlockedBoonIds);
+  return BOONS.filter((b) => b.starter || unlocked.has(b.id));
+}
+
+/** Every locked (non-starter) boon, for the unlock library UI. */
+export function lockableBoons(): Boon[] {
+  return BOONS.filter((b) => !b.starter);
+}
+
+/** Offer `n` distinct boons drawn from `available`, weighted by rarity so legendaries
+ *  turn up rarely (weighted sampling without replacement). `n` is clamped to the pool
+ *  size. Uses Math.random intentionally, matching the sim. */
+export function offerBoons(available: Boon[], n = 3): Boon[] {
+  const pool = [...available];
+  const out: Boon[] = [];
+  const take = Math.min(n, pool.length);
+  for (let k = 0; k < take; k++) {
+    const total = pool.reduce((s, b) => s + RARITY_WEIGHT[b.rarity], 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (; idx < pool.length - 1; idx++) {
+      r -= RARITY_WEIGHT[pool[idx].rarity];
+      if (r <= 0) break;
+    }
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
 }

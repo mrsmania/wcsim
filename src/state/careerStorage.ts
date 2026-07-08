@@ -14,6 +14,7 @@ export function loadCareer(): CareerState {
       ...INITIAL_CAREER,
       ...parsed,
       unlocked: Array.isArray(parsed.unlocked) ? parsed.unlocked : [],
+      unlockedBoons: Array.isArray(parsed.unlockedBoons) ? parsed.unlockedBoons : [],
       stats: { ...INITIAL_CAREER.stats, ...(parsed.stats ?? {}) },
     };
   } catch {

@@ -21,6 +21,7 @@ import {
 import {
   applyRunResult,
   buyPerk,
+  unlockBoon,
   levelProgress,
   type CareerState,
 } from '../domain/career';
@@ -165,7 +166,7 @@ export default function CupRunScreen({
     setReveal(null);
     setLastKoMatch(null);
     setReviewIndex(null);
-    setRun(beginRun(draftedXi, career.unlocked));
+    setRun(beginRun(draftedXi, career.unlocked, career.unlockedBoons));
   };
 
   // Step the run; award XP/Prestige exactly once when it ends.
@@ -258,6 +259,12 @@ export default function CupRunScreen({
     saveCareer(c);
   };
 
+  const unlockBoost = (boonId: string) => {
+    const c = unlockBoon(career, boonId);
+    setCareer(c);
+    saveCareer(c);
+  };
+
   const prog = levelProgress(career.xp);
   const showHubBody = !run || hubOpen;
   const boostedIds = new Set(run?.boostedIds ?? []);
@@ -286,6 +293,7 @@ export default function CupRunScreen({
         showBody={showHubBody}
         showToggle={!!run}
         onPurchase={purchase}
+        onUnlockBoost={unlockBoost}
       />
 
       {/* No active run: start with the drafted XI, or prompt to draft one. */}

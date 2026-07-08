@@ -1,4 +1,5 @@
 import type { RunOutcome, RunState } from './run';
+import { boonById, BOON_UNLOCK_COST } from './boons';
 
 // ---------------------------------------------------------------------------
 // Manager Career - the persistent meta-layer over Cup Runs. Pure model: XP/level,
@@ -20,6 +21,8 @@ export interface CareerState {
   prestige: number;
   /** Purchased perk ids. */
   unlocked: string[];
+  /** Boon ids unlocked into the offer pool with Prestige (beyond the starter set). */
+  unlockedBoons: string[];
   stats: CareerStats;
 }
 
@@ -29,6 +32,7 @@ export const INITIAL_CAREER: CareerState = {
   level: 1,
   prestige: 0,
   unlocked: [],
+  unlockedBoons: [],
   stats: { runs: 0, cups: 0, bestScore: 0, bestFinish: null },
 };
 
@@ -126,4 +130,18 @@ export function buyPerk(career: CareerState, perkId: string): CareerState {
   const perk = perkById(perkId);
   if (!perk || career.unlocked.includes(perkId) || career.prestige < perk.cost) return career;
   return { ...career, prestige: career.prestige - perk.cost, unlocked: [...career.unlocked, perkId] };
+}
+
+/** Unlock a locked (non-starter) boon into the offer pool with Prestige. Refuses
+ *  starters, already-owned boons, and unaffordable buys (returns the career unchanged). */
+export function unlockBoon(career: CareerState, boonId: string): CareerState {
+  const boon = boonById(boonId);
+  if (!boon || boon.starter || career.unlockedBoons.includes(boonId)) return career;
+  const cost = BOON_UNLOCK_COST[boon.rarity];
+  if (career.prestige < cost) return career;
+  return {
+    ...career,
+    prestige: career.prestige - cost,
+    unlockedBoons: [...career.unlockedBoons, boonId],
+  };
 }

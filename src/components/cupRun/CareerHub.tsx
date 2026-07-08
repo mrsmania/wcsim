@@ -1,5 +1,13 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { PERKS, FINISH_LABEL, type CareerState } from '../../domain/career';
+import { BOONS, BOON_UNLOCK_COST, type Rarity } from '../../domain/boons';
+
+/** Rarity dot colour in the boost library (reuses the palette tokens). */
+const RARITY_DOT: Record<Rarity, string> = {
+  common: 'bg-muted',
+  rare: 'bg-pitch',
+  legendary: 'bg-amber',
+};
 
 /** The career hub - full between runs, a slim collapsible strip during a run. The
  *  toggle only shows while a run is active (`showToggle`); `showBody` gates the
@@ -12,6 +20,7 @@ export default function CareerHub({
   showBody,
   showToggle,
   onPurchase,
+  onUnlockBoost,
 }: {
   career: CareerState;
   prog: { into: number; needed: number };
@@ -20,6 +29,7 @@ export default function CareerHub({
   showBody: boolean;
   showToggle: boolean;
   onPurchase: (perkId: string) => void;
+  onUnlockBoost: (boonId: string) => void;
 }) {
   return (
     <section className="mb-4 mt-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
@@ -106,6 +116,52 @@ export default function CareerHub({
                     >
                       {owned ? 'Owned' : affordable ? 'Unlock' : `Need ${perk.cost}`}
                     </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Boost library: unlock more boosts into every future run's offer pool. */}
+          <div className="border-t border-line p-4">
+            <div className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+              Boost library (spend Prestige - adds to future runs' offers)
+            </div>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {BOONS.map((b) => {
+                const inPool = b.starter || career.unlockedBoons.includes(b.id);
+                const cost = BOON_UNLOCK_COST[b.rarity];
+                const affordable = career.prestige >= cost;
+                return (
+                  <div key={b.id} className="rounded-md border border-line bg-panel p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5">
+                        <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${RARITY_DOT[b.rarity]}`} />
+                        <span className="font-display text-[13.5px] font-extrabold">{b.name}</span>
+                      </span>
+                      {!inPool && (
+                        <span className="font-mono text-[11px] font-semibold text-amber">{cost}</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11.5px] leading-snug text-muted">{b.description}</p>
+                    {inPool ? (
+                      <div className="mt-2 w-full rounded-[5px] bg-pitch/10 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-pitch">
+                        {b.starter ? 'Starter' : 'In pool'}
+                      </div>
+                    ) : (
+                      <button
+                        disabled={!affordable}
+                        onClick={() => onUnlockBoost(b.id)}
+                        className={[
+                          'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
+                          affordable
+                            ? 'bg-pitch text-white hover:bg-pitch-dark'
+                            : 'cursor-not-allowed border border-line bg-panel text-muted/50',
+                        ].join(' ')}
+                      >
+                        {affordable ? 'Unlock' : `Need ${cost}`}
+                      </button>
+                    )}
                   </div>
                 );
               })}

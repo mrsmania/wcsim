@@ -15,7 +15,10 @@ export function loadRun(): RunState | null {
     const parsed = JSON.parse(raw) as Partial<RunState> | null;
     if (!parsed || typeof parsed !== 'object') return null;
     if (typeof parsed.phase !== 'string' || !Array.isArray(parsed.xi)) return null;
-    return parsed as RunState;
+    const run = parsed as RunState;
+    // Default fields added after a save may predate them (older in-progress runs).
+    if (!Array.isArray(run.unlockedBoons)) run.unlockedBoons = [];
+    return run;
   } catch {
     return null;
   }
