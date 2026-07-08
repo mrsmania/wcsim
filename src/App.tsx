@@ -543,17 +543,21 @@ export default function App() {
     // The build's chosen path (decides the single "Start Run" destination + copy).
     const mode: 'quick' | 'career' =
         FEATURES.careerMode && path === '/career-mode' ? 'career' : 'quick';
-    // The furthest World Cup screen reached, for the launcher's resume action (null
-    // when no group has been drawn yet).
-    const worldCupRoute = bracket ? '/knockout' : group ? '/group' : null;
+    // A World Cup counts as "in progress" only until it finishes, so a decided
+    // tournament never hijacks a fresh mode pick. Its route is where entering Quick
+    // Run (or the resume action) returns you.
+    const worldCupInProgress =
+        !!group && (!bracket || (bracket.outcome !== 'champion' && bracket.outcome !== 'out'));
+    const worldCupRoute = worldCupInProgress ? (bracket ? '/knockout' : '/group') : null;
     const albumSummary = stickers.summary;
 
     // Launcher-only reads (localStorage), refreshed whenever we land on `/`: whether a
-    // Cup Run is mid-flight (resume) and the career headline stats for the Career card.
-    const cupRunInProgress = useMemo(
-        () => (isLauncher ? !!loadRun() : false),
-        [isLauncher],
-    );
+    // Cup Run is mid-flight (not yet ended -> resume) and the career headline stats.
+    const cupRunInProgress = useMemo(() => {
+        if (!isLauncher) return false;
+        const r = loadRun();
+        return !!r && r.phase !== 'ended';
+    }, [isLauncher]);
     const launcherCareer = useMemo(
         () => (isLauncher ? loadCareer() : null),
         [isLauncher],
@@ -669,8 +673,10 @@ export default function App() {
                         )
                     ) : isLauncher ? (
                         <ModeSelect
-                            onQuick={() => navigate('/quick-run')}
-                            onCareer={() => navigate('/career-mode')}
+                            onQuick={() => navigate(worldCupRoute ?? '/quick-run')}
+                            onCareer={() =>
+                                navigate(cupRunInProgress ? '/cup-run' : '/career-mode')
+                            }
                             worldCupRoute={worldCupRoute}
                             onResumeWorldCup={() => navigate(worldCupRoute ?? '/')}
                             cupRunInProgress={cupRunInProgress}

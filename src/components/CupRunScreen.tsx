@@ -31,7 +31,7 @@ import {
   type CareerState,
 } from '../domain/career';
 import { loadCareer, saveCareer } from '../state/careerStorage';
-import { loadRun, saveRun, clearRun } from '../state/runStorage';
+import { loadRun, saveRun, clearRun, loadReveal, saveReveal, clearReveal } from '../state/runStorage';
 import { useFollowBottom } from '../hooks/useFollowBottom';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
 import {
@@ -88,7 +88,9 @@ export default function CupRunScreen({
   const [career, setCareer] = useState<CareerState>(loadCareer);
   const [run, setRun] = useState<RunState | null>(loadRun);
   const [reward, setReward] = useState<Reward | null>(null);
-  const [reveal, setReveal] = useState<Reveal | null>(null);
+  // Restore an in-flight reveal (only when a run exists, so a stale one is ignored),
+  // so leaving mid-match resumes the current round rather than replaying it.
+  const [reveal, setReveal] = useState<Reveal | null>(() => (loadRun() ? loadReveal() : null));
   // The just-finished knockout tie, kept on screen through the following boost pick.
   const [lastKoMatch, setLastKoMatch] = useState<{ match: KoMatch; opp: GroupTeam; roundName: string } | null>(null);
   // A transient toast for what a boost just did (so the run log isn't needed).
@@ -140,6 +142,13 @@ export default function CupRunScreen({
     if (run) saveRun(run);
     else clearRun();
   }, [run]);
+
+  // Persist the in-flight reveal alongside the run, so leaving mid-match resumes the
+  // current round instead of replaying it. Cleared when the reveal ends (setReveal(null)).
+  useEffect(() => {
+    if (reveal) saveReveal(reveal);
+    else clearReveal();
+  }, [reveal]);
 
   // Bank the run's collectibles to the album once, when it ends. Reload-safe via the
   // persisted stickersApplied flag (so a refresh on the ended screen won't re-bank).
@@ -300,6 +309,15 @@ export default function CupRunScreen({
         career.level < nextAsc.levelReq ? `reach level ${nextAsc.levelReq}` : null,
       ].filter(Boolean)
     : [];
+
+  // The final knockout tie of an ended run (the loss, or the won final), rebuilt from
+  // history so the ended screen still shows the opponent + scoreline - the live
+  // `lastKoMatch` is cleared when a run ends. Null for a group-stage exit (no KO tie).
+  const lastRecord = run && run.history.length ? run.history[run.history.length - 1] : undefined;
+  const endedKoRecord =
+    run?.phase === 'ended' && lastRecord && typeof lastRecord.stage === 'number' && lastRecord.events
+      ? lastRecord
+      : null;
 
   return (
     <div ref={rootRef} className="mx-auto max-w-[1000px]">
@@ -541,6 +559,22 @@ export default function CupRunScreen({
                     eyebrow={lastKoMatch.roundName}
                     heading={koWinHeading(lastKoMatch.match)}
                     body={`Through to the ${KO_ROUNDS[run.koRound]}. Pick a boost below.`}
+                  />
+                )}
+                {run.phase === 'ended' && endedKoRecord && (
+                  <FinishedKoCard
+                    roundName={KO_ROUNDS[endedKoRecord.stage as number]}
+                    oppName={endedKoRecord.oppName ?? ''}
+                    oppCode={endedKoRecord.oppCode ?? ''}
+                    oppYear={endedKoRecord.oppYear}
+                    oppRating={endedKoRecord.oppRating}
+                    userRating={endedKoRecord.userRating ?? 0}
+                    userGoals={endedKoRecord.userGoals ?? 0}
+                    oppGoals={endedKoRecord.oppGoals ?? 0}
+                    decided={endedKoRecord.decided ?? 'reg'}
+                    events={endedKoRecord.events ?? []}
+                    pens={endedKoRecord.pens}
+                    userWon={endedKoRecord.won}
                   />
                 )}
                 {run.phase === 'ended' && run.outcome && (
