@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Player } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES, STICKER_TRADE_COST, type StickerTier } from '../config';
@@ -35,8 +36,9 @@ const TIER_ORDER = (Object.keys(TIER_META) as StickerTier[]).sort(
 
 export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClose }: Props) {
     const [trade, setTrade] = useState<{ tier: StickerTier; options: Player[] } | null>(null);
-    // A collected sticker enlarged to full size in a lightbox (click to open).
-    const [expanded, setExpanded] = useState<{ player: Player; tier: StickerTier } | null>(null);
+    // A collected sticker enlarged to full size in a lightbox (click to open). Held as
+    // an index into `collectedList` so the arrows can step through the collection.
+    const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
     const stats = useMemo(() => albumStats(album, allPlayers), [album, allPlayers]);
     const dupes = totalDuplicates(album);
@@ -54,6 +56,25 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
     }, [allPlayers]);
 
     const collectedSet = useMemo(() => new Set(album.collected), [album.collected]);
+
+    // The collected stickers as a flat, ordered sequence (album display order: tier
+    // order, rating-desc within each) - the sequence the lightbox arrows step through.
+    const collectedList = useMemo(() => {
+        const list: { player: Player; tier: StickerTier }[] = [];
+        for (const t of TIER_ORDER) {
+            for (const p of byTier[t]) {
+                if (collectedSet.has(p.id)) list.push({ player: p, tier: t });
+            }
+        }
+        return list;
+    }, [byTier, collectedSet]);
+
+    // player id -> position in `collectedList`, so a card click opens the right index.
+    const indexById = useMemo(() => {
+        const m = new Map<string, number>();
+        collectedList.forEach((e, i) => m.set(e.player.id, i));
+        return m;
+    }, [collectedList]);
 
     const openTrade = (tier: StickerTier) =>
         setTrade({ tier, options: tradeOptions(album, tier, allPlayers) });
@@ -190,7 +211,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
                                     <button
                                         key={p.id}
                                         type="button"
-                                        onClick={() => setExpanded({ player: p, tier })}
+                                        onClick={() => setExpandedIndex(indexById.get(p.id) ?? null)}
                                         aria-label={`Enlarge ${p.name} sticker`}
                                         className="block w-full cursor-pointer rounded-md border-0 bg-transparent p-0 text-left transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-pitch focus-visible:ring-offset-2"
                                     >
@@ -231,41 +252,83 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
                 />
             )}
 
-            {expanded && (
+            {expandedIndex !== null && collectedList[expandedIndex] && (
                 <StickerLightbox
-                    player={expanded.player}
-                    tier={expanded.tier}
-                    duplicateCount={album.duplicates[expanded.player.id] ?? 0}
-                    onClose={() => setExpanded(null)}
+                    items={collectedList}
+                    index={expandedIndex}
+                    duplicates={album.duplicates}
+                    onIndex={setExpandedIndex}
+                    onClose={() => setExpandedIndex(null)}
                 />
             )}
         </div>
     );
 }
 
-/** A collected sticker enlarged to full size in a modal. One card: the modal panel
- *  itself. The sticker is its content (big image + details), not a nested card -
- *  so no card-in-card. */
+/** A collected sticker enlarged to full size in a modal, with prev/next navigation
+ *  across the whole collection. One card: the modal panel itself. The sticker is its
+ *  content (big image + details), not a nested card - so no card-in-card. Arrows,
+ *  the left/right arrow keys, and a horizontal swipe all step through `items`. */
 function StickerLightbox({
-    player,
-    tier,
-    duplicateCount,
+    items,
+    index,
+    duplicates,
+    onIndex,
     onClose,
 }: {
-    player: Player;
-    tier: StickerTier;
-    duplicateCount: number;
+    items: { player: Player; tier: StickerTier }[];
+    index: number;
+    duplicates: Record<string, number>;
+    onIndex: (i: number) => void;
     onClose: () => void;
 }) {
+    const { player, tier } = items[index];
+    const count = items.length;
     const sq = SQUAD_BY_ID[player.squadId];
     const meta = TIER_META[tier];
+    const duplicateCount = duplicates[player.id] ?? 0;
+
+    // Step by `delta`, wrapping around the collection.
+    const go = (delta: number) => onIndex((index + delta + count) % count);
+
+    // Left/right arrow keys step through the collection (Escape is handled by Overlay).
+    useEffect(() => {
+        if (count < 2) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                go(-1);
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                go(1);
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [index, count]);
+
+    // Touch swipe (mobile): a horizontal drag past the threshold steps prev/next.
+    const touchStartX = useRef<number | null>(null);
+
     return (
         <Overlay onClose={onClose} ariaLabel={`${player.name} sticker`}>
             <div
                 className="-mx-6 -mt-6 mb-4 h-1.5 rounded-t-lg"
                 style={{ background: meta.accent }}
             />
-            <div className="flex flex-col items-center text-center">
+            <div
+                className="flex flex-col items-center text-center"
+                onTouchStart={(e) => {
+                    touchStartX.current = e.changedTouches[0].clientX;
+                }}
+                onTouchEnd={(e) => {
+                    if (touchStartX.current === null) return;
+                    const dx = e.changedTouches[0].clientX - touchStartX.current;
+                    touchStartX.current = null;
+                    if (count > 1 && Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+                }}
+            >
                 <div className="mb-1 flex w-full items-center justify-between pr-8">
                     <span
                         className="font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
@@ -281,6 +344,7 @@ function StickerLightbox({
                 </div>
                 {FEATURES.stickerImages && (
                     <img
+                        key={player.id}
                         src={`${import.meta.env.BASE_URL}stickers/${player.id}.png`}
                         alt=""
                         className="mb-3 aspect-square w-full max-w-[440px] object-contain"
@@ -308,7 +372,33 @@ function StickerLightbox({
                         Rating
                     </span>
                 </div>
+                {count > 1 && (
+                    <div className="mt-3 font-mono text-[11px] text-muted">
+                        {index + 1} / {count}
+                    </div>
+                )}
             </div>
+
+            {count > 1 && (
+                <>
+                    <button
+                        type="button"
+                        onClick={() => go(-1)}
+                        aria-label="Previous sticker"
+                        className="absolute left-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-ground/85 text-muted shadow-hard transition hover:bg-ink/10 hover:text-ink"
+                    >
+                        <ChevronLeft size={22} strokeWidth={2.5} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => go(1)}
+                        aria-label="Next sticker"
+                        className="absolute right-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-ground/85 text-muted shadow-hard transition hover:bg-ink/10 hover:text-ink"
+                    >
+                        <ChevronRight size={22} strokeWidth={2.5} />
+                    </button>
+                </>
+            )}
         </Overlay>
     );
 }
