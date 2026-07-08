@@ -850,8 +850,14 @@ export default function App() {
                             </Fragment>
                         ))}
                     </nav>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-                        Fan-made - not affiliated with FIFA
+                    <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                        Swiss made
+                        <img
+                            src={`${import.meta.env.BASE_URL}img/swiss.svg`}
+                            alt="Swiss flag"
+                            className="h-[13px] w-[13px]"
+                        />
+                        - not affiliated with FIFA
                     </p>
                 </footer>
             </div>
