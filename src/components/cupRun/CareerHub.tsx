@@ -107,20 +107,40 @@ export default function CareerHub({
                 const affordable = !!next && career.prestige >= next.cost;
                 const levelOk = !!next && career.level >= next.levelReq;
                 const canBuy = !!next && affordable && levelOk;
-                // Show the next tier's effect (what you would buy); when maxed, the top tier's.
-                const shown = next ?? perk.tiers[perk.tiers.length - 1];
+                // What the player currently owns (the active effect), if any.
+                const owned = lvl > 0 ? perk.tiers[lvl - 1] : null;
                 return (
                   <div key={perk.id} className="rounded-md border border-line bg-panel p-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-display text-[13.5px] font-extrabold">
                         {perk.name}
-                        {lvl > 0 && <span className="ml-1 text-accent">{ROMAN[lvl] ?? lvl}</span>}
+                        {lvl > 0 && (
+                          <span className="ml-1.5 rounded bg-pitch/10 px-1.5 py-[1px] align-middle font-mono text-[10px] font-bold text-accent">
+                            {ROMAN[lvl] ?? lvl}
+                          </span>
+                        )}
                       </span>
                       {next && (
                         <span className="font-mono text-[11px] font-semibold text-amber">{next.cost}</span>
                       )}
                     </div>
-                    <p className="mt-1 text-[11.5px] leading-snug text-muted">{shown.description}</p>
+                    {/* What you have right now (or, if unowned, what the first tier unlocks). */}
+                    <p className="mt-1 text-[11.5px] leading-snug text-muted">
+                      {owned ? (
+                        <>
+                          <span className="font-semibold text-pitch">Active:</span>{' '}
+                          {owned.description}
+                        </>
+                      ) : (
+                        next?.description
+                      )}
+                    </p>
+                    {/* The upgrade on offer, once you already own a tier. */}
+                    {owned && next && (
+                      <p className="mt-1 text-[11px] leading-snug text-muted">
+                        <span className="font-semibold text-ink">Next:</span> {next.description}
+                      </p>
+                    )}
                     <button
                       disabled={!canBuy}
                       onClick={() => onPurchase(perk.id)}
