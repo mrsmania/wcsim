@@ -76,6 +76,11 @@ body,
    guessing it. */
 html {
     overflow-anchor: none;
+    /* Always reserve (and show) the vertical scrollbar, even on pages that fit the
+       viewport, so the content width stays constant and nothing shifts horizontally
+       when navigating between short and tall screens. On touch/overlay-scrollbar
+       platforms this is a no-op (the bar overlays), so mobile is unaffected. */
+    overflow-y: scroll;
 }
 
 body {
