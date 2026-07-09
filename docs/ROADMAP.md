@@ -4,22 +4,43 @@ Working handoff doc: where the project is and what to build next. Update this as
 things ship (move items between sections, keep it honest). Detailed specs live in
 `docs/career-depth-spec.md` and `docs/roguelike-career-design.md`.
 
-Last updated: 2026-07-08.
+Last updated: 2026-07-09.
 
 ## Done (recent, newest first)
 
-- **Career depth G - Transfer Budget progression.** Career Mode's budget-draft budget
-  scales via a new `transfer-budget` perk track (8 tiers, $70 base -> $150), bought with
-  Prestige + level-gated. Quick Run stays fixed at `$110`. `config.ts BUDGET_BY_TIER` +
-  App computes `budget` (career-scaled for career-mode builds, else `BUDGET_DRAFT`) and
-  passes it to `BudgetMarket`. Also **slowed XP** (`XP_PER_LEVEL` 100 -> 200) so the
-  level gates on perks/budget actually bite (level now tracks Prestige cost).
-- **Home launcher enrichment** - `ModeSelect.tsx` is now a marketing landing: a grass
+- **UI/UX polish pass.**
+  - *Cup Run hub:* collapses to a slim strip by default (pre-run too) so the "Play group
+    stage" CTA stays visible; the whole header bar is now the collapse toggle (pointer +
+    hover tint, Open/Hide + chevron-in-a-ring, a "N Prestige to spend" hint) and it
+    animates open/closed (grid-rows height transition). The separate "Start a Cup Run"
+    screen is gone (you land straight on the run layout; "Play group stage" begins the
+    run), perk cards show the active effect + the next upgrade, and the chosen Ascension
+    tier now persists across runs. Layout/affordance options mocked in
+    `docs/redesign-2026/turf-flat/hub-layout-options-mock.html` +
+    `hub-collapsed-affordance-mock.html`.
+  - *Home page:* CTAs + resume buttons are real `<Link>`s (middle/ctrl-click opens a
+    new tab); fixed the dark-mode white-on-white "Play a Quick Run" button (CTAs pin a
+    fixed dark label on the always-green hero); mobile "chase the legends" avatars are
+    large colour focal images (grayscale + hover-lift only where hover exists).
+  - *Global:* new **dark mode** "Graphite" neutral-grey scheme (dark toggle moved to the
+    top of the settings modal); the vertical scrollbar is always reserved (`overflow-y:
+    scroll` on `html`) so navigating between short/tall screens no longer shifts the
+    layout; album "back to game" returns to where it was opened from; mobile footer wrap
+    fixed.
+- **Draft role fix.** A placed player now counts as the role of the slot they fill, not
+  their listed main position (e.g. Rijkaard bought as CB is no longer treated as a DM for
+  strength/boosts/display). `domain/draft.ts placedPlayers`.
+- **Budget line-up detail.** The budget build shows each player's cost + total spent in
+  the line-up sheet (`XiTable` `budget` prop).
+- **Home launcher (implemented).** `ModeSelect.tsx` is the marketing landing: a grass
   tactics-board hero (game pitch colours) with an all-time 4-3-3, the two CTAs + resume
   buttons, a 3-beat "how it works" (circle-dashed / swords / trophy), and a
-  grayscale-to-colour "chase the legends" showcase (top-5 collectibles from
-  `collectiblePlayers`, real sticker art). Mock:
-  `docs/redesign-2026/turf-flat/home-launcher-mock.html`.
+  grayscale-to-colour "chase the legends" showcase (top collectibles, real sticker art).
+- **Career depth G - Transfer Budget progression.** Career Mode's budget-draft budget
+  scales via a `transfer-budget` perk track (8 tiers, $70 base -> $150), bought with
+  Prestige + level-gated. Quick Run stays fixed at `$110` (`config.ts BUDGET_BY_TIER`;
+  App computes the effective `budget` and passes it to `BudgetMarket`). Also **slowed XP**
+  (`XP_PER_LEVEL` 100 -> 200) so the level gates on perks/budget actually bite.
 - **Mode-first flow** - `/` is a launcher (Quick Run vs Career Mode); both build on the
   same 3-column page at `/quick-run` + `/career-mode`; one "Start Run" CTA. Resume of an
   ongoing World Cup / Cup Run from the launcher; live match reveal is persisted
@@ -28,7 +49,7 @@ Last updated: 2026-07-08.
 - **Career depth A** - boost-pool unlocks + rarity-weighted offers.
 - **Career depth B** - tiered, level-gated perks (+ CareerState v1->v2 migration).
 - **Career depth C** - Ascension tiers (handicap + steeper draw + reward multiplier,
-  earned by winning + level-gated).
+  earned by winning + level-gated; multipliers since tuned to 1.0/1.25/1.5/1.75/2.0/2.25).
 
 ## Next up (in order)
 
