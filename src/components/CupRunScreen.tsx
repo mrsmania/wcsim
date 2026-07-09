@@ -340,7 +340,7 @@ export default function CupRunScreen({
           </div>
         </div>
       )}
-      <StageCrumb dir="back" label="Back to game" to="/" className="mt-7" />
+      <StageCrumb dir="back" label="Back to the build" to="/career-mode" className="mt-7" />
 
       {/* Career hub - full between runs, a slim collapsible strip during a run. */}
       <CareerHub
@@ -412,7 +412,7 @@ export default function CupRunScreen({
             <p className="mb-4 text-[13.5px] text-muted">
               Draft your XI first, then bring it here for a Cup Run.
             </p>
-            <Link to="/" className={PRIMARY_BTN}>
+            <Link to="/career-mode" className={PRIMARY_BTN}>
               Draft your XI
             </Link>
           </div>
