@@ -159,18 +159,45 @@ export default function CupRunScreen({
     setRun({ ...run, stickersApplied: true });
   }, [run, onRunEnd]);
 
-  const chem = useMemo(() => (run ? chemistryOf(run.xi) : 0), [run?.xi]);
+  // The XI + Ascension to show: the live run, or - before it starts - a preview of the
+  // drafted XI at the currently-chosen tier (B: the run only commits when "Play group
+  // stage" is clicked, so the hub/ascension stay adjustable until then).
+  const chosenAsc = Math.min(ascSel, maxAsc);
+  const activeXi = run?.xi ?? draftedXi ?? null;
+  const activeAsc = run?.ascension ?? chosenAsc;
+  const previewRun: RunState | null =
+    !run && draftedXi
+      ? {
+          xi: draftedXi,
+          phase: 'group',
+          koRound: 0,
+          facedIds: [],
+          activeBoons: [],
+          perkLevels: career.perkLevels,
+          unlockedBoons: career.unlockedBoons,
+          ascension: chosenAsc,
+          offer: null,
+          nextOpponent: null,
+          score: 0,
+          outcome: null,
+          history: [],
+          boostedIds: [],
+          stickersApplied: false,
+        }
+      : null;
+
+  const chem = useMemo(() => (activeXi ? chemistryOf(activeXi) : 0), [activeXi]);
   const odds = useMemo(
     () =>
-      run
-        ? simulateTitleOdds(run.xi, 600, chem, diffDelta + ascensionAt(run.ascension).userDelta, pool)
+      activeXi
+        ? simulateTitleOdds(activeXi, 600, chem, diffDelta + ascensionAt(activeAsc).userDelta, pool)
             .champion
         : 0,
-    [run?.xi, run?.ascension, chem, diffDelta, pool],
+    [activeXi, activeAsc, chem, diffDelta, pool],
   );
   const str = useMemo(
-    () => (run ? xiStrength(run.xi) : { attack: 0, defense: 0, overall: 0 }),
-    [run?.xi],
+    () => (activeXi ? xiStrength(activeXi) : { attack: 0, defense: 0, overall: 0 }),
+    [activeXi],
   );
   const userRating = str.overall + chem;
 
@@ -186,20 +213,26 @@ export default function CupRunScreen({
     scrollIntoViewRespectingMotion(el, 'center');
   }, [run?.phase]);
 
-  const startRun = () => {
+  // Commit the run at the chosen Ascension AND reveal the group in one step (B: no
+  // separate "start" screen - the run only begins here, so perks/ascension picked in
+  // the hub above still apply). Remembers the chosen tier as the next run's default.
+  const startAndPlayGroup = () => {
     if (!draftedXi) return;
     const chosen = Math.min(ascSel, maxAsc);
-    // Remember the chosen tier as the next run's default (persist to the career).
     if (career.lastAscension !== chosen) {
       const c = { ...career, lastAscension: chosen };
       setCareer(c);
       saveCareer(c);
     }
+    const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen);
+    const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);
-    setReveal(null);
     setLastKoMatch(null);
     setReviewIndex(null);
-    setRun(beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen));
+    setRun(begun);
+    if (p) {
+      setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
+    }
   };
 
   // Step the run; award XP/Prestige exactly once when it ends.
@@ -307,6 +340,21 @@ export default function CupRunScreen({
   const showHubBody = !run || hubOpen;
   const boostedIds = new Set(run?.boostedIds ?? []);
 
+  // The career hub element. On the pre-run screen it renders BELOW the preview so the
+  // "Play group stage" button stays visible; for an active run / no XI it sits on top.
+  const hub = (
+    <CareerHub
+      career={career}
+      prog={prog}
+      hubOpen={hubOpen}
+      onToggleHub={() => setHubOpen((o) => !o)}
+      showBody={showHubBody}
+      showToggle={!!run}
+      onPurchase={purchase}
+      onUnlockBoost={unlockBoost}
+    />
+  );
+
   // Ascension selector (pre-run): the chosen tier and the requirement to unlock the
   // next one (a cup at the tier below + the career level gate).
   const selAsc = ascensionAt(Math.min(ascSel, maxAsc));
@@ -342,81 +390,103 @@ export default function CupRunScreen({
       )}
       <StageCrumb dir="back" label="Back to the build" to="/career-mode" className="mt-7" />
 
-      {/* Career hub - full between runs, a slim collapsible strip during a run. */}
-      <CareerHub
-        career={career}
-        prog={prog}
-        hubOpen={hubOpen}
-        onToggleHub={() => setHubOpen((o) => !o)}
-        showBody={showHubBody}
-        showToggle={!!run}
-        onPurchase={purchase}
-        onUnlockBoost={unlockBoost}
-      />
+      {/* Active run / no XI: hub on top (a slim strip during a run). The pre-run screen
+          renders its own hub below the preview instead (see below). */}
+      {!previewRun && hub}
 
-      {/* No active run: start with the drafted XI, or prompt to draft one. */}
-      {!run &&
-        (draftedXi ? (
-          <div className="rounded-md border border-line bg-panel p-8 text-center shadow-hard">
-            <p className="mb-4 text-[13.5px] text-muted">
-              Take your drafted XI on a Cup Run. Pick a team boost between rounds; every run earns
-              XP and Prestige for your career.
-            </p>
-            {/* Ascension selector: a harder run for a bigger reward. */}
-            <div className="mx-auto mb-5 max-w-[380px] rounded-md border border-line bg-chalk p-3">
-              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                Ascension
-              </div>
-              <div className="mt-1.5 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Lower Ascension"
-                  disabled={ascSel <= 0}
-                  onClick={() => setAscSel((s) => Math.max(0, s - 1))}
-                  className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
-                >
-                  &minus;
-                </button>
-                <div className="min-w-[150px]">
-                  <div className="font-display text-[15px] font-extrabold leading-tight">
-                    {selAsc.label}
-                  </div>
-                  <div className="font-mono text-[11px] text-muted">
-                    {selAsc.tier === 0
-                      ? 'Standard difficulty'
-                      : `You ${selAsc.userDelta} rating, rewards x${selAsc.rewardMult}`}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Higher Ascension"
-                  disabled={ascSel >= maxAsc}
-                  onClick={() => setAscSel((s) => Math.min(maxAsc, s + 1))}
-                  className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
-                >
-                  +
-                </button>
-              </div>
-              {nextAscHint.length > 0 && (
-                <div className="mt-2 font-mono text-[10px] leading-snug text-muted">
-                  Unlock {nextAsc.label}: {nextAscHint.join(' and ')}
-                </div>
-              )}
-            </div>
-            <button onClick={startRun} className={PRIMARY_BTN}>
-              Start a Cup Run
-            </button>
+      {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
+          picker) with the hub open below; one "Play group stage" both starts the run and
+          reveals the group. No separate "Start a Cup Run" step. */}
+      {previewRun && (
+        <>
+          <div className="mb-4">
+            <RunLadder
+              run={previewRun}
+              currentIndex={0}
+              viewedIndex={0}
+              onSelectStep={() => {}}
+              locked={false}
+            />
           </div>
-        ) : (
-          <div className="rounded-md border border-dashed border-line bg-panel p-8 text-center shadow-hard">
-            <p className="mb-4 text-[13.5px] text-muted">
-              Draft your XI first, then bring it here for a Cup Run.
-            </p>
-            <Link to="/career-mode" className={PRIMARY_BTN}>
-              Draft your XI
-            </Link>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
+            <RunXiPanel
+              xi={previewRun.xi}
+              score={0}
+              activeBoons={[]}
+              boostedIds={boostedIds}
+              odds={odds}
+              str={str}
+            />
+            <section className="flex min-w-0 flex-col gap-4">
+              <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
+                {/* Ascension selector: a harder run for a bigger reward. */}
+                <div className="mx-auto max-w-[380px] rounded-md border border-line bg-chalk p-3">
+                  <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                    Ascension
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      aria-label="Lower Ascension"
+                      disabled={ascSel <= 0}
+                      onClick={() => setAscSel((s) => Math.max(0, s - 1))}
+                      className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
+                    >
+                      &minus;
+                    </button>
+                    <div className="min-w-[150px]">
+                      <div className="font-display text-[15px] font-extrabold leading-tight">
+                        {selAsc.label}
+                      </div>
+                      <div className="font-mono text-[11px] text-muted">
+                        {selAsc.tier === 0
+                          ? 'Standard difficulty'
+                          : `You ${selAsc.userDelta} rating, rewards x${selAsc.rewardMult}`}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Higher Ascension"
+                      disabled={ascSel >= maxAsc}
+                      onClick={() => setAscSel((s) => Math.min(maxAsc, s + 1))}
+                      className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
+                    >
+                      +
+                    </button>
+                  </div>
+                  {nextAscHint.length > 0 && (
+                    <div className="mt-2 font-mono text-[10px] leading-snug text-muted">
+                      Unlock {nextAsc.label}: {nextAscHint.join(' and ')}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="mb-4 text-[13.5px] text-muted">
+                    Pick a team boost between rounds; every run earns XP and Prestige. Finish top
+                    two in the group to reach the knockouts.
+                  </p>
+                  <button onClick={startAndPlayGroup} className={PRIMARY_BTN}>
+                    Play group stage
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
-        ))}
+          {/* The full hub (perks + boost library) sits below the preview so the play
+              button above is reachable without scrolling past the whole shop. */}
+          <div className="mt-6">{hub}</div>
+        </>
+      )}
+      {!run && !draftedXi && (
+        <div className="rounded-md border border-dashed border-line bg-panel p-8 text-center shadow-hard">
+          <p className="mb-4 text-[13.5px] text-muted">
+            Draft your XI first, then bring it here for a Cup Run.
+          </p>
+          <Link to="/career-mode" className={PRIMARY_BTN}>
+            Draft your XI
+          </Link>
+        </div>
+      )}
 
       {/* Active run */}
       {run && (
@@ -648,7 +718,7 @@ export default function CupRunScreen({
                       score={run.score}
                       reward={reward}
                       onReDraft={onReDraft}
-                      onReplay={startRun}
+                      onReplay={startAndPlayGroup}
                       onCareer={() => {
                         setRun(null);
                         setReward(null);
