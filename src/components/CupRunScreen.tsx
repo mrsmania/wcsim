@@ -98,9 +98,10 @@ export default function CupRunScreen({
   const toastTimer = useRef<number | undefined>(undefined);
   // The boost-pick panel, scrolled into view when a run enters the boost phase.
   const boostRef = useRef<HTMLDivElement | null>(null);
-  // The career hub collapses to a slim strip during a run (perks are a between-runs
-  // thing); it always shows fully when there is no active run.
-  const [hubOpen, setHubOpen] = useState(false);
+  // The career hub is open before a run and collapses to a slim strip once one starts
+  // (perks are a between-runs thing). The Hide/Career-hub toggle is always available, so
+  // the user can override either way (see the run-presence effect below).
+  const [hubOpen, setHubOpen] = useState(true);
   // The Ascension tier chosen for the next run. Defaults to the last tier the player
   // chose (persisted on the career), falling back to the highest selectable the first
   // time; always clamped to what is currently selectable.
@@ -150,6 +151,13 @@ export default function CupRunScreen({
     if (reveal) saveReveal(reveal);
     else clearReveal();
   }, [reveal]);
+
+  // Default the hub open before a run and collapsed once one starts; only fires when the
+  // run presence flips, so a manual toggle sticks until then.
+  const hasRun = !!run;
+  useEffect(() => {
+    setHubOpen(!hasRun);
+  }, [hasRun]);
 
   // Bank the run's collectibles to the album once, when it ends. Reload-safe via the
   // persisted stickersApplied flag (so a refresh on the ended screen won't re-bank).
@@ -337,7 +345,7 @@ export default function CupRunScreen({
   };
 
   const prog = levelProgress(career.xp);
-  const showHubBody = !run || hubOpen;
+  const showHubBody = hubOpen;
   const boostedIds = new Set(run?.boostedIds ?? []);
 
   // The career hub element. On the pre-run screen it renders BELOW the preview so the
@@ -349,7 +357,7 @@ export default function CupRunScreen({
       hubOpen={hubOpen}
       onToggleHub={() => setHubOpen((o) => !o)}
       showBody={showHubBody}
-      showToggle={!!run}
+      showToggle
       onPurchase={purchase}
       onUnlockBoost={unlockBoost}
     />
