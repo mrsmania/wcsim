@@ -390,9 +390,8 @@ export default function CupRunScreen({
       )}
       <StageCrumb dir="back" label="Back to the build" to="/career-mode" className="mt-7" />
 
-      {/* Active run / no XI: hub on top (a slim strip during a run). The pre-run screen
-          renders its own hub below the preview instead (see below). */}
-      {!previewRun && hub}
+      {/* Career hub - open above the content; a slim strip during an active run. */}
+      {hub}
 
       {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
           picker) with the hub open below; one "Play group stage" both starts the run and
@@ -472,9 +471,6 @@ export default function CupRunScreen({
               </div>
             </section>
           </div>
-          {/* The full hub (perks + boost library) sits below the preview so the play
-              button above is reachable without scrolling past the whole shop. */}
-          <div className="mt-6">{hub}</div>
         </>
       )}
       {!run && !draftedXi && (
