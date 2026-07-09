@@ -37,6 +37,7 @@ import {
 } from './domain/tournament';
 import { teamChemistry } from './domain/chemistry';
 import { buildBracket } from './domain/bracket';
+import { KO_ROUNDS } from './domain/knockout';
 import { userRatingDelta, type Difficulty } from './domain/difficulty';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
@@ -44,7 +45,6 @@ import { FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
 import { clearRun, loadRun } from './state/runStorage';
-import { loadCareer } from './state/careerStorage';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import SettingsModal from './components/SettingsModal';
@@ -551,17 +551,17 @@ export default function App() {
     const worldCupRoute = worldCupInProgress ? (bracket ? '/knockout' : '/group') : null;
     const albumSummary = stickers.summary;
 
-    // Launcher-only reads (localStorage), refreshed whenever we land on `/`: whether a
-    // Cup Run is mid-flight (not yet ended -> resume) and the career headline stats.
-    const cupRunInProgress = useMemo(() => {
-        if (!isLauncher) return false;
+    // Launcher-only read (localStorage), refreshed whenever we land on `/`: a Cup Run
+    // that is mid-flight (not yet ended), with a short round summary for the resume
+    // button. Null when there is nothing to resume.
+    const resumeCupRun = useMemo(() => {
+        if (!isLauncher || !FEATURES.careerMode) return null;
         const r = loadRun();
-        return !!r && r.phase !== 'ended';
+        if (!r || r.phase === 'ended') return null;
+        const round = r.phase === 'group' ? 'Group stage' : (KO_ROUNDS[r.koRound] ?? 'Knockouts');
+        const opp = r.nextOpponent ? ` · vs ${r.nextOpponent.name} ${r.nextOpponent.year}` : '';
+        return { summary: round + opp };
     }, [isLauncher]);
-    const launcherCareer = useMemo(
-        () => (isLauncher ? loadCareer() : null),
-        [isLauncher],
-    );
 
     // Footer navigation, shown on every page: Home (the launcher) plus the app's
     // secondary areas, each gated by its flag. Modes are chosen on the launcher, and
@@ -675,14 +675,14 @@ export default function App() {
                         <ModeSelect
                             onQuick={() => navigate(worldCupRoute ?? '/quick-run')}
                             onCareer={() =>
-                                navigate(cupRunInProgress ? '/cup-run' : '/career-mode')
+                                navigate(resumeCupRun ? '/cup-run' : '/career-mode')
                             }
                             worldCupRoute={worldCupRoute}
                             onResumeWorldCup={() => navigate(worldCupRoute ?? '/')}
-                            cupRunInProgress={cupRunInProgress}
+                            cupRunInProgress={!!resumeCupRun}
                             onResumeCupRun={() => navigate('/cup-run')}
-                            careerLevel={launcherCareer?.level}
-                            careerPrestige={launcherCareer?.prestige}
+                            cupRunSummary={resumeCupRun?.summary}
+                            allPlayers={poolPlayers}
                         />
                     ) : isBuild ? (
                         <>

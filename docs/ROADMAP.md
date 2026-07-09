@@ -8,6 +8,12 @@ Last updated: 2026-07-08.
 
 ## Done (recent, newest first)
 
+- **Home launcher enrichment** - `ModeSelect.tsx` is now a marketing landing: a grass
+  tactics-board hero (game pitch colours) with an all-time 4-3-3, the two CTAs + resume
+  buttons, a 3-beat "how it works" (circle-dashed / swords / trophy), and a
+  grayscale-to-colour "chase the legends" showcase (top-5 collectibles from
+  `collectiblePlayers`, real sticker art). Mock:
+  `docs/redesign-2026/turf-flat/home-launcher-mock.html`.
 - **Mode-first flow** - `/` is a launcher (Quick Run vs Career Mode); both build on the
   same 3-column page at `/quick-run` + `/career-mode`; one "Start Run" CTA. Resume of an
   ongoing World Cup / Cup Run from the launcher; live match reveal is persisted
@@ -20,21 +26,11 @@ Last updated: 2026-07-08.
 
 ## Next up (in order)
 
-1. **Home launcher enrichment (APPROVED - build first).** Replace the bare `/` launcher
-   (`ModeSelect.tsx`) with the marketing-lean redesign: a tactics-board hero (deep-green
-   band + chalk markings, big headline "Draft your dream XI. Win the World Cup.", the two
-   CTAs + a one-line mode explainer + a resume pill), a 3-beat "how it works"
-   (Draft -> Play -> Lift the cup), and a "chase the legends" showcase (the 5 real
-   Monumental stickers). Approved mock (user, 2026-07-08):
-   `docs/redesign-2026/turf-flat/home-launcher-mock.html`. Build it in Tailwind using the
-   real theme tokens (the mock inlines system-font fallbacks; the app has Archivo /
-   Schibsted / Spline). Wire the CTAs to the existing `onQuick`/`onCareer`/resume props;
-   pull the top-5 collectibles from `collectiblePlayers` sorted by elo (don't hardcode).
-2. **Career depth G - Transfer Budget progression.** A career-scaled budget-draft
+1. **Career depth G - Transfer Budget progression.** A career-scaled budget-draft
    budget: ramps **$75 -> $130** via a new `transfer-budget` perk track (reuses the
    cluster-B tiered-perk machinery); applies to all budget builds while career mode is
    on, fixed `$110` when off. Full code-level plan in `docs/career-depth-spec.md` 6.5.
-3. **Career depth E - Challenges / Mandates.** The high-value retention feature (the
+2. **Career depth E - Challenges / Mandates.** The high-value retention feature (the
    user is keen on this one). Renewable objectives checked from the finished `RunState`
    (e.g. win at Ascension III, win with an avg-rating < 80 XI, clean-sheet the
    knockouts). Awards Prestige + trophy-cabinet entries. Spec: `docs/career-depth-spec.md`
