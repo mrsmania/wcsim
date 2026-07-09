@@ -61,7 +61,7 @@
   @media (max-width: 1119px) { .hero .board { display: none; } }
   .board .lines { position: absolute; inset: 0; width: 100%; height: 100%; color: rgba(255,255,255,0.5); }
   .badge { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 3px; width: 72px; }
-  .badge .circ { width: 30px; height: 30px; border-radius: 50%; background: var(--pitch-deep); border: 2px solid #fff; color: #fff; display: grid; place-items: center; font-family: var(--mono); font-weight: 800; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.35); }
+  .badge .circ { width: 30px; height: 30px; border-radius: 50%; background: #093a21; border: 2px solid #fff; color: #fff; display: grid; place-items: center; font-family: var(--mono); font-weight: 800; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.35); }
   .badge .lbl { font-family: var(--body); font-weight: 700; font-size: 9px; color: #fff; background: rgba(11,45,27,0.74); padding: 1px 5px; border-radius: 3px; white-space: nowrap; line-height: 1.35; }
   .hero .kick { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--amber); }
   .hero h2 { font-family: var(--disp); font-weight: 900; font-size: clamp(34px, 6.4vw, 60px); line-height: 1.0; letter-spacing: -0.03em; margin: 12px 0 0; text-wrap: balance; }
@@ -106,7 +106,7 @@
   .lg:hover { filter: grayscale(0); opacity: 1; transform: translateY(-3px); box-shadow: 6px 6px 0 var(--gold); }
   @media (prefers-reduced-motion: reduce) { .lg { transition: none; } }
   .lg .top { height: 6px; background: linear-gradient(90deg, var(--gold), #e7c86a); }
-  .lg .ph { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center top; background: var(--chalk); }
+  .lg .ph { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center top; background: #fff; }
   .lg .in { padding: 10px 12px 12px; text-align: center; }
   .lg .code { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); background: var(--chalk); padding: 3px 7px; border-radius: 4px; }
   .lg .nm { margin-top: 8px; font-family: var(--disp); font-weight: 800; font-size: 14px; line-height: 1.15; }
@@ -163,7 +163,11 @@
       <!-- All-time 4-3-3 on the tactics board (desktop only) -->
       <div class="board" aria-label="An all-time 4-3-3">
         <svg class="lines" viewBox="0 0 200 300" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
-          <rect x="8" y="8" width="184" height="284" rx="2" />
+          <rect x="8" y="8" width="184" height="284" />
+          <path d="M14 8 A 6 6 0 0 1 8 14" />
+          <path d="M186 8 A 6 6 0 0 0 192 14" />
+          <path d="M8 286 A 6 6 0 0 1 14 292" />
+          <path d="M186 292 A 6 6 0 0 1 192 286" />
           <line x1="8" y1="150" x2="192" y2="150" />
           <circle cx="100" cy="150" r="28" />
           <circle cx="100" cy="150" r="2.2" fill="currentColor" stroke="none" />
