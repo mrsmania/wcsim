@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dark mode scheme explorations - WCSIM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap"
+    />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Schibsted Grotesk', system-ui, sans-serif;
+            background: #08090a;
+            color: #cfd4d1;
+            padding: 32px 20px 64px;
+            line-height: 1.5;
+        }
+        .page { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 900;
+            font-size: 26px;
+            letter-spacing: -0.01em;
+            color: #f1f4f2;
+            text-transform: uppercase;
+        }
+        .lede { max-width: 720px; margin-top: 8px; font-size: 14px; color: #9aa39d; }
+        .lede b { color: #d6dbd7; }
+        .swatch-competitor {
+            display: inline-block;
+            width: 12px; height: 12px;
+            border-radius: 3px;
+            background: #0a1910;
+            border: 1px solid #223;
+            vertical-align: -1px;
+        }
+
+        .grid {
+            margin-top: 28px;
+            display: grid;
+            gap: 22px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        }
+
+        /* Each scheme paints its own tokens; the mini-UI below reads them. */
+        .scheme {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #1c1e20;
+            background: var(--color-ground);
+        }
+        .scheme-hd {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 16px;
+            background: #0d0e0f;
+            border-bottom: 1px solid #1c1e20;
+        }
+        .scheme-hd .name {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: #f1f4f2;
+        }
+        .scheme-hd .tag { font-size: 11px; color: #7f8884; }
+
+        .ui { padding: 18px 16px 20px; }
+
+        /* Masthead */
+        .masthead { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .logo {
+            width: 34px; height: 34px;
+            border-radius: 7px;
+            background: var(--color-pitch-dark);
+            display: grid; place-items: center;
+            font-size: 17px;
+            box-shadow: 3px 3px 0 var(--color-pitch);
+        }
+        .wordmark {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 900;
+            font-size: 15px;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+            color: var(--color-ink);
+            line-height: 1;
+        }
+        .wordmark span { display: block; font-size: 9px; font-weight: 600; letter-spacing: 0.16em; color: var(--color-muted); margin-top: 3px; }
+
+        /* Card with the tifo hard shadow */
+        .card {
+            background: var(--color-panel);
+            border: 1px solid var(--color-line);
+            border-radius: 6px;
+            box-shadow: 5px 5px 0 var(--color-pitch-dark);
+            padding: 14px;
+        }
+        .card-title {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            color: var(--color-ink);
+        }
+        .card-sub { font-size: 11.5px; color: var(--color-muted); margin-top: 2px; }
+
+        /* Rating strip on the chalk sub-surface */
+        .ratings {
+            display: flex; gap: 6px;
+            margin-top: 12px;
+        }
+        .rcell {
+            flex: 1;
+            background: var(--color-chalk);
+            border: 1px solid var(--color-line);
+            border-radius: 5px;
+            padding: 8px 4px;
+            text-align: center;
+        }
+        .rcell.hero { background: var(--color-pitch-dark); border-color: var(--color-pitch-dark); }
+        .rcell .k { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
+        .rcell.hero .k { color: rgba(255,255,255,0.72); }
+        .rcell .v { font-family: 'Spline Sans Mono', monospace; font-weight: 700; font-size: 18px; color: var(--color-accent); margin-top: 2px; }
+        .rcell.hero .v { color: #fff; }
+
+        .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+        .btn {
+            background: var(--color-pitch);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 14px;
+            font-family: 'Archivo', sans-serif;
+            font-weight: 800;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .chip {
+            font-family: 'Spline Sans Mono', monospace;
+            font-size: 11px; font-weight: 600;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: var(--color-chalk);
+            border: 1px solid var(--color-line);
+            color: var(--color-ink);
+        }
+        .amber { color: var(--color-amber); font-weight: 700; font-size: 12px; font-family: 'Spline Sans Mono', monospace; }
+        .loss { color: var(--color-loss); font-weight: 700; font-size: 12px; font-family: 'Spline Sans Mono', monospace; }
+        .caption { margin-top: 12px; font-size: 11px; color: var(--color-muted); }
+
+        /* Token swatches */
+        .tokens { display: flex; gap: 0; margin-top: 16px; border-radius: 6px; overflow: hidden; border: 1px solid var(--color-line); }
+        .tok { flex: 1; height: 40px; position: relative; }
+        .tok span {
+            position: absolute; left: 4px; bottom: 3px;
+            font-family: 'Spline Sans Mono', monospace;
+            font-size: 8px; letter-spacing: 0.02em;
+            color: rgba(255,255,255,0.62);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+
+        /* ---- The schemes (surfaces vary; green accent kept for identity) ---- */
+        .s-turf {
+            --color-ground:#0e1512; --color-panel:#17211c; --color-chalk:#223129;
+            --color-ink:#e9f1eb; --color-muted:#9db3a6; --color-line:#2c3a33;
+            --color-pitch:#23a25e; --color-pitch-dark:#0b5230; --color-accent:#2eb56a;
+            --color-amber:#eea23a; --color-loss:#e86b5b;
+        }
+        .s-graphite {
+            --color-ground:#131417; --color-panel:#1c1e22; --color-chalk:#26282e;
+            --color-ink:#eceef1; --color-muted:#a4a9b0; --color-line:#33363d;
+            --color-pitch:#22a35d; --color-pitch-dark:#17492f; --color-accent:#34c06f;
+            --color-amber:#eea23a; --color-loss:#e86b5b;
+        }
+        .s-slate {
+            --color-ground:#0d1417; --color-panel:#142023; --color-chalk:#1d2e31;
+            --color-ink:#e6f0f1; --color-muted:#92aeb1; --color-line:#26383b;
+            --color-pitch:#1fa46a; --color-pitch-dark:#0c4a3d; --color-accent:#2ec2a0;
+            --color-amber:#eea23a; --color-loss:#e86b5b;
+        }
+        .s-navy {
+            --color-ground:#0c1020; --color-panel:#151a2e; --color-chalk:#1f2742;
+            --color-ink:#e7ebf5; --color-muted:#9aa3c0; --color-line:#2a3252;
+            --color-pitch:#27a765; --color-pitch-dark:#16324f; --color-accent:#4bd08a;
+            --color-amber:#f0a63f; --color-loss:#ec6a6a;
+        }
+        .s-carbon {
+            --color-ground:#15130f; --color-panel:#1e1b15; --color-chalk:#29241b;
+            --color-ink:#f0ece3; --color-muted:#b0a894; --color-line:#37301f;
+            --color-pitch:#23a35a; --color-pitch-dark:#294a1f; --color-accent:#4cbf6b;
+            --color-amber:#f0a63f; --color-loss:#e86b5b;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1>Dark mode &mdash; scheme explorations</h1>
+        <p class="lede">
+            The shipping dark theme (<b>Turf Green</b>) sits very close to a competitor's near-black
+            green (<span class="swatch-competitor"></span> <code>#0a1910</code>). These options keep the
+            football-<b>green accent</b> for brand identity but shift the <b>surface</b> colours
+            (ground / panel / chalk / line) onto a distinct hue, so the app reads as its own thing.
+            Same mini-UI in each so they compare like-for-like.
+        </p>
+
+        <div class="grid">
+            <!-- template repeated per scheme; only the wrapper class changes -->
+            <section class="scheme s-turf">
+                <div class="scheme-hd"><span class="name">Turf Green</span><span class="tag">previous &middot; too close to competitor</span></div>
+                <div class="ui">
+                    <div class="masthead">
+                        <div class="logo">&#127942;</div>
+                        <div class="wordmark">World Cup Simulator<span>Draft. Play. Lift the cup.</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Your XI</div>
+                        <div class="card-sub">Effective overall with chemistry</div>
+                        <div class="ratings">
+                            <div class="rcell hero"><div class="k">Ovr</div><div class="v">88</div></div>
+                            <div class="rcell"><div class="k">Att</div><div class="v">90</div></div>
+                            <div class="rcell"><div class="k">Mid</div><div class="v">87</div></div>
+                            <div class="rcell"><div class="k">Def</div><div class="v">86</div></div>
+                        </div>
+                        <div class="row">
+                            <button class="btn">Start Run</button>
+                            <span class="chip">R16 vs BRA</span>
+                            <span class="amber">+3 boost</span>
+                            <span class="loss">Lost 1-2</span>
+                        </div>
+                        <div class="caption">Through to the Quarter-final &middot; title odds 12%</div>
+                    </div>
+                    <div class="tokens">
+                        <div class="tok" style="background:var(--color-ground)"><span>ground</span></div>
+                        <div class="tok" style="background:var(--color-panel)"><span>panel</span></div>
+                        <div class="tok" style="background:var(--color-chalk)"><span>chalk</span></div>
+                        <div class="tok" style="background:var(--color-line)"><span>line</span></div>
+                        <div class="tok" style="background:var(--color-pitch)"><span>pitch</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="scheme s-graphite">
+                <div class="scheme-hd"><span class="name">Graphite</span><span class="tag">chosen &middot; ships now</span></div>
+                <div class="ui">
+                    <div class="masthead">
+                        <div class="logo">&#127942;</div>
+                        <div class="wordmark">World Cup Simulator<span>Draft. Play. Lift the cup.</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Your XI</div>
+                        <div class="card-sub">Effective overall with chemistry</div>
+                        <div class="ratings">
+                            <div class="rcell hero"><div class="k">Ovr</div><div class="v">88</div></div>
+                            <div class="rcell"><div class="k">Att</div><div class="v">90</div></div>
+                            <div class="rcell"><div class="k">Mid</div><div class="v">87</div></div>
+                            <div class="rcell"><div class="k">Def</div><div class="v">86</div></div>
+                        </div>
+                        <div class="row">
+                            <button class="btn">Start Run</button>
+                            <span class="chip">R16 vs BRA</span>
+                            <span class="amber">+3 boost</span>
+                            <span class="loss">Lost 1-2</span>
+                        </div>
+                        <div class="caption">Through to the Quarter-final &middot; title odds 12%</div>
+                    </div>
+                    <div class="tokens">
+                        <div class="tok" style="background:var(--color-ground)"><span>ground</span></div>
+                        <div class="tok" style="background:var(--color-panel)"><span>panel</span></div>
+                        <div class="tok" style="background:var(--color-chalk)"><span>chalk</span></div>
+                        <div class="tok" style="background:var(--color-line)"><span>line</span></div>
+                        <div class="tok" style="background:var(--color-pitch)"><span>pitch</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="scheme s-slate">
+                <div class="scheme-hd"><span class="name">Slate Teal</span><span class="tag">cool blue-green tint</span></div>
+                <div class="ui">
+                    <div class="masthead">
+                        <div class="logo">&#127942;</div>
+                        <div class="wordmark">World Cup Simulator<span>Draft. Play. Lift the cup.</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Your XI</div>
+                        <div class="card-sub">Effective overall with chemistry</div>
+                        <div class="ratings">
+                            <div class="rcell hero"><div class="k">Ovr</div><div class="v">88</div></div>
+                            <div class="rcell"><div class="k">Att</div><div class="v">90</div></div>
+                            <div class="rcell"><div class="k">Mid</div><div class="v">87</div></div>
+                            <div class="rcell"><div class="k">Def</div><div class="v">86</div></div>
+                        </div>
+                        <div class="row">
+                            <button class="btn">Start Run</button>
+                            <span class="chip">R16 vs BRA</span>
+                            <span class="amber">+3 boost</span>
+                            <span class="loss">Lost 1-2</span>
+                        </div>
+                        <div class="caption">Through to the Quarter-final &middot; title odds 12%</div>
+                    </div>
+                    <div class="tokens">
+                        <div class="tok" style="background:var(--color-ground)"><span>ground</span></div>
+                        <div class="tok" style="background:var(--color-panel)"><span>panel</span></div>
+                        <div class="tok" style="background:var(--color-chalk)"><span>chalk</span></div>
+                        <div class="tok" style="background:var(--color-line)"><span>line</span></div>
+                        <div class="tok" style="background:var(--color-pitch)"><span>pitch</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="scheme s-navy">
+                <div class="scheme-hd"><span class="name">Midnight Navy</span><span class="tag">floodlit night &middot; navy base</span></div>
+                <div class="ui">
+                    <div class="masthead">
+                        <div class="logo">&#127942;</div>
+                        <div class="wordmark">World Cup Simulator<span>Draft. Play. Lift the cup.</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Your XI</div>
+                        <div class="card-sub">Effective overall with chemistry</div>
+                        <div class="ratings">
+                            <div class="rcell hero"><div class="k">Ovr</div><div class="v">88</div></div>
+                            <div class="rcell"><div class="k">Att</div><div class="v">90</div></div>
+                            <div class="rcell"><div class="k">Mid</div><div class="v">87</div></div>
+                            <div class="rcell"><div class="k">Def</div><div class="v">86</div></div>
+                        </div>
+                        <div class="row">
+                            <button class="btn">Start Run</button>
+                            <span class="chip">R16 vs BRA</span>
+                            <span class="amber">+3 boost</span>
+                            <span class="loss">Lost 1-2</span>
+                        </div>
+                        <div class="caption">Through to the Quarter-final &middot; title odds 12%</div>
+                    </div>
+                    <div class="tokens">
+                        <div class="tok" style="background:var(--color-ground)"><span>ground</span></div>
+                        <div class="tok" style="background:var(--color-panel)"><span>panel</span></div>
+                        <div class="tok" style="background:var(--color-chalk)"><span>chalk</span></div>
+                        <div class="tok" style="background:var(--color-line)"><span>line</span></div>
+                        <div class="tok" style="background:var(--color-pitch)"><span>pitch</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="scheme s-carbon">
+                <div class="scheme-hd"><span class="name">Warm Carbon</span><span class="tag">vintage programme &middot; warm black</span></div>
+                <div class="ui">
+                    <div class="masthead">
+                        <div class="logo">&#127942;</div>
+                        <div class="wordmark">World Cup Simulator<span>Draft. Play. Lift the cup.</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Your XI</div>
+                        <div class="card-sub">Effective overall with chemistry</div>
+                        <div class="ratings">
+                            <div class="rcell hero"><div class="k">Ovr</div><div class="v">88</div></div>
+                            <div class="rcell"><div class="k">Att</div><div class="v">90</div></div>
+                            <div class="rcell"><div class="k">Mid</div><div class="v">87</div></div>
+                            <div class="rcell"><div class="k">Def</div><div class="v">86</div></div>
+                        </div>
+                        <div class="row">
+                            <button class="btn">Start Run</button>
+                            <span class="chip">R16 vs BRA</span>
+                            <span class="amber">+3 boost</span>
+                            <span class="loss">Lost 1-2</span>
+                        </div>
+                        <div class="caption">Through to the Quarter-final &middot; title odds 12%</div>
+                    </div>
+                    <div class="tokens">
+                        <div class="tok" style="background:var(--color-ground)"><span>ground</span></div>
+                        <div class="tok" style="background:var(--color-panel)"><span>panel</span></div>
+                        <div class="tok" style="background:var(--color-chalk)"><span>chalk</span></div>
+                        <div class="tok" style="background:var(--color-line)"><span>line</span></div>
+                        <div class="tok" style="background:var(--color-pitch)"><span>pitch</span></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>

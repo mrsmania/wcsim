@@ -39,22 +39,27 @@
    alone. Contrast verified: body/muted/accent text >= 4.5 (AA), the primary
    button's large bold white label 3.28 (AA-large). */
 :root[data-theme='dark'] {
-    --color-ground: #0e1512;
-    --color-panel: #17211c;
-    --color-chalk: #223129;
-    --color-ink: #e9f1eb;
-    --color-muted: #9db3a6;
-    --color-line: #2c3a33;
-    --color-pitch: #23a25e;
-    --color-pitch-dark: #0b5230;
+    /* "Graphite" dark scheme: neutral cool-grey surfaces so the theme reads as its
+       own identity (the earlier near-black green sat too close to a competitor). The
+       football green is kept as an ACCENT only (pitch button, accent text, the tifo
+       hard shadow), which pops harder against the neutral base. */
+    --color-ground: #131417;
+    --color-panel: #1c1e22;
+    --color-chalk: #26282e;
+    --color-ink: #eceef1;
+    --color-muted: #a4a9b0;
+    --color-line: #33363d;
+    --color-pitch: #22a35d;
+    --color-pitch-dark: #17492f;
     /* Brighter than pitch so green accent text clears AA (>= 4.5) on bg-chalk /
-       bg-pitch/10; pitch-dark stays a deep surface. */
-    --color-accent: #2eb56a;
+       bg-pitch/10; pitch-dark stays a deep surface (the hard shadow). */
+    --color-accent: #34c06f;
     --color-amber: #eea23a;
     --color-loss: #e86b5b;
 }
 :root[data-theme='dark'] body {
-    background-image: linear-gradient(180deg, rgba(47, 180, 106, 0.07), transparent 220px);
+    /* Faint green glow at the very top, tying the accent into the neutral base. */
+    background-image: linear-gradient(180deg, rgba(52, 192, 111, 0.05), transparent 220px);
 }
 
 html,
