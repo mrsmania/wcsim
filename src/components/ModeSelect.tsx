@@ -13,14 +13,16 @@ import { TIER_META } from './StickerCard';
  *  "Start Run" does and whether the run feeds a persistent career. Shown only when
  *  `FEATURES.careerMode` is on (with it off, `/` is the build page directly). */
 interface Props {
-    onQuick: () => void;
-    onCareer: () => void;
+    /** Target route for the "Quick Run" CTA (resumes an in-progress World Cup if there
+     *  is one, else the quick-run build page). A real link, so middle/ctrl-click works. */
+    quickTo: string;
+    /** Target route for the "Career Mode" CTA (resumes an in-progress Cup Run, else the
+     *  career build page). */
+    careerTo: string;
     /** A World Cup in progress -> its route (resume), else null. */
     worldCupRoute: string | null;
-    onResumeWorldCup: () => void;
     /** A Cup Run in progress -> offer to resume it, with a short round summary. */
     cupRunInProgress: boolean;
-    onResumeCupRun: () => void;
     cupRunSummary?: string;
     /** The active squad pool, for the rarest-stickers showcase. */
     allPlayers: Player[];
@@ -51,18 +53,17 @@ const CTA =
     'inline-flex items-center gap-2 rounded-lg px-[22px] py-[14px] font-display text-[14px] font-extrabold uppercase tracking-[0.04em] transition';
 
 function ResumeButton({
-    onClick,
+    to,
     label,
     sub,
 }: {
-    onClick: () => void;
+    to: string;
     label: string;
     sub: string;
 }) {
     return (
-        <button
-            type="button"
-            onClick={onClick}
+        <Link
+            to={to}
             className="inline-flex items-center gap-3 rounded-[10px] border border-white/20 bg-white/[0.08] py-[9px] pl-[9px] pr-[14px] text-left text-white transition hover:bg-white/[0.14]"
         >
             <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg bg-amber text-ink">
@@ -73,7 +74,7 @@ function ResumeButton({
                 <small className="mt-[2px] block truncate font-mono text-[11px] text-white/70">{sub}</small>
             </span>
             <ChevronRight size={16} className="ml-0.5 shrink-0 text-white/60" />
-        </button>
+        </Link>
     );
 }
 
@@ -100,12 +101,10 @@ function Beat({
 }
 
 export default function ModeSelect({
-    onQuick,
-    onCareer,
+    quickTo,
+    careerTo,
     worldCupRoute,
-    onResumeWorldCup,
     cupRunInProgress,
-    onResumeCupRun,
     cupRunSummary,
     allPlayers,
 }: Props) {
@@ -144,22 +143,20 @@ export default function ModeSelect({
                     </p>
 
                     <div className="mt-6 flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            onClick={onQuick}
+                        <Link
+                            to={quickTo}
                             className={`${CTA} bg-white text-ink hover:bg-white/90`}
                         >
                             Play a Quick Run
                             <ArrowRight size={17} strokeWidth={2.5} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onCareer}
+                        </Link>
+                        <Link
+                            to={careerTo}
                             className={`${CTA} bg-amber text-ink hover:bg-amber/90`}
                         >
                             Enter Career Mode
                             <ArrowRight size={17} strokeWidth={2.5} />
-                        </button>
+                        </Link>
                     </div>
                     <p className="mt-3.5 text-[12.5px] text-white/70">
                         <b className="font-semibold text-white">Quick Run</b> is a one-off.{' '}
@@ -171,14 +168,14 @@ export default function ModeSelect({
                         <div className="mt-5 flex flex-wrap gap-2.5">
                             {cupRunInProgress && (
                                 <ResumeButton
-                                    onClick={onResumeCupRun}
+                                    to="/cup-run"
                                     label="Resume your Cup Run"
                                     sub={cupRunSummary ?? 'Pick up where you left off'}
                                 />
                             )}
                             {worldCupRoute && (
                                 <ResumeButton
-                                    onClick={onResumeWorldCup}
+                                    to={worldCupRoute}
                                     label="Resume the World Cup"
                                     sub="Back to your tournament"
                                 />

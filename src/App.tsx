@@ -697,14 +697,10 @@ export default function App() {
                         )
                     ) : isLauncher ? (
                         <ModeSelect
-                            onQuick={() => navigate(worldCupRoute ?? '/quick-run')}
-                            onCareer={() =>
-                                navigate(resumeCupRun ? '/cup-run' : '/career-mode')
-                            }
+                            quickTo={worldCupRoute ?? '/quick-run'}
+                            careerTo={resumeCupRun ? '/cup-run' : '/career-mode'}
                             worldCupRoute={worldCupRoute}
-                            onResumeWorldCup={() => navigate(worldCupRoute ?? '/')}
                             cupRunInProgress={!!resumeCupRun}
-                            onResumeCupRun={() => navigate('/cup-run')}
                             cupRunSummary={resumeCupRun?.summary}
                             allPlayers={poolPlayers}
                         />
