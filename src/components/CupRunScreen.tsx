@@ -98,10 +98,10 @@ export default function CupRunScreen({
   const toastTimer = useRef<number | undefined>(undefined);
   // The boost-pick panel, scrolled into view when a run enters the boost phase.
   const boostRef = useRef<HTMLDivElement | null>(null);
-  // The career hub is open before a run and collapses to a slim strip once one starts
-  // (perks are a between-runs thing). The Hide/Career-hub toggle is always available, so
-  // the user can override either way (see the run-presence effect below).
-  const [hubOpen, setHubOpen] = useState(true);
+  // The career hub starts collapsed to a slim strip (so the Play CTA is visible without
+  // scrolling); the whole-bar toggle opens it to shop perks. It re-collapses when a run
+  // starts so the match reveal is not hidden (see the run-presence effect below).
+  const [hubOpen, setHubOpen] = useState(false);
   // The Ascension tier chosen for the next run. Defaults to the last tier the player
   // chose (persisted on the career), falling back to the highest selectable the first
   // time; always clamped to what is currently selectable.
@@ -152,11 +152,12 @@ export default function CupRunScreen({
     else clearReveal();
   }, [reveal]);
 
-  // Default the hub open before a run and collapsed once one starts; only fires when the
-  // run presence flips, so a manual toggle sticks until then.
+  // Collapse the hub whenever a run starts (so the match reveal is not buried); only fires
+  // when the run presence flips, so a manual toggle sticks until then. Pre-run it keeps the
+  // collapsed default (or whatever the user last set).
   const hasRun = !!run;
   useEffect(() => {
-    setHubOpen(!hasRun);
+    if (hasRun) setHubOpen(false);
   }, [hasRun]);
 
   // Bank the run's collectibles to the album once, when it ends. Reload-safe via the
