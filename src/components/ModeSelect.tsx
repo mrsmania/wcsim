@@ -279,9 +279,9 @@ export default function ModeSelect({
                                         <img
                                             src={`${import.meta.env.BASE_URL}stickers/${p.id}.png`}
                                             alt={p.name}
-                                            // Small centred thumbnail on phones; full-width square hero
-                                            // from the 3-column breakpoint up.
-                                            className="mx-auto mt-2.5 block h-16 w-16 rounded-md bg-white object-cover object-top min-[460px]:mx-0 min-[460px]:mt-0 min-[460px]:aspect-square min-[460px]:h-auto min-[460px]:w-full min-[460px]:rounded-none"
+                                            // Large centred avatar on phones (the card's main eye-catcher);
+                                            // full-width square hero from the 3-column breakpoint up.
+                                            className="mx-auto mt-3 block aspect-square w-4/5 rounded-lg bg-white object-cover object-top min-[460px]:mx-0 min-[460px]:mt-0 min-[460px]:w-full min-[460px]:rounded-none"
                                             onError={(e) => {
                                                 e.currentTarget.style.display = 'none';
                                             }}
