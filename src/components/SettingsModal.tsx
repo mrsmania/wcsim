@@ -102,6 +102,22 @@ export default function SettingsModal({
                 Settings
             </h2>
             <div className="overflow-hidden rounded-md border border-line bg-panel">
+                {/* Appearance */}
+                <div className={GROUP}>
+                    <div className={GH}>Appearance</div>
+                    <div className="mt-2 flex items-center justify-between gap-4">
+                        <div>
+                            <div className="text-[13.5px] font-semibold">Dark mode</div>
+                            <p className={HINT}>Night-match theme for low-light play.</p>
+                        </div>
+                        <Switch
+                            on={s.theme === 'dark'}
+                            onToggle={() => setTheme(s.theme === 'dark' ? 'light' : 'dark')}
+                            label="Dark mode"
+                        />
+                    </div>
+                </div>
+
                 {/* Squad pool */}
                 <div className={GROUP}>
                     <div className={GH}>Squad pool</div>
@@ -218,22 +234,6 @@ export default function SettingsModal({
                                 { value: 'manual', label: 'Manual' },
                                 { value: 'auto', label: 'Auto-play' },
                             ]}
-                        />
-                    </div>
-                </div>
-
-                {/* Appearance */}
-                <div className={GROUP}>
-                    <div className={GH}>Appearance</div>
-                    <div className="mt-2 flex items-center justify-between gap-4">
-                        <div>
-                            <div className="text-[13.5px] font-semibold">Dark mode</div>
-                            <p className={HINT}>Night-match theme for low-light play.</p>
-                        </div>
-                        <Switch
-                            on={s.theme === 'dark'}
-                            onToggle={() => setTheme(s.theme === 'dark' ? 'light' : 'dark')}
-                            label="Dark mode"
                         />
                     </div>
                 </div>

@@ -922,14 +922,16 @@ export default function App() {
                             </Fragment>
                         ))}
                     </nav>
-                    <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-                        Made in Switzerland
-                        <img
-                            src={`${import.meta.env.BASE_URL}img/swiss.svg`}
-                            alt="Swiss flag"
-                            className="h-[15px] w-[15px]"
-                        />
-                        - not affiliated with FIFA
+                    <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                            Made in Switzerland
+                            <img
+                                src={`${import.meta.env.BASE_URL}img/swiss.svg`}
+                                alt="Swiss flag"
+                                className="h-[15px] w-[15px]"
+                            />
+                        </span>
+                        <span>- not affiliated with FIFA</span>
                     </p>
                 </footer>
             </div>
