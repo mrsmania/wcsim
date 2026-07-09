@@ -8,6 +8,12 @@ Last updated: 2026-07-08.
 
 ## Done (recent, newest first)
 
+- **Career depth G - Transfer Budget progression.** Career Mode's budget-draft budget
+  scales via a new `transfer-budget` perk track (8 tiers, $70 base -> $150), bought with
+  Prestige + level-gated. Quick Run stays fixed at `$110`. `config.ts BUDGET_BY_TIER` +
+  App computes `budget` (career-scaled for career-mode builds, else `BUDGET_DRAFT`) and
+  passes it to `BudgetMarket`. Also **slowed XP** (`XP_PER_LEVEL` 100 -> 200) so the
+  level gates on perks/budget actually bite (level now tracks Prestige cost).
 - **Home launcher enrichment** - `ModeSelect.tsx` is now a marketing landing: a grass
   tactics-board hero (game pitch colours) with an all-time 4-3-3, the two CTAs + resume
   buttons, a 3-beat "how it works" (circle-dashed / swords / trophy), and a
@@ -26,11 +32,7 @@ Last updated: 2026-07-08.
 
 ## Next up (in order)
 
-1. **Career depth G - Transfer Budget progression.** A career-scaled budget-draft
-   budget: ramps **$75 -> $130** via a new `transfer-budget` perk track (reuses the
-   cluster-B tiered-perk machinery); applies to all budget builds while career mode is
-   on, fixed `$110` when off. Full code-level plan in `docs/career-depth-spec.md` 6.5.
-2. **Career depth E - Challenges / Mandates.** The high-value retention feature (the
+1. **Career depth E - Challenges / Mandates.** The high-value retention feature (the
    user is keen on this one). Renewable objectives checked from the finished `RunState`
    (e.g. win at Ascension III, win with an avg-rating < 80 XI, clean-sheet the
    knockouts). Awards Prestige + trophy-cabinet entries. Spec: `docs/career-depth-spec.md`

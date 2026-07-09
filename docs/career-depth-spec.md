@@ -1,9 +1,9 @@
 # Career Depth - Implementation Spec (Economy 2.0)
 
-**Status:** In progress. **A shipped** (boon-pool unlocks + rarity-weighted offers).
-**B shipped** (tiered, level-gated perks + the CareerState v1->v2 migration). **C shipped**
-(Ascension tiers: handicap + steeper knockout draw + reward multiplier, earned + level-gated).
-**G next** (Transfer Budget progression, accepted - see 6.5).
+**Status:** In progress. **A/B/C/G shipped.** A = boon-pool unlocks + rarity-weighted
+offers; B = tiered, level-gated perks (+ CareerState v1->v2 migration); C = Ascension
+tiers; G = Transfer Budget progression (see 6.5 for the shipped values). XP was slowed to
+`XP_PER_LEVEL = 200` so level gates bite. **E (Challenges) is next.**
 Sits on top of `docs/roguelike-career-design.md` (the high-level vision). This document is
 the concrete, code-level plan; it supersedes that doc's section 6 where they disagree.
 **Scope:** clusters **A** (boon-pool unlocks + rarity-weighted offers), **B** (tiered,
@@ -357,13 +357,13 @@ defaulting to the highest selectable, showing the handicap + reward-multiplier p
 
 ---
 
-## 6.5 Cluster G - Transfer Budget progression (accepted; build after C)
+## 6.5 Cluster G - Transfer Budget progression (SHIPPED)
 
 Tie the budget-draft ("Transfer Market") budget to career progression: start smaller and
-earn your way up to a stronger wallet. Decisions taken: budget ramps **$75 -> $130**, and
-it applies to **all budget builds while career mode is on** (with `careerMode` off it stays
-the fixed `BUDGET_DRAFT = 110`, so the plain game is unchanged). Reuses the cluster-B
-tiered-perk machinery.
+earn your way up. **Shipped decisions:** budget ramps **$70 -> $150** over 8 tiers; it
+applies to **Career Mode builds only** (`mode === 'career'`); **Quick Run stays fixed at
+`$110`** (and career-off is unchanged). Reuses the cluster-B tiered-perk machinery. Paired
+with an XP slowdown (`XP_PER_LEVEL` 100 -> 200) so the level gates on the tiers bite.
 
 ### G.1 Why it fits
 
@@ -377,29 +377,32 @@ buy-a-team path scales with the career.
 A new perk track plus a pure tier -> dollars map (kept out of `PerkTier`, whose other
 tracks derive their effect from the tier index, not a payload):
 
+As shipped (`domain/career.ts` PERKS + `config.ts`):
+
 ```ts
-// domain/career.ts - a fourth PERKS track (purchase + level gate only)
+// domain/career.ts - a fourth PERKS track (purchase + level gate; effect is the budget)
 { id: 'transfer-budget', name: 'Transfer Budget', tiers: [
-  { level: 1, description: '$90 transfer budget.',  cost: 30,  levelReq: 2 },
-  { level: 2, description: '$105 transfer budget.', cost: 60,  levelReq: 5 },
-  { level: 3, description: '$120 transfer budget.', cost: 110, levelReq: 9 },
-  { level: 4, description: '$130 transfer budget.', cost: 180, levelReq: 14 },
+  { level: 1, description: '$80 transfer budget (Career Mode).', cost: 20,  levelReq: 2 },
+  { level: 2, description: '$90 transfer budget.',  cost: 40,  levelReq: 3 },
+  { level: 3, description: '$100 transfer budget.', cost: 80,  levelReq: 5 },
+  { level: 4, description: '$110 transfer budget.', cost: 120, levelReq: 8 },
+  { level: 5, description: '$120 transfer budget.', cost: 160, levelReq: 12 },
+  { level: 6, description: '$130 transfer budget.', cost: 220, levelReq: 18 },
+  { level: 7, description: '$140 transfer budget.', cost: 300, levelReq: 24 },
+  { level: 8, description: '$150 transfer budget.', cost: 400, levelReq: 32 },
 ]}
 
-// domain/pricing.ts (or a small budget module) - tier -> dollars, base at index 0
-export const BUDGET_BY_TIER = [75, 90, 105, 120, 130] as const; // tunable; hits $75 -> $130
-
-/** The budget for a build: the career-scaled value when career mode is on, else the
- *  fixed baseline. Pure; `career` is null when career mode is off / not loaded. */
-export function effectiveBudget(career: CareerState | null): number {
-  if (!FEATURES.careerMode || !career) return BUDGET_DRAFT;
-  const tier = Math.min(career.perkLevels['transfer-budget'] ?? 0, BUDGET_BY_TIER.length - 1);
-  return BUDGET_BY_TIER[tier];
-}
+// config.ts - tier -> dollars, base ($70) at index 0
+export const BUDGET_BY_TIER = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;
 ```
 
-Adds ~380 Prestige of sink (30+60+110+180) and, at max, a real veteran buff ($130 vs the
-current $110).
+The effective budget is computed in `App` (which reads `loadCareer()` on route change,
+since the career otherwise lives in `CupRunScreen`): career-mode build -> `BUDGET_BY_TIER`
+by the owned `transfer-budget` tier; Quick Run / career-off -> `BUDGET_DRAFT` ($110). It is
+passed to `BudgetMarket` as a `budget` prop (the reducer enforces nothing budget-related;
+the market UI does). Adds **1,340 Prestige** of sink and, at max, a $150 (~all-87) build.
+Balance: sim shows even a ~89 XI wins only ~17% at Ascension V, so the top budget is not an
+auto-win; the biggest single sink in the game, gated to a long tail.
 
 ### G.3 Integration points
 
@@ -482,8 +485,9 @@ characterization harness:
 3. **B - tiered perks** (done: `perkLevels` + `buyPerkTier` + v1->v2 migration + hub UI).
 4. **C - Ascension** (done: `domain/ascension.ts` + `RunState.ascension` +
    `CareerState.ascension`/`stats.bestCupAscension` + selector + reward multiplier).
-5. **G - Transfer Budget progression** (see 6.5: `transfer-budget` track + `effectiveBudget`
-   threaded through the budget draft). Next; reuses the v2 perk schema.
+5. **G - Transfer Budget progression** (done: `transfer-budget` track + `BUDGET_BY_TIER` +
+   `budget` prop threaded to `BudgetMarket`; Career-Mode-only; XP slowed to 200/level).
+6. **E - Challenges / Mandates** (next; see the Future ideas section).
 
 Each slice is independently shippable behind `FEATURES.careerMode` and validated by the
 checks harness before the next.

@@ -9,7 +9,7 @@ import { placedPlayers, type Filled } from '../domain/draft';
 import { priceOf } from '../domain/pricing';
 import { autoFillBudget, playersByPosition } from '../domain/budget';
 import { tierOf } from '../domain/album';
-import { BUDGET_DRAFT, FEATURES } from '../config';
+import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
@@ -44,6 +44,8 @@ const SELECT =
 interface Props {
   formation: Formation;
   filled: Filled;
+  /** Total "$" to spend (Quick Run = BUDGET_DRAFT; Career Mode = career-scaled). */
+  budget: number;
   /** The player pool (squad-pool setting); the market lists and prices only these. */
   poolPlayers: Player[];
   /** The empty slot currently being shopped for (drives the market's position),
@@ -70,6 +72,7 @@ interface Props {
 export default function BudgetMarket({
   formation,
   filled,
+  budget,
   poolPlayers,
   targetSlot,
   heldPlayer,
@@ -119,7 +122,7 @@ export default function BudgetMarket({
   const placed = placedPlayers(formation, filled);
   const used = new Set(placed.map((p) => p.personId));
   const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
-  const remaining = BUDGET_DRAFT - spent;
+  const remaining = budget - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
 
   const results = useMemo(() => {
@@ -170,7 +173,7 @@ export default function BudgetMarket({
       <div className="border-b border-line p-4">
         <div className="flex items-baseline justify-between font-mono text-[12px]">
           <span>
-            Spent <b className="text-ink">${spent}</b> / ${BUDGET_DRAFT}
+            Spent <b className="text-ink">${spent}</b> / ${budget}
           </span>
           <span className={remaining < 0 ? 'font-bold text-loss' : 'text-muted'}>
             ${remaining} left &middot; {placed.length}/{slots.length}
@@ -179,7 +182,7 @@ export default function BudgetMarket({
         <div className="mt-2 h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
           <div
             className={`h-full ${remaining < 0 ? 'bg-loss' : 'bg-pitch'}`}
-            style={{ width: `${Math.min(100, (spent / BUDGET_DRAFT) * 100)}%` }}
+            style={{ width: `${Math.min(100, (spent / budget) * 100)}%` }}
           />
         </div>
         <div className="mt-3 flex gap-2">

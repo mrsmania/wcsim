@@ -41,10 +41,11 @@ import { KO_ROUNDS } from './domain/knockout';
 import { userRatingDelta, type Difficulty } from './domain/difficulty';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
-import { FEATURES } from './config';
+import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
 import { loadGame, saveGame } from './state/persist';
 import { clearRun, loadRun } from './state/runStorage';
+import { loadCareer } from './state/careerStorage';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import SettingsModal from './components/SettingsModal';
@@ -551,6 +552,25 @@ export default function App() {
     const worldCupRoute = worldCupInProgress ? (bracket ? '/knockout' : '/group') : null;
     const albumSummary = stickers.summary;
 
+    // Transfer-market budget. Quick Run (and career-off) use the fixed BUDGET_DRAFT;
+    // Career Mode scales it by the owned `transfer-budget` perk tier. The career is
+    // read from storage here (it lives in CupRunScreen otherwise), refreshed whenever
+    // the route changes - so buying a tier in the hub then returning to build applies.
+    const buildCareer = useMemo(
+        () => (FEATURES.careerMode && isBuild && mode === 'career' ? loadCareer() : null),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [path],
+    );
+    const budget =
+        buildCareer != null
+            ? BUDGET_BY_TIER[
+                  Math.min(
+                      buildCareer.perkLevels['transfer-budget'] ?? 0,
+                      BUDGET_BY_TIER.length - 1,
+                  )
+              ]
+            : BUDGET_DRAFT;
+
     // Launcher-only read (localStorage), refreshed whenever we land on `/`: a Cup Run
     // that is mid-flight (not yet ended), with a short round summary for the resume
     // button. Null when there is nothing to resume.
@@ -789,6 +809,7 @@ export default function App() {
                                             <BudgetMarket
                                                 formation={formation}
                                                 filled={filled}
+                                                budget={budget}
                                                 poolPlayers={poolPlayers}
                                                 targetSlot={budgetTargetSlot}
                                                 heldPlayer={heldPlayer}

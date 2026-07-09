@@ -468,9 +468,12 @@ A second way to build the XI, alongside the random roll. Spec:
 - **`BudgetMarket.tsx`** is the left-column panel (the player source, mirroring the drawn-squad
   panel): a budget bar + "Auto-fill & spend" + "Clear" + "Start over" on top, then the
   rating-sorted, searchable list for the targeted position (all shown; unaffordable/used rows
-  disabled; collectible tier stars). You buy from all squads within a fixed budget (`BUDGET_DRAFT`
-  in config, $110), each priced by rating via **`domain/pricing.ts`** (`priceOf` =
-  `max(1, round((elo-58)^2/64))`, convex so the budget forces trade-offs).
+  disabled; collectible tier stars). You buy from all squads within a budget, each priced by
+  rating via **`domain/pricing.ts`** (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so
+  the budget forces trade-offs). The budget is a `budget` prop (not a constant): Quick Run
+  (and career-off) use the fixed `BUDGET_DRAFT` ($110); **Career Mode scales it** by the
+  owned `transfer-budget` career perk via `config.ts` `BUDGET_BY_TIER` ($70 base -> $150),
+  computed in `App` (reads `loadCareer()`) and passed to `BudgetMarket`.
 - **Position selection is on the pitch, both directions.** `Pitch` gained two optional props
   (`onSelectSlot` + `targetSlotId`, no-op in the roll draft): tap an empty slot to *shop* that
   position (the market filters to it), OR tap a market player to hold it (its eligible slots pulse

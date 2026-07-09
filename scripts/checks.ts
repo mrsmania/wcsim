@@ -38,7 +38,7 @@ import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemi
 import { priceOf } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA } from '../src/domain/formations';
-import { BUDGET_DRAFT } from '../src/config';
+import { BUDGET_DRAFT, BUDGET_BY_TIER } from '../src/config';
 import {
   BOONS,
   offerBoons,
@@ -368,6 +368,24 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   for (let i = 0; i < 5; i++) maxed = buyPerkTier({ ...maxed, prestige: 9999, level: 99 }, perk.id);
   if (perkLevelOf(maxed, perk.id) !== perk.tiers.length) ok = false;
   check('career: tiered perks respect cost, level gate, and max tier', ok);
+}
+
+// --- Budget: career ladder is well-formed and matches the perk track ---------
+{
+  let ok = true;
+  const track = PERKS.find((p) => p.id === 'transfer-budget')!;
+  // One budget per owned tier, plus the base (tier 0).
+  if (BUDGET_BY_TIER.length !== track.tiers.length + 1) ok = false;
+  // Budgets strictly increase up the ladder.
+  for (let i = 1; i < BUDGET_BY_TIER.length; i++) {
+    if (BUDGET_BY_TIER[i] <= BUDGET_BY_TIER[i - 1]) ok = false;
+  }
+  // Each perk tier is a bigger ask than the last (cost up, level gate non-decreasing).
+  for (let i = 1; i < track.tiers.length; i++) {
+    if (track.tiers[i].cost <= track.tiers[i - 1].cost) ok = false;
+    if (track.tiers[i].levelReq < track.tiers[i - 1].levelReq) ok = false;
+  }
+  check('budget: career budget ladder is well-formed and matches its perk track', ok);
 }
 
 // --- Ascension: reward scaling, unlock bookkeeping, selection gates ---------

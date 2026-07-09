@@ -47,8 +47,12 @@ export const INITIAL_CAREER: CareerState = {
   stats: { runs: 0, cups: 0, bestScore: 0, bestFinish: null, bestCupAscension: 0 },
 };
 
-/** Flat 100 XP per level - simple and readable. */
-const XP_PER_LEVEL = 100;
+/** Flat XP per level. Tuned so the level gates on perks/Ascension actually bite:
+ *  XP is round(score x mult) and Prestige is that / 5, so XP = 5 x Prestige earned;
+ *  at 200/level, reaching level L needs ~ (L-1) x 40 Prestige EARNED, which tracks
+ *  the perk/budget Prestige costs closely (so level is a real second gate, not a
+ *  formality that is always satisfied first). */
+const XP_PER_LEVEL = 200;
 export const levelForXp = (xp: number): number => 1 + Math.floor(xp / XP_PER_LEVEL);
 /** XP accrued within the current level, and the amount needed for the next. */
 export const levelProgress = (xp: number): { into: number; needed: number } => ({
@@ -112,6 +116,22 @@ export const PERKS: Perk[] = [
     tiers: [
       { level: 1, description: '4 team boosts offered each round.', cost: 75, levelReq: 3 },
       { level: 2, description: '5 team boosts offered each round.', cost: 150, levelReq: 7 },
+    ],
+  },
+  {
+    // Raises the Career-Mode transfer-draft budget (Quick Run stays at BUDGET_DRAFT).
+    // The tier -> dollars mapping lives in config.ts BUDGET_BY_TIER (base $70 at tier 0).
+    id: 'transfer-budget',
+    name: 'Transfer Budget',
+    tiers: [
+      { level: 1, description: '$80 transfer budget (Career Mode).', cost: 20, levelReq: 2 },
+      { level: 2, description: '$90 transfer budget.', cost: 40, levelReq: 3 },
+      { level: 3, description: '$100 transfer budget.', cost: 80, levelReq: 5 },
+      { level: 4, description: '$110 transfer budget.', cost: 120, levelReq: 8 },
+      { level: 5, description: '$120 transfer budget.', cost: 160, levelReq: 12 },
+      { level: 6, description: '$130 transfer budget.', cost: 220, levelReq: 18 },
+      { level: 7, description: '$140 transfer budget.', cost: 300, levelReq: 24 },
+      { level: 8, description: '$150 transfer budget.', cost: 400, levelReq: 32 },
     ],
   },
 ];

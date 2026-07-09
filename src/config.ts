@@ -66,6 +66,12 @@ export const STICKER_TRADE_COST: Record<StickerTier, number> = {
 /** Budget draft ("Transfer Market"): total "$" to spend on a full XI (see
  *  docs/budget-draft-requirements.md). Prices are convex (domain/pricing.ts), so with
  *  the current curve this budget maps to a uniform-rating ceiling of roughly:
- *  $99 -> all-82, $110 -> all-83, $121 -> all-84. This is the single knob for how tight
- *  the mode is - raise it if budget teams should feel stronger. */
+ *  $99 -> all-82, $110 -> all-83, $121 -> all-84. This is the Quick Run budget (and the
+ *  baseline when career mode is off). Career Mode scales it via BUDGET_BY_TIER below. */
 export const BUDGET_DRAFT = 110;
+
+/** Career-scaled transfer budget, indexed by the owned tier of the `transfer-budget`
+ *  perk (0 = base). Career Mode builds use this instead of BUDGET_DRAFT; Quick Run
+ *  always uses BUDGET_DRAFT. Tunable ladder (rises $70 -> $150). Keep in sync with the
+ *  `transfer-budget` perk tiers in domain/career.ts (one entry per tier + the base). */
+export const BUDGET_BY_TIER = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;

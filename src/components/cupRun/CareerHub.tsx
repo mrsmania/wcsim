@@ -16,7 +16,7 @@ const RARITY_DOT: Record<Rarity, string> = {
 };
 
 /** Owned-tier numeral shown next to a perk name (tiers are small). */
-const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 
 /** The career hub - full between runs, a slim collapsible strip during a run. The
  *  toggle only shows while a run is active (`showToggle`); `showBody` gates the
@@ -100,7 +100,7 @@ export default function CareerHub({
             <div className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
               Perks (spend Prestige - applies to future runs)
             </div>
-            <div className="grid gap-2.5 sm:grid-cols-3">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {PERKS.map((perk) => {
                 const lvl = perkLevelOf(career, perk.id);
                 const next = nextPerkTier(career, perk.id); // null => maxed
