@@ -52,16 +52,17 @@
   @media (max-width: 520px) { .mast .tag { display: none; } }
 
   /* HERO - the pitch as a tactics board, text laid over chalk markings */
-  .hero { position: relative; overflow: hidden; margin-top: 20px; border-radius: 14px; background: var(--pitch-deep); color: #fff; padding: clamp(30px, 5vw, 54px) clamp(22px, 5vw, 52px); box-shadow: 7px 7px 0 var(--ink); display: flex; align-items: center; gap: 40px; }
-  .hero .grass { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 40px, transparent 40px 80px); pointer-events: none; }
+  .hero { position: relative; overflow: hidden; margin-top: 20px; border-radius: 14px; background: #1a7d45; color: #fff; padding: clamp(30px, 5vw, 54px) clamp(22px, 5vw, 52px); box-shadow: 7px 7px 0 var(--ink); display: flex; align-items: center; gap: 40px; }
+  /* Mowing stripes in the game's exact pitch greens (base #1a7d45, stripe #1f8a4d). */
+  .hero .grass { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #1f8a4d 0 44px, #1a7d45 44px 88px); pointer-events: none; }
   .hero .content { position: relative; flex: 1 1 auto; max-width: 620px; }
 
   /* populated 4-3-3 tactics board (desktop only) */
   .hero .board { position: relative; flex: 0 0 auto; width: 272px; aspect-ratio: 200 / 300; }
   @media (max-width: 1119px) { .hero .board { display: none; } }
-  .board .lines { position: absolute; inset: 0; width: 100%; height: 100%; color: rgba(255,255,255,0.5); }
+  .board .lines { position: absolute; inset: 0; width: 100%; height: 100%; color: rgba(255,255,255,0.82); }
   .badge { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 3px; width: 72px; }
-  .badge .circ { width: 30px; height: 30px; border-radius: 50%; background: #093a21; border: 2px solid #fff; color: #fff; display: grid; place-items: center; font-family: var(--mono); font-weight: 800; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.35); }
+  .badge .circ { width: 30px; height: 30px; border-radius: 50%; background: #0e5c34; border: 2px solid #fff; color: #fff; display: grid; place-items: center; font-family: var(--mono); font-weight: 800; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.35); }
   .badge .lbl { font-family: var(--body); font-weight: 700; font-size: 9px; color: #fff; background: rgba(11,45,27,0.74); padding: 1px 5px; border-radius: 3px; white-space: nowrap; line-height: 1.35; }
   .hero .kick { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--amber); }
   .hero h2 { font-family: var(--disp); font-weight: 900; font-size: clamp(34px, 6.4vw, 60px); line-height: 1.0; letter-spacing: -0.03em; margin: 12px 0 0; text-wrap: balance; }
