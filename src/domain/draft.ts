@@ -38,9 +38,25 @@ export function isComplete(formation: Formation, filled: Filled): boolean {
   return filledCount(formation, filled) === formation.slots.length;
 }
 
-/** The players placed so far, in slot order. */
+/** The players placed so far, in slot order. Each player's `positions` is reordered so
+ *  the SLOT they were placed in leads (positions[0] = the slot's role). Downstream code
+ *  keys off the primary position (xiStrength, the boosts' attacker/defender split,
+ *  chemistry, the XI display), so this makes a player count as the role they actually
+ *  play rather than their nominal main position - e.g. a DM/CB placed at CB is treated
+ *  as a defender (and gets the Defensive Drills boost). `canPlace` guarantees the slot
+ *  role is one of the player's positions, so it is always present to promote. */
 export function placedPlayers(formation: Formation, filled: Filled): Player[] {
-  return formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
+  const out: Player[] = [];
+  for (const s of formation.slots) {
+    const p = filled[s.id];
+    if (!p) continue;
+    out.push(
+      p.positions[0] === s.position
+        ? p
+        : { ...p, positions: [s.position, ...p.positions.filter((pos) => pos !== s.position)] },
+    );
+  }
+  return out;
 }
 
 /** Average elo of the players placed so far (0 when none). */

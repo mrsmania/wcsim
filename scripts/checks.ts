@@ -11,7 +11,7 @@
  * the knockout bracket, standings, chemistry) - not a UI or behaviour change.
  */
 import { SQUADS, SQUAD_BY_ID } from '../src/data/squads';
-import { primaryPosition } from '../src/data/types';
+import { primaryPosition, type Player } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
 import { simulateMatch, simulateShootout } from '../src/domain/match';
 import {
@@ -38,6 +38,7 @@ import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemi
 import { priceOf } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA } from '../src/domain/formations';
+import { placedPlayers } from '../src/domain/draft';
 import { BUDGET_DRAFT, BUDGET_BY_TIER } from '../src/config';
 import {
   BOONS,
@@ -244,6 +245,28 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('budget: auto-fill never uses a personId twice', noDupes);
   check('budget: auto-fill fills every slot when the budget allows', fillsAll);
   check('budget: auto-fill reports exactly the placed personIds', usedMatches);
+}
+
+// --- Placed XI promotes the slot role to the primary position ---------------
+{
+  // A DM/CB placed at CB should count as a CB (the Rijkaard bug).
+  let ok = true;
+  const f = Object.values(FORMATIONS_DATA.byKey).find((fm) =>
+    fm.slots.some((s) => s.position === 'CB'),
+  )!;
+  const cb = f.slots.find((s) => s.position === 'CB')!;
+  const player: Player = {
+    id: 't1', personId: 't1', squadId: 'x', number: 4, name: 'Rijkaard',
+    positions: ['DM', 'CB'], elo: 88,
+  };
+  const placed = placedPlayers(f, { [cb.id]: player });
+  // The slot role (CB) is promoted to positions[0]; the other role is kept.
+  if (placed.length !== 1 || placed[0].positions[0] !== 'CB') ok = false;
+  if (!placed[0].positions.includes('DM')) ok = false;
+  // A player already in their slot role is returned untouched (same object).
+  const inPos: Player = { ...player, positions: ['CB', 'DM'] };
+  if (placedPlayers(f, { [cb.id]: inPos })[0] !== inPos) ok = false;
+  check('draft: placedPlayers promotes the slot role to the primary position', ok);
 }
 
 // --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------
