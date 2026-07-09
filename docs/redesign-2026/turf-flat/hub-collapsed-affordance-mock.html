@@ -1,0 +1,155 @@
+<style>
+  /* COLLAPSED-HUB AFFORDANCE MOCK (Artifact source; body-only). Option 1 (collapse by
+     default) is chosen; the risk is the slim strip does not read as "expandable". These
+     are three ways to make the collapsibility obvious. turf-flat palette; system fonts
+     (sandbox blocks the app's Archivo / Schibsted / Spline). */
+  .turf {
+    --paper: #f4f2ec; --panel: #fff; --chalk: #e8f0e8; --ink: #13211a; --muted: #5c6a60;
+    --line: #d4ded5; --pitch: #15924c; --pitch-deep: #0e5c34; --amber: #e4922b;
+    --amber-ink: #9a6512; --gold: #c99a2e;
+    --disp: "Archivo", system-ui, "Segoe UI", Roboto, sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--body);
+    min-height: 100%; padding: 24px clamp(16px,4vw,40px) 64px; box-sizing: border-box; line-height: 1.5;
+  }
+  .turf *, .turf *::before, .turf *::after { box-sizing: border-box; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+
+  h1.title { font-family: var(--disp); font-weight: 900; font-size: 26px; letter-spacing: -0.02em; margin: 0; }
+  .intro { color: var(--muted); font-size: 14px; margin: 8px 0 4px; max-width: 68ch; }
+
+  .opt { margin-top: 32px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .opt-num { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #fff; background: var(--pitch-deep); border-radius: 999px; padding: 3px 9px; }
+  .opt-name { font-family: var(--disp); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+  .opt-note { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; max-width: 66ch; }
+  .opt-note b { color: var(--ink); }
+  .rec { color: var(--pitch); font-weight: 700; }
+  .sub { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+
+  /* shared card shell */
+  .card { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: 4px 4px 0 var(--line); }
+  .chip { font-family: var(--mono); font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .chip.lvl { background: var(--chalk); color: var(--pitch-deep); }
+  .chip.pre { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber-ink); }
+  .hub-title b { font-family: var(--disp); font-weight: 800; font-size: 15px; }
+  .chev { display: inline-block; }
+
+  /* ---- current (for reference) ---- */
+  .cur-strip { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; }
+  .cur-toggle { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+
+  /* ---- OPTION 1: whole bar is the button + explicit hint ---- */
+  .o1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 14px; background: transparent; border: 0; text-align: left; cursor: pointer; transition: background .15s; }
+  .o1:hover { background: var(--chalk); }
+  .o1 .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .o1 .hint { font-size: 12px; color: var(--muted); }
+  .o1 .hint b { color: var(--pitch-deep); }
+  .o1 .open { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pitch); }
+  .o1 .ring { width: 26px; height: 26px; border-radius: 999px; border: 1.5px solid var(--pitch); color: var(--pitch); display: grid; place-items: center; font-size: 14px; }
+
+  /* ---- OPTION 2: accent CTA button ---- */
+  .o2-wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 14px; }
+  .o2-cta { display: inline-flex; align-items: center; gap: 7px; border: 0; cursor: pointer; background: var(--pitch); color: #fff; border-radius: 6px; padding: 9px 14px; font-family: var(--disp); font-weight: 800; font-size: 12.5px; letter-spacing: 0.02em; box-shadow: 3px 3px 0 var(--pitch-deep); transition: transform .1s; }
+  .o2-cta:hover { transform: translate(-1px,-1px); }
+  .o2-cta .n { font-family: var(--mono); font-weight: 700; background: rgba(255,255,255,.22); border-radius: 999px; padding: 1px 7px; font-size: 11px; }
+
+  /* ---- OPTION 3: peek / teaser row ---- */
+  .o3 { width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left; padding: 0; }
+  .o3 .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px 6px; }
+  .o3 .teaser { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 0 14px 10px; position: relative; }
+  .o3 .pill { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; background: var(--panel); }
+  .dot { width: 7px; height: 7px; border-radius: 999px; }
+  .o3 .more { font-family: var(--mono); font-size: 10.5px; color: var(--pitch); font-weight: 700; }
+  .o3 .expand { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pitch); }
+  .o3 .fade { pointer-events: none; height: 10px; margin-top: -4px; border-radius: 0 0 8px 8px; background: linear-gradient(180deg, transparent, rgba(19,33,26,.06)); }
+
+  .cursorlbl { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 6px; }
+  .foot-note { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); max-width: 72ch; }
+</style>
+
+<div class="turf">
+  <div class="wrap">
+    <h1 class="title">Collapsed hub - make it read as expandable</h1>
+    <p class="intro">
+      Option 1 (collapse by default) is in. The slim strip needs to obviously say "there is more here, click to
+      open". Below is what it looks like <b>today</b>, then three ways to make the affordance clearer. Each shows
+      only the collapsed state.
+    </p>
+
+    <!-- CURRENT -->
+    <div class="sub">Today (for reference)</div>
+    <div class="card">
+      <div class="cur-strip">
+        <div class="hub-title" style="display:flex;align-items:center;gap:8px">
+          <b>Cup Run Hub</b><span class="chip lvl">Level 7</span><span class="chip pre">240 Prestige</span>
+        </div>
+        <span class="cur-toggle">Career hub <span class="chev">&#9662;</span></span>
+      </div>
+    </div>
+    <p class="opt-note" style="margin-top:6px">The toggle is a small muted mono label in the corner. Easy to miss; does not look tappable.</p>
+
+    <!-- OPTION 1 -->
+    <section class="opt">
+      <div class="opt-head"><span class="opt-num">A</span><span class="opt-name">Whole bar is the button <span class="rec">(recommended)</span></span></div>
+      <p class="opt-note"><b>The entire strip is a clickable button</b> (pointer cursor, hover tint) with an explicit hint and a chevron in a ring on the right. Nothing new competes for space; the whole row invites a click.</p>
+      <div class="card">
+        <button class="o1">
+          <span class="left">
+            <b style="font-family:var(--disp);font-size:15px">Cup Run Hub</b>
+            <span class="chip lvl">Level 7</span>
+            <span class="hint">&middot; <b>240 Prestige</b> to spend on perks</span>
+          </span>
+          <span class="open">Open <span class="ring">&#9662;</span></span>
+        </button>
+      </div>
+      <div class="cursorlbl">Hover state shown: the whole bar tints (chalk) and the cursor is a pointer.</div>
+    </section>
+
+    <!-- OPTION 2 -->
+    <section class="opt">
+      <div class="opt-head"><span class="opt-num">B</span><span class="opt-name">Accent CTA button</span></div>
+      <p class="opt-note"><b>A solid green button</b> makes the action unmistakable and doubles as a nudge to spend Prestige. Strongest signal, but adds a second visual weight to the strip and can read as "the main action" (competing with Play).</p>
+      <div class="card">
+        <div class="o2-wrap">
+          <div class="hub-title" style="display:flex;align-items:center;gap:8px">
+            <b>Cup Run Hub</b><span class="chip lvl">Level 7</span>
+          </div>
+          <button class="o2-cta">Career hub <span class="n">240 P</span> <span class="chev">&#9662;</span></button>
+        </div>
+      </div>
+      <div class="cursorlbl">The button lifts slightly on hover.</div>
+    </section>
+
+    <!-- OPTION 3 -->
+    <section class="opt">
+      <div class="opt-head"><span class="opt-num">C</span><span class="opt-name">Peek / teaser row</span></div>
+      <p class="opt-note"><b>Show a one-line teaser of the contents</b> (a couple of perk/boost chips + "more") under the title, with a soft fade at the bottom edge. It is self-explanatory that content is folded away. Tallest of the three, but the most informative when collapsed.</p>
+      <div class="card">
+        <button class="o3">
+          <div class="top">
+            <div class="hub-title" style="display:flex;align-items:center;gap:8px">
+              <b>Cup Run Hub</b><span class="chip lvl">Level 7</span><span class="chip pre">240 Prestige</span>
+            </div>
+            <span class="expand">Expand <span class="chev">&#9662;</span></span>
+          </div>
+          <div class="teaser">
+            <span class="pill"><span class="dot" style="background:var(--pitch)"></span>Scout Network II</span>
+            <span class="pill"><span class="dot" style="background:var(--amber)"></span>Golden Generation</span>
+            <span class="more">+ 5 more perks &amp; boosts</span>
+          </div>
+          <div class="fade"></div>
+        </button>
+      </div>
+      <div class="cursorlbl">The fade at the bottom hints there is more content below.</div>
+    </section>
+
+    <p class="foot-note">
+      <b>Mock, not final.</b> All three still collapse by default and keep the animated open/close. Colours follow
+      the turf-flat identity; fonts fall back to system faces (sandbox blocks the app's Google Fonts). My pick is
+      <b>A</b>: it reads as tappable everywhere on the bar without adding a second heavy element that competes with
+      the Play button.
+    </p>
+  </div>
+</div>

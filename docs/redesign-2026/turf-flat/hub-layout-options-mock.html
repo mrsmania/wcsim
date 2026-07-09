@@ -1,0 +1,264 @@
+<style>
+  /* HUB LAYOUT OPTIONS MOCK (Artifact source; body-only). Three ways to lay out the
+     career hub on the pre-run /cup-run screen so it does not bury the "Play group
+     stage" CTA, keeping the hub in ONE position (above). turf-flat palette; system
+     fonts (sandbox blocks the app's Archivo / Schibsted / Spline). */
+  .turf {
+    --paper: #f4f2ec; --panel: #fff; --chalk: #e8f0e8; --ink: #13211a; --muted: #5c6a60;
+    --line: #d4ded5; --pitch: #15924c; --pitch-deep: #0e5c34; --amber: #e4922b;
+    --amber-ink: #9a6512; --gold: #c99a2e;
+    --disp: "Archivo", system-ui, "Segoe UI", Roboto, sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--body);
+    min-height: 100%; padding: 24px clamp(16px,4vw,40px) 64px; box-sizing: border-box; line-height: 1.5;
+  }
+  .turf *, .turf *::before, .turf *::after { box-sizing: border-box; }
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  h1.title { font-family: var(--disp); font-weight: 900; font-size: 26px; letter-spacing: -0.02em; margin: 0; }
+  .intro { color: var(--muted); font-size: 14px; margin: 8px 0 4px; max-width: 70ch; }
+
+  .opt { margin-top: 34px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .opt-num { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #fff; background: var(--pitch-deep); border-radius: 999px; padding: 3px 9px; }
+  .opt-name { font-family: var(--disp); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+  .opt-note { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
+  .opt-note b { color: var(--ink); }
+  .rec { color: var(--pitch); font-weight: 700; }
+
+  /* the emulated /cup-run screen frame */
+  .screen { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); padding: 16px; box-shadow: 6px 6px 0 var(--pitch-deep); }
+
+  /* card shell */
+  .card { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: 4px 4px 0 var(--line); }
+
+  /* hub header row */
+  .hub-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; }
+  .hub-title { display: flex; align-items: center; gap: 8px; }
+  .hub-title b { font-family: var(--disp); font-weight: 800; font-size: 15px; }
+  .chip { font-family: var(--mono); font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .chip.lvl { background: var(--chalk); color: var(--pitch-deep); }
+  .chip.pre { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber-ink); }
+  .toggle { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+  /* hub body bits */
+  .hub-body { border-top: 1px solid var(--line); padding: 12px 14px; }
+  .prog { height: 7px; border-radius: 999px; background: var(--chalk); border: 1px solid var(--line); overflow: hidden; }
+  .prog > i { display: block; height: 100%; width: 40%; background: var(--pitch); }
+  .prog-l { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .sec-l { font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+  .perks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .perk { border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+  .perk b { font-family: var(--disp); font-size: 12.5px; font-weight: 800; }
+  .perk p { margin: 3px 0 0; font-size: 10.5px; color: var(--muted); }
+  .perk .buy { margin-top: 6px; display: block; text-align: center; border-radius: 4px; background: var(--pitch); color: #fff; font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px; }
+  .boosts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .boost { border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; font-size: 10.5px; display: flex; align-items: center; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 999px; }
+
+  /* ladder */
+  .ladder { display: flex; align-items: center; gap: 4px; padding: 12px 14px; }
+  .node { flex: 1; text-align: center; }
+  .node .o { width: 30px; height: 30px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--panel); display: grid; place-items: center; margin: 0 auto; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--muted); }
+  .node.cur .o { border-color: var(--amber); background: var(--amber); color: #23150a; }
+  .node small { display: block; margin-top: 3px; font-family: var(--mono); font-size: 8px; color: var(--muted); }
+  .conn { flex: 0 0 12px; height: 1.5px; background: var(--line); }
+
+  /* xi + play row */
+  .play-grid { display: grid; grid-template-columns: 300px 1fr; gap: 12px; }
+  @media (max-width: 640px) { .play-grid { grid-template-columns: 1fr; } }
+  .xi-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--ink); padding: 8px 12px; font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .xi-row { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 5px 12px; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .xi-row .pos { font-family: var(--mono); font-size: 9.5px; font-weight: 700; color: var(--pitch); }
+  .xi-row .rt { font-family: var(--mono); font-weight: 700; }
+  .ascbox { border: 1px solid var(--line); background: var(--chalk); border-radius: 6px; padding: 10px; text-align: center; }
+  .ascbox .l { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .ascbox .row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 6px; }
+  .ascbox .step { width: 26px; height: 26px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-family: var(--mono); font-weight: 700; display: grid; place-items: center; }
+  .ascbox .val b { font-family: var(--disp); font-size: 14px; font-weight: 800; }
+  .ascbox .val small { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .playbtn { margin-top: 12px; width: 100%; border: 1px solid var(--pitch-deep); background: var(--pitch); color: #fff; border-radius: 6px; padding: 12px; font-family: var(--disp); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 13px; }
+  .visible-flag { margin-top: 8px; font-family: var(--mono); font-size: 10px; color: var(--pitch); font-weight: 600; }
+  .scroll-flag { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+
+  .mb8 { margin-bottom: 8px; } .mb12 { margin-bottom: 12px; }
+  .foot-note { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); max-width: 74ch; }
+</style>
+
+<div class="turf">
+  <div class="wrap">
+    <h1 class="title">Pre-run hub - three layouts</h1>
+    <p class="intro">
+      The career hub (perks + boost library) is long. On the pre-run <span style="font-family:var(--mono)">/cup-run</span>
+      screen it sits above the XI + Ascension + "Play group stage". These are three ways to keep it in one place
+      (above) without burying the Play button. All three keep the open/close animation and the always-visible toggle.
+    </p>
+
+    <!-- OPTION 1 -->
+    <section class="opt">
+      <div class="opt-head"><span class="opt-num">1</span><span class="opt-name">Collapse by default <span class="rec">(recommended)</span></span></div>
+      <p class="opt-note"><b>Pro:</b> Play is instantly visible, no nested scroll, compact. <b>Con:</b> the perks aren't shown on landing (the slim strip nudges you to expand).</p>
+      <div class="screen">
+        <div class="card mb12">
+          <div class="hub-head">
+            <div class="hub-title"><b>Cup Run Hub</b><span class="chip lvl">Level 7</span><span class="chip pre">240 Prestige</span></div>
+            <span class="toggle">Career hub &#9662;</span>
+          </div>
+        </div>
+        <div class="card mb12">
+          <div class="ladder">
+            <div class="node cur"><div class="o">GRP</div><small>now</small></div><div class="conn"></div>
+            <div class="node"><div class="o">R16</div><small>R16</small></div><div class="conn"></div>
+            <div class="node"><div class="o">QF</div><small>QF</small></div><div class="conn"></div>
+            <div class="node"><div class="o">SF</div><small>SF</small></div><div class="conn"></div>
+            <div class="node"><div class="o">FIN</div><small>FIN</small></div><div class="conn"></div>
+            <div class="node"><div class="o">&#127942;</div><small>CUP</small></div>
+          </div>
+        </div>
+        <div class="play-grid">
+          <div class="card">
+            <div class="xi-head"><span>Your XI</span><span>Score 0</span></div>
+            <div class="xi-row"><span class="pos">LW</span><span>Iniesta</span><span class="rt">90</span></div>
+            <div class="xi-row"><span class="pos">ST</span><span>van Persie</span><span class="rt">88</span></div>
+            <div class="xi-row"><span class="pos">RW</span><span>Ronaldo</span><span class="rt">90</span></div>
+            <div class="xi-row"><span class="pos" style="color:var(--muted)">...</span><span style="color:var(--muted)">8 more</span><span></span></div>
+          </div>
+          <div class="card" style="padding:12px">
+            <div class="ascbox">
+              <div class="l">Ascension</div>
+              <div class="row"><span class="step">&minus;</span><span class="val"><b>Ascension II</b><small>You -4, rewards x1.5</small></span><span class="step">+</span></div>
+            </div>
+            <button class="playbtn">Play group stage</button>
+            <div class="visible-flag">&uarr; visible without scrolling</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPTION 2 -->
+    <section class="opt">
+      <div class="opt-head"><span class="opt-num">2</span><span class="opt-name">Open, capped height + scroll</span></div>
+      <p class="opt-note"><b>Pro:</b> hub stays open on landing (your earlier preference). <b>Con:</b> a scroll area inside the hub to reach the boost library.</p>
+      <div class="screen">
+        <div class="card mb12">
+          <div class="hub-head">
+            <div class="hub-title"><b>Cup Run Hub</b><span class="chip lvl">Level 7</span><span class="chip pre">240 Prestige</span></div>
+            <span class="toggle">Hide hub &#9652;</span>
+          </div>
+          <div class="hub-body" style="max-height:180px; overflow-y:auto;">
+            <div class="prog"><i></i></div>
+            <div class="prog-l">100 / 200 XP to level 8</div>
+            <div class="sec-l">Perks</div>
+            <div class="perks">
+              <div class="perk"><b>Scout Network</b><p>Active: 1 boost &middot; Next: 2</p><span class="buy">Upgrade</span></div>
+              <div class="perk"><b>Deep Squad</b><p>+1 to your XI</p><span class="buy">Unlock</span></div>
+              <div class="perk"><b>Extra Choice</b><p>4 boosts / round</p><span class="buy">Unlock</span></div>
+              <div class="perk"><b>Transfer Budget</b><p>$80 (Career)</p><span class="buy">Unlock</span></div>
+            </div>
+            <div class="sec-l">Boost library</div>
+            <div class="boosts">
+              <span class="boost"><span class="dot" style="background:var(--amber)"></span>Golden Generation</span>
+              <span class="boost"><span class="dot" style="background:var(--amber)"></span>Marquee Signing</span>
+              <span class="boost"><span class="dot" style="background:var(--pitch)"></span>Poach</span>
+              <span class="boost"><span class="dot" style="background:var(--pitch)"></span>Glass Cannon</span>
+              <span class="boost"><span class="dot" style="background:var(--muted)"></span>Chemistry Catalyst</span>
+            </div>
+          </div>
+          <div style="padding:4px 14px 8px;text-align:right"><span class="scroll-flag">&#8597; scrolls inside</span></div>
+        </div>
+        <div class="card mb12">
+          <div class="ladder">
+            <div class="node cur"><div class="o">GRP</div><small>now</small></div><div class="conn"></div>
+            <div class="node"><div class="o">R16</div><small>R16</small></div><div class="conn"></div>
+            <div class="node"><div class="o">QF</div><small>QF</small></div><div class="conn"></div>
+            <div class="node"><div class="o">SF</div><small>SF</small></div><div class="conn"></div>
+            <div class="node"><div class="o">FIN</div><small>FIN</small></div><div class="conn"></div>
+            <div class="node"><div class="o">&#127942;</div><small>CUP</small></div>
+          </div>
+        </div>
+        <div class="play-grid">
+          <div class="card">
+            <div class="xi-head"><span>Your XI</span><span>Score 0</span></div>
+            <div class="xi-row"><span class="pos">LW</span><span>Iniesta</span><span class="rt">90</span></div>
+            <div class="xi-row"><span class="pos">ST</span><span>van Persie</span><span class="rt">88</span></div>
+            <div class="xi-row"><span class="pos" style="color:var(--muted)">...</span><span style="color:var(--muted)">9 more</span><span></span></div>
+          </div>
+          <div class="card" style="padding:12px">
+            <div class="ascbox">
+              <div class="l">Ascension</div>
+              <div class="row"><span class="step">&minus;</span><span class="val"><b>Ascension II</b><small>You -4, rewards x1.5</small></span><span class="step">+</span></div>
+            </div>
+            <button class="playbtn">Play group stage</button>
+            <div class="visible-flag">&uarr; sits just below the capped hub</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPTION 3 -->
+    <section class="opt">
+      <div class="opt-head"><span class="opt-num">3</span><span class="opt-name">Side-by-side (desktop)</span></div>
+      <p class="opt-note"><b>Pro:</b> hub + Play both visible at once on desktop. <b>Con:</b> on mobile it stacks, so the Play button ends up below the hub again.</p>
+      <div class="screen">
+        <div style="display:grid;grid-template-columns:1fr 1.15fr;gap:12px">
+          <!-- hub column -->
+          <div class="card">
+            <div class="hub-head">
+              <div class="hub-title"><b>Cup Run Hub</b><span class="chip lvl">Lv 7</span></div>
+              <span class="toggle">Hide &#9652;</span>
+            </div>
+            <div class="hub-body">
+              <div class="prog"><i></i></div>
+              <div class="prog-l">100 / 200 XP</div>
+              <div class="sec-l">Perks</div>
+              <div class="perks">
+                <div class="perk"><b>Scout Network</b><p>Active: 1 &middot; Next: 2</p><span class="buy">Upgrade</span></div>
+                <div class="perk"><b>Deep Squad</b><p>+1 to XI</p><span class="buy">Unlock</span></div>
+              </div>
+              <div class="sec-l">Boost library</div>
+              <div class="boosts">
+                <span class="boost"><span class="dot" style="background:var(--amber)"></span>Golden Gen.</span>
+                <span class="boost"><span class="dot" style="background:var(--pitch)"></span>Poach</span>
+                <span class="boost"><span class="dot" style="background:var(--muted)"></span>...</span>
+              </div>
+            </div>
+          </div>
+          <!-- run column -->
+          <div>
+            <div class="card mb8">
+              <div class="ladder" style="padding:10px 8px">
+                <div class="node cur"><div class="o">GRP</div></div><div class="conn"></div>
+                <div class="node"><div class="o">R16</div></div><div class="conn"></div>
+                <div class="node"><div class="o">QF</div></div><div class="conn"></div>
+                <div class="node"><div class="o">SF</div></div><div class="conn"></div>
+                <div class="node"><div class="o">FIN</div></div><div class="conn"></div>
+                <div class="node"><div class="o">&#127942;</div></div>
+              </div>
+            </div>
+            <div class="card mb8">
+              <div class="xi-head"><span>Your XI</span><span>Score 0</span></div>
+              <div class="xi-row"><span class="pos">LW</span><span>Iniesta</span><span class="rt">90</span></div>
+              <div class="xi-row"><span class="pos">ST</span><span>van Persie</span><span class="rt">88</span></div>
+              <div class="xi-row"><span class="pos" style="color:var(--muted)">...</span><span style="color:var(--muted)">9 more</span><span></span></div>
+            </div>
+            <div class="card" style="padding:12px">
+              <div class="ascbox">
+                <div class="l">Ascension</div>
+                <div class="row"><span class="step">&minus;</span><span class="val"><b>Ascension II</b><small>rewards x1.5</small></span><span class="step">+</span></div>
+              </div>
+              <button class="playbtn">Play group stage</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px" class="scroll-flag">On a phone these two columns stack (hub on top, Play below).</div>
+      </div>
+    </section>
+
+    <p class="foot-note">
+      <b>Mock, not final.</b> All three keep the hub in one position (above) and the animated, always-visible
+      toggle. Colours follow the turf-flat identity; fonts fall back to system faces (sandbox blocks the app's
+      Google Fonts). Perk/boost/XI content is trimmed for the comparison.
+    </p>
+  </div>
+</div>
