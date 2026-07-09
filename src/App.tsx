@@ -905,7 +905,11 @@ export default function App() {
                                                 filled={filled}
                                                 showChemistry
                                             />
-                                            <XiTable formation={activeFormation} filled={filled} />
+                                            <XiTable
+                                                formation={activeFormation}
+                                                filled={filled}
+                                                budget={isBudgetBuild ? budget : undefined}
+                                            />
                                         </section>
                                     </>
                                 ) : (

@@ -3,6 +3,7 @@ import { lastName } from '../data/format';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { tierOf } from '../domain/album';
+import { priceOf } from '../domain/pricing';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Flag from './Flag';
@@ -11,14 +12,33 @@ import { TIER_META } from './StickerCard';
 
 /** The placed XI as a line-up sheet: position, last name, flag + year, rating,
  *  ordered back to front (GK, DEF, MID, FWD). Sits in the right column beside the
- *  pitch (and below it when stacked), so the pitch badges can stay minimal. */
-export default function XiTable({ formation, filled }: { formation: Formation; filled: Filled }) {
+ *  pitch (and below it when stacked), so the pitch badges can stay minimal. In the
+ *  budget build (`budget` set) it also shows each player's cost and the total spent
+ *  in the header, so the spend stays visible once the XI is complete (the left-column
+ *  market panel is replaced by the complete panel then). */
+export default function XiTable({
+    formation,
+    filled,
+    budget,
+}: {
+    formation: Formation;
+    filled: Filled;
+    budget?: number;
+}) {
     const ordered = [...formation.slots].sort(
         (a, b) =>
             CATEGORY_ORDER.indexOf(categoryOf(a.position)) -
             CATEGORY_ORDER.indexOf(categoryOf(b.position)),
     );
-    const placed = ordered.filter((s) => filled[s.id]).length;
+    const placedSlots = ordered.filter((s) => filled[s.id]);
+    const placed = placedSlots.length;
+    const isBudget = budget != null;
+    const spent = isBudget
+        ? placedSlots.reduce((t, s) => t + priceOf(filled[s.id]!.elo), 0)
+        : 0;
+    const cols = isBudget
+        ? 'grid-cols-[30px_1fr_auto_auto_auto]'
+        : 'grid-cols-[30px_1fr_auto_auto]';
 
     return (
         <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
@@ -29,7 +49,14 @@ export default function XiTable({ formation, filled }: { formation: Formation; f
                         &middot; {placed}/{formation.slots.length}
                     </span>
                 </span>
-                <span>Rating</span>
+                {isBudget ? (
+                    <span className="tabular-nums tracking-[0.06em]">
+                        <b className={spent > budget ? 'text-loss' : 'text-ink'}>${spent}</b>
+                        <span className="text-muted"> / ${budget}</span>
+                    </span>
+                ) : (
+                    <span>Rating</span>
+                )}
             </div>
             {ordered.map((slot) => {
                 const player = filled[slot.id];
@@ -40,7 +67,7 @@ export default function XiTable({ formation, filled }: { formation: Formation; f
                 return (
                     <div
                         key={slot.id}
-                        className={`grid grid-cols-[30px_1fr_auto_auto] items-center gap-2.5 border-b border-line px-4 py-2.5 last:border-b-0 ${isGk ? 'bg-chalk' : ''}`}
+                        className={`grid ${cols} items-center gap-2.5 border-b border-line px-4 py-2.5 last:border-b-0 ${isGk ? 'bg-chalk' : ''}`}
                         style={tier ? { boxShadow: `inset 3px 0 0 ${TIER_META[tier].accent}` } : undefined}
                     >
                         <span className="font-mono text-[11px] font-semibold tracking-[0.04em] text-pitch">
@@ -65,6 +92,11 @@ export default function XiTable({ formation, filled }: { formation: Formation; f
                         <span className="min-w-[24px] text-right font-mono text-sm font-bold">
                             {player ? player.elo : '–'}
                         </span>
+                        {isBudget && (
+                            <span className="min-w-[26px] text-right font-mono text-[11.5px] text-muted tabular-nums">
+                                {player ? `$${priceOf(player.elo)}` : '–'}
+                            </span>
+                        )}
                     </div>
                 );
             })}
