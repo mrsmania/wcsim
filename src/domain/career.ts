@@ -30,6 +30,9 @@ export interface CareerState {
   /** Highest Ascension tier UNLOCKED (0 = Base; raised to T+1 on a cup won at tier T).
    *  The tier PLAYED is chosen per run and lives on RunState. */
   ascension: number;
+  /** The Ascension tier last chosen for a run, remembered as the next run's default
+   *  (clamped to what is currently selectable). Undefined until the first run. */
+  lastAscension?: number;
   stats: CareerStats;
 }
 

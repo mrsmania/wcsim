@@ -101,10 +101,11 @@ export default function CupRunScreen({
   // The career hub collapses to a slim strip during a run (perks are a between-runs
   // thing); it always shows fully when there is no active run.
   const [hubOpen, setHubOpen] = useState(false);
-  // The Ascension tier chosen for the next run. Defaults to the highest the career can
-  // select, and is clamped down if that ceiling shrinks (e.g. a fresh/other career).
+  // The Ascension tier chosen for the next run. Defaults to the last tier the player
+  // chose (persisted on the career), falling back to the highest selectable the first
+  // time; always clamped to what is currently selectable.
   const maxAsc = maxSelectableAscension(career.ascension, career.level);
-  const [ascSel, setAscSel] = useState(maxAsc);
+  const [ascSel, setAscSel] = useState(() => Math.min(career.lastAscension ?? maxAsc, maxAsc));
   useEffect(() => {
     setAscSel((s) => Math.min(s, maxAsc));
   }, [maxAsc]);
@@ -187,11 +188,18 @@ export default function CupRunScreen({
 
   const startRun = () => {
     if (!draftedXi) return;
+    const chosen = Math.min(ascSel, maxAsc);
+    // Remember the chosen tier as the next run's default (persist to the career).
+    if (career.lastAscension !== chosen) {
+      const c = { ...career, lastAscension: chosen };
+      setCareer(c);
+      saveCareer(c);
+    }
     setReward(null);
     setReveal(null);
     setLastKoMatch(null);
     setReviewIndex(null);
-    setRun(beginRun(draftedXi, career.perkLevels, career.unlockedBoons, Math.min(ascSel, maxAsc)));
+    setRun(beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen));
   };
 
   // Step the run; award XP/Prestige exactly once when it ends.

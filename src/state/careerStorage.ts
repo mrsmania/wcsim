@@ -40,6 +40,7 @@ export function loadCareer(): CareerState {
       perkLevels: migratePerkLevels(parsed),
       unlockedBoons: Array.isArray(parsed.unlockedBoons) ? parsed.unlockedBoons : [],
       ascension: typeof parsed.ascension === 'number' ? parsed.ascension : 0,
+      lastAscension: typeof parsed.lastAscension === 'number' ? parsed.lastAscension : undefined,
       stats: { ...INITIAL_CAREER.stats, ...(parsed.stats ?? {}) },
     };
   } catch {
