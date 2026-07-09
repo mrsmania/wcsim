@@ -649,7 +649,11 @@ export default function App() {
                             allPlayers={poolPlayers}
                             onTrade={stickers.onTrade}
                             onReset={stickers.onResetAlbum}
-                            onClose={() => navigate('/')}
+                            // Return to wherever the album was opened from (cup-run,
+                            // career build, launcher, ...). `key === 'default'` means the
+                            // album was the first page loaded (deep link / refresh), so
+                            // there is no history to pop - fall back to the launcher.
+                            onClose={() => (location.key === 'default' ? navigate('/') : navigate(-1))}
                         />
                     ) : isGroup ? (
                         group && formation ? (
