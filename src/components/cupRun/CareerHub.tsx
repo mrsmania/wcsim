@@ -18,9 +18,9 @@ const RARITY_DOT: Record<Rarity, string> = {
 /** Owned-tier numeral shown next to a perk name (tiers are small). */
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 
-/** The career hub - full between runs, a slim collapsible strip during a run. The
- *  toggle only shows while a run is active (`showToggle`); `showBody` gates the
- *  progress + perk-shop body. */
+/** The career hub - a collapsible card. When `showToggle`, the whole header bar is the
+ *  toggle button; `showBody` gates (and animates) the progress + perk-shop body, which
+ *  collapses to just the header strip. */
 export default function CareerHub({
     career,
     prog,
@@ -42,34 +42,64 @@ export default function CareerHub({
 }) {
     return (
         <section className="mb-4 mt-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
-            <div
-                className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 ${showBody ? 'border-b border-line' : ''}`}
-            >
-                <div className="flex items-baseline gap-2.5">
-                    <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
-                        Cup Run Hub
-                    </span>
-                    <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent">
-                        Level {career.level}
-                    </span>
-                    <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
-                        {career.prestige} Prestige
-                    </span>
-                </div>
-                {showToggle && (
-                    <button
-                        onClick={onToggleHub}
-                        className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-pitch"
-                    >
-                        {hubOpen ? 'Hide hub' : 'Career hub'}
+            {/* The header IS the collapse toggle. When `showToggle`, the whole bar is a
+                button (pointer + hover tint) so it plainly invites a click: collapsed it
+                shows a "Prestige to spend" hint and an "Open" chevron-in-a-ring; open it
+                shows the Prestige chip and a "Hide" ring. */}
+            {showToggle ? (
+                <button
+                    type="button"
+                    onClick={onToggleHub}
+                    aria-expanded={hubOpen}
+                    className={`group flex w-full flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-chalk ${showBody ? 'border-b border-line' : ''}`}
+                >
+                    <span className="flex flex-wrap items-center gap-2.5">
+                        <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
+                            Cup Run Hub
+                        </span>
+                        <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent transition group-hover:bg-panel">
+                            Level {career.level}
+                        </span>
                         {hubOpen ? (
-                            <ChevronUp size={13} strokeWidth={2.5} />
+                            <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
+                                {career.prestige} Prestige
+                            </span>
                         ) : (
-                            <ChevronDown size={13} strokeWidth={2.5} />
+                            <span className="text-[12.5px] text-muted">
+                                &middot;{' '}
+                                <b className="font-semibold text-accent">
+                                    {career.prestige} Prestige
+                                </b>{' '}
+                                to spend on perks
+                            </span>
                         )}
-                    </button>
-                )}
-            </div>
+                    </span>
+                    <span className="inline-flex shrink-0 items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch">
+                        {hubOpen ? 'Hide' : 'Open'}
+                        <span className="grid h-[26px] w-[26px] place-items-center rounded-full border-[1.5px] border-pitch transition group-hover:bg-pitch group-hover:text-white">
+                            {hubOpen ? (
+                                <ChevronUp size={14} strokeWidth={2.5} />
+                            ) : (
+                                <ChevronDown size={14} strokeWidth={2.5} />
+                            )}
+                        </span>
+                    </span>
+                </button>
+            ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                    <div className="flex items-baseline gap-2.5">
+                        <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
+                            Cup Run Hub
+                        </span>
+                        <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent">
+                            Level {career.level}
+                        </span>
+                        <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
+                            {career.prestige} Prestige
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* Animate open/close by transitioning the body's grid row from 0fr to 1fr
                 (smoothly animates to its natural height, no fixed max-height needed). The
