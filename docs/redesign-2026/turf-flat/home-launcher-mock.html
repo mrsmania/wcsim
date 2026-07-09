@@ -54,8 +54,8 @@
   /* HERO - the pitch as a tactics board, text laid over chalk markings */
   .hero { position: relative; overflow: hidden; margin-top: 20px; border-radius: 14px; background: var(--pitch-deep); color: #fff; padding: clamp(30px, 5vw, 54px) clamp(22px, 5vw, 52px); box-shadow: 7px 7px 0 var(--ink); }
   .hero .grass { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 46px, transparent 46px 92px); pointer-events: none; }
-  .hero .marks { position: absolute; right: -70px; top: 50%; transform: translateY(-50%); width: 380px; height: 380px; opacity: 0.14; color: #fff; pointer-events: none; }
-  @media (max-width: 680px) { .hero .marks { right: -140px; opacity: 0.09; } }
+  .hero .marks { position: absolute; right: clamp(20px, 3vw, 44px); top: 50%; transform: translateY(-50%); height: 86%; width: auto; opacity: 0.16; color: #fff; pointer-events: none; }
+  @media (max-width: 760px) { .hero .marks { opacity: 0.07; right: -24px; } }
   .hero .content { position: relative; max-width: 660px; }
   .hero .kick { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--amber); }
   .hero h2 { font-family: var(--disp); font-weight: 900; font-size: clamp(34px, 6.4vw, 60px); line-height: 1.0; letter-spacing: -0.03em; margin: 12px 0 0; text-wrap: balance; }
@@ -70,11 +70,13 @@
   .cta-note { margin-top: 14px; font-size: 12.5px; color: rgba(255,255,255,0.7); }
   .cta-note b { color: #fff; font-weight: 700; }
 
-  .resume { position: relative; display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; padding: 7px 8px 7px 14px; }
-  .resume .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.75); }
-  .resume .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--amber); color: #23150a; border-radius: 999px; padding: 5px 12px; font-family: var(--disp); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; font-size: 11.5px; }
-  .resume .meta { font-size: 11.5px; color: rgba(255,255,255,0.7); }
-  @media (max-width: 520px) { .resume .meta { display: none; } }
+  .resume { position: relative; display: inline-flex; align-items: center; gap: 12px; margin-top: 22px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 9px 14px 9px 9px; color: #fff; cursor: pointer; text-align: left; }
+  .resume:hover { background: rgba(255,255,255,0.14); }
+  .resume .rp { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 8px; background: var(--amber); color: #23150a; display: grid; place-items: center; }
+  .resume .rp svg { width: 15px; height: 15px; }
+  .resume .rt b { display: block; font-family: var(--disp); font-weight: 800; font-size: 14px; line-height: 1.1; }
+  .resume .rt small { display: block; margin-top: 2px; font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.68); }
+  .resume .rchev { flex: 0 0 auto; width: 16px; height: 16px; color: rgba(255,255,255,0.55); margin-left: 2px; }
 
   /* HOW IT WORKS - 3 beats */
   .beats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 30px; }
@@ -94,7 +96,9 @@
   .legends { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
   @media (max-width: 760px) { .legends { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 460px) { .legends { grid-template-columns: repeat(2, 1fr); } }
-  .lg { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); box-shadow: 4px 4px 0 var(--line); }
+  .lg { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); box-shadow: 4px 4px 0 var(--line); filter: grayscale(1); opacity: 0.9; transition: filter 0.3s ease, opacity 0.3s ease, transform 0.15s ease, box-shadow 0.15s ease; }
+  .lg:hover { filter: grayscale(0); opacity: 1; transform: translateY(-3px); box-shadow: 6px 6px 0 var(--gold); }
+  @media (prefers-reduced-motion: reduce) { .lg { transition: none; } }
   .lg .top { height: 6px; background: linear-gradient(90deg, var(--gold), #e7c86a); }
   .lg .in { padding: 14px 12px 13px; text-align: center; }
   .lg .code { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); background: var(--chalk); padding: 3px 7px; border-radius: 4px; }
@@ -128,12 +132,23 @@
     <!-- HERO -->
     <section class="hero">
       <div class="grass" aria-hidden="true"></div>
-      <svg class="marks" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="100" cy="100" r="52"/>
-        <circle cx="100" cy="100" r="3" fill="currentColor" stroke="none"/>
-        <line x1="100" y1="0" x2="100" y2="200"/>
-        <rect x="150" y="55" width="50" height="90"/>
-        <path d="M150 78 A 30 30 0 0 1 150 122"/>
+      <svg class="marks" viewBox="0 0 200 300" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <rect x="8" y="8" width="184" height="284" rx="2" />
+        <line x1="8" y1="150" x2="192" y2="150" />
+        <circle cx="100" cy="150" r="28" />
+        <circle cx="100" cy="150" r="2.2" fill="currentColor" stroke="none" />
+        <!-- top goal end -->
+        <rect x="52" y="8" width="96" height="44" />
+        <rect x="76" y="8" width="48" height="18" />
+        <circle cx="100" cy="38" r="2.2" fill="currentColor" stroke="none" />
+        <path d="M78 52 A 26 26 0 0 0 122 52" />
+        <rect x="90" y="4" width="20" height="4" />
+        <!-- bottom goal end -->
+        <rect x="52" y="248" width="96" height="44" />
+        <rect x="76" y="274" width="48" height="18" />
+        <circle cx="100" cy="262" r="2.2" fill="currentColor" stroke="none" />
+        <path d="M78 248 A 26 26 0 0 1 122 248" />
+        <rect x="90" y="292" width="20" height="4" />
       </svg>
       <div class="content">
         <p class="kick">World Cup Simulator</p>
@@ -146,11 +161,14 @@
         </div>
         <p class="cta-note"><b>Quick Run</b> is a one-off. <b>Career Mode</b> keeps your progress - boosts, Prestige and unlocks that carry between runs.</p>
 
-        <div class="resume">
-          <span class="k">Or pick up where you left off</span>
-          <span class="pill">Resume Cup Run <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l14 9-14 9V3z"/></svg></span>
-          <span class="meta">R16 &middot; vs Brazil 2002</span>
-        </div>
+        <button class="resume">
+          <span class="rp" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+          <span class="rt">
+            <b>Resume your Cup Run</b>
+            <small>Round of 16 &middot; vs Brazil 2002 &middot; Ascension II</small>
+          </span>
+          <svg class="rchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
       </div>
     </section>
 
