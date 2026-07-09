@@ -145,14 +145,14 @@ export default function ModeSelect({
                     <div className="mt-6 flex flex-wrap gap-3">
                         <Link
                             to={quickTo}
-                            className={`${CTA} bg-white text-ink hover:bg-white/90`}
+                            className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
                         >
                             Play a Quick Run
                             <ArrowRight size={17} strokeWidth={2.5} />
                         </Link>
                         <Link
                             to={careerTo}
-                            className={`${CTA} bg-amber text-ink hover:bg-amber/90`}
+                            className={`${CTA} bg-amber text-[#13211a] hover:bg-amber/90`}
                         >
                             Enter Career Mode
                             <ArrowRight size={17} strokeWidth={2.5} />
@@ -270,14 +270,18 @@ export default function ModeSelect({
                             return (
                                 <div
                                     key={p.id}
-                                    className="group overflow-hidden rounded-[10px] border border-line bg-panel opacity-90 shadow-[4px_4px_0_var(--color-line)] grayscale transition duration-300 hover:-translate-y-[3px] hover:opacity-100 hover:shadow-[6px_6px_0_#c99a2e] hover:grayscale-0"
+                                    // Dim + grayscale (lit up on hover) only where hover exists; on
+                                    // touch there is no hover, so show full colour and no lift.
+                                    className="group overflow-hidden rounded-[10px] border border-line bg-panel shadow-[4px_4px_0_var(--color-line)] transition duration-300 [@media(hover:hover)]:opacity-90 [@media(hover:hover)]:grayscale hover:-translate-y-[3px] hover:opacity-100 hover:shadow-[6px_6px_0_#c99a2e] hover:grayscale-0"
                                 >
                                     <div className="h-[6px]" style={{ background: meta.accent }} />
                                     {FEATURES.stickerImages && (
                                         <img
                                             src={`${import.meta.env.BASE_URL}stickers/${p.id}.png`}
                                             alt={p.name}
-                                            className="block aspect-square w-full bg-white object-cover object-top"
+                                            // Small centred thumbnail on phones; full-width square hero
+                                            // from the 3-column breakpoint up.
+                                            className="mx-auto mt-2.5 block h-16 w-16 rounded-md bg-white object-cover object-top min-[460px]:mx-0 min-[460px]:mt-0 min-[460px]:aspect-square min-[460px]:h-auto min-[460px]:w-full min-[460px]:rounded-none"
                                             onError={(e) => {
                                                 e.currentTarget.style.display = 'none';
                                             }}
