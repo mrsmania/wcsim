@@ -4,6 +4,9 @@ Working handoff doc: where the project is and what to build next. Update this as
 things ship (move items between sections, keep it honest). Detailed specs live in
 `docs/career-depth-spec.md` and `docs/roguelike-career-design.md`.
 
+Raw, not-yet-scheduled ideas live in `docs/todo/TODO.md` (the inbox); items graduate
+from there into "Next up" below once they have a shape.
+
 Last updated: 2026-07-09.
 
 ## Done (recent, newest first)
