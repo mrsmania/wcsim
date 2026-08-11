@@ -17,7 +17,6 @@
     --pitch:      #1e3d2f;
     --amber:      #b8841e;
     --amber-tint: #f5e9d0;
-    --loss:       #8b1a1a;
   }
 
   html { background: var(--ground); }
@@ -32,11 +31,15 @@
     padding: 48px 32px 80px;
   }
 
-  /* Header */
+  .sans {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* ── Header ── */
   .doc-header {
     border-top: 3px solid var(--pitch);
-    padding-top: 28px;
-    margin-bottom: 40px;
+    padding-top: 26px;
+    margin-bottom: 22px;
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: end;
@@ -49,14 +52,13 @@
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--pitch);
-    margin-bottom: 10px;
+    margin-bottom: 9px;
   }
   .doc-header h1 {
-    font-size: 34px;
+    font-size: 32px;
     font-weight: normal;
     line-height: 1.15;
     letter-spacing: -.01em;
-    text-wrap: balance;
   }
   .doc-header h1 em { font-style: normal; color: var(--pitch); }
   .meta {
@@ -68,58 +70,102 @@
   }
   .meta strong { color: var(--ink); font-weight: 600; }
 
-  .lede {
-    background: var(--card);
-    border: 1px solid var(--rule);
-    border-left: 3px solid var(--pitch);
-    padding: 16px 20px;
-    margin-bottom: 44px;
-    font-size: 14px;
-    color: var(--ink-mid);
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--pitch);
+    padding-bottom: 7px;
+    margin-bottom: 4px;
   }
-  .lede p + p { margin-top: 8px; }
-
-  /* Items */
-  section { margin-bottom: 44px; }
-
-  .section-label {
+  .toolbar .hint {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 10.5px;
     font-weight: 700;
     letter-spacing: .14em;
     text-transform: uppercase;
     color: var(--pitch);
-    border-bottom: 1px solid var(--pitch);
-    padding-bottom: 6px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
   }
-  .section-label .tag { color: var(--ink-faint); letter-spacing: .1em; }
-
-  h2 {
-    font-size: 21px;
-    font-weight: normal;
-    line-height: 1.25;
-    margin-bottom: 12px;
-    text-wrap: balance;
-  }
-  h2 .num {
+  .toolbar button {
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--pitch);
-    vertical-align: 3px;
-    margin-right: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 4px 10px;
+    cursor: pointer;
   }
+  .toolbar button:hover { color: var(--pitch); border-color: var(--pitch); }
 
-  p { margin-bottom: 12px; }
-  p:last-child { margin-bottom: 0; }
+  /* ── The list ── */
+  .item {
+    border-bottom: 1px solid var(--rule);
+  }
+  .item > summary {
+    display: grid;
+    grid-template-columns: 26px 1fr auto 14px;
+    align-items: baseline;
+    gap: 12px;
+    padding: 15px 2px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .item > summary::-webkit-details-marker { display: none; }
+  .item > summary:hover { background: #f0ebe1; }
 
-  ul { margin: 0 0 12px 20px; }
-  li { margin-bottom: 7px; }
-  li:last-child { margin-bottom: 0; }
+  .num {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .title { font-size: 18px; line-height: 1.3; text-wrap: balance; }
+  .title .sub {
+    display: block;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12.5px;
+    color: var(--ink-mid);
+    line-height: 1.45;
+    margin-top: 3px;
+  }
+  .tag {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--pitch);
+    background: #e6e0d4;
+    border-radius: 2px;
+    padding: 3px 7px;
+    white-space: nowrap;
+  }
+  .chev {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    color: var(--ink-faint);
+    transition: transform .15s ease;
+  }
+  .item[open] > summary .chev { transform: rotate(90deg); }
+  .item[open] > summary { background: #f0ebe1; }
+
+  /* ── The hidden detail ── */
+  .detail {
+    padding: 4px 2px 24px 38px;
+    border-left: 2px solid var(--rule);
+    margin-left: 12px;
+  }
+  .detail p { margin-bottom: 11px; }
+  .detail ul { margin: 0 0 11px 18px; }
+  .detail li { margin-bottom: 6px; }
+  .detail li:last-child, .detail p:last-child { margin-bottom: 0; }
 
   code {
     font-family: 'Courier New', Courier, monospace;
@@ -133,51 +179,61 @@
   .callout {
     background: var(--amber-tint);
     border-left: 3px solid var(--amber);
-    padding: 14px 18px;
-    margin: 16px 0;
+    padding: 12px 16px;
+    margin: 13px 0;
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.55;
   }
   .callout .ct {
+    display: block;
     font-weight: 700;
     color: var(--amber);
     text-transform: uppercase;
     letter-spacing: .1em;
-    font-size: 10.5px;
-    display: block;
-    margin-bottom: 6px;
+    font-size: 10px;
+    margin-bottom: 5px;
   }
   .callout code { background: #ecdcbd; }
 
   .next {
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--ink-mid);
     border-top: 1px solid var(--rule);
-    padding-top: 10px;
-    margin-top: 16px;
+    padding-top: 9px;
+    margin-top: 14px;
   }
   .next strong {
     color: var(--pitch);
     text-transform: uppercase;
     letter-spacing: .1em;
-    font-size: 10.5px;
+    font-size: 10px;
+    margin-right: 4px;
+  }
+  .files {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    margin-top: 6px;
   }
 
   footer {
-    border-top: 1px solid var(--rule);
-    padding-top: 16px;
+    margin-top: 34px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 12px;
     color: var(--ink-faint);
+    line-height: 1.7;
   }
 
-  @media (max-width: 560px) {
+  @media (max-width: 620px) {
     body { padding: 32px 20px 60px; }
     .doc-header { grid-template-columns: 1fr; }
     .meta { text-align: left; }
-    .doc-header h1 { font-size: 27px; }
+    .doc-header h1 { font-size: 26px; }
+    .item > summary { grid-template-columns: 22px 1fr 14px; gap: 10px; }
+    .item > summary .tag { display: none; }
+    .detail { padding-left: 20px; margin-left: 6px; }
   }
 </style>
 </head>
@@ -190,129 +246,175 @@
   </div>
   <div class="meta">
     <strong>Status:</strong> idea inbox<br>
-    <strong>Updated:</strong> 2026-08-07<br>
-    <strong>Items:</strong> 4 open
+    <strong>Updated:</strong> 2026-08-11<br>
+    <strong>Open:</strong> 4 items
   </div>
 </div>
 
-<div class="lede">
-  <p>Raw idea list, kept as captured. Nothing here is designed or scheduled yet.</p>
-  <p>When an item is picked up, spec it (its own doc in <code>docs/</code>) and move it
-  into <code>docs/ROADMAP.md</code> "Next up". ROADMAP stays the pipeline of what is
-  actually being built; this file is the inbox.</p>
+<div class="toolbar">
+  <span class="hint">Click an item for the detail</span>
+  <button id="toggle-all" type="button">Expand all</button>
 </div>
 
-<section>
-  <div class="section-label"><span>Balance</span><span class="tag">domain/boons.ts, domain/career.ts</span></div>
-  <h2><span class="num">01</span>Rework the perks and boosts</h2>
-  <p>Some perks and boosts are not really in balance, and the pool is small enough that
-  runs start to repeat. Rebalance what exists and add more.</p>
+<details class="item">
+  <summary>
+    <span class="num">01</span>
+    <span class="title">Rework the perks and boosts
+      <span class="sub">Rebalance the ones that are out of line, and add more.</span>
+    </span>
+    <span class="tag">Balance</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Some perks and boosts are not really in balance, and the pool is small enough that
+    runs start to repeat.</p>
 
-  <div class="callout">
-    <span class="ct">The example that started this</span>
-    <strong>Chemistry Catalyst</strong> (<code>+2 to players from your most-represented
-    nation</code>, rarity <em>common</em>) is effectively <strong>Golden Generation</strong>
-    (<code>+2 to the entire XI</code>, rarity <em>legendary</em>) as soon as the XI is
-    single-nation, which the budget build makes easy: buy eleven players from one nation.
-    A common boost matching a legendary one.
+    <div class="callout">
+      <span class="ct">The example that started this</span>
+      <strong>Chemistry Catalyst</strong> (<code>+2 to players from your most-represented
+      nation</code>, rarity <em>common</em>) is effectively <strong>Golden
+      Generation</strong> (<code>+2 to the entire XI</code>, rarity <em>legendary</em>) as
+      soon as the XI is single-nation, which the budget build makes easy: buy eleven
+      players from one nation. A common boost matching a legendary one.
+    </div>
+
+    <ul>
+      <li>Audit every boost for the same failure mode: a conditional effect whose
+      condition the player fully controls at build time.</li>
+      <li>Options for that one: scale by cluster size, require several nations elsewhere
+      in the XI, raise its rarity, or make the bonus depend on chemistry actually being
+      imperfect.</li>
+      <li>Review the career perks too (Scout Network, Deep Squad, Extra Boon, Transfer
+      Budget) for value-per-Prestige consistency.</li>
+      <li><strong>Add more</strong> boosts and perks while in there. Rarity weighting
+      lives in <code>offerBoons</code>; the starter/unlock split is the
+      <code>starter</code> flag.</li>
+    </ul>
+
+    <p class="next"><strong>Next step:</strong> tabulate every boost with its rarity and
+    best-case rating swing, then retune from the table.</p>
+    <p class="files">src/domain/boons.ts, src/domain/career.ts</p>
   </div>
+</details>
 
-  <ul>
-    <li>Audit every boost in <code>domain/boons.ts</code> for the same failure mode: a
-    conditional effect whose condition the player fully controls at build time.</li>
-    <li>Options for that one: scale by cluster size, require several nations elsewhere in
-    the XI, raise its rarity, or make the bonus depend on chemistry actually being
-    imperfect.</li>
-    <li>Review the career perks too (<code>domain/career.ts</code>: Scout Network, Deep
-    Squad, Extra Boon, Transfer Budget) for value-per-Prestige consistency.</li>
-    <li><strong>Add more</strong> boosts and perks while in there. Rarity weighting lives
-    in <code>offerBoons</code>; the starter/unlock split is the <code>starter</code>
-    flag.</li>
-  </ul>
+<details class="item">
+  <summary>
+    <span class="num">02</span>
+    <span class="title">Login / user account
+      <span class="sub">Persist album, career status, and future challenges across devices.</span>
+    </span>
+    <span class="tag">Platform</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Everything is <code>localStorage</code> today (<code>wcsim_album_v1</code>,
+    <code>wcsim_career_v1</code>, <code>wcsim_run_v1</code>, plus the game key), so a
+    second device starts from zero.</p>
 
-  <p class="next"><strong>Next step:</strong> tabulate every boost with its rarity and its
-  best-case rating swing, then retune from the table.</p>
-</section>
+    <ul>
+      <li>A requirements draft already exists, with 10 open questions. The hardest is how
+      to merge mutable data (duplicate counts, trade history) across two offline devices;
+      the collection itself is a union.</li>
+      <li>So this does not need more requirements, it needs the design pass: auth,
+      storage, sync boundaries, and the guest-to-account migration.</li>
+    </ul>
 
-<section>
-  <div class="section-label"><span>Platform</span><span class="tag">docs/cloud-sync-requirements.md</span></div>
-  <h2><span class="num">02</span>Login / user account</h2>
-  <p>Add an account so status, sticker album, and future challenges persist between
-  devices. Everything is <code>localStorage</code> today
-  (<code>wcsim_album_v1</code>, <code>wcsim_career_v1</code>, <code>wcsim_run_v1</code>,
-  plus the game key), so a second device starts from zero.</p>
-
-  <ul>
-    <li>A requirements draft already exists:
-    <code>docs/cloud-sync-requirements.md</code>, including 10 open questions. The
-    hardest is how to merge mutable data (duplicate counts, trade history) across two
-    offline devices; the collection itself is a union.</li>
-    <li>So this item does not need more requirements, it needs the design pass:
-    auth, storage, sync boundaries, and the guest-to-account migration.</li>
-  </ul>
-
-  <p class="next"><strong>Next step:</strong> answer the 10 open questions in the
-  requirements doc, then design.</p>
-</section>
-
-<section>
-  <div class="section-label"><span>Economy</span><span class="tag">domain/pricing.ts, src/config.ts</span></div>
-  <h2><span class="num">03</span>Sticker discount in the budget build</h2>
-  <p>Players whose sticker is already collected should cost <strong>x% less</strong> in
-  the transfer market. <code>x</code> is configurable; a constant in
-  <code>src/config.ts</code> is fine, no UI needed.</p>
-
-  <ul>
-    <li>Price comes from <code>domain/pricing.ts</code> <code>priceOf(elo)</code>; the
-    album lives in <code>domain/album.ts</code> + <code>state/albumStorage.ts</code>. The
-    discount is an album-aware price wrapper: pass the collected set in, keep
-    <code>domain/</code> pure (no storage imports).</li>
-    <li>Touches everything that shows or sums a price: <code>BudgetMarket</code>, the
-    <code>XiTable</code> budget column, and the auto-fill / upgrade spender (which
-    reserves budget per remaining empty slot).</li>
-    <li>Worth showing the original price struck through next to the discounted one, so the
-    reward is visible.</li>
-  </ul>
-
-  <div class="callout">
-    <span class="ct">Open question</span>
-    Does the discount apply in Quick Run too, or only Career Mode? It reads as a career
-    reward, but the album is global and shared by both.
+    <p class="next"><strong>Next step:</strong> answer the 10 open questions in the
+    requirements doc, then design.</p>
+    <p class="files">docs/cloud-sync-requirements.md</p>
   </div>
+</details>
 
-  <p class="next"><strong>Next step:</strong> decide the mode scope, then implement behind
-  a config constant.</p>
-</section>
+<details class="item">
+  <summary>
+    <span class="num">03</span>
+    <span class="title">Sticker discount in the budget build
+      <span class="sub">Already-collected players cost x% less; x is configurable.</span>
+    </span>
+    <span class="tag">Economy</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Players whose sticker is already collected should be cheaper in the transfer
+    market. A constant in <code>src/config.ts</code> is fine for <code>x</code>, no UI
+    needed.</p>
 
-<section>
-  <div class="section-label"><span>Content</span><span class="tag">src/data/squads.ts</span></div>
-  <h2><span class="num">04</span>More World Cups and collectibles</h2>
-  <p>The dataset covers 1990 to 2022 (all nine, fully researched). Extend backwards:
-  1986, 1982, 1978, 1974, 1970 and earlier. Collectibles grow for free, since
-  collectibility is derived from rating via <code>STICKER_TIERS</code> with no lookup
-  table.</p>
+    <ul>
+      <li>Price comes from <code>priceOf(elo)</code>; the album lives in
+      <code>domain/album.ts</code> + <code>state/albumStorage.ts</code>. The discount is
+      an album-aware price wrapper: pass the collected set in, keep
+      <code>domain/</code> pure (no storage imports).</li>
+      <li>Touches everything that shows or sums a price: <code>BudgetMarket</code>, the
+      <code>XiTable</code> budget column, and the auto-fill / upgrade spender (which
+      reserves budget per remaining empty slot).</li>
+      <li>Worth showing the original price struck through next to the discounted one, so
+      the reward is visible.</li>
+    </ul>
 
-  <ul>
-    <li>Method notes from the 1990-2002 research round apply: identical name spellings
-    across tournaments for the same person (<code>personId</code> is the name slug),
-    distinct people must have distinct names, and ratings are that-tournament strength on
-    the 60-99 scale.</li>
-    <li>Field sizes shrink going back (24 teams in 1982 and 1986, 16 in 1970 to 1978), so
-    check the group draw and any "32 nations" assumptions before adding them.</li>
-    <li>Period identities keep their own codes, as with Soviet Union, Czechoslovakia, and
-    Yugoslavia already in the set.</li>
-    <li>Guards: <code>npm run checks</code> and the dev-time
-    <code>domain/validateSquads.ts</code>.</li>
-  </ul>
+    <div class="callout">
+      <span class="ct">Open question</span>
+      Does the discount apply in Quick Run too, or only Career Mode? It reads as a career
+      reward, but the album is global and shared by both.
+    </div>
 
-  <p class="next"><strong>Next step:</strong> pick one tournament (1986) and do it
-  end to end as the template for the rest.</p>
-</section>
+    <p class="next"><strong>Next step:</strong> decide the mode scope, then implement
+    behind a config constant.</p>
+    <p class="files">src/domain/pricing.ts, src/config.ts, src/components/BudgetMarket.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">04</span>
+    <span class="title">More World Cups and collectibles
+      <span class="sub">Extend the dataset backwards from 1990: 1986, 1982, and earlier.</span>
+    </span>
+    <span class="tag">Content</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The dataset covers 1990 to 2022 (all nine, fully researched). Collectibles grow for
+    free, since collectibility is derived from rating via <code>STICKER_TIERS</code> with
+    no lookup table.</p>
+
+    <ul>
+      <li>Method notes from the 1990-2002 research round apply: identical name spellings
+      across tournaments for the same person (<code>personId</code> is the name slug),
+      distinct people must have distinct names, and ratings are that-tournament strength
+      on the 60-99 scale.</li>
+      <li>Field sizes shrink going back (24 teams in 1982 and 1986, 16 in 1970 to 1978),
+      so check the group draw and any "32 nations" assumptions first.</li>
+      <li>Period identities keep their own codes, as with Soviet Union, Czechoslovakia,
+      and Yugoslavia already in the set.</li>
+      <li>Guards: <code>npm run checks</code> and the dev-time
+      <code>domain/validateSquads.ts</code>.</li>
+    </ul>
+
+    <p class="next"><strong>Next step:</strong> pick one tournament (1986) and do it end to
+    end as the template for the rest.</p>
+    <p class="files">src/data/squads.ts</p>
+  </div>
+</details>
 
 <footer>
-  Pipeline and shipped work: <code>docs/ROADMAP.md</code>. Project context:
-  <code>CLAUDE.md</code>.
+  Nothing here is designed or scheduled yet. When an item is picked up, spec it (its own
+  doc in <code>docs/</code>) and move it into <code>docs/ROADMAP.md</code> "Next up".
+  ROADMAP is the pipeline of what is actually being built; this is the inbox.
 </footer>
+
+<script>
+  const btn = document.getElementById('toggle-all');
+  const items = Array.from(document.querySelectorAll('details.item'));
+  function sync() {
+    btn.textContent = items.every((d) => d.open) ? 'Collapse all' : 'Expand all';
+  }
+  btn.addEventListener('click', () => {
+    const open = !items.every((d) => d.open);
+    items.forEach((d) => { d.open = open; });
+    sync();
+  });
+  items.forEach((d) => d.addEventListener('toggle', sync));
+</script>
 
 </body>
 </html>
