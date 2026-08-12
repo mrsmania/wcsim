@@ -316,11 +316,13 @@
       <span class="ct">Model decided 2026-08-11</span>
       <strong>Two separate worlds, never mixed.</strong> Guest progress stays in
       <code>localStorage</code>; account progress lives <em>only</em> in the database.
-      Nothing merges. The one crossing is a single user-confirmed import at first login.
-      Logged in and the server is unreachable means <strong>you cannot play</strong>: a
-      blocking retry, plus "continue as guest" as the escape hatch. This deletes the
-      hardest problem in the topic (how to reconcile duplicate counts and trade history
-      between two diverged copies) rather than solving it.
+      Nothing merges. The one crossing is a single user-confirmed import at first login,
+      and it is a <strong>move</strong>: local data is deleted once the server write is
+      confirmed, so no stale twin is left behind. Logged in and the server is unreachable
+      means <strong>you cannot play</strong>: a blocking retry, plus "continue as guest" as
+      the escape hatch. This deletes the hardest problem in the topic (how to reconcile
+      duplicate counts and trade history between two diverged copies) rather than solving
+      it.
     </div>
 
     <ul>
@@ -330,14 +332,14 @@
       highscores, but never core gameplay, content, or progression.</li>
       <li>Two devices signed in at once is the one conflict left, and it is small:
       version-numbered writes, the stale device reloads.</li>
-      <li>Requirements are otherwise complete (25 functional, 9 non-functional, 8 stories).
-      Down from 10 open questions to 8, and the hard one is gone. What remains is the
+      <li>Requirements are otherwise complete (26 functional, 9 non-functional, 8 stories).
+      Down from 10 open questions to 7, and the hard one is gone. What remains is the
       design pass: auth, schema, save points, the import flow.</li>
       <li>Weightier now that the DB is the only copy: NAS exposure and a tested
       backup/restore.</li>
     </ul>
 
-    <p class="next"><strong>Next step:</strong> answer the 8 remaining questions, then
+    <p class="next"><strong>Next step:</strong> answer the 7 remaining questions, then
     write <code>docs/cloud-sync-design.md</code>.</p>
     <p class="files">docs/cloud-sync-requirements.md</p>
   </div>

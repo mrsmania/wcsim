@@ -10,7 +10,8 @@ requirements only and deliberately contains no schema, endpoints, or implementat
 > local-only; a logged-in user reads and writes the database and nothing else. Since two
 > copies can never diverge, the merge/reconcile problem is gone: the old open questions 1
 > to 3 are settled, and FR-10 to FR-17 plus NFR-1 were rewritten accordingly. Rationale is
-> in the D8/D9 rows.
+> in the D8/D9 rows. The first-login import is a **move**: local guest data is deleted once
+> the server write is confirmed (FR-16a).
 
 ---
 
@@ -90,6 +91,10 @@ blocking state plus guest escape hatch covers.
 ### 4.3 Guest → account crossing (one-time import)
 - **FR-15** On a login where the **account has no progress yet** and the device has guest progress, the app must offer a **one-time, explicitly confirmed import** ("bring your guest progress into this account" vs "start fresh"). It is never automatic and never silent.
 - **FR-16** The import is **one-way and once per account** (guest → account, D8). After it, the two worlds are independent: later guest play does not flow into the account, and account progress never flows back to local storage. If the account already has progress, no import is offered.
+- **FR-16a** The import is a **move, not a copy**: once the server write is **confirmed**, the device's guest data is **deleted**. Rationale: it prevents a stale twin of the account sitting in local storage, and it means an un-logged-in visit visibly starts from scratch, which is itself a signal that you are not signed in.
+  - **Ordering is a hard requirement:** write to the server and confirm **first**, delete locally **second**. Never delete before a confirmed write, or a failed import destroys the only copy.
+  - **Keys cleared:** `wcsim:game:v1`, `wcsim_album_v1`, `wcsim_album_stats_v1`, `wcsim_career_v1`, `wcsim_run_v1`, `wcsim_run_reveal_v1`. Note this deliberately includes the **album** keys, which are otherwise kept separate precisely so a game reset never wipes the album (`clearAlbum()` in `state/albumStorage.ts`) — the import is the one case that clears them. Device-local settings (`wcsim_settings_v1`) are **not** cleared (see open question 7).
+  - **No guest data is ever deleted without an import.** If a login offers no import (the account already has progress, FR-16), the device's guest progress is left intact: it was never banked anywhere, so deleting it would destroy the only copy. In that case "continue as guest" (FR-12) resumes it as normal, and the signed-in/guest distinction is carried by a **visible UI affordance**, not by the absence of data.
 - **FR-17** There is at most **one active run** per account, held server-side. Two signed-in devices touching it are resolved by the version check in FR-11 (the stale device reloads), not by a merge.
 
 ### 4.4 Integrity & anti-abuse (D3, D7)
@@ -145,6 +150,9 @@ blocking state plus guest escape hatch covers.
 - ~~Earn model (run result vs per-event deltas).~~ Falls out of D8: the client writes to the
   server at its defined save points and the server validates each write (§4.4 unchanged),
   so there is no offline delta queue to replay.
+- ~~Guest data after import.~~ Settled: the import is a **move**, so the local copy is
+  deleted once the server write is confirmed (FR-16a). An un-logged-in visit then starts
+  from scratch, which doubles as the signal that you are not signed in.
 
 **Still open:**
 
@@ -154,8 +162,7 @@ blocking state plus guest escape hatch covers.
 4. **NAS exposure specifics (D4).** DDNS provider + hostname, which port, DSM reverse proxy vs. a container-level proxy, and cert auto-renewal — confirm the chosen path (open port to the internet is a security surface to review). **Weightier under D9:** an unreachable NAS now blocks signed-in play.
 5. **Backup/restore (NFR-6).** Cadence, retention, off-NAS copy (so a NAS failure doesn't lose everyone's album), and a tested restore. **Weightier under D8:** the DB is the *only* copy of an account's collection, not a backup of a local one.
 6. **"Public later" trigger (D7).** What must be true (rate limits, privacy note, abuse handling, backups) before flipping from allowlist/invite to open signup?
-7. **Settings scope (D1).** Which settings are worth holding per account (speed, auto-play) vs. left device-local (dark mode arguably belongs to the device)?
-8. **Guest data after import (FR-15/16).** Once guest progress has been imported into an account, is the local guest copy left as-is, or cleared so the same progress is not sitting in two places? Leaving it means "continue as guest" (FR-12) resumes a stale twin of the account.
+7. **Settings scope (D1).** Which settings are worth holding per account (speed, auto-play) vs. left device-local (dark mode arguably belongs to the device)? FR-16a currently leaves `wcsim_settings_v1` untouched by the import on the assumption they are device-local.
 10. **Settings sync (D1).** Which settings actually matter to sync (speed, auto-play, and any future ones) vs. leave device-local?
 
 ---
