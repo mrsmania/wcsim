@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-    loadSettings,
-    saveSettings,
-    type Difficulty,
-    type Settings,
-    type Theme,
-} from '../state/settingsStorage';
+import type { Difficulty, Settings, Theme } from '../state/settingsStorage';
+import { store } from '../state/store';
 
 export interface SettingsApi {
     settings: Settings;
@@ -16,13 +11,13 @@ export interface SettingsApi {
 
 /** Owns the persisted user preferences and applies the theme to the document.
  *  Separate from the game/album/career/run state, so a reset of any of those
- *  never touches settings. */
-export function useSettings(): SettingsApi {
-    const [settings, setSettings] = useState<Settings>(loadSettings);
+ *  never touches settings. `initial` comes from the boot snapshot (main.tsx). */
+export function useSettings(initial: Settings): SettingsApi {
+    const [settings, setSettings] = useState<Settings>(initial);
 
     // Persist on any change.
     useEffect(() => {
-        saveSettings(settings);
+        void store.saveSettings(settings);
     }, [settings]);
 
     // Reflect the theme on <html> (the pre-paint script in index.html sets the

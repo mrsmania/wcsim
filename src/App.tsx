@@ -43,9 +43,7 @@ import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
-import { loadGame, saveGame } from './state/persist';
-import { clearRun, loadRun } from './state/runStorage';
-import { loadCareer } from './state/careerStorage';
+import { store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import SettingsModal from './components/SettingsModal';
@@ -87,11 +85,13 @@ function homeCopy(view: HomeView): { eyebrow: string; title: string } {
     return { eyebrow, title };
 }
 
-export default function App() {
+/** Persisted state, read once before the first render (main.tsx) so everything here
+ *  can still seed synchronously. */
+export default function App({ snapshot }: { snapshot: AccountSnapshot }) {
     const [state, dispatch] = useReducer(
         gameReducer,
         initialState,
-        () => loadGame() ?? initialState,
+        () => snapshot.game ?? initialState,
     );
     const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
     // Budget build (transient, not persisted): the market player currently held and
@@ -106,7 +106,7 @@ export default function App() {
     // lives in this hook, outside the reducer / game state and in its own localStorage
     // key, so resetting a run never touches the collection (FR-7).
     const STICKERS = FEATURES.stickerAlbum;
-    const settings = useSettings();
+    const settings = useSettings(snapshot.settings);
     // The active squad pool (squad-pool setting): the squads and players the game draws
     // from - the user's rolls, the transfer market, the opponents, and the album target.
     // Recomputed only when the setting changes.
@@ -115,7 +115,7 @@ export default function App() {
         [settings.settings.poolYears],
     );
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
-    const stickers = useStickerAlbum(state, dispatch, poolPlayers);
+    const stickers = useStickerAlbum(state, dispatch, snapshot.album, poolPlayers);
     const [settingsOpen, setSettingsOpen] = useState(false);
     // Changing difficulty resets the sticker album (it is scoped to the difficulty it
     // was earned under; the same will hold for future challenge modes). The modal
@@ -183,7 +183,7 @@ export default function App() {
 
     // Persist the whole game so the clean-path routes survive a refresh.
     useEffect(() => {
-        saveGame(state);
+        void store.saveGame(state);
     }, [state]);
 
     // During setup the pitch previews the selected formation/style; during the
@@ -288,7 +288,7 @@ export default function App() {
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
         // A fresh draft means a fresh team, so drop any in-progress Cup Run.
-        if (FEATURES.careerMode) clearRun();
+        if (FEATURES.careerMode) void store.saveRun(null);
         // Just enter the draft; the draw-next-squad effect rolls the first squad
         // from committed state (an open slot with no squad in hand).
         dispatch({ type: 'START_DRAFT', formation: previewFormation });
@@ -299,7 +299,7 @@ export default function App() {
     const handleRandomTeam = useCallback(
         (tier: TeamStrength) => {
             if (!previewFormation) return;
-            if (FEATURES.careerMode) clearRun();
+            if (FEATURES.careerMode) void store.saveRun(null);
             const { filled, usedPersonIds } = randomXI(
                 previewFormation,
                 poolSquads,
@@ -314,7 +314,7 @@ export default function App() {
     // the market, while the pitch + ratings/line-up stay put.
     const handleBudget = useCallback(() => {
         if (!previewFormation) return;
-        if (FEATURES.careerMode) clearRun();
+        if (FEATURES.careerMode) void store.saveRun(null);
         setHeldId(null);
         setBudgetTargetId(null);
         dispatch({ type: 'START_BUDGET', formation: previewFormation });
@@ -459,7 +459,7 @@ export default function App() {
 
     const handleReset = useCallback(() => {
         // A reset is a brand-new team, so drop any in-progress Cup Run too.
-        if (FEATURES.careerMode) clearRun();
+        if (FEATURES.careerMode) void store.saveRun(null);
         dispatch({ type: 'RESET' });
         // Re-open setup in the path that matches where the reset came from: stay on a
         // build route; a Cup Run -> the career build; a World Cup -> the quick build;
@@ -554,10 +554,10 @@ export default function App() {
 
     // Transfer-market budget. Quick Run (and career-off) use the fixed BUDGET_DRAFT;
     // Career Mode scales it by the owned `transfer-budget` perk tier. The career is
-    // read from storage here (it lives in CupRunScreen otherwise), refreshed whenever
+    // read from the store here (it lives in CupRunScreen otherwise), refreshed whenever
     // the route changes - so buying a tier in the hub then returning to build applies.
     const buildCareer = useMemo(
-        () => (FEATURES.careerMode && isBuild && mode === 'career' ? loadCareer() : null),
+        () => (FEATURES.careerMode && isBuild && mode === 'career' ? store.peek().career : null),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [path],
     );
@@ -571,12 +571,12 @@ export default function App() {
               ]
             : BUDGET_DRAFT;
 
-    // Launcher-only read (localStorage), refreshed whenever we land on `/`: a Cup Run
-    // that is mid-flight (not yet ended), with a short round summary for the resume
-    // button. Null when there is nothing to resume.
+    // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
+    // mid-flight (not yet ended), with a short round summary for the resume button.
+    // Null when there is nothing to resume.
     const resumeCupRun = useMemo(() => {
         if (!isLauncher || !FEATURES.careerMode) return null;
-        const r = loadRun();
+        const r = store.peek().run;
         if (!r || r.phase === 'ended') return null;
         const round = r.phase === 'group' ? 'Group stage' : (KO_ROUNDS[r.koRound] ?? 'Knockouts');
         const opp = r.nextOpponent ? ` · vs ${r.nextOpponent.name} ${r.nextOpponent.year}` : '';

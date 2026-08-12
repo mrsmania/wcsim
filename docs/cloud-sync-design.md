@@ -258,34 +258,55 @@ src/state/store/
   index.ts        picks one, exposes it
 ```
 
+As built (see `state/store/types.ts` for the documented version):
+
 ```ts
 export interface Store {
-  loadAll(): Promise<AccountSnapshot>;   // one round trip, not seven
-  saveGame(s: GameState): Promise<void>;
-  saveRun(r: RunState | null): Promise<void>;
-  saveCareer(c: CareerState): Promise<void>;
-  saveSettings(s: Settings): Promise<void>;
-  finishRun(input: FinishRunInput): Promise<AlbumState>;
-  trade(tier: StickerTier, playerId: string): Promise<AlbumState>;
-  // guest only:
-  clearAll?(): void;
+  load(): Promise<AccountSnapshot>;   // one round trip, not seven
+  peek(): AccountSnapshot;            // latest in-memory values, sync
+  saveGame(game: GameState): Promise<void>;
+  saveAlbum(album: AlbumState, stats: AlbumStats): Promise<void>;
+  clearAlbum(): Promise<void>;
+  saveCareer(career: CareerState): Promise<void>;
+  saveSettings(settings: Settings): Promise<void>;
+  saveRun(run: RunState | null): Promise<void>;      // null drops run + reveal
+  saveReveal(reveal: Reveal | null): Promise<void>;
 }
 ```
 
 **Everything is async.** This is the real cost of the refactor and the reason to do it first:
 the local implementation resolves immediately, but the signatures have to be async now, or
-adding the remote one later touches every call site twice. `loadAll` returns one snapshot so
+adding the remote one later touches every call site twice. `load` returns one snapshot so
 signed-in boot is a single request.
+
+**`peek()` earns its place.** Three call sites re-read persisted state during render rather
+than at boot: `App`'s `buildCareer` (so buying a perk in the hub then returning to the build
+applies the new budget) and `resumeCupRun` (the launcher's resume button), plus
+`CupRunScreen`'s mount reads. They were synchronous localStorage reads; they are now reads of
+the store's in-memory cache, which every save updates. The remote store keeps the same
+contract: load once, hold in memory, write through.
+
+**Where `finishRun` / `trade` go.** The design's account-level operations (§6) do not exist in
+the local implementation, because locally there is nothing to validate: `useStickerAlbum`
+computes the next album with the pure `domain/album.ts` helpers and calls `saveAlbum`. When
+the remote store lands, those two call sites become `finishRun` / `trade` on the interface,
+with `localStore` implementing them as the same compute-then-save it does today. That is the
+one place step 5 will widen the interface rather than just implement it.
 
 **Guests never download the auth SDK.** `remoteStore.ts` is dynamically imported only when
 accounts are on and a session exists, the same pattern as the lazy `CupRunScreen`.
 
 ### 10.2 Boot
 
-`App` currently seeds state synchronously. It gains three states: `loading` (a brief splash,
-instant for guests), `ready`, and `unreachable`. The unreachable state is a **blocking
-overlay** with a retry and a "continue as guest" action (FR-12, D9), reachable at boot and
-mid-run, since any save can fail.
+**As built:** `main.tsx` awaits `store.load()` and passes the snapshot to `App` as a prop, so
+`App` still seeds its reducer and hooks synchronously and needs no loading state. For the
+local store this resolves in a microtask, before paint, so there is no flash.
+
+**When the remote store lands,** the same seam carries it: `main.tsx` is where a real round
+trip is awaited, where a splash goes if it is slow, and where a failure renders the blocking
+**"server unreachable"** screen with a retry and a "continue as guest" action (FR-12, D9)
+instead of the app. Mid-run save failures need the same overlay reachable from inside `App`,
+which is the part step 6 adds.
 
 ### 10.3 Stale version
 
@@ -347,9 +368,19 @@ straight:
 
 Each step is independently shippable and verifiable.
 
-1. **Storage adapter refactor.** Interface plus `localStore`, all call sites async, no server,
-   no flag, no behaviour change. Verified by `npm run build` and `npm run checks`. *This is
-   the piece that makes everything after it small, and it needs none of the NAS setup.*
+1. ~~**Storage adapter refactor.**~~ **Done 2026-08-11.** `state/store/` (`types.ts`,
+   `localStore.ts`, `index.ts`), all five per-key modules now internal to it, every call site
+   async, no server, no flag, no behaviour change. `main.tsx` loads the snapshot before the
+   first render and passes it to `App`, so hooks and the reducer still seed synchronously.
+   Verified by `npm run build`, `npm run checks`, and a browser pass (fresh boot, draft
+   surviving a refresh with the same squad in hand, budget autofill into a Cup Run, career
+   read and written, mid-run refresh resuming with the reveal intact, reset clearing run +
+   reveal while keeping career and settings, settings round-tripping).
+   Deviations from the plan as written, both deliberate: the snapshot is passed **as a prop
+   from `main.tsx`** rather than App gaining `loading`/`ready` states (the local read is
+   synchronous, so a loading state would have been dead code until the remote store lands,
+   and the boot-time gate belongs at the entry point either way); and `Store` gained
+   **`peek()`** for the three places that re-read persisted state on navigation.
 2. **The stack on the NAS.** Compose, trimmed services, proxy rule, certificate, Google and
    SMTP configured, invite list seeded. Verified by signing in from a phone on mobile data
    (§8 of the requirements doc, step 4).

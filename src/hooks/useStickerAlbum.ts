@@ -14,7 +14,7 @@ import {
 } from '../domain/album';
 import { FEATURES, type StickerTier } from '../config';
 import type { Action, GameState } from '../state/gameReducer';
-import { loadAlbum, saveAlbum, loadStats, saveStats, clearAlbum } from '../state/albumStorage';
+import { store } from '../state/store';
 
 /** A normalized cup-win reward awaiting the player's pick. The standard game and the
  *  Cup Run both funnel into this one shape (ids to bank + an onPick that applies them
@@ -58,13 +58,14 @@ export interface StickerAlbumApi {
 export function useStickerAlbum(
   state: GameState,
   dispatch: Dispatch<Action>,
+  initialAlbum: AlbumState,
   allPlayers: Player[] = ALL_PLAYERS,
 ): StickerAlbumApi {
   const enabled = FEATURES.stickerAlbum;
   const { filled, stickersApplied, group, bracket } = state;
 
   const [album, setAlbum] = useState<AlbumState>(() =>
-    enabled ? loadAlbum() : emptyAlbum(),
+    enabled ? initialAlbum : emptyAlbum(),
   );
   /** New (non-duplicate) ids earned this run -> shows the run-end summary. */
   const [newStickerIds, setNewStickerIds] = useState<string[] | null>(null);
@@ -107,9 +108,8 @@ export function useStickerAlbum(
       const newly = pendingNewStickers(album, ids);
       const next = applyRunStickers(album, collectibleIds, wonCup, cupPickId);
       setAlbum(next);
-      saveAlbum(next);
-      const stats = loadStats();
-      saveStats({
+      const stats = store.peek().albumStats;
+      void store.saveAlbum(next, {
         runsPlayed: stats.runsPlayed + 1,
         stickersEarned: stats.stickersEarned + newly.length,
         tradesCompleted: stats.tradesCompleted,
@@ -142,17 +142,16 @@ export function useStickerAlbum(
     (tier: StickerTier, playerId: string) => {
       const next = executeTrade(album, tier, playerId);
       setAlbum(next);
-      saveAlbum(next);
-      const stats = loadStats();
-      saveStats({ ...stats, tradesCompleted: stats.tradesCompleted + 1 });
+      const stats = store.peek().albumStats;
+      void store.saveAlbum(next, { ...stats, tradesCompleted: stats.tradesCompleted + 1 });
     },
     [album],
   );
 
-  // Manual album reset: wipe the album's localStorage (collection + trade stats) and
-  // clear the in-memory album. Leaves the game / career / run untouched.
+  // Manual album reset: wipe the stored album (collection + trade stats) and clear the
+  // in-memory album. Leaves the game / career / run untouched.
   const onResetAlbum = useCallback(() => {
-    clearAlbum();
+    void store.clearAlbum();
     setAlbum(emptyAlbum());
   }, []);
 

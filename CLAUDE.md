@@ -108,10 +108,11 @@ src/
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
                fully built XI; a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER
-               for the in-page budget build), persist.ts (the whole
-               game <-> localStorage, so routes survive a refresh), albumStorage.ts
+               for the in-page budget build); store/ (the persistence seam - see below);
+               and behind it the per-key modules store/ delegates to: persist.ts (the
+               whole game <-> localStorage, so routes survive a refresh), albumStorage.ts
                (the sticker album <-> its own localStorage keys), careerStorage.ts
-               (the Cup Run career <-> wcsim_career_v1)
+               (the Cup Run career <-> wcsim_career_v1), runStorage.ts, settingsStorage.ts
   hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
                match-reveal clock used by both tournament screens)
   components/  presentational React (App composes them); the group screen
@@ -169,11 +170,30 @@ top of browser Back/Forward, each tournament screen carries a `StageCrumb` link 
 to `/group` (`onViewGroup`), and once a bracket exists the group screen links forward to
 `/knockout` (reusing `onEnterKnockout`, which only navigates when the bracket is already
 built, and whose qualified-CTA button then reads "Back to the knockouts"). The
-whole `GameState` is mirrored to `localStorage` (`state/persist.ts`) and restored on
-load, so `/group` and `/knockout` survive a refresh (transient draft fields are reset
+whole `GameState` is mirrored to storage and restored on load, so `/group` and
+`/knockout` survive a refresh (transient draft fields are reset
 on restore). `SquadBrowser` derives its view from route params via `useMatch`
 (`/squads/by-world-cup/:year`, `/squads/by-team/:code`, `/squads/team/:squadId`); team
 codes in URLs are lowercase and matched case-insensitively.
+
+**The persistence seam (`state/store/`).** Everything persisted goes through **one
+`store`** (`state/store/index.ts`), never the per-key modules directly - those are the
+local implementation's internals now. `main.tsx` calls `store.load()` **once before the
+first render** and passes the resulting `AccountSnapshot` to `App`, so every hook and the
+reducer still seed synchronously (no loading state, no flash: localStorage resolves in a
+microtask, before paint). Afterwards the store holds the latest values in memory, so the
+two places that re-read on navigation (`App`'s `buildCareer`, `resumeCupRun`) and
+`CupRunScreen`'s mount reads use the synchronous `store.peek()`. Writes go through
+`saveGame` / `saveAlbum` / `saveCareer` / `saveSettings` / `saveRun` / `saveReveal`
+(`saveRun(null)` drops the run *and* its reveal, as `clearRun` always did) and are
+`void`-ed at call sites, since nothing awaits a local write.
+Every method is a **Promise** even though the local implementation resolves immediately:
+that is deliberate, so an account-backed implementation slots in behind the same
+interface without touching call sites again (`docs/cloud-sync-design.md`, build order
+step 1 of 7). Known, accepted difference: a second browser tab no longer sees the first
+tab's writes on navigation, because reads come from the in-memory cache. Multi-tab was
+never coherent (each tab holds its own React state); it is now uniformly incoherent
+rather than partially.
 
 ## Core concepts
 

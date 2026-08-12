@@ -30,8 +30,7 @@ import {
   levelProgress,
   type CareerState,
 } from '../domain/career';
-import { loadCareer, saveCareer } from '../state/careerStorage';
-import { loadRun, saveRun, clearRun, loadReveal, saveReveal, clearReveal } from '../state/runStorage';
+import { store } from '../state/store';
 import { useFollowBottom } from '../hooks/useFollowBottom';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
 import {
@@ -85,12 +84,12 @@ export default function CupRunScreen({
   onRunEnd?: (xi: Player[], wonCup: boolean) => void;
 }) {
   const diffDelta = userRatingDelta(difficulty);
-  const [career, setCareer] = useState<CareerState>(loadCareer);
-  const [run, setRun] = useState<RunState | null>(loadRun);
+  const [career, setCareer] = useState<CareerState>(() => store.peek().career);
+  const [run, setRun] = useState<RunState | null>(() => store.peek().run);
   const [reward, setReward] = useState<Reward | null>(null);
-  // Restore an in-flight reveal (only when a run exists, so a stale one is ignored),
-  // so leaving mid-match resumes the current round rather than replaying it.
-  const [reveal, setReveal] = useState<Reveal | null>(() => (loadRun() ? loadReveal() : null));
+  // Restore an in-flight reveal, so leaving mid-match resumes the current round rather
+  // than replaying it. The store already drops a reveal with no run behind it.
+  const [reveal, setReveal] = useState<Reveal | null>(() => store.peek().reveal);
   // The just-finished knockout tie, kept on screen through the following boost pick.
   const [lastKoMatch, setLastKoMatch] = useState<{ match: KoMatch; opp: GroupTeam; roundName: string } | null>(null);
   // A transient toast for what a boost just did (so the run log isn't needed).
@@ -141,15 +140,13 @@ export default function CupRunScreen({
   // Persist the in-progress run (or clear it once there is none), so a refresh
   // mid-run resumes exactly where it left off.
   useEffect(() => {
-    if (run) saveRun(run);
-    else clearRun();
+    void store.saveRun(run);
   }, [run]);
 
   // Persist the in-flight reveal alongside the run, so leaving mid-match resumes the
   // current round instead of replaying it. Cleared when the reveal ends (setReveal(null)).
   useEffect(() => {
-    if (reveal) saveReveal(reveal);
-    else clearReveal();
+    void store.saveReveal(reveal);
   }, [reveal]);
 
   // Collapse the hub whenever a run starts (so the match reveal is not buried); only fires
@@ -231,7 +228,7 @@ export default function CupRunScreen({
     if (career.lastAscension !== chosen) {
       const c = { ...career, lastAscension: chosen };
       setCareer(c);
-      saveCareer(c);
+      void store.saveCareer(c);
     }
     const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen);
     const p = prepareGroupStage(begun, diffDelta, pool);
@@ -249,7 +246,7 @@ export default function CupRunScreen({
     if (next.phase === 'ended' && run && run.phase !== 'ended') {
       const r = applyRunResult(career, next);
       setCareer(r.career);
-      saveCareer(r.career);
+      void store.saveCareer(r.career);
       setReward({
         xpGained: r.xpGained,
         prestigeGained: r.prestigeGained,
@@ -336,13 +333,13 @@ export default function CupRunScreen({
   const purchase = (perkId: string) => {
     const c = buyPerkTier(career, perkId);
     setCareer(c);
-    saveCareer(c);
+    void store.saveCareer(c);
   };
 
   const unlockBoost = (boonId: string) => {
     const c = unlockBoon(career, boonId);
     setCareer(c);
-    saveCareer(c);
+    void store.saveCareer(c);
   };
 
   const prog = levelProgress(career.xp);
