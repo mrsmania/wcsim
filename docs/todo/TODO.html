@@ -302,7 +302,7 @@
     <span class="num">02</span>
     <span class="title">Login / user account
       <span class="sub">Persist album, career status, and future challenges across devices.
-      Model decided: guest and account fully separate.</span>
+      Requirements settled, no open questions. Next: the design doc.</span>
     </span>
     <span class="tag">Platform</span>
     <span class="chev">&#9656;</span>
@@ -330,17 +330,26 @@
       in, and guest play never touches the server. Signing in buys continuity and backup
       (same album everywhere) and may gate genuinely online extras such as
       highscores, but never core gameplay, content, or progression.</li>
+      <li><strong>Stack:</strong> self-hosted Supabase on the NAS (Postgres + Auth +
+      PostgREST, trimmed containers, Studio on LAN only). The <strong>SPA stays on GitHub
+      Pages</strong>: Supabase authenticates with a bearer token rather than a cookie, so
+      two origins is a non-issue and guests keep riding always-up hosting. Hosted Supabase
+      was rejected because free projects auto-pause after a week idle, which under the
+      blocking rule above would mean finding your own game asleep.</li>
+      <li><strong>Sign-in:</strong> Google + email OTP (Gmail SMTP). No GitHub in v1, since
+      it can return no email at all and there is then nothing to key an account on.
+      Sessions 60 days, sign-out-everywhere included. Signup invite-only for now.</li>
       <li>Two devices signed in at once is the one conflict left, and it is small:
       version-numbered writes, the stale device reloads.</li>
-      <li>Requirements are otherwise complete (26 functional, 9 non-functional, 8 stories).
-      Down from 10 open questions to 7, and the hard one is gone. What remains is the
-      design pass: auth, schema, save points, the import flow.</li>
-      <li>Weightier now that the DB is the only copy: NAS exposure and a tested
-      backup/restore.</li>
+      <li><strong>Accepted risks, on the record:</strong> no backups (the DB is the only
+      copy, so a disk failure ends every album), and a NAS outage blocks signed-in play.</li>
+      <li><strong>Open questions: none.</strong> All ten are answered. What is left is the
+      design pass plus a short list of values to supply (DDNS hostname, OAuth secret, Gmail
+      app password).</li>
     </ul>
 
-    <p class="next"><strong>Next step:</strong> answer the 7 remaining questions, then
-    write <code>docs/cloud-sync-design.md</code>.</p>
+    <p class="next"><strong>Next step:</strong> write <code>docs/cloud-sync-design.md</code>.
+    The client storage-adapter refactor inside it is shippable before any server exists.</p>
     <p class="files">docs/cloud-sync-requirements.md</p>
   </div>
 </details>
