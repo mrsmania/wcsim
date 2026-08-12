@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "checks": "esbuild scripts/checks.ts --bundle --format=esm --platform=node | node --input-type=module"
+    "checks": "esbuild scripts/checks.ts --bundle --format=esm --platform=node | node --input-type=module",
+    "gen:collectibles": "esbuild scripts/gen-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module"
   },
   "dependencies": {
     "country-flag-icons": "^1.6.19",

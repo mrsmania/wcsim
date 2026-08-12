@@ -10,7 +10,8 @@
  * This is a safety net for the risky domain math (match sim, penalty shootout,
  * the knockout bracket, standings, chemistry) - not a UI or behaviour change.
  */
-import { SQUADS, SQUAD_BY_ID } from '../src/data/squads';
+import { readFileSync } from 'node:fs';
+import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID } from '../src/data/squads';
 import { primaryPosition, type Player } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
 import { simulateMatch, simulateShootout } from '../src/domain/match';
@@ -65,6 +66,13 @@ import {
 } from '../src/domain/career';
 import { simulateTitleOdds } from '../src/domain/odds';
 import { ASCENSIONS, ascensionAt, maxSelectableAscension } from '../src/domain/ascension';
+import { tierOf } from '../src/domain/album';
+import {
+  CATALOGUE_PATH,
+  catalogueChecksum,
+  catalogueRows,
+  checksumInFile,
+} from './collectibles';
 
 let passed = 0;
 const failures: string[] = [];
@@ -467,6 +475,29 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     o.champion <= o.finalist + 1e-9 &&
     o.finalist <= o.advanced + 1e-9;
   check('odds: distribution sums to 1 and champion <= finalist <= advanced', ok);
+}
+
+// --- Collectible catalogue: the generated SQL seed matches the dataset ------
+// The server validates sticker earns against supabase/seed/collectibles.sql, which is
+// generated from squads.ts + STICKER_TIERS. A rating tweak that forgets
+// `npm run gen:collectibles` would leave a newly-collectible player unbankable, so the
+// drift is a hard failure here rather than a surprise in production.
+// (docs/cloud-sync-design.md §3.)
+{
+  const rows = catalogueRows(ALL_PLAYERS, SQUAD_BY_ID, tierOf);
+  let sql: string | null = null;
+  try {
+    sql = readFileSync(CATALOGUE_PATH, 'utf8');
+  } catch {
+    sql = null;
+  }
+  const recorded = sql ? checksumInFile(sql) : null;
+  const ok = recorded !== null && recorded === catalogueChecksum(rows);
+  check(
+    `collectibles: ${CATALOGUE_PATH} is in sync with the dataset ` +
+      `(${rows.length} rows; run \`npm run gen:collectibles\` if this fails)`,
+    ok,
+  );
 }
 
 // --- Summary ---------------------------------------------------------------

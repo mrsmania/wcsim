@@ -15,8 +15,9 @@ export type BuildMethod = 'roll' | 'budget';
 
 const INITIAL_REROLLS = 3;
 /** Player swaps allowed per game (sticker album feature). Only collectibles can be
- *  swapped in, and only this many times per run. */
-const INITIAL_SWAPS = 2;
+ *  swapped in, and only this many times per run. Exported because the server-side
+ *  economy validation mirrors it (scripts/gen-collectibles.ts). */
+export const INITIAL_SWAPS = 2;
 
 export interface GameState {
   phase: Phase;

@@ -66,7 +66,13 @@ npm run build      # tsc --noEmit && vite build -> dist/   (run this to verify c
 npm run typecheck  # tsc --noEmit
 npm run preview    # serve the production build
 npm run checks     # run domain characterization checks (scripts/checks.ts)
+npm run gen:collectibles  # regenerate supabase/seed/collectibles.sql from the dataset
 ```
+
+**After changing ratings in `squads.ts` or `STICKER_TIERS`, run `npm run
+gen:collectibles`.** The accounts feature needs a server-side copy of who is collectible
+(SQL cannot read the TypeScript dataset), so `supabase/seed/collectibles.sql` is generated
+from it and `npm run checks` fails while the two disagree.
 
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization

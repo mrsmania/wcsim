@@ -70,14 +70,22 @@ know **who is collectible and at what tier**. Today that is derived at runtime f
 client-side TypeScript the database cannot read.
 
 **Decision:** a generated, read-only `collectibles` table, seeded from the dataset.
+**Built** as described:
 
-- A script (`scripts/gen-collectibles.ts`, bundled and run the same way as `scripts/checks.ts`)
-  walks `SQUADS`, applies `tierOf`, and emits SQL: `player_id, tier, elo, name, squad_id,
-  nation_code, year`.
+- `scripts/gen-collectibles.ts` (`npm run gen:collectibles`, bundled and run like
+  `scripts/checks.ts`) walks `ALL_PLAYERS`, applies `tierOf`, and writes
+  `supabase/seed/collectibles.sql`: `player_id, tier, elo, name, squad_id, nation_code,
+  year`, sorted by id so the output is byte-stable. It also mirrors `STICKER_TRADE_COST`
+  and `INITIAL_SWAPS` into an `economy_constants` table, so the values the server
+  validates against cannot drift from the client's either.
+- The seed is **idempotent**: it upserts through a temporary table, and a player who
+  falls out of the bands is marked `active = false` rather than deleted, so a sticker
+  somebody already owns keeps its row (`album_stickers` references it).
 - Regenerate whenever `squads.ts` or `STICKER_TIERS` changes. This is the one place the
-  dataset is duplicated outside the bundle, so it needs a guard: extend `npm run checks` with
-  a **count and checksum assertion** against the committed seed, so a dataset edit that
-  forgets the regeneration fails the check rather than silently drifting.
+  dataset is duplicated outside the bundle, so `npm run checks` carries a **checksum
+  assertion** (over `player_id|tier|elo`, ignoring display fields so a spelling fix is not
+  a failure). Negative-tested both ways: a tampered checksum fails, and a rating tweak
+  that promotes a player into a band fails until the seed is regenerated.
 - Trade *options* stay client-side (`tradeOptions` is random and cosmetic); only the
   *outcome* is validated server-side.
 
@@ -384,10 +392,20 @@ Each step is independently shippable and verifiable.
 2. **The stack on the NAS.** Compose, trimmed services, proxy rule, certificate, Google and
    SMTP configured, invite list seeded. **Checklist: `docs/nas-setup.md`.** Verified by
    signing in from a phone on mobile data with wifi off.
-3. **Schema, RLS, and the generated catalogue.** Tables, policies, the `collectibles` seed
-   plus its checks guard. Verified in Studio: a second account cannot see the first's rows.
-4. **Functions and validation.** §6 and §7. Verified by deliberately hostile calls: invented
-   player ids, an unaffordable trade, a second `finish_run` for the same run.
+3. ~~**Schema, RLS, and the generated catalogue.**~~ **Written 2026-08-11**, awaiting a
+   database to run against. `supabase/migrations/0001_schema.sql`, `0002_rls.sql`,
+   `supabase/seed/collectibles.sql` (generated: 81 rows, 58 legendary / 18 iconic /
+   5 monumental), plus `scripts/gen-collectibles.ts` (`npm run gen:collectibles`) and the
+   drift guard in `npm run checks`. The guard is negative-tested: a rating tweak that
+   promotes a player into a collectible band fails the checks until the seed is
+   regenerated. Still to verify on the box: that it applies cleanly, and that a second
+   account cannot see the first's rows.
+4. ~~**Functions and validation.**~~ **Written 2026-08-11**, awaiting a database.
+   `0003_functions.sql` (§6, §7) and `0004_signup.sql` (invite gate + profile creation).
+   Still to verify on the box, with deliberately hostile calls: invented player ids, an
+   unaffordable trade, a second `finish_run` for the same run key, a stale
+   `expected_version`, a career write that raises its own xp, and a signup from an
+   uninvited address.
 5. **`remoteStore` plus auth UI, behind the flag.** Sign in, load, play, save. Verified by
    playing a full run signed in, then loading it on a second device.
 6. **Import, unreachable state, stale-version reload.** The edge cases, verified by pulling

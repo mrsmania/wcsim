@@ -124,13 +124,38 @@ the build behaves exactly as today, which keeps a fork of the repo working.
 
 ## 6. Schema, and letting yourself in
 
-Apply the migrations (coming next in the repo, design §4 to §7), then seed the invite list:
+The SQL is in the repo. Apply it in order, either by pasting into Studio's SQL editor or
+with `psql` from the NAS:
+
+```
+supabase/migrations/0001_schema.sql     tables
+supabase/migrations/0002_rls.sql        row-level security
+supabase/migrations/0003_functions.sql  the earn / trade / import functions
+supabase/migrations/0004_signup.sql     invite gate + profile creation
+supabase/seed/collectibles.sql          the catalogue (generated, re-runnable)
+```
+
+The seed is idempotent, so re-running it after a dataset change is the whole update
+procedure. Regenerate it with `npm run gen:collectibles` whenever ratings or
+`STICKER_TIERS` change; `npm run checks` fails while it is stale.
+
+Then let yourself in, or nothing can sign up:
 
 ```sql
 insert into allowed_emails (email, note) values ('you@example.com', 'owner');
 ```
 
-One insert per person you want to let in. Signup is refused for anything not in that table.
+One insert per person. Signup is refused for anything not in that table.
+
+**Worth a look while you are in Studio,** because these are the checks that cannot be run
+until the database exists:
+
+- an uninvited address is refused at signup
+- a second `finish_run` with the same run key is refused (that is what makes banking a
+  run's stickers once-per-run)
+- a trade the duplicate pool cannot afford is refused
+- a `save_career` that raises its own xp or prestige is refused
+- signing in as a second account cannot see the first account's rows
 
 ---
 
