@@ -382,8 +382,8 @@ Each step is independently shippable and verifiable.
    and the boot-time gate belongs at the entry point either way); and `Store` gained
    **`peek()`** for the three places that re-read persisted state on navigation.
 2. **The stack on the NAS.** Compose, trimmed services, proxy rule, certificate, Google and
-   SMTP configured, invite list seeded. Verified by signing in from a phone on mobile data
-   (§8 of the requirements doc, step 4).
+   SMTP configured, invite list seeded. **Checklist: `docs/nas-setup.md`.** Verified by
+   signing in from a phone on mobile data with wifi off.
 3. **Schema, RLS, and the generated catalogue.** Tables, policies, the `collectibles` seed
    plus its checks guard. Verified in Studio: a second account cannot see the first's rows.
 4. **Functions and validation.** §6 and §7. Verified by deliberately hostile calls: invented

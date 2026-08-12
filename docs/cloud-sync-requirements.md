@@ -241,6 +241,10 @@ Recorded here so nothing is silently forgotten:
 
 ## 8. What the owner has to do by hand (plain English)
 
+> **Sit-at-the-box version:** `docs/nas-setup.md` is the same ground as an operational
+> checklist (exact DSM pages, which compose services to delete, which environment values to
+> set, the invite-list insert, the phone test). This section is the why and the shape.
+
 Everything in this list needs a human with passwords and a router. None of it can be written
 in code, and most of it has to exist **before** the app code can be tested against anything.
 Roughly in order.
