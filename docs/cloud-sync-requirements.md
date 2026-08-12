@@ -1,10 +1,12 @@
 # Cloud Sync & Accounts — Requirements
 
-**Status:** Requirements **settled** (no open questions). Ready for `/sc:design`.
+**Status:** Requirements **settled** (no open questions).
 **Date:** 2026-07-02, revised 2026-08-11
-**Next step:** write `docs/cloud-sync-design.md` (stack, schema, RLS + validation, token
-model, save points, client storage adapter) — this document stays requirements-only and
+**Design:** `docs/cloud-sync-design.md` (written 2026-08-11) covers the stack, schema, RLS,
+the function surface and its validation rules, auth configuration, save points, the client
+storage adapter, and a 7-step build order. This document stays requirements-only and
 deliberately contains no schema, endpoints, or implementation.
+**Next step:** build order step 1, the client storage adapter refactor, which needs no server.
 
 > **2026-08-11 revision.** Two rounds of decisions closed this document out.
 >
