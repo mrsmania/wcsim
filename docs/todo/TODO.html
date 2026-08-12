@@ -344,8 +344,11 @@
       <li><strong>Accepted risks, on the record:</strong> no backups (the DB is the only
       copy, so a disk failure ends every album), and a NAS outage blocks signed-in play.</li>
       <li><strong>Open questions: none.</strong> All ten are answered. What is left is the
-      design pass plus a short list of values to supply (DDNS hostname, OAuth secret, Gmail
-      app password).</li>
+      design pass, plus the manual setup only the owner can do: a game Gmail account with an
+      app password, a Google sign-in registration, a hostname and certificate, one forwarded
+      port, and the container stack on the NAS. Walked through step by step in
+      <code>&sect;8</code> of the requirements doc, including the one thing to check first
+      (whether your internet plan lets you be reached at all).</li>
     </ul>
 
     <p class="next"><strong>Next step:</strong> write <code>docs/cloud-sync-design.md</code>.

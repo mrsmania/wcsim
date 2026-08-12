@@ -210,6 +210,8 @@ Kept with their answers so the reasoning is not re-litigated.
 - How the invite allowlist is seeded (default: an `allowed_emails` table, one insert per
   person; adding someone is a one-line SQL statement).
 
+**§8 walks through all of this in plain English, in the order it has to happen.**
+
 ### Delegated to `docs/cloud-sync-design.md` (design decisions, not open requirements)
 
 Recorded here so nothing is silently forgotten:
@@ -235,7 +237,102 @@ Recorded here so nothing is silently forgotten:
 
 ---
 
-## 8. Explicit non-goals for this document
+## 8. What the owner has to do by hand (plain English)
+
+Everything in this list needs a human with passwords and a router. None of it can be written
+in code, and most of it has to exist **before** the app code can be tested against anything.
+Roughly in order.
+
+### Step 0: the one thing to check first
+
+**Can you actually be reached from the internet?** Some internet plans (especially mobile or
+5G ones) put you behind shared address space, and then no amount of router configuration will
+let a phone on mobile data reach your NAS. Before anything else, confirm your connection has
+a real public address and that your router lets you forward a port to a device on your
+network. If it does not, the whole plan still works, but you would reach the NAS through a
+tunnel service (Cloudflare Tunnel is the usual answer, needs no open port and hides your home
+address) instead of opening a port. Worth ten minutes now rather than discovering it after
+everything else is built.
+
+### Step 1: accounts to create, outside the NAS
+
+1. **A Gmail mailbox for the game** (the `worldcupsim2026@gmail.com` idea). This is the
+   address the login codes are sent *from*. Turn on two-factor on it, then generate what
+   Google calls an **App Password**: a one-off password that a program can use to send mail,
+   because Google will not let software log in with your normal one. Save that password
+   somewhere safe. You will paste it into the NAS configuration once.
+2. **A Google sign-in registration.** In Google's developer console you create a project and
+   register the game as an application that people can sign in to. It gives you two strings,
+   an ID and a secret, and it asks you for the web address it should send people back to
+   after they sign in (that will be your NAS address plus a fixed path, so this step comes
+   after step 2 below, or you come back and edit it). You are only asking Google for a
+   person's name and email address, which is the least sensitive category, so there is no
+   review process to sit through. You can either list the handful of email addresses that are
+   allowed to test it, or publish it so anyone can use it.
+3. **A hostname.** Your home address changes, so you need a name that follows it. Synology
+   gives you one free (something like `yourname.synology.me`) and it keeps the name pointed
+   at you automatically. Use that unless you would rather use a domain you own.
+
+### Step 2: the NAS, roughly an evening's work
+
+4. **Turn on the hostname and get a certificate.** Both are pages in the DSM control panel:
+   register the free hostname, then request a free Let's Encrypt certificate for it. The
+   certificate is what makes the address `https://`, and that is not optional here: the game
+   is served over `https` from GitHub, and a secure page is forbidden by browsers from talking
+   to an insecure one. DSM renews the certificate on its own once it is set up.
+5. **Open one port on your router** and point it at the NAS, then set up a **reverse proxy
+   rule** in DSM. A reverse proxy is just a receptionist: everything arriving at your
+   hostname gets handed to the right program inside the NAS. You add exactly one rule, for
+   the database's front door. You deliberately do **not** add a rule for the admin dashboard,
+   so that stays reachable only from inside your own home network.
+6. **Install Container Manager** (DSM's Docker app) if it is not already there, and create a
+   project from the compose file that will be in the repo. This is the part that actually
+   starts the database and the login service.
+7. **Fill in the configuration file** that sits next to the compose file. It holds: the
+   database password, a long random signing secret and the two keys derived from it, the
+   dashboard login, your Gmail address and its App Password, the Google ID and secret from
+   step 1, your hostname, and the web address of the game so logins are allowed to come from
+   it. All of these are invented or pasted by you, they live only on the NAS, and none of them
+   goes into the repository.
+8. **Pick where the database files live** on the NAS volume, and leave it alone thereafter.
+
+### Step 3: connect the game to it
+
+9. **Two values go into the app's build:** the address of your NAS service and the public key
+   that the browser is allowed to use. Because the game is built and deployed by GitHub
+   automatically, these have to be added in the repository's settings so the build can see
+   them. Neither is dangerous to expose, the public key is designed to ship inside the
+   browser, and the actual protection is the database's own per-user rules.
+10. **Say who is allowed in.** Signup is invite-only, so allowed addresses live in a small
+    table. Adding a friend is one line of SQL in the dashboard. Adding yourself is the first
+    thing you will do.
+
+### Step 4: prove it works
+
+11. **Sign in from a phone on mobile data**, not on your home wifi. That is the only test
+    that proves the outside world can reach the NAS, that the certificate is trusted, and
+    that the login mail arrives. Check the spam folder for that first code.
+
+### Ongoing, and deliberately small
+
+12. **Occasionally update the containers.** Self-hosted updates are manual and once in a
+    while need a hand-applied step.
+13. **Nothing is backed up.** That is a decision on the record (NFR-6), not an oversight. If
+    you change your mind, the cheap version is a scheduled nightly dump into a folder Hyper
+    Backup already covers.
+14. **Watch the certificate renewal** the first time it comes around, since a lapsed
+    certificate means signed-in players are blocked until it is fixed.
+
+### What is *not* on your list
+
+Writing the database tables and their per-user rules, the login screens, the import prompt,
+the server-unreachable state, the rules that stop someone awarding themselves stickers, and
+the client rework that lets the app talk to either storage. That is all implementation work,
+covered by the design doc.
+
+---
+
+## 9. Explicit non-goals for this document
 
 No data model/schema, API contracts, auth-flow diagrams, RLS policies, or code. Those belong
 in `docs/cloud-sync-design.md`. This document defines **what** the feature must do and the
