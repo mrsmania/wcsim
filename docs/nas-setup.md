@@ -28,6 +28,39 @@ Ten minutes now, rather than after the stack is built.
 
 ## 1. Hostname and certificate (DSM, before Google)
 
+**What the hostname is, and is not.** It is the address of the **API only**: what the
+browser calls in the background, once signed in, for the login handshake and for saving.
+The **game itself does not move**: it stays on GitHub Pages at
+`https://mrsmania.github.io/wcsim/`, which is the only URL a player ever sees, and guest
+play never touches the NAS at all. Two different URLs, and mixing them up is the classic
+configuration failure here: `SITE_URL` is the *game*, `API_EXTERNAL_URL` and
+`VITE_SUPABASE_URL` are the *NAS*.
+
+**If the NAS is already exposed** (a public address, 443 already forwarded, other services
+behind the reverse proxy), this step is smaller: you need **one more hostname and one more
+proxy rule**, not another port. DSM's reverse proxy keys on hostname, so several share 443.
+Skip to "already exposed" below.
+
+**Why a dedicated hostname** rather than a path under one you already serve: the Supabase
+gateway expects to own root paths (`/auth/v1`, `/rest/v1`). Hosting it under a subpath means
+rewriting paths in the proxy and configuring an external URL that contains a path, which the
+self-hosted stack handles poorly. One extra DNS name avoids all of it.
+
+### Already exposed
+
+1. **Add a hostname** pointing at the same address: a subdomain of a domain you own
+   (`wcsim-api.example.ch`) is tidiest, or a second `.synology.me` name via DDNS if you would
+   rather not touch DNS.
+2. **Extend or add a certificate** covering it. For your own domain that means port 80
+   reachable during issuance and each renewal, or adding the name as a SAN to a certificate
+   you already have. For `.synology.me`, DSM handles it.
+3. **One reverse proxy rule** for that hostname on 443 → the gateway's port (§3). Existing
+   rules are untouched.
+
+Then carry on at §2. The rest of this section is for a NAS that is not yet reachable.
+
+### From scratch
+
 1. **Control Panel → External Access → DDNS.** Add a Synology account hostname, e.g.
    `something.synology.me`. DSM keeps it pointed at your changing address.
 2. **Control Panel → Security → Certificate.** Add a Let's Encrypt certificate for that
@@ -37,7 +70,8 @@ Ten minutes now, rather than after the stack is built.
 TLS is **mandatory**, not a nicety: the game is served over `https` from GitHub Pages, and a
 secure page may not call an insecure endpoint.
 
-Write the final hostname down. Everything below refers to it as `HOST`.
+Write the final hostname down. Everything below refers to it as `HOST`, and it always means
+the **NAS/API** hostname, never the game's Pages URL.
 
 ---
 
@@ -60,7 +94,9 @@ mistyped redirect URI.
 
 ## 3. Router and reverse proxy
 
-1. **Router:** forward the chosen external port to the NAS.
+1. **Router:** forward the chosen external port to the NAS. **Already forwarding 443 for
+   something else? Nothing to do here** - the proxy rule below keys on hostname, so 443 is
+   shared.
 2. **DSM → Login Portal → Advanced → Reverse Proxy.** One rule: source `HOST` on 443
    (HTTPS, with the certificate from step 1) to destination `localhost` on the Supabase
    gateway's port (whatever the compose exposes, `8000` in the default).
@@ -110,10 +146,11 @@ mistyped redirect URI.
 
 ## 5. Point the game at it
 
-Two values, neither secret (the anon key is designed to ship in a browser; row-level
+The game keeps deploying to GitHub Pages exactly as it does today; it just learns where the
+API is. Two values, neither secret (the anon key is designed to ship in a browser; row-level
 security is what protects data):
 
-- `VITE_SUPABASE_URL` = `https://HOST`
+- `VITE_SUPABASE_URL` = `https://HOST` (the NAS)
 - `VITE_SUPABASE_ANON_KEY` = the anon key
 
 Add both as **repository variables** in GitHub (Settings → Secrets and variables →
