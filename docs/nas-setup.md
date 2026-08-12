@@ -129,7 +129,7 @@ mistyped redirect URI.
    | Group | What |
    |---|---|
    | Postgres | `POSTGRES_PASSWORD` (invent a long one) |
-   | Keys | `JWT_SECRET` (long random), and the **anon** + **service** keys derived from it. Supabase's self-hosting page has the generator; the two keys are JWTs signed with that secret, so they must be regenerated together if the secret changes |
+   | Keys | `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`: run **`node scripts/gen-supabase-keys.mjs`** and paste all three. The two keys are JWTs signed with the secret, so they are generated together and must be regenerated together. (Supabase's docs used to embed a web generator; the local script avoids pasting secrets into a website anyway.) |
    | Dashboard | `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD` (basic auth on Studio) |
    | URLs | `API_EXTERNAL_URL` and `SUPABASE_PUBLIC_URL` = `https://HOST`; `SITE_URL` = the game's URL on GitHub Pages |
    | Redirects | `ADDITIONAL_REDIRECT_URLS` = the Pages URL plus `http://localhost:5173` for dev |
