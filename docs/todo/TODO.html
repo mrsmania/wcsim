@@ -246,7 +246,7 @@
   </div>
   <div class="meta">
     <strong>Status:</strong> idea inbox<br>
-    <strong>Updated:</strong> 2026-08-11<br>
+    <strong>Updated:</strong> 2026-08-11 (item 02)<br>
     <strong>Open:</strong> 4 items
   </div>
 </div>
@@ -301,7 +301,8 @@
   <summary>
     <span class="num">02</span>
     <span class="title">Login / user account
-      <span class="sub">Persist album, career status, and future challenges across devices.</span>
+      <span class="sub">Persist album, career status, and future challenges across devices.
+      Model decided: guest and account fully separate.</span>
     </span>
     <span class="tag">Platform</span>
     <span class="chev">&#9656;</span>
@@ -311,16 +312,33 @@
     <code>wcsim_career_v1</code>, <code>wcsim_run_v1</code>, plus the game key), so a
     second device starts from zero.</p>
 
+    <div class="callout">
+      <span class="ct">Model decided 2026-08-11</span>
+      <strong>Two separate worlds, never mixed.</strong> Guest progress stays in
+      <code>localStorage</code>; account progress lives <em>only</em> in the database.
+      Nothing merges. The one crossing is a single user-confirmed import at first login.
+      Logged in and the server is unreachable means <strong>you cannot play</strong>: a
+      blocking retry, plus "continue as guest" as the escape hatch. This deletes the
+      hardest problem in the topic (how to reconcile duplicate counts and trade history
+      between two diverged copies) rather than solving it.
+    </div>
+
     <ul>
-      <li>A requirements draft already exists, with 10 open questions. The hardest is how
-      to merge mutable data (duplicate counts, trade history) across two offline devices;
-      the collection itself is a union.</li>
-      <li>So this does not need more requirements, it needs the design pass: auth,
-      storage, sync boundaries, and the guest-to-account migration.</li>
+      <li><strong>Guest-first, not offline-first.</strong> Nobody is ever forced to sign
+      in, and guest play never touches the server. Signing in buys continuity and backup
+      (same album everywhere) and may gate genuinely online extras such as
+      highscores, but never core gameplay, content, or progression.</li>
+      <li>Two devices signed in at once is the one conflict left, and it is small:
+      version-numbered writes, the stale device reloads.</li>
+      <li>Requirements are otherwise complete (25 functional, 9 non-functional, 8 stories).
+      Down from 10 open questions to 8, and the hard one is gone. What remains is the
+      design pass: auth, schema, save points, the import flow.</li>
+      <li>Weightier now that the DB is the only copy: NAS exposure and a tested
+      backup/restore.</li>
     </ul>
 
-    <p class="next"><strong>Next step:</strong> answer the 10 open questions in the
-    requirements doc, then design.</p>
+    <p class="next"><strong>Next step:</strong> answer the 8 remaining questions, then
+    write <code>docs/cloud-sync-design.md</code>.</p>
     <p class="files">docs/cloud-sync-requirements.md</p>
   </div>
 </details>

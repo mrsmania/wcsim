@@ -1,9 +1,16 @@
 # Cloud Sync & Accounts — Requirements
 
 **Status:** Requirements draft (output of `/sc:brainstorm`)
-**Date:** 2026-07-02
+**Date:** 2026-07-02, revised 2026-08-11
 **Next step:** `/sc:design` (architecture, data model, API, auth flows) — this document is
 requirements only and deliberately contains no schema, endpoints, or implementation.
+
+> **2026-08-11 revision.** The model changed from "local-first with background sync and
+> reconcile" to **fully decoupled guest and account worlds** (D8, D9 below). Guests are
+> local-only; a logged-in user reads and writes the database and nothing else. Since two
+> copies can never diverge, the merge/reconcile problem is gone: the old open questions 1
+> to 3 are settled, and FR-10 to FR-17 plus NFR-1 were rewritten accordingly. Rationale is
+> in the D8/D9 rows.
 
 ---
 
@@ -28,6 +35,17 @@ no-account play**.
 | D5 | OTP delivery | 6-digit email codes sent via an **existing Gmail/SMTP** mailbox |
 | D6 | Identity | **One account per verified email**; Google, GitHub, and email-OTP that share a verified email resolve to the same account |
 | D7 | Audience | **Private now, public later**: build for a small known set first, but specify abuse/rate-limit/privacy controls so opening up is a config change, not a rewrite |
+| D8 | Guest vs account | **Two separate worlds, never mixed.** Guest progress lives in `localStorage`; account progress lives **only** in the database. Nothing syncs or merges between them. The single crossing point is a **one-time, user-confirmed import** at first login |
+| D9 | Server dependency when logged in | **Logged in requires the server.** If the API/DB is unreachable, a logged-in user **cannot play**: a blocking "server unreachable" state with a retry, plus a "continue as guest" escape hatch (which starts/resumes separate local progress and never copies account data down). No unsaved logged-in play, so no second copy ever exists to reconcile |
+
+**Why D8/D9.** The reconcile policy for mutable data (duplicate counts, trade history, the
+single active run) was the hardest question in this document and had no clean answer: union
+is wrong for spendable currency, and last-write-wins silently destroys a trade the player
+already saw succeed. Decoupling removes the question instead of answering it. The cost is
+that the NAS becoming unreachable blocks logged-in play, which is acceptable because the app
+is a static SPA with no service worker: with no connection at all the page does not load
+anyway, so the only new failure mode is "page loads, NAS is down", and that is what D9's
+blocking state plus guest escape hatch covers.
 
 ## 3. Scope
 
@@ -39,7 +57,10 @@ no-account play**.
 - Self-hosted API + Postgres on the NAS; SPA continues to ship to GitHub Pages.
 
 **Out of scope (for this feature)**
-- Multiplayer, sharing, leaderboards, or trading between users.
+- Multiplayer, sharing, leaderboards, or trading between users. **Note:** leaderboards /
+  highscores are an *intended future account-only* feature (see NFR-1), so the design must
+  not preclude them: record finished-run results per account from the start rather than
+  needing a migration later.
 - Changing core gameplay rules or the sticker tiers/economy.
 - Fully server-authoritative simulation / re-running matches on the server (see D3).
 - A native/mobile app.
@@ -60,16 +81,16 @@ no-account play**.
 
 ### 4.2 Sync & storage
 - **FR-9** For a signed-in user, the server persists their **album, active run, stats, and settings** (D1) in Postgres on the NAS.
-- **FR-10** On sign-in and thereafter, local and server state are **reconciled** so the user sees a single, consistent collection on any device.
-- **FR-11** **No collected sticker is ever lost** in a reconcile: the set of collected stickers across devices is preserved (union semantics at minimum).
-- **FR-12** Sync must be **resilient to the API being offline**: local play continues, and changes are pushed when connectivity returns (queue/retry). The user is never blocked by a down NAS.
-- **FR-13** The user must get clear, lightweight **status feedback**: signed-in identity, last-synced indication, and a visible "offline / not synced" state when applicable.
-- **FR-14** Signing out returns the user to guest/local behavior without destroying on-device data unexpectedly (define what remains local vs cleared).
+- **FR-10** For a signed-in user the database is the **only** store (D8): the client reads from and writes to it, and does not keep a parallel local copy of account progress. Any on-device data for a signed-in session is a transient render cache, never a source of truth and never synced upward.
+- **FR-11** Because there is only one copy, **no collected sticker can be lost to a merge**. Writes are **version-numbered per account** (optimistic concurrency): a write against a stale version is rejected, and that client reloads current state (this is the two-devices-signed-in-at-once case, D8 note).
+- **FR-12** If the API/DB is **unreachable** while signed in, the app must show a **blocking, retryable "server unreachable" state** rather than continuing to play (D9). It must offer **"continue as guest"**, which switches to separate local progress and neither reads nor writes account data. The blocking state must be reachable mid-run, not only at load.
+- **FR-13** The user must get clear, lightweight **status feedback**: signed-in identity, saved/last-saved indication, and an unmistakable indication when the server is unreachable (FR-12).
+- **FR-14** Signing out returns the user to guest/local behavior. Account data is **not** copied down on sign-out (D8); any pre-existing guest data on the device is left intact and resumes.
 
-### 4.3 Guest → account migration & conflicts
-- **FR-15** On a guest's **first login**, their existing local progress must be **merged into the account** (D2, "not only locally") rather than discarded or blindly overwritten.
-- **FR-16** When a device's local state and the account state **diverge** (e.g. played offline on two devices), the system must reconcile **deterministically** and never silently lose collected stickers. The exact policy for spendable/mutable data (duplicate counts, trade history, the single active run) is an **open question** (§7).
-- **FR-17** There is at most **one active run** per account; the reconcile policy for a conflicting active run on two devices must be defined (candidate: most-recently-updated wins, with the other discarded — TBD in §7).
+### 4.3 Guest → account crossing (one-time import)
+- **FR-15** On a login where the **account has no progress yet** and the device has guest progress, the app must offer a **one-time, explicitly confirmed import** ("bring your guest progress into this account" vs "start fresh"). It is never automatic and never silent.
+- **FR-16** The import is **one-way and once per account** (guest → account, D8). After it, the two worlds are independent: later guest play does not flow into the account, and account progress never flows back to local storage. If the account already has progress, no import is offered.
+- **FR-17** There is at most **one active run** per account, held server-side. Two signed-in devices touching it are resolved by the version check in FR-11 (the stale device reloads), not by a merge.
 
 ### 4.4 Integrity & anti-abuse (D3, D7)
 - **FR-18** The server holds the **authoritative album** for signed-in users; trades and earns are validated against server state, not the client's word alone.
@@ -87,11 +108,12 @@ no-account play**.
 
 ## 5. Non-functional requirements
 
-- **NFR-1 Availability / offline-first (highest priority).** The playable app must never depend on the NAS being up. Frontend availability is decoupled from home-network/NAS uptime (Pages hosts the SPA per D4); the API is best-effort. A down API degrades to guest/local play + deferred sync, never a broken app.
+- **NFR-1 Guest-first (highest priority).** The **core game is fully playable without an account**, and guest play never contacts the server: drafting, the full dataset, the album, career progression, and challenges. An account adds **continuity and safety** (the same album, career, and challenges on every device, plus off-device backup), and **may also gate features that are inherently online or social, such as leaderboards / highscores**. It must not gate core single-player gameplay, content, or progression. (This replaces the earlier "offline-first" framing: the app is a static SPA with no service worker, so with no connectivity it does not load at all, making "offline play" moot; what matters is that no one is ever forced to sign in.)
+  - **Consequence of D9:** for a *signed-in* user the NAS **is** on the critical path (unreachable = blocked, with a guest escape hatch), which raises the importance of NFR-6 backups and open questions 4 and 5 (exposure, backup/restore).
 - **NFR-2 Security.** OAuth handled via the providers (no passwords stored); OTP codes are short-lived, single-use, rate-limited, and lockout-protected against brute force; the API is HTTPS-only (Let's Encrypt via DSM per D4); secrets (OAuth client secrets, SMTP creds, DB creds) are kept server-side only; sessions are revocable.
 - **NFR-3 Cross-origin.** Because the SPA (Pages) and API (NAS) are **different origins** (D4), the auth/session mechanism and CORS policy must work across origins and survive the DDNS hostname. (Mechanism = design; the constraint is a requirement.)
 - **NFR-4 Privacy.** Store the **minimum**: identity (verified email + linked provider ids), the game data in D1, and audit/telemetry. A short privacy note is required before public launch; email addresses are treated as personal data.
-- **NFR-5 Performance.** Sync and auth are not on the hot path of play; sync happens in the background. Target: login/OTP verification and a sync round-trip feel instant on a home LAN and are tolerable over the exposed WAN link. The DS723+ (32 GB RAM) is comfortably oversized for the expected load.
+- **NFR-5 Performance.** Auth is not on the hot path of play. For a signed-in user, saves happen at a **small number of defined points** (once per knockout round, and at run end for album/career), not continuously, so a save round-trip must feel instant on a home LAN and be tolerable over the exposed WAN link. The DS723+ (32 GB RAM) is comfortably oversized for the expected load.
 - **NFR-6 Backups / durability.** The NAS Postgres is the system of record for accounts; it must be **backed up** (the album is the whole point of the feature — losing it is the worst failure). Define backup cadence/retention and a restore test. Client export (FR-25) is a secondary safety net.
 - **NFR-7 Scalability.** Private phase: tens of users. Public phase: design should hold to low thousands of accounts on the single NAS without re-architecture; concurrency is low (a solo game).
 - **NFR-8 Observability / ops.** Basic health check, error logging, and the audit log (FR-21). The stack should be operable as containers on the NAS (Docker/Container Manager) with straightforward start/stop/update and cert renewal.
@@ -101,12 +123,12 @@ no-account play**.
 
 ## 6. User stories & acceptance criteria
 
-- **US-1 — Guest keeps playing.** As a visitor with no account, I can draft, play, and build my album offline. *AC:* no login prompt blocks play; nothing regresses vs today.
-- **US-2 — Back up my collection.** As a player, I can sign in (Google/GitHub/email code) so my album is saved off my browser. *AC:* after login, my current local album is preserved on the server; clearing the browser and logging back in restores it.
-- **US-3 — Play on a second device.** As a signed-in player, my collection appears on another device. *AC:* stickers collected on device A show on device B after sync; no collected sticker is lost.
+- **US-1 — Guest keeps playing.** As a visitor with no account, I can draft, play, and build my album with no server involved at all. *AC:* no login prompt blocks play; nothing regresses vs today; no network calls are made on a guest's behalf.
+- **US-2 — Back up my collection.** As a player, I can sign in (Google/GitHub/email code) so my album lives off my browser. *AC:* on first login I am offered the one-time import of my guest progress (FR-15); after that, clearing the browser and logging back in restores the account collection.
+- **US-3 — Play on a second device.** As a signed-in player, my collection is the same everywhere. *AC:* a sticker earned on device A is present on device B on next load, because both read the one server-side collection.
 - **US-4 — Email code login.** As a player, I enter my email, receive a 6-digit code, and enter it to sign in. *AC:* a fresh code arrives each login; it expires and is single-use; wrong/expired codes are rejected with a clear message; repeated requests are rate-limited.
 - **US-5 — Linked identity.** As a player who used Google once, logging in later with email-code or GitHub on the same address lands me in the **same** account. *AC:* one collection, not two.
-- **US-6 — Offline resilience.** As a signed-in player, if the NAS/home internet is down I can still play; my progress syncs later. *AC:* play is unaffected; a clear "not synced" indicator shows; changes reconcile when the API returns with no lost stickers.
+- **US-6 — Honest failure when the server is down.** As a signed-in player, if the NAS is unreachable I am told clearly and not allowed to play on into a void; I can retry, or continue as a guest. *AC:* a blocking retryable state appears (at load or mid-run); no account progress is invented locally; "continue as guest" gives separate local progress and leaves the account untouched.
 - **US-7 — Fair economy.** As a player, I can't gain stickers I didn't legitimately earn by poking the API. *AC:* invalid/duplicate/unaffordable earn/trade calls are rejected and audited.
 - **US-8 — My data is mine.** As a player, I can delete my account (and ideally export my collection). *AC:* deletion removes my personal data; export produces a portable copy.
 
@@ -114,15 +136,26 @@ no-account play**.
 
 ## 7. Open questions (to resolve before/at `/sc:design`)
 
-1. **Conflict resolution for mutable data.** Collected = union is clear (FR-11). But **duplicate counts and trade history** can legitimately diverge across offline devices — what's the merge rule (e.g. server is authoritative and the client replays intent; or last-write-wins per run/event; or an event-log the server folds)? This is the hardest design question.
-2. **Active-run conflict (FR-17).** Confirm: most-recently-updated run wins and the other is dropped? Or prompt the user to pick? Or don't sync mid-run and only sync at run boundaries?
-3. **Earn model.** Does the client send a compact "run result" (final XI collectibles + cup pick) that the server applies, or does it send per-event deltas? (Affects FR-18–21 and the audit.)
-4. **Session persistence details.** How long do sessions last, and is "sign out everywhere" in v1?
-5. **Provider email edge cases.** What if GitHub/Google returns no verified email, or a user's provider email differs from a prior email-OTP identity — auto-link, prompt to link, or keep separate?
-6. **SMTP specifics (D5).** Which mailbox/from-address, and are we OK with Gmail's daily send caps and spam-folder risk for the private phase (with a note that a transactional email service is the upgrade path if it becomes public)?
-7. **NAS exposure specifics (D4).** DDNS provider + hostname, which port, DSM reverse proxy vs. a container-level proxy, and cert auto-renewal — confirm the chosen path (open port to the internet is a security surface to review).
-8. **Backup/restore (NFR-6).** Cadence, retention, off-NAS copy (so a NAS failure doesn't lose everyone's album), and a tested restore.
-9. **"Public later" trigger (D7).** What must be true (rate limits, privacy note, abuse handling, backups) before flipping from allowlist/invite to open signup?
+**Settled on 2026-08-11 by D8/D9** (kept here so the reasoning is not re-litigated):
+
+- ~~Conflict resolution for mutable data.~~ No longer applicable: one store per world, so
+  duplicate counts and trade history cannot diverge. Concurrent signed-in devices are
+  handled by version-numbered writes (FR-11), which is a rejection, not a merge.
+- ~~Active-run conflict.~~ Same: the run lives server-side; the stale device reloads (FR-17).
+- ~~Earn model (run result vs per-event deltas).~~ Falls out of D8: the client writes to the
+  server at its defined save points and the server validates each write (§4.4 unchanged),
+  so there is no offline delta queue to replay.
+
+**Still open:**
+
+1. **Session persistence details.** How long do sessions last, and is "sign out everywhere" in v1?
+2. **Provider email edge cases.** What if GitHub/Google returns no verified email, or a user's provider email differs from a prior email-OTP identity — auto-link, prompt to link, or keep separate?
+3. **SMTP specifics (D5).** Which mailbox/from-address, and are we OK with Gmail's daily send caps and spam-folder risk for the private phase (with a note that a transactional email service is the upgrade path if it becomes public)?
+4. **NAS exposure specifics (D4).** DDNS provider + hostname, which port, DSM reverse proxy vs. a container-level proxy, and cert auto-renewal — confirm the chosen path (open port to the internet is a security surface to review). **Weightier under D9:** an unreachable NAS now blocks signed-in play.
+5. **Backup/restore (NFR-6).** Cadence, retention, off-NAS copy (so a NAS failure doesn't lose everyone's album), and a tested restore. **Weightier under D8:** the DB is the *only* copy of an account's collection, not a backup of a local one.
+6. **"Public later" trigger (D7).** What must be true (rate limits, privacy note, abuse handling, backups) before flipping from allowlist/invite to open signup?
+7. **Settings scope (D1).** Which settings are worth holding per account (speed, auto-play) vs. left device-local (dark mode arguably belongs to the device)?
+8. **Guest data after import (FR-15/16).** Once guest progress has been imported into an account, is the local guest copy left as-is, or cleared so the same progress is not sitting in two places? Leaving it means "continue as guest" (FR-12) resumes a stale twin of the account.
 10. **Settings sync (D1).** Which settings actually matter to sync (speed, auto-play, and any future ones) vs. leave device-local?
 
 ---
