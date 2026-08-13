@@ -4,6 +4,7 @@ import type { CareerState } from '../../domain/career';
 import type { RunState } from '../../domain/run';
 import type { AlbumStats } from '../albumStorage';
 import type { Settings } from '../settingsStorage';
+import type { StickerTier } from '../../config';
 // Type-only (erased at build) so the store keeps no runtime dependency on the
 // component layer; `Reveal` is a plain-data view-model over domain types.
 import type { Reveal } from '../../components/cupRun/types';
@@ -37,6 +38,28 @@ export interface AccountSnapshot {
   reveal: Reveal | null;
 }
 
+/** A finished run's sticker haul, the only way a collection ever grows. */
+export interface FinishRunInput {
+  /** Stable identity for this run, so banking it twice is refused rather than
+   *  double-counted (the server-side twin of the `stickersApplied` flag). */
+  runKey: string;
+  /** Collectible ids in the final XI (boosts and swaps included). */
+  collectibleIds: string[];
+  wonCup: boolean;
+  /** The cup-win reward pick, or null. Never Monumental (album spec D-1). */
+  cupPickId: string | null;
+  /** Collectible swaps used this run, capped at INITIAL_SWAPS. */
+  swapsUsed: number;
+  /** How the run ended, for the run history: 'champion' | 'out' | 'group'. */
+  outcome: string;
+}
+
+export interface FinishRunResult {
+  album: AlbumState;
+  /** Ids that were NOT already collected, i.e. what the run-end summary shows. */
+  newly: string[];
+}
+
 export interface Store {
   /** Read everything. Called once before the first render, and again to re-sync.
    *  Replaces whatever `peek` returns. */
@@ -46,8 +69,11 @@ export interface Store {
   peek(): AccountSnapshot;
 
   saveGame(game: GameState): Promise<void>;
-  /** The collection and its trade telemetry always change together. */
-  saveAlbum(album: AlbumState, stats: AlbumStats): Promise<void>;
+  /** Bank a finished run's collectibles (and the cup pick). The only path that grows
+   *  a collection: signed in, the server validates it and is the one counting. */
+  finishRun(input: FinishRunInput): Promise<FinishRunResult>;
+  /** Spend duplicates on one chosen sticker. Returns the resulting collection. */
+  trade(tier: StickerTier, playerId: string): Promise<AlbumState>;
   /** Wipe the collection + telemetry only; game, career, and run are untouched. */
   clearAlbum(): Promise<void>;
   saveCareer(career: CareerState): Promise<void>;

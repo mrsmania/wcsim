@@ -86,8 +86,14 @@ function homeCopy(view: HomeView): { eyebrow: string; title: string } {
 }
 
 /** Persisted state, read once before the first render (main.tsx) so everything here
- *  can still seed synchronously. */
-export default function App({ snapshot }: { snapshot: AccountSnapshot }) {
+ *  can still seed synchronously. `accountEmail` is null for a guest. */
+export default function App({
+    snapshot,
+    accountEmail,
+}: {
+    snapshot: AccountSnapshot;
+    accountEmail: string | null;
+}) {
     const [state, dispatch] = useReducer(
         gameReducer,
         initialState,
@@ -989,6 +995,11 @@ export default function App({ snapshot }: { snapshot: AccountSnapshot }) {
                     onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
                     onChangeDifficulty={changeDifficulty}
                     albumCount={STICKERS ? stickers.album.collected.length : 0}
+                    accountEmail={accountEmail}
+                    // Signing in or out swaps the whole store (guest storage vs the
+                    // account), so the cleanest handover is a reload: main.tsx picks the
+                    // right implementation and reads it fresh.
+                    onAccountChanged={() => window.location.reload()}
                 />
             )}
         </div>

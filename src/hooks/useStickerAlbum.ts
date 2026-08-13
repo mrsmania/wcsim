@@ -4,16 +4,13 @@ import { ALL_PLAYERS } from '../data/squads';
 import { isGroupFinished, userAdvanced } from '../domain/tournament';
 import {
   albumStats,
-  applyRunStickers,
   emptyAlbum,
-  executeTrade,
   isCollectible,
-  pendingNewStickers,
   type AlbumState,
   type AlbumStatsView,
 } from '../domain/album';
 import { FEATURES, type StickerTier } from '../config';
-import type { Action, GameState } from '../state/gameReducer';
+import { INITIAL_SWAPS, type Action, type GameState } from '../state/gameReducer';
 import { store } from '../state/store';
 
 /** A normalized cup-win reward awaiting the player's pick. The standard game and the
@@ -62,7 +59,9 @@ export function useStickerAlbum(
   allPlayers: Player[] = ALL_PLAYERS,
 ): StickerAlbumApi {
   const enabled = FEATURES.stickerAlbum;
-  const { filled, stickersApplied, group, bracket } = state;
+  const { filled, stickersApplied, group, bracket, swapsLeft } = state;
+  /** Collectible swaps spent this run, which the server validates against its cap. */
+  const swapsUsed = INITIAL_SWAPS - swapsLeft;
 
   const [album, setAlbum] = useState<AlbumState>(() =>
     enabled ? initialAlbum : emptyAlbum(),
@@ -104,20 +103,26 @@ export function useStickerAlbum(
   // reducer guard, used only by the standard game (a Cup Run guards itself).
   const applyStickers = useCallback(
     (collectibleIds: string[], wonCup: boolean, cupPickId: string | null, markReducer: boolean) => {
-      const ids = cupPickId ? [...collectibleIds, cupPickId] : collectibleIds;
-      const newly = pendingNewStickers(album, ids);
-      const next = applyRunStickers(album, collectibleIds, wonCup, cupPickId);
-      setAlbum(next);
-      const stats = store.peek().albumStats;
-      void store.saveAlbum(next, {
-        runsPlayed: stats.runsPlayed + 1,
-        stickersEarned: stats.stickersEarned + newly.length,
-        tradesCompleted: stats.tradesCompleted,
-      });
+      // The store banks it: locally that is the pure album helpers, signed in it is
+      // the server counting. Either way it returns the resulting album and what was
+      // genuinely new. `runKey` is derived from the XI + outcome so a retry is the
+      // same run rather than a second one.
+      const outcome = wonCup ? 'champion' : markReducer ? 'out' : 'run-end';
+      const runKey = `${[...collectibleIds].sort().join(',')}|${outcome}`;
       if (markReducer) dispatch({ type: 'MARK_STICKERS_APPLIED' });
-      setNewStickerIds(newly);
+      void store
+        .finishRun({ runKey, collectibleIds, wonCup, cupPickId, swapsUsed, outcome })
+        .then(({ album: next, newly }) => {
+          setAlbum(next);
+          setNewStickerIds(newly);
+        })
+        .catch((err: unknown) => {
+          // Nothing was banked. Surfacing this properly (the blocking "server
+          // unreachable" state, D9) is the next slice; for now it must not be silent.
+          console.error('banking this run failed', err);
+        });
     },
-    [album, dispatch],
+    [dispatch, swapsUsed],
   );
 
   // Bank stickers once when the run ends by loss/elimination. Cup wins wait for the
@@ -138,15 +143,12 @@ export function useStickerAlbum(
     setCupRunSticker(null);
   }, [enabled, cupRunSticker, applyStickers]);
 
-  const onTrade = useCallback(
-    (tier: StickerTier, playerId: string) => {
-      const next = executeTrade(album, tier, playerId);
-      setAlbum(next);
-      const stats = store.peek().albumStats;
-      void store.saveAlbum(next, { ...stats, tradesCompleted: stats.tradesCompleted + 1 });
-    },
-    [album],
-  );
+  const onTrade = useCallback((tier: StickerTier, playerId: string) => {
+    void store
+      .trade(tier, playerId)
+      .then(setAlbum)
+      .catch((err: unknown) => console.error('trade failed', err));
+  }, []);
 
   // Manual album reset: wipe the stored album (collection + trade stats) and clear the
   // in-memory album. Leaves the game / career / run untouched.

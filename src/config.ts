@@ -1,3 +1,7 @@
+/** Vite's build-time env, guarded: `scripts/checks.ts` imports this module and runs in
+ *  plain node, where `import.meta.env` does not exist. */
+const ENV: ImportMetaEnv = import.meta.env ?? {};
+
 /** Feature flags. Flip a value to false to disable a feature everywhere quickly. */
 export const FEATURES = {
     /** Team chemistry: a cohesion bonus to the user XI's overall rating, plus the
@@ -40,6 +44,20 @@ export const FEATURES = {
      *  draft's left column to the market (same page). Set false to hide it and keep
      *  only the random roll. */
     budgetDraft: true,
+    /** Optional accounts: sign in with an emailed 6-digit code so the album, career
+     *  and challenges are the same on every device. Derived, not hand-set: it is on
+     *  only when the build was given a server (VITE_SUPABASE_URL + _ANON_KEY). With
+     *  no server configured, nothing account-related renders, no network call is
+     *  made, and the app is the guest-only build it has always been.
+     *  See docs/cloud-sync-requirements.md (NFR-1: guest-first). */
+    accounts: !!(ENV.VITE_SUPABASE_URL && ENV.VITE_SUPABASE_ANON_KEY),
+} as const;
+
+/** Where the account server lives, when there is one (FEATURES.accounts). The anon
+ *  key is public by design; row-level security is what protects data. */
+export const SUPABASE = {
+    url: ENV.VITE_SUPABASE_URL ?? '',
+    anonKey: ENV.VITE_SUPABASE_ANON_KEY ?? '',
 } as const;
 
 /** Collectible sticker tiers, by player `elo` (inclusive on both ends). The single

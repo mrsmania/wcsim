@@ -10,6 +10,8 @@ import {
   saveRun,
 } from '../runStorage';
 import { loadSettings, saveSettings } from '../settingsStorage';
+import { applyRunStickers, executeTrade, pendingNewStickers } from '../../domain/album';
+import type { AlbumStats } from '../albumStorage';
 import type { AccountSnapshot, Store } from './types';
 
 // ---------------------------------------------------------------------------
@@ -59,10 +61,36 @@ export function createLocalStore(): Store {
       saveGame(game);
     },
 
-    async saveAlbum(album, stats) {
-      patch({ album, albumStats: stats });
-      saveAlbum(album);
+    // Guest banking: compute with the pure album helpers and write. The signed-in
+    // implementation sends the same facts to the server and lets IT count, which is
+    // why this lives behind the interface rather than in the album hook.
+    async finishRun({ collectibleIds, wonCup, cupPickId }) {
+      const { album, albumStats } = peek();
+      const ids = cupPickId ? [...collectibleIds, cupPickId] : collectibleIds;
+      const newly = pendingNewStickers(album, ids);
+      const next = applyRunStickers(album, collectibleIds, wonCup, cupPickId);
+      const stats: AlbumStats = {
+        runsPlayed: albumStats.runsPlayed + 1,
+        stickersEarned: albumStats.stickersEarned + newly.length,
+        tradesCompleted: albumStats.tradesCompleted,
+      };
+      patch({ album: next, albumStats: stats });
+      saveAlbum(next);
       saveStats(stats);
+      return { album: next, newly };
+    },
+
+    async trade(tier, playerId) {
+      const { album, albumStats } = peek();
+      const next = executeTrade(album, tier, playerId);
+      const stats: AlbumStats = {
+        ...albumStats,
+        tradesCompleted: albumStats.tradesCompleted + 1,
+      };
+      patch({ album: next, albumStats: stats });
+      saveAlbum(next);
+      saveStats(stats);
+      return next;
     },
 
     async clearAlbum() {

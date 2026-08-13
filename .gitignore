@@ -14,3 +14,7 @@ dist-ssr
 
 # Local scratch files
 tmp_*
+
+# Self-hosted Supabase stack (local only: holds .env with the DB password, JWT secret,
+# service key, SMTP + OAuth credentials). Never commit this - the repo is public.
+dkr/

@@ -12,6 +12,7 @@
     "gen:collectibles": "esbuild scripts/gen-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
     "country-flag-icons": "^1.6.19",
     "lucide-react": "^1.21.0",
     "react": "^18.3.1",
