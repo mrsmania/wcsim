@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "checks": "esbuild scripts/checks.ts --bundle --format=esm --platform=node | node --input-type=module",
-    "gen:collectibles": "esbuild scripts/gen-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module"
+    "gen:collectibles": "esbuild scripts/gen-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module",
+    "push:collectibles": "node scripts/push-collectibles.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
