@@ -67,6 +67,7 @@ export default function CupRunScreen({
   difficulty,
   pool,
   onRunEnd,
+  onRunStart,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
@@ -82,6 +83,8 @@ export default function CupRunScreen({
   /** Bank the finished run's collectibles to the sticker album (App owns the album).
    *  Omitted when the sticker feature is off. Called once per run at its end. */
   onRunEnd?: (xi: Player[], wonCup: boolean) => void;
+  /** A new run is starting, so anything still pending from the last one is stale. */
+  onRunStart?: () => void;
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const [career, setCareer] = useState<CareerState>(() => store.peek().career);
@@ -224,6 +227,9 @@ export default function CupRunScreen({
   // the hub above still apply). Remembers the chosen tier as the next run's default.
   const startAndPlayGroup = () => {
     if (!draftedXi) return;
+    // The previous run's sticker haul may still be in flight; it belongs to that run,
+    // not this one.
+    onRunStart?.();
     const chosen = Math.min(ascSel, maxAsc);
     if (career.lastAscension !== chosen) {
       const c = { ...career, lastAscension: chosen };

@@ -51,6 +51,8 @@ export interface StickerAlbumApi {
   onCupRunEnd: (xi: Player[], wonCup: boolean) => void;
   /** Spend duplicates on a chosen sticker (album trade). */
   onTrade: (tier: StickerTier, playerId: string) => void;
+  /** A new run is starting: drop any summary still pending from the last one. */
+  onNewRun: () => void;
   /** Wipe the album (collection + trade stats); leaves the game / career / run alone. */
   onResetAlbum: () => void;
 }
@@ -85,6 +87,11 @@ export function useStickerAlbum(
   const [newStickerIds, setNewStickerIds] = useState<string[] | null>(null);
   /** A bank is in flight, so the run-end effect must not start a second one. */
   const bankingRef = useRef(false);
+  /** Bumped whenever a new run starts. Banking is a server round trip now, so its
+   *  result can land after the player has already moved on - and a summary of the
+   *  last run popping up mid-way through the next one is worse than not showing it.
+   *  The album still updates; only the modal is dropped. */
+  const runGenRef = useRef(0);
   /** A finished Cup Run's collectibles awaiting the sticker apply (its own path,
    *  since a Cup Run lives outside the reducer's group/bracket run-end). */
   const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean } | null>(
@@ -132,12 +139,14 @@ export function useStickerAlbum(
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const outcome = wonCup ? 'champion' : markReducer ? 'out' : 'run-end';
+      const gen = runGenRef.current;
 
       void store
         .finishRun({ runKey, collectibleIds, wonCup, cupPickId, swapsUsed, outcome })
         .then(({ album: next, newly }) => {
           setAlbum(next);
-          setNewStickerIds(newly);
+          // Only show the haul if this is still the run the player is looking at.
+          if (runGenRef.current === gen) setNewStickerIds(newly);
           // Only now: a failure must leave the run bankable rather than silently
           // marking it done and losing the stickers.
           if (markReducer) dispatch({ type: 'MARK_STICKERS_APPLIED' });
@@ -210,11 +219,18 @@ export function useStickerAlbum(
     [enabled, album, allPlayers],
   );
 
+  const onNewRun = useCallback(() => {
+    runGenRef.current += 1;
+    setNewStickerIds(null);
+    setCupRunSticker(null);
+  }, []);
+
   return {
     enabled,
     album,
     summary,
     newStickerIds,
+    onNewRun,
     clearNewStickers: () => setNewStickerIds(null),
     pendingReward,
     onCupRunEnd,

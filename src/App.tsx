@@ -469,7 +469,9 @@ export default function App({
     }, [bracket, group, navigate, poolSquads]);
 
     const handleReset = useCallback(() => {
-        // A reset is a brand-new team, so drop any in-progress Cup Run too.
+        // A reset is a brand-new team, so drop any in-progress Cup Run too - and any
+        // sticker summary still arriving for the run being abandoned.
+        if (STICKERS) stickers.onNewRun();
         if (FEATURES.careerMode) void store.saveRun(null);
         dispatch({ type: 'RESET' });
         // Re-open setup in the path that matches where the reset came from: stay on a
@@ -485,7 +487,8 @@ export default function App({
                     ? '/quick-run'
                     : '/';
         navigate(target);
-    }, [navigate, location.pathname]);
+        // `stickers.onNewRun` is a stable callback, so this stays referentially quiet.
+    }, [navigate, location.pathname, STICKERS, stickers.onNewRun]);
 
     const openPositions = useMemo<Set<Position>>(
         () =>
@@ -669,6 +672,7 @@ export default function App({
                             difficulty={settings.settings.difficulty}
                             pool={poolSquads}
                             onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
+                            onRunStart={STICKERS ? stickers.onNewRun : undefined}
                         />
                     ) : isAlbum ? (
                         <AlbumScreen
