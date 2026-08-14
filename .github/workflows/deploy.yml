@@ -27,6 +27,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        # Accounts config. Repository *variables*, not secrets: the anon key is
+        # designed to ship inside the browser bundle, and row-level security is what
+        # protects data (docs/cloud-sync-design.md §11). With these unset the build
+        # simply has no server, FEATURES.accounts stays off, and the deployed site is
+        # the guest-only game - which is also what a fork of this repo gets.
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
