@@ -377,10 +377,16 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `onReset` -> `clearAlbum()` in `albumStorage.ts`, which removes the album + stats keys;
   App resets the in-memory album to `emptyAlbum()`). Reset touches only the album, not the
   game / career / run. `StickerCard` shows real artwork when
-  `FEATURES.stickerImages` is on (default): drop `public/stickers/<player.id>.png`
-  (base-path-aware, `aspect-square w-full` hero image on collected cards) with a
-  per-missing-file text+flag fallback, so partial art sets are fine; set the flag
-  false to always use the text+flag placeholder.
+  `FEATURES.stickerImages` is on (default), with a per-missing-file text+flag fallback,
+  so partial art sets are fine; set the flag false to always use the placeholder.
+  **Art pipeline:** originals (full-size PNG) live in **`art/stickers-src/`**, which is
+  NOT under `public/` and so is never deployed; `python scripts/build-sticker-art.py`
+  resizes them to 400px-wide WebP in `public/stickers/<player.id>.webp`, which is what
+  `StickerCard` requests (base-path-aware, lazy-loaded, `aspect-square w-full` hero
+  image on collected cards). The originals average 1.3 MB against ~40 KB shipped, so
+  serving them directly was ~139 MB of images for a grid of thumbnails. Re-run the
+  script after adding or replacing art; it skips unchanged files. Superseded art is
+  parked in `art/stickers-archive/` (also undeployed).
 - **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier star
   chip + a "collectibles in this squad" call-out); `XiTable` marks them the same way in
   the line-up sheet (tier star + a tier-coloured left accent bar on the row). **Swap**

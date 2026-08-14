@@ -288,8 +288,16 @@ const artSrc = `${import.meta.env.BASE_URL}stickers/${player.id}.png`; // base-p
 // absent (onError) or the feature is off, the existing text+flag card shows through.
 ```
 
-Files live at `public/stickers/<player.id>.png` (same key the album uses), so populating art is a
-pure content task. `AlbumState`, `config.ts`, and `domain/album.ts` are untouched by the switch.
+Files are keyed by `player.id` (the same key the album uses), so populating art is a pure content
+task. `AlbumState`, `config.ts`, and `domain/album.ts` are untouched by the switch.
+
+**Superseded 2026-08-14 (the art pipeline).** Shipping the originals meant ~139 MB of images for a
+grid of thumbnails: 1.3 MB average at up to 1024x1536, rendered a couple of hundred pixels wide.
+Now the originals live in `art/stickers-src/` (outside `public/`, never deployed) and
+`python scripts/build-sticker-art.py` writes 400px-wide WebP to `public/stickers/<player.id>.webp`,
+about 40 KB each. The `<img>` is `loading="lazy"`, so the album fetches what is on screen rather
+than all 81 at once. WebP only: a browser that cannot decode it hits the same `onError` fallback as
+a missing file.
 
 ### `RunEndStickerSummary` (`src/components/RunEndStickerSummary.tsx`)
 Post-run overlay. Props: `newPlayerIds: string[]`, `allPlayers: Player[]`, `album: AlbumState`, `onClose: () => void`. Shown only when `newPlayerIds.length > 0` (FR-8). Displays "New stickers added" heading, lists newly earned sticker cards with highlight treatment. "View album" / "Done" button closes the overlay and returns to the setup screen.

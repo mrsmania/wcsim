@@ -32,7 +32,11 @@ export const GOLD_INK = TIER_META.monumental.stripText;
 // public/stickers/); when on, StickerCard renders the image over the face with a
 // fallback to text+flag. Base-path aware so it resolves under '/' in dev and
 // '/wcsim/' on Pages.
-const artSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.png`;
+/** Card art, as shipped: small WebP built from the originals in `art/stickers-src/`
+ *  by `scripts/build-sticker-art.py`. WebP only, deliberately - it is universally
+ *  supported now, and a browser that cannot decode it falls back to the flag-and-name
+ *  card via the img's onError, same as a missing file. */
+const artSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.webp`;
 
 interface Props {
   player: Player;
@@ -81,6 +85,11 @@ export default function StickerCard({
           <img
             src={artSrc(player.id)}
             alt=""
+            // The album is a long grid: fetch what is on screen, not all 81 at once.
+            loading="lazy"
+            decoding="async"
+            width={400}
+            height={600}
             className="mb-1 aspect-square w-full object-contain"
             onError={(e) => {
               e.currentTarget.style.display = 'none';

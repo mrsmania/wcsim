@@ -28,7 +28,9 @@ export const FEATURES = {
      *  album localStorage reads/writes). */
     stickerAlbum: true,
     /** Use real sticker artwork instead of the text+flag placeholder. Drop
-     *  <player.id>.png files into public/stickers/ (e.g. fra-2022-10.png). StickerCard
+     *  <player.id>.png files into art/stickers-src/ and run
+     *  `python scripts/build-sticker-art.py` to produce the shipped
+     *  public/stickers/<player.id>.webp (e.g. fra-2022-10.webp). StickerCard
      *  renders the image on collected cards with a graceful fallback, so partial art
      *  sets are fine - a player without a file just shows the flag + text. Set to
      *  false to skip the image requests entirely and always use the placeholder. */
