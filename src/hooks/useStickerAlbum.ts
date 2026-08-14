@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
 import type { Player } from '../data/types';
 import { ALL_PLAYERS } from '../data/squads';
 import { isGroupFinished, userAdvanced } from '../domain/tournament';
@@ -83,6 +83,8 @@ export function useStickerAlbum(
   );
   /** New (non-duplicate) ids earned this run -> shows the run-end summary. */
   const [newStickerIds, setNewStickerIds] = useState<string[] | null>(null);
+  /** A bank is in flight, so the run-end effect must not start a second one. */
+  const bankingRef = useRef(false);
   /** A finished Cup Run's collectibles awaiting the sticker apply (its own path,
    *  since a Cup Run lives outside the reducer's group/bracket run-end). */
   const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean } | null>(
@@ -114,23 +116,37 @@ export function useStickerAlbum(
   // reducer guard, used only by the standard game (a Cup Run guards itself).
   const applyStickers = useCallback(
     (collectibleIds: string[], wonCup: boolean, cupPickId: string | null, markReducer: boolean) => {
-      // The store banks it: locally that is the pure album helpers, signed in it is
-      // the server counting. Either way it returns the resulting album and what was
-      // genuinely new. `runKey` is derived from the XI + outcome so a retry is the
-      // same run rather than a second one.
+      // In flight already: the run-end effect can re-fire on a re-render, and the
+      // reducer flag is now only set on success (below), so this ref is what stops a
+      // second attempt overlapping the first.
+      if (bankingRef.current) return;
+      bankingRef.current = true;
+
+      // A fresh id per bank. It was derived from the XI + outcome, which collided the
+      // moment two runs ended the same way with the same collectibles - trivially so
+      // for runs with none - and the server rightly refused the repeat as a duplicate.
+      // The client's own once-per-run flags are the real guard; this key is what makes
+      // a *retried* request idempotent server-side.
+      const runKey =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const outcome = wonCup ? 'champion' : markReducer ? 'out' : 'run-end';
-      const runKey = `${[...collectibleIds].sort().join(',')}|${outcome}`;
-      if (markReducer) dispatch({ type: 'MARK_STICKERS_APPLIED' });
+
       void store
         .finishRun({ runKey, collectibleIds, wonCup, cupPickId, swapsUsed, outcome })
         .then(({ album: next, newly }) => {
           setAlbum(next);
           setNewStickerIds(newly);
+          // Only now: a failure must leave the run bankable rather than silently
+          // marking it done and losing the stickers.
+          if (markReducer) dispatch({ type: 'MARK_STICKERS_APPLIED' });
         })
         .catch((err: unknown) => {
-          // Nothing was banked. Surfacing this properly (the blocking "server
-          // unreachable" state, D9) is the next slice; for now it must not be silent.
           console.error('banking this run failed', err);
+        })
+        .finally(() => {
+          bankingRef.current = false;
         });
     },
     [dispatch, swapsUsed],
