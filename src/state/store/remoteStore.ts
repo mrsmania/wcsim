@@ -85,12 +85,62 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
     cache = { ...peek(), ...next };
   };
 
-  /** Run an RPC, translating a rejected version into StaleVersionError. */
-  const rpc = async <T>(name: string, args: Record<string, unknown>): Promise<T> => {
-    const { data, error } = await client.rpc(name, args);
-    if (error) throw isStale(error.message) ? new StaleVersionError() : new Error(error.message);
-    return data as T;
+  /** Read the account's current version straight from the server. */
+  const readVersion = async (): Promise<number> => {
+    const { data, error } = await client
+      .from('profiles')
+      .select('state_version')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data?.state_version ?? 0;
   };
+
+  // Writes are SERIALIZED through this chain. The app fires several independent ones
+  // (game state on every reducer change, run state per round, career, banking a run),
+  // and each carries the version it last read - so two in flight at once means the
+  // second is stale by construction. Queueing them removes that entirely; the version
+  // check then only ever catches what it is for, another device.
+  let queue: Promise<unknown> = Promise.resolve();
+  const serialize = <T>(work: () => Promise<T>): Promise<T> => {
+    const next = queue.then(work, work);
+    // Keep the chain alive whatever happens to this link.
+    queue = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  };
+
+  /**
+   * Run a version-checked RPC. Queued, and on a conflict it re-reads the version and
+   * tries once more: that covers a version this client had merely lost track of (a
+   * write it did not make, a settings save, a reload elsewhere) without silently
+   * papering over a genuine other-device conflict, which fails on the retry too.
+   */
+  const rpc = <T>(name: string, args: Record<string, unknown>): Promise<T> =>
+    serialize(async () => {
+      const call = async (v: unknown) => {
+        const { data, error } = await client.rpc(name, { ...args, p_expected_version: v });
+        if (error) throw isStale(error.message) ? new StaleVersionError() : new Error(error.message);
+        return data as T;
+      };
+      try {
+        return await call(version);
+      } catch (err) {
+        if (!(err instanceof StaleVersionError)) throw err;
+        version = await readVersion();
+        return await call(version);
+      }
+    });
+
+  /** For calls with no version check (settings). Still queued, so ordering holds. */
+  const rpcPlain = <T>(name: string, args: Record<string, unknown>): Promise<T> =>
+    serialize(async () => {
+      const { data, error } = await client.rpc(name, args);
+      if (error) throw new Error(error.message);
+      return data as T;
+    });
 
   const readAlbum = async (): Promise<AlbumState> => {
     const { data, error } = await client
@@ -145,10 +195,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
 
     async saveGame(game) {
       patch({ game });
-      version = await rpc<number>('save_game', {
-        p_data: game,
-        p_expected_version: version,
-      });
+      version = await rpc<number>('save_game', { p_data: game });
     },
 
     async finishRun({ runKey, collectibleIds, wonCup, cupPickId, swapsUsed, outcome }) {
@@ -159,9 +206,10 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
         p_cup_pick: cupPickId,
         p_swaps_used: swapsUsed,
         p_outcome: outcome,
-        p_expected_version: version,
       });
-      // The server counted; re-read rather than guess at the result.
+      // The server counted; re-read rather than guess at the result. Its version comes
+      // back too, since a retry inside the call may have moved it.
+      version = await readVersion();
       const [album, stats] = await Promise.all([
         readAlbum(),
         client
@@ -170,7 +218,6 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
           .eq('user_id', userId)
           .maybeSingle(),
       ]);
-      version += 1;
       patch({
         album,
         albumStats: {
@@ -187,7 +234,6 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       version = await rpc<number>('execute_trade', {
         p_target_tier: tier,
         p_player_id: playerId,
-        p_expected_version: version,
       });
       const album = await readAlbum();
       patch({ album });
@@ -203,24 +249,17 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
 
     async saveCareer(career) {
       patch({ career });
-      version = await rpc<number>('save_career', {
-        p_career: careerToRow(career),
-        p_expected_version: version,
-      });
+      version = await rpc<number>('save_career', { p_career: careerToRow(career) });
     },
 
     async saveSettings(settings) {
       patch({ settings });
-      const { error } = await client.rpc('save_settings', { p_data: settings });
-      if (error) throw new Error(error.message);
+      await rpcPlain('save_settings', { p_data: settings });
     },
 
     async saveRun(run) {
       patch(run ? { run } : { run: null, reveal: null });
-      version = await rpc<number>('save_run', {
-        p_data: run,
-        p_expected_version: version,
-      });
+      version = await rpc<number>('save_run', { p_data: run });
     },
 
     async saveReveal(reveal) {
@@ -231,7 +270,8 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
     async importGuest(payload) {
       // One transaction server-side, refused if the account already holds anything.
       // The caller deletes the local copy only after this returns (FR-16a ordering).
-      version = await rpc<number>('import_guest_progress', { p_payload: payload });
+      // No version check on this one, so it goes through the plain path.
+      await rpcPlain('import_guest_progress', { p_payload: payload });
       cache = null;
       await this.load();
     },
