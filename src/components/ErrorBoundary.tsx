@@ -11,6 +11,31 @@ interface State {
   error: Error | null;
 }
 
+/**
+ * A code-split screen failed to download. Almost always a stale tab: the routes are
+ * lazy chunks with hashed filenames, so a deploy while the page is open leaves it
+ * asking for a file that no longer exists. It can also be a genuinely dropped
+ * connection.
+ */
+const isStaleChunk = (e: Error): boolean =>
+  /dynamically imported module|Loading chunk|Importing a module script failed|error loading dynamically imported/i.test(
+    e.message,
+  );
+
+/** Reload once per tab for a stale chunk, so a real, repeating failure still surfaces
+ *  instead of looping. */
+const RELOAD_FLAG = 'wcsim_reloaded_for_new_version';
+function reloadOnce(): boolean {
+  try {
+    if (sessionStorage.getItem(RELOAD_FLAG)) return false;
+    sessionStorage.setItem(RELOAD_FLAG, '1');
+  } catch {
+    return false;
+  }
+  window.location.reload();
+  return true;
+}
+
 const box: React.CSSProperties = {
   maxWidth: 520,
   margin: '0 auto',
@@ -28,19 +53,24 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('render failed', error, info.componentStack);
+    // A stale tab after a deploy fixes itself, so do that rather than making the
+    // player read about it.
+    if (isStaleChunk(error)) reloadOnce();
   }
 
   render(): ReactNode {
     const { error } = this.state;
     if (!error) return this.props.children;
+    const stale = isStaleChunk(error);
     return (
       <div style={box}>
         <h1 style={{ fontSize: 20, fontWeight: 800, textTransform: 'uppercase' }}>
-          Something broke
+          {stale ? 'New version available' : 'Something broke'}
         </h1>
         <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.5 }}>
-          The game hit an error it could not recover from. Nothing on the server was
-          changed by this.
+          {stale
+            ? 'The game was updated while this page was open, so part of it could not be loaded. Reloading picks up the new version. Your progress is safe.'
+            : 'The game hit an error it could not recover from. Nothing on the server was changed by this.'}
         </p>
         <pre
           style={{
