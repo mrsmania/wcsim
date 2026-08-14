@@ -79,9 +79,30 @@ export interface BootResult {
   snapshot: AccountSnapshot;
   /** The signed-in email, or null for a guest. */
   email: string | null;
-  /** Set when a one-time guest import is on the table: this device has progress and
-   *  the freshly signed-in account has none (FR-15). */
-  pendingImport?: { localSnapshot: AccountSnapshot };
+}
+
+/**
+ * Move this device's guest progress into an empty account, then delete the local copy
+ * (FR-15, FR-16, FR-16a). Automatic: signing in on a device that has progress means
+ * you want that progress, so there is nothing to ask about.
+ *
+ * The ordering is the safety: the server confirms before anything local is deleted, so
+ * a failure leaves the only copy intact - and since nothing records a refusal, the next
+ * sign-in simply tries again.
+ */
+async function moveGuestProgressIn(): Promise<AccountSnapshot | null> {
+  if (!impl.importGuest) return null;
+  try {
+    const { reveal: _reveal, ...payload } = await createLocalStore().load();
+    await impl.importGuest(payload);
+    clearGuestData();
+    return impl.peek();
+  } catch (err) {
+    // The account is usable and the local copy is untouched, so carry on rather than
+    // blocking; the next sign-in retries.
+    console.error('moving guest progress into the account failed', err);
+    return null;
+  }
 }
 
 /**
@@ -102,15 +123,15 @@ export async function bootStore(): Promise<BootResult> {
       const { createRemoteStore } = await import('./remoteStore');
       impl = createRemoteStore(supabase(), account.id);
       remote = true;
-      const snapshot = await impl.load();
+      let snapshot = await impl.load();
 
-      // Offer the move only when there is something to move and nowhere it would
-      // overwrite: a populated account is left strictly alone.
-      let pendingImport: BootResult['pendingImport'];
-      if (accountIsEmpty(snapshot) && hasGuestData() && !importDeclined()) {
-        pendingImport = { localSnapshot: await createLocalStore().load() };
+      // Move guest progress in, but only into an account holding nothing: a populated
+      // account is left strictly alone, since there would be no safe way to combine
+      // two collections.
+      if (accountIsEmpty(snapshot) && hasGuestData()) {
+        snapshot = (await moveGuestProgressIn()) ?? snapshot;
       }
-      return { snapshot, email: account.email, pendingImport };
+      return { snapshot, email: account.email };
     }
   }
   impl = createLocalStore();
@@ -118,32 +139,3 @@ export async function bootStore(): Promise<BootResult> {
   return { snapshot: await impl.load(), email: null };
 }
 
-/**
- * Perform the one-time guest -> account move: write to the server, and only once it
- * confirms, delete the local copy (FR-16a ordering, so a failure never destroys the
- * only copy). Returns the account snapshot that resulted.
- */
-export async function importGuestProgress(local: AccountSnapshot): Promise<AccountSnapshot> {
-  if (!impl.importGuest) throw new Error('not signed in');
-  const { reveal: _reveal, ...payload } = local;
-  await impl.importGuest(payload);
-  clearGuestData();
-  return impl.peek();
-}
-
-/** Decline the import: keep the guest copy where it is, and stop offering. */
-export const declineImport = (): void => {
-  try {
-    localStorage.setItem('wcsim_import_declined_v1', '1');
-  } catch {
-    /* ignore */
-  }
-};
-
-export const importDeclined = (): boolean => {
-  try {
-    return localStorage.getItem('wcsim_import_declined_v1') === '1';
-  } catch {
-    return false;
-  }
-};

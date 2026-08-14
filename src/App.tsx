@@ -43,13 +43,7 @@ import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
-import {
-    declineImport,
-    importGuestProgress,
-    onStoreError,
-    store,
-    type AccountSnapshot,
-} from './state/store';
+import { onStoreError, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import SettingsModal from './components/SettingsModal';
@@ -68,7 +62,6 @@ const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
-const ImportPrompt = lazy(() => import('./components/ImportPrompt'));
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
@@ -98,11 +91,9 @@ function homeCopy(view: HomeView): { eyebrow: string; title: string } {
 export default function App({
     snapshot,
     accountEmail,
-    pendingImport,
 }: {
     snapshot: AccountSnapshot;
     accountEmail: string | null;
-    pendingImport?: { localSnapshot: AccountSnapshot };
 }) {
     const [state, dispatch] = useReducer(
         gameReducer,
@@ -133,9 +124,8 @@ export default function App({
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
     const stickers = useStickerAlbum(state, dispatch, snapshot.album, poolPlayers);
     const [settingsOpen, setSettingsOpen] = useState(false);
-    // Accounts (gated). The one-time guest import offer, and the blocking state for a
-    // failed save while signed in (D9) - both are global overlays, like the album's.
-    const [importOffer, setImportOffer] = useState(pendingImport ?? null);
+    // Accounts (gated): the blocking state for a failed save while signed in (D9),
+    // a global overlay like the album's.
     const [storeError, setStoreError] = useState<Error | null>(null);
     useEffect(() => onStoreError(setStoreError), []);
     // Changing difficulty resets the sticker album (it is scoped to the difficulty it
@@ -1034,26 +1024,8 @@ export default function App({
                 />
             )}
 
-            {/* Accounts: the one-time guest import offer, and the blocking state when a
-                save fails while signed in. Both are lazy - a guest never loads them. */}
-            {importOffer && accountEmail && (
-                <Suspense fallback={null}>
-                    <ImportPrompt
-                        local={importOffer.localSnapshot}
-                        email={accountEmail}
-                        onImport={async () => {
-                            await importGuestProgress(importOffer.localSnapshot);
-                            // The account now holds it; reload so every screen reads the
-                            // account copy rather than the state seeded at boot.
-                            window.location.reload();
-                        }}
-                        onDecline={() => {
-                            declineImport();
-                            setImportOffer(null);
-                        }}
-                    />
-                </Suspense>
-            )}
+            {/* Accounts: the blocking state when a save fails while signed in. Lazy,
+                so a guest never loads it. */}
             {storeError && (
                 <Suspense fallback={null}>
                     <UnreachableScreen

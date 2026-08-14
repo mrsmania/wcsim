@@ -17,7 +17,7 @@ const root = createRoot(document.getElementById('root')!);
 const failed = (err: unknown) =>
   root.render(<UnreachableScreen message={err instanceof Error ? err.message : String(err)} />);
 
-function render({ snapshot, email, pendingImport }: BootResult) {
+function render({ snapshot, email }: BootResult) {
   root.render(
     <StrictMode>
       {/* Anything that throws while rendering shows a message rather than a white
@@ -26,7 +26,7 @@ function render({ snapshot, email, pendingImport }: BootResult) {
         {/* basename tracks Vite's base ('/' in dev, '/wcsim/' on GitHub Pages) so the
             History API routes resolve under the deploy subpath. */}
         <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <App snapshot={snapshot} accountEmail={email} pendingImport={pendingImport} />
+          <App snapshot={snapshot} accountEmail={email} />
         </BrowserRouter>
       </ErrorBoundary>
     </StrictMode>,
