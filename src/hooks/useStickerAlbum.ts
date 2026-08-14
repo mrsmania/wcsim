@@ -13,6 +13,11 @@ import { FEATURES, type StickerTier } from '../config';
 import { INITIAL_SWAPS, type Action, type GameState } from '../state/gameReducer';
 import { store } from '../state/store';
 
+/** How long starting a new run waits for the previous one's stickers to save. Long
+ *  enough that the summary is always seen on a working server, short enough that a
+ *  dead one is only a brief pause. */
+const BANK_WAIT_MS = 4000;
+
 /** Every player at their DATASET rating, by id. Cup Run boosts hand out modified
  *  copies (Golden Generation is +2 to the whole XI), and collectibility has to be
  *  judged on the real player: a boost must not turn an 89 into a Legendary sticker.
@@ -53,6 +58,10 @@ export interface StickerAlbumApi {
   onTrade: (tier: StickerTier, playerId: string) => void;
   /** A new run is starting: drop any summary still pending from the last one. */
   onNewRun: () => void;
+  /** A run's stickers are being saved. Starting another run waits on this, so the
+   *  haul is always shown before the next run begins. Released after a few seconds
+   *  regardless, so a slow or dead server cannot stop you playing. */
+  banking: boolean;
   /** Wipe the album (collection + trade stats); leaves the game / career / run alone. */
   onResetAlbum: () => void;
 }
@@ -90,8 +99,13 @@ export function useStickerAlbum(
   /** Bumped whenever a new run starts. Banking is a server round trip now, so its
    *  result can land after the player has already moved on - and a summary of the
    *  last run popping up mid-way through the next one is worse than not showing it.
-   *  The album still updates; only the modal is dropped. */
+   *  The album still updates; only the modal is dropped. This is the backstop: the
+   *  usual case is that starting a run WAITS for the save (`banking` below), so the
+   *  haul is seen first. */
   const runGenRef = useRef(0);
+  /** True while a run's stickers are being saved. */
+  const [banking, setBanking] = useState(false);
+  const bankTimerRef = useRef<number | null>(null);
   /** A finished Cup Run's collectibles awaiting the sticker apply (its own path,
    *  since a Cup Run lives outside the reducer's group/bracket run-end). */
   const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean } | null>(
@@ -128,6 +142,11 @@ export function useStickerAlbum(
       // second attempt overlapping the first.
       if (bankingRef.current) return;
       bankingRef.current = true;
+      setBanking(true);
+      // Never hold the player up for long: after this the run-start button unblocks and
+      // the generation guard takes over for whatever lands late.
+      if (bankTimerRef.current !== null) window.clearTimeout(bankTimerRef.current);
+      bankTimerRef.current = window.setTimeout(() => setBanking(false), BANK_WAIT_MS);
 
       // A fresh id per bank. It was derived from the XI + outcome, which collided the
       // moment two runs ended the same way with the same collectibles - trivially so
@@ -156,6 +175,11 @@ export function useStickerAlbum(
         })
         .finally(() => {
           bankingRef.current = false;
+          if (bankTimerRef.current !== null) {
+            window.clearTimeout(bankTimerRef.current);
+            bankTimerRef.current = null;
+          }
+          setBanking(false);
         });
     },
     [dispatch, swapsUsed],
@@ -231,6 +255,7 @@ export function useStickerAlbum(
     summary,
     newStickerIds,
     onNewRun,
+    banking,
     clearNewStickers: () => setNewStickerIds(null),
     pendingReward,
     onCupRunEnd,

@@ -9,12 +9,16 @@ export default function RunEndPanel({
   onReDraft,
   onReplay,
   onCareer,
+  banking = false,
 }: {
   score: number;
   reward: Reward | null;
   onReDraft: () => void;
   onReplay: () => void;
   onCareer: () => void;
+  /** This run's stickers are still being saved: hold the next run until the haul has
+   *  been shown, rather than letting it pop up inside the following run. */
+  banking?: boolean;
 }) {
   return (
     <div className="text-center">
@@ -30,12 +34,17 @@ export default function RunEndPanel({
         </div>
       )}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
-        <button onClick={onReDraft} className={PRIMARY_BTN}>
-          Draft a new XI
+        <button
+          onClick={onReDraft}
+          disabled={banking}
+          className={`${PRIMARY_BTN} disabled:opacity-60`}
+        >
+          {banking ? 'Saving stickers...' : 'Draft a new XI'}
         </button>
         <button
           onClick={onReplay}
-          className={`px-4 py-3 ${SECONDARY_BTN}`}
+          disabled={banking}
+          className={`px-4 py-3 ${SECONDARY_BTN} disabled:opacity-60`}
         >
           Replay same XI
         </button>

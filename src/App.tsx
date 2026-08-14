@@ -673,6 +673,7 @@ export default function App({
                             pool={poolSquads}
                             onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                             onRunStart={STICKERS ? stickers.onNewRun : undefined}
+                            banking={STICKERS ? stickers.banking : false}
                         />
                     ) : isAlbum ? (
                         <AlbumScreen

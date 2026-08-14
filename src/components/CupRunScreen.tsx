@@ -68,6 +68,7 @@ export default function CupRunScreen({
   pool,
   onRunEnd,
   onRunStart,
+  banking = false,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
@@ -85,6 +86,9 @@ export default function CupRunScreen({
   onRunEnd?: (xi: Player[], wonCup: boolean) => void;
   /** A new run is starting, so anything still pending from the last one is stale. */
   onRunStart?: () => void;
+  /** The finished run's stickers are still saving: the run-end actions wait, so the
+   *  haul is shown before the next run can begin. */
+  banking?: boolean;
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const [career, setCareer] = useState<CareerState>(() => store.peek().career);
@@ -725,6 +729,7 @@ export default function CupRunScreen({
                     <RunEndPanel
                       score={run.score}
                       reward={reward}
+                      banking={banking}
                       onReDraft={onReDraft}
                       onReplay={startAndPlayGroup}
                       onCareer={() => {
