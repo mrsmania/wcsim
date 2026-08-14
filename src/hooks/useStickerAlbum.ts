@@ -13,6 +13,21 @@ import { FEATURES, type StickerTier } from '../config';
 import { INITIAL_SWAPS, type Action, type GameState } from '../state/gameReducer';
 import { store } from '../state/store';
 
+/** Every player at their DATASET rating, by id. Cup Run boosts hand out modified
+ *  copies (Golden Generation is +2 to the whole XI), and collectibility has to be
+ *  judged on the real player: a boost must not turn an 89 into a Legendary sticker.
+ *  It would also be rejected server-side, since the catalogue is generated from base
+ *  ratings - which is exactly the bug this fixes. */
+const BASE_BY_ID = new Map(ALL_PLAYERS.map((p) => [p.id, p]));
+
+/** Collectible ids among these players, judged on their base rating. */
+function collectibleIdsOf(players: Player[]): string[] {
+  return players
+    .map((p) => BASE_BY_ID.get(p.id) ?? p)
+    .filter(isCollectible)
+    .map((p) => p.id);
+}
+
 /** A normalized cup-win reward awaiting the player's pick. The standard game and the
  *  Cup Run both funnel into this one shape (ids to bank + an onPick that applies them
  *  with the right once-per-run guard), so a single CupRewardPicker render serves both. */
@@ -77,11 +92,7 @@ export function useStickerAlbum(
   // Collectibles in the final XI (derived, so autofill and swaps are handled for
   // free - no incremental pending log to keep in sync).
   const draftedCollectibleIds = useMemo(
-    () =>
-      Object.values(filled)
-        .filter((p): p is Player => !!p)
-        .filter(isCollectible)
-        .map((p) => p.id),
+    () => collectibleIdsOf(Object.values(filled).filter((p): p is Player => !!p)),
     [filled],
   );
 
@@ -135,7 +146,8 @@ export function useStickerAlbum(
   // A Cup Run reported its end (CupRunScreen calls this once). A loss banks
   // immediately; a cup win waits for the reward pick (pendingReward below).
   const onCupRunEnd = useCallback((xi: Player[], wonCup: boolean) => {
-    setCupRunSticker({ ids: xi.filter(isCollectible).map((p) => p.id), wonCup });
+    // Base ratings, not the boosted copies the run hands back (see BASE_BY_ID).
+    setCupRunSticker({ ids: collectibleIdsOf(xi), wonCup });
   }, []);
   useEffect(() => {
     if (!enabled || !cupRunSticker || cupRunSticker.wonCup) return;
