@@ -1,5 +1,5 @@
 import { FEATURES } from '../../config';
-import { createLocalStore } from './localStore';
+import { clearGuestData, createLocalStore, hasGuestData } from './localStore';
 import type { AccountSnapshot, Store } from './types';
 
 export type {
@@ -24,30 +24,64 @@ export type {
  * delegates rather than a value that gets reassigned.
  */
 let impl: Store = createLocalStore();
-
-/** True once a signed-in implementation is in place. */
 let remote = false;
+
+/** Notified when a write fails. For a signed-in player that is the blocking
+ *  "unreachable" state (D9); a guest write cannot realistically fail. */
+type ErrorListener = (err: Error) => void;
+let onError: ErrorListener | null = null;
+
+export function onStoreError(listener: ErrorListener): () => void {
+  onError = listener;
+  return () => {
+    onError = null;
+  };
+}
+
+/** Run a write, reporting a failure rather than letting it vanish into a promise. */
+function reporting<T>(run: () => Promise<T>): Promise<T> {
+  return run().catch((err: unknown) => {
+    const e = err instanceof Error ? err : new Error(String(err));
+    if (remote) onError?.(e);
+    else console.error('store write failed', e);
+    throw e;
+  });
+}
 
 export const store: Store = {
   load: () => impl.load(),
   peek: () => impl.peek(),
-  saveGame: (g) => impl.saveGame(g),
-  finishRun: (i) => impl.finishRun(i),
-  trade: (t, p) => impl.trade(t, p),
-  clearAlbum: () => impl.clearAlbum(),
-  saveCareer: (c) => impl.saveCareer(c),
-  saveSettings: (s) => impl.saveSettings(s),
-  saveRun: (r) => impl.saveRun(r),
-  saveReveal: (r) => impl.saveReveal(r),
+  saveGame: (g) => reporting(() => impl.saveGame(g)),
+  finishRun: (i) => reporting(() => impl.finishRun(i)),
+  trade: (t, p) => reporting(() => impl.trade(t, p)),
+  clearAlbum: () => reporting(() => impl.clearAlbum()),
+  saveCareer: (c) => reporting(() => impl.saveCareer(c)),
+  saveSettings: (s) => reporting(() => impl.saveSettings(s)),
+  saveRun: (r) => reporting(() => impl.saveRun(r)),
+  saveReveal: (r) => reporting(() => impl.saveReveal(r)),
 };
 
 /** Whether the current store is account-backed (as opposed to guest/local). */
 export const isSignedIn = (): boolean => remote;
 
+/** An account with no progress yet, i.e. one the guest data could move into. */
+function accountIsEmpty(s: AccountSnapshot): boolean {
+  return (
+    s.album.collected.length === 0 &&
+    s.career.xp === 0 &&
+    s.career.prestige === 0 &&
+    s.game === null &&
+    s.run === null
+  );
+}
+
 export interface BootResult {
   snapshot: AccountSnapshot;
   /** The signed-in email, or null for a guest. */
   email: string | null;
+  /** Set when a one-time guest import is on the table: this device has progress and
+   *  the freshly signed-in account has none (FR-15). */
+  pendingImport?: { localSnapshot: AccountSnapshot };
 }
 
 /**
@@ -62,17 +96,54 @@ export interface BootResult {
  */
 export async function bootStore(): Promise<BootResult> {
   if (FEATURES.accounts) {
-    const { currentAccount } = await import('../auth');
+    const { currentAccount, supabase } = await import('../auth');
     const account = await currentAccount().catch(() => null);
     if (account) {
-      const { supabase } = await import('../auth');
       const { createRemoteStore } = await import('./remoteStore');
       impl = createRemoteStore(supabase(), account.id);
       remote = true;
-      return { snapshot: await impl.load(), email: account.email };
+      const snapshot = await impl.load();
+
+      // Offer the move only when there is something to move and nowhere it would
+      // overwrite: a populated account is left strictly alone.
+      let pendingImport: BootResult['pendingImport'];
+      if (accountIsEmpty(snapshot) && hasGuestData() && !importDeclined()) {
+        pendingImport = { localSnapshot: await createLocalStore().load() };
+      }
+      return { snapshot, email: account.email, pendingImport };
     }
   }
   impl = createLocalStore();
   remote = false;
   return { snapshot: await impl.load(), email: null };
 }
+
+/**
+ * Perform the one-time guest -> account move: write to the server, and only once it
+ * confirms, delete the local copy (FR-16a ordering, so a failure never destroys the
+ * only copy). Returns the account snapshot that resulted.
+ */
+export async function importGuestProgress(local: AccountSnapshot): Promise<AccountSnapshot> {
+  if (!impl.importGuest) throw new Error('not signed in');
+  const { reveal: _reveal, ...payload } = local;
+  await impl.importGuest(payload);
+  clearGuestData();
+  return impl.peek();
+}
+
+/** Decline the import: keep the guest copy where it is, and stop offering. */
+export const declineImport = (): void => {
+  try {
+    localStorage.setItem('wcsim_import_declined_v1', '1');
+  } catch {
+    /* ignore */
+  }
+};
+
+export const importDeclined = (): boolean => {
+  try {
+    return localStorage.getItem('wcsim_import_declined_v1') === '1';
+  } catch {
+    return false;
+  }
+};

@@ -227,5 +227,13 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       // Transient by design (see `load`): kept in memory only, never persisted.
       patch({ reveal });
     },
+
+    async importGuest(payload) {
+      // One transaction server-side, refused if the account already holds anything.
+      // The caller deletes the local copy only after this returns (FR-16a ordering).
+      version = await rpc<number>('import_guest_progress', { p_payload: payload });
+      cache = null;
+      await this.load();
+    },
   };
 }

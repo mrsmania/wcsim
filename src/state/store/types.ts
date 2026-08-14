@@ -82,4 +82,8 @@ export interface Store {
   saveRun(run: RunState | null): Promise<void>;
   /** `null` drops the in-flight reveal only. */
   saveReveal(reveal: Reveal | null): Promise<void>;
+
+  /** The one-time guest -> account move (FR-15, FR-16). Account-backed stores only;
+   *  the server refuses it if the account already holds anything. */
+  importGuest?(payload: unknown): Promise<void>;
 }

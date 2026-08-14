@@ -22,6 +22,41 @@ import type { AccountSnapshot, Store } from './types';
 // clamping) is the same code it always was.
 // ---------------------------------------------------------------------------
 
+/** Guest keys, for the one-time move into an account (FR-16a). Listed here because
+ *  this module is the only place that knows what "the guest's data" consists of. */
+const GUEST_KEYS = [
+  'wcsim:game:v1',
+  'wcsim_album_v1',
+  'wcsim_album_stats_v1',
+  'wcsim_career_v1',
+  'wcsim_run_v1',
+  'wcsim_run_reveal_v1',
+];
+
+/** Is there any guest progress on this device worth importing? Settings alone do not
+ *  count: they are preferences, not progress. */
+export function hasGuestData(): boolean {
+  try {
+    return GUEST_KEYS.some((k) => localStorage.getItem(k) !== null);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Delete the guest copy, which makes the first-login import a MOVE rather than a copy
+ * (FR-16a). Only ever called AFTER the server has confirmed the import, so a failure
+ * can never destroy the only copy. Settings are left alone: they are superseded by
+ * the account's own, and a later guest session may as well keep its preferences.
+ */
+export function clearGuestData(): void {
+  try {
+    for (const k of GUEST_KEYS) localStorage.removeItem(k);
+  } catch {
+    /* storage unavailable; nothing to clear */
+  }
+}
+
 export function createLocalStore(): Store {
   let cache: AccountSnapshot | null = null;
 

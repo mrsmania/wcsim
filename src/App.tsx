@@ -10,7 +10,7 @@ import {
     useState,
 } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Settings as SettingsIcon, Swords, Trophy } from 'lucide-react';
+import { ArrowRight, Settings as SettingsIcon, Swords, Trophy, User } from 'lucide-react';
 import { ALL_PLAYERS, SQUADS, squadsInPool } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -43,7 +43,13 @@ import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
 import { gameReducer, initialState } from './state/gameReducer';
-import { store, type AccountSnapshot } from './state/store';
+import {
+    declineImport,
+    importGuestProgress,
+    onStoreError,
+    store,
+    type AccountSnapshot,
+} from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import SettingsModal from './components/SettingsModal';
@@ -62,6 +68,8 @@ const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
+const ImportPrompt = lazy(() => import('./components/ImportPrompt'));
+const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
  *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
@@ -90,9 +98,11 @@ function homeCopy(view: HomeView): { eyebrow: string; title: string } {
 export default function App({
     snapshot,
     accountEmail,
+    pendingImport,
 }: {
     snapshot: AccountSnapshot;
     accountEmail: string | null;
+    pendingImport?: { localSnapshot: AccountSnapshot };
 }) {
     const [state, dispatch] = useReducer(
         gameReducer,
@@ -123,6 +133,11 @@ export default function App({
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
     const stickers = useStickerAlbum(state, dispatch, snapshot.album, poolPlayers);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    // Accounts (gated). The one-time guest import offer, and the blocking state for a
+    // failed save while signed in (D9) - both are global overlays, like the album's.
+    const [importOffer, setImportOffer] = useState(pendingImport ?? null);
+    const [storeError, setStoreError] = useState<Error | null>(null);
+    useEffect(() => onStoreError(setStoreError), []);
     // Changing difficulty resets the sticker album (it is scoped to the difficulty it
     // was earned under; the same will hold for future challenge modes). The modal
     // confirms first when the album is non-empty.
@@ -618,6 +633,22 @@ export default function App({
                         Draft a random XI. Win the cup.
                     </span>
                     <div className="ml-auto flex items-center gap-2.5">
+                        {/* Accounts (gated): a visible way in, rather than buried in the
+                            settings sheet. Signed in it shows who you are; both open the
+                            same Account section. */}
+                        {FEATURES.accounts && (
+                            <button
+                                type="button"
+                                onClick={() => setSettingsOpen(true)}
+                                title={accountEmail ?? 'Sign in to keep your album on every device'}
+                                className="flex h-[33px] shrink-0 items-center gap-1.5 rounded-[5px] border border-line bg-panel px-2.5 text-[12px] font-semibold text-muted transition hover:border-pitch hover:text-pitch"
+                            >
+                                <User size={15} strokeWidth={2.2} />
+                                <span className="max-sm:hidden">
+                                    {accountEmail ? accountEmail.split('@')[0] : 'Sign in'}
+                                </span>
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={() => setSettingsOpen(true)}
@@ -1001,6 +1032,36 @@ export default function App({
                     // right implementation and reads it fresh.
                     onAccountChanged={() => window.location.reload()}
                 />
+            )}
+
+            {/* Accounts: the one-time guest import offer, and the blocking state when a
+                save fails while signed in. Both are lazy - a guest never loads them. */}
+            {importOffer && accountEmail && (
+                <Suspense fallback={null}>
+                    <ImportPrompt
+                        local={importOffer.localSnapshot}
+                        email={accountEmail}
+                        onImport={async () => {
+                            await importGuestProgress(importOffer.localSnapshot);
+                            // The account now holds it; reload so every screen reads the
+                            // account copy rather than the state seeded at boot.
+                            window.location.reload();
+                        }}
+                        onDecline={() => {
+                            declineImport();
+                            setImportOffer(null);
+                        }}
+                    />
+                </Suspense>
+            )}
+            {storeError && (
+                <Suspense fallback={null}>
+                    <UnreachableScreen
+                        message={storeError.message}
+                        midPlay
+                        variant={storeError.name === 'StaleVersionError' ? 'stale' : 'unreachable'}
+                    />
+                </Suspense>
             )}
         </div>
     );
