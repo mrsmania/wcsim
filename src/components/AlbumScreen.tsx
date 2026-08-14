@@ -12,7 +12,13 @@ import {
     tradeOptions,
     type AlbumState,
 } from '../domain/album';
-import StickerCard, { GOLD_ACCENT, GOLD_FOIL, GOLD_INK, TIER_META } from './StickerCard';
+import StickerCard, {
+    GOLD_ACCENT,
+    GOLD_FOIL,
+    GOLD_INK,
+    stickerArtSrc,
+    TIER_META,
+} from './StickerCard';
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
@@ -349,8 +355,9 @@ function StickerLightbox({
                 {FEATURES.stickerImages && (
                     <img
                         key={player.id}
-                        src={`${import.meta.env.BASE_URL}stickers/${player.id}.png`}
+                        src={stickerArtSrc(player.id)}
                         alt=""
+                        decoding="async"
                         className="mb-3 aspect-square w-full max-w-[440px] object-contain"
                         onError={(e) => {
                             e.currentTarget.style.display = 'none';

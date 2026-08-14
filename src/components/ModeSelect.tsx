@@ -5,7 +5,7 @@ import type { Player } from '../data/types';
 import { FEATURES } from '../config';
 import { collectiblePlayers, tierOf } from '../domain/album';
 import { SQUAD_BY_ID } from '../data/squads';
-import { TIER_META } from './StickerCard';
+import { stickerArtSrc, TIER_META } from './StickerCard';
 
 /** The landing launcher (route `/`): a marketing hero that sells the fantasy, then a
  *  3-beat "how it works" and a "chase the legends" showcase. Quick Run and Career Mode
@@ -277,8 +277,9 @@ export default function ModeSelect({
                                     <div className="h-[6px]" style={{ background: meta.accent }} />
                                     {FEATURES.stickerImages && (
                                         <img
-                                            src={`${import.meta.env.BASE_URL}stickers/${p.id}.png`}
+                                            src={stickerArtSrc(p.id)}
                                             alt={p.name}
+                                            decoding="async"
                                             // Large centred avatar on phones (the card's main eye-catcher);
                                             // full-width square hero from the 3-column breakpoint up.
                                             className="mx-auto mt-3 block aspect-square w-4/5 rounded-lg bg-white object-cover object-top min-[460px]:mx-0 min-[460px]:mt-0 min-[460px]:w-full min-[460px]:rounded-none"

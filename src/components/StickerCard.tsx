@@ -28,15 +28,15 @@ export const GOLD_ACCENT = TIER_META.monumental.accent;
 export const GOLD_FOIL = TIER_META.monumental.strip;
 export const GOLD_INK = TIER_META.monumental.stripText;
 
-// Real images are gated by FEATURES.stickerImages (drop <player.id>.png into
-// public/stickers/); when on, StickerCard renders the image over the face with a
-// fallback to text+flag. Base-path aware so it resolves under '/' in dev and
-// '/wcsim/' on Pages.
 /** Card art, as shipped: small WebP built from the originals in `art/stickers-src/`
  *  by `scripts/build-sticker-art.py`. WebP only, deliberately - it is universally
  *  supported now, and a browser that cannot decode it falls back to the flag-and-name
- *  card via the img's onError, same as a missing file. */
-const artSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.webp`;
+ *  card via the img's onError, same as a missing file.
+ *
+ *  Base-path aware, so it resolves under '/' in dev and '/wcsim/' on Pages. **Every**
+ *  sticker image goes through this: the album detail modal and the home-page legends
+ *  each had their own copy of the path, and both broke when the extension changed. */
+export const stickerArtSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.webp`;
 
 interface Props {
   player: Player;
@@ -83,7 +83,7 @@ export default function StickerCard({
       <div className="flex flex-1 flex-col items-center gap-1.5 px-3 pb-3 pt-2 text-center">
         {FEATURES.stickerImages && collected && (
           <img
-            src={artSrc(player.id)}
+            src={stickerArtSrc(player.id)}
             alt=""
             // The album is a long grid: fetch what is on screen, not all 81 at once.
             loading="lazy"
