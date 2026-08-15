@@ -36,7 +36,7 @@ export const FEATURES = {
      *  Changes the rule and the copy that explains it (home page, draft call-out).
      *  A losing run still reports in either way, so run history and telemetry are
      *  unaffected by the switch. */
-    stickersOnCupWinOnly: false,
+    stickersOnCupWinOnly: true,
     /** Use real sticker artwork instead of the text+flag placeholder. Drop
      *  <player.id>.png files into art/stickers-src/ and run
      *  `python scripts/build-sticker-art.py` to produce the shipped
