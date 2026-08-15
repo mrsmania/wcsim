@@ -11,17 +11,31 @@ export default function BoostOffer({
   nextOpponent,
   roundName,
   onPick,
+  rerollsLeft = 0,
+  onReroll,
 }: {
   offer: Boon[];
   nextOpponent: GroupTeam | null;
   roundName: string;
   onPick: (b: Boon) => void;
+  /** Physio Table perk: re-rolls of this offer still available in the run. */
+  rerollsLeft?: number;
+  onReroll?: () => void;
 }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+        <span className="flex items-center gap-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
           Pick a boost
+          {onReroll && rerollsLeft > 0 && (
+            <button
+              type="button"
+              onClick={onReroll}
+              className="rounded-full border border-line px-2 py-0.5 text-[10px] tracking-[0.08em] text-muted transition hover:border-pitch hover:text-pitch"
+            >
+              Re-roll ({rerollsLeft})
+            </button>
+          )}
         </span>
         {nextOpponent && (
           <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">

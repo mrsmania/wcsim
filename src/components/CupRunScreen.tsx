@@ -18,6 +18,7 @@ import {
   prepareGroupStage,
   prepareKnockoutRound,
   chooseBoon,
+  rerollOffer,
   chemistryOf,
   type RunState,
   type KoMatch,
@@ -596,6 +597,10 @@ export default function CupRunScreen({
                                   nextOpponent={reveal.next.nextOpponent}
                                   roundName={KO_ROUNDS[0]}
                                   onPick={pickGroupBoost}
+                                  rerollsLeft={reveal.next.rerollsLeft ?? 0}
+                                  onReroll={() =>
+                                    setReveal({ ...reveal, next: rerollOffer(reveal.next) })
+                                  }
                                 />
                               </div>
                             ) : (
@@ -705,6 +710,8 @@ export default function CupRunScreen({
                       nextOpponent={run.nextOpponent}
                       roundName={KO_ROUNDS[run.koRound]}
                       onPick={pickBoost}
+                      rerollsLeft={run.rerollsLeft ?? 0}
+                      onReroll={() => setRun(rerollOffer(run))}
                     />
                   )}
 

@@ -431,8 +431,23 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   the door to the career hub (perks/trophies) before a run. The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
   `playKnockoutRound` -> ... -> ended (`champion` or knocked out) - reusing the real
   group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Between
-  rounds you pick 1 of 3 **boons** (`domain/boons.ts`): rating tweaks (Golden Generation,
-  Glass Cannon, ...) and roster swaps (Transfer, Poach the next opponent, Wildcard Legend).
+  rounds you pick 1 of 3 **boons** (`domain/boons.ts`, 19 of them): rating tweaks (Golden
+  Generation, Glass Cannon, ...) and roster swaps (Transfer, Poach the next opponent,
+  Wildcard Legend).
+  **Balance (reworked 2026-08-15).** A boon is worth what it moves the two numbers the
+  sim reads: the AVERAGE of the attack group (MID/FWD) and of the defence group
+  (GK/DEF). +6 to one attacker is +1 attack, not +6. Its budget is the SUM of both
+  movements, so Golden Generation (+2/+2) costs 4 and a common giving +2 to one line
+  costs 2, half of it. Bands are **common 2.0, rare 3.2, legendary 4.5**, and
+  **`npm run checks` prints every boon's figure and fails on an overspend**. Boons that
+  give points back (Glass Cannon, Catenaccio, Counter Attack) or hang on the draw
+  (Familiar Foes, Underdog Spirit, Poach) are exempt and marked as such.
+  **A condition the player controls at build time is not allowed:** the old Chemistry
+  Catalyst ("+2 to your most-represented nation") was a legendary effect at common
+  rarity, since a single-nation XI is trivial to buy in the transfer market and the
+  chemistry bonus already rewards cohesion. It is now Familiar Foes, keyed to the draw.
+  Mind the rating cap too: "+N to your best player" does nothing once they are at 99, so
+  the check measures against a budget-built XI (~81), not a national side's best eleven.
   **UI term:** the code says `boon`/`Boon` but the user-facing copy calls them "boosts" (and
   the `extra-boon` perk is shown as "Extra Choice") - "roguelike"/"boon" are too niche for
   players, so keep them out of visible strings, like elo -> "rating". A live **title-odds %**
@@ -488,8 +503,14 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   first), then the shared `RunEndStickerSummary` shows any new cards. Reload-safe via the flag.
 - **Career** (`domain/career.ts`, `state/careerStorage.ts` key `wcsim_career_v1`):
   a run awards XP (-> levels) and Prestige, spent in a small perk shop (Scout Network,
-  Deep Squad, Extra Boon) that feeds the next run. A trophy record (runs/cups/best) sits
-  in the `CupRunScreen` hub. Separate storage from the game + album.
+  Deep Squad, Extra Choice, Transfer Budget, Physio Table) that feeds the next run. A
+  trophy record (runs/cups/best) sits in the `CupRunScreen` hub. Separate storage from
+  the game + album.
+  Rebalanced 2026-08-15: Deep Squad stops at +2 (a permanent +3 to the whole XI beat
+  every legendary boon and never wore off), Scout Network's free starting boosts draw
+  from **commons only** (a free legendary before kickoff outweighed every in-run
+  choice), and **Physio Table** re-rolls a boost offer once or twice per run
+  (`rerollOffer` in `run.ts`, `RunState.rerollsLeft`, the control lives in `BoostOffer`).
 - **Cup-win confetti.** A Cup Run that ends as `champion` rains the shared `Confetti`
   (same self-contained canvas as the main game; `run?.outcome === 'champion'` in
   `CupRunScreen`), layering above the cup-win reward picker like the standard game.

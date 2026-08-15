@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID } from '../src/data/squads';
-import { primaryPosition, type Player } from '../src/data/types';
+import { isAttacker, isDefender, primaryPosition, type Player } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
 import { simulateMatch, simulateShootout } from '../src/domain/match';
 import {
@@ -293,6 +293,74 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   if (offer.some((b) => !pool.some((p) => p.id === b.id))) ok = false;
   if (offerBoons(pool, pool.length + 5).length !== pool.length) ok = false;
   check('boons: every boon keeps 11 distinct players; offers are distinct + in pool', ok);
+}
+
+// --- Boon power: what each one is actually worth, against its rarity band ---
+// The match sim reads two numbers: the AVERAGE of the attack group (MID/FWD) and of
+// the defence group (GK/DEF). So a boon is worth what it moves those averages, not
+// how many rating points it hands out - +6 to one attacker is +1 attack, not +6.
+// Printing it makes tuning arithmetic instead of argument; the assertion is what
+// would have caught a common (old Chemistry Catalyst) doing a legendary's job.
+{
+  // The budget is the SUM of both sides' movement, which is what a boon really costs
+  // the game: Golden Generation is +2 attack and +2 defence = 4, and a common giving
+  // +2 to one line = 2 is exactly half of it. Measuring the larger side alone made
+  // single-line boons look illegal when they are correctly priced.
+  const BAND: Record<string, number> = { common: 2.0, rare: 3.2, legendary: 4.5 };
+  // Boons that may exceed the band because they give something back or need the draw
+  // to cooperate: they are not free power.
+  const EXEMPT = new Set([
+    'glass-cannon', // -3 defence
+    'catenaccio', // -2 attack
+    'counter-attack', // -2 midfield
+    'underdog-spirit', // only against a stronger opponent
+    'familiar-foes', // only against a same-continent opponent
+    'poach', // depends entirely on the opponent
+  ]);
+
+  // Measure against what people actually field: a budget-built XI (~83), not a national
+  // team's best eleven. That distinction matters - against a squad full of 97s the
+  // "+N to your best player" boons hit the rating ceiling and read as worthless, which
+  // says more about the sample than the boon.
+  const sampleXi = (() => {
+    // Same construction the budget checks above use: a real formation from the table.
+    const f = Object.values(FORMATIONS_DATA.byKey)[0];
+    const { filled } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
+    return Object.values(filled).filter((p): p is Player => !!p);
+  })();
+  const sample = sampleXi.length === 11 ? sampleXi : bestEleven(SQUADS[0].players);
+  const side = (ps: Player[], isSide: (p: Player) => boolean) => {
+    const vals = ps.filter(isSide).map((p) => p.elo);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  };
+  const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
+
+  const sampleAvg = Math.round(sample.reduce((s, p) => s + p.elo, 0) / 11);
+  console.log(`\n  boon power (average points added, vs an ~${sampleAvg}-rated XI)`);
+  console.log('    ' + 'boon'.padEnd(22) + 'rarity'.padEnd(11) + 'attack'.padStart(7) + 'defence'.padStart(9) + '   total');
+
+  let withinBands = true;
+  for (const b of [...BOONS].sort((x, y) => x.rarity.localeCompare(y.rarity) || x.id.localeCompare(y.id))) {
+    // Roster boons are random, so average several applications.
+    const N = 40;
+    let att = 0, def = 0, tot = 0;
+    for (let i = 0; i < N; i++) {
+      const after = b.apply(sample, { opponentSquadId: SQUADS[3].id });
+      att += side(after, isAttacker) - before.att;
+      def += side(after, isDefender) - before.def;
+      tot += after.reduce((s, p) => s + p.elo, 0) - sample.reduce((s, p) => s + p.elo, 0);
+    }
+    att /= N; def /= N; tot /= N;
+    const spent = att + def; // a trade-off boon pays back through the negative side
+    const over = !EXEMPT.has(b.id) && spent > BAND[b.rarity];
+    if (over) withinBands = false;
+    console.log(
+      '    ' + b.id.padEnd(22) + b.rarity.padEnd(11) +
+      att.toFixed(1).padStart(7) + def.toFixed(1).padStart(9) + tot.toFixed(0).padStart(8) +
+      (EXEMPT.has(b.id) ? '   (conditional / trade-off)' : over ? '   <-- OVER BAND' : ''),
+    );
+  }
+  check('boons: every boon sits inside its rarity band (or pays for exceeding it)', withinBands);
 }
 
 // --- Boon availability + unlock economy ------------------------------------

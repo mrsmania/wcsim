@@ -83,6 +83,8 @@ export interface RunState {
   ascension: number;
   /** The pending 1-of-3 boon offer, when phase === 'boon'. */
   offer: Boon[] | null;
+  /** Boost-offer re-rolls left this run (Physio Table perk; absent on older saves). */
+  rerollsLeft?: number;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played). */
   nextOpponent: GroupTeam | null;
   score: number;
@@ -165,9 +167,12 @@ export function beginRun(
     players = players.map((p) => ({ ...p, elo: Math.min(ELO_MAX, p.elo + deepSquad) }));
   }
   // Scout Network perk: begin with N distinct team boosts already applied (N = tier).
+  // Commons only - a free legendary before kick-off outweighed every boost choice the
+  // run itself offers.
   const scout = perkLevels['scout'] ?? 0;
   if (scout > 0) {
-    for (const boon of offerBoons(availableBoons(unlockedBoons), scout)) {
+    const commons = availableBoons(unlockedBoons).filter((b) => b.rarity === 'common');
+    for (const boon of offerBoons(commons, scout)) {
       const before = players;
       players = boon.apply(players, { opponentSquadId: null });
       const inP = players.find((p) => !before.some((b) => b.id === p.id));
@@ -185,6 +190,8 @@ export function beginRun(
     unlockedBoons,
     ascension,
     offer: null,
+    // Physio Table perk: re-rolls of a boost offer available this run (0 without it).
+    rerollsLeft: perkLevels['physio'] ?? 0,
     nextOpponent: null,
     score: 0,
     outcome: null,
@@ -285,6 +292,20 @@ export interface BoonChoice {
 
 /** Apply the chosen boon and move to the pending knockout tie. Returns the next state
  *  plus any roster swap the boon made (so the UI can describe it without re-diffing). */
+/**
+ * Spend a Physio Table re-roll: draw a fresh offer of the same size and knock one off
+ * the counter. Returns the run untouched when there is nothing to re-roll, so callers
+ * can gate on `rerollsLeft` for the button and still be safe if they do not.
+ */
+export function rerollOffer(run: RunState): RunState {
+  if (run.phase !== 'boon' || !run.offer || (run.rerollsLeft ?? 0) <= 0) return run;
+  return {
+    ...run,
+    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+    rerollsLeft: (run.rerollsLeft ?? 0) - 1,
+  };
+}
+
 export function chooseBoon(run: RunState, boonId: string): BoonChoice {
   if (run.phase !== 'boon') return { next: run };
   const boon = boonById(boonId);

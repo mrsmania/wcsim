@@ -97,24 +97,28 @@ export const PERKS: Perk[] = [
     id: 'scout',
     name: 'Scout Network',
     tiers: [
-      { level: 1, description: 'Start each run with 1 team boost applied.', cost: 25, levelReq: 1 },
-      { level: 2, description: 'Start each run with 2 team boosts applied.', cost: 70, levelReq: 5 },
+      // The free boosts draw from the COMMON pool only (run.ts): handing out a
+      // legendary before kick-off made the perk better than any single boost choice.
+      { level: 1, description: 'Start each run with 1 common team boost applied.', cost: 25, levelReq: 1 },
+      { level: 2, description: 'Start each run with 2 common team boosts applied.', cost: 70, levelReq: 5 },
     ],
   },
   {
     id: 'deep-squad',
     name: 'Deep Squad',
     tiers: [
+      // Tier 3 (+3 to the whole XI, permanently) was stronger than any legendary boost
+      // and never went away, so the ladder stops at +2 and tier 2 costs more.
       { level: 1, description: '+1 to your entire XI at run start.', cost: 45, levelReq: 1 },
-      { level: 2, description: '+2 to your entire XI at run start.', cost: 95, levelReq: 4 },
-      { level: 3, description: '+3 to your entire XI at run start.', cost: 170, levelReq: 8 },
+      { level: 2, description: '+2 to your entire XI at run start.', cost: 120, levelReq: 4 },
     ],
   },
   {
     id: 'extra-boon',
     name: 'Extra Choice',
     tiers: [
-      { level: 1, description: '4 team boosts offered each round.', cost: 75, levelReq: 3 },
+      // Worth more as the boost pool grows, so it costs more than it used to.
+      { level: 1, description: '4 team boosts offered each round.', cost: 90, levelReq: 3 },
       { level: 2, description: '5 team boosts offered each round.', cost: 150, levelReq: 7 },
     ],
   },
@@ -132,6 +136,16 @@ export const PERKS: Perk[] = [
       { level: 6, description: '$130 transfer budget.', cost: 220, levelReq: 18 },
       { level: 7, description: '$140 transfer budget.', cost: 300, levelReq: 24 },
       { level: 8, description: '$150 transfer budget.', cost: 400, levelReq: 32 },
+    ],
+  },
+  {
+    // Re-roll a boost offer you do not like. Cheap agency rather than raw power, and
+    // the one perk that gets better the wider the pool is.
+    id: 'physio',
+    name: 'Physio Table',
+    tiers: [
+      { level: 1, description: 'Re-roll a team boost offer once per run.', cost: 35, levelReq: 2 },
+      { level: 2, description: 'Re-roll a team boost offer twice per run.', cost: 85, levelReq: 6 },
     ],
   },
 ];
