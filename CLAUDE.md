@@ -66,13 +66,16 @@ npm run build      # tsc --noEmit && vite build -> dist/   (run this to verify c
 npm run typecheck  # tsc --noEmit
 npm run preview    # serve the production build
 npm run checks     # run domain characterization checks (scripts/checks.ts)
-npm run gen:collectibles  # regenerate supabase/seed/collectibles.sql from the dataset
+npm run gen:collectibles   # regenerate supabase/seed/collectibles.sql from the dataset
+npm run push:collectibles  # send that seed to the account server (needs dkr/.env, LAN/VPN)
+python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/stickers/*.webp
 ```
 
 **After changing ratings in `squads.ts` or `STICKER_TIERS`, run `npm run
-gen:collectibles`.** The accounts feature needs a server-side copy of who is collectible
-(SQL cannot read the TypeScript dataset), so `supabase/seed/collectibles.sql` is generated
-from it and `npm run checks` fails while the two disagree.
+gen:collectibles` and `npm run push:collectibles`.** The accounts feature needs a
+server-side copy of who is collectible (SQL cannot read the TypeScript dataset), so
+`supabase/seed/collectibles.sql` is generated from it and `npm run checks` fails while
+the two disagree. See "Accounts" below.
 
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
@@ -518,6 +521,68 @@ A second way to build the XI, alongside the random roll. Spec:
   then a random upgrade pass spends the leftover - so every click yields a different XI that still
   spends most of the budget (committed via `AUTOFILL`). The built XI plays through Quick Play +
   Cup Run exactly like a rolled one.
+
+## Accounts (optional, config-gated)
+
+Sign in with an emailed 6-digit code and your album, career, settings and in-progress
+run live on a server instead of in the browser, so they are the same on every device.
+Requirements: `docs/cloud-sync-requirements.md` (settled). Design: `docs/cloud-sync-design.md`.
+Server setup: `docs/nas-setup.md`.
+
+- **Guest-first is the rule** (NFR-1). The whole game is playable with no account and
+  guest play never touches the server. An account adds continuity and backup, and may
+  gate genuinely online extras (leaderboards later), never core gameplay or content.
+- **`FEATURES.accounts` is derived, not hand-set**: it is on only when the build was
+  given `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (repo *variables*, passed by
+  `.github/workflows/deploy.yml`; `.env.local` for dev). With no server configured
+  nothing account-related renders, no network call happens, and the build is the
+  guest-only game. A fork therefore just works.
+- **Two worlds, never mixed** (D8). Guest progress is `localStorage`; account progress
+  is the database only. The single crossing is a one-time **automatic** move on first
+  sign-in, and only into an account holding nothing: the server confirms before the
+  local copy is deleted, so a failure cannot lose it. Signed in with the server
+  unreachable **blocks play** (D9) rather than inventing local progress -
+  `UnreachableScreen`, with a "continue as guest" escape.
+- **Client:** `state/auth.ts` (sign in with a code, sign out here/everywhere, delete
+  account), `state/store/remoteStore.ts` (the account-backed `Store`), `AccountPanel`
+  inside the settings sheet, plus a masthead sign-in button. The auth library and the
+  remote store are **dynamically imported**, so a guest never downloads them (verified:
+  `GoTrueClient` appears only in the separate `auth-*.js` chunk).
+- **Server:** self-hosted Supabase on the NAS. `supabase/migrations/*.sql` applied in
+  order, plus the generated `supabase/seed/collectibles.sql`. Row-level security
+  isolates accounts; the sticker economy goes through `security definer` functions
+  (`finish_run`, `execute_trade`, `import_guest_progress`), because the browser talks
+  to Postgres directly and RLS alone would let someone write implausible rows into
+  their own album. Function grants are explicit (`0008`) - Postgres makes functions
+  PUBLIC by default and Supabase grants them to `anon`/`authenticated` on top, which is
+  how internal helpers were briefly callable by anyone with the public key.
+
+**The collectible catalogue.** The server has to know who is collectible, which is
+derived from `player.elo` in TypeScript that SQL cannot read. So it is generated:
+`npm run gen:collectibles` writes `supabase/seed/collectibles.sql`, `npm run checks`
+**fails while it is stale**, and `npm run push:collectibles` sends it to the server.
+Run all three after any rating change that crosses a `STICKER_TIERS` boundary. A player
+who falls out of the bands is marked inactive, never deleted, so albums holding them
+keep working.
+
+**Gotchas, each of which was a real bug:**
+
+- **Collectibility is judged on the DATASET rating, never the object in hand.** Cup Run
+  boosts hand back modified copies (Golden Generation is +2 to the XI), and testing
+  those made an 89 look Legendary - an id the server's catalogue does not contain, so
+  the whole bank was refused. `useStickerAlbum` resolves ids through `BASE_BY_ID`.
+- **Writes are serialized** in `remoteStore`, and a version conflict re-reads and
+  retries once. The app fires several independent writes (game state, run state,
+  career, banking) and each carries the version it last read, so overlapping writes
+  made the second stale by construction.
+- **A version conflict must not use SQLSTATE 40001**: PostgREST treats it as retryable
+  and retries a deterministically-failing transaction until the gateway times out.
+  `bump_version` raises `PT409`, which PostgREST answers as 409.
+- **Each bank gets a fresh run key.** Deriving it from the XI + outcome collided the
+  moment two runs ended the same way (trivially, two runs with no collectibles).
+- **Run-end actions wait for the save** so the sticker haul is always shown before the
+  next run starts, with a 4s release and a run-generation guard so a slow server cannot
+  block play or drop a stale summary into the next run.
 
 ## Conventions and working agreements
 

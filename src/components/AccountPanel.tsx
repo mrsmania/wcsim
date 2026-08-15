@@ -12,7 +12,7 @@ import { DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
 const FIELD =
   'w-full rounded-md border border-line bg-ground px-3 py-2 text-[13.5px] outline-none focus:border-pitch';
 
-type Stage = 'idle' | 'sending' | 'code' | 'verifying';
+type Stage = 'idle' | 'sending' | 'code' | 'verifying' | 'deleting';
 
 export default function AccountPanel({
   email,
@@ -28,6 +28,7 @@ export default function AccountPanel({
   const [address, setAddress] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   if (!FEATURES.accounts) return null;
 
@@ -61,6 +62,20 @@ export default function AccountPanel({
     }
   };
 
+  const remove = async () => {
+    setError(null);
+    setStage('deleting');
+    try {
+      const { deleteAccount } = await import('../state/auth');
+      await deleteAccount();
+      // Same handover as signing out: the store has to be rebuilt as a guest.
+      onSignedOut();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setStage('idle');
+    }
+  };
+
   const out = async (scope: 'local' | 'global') => {
     setError(null);
     try {
@@ -84,10 +99,55 @@ export default function AccountPanel({
           <button type="button" onClick={() => void out('local')} className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}>
             Sign out
           </button>
-          <button type="button" onClick={() => void out('global')} className={DANGER_BTN}>
+          <button
+            type="button"
+            onClick={() => void out('global')}
+            className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
+          >
             Sign out everywhere
           </button>
         </div>
+
+        {/* Deleting is irreversible and cascades through everything, so it sits apart
+            from the sign-out actions and asks first (FR-24). */}
+        <div className="mt-3 border-t border-line pt-3">
+          {confirmingDelete ? (
+            <div className="rounded-md border border-loss/40 bg-loss/[0.06] p-3">
+              <p className="text-[12.5px] leading-snug">
+                Delete <b>{email}</b> for good? Your album, career and run history go with it,
+                and there is no undo. Progress saved in this browser as a guest is separate
+                and stays where it is.
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void remove()}
+                  disabled={stage === 'deleting'}
+                  className={`${DANGER_BTN} disabled:opacity-60`}
+                >
+                  {stage === 'deleting' ? 'Deleting...' : 'Yes, delete everything'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  disabled={stage === 'deleting'}
+                  className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="text-[12px] text-muted underline hover:text-loss"
+            >
+              Delete my account
+            </button>
+          )}
+        </div>
+
         {error && <p className="mt-2 text-[12px] text-loss">{error}</p>}
       </div>
     );

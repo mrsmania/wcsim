@@ -1,12 +1,16 @@
 # Cloud Sync & Accounts — Requirements
 
-**Status:** Requirements **settled** (no open questions).
+**Status:** Requirements **settled**, and **shipped** as of 2026-08-15 (sign-in, account-backed
+storage, automatic guest import, blocking unreachable state, account deletion). Build order and
+what the first play-throughs cost: `docs/cloud-sync-design.md` §14.
 **Date:** 2026-07-02, revised 2026-08-11
 **Design:** `docs/cloud-sync-design.md` (written 2026-08-11) covers the stack, schema, RLS,
 the function surface and its validation rules, auth configuration, save points, the client
 storage adapter, and a 7-step build order. This document stays requirements-only and
 deliberately contains no schema, endpoints, or implementation.
-**Next step:** build order step 1, the client storage adapter refactor, which needs no server.
+**Superseded decisions:** D8's import is now **automatic** rather than user-confirmed, D11
+shipped as **email code only** (Google deferred, not dropped), and D12's invite-only signup was
+replaced by **open registration** (migration `0005`). Each row below carries the correction.
 
 > **2026-08-11 revision.** Two rounds of decisions closed this document out.
 >
@@ -44,12 +48,12 @@ to sign in** (NFR-1). Guest play stays exactly as it is today and never touches 
 | D5 | OTP delivery | 6-digit email codes sent via **Gmail SMTP**, from a dedicated mailbox (`worldcupsim2026@gmail.com`-style). Needs 2FA + an **App Password**; ~500 sends/day is far above need. Accepted risk: a plain gmail.com sender sometimes lands in spam; a transactional sender is the upgrade path |
 | D6 | Identity | **One account per verified email**; the offered sign-in methods (D11) that share a verified email resolve to the same account |
 | D7 | Audience | **Private now, public later**: build for a small known set first, but specify abuse/rate-limit/privacy controls so opening up is a config change, not a rewrite |
-| D8 | Guest vs account | **Two separate worlds, never mixed.** Guest progress lives in `localStorage`; account progress lives **only** in the database. Nothing syncs or merges between them. The single crossing point is a **one-time, user-confirmed import** at first login |
+| D8 | Guest vs account | **Two separate worlds, never mixed.** Guest progress lives in `localStorage`; account progress lives **only** in the database. Nothing syncs or merges between them. The single crossing point is a **one-time import** at first login. *Revised 2026-08-15: it happens automatically instead of asking. Signing in on a device that has progress means you want that progress, and the safety was never the prompt - it is that the move only runs into an empty account and the server confirms before anything local is deleted.* |
 | D9 | Server dependency when logged in | **Logged in requires the server.** If the API/DB is unreachable, a logged-in user **cannot play**: a blocking "server unreachable" state with a retry, plus a "continue as guest" escape hatch (which starts/resumes separate local progress and never copies account data down). No unsaved logged-in play, so no second copy ever exists to reconcile |
 
 | D10 | Stack | **Self-hosted Supabase on the NAS** (Docker): Postgres + Auth + PostgREST + gateway, with Realtime / Storage / imgproxy / Edge Runtime **trimmed out**, and Studio **LAN-only**. Rejected: hosted Supabase free tier (**auto-pauses after 1 week of inactivity**, which under D9 means a sporadically-played game finds its DB asleep and needs a manual dashboard restore; the 2-free-project cap is also per user across all orgs, and the existing projects are themselves too idle to lean on) and a hand-rolled API (2 containers instead of ~5, but you then write Google OAuth, OTP issue/verify, sessions with revocation, and rate limits yourself, which is exactly what Auth gives for free) |
-| D11 | Sign-in methods | **Google + email 6-digit OTP only. GitHub dropped for v1.** GitHub allows a private email and can return no email at all, which has nothing to key an account on under D6; Google always returns a verified email. Adding GitHub later reopens that edge case and needs an "enter an email, verify by OTP" fallback |
-| D12 | Signup | **Invite-only / allowlist**, rate-limited, with the open-signup switch kept as **config** (D7). Note "public" here means open *account creation*: the game itself is already publicly playable as a guest on Pages |
+| D11 | Sign-in methods | **Shipped: email 6-digit OTP only.** Google is specified and deferred - one less moving part for the first version, and it can be added without touching anything built. **GitHub dropped for v1.** GitHub allows a private email and can return no email at all, which has nothing to key an account on under D6; Google always returns a verified email. Adding GitHub later reopens that edge case and needs an "enter an email, verify by OTP" fallback |
+| D12 | Signup | ~~Invite-only / allowlist~~ **Superseded 2026-08-13: registration is open to anyone** (migration `0005` drops the gate and its table). One email field, a code, and you are in, first visit or return. Rate limits and deliverability now matter more, both noted in that migration. Note "public" here means open *account creation*: the game itself is already publicly playable as a guest on Pages |
 
 **Why D8/D9.** The reconcile policy for mutable data (duplicate counts, trade history, the
 single active run) was the hardest question in this document and had no clean answer: union
@@ -138,7 +142,7 @@ on always-up hosting and only *logged-in* play depends on the NAS.
 ### 4.5 Account management & data rights
 - **FR-23** A user can **sign out** on this device, **sign out everywhere** (FR-7), and see the email their account is keyed on (FR-6).
 - **FR-24** A user can **delete their account and data** (needed before "public"; and reasonable under Swiss nFADP / GDPR-style expectations).
-- **FR-25** A user should be able to **export** their collection. **Promoted from nice-to-have:** with NFR-6 backups deferred, this is the only route by which a player (including the owner) can hold a copy of their own album outside the single NAS.
+- **FR-25** ~~A user should be able to **export** their collection.~~ **Not built (2026-08-15).** An export with no import is a souvenir, not a restore path, and building both roughly doubles the work. A scheduled `pg_dump` protects every account without anyone pressing a button, which is the better answer to the same worry (NFR-6). `export_account()` exists server-side if the data-rights case ever outweighs that.
 
 ---
 

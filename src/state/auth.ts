@@ -74,3 +74,18 @@ export async function signOut(scope: 'local' | 'global' = 'local'): Promise<void
   const { error } = await supabase().auth.signOut({ scope });
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Delete the account and everything in it (FR-24). Irreversible: the server removes
+ * the auth user, and every table cascades from it - album, career, run history, the
+ * lot. Guest data in this browser is a separate world (D8) and is untouched.
+ *
+ * The local session is dropped afterwards on a best-effort basis: the token it would
+ * use has just been invalidated server-side, so a failure there is expected and not
+ * worth surfacing.
+ */
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase().rpc('delete_account');
+  if (error) throw new Error(error.message);
+  await supabase().auth.signOut({ scope: 'local' }).catch(() => undefined);
+}

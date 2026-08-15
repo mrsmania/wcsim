@@ -406,11 +406,40 @@ Each step is independently shippable and verifiable.
    unaffordable trade, a second `finish_run` for the same run key, a stale
    `expected_version`, a career write that raises its own xp, and a signup from an
    uninvited address.
-5. **`remoteStore` plus auth UI, behind the flag.** Sign in, load, play, save. Verified by
-   playing a full run signed in, then loading it on a second device.
-6. **Import, unreachable state, stale-version reload.** The edge cases, verified by pulling
-   the network cable mid-run and by two browsers signed into one account.
-7. **Account management.** Export (FR-25), delete (FR-24), sign out everywhere.
+5. ~~**`remoteStore` plus auth UI, behind the flag.**~~ **Done 2026-08-13/14.** Email-code
+   sign-in only (Google deferred: one less moving part, and it can be added without
+   touching this). `FEATURES.accounts` is derived from the build env, so an unconfigured
+   build is the guest-only game. Verified in play on desktop and phone.
+6. ~~**Import, unreachable state, stale-version reload.**~~ **Done 2026-08-14/15**, with two
+   changes of plan. The guest import lost its prompt and now happens automatically on first
+   sign-in (asking added nothing: signing in on a device with progress means you want it).
+   The stale-version case got its own screen, since "the server is unreachable" is the wrong
+   story for "another device moved ahead".
+7. ~~**Account management.**~~ **Sign out / sign out everywhere / delete account done
+   2026-08-15**; delete verified end to end on a throwaway account (career, sticker and run
+   created, then deleted by the account itself: auth user gone, every table cascaded clean).
+   **Export (FR-25) deliberately not built**: a download with no way to load it back is a
+   souvenir, not a restore path, and a scheduled `pg_dump` protects every account without
+   anyone pressing a button. Revisit if the data-rights angle matters more than the backup one.
+
+### What the first real play-through cost, worth reading before the next feature
+
+Every one of these shipped broken and was found by playing, not by types or checks. They are
+in CLAUDE.md as gotchas; the pattern is what matters here.
+
+- **Collectibility judged on a boosted copy** rather than the dataset player, so ids the
+  catalogue never contained were submitted and the whole bank was refused.
+- **A version conflict raised as SQLSTATE 40001**, which PostgREST retries - a deterministic
+  failure retried until the gateway timed out, reported to the player as "unreachable".
+- **Concurrent writes each carrying their own last-read version**, making conflicts routine
+  rather than the multi-device rarity they were designed for.
+- **A run key derived from the XI + outcome**, which collided the second time two runs ended
+  the same way.
+- **The "already banked" flag set before the call**, so a failure lost the run's stickers.
+- **An async result landing in the next run**, showing the previous run's summary mid-play.
+
+Three of the six were only visible on the *second* run, which is the lesson: a single
+happy-path play-through proves very little about state that carries across runs.
 
 ---
 

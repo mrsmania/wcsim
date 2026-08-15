@@ -246,8 +246,8 @@
   </div>
   <div class="meta">
     <strong>Status:</strong> idea inbox<br>
-    <strong>Updated:</strong> 2026-08-11 (item 02)<br>
-    <strong>Open:</strong> 4 items
+    <strong>Updated:</strong> 2026-08-15<br>
+    <strong>Open:</strong> 3 items + hardening
   </div>
 </div>
 
@@ -302,9 +302,9 @@
     <span class="num">02</span>
     <span class="title">Login / user account
       <span class="sub">Persist album, career status, and future challenges across devices.
-      Requirements settled, no open questions. Next: the design doc.</span>
+      <b>Shipped 2026-08-15.</b> Only NAS-side hardening is left.</span>
     </span>
-    <span class="tag">Platform</span>
+    <span class="tag">Done</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
@@ -351,9 +351,10 @@
       (whether your internet plan lets you be reached at all).</li>
     </ul>
 
-    <p class="next"><strong>Next step:</strong> build order step 1 in the design doc, the
-    client storage-adapter refactor. Pure refactor, needs no server, and makes every step
-    after it small.</p>
+    <p class="next"><strong>What is left:</strong> NAS-side only, from the security review -
+    turn the firewall back on with the narrow container rules (plus a boot task), stop
+    exposing Studio to the internet, and drop the unused storage / functions / realtime
+    services. Backups and a user-facing export were both deliberately declined.</p>
     <p class="files">docs/cloud-sync-requirements.md, docs/cloud-sync-design.md</p>
   </div>
 </details>
