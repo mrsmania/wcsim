@@ -135,6 +135,12 @@ export function useStickerAlbum(
   // collectible ids from the final XI (the standard game passes the drafted XI's;
   // a Cup Run passes its own, boons included). `markReducer` sets the once-per-run
   // reducer guard, used only by the standard game (a Cup Run guards itself).
+  //
+  // **Stickers are earned by WINNING THE CUP, nothing less** (changed 2026-08-15).
+  // Drafting a legend and going out in the group used to bank them anyway, which made
+  // the album a record of who you had drafted rather than what you had won. A losing
+  // run still reports in - so the run is recorded, `runs_played` stays honest and the
+  // server-side active run is cleared - it just carries nothing to bank.
   const applyStickers = useCallback(
     (collectibleIds: string[], wonCup: boolean, cupPickId: string | null, markReducer: boolean) => {
       // In flight already: the run-end effect can re-fire on a re-render, and the
@@ -159,9 +165,11 @@ export function useStickerAlbum(
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const outcome = wonCup ? 'champion' : markReducer ? 'out' : 'run-end';
       const gen = runGenRef.current;
+      // The rule, enforced in one place so no caller can bypass it.
+      const earned = wonCup ? collectibleIds : [];
 
       void store
-        .finishRun({ runKey, collectibleIds, wonCup, cupPickId, swapsUsed, outcome })
+        .finishRun({ runKey, collectibleIds: earned, wonCup, cupPickId, swapsUsed, outcome })
         .then(({ album: next, newly }) => {
           setAlbum(next);
           // Only show the haul if this is still the run the player is looking at.

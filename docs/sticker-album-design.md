@@ -132,6 +132,12 @@ Filters a flat player list to those where `isCollectible` is true. Used by `Albu
 
 #### `applyRunStickers(album: AlbumState, pendingPlayerIds: string[], wonCup: boolean, cupPickPlayerId: string | null): AlbumState`
 Merges pending stickers into the album at run-end.
+
+**Superseded 2026-08-15:** stickers are now earned **only by winning the cup**. A run that ends in
+a group exit or a knockout defeat banks nothing - it still reports in, so the run is recorded and
+the server-side active run is cleared, but with an empty list. The rule lives in one place
+(`useStickerAlbum`'s `applyStickers`). This makes the album a record of what was *won* rather than
+what was *drafted*, and makes the cup-win reward pick the main way a collection grows.
 - For each `pendingPlayerIds` entry: if not in `collected`, adds it; otherwise increments `duplicates[id]`.
 - If `wonCup` is true and `cupPickPlayerId` is provided, applies that pick with the same collected/duplicate logic.
 - Returns a new `AlbumState` (immutable update).

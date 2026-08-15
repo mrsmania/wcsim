@@ -106,7 +106,8 @@ export default function SquadPanel({
                                 <b className="text-ink">
                                     {colls.length} collectible{colls.length > 1 ? 's' : ''}
                                 </b>{' '}
-                                in this squad: {colls.map((p) => p.name).join(', ')}
+                                in this squad: {colls.map((p) => p.name).join(', ')}. Win the cup
+                                with them and the stickers are yours.
                             </span>
                         </div>
                     );

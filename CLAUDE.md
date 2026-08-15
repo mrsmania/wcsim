@@ -365,13 +365,18 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `wcsim_album_stats_v1` (trade-cost telemetry: runsPlayed / stickersEarned /
   tradesCompleted), **separate keys from the game** so a reset never wipes the album.
   `App` holds `album` in `useState(loadAlbum)` and prop-drills it (no context).
-- **Earning (run-end only).** Stickers are never awarded mid-run. At run-end (bracket
-  `champion`/`out`, or group-stage elimination) `App` applies the collectibles in the
-  **final XI** (derived from `filled`, so autofill and swaps are covered for free) via
-  `applyRunStickers`, guarded once-per-run by the persisted `stickersApplied` reducer
-  flag. A **cup win** first shows `CupRewardPicker` (pick any one uncollected Legendary
-  or Iconic sticker - Monumental excluded, FR-3/D-1), then applies. `RunEndStickerSummary` then shows the newly
-  earned cards (only if any were new, FR-8). Both are global overlays in `App`.
+- **Earning: winning the cup, and nothing less** (rule changed 2026-08-15; it used to
+  bank on any run end, including a group exit, which made the album a record of who you
+  had *drafted* rather than what you had *won*). Stickers are never awarded mid-run.
+  On a **cup win** `App` shows `CupRewardPicker` (pick any one uncollected Legendary or
+  Iconic sticker - Monumental excluded, FR-3/D-1) and then banks the **final XI**'s
+  collectibles plus that pick, guarded once-per-run by the persisted `stickersApplied`
+  reducer flag. `RunEndStickerSummary` then shows the newly earned cards (only if any
+  were new, FR-8). Both are global overlays in `App`.
+  A **losing** run still reports in with an empty list, so the run is recorded, the
+  `runs_played` telemetry stays honest and the server-side active run is cleared - it
+  simply banks nothing. The rule is enforced in one place (`useStickerAlbum`'s
+  `applyStickers`), so no caller can bypass it.
 - **Album screen** (`AlbumScreen.tsx`, route **`/album`**, reached from a home-screen
   entry button): completion counter + duplicate pool, tier sections (Monumental,
   Iconic, Legendary) of `StickerCard`s (collected = flag+name+rating+tier; uncollected =
