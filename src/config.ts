@@ -27,6 +27,16 @@ export const FEATURES = {
      *  markers, and the swap control. Set to false to hide all of it (and skip the
      *  album localStorage reads/writes). */
     stickerAlbum: true,
+    /** How stickers are earned.
+     *  `true`  - only a **cup win** banks them: the winning XI's collectibles plus the
+     *            reward pick. A group exit or a knockout defeat banks nothing, so the
+     *            album records what you *won*.
+     *  `false` - any finished run banks the final XI's collectibles, win or lose, so
+     *            the album records who you *drafted*.
+     *  Changes the rule and the copy that explains it (home page, draft call-out).
+     *  A losing run still reports in either way, so run history and telemetry are
+     *  unaffected by the switch. */
+    stickersOnCupWinOnly: true,
     /** Use real sticker artwork instead of the text+flag placeholder. Drop
      *  <player.id>.png files into art/stickers-src/ and run
      *  `python scripts/build-sticker-art.py` to produce the shipped

@@ -365,9 +365,12 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `wcsim_album_stats_v1` (trade-cost telemetry: runsPlayed / stickersEarned /
   tradesCompleted), **separate keys from the game** so a reset never wipes the album.
   `App` holds `album` in `useState(loadAlbum)` and prop-drills it (no context).
-- **Earning: winning the cup, and nothing less** (rule changed 2026-08-15; it used to
-  bank on any run end, including a group exit, which made the album a record of who you
-  had *drafted* rather than what you had *won*). Stickers are never awarded mid-run.
+- **Earning: `FEATURES.stickersOnCupWinOnly`** (added 2026-08-15). **True (default):**
+  only a cup win banks - it used to bank on any run end, including a group exit, which
+  made the album a record of who you had *drafted* rather than what you had *won*.
+  **False:** the old behaviour, any finished run banks the final XI. The flag also
+  switches the copy that explains it (home page, draft call-out).
+  Stickers are never awarded mid-run either way.
   On a **cup win** `App` shows `CupRewardPicker` (pick any one uncollected Legendary or
   Iconic sticker - Monumental excluded, FR-3/D-1) and then banks the **final XI**'s
   collectibles plus that pick, guarded once-per-run by the persisted `stickersApplied`

@@ -136,11 +136,12 @@ export function useStickerAlbum(
   // a Cup Run passes its own, boons included). `markReducer` sets the once-per-run
   // reducer guard, used only by the standard game (a Cup Run guards itself).
   //
-  // **Stickers are earned by WINNING THE CUP, nothing less** (changed 2026-08-15).
-  // Drafting a legend and going out in the group used to bank them anyway, which made
-  // the album a record of who you had drafted rather than what you had won. A losing
-  // run still reports in - so the run is recorded, `runs_played` stays honest and the
-  // server-side active run is cleared - it just carries nothing to bank.
+  // **How stickers are earned is `FEATURES.stickersOnCupWinOnly`** (added 2026-08-15).
+  // On (the default) only a cup win banks: drafting a legend and going out in the group
+  // used to bank them anyway, which made the album a record of who you had drafted
+  // rather than what you had won. Off restores the old any-run behaviour.
+  // Either way a losing run still reports in - so the run is recorded, `runs_played`
+  // stays honest and the server-side active run is cleared - it just carries nothing.
   const applyStickers = useCallback(
     (collectibleIds: string[], wonCup: boolean, cupPickId: string | null, markReducer: boolean) => {
       // In flight already: the run-end effect can re-fire on a re-render, and the
@@ -166,7 +167,7 @@ export function useStickerAlbum(
       const outcome = wonCup ? 'champion' : markReducer ? 'out' : 'run-end';
       const gen = runGenRef.current;
       // The rule, enforced in one place so no caller can bypass it.
-      const earned = wonCup ? collectibleIds : [];
+      const earned = wonCup || !FEATURES.stickersOnCupWinOnly ? collectibleIds : [];
 
       void store
         .finishRun({ runKey, collectibleIds: earned, wonCup, cupPickId, swapsUsed, outcome })

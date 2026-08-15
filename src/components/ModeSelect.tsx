@@ -252,7 +252,9 @@ export default function ModeSelect({
                                 Chase the legends
                             </h2>
                             <p className="mt-1 text-[13.5px] text-muted">
-                                Win the cup with an all-time great and the sticker is yours to keep.
+                                {FEATURES.stickersOnCupWinOnly
+                                    ? 'Win the cup with an all-time great and the sticker is yours to keep.'
+                                    : 'Draft an all-time great and the sticker is yours to keep.'}{' '}
                                 These five are the rarest of all.
                             </p>
                         </div>
