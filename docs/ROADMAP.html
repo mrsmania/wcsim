@@ -304,7 +304,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-17<br>
-    <strong>Open:</strong> 11 items<br>
+    <strong>Open:</strong> 9 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -477,43 +477,11 @@
 
 <div class="band"><h2>Loose ends</h2><span>small, none blocking</span></div>
 
+
+
 <details class="item">
   <summary>
     <span class="num">07</span>
-    <span class="title">Squad Browser still says "approximate placeholder"
-      <span class="sub">1990 and 1994 are fully researched now, so the label lies.</span>
-    </span>
-    <span class="tag">Polish</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><code>SquadBrowser.tsx</code> tags any year with fewer than 32 teams as an approximate
-    placeholder. 1990 and 1994 are genuine 24-nation fields, so the warning is wrong. The
-    same bug was already fixed in the settings modal.</p>
-    <p class="files">src/components/SquadBrowser.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">08</span>
-    <span class="title">Mode-aware "Start Run" label
-      <span class="sub">One generic label for two different things.</span>
-    </span>
-    <span class="tag">Polish</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The CTA on the complete panel reads "Start Run" in both modes. It could read "Start the
-    World Cup" or "Start the Cup Run" depending on which path you came in through - the mode
-    is already derived from the route.</p>
-    <p class="files">src/components/CompletePanel.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">09</span>
     <span class="title">Launcher ignores a half-finished build
       <span class="sub">It resumes tournaments and runs, but not an incomplete XI.</span>
     </span>
@@ -530,7 +498,7 @@
 
 <details class="item">
   <summary>
-    <span class="num">10</span>
+    <span class="num">08</span>
     <span class="title">Album-fill helper is stale
       <span class="sub">The dev snippet fills 68 stickers; there are 81.</span>
     </span>
@@ -549,7 +517,7 @@
 
 <details class="item">
   <summary>
-    <span class="num">11</span>
+    <span class="num">09</span>
     <span class="title">Unused Supabase services still running
       <span class="sub">Storage, functions, realtime and imgproxy are exposed and unused.</span>
     </span>
@@ -573,6 +541,15 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>Loose end: Squad Browser "approximate placeholder" label.</b> Closed
+      2026-08-17 after checking rather than fixing: the label no longer exists anywhere in
+      the app, and the roadmap entry had been carried forward stale. What <i>was</i> still
+      wrong were three leftover claims that 1998/2002 are placeholder data - the doc comment
+      on <code>Player.elo</code>, the README's dataset paragraph (user-facing), and a note in
+      the sticker-album spec. All corrected: all nine tournaments are researched, and for
+      1998/2002 the rating blends pre-tournament ability with tournament performance.</li>
+      <li><b>Loose end: mode-aware "Start Run" label.</b> Closed 2026-08-17 as a decision
+      rather than a change - "Start Run" stays as it is in both modes.</li>
       <li><b>Accounts.</b> Sign in with an emailed 6-digit code; album, career, settings and
       the in-progress run live on a self-hosted Supabase on the NAS, so they are the same on
       every device. Guest play never contacts the server. Requirements

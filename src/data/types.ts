@@ -51,8 +51,11 @@ export interface Player {
   /** One or more roles this player is eligible for. */
   positions: Position[];
   /** Holistic strength at the time of that tournament, on the ELO_MIN-ELO_MAX
-   *  scale (shown in the UI as "rating"). The 1998/2002 squads are partial
-   *  placeholders; 2006 onward are researched. */
+   *  scale (shown in the UI as "rating"). Not current ability, and not a
+   *  FIFA-game number. **All nine tournaments (1990-2022) are researched** - the
+   *  placeholder era is over, and 1990/1994/1998/2002 were filled in during 2026.
+   *  For 1998 and 2002 the rating blends pre-tournament ability with how the player
+   *  actually performed at that World Cup. */
   elo: number;
 }
 

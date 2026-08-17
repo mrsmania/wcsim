@@ -8,15 +8,17 @@ the World Cup.
 Pure client-side. No backend, no database. All player data lives in fixed
 TypeScript objects under `src/data/`.
 
-> The dataset mixes two tiers. **1998 / 2002** are hand-authored **placeholder**
-> squads (approximate numbers, positions and elo from memory, not verified, and
-> only a handful of nations). **2006 (Germany)** through **2022 (Qatar)** are
-> researched full datasets: all 32 nations each, with their official squads
-> (23-man from 2006-2018, 26-man in 2022; Iran registered 25 in 2022), shirt
-> numbers and positions verified against the tournament squad lists; elo ratings
-> are a holistic judgement of each player's strength at the time of that
-> tournament (60-99). A player appearing in several tournaments shares one
-> identity (so they can only be drafted once) - e.g. Luka Modrić spans 2006-2022.
+> **All nine tournaments from 1990 to 2022 are researched full datasets** - about
+> 6,270 player rows. 1990 and 1994 are 24-nation fields, 1998 onward are 32; squad
+> sizes are 22-man for 1990-1998, 23-man for 2002-2018 and 26-man for 2022 (Iran
+> registered 25), with shirt numbers and positions taken from the tournament squad
+> lists. Ratings are a holistic judgement of each player's strength **at the time of
+> that tournament** on a 60-99 scale - not current ability, and not a FIFA-game
+> number. For 1998 and 2002 the rating blends pre-tournament ability with how the
+> player actually performed there. Historical nations keep their period identity:
+> West Germany is recorded as Germany on `GER`, while the Soviet Union, Czechoslovakia
+> and Yugoslavia have their own codes. A player appearing in several tournaments shares
+> one identity, so they can only be drafted once - Luka Modrić spans 2006-2022.
 > Edit `src/data/squads.ts` to refine any of it.
 
 ## Tech stack
