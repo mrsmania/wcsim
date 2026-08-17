@@ -7,10 +7,30 @@ things ship (move items between sections, keep it honest). Detailed specs live i
 Raw, not-yet-scheduled ideas live in `docs/todo/TODO.html` (the inbox, open it in a
 browser); items graduate from there into "Next up" below once they have a shape.
 
-Last updated: 2026-07-09.
+Last updated: 2026-08-17.
 
 ## Done (recent, newest first)
 
+- **Accounts (shipped 2026-08-15).** Sign in with an emailed 6-digit code; album, career,
+  settings and the in-progress run live on a self-hosted Supabase on the NAS instead of in
+  the browser, so they are the same on every device. Guest play is untouched and never
+  contacts the server. Requirements `docs/cloud-sync-requirements.md`, design
+  `docs/cloud-sync-design.md`, server setup `docs/nas-setup.md`, and the gotcha list in
+  CLAUDE.md - every one of those gotchas was a real bug found by playing, three of them
+  only visible on a *second* run.
+- **Boost + perk rebalance (2026-08-15).** Pool 11 -> 19 boosts. A boost's worth is what it
+  moves the attack/defence averages, its budget is the sum of both, and `npm run checks`
+  now prints the figures and fails on an overspend. Chemistry Catalyst removed (a
+  build-controllable condition doing a legendary's job at common rarity), Marquee Signing
+  and Star Signing re-rarified, Deep Squad capped at +2, Scout Network limited to commons,
+  new Physio Table perk (re-roll an offer).
+- **Stickers are earned by winning the cup** (`FEATURES.stickersOnCupWinOnly`, 2026-08-15).
+  Any-run banking made the album a record of who you drafted rather than what you won. The
+  flag switches the rule *and* the copy that explains it. **Currently `false`** while it is
+  being play-tested.
+- **Sticker art pipeline (2026-08-14).** Originals live in `art/stickers-src/` (undeployed);
+  `python scripts/build-sticker-art.py` emits 400px WebP to `public/stickers/`. The deploy
+  went from 139 MB of images to 2.9 MB, and the album lazy-loads.
 - **UI/UX polish pass.**
   - *Cup Run hub:* collapses to a slim strip by default (pre-run too) so the "Play group
     stage" CTA stays visible; the whole header bar is now the collapse toggle (pointer +
@@ -56,11 +76,18 @@ Last updated: 2026-07-09.
 
 ## Next up (in order)
 
-1. **Career depth E - Challenges / Mandates.** The high-value retention feature (the
-   user is keen on this one). Renewable objectives checked from the finished `RunState`
-   (e.g. win at Ascension III, win with an avg-rating < 80 XI, clean-sheet the
-   knockouts). Awards Prestige + trophy-cabinet entries. Spec: `docs/career-depth-spec.md`
-   "Future ideas / E" (has a data model + example challenges).
+1. **Career depth E - Challenges / Mandates.** Still the highest-value gap: the career
+   layer has nothing to *aim* at, so Prestige accumulates and buys perks and that is the
+   whole loop. Renewable objectives checked from the finished `RunState` (win at Ascension
+   III, win with an avg-rating < 80 XI, clean-sheet the knockouts), awarding Prestige +
+   trophy-cabinet entries. Spec: `docs/career-depth-spec.md` "Future ideas / E" (data model
+   + example challenges). Now pairs well with accounts, since challenges persist per
+   account across devices.
+2. **Sticker discount in the budget build.** Collected players cost x% less in the transfer
+   market (`x` a config constant). One decision outstanding: Quick Run too, or Career Mode
+   only? Notes in `docs/todo/TODO.html` item 03.
+3. **More World Cups**, 1986 first as the template for going backwards. Research-heavy, no
+   design questions left. `docs/todo/TODO.html` item 04.
 
 ## Later / not started (spec'd as ideas)
 
@@ -81,7 +108,12 @@ Last updated: 2026-07-09.
   is misleading (same issue was fixed in the settings modal already).
 - **Album-fill helper is stale** - the localStorage snippet handed to the user early on
   filled 68 collectibles; the set is now **81** (58 legendary / 18 iconic / 5 monumental)
-  after rating tweaks. Regenerate on request (compute via `collectiblePlayers`).
+  after rating tweaks. Regenerate on request (compute via `collectiblePlayers`). Note it
+  only works for a *guest*: a signed-in album lives on the server.
+- **Server-side chores (owner, at home).** The unused Supabase services (storage,
+  functions, realtime, imgproxy) are still running and exposed; the security review's other
+  items are closed. Studio being reachable from the internet is a **deliberate choice**, not
+  an outstanding item. The container firewall rules are covered by a DSM boot task.
 
 ## Conventions reminder (for a new agent)
 

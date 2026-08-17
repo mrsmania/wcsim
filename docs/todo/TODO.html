@@ -246,8 +246,8 @@
   </div>
   <div class="meta">
     <strong>Status:</strong> idea inbox<br>
-    <strong>Updated:</strong> 2026-08-15<br>
-    <strong>Open:</strong> 3 items + hardening
+    <strong>Updated:</strong> 2026-08-17<br>
+    <strong>Open:</strong> 3 open, 2 shipped
   </div>
 </div>
 
@@ -260,9 +260,10 @@
   <summary>
     <span class="num">01</span>
     <span class="title">Rework the perks and boosts
-      <span class="sub">Rebalance the ones that are out of line, and add more.</span>
+      <span class="sub">Rebalance the ones that are out of line, and add more.
+      <b>Shipped 2026-08-15</b>: 11 boosts to 19, with a balance check in the harness.</span>
     </span>
-    <span class="tag">Balance</span>
+    <span class="tag">Done</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
@@ -427,6 +428,35 @@
     <p class="next"><strong>Next step:</strong> pick one tournament (1986) and do it end to
     end as the template for the rest.</p>
     <p class="files">src/data/squads.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">05</span>
+    <span class="title">Challenges / Mandates
+      <span class="sub">Something to aim at in Career Mode, instead of Prestige just piling up.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The career layer currently has no goals. You play, you earn Prestige, you buy perks,
+    and that is the whole loop. Challenges give a reason to attempt a specific kind of run.</p>
+    <ul>
+      <li>Renewable objectives checked against the finished run: win at Ascension III, win
+      with an XI averaging under 80, clean-sheet the knockouts, win with an all-one-nation
+      XI, and so on.</li>
+      <li>They pay in Prestige and in trophy-cabinet entries, which is also what would give
+      the cabinet something to hold.</li>
+      <li>Data model and example challenges already drafted in
+      <code>docs/career-depth-spec.md</code> under "Future ideas / E".</li>
+      <li>Pairs well with accounts now: progress against a challenge is per account, so it
+      follows you between devices.</li>
+    </ul>
+    <p class="next"><strong>Next step:</strong> pick the first handful of challenges and
+    decide whether they are permanent, rotating, or a mix.</p>
+    <p class="files">docs/career-depth-spec.md, src/domain/career.ts, src/domain/run.ts</p>
   </div>
 </details>
 
