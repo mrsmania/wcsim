@@ -253,27 +253,52 @@ match once no route carries the name, and rewriting 300 lines of Lua buys nothin
 A prepared copy of all three sits in this repo's `dkr/` folder (untracked), with the
 originals kept beside them as `*.bak`.
 
-**Apply:** `docker compose up -d --remove-orphans` (Container Manager: Project → Action →
-Build). `--remove-orphans` is the part that deletes the four containers; without it they
-keep running happily next to the trimmed project.
+**Copying the files up.** `scp` may fail with `subsystem request failed on channel 0`: DSM
+ships with the SFTP subsystem off and modern `scp` uses it by default. Add `-O` to fall back
+to the old protocol (`scp -O file user@nas:path/`), or stream the file instead with
+`ssh user@nas "cat path/file" > local`. Paste one `scp` line at a time in Git Bash; a
+multi-line paste can be eaten by bracketed paste, which skips commands without saying so.
+**Confirm every upload by hash** (`md5sum` on the NAS against `md5sum` locally) before
+applying, rather than trusting that all three transfers happened.
 
-**Verify** - the first two must still work, the next two must no longer be served by a
-storage or edge-runtime container:
+**Apply:** `docker compose up -d --remove-orphans`, then `docker compose restart api-gw`
+(Container Manager: Project → Action → Build). `--remove-orphans` is the part that deletes
+the four containers; without it they keep running happily next to the trimmed project. The
+restart matters: envoy reads its route config at startup, so an edited `lds.template.yaml`
+changes nothing until then.
+
+**Verify.** Both `/auth/v1/` and `/rest/v1/` sit behind an apikey gate in the gateway, so a
+bare `curl` answers 401 whether or not anything is wrong - send the anon key. And `/rest/v1/`
+*root* answers 403 to the anon key by design (that route wants the service-role key, so the
+schema is not published), which is why the check reads a table instead:
 
 ```
-curl -s -o /dev/null -w '%{http_code}\n' https://HOST/auth/v1/health
-curl -s -o /dev/null -w '%{http_code}\n' -H "apikey: ANON_KEY" https://HOST/rest/v1/
-curl -s -o /dev/null -w '%{http_code}\n' https://HOST/storage/v1/status
-curl -s -o /dev/null -w '%{http_code}\n' https://HOST/functions/v1/hello
 docker compose ps        # 6 services: db, auth, rest, api-gw, studio, meta
+
+curl -s -o /dev/null -w '%{http_code}\n' -H "apikey: ANON_KEY" \
+  https://HOST/auth/v1/health                                    # 200
+curl -s -w '\n%{http_code}\n' -H "apikey: ANON_KEY" \
+  'https://HOST/rest/v1/collectibles?select=player_id&limit=1'   # 200, body []
+curl -s -D - -o /dev/null https://HOST/functions/v1/hello | grep -i www-authenticate
+curl -s -D - -o /dev/null https://HOST/storage/v1/status  | grep -i www-authenticate
 ```
 
-The last two now fall through to the catch-all Studio route, so they answer 401 (basic
-auth) instead of 200 - the point is that there is nothing behind them any more. Then sign
-in on the deployed game and finish a run: album, career and run state all go through
-`/rest/v1/`, which is untouched.
+The empty `[]` is correct: `collectibles` is readable by signed-in users only, so an anon key
+sees no rows, and the 200 proves gateway → PostgREST → Postgres. For the last two the status
+code alone proves nothing (401 is also what the apikey gate returns) - the
+`www-authenticate: Basic` header is the evidence, because it means the request reached
+Studio's basic-auth wall through the catch-all route, there being no `/storage/v1/` or
+`/functions/v1/` route left to match. Then sign in on the deployed game and finish a run:
+album, career and run state all go through `/rest/v1/`, which is untouched.
 
-**Rollback** is the `.bak` files plus `docker compose up -d`.
+**Rollback** is the `.pre-trim` copies plus `docker compose up -d` and
+`docker compose restart api-gw`.
+
+**Applied 2026-08-18.** The four containers are gone, `docker compose ps` shows the six
+above, and every check listed here passes on the live stack. One surprise worth keeping:
+the NAS copy of `docker-compose.yml` had no `supavisor` block (dropped during setup, since
+it is the service that maps 5432 and 6543), so the prepared file had to be re-merged onto
+it. Comparing hashes before uploading is what caught that.
 
 ---
 

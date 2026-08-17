@@ -318,9 +318,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-17<br>
-    <strong>Open:</strong> 7 items<br>
-    <strong>Waiting on you:</strong> 07<br>
+    <strong>Updated:</strong> 2026-08-18<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -328,7 +327,7 @@
 <div class="lede">
   <p><b>The single list.</b> This replaces the old <code>docs/ROADMAP.md</code> and
   <code>docs/todo/TODO.html</code>, which held overlapping copies of the same items and
-  drifted apart. Everything open lives here now: three tiers below, and what already shipped
+  drifted apart. Everything open lives here now: two tiers below, and what already shipped
   is collapsed at the very bottom as decision history.</p>
   <p style="margin-top:8px"><b>Live flag worth knowing:</b>
   <code>FEATURES.stickersOnCupWinOnly</code> is currently <code>false</code>, so any
@@ -491,144 +490,22 @@
   </div>
 </details>
 
-<div class="band"><h2>Your move</h2><span>a manual step on the NAS, not code</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">07</span>
-    <span class="title">Apply the Supabase trim on the NAS
-      <span class="sub">The edits are prepared and checked; someone with LAN access has to install them.</span>
-    </span>
-    <span class="tag">Server</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The stack still runs <code>storage</code>, <code>imgproxy</code>, <code>realtime</code>
-    and the edge runtime, none of which the game uses, with <code>/storage/v1/</code> and
-    <code>/functions/v1/</code> reachable and the bundled example function executing without
-    a JWT. The trimmed files exist and were verified locally (compose resolves to exactly 7
-    services; all 15 remaining gateway routes point at a cluster that still exists). What is
-    left is installing them, which needs the NAS.</p>
-
-    <div class="callout">
-      <span class="ct">Do this from the laptop that has the repo</span>
-      <code>dkr/</code> is gitignored, so the edited files exist only in that working copy -
-      they are not on GitHub and not on any other machine. Needs the LAN or the VPN, and SSH
-      on the NAS. Nothing here touches <code>.env</code> or the database; only the gateway
-      restarts.
-    </div>
-
-    <ol>
-      <li><span class="step">Confirm the NAS copy is the one that was edited.</span>
-
-      <p><b>Why.</b> These config files exist twice: the copy on the NAS is the one that
-      actually runs, and the copy in <code>dkr/</code> is the staging copy you uploaded from
-      during setup. Only the staging copy was edited. So the question to answer before
-      overwriting anything is: <i>is the NAS copy still byte-identical to what the staging
-      copy looked like before the edits?</i> Yes means the new files differ from the NAS by
-      the intended deletions and nothing else. No means someone edited the NAS copy directly
-      at some point (ports, hostnames, a troubleshooting fix), and copying over it would throw
-      that away silently.</p>
-
-      <p>That is why the comparison uses the <code>.bak</code> files: they are the untouched
-      originals, the "before" picture. Comparing the <i>edited</i> files against the NAS would
-      only show the deletions and prove nothing. Three pairs, one per file:</p>
-
-      <ul>
-        <li><code>dkr/docker-compose.yml.bak</code> vs the NAS
-        <code>docker-compose.yml</code></li>
-        <li><code>dkr/volumes/api/envoy/cds.yaml.bak</code> vs the NAS
-        <code>volumes/api/envoy/cds.yaml</code></li>
-        <li><code>dkr/volumes/api/envoy/lds.template.yaml.bak</code> vs the NAS
-        <code>volumes/api/envoy/lds.template.yaml</code></li>
-      </ul>
-
-      <p><b>How.</b> <code>md5sum</code> prints a 32-character fingerprint of a file's
-      contents: same fingerprint means identical files, a different one means they differ
-      somewhere. Run it on the three <code>.bak</code> files in the repo (Git Bash; in
-      PowerShell it is <code>Get-FileHash -Algorithm MD5 &lt;file&gt;</code>, which prints the
-      same digest in upper case):</p>
-<pre>md5sum dkr/docker-compose.yml.bak
-md5sum dkr/volumes/api/envoy/cds.yaml.bak
-md5sum dkr/volumes/api/envoy/lds.template.yaml.bak</pre>
-      <p>then over SSH on the NAS, in the folder the Container Manager project points at (per
-      <code>docs/nas-setup.md</code>, something like
-      <code>/volume1/docker/wcsim-supabase</code>), and compare the three pairs by eye:</p>
-<pre>md5sum docker-compose.yml
-md5sum volumes/api/envoy/cds.yaml
-md5sum volumes/api/envoy/lds.template.yaml</pre>
-
-      <p><b>Or, easier and more useful:</b> copy the NAS files down and diff them, which
-      answers "are they the same?" and "what changed?" at once. No output means identical:</p>
-<pre>scp USER@NAS:PROJECT/docker-compose.yml /tmp/nas-compose.yml
-diff dkr/docker-compose.yml.bak /tmp/nas-compose.yml</pre>
-
-      <p><b>The verdict.</b> All three identical, carry on to step 2. Any of them differs,
-      <b>stop</b> and send that NAS file over, so the deletions can be re-applied on top of
-      your version instead of overwriting it. (If the fingerprints differ but
-      <code>diff</code> reports nothing, it is only Windows line endings and is harmless -
-      <code>diff --strip-trailing-cr</code> confirms it.)</p></li>
-
-      <li><span class="step">Back up on the NAS anyway.</span> Cheap, and it is the rollback:
-<pre>cp docker-compose.yml docker-compose.yml.pre-trim
-cp volumes/api/envoy/cds.yaml volumes/api/envoy/cds.yaml.pre-trim
-cp volumes/api/envoy/lds.template.yaml volumes/api/envoy/lds.template.yaml.pre-trim</pre></li>
-
-      <li><span class="step">Copy the three edited files up</span> (File Station, a mapped
-      drive, or <code>scp</code>). The plain names, <b>not</b> the <code>.bak</code> ones:
-<pre>scp dkr/docker-compose.yml USER@NAS:PROJECT/
-cd dkr/volumes/api/envoy
-scp cds.yaml lds.template.yaml USER@NAS:PROJECT/volumes/api/envoy/</pre></li>
-
-      <li><span class="step">Apply it</span>, on the NAS in the project folder:
-<pre>sudo docker compose up -d --remove-orphans</pre>
-      <code>--remove-orphans</code> is the part that actually deletes the four containers the
-      compose file no longer mentions. Container Manager's <i>Project &rarr; Action &rarr;
-      Build</i> works too but does not pass that flag, so if you go through the GUI, delete
-      these four by hand afterwards in the Container tab: <code>supabase-storage</code>,
-      <code>supabase-imgproxy</code>, <code>realtime-dev.supabase-realtime</code>,
-      <code>supabase-edge-functions</code>.</li>
-
-      <li><span class="step">Verify.</span> The first two must still answer 200, the last two
-      must no longer be served by a storage or edge-runtime container:
-<pre>sudo docker compose ps
-  # 6 services: db, auth, rest, api-gw, studio, meta
-
-curl -s -o /dev/null -w '%{http_code}
-' https://HOST/auth/v1/health
-curl -s -o /dev/null -w '%{http_code}
-' -H "apikey: ANON_KEY" https://HOST/rest/v1/
-curl -s -o /dev/null -w '%{http_code}
-' https://HOST/storage/v1/status
-curl -s -o /dev/null -w '%{http_code}
-' https://HOST/functions/v1/hello</pre>
-      The last two now answer <b>401</b>, because those paths fall through to the catch-all
-      Studio route and Studio sits behind basic auth. That is the expected result: the point
-      is that there is nothing behind them any more. Then in the browser, sign in on the
-      deployed game, open the album and finish a run - album, career and run state all go
-      through <code>/rest/v1/</code>, which is untouched.</li>
-
-      <li><span class="step">If anything is off, roll back</span> and nothing is lost:
-<pre>cp docker-compose.yml.pre-trim docker-compose.yml
-cp volumes/api/envoy/cds.yaml.pre-trim volumes/api/envoy/cds.yaml
-cp volumes/api/envoy/lds.template.yaml.pre-trim volumes/api/envoy/lds.template.yaml
-sudo docker compose up -d
-sudo docker compose restart api-gw   # envoy re-reads its config files</pre></li>
-    </ol>
-
-    <p class="next"><strong>Meanwhile:</strong> if you want the exposure gone before you are
-    back at the laptop, stop those four containers in Container Manager - a minute's work
-    from anywhere, including the phone. A project rebuild brings them back, so it is a
-    stopgap, not the fix.</p>
-    <p class="files">dkr/docker-compose.yml, dkr/volumes/api/envoy/{cds.yaml,lds.template.yaml}, docs/nas-setup.md</p>
-  </div>
-</details>
-
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>The Supabase trim, installed.</b> Done 2026-08-18 on the live stack:
+      <code>storage</code>, <code>imgproxy</code>, <code>realtime</code> and the edge runtime
+      removed, gateway restarted, six services left. Verified by hash before applying and by
+      four checks after: auth 200, a PostgREST table read 200, and
+      <code>/functions/v1/hello</code> plus <code>/storage/v1/status</code> now answering with
+      a <code>www-authenticate: Basic</code> challenge from Studio's catch-all instead of
+      running the bundled example function. The pre-upload hash check earned its place: the
+      NAS <code>docker-compose.yml</code> turned out to have no <code>supavisor</code> block
+      (dropped during setup, as it maps 5432 and 6543), so uploading the prepared file
+      unchanged would have re-added the very service behind the old port conflict. It was
+      re-merged onto the NAS version instead, leaving a diff that only ever deletes.</li>
       <li><b>Loose end: launcher ignored a half-finished build.</b> Closed 2026-08-17. The
       launcher now offers "Finish your XI - 4-3-3 - 7 of 11 picked" (or "Your XI is ready"
       for a complete XI that never kicked off), and only when an in-progress World Cup or
