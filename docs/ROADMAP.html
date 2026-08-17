@@ -520,20 +520,54 @@
 
     <ol>
       <li><span class="step">Confirm the NAS copy is the one that was edited.</span>
-      The <code>.bak</code> files are the pre-edit originals, so they are what the NAS should
-      match. In the repo:
+
+      <p><b>Why.</b> These config files exist twice: the copy on the NAS is the one that
+      actually runs, and the copy in <code>dkr/</code> is the staging copy you uploaded from
+      during setup. Only the staging copy was edited. So the question to answer before
+      overwriting anything is: <i>is the NAS copy still byte-identical to what the staging
+      copy looked like before the edits?</i> Yes means the new files differ from the NAS by
+      the intended deletions and nothing else. No means someone edited the NAS copy directly
+      at some point (ports, hostnames, a troubleshooting fix), and copying over it would throw
+      that away silently.</p>
+
+      <p>That is why the comparison uses the <code>.bak</code> files: they are the untouched
+      originals, the "before" picture. Comparing the <i>edited</i> files against the NAS would
+      only show the deletions and prove nothing. Three pairs, one per file:</p>
+
+      <ul>
+        <li><code>dkr/docker-compose.yml.bak</code> vs the NAS
+        <code>docker-compose.yml</code></li>
+        <li><code>dkr/volumes/api/envoy/cds.yaml.bak</code> vs the NAS
+        <code>volumes/api/envoy/cds.yaml</code></li>
+        <li><code>dkr/volumes/api/envoy/lds.template.yaml.bak</code> vs the NAS
+        <code>volumes/api/envoy/lds.template.yaml</code></li>
+      </ul>
+
+      <p><b>How.</b> <code>md5sum</code> prints a 32-character fingerprint of a file's
+      contents: same fingerprint means identical files, a different one means they differ
+      somewhere. Run it on the three <code>.bak</code> files in the repo (Git Bash; in
+      PowerShell it is <code>Get-FileHash -Algorithm MD5 &lt;file&gt;</code>, which prints the
+      same digest in upper case):</p>
 <pre>md5sum dkr/docker-compose.yml.bak
 md5sum dkr/volumes/api/envoy/cds.yaml.bak
 md5sum dkr/volumes/api/envoy/lds.template.yaml.bak</pre>
-      and on the NAS, in the folder the Container Manager project points at (per
+      <p>then over SSH on the NAS, in the folder the Container Manager project points at (per
       <code>docs/nas-setup.md</code>, something like
-      <code>/volume1/docker/wcsim-supabase</code>):
+      <code>/volume1/docker/wcsim-supabase</code>), and compare the three pairs by eye:</p>
 <pre>md5sum docker-compose.yml
 md5sum volumes/api/envoy/cds.yaml
 md5sum volumes/api/envoy/lds.template.yaml</pre>
-      All three match, carry on. Any of them differs, <b>stop</b>: the NAS copy drifted
-      during setup, so send that file over and have the deletions re-applied on top of it
-      rather than overwriting whatever was changed.</li>
+
+      <p><b>Or, easier and more useful:</b> copy the NAS files down and diff them, which
+      answers "are they the same?" and "what changed?" at once. No output means identical:</p>
+<pre>scp USER@NAS:PROJECT/docker-compose.yml /tmp/nas-compose.yml
+diff dkr/docker-compose.yml.bak /tmp/nas-compose.yml</pre>
+
+      <p><b>The verdict.</b> All three identical, carry on to step 2. Any of them differs,
+      <b>stop</b> and send that NAS file over, so the deletions can be re-applied on top of
+      your version instead of overwriting it. (If the fingerprints differ but
+      <code>diff</code> reports nothing, it is only Windows line endings and is harmless -
+      <code>diff --strip-trailing-cr</code> confirms it.)</p></li>
 
       <li><span class="step">Back up on the NAS anyway.</span> Cheap, and it is the rollback:
 <pre>cp docker-compose.yml docker-compose.yml.pre-trim
