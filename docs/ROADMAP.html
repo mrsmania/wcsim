@@ -592,7 +592,7 @@ scp cds.yaml lds.template.yaml USER@NAS:PROJECT/volumes/api/envoy/</pre></li>
       <li><span class="step">Verify.</span> The first two must still answer 200, the last two
       must no longer be served by a storage or edge-runtime container:
 <pre>sudo docker compose ps
-  # 7 services: db, auth, rest, api-gw, studio, meta, supavisor
+  # 6 services: db, auth, rest, api-gw, studio, meta
 
 curl -s -o /dev/null -w '%{http_code}
 ' https://HOST/auth/v1/health
@@ -648,7 +648,7 @@ sudo docker compose restart api-gw   # envoy re-reads its config files</pre></li
       runtime are out of the compose file, and - the half that is easy to miss - their
       clusters and six routes are out of the gateway's envoy config, so
       <code>/storage/v1/</code> and <code>/functions/v1/</code> stop existing instead of
-      merely 503-ing. Checked locally: compose resolves to exactly 7 services, and all 15
+      merely 503-ing. Checked locally: compose resolves to exactly the intended services, and all 15
       remaining routes point at a cluster that still exists. The apply / verify / rollback
       recipe is in <code>docs/nas-setup.md</code> ("Trimming a stack that is already
       running"), including the one-minute mitigation of just stopping the four

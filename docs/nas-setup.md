@@ -126,7 +126,8 @@ mistyped redirect URI.
    - `realtime` (nothing subscribes to live changes)
    - `storage` and `imgproxy` (sticker art ships in the repo)
    - `functions` / edge runtime (all server logic is Postgres functions)
-   - `supavisor` / pooler is optional at this scale; leaving it in is also fine
+   - `supavisor` / pooler is optional at this scale; on this NAS it was dropped during
+     setup (it maps 5432 and 6543, which is where the port conflict came from)
    Keep: `db`, `auth`, `rest`, the gateway, `studio`, `meta`. Analytics and vector are not
    in the default compose. The gateway's own config lists those services too, so trim it
    in the same pass - see "Trimming a stack that is already running" below, which is the
@@ -264,7 +265,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://HOST/auth/v1/health
 curl -s -o /dev/null -w '%{http_code}\n' -H "apikey: ANON_KEY" https://HOST/rest/v1/
 curl -s -o /dev/null -w '%{http_code}\n' https://HOST/storage/v1/status
 curl -s -o /dev/null -w '%{http_code}\n' https://HOST/functions/v1/hello
-docker compose ps        # 7 services: db, auth, rest, api-gw, studio, meta, supavisor
+docker compose ps        # 6 services: db, auth, rest, api-gw, studio, meta
 ```
 
 The last two now fall through to the catch-all Studio route, so they answer 401 (basic
