@@ -3,8 +3,11 @@
 Project context for AI assistants and developers. Read this first when working in
 this repo. (User-facing setup/hosting notes live in `README.md`.)
 
-**Where to pick up work:** `docs/ROADMAP.md` is the living pipeline (what shipped, what
-is next, loose ends). Check it first if you are continuing the project.
+**Where to pick up work:** `docs/ROADMAP.html` is the single list of open work (next up,
+later, loose ends, with what shipped collapsed at the bottom as decision history). Open it
+in a browser and check it first if you are continuing the project. It replaced the old
+`docs/ROADMAP.md` + `docs/todo/TODO.html` pair, which held overlapping copies of the same
+items and drifted apart.
 
 ## What this is
 
