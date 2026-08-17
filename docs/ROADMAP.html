@@ -304,7 +304,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-17<br>
-    <strong>Open:</strong> 9 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -312,7 +312,7 @@
 <div class="lede">
   <p><b>The single list.</b> This replaces the old <code>docs/ROADMAP.md</code> and
   <code>docs/todo/TODO.html</code>, which held overlapping copies of the same items and
-  drifted apart. Everything open lives here now: three tiers below, and what already shipped
+  drifted apart. Everything open lives here now: two tiers below, and what already shipped
   is collapsed at the very bottom as decision history.</p>
   <p style="margin-top:8px"><b>Live flag worth knowing:</b>
   <code>FEATURES.stickersOnCupWinOnly</code> is currently <code>false</code>, so any
@@ -475,72 +475,35 @@
   </div>
 </details>
 
-<div class="band"><h2>Loose ends</h2><span>small, none blocking</span></div>
-
-
-
-<details class="item">
-  <summary>
-    <span class="num">07</span>
-    <span class="title">Launcher ignores a half-finished build
-      <span class="sub">It resumes tournaments and runs, but not an incomplete XI.</span>
-    </span>
-    <span class="tag">Polish</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The home launcher surfaces an in-progress World Cup and an in-progress Cup Run, but
-    not a build in progress (formation chosen, XI not complete). Coming back to the site after
-    drafting half a team gives no hint that it is still there.</p>
-    <p class="files">src/components/ModeSelect.tsx, src/App.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">08</span>
-    <span class="title">Album-fill helper is stale
-      <span class="sub">The dev snippet fills 68 stickers; there are 81.</span>
-    </span>
-    <span class="tag">Tooling</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The localStorage snippet handed over early on fills 68 collectibles. The set is now 81
-    (58 legendary / 18 iconic / 5 monumental) after rating changes. Regenerate from
-    <code>collectiblePlayers</code> when needed.</p>
-    <p class="next"><strong>Note:</strong> it only works for a <b>guest</b>. A signed-in
-    album lives on the server, so filling localStorage does nothing.</p>
-    <p class="files">src/domain/album.ts</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">09</span>
-    <span class="title">Unused Supabase services still running
-      <span class="sub">Storage, functions, realtime and imgproxy are exposed and unused.</span>
-    </span>
-    <span class="tag">Server</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The stack runs the full default set. Nothing subscribes to realtime, sticker art ships
-    in the repo rather than through storage, and all server logic is Postgres functions - but
-    <code>/storage/v1</code> and <code>/functions/v1</code> are reachable, and the bundled
-    example edge function runs without a JWT.</p>
-    <p class="next"><strong>Next step:</strong> delete those service blocks from the compose
-    file and any <code>depends_on</code> that references them, then restart the project.
-    Design §2 lists exactly what to keep.</p>
-    <p class="files">docs/nas-setup.md, docs/cloud-sync-design.md</p>
-  </div>
-</details>
-
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>Loose end: launcher ignored a half-finished build.</b> Closed 2026-08-17. The
+      launcher now offers "Finish your XI - 4-3-3 - 7 of 11 picked" (or "Your XI is ready"
+      for a complete XI that never kicked off), and only when an in-progress World Cup or
+      Cup Run is not already covering it. The interesting part was the route: which build
+      page an XI belongs to was derived from the URL and therefore unknown once you left it,
+      so the three build entry points now stamp <code>buildMode</code> into the game state -
+      presentation only, since the build itself is shared by both modes.</li>
+      <li><b>Loose end: album-fill helper was stale.</b> Closed 2026-08-17 by deleting the
+      idea of a hand-copied snippet: <code>npm run album:fill</code>
+      (<code>scripts/album-fill.ts</code>) prints one generated from the dataset, so it
+      cannot drift again (it was 13 ids short). <code>-- --leave=N</code> holds back the
+      rarest cards, <code>--dupes=N</code> seeds a duplicate pool for testing trades, and
+      <code>--clear</code> wipes it. Guest only, and the snippet says so.</li>
+      <li><b>Loose end: unused Supabase services.</b> Closed 2026-08-17 as a prepared,
+      verified change rather than a live one, since the NAS is not reachable from here:
+      <code>storage</code>, <code>imgproxy</code>, <code>realtime</code> and the edge
+      runtime are out of the compose file, and - the half that is easy to miss - their
+      clusters and six routes are out of the gateway's envoy config, so
+      <code>/storage/v1/</code> and <code>/functions/v1/</code> stop existing instead of
+      merely 503-ing. Checked locally: compose resolves to exactly 7 services, and all 15
+      remaining routes point at a cluster that still exists. The apply / verify / rollback
+      recipe is in <code>docs/nas-setup.md</code> ("Trimming a stack that is already
+      running"), including the one-minute mitigation of just stopping the four
+      containers.</li>
       <li><b>Loose end: Squad Browser "approximate placeholder" label.</b> Closed
       2026-08-17 after checking rather than fixing: the label no longer exists anywhere in
       the app, and the roadmap entry had been carried forward stale. What <i>was</i> still

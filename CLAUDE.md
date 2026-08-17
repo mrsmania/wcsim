@@ -71,6 +71,8 @@ npm run preview    # serve the production build
 npm run checks     # run domain characterization checks (scripts/checks.ts)
 npm run gen:collectibles   # regenerate supabase/seed/collectibles.sql from the dataset
 npm run push:collectibles  # send that seed to the account server (needs dkr/.env, LAN/VPN)
+npm run album:fill         # print a console snippet that fills the album (guest only;
+                           #   -- --leave=N / --dupes=N / --clear)
 python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/stickers/*.webp
 ```
 
@@ -149,8 +151,15 @@ launcher (`ModeSelect`) with two cards: **Quick Run** (-> `/quick-run`) and **Ca
 a budget - both build methods are available in either mode); the chosen path is derived from
 the route (`mode: 'quick' | 'career'`) and only decides what the single `CompletePanel`
 "Start Run" CTA does: quick -> `handleStartGroup` -> `/group`; career -> `/cup-run`. The
-launcher surfaces resume actions for an in-progress World Cup (`worldCupRoute`) or Cup Run
-(`loadRun()`), and shows the career headline (level/Prestige) on the Career card. With
+launcher surfaces resume actions for an in-progress World Cup (`worldCupRoute`), an
+in-progress Cup Run (`resumeCupRun`) and a **half-finished build** (`resumeBuild` ->
+`buildResume`: "Finish your XI - 4-3-3 - 7 of 11 picked", or "Your XI is ready" for a
+complete XI that never kicked off; suppressed when a tournament or Cup Run already covers
+it). That last one needs to know which page to go back to, which the route alone cannot
+say once you have left it, so `START_DRAFT` / `START_BUDGET` / `AUTOFILL` carry the mode
+(`modeOfPath`) and the reducer stores it as `buildMode` - presentation only, since the
+build state itself is shared by both routes. It also shows the career headline
+(level/Prestige) on the Career card. With
 `careerMode` off there is **no launcher**: `/` is the build page directly (a single "Start
 Run" -> World Cup), i.e. the plain game unchanged. `handleReset` returns to the build route
 that matches where it was triggered (Cup Run -> `/career-mode`, World Cup -> `/quick-run`).
@@ -442,7 +451,10 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   (GK/DEF). +6 to one attacker is +1 attack, not +6. Its budget is the SUM of both
   movements, so Golden Generation (+2/+2) costs 4 and a common giving +2 to one line
   costs 2, half of it. Bands are **common 2.0, rare 3.2, legendary 4.5**, and
-  **`npm run checks` prints every boon's figure and fails on an overspend**. Boons that
+  **`npm run checks` prints every boon's figure and fails on an overspend** (it averages
+  over 12 budget-built sample XIs x 20 applications each; with a single sample XI the
+  figures swung by more than a point and the assertion failed intermittently, so do not
+  cut the sample count). Boons that
   give points back (Glass Cannon, Catenaccio, Counter Attack) or hang on the draw
   (Familiar Foes, Underdog Spirit, Poach) are exempt and marked as such.
   **A condition the player controls at build time is not allowed:** the old Chemistry

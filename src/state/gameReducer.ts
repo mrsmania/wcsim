@@ -50,15 +50,28 @@ export interface GameState {
   stickersApplied: boolean;
   /** Remaining collectible swaps this run (sticker album feature). */
   swapsLeft: number;
+  /** Which launcher path this XI is being built for, so the home screen can offer to
+   *  resume an unfinished build on the page it was started from. The build state itself
+   *  is shared by both routes (only the finishing CTA differs), so this is presentation,
+   *  not a rule. Absent on saves from before it existed. */
+  buildMode?: 'quick' | 'career';
 }
 
 export type Action =
   | { type: 'SET_FORMATION'; name: FormationName }
   | { type: 'SET_STYLE'; style: Style }
-  | { type: 'START_DRAFT'; formation: Formation }
-  | { type: 'START_BUDGET'; formation: Formation }
+  // `mode` stamps which launcher path the build belongs to; omitted means keep whatever
+  // it already was (the market's "Clear" re-enters the same build).
+  | { type: 'START_DRAFT'; formation: Formation; mode?: 'quick' | 'career' }
+  | { type: 'START_BUDGET'; formation: Formation; mode?: 'quick' | 'career' }
   | { type: 'BUY_PLAYER'; slotId: string; player: Player }
-  | { type: 'AUTOFILL'; formation: Formation; filled: Filled; usedPersonIds: string[] }
+  | {
+      type: 'AUTOFILL';
+      formation: Formation;
+      filled: Filled;
+      usedPersonIds: string[];
+      mode?: 'quick' | 'career';
+    }
   | { type: 'ROLL_START'; isReroll: boolean }
   | { type: 'ROLL_SETTLE'; squad: Squad }
   | { type: 'SELECT_PLAYER'; playerId: string }
@@ -108,7 +121,14 @@ export function gameReducer(state: GameState, action: Action): GameState {
       return state.phase === 'setup' ? { ...state, style: action.style } : state;
 
     case 'START_DRAFT':
-      return { ...state, phase: 'draft', build: 'roll', formation: action.formation, filled: {} };
+      return {
+        ...state,
+        phase: 'draft',
+        build: 'roll',
+        formation: action.formation,
+        filled: {},
+        buildMode: action.mode ?? state.buildMode,
+      };
 
     case 'START_BUDGET':
       // Enter the budget build: a draft with no rolling (the "draw next squad"
@@ -118,6 +138,7 @@ export function gameReducer(state: GameState, action: Action): GameState {
         phase: 'draft',
         build: 'budget',
         formation: action.formation,
+        buildMode: action.mode ?? state.buildMode,
         filled: {},
         usedPersonIds: [],
         currentSquad: null,
@@ -149,6 +170,7 @@ export function gameReducer(state: GameState, action: Action): GameState {
         ...state,
         phase: 'complete',
         formation: action.formation,
+        buildMode: action.mode ?? state.buildMode,
         filled: action.filled,
         usedPersonIds: action.usedPersonIds,
         currentSquad: null,

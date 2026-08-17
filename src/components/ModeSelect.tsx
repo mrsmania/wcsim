@@ -24,6 +24,9 @@ interface Props {
     /** A Cup Run in progress -> offer to resume it, with a short round summary. */
     cupRunInProgress: boolean;
     cupRunSummary?: string;
+    /** An XI left mid-build -> offer to go back and finish it (App decides when this
+     *  applies and which build route it belongs to). Null when there is none. */
+    buildResume: { to: string; label: string; sub: string } | null;
     /** The active squad pool, for the rarest-stickers showcase. */
     allPlayers: Player[];
 }
@@ -106,6 +109,7 @@ export default function ModeSelect({
     worldCupRoute,
     cupRunInProgress,
     cupRunSummary,
+    buildResume,
     allPlayers,
 }: Props) {
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
@@ -164,8 +168,15 @@ export default function ModeSelect({
                         boosts, Prestige and unlocks that carry between runs.
                     </p>
 
-                    {(cupRunInProgress || worldCupRoute) && (
+                    {(cupRunInProgress || worldCupRoute || buildResume) && (
                         <div className="mt-5 flex flex-wrap gap-2.5">
+                            {buildResume && (
+                                <ResumeButton
+                                    to={buildResume.to}
+                                    label={buildResume.label}
+                                    sub={buildResume.sub}
+                                />
+                            )}
                             {cupRunInProgress && (
                                 <ResumeButton
                                     to="/cup-run"

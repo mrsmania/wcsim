@@ -128,7 +128,9 @@ mistyped redirect URI.
    - `functions` / edge runtime (all server logic is Postgres functions)
    - `supavisor` / pooler is optional at this scale; leaving it in is also fine
    Keep: `db`, `auth`, `rest`, the gateway, `studio`, `meta`. Analytics and vector are not
-   in the default compose.
+   in the default compose. The gateway's own config lists those services too, so trim it
+   in the same pass - see "Trimming a stack that is already running" below, which is the
+   full recipe either way.
 3. **Create `.env` from `.env.example`** and set:
 
    | Group | What |
@@ -209,6 +211,68 @@ by a device that has never seen your network, the CORS allowlist, and the OTP ma
 
 Check the spam folder for that first code. A plain gmail.com sender lands there more often
 than not (D5, accepted).
+
+---
+
+## Trimming a stack that is already running
+
+The setup above says to trim before starting; the stack that actually went up in August
+2026 was the full default set, so `storage`, `imgproxy`, `realtime` and the edge runtime
+have been running (and reachable at `/storage/v1/` and `/functions/v1/`, the bundled
+example function included) with nothing using them. The game never calls any of the three:
+`supabase-js` only opens a realtime socket or a storage client when the code asks for one,
+and nothing does.
+
+**The one-minute mitigation, if you want the exposure gone before the tidy-up:** Container
+Manager → Container, stop `supabase-storage`, `supabase-imgproxy`,
+`realtime-dev.supabase-realtime` and `supabase-edge-functions`. Play a run to confirm
+nothing missed them. Reversible in a click, but a project rebuild brings them back, so
+follow it with the edits.
+
+**The durable version.** Three files in the project folder, and the gateway's config is the
+half that is easy to forget:
+
+1. `docker-compose.yml` - delete the four service blocks and the now-unused `deno-cache:`
+   entry under `volumes:`. Nothing else has to change: `storage`'s `depends_on` goes with
+   its own block, and Studio's read-only `./volumes/functions` mount is inert once no
+   runtime executes them.
+2. `volumes/api/envoy/cds.yaml` - delete the `realtime`, `storage` and `functions`
+   clusters.
+3. `volumes/api/envoy/lds.template.yaml` - delete the six routes pointing at them:
+   `functions-v1-all`, the unnamed `/storage/v1/` route,
+   `realtime-v1-api-openapi-blocked`, `realtime-v1-api-tenants-blocked`,
+   `realtime-v1-api-protected`, `realtime-v1-ws-protected`.
+
+Routes and clusters go together. Both are loaded dynamically (xDS from those two files),
+so a route left pointing at a deleted cluster answers 503 rather than stopping envoy from
+starting - it will not lock you out, but do not leave it that way. The embedded Lua filters
+keep naming `functions-v1-all` and `realtime-v1-ws-protected`; those branches simply never
+match once no route carries the name, and rewriting 300 lines of Lua buys nothing.
+
+A prepared copy of all three sits in this repo's `dkr/` folder (untracked), with the
+originals kept beside them as `*.bak`.
+
+**Apply:** `docker compose up -d --remove-orphans` (Container Manager: Project → Action →
+Build). `--remove-orphans` is the part that deletes the four containers; without it they
+keep running happily next to the trimmed project.
+
+**Verify** - the first two must still work, the next two must no longer be served by a
+storage or edge-runtime container:
+
+```
+curl -s -o /dev/null -w '%{http_code}\n' https://HOST/auth/v1/health
+curl -s -o /dev/null -w '%{http_code}\n' -H "apikey: ANON_KEY" https://HOST/rest/v1/
+curl -s -o /dev/null -w '%{http_code}\n' https://HOST/storage/v1/status
+curl -s -o /dev/null -w '%{http_code}\n' https://HOST/functions/v1/hello
+docker compose ps        # 7 services: db, auth, rest, api-gw, studio, meta, supavisor
+```
+
+The last two now fall through to the catch-all Studio route, so they answer 401 (basic
+auth) instead of 200 - the point is that there is nothing behind them any more. Then sign
+in on the deployed game and finish a run: album, career and run state all go through
+`/rest/v1/`, which is untouched.
+
+**Rollback** is the `.bak` files plus `docker compose up -d`.
 
 ---
 

@@ -16,6 +16,7 @@ import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
     canPlace,
+    filledCount,
     isComplete,
     hasAnotherCup,
     hasAnotherTeam,
@@ -71,6 +72,11 @@ const isStackedLayout = () =>
     typeof window !== 'undefined' && !window.matchMedia('(min-width: 1080px)').matches;
 
 type HomeView = 'setup' | 'draft' | 'complete';
+
+/** Which launcher path a build belongs to, derived from the route. With careerMode off
+ *  there is only one path, so everything is a quick run. */
+const modeOfPath = (path: string): 'quick' | 'career' =>
+    FEATURES.careerMode && path === '/career-mode' ? 'career' : 'quick';
 
 /** Section eyebrow/title for the home screen, by sub-view. The home sub-view is
  *  derived from the drafted data (not `phase`), so navigating Back to home
@@ -190,6 +196,7 @@ export default function App({
         speed,
         auto,
         swapsLeft,
+        buildMode,
     } = state;
 
     // Persist the whole game so the clean-path routes survive a refresh.
@@ -302,8 +309,12 @@ export default function App({
         if (FEATURES.careerMode) void store.saveRun(null);
         // Just enter the draft; the draw-next-squad effect rolls the first squad
         // from committed state (an open slot with no squad in hand).
-        dispatch({ type: 'START_DRAFT', formation: previewFormation });
-    }, [previewFormation]);
+        dispatch({
+            type: 'START_DRAFT',
+            formation: previewFormation,
+            mode: modeOfPath(location.pathname),
+        });
+    }, [previewFormation, location.pathname]);
 
     // Testing shortcut: auto-pick a full valid XI (within a strength band) and
     // jump straight to "complete".
@@ -316,9 +327,15 @@ export default function App({
                 poolSquads,
                 STRENGTH_BANDS[tier],
             );
-            dispatch({ type: 'AUTOFILL', formation: previewFormation, filled, usedPersonIds });
+            dispatch({
+                type: 'AUTOFILL',
+                formation: previewFormation,
+                filled,
+                usedPersonIds,
+                mode: modeOfPath(location.pathname),
+            });
         },
-        [previewFormation, poolSquads],
+        [previewFormation, poolSquads, location.pathname],
     );
 
     // Budget build: enter it in place (no route change) - the left column swaps to
@@ -328,8 +345,12 @@ export default function App({
         if (FEATURES.careerMode) void store.saveRun(null);
         setHeldId(null);
         setBudgetTargetId(null);
-        dispatch({ type: 'START_BUDGET', formation: previewFormation });
-    }, [previewFormation]);
+        dispatch({
+            type: 'START_BUDGET',
+            formation: previewFormation,
+            mode: modeOfPath(location.pathname),
+        });
+    }, [previewFormation, location.pathname]);
 
     // Hold / release a market player (its eligible slots then pulse on the pitch).
     const handleBudgetHold = useCallback((player: Player) => {
@@ -556,8 +577,7 @@ export default function App({
         (FEATURES.careerMode && path === '/career-mode') ||
         (!FEATURES.careerMode && path === '/');
     // The build's chosen path (decides the single "Start Run" destination + copy).
-    const mode: 'quick' | 'career' =
-        FEATURES.careerMode && path === '/career-mode' ? 'career' : 'quick';
+    const mode: 'quick' | 'career' = modeOfPath(path);
     // A World Cup counts as "in progress" only until it finishes, so a decided
     // tournament never hijacks a fresh mode pick. Its route is where entering Quick
     // Run (or the resume action) returns you.
@@ -596,6 +616,27 @@ export default function App({
         const opp = r.nextOpponent ? ` · vs ${r.nextOpponent.name} ${r.nextOpponent.year}` : '';
         return { summary: round + opp };
     }, [isLauncher]);
+
+    // Launcher-only read: an XI left mid-build, so coming back to the site is not a
+    // dead end. Only when there is nothing further along to resume (an in-progress
+    // World Cup or Cup Run already covers those, and both imply a finished XI), and
+    // only before a tournament has been entered, so a decided run never reads as
+    // "ready to play". It links back to the mode the build was started from; saves
+    // from before `buildMode` existed fall back to Quick Run.
+    const resumeBuild = useMemo(() => {
+        if (!isLauncher || !formation || group || worldCupRoute || resumeCupRun) return null;
+        const picked = filledCount(formation, filled);
+        if (picked === 0) return null;
+        const to = buildMode === 'career' ? '/career-mode' : '/quick-run';
+        const where = buildMode === 'career' ? 'Career Mode' : 'Quick Run';
+        return picked === formation.slots.length
+            ? { to, label: 'Your XI is ready', sub: `${formation.name} · ${where}` }
+            : {
+                  to,
+                  label: 'Finish your XI',
+                  sub: `${formation.name} · ${picked} of ${formation.slots.length} picked`,
+              };
+    }, [isLauncher, formation, filled, buildMode, group, worldCupRoute, resumeCupRun]);
 
     // Footer navigation, shown on every page: Home (the launcher) plus the app's
     // secondary areas, each gated by its flag. Modes are chosen on the launcher, and
@@ -734,6 +775,7 @@ export default function App({
                             worldCupRoute={worldCupRoute}
                             cupRunInProgress={!!resumeCupRun}
                             cupRunSummary={resumeCupRun?.summary}
+                            buildResume={resumeBuild}
                             allPlayers={poolPlayers}
                         />
                     ) : isBuild ? (

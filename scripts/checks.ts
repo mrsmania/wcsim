@@ -318,49 +318,65 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     'poach', // depends entirely on the opponent
   ]);
 
-  // Measure against what people actually field: a budget-built XI (~83), not a national
+  // Measure against what people actually field: a budget-built XI (~81), not a national
   // team's best eleven. That distinction matters - against a squad full of 97s the
   // "+N to your best player" boons hit the rating ceiling and read as worthless, which
   // says more about the sample than the boon.
-  const sampleXi = (() => {
-    // Same construction the budget checks above use: a real formation from the table.
-    const f = Object.values(FORMATIONS_DATA.byKey)[0];
-    const { filled } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
-    return Object.values(filled).filter((p): p is Player => !!p);
-  })();
-  const sample = sampleXi.length === 11 ? sampleXi : bestEleven(SQUADS[0].players);
+  //
+  // Both the sample XI (auto-fill picks randomly inside the budget) and the roster boons
+  // are random, so ONE sample XI is not enough: the figures moved by more than a point
+  // between runs and the assertion failed intermittently, which is worse than no
+  // assertion. Average over several XIs as well as several applications of each boon.
+  const SAMPLES = 12;
+  const sampleFormation = Object.values(FORMATIONS_DATA.byKey)[0];
+  const samples = Array.from({ length: SAMPLES }, () => {
+    const { filled } = autoFillBudget(sampleFormation.slots, {}, BUDGET_DRAFT);
+    const xi = Object.values(filled).filter((p): p is Player => !!p);
+    return xi.length === 11 ? xi : bestEleven(SQUADS[0].players);
+  });
   const side = (ps: Player[], isSide: (p: Player) => boolean) => {
     const vals = ps.filter(isSide).map((p) => p.elo);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   };
-  const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
+  const totalElo = (ps: Player[]) => ps.reduce((s, p) => s + p.elo, 0);
 
-  const sampleAvg = Math.round(sample.reduce((s, p) => s + p.elo, 0) / 11);
-  console.log(`\n  boon power (average points added, vs an ~${sampleAvg}-rated XI)`);
+  const sampleAvg = Math.round(
+    samples.reduce((s, xi) => s + totalElo(xi) / 11, 0) / samples.length,
+  );
+  console.log(
+    `\n  boon power (average points added, vs ${SAMPLES} budget-built XIs averaging ~${sampleAvg})`,
+  );
   console.log('    ' + 'boon'.padEnd(22) + 'rarity'.padEnd(11) + 'attack'.padStart(7) + 'defence'.padStart(9) + '   total');
 
-  let withinBands = true;
+  const overBand: string[] = [];
   for (const b of [...BOONS].sort((x, y) => x.rarity.localeCompare(y.rarity) || x.id.localeCompare(y.id))) {
-    // Roster boons are random, so average several applications.
-    const N = 40;
+    const N = 20;
     let att = 0, def = 0, tot = 0;
-    for (let i = 0; i < N; i++) {
-      const after = b.apply(sample, { opponentSquadId: SQUADS[3].id });
-      att += side(after, isAttacker) - before.att;
-      def += side(after, isDefender) - before.def;
-      tot += after.reduce((s, p) => s + p.elo, 0) - sample.reduce((s, p) => s + p.elo, 0);
+    for (const sample of samples) {
+      const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
+      for (let i = 0; i < N; i++) {
+        const after = b.apply(sample, { opponentSquadId: SQUADS[3].id });
+        att += side(after, isAttacker) - before.att;
+        def += side(after, isDefender) - before.def;
+        tot += totalElo(after) - totalElo(sample);
+      }
     }
-    att /= N; def /= N; tot /= N;
+    const runs = samples.length * N;
+    att /= runs; def /= runs; tot /= runs;
     const spent = att + def; // a trade-off boon pays back through the negative side
     const over = !EXEMPT.has(b.id) && spent > BAND[b.rarity];
-    if (over) withinBands = false;
+    if (over) overBand.push(`${b.id} ${spent.toFixed(1)} > ${BAND[b.rarity].toFixed(1)}`);
     console.log(
       '    ' + b.id.padEnd(22) + b.rarity.padEnd(11) +
       att.toFixed(1).padStart(7) + def.toFixed(1).padStart(9) + tot.toFixed(0).padStart(8) +
       (EXEMPT.has(b.id) ? '   (conditional / trade-off)' : over ? '   <-- OVER BAND' : ''),
     );
   }
-  check('boons: every boon sits inside its rarity band (or pays for exceeding it)', withinBands);
+  if (overBand.length) console.log('    over band: ' + overBand.join(', '));
+  check(
+    'boons: every boon sits inside its rarity band (or pays for exceeding it)',
+    overBand.length === 0,
+  );
 }
 
 // --- Boon availability + unlock economy ------------------------------------
