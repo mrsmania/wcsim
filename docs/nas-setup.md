@@ -207,6 +207,47 @@ than not (D5, accepted).
 
 ---
 
+## The container firewall rules (and the DNS trap)
+
+DSM's firewall applies to the docker bridges, so with it enabled containers cannot reach
+each other and the stack breaks in a way that looks like the app's fault: the gateway
+answers, every service behind it returns 503. The rules below fix it. They live in a
+**boot-up task** (Control Panel → Task Scheduler → Triggered Task, user root), because
+DSM rewrites these chains on boot *and* whenever firewall settings are edited - so if
+container traffic dies right after you touch the firewall, re-run them.
+
+```
+sleep 60
+/sbin/iptables -I FORWARD_FIREWALL 1 -i docker+ -o docker+ -j ACCEPT
+/sbin/iptables -I FORWARD_FIREWALL 2 -i docker+ -d 192.168.1.0/24 -p udp --dport 53 -j ACCEPT
+/sbin/iptables -I FORWARD_FIREWALL 3 -i docker+ -d 192.168.1.0/24 -p tcp --dport 53 -j ACCEPT
+/sbin/iptables -I FORWARD_FIREWALL 4 -i docker+ -d 192.168.1.0/24 -j DROP
+/sbin/iptables -I FORWARD_FIREWALL 5 -i docker+ -j ACCEPT
+```
+
+Order matters. Containers talk to each other (1), may ask the router for DNS (2, 3), may
+not otherwise touch the LAN (4), and may reach the internet (5).
+
+**The DNS trap**, found 2026-08-17 the hard way. Rules 2 and 3 are not optional. Without
+them, rule 4 also blocks the DNS queries Docker's internal resolver forwards to the
+router, and the symptom points nowhere near the firewall:
+
+```
+Error sending magic link email
+error: dial tcp: lookup smtp.gmail.com on 127.0.0.11:53: server misbehaving
+```
+
+Sign-in emails stop, the credentials test fine from anywhere else, and it reads as a Gmail
+or password problem. `docker run --rm --network supabase_default busybox nslookup
+smtp.gmail.com` settles it in one command.
+
+Two other symptoms of the same class, worth recognising:
+- **All services 503 while the gateway answers** - rules missing entirely. Re-add them, then
+  `docker compose restart api-gw`: envoy marks upstreams dead during the outage and does not
+  always recover on its own.
+- **Sign-in works but nothing loads** - PostgREST holding a dead connection pool after the
+  network was cut under it. `docker compose restart rest`.
+
 ## Afterwards
 
 - **Updates are manual.** Pull new images deliberately; self-hosted version bumps
