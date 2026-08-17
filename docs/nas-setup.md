@@ -100,9 +100,14 @@ mistyped redirect URI.
 2. **DSM → Login Portal → Advanced → Reverse Proxy.** One rule: source `HOST` on 443
    (HTTPS, with the certificate from step 1) to destination `localhost` on the Supabase
    gateway's port (whatever the compose exposes, `8000` in the default).
-3. **Do not add a rule for Studio.** The dashboard stays LAN-only, reached by the NAS's
-   local address. This is the difference between an admin panel on your network and one on
-   the internet.
+3. **Studio.** The gateway serves the dashboard at the root of the same hostname, behind
+   HTTP basic auth (`DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD`). **Decided 2026-08-17: it
+   stays reachable from the internet**, because being able to open the SQL editor from
+   anywhere is worth more here than shrinking the surface. Know what that means: the root
+   URL is an admin console guarded by one password, and it fronts `postgres-meta`, which
+   runs arbitrary SQL. Keep that password long, and if the calculus ever changes, stopping
+   the `studio` container is the whole mitigation - the API paths the game uses are
+   unaffected.
 4. **Control Panel → Security → Firewall:** allow the forwarded port, and keep Postgres
    (5432) LAN-only.
 
