@@ -195,8 +195,23 @@
   }
   .detail p { margin-bottom: 11px; }
   .detail ul { margin: 0 0 11px 18px; }
+  .detail ol { margin: 0 0 11px 20px; }
+  .detail ol > li { margin-bottom: 13px; }
   .detail li { margin-bottom: 6px; }
   .detail li:last-child, .detail p:last-child { margin-bottom: 0; }
+  .detail .step { font-weight: bold; }
+
+  pre {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    background: #ece7dd;
+    border-left: 2px solid var(--ink-faint);
+    border-radius: 2px;
+    padding: 9px 12px;
+    margin: 7px 0 9px;
+    overflow-x: auto;
+  }
 
   code {
     font-family: 'Courier New', Courier, monospace;
@@ -304,7 +319,8 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-17<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 7 items<br>
+    <strong>Waiting on you:</strong> 07<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -312,7 +328,7 @@
 <div class="lede">
   <p><b>The single list.</b> This replaces the old <code>docs/ROADMAP.md</code> and
   <code>docs/todo/TODO.html</code>, which held overlapping copies of the same items and
-  drifted apart. Everything open lives here now: two tiers below, and what already shipped
+  drifted apart. Everything open lives here now: three tiers below, and what already shipped
   is collapsed at the very bottom as decision history.</p>
   <p style="margin-top:8px"><b>Live flag worth knowing:</b>
   <code>FEATURES.stickersOnCupWinOnly</code> is currently <code>false</code>, so any
@@ -475,6 +491,105 @@
   </div>
 </details>
 
+<div class="band"><h2>Your move</h2><span>a manual step on the NAS, not code</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">07</span>
+    <span class="title">Apply the Supabase trim on the NAS
+      <span class="sub">The edits are prepared and checked; someone with LAN access has to install them.</span>
+    </span>
+    <span class="tag">Server</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The stack still runs <code>storage</code>, <code>imgproxy</code>, <code>realtime</code>
+    and the edge runtime, none of which the game uses, with <code>/storage/v1/</code> and
+    <code>/functions/v1/</code> reachable and the bundled example function executing without
+    a JWT. The trimmed files exist and were verified locally (compose resolves to exactly 7
+    services; all 15 remaining gateway routes point at a cluster that still exists). What is
+    left is installing them, which needs the NAS.</p>
+
+    <div class="callout">
+      <span class="ct">Do this from the laptop that has the repo</span>
+      <code>dkr/</code> is gitignored, so the edited files exist only in that working copy -
+      they are not on GitHub and not on any other machine. Needs the LAN or the VPN, and SSH
+      on the NAS. Nothing here touches <code>.env</code> or the database; only the gateway
+      restarts.
+    </div>
+
+    <ol>
+      <li><span class="step">Confirm the NAS copy is the one that was edited.</span>
+      The <code>.bak</code> files are the pre-edit originals, so they are what the NAS should
+      match. In the repo:
+<pre>md5sum dkr/docker-compose.yml.bak
+md5sum dkr/volumes/api/envoy/cds.yaml.bak
+md5sum dkr/volumes/api/envoy/lds.template.yaml.bak</pre>
+      and on the NAS, in the folder the Container Manager project points at (per
+      <code>docs/nas-setup.md</code>, something like
+      <code>/volume1/docker/wcsim-supabase</code>):
+<pre>md5sum docker-compose.yml
+md5sum volumes/api/envoy/cds.yaml
+md5sum volumes/api/envoy/lds.template.yaml</pre>
+      All three match, carry on. Any of them differs, <b>stop</b>: the NAS copy drifted
+      during setup, so send that file over and have the deletions re-applied on top of it
+      rather than overwriting whatever was changed.</li>
+
+      <li><span class="step">Back up on the NAS anyway.</span> Cheap, and it is the rollback:
+<pre>cp docker-compose.yml docker-compose.yml.pre-trim
+cp volumes/api/envoy/cds.yaml volumes/api/envoy/cds.yaml.pre-trim
+cp volumes/api/envoy/lds.template.yaml volumes/api/envoy/lds.template.yaml.pre-trim</pre></li>
+
+      <li><span class="step">Copy the three edited files up</span> (File Station, a mapped
+      drive, or <code>scp</code>). The plain names, <b>not</b> the <code>.bak</code> ones:
+<pre>scp dkr/docker-compose.yml USER@NAS:PROJECT/
+cd dkr/volumes/api/envoy
+scp cds.yaml lds.template.yaml USER@NAS:PROJECT/volumes/api/envoy/</pre></li>
+
+      <li><span class="step">Apply it</span>, on the NAS in the project folder:
+<pre>sudo docker compose up -d --remove-orphans</pre>
+      <code>--remove-orphans</code> is the part that actually deletes the four containers the
+      compose file no longer mentions. Container Manager's <i>Project &rarr; Action &rarr;
+      Build</i> works too but does not pass that flag, so if you go through the GUI, delete
+      these four by hand afterwards in the Container tab: <code>supabase-storage</code>,
+      <code>supabase-imgproxy</code>, <code>realtime-dev.supabase-realtime</code>,
+      <code>supabase-edge-functions</code>.</li>
+
+      <li><span class="step">Verify.</span> The first two must still answer 200, the last two
+      must no longer be served by a storage or edge-runtime container:
+<pre>sudo docker compose ps
+  # 7 services: db, auth, rest, api-gw, studio, meta, supavisor
+
+curl -s -o /dev/null -w '%{http_code}
+' https://HOST/auth/v1/health
+curl -s -o /dev/null -w '%{http_code}
+' -H "apikey: ANON_KEY" https://HOST/rest/v1/
+curl -s -o /dev/null -w '%{http_code}
+' https://HOST/storage/v1/status
+curl -s -o /dev/null -w '%{http_code}
+' https://HOST/functions/v1/hello</pre>
+      The last two now answer <b>401</b>, because those paths fall through to the catch-all
+      Studio route and Studio sits behind basic auth. That is the expected result: the point
+      is that there is nothing behind them any more. Then in the browser, sign in on the
+      deployed game, open the album and finish a run - album, career and run state all go
+      through <code>/rest/v1/</code>, which is untouched.</li>
+
+      <li><span class="step">If anything is off, roll back</span> and nothing is lost:
+<pre>cp docker-compose.yml.pre-trim docker-compose.yml
+cp volumes/api/envoy/cds.yaml.pre-trim volumes/api/envoy/cds.yaml
+cp volumes/api/envoy/lds.template.yaml.pre-trim volumes/api/envoy/lds.template.yaml
+sudo docker compose up -d
+sudo docker compose restart api-gw   # envoy re-reads its config files</pre></li>
+    </ol>
+
+    <p class="next"><strong>Meanwhile:</strong> if you want the exposure gone before you are
+    back at the laptop, stop those four containers in Container Manager - a minute's work
+    from anywhere, including the phone. A project rebuild brings them back, so it is a
+    stopgap, not the fix.</p>
+    <p class="files">dkr/docker-compose.yml, dkr/volumes/api/envoy/{cds.yaml,lds.template.yaml}, docs/nas-setup.md</p>
+  </div>
+</details>
+
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
@@ -503,7 +618,8 @@
       remaining routes point at a cluster that still exists. The apply / verify / rollback
       recipe is in <code>docs/nas-setup.md</code> ("Trimming a stack that is already
       running"), including the one-minute mitigation of just stopping the four
-      containers.</li>
+      containers. Installing it on the NAS needs LAN access and is tracked as open item
+      07.</li>
       <li><b>Loose end: Squad Browser "approximate placeholder" label.</b> Closed
       2026-08-17 after checking rather than fixing: the label no longer exists anywhere in
       the app, and the roadmap entry had been carried forward stale. What <i>was</i> still
