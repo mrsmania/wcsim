@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -471,50 +471,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">17</span>
-    <span class="title">Mark collectibles you already own in the player lists
-      <span class="sub">The star says "collectible", not "you have this one".</span>
-    </span>
-    <span class="tag">Album</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Both player lists already flag collectibles with a tier star - the drawn squad in
-    <code>SquadPanel</code> (roll draft) and the rating-sorted list in
-    <code>BudgetMarket</code> (budget build) - but the star only says a player <i>is</i>
-    collectible. It cannot say whether that sticker is already in the album, which is the
-    thing you actually want to know while picking: is this one worth drafting for the
-    collection, or do I have him already? Wanted in <b>both</b> modes, since both are ways
-    of choosing players.</p>
-    <p>The data is already to hand, so this is presentation only: <code>App</code> holds
-    <code>stickers.album</code> (from <code>useStickerAlbum</code>), which is seeded from the
-    boot snapshot and is the same shape for a guest and for a signed-in account. Neither list
-    receives it today, so the work is passing the collected set down and giving the marker a
-    second state.</p>
-    <ul>
-      <li>Keep <b>one</b> visual language across the two lists, and decide whether
-      <code>XiTable</code> (the line-up sheet, which marks collectibles the same way) should
-      show it too - it probably should, or the same star means two things on one screen.</li>
-      <li><code>CollectibleStar</code> is the natural place: an owned/unowned state on the
-      existing star (filled against hollow, say) beats a second glyph competing with the
-      tier colour.</li>
-      <li>Read the album by <b>player id</b>, and mind that a sticker is per version of a
-      person: Buffon 88 and Buffon 90 are separate stickers, so "owned" is not a personId
-      question.</li>
-    </ul>
-    <p><strong>Touches item 02.</strong> The sticker discount in the budget build prices
-    already-owned players lower, which means the same market row will want to show both
-    "owned" and a struck-through price. Whichever lands first should leave the other room, and
-    the marker decided here is the one that discount hangs off.</p>
-    <p class="next"><strong>Decided 2026-08-18: binary.</strong> Owned or not owned, with no
-    separate treatment for holding duplicates - that is the question being asked while
-    picking, and the duplicate pool is already on the album screen.</p>
-    <p class="files">src/components/CollectibleStar.tsx, src/components/SquadPanel.tsx, src/components/BudgetMarket.tsx, src/components/XiTable.tsx, src/App.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">15</span>
     <span class="title">Point GoTrue at the new sign-in email
       <span class="sub">The template is written and deployed; prod still sends the stock one.</span>
@@ -625,6 +581,29 @@ curl -sI https://mrsmania.github.io/wcsim/email/logo.png</pre></li>
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>17 Collectibles you already own are marked in the player lists.</b> Done
+      2026-08-18. The tier marker gained a second state, so it stops only saying "this
+      player is collectible" and answers the question you actually have while picking: a
+      <b>star</b> is a collectible not yet in the album, a <b>tick</b> is one you have.
+      Same disc, same tier colour, same 15px, so a list never reflows; the tooltip reads
+      "Collectible" or "In your album" with the tier. Binary as decided - duplicates read
+      as owned, and the duplicate pool is already on the album screen.
+      <br>Wired in both build methods and the line-up sheet: <code>App</code> derives
+      <code>ownedStickerIds</code> from <code>stickers.album.collected</code> once and hands
+      it to <code>SquadPanel</code> (roll draft), <code>BudgetMarket</code> (both its list
+      and grid views) and <code>XiTable</code>. Presentation only - the album was already in
+      <code>App</code>, seeded from the boot snapshot, so no new reads and identical
+      behaviour for a guest and a signed-in account. <b>Keyed on player id, never
+      personId</b>, which the browser check proved on real data: Cristiano Ronaldo 2014
+      showed a tick while his 2018 card showed a star, two rows apart.
+      <br>Verified with an album seeded to own 41 of the 81 collectibles: 12 stars and 9
+      ticks in the market's collectible filter, the same counts in grid view, both states in
+      a drawn squad, ticks in the line-up sheet, and with
+      <code>FEATURES.stickerAlbum</code> off, zero markers anywhere and no collectible
+      filter - unchanged. The read-only <code>/squads</code> browser deliberately keeps the
+      plain star: it is a reference view over the dataset, not a surface you pick from.
+      <b>Item 02 inherits this marker</b> - the discount it adds hangs off the same
+      owned set.</li>
       <li><b>10 follow-up: a move can rotate three or more.</b> Done 2026-08-18, after the
       user asked why an interchangeable front three could not be switched round. Pairwise
       trades already worked and had shipped, so the report looked wrong at first - but the

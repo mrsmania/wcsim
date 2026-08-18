@@ -578,6 +578,15 @@ export default function App({
         return ids;
     }, [STICKERS, swapsLeft, activeFormation, currentSquad, filled, usedPersonIds]);
     const usedSet = useMemo(() => new Set(usedPersonIds), [usedPersonIds]);
+    // Stickers already in the album, by PLAYER id: the marker in both player lists (and
+    // the line-up sheet) uses it to say "you have this one" rather than only
+    // "collectible". Player id, not personId - a sticker is per version of a person, so
+    // Buffon 88 and Buffon 90 are separate cards. Empty when the album is off, which
+    // makes every marker read as unowned exactly as it did before.
+    const ownedStickerIds = useMemo(
+        () => new Set(STICKERS ? stickers.album.collected : []),
+        [STICKERS, stickers.album],
+    );
     const selectedPlayer = currentSquad?.players.find((p) => p.id === selectedPlayerId) ?? null;
     const panelSquad = rolling ? displaySquad : currentSquad;
     const availableStyles = FORMATIONS_DATA.stylesByName[formationName] ?? STYLES;
@@ -935,6 +944,7 @@ export default function App({
                                                 onAutoFill={handleBudgetAutoFill}
                                                 onClear={handleBudgetClear}
                                                 onStartOver={handleReset}
+                                                ownedStickerIds={ownedStickerIds}
                                             />
                                         ) : (
                                             <SquadPanel
@@ -956,6 +966,7 @@ export default function App({
                                                 selectedPlayerId={selectedPlayerId}
                                                 onReroll={handleReroll}
                                                 onSelectPlayer={handleSelectPlayer}
+                                                ownedStickerIds={ownedStickerIds}
                                                 onReset={handleReset}
                                             />
                                         ))}
@@ -1039,6 +1050,7 @@ export default function App({
                                                 formation={activeFormation}
                                                 filled={filled}
                                                 budget={isBudgetBuild ? budget : undefined}
+                                                ownedStickerIds={ownedStickerIds}
                                             />
                                         </section>
                                     </>

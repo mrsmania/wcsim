@@ -61,6 +61,9 @@ interface Props {
   onClear: () => void;
   /** Drop the XI and return to setup. */
   onStartOver: () => void;
+  /** Player ids whose sticker is already in the album, so a collectible row can say
+   *  "you have this one" rather than only "collectible". Empty when the album is off. */
+  ownedStickerIds: Set<string>;
 }
 
 /** The transfer-market panel: the left column of the budget build (the player
@@ -80,6 +83,7 @@ export default function BudgetMarket({
   onAutoFill,
   onClear,
   onStartOver,
+  ownedStickerIds,
 }: Props) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('rating');
@@ -164,6 +168,7 @@ export default function BudgetMarket({
       selectable,
       held: p.id === heldPlayer?.id,
       tier: FEATURES.stickerAlbum ? tierOf(p) : null,
+      owned: ownedStickerIds.has(p.id),
     };
   };
 
@@ -344,7 +349,7 @@ export default function BudgetMarket({
                       </span>
                       {c.tier && (
                         <span className="ml-auto">
-                          <CollectibleStar tier={c.tier} />
+                          <CollectibleStar tier={c.tier} owned={c.owned} />
                         </span>
                       )}
                     </div>
@@ -383,7 +388,7 @@ export default function BudgetMarket({
                     >
                       <span className="flex min-w-0 flex-1 items-center gap-1.5">
                         <span className="truncate text-[13px] font-semibold">{p.name}</span>
-                        {c.tier && <CollectibleStar tier={c.tier} />}
+                        {c.tier && <CollectibleStar tier={c.tier} owned={c.owned} />}
                       </span>
                       {c.sq && <Flag code={c.sq.code} className="h-3 w-[18px]" />}
                       <span className="w-7 text-right font-mono text-[10px] text-muted tabular-nums">

@@ -439,7 +439,17 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   parked in `art/stickers-archive/` (also undeployed).
 - **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier star
   chip + a "collectibles in this squad" call-out); `XiTable` marks them the same way in
-  the line-up sheet (tier star + a tier-coloured left accent bar on the row). **Swap**
+  the line-up sheet (tier star + a tier-coloured left accent bar on the row).
+  **`CollectibleStar` has two states**, because "is collectible" and "you already own
+  this one" are different facts and the second is what you want while picking: a **star**
+  = collectible you have not collected, a **tick** = already in the album. Same disc, same
+  tier colour, same size - only the glyph changes, so rows never reflow. Deliberately
+  binary: holding duplicates reads as owned, and the duplicate pool is on the album
+  screen. `App` derives `ownedStickerIds` from `stickers.album.collected` and passes it to
+  `SquadPanel`, `BudgetMarket` and `XiTable`. **Keyed on player id, never `personId`** - a
+  sticker is per version of a person, so Cristiano Ronaldo 2014 can show a tick while his
+  2018 card still shows a star. The read-only `/squads` browser deliberately keeps the
+  plain star: it is a reference view over the whole dataset, not a surface you pick from. **Swap**
   (`SWAP_PLAYER` reducer action):
   only **collectibles** can be swapped in, and only **`INITIAL_SWAPS` (2) per run**
   (`swapsLeft` in state, shown in `SquadPanel` and reset with the run). When a

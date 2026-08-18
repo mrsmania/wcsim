@@ -20,10 +20,15 @@ export default function XiTable({
     formation,
     filled,
     budget,
+    ownedStickerIds,
 }: {
     formation: Formation;
     filled: Filled;
     budget?: number;
+    /** Player ids already in the album, so the row marker matches the player lists
+     *  the XI was picked from (a star meaning two things on one screen would be worse
+     *  than no marker). Optional: absent means "unknown", which reads as not owned. */
+    ownedStickerIds?: Set<string>;
 }) {
     const ordered = [...formation.slots].sort(
         (a, b) =>
@@ -77,7 +82,7 @@ export default function XiTable({
                             className={`flex min-w-0 items-center gap-1.5 text-[13.5px] ${player ? 'font-semibold' : 'text-muted'}`}
                         >
                             <span className="truncate">{player ? lastName(player.name) : '–'}</span>
-                            {tier && <CollectibleStar tier={tier} />}
+                            {tier && <CollectibleStar tier={tier} owned={!!ownedStickerIds?.has(player!.id)} />}
                         </span>
                         <span className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
                             {sq ? (

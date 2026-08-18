@@ -24,6 +24,9 @@ interface Props {
     swapEligibleIds: Set<string>;
     /** Remaining collectible swaps this run; shown in the footer. */
     swapsLeft: number;
+    /** Player ids whose sticker is already in the album, so the marker can say so
+     *  rather than only "collectible". Empty when the album is off. */
+    ownedStickerIds: Set<string>;
     usedPersonIds: Set<string>;
     selectedPlayerId: string | null;
     onReroll: (kind: RerollKind) => void;
@@ -68,6 +71,7 @@ export default function SquadPanel({
     openPositions,
     swapEligibleIds,
     swapsLeft,
+    ownedStickerIds,
     usedPersonIds,
     selectedPlayerId,
     onReroll,
@@ -149,7 +153,7 @@ export default function SquadPanel({
                                 >
                                     {p.name}
                                 </span>
-                                {tier && <CollectibleStar tier={tier} />}
+                                {tier && <CollectibleStar tier={tier} owned={ownedStickerIds.has(p.id)} />}
                                 {FEATURES.chemistry ? (
                                     <Tooltip
                                         className="shrink-0 text-[11px] text-muted"
