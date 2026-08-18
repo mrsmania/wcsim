@@ -1,6 +1,8 @@
+import { Dices } from 'lucide-react';
 import type { Boon } from '../../domain/boons';
 import type { GroupTeam } from '../../domain/tournament';
 import Flag from '../Flag';
+import { SECONDARY_BTN } from '../matchUi';
 import { RARITY_COLOR } from './types';
 
 /** The three-boost picker (rarity-topped cards) plus the "Next: opponent" line. Shared
@@ -25,17 +27,8 @@ export default function BoostOffer({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="flex items-center gap-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
           Pick a boost
-          {onReroll && rerollsLeft > 0 && (
-            <button
-              type="button"
-              onClick={onReroll}
-              className="rounded-full border border-line px-2 py-0.5 text-[10px] tracking-[0.08em] text-muted transition hover:border-pitch hover:text-pitch"
-            >
-              Re-roll ({rerollsLeft})
-            </button>
-          )}
         </span>
         {nextOpponent && (
           <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted">
@@ -64,6 +57,27 @@ export default function BoostOffer({
           </button>
         ))}
       </div>
+      {/* The Physio Table re-roll used to be a pill tucked into the heading, where a perk
+          bought with Prestige went unnoticed exactly when it mattered. It sits below the
+          cards instead: a real button, named, with the count spelled out, and deliberately
+          after the choice it is an alternative to, so it does not compete with the three
+          cards for the eye. */}
+      {onReroll && rerollsLeft > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-line pt-3">
+          <button
+            type="button"
+            onClick={onReroll}
+            className={`inline-flex items-center gap-2 px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
+          >
+            <Dices className="h-4 w-4" aria-hidden="true" />
+            Re-roll these boosts
+          </button>
+          <span className="font-mono text-[11px] text-muted">
+            Physio Table: {rerollsLeft === 1 ? '1 re-roll' : `${rerollsLeft} re-rolls`} left this
+            run
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -319,7 +319,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 13 items<br>
+    <strong>Open:</strong> 11 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -556,24 +556,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">12</span>
-    <span class="title">The boost re-roll is too easy to miss
-      <span class="sub">A tiny pill tucked into the "Pick a boost" label.</span>
-    </span>
-    <span class="tag">Polish</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The Physio Table re-roll renders as a small outlined pill beside the section heading, so
-    a perk bought with Prestige goes unnoticed exactly when it matters. Give it real weight (a
-    proper button, an icon, the remaining count spelled out) without letting it compete with
-    the three boost cards for attention.</p>
-    <p class="files">src/components/cupRun/BoostOffer.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">13</span>
     <span class="title">New perk: a 4th and a 5th re-roll
       <span class="sub">Roll mode only, since the transfer market has no re-rolls.</span>
@@ -592,25 +574,6 @@
     Deep Squad, Extra Choice, Physio) and decide whether the shop hides it in budget mode or
     just labels it.</p>
     <p class="files">src/domain/career.ts, src/state/gameReducer.ts, src/App.tsx, src/components/CupRunScreen.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">14</span>
-    <span class="title">Enter should submit the sign-in form
-      <span class="sub">Both the email field and the code field.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Both inputs are bare <code>&lt;input&gt;</code>s next to a
-    <code>&lt;button type="button"&gt;</code>, so pressing Enter does nothing and the button has
-    to be clicked. Wrapping each stage in a real <code>&lt;form onSubmit&gt;</code> fixes it,
-    keeps the existing disabled conditions, and gives phone keyboards the Go/Send key people
-    expect.</p>
-    <p class="files">src/components/AccountPanel.tsx</p>
   </div>
 </details>
 
@@ -641,6 +604,27 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>14 Enter submits the sign-in form.</b> Done 2026-08-18. Both stages of
+      <code>AccountPanel</code> are real <code>&lt;form onSubmit&gt;</code>s, so Enter sends
+      the code and Enter signs in, and phone keyboards offer the Go/Send key. The buttons are
+      <code>type="submit"</code> and their disabled conditions moved into
+      <code>canSend</code> / <code>canVerify</code>, so the submit handlers repeat the same
+      guard instead of restating it. The forms are <code>noValidate</code>: with
+      <code>type="email"</code> inside a form the browser would start interrupting with its
+      own validation bubble, which the click path never did, so the only behaviour that
+      changes is the key working. Verified in the browser against a stubbed auth endpoint -
+      Enter on an empty address and on a five-digit code do nothing, a typed address plus
+      Enter alone fires exactly one OTP request and advances to the code stage, and a
+      six-digit code fires exactly one verify.</li>
+      <li><b>12 The boost re-roll got real weight.</b> Done 2026-08-18. The Physio Table
+      re-roll was a 10px pill beside the "Pick a boost" heading, which is where a perk bought
+      with Prestige goes unnoticed. It is now a proper outline button under the three cards
+      (dice icon, "Re-roll these boosts") with the count spelled out beside it - "Physio
+      Table: 2 re-rolls left this run", singular at one, and the control disappears at zero.
+      Under the cards rather than above them was the deliberate half: the re-roll is an
+      alternative to the choice, so it reads after it and does not compete with the three
+      boosts for the eye. Verified on a seeded Physio Table run: re-rolling a live offer
+      swapped all three boosts and counted 2 to 1 to gone.</li>
       <li><b>11 Boost-swapped players no longer earn stickers.</b> Done 2026-08-18.
       <code>CupRunScreen</code> passes <code>RunState.boostedIds</code> with the run-end
       report and <code>useStickerAlbum</code> subtracts them, so the rule sits beside the

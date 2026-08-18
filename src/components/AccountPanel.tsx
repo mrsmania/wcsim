@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { FEATURES } from '../config';
 import { DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
 
@@ -60,6 +60,22 @@ export default function AccountPanel({
     } catch (err) {
       fail(err);
     }
+  };
+
+  // Both stages are real forms, so Enter submits and phone keyboards offer Go/Send.
+  // The guards repeat the buttons' disabled conditions: a browser will not fire implicit
+  // submission while the submit button is disabled, but nothing else may either.
+  const canSend = address.includes('@') && stage !== 'sending';
+  const canVerify = code.trim().length >= 6 && stage !== 'verifying';
+
+  const onSendSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (canSend) void send();
+  };
+
+  const onVerifySubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (canVerify) void verify();
   };
 
   const remove = async () => {
@@ -165,7 +181,7 @@ export default function AccountPanel({
           <p className="text-[12.5px]">
             Code sent to <b>{address}</b>. Check your spam folder if it isn&apos;t there.
           </p>
-          <div className="mt-2 flex gap-2">
+          <form className="mt-2 flex gap-2" onSubmit={onVerifySubmit} noValidate>
             <input
               className={`${FIELD} font-mono tracking-[0.3em]`}
               value={code}
@@ -176,14 +192,13 @@ export default function AccountPanel({
               aria-label="Six-digit code"
             />
             <button
-              type="button"
-              onClick={() => void verify()}
-              disabled={code.trim().length < 6 || stage === 'verifying'}
+              type="submit"
+              disabled={!canVerify}
               className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
             >
               {stage === 'verifying' ? 'Checking...' : 'Sign in'}
             </button>
-          </div>
+          </form>
           <button
             type="button"
             onClick={() => {
@@ -196,7 +211,7 @@ export default function AccountPanel({
           </button>
         </div>
       ) : (
-        <div className="mt-2.5 flex gap-2">
+        <form className="mt-2.5 flex gap-2" onSubmit={onSendSubmit} noValidate>
           <input
             className={FIELD}
             value={address}
@@ -207,14 +222,13 @@ export default function AccountPanel({
             aria-label="Email address"
           />
           <button
-            type="button"
-            onClick={() => void send()}
-            disabled={!address.includes('@') || stage === 'sending'}
+            type="submit"
+            disabled={!canSend}
             className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
           >
             {stage === 'sending' ? 'Sending...' : 'Send code'}
           </button>
-        </div>
+        </form>
       )}
 
       {error && <p className="mt-2 text-[12px] text-loss">{error}</p>}
