@@ -511,22 +511,50 @@
 <details class="item">
   <summary>
     <span class="num">15</span>
-    <span class="title">Rework the sign-in email, with a copy button
-      <span class="sub">Make the six-digit code easy to lift out.</span>
+    <span class="title">Point GoTrue at the new sign-in email
+      <span class="sub">The template is written and deployed; the server still sends the stock one.</span>
     </span>
-    <span class="tag">Accounts</span>
+    <span class="tag">Hands-on</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>The mail GoTrue sends is still its stock template. It should look like the game and make
-    the code trivial to get at, especially on a phone.</p>
-    <p class="next"><strong>Next step:</strong> worth knowing before designing it - mail clients
-    do not run JavaScript, so a real copy button inside the email is not possible. The workable
-    versions are a large, letter-spaced, selectable code (tap-and-hold copies it on phones), or
-    a link back to the game carrying the code so the field fills itself in. The template lives
-    in GoTrue's mailer config on the NAS, not in this repo, so shipping it is a server-side
-    change.</p>
-    <p class="files">dkr/.env (GOTRUE mailer templates), docs/nas-setup.md, src/components/AccountPanel.tsx</p>
+    <p>The mail itself is done (2026-08-18) and lives in the repo, deployed with the site:
+    <code>public/email/otp.html</code> plus <code>public/email/logo.png</code>. It is
+    deliberately plain, modelled on a reference the owner supplied: the trophy tile and
+    wordmark, one line, the six digits, and a line saying to delete it if it was not you.
+    No greeting, no sign-off, no unsubscribe footer - a transactional mail nobody
+    subscribed to needs none of them.</p>
+    <p><strong>Settled while building it.</strong> A real copy button is impossible (mail
+    clients run no JavaScript), so the code is large, letter-spaced and selectable, which
+    is what makes tap-and-hold work on a phone. The logo is a hosted PNG rendered from the
+    app's favicon SVG, because Gmail drops SVG and blocks <code>data:</code> URIs in
+    images; the wordmark beside it is text, and the image carries <code>alt=""</code>, so
+    with images off the header still reads without alt text spilling out of a 40px box.
+    Tables and inline styles throughout, and web-safe font stacks: the mail borrows the
+    palette rather than pretending to match Archivo and Spline Sans Mono, which mail
+    clients would refuse anyway.</p>
+    <p>What is left needs the NAS, which is why this stays open:</p>
+    <ol>
+      <li><span class="step">Set four values</span> in <code>dkr/.env</code>. The same
+      template serves both cases - a returning address gets the magic-link mail, a new one
+      gets the signup confirmation - so leaving either on the stock template means half
+      the players still see it.
+      <pre>GOTRUE_MAILER_SUBJECTS_MAGIC_LINK=Your World Cup Simulator code
+GOTRUE_MAILER_SUBJECTS_CONFIRMATION=Your World Cup Simulator code
+GOTRUE_MAILER_TEMPLATES_MAGIC_LINK=https://mrsmania.github.io/wcsim/email/otp.html
+GOTRUE_MAILER_TEMPLATES_CONFIRMATION=https://mrsmania.github.io/wcsim/email/otp.html</pre></li>
+      <li><span class="step">Restart the <code>auth</code> container</span> and request a
+      code from the game.</li>
+      <li><span class="step">If it still looks stock,</span> suspect the fetch rather than
+      the template: GoTrue pulls the template over HTTPS as it sends, and falls back to its
+      built-in default when that fails.
+      <pre>curl -sI https://mrsmania.github.io/wcsim/email/otp.html</pre>
+      from the NAS settles it.</li>
+    </ol>
+    <p class="next"><strong>Afterwards:</strong> editing the mail is a push to
+    <code>main</code> and the Pages deploy, with no container restart - only these env vars
+    need one.</p>
+    <p class="files">public/email/otp.html, public/email/logo.png, dkr/.env (GOTRUE mailer), docs/nas-setup.md</p>
   </div>
 </details>
 

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Leave the palette alone: the template already picks its own colours, and a
+         client that force-inverts a cream card usually makes it worse, not better. -->
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <!-- iOS otherwise offers to "call" a six-digit number. -->
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
+    <title>Your sign-in code</title>
+  </head>
+  <!--
+    The sign-in code email. GoTrue fills in the Token placeholder below with the
+    six digits (Go text/template, so it would substitute inside a comment too - hence
+    naming it rather than writing it out here).
+
+    Kept deliberately plain: the code, and one line saying what to do if it was not
+    you. No greeting, no sign-off, no unsubscribe footer - this is a transactional
+    mail nobody subscribed to, and every extra line is one more thing between the
+    reader and the digits they came for.
+
+    Why it is written the way it is:
+      * Tables and inline styles, because Gmail strips <style> blocks and ignores
+        most modern CSS. Nothing here needs a stylesheet.
+      * The logo is a hosted PNG, not the app's inline SVG: Gmail drops SVG
+        entirely and blocks data: URIs in <img>. The wordmark sits beside it as
+        text, so a blocked image still leaves a legible header - which is also why
+        the image takes alt="": with images off, alt text here would spill out of a
+        40px box to repeat the words already next to it.
+      * Web-safe font stacks. The game's Archivo / Spline Sans Mono are webfonts,
+        and mail clients largely refuse those, so the mail borrows the palette
+        rather than pretending to match the typography.
+      * No copy button. Mail clients do not run JavaScript, so the code is instead
+        big, letter-spaced and selectable: tap and hold copies it on a phone.
+  -->
+  <body
+    style="margin: 0; padding: 0; background-color: #f6f2eb; color: #1c1c1a"
+  >
+    <!-- Preheader: what the inbox list shows next to the subject. -->
+    <div
+      style="display: none; max-height: 0; overflow: hidden; mso-hide: all"
+    >
+      Your six-digit sign-in code.
+    </div>
+
+    <table
+      role="presentation"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      width="100%"
+      style="background-color: #f6f2eb"
+    >
+      <tr>
+        <td align="center" style="padding: 32px 16px">
+          <table
+            role="presentation"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            width="100%"
+            style="max-width: 440px"
+          >
+            <!-- Masthead: the trophy tile and the wordmark, as on the site. -->
+            <tr>
+              <td style="padding-bottom: 18px">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td width="40" style="padding-right: 12px">
+                      <img
+                        src="https://mrsmania.github.io/wcsim/email/logo.png"
+                        width="40"
+                        height="40"
+                        alt=""
+                        style="display: block; width: 40px; height: 40px; border: 0"
+                      />
+                    </td>
+                    <td
+                      style="
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                        font-size: 15px;
+                        font-weight: bold;
+                        letter-spacing: 0.04em;
+                        text-transform: uppercase;
+                        color: #1c1c1a;
+                      "
+                    >
+                      World Cup <span style="color: #0e5c34">Simulator</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- The card. -->
+            <tr>
+              <td
+                style="
+                  background-color: #fffcf7;
+                  border: 1px solid #ddd8ce;
+                  border-radius: 6px;
+                  padding: 28px 28px 24px;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 20px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 16px;
+                    line-height: 1.45;
+                    color: #1c1c1a;
+                  "
+                >
+                  Verify your email address by entering the following code:
+                </p>
+
+                <p
+                  style="
+                    margin: 0;
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 38px;
+                    font-weight: bold;
+                    letter-spacing: 0.14em;
+                    line-height: 1.1;
+                    color: #0e5c34;
+                  "
+                >
+                  {{ .Token }}
+                </p>
+
+                <div
+                  style="
+                    border-top: 1px solid #ddd8ce;
+                    margin: 26px 0 0;
+                    font-size: 0;
+                    line-height: 0;
+                  "
+                >
+                  &nbsp;
+                </div>
+
+                <p
+                  style="
+                    margin: 18px 0 0;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 13px;
+                    line-height: 1.5;
+                    color: #5a5a52;
+                  "
+                >
+                  If you have not requested this code, you can simply delete this email.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

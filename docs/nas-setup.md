@@ -150,6 +150,45 @@ mistyped redirect URI.
 4. **Container Manager → Project → Create**, pointing at that folder. Start it.
 5. Confirm from the LAN that Studio loads and the gateway answers.
 
+### The sign-in email
+
+GoTrue's stock template is a generic "Confirm your email" page. The game ships its own,
+in the repo and deployed with the site:
+
+- **`public/email/otp.html`** - the whole mail: the trophy tile and wordmark, one line,
+  the six digits, and a line saying to delete it if it was not you. Nothing else, on
+  purpose; a transactional mail nobody subscribed to needs no greeting, sign-off or
+  unsubscribe footer.
+- **`public/email/logo.png`** - the tile, as a PNG. Mail clients will not render the
+  app's inline SVG (Gmail drops SVG and blocks `data:` URIs in images), so it is a
+  hosted image referenced by absolute URL; the wordmark beside it is text, so a blocked
+  image still leaves a legible header.
+
+Both deploy with the Pages build, so GoTrue can point straight at them. Four values in
+`dkr/.env`, and the same template serves both cases (a returning player gets the magic
+link mail, a first-time address gets the signup confirmation - identical content, so do
+not leave one of them on the stock template):
+
+```
+GOTRUE_MAILER_SUBJECTS_MAGIC_LINK=Your World Cup Simulator code
+GOTRUE_MAILER_SUBJECTS_CONFIRMATION=Your World Cup Simulator code
+GOTRUE_MAILER_TEMPLATES_MAGIC_LINK=https://mrsmania.github.io/wcsim/email/otp.html
+GOTRUE_MAILER_TEMPLATES_CONFIRMATION=https://mrsmania.github.io/wcsim/email/otp.html
+```
+
+Then restart the `auth` container and request a code. Worth knowing:
+
+- GoTrue **fetches the template over HTTPS when it sends**, so the mail depends on the
+  Pages site being reachable from the NAS. If the fetch fails it falls back to its
+  built-in default, which means a stock-looking mail is the symptom of a fetch problem,
+  not of a bad template. `curl -sI https://mrsmania.github.io/wcsim/email/otp.html` from
+  the NAS settles it.
+- Editing the template is a push to `main` plus the Pages deploy; no container restart
+  is needed for content changes, only for the env vars above.
+- There is deliberately **no copy button** in the mail: mail clients do not run
+  JavaScript. The code is instead large, letter-spaced and selectable, so tap-and-hold
+  copies it on a phone.
+
 ---
 
 ## 5. Point the game at it

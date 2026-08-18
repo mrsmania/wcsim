@@ -632,6 +632,13 @@ Server setup: `docs/nas-setup.md`.
   inside the settings sheet, plus a masthead sign-in button. The auth library and the
   remote store are **dynamically imported**, so a guest never downloads them (verified:
   `GoTrueClient` appears only in the separate `auth-*.js` chunk).
+- **The sign-in email** is `public/email/otp.html` (+ `public/email/logo.png`), so it
+  deploys with the site and GoTrue points at it by URL - see `docs/nas-setup.md`, "The
+  sign-in email". Mail-client rules drive its shape: tables and inline styles, web-safe
+  fonts, a hosted PNG rather than the app's inline SVG (Gmail drops SVG and blocks
+  `data:` URIs), and no copy button, since mail clients run no JavaScript. Preview it by
+  rendering the file with the placeholder substituted; do not add a greeting, sign-off or
+  unsubscribe footer, which were left out deliberately.
 - **Server:** self-hosted Supabase on the NAS. `supabase/migrations/*.sql` applied in
   order, plus the generated `supabase/seed/collectibles.sql`. Row-level security
   isolates accounts; the sticker economy goes through `security definer` functions
