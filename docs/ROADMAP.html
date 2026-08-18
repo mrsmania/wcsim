@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -468,6 +468,51 @@
 </details>
 
 <div class="band"><h2>From playing</h2><span>found in real runs, small to medium</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">17</span>
+    <span class="title">Mark collectibles you already own in the player lists
+      <span class="sub">The star says "collectible", not "you have this one".</span>
+    </span>
+    <span class="tag">Album</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Both player lists already flag collectibles with a tier star - the drawn squad in
+    <code>SquadPanel</code> (roll draft) and the rating-sorted list in
+    <code>BudgetMarket</code> (budget build) - but the star only says a player <i>is</i>
+    collectible. It cannot say whether that sticker is already in the album, which is the
+    thing you actually want to know while picking: is this one worth drafting for the
+    collection, or do I have him already? Wanted in <b>both</b> modes, since both are ways
+    of choosing players.</p>
+    <p>The data is already to hand, so this is presentation only: <code>App</code> holds
+    <code>stickers.album</code> (from <code>useStickerAlbum</code>), which is seeded from the
+    boot snapshot and is the same shape for a guest and for a signed-in account. Neither list
+    receives it today, so the work is passing the collected set down and giving the marker a
+    second state.</p>
+    <ul>
+      <li>Keep <b>one</b> visual language across the two lists, and decide whether
+      <code>XiTable</code> (the line-up sheet, which marks collectibles the same way) should
+      show it too - it probably should, or the same star means two things on one screen.</li>
+      <li><code>CollectibleStar</code> is the natural place: an owned/unowned state on the
+      existing star (filled against hollow, say) beats a second glyph competing with the
+      tier colour.</li>
+      <li>Read the album by <b>player id</b>, and mind that a sticker is per version of a
+      person: Buffon 88 and Buffon 90 are separate stickers, so "owned" is not a personId
+      question.</li>
+    </ul>
+    <p><strong>Touches item 02.</strong> The sticker discount in the budget build prices
+    already-owned players lower, which means the same market row will want to show both
+    "owned" and a struck-through price. Whichever lands first should leave the other room, and
+    the marker decided here is the one that discount hangs off.</p>
+    <p class="next"><strong>Decision needed:</strong> binary owned / not owned, or does a
+    duplicate read differently (you own it and hold spares to trade)? Binary is the quieter
+    choice and covers the question being asked; duplicates are already visible on the album
+    screen.</p>
+    <p class="files">src/components/CollectibleStar.tsx, src/components/SquadPanel.tsx, src/components/BudgetMarket.tsx, src/components/XiTable.tsx, src/App.tsx</p>
+  </div>
+</details>
 
 <details class="item">
   <summary>
