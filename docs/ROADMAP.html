@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -468,45 +468,6 @@
 </details>
 
 <div class="band"><h2>From playing</h2><span>found in real runs, small to medium</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">16</span>
-    <span class="title">Apply migration 0010 on the NAS
-      <span class="sub">The one-trip bank is written and tested; the server has not had it yet.</span>
-    </span>
-    <span class="tag">Hands-on</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Item 08's fix is in the repo but not on the live database, because applying it needs LAN
-    or VPN access to the NAS. Until it is applied the client keeps using the old three-round-trip
-    path, which is exactly today's behaviour - the change was built to work in either deploy
-    order, so nothing is broken while this sits here.</p>
-    <ol>
-      <li><span class="step">Apply it</span> from any machine that can reach the NAS - the same
-      LAN or VPN requirement as <code>push:collectibles</code>, and the same route (Studio's
-      pg-meta endpoint, service key from <code>dkr/.env</code>). It is one transaction, so a
-      failure leaves nothing behind, and <code>--dry-run</code> shows what would be sent.
-      <pre>npm run push:sql -- supabase/migrations/0010_finish_run_one_trip.sql</pre>
-      Pasting the file into Studio's SQL editor does the same thing if you would rather watch it
-      go in.</li>
-      <li><span class="step">Check the function is reachable</span> as the client sees it, not
-      just as the owner: PostgREST needs the grant, and a missing one shows up as the client
-      quietly staying on the old path. Expect <code>true</code>.
-      <pre>npm run push:sql -- --query "select has_function_privilege('authenticated',
-  'finish_run_v2(text,text[],boolean,text,integer,text,integer)', 'execute')"</pre></li>
-      <li><span class="step">Bank a run signed in</span> and confirm the haul appears without the
-      pause. The browser's network panel should show one <code>finish_run_v2</code> call and no
-      <code>profiles</code> / <code>album_stickers</code> reads after it.</li>
-    </ol>
-    <p class="next"><strong>If it has to be rolled back:</strong> nothing to undo. Dropping
-    <code>finish_run_v2</code> puts the client back on the old path on its next bank, since that
-    is the fallback it already carries - but the wrapper <code>finish_run</code> delegates to
-    v2, so re-apply 0009 in that case to restore its body.</p>
-    <p class="files">supabase/migrations/0010_finish_run_one_trip.sql, docs/nas-setup.md</p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -703,6 +664,29 @@ curl -sI https://mrsmania.github.io/wcsim/email/logo.png</pre></li>
       so the retry is a first attempt and not a double submit). The old <code>finish_run</code>
       stays as a thin wrapper delegating to v2, so there is still one implementation. Applying
       it on the NAS is open item 16.</li>
+      <li><b>16 Migration 0010 applied on the NAS.</b> Done 2026-08-18, so item 08's
+      one-trip bank is now live rather than only in the repo. Applied with
+      <code>npm run push:sql</code> from a machine that could reach the server - the tool
+      the same session had just added, on its first real errand. Sequence, since this one
+      also rewires the path the deployed client uses today (the old
+      <code>finish_run</code> becomes a wrapper over <code>finish_run_v2</code>): a
+      read-only probe to prove the route worked, <code>--dry-run</code>, a before-check
+      that v2 did not already exist, then the apply.
+      <p>Verified in three steps rather than one. Structure: both functions present and
+      <code>security definer</code>. Grants: <code>authenticated</code> can execute v2,
+      <code>anon</code> cannot, and the old signature is still callable, so a browser
+      running yesterday's bundle is unaffected. Behaviour: <code>finish_run_v2</code> called
+      as a <i>real</i> signed-in account inside a transaction ending in
+      <code>rollback</code>, which returned all four keys the client now reads
+      (<code>album</code>, <code>newly</code>, <code>stats</code>, <code>version</code>) -
+      structure alone would not have caught a function that exists but throws. Then a
+      cleanliness check: no <code>smoke-%</code> rows left, that account's
+      <code>state_version</code> still 219 and its sticker count still 12.</p>
+      <p>Worth keeping for the next migration: the apply was blocked first time by the
+      permission check, which is correct for a write against the live database - it went
+      ahead on the owner saying so. And the audit table has no <code>action</code> column,
+      which cost a failed query; a wrong column name is rejected outright, so it costs
+      nothing but a retry.</p></li>
       <li><b>Sign-in moved into its own dialog, and "Send code" became "Continue".</b>
       Requested and done 2026-08-18, so it never sat in the open list. Signing in was the
       first group inside the settings sheet, which put the one thing a new player might want
