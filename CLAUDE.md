@@ -441,9 +441,13 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   chip + a "collectibles in this squad" call-out); `XiTable` marks them the same way in
   the line-up sheet (tier star + a tier-coloured left accent bar on the row).
   **`CollectibleStar` has two states**, because "is collectible" and "you already own
-  this one" are different facts and the second is what you want while picking: a **star**
-  = collectible you have not collected, a **tick** = already in the album. Same disc, same
-  tier colour, same size - only the glyph changes, so rows never reflow. Deliberately
+  this one" are different facts and the second is what you want while picking: lucide
+  **`Star`** = collectible you have not collected, **`StarCheck`** = already in the album.
+  Same disc, same tier colour, same size - only the glyph changes, so rows never reflow.
+  **The geometry is load-bearing:** `StarCheck` differs only by a small tick off the
+  lower-right point, so it needs an 18px disc with a 13px icon to survive; at the 15/9 it
+  started as, the two states were indistinguishable and the feature was pointless. Check
+  both states side by side at real size before shrinking it. Deliberately
   binary: holding duplicates reads as owned, and the duplicate pool is on the album
   screen. `App` derives `ownedStickerIds` from `stickers.album.collected` and passes it to
   `SquadPanel`, `BudgetMarket` and `XiTable`. **Keyed on player id, never `personId`** - a

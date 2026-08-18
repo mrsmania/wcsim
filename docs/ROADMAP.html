@@ -603,7 +603,15 @@ curl -sI https://mrsmania.github.io/wcsim/email/logo.png</pre></li>
       filter - unchanged. The read-only <code>/squads</code> browser deliberately keeps the
       plain star: it is a reference view over the dataset, not a surface you pick from.
       <b>Item 02 inherits this marker</b> - the discount it adds hangs off the same
-      owned set.</li>
+      owned set.
+      <br>Same day, on request: the glyphs are lucide <code>Star</code> and
+      <code>StarCheck</code> rather than text characters. That swap needed a size change to
+      mean anything - <code>StarCheck</code> differs from <code>Star</code> only by a small
+      tick off the lower-right point, and at the 15px disc with a 9px icon the two states
+      were indistinguishable, which is worse than one state. Compared five geometries
+      side by side and settled on an 18px disc with a 13px icon, where the tick survives;
+      the comment on the component says so, since shrinking it back would quietly undo the
+      feature.</li>
       <li><b>10 follow-up: a move can rotate three or more.</b> Done 2026-08-18, after the
       user asked why an interchangeable front three could not be switched round. Pairwise
       trades already worked and had shipped, so the report looked wrong at first - but the
