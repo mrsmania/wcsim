@@ -39,7 +39,7 @@ import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemi
 import { priceOf } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA } from '../src/domain/formations';
-import { canMove, moveTargets, placedPlayers, type Filled } from '../src/domain/draft';
+import { canMove, moveTargets, placedPlayers, planMove, type Filled } from '../src/domain/draft';
 import { BUDGET_DRAFT, BUDGET_BY_TIER } from '../src/config';
 import {
   BOONS,
@@ -339,6 +339,60 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     seen.set(to, here);
   }
   check('draft: a move stays within the position range, however often it is made', ok);
+}
+
+// --- Rotations: a legal cycle no pair can reach --------------------------------
+{
+  let ok = true;
+  const f = Object.values(FORMATIONS_DATA.byKey).find(
+    (fm) =>
+      fm.slots.some((s) => s.position === 'LW') &&
+      fm.slots.some((s) => s.position === 'RW') &&
+      fm.slots.some((s) => s.position === 'ST'),
+  )!;
+  const lw = f.slots.find((s) => s.position === 'LW')!;
+  const st = f.slots.find((s) => s.position === 'ST')!;
+  const rw = f.slots.find((s) => s.position === 'RW')!;
+  const mk = (id: string, positions: Player['positions']): Player => ({
+    id, personId: id, squadId: 'x', number: 9, name: id, positions, elo: 90,
+  });
+
+  // The real case from the dataset (Knoflicek / Burruchaga / Donadoni): the front three
+  // can rotate one place round, but NO pair of them can trade - each would land in a
+  // slot they cannot play. A pairwise-only rule offers nothing here.
+  const a = mk('a', ['LW', 'ST']);
+  const b = mk('b', ['AM', 'RW', 'ST']);
+  const c = mk('c', ['LW', 'RW', 'AM']);
+  // Only the front three exist, so the chain cannot escape into an empty midfield slot.
+  const trio: Filled = { [lw.id]: a, [st.id]: b, [rw.id]: c };
+  const frontOnly = { ...f, slots: [lw, st, rw] };
+  if (!canMove(frontOnly, trio, lw.id, st.id)) ok = false; // a -> ST, rotating b and c
+  const rotated = planMove(frontOnly, trio, lw.id, st.id)!;
+  if (rotated[st.id] !== a || rotated[rw.id] !== b || rotated[lw.id] !== c) ok = false;
+  // Every player still plays a position he actually has, and nobody was dropped.
+  for (const s of frontOnly.slots) {
+    const p = rotated[s.id];
+    if (!p || !p.positions.includes(s.position)) ok = false;
+  }
+  if (new Set(Object.values(rotated).map((p) => p!.id)).size !== 3) ok = false;
+
+  // Only that one direction is legal here: a cannot play RW, so rotating the other way
+  // is refused at the first step rather than fudged.
+  if (canMove(frontOnly, trio, lw.id, rw.id)) ok = false;
+  if (canMove(frontOnly, trio, st.id, lw.id)) ok = false; // b cannot play LW either
+  // Tapping the other end of the same cycle reaches the same legal arrangement.
+  const fromRw = planMove(frontOnly, trio, rw.id, lw.id);
+  if (!fromRw || fromRw[lw.id] !== c || fromRw[st.id] !== a || fromRw[rw.id] !== b) ok = false;
+
+  // A cycle that is genuinely impossible stays impossible: three one-position players
+  // have nowhere to go at all.
+  const stuck: Filled = {
+    [lw.id]: mk('x', ['LW']), [st.id]: mk('y', ['ST']), [rw.id]: mk('z', ['RW']),
+  };
+  for (const from of frontOnly.slots) {
+    if (moveTargets(frontOnly, stuck, from.id).size !== 0) ok = false;
+  }
+  check('draft: a legal rotation of three is offered where no pair can trade', ok);
 }
 
 // --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------

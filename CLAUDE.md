@@ -50,10 +50,19 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
   player can fill them (amber = natural/best position, white = a secondary one).
   With empty hands a **placed** badge can be tapped to move that player to another of
   his roles (`FEATURES.movePlayers`): his eligible slots light up - empty ones as a
-  "+", team-mates he can trade places with as an amber swap badge - and tapping him
-  again puts him back. A player with nowhere to go is not clickable at all, so the
-  gesture is never a dead end, and a held card (roll or market) suppresses it so
-  placement and collectible-swap targets keep the pitch to themselves.
+  "+", team-mates as an amber badge - and tapping him again puts him back. A player
+  with nowhere to go is not clickable at all, so the gesture is never a dead end, and a
+  held card (roll or market) suppresses it so placement and collectible-swap targets
+  keep the pitch to themselves. **A move is not always two players.** `planMove`
+  (domain/draft) runs a bipartite augmenting-path search (Kuhn), so besides an empty
+  slot and a straight trade it also finds **rotations of three or more** - which is the
+  only legal rearrangement more often than you would guess (9.3% of all legal moves,
+  measured over every formation). Real case: Knoflicek [LW,ST] at LW, Burruchaga
+  [AM,RW,ST] at ST, Donadoni [LW,RW,AM] at RW - no pair can trade, yet rotating all
+  three round is fine. The badge glyph and label say which: an arrows icon and "trade
+  places with X" for two, a rotate icon and "take X's spot, rotating N players" beyond
+  that. `planMove` returns the whole resulting `Filled`, and `MOVE_PLAYER` just stores
+  it, so the reducer never has to know the shape of the chain.
 - **Layout** (`App.tsx`): a 3-column grid (settings/squad/complete | pitch |
   ratings+chemistry+line-up) using the comps' breakpoints (1 col < 760px, 2 col
   760-1080, 3 col >= 1080). A masthead (gold-trophy logo, the amber `lucide` `Trophy` on

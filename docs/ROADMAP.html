@@ -535,6 +535,27 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>10 follow-up: a move can rotate three or more.</b> Done 2026-08-18, after the
+      user asked why an interchangeable front three could not be switched round. Pairwise
+      trades already worked and had shipped, so the report looked wrong at first - but the
+      narrow case behind it is real: where NO pair can trade, a rotation still can. From the
+      dataset, Knoflicek [LW,ST] at LW, Burruchaga [AM,RW,ST] at ST, Donadoni [LW,RW,AM] at
+      RW - each pairwise swap correctly refused (nobody can play the other's slot), yet
+      rotating all three one place round is perfectly legal, so the front three read as
+      stuck. Swept over every formation and 40 random XIs each: 8,801 legal moves, 821 of
+      them (9.3%) reachable only by a rotation.
+      <br><code>canMove</code> became <code>planMove</code>, which returns the whole
+      resulting placement and finds it with the standard bipartite augmenting path (Kuhn):
+      put the mover in his target, then re-place whoever he displaced, recursing through
+      whoever THAT displaces. Each slot is considered once per search, which keeps it linear
+      (~15 us even with eleven players who can all play everything) and finds the smallest
+      rearrangement rather than reshuffling the XI. The empty-slot move and the straight
+      trade are the same rule with chains of one and two, so nothing that worked before
+      changed. <code>MOVE_PLAYER</code> now just stores what <code>planMove</code> returns,
+      so the reducer never has to know the shape of the chain. The badge stops promising a
+      straight trade when it is not one: a rotate glyph and "take X's spot, rotating N
+      players". Verified over 8,801 plans that every result is a valid line-up with nobody
+      dropped or duplicated, plus the rotation and a plain trade driven in a browser.</li>
       <li><b>10 A placed player can move within his position range.</b> Done 2026-08-18.
       Tap his badge with empty hands and the slots he can take light up: empty ones as a
       "+", team-mates he can trade places with as an amber swap badge. Tapping him again

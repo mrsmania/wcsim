@@ -12,9 +12,26 @@ export function canPlace(player: Player, slot: Slot, filled: Filled): boolean {
 }
 
 /**
- * Can the player in `fromSlotId` move to `toSlotId`? Two shapes count: taking an EMPTY
- * slot whose role he can play, or trading places with an occupant who can play the slot
- * he is leaving (so a trade never leaves an invalid pairing behind).
+ * Move the player in `fromSlotId` to `toSlotId`, returning the resulting placement, or
+ * null when there is no legal way to do it. Everyone displaced is re-placed into a slot
+ * they can actually play, so the XI is always valid afterwards.
+ *
+ * Three shapes, all the same rule underneath:
+ *   * the target is EMPTY            -> he simply takes it
+ *   * a straight trade               -> the occupant can play the slot being vacated
+ *   * a ROTATION of three or more    -> nobody can trade pairwise, but a cycle works
+ *
+ * That third one is why this is a search and not a pair of ifs. Real example from the
+ * dataset: Knoflicek [LW,ST] at LW, Burruchaga [AM,RW,ST] at ST, Donadoni [LW,RW,AM] at
+ * RW. Every pairwise swap is refused (Burruchaga cannot play LW, Donadoni cannot play ST,
+ * Knoflicek cannot play RW), yet rotating all three one place round is perfectly legal.
+ * A pairwise-only rule offers nothing here, which reads as the front three being stuck.
+ *
+ * The search is the standard bipartite augmenting path (Kuhn): put the mover in his
+ * target, then try to re-place whoever he displaced, recursing through whoever THAT
+ * displaces. Each slot is considered at most once per search, which keeps it linear and
+ * loses nothing - a slot that cannot help this chain cannot help a later branch of it -
+ * and it finds the smallest rearrangement rather than reshuffling the whole XI.
  *
  * Eligibility reads the whole `positions` list, never `positions[0]`. `placedPlayers`
  * hands downstream code copies with the filled slot promoted to the front, so keying a
@@ -22,23 +39,57 @@ export function canPlace(player: Player, slot: Slot, filled: Filled): boolean {
  * happens to be standing - and shrink again with every move. The list is a set here, and
  * order carries no meaning.
  */
+export function planMove(
+  formation: Formation,
+  filled: Filled,
+  fromSlotId: string,
+  toSlotId: string,
+): Filled | null {
+  if (fromSlotId === toSlotId) return null;
+  const from = formation.slots.find((s) => s.id === fromSlotId);
+  const to = formation.slots.find((s) => s.id === toSlotId);
+  if (!from || !to) return null;
+  const mover = filled[from.id];
+  if (!mover || !mover.positions.includes(to.position)) return null;
+
+  // The mover goes first, which frees his old slot for the chain to end in.
+  const next: Filled = { ...filled };
+  delete next[from.id];
+  next[to.id] = mover;
+
+  const displaced = filled[to.id];
+  if (!displaced) return next;
+
+  const visited = new Set<string>([to.id]);
+  const rehouse = (player: Player): boolean => {
+    for (const s of formation.slots) {
+      if (visited.has(s.id) || !player.positions.includes(s.position)) continue;
+      visited.add(s.id);
+      const sitting = next[s.id];
+      // Free (an empty slot, or the one the mover just left) or its occupant can be
+      // moved along in turn. Assign only once the rest of the chain has worked out.
+      if (!sitting || rehouse(sitting)) {
+        next[s.id] = player;
+        return true;
+      }
+    }
+    return false;
+  };
+  return rehouse(displaced) ? next : null;
+}
+
+/** Whether that move is possible at all (see planMove for the rule). */
 export function canMove(
   formation: Formation,
   filled: Filled,
   fromSlotId: string,
   toSlotId: string,
 ): boolean {
-  if (fromSlotId === toSlotId) return false;
-  const from = formation.slots.find((s) => s.id === fromSlotId);
-  const to = formation.slots.find((s) => s.id === toSlotId);
-  if (!from || !to) return false;
-  const mover = filled[from.id];
-  if (!mover || !mover.positions.includes(to.position)) return false;
-  const occupant = filled[to.id];
-  return !occupant || occupant.positions.includes(from.position);
+  return planMove(formation, filled, fromSlotId, toSlotId) !== null;
 }
 
-/** Every slot the player in `fromSlotId` can move to (empty ones and trades alike). */
+/** Every slot the player in `fromSlotId` can move to: empty ones, straight trades, and
+ *  any slot reachable by rotating a chain of team-mates round. */
 export function moveTargets(formation: Formation, filled: Filled, fromSlotId: string): Set<string> {
   const out = new Set<string>();
   for (const s of formation.slots) {

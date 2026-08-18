@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Move, X } from 'lucide-react';
+import { ArrowLeftRight, Move, RotateCw, X } from 'lucide-react';
 
 /** Small red "x" control shown on a placed badge to clear its slot (testing aid). */
 function RemoveButton({ name, onRemove }: { name: string; onRemove: () => void }) {
@@ -25,6 +25,9 @@ interface Props {
     /** When true, mark this placed badge as a swap target (amber ring + swap glyph)
      *  because the selected player can be swapped into this slot. */
     swap?: boolean;
+    /** A swap target that is really a ROTATION: taking this slot shifts three or more
+     *  players round, so the glyph says so rather than promising a straight trade. */
+    rotate?: boolean;
     /** This player is the one being moved: lifted out of the line-up until a
      *  destination is picked (or the move is cancelled). */
     moving?: boolean;
@@ -38,6 +41,7 @@ export default function PlayerBadge({
     number,
     onRemove,
     swap = false,
+    rotate = false,
     moving = false,
 }: Props) {
     return (
@@ -55,7 +59,11 @@ export default function PlayerBadge({
                 )}
                 {swap && (
                     <span className="absolute -left-2 -top-2 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-amber text-ink">
-                        <ArrowLeftRight size={10} strokeWidth={3} />
+                        {rotate ? (
+                            <RotateCw size={10} strokeWidth={3} />
+                        ) : (
+                            <ArrowLeftRight size={10} strokeWidth={3} />
+                        )}
                     </span>
                 )}
             </span>

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/format';
 import type { Formation, Slot } from '../domain/formations';
-import { moveTargets, type Filled } from '../domain/draft';
+import { moveTargets, planMove, type Filled } from '../domain/draft';
 import { canSwapInto } from '../domain/album';
 import PlayerBadge from './PlayerBadge';
 
@@ -205,6 +205,7 @@ function OverlayMarker({
     isTarget,
     moveRole,
     movable,
+    shifts,
     left,
     top,
     scale,
@@ -229,6 +230,9 @@ function OverlayMarker({
     moveRole: 'mover' | 'destination' | 'bystander' | null;
     /** This placed player has at least one slot to move to, so his badge offers it. */
     movable: boolean;
+    /** How many players taking this destination would shift: 1 into an empty slot, 2 for
+     *  a straight trade, 3+ for a rotation. Only meaningful for a destination. */
+    shifts: number;
     left: string;
     top: string;
     scale: number;
@@ -262,16 +266,28 @@ function OverlayMarker({
                 </button>
             );
         }
-        // Move mode: this team-mate can trade places with the player being moved.
+        // Move mode: taking this slot either trades the two players straight over, or
+        // rotates a chain of three or more round. Say which, because "trade places with"
+        // would be a lie about the second.
         if (moveRole === 'destination' && onMove) {
+            const rotates = shifts > 2;
             return (
                 <button
                     className="absolute flex flex-col items-center"
                     style={style}
                     onClick={() => onMove(slot.id)}
-                    aria-label={`Trade places with ${lastName(player.name)}`}
+                    aria-label={
+                        rotates
+                            ? `Take ${lastName(player.name)}'s spot, rotating ${shifts} players`
+                            : `Trade places with ${lastName(player.name)}`
+                    }
                 >
-                    <PlayerBadge name={lastName(player.name)} number={player.number} swap />
+                    <PlayerBadge
+                        name={lastName(player.name)}
+                        number={player.number}
+                        swap
+                        rotate={rotates}
+                    />
                 </button>
             );
         }
@@ -413,10 +429,26 @@ export default function Pitch({
             .map((pl) => pl.personId),
     );
 
-    // Where the player being moved may go (empty slots he fits, plus team-mates he can
-    // trade places with). The rule lives in domain/draft; this only paints it.
+    // Where the player being moved may go, and how many players each option actually
+    // shifts: 1 for an empty slot, 2 for a straight trade, 3+ for a rotation. The rule
+    // lives in domain/draft; this only paints it, and the count keeps the label honest -
+    // "trade places with" would be a lie where three men rotate.
     const moving = movingSlotId && filled[movingSlotId] ? movingSlotId : null;
-    const destinations = moving ? moveTargets(formation, filled, moving) : null;
+    const destinations = (() => {
+        if (!moving) return null;
+        const out = new Map<string, number>();
+        for (const s of formation.slots) {
+            const plan = planMove(formation, filled, moving, s.id);
+            if (!plan) continue;
+            const shifted = new Set<string>();
+            for (const q of formation.slots) {
+                const before = filled[q.id];
+                if (before && before !== (plan[q.id] ?? null)) shifted.add(before.id);
+            }
+            out.set(s.id, shifted.size);
+        }
+        return out;
+    })();
 
     const marks = markingsPath();
     const spots = [
@@ -506,6 +538,7 @@ export default function Pitch({
                                 target={target}
                                 swapTarget={swapTarget}
                                 isTarget={!player && slot.id === targetSlotId}
+                                shifts={destinations?.get(slot.id) ?? 0}
                                 movable={
                                     !!player &&
                                     !moving &&

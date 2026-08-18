@@ -1,6 +1,6 @@
 import type { Player, Squad } from '../data/types';
 import type { Formation, FormationName, Style } from '../domain/formations';
-import { canMove, canPlace, isComplete, type Filled } from '../domain/draft';
+import { canPlace, isComplete, planMove, type Filled } from '../domain/draft';
 import { recordMatchday, type GroupState, type MatchdayResult } from '../domain/tournament';
 import { recordRound, type BracketGame, type BracketState } from '../domain/bracket';
 import { canSwapInto } from '../domain/album';
@@ -283,25 +283,24 @@ export function gameReducer(state: GameState, action: Action): GameState {
     }
 
     case 'MOVE_PLAYER': {
-      // Shift an already-placed player to another of his roles: into an empty slot, or
-      // trading places with whoever is there. The XI keeps the same eleven people, so
-      // usedPersonIds and the phase are both untouched (the count cannot change).
+      // Shift an already-placed player to another of his roles. `planMove` owns the rule
+      // and hands back the whole resulting placement, because a move is not always two
+      // players: where nobody can trade pairwise, a rotation of three or more can still
+      // be legal, and then everyone on that chain shifts one place round.
+      //
+      // The XI keeps the same eleven people whatever the shape, so usedPersonIds and the
+      // phase are both untouched (the count cannot change).
       //
       // The player objects are moved AS THEY ARE. Nothing here writes back a copy with
       // its positions reordered - that is what would make a player's range shrink each
-      // time he moved (see canMove).
+      // time he moved (see planMove).
       if (state.phase !== 'draft' && state.phase !== 'complete') return state;
       const { formation, filled } = state;
-      if (!formation || !canMove(formation, filled, action.fromSlotId, action.toSlotId)) {
-        return state; // invalid move: ignore
-      }
-      const mover = filled[action.fromSlotId];
-      const occupant = filled[action.toSlotId] ?? null;
-      if (!mover) return state;
-      const nextFilled: Filled = { ...filled, [action.toSlotId]: mover };
-      if (occupant) nextFilled[action.fromSlotId] = occupant;
-      else delete nextFilled[action.fromSlotId];
-      return { ...state, filled: nextFilled };
+      const moved = formation
+        ? planMove(formation, filled, action.fromSlotId, action.toSlotId)
+        : null;
+      if (!moved) return state; // invalid move: ignore
+      return { ...state, filled: moved };
     }
 
     case 'START_GROUP':
