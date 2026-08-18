@@ -442,12 +442,13 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   the line-up sheet (tier star + a tier-coloured left accent bar on the row).
   **`CollectibleStar` has two states**, because "is collectible" and "you already own
   this one" are different facts and the second is what you want while picking: lucide
-  **`Star`** = collectible you have not collected, **`StarCheck`** = already in the album.
+  **`Star`** = collectible you have not collected, **`Check`** = already in the album.
   Same disc, same tier colour, same size - only the glyph changes, so rows never reflow.
-  **The geometry is load-bearing:** `StarCheck` differs only by a small tick off the
-  lower-right point, so it needs an 18px disc with a 13px icon to survive; at the 15/9 it
-  started as, the two states were indistinguishable and the feature was pointless. Check
-  both states side by side at real size before shrinking it. Deliberately
+  **Keep the two glyphs different shapes:** `StarCheck` was tried for the owned state and
+  differs from `Star` only by a small tick off the lower-right point, so at badge size the
+  two states were indistinguishable and it took an 18px disc to make the tick survive at
+  all. A plain check reads instantly at 15px, which is why the disc matches every other
+  list again. Anything star-shaped for "owned" brings the problem back. Deliberately
   binary: holding duplicates reads as owned, and the duplicate pool is on the album
   screen. `App` derives `ownedStickerIds` from `stickers.album.collected` and passes it to
   `SquadPanel`, `BudgetMarket` and `XiTable`. **Keyed on player id, never `personId`** - a
