@@ -562,7 +562,18 @@
       every click. That highlight now steps aside for the duration of a move (a quiet
       dashed circle), while a genuine empty destination still pulses. Both halves checked
       in a browser: no inert pulse survives with a player held, and an empty destination
-      still lights up and accepts the move.</li>
+      still lights up and accepts the move.
+      <br>And a second: the two selections now override each other both ways. Taking a card
+      out of the squad list or the market already dropped a move in progress, but the
+      reverse did nothing at all - with a card in hand, tapping a placed player was inert,
+      so the only way out was to put the card back first. Now that tap picks the player up
+      and drops the card (<code>SELECT_PLAYER</code> takes <code>null</code>). One
+      precedence rule survives, and it is not an asymmetry: a slot the held
+      <b>collectible</b> can swap into keeps the swap, since that is the specific thing
+      that card is for. The cancel effect had to stop watching the selection at the same
+      time, or a move would have cancelled itself the instant it cleared the card. Checked
+      in a browser both ways, and that a held collectible still shows "swap in for" on the
+      two slots it fits while the other badges offer a move.</li>
       <li><b>10 A placed player can move within his position range.</b> Done 2026-08-18.
       Tap his badge with empty hands and the slots he can take light up: empty ones as a
       "+", team-mates he can trade places with as an amber swap badge. Tapping him again

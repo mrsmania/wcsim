@@ -361,8 +361,17 @@ export default function App({
     }, [previewFormation, location.pathname]);
 
     // Hold / release a market player (its eligible slots then pulse on the pitch).
+    // Taking a card in hand drops a move in progress: only one thing is being aimed
+    // at a time, and the last tap is what the user means.
     const handleBudgetHold = useCallback((player: Player) => {
+        setMovingSlotId(null);
         setHeldId((id) => (id === player.id ? null : player.id));
+    }, []);
+
+    // Same rule for a drawn-squad card.
+    const handleSelectPlayer = useCallback((playerId: string) => {
+        setMovingSlotId(null);
+        dispatch({ type: 'SELECT_PLAYER', playerId });
     }, []);
 
     // Auto-fill: commit a full budget XI (the market computes it). AUTOFILL -> complete.
@@ -424,7 +433,12 @@ export default function App({
 
     // --- move a placed player within his position range -----------------------
     // Pick a placed player up, or put him back down if he is the one already held.
+    // This is the other half of the rule above: it drops whatever card was selected in
+    // the squad list or the market, so the two gestures overwrite each other in both
+    // directions rather than one silently winning.
     const handleStartMove = useCallback((slotId: string) => {
+        dispatch({ type: 'SELECT_PLAYER', playerId: null });
+        setHeldId(null);
         setMovingSlotId((cur) => (cur === slotId ? null : slotId));
     }, []);
     // Drop him into the chosen slot. The reducer re-checks eligibility and ignores an
@@ -437,12 +451,12 @@ export default function App({
         },
         [movingSlotId],
     );
-    // Moving is a two-tap gesture made with empty hands, so anything that fills them -
-    // picking a card out of the drawn squad or the market - cancels it, as does a
-    // formation change (different slots) or leaving the build behind.
+    // A formation change (different slots) or leaving the build behind drops the move.
+    // Deliberately NOT keyed on the selection: handleStartMove clears it, so watching it
+    // here would have a move cancel itself the moment it began.
     useEffect(() => {
         setMovingSlotId(null);
-    }, [selectedPlayerId, heldId, activeFormation, phase]);
+    }, [activeFormation, phase]);
 
     // --- budget build: place / shop / remove on the shared pitch ---------------
     // Buy the held market player into an eligible slot, then shop the next empty one.
@@ -941,9 +955,7 @@ export default function App({
                                                 usedPersonIds={usedSet}
                                                 selectedPlayerId={selectedPlayerId}
                                                 onReroll={handleReroll}
-                                                onSelectPlayer={(playerId) =>
-                                                    dispatch({ type: 'SELECT_PLAYER', playerId })
-                                                }
+                                                onSelectPlayer={handleSelectPlayer}
                                                 onReset={handleReset}
                                             />
                                         ))}
@@ -1001,14 +1013,13 @@ export default function App({
                                                 targetSlotId={
                                                     isBudgetBuild ? budgetTargetSlot?.id : undefined
                                                 }
-                                                // Moving a placed player: only with
-                                                // empty hands, so a held card (roll or
-                                                // market) keeps its own placement and
-                                                // swap targets.
+                                                // Moving a placed player. Offered even
+                                                // with a card in hand: a slot the held
+                                                // card can swap into keeps the swap, and
+                                                // anywhere else the tap picks the placed
+                                                // player up instead, dropping the card.
                                                 onStartMove={
-                                                    FEATURES.movePlayers &&
-                                                    !selectedPlayer &&
-                                                    !heldPlayer
+                                                    FEATURES.movePlayers
                                                         ? handleStartMove
                                                         : undefined
                                                 }

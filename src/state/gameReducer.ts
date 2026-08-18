@@ -83,7 +83,8 @@ export type Action =
     }
   | { type: 'ROLL_START'; isReroll: boolean }
   | { type: 'ROLL_SETTLE'; squad: Squad }
-  | { type: 'SELECT_PLAYER'; playerId: string }
+  // `null` clears the selection (picking a placed player up for a move does that).
+  | { type: 'SELECT_PLAYER'; playerId: string | null }
   | { type: 'PLACE_PLAYER'; slotId: string }
   | { type: 'SWAP_PLAYER'; slotId: string }
   | { type: 'REMOVE_PLAYER'; slotId: string }
