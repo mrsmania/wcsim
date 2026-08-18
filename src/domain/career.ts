@@ -139,6 +139,19 @@ export const PERKS: Perk[] = [
     ],
   },
   {
+    // Two more squad re-rolls in the ROLL draft. Priced near Physio Table, a little
+    // under it at tier 1: it is the same kind of agency (reject what you were dealt)
+    // but it only touches the build, and only one of the two build methods, since the
+    // transfer market has nothing to re-roll. The descriptions say so, because the
+    // shop is open before a build method is picked and cannot hide the perk.
+    id: 'extra-reroll',
+    name: 'Extra Re-roll',
+    tiers: [
+      { level: 1, description: 'A 4th squad re-roll when you roll your XI (Career Mode).', cost: 30, levelReq: 1 },
+      { level: 2, description: 'A 5th squad re-roll when you roll your XI.', cost: 75, levelReq: 4 },
+    ],
+  },
+  {
     // Re-roll a boost offer you do not like. Cheap agency rather than raw power, and
     // the one perk that gets better the wider the pool is.
     id: 'physio',
@@ -154,6 +167,15 @@ export const perkById = (id: string): Perk | undefined => PERKS.find((p) => p.id
 
 /** The owned tier of a perk (0 = not owned). */
 export const perkLevelOf = (career: CareerState, id: string): number => career.perkLevels[id] ?? 0;
+
+/** Extra squad re-rolls from the Extra Re-roll perk: the owned tier is the count, so
+ *  the roll draft starts at `INITIAL_REROLLS` plus this. Clamped to the tiers that
+ *  exist, so an old save claiming a higher level cannot hand out more. Career Mode
+ *  only, like the transfer-budget perk - a Quick Run keeps the base three. */
+export function extraRerollsOf(career: CareerState): number {
+  const tiers = perkById('extra-reroll')?.tiers.length ?? 0;
+  return Math.min(perkLevelOf(career, 'extra-reroll'), tiers);
+}
 
 /** The next unbought tier of a perk, or null if it is maxed / unknown. */
 export function nextPerkTier(career: CareerState, id: string): PerkTier | null {

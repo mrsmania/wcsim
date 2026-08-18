@@ -197,7 +197,7 @@ export default function SquadPanel({
                     />
                 </div>
                 <div className="mt-2 text-center text-[11px] text-muted">
-                    {rerollsLeft} re-rolls left
+                    {rerollsLeft} re-roll{rerollsLeft === 1 ? '' : 's'} left
                     {FEATURES.stickerAlbum && (
                         <>
                             {' '}

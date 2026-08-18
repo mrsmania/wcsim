@@ -40,6 +40,7 @@ import { teamChemistry } from './domain/chemistry';
 import { buildBracket } from './domain/bracket';
 import { KO_ROUNDS } from './domain/knockout';
 import { userRatingDelta, type Difficulty } from './domain/difficulty';
+import { extraRerollsOf } from './domain/career';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
@@ -307,13 +308,15 @@ export default function App({
         if (!previewFormation) return;
         // A fresh draft means a fresh team, so drop any in-progress Cup Run.
         if (FEATURES.careerMode) void store.saveRun(null);
+        // Career Mode tops up the re-rolls via the Extra Re-roll perk; a Quick Run keeps
+        // the base three. Read at the click (store.peek is synchronous), so buying the
+        // perk in the hub and coming straight back applies without a reload.
+        const mode = modeOfPath(location.pathname);
+        const extraRerolls =
+            FEATURES.careerMode && mode === 'career' ? extraRerollsOf(store.peek().career) : 0;
         // Just enter the draft; the draw-next-squad effect rolls the first squad
         // from committed state (an open slot with no squad in hand).
-        dispatch({
-            type: 'START_DRAFT',
-            formation: previewFormation,
-            mode: modeOfPath(location.pathname),
-        });
+        dispatch({ type: 'START_DRAFT', formation: previewFormation, mode, extraRerolls });
     }, [previewFormation, location.pathname]);
 
     // Testing shortcut: auto-pick a full valid XI (within a strength band) and

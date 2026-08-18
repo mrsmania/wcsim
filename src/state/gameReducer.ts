@@ -13,7 +13,10 @@ export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
  *  (`filled`) and the same pitch/ratings/line-up; only the left column differs. */
 export type BuildMethod = 'roll' | 'budget';
 
-const INITIAL_REROLLS = 3;
+/** Squad re-rolls a roll draft starts with. Career Mode can add to it: the Extra
+ *  Re-roll perk's tier is passed in on START_DRAFT (see App), since the reducer knows
+ *  nothing about the career. */
+export const INITIAL_REROLLS = 3;
 /** Player swaps allowed per game (sticker album feature). Only collectibles can be
  *  swapped in, and only this many times per run. Exported because the server-side
  *  economy validation mirrors it (scripts/gen-collectibles.ts). */
@@ -62,7 +65,13 @@ export type Action =
   | { type: 'SET_STYLE'; style: Style }
   // `mode` stamps which launcher path the build belongs to; omitted means keep whatever
   // it already was (the market's "Clear" re-enters the same build).
-  | { type: 'START_DRAFT'; formation: Formation; mode?: 'quick' | 'career' }
+  | {
+      type: 'START_DRAFT';
+      formation: Formation;
+      mode?: 'quick' | 'career';
+      /** Extra re-rolls on top of INITIAL_REROLLS (the Extra Re-roll perk's tier). */
+      extraRerolls?: number;
+    }
   | { type: 'START_BUDGET'; formation: Formation; mode?: 'quick' | 'career' }
   | { type: 'BUY_PLAYER'; slotId: string; player: Player }
   | {
@@ -128,6 +137,9 @@ export function gameReducer(state: GameState, action: Action): GameState {
         formation: action.formation,
         filled: {},
         buildMode: action.mode ?? state.buildMode,
+        // Set here rather than left at the initial value: a draft can start without a
+        // reset in between, and the perk that tops it up is read per draft.
+        rerollsLeft: INITIAL_REROLLS + Math.max(0, action.extraRerolls ?? 0),
       };
 
     case 'START_BUDGET':

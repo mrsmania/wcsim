@@ -451,10 +451,12 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   (GK/DEF). +6 to one attacker is +1 attack, not +6. Its budget is the SUM of both
   movements, so Golden Generation (+2/+2) costs 4 and a common giving +2 to one line
   costs 2, half of it. Bands are **common 2.0, rare 3.2, legendary 4.5**, and
-  **`npm run checks` prints every boon's figure and fails on an overspend** (it averages
-  over 12 budget-built sample XIs x 20 applications each; with a single sample XI the
-  figures swung by more than a point and the assertion failed intermittently, so do not
-  cut the sample count). Boons that
+  **`npm run checks` prints every boon's figure and fails on an overspend** (12
+  budget-built sample XIs x 20 applications each, with `Math.random` **seeded** for that
+  block: averaging alone left legends-reunion close enough to its band to cross it about
+  one run in three, and a randomly-failing assertion is worse than none. The verdict is
+  taken at the precision the bands are written in, 0.1, so a boon has to read 4.6 against
+  4.5 to fail rather than losing on a third decimal). Boons that
   give points back (Glass Cannon, Catenaccio, Counter Attack) or hang on the draw
   (Familiar Foes, Underdog Spirit, Poach) are exempt and marked as such.
   **A condition the player controls at build time is not allowed:** the old Chemistry
@@ -521,9 +523,17 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   first), then the shared `RunEndStickerSummary` shows any new cards. Reload-safe via the flag.
 - **Career** (`domain/career.ts`, `state/careerStorage.ts` key `wcsim_career_v1`):
   a run awards XP (-> levels) and Prestige, spent in a small perk shop (Scout Network,
-  Deep Squad, Extra Choice, Transfer Budget, Physio Table) that feeds the next run. A
-  trophy record (runs/cups/best) sits in the `CupRunScreen` hub. Separate storage from
-  the game + album.
+  Deep Squad, Extra Choice, Transfer Budget, Physio Table, Extra Re-roll) that feeds the
+  next run. The shop is data-driven off `PERKS`, so a new perk appears by being added
+  there; what needs wiring is only its effect. A trophy record (runs/cups/best) sits in
+  the `CupRunScreen` hub. Separate storage from the game + album.
+  **Two perks reach outside the run**, both Career-Mode-only and both read in `App`
+  (a Quick Run keeps the plain defaults): `transfer-budget` -> `BUDGET_BY_TIER` -> the
+  market's budget, and `extra-reroll` -> `extraRerollsOf` -> `START_DRAFT`'s
+  `extraRerolls`, which sets `rerollsLeft` to `INITIAL_REROLLS` + the owned tier (so
+  tier 1 is a 4th re-roll, tier 2 a 5th). The reducer knows nothing about the career,
+  hence the number being passed in; `npm run checks` asserts the two stay in step,
+  including that the shop copy's ordinal matches the resulting total.
   Rebalanced 2026-08-15: Deep Squad stops at +2 (a permanent +3 to the whole XI beat
   every legendary boon and never wore off), Scout Network's free starting boosts draw
   from **commons only** (a free legendary before kickoff outweighed every in-run

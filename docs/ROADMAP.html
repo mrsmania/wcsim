@@ -319,7 +319,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 10 items<br>
+    <strong>Open:</strong> 9 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -536,29 +536,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">13</span>
-    <span class="title">New perk: a 4th and a 5th re-roll
-      <span class="sub">Roll mode only, since the transfer market has no re-rolls.</span>
-    </span>
-    <span class="tag">Career</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>One perk with two tiers: +1 re-roll at level 1, +2 at level 2, on top of the three in
-    <code>INITIAL_REROLLS</code>. It has to apply to the roll draft only, because the budget
-    build has nothing to re-roll and Prestige spent there would buy nothing.</p>
-    <p>Practically that means the perk must reach the reducer's starting
-    <code>rerollsLeft</code>, the way the transfer-budget perk reaches
-    <code>BudgetMarket</code> today, and the shop has to be honest about the restriction.</p>
-    <p class="next"><strong>Next step:</strong> price it against the existing perks (Scout,
-    Deep Squad, Extra Choice, Physio) and decide whether the shop hides it in budget mode or
-    just labels it.</p>
-    <p class="files">src/domain/career.ts, src/state/gameReducer.ts, src/App.tsx, src/components/CupRunScreen.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">15</span>
     <span class="title">Rework the sign-in email, with a copy button
       <span class="sub">Make the six-digit code easy to lift out.</span>
@@ -584,6 +561,22 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>13 New perk: Extra Re-roll (a 4th and a 5th).</b> Done 2026-08-18. Two tiers,
+      30 and 75 Prestige at level 1 and 4 - priced just under Physio Table, since it is the
+      same kind of agency (reject what you were dealt) but only touches the build, and only
+      one of the two build methods. <code>App</code> reads the owned tier when "Roll a squad"
+      is clicked and passes it on <code>START_DRAFT</code>, which sets
+      <code>rerollsLeft</code> to <code>INITIAL_REROLLS</code> plus the tier; the reducer
+      stays ignorant of the career, like the transfer-budget perk before it. Career Mode only,
+      so a Quick Run keeps its three. <i>Decisions:</i> the shop <b>labels</b> rather than
+      hides the restriction ("when you roll your XI"), because the shop is open before a build
+      method is chosen and cannot know; and the perk applies per draft rather than per reset,
+      so buying it in the hub and coming straight back works. A new
+      <code>npm run checks</code> case ties the two sides together, including that the copy's
+      ordinal matches the resulting total, so moving one without the other fails the build.
+      Verified in a browser across all four cases: career mode at tier 0/1/2 shows 3/4/5
+      re-rolls left in both the panel and the state, and Quick Run with tier 2 owned still
+      shows 3. The counter also stops saying "1 re-rolls left".</li>
       <li><b>09 Blank white page while the app loads.</b> Done 2026-08-18.
       <code>index.html</code> now paints the ground colour and, after 350ms, a trophy tile,
       wordmark and spinner - all inline, since <code>index.css</code> only arrives with the
