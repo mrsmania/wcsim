@@ -1,5 +1,5 @@
 import { PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
-import { AWARD, challengeById } from '../../domain/challenges';
+import { AWARD, AWARDS_ON, challengeById } from '../../domain/challenges';
 import ChallengeRow from '../challengeUi';
 import type { Reward } from './types';
 
@@ -41,9 +41,11 @@ export default function RunEndPanel({
             <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-accent">
               Challenges completed
             </span>
-            <span className="font-mono text-[13px] font-bold text-amber">
-              +{reward.challengePrestige} Prestige
-            </span>
+            {AWARDS_ON && (
+              <span className="font-mono text-[13px] font-bold text-amber">
+                +{reward.challengePrestige} Prestige
+              </span>
+            )}
           </div>
           <ul className="flex flex-col gap-1.5">
             {reward.challenges.map((id) => {

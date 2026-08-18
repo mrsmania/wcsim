@@ -61,11 +61,21 @@ export const FEATURES = {
      *  only the random roll. */
     budgetDraft: true,
     /** Challenges: permanent honours over a finished Cup Run (a catalogue of one-off
-     *  goals, each worth Prestige), the /challenges catalogue screen, the hub card, and
-     *  the run-end completion list. Career Mode only, like the rest of that layer. Set
-     *  false and no challenge is evaluated, no Prestige is paid for one, and the screen
-     *  and its entry points disappear. Plan: docs/challenges-spec.html. */
+     *  goals), the /challenges catalogue screen, the hub card, and the run-end completion
+     *  list. Career Mode only, like the rest of that layer. Set false and no challenge is
+     *  evaluated, no Prestige is paid for one, and the screen and its entry points
+     *  disappear. Plan: docs/challenges-spec.html. */
     challenges: true,
+    /** Whether a challenge PAYS Prestige. One switch for both halves, deliberately: with
+     *  it false nothing is paid AND no award is shown anywhere (the catalogue cards, the
+     *  hub card, the run-end list, the counter's Prestige cell), because Prestige arriving
+     *  from an invisible source is worse than either. Off while the numbers are untuned -
+     *  a run pays roughly 9 to 30 Prestige and a first cup clears a dozen challenges at
+     *  10/30/75, so the catalogue is by far the bigger faucet early on. Completions still
+     *  happen, are still stored, and still show as completed; only the money is off, so
+     *  turning it back on later costs nothing but the arrears.
+     *  The tier (bronze/silver/gold) stays visible either way: it reads as difficulty. */
+    challengeAwards: false,
     /** Optional accounts: sign in with an emailed 6-digit code so the album, career
      *  and challenges are the same on every device. Derived, not hand-set: it is on
      *  only when the build was given a server (VITE_SUPABASE_URL + _ANON_KEY). With

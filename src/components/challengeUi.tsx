@@ -1,6 +1,7 @@
 import { Check, Lock } from 'lucide-react';
 import {
   AWARD,
+  AWARDS_ON,
   FAMILY_NAME,
   type Challenge,
   type ChallengeFamily,
@@ -55,7 +56,8 @@ export default function ChallengeRow({
   award,
 }: {
   challenge: Challenge;
-  /** Prestige to show on the right (the tier award). */
+  /** Prestige to show on the right (the tier award). Hidden entirely when challenges
+   *  do not pay - see FEATURES.challengeAwards. */
   award: number;
 }) {
   return (
@@ -67,7 +69,9 @@ export default function ChallengeRow({
         </span>
         <span className="block text-[12px] leading-snug text-muted">{challenge.description}</span>
       </span>
-      <span className="shrink-0 font-mono text-[12.5px] font-bold text-accent">+{award}</span>
+      {AWARDS_ON && (
+        <span className="shrink-0 font-mono text-[12.5px] font-bold text-accent">+{award}</span>
+      )}
     </div>
   );
 }
@@ -96,9 +100,11 @@ export function ChallengeCard({
         >
           {TIER_NAME[challenge.tier]}
         </span>
-        <span className="ml-auto font-mono text-[12px] font-bold text-accent">
-          +{AWARD[challenge.tier]}
-        </span>
+        {AWARDS_ON && (
+          <span className="ml-auto font-mono text-[12px] font-bold text-accent">
+            +{AWARD[challenge.tier]}
+          </span>
+        )}
       </div>
       <h4 className="font-display text-[15px] font-extrabold leading-tight tracking-[-0.01em]">
         {challenge.name}

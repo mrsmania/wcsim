@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES } from '../../config';
-import { AWARD, challengeById, challengeProgress } from '../../domain/challenges';
+import { AWARD, AWARDS_ON, challengeById, challengeProgress } from '../../domain/challenges';
 import ChallengeRow from '../challengeUi';
 import {
     PERKS,
@@ -171,9 +171,11 @@ export default function CareerHub({
                                 <span className="font-mono text-[12px] font-bold">
                                     {challenges.completed} / {challenges.total}
                                 </span>
-                                <span className="font-mono text-[11px] text-muted">
-                                    {challenges.prestige} Prestige earned
-                                </span>
+                                {AWARDS_ON && (
+                                    <span className="font-mono text-[11px] text-muted">
+                                        {challenges.prestige} Prestige earned
+                                    </span>
+                                )}
                                 <Link
                                     to="/challenges"
                                     className="ml-auto font-display text-[11.5px] font-extrabold uppercase tracking-[0.06em] text-accent transition hover:underline"

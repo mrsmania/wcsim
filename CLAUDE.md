@@ -605,11 +605,23 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   final XI at dataset ratings, the XI minus roster boosts, every match, goals for and
   against, clean sheets, boost rarities) and `completedIn(ctx)`, which returns the ids a
   finished run newly satisfies. `AWARD` is bronze 10, silver 30, gold 75.
+- **Awards are behind their own flag, `FEATURES.challengeAwards`, currently OFF.** One
+  switch for both halves deliberately: with it false nothing is paid **and** no award is
+  shown anywhere (`AWARDS_ON` gates the catalogue cards, the hub card, the run-end list and
+  the counter's Prestige cell), because Prestige arriving from an invisible source is worse
+  than either. Completions still happen and are still stored, so switching it on later
+  costs nothing but the arrears. The reason it is off: a run pays roughly 9 to 30 Prestige
+  and a first cup clears a dozen challenges at 10/30/75, so the catalogue would be by far
+  the bigger faucet early on. The tier chip stays visible either way - it reads as
+  difficulty.
 - **103 are judged; 27 carry a `blocked` reason** and are never evaluated: how the XI was
   built (families J and K), chemistry at kickoff, and the career streak counters
   (consecutive cups, per-Ascension records, Prestige spent). They stay in the catalogue
   because the screen should show what is coming, and they render as "not tracked yet".
   Unblocking one is the plumbing wave in the plan: add the field, drop the `blocked`.
+  **The plan to get all 130 judged is section 8 of `docs/challenges-spec.html`** (four
+  slices, no SQL migration in any of them, since `CareerStats` is a merged jsonb column and
+  `RunState` is a jsonb blob).
 - **The seam is `applyRunResult`** (domain/career.ts), which takes an optional
   `ChallengeInput` (`base`, `album`, `trades`) and returns `challengesCompleted` +
   `challengePrestige` alongside the XP/Prestige it always returned. Judged against the

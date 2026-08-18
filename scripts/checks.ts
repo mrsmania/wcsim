@@ -37,6 +37,7 @@ import {
 import { sideOf, KO_ROUNDS } from '../src/domain/knockout';
 import {
   AWARD,
+  AWARDS_ON,
   CHALLENGES,
   FAMILIES,
   challengeById,
@@ -934,7 +935,8 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const input = { base: basePlayer, album: emptyAlbum(), trades: 0 };
   const first = applyRunResult(INITIAL_CAREER, run, input);
   const again = applyRunResult(first.career, run, input);
-  const paid = prestigeFor(first.challengesCompleted);
+  // With FEATURES.challengeAwards off a challenge completes but pays nothing.
+  const paid = AWARDS_ON ? prestigeFor(first.challengesCompleted) : 0;
 
   // A career one short of "complete 10 challenges" must tick it in the SAME run that
   // takes it past ten, not the next one (that is what the fixed-point loop is for).

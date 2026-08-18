@@ -2,6 +2,7 @@ import type { Player } from '../data/types';
 import type { RunOutcome, RunState } from './run';
 import { boonById, BOON_UNLOCK_COST } from './boons';
 import { ascensionAt, MAX_ASCENSION } from './ascension';
+import { FEATURES } from '../config';
 import { completedIn, prestigeFor } from './challenges';
 import type { AlbumState } from './album';
 
@@ -248,7 +249,9 @@ export function applyRunResult(career: CareerState, run: RunState, ch?: Challeng
   const challengesCompleted = ch
     ? completedIn({ run, career: banked, base: ch.base, album: ch.album, trades: ch.trades })
     : [];
-  const challengePrestige = prestigeFor(challengesCompleted);
+  // FEATURES.challengeAwards off: challenges still complete and are still recorded,
+  // they simply pay nothing (and nothing is shown paying).
+  const challengePrestige = FEATURES.challengeAwards ? prestigeFor(challengesCompleted) : 0;
   return {
     career: {
       ...banked,

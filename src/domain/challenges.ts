@@ -612,10 +612,11 @@ export function completedIn(ctx: ChallengeCtx): string[] {
     const before = gained.length;
     // Each pass sees what the earlier ones completed AND the Prestige they paid, so a
     // wallet threshold ("hold 200 Prestige") can be crossed by the awards of the same run.
+    // With awards off nothing is paid, so nothing is added here either.
     const career: CareerState = {
       ...view.career,
       completedChallenges: [...done],
-      prestige: view.career.prestige + prestigeFor(gained),
+      prestige: view.career.prestige + (FEATURES.challengeAwards ? prestigeFor(gained) : 0),
     };
     for (const c of CHALLENGES) {
       if (c.blocked || done.has(c.id)) continue;
@@ -639,6 +640,10 @@ export function completedIn(ctx: ChallengeCtx): string[] {
 /** Total Prestige for a set of completed ids (unknown ids are worth nothing). */
 export const prestigeFor = (ids: string[]): number =>
   ids.reduce((n, id) => { const c = challengeById(id); return n + (c ? AWARD[c.tier] : 0); }, 0);
+
+/** Whether a challenge pays, and therefore whether any award is shown. One switch for
+ *  both, so Prestige never arrives from a source the player cannot see. */
+export const AWARDS_ON = FEATURES.challengeAwards;
 
 /** Catalogue progress, for the counter on the catalogue screen and the hub card. */
 export interface ChallengeProgress {

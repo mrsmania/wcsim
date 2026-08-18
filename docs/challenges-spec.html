@@ -542,17 +542,16 @@ states (available, completed, not tracked yet).</p>
 <p>Each slice ships behind <code>FEATURES.challenges</code> and is useful alone.</p>
 
 <ol>
-  <li><b>The engine and the free half.</b> <code>domain/challenges.ts</code> with the model,
-  the context builder (including <code>base()</code>), and the ~100 challenges that need no
-  new tracking. Evaluated in <code>applyRunResult</code>; <code>CareerState</code> gains
+  <li><b>The engine and the free half.</b> <span class="tag t-b">shipped 2026-08-18</span>
+  <code>domain/challenges.ts</code> with the model, the context builder (including
+  <code>base()</code>), and the 103 challenges that need no new tracking. Evaluated in
+  <code>applyRunResult</code>; <code>CareerState</code> gains
   <code>completedChallenges</code>. Run-end screen lists what was completed. Checks harness
-  gets a "every predicate is total and pure" sweep plus hand-built runs for the tricky ones
+  got the "every predicate is total and pure" sweep plus hand-built runs for the tricky ones
   (clean sheets with a shootout, boosted-player exclusion).</li>
   <li><b>The catalogue screen</b> (<code>/challenges</code>) and the hub card, with the
-  completion counter.</li>
-  <li><b>The plumbing wave.</b> Build method, budget spent, formation and style, slot
-  positions, chemistry at kickoff, and the career counters - unlocking families J, K and the
-  streak entries in L.</li>
+  completion counter. <span class="tag t-b">shipped 2026-08-18</span></li>
+  <li><b>The plumbing wave</b> - the remaining 27, planned in section 8 below.</li>
   <li><b>Trophy cabinet</b> (item 06) reads the completed set: badges by family, newest
   first, with the run that earned each one.</li>
 </ol>
@@ -569,9 +568,109 @@ states (available, completed, not tracked yet).</p>
   Worth a decision before the reward numbers are tuned.</li>
 </ul>
 
+<h2>8. The plumbing wave: all 130 judged at launch</h2>
+
+<p><strong>Goal: no "not tracked yet" entry survives to launch.</strong> 27 do today. Each is
+blocked on a fact nobody records, never on anything hard: the fields all exist somewhere in
+the app at the moment a run begins, they simply are not carried into <code>RunState</code> or
+kept on the career. Four slices, in the order they are worth doing.</p>
+
+<div class="callout">
+  <span class="ct">No migration in any of this</span>
+  <code>CareerStats</code> is a <code>jsonb</code> column, read as
+  <code>{...INITIAL.stats, ...row.stats}</code> and written whole, so new counters need no
+  SQL. <code>RunState</code> is a <code>jsonb</code> blob in <code>active_run</code> and one
+  JSON string in <code>localStorage</code>, so new run fields need none either. The only
+  outstanding migration is 0011 (the completed set), which is roadmap item 20.
+</div>
+
+<h3>Slice A. Career counters - 9 entries, one file</h3>
+<p>Everything here is computed in <code>applyRunResult</code>, which already sees the finished
+run and the career, plus two lines in the spend functions. The counters must be updated
+<b>before</b> <code>completedIn</code> runs, exactly as <code>stats</code> is today, so a run
+completes the challenge it just satisfied.</p>
+<table>
+  <tr><th>Field on <code>CareerStats</code></th><th>Meaning</th><th>Unblocks</th></tr>
+  <tr><td class="name">cupStreak</td><td class="cond">Consecutive runs ending champion; any other outcome resets it.</td><td class="cond">Back to Back (2+), Three-Peat (3+)</td></tr>
+  <tr><td class="name">finalStreak</td><td class="cond">Consecutive runs reaching the final or better.</td><td class="cond">On a Roll (see the catalogue fix below)</td></tr>
+  <tr><td class="name">semiStreak</td><td class="cond">Consecutive runs reaching the semi-final or better.</td><td class="cond">Consistency (5+)</td></tr>
+  <tr><td class="name">lastOutcome</td><td class="cond">The previous run's outcome, read before it is overwritten.</td><td class="cond">Nearly Man (previous was a lost final, this one is a cup)</td></tr>
+  <tr><td class="name">everLostFinal</td><td class="cond">A final has been lost at least once.</td><td class="cond">Straight Up (a tier unlocked with this still false)</td></tr>
+  <tr><td class="name">cupsByAscension</td><td class="cond">Cups won per Ascension tier (an array indexed by tier).</td><td class="cond">Ladder Climb (every tier at least once)</td></tr>
+  <tr><td class="name">runsAtHighAscension</td><td class="cond">Finished runs at Ascension II or higher.</td><td class="cond">Hard Habit (10+)</td></tr>
+  <tr><td class="name">prestigeSpent</td><td class="cond">Lifetime Prestige spent, incremented in <code>buyPerkTier</code> and <code>unlockBoon</code>.</td><td class="cond">Spendthrift (500+)</td></tr>
+  <tr><td class="name">cupFormations</td><td class="cond">Distinct formations a cup has been won with (needs slice B for the formation itself).</td><td class="cond">Shape Shifter (3+)</td></tr>
+</table>
+<p><b>Catalogue fix, while here:</b> <i>On a Roll</i> ("win three runs in a row") is
+indistinguishable from <i>Three-Peat</i>. Redefine it as <b>reach a final in three consecutive
+runs</b> and keep the id, so nothing anyone has earned is orphaned.</p>
+<p><b>Checks:</b> hand-built career sequences rather than simulated runs - three cups in a row
+completes both streak entries, a group exit between two cups completes neither, a lost final
+followed by a cup completes Nearly Man, and a counter never goes backwards.</p>
+
+<h3>Slice B. Shape and positions - 8 entries, one new run field</h3>
+<p>The run receives a bare <code>Player[]</code>, and <code>placedPlayers</code> promotes the
+slot's role to <code>positions[0]</code>, so <b>the natural position cannot be recovered from
+the XI afterwards</b> - and roster boosts change the XI after kickoff anyway. So the kickoff
+shape is recorded rather than derived:</p>
+<pre>RunState.shape?: {
+  formation: FormationName;      // '4-3-3'
+  style: Style;                  // 'def' | 'bal' | 'off'
+  slots: { slotId: string; role: Position; playerId: string }[];
+}</pre>
+<p><code>App</code> already holds <code>formationName</code>, <code>style</code>,
+<code>formation</code> and <code>filled</code>; it passes a <code>draftedShape</code> next to
+<code>draftedXi</code>, <code>CupRunScreen</code> hands it to <code>beginRun</code>, and
+"Replay same XI" reuses the same record. Natural positions come from
+<code>basePlayer(p).positions[0]</code>, never from the run's copy.</p>
+<p>Unblocks Back Five (five slots in the DEF category), All Out Attack and Park the Bus
+(style), Out of Position (3+ slots whose role is not the player's natural one), Textbook
+(none), Keeper's Union (the GK slot outrates every outfield slot) and Midfield General (the
+highest-rated player sits in a MID slot). Shape Shifter also needs
+<code>cupFormations</code> from slice A.</p>
+
+<h3>Slice C. Market and budget - 8 entries, one new run field</h3>
+<p>Recorded at run start for the same reason: the album can grow later, which changes the
+owned-sticker discount and therefore what the XI "cost", and boosts change the XI itself.</p>
+<pre>RunState.build?: {
+  method: 'roll' | 'budget';
+  budget?: number;      // BUDGET_DRAFT, or BUDGET_BY_TIER for Career Mode
+  spent?: number;       // sum of pricerFor(ownedIds) over the XI
+  dearest?: number;     // the most expensive single player
+  rerollsUsed?: number; // INITIAL_REROLLS + extraRerollsOf(career) - rerollsLeft
+  swapsUsed?: number;   // INITIAL_SWAPS - swapsLeft
+}</pre>
+<p><code>App</code> computes it where it already computes the market budget, from
+<code>state.build</code>, <code>state.rerollsLeft</code>, <code>state.swapsLeft</code> and the
+pricer it already builds for the market. Unblocks Thrifty, Every Cent, Bargain Hunter,
+Marquee Signing, Market Master, Roll With It, First Draw and Swap Meet.</p>
+
+<h3>Slice D. Chemistry at kickoff - 1 entry, one number</h3>
+<p><code>RunState.chemistry?: number</code>, set in <code>beginRun</code> with the existing
+<code>chemistryOf(xi)</code>. It has to be the kickoff value: boosts change ratings and the
+roster, and the "in position" category reads <code>primaryPosition</code>, so recomputing it
+at run end would answer a different question. Chemistry Set is then
+<code>chemistry &gt;= MAX_BONUS</code>.</p>
+
+<h3>What every slice shares</h3>
+<ul>
+  <li><b>New fields are optional.</b> A run persisted before the change resumes and finishes
+  normally; it simply cannot complete the new entries, because a missing field reads as
+  "not satisfied" rather than throwing. The predicate sweep in the checks harness already
+  proves that for every entry, free of charge.</li>
+  <li><b>Unblocking is mechanical:</b> delete the <code>blocked</code> line, write the
+  predicate, add a hand-built case if the entry is one of the awkward ones.</li>
+  <li><b>Guest and account behave identically</b>, since none of it is server-side.</li>
+  <li>Once the count reaches zero the catalogue's third filter has nothing to show and
+  should hide itself. Keep the <code>blocked</code> field in the model regardless - it costs
+  nothing and the next batch of challenges will want it.</li>
+</ul>
+
 <footer>
-  Plan only. Nothing here is built. The catalogue is a menu to cut from, not a commitment to
-  all 130: slice 1 is the engine plus whatever subset reads well, and the rest is data.
+  Slices 1 and 2 shipped on 2026-08-18: the engine, the catalogue of 130, and the screens.
+  103 entries are judged; section 8 is the plan for the other 27, which is what "all of them
+  available at launch" needs. Awards are behind <code>FEATURES.challengeAwards</code> and
+  currently off, so a challenge completes and is recorded but pays nothing yet.
 </footer>
 
 </body>

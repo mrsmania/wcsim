@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   AWARD,
+  AWARDS_ON,
   CHALLENGES,
   FAMILIES,
   FAMILY_NAME,
@@ -58,7 +59,11 @@ export default function ChallengesScreen({
       />
 
       {/* Completion counter, deliberately the album's shape: same page, same reading. */}
-      <section className="grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard sm:grid-cols-[minmax(0,1fr)_210px]">
+      <section
+        className={`grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
+          AWARDS_ON ? 'sm:grid-cols-[minmax(0,1fr)_210px]' : ''
+        }`}
+      >
         <div className="p-[22px]">
           <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
             Completed
@@ -93,16 +98,20 @@ export default function ChallengesScreen({
             </span>
           </div>
         </div>
-        <div className="flex flex-col justify-center border-line bg-chalk p-[22px] max-sm:border-t sm:border-l">
-          <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-            Prestige earned
+        {AWARDS_ON && (
+          <div className="flex flex-col justify-center border-line bg-chalk p-[22px] max-sm:border-t sm:border-l">
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+              Prestige earned
+            </div>
+            <div className="mt-1 font-mono text-[38px] font-bold leading-none">
+              {progress.prestige}
+            </div>
+            <div className="mt-1.5 text-[11.5px] leading-snug text-muted">
+              Bronze {AWARD.bronze}, silver {AWARD.silver}, gold {AWARD.gold}. Paid into the same
+              wallet the perk shop spends from.
+            </div>
           </div>
-          <div className="mt-1 font-mono text-[38px] font-bold leading-none">{progress.prestige}</div>
-          <div className="mt-1.5 text-[11.5px] leading-snug text-muted">
-            Bronze {AWARD.bronze}, silver {AWARD.silver}, gold {AWARD.gold}. Paid into the same
-            wallet the perk shop spends from.
-          </div>
-        </div>
+        )}
       </section>
 
       <p className="mt-3.5 text-[13px] text-muted">

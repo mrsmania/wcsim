@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -367,32 +367,39 @@
     <code>blocked</code> reason</strong> and render as "not tracked yet". Five new checks
     cover it: catalogue well-formedness, predicate totality and purity, the three traps as
     hand-built cases, paid-once accounting, and the fixed-point counter.</p>
-    <p><strong>Manual step, on the NAS:</strong> apply
-    <code>supabase/migrations/0011_career_challenges.sql</code> with
-    <code>npm run push:sql -- supabase/migrations/0011_career_challenges.sql</code> (dry-run
-    it first). It adds <code>career.completed_challenges</code> and teaches
-    <code>save_career</code> and <code>import_guest_progress</code> to carry it. Until it is
-    applied, a signed-in player's challenge progress is computed and paid but not persisted;
-    guests are unaffected, and nothing breaks in either order.</p>
+    <p><strong>One manual step is outstanding</strong>, tracked as item 20: migration
+    <code>0011</code> has to be applied on the NAS before a signed-in player's challenge
+    progress persists. Guests are unaffected either way.</p>
     <p><strong>What is left</strong>, in the order it is worth doing:</p>
     <ul>
-      <li><b>The plumbing wave</b> unblocks the 27. Build method + budget spent (family J),
-      formation, style and the slot each player filled (family K), chemistry at kickoff, and
-      four career counters: consecutive cups, consecutive semi-finals or better, Prestige
-      spent, and cups per Ascension tier. All additive to <code>RunState</code> at
-      <code>beginRun</code> or to <code>CareerState</code>; each one is then a
-      <code>blocked</code> line deleted and a predicate written.</li>
-      <li><b>The awards want tuning against real runs.</b> A finished run pays roughly 9 to
-      30 Prestige; a first cup completes a dozen or more challenges at 10/30/75 each, so
-      early on the catalogue is by far the bigger faucet. That is defensible (it is a
-      one-off backlog being cleared) but the numbers were guesses in the plan and are one
-      constant (<code>AWARD</code>) away from being anything else.</li>
+      <li><b>The plumbing wave</b> unblocks the last 27, which is what "all of them
+      available at launch" needs. Planned in full as section 8 of
+      <code>docs/challenges-spec.html</code>: four slices, <b>no SQL migration in any of
+      them</b> (<code>CareerStats</code> is a merged jsonb column and <code>RunState</code> is
+      a jsonb blob). <b>A.</b> nine career counters in <code>applyRunResult</code> (cup and
+      final and semi streaks, the previous outcome, ever-lost-a-final, cups per Ascension
+      tier, runs at Ascension II+, Prestige spent, cup-winning formations), plus a catalogue
+      fix: On a Roll currently duplicates Three-Peat and becomes "reach a final in three
+      consecutive runs". <b>B.</b> <code>RunState.shape</code> - formation, style and the slot
+      each player filled, recorded at kickoff because <code>placedPlayers</code> promotes the
+      slot role and boosts change the XI later. <b>C.</b> <code>RunState.build</code> - method,
+      budget, spend, dearest player, re-rolls and swaps used, recorded at kickoff because the
+      album (and so the discount) moves. <b>D.</b> <code>RunState.chemistry</code>, one number
+      from the existing <code>chemistryOf</code>. Every field is optional, so a run saved
+      before the change still finishes.</li>
+      <li><b>The awards are off</b> (<code>FEATURES.challengeAwards</code>, added
+      2026-08-18) until they are tuned against real runs. A finished run pays roughly 9 to 30
+      Prestige; a first cup completes a dozen or more challenges at 10/30/75 each, so early on
+      the catalogue would be by far the bigger faucet. One switch governs paying and showing
+      alike, so nothing arrives from a source the player cannot see; completions still happen
+      and are still stored, so turning it on later costs only the arrears.</li>
       <li><b>Trophy cabinet</b> (item 06) can now read <code>completedChallenges</code>.</li>
     </ul>
-    <p class="next"><strong>Next step:</strong> the career counters - the cheapest slice of
-    the plumbing wave (four numbers kept in <code>applyRunResult</code>) and the one that
-    unblocks the most entries: Back to Back, Three-Peat, Nearly Man, Ladder Climb, Hard
-    Habit, Straight Up, Spendthrift, On a Roll and Consistency, nine of the 27.</p>
+    <p class="next"><strong>Next step:</strong> slice A, the career counters. It is the
+    cheapest (one file plus two lines in the spend functions), it needs no new seam between
+    the build page and the run, and it unblocks nine of the 27: Back to Back, Three-Peat,
+    Nearly Man, Ladder Climb, Hard Habit, Straight Up, Spendthrift, On a Roll and
+    Consistency.</p>
     <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/components/ChallengesScreen.tsx, supabase/migrations/0011_career_challenges.sql</p>
   </div>
 </details>
@@ -424,6 +431,44 @@
     <p class="next"><strong>Next step:</strong> do 1986 end to end as the template for the
     rest.</p>
     <p class="files">src/data/squads.ts, scripts/gen-collectibles.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">20</span>
+    <span class="title">Apply migration 0011 on the NAS
+      <span class="sub">One command. Until it runs, a signed-in player's challenge progress is not saved.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Item 01 shipped <code>supabase/migrations/0011_career_challenges.sql</code>, which is
+    in the repo and applied to nothing. It adds one column,
+    <code>career.completed_challenges</code>, and re-defines the two functions that write a
+    career (<code>save_career</code> and <code>import_guest_progress</code>) so they carry
+    it. Grants are deliberately not repeated: <code>create or replace</code> keeps a
+    function's ACL and both signatures are unchanged, so 0008's revoke-from-anon still
+    stands.</p>
+    <p><strong>The command</strong>, from a machine that can reach the server (LAN or VPN,
+    with <code>dkr/.env</code> present):</p>
+    <pre>npm run push:sql -- supabase/migrations/0011_career_challenges.sql --dry-run
+npm run push:sql -- supabase/migrations/0011_career_challenges.sql</pre>
+    <p><strong>Until it runs</strong>, nothing breaks: <code>careerFromRow</code> reads the
+    column as optional and falls back to an empty set, and <code>save_career</code> ignores
+    a JSON key it does not know, so a signed-in player completes challenges normally and
+    simply does not keep them between devices or sessions. Guests are entirely unaffected,
+    since their progress is local. That tolerance is deliberate - the client deploys by
+    pushing to <code>main</code> while migrations are applied by hand, so neither order may
+    break.</p>
+    <p><strong>Worth checking after</strong>, in the shape 0010's apply used: the column
+    exists and defaults to <code>'{}'</code>; a signed-in account can still save a career
+    (call <code>save_career</code> inside a transaction ending in <code>rollback</code>);
+    and <code>anon</code> still cannot execute either function.</p>
+    <p class="next"><strong>Next step:</strong> run the dry-run, then the apply, then sign
+    in on two devices and confirm a completion made on one shows on the other.</p>
+    <p class="files">supabase/migrations/0011_career_challenges.sql, scripts/push-sql.mjs, docs/nas-setup.md</p>
   </div>
 </details>
 
