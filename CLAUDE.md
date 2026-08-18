@@ -651,6 +651,17 @@ keep working.
 
 ## UI gotchas
 
+- **Boot screen** (`index.html` + `main.tsx`): a cover with the trophy tile, wordmark
+  and a spinner sits **outside `#root`**, so React never owns it. `main.tsx` stamps
+  `data-booted` on `<html>` after the first render - on every path, the
+  unreachable-server screen included - and inline CSS fades the cover out. It exists
+  because nothing else can paint that early: `index.css` arrives with the bundle, and
+  a signed-in first render also waits on one round trip to the account server. Hence
+  the two rules to keep: its colours are **literal copies** of the `--color-ground` /
+  `-ink` / `-pitch-dark` / `-amber` tokens for both themes (keep them in step with
+  `index.css`), and the spinner is delayed 350ms so a fast load shows nothing at all.
+  Under `prefers-reduced-motion` the delayed fade-in is replaced by plain `opacity: 1`
+  - with the animation off, `both` would otherwise pin it at 0 and hide the screen.
 - `Tooltip.tsx` portals its bubble to `document.body` with `fixed` positioning (so
   it escapes `overflow` clipping), flips above/below by available space, and
   dismisses on scroll/resize. Hover-only by design.

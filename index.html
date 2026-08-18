@@ -23,9 +23,139 @@
       rel="stylesheet"
     />
     <title>World Cup Simulator</title>
+    <style>
+      /* Boot screen. Everything here is inline on purpose: index.css arrives with the
+         bundle, so until then the page would paint the browser's default white - and
+         for a signed-in player the first render also waits on one round trip to the
+         account server, which is seconds on a bad connection. Colours are literal
+         copies of the --color-ground / -ink / -pitch-dark / -amber / -muted tokens,
+         both themes, since the custom properties are not loaded yet either. Keep them
+         in step with src/index.css if the palette moves.
+
+         The markup sits OUTSIDE #root, so React never owns it: main.tsx stamps
+         data-booted on <html> after the first render and the rules below fade it out. */
+      html {
+        background: #f4f2ec;
+      }
+      html[data-theme='dark'] {
+        background: #131417;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        background: inherit;
+      }
+      #boot .bootbox {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        /* Hidden for the first third of a second: a fast load should show nothing at
+           all rather than blink a spinner at the player. */
+        opacity: 0;
+        animation: boot-in 0.25s ease-out 0.35s both;
+      }
+      #boot .boottile {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 8px;
+        background: #0e5c34;
+      }
+      html[data-theme='dark'] #boot .boottile {
+        background: #17492f;
+      }
+      #boot .bootmark {
+        font-family: Archivo, 'Helvetica Neue', Arial, sans-serif;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: #13211a;
+      }
+      html[data-theme='dark'] #boot .bootmark {
+        color: #eceef1;
+      }
+      #boot .bootspin {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #d4ded5;
+        border-top-color: #0e5c34;
+        border-radius: 50%;
+        animation: boot-spin 0.7s linear infinite;
+      }
+      html[data-theme='dark'] #boot .bootspin {
+        border-color: #33363d;
+        border-top-color: #22a35d;
+      }
+      @keyframes boot-in {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* Once the app has painted. Left in the DOM but inert; no JS teardown to get
+         wrong, and the fade covers the frame the swap lands on. */
+      html[data-booted] #boot {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+          opacity 0.2s ease-out,
+          visibility 0.2s;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        /* No spin, and no delayed fade-in either: with the animation off, `both`
+           would hold the box at opacity 0 and hide the whole thing. */
+        #boot .bootbox {
+          opacity: 1;
+          animation: none;
+        }
+        #boot .bootspin {
+          animation: none;
+        }
+        html[data-booted] #boot {
+          transition: none;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot" role="status" aria-label="Loading World Cup Simulator">
+      <div class="bootbox">
+        <span class="boottile">
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#e4922b"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978" />
+            <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978" />
+            <path d="M18 9h1.5a1 1 0 0 0 0-5H18" />
+            <path d="M4 22h16" />
+            <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" />
+            <path d="M6 9H4.5a1 1 0 0 1 0-5H6" />
+          </svg>
+        </span>
+        <span class="bootmark">World Cup Simulator</span>
+        <span class="bootspin"></span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

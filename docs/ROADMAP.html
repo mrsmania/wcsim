@@ -319,7 +319,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 11 items<br>
+    <strong>Open:</strong> 10 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -516,26 +516,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">09</span>
-    <span class="title">Blank white page while the app loads
-      <span class="sub">Seconds of nothing, with no sign it is working.</span>
-    </span>
-    <span class="tag">Polish</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><code>index.html</code> ships an empty <code>&lt;div id="root"&gt;</code>, so until the
-    bundle parses and <code>store.load()</code> resolves there is nothing on screen but white.
-    A spinner (with the wordmark) written straight into the HTML costs no JavaScript and shows
-    up with the first paint; React's first render replaces it.</p>
-    <p>The lazy-route <code>Suspense</code> fallback already covers moving between screens, so
-    this is only about the cold start.</p>
-    <p class="files">index.html, src/main.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">10</span>
     <span class="title">Move a placed player within his position range
       <span class="sub">Click his circle on the pitch to shift him to another of his roles.</span>
@@ -604,6 +584,21 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>09 Blank white page while the app loads.</b> Done 2026-08-18.
+      <code>index.html</code> now paints the ground colour and, after 350ms, a trophy tile,
+      wordmark and spinner - all inline, since <code>index.css</code> only arrives with the
+      bundle and a signed-in first render also waits on a round trip to the account server.
+      The cover sits outside <code>#root</code> so React cannot own it;
+      <code>main.tsx</code> stamps <code>data-booted</code> on <code>&lt;html&gt;</code>
+      after the first render, on every path including the unreachable-server screen, and
+      inline CSS fades it out. The 350ms delay means a fast load shows no spinner at all,
+      only the cream background instead of white. Verified by driving headless Chrome over
+      the DevTools protocol (both browser MCP servers had dropped): on a fast load the page
+      is <code>rgb(244,242,236)</code> from the first sample and the cover ends at opacity 0,
+      visibility hidden, pointer-events none with the app under the cursor; throttled to
+      900ms latency the spinner holds over a blank app; and with
+      <code>prefers-reduced-motion</code> emulated it appears immediately, unanimated, and
+      still dismisses.</li>
       <li><b>14 Enter submits the sign-in form.</b> Done 2026-08-18. Both stages of
       <code>AccountPanel</code> are real <code>&lt;form onSubmit&gt;</code>s, so Enter sends
       the code and Enter signs in, and phone keyboards offer the Go/Send key. The buttons are

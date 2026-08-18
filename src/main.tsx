@@ -14,8 +14,18 @@ import './index.css';
 // progress (D9), so a blocking screen with a retry goes up instead.
 const root = createRoot(document.getElementById('root')!);
 
-const failed = (err: unknown) =>
+/** Dismiss index.html's boot screen. It lives outside #root, so React cannot remove
+ *  it: stamping the attribute lets the inline CSS there fade it out. Called on the
+ *  next frame, so the app has committed underneath before the cover lifts, and on
+ *  every path - including the unreachable-server screen, which must not be hidden
+ *  behind a spinner. */
+const booted = () =>
+  requestAnimationFrame(() => document.documentElement.setAttribute('data-booted', ''));
+
+const failed = (err: unknown) => {
   root.render(<UnreachableScreen message={err instanceof Error ? err.message : String(err)} />);
+  booted();
+};
 
 function render({ snapshot, email }: BootResult) {
   root.render(
@@ -39,6 +49,7 @@ function render({ snapshot, email }: BootResult) {
 void bootStore().then((result) => {
   try {
     render(result);
+    booted();
   } catch (err) {
     failed(err);
   }
