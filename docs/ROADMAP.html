@@ -506,10 +506,9 @@
     already-owned players lower, which means the same market row will want to show both
     "owned" and a struck-through price. Whichever lands first should leave the other room, and
     the marker decided here is the one that discount hangs off.</p>
-    <p class="next"><strong>Decision needed:</strong> binary owned / not owned, or does a
-    duplicate read differently (you own it and hold spares to trade)? Binary is the quieter
-    choice and covers the question being asked; duplicates are already visible on the album
-    screen.</p>
+    <p class="next"><strong>Decided 2026-08-18: binary.</strong> Owned or not owned, with no
+    separate treatment for holding duplicates - that is the question being asked while
+    picking, and the duplicate pool is already on the album screen.</p>
     <p class="files">src/components/CollectibleStar.tsx, src/components/SquadPanel.tsx, src/components/BudgetMarket.tsx, src/components/XiTable.tsx, src/App.tsx</p>
   </div>
 </details>
