@@ -173,12 +173,24 @@ The SQL is in the repo. Apply it in order, either by pasting into Studio's SQL e
 with `psql` from the NAS:
 
 ```
-supabase/migrations/0001_schema.sql     tables
-supabase/migrations/0002_rls.sql        row-level security
-supabase/migrations/0003_functions.sql  the earn / trade / import functions
-supabase/migrations/0004_signup.sql     invite gate + profile creation
-supabase/seed/collectibles.sql          the catalogue (generated, re-runnable)
+supabase/migrations/0001_schema.sql              tables
+supabase/migrations/0002_rls.sql                 row-level security
+supabase/migrations/0003_functions.sql           the earn / trade / import functions
+supabase/migrations/0004_signup.sql              invite gate + profile creation
+supabase/migrations/0005_open_signup.sql         drops the invite gate
+supabase/migrations/0006_client_surface.sql      finish_run as the client calls it
+supabase/migrations/0007_conflict_status.sql     a version conflict answers 409
+supabase/migrations/0008_function_grants.sql     who may call what
+supabase/migrations/0009_finish_run_tolerant.sql an unknown id is dropped, not fatal
+supabase/migrations/0010_finish_run_one_trip.sql banking costs one round trip
+supabase/seed/collectibles.sql                   the catalogue (generated, re-runnable)
 ```
+
+Every file is `begin; ... commit;`, so a failed one leaves nothing behind and can be
+re-run once fixed. **A new migration on a stack that is already serving** is the same
+paste: they are written to be safe against a client that has not caught up yet, and the
+newest (`0010`) is deliberately additive - the client keeps working before it is applied
+and gets the faster path afterwards, in either order.
 
 The seed is idempotent, so re-running it after a dataset change is the whole update
 procedure. Regenerate it with `npm run gen:collectibles` whenever ratings or

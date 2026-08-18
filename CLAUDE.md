@@ -637,6 +637,16 @@ keep working.
   `bump_version` raises `PT409`, which PostgREST answers as 409.
 - **Each bank gets a fresh run key.** Deriving it from the XI + outcome collided the
   moment two runs ended the same way (trivially, two runs with no collectibles).
+- **Banking is ONE round trip, and a new server function needs a new name.** `finish_run`
+  used to return only the new ids, so the client followed it with a version read and an
+  album + stats read: three sequential trips, which is what made a finished run sit for a
+  second or two (the function itself is 1-9 ms, measured). `finish_run_v2` (migration
+  `0010`) returns all of it from one transaction. The client is deployed by pushing to
+  `main` while migrations are applied by hand on the NAS, so the two are never in lockstep:
+  `remoteStore.finishRun` tries v2 and falls back to the old path once per session on
+  PGRST202 (a missing function, which PostgREST refuses before Postgres runs anything, so
+  the fallback is a first attempt and not a double submit). Never fall back on any other
+  error. Adding a return field to a function means a new name for the same reason.
 - **Run-end actions wait for the save** so the sticker haul is always shown before the
   next run starts, with a 4s release and a run-generation guard so a slow server cannot
   block play or drop a stale summary into the next run.

@@ -24,6 +24,25 @@ export class StaleVersionError extends Error {
 
 const isStale = (message: string) => message.includes('stale_version');
 
+/** A failed RPC, keeping PostgREST's code so callers can tell WHY it failed. */
+class RpcError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'RpcError';
+  }
+}
+
+/** PostgREST answers a call to a function it cannot find with PGRST202, and does so
+ *  BEFORE reaching Postgres - nothing ran. That is what makes falling back to the older
+ *  function safe: the run key has not been claimed, so the retry is a first attempt and
+ *  not a double submit. Any other failure is a real one and must not be retried. */
+const isMissingFunction = (err: unknown) =>
+  err instanceof RpcError &&
+  (err.code === 'PGRST202' || /could not find the function/i.test(err.message));
+
 /** Album rows -> the client's shape: a row means collected, copies-1 are duplicates. */
 function albumFromRows(rows: { player_id: string; copies: number }[]): AlbumState {
   const album = emptyAlbum();
@@ -33,6 +52,15 @@ function albumFromRows(rows: { player_id: string; copies: number }[]): AlbumStat
     if (r.copies > 1) duplicates[r.player_id] = r.copies - 1;
   }
   return { ...album, duplicates };
+}
+
+/** What `finish_run_v2` hands back: the newly-collected ids plus the three things the
+ *  client used to fetch in two further round trips (migration 0010). */
+interface FinishRunPayload {
+  newly: string[];
+  version: number;
+  album: { player_id: string; copies: number }[];
+  stats: { runs_played: number; stickers_earned: number; trades_completed: number } | null;
 }
 
 interface CareerRow {
@@ -76,6 +104,11 @@ function careerToRow(c: CareerState) {
 export function createRemoteStore(client: SupabaseClient, userId: string): Store {
   let cache: AccountSnapshot | null = null;
   let version = 0;
+  /** Whether this server has migration 0010's one-trip bank. Assumed yes, and turned
+   *  off for the session the first time it answers "no such function" - the client is
+   *  deployed by pushing to main and the migration is applied by hand on the NAS, so the
+   *  two are never in lockstep and neither order may break banking. */
+  let hasFinishRunV2 = true;
 
   const peek = (): AccountSnapshot => {
     if (!cache) throw new Error('store.peek() before store.load()');
@@ -122,7 +155,11 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
     serialize(async () => {
       const call = async (v: unknown) => {
         const { data, error } = await client.rpc(name, { ...args, p_expected_version: v });
-        if (error) throw isStale(error.message) ? new StaleVersionError() : new Error(error.message);
+        if (error) {
+          throw isStale(error.message)
+            ? new StaleVersionError()
+            : new RpcError(error.message, error.code);
+        }
         return data as T;
       };
       try {
@@ -199,14 +236,47 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
     },
 
     async finishRun({ runKey, collectibleIds, wonCup, cupPickId, swapsUsed, outcome }) {
-      const newly = await rpc<string[]>('finish_run', {
+      const args = {
         p_run_key: runKey,
         p_collectible_ids: collectibleIds,
         p_won_cup: wonCup,
         p_cup_pick: cupPickId,
         p_swaps_used: swapsUsed,
         p_outcome: outcome,
-      });
+      };
+
+      // One round trip (migration 0010). Banking used to cost three - the call, then a
+      // version read, then the album + stats - and that multiplier, not the function
+      // (1-9 ms) or the release timer, is what made a finished run sit for a second or
+      // two. finish_run_v2 returns everything those reads were for, computed inside the
+      // same transaction, so the "server counted, do not guess" rule is unchanged.
+      if (hasFinishRunV2) {
+        try {
+          const p = await rpc<FinishRunPayload>('finish_run_v2', args);
+          // Keep the old value if the payload somehow lacks one: the next write then
+          // fails as stale and the rpc retry re-reads it, rather than sending undefined.
+          version = p.version ?? version;
+          const album = albumFromRows(p.album ?? []);
+          patch({
+            album,
+            albumStats: {
+              runsPlayed: p.stats?.runs_played ?? 0,
+              stickersEarned: p.stats?.stickers_earned ?? 0,
+              tradesCompleted: p.stats?.trades_completed ?? 0,
+            },
+            run: null,
+          });
+          return { album, newly: p.newly ?? [] };
+        } catch (err) {
+          if (!isMissingFunction(err)) throw err;
+          // A server that has not had 0010 applied yet. Nothing ran (see
+          // isMissingFunction), so the older call below is a first attempt, and this
+          // client stops asking for the rest of the session.
+          hasFinishRunV2 = false;
+        }
+      }
+
+      const newly = await rpc<string[]>('finish_run', args);
       // The server counted; re-read rather than guess at the result. Its version comes
       // back too, since a retry inside the call may have moved it.
       version = await readVersion();

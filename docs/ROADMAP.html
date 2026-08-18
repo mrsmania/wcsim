@@ -471,26 +471,37 @@
 
 <details class="item">
   <summary>
-    <span class="num">08</span>
-    <span class="title">Saving new stickers takes 1-2 seconds
-      <span class="sub">Signed in, the run-end haul waits on the server.</span>
+    <span class="num">16</span>
+    <span class="title">Apply migration 0010 on the NAS
+      <span class="sub">The one-trip bank is written and tested; the server has not had it yet.</span>
     </span>
-    <span class="tag">Perf</span>
+    <span class="tag">Hands-on</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>Banking a finished run takes up to a second or two before the summary appears. The path
-    is <code>applyStickers</code> to the store's <code>finishRun</code> to the
-    <code>finish_run</code> Postgres function, with writes serialized in
-    <code>remoteStore</code> and a 4s release timer (<code>BANK_WAIT_MS</code>) as the backstop
-    that stops a slow server from blocking play.</p>
-    <p>Measure before changing anything: the time could be the NAS round trip, the write queue,
-    the function itself, or simply that deliberate wait. Each has a different fix, and one of
-    them is not a bug at all.</p>
-    <p class="next"><strong>Next step:</strong> use a specialized agent to profile it end to
-    end, then choose between an optimistic summary, a leaner RPC, or overlapping the write with
-    the reward pick.</p>
-    <p class="files">src/hooks/useStickerAlbum.ts, src/state/store/remoteStore.ts, supabase/migrations/0003_functions.sql</p>
+    <p>Item 08's fix is in the repo but not on the live database, because applying it needs LAN
+    or VPN access to the NAS. Until it is applied the client keeps using the old three-round-trip
+    path, which is exactly today's behaviour - the change was built to work in either deploy
+    order, so nothing is broken while this sits here.</p>
+    <ol>
+      <li><span class="step">Apply it.</span> Paste
+      <code>supabase/migrations/0010_finish_run_one_trip.sql</code> into Studio's SQL editor, or
+      run it with <code>psql</code> from the NAS. It is one transaction; a failure leaves nothing
+      behind.</li>
+      <li><span class="step">Check the function is reachable</span> as the client sees it, not
+      just as the owner: PostgREST needs the grant, and a missing one shows up as the client
+      quietly staying on the old path.
+      <pre>select has_function_privilege('authenticated',
+  'finish_run_v2(text,text[],boolean,text,integer,text,integer)', 'execute');</pre></li>
+      <li><span class="step">Bank a run signed in</span> and confirm the haul appears without the
+      pause. The browser's network panel should show one <code>finish_run_v2</code> call and no
+      <code>profiles</code> / <code>album_stickers</code> reads after it.</li>
+    </ol>
+    <p class="next"><strong>If it has to be rolled back:</strong> nothing to undo. Dropping
+    <code>finish_run_v2</code> puts the client back on the old path on its next bank, since that
+    is the fallback it already carries - but the wrapper <code>finish_run</code> delegates to
+    v2, so re-apply 0009 in that case to restore its body.</p>
+    <p class="files">supabase/migrations/0010_finish_run_one_trip.sql, docs/nas-setup.md</p>
   </div>
 </details>
 
@@ -541,6 +552,28 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>08 Banking a run costs one round trip, not three.</b> Done 2026-08-18, after
+      profiling rather than guessing - the four candidates had four different fixes and three
+      of them were innocent. <i>Not</i> the deliberate wait: <code>BANK_WAIT_MS</code> caps how
+      long the "Draft a new XI" button reads "Saving stickers...", while the summary renders
+      when the promise resolves. <i>Not</i> the function: measured on a local Postgres running
+      the real migrations and the real 81-row catalogue, <code>finish_run</code> takes 8.8 ms
+      cold and 1.3-1.9 ms warm for a full 11-sticker haul. The write queue contributes one
+      round trip per write already in flight. The cause was that a bank cost <b>three
+      sequential round trips</b>: the call, then a <code>state_version</code> read, then the
+      album plus <code>album_stats</code> - because the function returned only the new ids.
+      Measured client-side against a fake transport at 100 ms/request: 302 ms idle, 502 ms
+      behind two writes. Migration <code>0010</code> adds <code>finish_run_v2</code>, which
+      returns the new ids, the version, the album rows and the stats computed in the same
+      transaction, so the client's "the server counted, do not guess" rule is intact and the
+      bank is one trip: 1 wave instead of 3, and 3 instead of 5 behind two writes. A new name
+      rather than a changed return type because the client ships on push to main while the
+      migration is applied by hand on the NAS: the client tries v2, falls back to the old path
+      once per session if the server has not been migrated, and never falls back on a real
+      error (PostgREST answers a missing function with PGRST202 before Postgres runs anything,
+      so the retry is a first attempt and not a double submit). The old <code>finish_run</code>
+      stays as a thin wrapper delegating to v2, so there is still one implementation. Applying
+      it on the NAS is open item 16.</li>
       <li><b>Sign-in moved into its own dialog, and "Send code" became "Continue".</b>
       Requested and done 2026-08-18, so it never sat in the open list. Signing in was the
       first group inside the settings sheet, which put the one thing a new player might want
