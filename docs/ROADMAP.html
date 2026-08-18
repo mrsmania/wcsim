@@ -529,6 +529,20 @@
     link), so both slots below point at the same file - that is what makes the two cases
     identical, and leaving either unset means half the players still get the stock mail.</p>
 
+    <div class="callout">
+      <span class="ct">Steps 1, 2 and 5 are already done on the prod stack</span>
+      Applied 2026-08-18: the four values are in the NAS <code>.env</code>, the four keys are
+      in the <code>auth</code> service&apos;s <code>environment:</code> allowlist in
+      <code>docker-compose.yml</code> (both files backed up beside themselves as
+      <code>*.pre-mailer</code>), and the NAS can fetch both the template and the logo over
+      HTTPS - 200 with <code>text/html</code> and <code>image/png</code>. Checked before
+      upload by running <code>docker compose config</code> over the edited pair, which
+      resolved all four values unquoted and left the service list unchanged, and after upload
+      by matching hashes and re-parsing on the NAS itself. <b>What is left is step 3</b>, the
+      container re-create, which needs root: <code>docker</code> on that box refuses a
+      non-root socket connection and <code>sudo</code> wants a password. Until then the
+      values sit inert and prod keeps sending the stock mail.
+    </div>
     <p><strong>The manual step, on the prod stack.</strong> Everything below happens in the
     Supabase compose folder on the NAS (the one from <code>docs/nas-setup.md</code> §4, e.g.
     <code>/volume1/docker/wcsim-supabase</code>), whose <code>.env</code> is the file the
