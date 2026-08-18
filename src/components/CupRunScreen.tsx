@@ -83,8 +83,9 @@ export default function CupRunScreen({
   /** The squad pool (squad-pool setting): opponents + the odds sim draw from these. */
   pool: Squad[];
   /** Bank the finished run's collectibles to the sticker album (App owns the album).
-   *  Omitted when the sticker feature is off. Called once per run at its end. */
-  onRunEnd?: (xi: Player[], wonCup: boolean) => void;
+   *  Omitted when the sticker feature is off. Called once per run at its end, with the
+   *  ids a roster boost brought in so they can be left out of the haul. */
+  onRunEnd?: (xi: Player[], wonCup: boolean, boostedIds: string[]) => void;
   /** A new run is starting, so anything still pending from the last one is stale. */
   onRunStart?: () => void;
   /** The finished run's stickers are still saving: the run-end actions wait, so the
@@ -169,7 +170,7 @@ export default function CupRunScreen({
   // persisted stickersApplied flag (so a refresh on the ended screen won't re-bank).
   useEffect(() => {
     if (!onRunEnd || !run || run.phase !== 'ended' || run.stickersApplied) return;
-    onRunEnd(run.xi, run.outcome === 'champion');
+    onRunEnd(run.xi, run.outcome === 'champion', run.boostedIds);
     setRun({ ...run, stickersApplied: true });
   }, [run, onRunEnd]);
 

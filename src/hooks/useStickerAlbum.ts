@@ -52,8 +52,9 @@ export interface StickerAlbumApi {
   clearNewStickers: () => void;
   /** The pending cup-win reward pick (null when there is none), shared by both modes. */
   pendingReward: PendingReward | null;
-  /** A Cup Run reported its end (CupRunScreen calls this once). */
-  onCupRunEnd: (xi: Player[], wonCup: boolean) => void;
+  /** A Cup Run reported its end (CupRunScreen calls this once). `boostedIds` are the
+   *  players a roster boost handed over, which earn nothing. */
+  onCupRunEnd: (xi: Player[], wonCup: boolean, boostedIds: string[]) => void;
   /** Spend duplicates on a chosen sticker (album trade). */
   onTrade: (tier: StickerTier, playerId: string) => void;
   /** A new run is starting: drop any summary still pending from the last one. */
@@ -132,9 +133,10 @@ export function useStickerAlbum(
   }, [enabled, bracket, group]);
 
   // Merge a finished run's collectibles into the album. `collectibleIds` are the
-  // collectible ids from the final XI (the standard game passes the drafted XI's;
-  // a Cup Run passes its own, boons included). `markReducer` sets the once-per-run
-  // reducer guard, used only by the standard game (a Cup Run guards itself).
+  // collectible ids from the final XI (the standard game passes the drafted XI's; a
+  // Cup Run passes its own, minus anyone a roster boost handed it - see onCupRunEnd).
+  // `markReducer` sets the once-per-run reducer guard, used only by the standard game
+  // (a Cup Run guards itself).
   //
   // **How stickers are earned is `FEATURES.stickersOnCupWinOnly`** (added 2026-08-15).
   // On (the default) only a cup win banks: drafting a legend and going out in the group
@@ -203,9 +205,16 @@ export function useStickerAlbum(
 
   // A Cup Run reported its end (CupRunScreen calls this once). A loss banks
   // immediately; a cup win waits for the reward pick (pendingReward below).
-  const onCupRunEnd = useCallback((xi: Player[], wonCup: boolean) => {
+  const onCupRunEnd = useCallback((xi: Player[], wonCup: boolean, boostedIds: string[]) => {
+    // A player a boost handed you is not one you drafted, so he earns no sticker.
+    // Legends Reunion and Wildcard Legend deal straight out of the 93+ pool, which
+    // made a boost the cheapest route into the album - cheaper than winning with the
+    // XI you actually built. The rest of the XI still counts, including a player an
+    // earlier boost swapped OUT and left in `boostedIds`, since he is not in it.
+    const gifted = new Set(boostedIds);
+    const earnedBy = xi.filter((p) => !gifted.has(p.id));
     // Base ratings, not the boosted copies the run hands back (see BASE_BY_ID).
-    setCupRunSticker({ ids: collectibleIdsOf(xi), wonCup });
+    setCupRunSticker({ ids: collectibleIdsOf(earnedBy), wonCup });
   }, []);
   useEffect(() => {
     if (!enabled || !cupRunSticker || cupRunSticker.wonCup) return;

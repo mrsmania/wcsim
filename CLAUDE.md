@@ -512,8 +512,11 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built
   (`handleReset`/`handleStart`/random team/budget confirm), so a stale run never resumes onto a
   new team.
-- **Stickers.** At a run's end the final XI's collectibles (boons included) are banked to the
-  album, guarded once-per-run by `RunState.stickersApplied`. `CupRunScreen` reports the end via
+- **Stickers.** At a run's end the final XI's collectibles are banked to the album, guarded
+  once-per-run by `RunState.stickersApplied`. **Players a roster boost handed over earn
+  nothing** (`RunState.boostedIds` is passed to `onCupRunEnd`, which subtracts them): Legends
+  Reunion and Wildcard Legend deal from the 93+ pool, so otherwise a boost was a cheaper route
+  into the album than winning with the XI you built. `CupRunScreen` reports the end via
   `onRunEnd`; `App` applies them (a loss banks immediately; a cup win shows `CupRewardPicker`
   first), then the shared `RunEndStickerSummary` shows any new cards. Reload-safe via the flag.
 - **Career** (`domain/career.ts`, `state/careerStorage.ts` key `wcsim_career_v1`):

@@ -319,7 +319,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 14 items<br>
+    <strong>Open:</strong> 13 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -559,26 +559,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">11</span>
-    <span class="title">Boost-swapped players should not earn stickers
-      <span class="sub">A player a boost handed you is not one you drafted.</span>
-    </span>
-    <span class="tag">Album</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>A finished Cup Run banks the final XI's collectibles, including anyone a roster boost
-    brought in (Transfer, Poach the next opponent, Wildcard Legend). That is the album
-    recording a gift rather than an achievement. <code>RunState.boostedIds</code> already
-    tracks exactly those players, so the fix is to subtract them before banking.</p>
-    <p class="next"><strong>Next step:</strong> settle the edge case first - a boosted player
-    who was already in the XI you built yourself should still count.</p>
-    <p class="files">src/hooks/useStickerAlbum.ts, src/components/CupRunScreen.tsx, src/domain/run.ts</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">12</span>
     <span class="title">The boost re-roll is too easy to miss
       <span class="sub">A tiny pill tucked into the "Pick a boost" label.</span>
@@ -664,6 +644,18 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>11 Boost-swapped players no longer earn stickers.</b> Done 2026-08-18.
+      <code>CupRunScreen</code> passes <code>RunState.boostedIds</code> with the run-end
+      report and <code>useStickerAlbum</code> subtracts them, so the rule sits beside the
+      cup-win-only rule rather than at a call site. It mattered because Legends Reunion and
+      Wildcard Legend deal straight out of the 93+ pool: a boost was a cheaper route into the
+      album than winning with the XI you built. The edge case went the obvious way - only the
+      incoming player is excluded, so the rest of the XI still earns, and a player an earlier
+      boost swapped <i>out</i> is irrelevant since he is not in the final XI. Verified by
+      seeding a finished run holding two Monumentals, one drafted (Ronaldo 98) and one tagged
+      as boosted (Messi 99): the album banked Ronaldo alone and the run summary read "1 new
+      sticker". The amber "Boost" mark in the XI panel now carries a tooltip saying it earns
+      no sticker, since that mark is the only place the rule is visible.</li>
       <li><b>07 Goals re-animated on finished matches.</b> Fixed 2026-08-18 in
       <code>GoalList</code> alone: it records how many goals were present on its first
       render and only animates rows beyond that mark. Everything already there when a feed

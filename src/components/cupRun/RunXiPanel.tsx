@@ -1,6 +1,7 @@
 import { primaryPosition, type Player } from '../../data/types';
 import { SQUAD_BY_ID } from '../../data/squads';
 import { boonById } from '../../domain/boons';
+import { FEATURES } from '../../config';
 import Flag from '../Flag';
 import { pct, RARITY_COLOR } from './types';
 
@@ -63,7 +64,16 @@ export default function RunXiPanel({
               </span>
               <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{p.name}</span>
               {boostedIds.has(p.id) && (
-                <span className="shrink-0 rounded-[3px] bg-amber px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.04em] text-white">
+                <span
+                  // Says why the album stays empty for him: a boost's gift is not a
+                  // sticker you earned, and the mark is the only place that is visible.
+                  title={
+                    FEATURES.stickerAlbum
+                      ? 'Brought in by a boost - earns no sticker'
+                      : 'Brought in by a boost'
+                  }
+                  className="shrink-0 rounded-[3px] bg-amber px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.04em] text-white"
+                >
                   Boost
                 </span>
               )}
