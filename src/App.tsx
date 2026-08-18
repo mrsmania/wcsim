@@ -63,6 +63,7 @@ const TournamentScreen = lazy(() => import('./components/TournamentScreen'));
 const KnockoutScreen = lazy(() => import('./components/KnockoutScreen'));
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
+const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
@@ -621,6 +622,7 @@ export default function App({
     const squadsEnabled = FEATURES.squadBrowser;
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
     const isAlbum = STICKERS && path === '/album';
+    const isChallenges = FEATURES.careerMode && FEATURES.challenges && path === '/challenges';
     const isCupRun = FEATURES.careerMode && path === '/cup-run';
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
@@ -643,6 +645,15 @@ export default function App({
     // Career Mode scales it by the owned `transfer-budget` perk tier. The career is
     // read from the store here (it lives in CupRunScreen otherwise), refreshed whenever
     // the route changes - so buying a tier in the hub then returning to build applies.
+    // The completed-challenge set for the catalogue screen. Same shape as buildCareer
+    // below: the career lives in CupRunScreen, so it is re-read from the store whenever
+    // the route changes rather than lifted into App.
+    const challengeIds = useMemo(
+        () => (isChallenges ? store.peek().career.completedChallenges : []),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [path],
+    );
+
     const buildCareer = useMemo(
         () => (FEATURES.careerMode && isBuild && mode === 'career' ? store.peek().career : null),
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -780,6 +791,15 @@ export default function App({
                             // album was the first page loaded (deep link / refresh), so
                             // there is no history to pop - fall back to the launcher.
                             onClose={() => (location.key === 'default' ? navigate('/') : navigate(-1))}
+                        />
+                    ) : isChallenges ? (
+                        <ChallengesScreen
+                            completed={challengeIds}
+                            // Back to wherever it was opened from (the Cup Run hub,
+                            // usually); a deep link has no history to pop.
+                            onClose={() =>
+                                location.key === 'default' ? navigate('/') : navigate(-1)
+                            }
                         />
                     ) : isGroup ? (
                         group && formation ? (

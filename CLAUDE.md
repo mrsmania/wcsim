@@ -587,6 +587,66 @@ A roguelike layer over the core loop, plus a persistent career. Design:
 - Known gaps (prototype): the career meta-layer is still thin - level is a cosmetic XP
   tally with no mechanical effect, and Prestige only buys the 3 perks (no lasting sink).
 
+## Challenges (flagged)
+
+Permanent honours over a finished **Cup Run**: a catalogue of one-off goals, each worth
+Prestige, giving the career layer something to aim at besides "earn Prestige, buy perks".
+Plan: `docs/challenges-spec.html`; comp: `docs/redesign-2026/turf-flat/challenges.html`.
+Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
+
+- **Everything is permanent.** Completable once each, never expiring, no rotation. The
+  rotating "three at a time at a multiplier" layer the plan originally paired with this
+  was split out to roadmap item 19 (daily challenges); it would read this same catalogue,
+  which is why nothing here has to change for it. That decision is also why there is no
+  build-page strip and no in-run chips: a chip row works over a handful of targeted
+  challenges, not over 130.
+- **`domain/challenges.ts`** (pure): the model (`family`, `tier`, `check`), the
+  130-entry `CHALLENGES` catalogue in 12 families, `viewOf` (derives the run once: the
+  final XI at dataset ratings, the XI minus roster boosts, every match, goals for and
+  against, clean sheets, boost rarities) and `completedIn(ctx)`, which returns the ids a
+  finished run newly satisfies. `AWARD` is bronze 10, silver 30, gold 75.
+- **103 are judged; 27 carry a `blocked` reason** and are never evaluated: how the XI was
+  built (families J and K), chemistry at kickoff, and the career streak counters
+  (consecutive cups, per-Ascension records, Prestige spent). They stay in the catalogue
+  because the screen should show what is coming, and they render as "not tracked yet".
+  Unblocking one is the plumbing wave in the plan: add the field, drop the `blocked`.
+- **The seam is `applyRunResult`** (domain/career.ts), which takes an optional
+  `ChallengeInput` (`base`, `album`, `trades`) and returns `challengesCompleted` +
+  `challengePrestige` alongside the XP/Prestige it always returned. Judged against the
+  career **after** the run's XP/Prestige/stats land, so "win 10 cups" counts the cup just
+  won. Without the input nothing completes, so the checks harness and any other caller
+  are unaffected. `CareerState.completedChallenges` is the whole of the state.
+- **Evaluation runs to a fixed point** (up to 4 passes), because a few entries count
+  completions and Prestige themselves: the run that takes you past ten completions ticks
+  Challenge Hunter in the same breath, and the awards of the same run can carry you over
+  War Chest's 200 Prestige. Without that, those always landed a run late.
+- **The three traps, each already a real bug here:**
+  1. **Ratings are judged on the DATASET player.** `run.xi` carries boost deltas baked in
+     (Golden Generation is +2 to the XI), so Rag Tag would drift with the boosts taken.
+     `src/data/squads.ts` exports **`basePlayer`**, the single copy of that rule (the
+     sticker album's private `BASE_BY_ID` now uses it).
+  2. **The final XI is not the XI you built.** Roster boosts swap players in, and
+     `run.boostedIds` separates them: the identity family judges `own` (the XI minus
+     those) and imposes no count beyond it, so a Poach cannot break a themed run. "11
+     different nations" is the exception, because there the count IS the challenge.
+  3. **Shootout goals are not goals.** Clean-sheet predicates read the scoreline only, or
+     The Wall would be unwinnable the moment a tie went to penalties.
+- **Surfaces:** a Challenges block in the career hub (`CareerHub`: counter, Prestige
+  earned, the three most recently completed, link to the catalogue), the **`/challenges`**
+  route (`ChallengesScreen`, lazy-loaded: the album's completion counter, filters for
+  available / completed / not tracked yet, and every entry grouped by family), and the
+  run-end panel listing what the run completed. Shared atoms live in
+  `components/challengeUi.tsx` (family accents, tier colours, `ChallengeRow`,
+  `ChallengeCard`).
+- **Accounts:** `completed_challenges` is one column on `career`, added by
+  `supabase/migrations/0011_career_challenges.sql`, which also teaches `save_career` and
+  `import_guest_progress` to carry it. **A server without that migration still works** -
+  the column reads as absent and challenge progress simply does not persist for that
+  account - because the client ships by pushing to `main` while migrations are applied by
+  hand.
+- **Ids are permanent.** A completion is stored by id, so renaming a challenge is free and
+  changing an id orphans what players have already earned.
+
 ## Budget draft / Transfer Market (flagged)
 
 A second way to build the XI, alongside the random roll. Spec:

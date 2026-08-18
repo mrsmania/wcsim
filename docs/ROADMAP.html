@@ -323,7 +323,7 @@
   <summary>
     <span class="num">01</span>
     <span class="title">Challenges
-      <span class="sub">Something to aim at in Career Mode, instead of Prestige just piling up. Planned in full.</span>
+      <span class="sub">Something to aim at in Career Mode. Engine, catalogue and screens shipped; 27 entries wait on tracking.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -358,11 +358,42 @@
       exactly the album's <code>BASE_BY_ID</code> bug), the final XI is not the XI you built
       (<code>boostedIds</code>), and shootout goals are not goals conceded.</li>
     </ul>
-    <p class="next"><strong>Next step:</strong> slice 1 of the build order - the engine plus
-    the challenges that need no plumbing, evaluated in <code>applyRunResult</code>, with the
-    run-end screen listing what was completed. The catalogue is a menu to cut from, not a
-    commitment to all 130.</p>
-    <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, src/domain/challenges.ts (new), src/domain/career.ts, src/domain/run.ts, src/components/CupRunScreen.tsx</p>
+    <p><strong>Shipped 2026-08-18</strong>, the engine and the screens:
+    <code>domain/challenges.ts</code> (the model, all 130 entries in 12 families,
+    <code>viewOf</code> + <code>completedIn</code>), the seam in
+    <code>applyRunResult</code>, <code>CareerState.completedChallenges</code> (local, and
+    on the server via migration <code>0011</code>), the <code>/challenges</code> catalogue
+    screen, the hub card, and the run-end list. <strong>103 are judged; 27 carry a
+    <code>blocked</code> reason</strong> and render as "not tracked yet". Five new checks
+    cover it: catalogue well-formedness, predicate totality and purity, the three traps as
+    hand-built cases, paid-once accounting, and the fixed-point counter.</p>
+    <p><strong>Manual step, on the NAS:</strong> apply
+    <code>supabase/migrations/0011_career_challenges.sql</code> with
+    <code>npm run push:sql -- supabase/migrations/0011_career_challenges.sql</code> (dry-run
+    it first). It adds <code>career.completed_challenges</code> and teaches
+    <code>save_career</code> and <code>import_guest_progress</code> to carry it. Until it is
+    applied, a signed-in player's challenge progress is computed and paid but not persisted;
+    guests are unaffected, and nothing breaks in either order.</p>
+    <p><strong>What is left</strong>, in the order it is worth doing:</p>
+    <ul>
+      <li><b>The plumbing wave</b> unblocks the 27. Build method + budget spent (family J),
+      formation, style and the slot each player filled (family K), chemistry at kickoff, and
+      four career counters: consecutive cups, consecutive semi-finals or better, Prestige
+      spent, and cups per Ascension tier. All additive to <code>RunState</code> at
+      <code>beginRun</code> or to <code>CareerState</code>; each one is then a
+      <code>blocked</code> line deleted and a predicate written.</li>
+      <li><b>The awards want tuning against real runs.</b> A finished run pays roughly 9 to
+      30 Prestige; a first cup completes a dozen or more challenges at 10/30/75 each, so
+      early on the catalogue is by far the bigger faucet. That is defensible (it is a
+      one-off backlog being cleared) but the numbers were guesses in the plan and are one
+      constant (<code>AWARD</code>) away from being anything else.</li>
+      <li><b>Trophy cabinet</b> (item 06) can now read <code>completedChallenges</code>.</li>
+    </ul>
+    <p class="next"><strong>Next step:</strong> the career counters - the cheapest slice of
+    the plumbing wave (four numbers kept in <code>applyRunResult</code>) and the one that
+    unblocks the most entries: Back to Back, Three-Peat, Nearly Man, Ladder Climb, Hard
+    Habit, Straight Up, Spendthrift, On a Roll and Consistency, nine of the 27.</p>
+    <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/components/ChallengesScreen.tsx, supabase/migrations/0011_career_challenges.sql</p>
   </div>
 </details>
 

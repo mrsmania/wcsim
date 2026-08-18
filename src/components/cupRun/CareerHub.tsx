@@ -1,4 +1,8 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { FEATURES } from '../../config';
+import { AWARD, challengeById, challengeProgress } from '../../domain/challenges';
+import ChallengeRow from '../challengeUi';
 import {
     PERKS,
     FINISH_LABEL,
@@ -40,6 +44,13 @@ export default function CareerHub({
     onPurchase: (perkId: string) => void;
     onUnlockBoost: (boonId: string) => void;
 }) {
+    const challenges = challengeProgress(career.completedChallenges);
+    // The three most recently completed, newest first (the set is append-ordered).
+    const latest = career.completedChallenges
+        .slice(-3)
+        .reverse()
+        .map(challengeById)
+        .filter((c) => !!c);
     return (
         <section className="mb-4 mt-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
             {/* The header IS the collapse toggle. When `showToggle`, the whole bar is a
@@ -147,6 +158,53 @@ export default function CareerHub({
                             ))}
                         </div>
                     </div>
+
+                    {/* Challenges: the completion counter and the latest few, with the
+                        full catalogue a click away. Permanent honours, so this is a
+                        record rather than a to-do list. */}
+                    {FEATURES.challenges && (
+                        <div className="border-t border-line p-4">
+                            <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                                    Challenges
+                                </span>
+                                <span className="font-mono text-[12px] font-bold">
+                                    {challenges.completed} / {challenges.total}
+                                </span>
+                                <span className="font-mono text-[11px] text-muted">
+                                    {challenges.prestige} Prestige earned
+                                </span>
+                                <Link
+                                    to="/challenges"
+                                    className="ml-auto font-display text-[11.5px] font-extrabold uppercase tracking-[0.06em] text-accent transition hover:underline"
+                                >
+                                    All challenges &rarr;
+                                </Link>
+                            </div>
+                            <div className="h-[7px] overflow-hidden rounded-[20px] border border-line bg-chalk">
+                                <div
+                                    className="h-full bg-gradient-to-r from-pitch to-pitch-dark"
+                                    style={{
+                                        width: `${Math.round((challenges.completed / challenges.total) * 100)}%`,
+                                    }}
+                                />
+                            </div>
+                            {latest.length > 0 ? (
+                                <ul className="mt-3 flex flex-col gap-2">
+                                    {latest.map((c) => (
+                                        <li key={c.id}>
+                                            <ChallengeRow challenge={c} award={AWARD[c.tier]} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="mt-2.5 text-[12.5px] text-muted">
+                                    None yet. They are judged when a Cup Run ends, and the first
+                                    cup alone completes a handful.
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Perk shop */}
                     <div className="border-t border-line p-4">
