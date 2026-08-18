@@ -3,13 +3,14 @@
   Design proposal for the Challenges feature (roadmap item 01).
     Plan: docs/challenges-spec.html
   Surfaces covered on this comp:
-    - Career-hub entry point and the Mandates card (three weeklies, week 34)
+    - Career-hub entry point and the Challenges card (counter, Prestige, latest three)
     - /challenges catalogue: completion counter, filters, family nav, all 130 honours
       grouped into the 12 families, in their available / completed / not-tracked states
-    - Before a run: the mandate strip on the build page
-    - During a run: the mandate chips under the run ladder, one already failed
     - Overlays (buttons at the top open them): the run-end "challenges completed"
       moment, and a single challenge's detail card
+  Every challenge is permanent (decided 2026-08-18). The rotating three-at-a-time
+  layer, with its build-page strip and in-run chips, is roadmap item 19; an earlier
+  revision of this file mocks it up.
   The catalogue is the real one from the plan: 130 challenges, 34 bronze / 63 silver /
   33 gold, 24 of them behind tracking that does not exist yet. The mock save shows
   47 completed, worth 910 Prestige.
@@ -147,20 +148,19 @@ a{color:inherit;text-decoration:none}
 .hero-side .sub{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4}
 
 /* ===== the other surfaces ===== */
-.surfaces{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
+.surfaces{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
 .surface{display:flex;flex-direction:column;gap:9px}
 .surface + .surface{margin-top:20px}
 .surface > .demo-note{align-self:flex-start}
 
-/* mandates card (career hub) */
+/* the hub card (career hub, beside the perk shop) */
 .mand{padding:15px 17px 13px}
 .mand-hd{display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--ink);padding-bottom:9px}
 .mand-hd h3{font-family:var(--disp);font-weight:800;font-size:16px;margin:0;letter-spacing:-.01em}
-.mand-hd .wk{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-left:auto}
-.x2{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  color:#fff;background:var(--amber);border-radius:20px;padding:2px 7px}
+.mand-hd .wk{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--muted);margin-left:auto}
+.mand-sub{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--pitch);margin-top:12px}
 .mrow{display:flex;align-items:flex-start;gap:11px;padding:11px 1px;border-bottom:1px dashed var(--line)}
-.mrow:last-of-type{border-bottom:0}
+.mrow:last-child,.mrow:has(+ .mand-ft){border-bottom:0}
 .mrow .fdot{margin-top:6px}
 .mrow .mx{flex:1;min-width:0}
 .mrow .mx b{font-family:var(--disp);font-weight:800;font-size:14.5px;letter-spacing:-.01em}
@@ -170,27 +170,6 @@ a{color:inherit;text-decoration:none}
 .mand-ft{display:flex;align-items:center;gap:10px;border-top:2px solid var(--line);margin-top:6px;padding-top:11px;
   font-family:var(--mono);font-size:11.5px;color:var(--muted)}
 .mand-ft a{margin-left:auto;font-family:var(--disp);font-weight:800;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--pitch)}
-
-/* before a run: the build-page strip */
-.prerun{display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:var(--white);border:1px solid var(--line);
-  border-left:3px solid var(--amber);border-radius:6px;padding:10px 14px;box-shadow:3px 3px 0 var(--pitch-deep)}
-.prerun .lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.prerun .m{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
-.prerun .sep{color:var(--line);font-weight:700}
-
-/* during a run: chips under the ladder */
-.runchips{display:flex;gap:8px;flex-wrap:wrap}
-.rchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;
-  background:var(--white);padding:6px 12px;font-size:12.5px;font-weight:600}
-.rchip.done{border-color:var(--pitch);background:var(--wash);color:var(--pitch)}
-.rchip.done::after{content:"\2713";font-family:var(--mono);font-size:11px}
-.rchip.failed{border-style:dashed;color:var(--muted)}
-.rchip.failed .nm{text-decoration:line-through}
-.rchip .why{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--loss)}
-.ladder-fake{display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:10px;font-weight:700;
-  letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.ladder-fake i{font-style:normal;border:1px solid var(--line);border-radius:4px;padding:4px 9px;background:var(--white)}
-.ladder-fake i.on{background:var(--pitch);border-color:var(--pitch-deep);color:#fff}
 
 /* ===== filters + family nav ===== */
 .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:34px;border-top:2px solid var(--ink);padding-top:16px}
@@ -305,7 +284,7 @@ a{color:inherit;text-decoration:none}
     <span class="demo-note">Career hub entry point</span>
     <button class="ch-cta">
       <span class="ac-ic"><svg><use href="#trophy"/></svg></span>
-      <span class="ac-tx"><b>Challenges</b><em>47 / 130 honours &middot; 3 mandates this week</em></span>
+      <span class="ac-tx"><b>Challenges</b><em>47 / 130 honours &middot; 910 Prestige earned</em></span>
       <span class="ac-ar">&rarr;</span>
     </button>
   </div>
@@ -313,7 +292,7 @@ a{color:inherit;text-decoration:none}
   <div class="sec-h">
     <div class="txt">
       <div class="crumb">&larr; Back to the career hub</div>
-      <div class="eyebrow">Honours &amp; mandates</div>
+      <div class="eyebrow">Your honours</div>
       <h2>Challenges</h2>
     </div>
     <div class="chalk" aria-hidden="true"></div>
@@ -335,7 +314,7 @@ a{color:inherit;text-decoration:none}
     <div class="hero-side">
       <div class="k">Prestige earned</div>
       <div class="v">910</div>
-      <div class="sub">Bronze 10, silver 30, gold 75. A mandate pays double.</div>
+      <div class="sub">Bronze 10, silver 30, gold 75. Paid into the perk wallet.</div>
     </div>
   </section>
 
@@ -345,68 +324,51 @@ a{color:inherit;text-decoration:none}
     <button class="btn sm" data-open="ov-detail">One challenge, up close</button>
   </div>
 
-  <!-- THE OTHER SURFACES -->
+  <!-- THE HUB CARD -->
   <div class="surfaces">
-    <div>
-      <div class="surface">
-        <span class="demo-note">Career hub &middot; between runs</span>
-        <section class="card mand">
-          <div class="mand-hd">
-            <h3>Mandates</h3>
-            <span class="x2">Double prestige</span>
-            <span class="wk">Week 34</span>
-          </div>
+    <div class="surface">
+      <span class="demo-note">Career hub &middot; beside the perk shop</span>
+      <section class="card mand">
+        <div class="mand-hd">
+          <h3>Challenges</h3>
+          <span class="wk">47 / 130</span>
+        </div>
+        <div class="bar" style="margin:12px 0 4px"><span style="width:36%"></span></div>
 
-          <div class="mrow done" style="--fam:#2465B0">
-            <span class="fdot"></span>
-            <span class="mx"><b>Rag Tag</b><em>Win with an XI averaging under 80.</em></span>
-            <span class="aw">+60</span>
-          </div>
-          <div class="mrow" style="--fam:#2E7D57">
-            <span class="fdot"></span>
-            <span class="mx"><b>United Nations</b><em>Win with 5+ different nations in the XI.</em></span>
-            <span class="aw">+20</span>
-          </div>
-          <div class="mrow" style="--fam:#4A6572">
-            <span class="fdot"></span>
-            <span class="mx"><b>The Wall</b><em>Win every knockout tie without conceding.</em></span>
-            <span class="aw">+150</span>
-          </div>
+        <div class="mand-sub">Latest</div>
+        <div class="mrow done" style="--fam:#2465B0">
+          <span class="fdot"></span>
+          <span class="mx"><b>Rag Tag</b><em>Win with an XI averaging under 80.</em></span>
+          <span class="aw">+30</span>
+        </div>
+        <div class="mrow done" style="--fam:#9B3A6B">
+          <span class="fdot"></span>
+          <span class="mx"><b>Cold Blooded</b><em>Win a shootout, then go on to lift the cup.</em></span>
+          <span class="aw">+30</span>
+        </div>
+        <div class="mrow done" style="--fam:#B8862B">
+          <span class="fdot"></span>
+          <span class="mx"><b>First Blood</b><em>Win your first cup.</em></span>
+          <span class="aw">+10</span>
+        </div>
 
-          <div class="mand-ft">
-            <span>New three on Monday</span>
-            <a href="#fam-silverware">All challenges &rarr;</a>
-          </div>
-        </section>
-      </div>
+        <div class="mand-ft">
+          <span>910 Prestige earned</span>
+          <a href="#fam-silverware">All challenges &rarr;</a>
+        </div>
+      </section>
     </div>
 
-    <div>
-      <div class="surface">
-        <span class="demo-note">Before a run &middot; build page strip</span>
-        <div class="prerun">
-          <span class="lbl">Mandates</span>
-          <span class="m"><span class="fdot" style="--fam:#2465B0"></span>Rag Tag</span>
-          <span class="sep">/</span>
-          <span class="m"><span class="fdot" style="--fam:#2E7D57"></span>United Nations</span>
-          <span class="sep">/</span>
-          <span class="m"><span class="fdot" style="--fam:#4A6572"></span>The Wall</span>
-        </div>
-        <p style="margin:0;font-size:12.5px;color:var(--muted)">Sits under the formation picker, so you build toward them while you pick.</p>
-      </div>
-
-      <div class="surface">
-        <span class="demo-note">During a run &middot; under the ladder</span>
-        <div class="ladder-fake" aria-hidden="true">
-          <i>Group &#10003;</i><i class="on">R16 &middot; vs POR</i><i>QF</i><i>SF</i><i>Final</i><i>Cup</i>
-        </div>
-        <div class="runchips">
-          <span class="rchip done"><span class="fdot" style="--fam:#2465B0"></span><span class="nm">Rag Tag</span></span>
-          <span class="rchip"><span class="fdot" style="--fam:#2E7D57"></span><span class="nm">United Nations</span></span>
-          <span class="rchip failed"><span class="fdot" style="--fam:#4A6572"></span><span class="nm">The Wall</span><span class="why">Conceded in the R16</span></span>
-        </div>
-        <p style="margin:0;font-size:12.5px;color:var(--muted)">Every predicate is judged at the end of the run, but one that has already become
-          impossible is marked straight away rather than left to look winnable.</p>
+    <div class="surface">
+      <span class="demo-note">Every challenge is permanent</span>
+      <div class="card" style="padding:16px 18px">
+        <p style="margin:0 0 10px;font-size:13.5px">Each one is completable once, worth a fixed
+          award, and stays on the list until you get it. There is no weekly rotation and no
+          expiry, so nothing is ever missed by not playing.</p>
+        <p style="margin:0;font-size:12.5px;color:var(--muted)">The rotating layer (a few
+          challenges singled out for the day at a higher reward, with a strip on the build page
+          and chips under the run ladder) is a separate roadmap item. It reads this same
+          catalogue, so it can arrive later without changing anything here.</p>
       </div>
     </div>
   </div>
@@ -1351,14 +1313,14 @@ a{color:inherit;text-decoration:none}
       </article>
       <article class="ch" data-state="open">
         <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">128</span><span class="ch-aw">+75</span></div>
-        <h4>Mandate Master</h4>
+        <h4>Honours Master</h4>
         <p>Complete 50 challenges.</p>
         <div class="ch-ft"><span class="st open">Not yet</span></div>
       </article>
       <article class="ch done" data-state="done">
         <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">129</span><span class="ch-aw">+30</span></div>
-        <h4>Weekly Warrior</h4>
-        <p>Complete all three mandates in one week.</p>
+        <h4>Honour Roll</h4>
+        <p>Complete 25 challenges.</p>
         <div class="ch-ft"><span class="st done">Completed</span></div>
       </article>
       <article class="ch" data-state="open">
@@ -1379,7 +1341,7 @@ a{color:inherit;text-decoration:none}
       <div><div class="cb-t">World Champions</div><div class="cb-s">Three challenges completed on this run.</div></div>
     </div>
     <div class="m-eyebrow">Challenges completed</div>
-    <h3>+120 Prestige</h3>
+    <h3>+70 Prestige</h3>
     <p class="m-sub">Added to the same wallet the perk shop spends from.</p>
 
     <div class="card" style="padding:4px 15px 8px">
@@ -1390,21 +1352,18 @@ a{color:inherit;text-decoration:none}
       </div>
       <div class="mrow done" style="--fam:#2465B0">
         <span class="fdot"></span>
-        <span class="mx"><b>Rag Tag</b><em>Win with an XI averaging under 80. <span class="x2">Mandate</span></em></span>
-        <span class="aw">+60</span>
+        <span class="mx"><b>Rag Tag</b><em>Win with an XI averaging under 80.</em></span>
+        <span class="aw">+30</span>
       </div>
       <div class="mrow done" style="--fam:#9B3A6B">
         <span class="fdot"></span>
         <span class="mx"><b>Cold Blooded</b><em>Win a shootout, then go on to lift the cup.</em></span>
         <span class="aw">+30</span>
       </div>
-      <div class="mrow" style="--fam:#4A6572">
-        <span class="fdot"></span>
-        <span class="mx"><b>The Wall</b><em>Win every knockout tie without conceding. <span class="needs-tag">Missed</span></em></span>
-        <span class="aw" style="color:var(--muted)">+150</span>
-      </div>
     </div>
 
+    <p class="note" style="font-style:normal;color:var(--muted)">So close: <b>The Wall</b>, beaten by one goal in the semi-final.
+    Nothing expires, so it is still on the list for the next run.</p>
     <p class="note">This lands above the score at run end, in the slot the sticker haul uses. Ratings are judged on the dataset player, not the boosted one, so a Golden Generation run does not quietly fail Rag Tag.</p>
     <div class="m-actions"><button class="btn primary" data-close>Back to the hub</button></div>
   </div>
@@ -1419,7 +1378,6 @@ a{color:inherit;text-decoration:none}
     <div class="card" style="padding:14px 16px">
       <div class="ht" style="margin-bottom:8px"><span class="pip" style="background:var(--tier-gold)"></span>Gold &middot; <b>+75 Prestige</b></div>
       <div class="ht" style="margin-bottom:8px"><span class="fdot" style="--fam:#4A6572"></span>Family <b>Defence</b> (10 challenges, 3 completed)</div>
-      <div class="ht"><span class="pip" style="background:var(--amber)"></span>This week's mandate <b>pays 150</b></div>
     </div>
     <p class="note">Once completed, the cabinet keeps the run that earned it: the XI, the ascension tier and the date.</p>
     <div class="m-actions"><button class="btn" data-close>Close</button></div>

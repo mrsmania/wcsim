@@ -156,27 +156,28 @@
   tracking at all</b>.</p>
 </div>
 
-<h2>1. The decision: permanent, rotating, or a mix</h2>
+<h2>1. The decision: permanent now, rotating later</h2>
 
-<p><strong>Recommendation: a mix, with permanent as the spine.</strong> Two shapes, one
-catalogue behind them:</p>
+<p><strong>Decided 2026-08-18: every challenge is permanent.</strong> One shape, one
+catalogue:</p>
 
 <ul>
   <li><b>Honours</b> (permanent). The whole catalogue, each completable once, each worth a
   fixed Prestige award and a cabinet badge. This is the long tail that outlasts "reach the
   next Ascension", and it is the part that makes the cabinet worth opening.</li>
-  <li><b>Mandates</b> (rotating, three at a time, weekly). Drawn from the same catalogue,
-  paying a <b>multiplier</b> on their base award. They are what make you build a different
-  XI <i>this week</i>, and they re-offer challenges you skipped.</li>
 </ul>
 
-<p>Rotating-only would make the catalogue feel like a slot machine and lose the collection
-feeling. Permanent-only goes stale once the reachable ones are done. The mix costs one extra
-field in storage (a period key) and nothing else.</p>
+<p>An earlier draft of this plan paired those with <b>Mandates</b>: three rotating picks from
+the same catalogue at a reward multiplier, refreshed on a period key. That layer is <b>cut
+from this plan</b> and moved to a roadmap item of its own (<i>daily challenges</i>). The
+argument for it still stands - a rotation is what makes you build a different XI this week,
+and it re-offers challenges you would otherwise skip - but it is a second feature stacked on
+this one, and the catalogue has to exist and be worth completing before anything can rotate
+through it.</p>
 
-<p><b>Daily</b> is deliberately deferred: a daily mandate only really works with the seeded
-run from item 05 (everyone gets the same rolls and the same objective), and without that it
-is just a faster weekly.</p>
+<p>Permanent-first costs the rotating layer nothing. It reads the same catalogue and the same
+predicates, and adds a period key, the chosen ids and a multiplier, all on
+<code>CareerState</code>. There is nothing here for it to undo.</p>
 
 <h2>2. Model</h2>
 
@@ -210,8 +211,8 @@ export interface Challenge {
 <code>completedIn(ctx)</code> returns the ids newly satisfied (catalogue minus what the
 career has already claimed). <code>applyRunResult</code> then adds their Prestige to the
 same wallet perks are bought from, and appends them to
-<code>career.completedChallenges</code>. Rotating mandates additionally record
-<code>career.mandates: { periodKey, ids: string[], claimed: string[] }</code>.</p>
+<code>career.completedChallenges</code>. That is the whole of the state: the set of ids
+completed, and the Prestige already paid for them.</p>
 
 <p><b>Accounts.</b> Challenge state lives on <code>CareerState</code>, so it rides the
 existing career write and the existing <code>save_career</code> RPC - no new table, no new
@@ -293,8 +294,7 @@ catalogue depends on one of these, all small and all additive to <code>RunState<
 <p>130 challenges. <span class="tag t-b">bronze</span> is a nudge you will hit by playing,
 <span class="tag t-s">silver</span> takes a deliberate build,
 <span class="tag t-g">gold</span> is a run you plan from the first pick. Suggested awards:
-bronze 10 Prestige, silver 30, gold 75, and a rotating mandate pays double.
-"Win" means lift the cup unless stated.</p>
+bronze 10 Prestige, silver 30, gold 75. "Win" means lift the cup unless stated.</p>
 
 <h3>A. Silverware &amp; progression</h3>
 <table>
@@ -483,8 +483,8 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">125</td><td class="name">On a Roll</td><td class="cond">Win three runs in a row. <span class="tag needs">needs</span></td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">126</td><td class="name">Consistency</td><td class="cond">Reach the semi-final or better in five consecutive runs. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">127</td><td class="name">Challenge Hunter</td><td class="cond">Complete 10 challenges.</td><td><span class="tag t-b">bronze</span></td></tr>
-  <tr><td class="n">128</td><td class="name">Mandate Master</td><td class="cond">Complete 50 challenges.</td><td><span class="tag t-g">gold</span></td></tr>
-  <tr><td class="n">129</td><td class="name">Weekly Warrior</td><td class="cond">Complete all three mandates in one week.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">128</td><td class="name">Honours Master</td><td class="cond">Complete 50 challenges.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">129</td><td class="name">Honour Roll</td><td class="cond">Complete 25 challenges.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">130</td><td class="name">Every Family</td><td class="cond">Complete at least one challenge from every family.</td><td><span class="tag t-g">gold</span></td></tr>
 </table>
 
@@ -496,37 +496,37 @@ states (available, completed, not tracked yet).</p>
 
 <h3>Where it lives</h3>
 <ul>
-  <li><b>Career hub</b> (<code>CupRunScreen</code>, between runs): a <b>Mandates</b> card
-  beside the perk shop - the three active weeklies, each a row with its family colour, its
-  reward, and a "done" tick. A footer link opens the full catalogue.</li>
+  <li><b>Career hub</b> (<code>CupRunScreen</code>, between runs): a <b>Challenges</b> card
+  beside the perk shop - the completion counter, the Prestige it has paid, and the three most
+  recently completed, each a row with its family colour and its award. A footer link opens the
+  full catalogue.</li>
   <li><b>New route <code>/challenges</code></b>: the whole catalogue, grouped by family,
   filterable to <i>available / completed / impossible-for-now</i>, with a completion counter
   in the header exactly like the album's. This is the collection surface, and the closest
   existing thing to copy is <code>AlbumScreen</code>.</li>
-  <li><b>Before a run</b>: a one-line strip on the build page - "Mandates: Rag Tag ·
-  United Nations · The Wall" - so you can build toward them while picking, which is the
-  whole point of having them.</li>
-  <li><b>During a run</b>: the mandate chips sit under the run ladder. Predicates are
-  end-of-run, but many can be shown as <b>already failed</b> the moment they become
-  impossible (conceded a goal kills The Wall), which is honest and stops a wasted run.</li>
+  <li><b>Before and during a run</b>: <b>nothing, for now.</b> A build-page strip and in-run
+  chips only work over a handful of targeted challenges, which is exactly what a rotation
+  hands you; 130 permanent ones cannot be a chip row. Both surfaces belong with the rotating
+  layer, and the idea worth keeping for it is the <b>already failed</b> marking: predicates are
+  end-of-run, but many become impossible earlier (conceding kills The Wall the moment it
+  happens), and saying so beats letting a run look winnable when it is not.</li>
   <li><b>Run end</b>: completed challenges appear on the ended screen above the score, each
   with its Prestige, in the same slot the sticker haul uses. This is the reward moment.</li>
 </ul>
 
 <h3>The card, roughly</h3>
-<div class="wire">┌ MANDATES · week 34 ─────────────────────────┐
+<div class="wire">┌ CHALLENGES ───────────────────────────────┐
 │                                              │
-│  ●  Rag Tag                        +60 ✓     │
-│     Win with an XI averaging under 80        │
+│  47 / 130 honours             910 prestige   │
+│  ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░  │
 │                                              │
-│  ●  United Nations                 +20       │
-│     Win with 5+ nations in your XI           │
+│  LATEST                                      │
+│  ●  Rag Tag                            +30  │
+│  ●  Cold Blooded                       +30  │
+│  ●  First Blood                        +10  │
 │                                              │
-│  ●  The Wall                      +150       │
-│     Win every knockout tie without conceding │
-│                                              │
-│  47 / 130 honours          ALL CHALLENGES →  │
-└──────────────────────────────────────────────┘</div>
+│                            ALL CHALLENGES →  │
+└────────────────────────────────────────────┘</div>
 
 <h3>Copy rules</h3>
 <ul>
@@ -550,11 +550,6 @@ states (available, completed, not tracked yet).</p>
   (clean sheets with a shootout, boosted-player exclusion).</li>
   <li><b>The catalogue screen</b> (<code>/challenges</code>) and the hub card, with the
   completion counter.</li>
-  <li><b>Mandates.</b> Three weekly picks from the pool, deterministic from the ISO week so
-  every device agrees without a server, a reward multiplier, and
-  <code>career.mandates</code>.</li>
-  <li><b>Before and during.</b> The build-page strip and the in-run chips with
-  already-failed marking.</li>
   <li><b>The plumbing wave.</b> Build method, budget spent, formation and style, slot
   positions, chemistry at kickoff, and the career counters - unlocking families J, K and the
   streak entries in L.</li>
@@ -569,8 +564,6 @@ states (available, completed, not tracked yet).</p>
   <li><b>Retroactive completion?</b> Recommendation: no for run-shaped challenges (there is
   no run history detailed enough to re-judge), yes for lifetime ones that read the career
   counters, which are already accurate.</li>
-  <li><b>Do mandates reroll?</b> Recommendation: not at first. If they do, it should cost
-  Prestige rather than be free, so the choice has weight.</li>
   <li><b>Difficulty and Ascension interaction.</b> A challenge completed at a high Ascension
   could pay the Ascension multiplier, which would reward doing hard things the hard way.
   Worth a decision before the reward numbers are tuned.</li>

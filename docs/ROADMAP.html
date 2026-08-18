@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -322,7 +322,7 @@
 <details class="item">
   <summary>
     <span class="num">01</span>
-    <span class="title">Challenges / Mandates
+    <span class="title">Challenges
       <span class="sub">Something to aim at in Career Mode, instead of Prestige just piling up. Planned in full.</span>
     </span>
     <span class="tag">Career</span>
@@ -335,16 +335,18 @@
     they are what would fill the trophy cabinet (item 06, which waits on this).</p>
     <p><strong>Planned 2026-08-18 in <code>docs/challenges-spec.html</code></strong>: the
     model, the evaluation seam, a 130-challenge catalogue in twelve families, the app
-    surfaces, and a six-slice build order. Read that first; the summary is:</p>
+    surfaces, and the build order. Read that first; the summary is:</p>
     <p>The look is drawn in <code>docs/redesign-2026/turf-flat/challenges.html</code>, a comp
-    in the same house style as the album: the hub Mandates card, the catalogue screen with
-    its completion counter, filters and all 130 entries in their three states, the pre-run
-    strip, the in-run chips with one already failed, and the run-end reward moment.</p>
+    in the same house style as the album: the hub Challenges card, the catalogue screen with
+    its completion counter, filters and all 130 entries in their three states, and the
+    run-end reward moment.</p>
     <ul>
-      <li><b>Permanent plus rotating, not one or the other.</b> "Honours" are the whole
-      catalogue, completable once each; "Mandates" are three weeklies drawn from the same
-      pool at a reward multiplier. Rotating-only feels like a slot machine, permanent-only
-      goes stale.</li>
+      <li><b>Every challenge is permanent</b> (decided 2026-08-18). "Honours" are the whole
+      catalogue, completable once each, each worth a fixed Prestige award. The rotating
+      three-at-a-time layer the plan originally paired with them is cut from this item and
+      moved to item 19, so the catalogue ships before anything rotates through it. That also
+      defers the build-page strip and the in-run chips, which only work over a handful of
+      targeted challenges.</li>
       <li><b>About 100 of the 130 need no new tracking.</b> A finished <code>RunState</code>
       already carries the XI, the outcome, the Ascension, the boosts, and per-round records
       with scorelines, how each tie was decided, and goal events including scorer.</li>
@@ -395,6 +397,47 @@
 </details>
 
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">19</span>
+    <span class="title">Daily challenges
+      <span class="sub">Three rotating picks from the challenge catalogue, at a reward multiplier. Split out of item 01.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Split out of item 01 on 2026-08-18</strong>, which now ships an entirely
+    permanent catalogue. This is the rotating layer on top of it: a few challenges singled
+    out for a period, paying more than their base award, so there is a reason to build a
+    different XI today than yesterday and so challenges you skipped get re-offered.</p>
+    <p><strong>Blocked on item 01</strong>, not by choice but by construction: this rotates
+    through that catalogue and reuses its predicates, its awards and its
+    <code>CareerState</code> field. There is nothing to build here until the honours exist
+    and are worth completing.</p>
+    <p><strong>What it adds</strong> once they do: a period key, the chosen ids and a reward
+    multiplier on <code>CareerState</code>, picked deterministically from the period so every
+    device agrees without a server round trip. Plus the two surfaces item 01 deliberately
+    left out, which only work over a handful of targeted challenges: the build-page strip
+    ("Today: Rag Tag, United Nations, The Wall") so you can build toward them while picking,
+    and the chips under the run ladder, with a challenge marked <b>already failed</b> the
+    moment it becomes impossible (conceding kills The Wall right there) rather than left
+    looking winnable. The earlier comp of both is in the git history of
+    <code>docs/redesign-2026/turf-flat/challenges.html</code>.</p>
+    <p><strong>The questions to settle</strong>: daily or weekly (daily is a much faster
+    treadmill and pairs naturally with the seeded run in item 05, where everyone gets the
+    same rolls and the same objective; weekly asks less of a player who plays twice a week);
+    whether a missed day is simply gone; whether the pick is filtered to what is actually
+    reachable for that career, since offering "Win at Ascension III" to a level-2 account is
+    noise; and whether a re-roll exists at all, which if it does should cost Prestige rather
+    than be free.</p>
+    <p class="next"><strong>Next step:</strong> nothing until item 01 ships. Then decide the
+    period and whether the pool is filtered by reachability, both of which change how it
+    feels far more than the multiplier does.</p>
+    <p class="files">docs/challenges-spec.html, src/domain/challenges.ts (from item 01), src/domain/career.ts, src/components/CupRunScreen.tsx</p>
+  </div>
+</details>
 
 <details class="item">
   <summary>
