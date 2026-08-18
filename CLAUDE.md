@@ -655,10 +655,20 @@ Server setup: `docs/nas-setup.md`.
   unreachable **blocks play** (D9) rather than inventing local progress -
   `UnreachableScreen`, with a "continue as guest" escape.
 - **Client:** `state/auth.ts` (sign in with a code, sign out here/everywhere, delete
-  account), `state/store/remoteStore.ts` (the account-backed `Store`), `AccountPanel`
-  inside the settings sheet, plus a masthead sign-in button. The auth library and the
-  remote store are **dynamically imported**, so a guest never downloads them (verified:
-  `GoTrueClient` appears only in the separate `auth-*.js` chunk).
+  account), `state/store/remoteStore.ts` (the account-backed `Store`), and `AccountPanel`
+  in **its own dialog** (`AccountModal`, opened by the masthead account button - it used to
+  be a group inside the settings sheet, which buried the one thing a new player might want).
+  The auth library and the remote store are **dynamically imported**, so a guest never
+  downloads them (verified: `GoTrueClient` appears only in the separate `auth-*.js` chunk).
+- **Entering the code.** Both stages are real `<form>`s (Enter submits, phone keyboards
+  offer Go/Send), and a **complete code submits itself** - a paste, the phone's
+  one-time-code suggestion and typing the sixth digit are all one change event. Two things
+  that change needs: `verify` takes the code as an **argument**, since a handler firing on
+  change cannot read the state it has just set, and a **ref** guards re-entry, because two
+  change events in quick succession would both pass an async-state check and submit twice.
+  The field keeps digits only, capped at `CODE_LENGTH`, so a pasted `111 222` counts as
+  complete. The first button says **Continue**, not "Send code": the player is carrying on,
+  and the code is the mechanism, not the point.
 - **The sign-in email** is `public/email/otp.html` (+ `public/email/logo.png`), so it
   deploys with the site and GoTrue points at it by URL - see `docs/nas-setup.md`, "The
   sign-in email". Mail-client rules drive its shape: tables and inline styles, web-safe

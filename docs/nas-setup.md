@@ -213,8 +213,20 @@ Worth knowing:
   JavaScript, and no HTML or CSS writes to the clipboard. The code is instead large,
   letter-spaced and selectable, so tap-and-hold copies it on a phone and the OS's own
   one-time-code suggestion can pick it up (the app's code field carries
-  `autocomplete="one-time-code"`). There is no link in the mail either: the only
+  `autocomplete="one-time-code"`, and a complete code submits itself, so accepting the
+  suggestion is the whole sign-in). There is no link in the mail either: the only
   placeholder is the token, and the app verifies with the code alone.
+- **Two obstacles from the shell**, if you are doing this over SSH rather than in Container
+  Manager: `docker` is not on a non-root PATH (it is `/usr/local/bin/docker`), and a
+  non-root account cannot reach the daemon socket at all, so `sudo -i` first. Editing
+  `.env` and `docker-compose.yml` needs neither - they are owner-writable - and the edits
+  are inert until the re-create, which makes preparing them and rebuilding two separable
+  jobs.
+
+**Applied on this NAS 2026-08-18** and confirmed: all four values present inside the
+container, and the mail arrives as designed. The pre-change files are kept beside
+themselves as `.env.pre-mailer` and `docker-compose.yml.pre-mailer`, which is what the
+rollback above restores.
 
 ---
 
