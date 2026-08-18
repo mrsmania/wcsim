@@ -5,8 +5,10 @@ import { DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
 // ---------------------------------------------------------------------------
 // The whole sign-in surface: one email field, a 6-digit code, done. The same flow
 // serves a first-time player and a returning one, so there is no separate register
-// step. Rendered inside the settings sheet, and only when a server is configured
-// (FEATURES.accounts); a guest never sees it, and never downloads the auth client.
+// step - hence "Continue" on the first button rather than "Send code", which asked the
+// player to care that a code is what happens next. Rendered by AccountModal, and only
+// when a server is configured (FEATURES.accounts); a guest never sees it, and never
+// downloads the auth client.
 // ---------------------------------------------------------------------------
 
 const FIELD =
@@ -226,7 +228,7 @@ export default function AccountPanel({
             disabled={!canSend}
             className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
           >
-            {stage === 'sending' ? 'Sending...' : 'Send code'}
+            {stage === 'sending' ? 'Sending...' : 'Continue'}
           </button>
         </form>
       )}

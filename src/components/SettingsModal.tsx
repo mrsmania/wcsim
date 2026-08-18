@@ -5,8 +5,6 @@ import type { MatchSpeed } from '../domain/clock';
 import type { Difficulty } from '../domain/difficulty';
 import { WORLD_CUP_YEARS, squadsInPool } from '../data/squads';
 import { collectiblePlayers } from '../domain/album';
-import { FEATURES } from '../config';
-import AccountPanel from './AccountPanel';
 import type { SettingsApi } from '../hooks/useSettings';
 
 const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
@@ -49,9 +47,9 @@ function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; la
     );
 }
 
-/** The global settings sheet, opened from the masthead gear. Gathers the match
- *  playback controls (moved here from the match screens), difficulty, and the
- *  appearance toggle. The squad-pool limiter is added in the next slice. */
+/** The global settings sheet, opened from the masthead gear: match playback, difficulty,
+ *  appearance and the squad pool. Signing in lives in its own dialog (AccountModal), not
+ *  here - it is the one thing a new player may want and does not belong behind a gear. */
 export default function SettingsModal({
     onClose,
     settings,
@@ -61,8 +59,6 @@ export default function SettingsModal({
     onSetAuto,
     onChangeDifficulty,
     albumCount,
-    accountEmail,
-    onAccountChanged,
 }: {
     onClose: () => void;
     settings: SettingsApi;
@@ -74,10 +70,6 @@ export default function SettingsModal({
     onChangeDifficulty: (d: Difficulty) => void;
     /** Collected stickers at risk when difficulty changes (0 hides the confirm). */
     albumCount: number;
-    /** The signed-in address, or null for a guest (FEATURES.accounts only). */
-    accountEmail: string | null;
-    /** Signed in or out: the store has to be rebuilt, so App reloads. */
-    onAccountChanged: () => void;
 }) {
     const { settings: s, setTheme, setPoolYears } = settings;
     // A difficulty awaiting confirmation (changing difficulty wipes the album).
@@ -110,20 +102,6 @@ export default function SettingsModal({
                 Settings
             </h2>
             <div className="overflow-hidden rounded-md border border-line bg-panel">
-                {/* Account (only when a server is configured) */}
-                {FEATURES.accounts && (
-                    <div className={GROUP}>
-                        <div className={GH}>Account</div>
-                        <div className="mt-2">
-                            <AccountPanel
-                                email={accountEmail}
-                                onSignedIn={onAccountChanged}
-                                onSignedOut={onAccountChanged}
-                            />
-                        </div>
-                    </div>
-                )}
-
                 {/* Appearance */}
                 <div className={GROUP}>
                     <div className={GH}>Appearance</div>

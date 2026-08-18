@@ -541,6 +541,21 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>Sign-in moved into its own dialog, and "Send code" became "Continue".</b>
+      Requested and done 2026-08-18, so it never sat in the open list. Signing in was the
+      first group inside the settings sheet, which put the one thing a new player might want
+      behind a gear icon among unrelated preferences. A new <code>AccountModal</code> wraps
+      the unchanged <code>AccountPanel</code> in the shared <code>Overlay</code>; the
+      masthead account button opens it (it used to open settings), and
+      <code>SettingsModal</code> lost the group along with its <code>accountEmail</code> /
+      <code>onAccountChanged</code> props, so the reload-on-sign-in handover now lives at one
+      call site. Heading follows state: "Sign in" as a guest, "Account" when signed in, which
+      is also the dialog's accessible name. The button rename follows the flow it belongs to -
+      one address field, then a code - so the first step is just "carry on", not a request to
+      care that a code is what happens next. Verified in a browser: the account button opens a
+      dialog labelled "Sign in" whose only action is "Continue", Escape closes it, and the
+      settings sheet opens separately with Appearance / Squad pool / Difficulty and no mention
+      of accounts.</li>
       <li><b>13 New perk: Extra Re-roll (a 4th and a 5th).</b> Done 2026-08-18. Two tiers,
       30 and 75 Prestige at level 1 and 4 - priced just under Physio Table, since it is the
       same kind of agency (reject what you were dealt) but only touches the build, and only

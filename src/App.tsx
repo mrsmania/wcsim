@@ -49,6 +49,7 @@ import { onStoreError, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import SettingsModal from './components/SettingsModal';
+import AccountModal from './components/AccountModal';
 import SetupPanel from './components/SetupPanel';
 import SquadPanel, { type RerollKind } from './components/SquadPanel';
 import BudgetMarket from './components/BudgetMarket';
@@ -131,6 +132,7 @@ export default function App({
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
     const stickers = useStickerAlbum(state, dispatch, snapshot.album, poolPlayers);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [accountOpen, setAccountOpen] = useState(false);
     // Accounts (gated): the blocking state for a failed save while signed in (D9),
     // a global overlay like the album's.
     const [storeError, setStoreError] = useState<Error | null>(null);
@@ -670,13 +672,13 @@ export default function App({
                         Draft a random XI. Win the cup.
                     </span>
                     <div className="ml-auto flex items-center gap-2.5">
-                        {/* Accounts (gated): a visible way in, rather than buried in the
-                            settings sheet. Signed in it shows who you are; both open the
-                            same Account section. */}
+                        {/* Accounts (gated): its own button and its own dialog, rather
+                            than a section inside the settings sheet. Signed in it shows
+                            who you are. */}
                         {FEATURES.accounts && (
                             <button
                                 type="button"
-                                onClick={() => setSettingsOpen(true)}
+                                onClick={() => setAccountOpen(true)}
                                 title={accountEmail ?? 'Sign in to keep your album on every device'}
                                 className="flex h-[33px] shrink-0 items-center gap-1.5 rounded-[5px] border border-line bg-panel px-2.5 text-[12px] font-semibold text-muted transition hover:border-pitch hover:text-pitch"
                             >
@@ -1066,7 +1068,13 @@ export default function App({
                     onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
                     onChangeDifficulty={changeDifficulty}
                     albumCount={STICKERS ? stickers.album.collected.length : 0}
-                    accountEmail={accountEmail}
+                />
+            )}
+
+            {accountOpen && (
+                <AccountModal
+                    email={accountEmail}
+                    onClose={() => setAccountOpen(false)}
                     // Signing in or out swaps the whole store (guest storage vs the
                     // account), so the cleanest handover is a reload: main.tsx picks the
                     // right implementation and reads it fresh.
