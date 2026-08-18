@@ -608,6 +608,18 @@ A second way to build the XI, alongside the random roll. Spec:
   (and career-off) use the fixed `BUDGET_DRAFT` ($110); **Career Mode scales it** by the
   owned `transfer-budget` career perk via `config.ts` `BUDGET_BY_TIER` ($70 base -> $150),
   computed in `App` (reads `loadCareer()`) and passed to `BudgetMarket`.
+- **The owned-sticker discount.** A player whose sticker is already in the album costs
+  `STICKER_DISCOUNT` (config.ts, 25%) less: `priceFor(player, ownedIds)` on top of the
+  curve, with `pricerFor(ownedIds)` for the places that price many players. **In both
+  modes** - the album is global, shared by Quick Run, Career Mode and guests, so there is
+  one price rule rather than a mode-dependent one; set the constant to 0 to switch it off.
+  Everything that touches money goes through it, and that is the part to keep in step:
+  the market rows (which show the full price struck through beside the discounted one),
+  the **price and value sort comparators** (sorting by a price the player is not paying
+  makes cheapest-first lie), the budget bar, `XiTable`'s cost column and total, and
+  `autoFillBudget`, which takes the pricer as an argument because its per-slot reserve and
+  upgrade passes must reserve against what will actually be charged. Keyed on **player
+  id**, like the marker: owning Buffon 90 discounts that card, not Buffon 88.
 - **Position selection is on the pitch, both directions.** `Pitch` gained two optional props
   (`onSelectSlot` + `targetSlotId`, no-op in the roll draft): tap an empty slot to *shop* that
   position (the market filters to it), OR tap a market player to hold it (its eligible slots pulse

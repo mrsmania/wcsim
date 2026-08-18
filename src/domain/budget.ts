@@ -11,7 +11,7 @@ import type { Player, Position } from '../data/types';
 import { ALL_PLAYERS } from '../data/squads';
 import type { Slot } from './formations';
 import type { Filled } from './draft';
-import { priceOf } from './pricing';
+import { pricerFor, type Pricer } from './pricing';
 import { shuffled } from './random';
 
 /** Cheapest possible price for any player, reserved per still-empty slot so a random
@@ -45,6 +45,11 @@ export function autoFillBudget(
   filled: Filled,
   remaining: number,
   pool: Player[] = ALL_PLAYERS,
+  /** What a player costs. Defaults to the plain curve; the market passes one bound to
+   *  the album so owned stickers are cheaper here too - otherwise auto-fill would
+   *  reserve and upgrade against prices the player is not actually paying, and either
+   *  leave money on the table or overshoot the budget. */
+  price: Pricer = pricerFor(null),
 ): { filled: Filled; usedPersonIds: string[] } {
   const BY_POSITION = playersByPosition(pool);
   const next: Filled = { ...filled };
@@ -61,14 +66,14 @@ export function autoFillBudget(
     const reserve = (order.length - 1 - i) * MIN_PRICE;
     const cap = left - reserve;
     const pool = (BY_POSITION[s.position] ?? []).filter(
-      (p) => !usedIds.has(p.personId) && priceOf(p.elo) <= cap,
+      (p) => !usedIds.has(p.personId) && price(p) <= cap,
     );
     if (pool.length === 0) return;
     const topK = pool.slice(0, Math.min(PICK_POOL, pool.length));
     const pick = topK[Math.floor(Math.random() * topK.length)];
     next[s.id] = pick;
     usedIds.add(pick.personId);
-    left -= priceOf(pick.elo);
+    left -= price(pick);
     autoIds.push(s.id);
   });
 
@@ -77,10 +82,10 @@ export function autoFillBudget(
     for (const slotId of shuffled(autoIds)) {
       const cur = next[slotId]!;
       const slot = slots.find((s) => s.id === slotId)!;
-      const curPrice = priceOf(cur.elo);
+      const curPrice = price(cur);
       const options = (BY_POSITION[slot.position] ?? []).filter(
         (p) =>
-          p.elo > cur.elo && !usedIds.has(p.personId) && priceOf(p.elo) - curPrice <= left,
+          p.elo > cur.elo && !usedIds.has(p.personId) && price(p) - curPrice <= left,
       );
       if (options.length === 0) continue;
       const topK = options.slice(0, Math.min(PICK_POOL, options.length));
@@ -88,7 +93,7 @@ export function autoFillBudget(
       usedIds.delete(cur.personId);
       usedIds.add(up.personId);
       next[slotId] = up;
-      left -= priceOf(up.elo) - curPrice;
+      left -= price(up) - curPrice;
       upgraded = true;
       break;
     }

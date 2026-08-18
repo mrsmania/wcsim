@@ -3,7 +3,7 @@ import { lastName } from '../data/format';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { tierOf } from '../domain/album';
-import { priceOf } from '../domain/pricing';
+import { priceFor } from '../domain/pricing';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Flag from './Flag';
@@ -38,8 +38,10 @@ export default function XiTable({
     const placedSlots = ordered.filter((s) => filled[s.id]);
     const placed = placedSlots.length;
     const isBudget = budget != null;
+    // Prices match the market: a player whose sticker is already collected is
+    // discounted, so the total spent here agrees with the budget bar over there.
     const spent = isBudget
-        ? placedSlots.reduce((t, s) => t + priceOf(filled[s.id]!.elo), 0)
+        ? placedSlots.reduce((t, s) => t + priceFor(filled[s.id]!, ownedStickerIds), 0)
         : 0;
     const cols = isBudget
         ? 'grid-cols-[30px_1fr_auto_auto_auto]'
@@ -99,7 +101,7 @@ export default function XiTable({
                         </span>
                         {isBudget && (
                             <span className="min-w-[26px] text-right font-mono text-[11.5px] text-muted tabular-nums">
-                                {player ? `$${priceOf(player.elo)}` : '–'}
+                                {player ? `$${priceFor(player, ownedStickerIds)}` : '–'}
                             </span>
                         )}
                     </div>

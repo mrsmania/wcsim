@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -346,39 +346,6 @@
     <p class="next"><strong>Decision first:</strong> are challenges permanent, rotating, or a
     mix? Then pick the opening handful.</p>
     <p class="files">docs/career-depth-spec.md, src/domain/career.ts, src/domain/run.ts</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">02</span>
-    <span class="title">Sticker discount in the budget build
-      <span class="sub">Already-collected players cost x% less; x is configurable.</span>
-    </span>
-    <span class="tag">Economy</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Players whose sticker you already own should be cheaper in the transfer market, so the
-    album pays back into the game. A constant in <code>src/config.ts</code> is fine for
-    <code>x</code>; no UI needed.</p>
-    <ul>
-      <li>Price comes from <code>priceOf(elo)</code> in <code>domain/pricing.ts</code>; the
-      album lives in <code>domain/album.ts</code>. The discount is an album-aware price
-      wrapper: pass the collected set in, keep <code>domain/</code> pure.</li>
-      <li>Touches everything that shows or sums a price: <code>BudgetMarket</code>, the
-      <code>XiTable</code> budget column, and the auto-fill spender (which reserves budget
-      per remaining slot).</li>
-      <li>Worth showing the original price struck through, so the reward is visible.</li>
-      <li>Signed in, the collected set comes from the account rather than localStorage - it
-      is already in the boot snapshot, so no extra request.</li>
-    </ul>
-    <div class="callout">
-      <span class="ct">Decision needed</span>
-      Does the discount apply in Quick Run too, or Career Mode only? It reads as a career
-      reward, but the album is global and shared by both.
-    </div>
-    <p class="files">src/domain/pricing.ts, src/config.ts, src/components/BudgetMarket.tsx</p>
   </div>
 </details>
 
@@ -581,6 +548,32 @@ curl -sI https://mrsmania.github.io/wcsim/email/logo.png</pre></li>
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>02 Already-collected players are cheaper in the transfer market.</b> Done
+      2026-08-18, so the album pays back into the game. <code>priceFor(player, ownedIds)</code>
+      sits on top of the rating curve and takes <code>STICKER_DISCOUNT</code> (config, 25%)
+      off a player whose sticker you hold; <code>pricerFor(ownedIds)</code> is the bound
+      version for places that price many players. Owned rows show the full price struck
+      through beside the new one, so the reward is visible rather than just a smaller number.
+      <br><b>Decided: both modes, 25%.</b> The album is global - shared by Quick Run, Career
+      Mode and guests - so a mode-dependent price would have meant the market, the line-up
+      column and the auto-fill spender all needing to know which mode they were in, for a
+      rule the collection does not distinguish anyway. 25% is felt (an Iconic 93 drops $19 to
+      $14) without flattening the convex curve the budget exists to create.
+      <br>The catch worth knowing: <b>every</b> place that touches money had to move, not
+      just the displayed price. The price and value <i>sort comparators</i> (sorting by a
+      price the player is not paying makes cheapest-first lie), the budget bar,
+      <code>XiTable</code>'s cost column and total, and <code>autoFillBudget</code>, which
+      now takes the pricer as an argument because its per-slot reserve and its upgrade pass
+      must reserve against what will actually be charged - otherwise auto-fill either leaves
+      money unspent or overshoots.
+      <br>Verified in the app with an album of 41 of 81: owned rows priced at exactly 75%
+      with the old price struck through and unowned rows untouched (zero mismatches across
+      the list), and after an auto-fill the line-up's per-row costs summed to its header
+      total and to the budget. <code>npm run checks</code> gained four invariants: the
+      discount is bounded and floored at $1, applies per player id (owning one version does
+      not discount another - checked against the real dataset pairs), auto-fill still
+      respects the budget and fills every slot at discounted prices over 3,000 runs, and a
+      discounted XI can come in under its list price. 33 checks, all passing.</li>
       <li><b>17 Collectibles you already own are marked in the player lists.</b> Done
       2026-08-18. The tier marker gained a second state, so it stops only saying "this
       player is collectible" and answers the question you actually have while picking: a

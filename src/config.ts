@@ -104,6 +104,13 @@ export const STICKER_TRADE_COST: Record<StickerTier, number> = {
  *  baseline when career mode is off). Career Mode scales it via BUDGET_BY_TIER below. */
 export const BUDGET_DRAFT = 110;
 
+/** Budget draft: how much cheaper a player is when his sticker is already in your album
+ *  (0.25 = 25% off, rounded, never below $1). The collection paying back into the game,
+ *  so a big album buys a slightly stronger XI. Applies in BOTH modes: the album is global,
+ *  shared by Quick Run, Career Mode and guests, so there is one price rule rather than a
+ *  mode-dependent one. Set to 0 to switch the discount off entirely. */
+export const STICKER_DISCOUNT = 0.25;
+
 /** Career-scaled transfer budget, indexed by the owned tier of the `transfer-budget`
  *  perk (0 = base). Career Mode builds use this instead of BUDGET_DRAFT; Quick Run
  *  always uses BUDGET_DRAFT. Tunable ladder (rises $70 -> $150). Keep in sync with the

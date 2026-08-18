@@ -6,7 +6,7 @@ import { SQUAD_BY_ID } from '../data/squads';
 import { CONFEDERATION, type Confederation } from '../data/confederations';
 import type { Formation, Slot } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
-import { priceOf } from '../domain/pricing';
+import { priceOf, pricerFor } from '../domain/pricing';
 import { autoFillBudget, playersByPosition } from '../domain/budget';
 import { tierOf } from '../domain/album';
 import { FEATURES } from '../config';
@@ -26,16 +26,21 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'name', label: 'A-Z' },
 ];
 
-/** Rating gained per dollar (value hunting): higher = a better bargain. */
-const valuePerDollar = (p: Player) => (p.elo - 58) / priceOf(p.elo);
 const yearOf = (p: Player) => SQUAD_BY_ID[p.squadId]?.year ?? 0;
 
-const SORT_CMP: Record<SortKey, (a: Player, b: Player) => number> = {
-  rating: (a, b) => b.elo - a.elo,
-  value: (a, b) => valuePerDollar(b) - valuePerDollar(a) || b.elo - a.elo,
-  price: (a, b) => priceOf(a.elo) - priceOf(b.elo) || b.elo - a.elo,
-  newest: (a, b) => yearOf(b) - yearOf(a) || b.elo - a.elo,
-  name: (a, b) => a.name.localeCompare(b.name),
+/** The sort comparators, built around a price function: "value" and "price" have to see
+ *  what the player will ACTUALLY be charged, or an owned sticker sorts by a price it is
+ *  not paying and the cheapest-first list lies. */
+const sortCmp = (price: (p: Player) => number): Record<SortKey, (a: Player, b: Player) => number> => {
+  /** Rating gained per dollar (value hunting): higher = a better bargain. */
+  const valuePerDollar = (p: Player) => (p.elo - 58) / price(p);
+  return {
+    rating: (a, b) => b.elo - a.elo,
+    value: (a, b) => valuePerDollar(b) - valuePerDollar(a) || b.elo - a.elo,
+    price: (a, b) => price(a) - price(b) || b.elo - a.elo,
+    newest: (a, b) => yearOf(b) - yearOf(a) || b.elo - a.elo,
+    name: (a, b) => a.name.localeCompare(b.name),
+  };
 };
 
 const SELECT =
@@ -122,10 +127,15 @@ export default function BudgetMarket({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, byPosition]);
 
+  // What things cost for THIS album: a player whose sticker is already collected is
+  // discounted (STICKER_DISCOUNT). One pricer, used by the rows, the totals, the sorts
+  // and the auto-fill spender, so every number on the panel agrees.
+  const price = pricerFor(ownedStickerIds);
+
   const slots = formation.slots;
   const placed = placedPlayers(formation, filled);
   const used = new Set(placed.map((p) => p.personId));
-  const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
+  const spent = placed.reduce((t, p) => t + price(p), 0);
   const remaining = budget - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
 
@@ -144,26 +154,36 @@ export default function BudgetMarket({
       }
       return true;
     });
-    return [...list].sort(SORT_CMP[sort]).slice(0, MAX_RESULTS);
+    return [...list].sort(sortCmp(price)[sort]).slice(0, MAX_RESULTS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, byPosition, query, sort, filterYear, filterRegion, collectiblesOnly]);
 
   // Fill every empty slot and spend most of the budget, differently each time (the
   // randomized fill lives in domain/budget). Hands the result to App to commit.
   const autoFill = () => {
-    const { filled: next, usedPersonIds } = autoFillBudget(slots, filled, remaining, poolPlayers);
+    const { filled: next, usedPersonIds } = autoFillBudget(
+      slots,
+      filled,
+      remaining,
+      poolPlayers,
+      price,
+    );
     onAutoFill(next, usedPersonIds);
   };
 
   // Per-player display state, shared by the list rows and the grid cards.
   const cell = (p: Player) => {
     const sq = SQUAD_BY_ID[p.squadId];
-    const price = priceOf(p.elo);
-    const affordable = price <= remaining;
+    const full = priceOf(p.elo);
+    const cost = price(p);
+    const affordable = cost <= remaining;
     const selectable = !used.has(p.personId) && affordable;
     return {
       sq,
-      price,
+      price: cost,
+      /** The undiscounted price, shown struck through when it differs (owned sticker). */
+      full,
+      discounted: cost < full,
       affordable,
       selectable,
       held: p.id === heldPlayer?.id,
@@ -358,10 +378,17 @@ export default function BudgetMarket({
                     </span>
                     <div className="mt-0.5 flex items-baseline justify-between">
                       <span className="font-mono text-[14px] font-bold tabular-nums">{p.elo}</span>
-                      <span
-                        className={`font-mono text-[11px] font-semibold tabular-nums ${c.affordable ? 'text-pitch' : 'text-loss'}`}
-                      >
-                        ${c.price}
+                      <span className="flex items-baseline gap-1 font-mono text-[11px] font-semibold tabular-nums">
+                        {/* Owned sticker: show what it would have cost, so the discount
+                            is visible rather than just a smaller number. */}
+                        {c.discounted && (
+                          <span className="text-[9.5px] font-normal text-muted line-through">
+                            ${c.full}
+                          </span>
+                        )}
+                        <span className={c.affordable ? 'text-pitch' : 'text-loss'}>
+                          ${c.price}
+                        </span>
                       </span>
                     </div>
                   </button>
@@ -397,10 +424,17 @@ export default function BudgetMarket({
                       <span className="w-6 text-right font-mono text-[13px] font-bold tabular-nums">
                         {p.elo}
                       </span>
-                      <span
-                        className={`w-7 text-right font-mono text-[12px] font-semibold tabular-nums ${c.affordable ? 'text-ink' : 'text-loss'}`}
-                      >
-                        ${c.price}
+                      <span className="flex w-[52px] items-baseline justify-end gap-1 font-mono tabular-nums">
+                        {c.discounted && (
+                          <span className="text-[9.5px] font-normal text-muted line-through">
+                            ${c.full}
+                          </span>
+                        )}
+                        <span
+                          className={`text-[12px] font-semibold ${c.affordable ? 'text-ink' : 'text-loss'}`}
+                        >
+                          ${c.price}
+                        </span>
                       </span>
                     </button>
                   </li>

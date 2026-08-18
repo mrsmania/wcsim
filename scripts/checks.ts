@@ -36,11 +36,11 @@ import {
 } from '../src/domain/bracket';
 import { sideOf, KO_ROUNDS } from '../src/domain/knockout';
 import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemistry';
-import { priceOf } from '../src/domain/pricing';
+import { priceFor, priceOf, pricerFor } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA } from '../src/domain/formations';
 import { canMove, moveTargets, placedPlayers, planMove, type Filled } from '../src/domain/draft';
-import { BUDGET_DRAFT, BUDGET_BY_TIER } from '../src/config';
+import { BUDGET_DRAFT, BUDGET_BY_TIER, STICKER_DISCOUNT } from '../src/config';
 import {
   BOONS,
   offerBoons,
@@ -228,6 +228,37 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('pricing: price is >= 1 and never decreases with rating', ok);
 }
 
+// --- The owned-sticker discount --------------------------------------------
+{
+  let ok = STICKER_DISCOUNT >= 0 && STICKER_DISCOUNT < 1;
+  const collectibles = ALL_PLAYERS.filter((p) => tierOf(p));
+  const owned = new Set(collectibles.map((p) => p.id));
+  for (const p of ALL_PLAYERS) {
+    const base = priceOf(p.elo);
+    const full = priceFor(p, null); // no album: exactly the curve
+    const held = priceFor(p, owned);
+    if (full !== base) ok = false;
+    if (held > base) ok = false; // a discount never raises a price
+    if (held < 1) ok = false; // and never goes below the floor
+    if (!owned.has(p.id) && held !== base) ok = false; // only owned players are cheaper
+    if (owned.has(p.id) && held !== Math.max(1, Math.round(base * (1 - STICKER_DISCOUNT)))) {
+      ok = false;
+    }
+  }
+  // Keyed on player id, not personId: owning one version must not discount another.
+  const twoVersions = ALL_PLAYERS.filter(
+    (p) => tierOf(p) && ALL_PLAYERS.some((q) => q.personId === p.personId && q.id !== p.id),
+  );
+  if (twoVersions.length === 0) ok = false; // the dataset should have such a pair
+  for (const p of twoVersions) {
+    const justHim = new Set([p.id]);
+    const other = ALL_PLAYERS.find((q) => q.personId === p.personId && q.id !== p.id)!;
+    if (priceFor(p, justHim) >= priceOf(p.elo)) ok = false; // he is discounted
+    if (priceFor(other, justHim) !== priceOf(other.elo)) ok = false; // his other card is not
+  }
+  check('pricing: the owned-sticker discount is bounded, floored, and per player id', ok);
+}
+
 // --- Budget auto-fill: within budget, no duplicate person, fills every slot ---
 {
   const formations = Object.values(FORMATIONS_DATA.byKey);
@@ -256,6 +287,27 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('budget: auto-fill never uses a personId twice', noDupes);
   check('budget: auto-fill fills every slot when the budget allows', fillsAll);
   check('budget: auto-fill reports exactly the placed personIds', usedMatches);
+
+  // The same, spending DISCOUNTED prices: the reserve and upgrade passes both read the
+  // pricer, so an album has to leave the budget invariant intact rather than overshoot.
+  const owned = new Set(ALL_PLAYERS.filter((p) => tierOf(p)).map((p) => p.id));
+  const price = pricerFor(owned);
+  let discountedWithin = true;
+  let discountedFills = true;
+  let cheaperSomewhere = false;
+  for (let i = 0; i < 3000; i++) {
+    const f = formations[i % formations.length];
+    const { filled } = autoFillBudget(f.slots, {}, BUDGET_DRAFT, ALL_PLAYERS, price);
+    const placed = f.slots.map((s) => filled[s.id]).filter((p): p is NonNullable<typeof p> => !!p);
+    const spent = placed.reduce((t, p) => t + price(p), 0);
+    if (spent > BUDGET_DRAFT) discountedWithin = false;
+    if (placed.length !== f.slots.length) discountedFills = false;
+    // With every collectible owned, some XI should come in under its undiscounted cost.
+    if (placed.reduce((t, p) => t + priceOf(p.elo), 0) > spent) cheaperSomewhere = true;
+  }
+  check('budget: auto-fill respects the budget when prices are discounted', discountedWithin);
+  check('budget: auto-fill still fills every slot when prices are discounted', discountedFills);
+  check('budget: a discounted XI can cost less than its list price', cheaperSomewhere);
 }
 
 // --- Placed XI promotes the slot role to the primary position ---------------
