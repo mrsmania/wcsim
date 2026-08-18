@@ -53,7 +53,10 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
   "+", team-mates as an amber badge - and tapping him again puts him back. A player
   with nowhere to go is not clickable at all, so the gesture is never a dead end, and a
   held card (roll or market) suppresses it so placement and collectible-swap targets
-  keep the pitch to themselves. **A move is not always two players.** `planMove`
+  keep the pitch to themselves. It works the other way too: while a player is held for a
+  move, the budget market's "next position to shop" highlight drops back to a quiet
+  dashed circle, since that slot is inert unless it is a destination and a pulsing white
+  "+" that ignores the click was the loudest thing on the pitch. **A move is not always two players.** `planMove`
   (domain/draft) runs a bipartite augmenting-path search (Kuhn), so besides an empty
   slot and a straight trade it also finds **rotations of three or more** - which is the
   only legal rearrangement more often than you would guess (9.3% of all legal moves,

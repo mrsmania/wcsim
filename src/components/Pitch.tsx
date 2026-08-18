@@ -337,6 +337,10 @@ function OverlayMarker({
     const moveHere = moveRole === 'destination' && !!onMove;
     const canPlace = !moveRole && target !== 'none';
     const clickable = moveHere || (!moveRole && (canPlace || !!onSelectSlot));
+    // The budget market's "next position to shop" highlight has no business pulsing
+    // during a move: the slot is inert then unless it is a destination, and a pulsing
+    // white "+" that ignores the click is just noise over the move it is competing with.
+    const shopHere = isTarget && !moveRole;
     return (
         <button
             className="absolute flex flex-col items-center"
@@ -359,14 +363,14 @@ function OverlayMarker({
                         ? 'animate-slot-pulse-primary cursor-pointer border-amber bg-amber/90 text-ink'
                         : target === 'secondary'
                           ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
-                          : isTarget
+                          : shopHere
                             ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
                             : onSelectSlot
                               ? 'cursor-pointer border-dashed border-white/55 bg-white/10 text-white hover:border-white'
                               : 'border-dashed border-white/55 bg-white/10 text-white',
                 ].join(' ')}
             >
-                {moveHere || canPlace || isTarget ? '+' : null}
+                {moveHere || canPlace || shopHere ? '+' : null}
             </div>
             <span className="mt-1.5 rounded-[3px] bg-ink/60 px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-white">
                 {slot.label}
