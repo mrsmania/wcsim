@@ -1,0 +1,1471 @@
+<!--
+  TURF FLAT - World Cup Simulator redesign (6): CHALLENGES
+  Design proposal for the Challenges feature (roadmap item 01).
+    Plan: docs/challenges-spec.html
+  Surfaces covered on this comp:
+    - Career-hub entry point and the Mandates card (three weeklies, week 34)
+    - /challenges catalogue: completion counter, filters, family nav, all 130 honours
+      grouped into the 12 families, in their available / completed / not-tracked states
+    - Before a run: the mandate strip on the build page
+    - During a run: the mandate chips under the run ladder, one already failed
+    - Overlays (buttons at the top open them): the run-end "challenges completed"
+      moment, and a single challenge's detail card
+  The catalogue is the real one from the plan: 130 challenges, 34 bronze / 63 silver /
+  33 gold, 24 of them behind tracking that does not exist yet. The mock save shows
+  47 completed, worth 910 Prestige.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Challenges &mdash; Turf Flat</title>
+<script>
+/* Apply the saved theme before paint to avoid a flash, shared key across all pages. */
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+/* ===== */
+/* ===== THEMEABLE PALETTE (identical to the other turf-flat comps) ===== */
+:root,:root[data-theme="pitch"]{
+  --pitch-deep:#0E5C34; --pitch:#15924C; --chalk:#E8F0E8; --paper:#F4F2EC;
+  --ink:#13211A; --muted:#5C6A60; --line:#D4DED5; --amber:#E4922B; --loss:#C8453C;
+  --white:#ffffff; --wash:rgba(14,92,52,.05); --ring:rgba(255,255,255,.9);
+  --flag-edge:rgba(19,33,26,.18); --gold:#C99A3A; --gold-lo:#F0CF8A;
+}
+:root[data-theme="cobalt"]{
+  --pitch-deep:#16356E; --pitch:#2356C8; --chalk:#E4ECFA; --paper:#F2F4F9;
+  --ink:#141C2B; --muted:#5A6480; --line:#D2DAEA; --amber:#E8902A; --loss:#D6453E;
+  --white:#ffffff; --wash:rgba(22,53,110,.06); --ring:rgba(255,255,255,.9);
+  --flag-edge:rgba(20,28,43,.18); --gold:#C79A38; --gold-lo:#EFCE86;
+}
+:root[data-theme="claret"]{
+  --pitch-deep:#5A1230; --pitch:#7C1F3E; --chalk:#F3E6EA; --paper:#F6F1ED;
+  --ink:#241318; --muted:#7A5C63; --line:#E5D3D6; --amber:#C8962F; --loss:#E2683A;
+  --white:#ffffff; --wash:rgba(90,18,48,.05); --ring:rgba(255,255,255,.88);
+  --flag-edge:rgba(36,19,24,.18); --gold:#C8962F; --gold-lo:#EFCE86;
+}
+:root[data-theme="petrol"]{
+  --pitch-deep:#0C3B3F; --pitch:#136A6E; --chalk:#E0EEEC; --paper:#F1F4F2;
+  --ink:#0F2123; --muted:#577173; --line:#CFE0DD; --amber:#E2792A; --loss:#CF4B3C;
+  --white:#ffffff; --wash:rgba(12,59,63,.06); --ring:rgba(255,255,255,.9);
+  --flag-edge:rgba(15,33,35,.18); --gold:#C79A38; --gold-lo:#EFCE86;
+}
+:root[data-theme="floodlight"]{
+  --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+  --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+  --white:#16231D; --wash:rgba(47,180,106,.07); --ring:rgba(232,242,234,.28);
+  --flag-edge:rgba(232,242,234,.22); --gold:#E0B14E; --gold-lo:#F2D588;
+}
+:root{
+  --disp:'Archivo',system-ui,sans-serif;
+  --body:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(180deg,var(--wash),transparent 220px);
+  background-repeat:no-repeat;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== masthead ===== */
+.mast{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:2px solid var(--ink)}
+.mast .crest{width:38px;height:38px;flex:0 0 auto;border-radius:6px;background:var(--pitch-deep);
+  display:grid;place-items:center}
+.mast .crest svg{width:22px;height:22px;stroke:var(--amber);fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:23px;letter-spacing:-.02em;margin:0;text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12.5px;color:var(--muted);margin-left:2px;border-left:1px solid var(--line);padding-left:14px}
+.mast .stamp{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:6px 10px;background:var(--white)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--pitch)}
+.sec-h{display:flex;align-items:flex-end;gap:16px;margin:30px 0 18px}
+.sec-h .txt h2{font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:2px 0 0;line-height:1}
+.sec-h .crumb{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:inline-flex;gap:6px;margin-bottom:6px}
+.sec-h .chalk{flex:1;height:0;border-top:2px solid var(--line);position:relative;align-self:center}
+.sec-h .chalk::before{content:"";position:absolute;left:0;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--white);border:2px solid var(--line)}
+
+.card{background:var(--white);border:1px solid var(--line);border-radius:6px;box-shadow:6px 6px 0 var(--pitch-deep)}
+.btn{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:13px;
+  border:1px solid var(--ink);background:var(--white);color:var(--ink);border-radius:5px;padding:11px 16px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--pitch);border-color:var(--pitch-deep);color:#fff}
+.btn.sm{padding:8px 12px;font-size:11px}
+.btn.block{width:100%;justify-content:center}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ===== tier colours (bronze / silver / gold awards) ===== */
+:root{--bronze:#A9722F;--silver:#6F7A83;--tier-gold:#B98C2E}
+:root[data-theme="floodlight"]{--bronze:#D2953F;--silver:#9FAAB3;--tier-gold:#E0B14E}
+.tc{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;color:#fff;flex:0 0 auto}
+.tc.bronze{background:var(--bronze)}.tc.silver{background:var(--silver)}.tc.gold{background:var(--tier-gold)}
+.fdot{width:9px;height:9px;border-radius:50%;background:var(--fam,var(--pitch));flex:0 0 auto}
+
+/* ===== demo scaffolding (comp only) ===== */
+.demo-note{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);background:var(--chalk);border:1px dashed var(--line);border-radius:4px;padding:4px 9px;display:inline-block}
+.demo-strip{margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  border:1px dashed var(--line);border-radius:6px;padding:12px 14px;background:var(--wash)}
+.demo-strip .dl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-right:auto}
+
+/* ===== entry point (career hub) ===== */
+.entry-demo{margin-top:22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ch-cta{display:inline-flex;align-items:center;gap:13px;background:var(--white);border:1px solid var(--line);
+  border-left:3px solid var(--amber);border-radius:6px;padding:11px 16px;cursor:pointer;box-shadow:3px 3px 0 var(--pitch-deep)}
+.ch-cta .ac-ic{width:30px;height:30px;border-radius:5px;background:var(--pitch-deep);display:grid;place-items:center;flex:0 0 auto}
+.ch-cta .ac-ic svg{width:17px;height:17px;stroke:var(--amber);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ch-cta .ac-tx{display:flex;flex-direction:column;line-height:1.15;text-align:left}
+.ch-cta .ac-tx b{font-family:var(--disp);font-weight:800;font-size:14px}
+.ch-cta .ac-tx em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.ch-cta .ac-ar{color:var(--pitch);font-weight:700;margin-left:4px}
+
+/* ===== hero: completion counter ===== */
+.hero{margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:0}
+.hero .hero-main{padding:20px 22px}
+.hero-count{font-family:var(--disp);font-weight:900;letter-spacing:-.02em;margin:6px 0 12px;line-height:1}
+.hero-count b{font-size:44px}
+.hero-count span{font-size:18px;color:var(--muted);font-weight:800}
+.bar{height:9px;border-radius:20px;background:var(--chalk);overflow:hidden;border:1px solid var(--line)}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--pitch),var(--pitch-deep))}
+.hero-tiers{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px}
+.ht{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.ht b{color:var(--ink);font-weight:700}
+.ht .pip{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
+.hero-side{border-left:1px solid var(--line);background:var(--chalk);padding:20px 22px;display:flex;flex-direction:column;justify-content:center;border-radius:0 6px 6px 0}
+.hero-side .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.hero-side .v{font-family:var(--mono);font-weight:700;font-size:38px;line-height:1;margin-top:4px}
+.hero-side .sub{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4}
+
+/* ===== the other surfaces ===== */
+.surfaces{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
+.surface{display:flex;flex-direction:column;gap:9px}
+.surface + .surface{margin-top:20px}
+.surface > .demo-note{align-self:flex-start}
+
+/* mandates card (career hub) */
+.mand{padding:15px 17px 13px}
+.mand-hd{display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--ink);padding-bottom:9px}
+.mand-hd h3{font-family:var(--disp);font-weight:800;font-size:16px;margin:0;letter-spacing:-.01em}
+.mand-hd .wk{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-left:auto}
+.x2{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:#fff;background:var(--amber);border-radius:20px;padding:2px 7px}
+.mrow{display:flex;align-items:flex-start;gap:11px;padding:11px 1px;border-bottom:1px dashed var(--line)}
+.mrow:last-of-type{border-bottom:0}
+.mrow .fdot{margin-top:6px}
+.mrow .mx{flex:1;min-width:0}
+.mrow .mx b{font-family:var(--disp);font-weight:800;font-size:14.5px;letter-spacing:-.01em}
+.mrow .mx em{font-style:normal;display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
+.mrow .aw{font-family:var(--mono);font-weight:700;font-size:13.5px;color:var(--pitch);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.mrow.done .aw::after{content:"\2713";display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--pitch);color:#fff;font-size:10px}
+.mand-ft{display:flex;align-items:center;gap:10px;border-top:2px solid var(--line);margin-top:6px;padding-top:11px;
+  font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.mand-ft a{margin-left:auto;font-family:var(--disp);font-weight:800;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--pitch)}
+
+/* before a run: the build-page strip */
+.prerun{display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:var(--white);border:1px solid var(--line);
+  border-left:3px solid var(--amber);border-radius:6px;padding:10px 14px;box-shadow:3px 3px 0 var(--pitch-deep)}
+.prerun .lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.prerun .m{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+.prerun .sep{color:var(--line);font-weight:700}
+
+/* during a run: chips under the ladder */
+.runchips{display:flex;gap:8px;flex-wrap:wrap}
+.rchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;
+  background:var(--white);padding:6px 12px;font-size:12.5px;font-weight:600}
+.rchip.done{border-color:var(--pitch);background:var(--wash);color:var(--pitch)}
+.rchip.done::after{content:"\2713";font-family:var(--mono);font-size:11px}
+.rchip.failed{border-style:dashed;color:var(--muted)}
+.rchip.failed .nm{text-decoration:line-through}
+.rchip .why{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--loss)}
+.ladder-fake{display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ladder-fake i{font-style:normal;border:1px solid var(--line);border-radius:4px;padding:4px 9px;background:var(--white)}
+.ladder-fake i.on{background:var(--pitch);border-color:var(--pitch-deep);color:#fff}
+
+/* ===== filters + family nav ===== */
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:34px;border-top:2px solid var(--ink);padding-top:16px}
+.filters .fl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.chipbtn{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.05em;font-size:11px;
+  border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:20px;padding:7px 13px;cursor:pointer}
+.chipbtn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chipbtn .n{font-family:var(--mono);font-size:10px;font-weight:700;opacity:.6;margin-left:6px}
+.fam-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.fnav{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;
+  padding:5px 11px;background:var(--white);font-size:12px}
+.fnav b{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted)}
+
+/* ===== family sections + challenge cards ===== */
+.fam{margin-top:30px}
+.fam[hidden]{display:none}
+.fam-head{display:flex;align-items:center;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:9px;margin-bottom:15px}
+.fam-head h3{font-family:var(--disp);font-weight:800;font-size:19px;letter-spacing:-.01em;margin:0}
+.fam-head .cnt{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted)}
+.fam-head .fkey{font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;background:var(--fam);border-radius:3px;padding:2px 8px}
+.fam-head .spacer{flex:1}
+.needs-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--loss);border:1px solid var(--loss);border-radius:3px;padding:2px 6px}
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:13px}
+.ch{position:relative;display:flex;flex-direction:column;gap:5px;padding:10px 12px 10px;
+  background:var(--white);border:1px solid var(--line);border-left:3px solid var(--fam);border-radius:6px;
+  box-shadow:3px 3px 0 var(--pitch-deep)}
+.ch[hidden]{display:none}
+.ch-hd{display:flex;align-items:center;gap:8px}
+.ch-no{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.ch-aw{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--pitch)}
+.ch h4{font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:-.01em;margin:0;line-height:1.15}
+.ch p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.4}
+.ch .st{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.ch .st.done{color:var(--pitch)}
+.ch .st.open{color:var(--muted);opacity:.5}
+.ch .st.locked{color:var(--loss);opacity:.75}
+.ch.done::after{content:"\2713";position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;
+  background:var(--pitch);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;box-shadow:0 0 0 2px var(--paper)}
+.ch.locked{border-style:dashed;border-left-style:solid;box-shadow:none;background:transparent;opacity:.72}
+
+/* ===== */
+/* ===== overlays ===== */
+.overlay{position:fixed;inset:0;z-index:80;background:rgba(10,20,14,.55);display:grid;place-items:center;padding:24px}
+.overlay[hidden]{display:none}
+.modal{background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:8px 8px 0 var(--pitch-deep);
+  max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal .m-eyebrow{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pitch)}
+.modal h3{font-family:var(--disp);font-weight:900;font-size:26px;letter-spacing:-.02em;margin:5px 0 6px;line-height:1.05}
+.modal .m-sub{font-size:13.5px;color:var(--muted);margin-bottom:18px}
+.modal .m-sub b{color:var(--ink)}
+.modal .m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.modal .m-grid.wide{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));max-height:46vh;overflow:auto;padding:2px}
+.modal .m-actions{margin-top:20px;display:flex;gap:10px;justify-content:flex-end}
+.modal .note{font-size:12px;color:var(--muted);font-style:italic;margin-top:12px}
+.cup-banner{background:var(--pitch-deep);color:#fff;border-radius:6px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.cup-banner svg{width:26px;height:26px;stroke:var(--amber);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.cup-banner .cb-t{font-family:var(--disp);font-weight:900;font-size:18px;letter-spacing:-.01em}
+.cup-banner .cb-s{font-size:12px;color:rgba(255,255,255,.8)}
+/* ===== theme switcher ===== */
+.themer{position:fixed;top:64px;right:14px;z-index:90;display:flex;align-items:center;gap:9px;
+  background:var(--white);border:1px solid var(--line);border-radius:30px;padding:6px 10px 6px 13px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);max-width:calc(100vw - 28px)}
+.themer .tlbl{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.themer .sw-row{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.themer .sw{position:relative;width:22px;height:22px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  border:1px solid var(--flag-edge);padding:0;overflow:hidden;background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%)}
+.themer .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--ink)}
+.themer .sw .nm{position:absolute;left:-9999px}
+.themer .sw.t-pitch{--c1:#15924C;--c2:#0E5C34}.themer .sw.t-cobalt{--c1:#2356C8;--c2:#16356E}
+.themer .sw.t-claret{--c1:#7C1F3E;--c2:#C8962F}.themer .sw.t-petrol{--c1:#136A6E;--c2:#E2792A}
+.themer .sw.t-floodlight{--c1:#0E1714;--c2:#2FB46A}
+
+@media (max-width:980px){ .surfaces{grid-template-columns:1fr} }
+@media (max-width:760px){ .mast .tag{display:none} .hero{grid-template-columns:1fr}
+  .hero-side{border-left:0;border-top:1px solid var(--line);border-radius:0 0 6px 6px} }
+@media (max-width:560px){
+  .themer{top:58px;right:10px;gap:7px;padding:5px 8px 5px 10px}.themer .tlbl{display:none}
+  .wrap{padding:0 14px 60px}.mast .stamp{display:none}.mast h1{font-size:19px}.sec-h .txt h2{font-size:24px}
+  .ch-grid{grid-template-columns:1fr}
+}
+</style>
+<nav class="themer" aria-label="Colour theme">
+  <span class="tlbl">Theme</span>
+  <div class="sw-row">
+    <button class="sw t-pitch" data-theme="pitch" title="Pitch" aria-pressed="true"><span class="nm">Pitch</span></button>
+    <button class="sw t-cobalt" data-theme="cobalt" title="Cobalt" aria-pressed="false"><span class="nm">Cobalt</span></button>
+    <button class="sw t-claret" data-theme="claret" title="Claret" aria-pressed="false"><span class="nm">Claret</span></button>
+    <button class="sw t-petrol" data-theme="petrol" title="Petrol" aria-pressed="false"><span class="nm">Petrol</span></button>
+    <button class="sw t-floodlight" data-theme="floodlight" title="Floodlight" aria-pressed="false"><span class="nm">Floodlight</span></button>
+  </div>
+</nav>
+
+<!-- trophy glyph reused in a few places -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="trophy" viewBox="0 0 24 24">
+  <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"/>
+  <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"/>
+  <path d="M18 9h1.5a1 1 0 0 0 0-5H18"/><path d="M4 22h16"/>
+  <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6 9H4.5a1 1 0 0 1 0-5H6"/>
+</symbol></svg>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="crest" aria-hidden="true"><svg><use href="#trophy"/></svg></div>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <span class="stamp">Challenges</span>
+  </header>
+
+  <!-- ENTRY POINT: a card in the career hub, next to the perk shop -->
+  <div class="entry-demo">
+    <span class="demo-note">Career hub entry point</span>
+    <button class="ch-cta">
+      <span class="ac-ic"><svg><use href="#trophy"/></svg></span>
+      <span class="ac-tx"><b>Challenges</b><em>47 / 130 honours &middot; 3 mandates this week</em></span>
+      <span class="ac-ar">&rarr;</span>
+    </button>
+  </div>
+
+  <div class="sec-h">
+    <div class="txt">
+      <div class="crumb">&larr; Back to the career hub</div>
+      <div class="eyebrow">Honours &amp; mandates</div>
+      <h2>Challenges</h2>
+    </div>
+    <div class="chalk" aria-hidden="true"></div>
+  </div>
+
+  <!-- HERO: completion counter, mirroring the album's -->
+  <section class="card hero">
+    <div class="hero-main">
+      <div class="eyebrow">Completed</div>
+      <div class="hero-count"><b>47</b> <span>/ 130 honours</span></div>
+      <div class="bar"><span style="width:36%"></span></div>
+      <div class="hero-tiers">
+        <span class="ht"><span class="pip" style="background:var(--bronze)"></span>Bronze <b>25&#8202;/&#8202;34</b></span>
+        <span class="ht"><span class="pip" style="background:var(--silver)"></span>Silver <b>22&#8202;/&#8202;63</b></span>
+        <span class="ht"><span class="pip" style="background:var(--tier-gold)"></span>Gold <b>0&#8202;/&#8202;33</b></span>
+        <span class="ht"><span class="pip" style="background:var(--loss)"></span>Not tracked yet <b>24</b></span>
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="k">Prestige earned</div>
+      <div class="v">910</div>
+      <div class="sub">Bronze 10, silver 30, gold 75. A mandate pays double.</div>
+    </div>
+  </section>
+
+  <div class="demo-strip">
+    <span class="dl">Comp only &middot; open the moments</span>
+    <button class="btn sm" data-open="ov-runend">Run end: challenges completed</button>
+    <button class="btn sm" data-open="ov-detail">One challenge, up close</button>
+  </div>
+
+  <!-- THE OTHER SURFACES -->
+  <div class="surfaces">
+    <div>
+      <div class="surface">
+        <span class="demo-note">Career hub &middot; between runs</span>
+        <section class="card mand">
+          <div class="mand-hd">
+            <h3>Mandates</h3>
+            <span class="x2">Double prestige</span>
+            <span class="wk">Week 34</span>
+          </div>
+
+          <div class="mrow done" style="--fam:#2465B0">
+            <span class="fdot"></span>
+            <span class="mx"><b>Rag Tag</b><em>Win with an XI averaging under 80.</em></span>
+            <span class="aw">+60</span>
+          </div>
+          <div class="mrow" style="--fam:#2E7D57">
+            <span class="fdot"></span>
+            <span class="mx"><b>United Nations</b><em>Win with 5+ different nations in the XI.</em></span>
+            <span class="aw">+20</span>
+          </div>
+          <div class="mrow" style="--fam:#4A6572">
+            <span class="fdot"></span>
+            <span class="mx"><b>The Wall</b><em>Win every knockout tie without conceding.</em></span>
+            <span class="aw">+150</span>
+          </div>
+
+          <div class="mand-ft">
+            <span>New three on Monday</span>
+            <a href="#fam-silverware">All challenges &rarr;</a>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div>
+      <div class="surface">
+        <span class="demo-note">Before a run &middot; build page strip</span>
+        <div class="prerun">
+          <span class="lbl">Mandates</span>
+          <span class="m"><span class="fdot" style="--fam:#2465B0"></span>Rag Tag</span>
+          <span class="sep">/</span>
+          <span class="m"><span class="fdot" style="--fam:#2E7D57"></span>United Nations</span>
+          <span class="sep">/</span>
+          <span class="m"><span class="fdot" style="--fam:#4A6572"></span>The Wall</span>
+        </div>
+        <p style="margin:0;font-size:12.5px;color:var(--muted)">Sits under the formation picker, so you build toward them while you pick.</p>
+      </div>
+
+      <div class="surface">
+        <span class="demo-note">During a run &middot; under the ladder</span>
+        <div class="ladder-fake" aria-hidden="true">
+          <i>Group &#10003;</i><i class="on">R16 &middot; vs POR</i><i>QF</i><i>SF</i><i>Final</i><i>Cup</i>
+        </div>
+        <div class="runchips">
+          <span class="rchip done"><span class="fdot" style="--fam:#2465B0"></span><span class="nm">Rag Tag</span></span>
+          <span class="rchip"><span class="fdot" style="--fam:#2E7D57"></span><span class="nm">United Nations</span></span>
+          <span class="rchip failed"><span class="fdot" style="--fam:#4A6572"></span><span class="nm">The Wall</span><span class="why">Conceded in the R16</span></span>
+        </div>
+        <p style="margin:0;font-size:12.5px;color:var(--muted)">Every predicate is judged at the end of the run, but one that has already become
+          impossible is marked straight away rather than left to look winnable.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- THE CATALOGUE -->
+  <div class="filters">
+    <span class="fl">Show</span>
+    <button class="chipbtn" data-filter="all" aria-pressed="true">All<span class="n">130</span></button>
+    <button class="chipbtn" data-filter="open" aria-pressed="false">Available<span class="n">59</span></button>
+    <button class="chipbtn" data-filter="done" aria-pressed="false">Completed<span class="n">47</span></button>
+    <button class="chipbtn" data-filter="locked" aria-pressed="false">Not tracked yet<span class="n">24</span></button>
+  </div>
+  <nav class="fam-nav" aria-label="Jump to a family">
+    <a class="fnav" href="#fam-silverware" style="--fam:#B8862B"><span class="fdot"></span>Silverware &amp; progression<b>7/12</b></a>
+    <a class="fnav" href="#fam-ascension" style="--fam:#6D5BD0"><span class="fdot"></span>Ascension<b>2/8</b></a>
+    <a class="fnav" href="#fam-identity" style="--fam:#2E7D57"><span class="fdot"></span>Squad identity<b>6/16</b></a>
+    <a class="fnav" href="#fam-rating" style="--fam:#2465B0"><span class="fdot"></span>Rating &amp; value<b>3/12</b></a>
+    <a class="fnav" href="#fam-defence" style="--fam:#4A6572"><span class="fdot"></span>Defence<b>6/10</b></a>
+    <a class="fnav" href="#fam-attack" style="--fam:#C24A34"><span class="fdot"></span>Attack<b>4/12</b></a>
+    <a class="fnav" href="#fam-drama" style="--fam:#9B3A6B"><span class="fdot"></span>Knockout drama<b>4/10</b></a>
+    <a class="fnav" href="#fam-boosts" style="--fam:#1E8A8A"><span class="fdot"></span>Boosts &amp; perks<b>6/12</b></a>
+    <a class="fnav" href="#fam-album" style="--fam:#A8762B"><span class="fdot"></span>Album &amp; collectibles<b>4/10</b></a>
+    <a class="fnav" href="#fam-market" style="--fam:#5E8C2B"><span class="fdot"></span>Market &amp; budget<b>0/8</b></a>
+    <a class="fnav" href="#fam-shape" style="--fam:#2F6E8F"><span class="fdot"></span>Shape &amp; positions<b>0/8</b></a>
+    <a class="fnav" href="#fam-career" style="--fam:#8A5A2B"><span class="fdot"></span>Career &amp; streaks<b>5/12</b></a>
+  </nav>
+
+  <section class="fam" id="fam-silverware" style="--fam:#B8862B">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Silverware &amp; progression</h3>
+      <span class="cnt">7 / 12</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">A</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">001</span><span class="ch-aw">+10</span></div>
+        <h4>First Blood</h4>
+        <p>Win your first cup.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">002</span><span class="ch-aw">+30</span></div>
+        <h4>Back to Back</h4>
+        <p>Win cups in two consecutive runs.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">003</span><span class="ch-aw">+75</span></div>
+        <h4>Three-Peat</h4>
+        <p>Win cups in three consecutive runs.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">004</span><span class="ch-aw">+30</span></div>
+        <h4>Serial Winner</h4>
+        <p>Win 10 cups in total.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">005</span><span class="ch-aw">+75</span></div>
+        <h4>Dynasty</h4>
+        <p>Win 25 cups in total.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">006</span><span class="ch-aw">+10</span></div>
+        <h4>Finalist</h4>
+        <p>Reach a final.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">007</span><span class="ch-aw">+30</span></div>
+        <h4>Nearly Man</h4>
+        <p>Lose a final, then win the cup in your next run.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">008</span><span class="ch-aw">+75</span></div>
+        <h4>Perfect Run</h4>
+        <p>Win the cup without losing a single match, group included.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">009</span><span class="ch-aw">+10</span></div>
+        <h4>Maximum Points</h4>
+        <p>Win all three group matches.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">010</span><span class="ch-aw">+10</span></div>
+        <h4>Group Winner</h4>
+        <p>Finish first in your group.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">011</span><span class="ch-aw">+30</span></div>
+        <h4>Escape Artist</h4>
+        <p>Qualify second, then win the cup.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">012</span><span class="ch-aw">+30</span></div>
+        <h4>Ninety Minutes</h4>
+        <p>Win every knockout tie in normal time.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-ascension" style="--fam:#6D5BD0">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Ascension</h3>
+      <span class="cnt">2 / 8</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">B</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">013</span><span class="ch-aw">+10</span></div>
+        <h4>Step Up</h4>
+        <p>Win at Ascension I.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">014</span><span class="ch-aw">+30</span></div>
+        <h4>Higher Ground</h4>
+        <p>Win at Ascension II.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">015</span><span class="ch-aw">+75</span></div>
+        <h4>Giant Slayer</h4>
+        <p>Win at Ascension III.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">016</span><span class="ch-aw">+75</span></div>
+        <h4>The Summit</h4>
+        <p>Win at the highest Ascension tier.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">017</span><span class="ch-aw">+75</span></div>
+        <h4>Ladder Climb</h4>
+        <p>Win at least once at every Ascension tier.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">018</span><span class="ch-aw">+30</span></div>
+        <h4>Hard Habit</h4>
+        <p>Finish 10 runs at Ascension II or higher.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">019</span><span class="ch-aw">+75</span></div>
+        <h4>No Safety Net</h4>
+        <p>Win at Ascension III+ without taking a legendary boost.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">020</span><span class="ch-aw">+30</span></div>
+        <h4>Straight Up</h4>
+        <p>Unlock a new Ascension tier without ever losing a final.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-identity" style="--fam:#2E7D57">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Squad identity</h3>
+      <span class="cnt">6 / 16</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">C</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">021</span><span class="ch-aw">+10</span></div>
+        <h4>United Nations</h4>
+        <p>Win with 5+ different nations in the XI.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">022</span><span class="ch-aw">+30</span></div>
+        <h4>Cosmopolitan</h4>
+        <p>Win with 8+ different nations.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">023</span><span class="ch-aw">+75</span></div>
+        <h4>Babel</h4>
+        <p>Win with 11 different nations.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">024</span><span class="ch-aw">+30</span></div>
+        <h4>One Flag</h4>
+        <p>Win with all 11 from a single nation.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">025</span><span class="ch-aw">+75</span></div>
+        <h4>Club Class</h4>
+        <p>Win with all 11 from a single squad (one nation, one tournament).</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">026</span><span class="ch-aw">+30</span></div>
+        <h4>Time Capsule</h4>
+        <p>Win with all 11 from a single World Cup year.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">027</span><span class="ch-aw">+30</span></div>
+        <h4>Two Cups</h4>
+        <p>Win with players from exactly two tournaments.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">028</span><span class="ch-aw">+10</span></div>
+        <h4>Golden Generation</h4>
+        <p>Win with 7+ players from one nation.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">029</span><span class="ch-aw">+30</span></div>
+        <h4>Continental</h4>
+        <p>Win with all 11 from one confederation.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">030</span><span class="ch-aw">+10</span></div>
+        <h4>Old World</h4>
+        <p>Win with an all-UEFA XI.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">031</span><span class="ch-aw">+30</span></div>
+        <h4>Samba</h4>
+        <p>Win with an all-Brazilian XI.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">032</span><span class="ch-aw">+10</span></div>
+        <h4>Iron Curtain</h4>
+        <p>Win with an XI containing a Soviet, Czechoslovak or Yugoslav player.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">033</span><span class="ch-aw">+30</span></div>
+        <h4>The Nineties</h4>
+        <p>Win with every player from 1990, 1994 or 1998.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">034</span><span class="ch-aw">+30</span></div>
+        <h4>Millennials</h4>
+        <p>Win with every player from 2002, 2006 or 2010.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">035</span><span class="ch-aw">+30</span></div>
+        <h4>Modern Era</h4>
+        <p>Win with every player from 2014, 2018 or 2022.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">036</span><span class="ch-aw">+75</span></div>
+        <h4>Every Era</h4>
+        <p>Win with at least one player from each decade in the pool.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-rating" style="--fam:#2465B0">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Rating &amp; value</h3>
+      <span class="cnt">3 / 12</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">D</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">037</span><span class="ch-aw">+30</span></div>
+        <h4>Rag Tag</h4>
+        <p>Win with an XI averaging under 80 (dataset ratings).</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">038</span><span class="ch-aw">+75</span></div>
+        <h4>Underdogs</h4>
+        <p>Win with an XI averaging under 75.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">039</span><span class="ch-aw">+75</span></div>
+        <h4>Minnows</h4>
+        <p>Win with an XI averaging under 70.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">040</span><span class="ch-aw">+30</span></div>
+        <h4>No Superstars</h4>
+        <p>Win with nobody rated 90 or above.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">041</span><span class="ch-aw">+75</span></div>
+        <h4>One-Man Team</h4>
+        <p>Win with exactly one player rated 90+ and nobody else above 82.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">042</span><span class="ch-aw">+30</span></div>
+        <h4>Balanced Books</h4>
+        <p>Win with nobody below 75 and nobody above 88.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">043</span><span class="ch-aw">+10</span></div>
+        <h4>Beat the Odds</h4>
+        <p>Win a knockout tie against a team rated 10+ higher.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">044</span><span class="ch-aw">+30</span></div>
+        <h4>David</h4>
+        <p>Win a knockout tie against a team rated 15+ higher.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">045</span><span class="ch-aw">+75</span></div>
+        <h4>Always the Underdog</h4>
+        <p>Win the cup with every knockout opponent rated higher than you.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">046</span><span class="ch-aw">+30</span></div>
+        <h4>Journeymen</h4>
+        <p>Win with nobody rated above 85.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">047</span><span class="ch-aw">+30</span></div>
+        <h4>Galacticos</h4>
+        <p>Win with an XI averaging 90+.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">048</span><span class="ch-aw">+75</span></div>
+        <h4>Chemistry Set</h4>
+        <p>Win with the maximum chemistry bonus.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-defence" style="--fam:#4A6572">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Defence</h3>
+      <span class="cnt">6 / 10</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">E</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">049</span><span class="ch-aw">+75</span></div>
+        <h4>The Wall</h4>
+        <p>Win every knockout tie without conceding (shootouts do not count).</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">050</span><span class="ch-aw">+30</span></div>
+        <h4>Clean Group</h4>
+        <p>Concede nothing in the group stage.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">051</span><span class="ch-aw">+75</span></div>
+        <h4>Fortress</h4>
+        <p>Win conceding 2 or fewer goals all run.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">052</span><span class="ch-aw">+10</span></div>
+        <h4>Shut Out</h4>
+        <p>Keep 4 clean sheets in one run.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">053</span><span class="ch-aw">+30</span></div>
+        <h4>Understudy</h4>
+        <p>Win with a goalkeeper rated under 75.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">054</span><span class="ch-aw">+10</span></div>
+        <h4>Smash and Grab</h4>
+        <p>Win a knockout tie 1-0.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">055</span><span class="ch-aw">+30</span></div>
+        <h4>Nervy</h4>
+        <p>Win three knockout ties by exactly one goal.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">056</span><span class="ch-aw">+30</span></div>
+        <h4>Stalemate</h4>
+        <p>Win a tie that finished goalless after extra time.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">057</span><span class="ch-aw">+30</span></div>
+        <h4>Final Lockdown</h4>
+        <p>Win the final without conceding.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">058</span><span class="ch-aw">+30</span></div>
+        <h4>Rearguard</h4>
+        <p>Win the cup never conceding more than one in a match.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-attack" style="--fam:#C24A34">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Attack</h3>
+      <span class="cnt">4 / 12</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">F</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">059</span><span class="ch-aw">+10</span></div>
+        <h4>Route One</h4>
+        <p>Score 4+ in a single knockout tie.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">060</span><span class="ch-aw">+30</span></div>
+        <h4>Goal Rush</h4>
+        <p>Score 5+ in a single match.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">061</span><span class="ch-aw">+30</span></div>
+        <h4>Demolition</h4>
+        <p>Win a knockout tie by 4+ goals.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">062</span><span class="ch-aw">+30</span></div>
+        <h4>Sharp Shooters</h4>
+        <p>Score 15+ goals across one run.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">063</span><span class="ch-aw">+30</span></div>
+        <h4>Never Blank</h4>
+        <p>Score in every match of a winning run.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">064</span><span class="ch-aw">+30</span></div>
+        <h4>Hat-Trick Hero</h4>
+        <p>One player scores 3+ in a knockout tie.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">065</span><span class="ch-aw">+75</span></div>
+        <h4>Talisman</h4>
+        <p>One player scores in four different knockout ties.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">066</span><span class="ch-aw">+30</span></div>
+        <h4>Spread the Load</h4>
+        <p>Six different scorers in one run.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">067</span><span class="ch-aw">+10</span></div>
+        <h4>Early Bird</h4>
+        <p>Score inside the first five minutes of a knockout tie.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">068</span><span class="ch-aw">+30</span></div>
+        <h4>Late Show</h4>
+        <p>Win a knockout tie with a goal in the 89th minute or later.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">069</span><span class="ch-aw">+10</span></div>
+        <h4>Both Halves</h4>
+        <p>Score in both halves of the final.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">070</span><span class="ch-aw">+30</span></div>
+        <h4>Cup Final Rout</h4>
+        <p>Win the final by 3+ goals.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-drama" style="--fam:#9B3A6B">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Knockout drama</h3>
+      <span class="cnt">4 / 10</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">G</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">071</span><span class="ch-aw">+30</span></div>
+        <h4>Cold Blooded</h4>
+        <p>Win a shootout, then go on to lift the cup.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">072</span><span class="ch-aw">+75</span></div>
+        <h4>Ice Veins</h4>
+        <p>Win two shootouts in one run.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">073</span><span class="ch-aw">+10</span></div>
+        <h4>Extra Effort</h4>
+        <p>Win a tie in extra time.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">074</span><span class="ch-aw">+75</span></div>
+        <h4>The Hard Way</h4>
+        <p>Win ties in normal time, extra time and on penalties in one run.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">075</span><span class="ch-aw">+75</span></div>
+        <h4>Comeback Kings</h4>
+        <p>Qualify with a negative goal difference, then win the cup.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">076</span><span class="ch-aw">+30</span></div>
+        <h4>Backs to the Wall</h4>
+        <p>Lose your opening group match, then win the cup.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">077</span><span class="ch-aw">+30</span></div>
+        <h4>Rocky Start</h4>
+        <p>Lose two group matches and still qualify.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">078</span><span class="ch-aw">+30</span></div>
+        <h4>Perfect Pens</h4>
+        <p>Win a shootout without missing a kick.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">079</span><span class="ch-aw">+30</span></div>
+        <h4>Sudden Death</h4>
+        <p>Win a shootout that ran past five kicks each.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">080</span><span class="ch-aw">+30</span></div>
+        <h4>Final Drama</h4>
+        <p>Win the final in extra time or on penalties.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-boosts" style="--fam:#1E8A8A">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Boosts &amp; perks</h3>
+      <span class="cnt">6 / 12</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">H</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">081</span><span class="ch-aw">+30</span></div>
+        <h4>Purist</h4>
+        <p>Win without a single roster boost (nobody handed to you).</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">082</span><span class="ch-aw">+75</span></div>
+        <h4>Common Touch</h4>
+        <p>Win taking only common boosts.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">083</span><span class="ch-aw">+30</span></div>
+        <h4>Legendary Lean</h4>
+        <p>Win having taken three or more legendary boosts.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">084</span><span class="ch-aw">+10</span></div>
+        <h4>Full Spectrum</h4>
+        <p>Take a common, a rare and a legendary boost in one run.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">085</span><span class="ch-aw">+30</span></div>
+        <h4>No Second Chances</h4>
+        <p>Win without using a boost re-roll (Physio Table owned).</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">086</span><span class="ch-aw">+75</span></div>
+        <h4>Perkless</h4>
+        <p>Win a run owning no perks at all.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">087</span><span class="ch-aw">+30</span></div>
+        <h4>Full Kit</h4>
+        <p>Win with every perk owned at its maximum tier.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">088</span><span class="ch-aw">+10</span></div>
+        <h4>Poacher</h4>
+        <p>Poach the next opponent, then beat them.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">089</span><span class="ch-aw">+10</span></div>
+        <h4>Wildcard Winner</h4>
+        <p>Win with a Wildcard Legend in the XI.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">090</span><span class="ch-aw">+30</span></div>
+        <h4>Glass Cannon Gambit</h4>
+        <p>Win having taken Glass Cannon.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">091</span><span class="ch-aw">+75</span></div>
+        <h4>Catenaccio Cup</h4>
+        <p>Win having taken Catenaccio, conceding 3 or fewer.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">092</span><span class="ch-aw">+10</span></div>
+        <h4>Boost Collector</h4>
+        <p>Take 5+ boosts in a single run.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-album" style="--fam:#A8762B">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Album &amp; collectibles</h3>
+      <span class="cnt">4 / 10</span>
+      
+      <span class="spacer"></span>
+      <span class="fkey">I</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">093</span><span class="ch-aw">+10</span></div>
+        <h4>Collector</h4>
+        <p>Win with 3+ collectibles in the XI.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">094</span><span class="ch-aw">+30</span></div>
+        <h4>Hall of Fame</h4>
+        <p>Win with 5+ collectibles in the XI.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">095</span><span class="ch-aw">+30</span></div>
+        <h4>Monumental</h4>
+        <p>Win with a Monumental player in the XI.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">096</span><span class="ch-aw">+30</span></div>
+        <h4>New Blood</h4>
+        <p>Bank three new stickers from one run.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">097</span><span class="ch-aw">+75</span></div>
+        <h4>Legendary Set</h4>
+        <p>Collect every Legendary sticker.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">098</span><span class="ch-aw">+75</span></div>
+        <h4>Iconic Set</h4>
+        <p>Collect every Iconic sticker.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">099</span><span class="ch-aw">+75</span></div>
+        <h4>Full Album</h4>
+        <p>Collect every sticker.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">100</span><span class="ch-aw">+10</span></div>
+        <h4>Trader</h4>
+        <p>Complete five trades.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">101</span><span class="ch-aw">+30</span></div>
+        <h4>Self-Made</h4>
+        <p>Win with no collectibles in the XI at all.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">102</span><span class="ch-aw">+10</span></div>
+        <h4>Bargain Bin</h4>
+        <p>Buy five discounted (already-owned) players in one build.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-market" style="--fam:#5E8C2B">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Market &amp; budget</h3>
+      <span class="cnt">0 / 8</span>
+      <span class="needs-tag">needs build tracking</span>
+      <span class="spacer"></span>
+      <span class="fkey">J</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">103</span><span class="ch-aw">+30</span></div>
+        <h4>Thrifty</h4>
+        <p>Win with $20+ of the budget unspent.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">104</span><span class="ch-aw">+10</span></div>
+        <h4>Every Cent</h4>
+        <p>Win having spent the budget to the last dollar.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">105</span><span class="ch-aw">+30</span></div>
+        <h4>Bargain Hunter</h4>
+        <p>Win with no player costing more than $12.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">106</span><span class="ch-aw">+10</span></div>
+        <h4>Marquee Signing</h4>
+        <p>Win having spent $25+ on one player.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">107</span><span class="ch-aw">+75</span></div>
+        <h4>Market Master</h4>
+        <p>Win a bought XI at Ascension II+.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">108</span><span class="ch-aw">+10</span></div>
+        <h4>Roll With It</h4>
+        <p>Win with a rolled XI rather than a bought one.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">109</span><span class="ch-aw">+75</span></div>
+        <h4>First Draw</h4>
+        <p>Win a rolled run without using a squad re-roll.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">110</span><span class="ch-aw">+30</span></div>
+        <h4>Swap Meet</h4>
+        <p>Use both collectible swaps and win the cup.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-shape" style="--fam:#2F6E8F">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Shape &amp; positions</h3>
+      <span class="cnt">0 / 8</span>
+      <span class="needs-tag">needs formation tracking</span>
+      <span class="spacer"></span>
+      <span class="fkey">K</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">111</span><span class="ch-aw">+10</span></div>
+        <h4>Back Five</h4>
+        <p>Win with a five-defender formation.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">112</span><span class="ch-aw">+10</span></div>
+        <h4>All Out Attack</h4>
+        <p>Win playing the offensive style.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">113</span><span class="ch-aw">+10</span></div>
+        <h4>Park the Bus</h4>
+        <p>Win playing the defensive style.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">114</span><span class="ch-aw">+30</span></div>
+        <h4>Shape Shifter</h4>
+        <p>Win cups with three different formations.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">115</span><span class="ch-aw">+30</span></div>
+        <h4>Out of Position</h4>
+        <p>Win with 3+ players outside their natural position.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">116</span><span class="ch-aw">+30</span></div>
+        <h4>Textbook</h4>
+        <p>Win with every player in his natural position.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">117</span><span class="ch-aw">+30</span></div>
+        <h4>Keeper's Union</h4>
+        <p>Win with the goalkeeper rated higher than every outfielder.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">118</span><span class="ch-aw">+10</span></div>
+        <h4>Midfield General</h4>
+        <p>Win with your highest-rated player in midfield.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="fam" id="fam-career" style="--fam:#8A5A2B">
+    <div class="fam-head">
+      <span class="fdot"></span>
+      <h3>Career &amp; streaks</h3>
+      <span class="cnt">5 / 12</span>
+      <span class="needs-tag">some need counters</span>
+      <span class="spacer"></span>
+      <span class="fkey">L</span>
+    </div>
+    <div class="ch-grid">
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">119</span><span class="ch-aw">+10</span></div>
+        <h4>Persistent</h4>
+        <p>Finish 25 runs.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">120</span><span class="ch-aw">+75</span></div>
+        <h4>Centurion</h4>
+        <p>Finish 100 runs.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">121</span><span class="ch-aw">+10</span></div>
+        <h4>Level Ten</h4>
+        <p>Reach level 10.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">122</span><span class="ch-aw">+30</span></div>
+        <h4>Veteran</h4>
+        <p>Reach level 25.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">123</span><span class="ch-aw">+10</span></div>
+        <h4>War Chest</h4>
+        <p>Hold 200 Prestige at once.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">124</span><span class="ch-aw">+30</span></div>
+        <h4>Spendthrift</h4>
+        <p>Spend 500 Prestige in total.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">125</span><span class="ch-aw">+75</span></div>
+        <h4>On a Roll</h4>
+        <p>Win three runs in a row.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch locked" data-state="locked">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">126</span><span class="ch-aw">+30</span></div>
+        <h4>Consistency</h4>
+        <p>Reach the semi-final or better in five consecutive runs.</p>
+        <div class="ch-ft"><span class="st locked">Not tracked yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc bronze">Bronze</span><span class="ch-no">127</span><span class="ch-aw">+10</span></div>
+        <h4>Challenge Hunter</h4>
+        <p>Complete 10 challenges.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">128</span><span class="ch-aw">+75</span></div>
+        <h4>Mandate Master</h4>
+        <p>Complete 50 challenges.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+      <article class="ch done" data-state="done">
+        <div class="ch-hd"><span class="tc silver">Silver</span><span class="ch-no">129</span><span class="ch-aw">+30</span></div>
+        <h4>Weekly Warrior</h4>
+        <p>Complete all three mandates in one week.</p>
+        <div class="ch-ft"><span class="st done">Completed</span></div>
+      </article>
+      <article class="ch" data-state="open">
+        <div class="ch-hd"><span class="tc gold">Gold</span><span class="ch-no">130</span><span class="ch-aw">+75</span></div>
+        <h4>Every Family</h4>
+        <p>Complete at least one challenge from every family.</p>
+        <div class="ch-ft"><span class="st open">Not yet</span></div>
+      </article>
+    </div>
+  </section>
+</div>
+
+<!-- ============ OVERLAY: run end, the reward moment ============ -->
+<div class="overlay" id="ov-runend" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Challenges completed">
+    <div class="cup-banner">
+      <svg><use href="#trophy"/></svg>
+      <div><div class="cb-t">World Champions</div><div class="cb-s">Three challenges completed on this run.</div></div>
+    </div>
+    <div class="m-eyebrow">Challenges completed</div>
+    <h3>+120 Prestige</h3>
+    <p class="m-sub">Added to the same wallet the perk shop spends from.</p>
+
+    <div class="card" style="padding:4px 15px 8px">
+      <div class="mrow done" style="--fam:#B8862B">
+        <span class="fdot"></span>
+        <span class="mx"><b>First Blood</b><em>Win your first cup.</em></span>
+        <span class="aw">+10</span>
+      </div>
+      <div class="mrow done" style="--fam:#2465B0">
+        <span class="fdot"></span>
+        <span class="mx"><b>Rag Tag</b><em>Win with an XI averaging under 80. <span class="x2">Mandate</span></em></span>
+        <span class="aw">+60</span>
+      </div>
+      <div class="mrow done" style="--fam:#9B3A6B">
+        <span class="fdot"></span>
+        <span class="mx"><b>Cold Blooded</b><em>Win a shootout, then go on to lift the cup.</em></span>
+        <span class="aw">+30</span>
+      </div>
+      <div class="mrow" style="--fam:#4A6572">
+        <span class="fdot"></span>
+        <span class="mx"><b>The Wall</b><em>Win every knockout tie without conceding. <span class="needs-tag">Missed</span></em></span>
+        <span class="aw" style="color:var(--muted)">+150</span>
+      </div>
+    </div>
+
+    <p class="note">This lands above the score at run end, in the slot the sticker haul uses. Ratings are judged on the dataset player, not the boosted one, so a Golden Generation run does not quietly fail Rag Tag.</p>
+    <div class="m-actions"><button class="btn primary" data-close>Back to the hub</button></div>
+  </div>
+</div>
+
+<!-- ============ OVERLAY: one challenge, up close ============ -->
+<div class="overlay" id="ov-detail" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Challenge detail" style="max-width:460px">
+    <div class="m-eyebrow">Defence &middot; Gold</div>
+    <h3>The Wall</h3>
+    <p class="m-sub">Win every knockout tie without conceding. A shootout does not count against it: <b>penalties are not goals</b>.</p>
+    <div class="card" style="padding:14px 16px">
+      <div class="ht" style="margin-bottom:8px"><span class="pip" style="background:var(--tier-gold)"></span>Gold &middot; <b>+75 Prestige</b></div>
+      <div class="ht" style="margin-bottom:8px"><span class="fdot" style="--fam:#4A6572"></span>Family <b>Defence</b> (10 challenges, 3 completed)</div>
+      <div class="ht"><span class="pip" style="background:var(--amber)"></span>This week's mandate <b>pays 150</b></div>
+    </div>
+    <p class="note">Once completed, the cabinet keeps the run that earned it: the XI, the ascension tier and the date.</p>
+    <div class="m-actions"><button class="btn" data-close>Close</button></div>
+  </div>
+</div>
+
+<script>
+/* Theme switcher (shared behaviour across the turf-flat comps). */
+(function(){
+  var KEY='turf-flat-theme';
+  var sw=[].slice.call(document.querySelectorAll('.themer .sw'));
+  function mark(t){sw.forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-theme')===t?'true':'false');});}
+  mark(document.documentElement.getAttribute('data-theme')||'pitch');
+  sw.forEach(function(b){b.addEventListener('click',function(){
+    var t=b.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme',t);
+    try{localStorage.setItem(KEY,t);}catch(e){}
+    mark(t);});});
+})();
+
+/* Overlay open/close: any [data-open="id"] opens #id; [data-close] or backdrop closes. */
+(function(){
+  function open(id){var o=document.getElementById(id);if(o)o.hidden=false;}
+  function closeAll(){[].forEach.call(document.querySelectorAll('.overlay'),function(o){o.hidden=true;});}
+  document.addEventListener('click',function(e){
+    var op=e.target.closest('[data-open]');
+    if(op){open(op.getAttribute('data-open'));return;}
+    if(e.target.closest('[data-close]')){closeAll();return;}
+    if(e.target.classList.contains('overlay')){closeAll();}
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeAll();});
+})();
+
+/* Catalogue filter: available / completed / not tracked yet. A family with nothing
+   left to show hides with it, so the page never has an empty heading. */
+(function(){
+  var btns=[].slice.call(document.querySelectorAll('.chipbtn[data-filter]'));
+  var cards=[].slice.call(document.querySelectorAll('.ch[data-state]'));
+  var fams=[].slice.call(document.querySelectorAll('.fam'));
+  function apply(f){
+    cards.forEach(function(c){c.hidden = f!=='all' && c.getAttribute('data-state')!==f;});
+    fams.forEach(function(s){
+      s.hidden = !s.querySelector('.ch:not([hidden])');
+    });
+    btns.forEach(function(b){b.setAttribute('aria-pressed', b.getAttribute('data-filter')===f?'true':'false');});
+  }
+  btns.forEach(function(b){b.addEventListener('click',function(){apply(b.getAttribute('data-filter'));});});
+})();
+</script>
