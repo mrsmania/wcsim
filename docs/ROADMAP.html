@@ -319,7 +319,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 15 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -327,7 +327,7 @@
 <div class="lede">
   <p><b>The single list.</b> This replaces the old <code>docs/ROADMAP.md</code> and
   <code>docs/todo/TODO.html</code>, which held overlapping copies of the same items and
-  drifted apart. Everything open lives here now: two tiers below, and what already shipped
+  drifted apart. Everything open lives here now: three tiers below, and what already shipped
   is collapsed at the very bottom as decision history.</p>
   <p style="margin-top:8px"><b>Live flag worth knowing:</b>
   <code>FEATURES.stickersOnCupWinOnly</code> is currently <code>false</code>, so any
@@ -487,6 +487,198 @@
     challenges are what would fill it; the run history it needs is already recorded per
     account in <code>run_results</code>.</p>
     <p class="files">src/components/CupRunScreen.tsx, supabase/migrations/0001_schema.sql</p>
+  </div>
+</details>
+
+<div class="band"><h2>From playing</h2><span>found in real runs, small to medium</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">07</span>
+    <span class="title">Scores and goals jump when the match ends
+      <span class="sub">The card shifts at full time instead of settling.</span>
+    </span>
+    <span class="tag">Bug</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The live feed pops each goal in as it arrives (<code>animate-goal-pop</code>), and at
+    full time the result card moves rather than staying put. Happens for a goal at either end.</p>
+    <p>One lead to check before anything else: <code>GoalList</code> keys its rows by array
+    index, so a re-render (or the swap from the live card to the finished one) can replay the
+    animation on <i>every</i> row at once instead of only on the new goal, and a row growing
+    from 0.6 scale changes the height while it does. Whatever the cause, the scoreline and the
+    feed should hold their position at the whistle.</p>
+    <p class="next"><strong>Next step:</strong> reproduce at the slowest speed, watching a home
+    goal and an away goal, in the group stage and in a knockout tie.</p>
+    <p class="files">src/components/GoalList.tsx, src/components/matchUi.tsx, src/components/MatchdayCard.tsx, src/index.css</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">08</span>
+    <span class="title">Saving new stickers takes 1-2 seconds
+      <span class="sub">Signed in, the run-end haul waits on the server.</span>
+    </span>
+    <span class="tag">Perf</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Banking a finished run takes up to a second or two before the summary appears. The path
+    is <code>applyStickers</code> to the store's <code>finishRun</code> to the
+    <code>finish_run</code> Postgres function, with writes serialized in
+    <code>remoteStore</code> and a 4s release timer (<code>BANK_WAIT_MS</code>) as the backstop
+    that stops a slow server from blocking play.</p>
+    <p>Measure before changing anything: the time could be the NAS round trip, the write queue,
+    the function itself, or simply that deliberate wait. Each has a different fix, and one of
+    them is not a bug at all.</p>
+    <p class="next"><strong>Next step:</strong> use a specialized agent to profile it end to
+    end, then choose between an optimistic summary, a leaner RPC, or overlapping the write with
+    the reward pick.</p>
+    <p class="files">src/hooks/useStickerAlbum.ts, src/state/store/remoteStore.ts, supabase/migrations/0003_functions.sql</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">09</span>
+    <span class="title">Blank white page while the app loads
+      <span class="sub">Seconds of nothing, with no sign it is working.</span>
+    </span>
+    <span class="tag">Polish</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><code>index.html</code> ships an empty <code>&lt;div id="root"&gt;</code>, so until the
+    bundle parses and <code>store.load()</code> resolves there is nothing on screen but white.
+    A spinner (with the wordmark) written straight into the HTML costs no JavaScript and shows
+    up with the first paint; React's first render replaces it.</p>
+    <p>The lazy-route <code>Suspense</code> fallback already covers moving between screens, so
+    this is only about the cold start.</p>
+    <p class="files">index.html, src/main.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">10</span>
+    <span class="title">Move a placed player within his position range
+      <span class="sub">Click his circle on the pitch to shift him to another of his roles.</span>
+    </span>
+    <span class="tag">Feature</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Once a player is in the XI his slot is fixed: the only way to move him is to remove him
+    and place him again. Clicking his badge should offer the other slots his
+    <code>positions</code> allow, taking an empty one or trading places with whoever is there.</p>
+    <p>Mind one trap: <code>placedPlayers</code> reorders a player's positions so the slot he
+    filled leads, because downstream code keys off <code>positions[0]</code>. The move has to
+    read his dataset positions, not the reordered copy, or his range shrinks with every move.</p>
+    <p class="files">src/components/Pitch.tsx, src/state/gameReducer.ts, src/domain/draft.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">11</span>
+    <span class="title">Boost-swapped players should not earn stickers
+      <span class="sub">A player a boost handed you is not one you drafted.</span>
+    </span>
+    <span class="tag">Album</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>A finished Cup Run banks the final XI's collectibles, including anyone a roster boost
+    brought in (Transfer, Poach the next opponent, Wildcard Legend). That is the album
+    recording a gift rather than an achievement. <code>RunState.boostedIds</code> already
+    tracks exactly those players, so the fix is to subtract them before banking.</p>
+    <p class="next"><strong>Next step:</strong> settle the edge case first - a boosted player
+    who was already in the XI you built yourself should still count.</p>
+    <p class="files">src/hooks/useStickerAlbum.ts, src/components/CupRunScreen.tsx, src/domain/run.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">12</span>
+    <span class="title">The boost re-roll is too easy to miss
+      <span class="sub">A tiny pill tucked into the "Pick a boost" label.</span>
+    </span>
+    <span class="tag">Polish</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The Physio Table re-roll renders as a small outlined pill beside the section heading, so
+    a perk bought with Prestige goes unnoticed exactly when it matters. Give it real weight (a
+    proper button, an icon, the remaining count spelled out) without letting it compete with
+    the three boost cards for attention.</p>
+    <p class="files">src/components/cupRun/BoostOffer.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">13</span>
+    <span class="title">New perk: a 4th and a 5th re-roll
+      <span class="sub">Roll mode only, since the transfer market has no re-rolls.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>One perk with two tiers: +1 re-roll at level 1, +2 at level 2, on top of the three in
+    <code>INITIAL_REROLLS</code>. It has to apply to the roll draft only, because the budget
+    build has nothing to re-roll and Prestige spent there would buy nothing.</p>
+    <p>Practically that means the perk must reach the reducer's starting
+    <code>rerollsLeft</code>, the way the transfer-budget perk reaches
+    <code>BudgetMarket</code> today, and the shop has to be honest about the restriction.</p>
+    <p class="next"><strong>Next step:</strong> price it against the existing perks (Scout,
+    Deep Squad, Extra Choice, Physio) and decide whether the shop hides it in budget mode or
+    just labels it.</p>
+    <p class="files">src/domain/career.ts, src/state/gameReducer.ts, src/App.tsx, src/components/CupRunScreen.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">14</span>
+    <span class="title">Enter should submit the sign-in form
+      <span class="sub">Both the email field and the code field.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Both inputs are bare <code>&lt;input&gt;</code>s next to a
+    <code>&lt;button type="button"&gt;</code>, so pressing Enter does nothing and the button has
+    to be clicked. Wrapping each stage in a real <code>&lt;form onSubmit&gt;</code> fixes it,
+    keeps the existing disabled conditions, and gives phone keyboards the Go/Send key people
+    expect.</p>
+    <p class="files">src/components/AccountPanel.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">15</span>
+    <span class="title">Rework the sign-in email, with a copy button
+      <span class="sub">Make the six-digit code easy to lift out.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The mail GoTrue sends is still its stock template. It should look like the game and make
+    the code trivial to get at, especially on a phone.</p>
+    <p class="next"><strong>Next step:</strong> worth knowing before designing it - mail clients
+    do not run JavaScript, so a real copy button inside the email is not possible. The workable
+    versions are a large, letter-spaced, selectable code (tap-and-hold copies it on phones), or
+    a link back to the game carrying the code so the field fills itself in. The template lives
+    in GoTrue's mailer config on the NAS, not in this repo, so shipping it is a server-side
+    change.</p>
+    <p class="files">dkr/.env (GOTRUE mailer templates), docs/nas-setup.md, src/components/AccountPanel.tsx</p>
   </div>
 </details>
 
