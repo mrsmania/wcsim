@@ -39,7 +39,7 @@ import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemi
 import { priceOf } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA } from '../src/domain/formations';
-import { placedPlayers } from '../src/domain/draft';
+import { canMove, moveTargets, placedPlayers, type Filled } from '../src/domain/draft';
 import { BUDGET_DRAFT, BUDGET_BY_TIER } from '../src/config';
 import {
   BOONS,
@@ -278,6 +278,67 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const inPos: Player = { ...player, positions: ['CB', 'DM'] };
   if (placedPlayers(f, { [cb.id]: inPos })[0] !== inPos) ok = false;
   check('draft: placedPlayers promotes the slot role to the primary position', ok);
+}
+
+// --- Moving a placed player stays inside his position range ----------------
+{
+  let ok = true;
+  const f = Object.values(FORMATIONS_DATA.byKey).find(
+    (fm) =>
+      fm.slots.some((s) => s.position === 'CB') &&
+      fm.slots.some((s) => s.position === 'DM') &&
+      fm.slots.some((s) => s.position === 'ST'),
+  )!;
+  const cb = f.slots.find((s) => s.position === 'CB')!;
+  const dm = f.slots.find((s) => s.position === 'DM')!;
+  const st = f.slots.find((s) => s.position === 'ST')!;
+  const utility: Player = {
+    id: 'm1', personId: 'm1', squadId: 'x', number: 4, name: 'Utility',
+    positions: ['DM', 'CB'], elo: 85,
+  };
+  const striker: Player = {
+    id: 'm2', personId: 'm2', squadId: 'x', number: 9, name: 'Striker',
+    positions: ['ST'], elo: 90,
+  };
+
+  // Into an empty slot he can play; not into one he cannot.
+  const one: Filled = { [cb.id]: utility };
+  if (!canMove(f, one, cb.id, dm.id)) ok = false;
+  if (canMove(f, one, cb.id, st.id)) ok = false;
+  if (canMove(f, one, cb.id, cb.id)) ok = false; // nowhere to go: same slot
+
+  // A trade needs BOTH halves to fit: the striker cannot cover centre-back, so the
+  // pair is refused rather than silently producing an invalid line-up.
+  const two: Filled = { [cb.id]: utility, [st.id]: striker };
+  if (canMove(f, two, cb.id, st.id)) ok = false;
+  const swapper: Player = { ...striker, id: 'm3', personId: 'm3', positions: ['ST', 'CB'] };
+  const three: Filled = { [cb.id]: utility, [st.id]: swapper };
+  if (canMove(f, three, cb.id, st.id)) ok = false; // utility still cannot play ST
+  const both: Player = { ...utility, positions: ['DM', 'CB', 'ST'] };
+  if (!canMove(f, { [cb.id]: both, [st.id]: swapper }, cb.id, st.id)) ok = false;
+
+  // The trap: placedPlayers hands out copies with the filled slot promoted to the
+  // front, so a move keyed off positions[0] would shrink a player's range every time
+  // he moved. Moving him back and forth must offer the same targets each time.
+  const targetsAt = (slotId: string, filled: Filled) => [...moveTargets(f, filled, slotId)].sort();
+  const atCb = targetsAt(cb.id, { [cb.id]: utility });
+  const reordered = placedPlayers(f, { [cb.id]: utility })[0]; // positions now ['CB','DM']
+  if (targetsAt(cb.id, { [cb.id]: reordered }).join() !== atCb.join()) ok = false;
+  // And over a round trip repeated many times (CB -> DM -> CB -> ...): what he is
+  // offered at each end must be identical every time he arrives back there.
+  let filled: Filled = { [cb.id]: utility };
+  const seen = new Map<string, string>();
+  for (let i = 0; i < 8; i++) {
+    const from = filled[cb.id] ? cb.id : dm.id;
+    const to = from === cb.id ? dm.id : cb.id;
+    if (!canMove(f, filled, from, to)) { ok = false; break; }
+    filled = { [to]: filled[from]! };
+    const here = targetsAt(to, filled).join();
+    if (!here.length) ok = false; // never stranded
+    if (seen.has(to) && seen.get(to) !== here) ok = false; // the range never shrinks
+    seen.set(to, here);
+  }
+  check('draft: a move stays within the position range, however often it is made', ok);
 }
 
 // --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------

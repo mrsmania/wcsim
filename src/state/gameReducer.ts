@@ -1,6 +1,6 @@
 import type { Player, Squad } from '../data/types';
 import type { Formation, FormationName, Style } from '../domain/formations';
-import { canPlace, isComplete, type Filled } from '../domain/draft';
+import { canMove, canPlace, isComplete, type Filled } from '../domain/draft';
 import { recordMatchday, type GroupState, type MatchdayResult } from '../domain/tournament';
 import { recordRound, type BracketGame, type BracketState } from '../domain/bracket';
 import { canSwapInto } from '../domain/album';
@@ -87,6 +87,7 @@ export type Action =
   | { type: 'PLACE_PLAYER'; slotId: string }
   | { type: 'SWAP_PLAYER'; slotId: string }
   | { type: 'REMOVE_PLAYER'; slotId: string }
+  | { type: 'MOVE_PLAYER'; fromSlotId: string; toSlotId: string }
   | { type: 'START_GROUP'; group: GroupState }
   | { type: 'RECORD_MATCHDAY'; results: MatchdayResult[] }
   | { type: 'START_BRACKET'; bracket: BracketState }
@@ -279,6 +280,28 @@ export function gameReducer(state: GameState, action: Action): GameState {
         usedPersonIds: state.usedPersonIds.filter((id) => id !== player.personId),
         phase: 'draft',
       };
+    }
+
+    case 'MOVE_PLAYER': {
+      // Shift an already-placed player to another of his roles: into an empty slot, or
+      // trading places with whoever is there. The XI keeps the same eleven people, so
+      // usedPersonIds and the phase are both untouched (the count cannot change).
+      //
+      // The player objects are moved AS THEY ARE. Nothing here writes back a copy with
+      // its positions reordered - that is what would make a player's range shrink each
+      // time he moved (see canMove).
+      if (state.phase !== 'draft' && state.phase !== 'complete') return state;
+      const { formation, filled } = state;
+      if (!formation || !canMove(formation, filled, action.fromSlotId, action.toSlotId)) {
+        return state; // invalid move: ignore
+      }
+      const mover = filled[action.fromSlotId];
+      const occupant = filled[action.toSlotId] ?? null;
+      if (!mover) return state;
+      const nextFilled: Filled = { ...filled, [action.toSlotId]: mover };
+      if (occupant) nextFilled[action.fromSlotId] = occupant;
+      else delete nextFilled[action.fromSlotId];
+      return { ...state, filled: nextFilled };
     }
 
     case 'START_GROUP':

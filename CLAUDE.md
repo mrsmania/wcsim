@@ -48,6 +48,12 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
   (centre circle, penalty boxes/arcs/spots, corner arcs), and HTML player badges
   placed over the "meet"-fitted board. Open slots show a "+" only when the selected
   player can fill them (amber = natural/best position, white = a secondary one).
+  With empty hands a **placed** badge can be tapped to move that player to another of
+  his roles (`FEATURES.movePlayers`): his eligible slots light up - empty ones as a
+  "+", team-mates he can trade places with as an amber swap badge - and tapping him
+  again puts him back. A player with nowhere to go is not clickable at all, so the
+  gesture is never a dead end, and a held card (roll or market) suppresses it so
+  placement and collectible-swap targets keep the pitch to themselves.
 - **Layout** (`App.tsx`): a 3-column grid (settings/squad/complete | pitch |
   ratings+chemistry+line-up) using the comps' breakpoints (1 col < 760px, 2 col
   760-1080, 3 col >= 1080). A masthead (gold-trophy logo, the amber `lucide` `Trophy` on
@@ -139,8 +145,9 @@ src/
                CupRunScreen (Cup Run + career) is a lazy-loaded (React.lazy) route
                screen; BudgetMarket is the budget build's left-column panel (shares
                the home page's Pitch + ratings/line-up, not a separate screen)
-  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, randomTeam,
-               squadBrowser, stickerAlbum, stickerImages, careerMode, budgetDraft) +
+  config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
+               randomTeam, squadBrowser, stickerAlbum, stickerImages, careerMode,
+               budgetDraft) +
                STICKER_TIERS / STICKER_TRADE_COST + BUDGET_DRAFT
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)

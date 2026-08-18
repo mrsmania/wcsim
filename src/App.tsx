@@ -113,6 +113,9 @@ export default function App({
     // the empty slot being shopped for. Both drive the shared pitch in budget mode.
     const [heldId, setHeldId] = useState<string | null>(null);
     const [budgetTargetId, setBudgetTargetId] = useState<string | null>(null);
+    // The placed player picked up to be moved to another of his roles (transient, and
+    // shared by both build methods since they share the pitch).
+    const [movingSlotId, setMovingSlotId] = useState<string | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -418,6 +421,28 @@ export default function App({
     const handleRemove = useCallback((slotId: string) => {
         dispatch({ type: 'REMOVE_PLAYER', slotId });
     }, []);
+
+    // --- move a placed player within his position range -----------------------
+    // Pick a placed player up, or put him back down if he is the one already held.
+    const handleStartMove = useCallback((slotId: string) => {
+        setMovingSlotId((cur) => (cur === slotId ? null : slotId));
+    }, []);
+    // Drop him into the chosen slot. The reducer re-checks eligibility and ignores an
+    // invalid pair, so a stale click cannot corrupt the XI.
+    const handleMove = useCallback(
+        (toSlotId: string) => {
+            if (!movingSlotId) return;
+            dispatch({ type: 'MOVE_PLAYER', fromSlotId: movingSlotId, toSlotId });
+            setMovingSlotId(null);
+        },
+        [movingSlotId],
+    );
+    // Moving is a two-tap gesture made with empty hands, so anything that fills them -
+    // picking a card out of the drawn squad or the market - cancels it, as does a
+    // formation change (different slots) or leaving the build behind.
+    useEffect(() => {
+        setMovingSlotId(null);
+    }, [selectedPlayerId, heldId, activeFormation, phase]);
 
     // --- budget build: place / shop / remove on the shared pitch ---------------
     // Buy the held market player into an eligible slot, then shop the next empty one.
@@ -975,6 +1000,21 @@ export default function App({
                                                 }
                                                 targetSlotId={
                                                     isBudgetBuild ? budgetTargetSlot?.id : undefined
+                                                }
+                                                // Moving a placed player: only with
+                                                // empty hands, so a held card (roll or
+                                                // market) keeps its own placement and
+                                                // swap targets.
+                                                onStartMove={
+                                                    FEATURES.movePlayers &&
+                                                    !selectedPlayer &&
+                                                    !heldPlayer
+                                                        ? handleStartMove
+                                                        : undefined
+                                                }
+                                                movingSlotId={movingSlotId}
+                                                onMove={
+                                                    FEATURES.movePlayers ? handleMove : undefined
                                                 }
                                             />
                                         </section>

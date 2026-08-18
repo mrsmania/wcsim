@@ -11,6 +11,42 @@ export function canPlace(player: Player, slot: Slot, filled: Filled): boolean {
   return !filled[slot.id] && player.positions.includes(slot.position);
 }
 
+/**
+ * Can the player in `fromSlotId` move to `toSlotId`? Two shapes count: taking an EMPTY
+ * slot whose role he can play, or trading places with an occupant who can play the slot
+ * he is leaving (so a trade never leaves an invalid pairing behind).
+ *
+ * Eligibility reads the whole `positions` list, never `positions[0]`. `placedPlayers`
+ * hands downstream code copies with the filled slot promoted to the front, so keying a
+ * move off the primary position would let a player's range collapse to wherever he
+ * happens to be standing - and shrink again with every move. The list is a set here, and
+ * order carries no meaning.
+ */
+export function canMove(
+  formation: Formation,
+  filled: Filled,
+  fromSlotId: string,
+  toSlotId: string,
+): boolean {
+  if (fromSlotId === toSlotId) return false;
+  const from = formation.slots.find((s) => s.id === fromSlotId);
+  const to = formation.slots.find((s) => s.id === toSlotId);
+  if (!from || !to) return false;
+  const mover = filled[from.id];
+  if (!mover || !mover.positions.includes(to.position)) return false;
+  const occupant = filled[to.id];
+  return !occupant || occupant.positions.includes(from.position);
+}
+
+/** Every slot the player in `fromSlotId` can move to (empty ones and trades alike). */
+export function moveTargets(formation: Formation, filled: Filled, fromSlotId: string): Set<string> {
+  const out = new Set<string>();
+  for (const s of formation.slots) {
+    if (canMove(formation, filled, fromSlotId, s.id)) out.add(s.id);
+  }
+  return out;
+}
+
 /** Set of slot roles that still have at least one open slot. */
 export function positionsWithOpenSlot(formation: Formation, filled: Filled): Set<Position> {
   const open = new Set<Position>();

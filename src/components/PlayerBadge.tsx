@@ -1,4 +1,4 @@
-import { ArrowLeftRight, X } from 'lucide-react';
+import { ArrowLeftRight, Move, X } from 'lucide-react';
 
 /** Small red "x" control shown on a placed badge to clear its slot (testing aid). */
 function RemoveButton({ name, onRemove }: { name: string; onRemove: () => void }) {
@@ -25,20 +25,34 @@ interface Props {
     /** When true, mark this placed badge as a swap target (amber ring + swap glyph)
      *  because the selected player can be swapped into this slot. */
     swap?: boolean;
+    /** This player is the one being moved: lifted out of the line-up until a
+     *  destination is picked (or the move is cancelled). */
+    moving?: boolean;
 }
 
 /** Minimal pitch token: a circle with the jersey number (a face can replace it
  *  later) and the player's last name below. The same badge is used on desktop and
  *  mobile; the full player details live in the XI table beside the pitch. */
-export default function PlayerBadge({ name, number, onRemove, swap = false }: Props) {
+export default function PlayerBadge({
+    name,
+    number,
+    onRemove,
+    swap = false,
+    moving = false,
+}: Props) {
     return (
         <div className="flex w-20 flex-col items-center">
             <span
                 className={`relative grid h-12 w-12 place-items-center rounded-full border-2 border-white bg-pitch-dark font-mono text-[15px] font-extrabold text-white shadow-[0_3px_8px_rgba(0,0,0,0.25),inset_0_0_0_1px_rgba(255,255,255,0.35)] ${
                     swap ? 'ring-[3px] ring-amber' : ''
-                }`}
+                } ${moving ? 'ring-[3px] ring-white ring-offset-2 ring-offset-pitch-dark/40' : ''}`}
             >
                 {number}
+                {moving && !swap && (
+                    <span className="absolute -left-2 -top-2 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-white text-ink">
+                        <Move size={10} strokeWidth={3} />
+                    </span>
+                )}
                 {swap && (
                     <span className="absolute -left-2 -top-2 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-amber text-ink">
                         <ArrowLeftRight size={10} strokeWidth={3} />

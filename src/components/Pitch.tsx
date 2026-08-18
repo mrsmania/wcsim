@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/format';
 import type { Formation, Slot } from '../domain/formations';
-import type { Filled } from '../domain/draft';
+import { moveTargets, type Filled } from '../domain/draft';
 import { canSwapInto } from '../domain/album';
 import PlayerBadge from './PlayerBadge';
 
@@ -186,6 +186,13 @@ interface Props {
     onSelectSlot?: (slotId: string) => void;
     /** Budget draft: the empty slot currently being shopped for (highlighted). */
     targetSlotId?: string;
+    /** Move a placed player (FEATURES.movePlayers): tapping his badge calls this with
+     *  his slot, and tapping it again cancels. Undefined leaves placed badges inert. */
+    onStartMove?: (slotId: string) => void;
+    /** The slot whose player is currently being moved, or null when none is. */
+    movingSlotId?: string | null;
+    /** Commit the move to this slot (empty, or a team-mate to trade places with). */
+    onMove?: (toSlotId: string) => void;
 }
 
 /** One placed player or open slot, rendered flat over the pitch at a position
@@ -196,6 +203,8 @@ function OverlayMarker({
     target,
     swapTarget,
     isTarget,
+    moveRole,
+    movable,
     left,
     top,
     scale,
@@ -203,6 +212,8 @@ function OverlayMarker({
     onRemove,
     onSwap,
     onSelectSlot,
+    onStartMove,
+    onMove,
 }: {
     slot: Slot;
     player: Player | null;
@@ -213,6 +224,11 @@ function OverlayMarker({
     swapTarget: boolean;
     /** Budget draft: this empty slot is the one currently being shopped for. */
     isTarget: boolean;
+    /** Move mode: this is the player being moved / a slot he can move to / neither
+     *  (in which case, while a move is in progress, the slot is inert). */
+    moveRole: 'mover' | 'destination' | 'bystander' | null;
+    /** This placed player has at least one slot to move to, so his badge offers it. */
+    movable: boolean;
     left: string;
     top: string;
     scale: number;
@@ -221,6 +237,10 @@ function OverlayMarker({
     onRemove?: () => void;
     onSwap?: (slotId: string) => void;
     onSelectSlot?: (slotId: string) => void;
+    /** Pick this placed player up (or put him back down). */
+    onStartMove?: (slotId: string) => void;
+    /** Drop the player being moved into this slot. */
+    onMove?: (slotId: string) => void;
 }) {
     const transform = `translate(-50%, -50%) scale(${scale})`;
     // Slide to the new spot when the formation changes.
@@ -228,6 +248,8 @@ function OverlayMarker({
     const style = { left, top, transform, transformOrigin: 'center', transition };
 
     if (player) {
+        // Swapping a collectible in takes precedence: it only happens while a card is
+        // held, and a move can only start with empty hands.
         if (swapTarget && onSwap) {
             return (
                 <button
@@ -240,32 +262,84 @@ function OverlayMarker({
                 </button>
             );
         }
+        // Move mode: this team-mate can trade places with the player being moved.
+        if (moveRole === 'destination' && onMove) {
+            return (
+                <button
+                    className="absolute flex flex-col items-center"
+                    style={style}
+                    onClick={() => onMove(slot.id)}
+                    aria-label={`Trade places with ${lastName(player.name)}`}
+                >
+                    <PlayerBadge name={lastName(player.name)} number={player.number} swap />
+                </button>
+            );
+        }
+        // Tapping a placed player picks him up; tapping him again puts him back. A
+        // player with nowhere to go is not offered the gesture at all (`movable`), so
+        // tapping him is never a dead end, and while someone else is being moved the
+        // other badges are inert - the only things clickable are the destinations and
+        // the cancel.
+        const pickUp = onStartMove && (moveRole === 'mover' || (!moveRole && movable));
+        if (!pickUp) {
+            return (
+                <div className="absolute flex flex-col items-center" style={style}>
+                    <PlayerBadge
+                        name={lastName(player.name)}
+                        number={player.number}
+                        onRemove={onRemove}
+                    />
+                </div>
+            );
+        }
         return (
-            <div className="absolute flex flex-col items-center" style={style}>
+            <button
+                type="button"
+                className="absolute flex flex-col items-center"
+                style={style}
+                onClick={() => onStartMove(slot.id)}
+                aria-label={
+                    moveRole === 'mover'
+                        ? `Stop moving ${lastName(player.name)}`
+                        : `Move ${lastName(player.name)}`
+                }
+            >
                 <PlayerBadge
                     name={lastName(player.name)}
                     number={player.number}
                     onRemove={onRemove}
+                    moving={moveRole === 'mover'}
                 />
-            </div>
+            </button>
         );
     }
 
     // A held player eligible for this slot -> place it (roll behaviour). Otherwise, if
-    // the budget draft passed onSelectSlot, tapping shops this position instead.
-    const canPlace = target !== 'none';
-    const clickable = canPlace || !!onSelectSlot;
+    // the budget draft passed onSelectSlot, tapping shops this position instead. A move
+    // in progress overrides both: the empty slots this player can take are the
+    // destinations, and every other slot is inert until the move ends.
+    const moveHere = moveRole === 'destination' && !!onMove;
+    const canPlace = !moveRole && target !== 'none';
+    const clickable = moveHere || (!moveRole && (canPlace || !!onSelectSlot));
     return (
         <button
             className="absolute flex flex-col items-center"
             style={style}
             disabled={!clickable}
-            onClick={() => (canPlace ? onPlace(slot.id) : onSelectSlot?.(slot.id))}
+            onClick={() =>
+                moveHere
+                    ? onMove(slot.id)
+                    : canPlace
+                      ? onPlace(slot.id)
+                      : onSelectSlot?.(slot.id)
+            }
         >
             <div
                 className={[
                     'grid h-12 w-12 place-items-center rounded-full border-2 text-lg font-semibold leading-none transition',
-                    target === 'primary'
+                    moveHere
+                        ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
+                        : target === 'primary'
                         ? 'animate-slot-pulse-primary cursor-pointer border-amber bg-amber/90 text-ink'
                         : target === 'secondary'
                           ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
@@ -276,7 +350,7 @@ function OverlayMarker({
                               : 'border-dashed border-white/55 bg-white/10 text-white',
                 ].join(' ')}
             >
-                {canPlace || isTarget ? '+' : null}
+                {moveHere || canPlace || isTarget ? '+' : null}
             </div>
             <span className="mt-1.5 rounded-[3px] bg-ink/60 px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-white">
                 {slot.label}
@@ -294,6 +368,9 @@ export default function Pitch({
     onSwap,
     onSelectSlot,
     targetSlotId,
+    onStartMove,
+    movingSlotId = null,
+    onMove,
 }: Props) {
     // 11 persistent circles (keyed by index). On a formation change each circle
     // slides to its nearest new slot instead of mounting/unmounting.
@@ -335,6 +412,11 @@ export default function Pitch({
             .filter((pl): pl is Player => !!pl)
             .map((pl) => pl.personId),
     );
+
+    // Where the player being moved may go (empty slots he fits, plus team-mates he can
+    // trade places with). The rule lives in domain/draft; this only paints it.
+    const moving = movingSlotId && filled[movingSlotId] ? movingSlotId : null;
+    const destinations = moving ? moveTargets(formation, filled, moving) : null;
 
     const marks = markingsPath();
     const spots = [
@@ -424,6 +506,21 @@ export default function Pitch({
                                 target={target}
                                 swapTarget={swapTarget}
                                 isTarget={!player && slot.id === targetSlotId}
+                                movable={
+                                    !!player &&
+                                    !moving &&
+                                    !!onStartMove &&
+                                    moveTargets(formation, filled, slot.id).size > 0
+                                }
+                                moveRole={
+                                    !moving
+                                        ? null
+                                        : slot.id === moving
+                                          ? 'mover'
+                                          : destinations?.has(slot.id)
+                                            ? 'destination'
+                                            : 'bystander'
+                                }
                                 left={`${ox + qx * fit}px`}
                                 top={`${oy + qy * fit}px`}
                                 scale={Math.min(fit, 1)}
@@ -431,6 +528,8 @@ export default function Pitch({
                                 onRemove={player && onRemove ? () => onRemove(slot.id) : undefined}
                                 onSwap={onSwap}
                                 onSelectSlot={onSelectSlot}
+                                onStartMove={onStartMove}
+                                onMove={onMove}
                             />
                         );
                     })}

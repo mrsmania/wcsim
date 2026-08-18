@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 9 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -510,26 +510,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">10</span>
-    <span class="title">Move a placed player within his position range
-      <span class="sub">Click his circle on the pitch to shift him to another of his roles.</span>
-    </span>
-    <span class="tag">Feature</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Once a player is in the XI his slot is fixed: the only way to move him is to remove him
-    and place him again. Clicking his badge should offer the other slots his
-    <code>positions</code> allow, taking an empty one or trading places with whoever is there.</p>
-    <p>Mind one trap: <code>placedPlayers</code> reorders a player's positions so the slot he
-    filled leads, because downstream code keys off <code>positions[0]</code>. The move has to
-    read his dataset positions, not the reordered copy, or his range shrinks with every move.</p>
-    <p class="files">src/components/Pitch.tsx, src/state/gameReducer.ts, src/domain/draft.ts</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">15</span>
     <span class="title">Rework the sign-in email, with a copy button
       <span class="sub">Make the six-digit code easy to lift out.</span>
@@ -555,6 +535,28 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>10 A placed player can move within his position range.</b> Done 2026-08-18.
+      Tap his badge with empty hands and the slots he can take light up: empty ones as a
+      "+", team-mates he can trade places with as an amber swap badge. Tapping him again
+      puts him back, and while he is held every other badge is inert, so the only things
+      clickable are the destinations and the cancel. A player with <i>nowhere</i> to go is
+      not clickable at all - found by driving it in a browser, where the first badge picked
+      up was a single-position full-back who lit nothing and left the gesture a dead end.
+      A trade needs BOTH halves to fit: the occupant has to be able to play the slot being
+      vacated, or the pair is refused rather than quietly producing an invalid line-up.
+      A held card (a drawn squad card or a market player) suppresses the whole thing, so
+      placement and collectible-swap targets keep the pitch to themselves.
+      <br>The trap the item warned about is handled and now has a test with teeth:
+      eligibility reads the player's whole <code>positions</code> list as a set, never
+      <code>positions[0]</code>, since <code>placedPlayers</code> hands downstream code
+      copies with the filled slot promoted to the front - keying off the first entry would
+      collapse a player's range to wherever he happens to be standing and shrink it again
+      with every move. <code>npm run checks</code> now walks a player back and forth eight
+      times and fails if what he is offered ever changes; reintroducing the bug on purpose
+      made it fail, so the check is known to catch it. The reducer moves the player objects
+      as they are and never writes back a reordered copy, and the XI keeps the same eleven
+      people, so <code>usedPersonIds</code> and the phase are untouched. Behind
+      <code>FEATURES.movePlayers</code>; false makes a placed badge inert again.</li>
       <li><b>08 Banking a run costs one round trip, not three.</b> Done 2026-08-18, after
       profiling rather than guessing - the four candidates had four different fixes and three
       of them were innocent. <i>Not</i> the deliberate wait: <code>BANK_WAIT_MS</code> caps how

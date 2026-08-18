@@ -11,6 +11,10 @@ export const FEATURES = {
     /** Remove placed players from the pitch via an x on the badge (testing aid).
      *  Off by default; set to true to show the control and enable removal. */
     removePlayers: false,
+    /** Move a placed player to another of his roles: tap his badge, then tap one of
+     *  the slots that light up (an empty one, or a team-mate he can trade places
+     *  with). Set to false and a placed badge is inert again, as it used to be. */
+    movePlayers: true,
     /** "Random team" shortcut on the setup screen: auto-fill a full valid XI of a
      *  chosen strength and skip the draft (testing aid). Turn off for real users. */
     randomTeam: false,
