@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -503,127 +503,6 @@
 
 <div class="band"><h2>From playing</h2><span>found in real runs, small to medium</span></div>
 
-<details class="item">
-  <summary>
-    <span class="num">15</span>
-    <span class="title">Point GoTrue at the new sign-in email
-      <span class="sub">The template is written and deployed; prod still sends the stock one.</span>
-    </span>
-    <span class="tag">Hands-on</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The mail itself is done (2026-08-18) and lives in the repo, deployed with the site:
-    <code>public/email/otp.html</code> plus <code>public/email/logo.png</code>. Plain on
-    purpose: the trophy tile and wordmark, one line, the six digits, and a line saying to
-    delete it if it was not you. No greeting, no sign-off, no unsubscribe footer.</p>
-    <p><strong>Settled while building it.</strong> A copy button inside the mail is
-    impossible - mail clients run no JavaScript, and no HTML or CSS writes to the
-    clipboard - so the code is large, letter-spaced and selectable instead, which is what
-    makes tap-and-hold work and what feeds the phone's own one-time-code suggestion (the
-    code field already carries <code>autocomplete="one-time-code"</code>). There is
-    deliberately <b>no link</b> in the mail either: the only placeholder is
-    <code>{{ .Token }}</code>, and the app verifies with <code>verifyOtp({type:'email'})</code>,
-    which takes the code alone. <b>One mail, not two:</b> GoTrue picks a different template
-    <i>slot</i> for a first-time address (confirmation) than for a returning one (magic
-    link), so both slots below point at the same file - that is what makes the two cases
-    identical, and leaving either unset means half the players still get the stock mail.</p>
-
-    <div class="callout">
-      <span class="ct">Steps 1, 2 and 5 are already done on the prod stack</span>
-      Applied 2026-08-18: the four values are in the NAS <code>.env</code>, the four keys are
-      in the <code>auth</code> service&apos;s <code>environment:</code> allowlist in
-      <code>docker-compose.yml</code> (both files backed up beside themselves as
-      <code>*.pre-mailer</code>), and the NAS can fetch both the template and the logo over
-      HTTPS - 200 with <code>text/html</code> and <code>image/png</code>. Checked before
-      upload by running <code>docker compose config</code> over the edited pair, which
-      resolved all four values unquoted and left the service list unchanged, and after upload
-      by matching hashes and re-parsing on the NAS itself. <b>What is left is step 3</b>, the
-      container re-create, which needs root: <code>docker</code> on that box refuses a
-      non-root socket connection and <code>sudo</code> wants a password. Until then the
-      values sit inert and prod keeps sending the stock mail.
-    </div>
-    <p><strong>The manual step, on the prod stack.</strong> Everything below happens in the
-    Supabase compose folder on the NAS (the one from <code>docs/nas-setup.md</code> §4, e.g.
-    <code>/volume1/docker/wcsim-supabase</code>), whose <code>.env</code> is the file the
-    repo's gitignored <code>dkr/.env</code> is a copy of.</p>
-    <ol>
-      <li><span class="step">Add the four values to <code>.env</code></span> next to
-      <code>docker-compose.yml</code>. No quotes, no spaces around <code>=</code>; compose
-      would treat quotes as part of the value.
-      <pre>GOTRUE_MAILER_SUBJECTS_MAGIC_LINK=Your World Cup Simulator code
-GOTRUE_MAILER_SUBJECTS_CONFIRMATION=Your World Cup Simulator code
-GOTRUE_MAILER_TEMPLATES_MAGIC_LINK=https://mrsmania.github.io/wcsim/email/otp.html
-GOTRUE_MAILER_TEMPLATES_CONFIRMATION=https://mrsmania.github.io/wcsim/email/otp.html</pre></li>
-
-      <li><span class="step">Make sure the <code>auth</code> service actually passes them
-      through.</span> This is the step that silently wastes an evening: the official
-      Supabase compose does <b>not</b> hand <code>.env</code> to the container wholesale, it
-      lists an explicit <code>environment:</code> allowlist per service, and the mailer
-      template keys ship <b>commented out</b>. A value sitting in <code>.env</code> that no
-      service references reaches nothing.
-      <pre>grep -n MAILER docker-compose.yml</pre>
-      If the four keys are absent or commented, add them to the <code>auth</code> service's
-      <code>environment:</code> block (indentation matters, two spaces deeper than
-      <code>environment:</code>):
-      <pre>  auth:
-    environment:
-      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: ${GOTRUE_MAILER_SUBJECTS_MAGIC_LINK}
-      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: ${GOTRUE_MAILER_SUBJECTS_CONFIRMATION}
-      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${GOTRUE_MAILER_TEMPLATES_MAGIC_LINK}
-      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: ${GOTRUE_MAILER_TEMPLATES_CONFIRMATION}</pre>
-      (If that service already has an <code>env_file: .env</code> line, step 1 was enough
-      and this one is a no-op.)</li>
-
-      <li><span class="step">Re-create the container, do not restart it.</span> A container's
-      environment is fixed when it is created, so <code>docker compose restart auth</code>
-      comes back with the old values and looks like the change did nothing.
-      <pre>docker compose up -d auth</pre>
-      In DSM's Container Manager the equivalent is opening the Project and using
-      <b>Action &rarr; Build</b> (stop first if it refuses); the label moves between DSM
-      versions, but anything that re-runs compose is right and a plain container
-      <b>Restart</b> is not.</li>
-
-      <li><span class="step">Prove the values are inside the container</span> rather than
-      merely in the file. This is the check that separates "typo in .env" from everything
-      else; expect all four lines back.
-      <pre>docker compose exec auth env | grep GOTRUE_MAILER_</pre></li>
-
-      <li><span class="step">Prove the NAS can fetch the template.</span> GoTrue pulls it
-      over HTTPS <i>as it sends</i>, so this has to work from the NAS, not just from your
-      laptop. Expect <code>200</code> and an HTML content type for both.
-      <pre>curl -sI https://mrsmania.github.io/wcsim/email/otp.html
-curl -sI https://mrsmania.github.io/wcsim/email/logo.png</pre></li>
-
-      <li><span class="step">Send yourself a code</span> from the game, signed out, and read
-      it on a phone. Check the subject line as well as the body, because the two carry
-      different diagnoses (next paragraph).</li>
-    </ol>
-
-    <p><strong>If it still looks stock, the subject line tells you which half failed.</strong>
-    Subjects are used verbatim, while the body is fetched, so:</p>
-    <ul>
-      <li><b>Neither changed</b> - the variables never reached the container. Back to steps
-      2 to 4; almost always the compose allowlist or a plain restart.</li>
-      <li><b>Subject changed, body still stock</b> - the variables are fine and the template
-      fetch failed, which GoTrue answers by falling back to its built-in default rather than
-      erroring. Check step 5 from the NAS, then the log:
-      <pre>docker compose logs --tail=200 auth | grep -i -e template -e mailer -e "unable to"</pre></li>
-      <li><b>Right layout, no logo</b> - the mail is ours and the image was blocked or
-      unreachable. Blocked is normal (the header still reads); unreachable means the second
-      curl in step 5 fails.</li>
-    </ul>
-
-    <p class="next"><strong>Rollback and upkeep:</strong> to go back, delete the four lines
-    (or re-comment them in the compose) and <code>docker compose up -d auth</code> again -
-    nothing else was touched, and no database state is involved. Afterwards, editing the mail
-    is a push to <code>main</code> plus the Pages deploy, with <b>no</b> restart: only these
-    variables need one. Worth mirroring the four lines into the local <code>dkr/.env</code>
-    copy too, so it does not drift from prod.</p>
-    <p class="files">public/email/otp.html, public/email/logo.png, .env + docker-compose.yml on the NAS, docs/nas-setup.md</p>
-  </div>
-</details>
-
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
@@ -770,6 +649,34 @@ curl -sI https://mrsmania.github.io/wcsim/email/logo.png</pre></li>
       so the retry is a first attempt and not a double submit). The old <code>finish_run</code>
       stays as a thin wrapper delegating to v2, so there is still one implementation. Applying
       it on the NAS is open item 16.</li>
+      <li><b>15 The sign-in mail is live, and a complete code submits itself.</b> Closed
+      2026-08-18. The template work and the runbook were done earlier the same day; what
+      remained was the prod wiring, applied here: the four values into the NAS
+      <code>.env</code> and the four keys into the <code>auth</code> service's
+      <code>environment:</code> allowlist (the step the official compose leaves commented
+      out, where a value nothing references reaches nothing), both files backed up as
+      <code>*.pre-mailer</code>, validated by running <code>docker compose config</code> over
+      the edited pair before upload and re-parsing on the NAS after, plus a check that the NAS
+      itself can fetch the template and the logo, since GoTrue pulls them as it sends. The
+      container re-create needed root and was done by the owner:
+      <code>docker compose up -d auth</code> - not <code>restart</code>, which keeps the old
+      environment. All four values confirmed inside the container, and the mail arrives as
+      designed.
+      <p><b>Then a refinement, asked for once it was working:</b> a complete code now submits
+      itself, so the button is only there for the rare case where it does not. Pasting six
+      digits, letting the phone's one-time-code suggestion fill the field, and typing the
+      sixth digit are all a single change event, so one handler covers all three. The field
+      keeps digits only, capped at six, which is what makes a pasted "111 222" count as
+      complete. Two guards worth keeping: <code>verify</code> takes the code as an argument,
+      because a handler firing on change cannot read the state it has just set; and a ref
+      blocks a second attempt, since two change events in quick succession would both pass an
+      async-state check and send the code twice. Failure and success are untouched - the same
+      error line, the same reload into the signed-in app.</p>
+      <p>Verified against a stubbed auth server (CDP request interception, so no mail was
+      sent): five digits fire nothing, the sixth fires exactly one call and surfaces the
+      server's error with the code still in the field, a pasted six fires exactly one more,
+      and "111 222" arrives at the server as <code>111222</code>. Three codes entered, three
+      calls made.</p></li>
       <li><b>16 Migration 0010 applied on the NAS.</b> Done 2026-08-18, so item 08's
       one-trip bank is now live rather than only in the repo. Applied with
       <code>npm run push:sql</code> from a machine that could reach the server - the tool

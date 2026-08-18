@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { FEATURES } from '../config';
 import { DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
 
@@ -10,6 +10,9 @@ import { DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
 // when a server is configured (FEATURES.accounts); a guest never sees it, and never
 // downloads the auth client.
 // ---------------------------------------------------------------------------
+
+/** Digits in a sign-in code. GoTrue is configured to send six. */
+const CODE_LENGTH = 6;
 
 const FIELD =
   'w-full rounded-md border border-line bg-ground px-3 py-2 text-[13.5px] outline-none focus:border-pitch';
@@ -31,6 +34,9 @@ export default function AccountPanel({
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Guards the auto-submit: state updates are async, so two change events in quick
+  // succession could both pass a stage check and send the code twice.
+  const verifyingRef = useRef(false);
 
   if (!FEATURES.accounts) return null;
 
@@ -51,24 +57,40 @@ export default function AccountPanel({
     }
   };
 
-  const verify = async () => {
+  // Takes the code so the auto-submit below can pass the digits it just read: calling
+  // this from an onChange handler cannot use the state, which has not updated yet.
+  const verify = async (value: string = code) => {
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
     setError(null);
     setStage('verifying');
     try {
       const { submitCode } = await import('../state/auth');
-      await submitCode(address, code);
+      await submitCode(address, value);
       // The store has to be rebuilt against the account, which happens on reload.
       onSignedIn();
     } catch (err) {
       fail(err);
+    } finally {
+      verifyingRef.current = false;
     }
+  };
+
+  // A complete code submits itself, whether it was pasted, filled in by the phone's
+  // one-time-code suggestion, or finished by typing the sixth digit - all three are a
+  // single change event, so there is nothing to press. Digits only and capped at six, so
+  // a pasted "123 456" still counts as complete and a stray character cannot block it.
+  const onCodeChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, CODE_LENGTH);
+    setCode(digits);
+    if (digits.length === CODE_LENGTH) void verify(digits);
   };
 
   // Both stages are real forms, so Enter submits and phone keyboards offer Go/Send.
   // The guards repeat the buttons' disabled conditions: a browser will not fire implicit
   // submission while the submit button is disabled, but nothing else may either.
   const canSend = address.includes('@') && stage !== 'sending';
-  const canVerify = code.trim().length >= 6 && stage !== 'verifying';
+  const canVerify = code.length === CODE_LENGTH && stage !== 'verifying';
 
   const onSendSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -187,8 +209,9 @@ export default function AccountPanel({
             <input
               className={`${FIELD} font-mono tracking-[0.3em]`}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => onCodeChange(e.target.value)}
               inputMode="numeric"
+              maxLength={CODE_LENGTH}
               autoComplete="one-time-code"
               placeholder="000000"
               aria-label="Six-digit code"
