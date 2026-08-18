@@ -6,7 +6,11 @@ const KEY = 'wcsim_career_v1';
 
 /** A stored career from any version: v2 uses `perkLevels`; v1 stored boolean-owned
  *  perk ids in `unlocked`. */
-type StoredCareer = Partial<CareerState> & { unlocked?: unknown; perkLevels?: unknown };
+type StoredCareer = Partial<CareerState> & {
+  unlocked?: unknown;
+  perkLevels?: unknown;
+  completedChallenges?: unknown[];
+};
 
 /** Perk ownership, migrated to the v2 `perkLevels` map: prefer a stored map, else
  *  map v1's owned perk ids to tier 1 each. Defensive against malformed values. */
@@ -41,6 +45,9 @@ export function loadCareer(): CareerState {
       unlockedBoons: Array.isArray(parsed.unlockedBoons) ? parsed.unlockedBoons : [],
       ascension: typeof parsed.ascension === 'number' ? parsed.ascension : 0,
       lastAscension: typeof parsed.lastAscension === 'number' ? parsed.lastAscension : undefined,
+      completedChallenges: Array.isArray(parsed.completedChallenges)
+        ? parsed.completedChallenges.filter((id): id is string => typeof id === 'string')
+        : [],
       stats: { ...INITIAL_CAREER.stats, ...(parsed.stats ?? {}) },
     };
   } catch {

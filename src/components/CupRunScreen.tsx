@@ -32,6 +32,8 @@ import {
   type CareerState,
 } from '../domain/career';
 import { store } from '../state/store';
+import { basePlayer } from '../data/squads';
+import { FEATURES } from '../config';
 import { useFollowBottom } from '../hooks/useFollowBottom';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
 import {
@@ -93,6 +95,7 @@ export default function CupRunScreen({
   banking?: boolean;
 }) {
   const diffDelta = userRatingDelta(difficulty);
+  const CHALLENGES_ON = FEATURES.challenges;
   const [career, setCareer] = useState<CareerState>(() => store.peek().career);
   const [run, setRun] = useState<RunState | null>(() => store.peek().run);
   const [reward, setReward] = useState<Reward | null>(null);
@@ -253,10 +256,20 @@ export default function CupRunScreen({
     }
   };
 
+  /** What the challenge predicates need beyond the run and the career: dataset
+   *  ratings (the run's XI carries boost deltas), the album as it stands, and the
+   *  lifetime trade count. Read at run end rather than held in state, so it reflects
+   *  a haul banked earlier in the same session. */
+  const challengeInput = () => ({
+    base: basePlayer,
+    album: store.peek().album,
+    trades: store.peek().albumStats.tradesCompleted,
+  });
+
   // Step the run; award XP/Prestige exactly once when it ends.
   const advance = (next: RunState) => {
     if (next.phase === 'ended' && run && run.phase !== 'ended') {
-      const r = applyRunResult(career, next);
+      const r = applyRunResult(career, next, CHALLENGES_ON ? challengeInput() : undefined);
       setCareer(r.career);
       void store.saveCareer(r.career);
       setReward({
@@ -264,6 +277,8 @@ export default function CupRunScreen({
         prestigeGained: r.prestigeGained,
         leveledUp: r.leveledUp,
         ascensionMult: ascensionAt(next.ascension).rewardMult,
+        challenges: r.challengesCompleted,
+        challengePrestige: r.challengePrestige,
       });
     }
     setRun(next);

@@ -70,6 +70,9 @@ interface CareerRow {
   unlocked_boons: string[] | null;
   ascension: number;
   last_ascension: number | null;
+  /** Absent on a server that has not had migration 0011 applied: challenge progress
+   *  then simply does not persist for that account, and nothing else is affected. */
+  completed_challenges?: string[] | null;
   stats: Partial<CareerState['stats']> | null;
 }
 
@@ -85,6 +88,7 @@ function careerFromRow(row: CareerRow | null): CareerState {
     unlockedBoons: row.unlocked_boons ?? [],
     ascension: row.ascension,
     lastAscension: row.last_ascension ?? undefined,
+    completedChallenges: row.completed_challenges ?? [],
     stats: { ...INITIAL_CAREER.stats, ...(row.stats ?? {}) },
   };
 }
@@ -97,6 +101,7 @@ function careerToRow(c: CareerState) {
     unlockedBoons: c.unlockedBoons,
     ascension: c.ascension,
     lastAscension: c.lastAscension ?? null,
+    completedChallenges: c.completedChallenges,
     stats: c.stats,
   };
 }

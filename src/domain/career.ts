@@ -1,6 +1,9 @@
+import type { Player } from '../data/types';
 import type { RunOutcome, RunState } from './run';
 import { boonById, BOON_UNLOCK_COST } from './boons';
 import { ascensionAt, MAX_ASCENSION } from './ascension';
+import { completedIn, prestigeFor } from './challenges';
+import type { AlbumState } from './album';
 
 // ---------------------------------------------------------------------------
 // Manager Career - the persistent meta-layer over Cup Runs. Pure model: XP/level,
@@ -33,6 +36,9 @@ export interface CareerState {
   /** The Ascension tier last chosen for a run, remembered as the next run's default
    *  (clamped to what is currently selectable). Undefined until the first run. */
   lastAscension?: number;
+  /** Ids of the challenges completed, permanently (domain/challenges.ts). Each was paid
+   *  its Prestige once, into the same wallet the perk shop spends from. */
+  completedChallenges: string[];
   stats: CareerStats;
 }
 
@@ -44,6 +50,7 @@ export const INITIAL_CAREER: CareerState = {
   perkLevels: {},
   unlockedBoons: [],
   ascension: 0,
+  completedChallenges: [],
   stats: { runs: 0, cups: 0, bestScore: 0, bestFinish: null, bestCupAscension: 0 },
 };
 
@@ -191,8 +198,25 @@ export interface RunReward {
   xpGained: number;
   prestigeGained: number;
   leveledUp: boolean;
+  /** Challenges this run completed (ids, in catalogue order), and what they paid.
+   *  Empty unless the caller passed the challenge context. */
+  challengesCompleted: string[];
+  challengePrestige: number;
 }
-export function applyRunResult(career: CareerState, run: RunState): RunReward {
+
+/** What the challenge predicates need beyond the run and the career. Optional, so a
+ *  caller with no album to hand (the checks harness, an older call site) still gets the
+ *  XP/Prestige reward and simply completes nothing. */
+export interface ChallengeInput {
+  /** The DATASET player behind one the run carries (boost deltas are baked into
+   *  `run.xi`, and a rating challenge must not drift with the boosts taken). */
+  base: (p: Player) => Player;
+  album: AlbumState;
+  /** Lifetime trades completed (album telemetry). */
+  trades: number;
+}
+
+export function applyRunResult(career: CareerState, run: RunState, ch?: ChallengeInput): RunReward {
   // Ascension scales the run's reward; a cup win raises the unlocked ceiling + best.
   const mult = ascensionAt(run.ascension).rewardMult;
   const xpGained = Math.round(run.score * mult);
@@ -201,28 +225,41 @@ export function applyRunResult(career: CareerState, run: RunState): RunReward {
   const level = levelForXp(xp);
   const outcome = run.outcome;
   const wonCup = outcome === 'champion';
+  const banked: CareerState = {
+    ...career,
+    xp,
+    level,
+    prestige: career.prestige + prestigeGained,
+    ascension: wonCup
+      ? Math.min(MAX_ASCENSION, Math.max(career.ascension, run.ascension + 1))
+      : career.ascension,
+    stats: {
+      runs: career.stats.runs + 1,
+      cups: career.stats.cups + (wonCup ? 1 : 0),
+      bestScore: Math.max(career.stats.bestScore, run.score),
+      bestFinish: betterFinish(career.stats.bestFinish, outcome),
+      bestCupAscension: wonCup
+        ? Math.max(career.stats.bestCupAscension, run.ascension)
+        : career.stats.bestCupAscension,
+    },
+  };
+  // Challenges are judged against the career AFTER this run's XP/Prestige/stats land,
+  // so "win 10 cups" counts the cup just won, and paid on top of it.
+  const challengesCompleted = ch
+    ? completedIn({ run, career: banked, base: ch.base, album: ch.album, trades: ch.trades })
+    : [];
+  const challengePrestige = prestigeFor(challengesCompleted);
   return {
     career: {
-      ...career,
-      xp,
-      level,
-      prestige: career.prestige + prestigeGained,
-      ascension: wonCup
-        ? Math.min(MAX_ASCENSION, Math.max(career.ascension, run.ascension + 1))
-        : career.ascension,
-      stats: {
-        runs: career.stats.runs + 1,
-        cups: career.stats.cups + (wonCup ? 1 : 0),
-        bestScore: Math.max(career.stats.bestScore, run.score),
-        bestFinish: betterFinish(career.stats.bestFinish, outcome),
-        bestCupAscension: wonCup
-          ? Math.max(career.stats.bestCupAscension, run.ascension)
-          : career.stats.bestCupAscension,
-      },
+      ...banked,
+      prestige: banked.prestige + challengePrestige,
+      completedChallenges: [...banked.completedChallenges, ...challengesCompleted],
     },
     xpGained,
     prestigeGained,
     leveledUp: level > career.level,
+    challengesCompleted,
+    challengePrestige,
   };
 }
 

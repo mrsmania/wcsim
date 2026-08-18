@@ -7010,6 +7010,13 @@ export const SQUAD_BY_ID: Record<string, Squad | undefined> = Object.fromEntries
  *  the sticker album all iterate the whole pool). */
 export const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
 
+/** Every player at his DATASET rating, by id. Cup Run boosts hand back MODIFIED copies
+ *  (Golden Generation is +2 to the whole XI), so anything judging a player rather than
+ *  simulating with him - collectibility, a rating challenge - has to resolve back
+ *  through here first. Both of those were real bugs. */
+const PLAYER_BY_ID = new Map(ALL_PLAYERS.map((p) => [p.id, p]));
+export const basePlayer = (p: Player): Player => PLAYER_BY_ID.get(p.id) ?? p;
+
 /** The distinct World Cup years present in the dataset, oldest first. Drives the
  *  squad-pool setting (which tournaments the game draws from). */
 export const WORLD_CUP_YEARS: number[] = [...new Set(SQUADS.map((s) => s.year))].sort(

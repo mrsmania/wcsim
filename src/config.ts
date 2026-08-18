@@ -60,6 +60,12 @@ export const FEATURES = {
      *  draft's left column to the market (same page). Set false to hide it and keep
      *  only the random roll. */
     budgetDraft: true,
+    /** Challenges: permanent honours over a finished Cup Run (a catalogue of one-off
+     *  goals, each worth Prestige), the /challenges catalogue screen, the hub card, and
+     *  the run-end completion list. Career Mode only, like the rest of that layer. Set
+     *  false and no challenge is evaluated, no Prestige is paid for one, and the screen
+     *  and its entry points disappear. Plan: docs/challenges-spec.html. */
+    challenges: true,
     /** Optional accounts: sign in with an emailed 6-digit code so the album, career
      *  and challenges are the same on every device. Derived, not hand-set: it is on
      *  only when the build was given a server (VITE_SUPABASE_URL + _ANON_KEY). With

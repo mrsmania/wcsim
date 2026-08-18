@@ -28,6 +28,9 @@ export interface Reward {
   leveledUp: boolean;
   /** The Ascension reward multiplier the run was scored at (1 = Base). */
   ascensionMult: number;
+  /** Challenges this run completed (ids), and the Prestige they paid on top. */
+  challenges: string[];
+  challengePrestige: number;
 }
 
 /** The live-reveal state: which match(es) are being played out before the run

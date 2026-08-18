@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
 import type { Player } from '../data/types';
-import { ALL_PLAYERS } from '../data/squads';
+import { ALL_PLAYERS, basePlayer } from '../data/squads';
 import { isGroupFinished, userAdvanced } from '../domain/tournament';
 import {
   albumStats,
@@ -18,19 +18,12 @@ import { store } from '../state/store';
  *  dead one is only a brief pause. */
 const BANK_WAIT_MS = 4000;
 
-/** Every player at their DATASET rating, by id. Cup Run boosts hand out modified
- *  copies (Golden Generation is +2 to the whole XI), and collectibility has to be
- *  judged on the real player: a boost must not turn an 89 into a Legendary sticker.
- *  It would also be rejected server-side, since the catalogue is generated from base
- *  ratings - which is exactly the bug this fixes. */
-const BASE_BY_ID = new Map(ALL_PLAYERS.map((p) => [p.id, p]));
-
-/** Collectible ids among these players, judged on their base rating. */
+/** Collectible ids among these players, judged on their DATASET rating (`basePlayer`):
+ *  Cup Run boosts hand out modified copies, and a boost must not turn an 89 into a
+ *  Legendary sticker. It would also be rejected server-side, since the catalogue is
+ *  generated from base ratings - which is exactly the bug this fixes. */
 function collectibleIdsOf(players: Player[]): string[] {
-  return players
-    .map((p) => BASE_BY_ID.get(p.id) ?? p)
-    .filter(isCollectible)
-    .map((p) => p.id);
+  return players.map(basePlayer).filter(isCollectible).map((p) => p.id);
 }
 
 /** A normalized cup-win reward awaiting the player's pick. The standard game and the
@@ -213,7 +206,7 @@ export function useStickerAlbum(
     // earlier boost swapped OUT and left in `boostedIds`, since he is not in it.
     const gifted = new Set(boostedIds);
     const earnedBy = xi.filter((p) => !gifted.has(p.id));
-    // Base ratings, not the boosted copies the run hands back (see BASE_BY_ID).
+    // Base ratings, not the boosted copies the run hands back (see `basePlayer`).
     setCupRunSticker({ ids: collectibleIdsOf(earnedBy), wonCup });
   }, []);
   useEffect(() => {

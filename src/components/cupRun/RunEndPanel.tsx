@@ -1,4 +1,6 @@
 import { PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
+import { AWARD, challengeById } from '../../domain/challenges';
+import ChallengeRow from '../challengeUi';
 import type { Reward } from './types';
 
 /** The ended-state action panel: the final score + run reward readout, and the
@@ -31,6 +33,28 @@ export default function RunEndPanel({
             <span className="ml-2 text-[#9a6512]">Ascension x{reward.ascensionMult}</span>
           )}
           {reward.leveledUp && <span className="ml-2 font-bold text-pitch">Level up!</span>}
+        </div>
+      )}
+      {!!reward?.challenges.length && (
+        <div className="mx-auto mt-4 max-w-[420px] rounded-md border border-line bg-panel p-3 text-left shadow-hard">
+          <div className="mb-2 flex items-baseline justify-between gap-3">
+            <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-accent">
+              Challenges completed
+            </span>
+            <span className="font-mono text-[13px] font-bold text-amber">
+              +{reward.challengePrestige} Prestige
+            </span>
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {reward.challenges.map((id) => {
+              const c = challengeById(id);
+              return c ? (
+                <li key={id}>
+                  <ChallengeRow challenge={c} award={AWARD[c.tier]} />
+                </li>
+              ) : null;
+            })}
+          </ul>
         </div>
       )}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">

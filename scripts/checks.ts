@@ -11,7 +11,7 @@
  * the knockout bracket, standings, chemistry) - not a UI or behaviour change.
  */
 import { readFileSync } from 'node:fs';
-import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID } from '../src/data/squads';
+import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID, basePlayer } from '../src/data/squads';
 import { isAttacker, isDefender, primaryPosition, type Player } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
 import { simulateMatch, simulateShootout } from '../src/domain/match';
@@ -35,6 +35,17 @@ import {
   recordRound,
 } from '../src/domain/bracket';
 import { sideOf, KO_ROUNDS } from '../src/domain/knockout';
+import {
+  AWARD,
+  CHALLENGES,
+  FAMILIES,
+  challengeById,
+  challengeProgress,
+  completedIn,
+  prestigeFor,
+  viewOf,
+} from '../src/domain/challenges';
+import { emptyAlbum } from '../src/domain/album';
 import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemistry';
 import { priceFor, priceOf, pricerFor } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
@@ -54,6 +65,7 @@ import {
   chooseBoon,
   playKnockoutRound,
   type RunOutcome,
+  type RunState,
 } from '../src/domain/run';
 import {
   applyRunResult,
@@ -799,6 +811,160 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       `(${rows.length} rows; run \`npm run gen:collectibles\` if this fails)`,
     ok,
   );
+}
+
+// --- Challenges: the catalogue is well-formed --------------------------------
+{
+  const ids = new Set(CHALLENGES.map((c) => c.id));
+  const ok =
+    ids.size === CHALLENGES.length &&
+    CHALLENGES.every((c) => !!c.name && !!c.description && !!AWARD[c.tier]) &&
+    // Every family is represented, so the "one from every family" challenge is winnable.
+    FAMILIES.every((f) => CHALLENGES.some((c) => c.family === f)) &&
+    // House style: no em-dashes in player-facing copy.
+    CHALLENGES.every((c) => !c.name.includes('\u2014') && !c.description.includes('\u2014'));
+  check('challenges: ids are unique and every entry is complete and in a real family', ok);
+}
+
+// --- Challenges: every predicate is total, pure, and read-only ---------------
+// The catalogue runs at the one moment a run is banked. A predicate that throws would
+// take the reward with it, and one that mutates the run would corrupt what is saved, so
+// both are asserted rather than hoped for.
+{
+  const runs: RunState[] = [];
+  for (let i = 0; i < 12; i++) {
+    let r = playGroupStage(beginRun(bestEleven(SQUADS[(i * 7) % SQUADS.length].players)));
+    let guard = 0;
+    while (r.phase !== 'ended' && guard++ < 20) {
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[i % r.offer.length].id).next;
+      else if (r.phase === 'match') r = playKnockoutRound(r);
+      else break;
+    }
+    runs.push(r);
+  }
+  let total = true;
+  let pure = true;
+  let readOnly = true;
+  for (const run of runs) {
+    const before = JSON.stringify(run);
+    const view = viewOf({
+      run,
+      base: basePlayer,
+      career: INITIAL_CAREER,
+      album: emptyAlbum(),
+      trades: 0,
+    });
+    for (const c of CHALLENGES) {
+      let first: boolean | null = null;
+      try {
+        first = c.check(view);
+        if (c.check(view) !== first) pure = false;
+      } catch {
+        total = false;
+      }
+      if (typeof first !== 'boolean') total = false;
+      if (c.blocked && first) readOnly = false; // a blocked entry must never complete
+    }
+    if (JSON.stringify(run) !== before) readOnly = false;
+  }
+  check('challenges: every predicate returns a boolean and never throws', total);
+  check('challenges: predicates are pure (same run, same answer, run untouched)', pure && readOnly);
+}
+
+// --- Challenges: the three traps ---------------------------------------------
+// Each of these was a real bug in this codebase before it was written down.
+{
+  const brazil = SQUADS.find((s) => s.code === 'BRA')!;
+  const xi = bestEleven(brazil.players);
+  const ended = (over: Partial<RunState>): RunState => ({
+    ...beginRun(xi),
+    phase: 'ended',
+    outcome: 'champion',
+    score: 140,
+    ...over,
+  });
+  const ctx = (run: RunState, career = INITIAL_CAREER) => ({
+    run,
+    base: basePlayer,
+    career,
+    album: emptyAlbum(),
+    trades: 0,
+  });
+
+  // 1. Ratings are judged on the DATASET player, not the boosted copy in hand.
+  const boostedXi = xi.map((p) => ({ ...p, elo: Math.min(99, p.elo + 8) }));
+  const ratingOk =
+    !completedIn(ctx(ended({ xi }))).includes('galacticos') ===
+    !completedIn(ctx(ended({ xi: boostedXi }))).includes('galacticos');
+
+  // 2. A roster boost must not break a themed run: the XI you PICKED is what counts.
+  const foreign = SQUADS.find((s) => s.code === 'ITA')!.players[0];
+  const handedOver = ended({ xi: [...xi.slice(1), foreign], boostedIds: [foreign.id] });
+  const identityOk =
+    completedIn(ctx(handedOver)).includes('samba') &&
+    !completedIn(ctx(ended({ xi: [...xi.slice(1), foreign] }))).includes('samba');
+
+  // 3. A shootout is not goals conceded: 0-0 on penalties keeps a clean sheet.
+  const shootoutRun = ended({
+    history: [0, 1, 2, 3].map((stage) => ({
+      stage,
+      won: true,
+      userGoals: 0,
+      oppGoals: 0,
+      decided: 'pens' as const,
+      pens: { kicks: [], home: 4, away: 3, homeWon: true },
+    })),
+  });
+  const wallOk = completedIn(ctx(shootoutRun)).includes('the-wall');
+
+  check('challenges: ratings are judged on the dataset player, not the boosted copy', ratingOk);
+  check('challenges: a roster boost cannot break a themed XI (identity ignores it)', identityOk);
+  check('challenges: a shootout is not a goal conceded (The Wall survives penalties)', wallOk);
+}
+
+// --- Challenges: awarded once, paid into the career, counted to a fixed point --
+{
+  let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
+  let guard = 0;
+  while (run.phase !== 'ended' && guard++ < 20) {
+    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
+    else if (run.phase === 'match') run = playKnockoutRound(run);
+    else break;
+  }
+  const input = { base: basePlayer, album: emptyAlbum(), trades: 0 };
+  const first = applyRunResult(INITIAL_CAREER, run, input);
+  const again = applyRunResult(first.career, run, input);
+  const paid = prestigeFor(first.challengesCompleted);
+
+  // A career one short of "complete 10 challenges" must tick it in the SAME run that
+  // takes it past ten, not the next one (that is what the fixed-point loop is for).
+  const nine = CHALLENGES.filter((c) => !c.blocked && c.id !== 'challenge-hunter')
+    .slice(0, 9)
+    .map((c) => c.id);
+  const primed = applyRunResult(
+    { ...INITIAL_CAREER, completedChallenges: nine },
+    run,
+    input,
+  );
+  const hunterOk =
+    primed.career.completedChallenges.length >= 10 ===
+    primed.career.completedChallenges.includes('challenge-hunter');
+
+  const progress = challengeProgress(first.career.completedChallenges);
+  const ok =
+    first.challengePrestige === paid &&
+    first.career.prestige === INITIAL_CAREER.prestige + first.prestigeGained + paid &&
+    new Set(first.career.completedChallenges).size === first.career.completedChallenges.length &&
+    // The same run cannot pay twice: everything it completed is already held.
+    again.challengesCompleted.length === 0 &&
+    again.challengePrestige === 0 &&
+    // Nothing blocked is ever claimed, and the counter adds up.
+    !first.challengesCompleted.some((id) => challengeById(id)?.blocked) &&
+    progress.completed + progress.available + progress.blocked === progress.total &&
+    progress.completed === first.career.completedChallenges.length;
+  check('challenges: paid once, added to the wallet, and never re-awarded', ok);
+  check('challenges: a completion counter ticks in the run that reaches it', hunterOk);
+  check('challenges: applyRunResult with no context completes nothing', applyRunResult(INITIAL_CAREER, run).challengesCompleted.length === 0);
 }
 
 // --- Summary ---------------------------------------------------------------
