@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Challenges - Plan</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1c1c1a;
+    --ink-mid:    #5a5a52;
+    --ink-faint:  #9a9a8e;
+    --ground:     #f6f2eb;
+    --card:       #fffcf7;
+    --rule:       #ddd8ce;
+    --pitch:      #1e3d2f;
+    --amber:      #b8841e;
+    --amber-tint: #f5e9d0;
+    --loss:       #a8322a;
+  }
+
+  html { background: var(--ground); }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+
+  .doc-header {
+    border-top: 3px solid var(--pitch);
+    padding-top: 26px;
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
+  }
+  .eyebrow {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--pitch); margin-bottom: 9px;
+  }
+  .doc-header h1 { font-size: 32px; font-weight: normal; line-height: 1.15; letter-spacing: -.01em; }
+  .doc-header h1 em { font-style: normal; color: var(--pitch); }
+  .meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11.5px; color: var(--ink-mid); text-align: right; line-height: 1.8;
+  }
+  .meta strong { color: var(--ink); font-weight: 600; }
+
+  .lede {
+    background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--pitch);
+    padding: 13px 18px; margin-bottom: 26px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12.5px; line-height: 1.55; color: var(--ink-mid);
+  }
+  .lede b { color: var(--ink); }
+
+  h2 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--pitch); border-bottom: 2px solid var(--pitch);
+    padding-bottom: 6px; margin: 34px 0 14px;
+  }
+  h3 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px; font-weight: 700; color: var(--ink); margin: 22px 0 8px;
+  }
+  p { margin-bottom: 12px; }
+  ul, ol { margin: 0 0 12px 20px; }
+  li { margin-bottom: 6px; }
+
+  pre {
+    font-family: 'Courier New', Courier, monospace; font-size: 12.5px; line-height: 1.6;
+    background: #ece7dd; border-left: 2px solid var(--ink-faint); border-radius: 2px;
+    padding: 10px 13px; margin: 9px 0 13px; overflow-x: auto;
+  }
+  code {
+    font-family: 'Courier New', Courier, monospace; font-size: 13px;
+    background: #ece7dd; border-radius: 2px; padding: 1px 5px; word-break: break-word;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--pitch);
+    border-bottom: 2px solid var(--pitch);
+  }
+  td.n { font-family: 'Courier New', Courier, monospace; font-size: 11.5px; color: var(--ink-faint); width: 34px; }
+  td.name { font-weight: bold; white-space: nowrap; }
+  td.cond { color: var(--ink-mid); }
+
+  .tag {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 9.5px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; border-radius: 2px;
+    padding: 2px 6px; white-space: nowrap;
+  }
+  .t-b { color: #6b5320; background: #efe0c2; }   /* bronze */
+  .t-s { color: #4a4a4a; background: #e3e3e0; }   /* silver */
+  .t-g { color: #7a5a0d; background: #f2dfae; }   /* gold   */
+  .needs { color: var(--loss); background: #f5dedb; }
+
+  .callout {
+    background: var(--amber-tint); border-left: 3px solid var(--amber);
+    padding: 12px 16px; margin: 14px 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 1.55;
+  }
+  .callout .ct {
+    display: block; font-weight: 700; color: var(--amber); text-transform: uppercase;
+    letter-spacing: .1em; font-size: 10px; margin-bottom: 5px;
+  }
+
+  .wire {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 14px 16px; margin: 12px 0 18px;
+    font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.7;
+    color: var(--ink-mid); white-space: pre; overflow-x: auto;
+  }
+
+  footer {
+    margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 12px;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11.5px; color: var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div>
+    <div class="eyebrow">World Cup Simulator</div>
+    <h1>Challenges <em>a plan</em></h1>
+  </div>
+  <div class="meta">
+    <strong>Drafted:</strong> 2026-08-18<br>
+    <strong>Status:</strong> plan, not built<br>
+    <strong>Roadmap:</strong> item 01
+  </div>
+</div>
+
+<div class="lede">
+  <p><b>The gap.</b> Career Mode has no goals. You play, you earn Prestige, you buy perks,
+  and that is the loop. Challenges give a reason to attempt a <i>particular kind</i> of run
+  rather than the same strongest one, they give Prestige a second faucet, and they are what
+  would fill the trophy cabinet (item 06, which is waiting on this).</p>
+  <p><b>The good news</b> is that most of it is already computable. A finished
+  <code>RunState</code> carries the final XI, the outcome, the Ascension played, the boosts
+  taken, and a per-round history with scorelines, how each tie was decided, and the goal
+  events including scorer. Roughly 100 of the 130 challenges below need <b>no new
+  tracking at all</b>.</p>
+</div>
+
+<h2>1. The decision: permanent, rotating, or a mix</h2>
+
+<p><strong>Recommendation: a mix, with permanent as the spine.</strong> Two shapes, one
+catalogue behind them:</p>
+
+<ul>
+  <li><b>Honours</b> (permanent). The whole catalogue, each completable once, each worth a
+  fixed Prestige award and a cabinet badge. This is the long tail that outlasts "reach the
+  next Ascension", and it is the part that makes the cabinet worth opening.</li>
+  <li><b>Mandates</b> (rotating, three at a time, weekly). Drawn from the same catalogue,
+  paying a <b>multiplier</b> on their base award. They are what make you build a different
+  XI <i>this week</i>, and they re-offer challenges you skipped.</li>
+</ul>
+
+<p>Rotating-only would make the catalogue feel like a slot machine and lose the collection
+feeling. Permanent-only goes stale once the reachable ones are done. The mix costs one extra
+field in storage (a period key) and nothing else.</p>
+
+<p><b>Daily</b> is deliberately deferred: a daily mandate only really works with the seeded
+run from item 05 (everyone gets the same rolls and the same objective), and without that it
+is just a faster weekly.</p>
+
+<h2>2. Model</h2>
+
+<p>Pure predicates over a finished run, in <code>domain/challenges.ts</code>. No React, no
+storage reads, so the whole catalogue is testable in the checks harness.</p>
+
+<pre>export type ChallengeFamily =
+  | 'silverware' | 'ascension' | 'identity' | 'rating' | 'defence'
+  | 'attack' | 'drama' | 'boosts' | 'album' | 'market' | 'shape' | 'career';
+
+export type ChallengeTier = 'bronze' | 'silver' | 'gold';
+
+/** Everything a predicate may look at. Passed in, never read from storage here. */
+export interface ChallengeCtx {
+  run: RunState;              // the finished run (xi, outcome, ascension, history, ...)
+  base: (p: Player) => Player; // the DATASET player, before boon rating deltas
+  career: CareerState;        // for streak / lifetime conditions
+  album: AlbumState;          // for collection conditions
+}
+
+export interface Challenge {
+  id: string;
+  name: string;
+  description: string;        // player-facing, imperative: "Win the cup with ..."
+  family: ChallengeFamily;
+  tier: ChallengeTier;        // drives the Prestige award
+  check: (ctx: ChallengeCtx) => boolean;
+}</pre>
+
+<p><b>Evaluation seam.</b> One call, right where the run is already banked:
+<code>completedIn(ctx)</code> returns the ids newly satisfied (catalogue minus what the
+career has already claimed). <code>applyRunResult</code> then adds their Prestige to the
+same wallet perks are bought from, and appends them to
+<code>career.completedChallenges</code>. Rotating mandates additionally record
+<code>career.mandates: { periodKey, ids: string[], claimed: string[] }</code>.</p>
+
+<p><b>Accounts.</b> Challenge state lives on <code>CareerState</code>, so it rides the
+existing career write and the existing <code>save_career</code> RPC - no new table, no new
+migration. The award is a client write like the rest of the career (design decision D3,
+"trust the client with sanity limits"), and it is audited server-side like every other
+career write.</p>
+
+<div class="callout">
+  <span class="ct">Three traps, each already a real bug in this codebase</span>
+  <b>1. Ratings must be judged on the DATASET player.</b> <code>run.xi</code> carries boon
+  deltas baked in (Golden Generation is +2 to the whole XI), so "an XI averaging under 80"
+  would silently drift with the boosts taken. This is exactly the bug the sticker album hit
+  in August; the fix there was <code>BASE_BY_ID</code>, and that is why <code>base()</code>
+  is in the context above rather than left to each predicate.<br><br>
+  <b>2. The final XI is not the XI you built.</b> Roster boosts (Transfer, Poach, Wildcard
+  Legend) swap players in mid-run, and <code>run.boostedIds</code> is what separates them.
+  "Win with a single-nation XI" has to say which XI it means - the catalogue below judges
+  the FINAL XI unless the name says otherwise, and identity challenges exclude boosted
+  players so a Wildcard cannot break a themed run by accident.<br><br>
+  <b>3. Shootout goals are not goals.</b> <code>KoMatch.pens</code> is separate from
+  <code>userGoals</code> / <code>oppGoals</code>, so clean-sheet predicates must read the
+  scoreline and ignore the shootout - otherwise "The Wall" is unwinnable the moment a tie
+  goes to penalties.
+</div>
+
+<h2>3. What is checkable today, and what needs plumbing</h2>
+
+<table>
+  <tr><th>Source</th><th>Already recorded</th><th>Unlocks</th></tr>
+  <tr>
+    <td><code>run.xi</code> + <code>base()</code></td>
+    <td>The final XI: ratings, nations, years, positions, personIds, collectible tier</td>
+    <td>Identity, rating, album families</td>
+  </tr>
+  <tr>
+    <td><code>run.history[]</code></td>
+    <td>Per round: won, scoreline, <code>decided</code> (normal/aet/pens), opponent name +
+    code + year + rating, goal <b>events with scorer</b>, the boost taken after that round;
+    for the group, finishing position and all three scorelines</td>
+    <td>Defence, attack, drama, most of boosts</td>
+  </tr>
+  <tr>
+    <td><code>run.outcome</code>, <code>score</code>, <code>ascension</code></td>
+    <td>How far, how well, how hard</td>
+    <td>Silverware, ascension</td>
+  </tr>
+  <tr>
+    <td><code>run.activeBoons</code>, <code>boostedIds</code>, <code>perkLevels</code>,
+    <code>rerollsLeft</code></td>
+    <td>What help was taken</td>
+    <td>Boosts &amp; perks</td>
+  </tr>
+  <tr>
+    <td><code>career</code>, <code>album</code></td>
+    <td>Lifetime counts, collection</td>
+    <td>Career meta, album</td>
+  </tr>
+</table>
+
+<p><b>Not recorded yet.</b> Anything marked <span class="tag needs">needs</span> in the
+catalogue depends on one of these, all small and all additive to <code>RunState</code> at
+<code>beginRun</code>:</p>
+
+<ul>
+  <li><b>How the XI was built</b> - roll or budget, and the budget spent. The market knows
+  both; <code>AUTOFILL</code> currently drops the distinction on the way into the run.</li>
+  <li><b>Formation and style</b> at kickoff (<code>4-3-3</code>, <code>bal</code>), and the
+  slot each player filled - needed for "in his natural position", which cannot be derived
+  from the XI alone because <code>placedPlayers</code> reorders positions.</li>
+  <li><b>Chemistry at kickoff</b> (a number, already computed for the panel).</li>
+  <li><b>Career counters</b> for streaks: consecutive cups, consecutive semi-finals or
+  better, Prestige spent lifetime.</li>
+  <li><b>Group goal events</b>. The group stores scorelines only, so scorer-based
+  challenges are knockout-only until the group keeps its events too.</li>
+</ul>
+
+<h2>4. The catalogue</h2>
+
+<p>130 challenges. <span class="tag t-b">bronze</span> is a nudge you will hit by playing,
+<span class="tag t-s">silver</span> takes a deliberate build,
+<span class="tag t-g">gold</span> is a run you plan from the first pick. Suggested awards:
+bronze 10 Prestige, silver 30, gold 75, and a rotating mandate pays double.
+"Win" means lift the cup unless stated.</p>
+
+<h3>A. Silverware &amp; progression</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">1</td><td class="name">First Blood</td><td class="cond">Win your first cup.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">2</td><td class="name">Back to Back</td><td class="cond">Win cups in two consecutive runs. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">3</td><td class="name">Three-Peat</td><td class="cond">Win cups in three consecutive runs. <span class="tag needs">needs</span></td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">4</td><td class="name">Serial Winner</td><td class="cond">Win 10 cups in total.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">5</td><td class="name">Dynasty</td><td class="cond">Win 25 cups in total.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">6</td><td class="name">Finalist</td><td class="cond">Reach a final.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">7</td><td class="name">Nearly Man</td><td class="cond">Lose a final, then win the cup in your next run. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">8</td><td class="name">Perfect Run</td><td class="cond">Win the cup without losing a single match, group included.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">9</td><td class="name">Maximum Points</td><td class="cond">Win all three group matches.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">10</td><td class="name">Group Winner</td><td class="cond">Finish first in your group.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">11</td><td class="name">Escape Artist</td><td class="cond">Qualify second, then win the cup.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">12</td><td class="name">Ninety Minutes</td><td class="cond">Win every knockout tie in normal time.</td><td><span class="tag t-s">silver</span></td></tr>
+</table>
+
+<h3>B. Ascension</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">13</td><td class="name">Step Up</td><td class="cond">Win at Ascension I.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">14</td><td class="name">Higher Ground</td><td class="cond">Win at Ascension II.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">15</td><td class="name">Giant Slayer</td><td class="cond">Win at Ascension III.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">16</td><td class="name">The Summit</td><td class="cond">Win at the highest Ascension tier.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">17</td><td class="name">Ladder Climb</td><td class="cond">Win at least once at every Ascension tier.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">18</td><td class="name">Hard Habit</td><td class="cond">Finish 10 runs at Ascension II or higher.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">19</td><td class="name">No Safety Net</td><td class="cond">Win at Ascension III+ without taking a legendary boost.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">20</td><td class="name">Straight Up</td><td class="cond">Unlock a new Ascension tier without ever losing a final.</td><td><span class="tag t-s">silver</span></td></tr>
+</table>
+
+<h3>C. Squad identity</h3>
+<p style="font-size:13px;color:var(--ink-mid);margin-bottom:8px">Identity conditions ignore
+players a roster boost handed you, so a Wildcard cannot break a themed run by accident.</p>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">21</td><td class="name">United Nations</td><td class="cond">Win with 5+ different nations in the XI.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">22</td><td class="name">Cosmopolitan</td><td class="cond">Win with 8+ different nations.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">23</td><td class="name">Babel</td><td class="cond">Win with 11 different nations.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">24</td><td class="name">One Flag</td><td class="cond">Win with all 11 from a single nation.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">25</td><td class="name">Club Class</td><td class="cond">Win with all 11 from a single squad (one nation, one tournament).</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">26</td><td class="name">Time Capsule</td><td class="cond">Win with all 11 from a single World Cup year.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">27</td><td class="name">Two Cups</td><td class="cond">Win with players from exactly two tournaments.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">28</td><td class="name">Golden Generation</td><td class="cond">Win with 7+ players from one nation.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">29</td><td class="name">Continental</td><td class="cond">Win with all 11 from one confederation.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">30</td><td class="name">Old World</td><td class="cond">Win with an all-UEFA XI.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">31</td><td class="name">Samba</td><td class="cond">Win with an all-Brazilian XI.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">32</td><td class="name">Iron Curtain</td><td class="cond">Win with an XI containing a Soviet, Czechoslovak or Yugoslav player.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">33</td><td class="name">The Nineties</td><td class="cond">Win with every player from 1990, 1994 or 1998.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">34</td><td class="name">Millennials</td><td class="cond">Win with every player from 2002, 2006 or 2010.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">35</td><td class="name">Modern Era</td><td class="cond">Win with every player from 2014, 2018 or 2022.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">36</td><td class="name">Every Era</td><td class="cond">Win with at least one player from each decade in the pool.</td><td><span class="tag t-g">gold</span></td></tr>
+</table>
+
+<h3>D. Rating &amp; value</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">37</td><td class="name">Rag Tag</td><td class="cond">Win with an XI averaging under 80 (dataset ratings).</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">38</td><td class="name">Underdogs</td><td class="cond">Win with an XI averaging under 75.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">39</td><td class="name">Minnows</td><td class="cond">Win with an XI averaging under 70.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">40</td><td class="name">No Superstars</td><td class="cond">Win with nobody rated 90 or above.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">41</td><td class="name">One-Man Team</td><td class="cond">Win with exactly one player rated 90+ and nobody else above 82.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">42</td><td class="name">Balanced Books</td><td class="cond">Win with nobody below 75 and nobody above 88.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">43</td><td class="name">Beat the Odds</td><td class="cond">Win a knockout tie against a team rated 10+ higher.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">44</td><td class="name">David</td><td class="cond">Win a knockout tie against a team rated 15+ higher.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">45</td><td class="name">Always the Underdog</td><td class="cond">Win the cup with every knockout opponent rated higher than you.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">46</td><td class="name">Journeymen</td><td class="cond">Win with nobody rated above 85.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">47</td><td class="name">Galacticos</td><td class="cond">Win with an XI averaging 90+.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">48</td><td class="name">Chemistry Set</td><td class="cond">Win with the maximum chemistry bonus. <span class="tag needs">needs</span></td><td><span class="tag t-g">gold</span></td></tr>
+</table>
+
+<h3>E. Defence</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">49</td><td class="name">The Wall</td><td class="cond">Win every knockout tie without conceding (shootouts do not count).</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">50</td><td class="name">Clean Group</td><td class="cond">Concede nothing in the group stage.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">51</td><td class="name">Fortress</td><td class="cond">Win conceding 2 or fewer goals all run.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">52</td><td class="name">Shut Out</td><td class="cond">Keep 4 clean sheets in one run.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">53</td><td class="name">Understudy</td><td class="cond">Win with a goalkeeper rated under 75.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">54</td><td class="name">Smash and Grab</td><td class="cond">Win a knockout tie 1-0.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">55</td><td class="name">Nervy</td><td class="cond">Win three knockout ties by exactly one goal.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">56</td><td class="name">Stalemate</td><td class="cond">Win a tie that finished goalless after extra time.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">57</td><td class="name">Final Lockdown</td><td class="cond">Win the final without conceding.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">58</td><td class="name">Rearguard</td><td class="cond">Win the cup never conceding more than one in a match.</td><td><span class="tag t-s">silver</span></td></tr>
+</table>
+
+<h3>F. Attack</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">59</td><td class="name">Route One</td><td class="cond">Score 4+ in a single knockout tie.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">60</td><td class="name">Goal Rush</td><td class="cond">Score 5+ in a single match.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">61</td><td class="name">Demolition</td><td class="cond">Win a knockout tie by 4+ goals.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">62</td><td class="name">Sharp Shooters</td><td class="cond">Score 15+ goals across one run.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">63</td><td class="name">Never Blank</td><td class="cond">Score in every match of a winning run.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">64</td><td class="name">Hat-Trick Hero</td><td class="cond">One player scores 3+ in a knockout tie.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">65</td><td class="name">Talisman</td><td class="cond">One player scores in four different knockout ties.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">66</td><td class="name">Spread the Load</td><td class="cond">Six different scorers in one run.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">67</td><td class="name">Early Bird</td><td class="cond">Score inside the first five minutes of a knockout tie.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">68</td><td class="name">Late Show</td><td class="cond">Win a knockout tie with a goal in the 89th minute or later.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">69</td><td class="name">Both Halves</td><td class="cond">Score in both halves of the final.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">70</td><td class="name">Cup Final Rout</td><td class="cond">Win the final by 3+ goals.</td><td><span class="tag t-s">silver</span></td></tr>
+</table>
+
+<h3>G. Knockout drama</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">71</td><td class="name">Cold Blooded</td><td class="cond">Win a shootout, then go on to lift the cup.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">72</td><td class="name">Ice Veins</td><td class="cond">Win two shootouts in one run.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">73</td><td class="name">Extra Effort</td><td class="cond">Win a tie in extra time.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">74</td><td class="name">The Hard Way</td><td class="cond">Win ties in normal time, extra time and on penalties in one run.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">75</td><td class="name">Comeback Kings</td><td class="cond">Qualify with a negative goal difference, then win the cup.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">76</td><td class="name">Backs to the Wall</td><td class="cond">Lose your opening group match, then win the cup.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">77</td><td class="name">Rocky Start</td><td class="cond">Lose two group matches and still qualify.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">78</td><td class="name">Perfect Pens</td><td class="cond">Win a shootout without missing a kick.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">79</td><td class="name">Sudden Death</td><td class="cond">Win a shootout that ran past five kicks each.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">80</td><td class="name">Final Drama</td><td class="cond">Win the final in extra time or on penalties.</td><td><span class="tag t-s">silver</span></td></tr>
+</table>
+
+<h3>H. Boosts &amp; perks</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">81</td><td class="name">Purist</td><td class="cond">Win without a single roster boost (nobody handed to you).</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">82</td><td class="name">Common Touch</td><td class="cond">Win taking only common boosts.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">83</td><td class="name">Legendary Lean</td><td class="cond">Win having taken three or more legendary boosts.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">84</td><td class="name">Full Spectrum</td><td class="cond">Take a common, a rare and a legendary boost in one run.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">85</td><td class="name">No Second Chances</td><td class="cond">Win without using a boost re-roll (Physio Table owned).</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">86</td><td class="name">Perkless</td><td class="cond">Win a run owning no perks at all.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">87</td><td class="name">Full Kit</td><td class="cond">Win with every perk owned at its maximum tier.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">88</td><td class="name">Poacher</td><td class="cond">Poach the next opponent, then beat them.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">89</td><td class="name">Wildcard Winner</td><td class="cond">Win with a Wildcard Legend in the XI.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">90</td><td class="name">Glass Cannon Gambit</td><td class="cond">Win having taken Glass Cannon.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">91</td><td class="name">Catenaccio Cup</td><td class="cond">Win having taken Catenaccio, conceding 3 or fewer.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">92</td><td class="name">Boost Collector</td><td class="cond">Take 5+ boosts in a single run.</td><td><span class="tag t-b">bronze</span></td></tr>
+</table>
+
+<h3>I. Album &amp; collectibles</h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">93</td><td class="name">Collector</td><td class="cond">Win with 3+ collectibles in the XI.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">94</td><td class="name">Hall of Fame</td><td class="cond">Win with 5+ collectibles in the XI.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">95</td><td class="name">Monumental</td><td class="cond">Win with a Monumental player in the XI.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">96</td><td class="name">New Blood</td><td class="cond">Bank three new stickers from one run.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">97</td><td class="name">Legendary Set</td><td class="cond">Collect every Legendary sticker.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">98</td><td class="name">Iconic Set</td><td class="cond">Collect every Iconic sticker.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">99</td><td class="name">Full Album</td><td class="cond">Collect every sticker.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">100</td><td class="name">Trader</td><td class="cond">Complete five trades.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">101</td><td class="name">Self-Made</td><td class="cond">Win with no collectibles in the XI at all.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">102</td><td class="name">Bargain Bin</td><td class="cond">Buy five discounted (already-owned) players in one build. <span class="tag needs">needs</span></td><td><span class="tag t-b">bronze</span></td></tr>
+</table>
+
+<h3>J. Market &amp; budget <span class="tag needs">needs build tracking</span></h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">103</td><td class="name">Thrifty</td><td class="cond">Win with $20+ of the budget unspent.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">104</td><td class="name">Every Cent</td><td class="cond">Win having spent the budget to the last dollar.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">105</td><td class="name">Bargain Hunter</td><td class="cond">Win with no player costing more than $12.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">106</td><td class="name">Marquee Signing</td><td class="cond">Win having spent $25+ on one player.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">107</td><td class="name">Market Master</td><td class="cond">Win a bought XI at Ascension II+.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">108</td><td class="name">Roll With It</td><td class="cond">Win with a rolled XI rather than a bought one.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">109</td><td class="name">First Draw</td><td class="cond">Win a rolled run without using a squad re-roll.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">110</td><td class="name">Swap Meet</td><td class="cond">Use both collectible swaps and win the cup.</td><td><span class="tag t-s">silver</span></td></tr>
+</table>
+
+<h3>K. Shape &amp; positions <span class="tag needs">needs formation tracking</span></h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">111</td><td class="name">Back Five</td><td class="cond">Win with a five-defender formation.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">112</td><td class="name">All Out Attack</td><td class="cond">Win playing the offensive style.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">113</td><td class="name">Park the Bus</td><td class="cond">Win playing the defensive style.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">114</td><td class="name">Shape Shifter</td><td class="cond">Win cups with three different formations.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">115</td><td class="name">Out of Position</td><td class="cond">Win with 3+ players outside their natural position.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">116</td><td class="name">Textbook</td><td class="cond">Win with every player in his natural position.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">117</td><td class="name">Keeper's Union</td><td class="cond">Win with the goalkeeper rated higher than every outfielder.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">118</td><td class="name">Midfield General</td><td class="cond">Win with your highest-rated player in midfield.</td><td><span class="tag t-b">bronze</span></td></tr>
+</table>
+
+<h3>L. Career &amp; streaks <span class="tag needs">some need counters</span></h3>
+<table>
+  <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
+  <tr><td class="n">119</td><td class="name">Persistent</td><td class="cond">Finish 25 runs.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">120</td><td class="name">Centurion</td><td class="cond">Finish 100 runs.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">121</td><td class="name">Level Ten</td><td class="cond">Reach level 10.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">122</td><td class="name">Veteran</td><td class="cond">Reach level 25.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">123</td><td class="name">War Chest</td><td class="cond">Hold 200 Prestige at once.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">124</td><td class="name">Spendthrift</td><td class="cond">Spend 500 Prestige in total. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">125</td><td class="name">On a Roll</td><td class="cond">Win three runs in a row. <span class="tag needs">needs</span></td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">126</td><td class="name">Consistency</td><td class="cond">Reach the semi-final or better in five consecutive runs. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">127</td><td class="name">Challenge Hunter</td><td class="cond">Complete 10 challenges.</td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">128</td><td class="name">Mandate Master</td><td class="cond">Complete 50 challenges.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">129</td><td class="name">Weekly Warrior</td><td class="cond">Complete all three mandates in one week.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">130</td><td class="name">Every Family</td><td class="cond">Complete at least one challenge from every family.</td><td><span class="tag t-g">gold</span></td></tr>
+</table>
+
+<h2>5. In the app</h2>
+
+<h3>Where it lives</h3>
+<ul>
+  <li><b>Career hub</b> (<code>CupRunScreen</code>, between runs): a <b>Mandates</b> card
+  beside the perk shop - the three active weeklies, each a row with its family colour, its
+  reward, and a "done" tick. A footer link opens the full catalogue.</li>
+  <li><b>New route <code>/challenges</code></b>: the whole catalogue, grouped by family,
+  filterable to <i>available / completed / impossible-for-now</i>, with a completion counter
+  in the header exactly like the album's. This is the collection surface, and the closest
+  existing thing to copy is <code>AlbumScreen</code>.</li>
+  <li><b>Before a run</b>: a one-line strip on the build page - "Mandates: Rag Tag ·
+  United Nations · The Wall" - so you can build toward them while picking, which is the
+  whole point of having them.</li>
+  <li><b>During a run</b>: the mandate chips sit under the run ladder. Predicates are
+  end-of-run, but many can be shown as <b>already failed</b> the moment they become
+  impossible (conceded a goal kills The Wall), which is honest and stops a wasted run.</li>
+  <li><b>Run end</b>: completed challenges appear on the ended screen above the score, each
+  with its Prestige, in the same slot the sticker haul uses. This is the reward moment.</li>
+</ul>
+
+<h3>The card, roughly</h3>
+<div class="wire">┌ MANDATES · week 34 ─────────────────────────┐
+│                                              │
+│  ●  Rag Tag                        +60 ✓     │
+│     Win with an XI averaging under 80        │
+│                                              │
+│  ●  United Nations                 +20       │
+│     Win with 5+ nations in your XI           │
+│                                              │
+│  ●  The Wall                      +150       │
+│     Win every knockout tie without conceding │
+│                                              │
+│  47 / 130 honours          ALL CHALLENGES →  │
+└──────────────────────────────────────────────┘</div>
+
+<h3>Copy rules</h3>
+<ul>
+  <li>Descriptions are imperative and concrete: "Win with an XI averaging under 80", never
+  "average rating &lt; 80".</li>
+  <li>House vocabulary: <b>rating</b> not elo, <b>boost</b> not boon. A challenge name is a
+  name, the description carries the rule.</li>
+  <li>No em-dashes anywhere, per the project convention.</li>
+</ul>
+
+<h2>6. Build order</h2>
+
+<p>Each slice ships behind <code>FEATURES.challenges</code> and is useful alone.</p>
+
+<ol>
+  <li><b>The engine and the free half.</b> <code>domain/challenges.ts</code> with the model,
+  the context builder (including <code>base()</code>), and the ~100 challenges that need no
+  new tracking. Evaluated in <code>applyRunResult</code>; <code>CareerState</code> gains
+  <code>completedChallenges</code>. Run-end screen lists what was completed. Checks harness
+  gets a "every predicate is total and pure" sweep plus hand-built runs for the tricky ones
+  (clean sheets with a shootout, boosted-player exclusion).</li>
+  <li><b>The catalogue screen</b> (<code>/challenges</code>) and the hub card, with the
+  completion counter.</li>
+  <li><b>Mandates.</b> Three weekly picks from the pool, deterministic from the ISO week so
+  every device agrees without a server, a reward multiplier, and
+  <code>career.mandates</code>.</li>
+  <li><b>Before and during.</b> The build-page strip and the in-run chips with
+  already-failed marking.</li>
+  <li><b>The plumbing wave.</b> Build method, budget spent, formation and style, slot
+  positions, chemistry at kickoff, and the career counters - unlocking families J, K and the
+  streak entries in L.</li>
+  <li><b>Trophy cabinet</b> (item 06) reads the completed set: badges by family, newest
+  first, with the run that earned each one.</li>
+</ol>
+
+<h2>7. Open questions</h2>
+<ul>
+  <li><b>Do challenges apply to Quick Run?</b> Recommendation: no. They are the career
+  layer's spine, and a Quick Run has no Prestige wallet to pay into.</li>
+  <li><b>Retroactive completion?</b> Recommendation: no for run-shaped challenges (there is
+  no run history detailed enough to re-judge), yes for lifetime ones that read the career
+  counters, which are already accurate.</li>
+  <li><b>Do mandates reroll?</b> Recommendation: not at first. If they do, it should cost
+  Prestige rather than be free, so the choice has weight.</li>
+  <li><b>Difficulty and Ascension interaction.</b> A challenge completed at a high Ascension
+  could pay the Ascension multiplier, which would reward doing hard things the hard way.
+  Worth a decision before the reward numbers are tuned.</li>
+</ul>
+
+<footer>
+  Plan only. Nothing here is built. The catalogue is a menu to cut from, not a commitment to
+  all 130: slice 1 is the engine plus whatever subset reads well, and the rest is data.
+</footer>
+
+</body>
+</html>
