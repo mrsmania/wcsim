@@ -164,10 +164,14 @@ in the repo and deployed with the site:
   hosted image referenced by absolute URL; the wordmark beside it is text, so a blocked
   image still leaves a legible header.
 
-Both deploy with the Pages build, so GoTrue can point straight at them. Four values in
-`dkr/.env`, and the same template serves both cases (a returning player gets the magic
-link mail, a first-time address gets the signup confirmation - identical content, so do
-not leave one of them on the stock template):
+Both deploy with the Pages build, so GoTrue can point straight at them. **One mail, not
+two:** GoTrue chooses a different template *slot* for a first-time address (confirmation)
+than for a returning one (magic link), so both slots point at the same file - that is what
+makes the two cases identical, and leaving either unset means half the players still get
+the stock mail.
+
+Four values, in the `.env` beside `docker-compose.yml` (the file `dkr/.env` is a copy of).
+No quotes, no spaces around `=`:
 
 ```
 GOTRUE_MAILER_SUBJECTS_MAGIC_LINK=Your World Cup Simulator code
@@ -176,18 +180,41 @@ GOTRUE_MAILER_TEMPLATES_MAGIC_LINK=https://mrsmania.github.io/wcsim/email/otp.ht
 GOTRUE_MAILER_TEMPLATES_CONFIRMATION=https://mrsmania.github.io/wcsim/email/otp.html
 ```
 
-Then restart the `auth` container and request a code. Worth knowing:
+Then two things that are easy to get wrong, in this order:
 
-- GoTrue **fetches the template over HTTPS when it sends**, so the mail depends on the
-  Pages site being reachable from the NAS. If the fetch fails it falls back to its
-  built-in default, which means a stock-looking mail is the symptom of a fetch problem,
-  not of a bad template. `curl -sI https://mrsmania.github.io/wcsim/email/otp.html` from
-  the NAS settles it.
-- Editing the template is a push to `main` plus the Pages deploy; no container restart
-  is needed for content changes, only for the env vars above.
+1. **The `auth` service has to pass them through.** The official compose does not hand
+   `.env` to containers wholesale; it lists an explicit `environment:` allowlist per
+   service, and the mailer template keys ship commented out. A value in `.env` that no
+   service references reaches nothing. `grep -n MAILER docker-compose.yml`, and if the
+   keys are missing or commented, add them under the `auth` service's `environment:` as
+   `GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${GOTRUE_MAILER_TEMPLATES_MAGIC_LINK}` and so on.
+   (A service with `env_file: .env` needs none of this.)
+2. **Re-create the container, do not restart it.** Environment is fixed at creation, so
+   `docker compose restart auth` comes back with the old values and looks like nothing
+   happened. `docker compose up -d auth`, or in Container Manager use the Project's
+   **Action → Build** rather than a container Restart.
+
+Verify in that order too: `docker compose exec auth env | grep GOTRUE_MAILER_` proves the
+values are *inside* the container, and `curl -sI https://mrsmania.github.io/wcsim/email/otp.html`
+**from the NAS** proves it can fetch the template as it sends.
+
+Worth knowing:
+
+- **The subject line tells you which half failed.** Subjects are used verbatim while the
+  body is fetched. Neither changed = the variables never arrived (allowlist, or a plain
+  restart). Subject changed but the body is stock = the fetch failed, and GoTrue answers
+  that by silently falling back to its built-in default;
+  `docker compose logs --tail=200 auth | grep -i -e template -e mailer` shows it.
+- Editing the mail afterwards is a push to `main` plus the Pages deploy; no restart is
+  needed for content changes, only for these variables.
+- Rolling back is deleting the four lines and `docker compose up -d auth`. No database
+  state is involved.
 - There is deliberately **no copy button** in the mail: mail clients do not run
-  JavaScript. The code is instead large, letter-spaced and selectable, so tap-and-hold
-  copies it on a phone.
+  JavaScript, and no HTML or CSS writes to the clipboard. The code is instead large,
+  letter-spaced and selectable, so tap-and-hold copies it on a phone and the OS's own
+  one-time-code suggestion can pick it up (the app's code field carries
+  `autocomplete="one-time-code"`). There is no link in the mail either: the only
+  placeholder is the token, and the app verifies with the code alone.
 
 ---
 
