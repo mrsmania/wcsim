@@ -71,6 +71,8 @@ npm run preview    # serve the production build
 npm run checks     # run domain characterization checks (scripts/checks.ts)
 npm run gen:collectibles   # regenerate supabase/seed/collectibles.sql from the dataset
 npm run push:collectibles  # send that seed to the account server (needs dkr/.env, LAN/VPN)
+npm run push:sql -- <file.sql>   # apply a migration / run a query on that server (same
+                           #   credentials and route; -- --dry-run shows without sending)
 npm run album:fill         # print a console snippet that fills the album (guest only;
                            #   -- --leave=N / --dupes=N / --clear)
 python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/stickers/*.webp

@@ -484,15 +484,18 @@
     path, which is exactly today's behaviour - the change was built to work in either deploy
     order, so nothing is broken while this sits here.</p>
     <ol>
-      <li><span class="step">Apply it.</span> Paste
-      <code>supabase/migrations/0010_finish_run_one_trip.sql</code> into Studio's SQL editor, or
-      run it with <code>psql</code> from the NAS. It is one transaction; a failure leaves nothing
-      behind.</li>
+      <li><span class="step">Apply it</span> from any machine that can reach the NAS - the same
+      LAN or VPN requirement as <code>push:collectibles</code>, and the same route (Studio's
+      pg-meta endpoint, service key from <code>dkr/.env</code>). It is one transaction, so a
+      failure leaves nothing behind, and <code>--dry-run</code> shows what would be sent.
+      <pre>npm run push:sql -- supabase/migrations/0010_finish_run_one_trip.sql</pre>
+      Pasting the file into Studio's SQL editor does the same thing if you would rather watch it
+      go in.</li>
       <li><span class="step">Check the function is reachable</span> as the client sees it, not
       just as the owner: PostgREST needs the grant, and a missing one shows up as the client
-      quietly staying on the old path.
-      <pre>select has_function_privilege('authenticated',
-  'finish_run_v2(text,text[],boolean,text,integer,text,integer)', 'execute');</pre></li>
+      quietly staying on the old path. Expect <code>true</code>.
+      <pre>npm run push:sql -- --query "select has_function_privilege('authenticated',
+  'finish_run_v2(text,text[],boolean,text,integer,text,integer)', 'execute')"</pre></li>
       <li><span class="step">Bank a run signed in</span> and confirm the haul appears without the
       pause. The browser's network panel should show one <code>finish_run_v2</code> call and no
       <code>profiles</code> / <code>album_stickers</code> reads after it.</li>

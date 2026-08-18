@@ -19,31 +19,15 @@
  * Nothing is read from the network and nothing is written anywhere else.
  */
 import { readFileSync } from 'node:fs';
+import { runSql, serverConfig } from './dkr-env.mjs';
 
 /** Mirrors CATALOGUE_PATH in scripts/collectibles.ts (plain .mjs, so it cannot import
  *  the TypeScript one; the generator writes here, this reads there). */
 const CATALOGUE_PATH = 'supabase/seed/collectibles.sql';
-const ENV_PATH = 'dkr/.env';
 
-function env(key) {
-  let file;
-  try {
-    file = readFileSync(ENV_PATH, 'utf8');
-  } catch {
-    console.error(`push-collectibles: ${ENV_PATH} not found.`);
-    console.error('  This needs the self-hosted stack config (see docs/nas-setup.md).');
-    process.exit(1);
-  }
-  const hit = new RegExp(`^${key}=(.*)$`, 'm').exec(file);
-  if (!hit?.[1]) {
-    console.error(`push-collectibles: ${key} is not set in ${ENV_PATH}`);
-    process.exit(1);
-  }
-  return hit[1].trim();
-}
-
-const api = env('SUPABASE_PUBLIC_URL').replace(/\/$/, '');
-const key = env('SERVICE_ROLE_KEY');
+// Credentials and the send itself are shared with push-sql.mjs, so there is one place
+// that knows where the keys live and how to talk to the server.
+const { api, key } = serverConfig();
 
 let sql;
 try {
@@ -57,39 +41,19 @@ const rows = /^-- rows: (.+)$/m.exec(sql)?.[1] ?? 'unknown';
 console.log(`push-collectibles: sending ${rows}`);
 console.log(`  to ${api}`);
 
-const res = await fetch(`${api}/pg/query`, {
-  method: 'POST',
-  headers: {
-    apikey: key,
-    Authorization: `Bearer ${key}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({ query: sql }),
-}).catch((err) => {
-  console.error(`push-collectibles: could not reach the server - ${err.message}`);
-  console.error('  Is the NAS up, and are you on a network that can reach it?');
-  process.exit(1);
-});
-
-const body = await res.text();
-if (!res.ok || body.includes('"error"')) {
-  console.error(`push-collectibles: the server refused it (HTTP ${res.status})`);
-  console.error(`  ${body.slice(0, 400)}`);
+try {
+  await runSql({ api, key }, sql);
+} catch (err) {
+  console.error(`push-collectibles: ${err.message}`);
   process.exit(1);
 }
 
 // Read back what the server now holds, so the success message is evidence rather
 // than an assumption.
-const count = await fetch(`${api}/pg/query`, {
-  method: 'POST',
-  headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    query:
-      "select count(*) filter (where active) as active, count(*) filter (where not active) as retired from collectibles",
-  }),
-})
-  .then((r) => r.json())
-  .catch(() => null);
+const count = await runSql(
+  { api, key },
+  'select count(*) filter (where active) as active, count(*) filter (where not active) as retired from collectibles',
+).catch(() => null);
 
 if (Array.isArray(count) && count[0]) {
   console.log(`push-collectibles: done - ${count[0].active} collectible, ${count[0].retired} retired`);

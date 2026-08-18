@@ -192,6 +192,16 @@ paste: they are written to be safe against a client that has not caught up yet, 
 newest (`0010`) is deliberately additive - the client keeps working before it is applied
 and gets the faster path afterwards, in either order.
 
+Rather than pasting, you can send a file from a machine that can reach the NAS. It goes
+the same way `push:collectibles` does (Studio's pg-meta endpoint, service key read from
+`dkr/.env`), and prints whatever the server answers:
+
+```
+npm run push:sql -- supabase/migrations/0010_finish_run_one_trip.sql
+npm run push:sql -- --query "select count(*) from profiles"     # any one-off query
+npm run push:sql -- --dry-run supabase/migrations/0010_...sql   # show, do not send
+```
+
 The seed is idempotent, so re-running it after a dataset change is the whole update
 procedure. Regenerate it with `npm run gen:collectibles` whenever ratings or
 `STICKER_TIERS` change; `npm run checks` fails while it is stale.
