@@ -319,7 +319,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-18<br>
-    <strong>Open:</strong> 15 items<br>
+    <strong>Open:</strong> 14 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -328,7 +328,7 @@
   <p><b>The single list.</b> This replaces the old <code>docs/ROADMAP.md</code> and
   <code>docs/todo/TODO.html</code>, which held overlapping copies of the same items and
   drifted apart. Everything open lives here now: three tiers below, and what already shipped
-  is collapsed at the very bottom as decision history.</p>
+  is collapsed at the very bottom as decision history. Item numbers are stable ids, so a closed item leaves a gap rather than renumbering the rest.</p>
   <p style="margin-top:8px"><b>Live flag worth knowing:</b>
   <code>FEATURES.stickersOnCupWinOnly</code> is currently <code>false</code>, so any
   finished run banks the XI's collectibles. Set it to <code>true</code> for cup-wins-only;
@@ -491,29 +491,6 @@
 </details>
 
 <div class="band"><h2>From playing</h2><span>found in real runs, small to medium</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">07</span>
-    <span class="title">Scores and goals jump when the match ends
-      <span class="sub">The card shifts at full time instead of settling.</span>
-    </span>
-    <span class="tag">Bug</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The live feed pops each goal in as it arrives (<code>animate-goal-pop</code>), and at
-    full time the result card moves rather than staying put. Happens for a goal at either end.</p>
-    <p>One lead to check before anything else: <code>GoalList</code> keys its rows by array
-    index, so a re-render (or the swap from the live card to the finished one) can replay the
-    animation on <i>every</i> row at once instead of only on the new goal, and a row growing
-    from 0.6 scale changes the height while it does. Whatever the cause, the scoreline and the
-    feed should hold their position at the whistle.</p>
-    <p class="next"><strong>Next step:</strong> reproduce at the slowest speed, watching a home
-    goal and an away goal, in the group stage and in a knockout tie.</p>
-    <p class="files">src/components/GoalList.tsx, src/components/matchUi.tsx, src/components/MatchdayCard.tsx, src/index.css</p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -687,6 +664,21 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>07 Goals re-animated on finished matches.</b> Fixed 2026-08-18 in
+      <code>GoalList</code> alone: it records how many goals were present on its first
+      render and only animates rows beyond that mark. Everything already there when a feed
+      mounts is history, so a settled card, a round review, a reload, and the Cup Run&apos;s
+      swap from the live card to the finished one all render their goals still, while a live
+      reveal still pops each goal as it arrives. Verified in the browser both ways: a card
+      remounting with 7 goals ran 0 animations (all 7 popped before the fix), and a live
+      match popped 3 rows, each exactly as it appeared, with none running after the settle.
+      <i>Deliberately not done:</i> the small layout shifts around a settling match (the
+      live line leaving the feed, the 3px "playing" border, the result tag being 3px taller
+      than "Live now", the group&apos;s playback controls disappearing when it ends). I had
+      fixed those too and reverted them on the call that the animation was the whole ask -
+      they are real but cosmetic, and the reverted approaches are recorded here if they ever
+      matter: reserve the live line&apos;s slot, draw the border as an inset shadow, pad the
+      "next" tag, keep the controls mounted.</li>
       <li><b>The Supabase trim, installed.</b> Done 2026-08-18 on the live stack:
       <code>storage</code>, <code>imgproxy</code>, <code>realtime</code> and the edge runtime
       removed, gateway restarted, six services left. Verified by hash before applying and by

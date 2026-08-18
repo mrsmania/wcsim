@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { MatchEvent } from '../domain/match';
 
 /** Chronological list of goal events for a match, or an empty-state line. The
@@ -17,6 +18,18 @@ export default function GoalList({
   /** True while the match is still being played (pre full-time). */
   live?: boolean;
 }) {
+  // Only goals that arrive AFTER this feed's first render are new, and only those get
+  // the pop. Everything already there on the first render is history: a settled card,
+  // a round review, a reload mid-tournament, or the finished card that replaces the
+  // live one at the whistle. Without this baseline every row re-animates whenever a
+  // feed mounts, which is what made a finished result appear to jump. It has to be a
+  // ref rather than state, because the decision is needed in the same render that
+  // adds the row.
+  const staticUntil = useRef(events.length);
+  // A shorter list means this feed is showing a different match (a card reused for
+  // the next one), so re-baseline instead of animating the whole new list.
+  if (events.length < staticUntil.current) staticUntil.current = events.length;
+
   if (events.length === 0) {
     return (
       <p className="py-1 text-center text-xs text-muted">{live ? 'No goals yet…' : 'No goals'}</p>
@@ -27,7 +40,12 @@ export default function GoalList({
       {events.map((e, i) => {
         const isUser = e.side === userSide;
         return (
-          <li key={i} className="flex animate-goal-pop items-center gap-[11px] text-[13.5px]">
+          <li
+            key={i}
+            className={`flex items-center gap-[11px] text-[13.5px] ${
+              i >= staticUntil.current ? 'animate-goal-pop' : ''
+            }`}
+          >
             <span className="w-[30px] shrink-0 font-mono text-xs text-muted">{e.minute}'</span>
             <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-chalk">
               {/* CSS football: a tiny checkered disc (matches the turf-flat comp). */}
