@@ -709,7 +709,7 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   completions and Prestige themselves: the run that takes you past ten completions ticks
   Challenge Hunter in the same breath, and the awards of the same run can carry you over
   War Chest's 200 Prestige. Without that, those always landed a run late.
-- **The three traps, each already a real bug here:**
+- **The four traps, each already a real bug here:**
   1. **Ratings are judged on the DATASET player.** `run.xi` carries boost deltas baked in
      (Golden Generation is +2 to the XI), so Rag Tag would drift with the boosts taken.
      `src/data/squads.ts` exports **`basePlayer`**, the single copy of that rule (the
@@ -720,6 +720,17 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
      different nations" is the exception, because there the count IS the challenge.
   3. **Shootout goals are not goals.** Clean-sheet predicates read the scoreline only, or
      The Wall would be unwinnable the moment a tie went to penalties.
+  4. **The career counters predate the catalogue, so never key an entry to an exact
+     lifetime count.** First Blood was `wonCup && stats.cups === 1`, which is unreachable
+     on any career that had already won a cup before 2026-08-18: the counter is past 1 and
+     only ever climbs, so the entry was locked shut by having played earlier. It is plain
+     `wonCup` now, which says the same thing without reading a counter, because a
+     completion is one-shot and permanent anyway. Thresholds (`>= 10`) are fine - they
+     catch up on their own; exact equality on a monotonic counter is not. `npm run checks`
+     asserts a veteran career still takes First Blood. The one place the pattern survives
+     is **Straight Up** (`cupsAt(v, run.ascension) === 1`), where it is load-bearing rather
+     than incidental - it is the only way to detect "this cup unlocked a tier" - and the
+     cost is accepted: a tier already won before the catalogue existed cannot complete it.
 - **Straight Up has no "did this run unlock a tier?" flag**, and the unlocked ceiling cannot
   answer it on its own: winning one tier below an already-unlocked ceiling leaves the same
   number behind. It reads `cupsByAscension` instead - a cup is the **first at its own tier**

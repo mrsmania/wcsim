@@ -977,6 +977,20 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('challenges: paid once, added to the wallet, and never re-awarded', ok);
   check('challenges: a completion counter ticks in the run that reaches it', hunterOk);
   check('challenges: applyRunResult with no context completes nothing', applyRunResult(INITIAL_CAREER, run).challengesCompleted.length === 0);
+
+  // No entry may be unreachable on a career that has simply played before. The
+  // catalogue arrived years of runs after the career counters did, so anything keyed to
+  // an exact lifetime count (First Blood was `stats.cups === 1`) is already past it and
+  // can never complete. A cup on a career with cups and no completions must take it.
+  const veteran = applyRunResult(
+    { ...INITIAL_CAREER, stats: { ...INITIAL_CAREER.stats, runs: 40, cups: 12 } },
+    { ...run, outcome: 'champion' },
+    input,
+  );
+  check(
+    'challenges: a career that has played before is not locked out of First Blood',
+    veteran.challengesCompleted.includes('first-blood'),
+  );
 }
 
 // --- Challenges: the career counters, over hand-built run sequences ----------

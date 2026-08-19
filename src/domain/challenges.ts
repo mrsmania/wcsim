@@ -285,7 +285,14 @@ function tieAfterBoost(v: RunView, boonId: string): RoundRecord | undefined {
 export const CHALLENGES: Challenge[] = [
   // --- A. Silverware & progression ---------------------------------------
   { id: 'first-blood', name: 'First Blood', description: 'Win your first cup.',
-    family: 'silverware', tier: 'bronze', check: (v) => v.wonCup && v.career.stats.cups === 1 },
+    // Deliberately NOT `stats.cups === 1`. That counter has been running since career
+    // mode shipped, long before this catalogue existed, so on any career that had
+    // already won a cup it was permanently past 1 and this could never complete - the
+    // one entry in the catalogue a player could be locked out of by having played
+    // earlier. A completion is one-shot and permanent anyway, so plain `wonCup` says
+    // the same thing without reading a counter: the first cup you win while it is on
+    // the list takes it, and it never fires again.
+    family: 'silverware', tier: 'bronze', check: (v) => v.wonCup },
   { id: 'back-to-back', name: 'Back to Back', description: 'Win cups in two consecutive runs.',
     family: 'silverware', tier: 'silver', check: (v) => v.career.stats.cupStreak >= 2 },
   { id: 'three-peat', name: 'Three-Peat', description: 'Win cups in three consecutive runs.',

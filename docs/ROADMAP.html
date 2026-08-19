@@ -407,6 +407,17 @@
     of hairlines in line when one description wraps and the other does not. It collapses to
     one column below 700px. <b>To see it:</b> open <code>/challenges</code> from the Cup Run
     hub, in both themes.</p>
+    <p><strong>First Blood was unreachable, fixed 2026-08-19.</strong> It read
+    <code>wonCup &amp;&amp; stats.cups === 1</code>, and <code>stats.cups</code> has been
+    counting since career mode shipped, long before the catalogue did. So on any career
+    that had already won a cup the counter was past 1 and only ever climbed: the entry was
+    locked shut by the player having played earlier, the one thing in the catalogue you
+    could be shut out of. It is plain <code>wonCup</code> now, which says the same thing
+    without reading a counter, since a completion is one-shot and permanent anyway. The
+    general rule went into CLAUDE.md as a fourth trap: thresholds are fine, exact equality
+    on a lifetime counter is not. A check asserts a veteran career still takes it.
+    <b>To see it:</b> win a Cup Run on a career that already has cups; First Blood is in
+    the run-end list.</p>
     <p><strong>What is left</strong>:</p>
     <ul>
       <li><b>The awards are off</b> (<code>FEATURES.challengeAwards</code>, added
