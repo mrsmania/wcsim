@@ -261,14 +261,15 @@ supabase/migrations/0007_conflict_status.sql     a version conflict answers 409
 supabase/migrations/0008_function_grants.sql     who may call what
 supabase/migrations/0009_finish_run_tolerant.sql an unknown id is dropped, not fatal
 supabase/migrations/0010_finish_run_one_trip.sql banking costs one round trip
+supabase/migrations/0011_career_challenges.sql   the career carries its completed challenges
 supabase/seed/collectibles.sql                   the catalogue (generated, re-runnable)
 ```
 
 Every file is `begin; ... commit;`, so a failed one leaves nothing behind and can be
 re-run once fixed. **A new migration on a stack that is already serving** is the same
 paste: they are written to be safe against a client that has not caught up yet, and the
-newest (`0010`) is deliberately additive - the client keeps working before it is applied
-and gets the faster path afterwards, in either order.
+newest (`0011`) is deliberately additive - the client keeps working before it is applied
+and persists challenge progress afterwards, in either order.
 
 Rather than pasting, you can send a file from a machine that can reach the NAS. It goes
 the same way `push:collectibles` does (Studio's pg-meta endpoint, service key read from

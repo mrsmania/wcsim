@@ -16,6 +16,8 @@
 -- signatures are unchanged, so 0008's revoke-from-anon still stands. (0010 re-granted
 -- because it introduced a new function NAME, which starts life PUBLIC.)
 
+begin;
+
 alter table career add column if not exists completed_challenges text[] not null default '{}';
 
 -- --------------------------------------------------------------------------
@@ -161,3 +163,5 @@ begin
   return v;
 end;
 $$;
+
+commit;

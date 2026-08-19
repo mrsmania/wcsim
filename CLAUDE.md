@@ -651,8 +651,9 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   `components/challengeUi.tsx` (family accents, tier colours, `ChallengeRow`,
   `ChallengeCard`).
 - **Accounts:** `completed_challenges` is one column on `career`, added by
-  `supabase/migrations/0011_career_challenges.sql`, which also teaches `save_career` and
-  `import_guest_progress` to carry it. **A server without that migration still works** -
+  `supabase/migrations/0011_career_challenges.sql` (applied to the NAS 2026-08-19), which
+  also teaches `save_career` and `import_guest_progress` to carry it.
+  **A server without that migration still works** -
   the column reads as absent and challenge progress simply does not persist for that
   account - because the client ships by pushing to `main` while migrations are applied by
   hand.
