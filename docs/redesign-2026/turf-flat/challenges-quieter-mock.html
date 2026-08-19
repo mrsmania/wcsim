@@ -1,0 +1,519 @@
+<title>Quieter Challenges</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap">
+<style>
+  /* CHALLENGES: QUIETER (Artifact source; body-only). Three reworks of the /challenges
+     catalogue, each aimed at the same problem: the page paints 130 cards with 12 family
+     hues + 3 tier hues + a status colour, so no single thing reads. Real catalogue
+     (130 honours, 12 families), a mock save of 28 completed, turf-flat tokens copied
+     from src/index.css so both themes match the app. */
+
+  /* ---- tokens: light (turf-flat "pitch") ------------------------------------ */
+  :root {
+    --paper: #f4f2ec; --panel: #ffffff; --chalk: #e8f0e8;
+    --ink: #13211a; --muted: #5c6a60; --line: #d4ded5;
+    --pitch: #15924c; --pitch-deep: #0e5c34; --accent: #0e5c34; --amber: #e4922b;
+    /* The two greys this rework adds: an unearned surface and unearned text, both
+       biased toward the paper's warm green rather than a neutral mid-grey. --dim
+       carries the name and description of 102 of the 130 entries, so it is held at AA
+       on all three surfaces (4.5+ on faint / paper / chalk). Greyed out, not
+       unreadable: the state is carried by ink vs dim on the NAME plus the flat grey
+       surface, never by making the text hard to read. */
+    --faint: #ecebe3; --dim: #636c65; --hair: #e3e8e2;
+    --tier-bronze: #a9722f; --tier-silver: #6f7a83; --tier-gold: #b98c2e;
+    --hard: 6px 6px 0 var(--pitch-deep);
+    --disp: "Archivo", system-ui, "Segoe UI", sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
+  }
+  /* ---- tokens: dark (the app's graphite scheme) ----------------------------- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #131417; --panel: #1c1e22; --chalk: #26282e;
+      --ink: #eceef1; --muted: #a4a9b0; --line: #33363d;
+      --pitch: #22a35d; --pitch-deep: #17492f; --accent: #34c06f; --amber: #eea23a;
+      --faint: #191b1f; --dim: #848b92; --hair: #2a2d33;
+      --tier-bronze: #cd8f42; --tier-silver: #9aa4ad; --tier-gold: #d3a548;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #131417; --panel: #1c1e22; --chalk: #26282e;
+    --ink: #eceef1; --muted: #a4a9b0; --line: #33363d;
+    --pitch: #22a35d; --pitch-deep: #17492f; --accent: #34c06f; --amber: #eea23a;
+    --faint: #191b1f; --dim: #848b92; --hair: #2a2d33;
+    --tier-bronze: #cd8f42; --tier-silver: #9aa4ad; --tier-gold: #d3a548;
+  }
+
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--body); line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+  .doc { max-width: 1060px; margin: 0 auto; padding: 30px clamp(16px, 4vw, 34px) 90px; }
+  svg { display: block; }
+  code { font-family: var(--mono); font-size: .92em; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  /* ---- document chrome ----------------------------------------------------- */
+  .kicker { font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--disp); font-weight: 900; font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -.025em; line-height: 1.02; margin: 8px 0 0; text-wrap: balance; }
+  .lede { color: var(--muted); font-size: 15px; max-width: 66ch; margin: 12px 0 0; }
+
+  .diag { margin-top: 26px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel); box-shadow: var(--hard); padding: 20px 22px; }
+  .diag h2 { font-family: var(--disp); font-size: 15px; font-weight: 800; margin: 0 0 12px;
+    letter-spacing: -.01em; }
+  .diag ol { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 9px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .diag li { font-size: 13.5px; color: var(--muted); display: flex; gap: 9px; align-items: flex-start; }
+  .diag li b { color: var(--ink); font-weight: 700; }
+  .diag .cnt { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink);
+    background: var(--chalk); border-radius: 3px; padding: 1px 5px; flex: 0 0 auto;
+    font-variant-numeric: tabular-nums; }
+
+  /* ---- option blocks ------------------------------------------------------- */
+  .opt { margin-top: 46px; }
+  .opt-head { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap;
+    border-bottom: 2px solid var(--ink); padding-bottom: 9px; }
+  .opt-num { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+    color: #fff; background: var(--pitch-deep); border-radius: 999px; padding: 3px 9px; }
+  .opt-name { font-family: var(--disp); font-weight: 800; font-size: 22px; letter-spacing: -.02em; }
+  .opt-thesis { font-size: 13.5px; color: var(--muted); margin-left: auto; }
+  .opt-why { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 7px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .opt-why li { font-size: 13.5px; color: var(--muted); padding-left: 15px; position: relative; }
+  .opt-why li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--pitch); }
+  .opt-why li b { color: var(--ink); font-weight: 700; }
+  .budget { margin-top: 14px; display: inline-flex; align-items: center; gap: 9px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    color: var(--muted); border: 1px dashed var(--line); border-radius: 5px; padding: 6px 11px; }
+  .budget b { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .frame { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--paper); padding: 20px clamp(14px, 2.5vw, 22px) 26px; }
+  .frame-tag { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
+
+  /* the shared screen header, identical in all three so only the list differs */
+  .scr-h { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 16px; }
+  .scr-h h3 { font-family: var(--disp); font-weight: 800; font-size: 25px; letter-spacing: -.02em;
+    margin: 2px 0 0; line-height: 1; }
+  .scr-h .eyebrow { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--accent); }
+  .scr-h .rule { flex: 1; border-top: 2px solid var(--line); align-self: center; height: 0; }
+  .scr-h .count { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--muted);
+    font-variant-numeric: tabular-nums; }
+
+  .pill-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 18px; }
+  .pill { font-family: var(--disp); font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .05em; border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+    border-radius: 999px; padding: 6px 13px; display: inline-flex; gap: 6px; align-items: center; }
+  .pill.on { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  .pill i { font-family: var(--mono); font-style: normal; font-size: 10px; opacity: .65;
+    font-variant-numeric: tabular-nums; }
+
+  /* difficulty pips: tier as three monochrome slots, no new hue anywhere */
+  .pips { display: inline-flex; gap: 2px; flex: 0 0 auto; color: var(--ink); }
+  .pips span { width: 5px; height: 5px; border-radius: 1px; background: currentColor; opacity: .13; }
+  .pips span.on { opacity: .5; }
+
+  /* ===== option 1: ledger =================================================== */
+  .o1-fam { margin-top: 22px; }
+  .o1-fam:first-of-type { margin-top: 0; }
+  .o1-fh { display: flex; align-items: center; gap: 10px; padding-bottom: 6px;
+    border-bottom: 2px solid var(--fam); }
+  .o1-fh h4 { font-family: var(--disp); font-weight: 800; font-size: 15px; margin: 0;
+    letter-spacing: -.01em; }
+  .o1-fh .n { margin-left: auto; font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+    color: var(--muted); font-variant-numeric: tabular-nums; }
+  .o1-row { display: flex; align-items: flex-start; gap: 11px; padding: 8px 2px;
+    border-bottom: 1px solid var(--hair); }
+  .o1-row:last-child { border-bottom: 0; }
+  .o1-mark { flex: 0 0 auto; width: 15px; height: 15px; margin-top: 2px; display: grid;
+    place-items: center; color: var(--dim); }
+  .o1-row.done .o1-mark { color: var(--pitch); }
+  .o1-hollow { width: 9px; height: 9px; border: 1.5px solid currentColor; border-radius: 50%;
+    opacity: .45; }
+  .o1-txt { min-width: 0; flex: 1; }
+  .o1-txt b { font-family: var(--disp); font-weight: 700; font-size: 13.5px; letter-spacing: -.005em;
+    color: var(--dim); display: block; }
+  .o1-row.done .o1-txt b { color: var(--ink); font-weight: 800; }
+  .o1-txt i { font-style: normal; font-size: 12px; color: var(--dim); display: block; line-height: 1.35; }
+  .o1-row.done .o1-txt i { color: var(--muted); }
+  .o1-row.blocked { opacity: .72; }
+  .o1-pips { margin-top: 5px; }
+
+  /* ===== option 2: earned lights up ======================================== */
+  .o2-fam { margin-top: 24px; }
+  .o2-fam:first-of-type { margin-top: 0; }
+  .o2-fh { display: flex; align-items: center; gap: 9px; margin-bottom: 11px;
+    border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .o2-fh .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fam); flex: 0 0 auto; }
+  .o2-fh h4 { font-family: var(--disp); font-weight: 800; font-size: 15px; margin: 0;
+    letter-spacing: -.01em; }
+  .o2-fh .n { margin-left: auto; font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+    color: var(--muted); font-variant-numeric: tabular-nums; }
+  .o2-grid { display: grid; gap: 11px; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); }
+  .o2-c { position: relative; border-radius: 6px; padding: 10px 11px; display: flex;
+    flex-direction: column; gap: 4px; }
+  /* unearned: flat, grey, no shadow, no hue at all */
+  .o2-c.open { background: var(--faint); border: 1px solid var(--hair); }
+  .o2-c.blocked { background: transparent; border: 1px dashed var(--line); opacity: .72; }
+  /* earned: the only cards that get paper white, the tifo shadow, and colour */
+  .o2-c.done { background: var(--panel); border: 1px solid var(--line);
+    border-left: 3px solid var(--fam); box-shadow: var(--hard); }
+  .o2-top { display: flex; align-items: center; gap: 7px; min-height: 15px; }
+  .o2-tier { font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; border-radius: 3px; padding: 2px 6px; }
+  .o2-c.done .o2-tier { color: #fff; background: var(--tc); }
+  .o2-c:not(.done) .o2-tier { color: var(--dim); border: 1px solid var(--hair); background: none; }
+  .o2-c h5 { font-family: var(--disp); font-weight: 800; font-size: 14px; letter-spacing: -.01em;
+    margin: 1px 0 0; color: var(--dim); line-height: 1.15; }
+  .o2-c.done h5 { color: var(--ink); }
+  .o2-c p { font-size: 12px; line-height: 1.35; margin: 0; color: var(--dim); }
+  .o2-c.done p { color: var(--muted); }
+  .o2-tick { position: absolute; right: -8px; top: -8px; width: 20px; height: 20px;
+    border-radius: 50%; background: var(--pitch); color: #fff; display: grid; place-items: center;
+    box-shadow: 0 0 0 2px var(--paper); }
+  .o2-lock { margin-left: auto; display: inline-flex; gap: 5px; align-items: center;
+    font-family: var(--mono); font-size: 8.5px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--dim); }
+
+  /* ===== option 3: shelf =================================================== */
+  .o3-tools { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .o3-note { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .o3-btn { font-family: var(--disp); font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .05em; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 5px; padding: 7px 12px; }
+  .o3-f { border: 1px solid var(--line); background: var(--panel); border-radius: 6px;
+    margin-bottom: 7px; overflow: hidden; }
+  .o3-h { width: 100%; display: flex; align-items: center; gap: 13px; background: none;
+    border: 0; padding: 12px 14px; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+  .o3-h .nm { font-family: var(--disp); font-weight: 800; font-size: 14.5px; letter-spacing: -.01em;
+    flex: 0 0 auto; }
+  .o3-bar { flex: 1; min-width: 50px; height: 6px; border-radius: 20px; background: var(--chalk);
+    overflow: hidden; }
+  .o3-bar i { display: block; height: 100%; background: var(--fam); }
+  .o3-h .n { font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--muted);
+    flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+  .o3-h .chev { color: var(--muted); transition: transform .15s ease; flex: 0 0 auto; }
+  .o3-f.open .o3-h .chev { transform: rotate(180deg); }
+  .o3-body { display: none; padding: 2px 14px 15px; border-top: 1px solid var(--hair); }
+  .o3-f.open .o3-body { display: block; }
+  .o3-sub { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--dim); margin: 13px 0 8px; }
+  .o3-shelf { display: flex; flex-wrap: wrap; gap: 7px; }
+  .o3-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--chalk);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px 5px 8px; }
+  .o3-chip .tk { width: 15px; height: 15px; border-radius: 50%; background: var(--pitch); color: #fff;
+    display: grid; place-items: center; flex: 0 0 auto; }
+  .o3-chip b { font-family: var(--disp); font-weight: 800; font-size: 12.5px; letter-spacing: -.01em; }
+  .o3-list { display: grid; gap: 0; }
+  .o3-i { display: flex; align-items: baseline; gap: 9px; padding: 6px 0;
+    border-bottom: 1px solid var(--hair); }
+  .o3-i:last-child { border-bottom: 0; }
+  .o3-i .hollow { width: 8px; height: 8px; border: 1.5px solid var(--dim); border-radius: 50%;
+    opacity: .5; flex: 0 0 auto; position: relative; top: 4px; }
+  .o3-i b { font-family: var(--disp); font-weight: 700; font-size: 13px; color: var(--dim);
+    flex: 0 0 auto; }
+  .o3-i em { font-style: normal; font-size: 12px; color: var(--dim); min-width: 0; }
+  .o3-i .pips { margin-left: auto; position: relative; top: 3px; }
+  .o3-blocked .o3-i { opacity: .75; }
+
+  /* ---- closing ------------------------------------------------------------ */
+  .shared { margin-top: 48px; border-top: 2px solid var(--ink); padding-top: 20px; }
+  .shared h2 { font-family: var(--disp); font-weight: 800; font-size: 20px; letter-spacing: -.02em;
+    margin: 0 0 12px; }
+  .cols { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .cols h3 { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  .cols ul { margin: 0; padding-left: 17px; display: grid; gap: 6px; }
+  .cols li { font-size: 13.5px; color: var(--muted); }
+  .cols li b { color: var(--ink); font-weight: 700; }
+  .rec { margin-top: 20px; background: var(--chalk); border: 1px solid var(--line);
+    border-left: 3px solid var(--amber); border-radius: 6px; padding: 15px 17px; font-size: 13.5px;
+    color: var(--muted); }
+  .rec b { color: var(--ink); }
+</style>
+
+<div class="doc">
+  <div class="kicker">Catalogue rework, three options</div>
+  <h1>Quieter Challenges</h1>
+  <p class="lede">The catalogue is 130 entries, and today every one of them is painted: a family
+    hue on the left edge, a filled tier chip, a status line in its own colour, and the tifo hard
+    shadow. Nothing recedes, so nothing reads. All three options below spend colour on one thing
+    only, and all three grey out what you have not earned. Same real catalogue, same mock save
+    (28 completed), so they compare like for like.</p>
+
+  <section class="diag">
+    <h2>Where the noise comes from</h2>
+    <ol id="diag"></ol>
+  </section>
+
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">01</span>
+      <span class="opt-name">Ledger</span>
+      <span class="opt-thesis">Drop the cards. 130 honours want a list, not a grid of tiles.</span>
+    </div>
+    <ul class="opt-why">
+      <li><b>No card, no border, no shadow.</b> Hairline rows inside a family, so the page is type
+        on paper instead of 130 outlined boxes.</li>
+      <li><b>Family colour appears 12 times</b>, as the rule under each family heading, never on an
+        entry.</li>
+      <li><b>Tier stops being a colour.</b> Three monochrome pips read as difficulty, which is what
+        the tier actually is while awards are off.</li>
+      <li><b>Earned is the only ink.</b> Completed entries are full strength with a green tick,
+        everything else is grey, and blocked ones just fade further. No red.</li>
+    </ul>
+    <div class="budget" id="b1"></div>
+    <div class="frame">
+      <div class="frame-tag">/challenges</div>
+      <div class="scr-h">
+        <div><div class="eyebrow">Your honours</div><h3>Challenges</h3></div>
+        <div class="rule"></div><div class="count" id="c1"></div>
+      </div>
+      <div class="pill-row" id="p1"></div>
+      <div id="o1"></div>
+    </div>
+  </section>
+
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">02</span>
+      <span class="opt-name">Earned lights up</span>
+      <span class="opt-thesis">Keep the grid. Colour becomes the reward, not the wallpaper.</span>
+    </div>
+    <ul class="opt-why">
+      <li><b>Unearned cards are grey and flat:</b> tinted surface, hairline border, no shadow, no
+        family edge, tier as an outline chip. They are a backdrop.</li>
+      <li><b>Completing one turns it on:</b> paper white, the tifo shadow, the family edge, the
+        filled tier chip, the green tick. The page gains colour as you play.</li>
+      <li><b>Same layout as today</b>, so this is the smallest change: it is
+        <code>ChallengeCard</code> restyled, nothing moved.</li>
+      <li><b>Blocked entries lose their red.</b> Dashed, faded, a small lock, because "not tracked
+        yet" is not an error.</li>
+    </ul>
+    <div class="budget" id="b2"></div>
+    <div class="frame">
+      <div class="frame-tag">/challenges</div>
+      <div class="scr-h">
+        <div><div class="eyebrow">Your honours</div><h3>Challenges</h3></div>
+        <div class="rule"></div><div class="count" id="c2"></div>
+      </div>
+      <div class="pill-row" id="p2"></div>
+      <div id="o2"></div>
+    </div>
+  </section>
+
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">03</span>
+      <span class="opt-name">Shelf</span>
+      <span class="opt-thesis">Show less. Twelve family rows at rest, opened one at a time.</span>
+    </div>
+    <ul class="opt-why">
+      <li><b>The page starts as 12 strips</b>, each a name, a progress bar and a count. The bar is
+        the only coloured thing, and it is the one place a family hue earns its keep.</li>
+      <li><b>Open a family and you get its 8 to 16 entries</b>, not 130 at once. The click is real
+        here, try it.</li>
+      <li><b>Earned first, as a shelf of chips.</b> What you have won reads in one pass, and what is
+        left sits under it as a plain grey checklist.</li>
+      <li><b>Blocked entries go last</b> under their own quiet subhead, out of the way of the things
+        you can actually get.</li>
+    </ul>
+    <div class="budget" id="b3"></div>
+    <div class="frame">
+      <div class="frame-tag">/challenges</div>
+      <div class="scr-h">
+        <div><div class="eyebrow">Your honours</div><h3>Challenges</h3></div>
+        <div class="rule"></div><div class="count" id="c3"></div>
+      </div>
+      <div class="o3-tools">
+        <button type="button" class="o3-btn" id="o3-all">Expand all</button>
+        <span class="o3-note">Two families opened to show the interior</span>
+      </div>
+      <div id="o3"></div>
+    </div>
+  </section>
+
+  <section class="shared">
+    <h2>True of all three</h2>
+    <div class="cols">
+      <div>
+        <h3>Dropped</h3>
+        <ul>
+          <li>The <b>family bar on every card</b>. Family is a grouping, and the grouping is already
+            the heading.</li>
+          <li>The <b>filled tier chip on unearned entries</b>, which put 130 saturated badges on a
+            page where none of them meant anything yet.</li>
+          <li>The <b>red "not tracked yet"</b>. It reads as broken. Muted plus a lock says the same
+            thing calmly, and the counter's red swatch goes with it.</li>
+          <li>The <b>"Not yet" caption</b> under every open entry. Grey already says it, so 75
+            copies of the words are pure noise.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Kept</h3>
+        <ul>
+          <li><b>The album-shaped completion header.</b> It is the summary, and the one place a
+            progress gradient belongs.</li>
+          <li><b>The tier</b>, as difficulty. It survives as pips or as an outline, and only goes
+            full colour when the thing is won (and, with awards on, when it pays).</li>
+          <li><b>The four filters.</b> Unchanged, and they matter more now: "Available" is the view
+            most players want.</li>
+          <li><b>The green tick.</b> One accent, one meaning, used 28 times instead of competing with
+            fifteen other hues.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="rec"><b>If you want one:</b> option 2 is the cheapest to ship, since it restyles
+      <code>ChallengeCard</code> and touches nothing else, and greying the unearned does most of the
+      work on its own. Option 3 is the one that scales, because the real problem is 130 things on one
+      screen rather than the colour on any single card, and it is also where a future "daily three"
+      strip would sit naturally. Option 1 is the best pure reading experience and the weakest trophy
+      cabinet: it reads as a spreadsheet of honours, which may be exactly wrong for a screen whose
+      job is to make you want them.</p>
+  </section>
+</div>
+
+<script>
+const FAM = [{"key":"silverware","name":"Silverware & progression","color":"#b8862b"},{"key":"ascension","name":"Ascension","color":"#6d5bd0"},{"key":"identity","name":"Squad identity","color":"#2e7d57"},{"key":"rating","name":"Rating & value","color":"#2465b0"},{"key":"defence","name":"Defence","color":"#4a6572"},{"key":"attack","name":"Attack","color":"#c24a34"},{"key":"drama","name":"Knockout drama","color":"#9b3a6b"},{"key":"boosts","name":"Boosts & perks","color":"#1e8a8a"},{"key":"album","name":"Album & collectibles","color":"#a8762b"},{"key":"shape","name":"Shape & positions","color":"#2f6e8f"},{"key":"market","name":"Market & budget","color":"#5e8c2b"},{"key":"career","name":"Career & streaks","color":"#8a5a2b"}];
+const CH = [{"id":"first-blood","name":"First Blood","description":"Win your first cup.","family":"silverware","tier":"bronze","blocked":null,"done":true},{"id":"back-to-back","name":"Back to Back","description":"Win cups in two consecutive runs.","family":"silverware","tier":"silver","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"three-peat","name":"Three-Peat","description":"Win cups in three consecutive runs.","family":"silverware","tier":"gold","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"serial-winner","name":"Serial Winner","description":"Win 10 cups in total.","family":"silverware","tier":"silver","blocked":null,"done":true},{"id":"dynasty","name":"Dynasty","description":"Win 25 cups in total.","family":"silverware","tier":"gold","blocked":null,"done":true},{"id":"finalist","name":"Finalist","description":"Reach a final.","family":"silverware","tier":"bronze","blocked":null,"done":true},{"id":"nearly-man","name":"Nearly Man","description":"Lose a final, then win the cup in your next run.","family":"silverware","tier":"silver","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"perfect-run","name":"Perfect Run","description":"Win the cup without losing a single match, group included.","family":"silverware","tier":"gold","blocked":null,"done":true},{"id":"maximum-points","name":"Maximum Points","description":"Win all three group matches.","family":"silverware","tier":"bronze","blocked":null,"done":false},{"id":"group-winner","name":"Group Winner","description":"Finish first in your group.","family":"silverware","tier":"bronze","blocked":null,"done":false},{"id":"escape-artist","name":"Escape Artist","description":"Qualify second, then win the cup.","family":"silverware","tier":"silver","blocked":null,"done":false},{"id":"ninety-minutes","name":"Ninety Minutes","description":"Win every knockout tie in normal time.","family":"silverware","tier":"silver","blocked":null,"done":false},{"id":"step-up","name":"Step Up","description":"Win at Ascension I.","family":"ascension","tier":"bronze","blocked":null,"done":true},{"id":"higher-ground","name":"Higher Ground","description":"Win at Ascension II.","family":"ascension","tier":"silver","blocked":null,"done":true},{"id":"giant-slayer","name":"Giant Slayer","description":"Win at Ascension III.","family":"ascension","tier":"gold","blocked":null,"done":false},{"id":"the-summit","name":"The Summit","description":"Win at the highest Ascension tier.","family":"ascension","tier":"gold","blocked":null,"done":false},{"id":"ladder-climb","name":"Ladder Climb","description":"Win at least once at every Ascension tier.","family":"ascension","tier":"gold","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"hard-habit","name":"Hard Habit","description":"Finish 10 runs at Ascension II or higher.","family":"ascension","tier":"silver","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"no-safety-net","name":"No Safety Net","description":"Win at Ascension III or higher without taking a legendary boost.","family":"ascension","tier":"gold","blocked":null,"done":false},{"id":"straight-up","name":"Straight Up","description":"Unlock a new Ascension tier without ever losing a final.","family":"ascension","tier":"silver","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"united-nations","name":"United Nations","description":"Win with 5 or more different nations in the XI.","family":"identity","tier":"bronze","blocked":null,"done":true},{"id":"cosmopolitan","name":"Cosmopolitan","description":"Win with 8 or more different nations.","family":"identity","tier":"silver","blocked":null,"done":true},{"id":"babel","name":"Babel","description":"Win with 11 different nations.","family":"identity","tier":"gold","blocked":null,"done":true},{"id":"one-flag","name":"One Flag","description":"Win with every player you picked from a single nation.","family":"identity","tier":"silver","blocked":null,"done":true},{"id":"club-class","name":"Club Class","description":"Win with every player you picked from a single squad (one nation, one tournament).","family":"identity","tier":"gold","blocked":null,"done":false},{"id":"time-capsule","name":"Time Capsule","description":"Win with every player you picked from a single World Cup year.","family":"identity","tier":"silver","blocked":null,"done":false},{"id":"two-cups","name":"Two Cups","description":"Win with players from exactly two tournaments.","family":"identity","tier":"silver","blocked":null,"done":false},{"id":"golden-generation","name":"Golden Generation","description":"Win with 7 or more players from one nation.","family":"identity","tier":"bronze","blocked":null,"done":false},{"id":"continental","name":"Continental","description":"Win with all 11 from one confederation.","family":"identity","tier":"silver","blocked":null,"done":false},{"id":"old-world","name":"Old World","description":"Win with an all-UEFA XI.","family":"identity","tier":"bronze","blocked":null,"done":false},{"id":"samba","name":"Samba","description":"Win with an all-Brazilian XI.","family":"identity","tier":"silver","blocked":null,"done":false},{"id":"iron-curtain","name":"Iron Curtain","description":"Win with a Soviet, Czechoslovak or Yugoslav player in the XI.","family":"identity","tier":"bronze","blocked":null,"done":false},{"id":"the-nineties","name":"The Nineties","description":"Win with every player from 1990, 1994 or 1998.","family":"identity","tier":"silver","blocked":null,"done":false},{"id":"millennials","name":"Millennials","description":"Win with every player from 2002, 2006 or 2010.","family":"identity","tier":"silver","blocked":null,"done":false},{"id":"modern-era","name":"Modern Era","description":"Win with every player from 2014, 2018 or 2022.","family":"identity","tier":"silver","blocked":null,"done":false},{"id":"every-era","name":"Every Era","description":"Win with at least one player from each decade in the pool.","family":"identity","tier":"gold","blocked":null,"done":false},{"id":"rag-tag","name":"Rag Tag","description":"Win with an XI averaging under 80.","family":"rating","tier":"silver","blocked":null,"done":true},{"id":"underdogs","name":"Underdogs","description":"Win with an XI averaging under 75.","family":"rating","tier":"gold","blocked":null,"done":true},{"id":"minnows","name":"Minnows","description":"Win with an XI averaging under 70.","family":"rating","tier":"gold","blocked":null,"done":true},{"id":"no-superstars","name":"No Superstars","description":"Win with nobody rated 90 or above.","family":"rating","tier":"silver","blocked":null,"done":false},{"id":"one-man-team","name":"One-Man Team","description":"Win with exactly one player rated 90 or above, and nobody else above 82.","family":"rating","tier":"gold","blocked":null,"done":false},{"id":"balanced-books","name":"Balanced Books","description":"Win with nobody below 75 and nobody above 88.","family":"rating","tier":"silver","blocked":null,"done":false},{"id":"beat-the-odds","name":"Beat the Odds","description":"Win a knockout tie against a team rated 10 or more higher.","family":"rating","tier":"bronze","blocked":null,"done":false},{"id":"david","name":"David","description":"Win a knockout tie against a team rated 15 or more higher.","family":"rating","tier":"silver","blocked":null,"done":false},{"id":"always-the-underdog","name":"Always the Underdog","description":"Win the cup with every knockout opponent rated higher than you.","family":"rating","tier":"gold","blocked":null,"done":false},{"id":"journeymen","name":"Journeymen","description":"Win with nobody rated above 85.","family":"rating","tier":"silver","blocked":null,"done":false},{"id":"galacticos","name":"Galacticos","description":"Win with an XI averaging 90 or more.","family":"rating","tier":"silver","blocked":null,"done":false},{"id":"chemistry-set","name":"Chemistry Set","description":"Win with the maximum chemistry bonus.","family":"rating","tier":"gold","blocked":"Chemistry at kickoff is not recorded on the run yet.","done":false},{"id":"the-wall","name":"The Wall","description":"Win every knockout tie without conceding. A shootout does not count against it.","family":"defence","tier":"gold","blocked":null,"done":true},{"id":"clean-group","name":"Clean Group","description":"Concede nothing in the group stage.","family":"defence","tier":"silver","blocked":null,"done":true},{"id":"fortress","name":"Fortress","description":"Win the cup conceding 2 goals or fewer all run.","family":"defence","tier":"gold","blocked":null,"done":false},{"id":"shut-out","name":"Shut Out","description":"Keep 4 clean sheets in one run.","family":"defence","tier":"bronze","blocked":null,"done":false},{"id":"understudy","name":"Understudy","description":"Win with a goalkeeper rated under 75.","family":"defence","tier":"silver","blocked":null,"done":false},{"id":"smash-and-grab","name":"Smash and Grab","description":"Win a knockout tie 1-0.","family":"defence","tier":"bronze","blocked":null,"done":false},{"id":"nervy","name":"Nervy","description":"Win three knockout ties by exactly one goal.","family":"defence","tier":"silver","blocked":null,"done":false},{"id":"stalemate","name":"Stalemate","description":"Win a tie that finished goalless after extra time.","family":"defence","tier":"silver","blocked":null,"done":false},{"id":"final-lockdown","name":"Final Lockdown","description":"Win the final without conceding.","family":"defence","tier":"silver","blocked":null,"done":false},{"id":"rearguard","name":"Rearguard","description":"Win the cup never conceding more than one in a match.","family":"defence","tier":"silver","blocked":null,"done":false},{"id":"route-one","name":"Route One","description":"Score 4 or more in a single knockout tie.","family":"attack","tier":"bronze","blocked":null,"done":true},{"id":"goal-rush","name":"Goal Rush","description":"Score 5 or more in a single match.","family":"attack","tier":"silver","blocked":null,"done":true},{"id":"demolition","name":"Demolition","description":"Win a knockout tie by 4 goals or more.","family":"attack","tier":"silver","blocked":null,"done":true},{"id":"sharp-shooters","name":"Sharp Shooters","description":"Score 15 or more goals across one run.","family":"attack","tier":"silver","blocked":null,"done":false},{"id":"never-blank","name":"Never Blank","description":"Score in every match of a winning run.","family":"attack","tier":"silver","blocked":null,"done":false},{"id":"hat-trick-hero","name":"Hat-Trick Hero","description":"One player scores 3 or more in a knockout tie.","family":"attack","tier":"silver","blocked":null,"done":false},{"id":"talisman","name":"Talisman","description":"One player scores in four different knockout ties.","family":"attack","tier":"gold","blocked":null,"done":false},{"id":"spread-the-load","name":"Spread the Load","description":"Six different scorers across your knockout ties.","family":"attack","tier":"silver","blocked":null,"done":false},{"id":"early-bird","name":"Early Bird","description":"Score inside the first five minutes of a knockout tie.","family":"attack","tier":"bronze","blocked":null,"done":false},{"id":"late-show","name":"Late Show","description":"Win a knockout tie with a goal in the 89th minute or later.","family":"attack","tier":"silver","blocked":null,"done":false},{"id":"both-halves","name":"Both Halves","description":"Score in both halves of the final.","family":"attack","tier":"bronze","blocked":null,"done":false},{"id":"cup-final-rout","name":"Cup Final Rout","description":"Win the final by 3 goals or more.","family":"attack","tier":"silver","blocked":null,"done":false},{"id":"cold-blooded","name":"Cold Blooded","description":"Win a shootout, then go on to lift the cup.","family":"drama","tier":"silver","blocked":null,"done":true},{"id":"ice-veins","name":"Ice Veins","description":"Win two shootouts in one run.","family":"drama","tier":"gold","blocked":null,"done":true},{"id":"extra-effort","name":"Extra Effort","description":"Win a tie in extra time.","family":"drama","tier":"bronze","blocked":null,"done":true},{"id":"the-hard-way","name":"The Hard Way","description":"Win ties in normal time, extra time and on penalties in one run.","family":"drama","tier":"gold","blocked":null,"done":false},{"id":"comeback-kings","name":"Comeback Kings","description":"Qualify with a negative goal difference, then win the cup.","family":"drama","tier":"gold","blocked":null,"done":false},{"id":"backs-to-the-wall","name":"Backs to the Wall","description":"Lose your opening group match, then win the cup.","family":"drama","tier":"silver","blocked":null,"done":false},{"id":"rocky-start","name":"Rocky Start","description":"Lose two group matches and still qualify.","family":"drama","tier":"silver","blocked":null,"done":false},{"id":"perfect-pens","name":"Perfect Pens","description":"Win a shootout without missing a kick.","family":"drama","tier":"silver","blocked":null,"done":false},{"id":"sudden-death","name":"Sudden Death","description":"Win a shootout that ran past five kicks each.","family":"drama","tier":"silver","blocked":null,"done":false},{"id":"final-drama","name":"Final Drama","description":"Win the final in extra time or on penalties.","family":"drama","tier":"silver","blocked":null,"done":false},{"id":"purist","name":"Purist","description":"Win without a single roster boost (nobody handed to you).","family":"boosts","tier":"silver","blocked":null,"done":true},{"id":"common-touch","name":"Common Touch","description":"Win taking only common boosts.","family":"boosts","tier":"gold","blocked":null,"done":true},{"id":"legendary-lean","name":"Legendary Lean","description":"Win having taken three or more legendary boosts.","family":"boosts","tier":"silver","blocked":null,"done":true},{"id":"full-spectrum","name":"Full Spectrum","description":"Take a common, a rare and a legendary boost in one run.","family":"boosts","tier":"bronze","blocked":null,"done":false},{"id":"no-second-chances","name":"No Second Chances","description":"Win without using a boost re-roll, with the Physio Table owned.","family":"boosts","tier":"silver","blocked":null,"done":false},{"id":"perkless","name":"Perkless","description":"Win a run owning no perks at all.","family":"boosts","tier":"gold","blocked":null,"done":false},{"id":"full-kit","name":"Full Kit","description":"Win with every perk owned at its maximum tier.","family":"boosts","tier":"silver","blocked":null,"done":false},{"id":"poacher","name":"Poacher","description":"Poach the next opponent, then beat them.","family":"boosts","tier":"bronze","blocked":null,"done":false},{"id":"wildcard-winner","name":"Wildcard Winner","description":"Win with a Wildcard Legend in the XI.","family":"boosts","tier":"bronze","blocked":null,"done":false},{"id":"glass-cannon-gambit","name":"Glass Cannon Gambit","description":"Win having taken Glass Cannon.","family":"boosts","tier":"silver","blocked":null,"done":false},{"id":"catenaccio-cup","name":"Catenaccio Cup","description":"Win having taken Catenaccio, conceding 3 goals or fewer.","family":"boosts","tier":"gold","blocked":null,"done":false},{"id":"boost-collector","name":"Boost Collector","description":"Take 5 or more boosts in a single run.","family":"boosts","tier":"bronze","blocked":null,"done":false},{"id":"collector","name":"Collector","description":"Win with 3 or more collectibles in the XI.","family":"album","tier":"bronze","blocked":null,"done":true},{"id":"hall-of-fame","name":"Hall of Fame","description":"Win with 5 or more collectibles in the XI.","family":"album","tier":"silver","blocked":null,"done":true},{"id":"monumental","name":"Monumental","description":"Win with a Monumental player in the XI.","family":"album","tier":"silver","blocked":null,"done":false},{"id":"new-blood","name":"New Blood","description":"Add three stickers you did not own to the album from one run.","family":"album","tier":"silver","blocked":null,"done":false},{"id":"legendary-set","name":"Legendary Set","description":"Collect every Legendary sticker.","family":"album","tier":"gold","blocked":null,"done":false},{"id":"iconic-set","name":"Iconic Set","description":"Collect every Iconic sticker.","family":"album","tier":"gold","blocked":null,"done":false},{"id":"full-album","name":"Full Album","description":"Collect every sticker.","family":"album","tier":"gold","blocked":null,"done":false},{"id":"trader","name":"Trader","description":"Complete five trades.","family":"album","tier":"bronze","blocked":null,"done":false},{"id":"self-made","name":"Self-Made","description":"Win with no collectibles in the XI at all.","family":"album","tier":"silver","blocked":null,"done":false},{"id":"bargain-bin","name":"Bargain Bin","description":"Buy five discounted (already-owned) players in one build.","family":"album","tier":"bronze","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"thrifty","name":"Thrifty","description":"Win with $20 or more of the budget unspent.","family":"market","tier":"silver","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"every-cent","name":"Every Cent","description":"Win having spent the budget to the last dollar.","family":"market","tier":"bronze","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"bargain-hunter","name":"Bargain Hunter","description":"Win with no player costing more than $12.","family":"market","tier":"silver","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"marquee-signing","name":"Marquee Signing","description":"Win having spent $25 or more on one player.","family":"market","tier":"bronze","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"market-master","name":"Market Master","description":"Win a bought XI at Ascension II or higher.","family":"market","tier":"gold","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"roll-with-it","name":"Roll With It","description":"Win with a rolled XI rather than a bought one.","family":"market","tier":"bronze","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"first-draw","name":"First Draw","description":"Win a rolled run without using a squad re-roll.","family":"market","tier":"gold","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"swap-meet","name":"Swap Meet","description":"Use both collectible swaps and win the cup.","family":"market","tier":"silver","blocked":"How the XI was built (roll or budget, and the spend) is not recorded yet.","done":false},{"id":"back-five","name":"Back Five","description":"Win with a five-defender formation.","family":"shape","tier":"bronze","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"all-out-attack","name":"All Out Attack","description":"Win playing the offensive style.","family":"shape","tier":"bronze","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"park-the-bus","name":"Park the Bus","description":"Win playing the defensive style.","family":"shape","tier":"bronze","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"shape-shifter","name":"Shape Shifter","description":"Win cups with three different formations.","family":"shape","tier":"silver","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"out-of-position","name":"Out of Position","description":"Win with 3 or more players outside their natural position.","family":"shape","tier":"silver","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"textbook","name":"Textbook","description":"Win with every player in his natural position.","family":"shape","tier":"silver","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"keepers-union","name":"Keeper's Union","description":"Win with the goalkeeper rated higher than every outfielder.","family":"shape","tier":"silver","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"midfield-general","name":"Midfield General","description":"Win with your highest-rated player in midfield.","family":"shape","tier":"bronze","blocked":"The formation, style and the slot each player filled are not recorded yet.","done":false},{"id":"persistent","name":"Persistent","description":"Finish 25 runs.","family":"career","tier":"bronze","blocked":null,"done":true},{"id":"centurion","name":"Centurion","description":"Finish 100 runs.","family":"career","tier":"gold","blocked":null,"done":false},{"id":"level-ten","name":"Level Ten","description":"Reach level 10.","family":"career","tier":"bronze","blocked":null,"done":false},{"id":"veteran","name":"Veteran","description":"Reach level 25.","family":"career","tier":"silver","blocked":null,"done":false},{"id":"war-chest","name":"War Chest","description":"Hold 200 Prestige at once.","family":"career","tier":"bronze","blocked":null,"done":false},{"id":"spendthrift","name":"Spendthrift","description":"Spend 500 Prestige in total.","family":"career","tier":"silver","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"on-a-roll","name":"On a Roll","description":"Win three runs in a row.","family":"career","tier":"gold","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"consistency","name":"Consistency","description":"Reach the semi-final or better in five consecutive runs.","family":"career","tier":"silver","blocked":"Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.","done":false},{"id":"challenge-hunter","name":"Challenge Hunter","description":"Complete 10 challenges.","family":"career","tier":"bronze","blocked":null,"done":false},{"id":"honour-roll","name":"Honour Roll","description":"Complete 25 challenges.","family":"career","tier":"silver","blocked":null,"done":false},{"id":"honours-master","name":"Honours Master","description":"Complete 50 challenges.","family":"career","tier":"gold","blocked":null,"done":false},{"id":"every-family","name":"Every Family","description":"Complete at least one challenge from every family.","family":"career","tier":"gold","blocked":null,"done":false}];
+const TIERN = { bronze: 1, silver: 2, gold: 3 };
+const TIERC = { bronze: 'var(--tier-bronze)', silver: 'var(--tier-silver)', gold: 'var(--tier-gold)' };
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const ICON = {
+  check: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  tick: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  lock: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  chev: '<svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+};
+const pips = (t) => {
+  const n = TIERN[t];
+  let h = '<span class="pips" title="' + t[0].toUpperCase() + t.slice(1) + ' (' + n + ' of 3)">';
+  for (let i = 1; i <= 3; i++) h += '<span class="' + (i <= n ? 'on' : '') + '"></span>';
+  return h + '</span>';
+};
+const state = (c) => (c.done ? 'done' : c.blocked ? 'blocked' : 'open');
+const inFam = (f) => CH.filter((c) => c.family === f.key);
+
+const nDone = CH.filter((c) => c.done).length;
+const nBlocked = CH.filter((c) => !c.done && c.blocked).length;
+const nOpen = CH.length - nDone - nBlocked;
+
+/* ---- diagnosis, counted off the real catalogue ---------------------------- */
+document.getElementById('diag').innerHTML = [
+  [CH.length, '<b>Cards on one page.</b> Every family is fully expanded, all the time.'],
+  [12, '<b>Family hues</b>, each repeated as a 3px edge on every card in the family.'],
+  [CH.length, '<b>Filled tier chips</b> in three more hues, on won and unwon entries alike.'],
+  [nBlocked, '<b>Entries in loss red</b>, which makes "not tracked yet" look like a failure.'],
+  [CH.length, '<b>Hard green shadows</b>, one per card, so the grid is also a field of green blocks.'],
+  [nOpen, '<b>"Not yet" captions</b> repeating in mono what grey would say once.'],
+].map(([n, t]) => '<li><span class="cnt">' + n + '</span><span>' + t + '</span></li>').join('');
+
+/* shared header bits, so the three frames differ only in their list */
+const FILTERS = [['All', CH.length, 1], ['Available', nOpen, 0], ['Completed', nDone, 0], ['Not tracked yet', nBlocked, 0]];
+for (const id of ['p1', 'p2']) {
+  document.getElementById(id).innerHTML = FILTERS.map(([l, n, on]) =>
+    '<span class="pill' + (on ? ' on' : '') + '">' + l + ' <i>' + n + '</i></span>').join('');
+}
+for (const id of ['c1', 'c2', 'c3']) {
+  document.getElementById(id).textContent = nDone + ' / ' + CH.length;
+}
+
+/* colour budget: elements painted a non-neutral hue when the page is at rest.
+   Today: a family edge, a tier chip and a hard shadow per card, plus the red on
+   every blocked entry. */
+const TODAY = CH.length * 3 + nBlocked;
+const budget = (n, note) => '<span>Coloured elements at rest: <b>' + n + '</b>, against <b>' +
+  TODAY + '</b> today</span>' + (note ? '<span style="opacity:.7">' + note + '</span>' : '');
+document.getElementById('b1').innerHTML = budget(12 + nDone, '12 family rules + 28 ticks');
+document.getElementById('b2').innerHTML = budget(12 + nDone * 3, 'only won cards carry colour');
+document.getElementById('b3').innerHTML = budget(12, '12 progress bars, collapsed');
+
+/* ---- option 1: ledger ---------------------------------------------------- */
+document.getElementById('o1').innerHTML = FAM.map((f) => {
+  const list = inFam(f);
+  const got = list.filter((c) => c.done).length;
+  const rows = list.map((c) => {
+    const st = state(c);
+    const mark = st === 'done' ? ICON.check : st === 'blocked' ? ICON.lock : '<span class="o1-hollow"></span>';
+    return '<div class="o1-row ' + st + '"' + (c.blocked ? ' title="' + esc(c.blocked) + '"' : '') + '>' +
+      '<span class="o1-mark">' + mark + '</span>' +
+      '<span class="o1-txt"><b>' + esc(c.name) + '</b><i>' + esc(c.description) + '</i></span>' +
+      '<span class="o1-pips">' + pips(c.tier) + '</span></div>';
+  }).join('');
+  return '<section class="o1-fam" style="--fam:' + f.color + '">' +
+    '<div class="o1-fh"><h4>' + esc(f.name) + '</h4><span class="n">' + got + ' / ' + list.length +
+    '</span></div>' + rows + '</section>';
+}).join('');
+
+/* ---- option 2: earned lights up ----------------------------------------- */
+document.getElementById('o2').innerHTML = FAM.map((f) => {
+  const list = inFam(f);
+  const got = list.filter((c) => c.done).length;
+  const cards = list.map((c) => {
+    const st = state(c);
+    return '<article class="o2-c ' + st + '" style="--fam:' + f.color + ';--tc:' + TIERC[c.tier] + '"' +
+      (c.blocked ? ' title="' + esc(c.blocked) + '"' : '') + '>' +
+      '<div class="o2-top"><span class="o2-tier">' + c.tier + '</span>' +
+      (st === 'blocked' ? '<span class="o2-lock">' + ICON.lock + ' Not tracked</span>' : '') + '</div>' +
+      '<h5>' + esc(c.name) + '</h5><p>' + esc(c.description) + '</p>' +
+      (st === 'done' ? '<span class="o2-tick">' + ICON.tick + '</span>' : '') + '</article>';
+  }).join('');
+  return '<section class="o2-fam"><div class="o2-fh" style="--fam:' + f.color + '">' +
+    '<span class="dot"></span><h4>' + esc(f.name) + '</h4><span class="n">' +
+    got + ' / ' + list.length + '</span></div><div class="o2-grid">' + cards + '</div></section>';
+}).join('');
+
+/* ---- option 3: shelf ----------------------------------------------------- */
+document.getElementById('o3').innerHTML = FAM.map((f, i) => {
+  const list = inFam(f);
+  const done = list.filter((c) => c.done);
+  const open = list.filter((c) => !c.done && !c.blocked);
+  const blocked = list.filter((c) => !c.done && c.blocked);
+  const pctv = Math.round((done.length / list.length) * 100);
+  const shelf = done.length
+    ? '<div class="o3-sub">Won (' + done.length + ')</div><div class="o3-shelf">' + done.map((c) =>
+        '<span class="o3-chip" title="' + esc(c.description) + '"><span class="tk">' + ICON.check +
+        '</span><b>' + esc(c.name) + '</b>' + pips(c.tier) + '</span>').join('') + '</div>'
+    : '';
+  const row = (c) => '<div class="o3-i"><span class="hollow"></span><b>' + esc(c.name) +
+    '</b><em>' + esc(c.description) + '</em>' + pips(c.tier) + '</div>';
+  const rest = open.length
+    ? '<div class="o3-sub">Still to win (' + open.length + ')</div><div class="o3-list">' +
+      open.map(row).join('') + '</div>'
+    : '';
+  const blk = blocked.length
+    ? '<div class="o3-sub">Not tracked yet (' + blocked.length + ')</div>' +
+      '<div class="o3-list o3-blocked">' + blocked.map(row).join('') + '</div>'
+    : '';
+  return '<section class="o3-f' + (i < 2 ? ' open' : '') + '" style="--fam:' + f.color + '">' +
+    '<button type="button" class="o3-h" aria-expanded="' + (i < 2) + '">' +
+    '<span class="nm">' + esc(f.name) + '</span>' +
+    '<span class="o3-bar"><i style="width:' + pctv + '%"></i></span>' +
+    '<span class="n">' + done.length + ' / ' + list.length + '</span>' + ICON.chev + '</button>' +
+    '<div class="o3-body">' + shelf + rest + blk + '</div></section>';
+}).join('');
+
+document.querySelectorAll('#o3 .o3-h').forEach((b) => {
+  b.addEventListener('click', () => {
+    const s = b.closest('.o3-f');
+    const now = !s.classList.contains('open');
+    s.classList.toggle('open', now);
+    b.setAttribute('aria-expanded', String(now));
+  });
+});
+document.getElementById('o3-all').addEventListener('click', (e) => {
+  const secs = Array.from(document.querySelectorAll('#o3 .o3-f'));
+  const openAll = secs.some((s) => !s.classList.contains('open'));
+  secs.forEach((s) => {
+    s.classList.toggle('open', openAll);
+    s.querySelector('.o3-h').setAttribute('aria-expanded', String(openAll));
+  });
+  e.currentTarget.textContent = openAll ? 'Collapse all' : 'Expand all';
+});
+</script>
