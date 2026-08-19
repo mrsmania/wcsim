@@ -1,13 +1,14 @@
-import type { Player } from '../data/types';
-import { primaryPosition } from '../data/types';
-import { SQUAD_BY_ID, SQUADS } from '../data/squads';
+import type { Player, Position } from '../data/types';
+import { categoryOf, primaryPosition } from '../data/types';
+import { ALL_PLAYERS, SQUAD_BY_ID, SQUADS } from '../data/squads';
 import { CONFEDERATION } from '../data/confederations';
 import { FEATURES } from '../config';
 import type { RoundRecord, RunOutcome, RunState } from './run';
 import type { CareerState } from './career';
 import { MAX_ASCENSION } from './ascension';
+import { MAX_BONUS } from './chemistry';
 import { boonById, type Rarity } from './boons';
-import { PERKS } from './career';
+import { HIGH_ASCENSION, PERKS } from './career';
 import { collectiblePlayers, tierOf, type AlbumState } from './album';
 import type { KoDecided } from './knockout';
 
@@ -90,6 +91,23 @@ export interface Challenge {
   check: (v: RunView) => boolean;
 }
 
+/** One kickoff slot with the player who filled it, resolved to his DATASET row. The
+ *  slot's role is the shape's, never `primaryPosition` of the run's copy: placing a
+ *  player promotes the slot role onto him, which is exactly what "out of position"
+ *  needs to compare against. */
+export interface PlacedSlot {
+  role: Position;
+  player: Player;
+}
+
+/** A budget build's figures, at the discounted prices actually charged. */
+export interface BuySummary {
+  budget: number;
+  spent: number;
+  dearest: number;
+  discounted: number;
+}
+
 /** One match of the run from the user's perspective. `ko` false = a group match. */
 export interface RunMatch {
   us: number;
@@ -120,7 +138,23 @@ export interface RunView extends ChallengeCtx {
   avg: number;
   /** Rarities of the boosts taken, in order. */
   rarities: Rarity[];
+  /** The kickoff XI by slot (empty for a run saved before shapes were recorded, which
+   *  is why every shape predicate reads false rather than throwing). */
+  placed: PlacedSlot[];
+  /** Set for a budget build that recorded its prices; undefined for a rolled XI. */
+  buy?: BuySummary;
+  /** True for a rolled XI (and false when the build was not recorded at all). */
+  rolled: boolean;
+  /** Squad re-rolls used in a rolled build; undefined when not recorded. */
+  rerollsUsed?: number;
+  /** Collectible swaps used; undefined when not recorded. */
+  swapsUsed?: number;
 }
+
+/** The dataset row behind a player id. Shapes store ids, and a roster boost can take
+ *  the player himself out of the XI, so the id is resolved against the dataset rather
+ *  than against `run.xi` (which is also where trap 1 wants the ratings to come from). */
+const DATASET_BY_ID = new Map(ALL_PLAYERS.map((p) => [p.id, p]));
 
 const squadOf = (p: Player) => SQUAD_BY_ID[p.squadId];
 const nationOf = (p: Player) => squadOf(p)?.nation ?? p.squadId;
@@ -156,6 +190,22 @@ function minutesOf(r: RoundRecord): number[] {
 export function viewOf(ctx: ChallengeCtx): RunView {
   const { run } = ctx;
   const xi = run.xi.map(ctx.base);
+  // The kickoff shape, if the run recorded one. A slot whose id is not in the dataset
+  // is dropped rather than faked, so a corrupt save reads as "not satisfied".
+  const placed: PlacedSlot[] = (run.shape?.slots ?? []).flatMap((s) => {
+    const player = DATASET_BY_ID.get(s.playerId);
+    return player ? [{ role: s.role, player }] : [];
+  });
+  const build = run.build;
+  const buy: BuySummary | undefined =
+    build?.method === 'budget' && build.budget != null && build.spent != null
+      ? {
+          budget: build.budget,
+          spent: build.spent,
+          dearest: build.dearest ?? 0,
+          discounted: build.discounted ?? 0,
+        }
+      : undefined;
   const boosted = new Set(run.boostedIds);
   const own = run.xi.filter((p) => !boosted.has(p.id)).map(ctx.base);
   const ko = run.history.filter((r) => typeof r.stage === 'number');
@@ -183,6 +233,11 @@ export function viewOf(ctx: ChallengeCtx): RunView {
     cleanSheets: matches.filter((m) => m.them === 0).length,
     avg: xi.length ? xi.reduce((n, p) => n + p.elo, 0) / xi.length : 0,
     rarities: run.activeBoons.map((id) => boonById(id)?.rarity).filter((r): r is Rarity => !!r),
+    placed,
+    buy,
+    rolled: build?.method === 'roll',
+    rerollsUsed: build?.rerollsUsed,
+    swapsUsed: build?.swapsUsed,
   };
 }
 
@@ -193,11 +248,29 @@ export function viewOf(ctx: ChallengeCtx): RunView {
 // "Win" means lift the cup unless the text says otherwise.
 // ---------------------------------------------------------------------------
 
-/** Reasons a challenge cannot be judged yet (the plumbing wave, see the plan). */
-const NEEDS_BUILD = 'How the XI was built (roll or budget, and the spend) is not recorded yet.';
-const NEEDS_SHAPE = 'The formation, style and the slot each player filled are not recorded yet.';
-const NEEDS_STREAK = 'Career streak counters (consecutive runs, per-tier records, Prestige spent) do not exist yet.';
-const NEEDS_CHEM = 'Chemistry at kickoff is not recorded on the run yet.';
+// Nothing is blocked any more: the plumbing wave (section 8 of the plan) recorded the
+// kickoff shape, the build and the chemistry on the run, and the streak counters on the
+// career, so all 130 are judged. `Challenge.blocked` stays in the model on purpose - it
+// costs nothing and the next batch of entries will want it.
+
+/** Collectible swaps a run starts with. Mirrors INITIAL_SWAPS in state/gameReducer,
+ *  which the domain deliberately does not import (the layering runs the other way);
+ *  `npm run checks` asserts the two stay in step. */
+const ALL_SWAPS = 2;
+
+/** Every Ascension tier, for "win at each of them". */
+const ASCENSION_TIERS = Array.from({ length: MAX_ASCENSION + 1 }, (_, tier) => tier);
+
+/** Cups won at a tier (0 when the counter is shorter than the ladder, or absent from a
+ *  hand-edited save - `stats` is a merged blob, so it is worth not trusting). */
+const cupsAt = (v: RunView, tier: number) => (v.career.stats.cupsByAscension ?? [])[tier] ?? 0;
+
+/** Slots the kickoff XI filled outside the player's natural role. */
+const outOfPosition = (v: RunView) =>
+  v.placed.filter((s) => primaryPosition(s.player) !== s.role).length;
+
+/** The highest dataset rating in the kickoff XI (0 when there is no shape). */
+const topRating = (v: RunView) => v.placed.reduce((n, s) => Math.max(n, s.player.elo), 0);
 
 /** Perk tracks at their maximum tier for this run. */
 const allPerksMaxed = (run: RunState) =>
@@ -214,9 +287,9 @@ export const CHALLENGES: Challenge[] = [
   { id: 'first-blood', name: 'First Blood', description: 'Win your first cup.',
     family: 'silverware', tier: 'bronze', check: (v) => v.wonCup && v.career.stats.cups === 1 },
   { id: 'back-to-back', name: 'Back to Back', description: 'Win cups in two consecutive runs.',
-    family: 'silverware', tier: 'silver', blocked: NEEDS_STREAK, check: () => false },
+    family: 'silverware', tier: 'silver', check: (v) => v.career.stats.cupStreak >= 2 },
   { id: 'three-peat', name: 'Three-Peat', description: 'Win cups in three consecutive runs.',
-    family: 'silverware', tier: 'gold', blocked: NEEDS_STREAK, check: () => false },
+    family: 'silverware', tier: 'gold', check: (v) => v.career.stats.cupStreak >= 3 },
   { id: 'serial-winner', name: 'Serial Winner', description: 'Win 10 cups in total.',
     family: 'silverware', tier: 'silver', check: (v) => v.career.stats.cups >= 10 },
   { id: 'dynasty', name: 'Dynasty', description: 'Win 25 cups in total.',
@@ -224,7 +297,10 @@ export const CHALLENGES: Challenge[] = [
   { id: 'finalist', name: 'Finalist', description: 'Reach a final.',
     family: 'silverware', tier: 'bronze', check: (v) => v.outcome === 'final' || v.wonCup },
   { id: 'nearly-man', name: 'Nearly Man', description: 'Lose a final, then win the cup in your next run.',
-    family: 'silverware', tier: 'silver', blocked: NEEDS_STREAK, check: () => false },
+    // `prevOutcome` is the run before this one: the streaks are updated before the
+    // catalogue is judged, so `lastOutcome` is already this run's 'champion'.
+    family: 'silverware', tier: 'silver',
+    check: (v) => v.wonCup && v.career.stats.prevOutcome === 'final' },
   { id: 'perfect-run', name: 'Perfect Run', description: 'Win the cup without losing a single match, group included.',
     family: 'silverware', tier: 'gold',
     // A group draw is not a defeat; a knockout tie is never drawn, so it must be won.
@@ -250,14 +326,23 @@ export const CHALLENGES: Challenge[] = [
   { id: 'the-summit', name: 'The Summit', description: 'Win at the highest Ascension tier.',
     family: 'ascension', tier: 'gold', check: (v) => v.wonCup && v.run.ascension >= MAX_ASCENSION },
   { id: 'ladder-climb', name: 'Ladder Climb', description: 'Win at least once at every Ascension tier.',
-    family: 'ascension', tier: 'gold', blocked: NEEDS_STREAK, check: () => false },
+    family: 'ascension', tier: 'gold',
+    check: (v) => ASCENSION_TIERS.every((tier) => cupsAt(v, tier) > 0) },
   { id: 'hard-habit', name: 'Hard Habit', description: 'Finish 10 runs at Ascension II or higher.',
-    family: 'ascension', tier: 'silver', blocked: NEEDS_STREAK, check: () => false },
+    family: 'ascension', tier: 'silver', check: (v) => v.career.stats.runsAtHighAscension >= 10 },
   { id: 'no-safety-net', name: 'No Safety Net', description: 'Win at Ascension III or higher without taking a legendary boost.',
     family: 'ascension', tier: 'gold',
     check: (v) => v.wonCup && v.run.ascension >= 3 && !v.rarities.includes('legendary') },
   { id: 'straight-up', name: 'Straight Up', description: 'Unlock a new Ascension tier without ever losing a final.',
-    family: 'ascension', tier: 'silver', blocked: NEEDS_STREAK, check: () => false },
+    family: 'ascension', tier: 'silver',
+    // A cup unlocks the tier above it exactly when it is the FIRST cup at its own tier:
+    // the ceiling only ever rises by one, so reaching tier T at all means T-1 was
+    // already won. At the top of the ladder there is nothing left to unlock.
+    check: (v) =>
+      v.wonCup &&
+      !v.career.stats.everLostFinal &&
+      v.run.ascension < MAX_ASCENSION &&
+      cupsAt(v, v.run.ascension) === 1 },
 
   // --- C. Squad identity --------------------------------------------------
   // Judged on `own` - the XI MINUS anyone a roster boost handed over - and on no count
@@ -339,7 +424,8 @@ export const CHALLENGES: Challenge[] = [
   { id: 'galacticos', name: 'Galacticos', description: 'Win with an XI averaging 90 or more.',
     family: 'rating', tier: 'silver', check: (v) => v.wonCup && v.avg >= 90 },
   { id: 'chemistry-set', name: 'Chemistry Set', description: 'Win with the maximum chemistry bonus.',
-    family: 'rating', tier: 'gold', blocked: NEEDS_CHEM, check: () => false },
+    family: 'rating', tier: 'gold',
+    check: (v) => v.wonCup && (v.run.chemistry ?? 0) >= MAX_BONUS },
 
   // --- E. Defence (the scoreline only: a shootout is not goals conceded) ---
   { id: 'the-wall', name: 'The Wall', description: 'Win every knockout tie without conceding. A shootout does not count against it.',
@@ -510,43 +596,66 @@ export const CHALLENGES: Challenge[] = [
     family: 'album', tier: 'silver',
     check: (v) => v.wonCup && v.xi.length > 0 && !v.xi.some((p) => tierOf(p)) },
   { id: 'bargain-bin', name: 'Bargain Bin', description: 'Buy five discounted (already-owned) players in one build.',
-    family: 'album', tier: 'bronze', blocked: NEEDS_BUILD, check: () => false },
+    // No cup required: the challenge is the shopping trip, not the run.
+    family: 'album', tier: 'bronze', check: (v) => (v.buy?.discounted ?? 0) >= 5 },
 
-  // --- J. Market & budget (needs build tracking) ---------------------------
+  // --- J. Market & budget --------------------------------------------------
+  // Prices are the DISCOUNTED ones actually charged, recorded at kickoff: the album
+  // grows, so asking the pricer again at run end would answer a different question.
   { id: 'thrifty', name: 'Thrifty', description: 'Win with $20 or more of the budget unspent.',
-    family: 'market', tier: 'silver', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'silver',
+    check: (v) => v.wonCup && !!v.buy && v.buy.budget - v.buy.spent >= 20 },
   { id: 'every-cent', name: 'Every Cent', description: 'Win having spent the budget to the last dollar.',
-    family: 'market', tier: 'bronze', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'bronze',
+    check: (v) => v.wonCup && !!v.buy && v.buy.spent === v.buy.budget },
   { id: 'bargain-hunter', name: 'Bargain Hunter', description: 'Win with no player costing more than $12.',
-    family: 'market', tier: 'silver', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'silver',
+    check: (v) => v.wonCup && !!v.buy && v.buy.dearest > 0 && v.buy.dearest <= 12 },
   { id: 'marquee-signing', name: 'Marquee Signing', description: 'Win having spent $25 or more on one player.',
-    family: 'market', tier: 'bronze', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'bronze', check: (v) => v.wonCup && (v.buy?.dearest ?? 0) >= 25 },
   { id: 'market-master', name: 'Market Master', description: 'Win a bought XI at Ascension II or higher.',
-    family: 'market', tier: 'gold', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'gold',
+    check: (v) => v.wonCup && !!v.buy && v.run.ascension >= HIGH_ASCENSION },
   { id: 'roll-with-it', name: 'Roll With It', description: 'Win with a rolled XI rather than a bought one.',
-    family: 'market', tier: 'bronze', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'bronze', check: (v) => v.wonCup && v.rolled },
   { id: 'first-draw', name: 'First Draw', description: 'Win a rolled run without using a squad re-roll.',
-    family: 'market', tier: 'gold', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'gold', check: (v) => v.wonCup && v.rolled && v.rerollsUsed === 0 },
   { id: 'swap-meet', name: 'Swap Meet', description: 'Use both collectible swaps and win the cup.',
-    family: 'market', tier: 'silver', blocked: NEEDS_BUILD, check: () => false },
+    family: 'market', tier: 'silver', check: (v) => v.wonCup && (v.swapsUsed ?? 0) >= ALL_SWAPS },
 
-  // --- K. Shape & positions (needs formation tracking) ---------------------
+  // --- K. Shape & positions ------------------------------------------------
+  // All of these read the KICKOFF shape (`v.placed`), not the final XI: a roster boost
+  // rearranges nothing, it just hands over a player, and placing a player promotes the
+  // slot's role onto him, so the natural position only survives on the dataset row.
   { id: 'back-five', name: 'Back Five', description: 'Win with a five-defender formation.',
-    family: 'shape', tier: 'bronze', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'bronze',
+    check: (v) => v.wonCup && v.placed.filter((s) => categoryOf(s.role) === 'DEF').length >= 5 },
   { id: 'all-out-attack', name: 'All Out Attack', description: 'Win playing the offensive style.',
-    family: 'shape', tier: 'bronze', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'bronze', check: (v) => v.wonCup && v.run.shape?.style === 'off' },
   { id: 'park-the-bus', name: 'Park the Bus', description: 'Win playing the defensive style.',
-    family: 'shape', tier: 'bronze', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'bronze', check: (v) => v.wonCup && v.run.shape?.style === 'def' },
   { id: 'shape-shifter', name: 'Shape Shifter', description: 'Win cups with three different formations.',
-    family: 'shape', tier: 'silver', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'silver',
+    check: (v) => (v.career.stats.cupFormations ?? []).length >= 3 },
   { id: 'out-of-position', name: 'Out of Position', description: 'Win with 3 or more players outside their natural position.',
-    family: 'shape', tier: 'silver', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'silver', check: (v) => v.wonCup && outOfPosition(v) >= 3 },
   { id: 'textbook', name: 'Textbook', description: 'Win with every player in his natural position.',
-    family: 'shape', tier: 'silver', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'silver',
+    check: (v) => v.wonCup && v.placed.length > 0 && outOfPosition(v) === 0 },
   { id: 'keepers-union', name: "Keeper's Union", description: 'Win with the goalkeeper rated higher than every outfielder.',
-    family: 'shape', tier: 'silver', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'silver',
+    check: (v) => {
+      const gk = v.placed.find((s) => s.role === 'GK');
+      return (
+        v.wonCup && !!gk && v.placed.every((s) => s.role === 'GK' || gk.player.elo > s.player.elo)
+      );
+    } },
   { id: 'midfield-general', name: 'Midfield General', description: 'Win with your highest-rated player in midfield.',
-    family: 'shape', tier: 'bronze', blocked: NEEDS_SHAPE, check: () => false },
+    family: 'shape', tier: 'bronze',
+    // A tie for top rating counts if ANY of the joint-best sits in a midfield slot.
+    check: (v) =>
+      v.wonCup &&
+      v.placed.some((s) => s.player.elo === topRating(v) && categoryOf(s.role) === 'MID') },
 
   // --- L. Career & streaks -------------------------------------------------
   { id: 'persistent', name: 'Persistent', description: 'Finish 25 runs.',
@@ -560,11 +669,13 @@ export const CHALLENGES: Challenge[] = [
   { id: 'war-chest', name: 'War Chest', description: 'Hold 200 Prestige at once.',
     family: 'career', tier: 'bronze', check: (v) => v.career.prestige >= 200 },
   { id: 'spendthrift', name: 'Spendthrift', description: 'Spend 500 Prestige in total.',
-    family: 'career', tier: 'silver', blocked: NEEDS_STREAK, check: () => false },
-  { id: 'on-a-roll', name: 'On a Roll', description: 'Win three runs in a row.',
-    family: 'career', tier: 'gold', blocked: NEEDS_STREAK, check: () => false },
+    family: 'career', tier: 'silver', check: (v) => v.career.stats.prestigeSpent >= 500 },
+  // Redefined when the counters landed: "win three runs in a row" was Three-Peat under
+  // another name. The id is kept, so nothing already earned is orphaned.
+  { id: 'on-a-roll', name: 'On a Roll', description: 'Reach a final in three consecutive runs.',
+    family: 'career', tier: 'gold', check: (v) => v.career.stats.finalStreak >= 3 },
   { id: 'consistency', name: 'Consistency', description: 'Reach the semi-final or better in five consecutive runs.',
-    family: 'career', tier: 'silver', blocked: NEEDS_STREAK, check: () => false },
+    family: 'career', tier: 'silver', check: (v) => v.career.stats.semiStreak >= 5 },
   { id: 'challenge-hunter', name: 'Challenge Hunter', description: 'Complete 10 challenges.',
     family: 'career', tier: 'bronze', check: (v) => v.career.completedChallenges.length >= 10 },
   { id: 'honour-roll', name: 'Honour Roll', description: 'Complete 25 challenges.',

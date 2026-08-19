@@ -43,11 +43,15 @@ export default function ChallengesScreen({
     return groups;
   }, [shown]);
 
+  // The third filter hides itself once every entry is judged (which is where the
+  // catalogue stands today); `Challenge.blocked` stays in the model for the next batch.
   const FILTERS: { key: Filter; label: string; n: number }[] = [
     { key: 'all', label: 'All', n: progress.total },
     { key: 'open', label: 'Available', n: progress.available },
     { key: 'done', label: 'Completed', n: progress.completed },
-    { key: 'blocked', label: 'Not tracked yet', n: progress.blocked },
+    ...(progress.blocked > 0
+      ? [{ key: 'blocked' as Filter, label: 'Not tracked yet', n: progress.blocked }]
+      : []),
   ];
 
   return (
@@ -92,10 +96,12 @@ export default function ChallengesScreen({
                 </b>
               </span>
             ))}
-            <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-loss" aria-hidden="true" />
-              Not tracked yet <b className="font-bold text-ink">{progress.blocked}</b>
-            </span>
+            {progress.blocked > 0 && (
+              <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
+                <span className="h-2.5 w-2.5 rounded-[2px] bg-loss" aria-hidden="true" />
+                Not tracked yet <b className="font-bold text-ink">{progress.blocked}</b>
+              </span>
+            )}
           </div>
         </div>
         {AWARDS_ON && (

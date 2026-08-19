@@ -1,5 +1,6 @@
-import type { Player, Squad } from '../data/types';
+import type { Player, Position, Squad } from '../data/types';
 import { ELO_MAX, primaryPosition } from '../data/types';
+import type { FormationName, Style } from './formations';
 import { SQUADS } from '../data/squads';
 import { FEATURES } from '../config';
 import { computeChemistry } from './chemistry';
@@ -65,6 +66,37 @@ export interface RoundRecord {
   groupResults?: { code: string; name: string; us: number; them: number }[];
 }
 
+/** The shape the XI kicked off in. Recorded rather than derived: the run receives a
+ *  bare `Player[]`, `placedPlayers` promotes each slot's role to `positions[0]` (so the
+ *  natural position cannot be recovered from the XI afterwards), and a roster boost
+ *  changes the XI later anyway. Natural positions come from the DATASET player behind
+ *  the id, never from the run's copy. */
+export interface RunShape {
+  formation: FormationName;
+  style: Style;
+  /** One entry per slot, in formation order. */
+  slots: { slotId: string; role: Position; playerId: string }[];
+}
+
+/** How the XI was assembled, recorded at kickoff for the same reason: the album grows,
+ *  which moves the owned-sticker discount and therefore what the XI "cost". Everything
+ *  past `method` is per-method, so a rolled XI carries no prices and a bought one no
+ *  re-roll count. */
+export interface RunBuild {
+  method: 'roll' | 'budget';
+  /** Budget builds: the budget in force, what was spent against it, and the dearest
+   *  single player - all at the discounted prices actually charged. */
+  budget?: number;
+  spent?: number;
+  dearest?: number;
+  /** Budget builds: how many of the XI were already in the album, and so discounted. */
+  discounted?: number;
+  /** Roll builds: squad re-rolls used (starting allowance minus what was left). */
+  rerollsUsed?: number;
+  /** Collectible swaps used (both methods start with INITIAL_SWAPS). */
+  swapsUsed?: number;
+}
+
 export interface RunState {
   /** The current XI, with any boon rating deltas baked in. */
   xi: Player[];
@@ -96,6 +128,18 @@ export interface RunState {
   /** Whether this run's collectibles have been merged into the sticker album. Guards
    *  a once-per-run apply that survives a reload (mirrors the main game's flag). */
   stickersApplied: boolean;
+  // --- Recorded at kickoff, for the challenge catalogue (docs/challenges-spec.html).
+  // All three are OPTIONAL: a run persisted before they existed resumes and finishes
+  // normally, it simply cannot complete the entries that read them (a missing field
+  // reads as "not satisfied", never as a throw).
+  /** The formation, style and slot assignment the XI kicked off in (slice B). */
+  shape?: RunShape;
+  /** How the XI was built, and what it cost (slice C). */
+  build?: RunBuild;
+  /** The chemistry bonus at kickoff (slice D). Kept rather than recomputed: boosts
+   *  change ratings and the roster, and chemistry counts players in their primary
+   *  position, so asking again at run end answers a different question. */
+  chemistry?: number;
 }
 
 /** A finished knockout tie, normalised to the user's perspective (user = home).
@@ -152,11 +196,20 @@ export function chemistryOf(xi: Player[]): number {
 /** Boon offer size (3), widened by the Extra Choice perk (+1 per owned tier). */
 const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra-boon'] ?? 0);
 
+/** What the build page knows at kickoff and the run cannot work out later. Optional
+ *  in full: a caller with nothing to hand (the checks harness) begins a run that simply
+ *  cannot complete the entries reading these. */
+export interface Kickoff {
+  shape?: RunShape;
+  build?: RunBuild;
+}
+
 export function beginRun(
   xi: Player[],
   perkLevels: Record<string, number> = {},
   unlockedBoons: string[] = [],
   ascension = 0,
+  kickoff: Kickoff = {},
 ): RunState {
   let players = xi;
   const activeBoons: string[] = [];
@@ -198,6 +251,12 @@ export function beginRun(
     history: [],
     boostedIds,
     stickersApplied: false,
+    shape: kickoff.shape,
+    build: kickoff.build,
+    // Kickoff chemistry: of the XI that actually starts, so a Scout Network roster boost
+    // is already in it. (Rating perks cannot move it - chemistry reads squads, nations,
+    // eras and primary positions, never elo.)
+    chemistry: chemistryOf(players),
   };
 }
 

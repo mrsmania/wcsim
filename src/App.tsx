@@ -40,11 +40,13 @@ import { teamChemistry } from './domain/chemistry';
 import { buildBracket } from './domain/bracket';
 import { KO_ROUNDS } from './domain/knockout';
 import { userRatingDelta, type Difficulty } from './domain/difficulty';
-import { extraRerollsOf } from './domain/career';
+import { extraRerollsOf, type CareerState } from './domain/career';
+import { priceFor } from './domain/pricing';
+import type { RunBuild, RunShape } from './domain/run';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
-import { gameReducer, initialState } from './state/gameReducer';
+import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
 import { onStoreError, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
@@ -80,6 +82,16 @@ type HomeView = 'setup' | 'draft' | 'complete';
  *  there is only one path, so everything is a quick run. */
 const modeOfPath = (path: string): 'quick' | 'career' =>
     FEATURES.careerMode && path === '/career-mode' ? 'career' : 'quick';
+
+/** The transfer-market budget: the fixed one for a Quick Run (and with career mode off),
+ *  scaled by the owned `transfer-budget` perk tier for a Career Mode build. Pass null for
+ *  anything that is not a Career Mode build. */
+const budgetOf = (career: CareerState | null): number =>
+    career
+        ? BUDGET_BY_TIER[
+              Math.min(career.perkLevels['transfer-budget'] ?? 0, BUDGET_BY_TIER.length - 1)
+          ]
+        : BUDGET_DRAFT;
 
 /** Section eyebrow/title for the home screen, by sub-view. The home sub-view is
  *  derived from the drafted data (not `phase`), so navigating Back to home
@@ -641,11 +653,7 @@ export default function App({
     const worldCupRoute = worldCupInProgress ? (bracket ? '/knockout' : '/group') : null;
     const albumSummary = stickers.summary;
 
-    // Transfer-market budget. Quick Run (and career-off) use the fixed BUDGET_DRAFT;
-    // Career Mode scales it by the owned `transfer-budget` perk tier. The career is
-    // read from the store here (it lives in CupRunScreen otherwise), refreshed whenever
-    // the route changes - so buying a tier in the hub then returning to build applies.
-    // The completed-challenge set for the catalogue screen. Same shape as buildCareer
+    // The completed-challenge set for the catalogue screen. Same shape as careerPeek
     // below: the career lives in CupRunScreen, so it is re-read from the store whenever
     // the route changes rather than lifted into App.
     const challengeIds = useMemo(
@@ -654,20 +662,61 @@ export default function App({
         [path],
     );
 
-    const buildCareer = useMemo(
-        () => (FEATURES.careerMode && isBuild && mode === 'career' ? store.peek().career : null),
+    // The career, re-read on every navigation (it lives in CupRunScreen otherwise), so
+    // buying a perk in the hub and coming straight back to build applies. Not gated on
+    // the build route the way the budget below is, because the kickoff build record is
+    // computed on `/cup-run` too, where the budget in force is still the career one.
+    const careerPeek = useMemo(
+        () => (FEATURES.careerMode ? store.peek().career : null),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [path],
     );
-    const budget =
-        buildCareer != null
-            ? BUDGET_BY_TIER[
-                  Math.min(
-                      buildCareer.perkLevels['transfer-budget'] ?? 0,
-                      BUDGET_BY_TIER.length - 1,
-                  )
-              ]
-            : BUDGET_DRAFT;
+    // Transfer-market budget. Quick Run (and career-off) use the fixed BUDGET_DRAFT;
+    // Career Mode scales it by the owned `transfer-budget` perk tier.
+    const buildCareer = isBuild && mode === 'career' ? careerPeek : null;
+    const budget = budgetOf(buildCareer);
+
+    // What the build page knows and the run cannot work out afterwards: the shape the XI
+    // kicks off in, and how it was assembled. Both are handed to `beginRun` so the
+    // challenge catalogue can judge them (docs/challenges-spec.html, slices B and C).
+    // Recorded at kickoff rather than derived at run end because placing a player
+    // promotes the slot's role onto him, a roster boost changes the XI later, and the
+    // album (and so the owned-sticker discount) keeps growing.
+    const draftedShape = useMemo<RunShape | null>(() => {
+        if (!formation || !draftedXi) return null;
+        const slots = formation.slots.flatMap((s) => {
+            const player = filled[s.id];
+            return player ? [{ slotId: s.id, role: s.position, playerId: player.id }] : [];
+        });
+        return slots.length === formation.slots.length
+            ? { formation: formation.name, style: formation.style, slots }
+            : null;
+    }, [formation, filled, draftedXi]);
+
+    // The build record. `buildMode` (not the route) decides which budget was in force,
+    // since this is also read from `/cup-run`, one navigation after the market closed.
+    const draftedBuild = useMemo<RunBuild | null>(() => {
+        if (!draftedXi) return null;
+        const swapsUsed = INITIAL_SWAPS - swapsLeft;
+        const careerBuild = buildMode === 'career' ? careerPeek : null;
+        if (build === 'budget') {
+            const prices = draftedXi.map((p) => priceFor(p, ownedStickerIds));
+            return {
+                method: 'budget',
+                budget: budgetOf(careerBuild),
+                spent: prices.reduce((n, c) => n + c, 0),
+                dearest: Math.max(...prices),
+                discounted: draftedXi.filter((p) => ownedStickerIds.has(p.id)).length,
+                swapsUsed,
+            };
+        }
+        // The allowance is re-derived rather than remembered, so buying the Extra Re-roll
+        // perk in the middle of a draft (which does not top up the re-rolls already
+        // granted) would read as one more used than there was. It costs a reducer field
+        // to make exact and the window is narrow, so this follows the plan's formula.
+        const allowance = INITIAL_REROLLS + (careerBuild ? extraRerollsOf(careerBuild) : 0);
+        return { method: 'roll', rerollsUsed: Math.max(0, allowance - rerollsLeft), swapsUsed };
+    }, [draftedXi, build, buildMode, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
 
     // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
     // mid-flight (not yet ended), with a short round summary for the resume button.
@@ -771,6 +820,8 @@ export default function App({
                     ) : isCupRun ? (
                         <CupRunScreen
                             draftedXi={draftedXi}
+                            draftedShape={draftedShape}
+                            draftedBuild={draftedBuild}
                             onReDraft={handleReset}
                             speed={speed}
                             onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}

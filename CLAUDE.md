@@ -614,14 +614,37 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   and a first cup clears a dozen challenges at 10/30/75, so the catalogue would be by far
   the bigger faucet early on. The tier chip stays visible either way - it reads as
   difficulty.
-- **103 are judged; 27 carry a `blocked` reason** and are never evaluated: how the XI was
-  built (families J and K), chemistry at kickoff, and the career streak counters
-  (consecutive cups, per-Ascension records, Prestige spent). They stay in the catalogue
-  because the screen should show what is coming, and they render as "not tracked yet".
-  Unblocking one is the plumbing wave in the plan: add the field, drop the `blocked`.
-  **The plan to get all 130 judged is section 8 of `docs/challenges-spec.html`** (four
-  slices, no SQL migration in any of them, since `CareerStats` is a merged jsonb column and
-  `RunState` is a jsonb blob).
+- **All 130 are judged.** The plumbing wave (2026-08-19, section 8 of the spec) cleared the
+  27 that used to carry a `blocked` reason, so the catalogue screen's "not tracked yet"
+  filter and legend chip hide themselves. No SQL migration was needed: `CareerStats` is a
+  merged jsonb column and `RunState` a jsonb blob. `Challenge.blocked` stays in the model on
+  purpose - it costs nothing and the next batch of entries will want it. What the wave added:
+  - **`RunState.shape`** - formation, style and the slot each player filled, recorded at
+    kickoff because placing a player promotes the slot's role onto him (so the natural
+    position cannot be recovered from the XI afterwards) and a roster boost changes the XI
+    later anyway. Natural positions come from `basePlayer`, never from the run's copy.
+  - **`RunState.build`** - method, budget, spend, dearest player, how many were already in
+    the album (and so discounted), re-rolls and swaps used. At kickoff for the same reason:
+    the album grows, which moves the owned-sticker discount and therefore what the XI "cost".
+  - **`RunState.chemistry`** - the kickoff bonus, of the XI that actually starts (a Scout
+    Network roster boost is already in it). Not recomputed at run end, which would answer a
+    different question.
+  - **Ten `CareerStats` counters** for the streak entries: `cupStreak`, `finalStreak`,
+    `semiStreak`, `lastOutcome` + `prevOutcome`, `everLostFinal`, `cupsByAscension`,
+    `runsAtHighAscension`, `prestigeSpent` (incremented by `buyPerkTier` / `unlockBoon`),
+    `cupFormations`. Updated in `applyRunResult` **before** `completedIn` runs, so a run
+    completes the challenge it just satisfied. `prevOutcome` exists precisely because of
+    that ordering: by judging time `lastOutcome` is already this run's, so Nearly Man
+    ("lose a final, then win the cup") has nothing else to read.
+  - All three run fields are **optional**, so a run persisted before the change resumes and
+    finishes normally; it simply completes none of the new entries.
+- **App computes the kickoff record**, since it is the only place holding the formation, the
+  slot map, the market budget and the album at once (`draftedShape` / `draftedBuild` ->
+  `CupRunScreen` -> `beginRun`). Two things to keep in mind there: the budget is chosen by
+  `buildMode`, not the route, because the record is also read on `/cup-run` one navigation
+  after the market closed; and `rerollsUsed` is re-derived as
+  `INITIAL_REROLLS + extraRerollsOf(career) - rerollsLeft` (the plan's formula), so buying
+  the Extra Re-roll perk mid-draft would read as one more used than there was.
 - **The seam is `applyRunResult`** (domain/career.ts), which takes an optional
   `ChallengeInput` (`base`, `album`, `trades`) and returns `challengesCompleted` +
   `challengePrestige` alongside the XP/Prestige it always returned. Judged against the
@@ -643,10 +666,15 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
      different nations" is the exception, because there the count IS the challenge.
   3. **Shootout goals are not goals.** Clean-sheet predicates read the scoreline only, or
      The Wall would be unwinnable the moment a tie went to penalties.
+- **Straight Up has no "did this run unlock a tier?" flag**, and the unlocked ceiling cannot
+  answer it on its own: winning one tier below an already-unlocked ceiling leaves the same
+  number behind. It reads `cupsByAscension` instead - a cup is the **first at its own tier**
+  exactly when it unlocks the next, because reaching tier T at all means T-1 was already won.
 - **Surfaces:** a Challenges block in the career hub (`CareerHub`: counter, Prestige
   earned, the three most recently completed, link to the catalogue), the **`/challenges`**
   route (`ChallengesScreen`, lazy-loaded: the album's completion counter, filters for
-  available / completed / not tracked yet, and every entry grouped by family), and the
+  available / completed / not tracked yet - the third hides itself while nothing is blocked,
+  which is the case today - and every entry grouped by family), and the
   run-end panel listing what the run completed. Shared atoms live in
   `components/challengeUi.tsx` (family accents, tier colours, `ChallengeRow`,
   `ChallengeCard`).
@@ -658,7 +686,9 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   account - because the client ships by pushing to `main` while migrations are applied by
   hand.
 - **Ids are permanent.** A completion is stored by id, so renaming a challenge is free and
-  changing an id orphans what players have already earned.
+  changing an id orphans what players have already earned. That is why `on-a-roll` kept its
+  id when it was redefined from "win three runs in a row" (which was Three-Peat under another
+  name) to "reach a final in three consecutive runs".
 
 ## Budget draft / Transfer Market (flagged)
 

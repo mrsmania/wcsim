@@ -139,7 +139,7 @@
   </div>
   <div class="meta">
     <strong>Drafted:</strong> 2026-08-18<br>
-    <strong>Status:</strong> plan, not built<br>
+    <strong>Status:</strong> built, awards off<br>
     <strong>Roadmap:</strong> item 01
   </div>
 </div>
@@ -154,6 +154,11 @@
   taken, and a per-round history with scorelines, how each tie was decided, and the goal
   events including scorer. Roughly 100 of the 130 challenges below need <b>no new
   tracking at all</b>.</p>
+  <p><b>Where it stands (2026-08-19).</b> All of it is built: the engine, the catalogue of
+  130, the screens, and the plumbing wave of section 8, so <b>every entry is judged</b> and
+  nothing renders as "not tracked yet". The one switch still off is
+  <code>FEATURES.challengeAwards</code>: a challenge completes and is recorded, it just pays
+  no Prestige until the economy is tuned against real runs.</p>
 </div>
 
 <h2>1. The decision: permanent now, rotating later</h2>
@@ -272,22 +277,30 @@ career write.</p>
   </tr>
 </table>
 
-<p><b>Not recorded yet.</b> Anything marked <span class="tag needs">needs</span> in the
-catalogue depends on one of these, all small and all additive to <code>RunState</code> at
-<code>beginRun</code>:</p>
+<p><b>Added by the plumbing wave</b> (section 8, shipped 2026-08-19). Each of these was
+what 27 entries were waiting on. All four are additive and optional, three of them recorded
+on <code>RunState</code> at <code>beginRun</code> and the fourth on the career:</p>
 
 <ul>
-  <li><b>How the XI was built</b> - roll or budget, and the budget spent. The market knows
-  both; <code>AUTOFILL</code> currently drops the distinction on the way into the run.</li>
-  <li><b>Formation and style</b> at kickoff (<code>4-3-3</code>, <code>bal</code>), and the
-  slot each player filled - needed for "in his natural position", which cannot be derived
-  from the XI alone because <code>placedPlayers</code> reorders positions.</li>
-  <li><b>Chemistry at kickoff</b> (a number, already computed for the panel).</li>
-  <li><b>Career counters</b> for streaks: consecutive cups, consecutive semi-finals or
-  better, Prestige spent lifetime.</li>
-  <li><b>Group goal events</b>. The group stores scorelines only, so scorer-based
-  challenges are knockout-only until the group keeps its events too.</li>
+  <li><b>How the XI was built</b> - <code>RunState.build</code>: roll or budget, the budget
+  and what was spent against it at the discounted prices actually charged, the dearest
+  player, how many were already in the album, and the re-rolls and swaps used.</li>
+  <li><b>Formation and style</b> at kickoff plus the slot each player filled -
+  <code>RunState.shape</code>. Recorded rather than derived, because placing a player
+  promotes the slot's role onto him, so "in his natural position" cannot be answered from
+  the XI afterwards. Natural positions come from the dataset row.</li>
+  <li><b>Chemistry at kickoff</b> - <code>RunState.chemistry</code>, one number from the
+  existing <code>chemistryOf</code>.</li>
+  <li><b>Career counters</b> on <code>CareerStats</code>: the cup / final / semi-final
+  streaks, the previous run's outcome, ever-lost-a-final, cups per Ascension tier, runs at
+  Ascension II or higher, lifetime Prestige spent, and the formations a cup has been won
+  with. Updated in <code>applyRunResult</code> before the catalogue is judged, so a run
+  completes the challenge it just satisfied.</li>
 </ul>
+
+<p><b>Still not recorded: group goal events.</b> The group stores scorelines only, so
+scorer-based challenges stay knockout-only until it keeps its events too. No catalogue entry
+is blocked on it; it would only widen the ones that already exist.</p>
 
 <h2>4. The catalogue</h2>
 
@@ -300,12 +313,12 @@ bronze 10 Prestige, silver 30, gold 75. "Win" means lift the cup unless stated.<
 <table>
   <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
   <tr><td class="n">1</td><td class="name">First Blood</td><td class="cond">Win your first cup.</td><td><span class="tag t-b">bronze</span></td></tr>
-  <tr><td class="n">2</td><td class="name">Back to Back</td><td class="cond">Win cups in two consecutive runs. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
-  <tr><td class="n">3</td><td class="name">Three-Peat</td><td class="cond">Win cups in three consecutive runs. <span class="tag needs">needs</span></td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">2</td><td class="name">Back to Back</td><td class="cond">Win cups in two consecutive runs.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">3</td><td class="name">Three-Peat</td><td class="cond">Win cups in three consecutive runs.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">4</td><td class="name">Serial Winner</td><td class="cond">Win 10 cups in total.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">5</td><td class="name">Dynasty</td><td class="cond">Win 25 cups in total.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">6</td><td class="name">Finalist</td><td class="cond">Reach a final.</td><td><span class="tag t-b">bronze</span></td></tr>
-  <tr><td class="n">7</td><td class="name">Nearly Man</td><td class="cond">Lose a final, then win the cup in your next run. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">7</td><td class="name">Nearly Man</td><td class="cond">Lose a final, then win the cup in your next run.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">8</td><td class="name">Perfect Run</td><td class="cond">Win the cup without losing a single match, group included.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">9</td><td class="name">Maximum Points</td><td class="cond">Win all three group matches.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">10</td><td class="name">Group Winner</td><td class="cond">Finish first in your group.</td><td><span class="tag t-b">bronze</span></td></tr>
@@ -363,7 +376,7 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">45</td><td class="name">Always the Underdog</td><td class="cond">Win the cup with every knockout opponent rated higher than you.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">46</td><td class="name">Journeymen</td><td class="cond">Win with nobody rated above 85.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">47</td><td class="name">Galacticos</td><td class="cond">Win with an XI averaging 90+.</td><td><span class="tag t-s">silver</span></td></tr>
-  <tr><td class="n">48</td><td class="name">Chemistry Set</td><td class="cond">Win with the maximum chemistry bonus. <span class="tag needs">needs</span></td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">48</td><td class="name">Chemistry Set</td><td class="cond">Win with the maximum chemistry bonus.</td><td><span class="tag t-g">gold</span></td></tr>
 </table>
 
 <h3>E. Defence</h3>
@@ -442,10 +455,10 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">99</td><td class="name">Full Album</td><td class="cond">Collect every sticker.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">100</td><td class="name">Trader</td><td class="cond">Complete five trades.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">101</td><td class="name">Self-Made</td><td class="cond">Win with no collectibles in the XI at all.</td><td><span class="tag t-s">silver</span></td></tr>
-  <tr><td class="n">102</td><td class="name">Bargain Bin</td><td class="cond">Buy five discounted (already-owned) players in one build. <span class="tag needs">needs</span></td><td><span class="tag t-b">bronze</span></td></tr>
+  <tr><td class="n">102</td><td class="name">Bargain Bin</td><td class="cond">Buy five discounted (already-owned) players in one build.</td><td><span class="tag t-b">bronze</span></td></tr>
 </table>
 
-<h3>J. Market &amp; budget <span class="tag needs">needs build tracking</span></h3>
+<h3>J. Market &amp; budget</h3>
 <table>
   <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
   <tr><td class="n">103</td><td class="name">Thrifty</td><td class="cond">Win with $20+ of the budget unspent.</td><td><span class="tag t-s">silver</span></td></tr>
@@ -458,7 +471,7 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">110</td><td class="name">Swap Meet</td><td class="cond">Use both collectible swaps and win the cup.</td><td><span class="tag t-s">silver</span></td></tr>
 </table>
 
-<h3>K. Shape &amp; positions <span class="tag needs">needs formation tracking</span></h3>
+<h3>K. Shape &amp; positions</h3>
 <table>
   <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
   <tr><td class="n">111</td><td class="name">Back Five</td><td class="cond">Win with a five-defender formation.</td><td><span class="tag t-b">bronze</span></td></tr>
@@ -471,7 +484,7 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">118</td><td class="name">Midfield General</td><td class="cond">Win with your highest-rated player in midfield.</td><td><span class="tag t-b">bronze</span></td></tr>
 </table>
 
-<h3>L. Career &amp; streaks <span class="tag needs">some need counters</span></h3>
+<h3>L. Career &amp; streaks</h3>
 <table>
   <tr><th class="n">#</th><th>Name</th><th>Condition</th><th>Tier</th></tr>
   <tr><td class="n">119</td><td class="name">Persistent</td><td class="cond">Finish 25 runs.</td><td><span class="tag t-b">bronze</span></td></tr>
@@ -479,9 +492,9 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">121</td><td class="name">Level Ten</td><td class="cond">Reach level 10.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">122</td><td class="name">Veteran</td><td class="cond">Reach level 25.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">123</td><td class="name">War Chest</td><td class="cond">Hold 200 Prestige at once.</td><td><span class="tag t-b">bronze</span></td></tr>
-  <tr><td class="n">124</td><td class="name">Spendthrift</td><td class="cond">Spend 500 Prestige in total. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
-  <tr><td class="n">125</td><td class="name">On a Roll</td><td class="cond">Win three runs in a row. <span class="tag needs">needs</span></td><td><span class="tag t-g">gold</span></td></tr>
-  <tr><td class="n">126</td><td class="name">Consistency</td><td class="cond">Reach the semi-final or better in five consecutive runs. <span class="tag needs">needs</span></td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">124</td><td class="name">Spendthrift</td><td class="cond">Spend 500 Prestige in total.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr><td class="n">125</td><td class="name">On a Roll</td><td class="cond">Reach a final in three consecutive runs.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr><td class="n">126</td><td class="name">Consistency</td><td class="cond">Reach the semi-final or better in five consecutive runs.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">127</td><td class="name">Challenge Hunter</td><td class="cond">Complete 10 challenges.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">128</td><td class="name">Honours Master</td><td class="cond">Complete 50 challenges.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">129</td><td class="name">Honour Roll</td><td class="cond">Complete 25 challenges.</td><td><span class="tag t-s">silver</span></td></tr>
@@ -569,6 +582,20 @@ states (available, completed, not tracked yet).</p>
 </ul>
 
 <h2>8. The plumbing wave: all 130 judged at launch</h2>
+
+<div class="callout"><span class="ct">Shipped 2026-08-19</span>
+All four slices are in, and the blocked count is zero: 130 of 130 are judged. What follows is
+the plan as written, kept because it is the record of why each field exists. Three notes on
+where the build differs from it. <b>One.</b> <i>Nearly Man</i> needs the run <i>before</i>
+this one, and the counters are updated before the catalogue is judged, so
+<code>lastOutcome</code> is already this run's by then; the career carries
+<code>prevOutcome</code> alongside it. <b>Two.</b> <i>Straight Up</i> needs "this run
+unlocked a tier", which the ceiling cannot answer on its own, so it reads
+<code>cupsByAscension</code>: a cup is the first at its own tier exactly when it unlocks the
+next, since reaching tier T at all means T-1 was already won. <b>Three.</b> The slice-C count
+is nine, not eight: <i>Bargain Bin</i> ("buy five already-owned players") sits in the album
+family but waits on the same build record, so <code>RunBuild</code> carries a
+<code>discounted</code> count.</div>
 
 <p><strong>Goal: no "not tracked yet" entry survives to launch.</strong> 27 do today. Each is
 blocked on a fact nobody records, never on anything hard: the fields all exist somewhere in
@@ -668,9 +695,10 @@ at run end would answer a different question. Chemistry Set is then
 
 <footer>
   Slices 1 and 2 shipped on 2026-08-18: the engine, the catalogue of 130, and the screens.
-  103 entries are judged; section 8 is the plan for the other 27, which is what "all of them
-  available at launch" needs. Awards are behind <code>FEATURES.challengeAwards</code> and
-  currently off, so a challenge completes and is recorded but pays nothing yet.
+  The plumbing wave of section 8 shipped on 2026-08-19, so all 130 entries are judged and the
+  catalogue's "not tracked yet" filter hides itself. Awards are behind
+  <code>FEATURES.challengeAwards</code> and still off, so a challenge completes and is
+  recorded but pays nothing yet.
 </footer>
 
 </body>

@@ -306,7 +306,7 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-18<br>
+    <strong>Updated:</strong> 2026-08-19<br>
     <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
@@ -323,7 +323,7 @@
   <summary>
     <span class="num">01</span>
     <span class="title">Challenges
-      <span class="sub">Something to aim at in Career Mode. Engine, catalogue and screens shipped; 27 entries wait on tracking.</span>
+      <span class="sub">Something to aim at in Career Mode. All 130 shipped and judged; only the Prestige awards are still switched off.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -347,12 +347,13 @@
       moved to item 19, so the catalogue ships before anything rotates through it. That also
       defers the build-page strip and the in-run chips, which only work over a handful of
       targeted challenges.</li>
-      <li><b>About 100 of the 130 need no new tracking.</b> A finished <code>RunState</code>
-      already carries the XI, the outcome, the Ascension, the boosts, and per-round records
+      <li><b>About 100 of the 130 needed no new tracking.</b> A finished <code>RunState</code>
+      already carried the XI, the outcome, the Ascension, the boosts, and per-round records
       with scorelines, how each tie was decided, and goal events including scorer.</li>
-      <li><b>The rest needs small additive plumbing</b>: how the XI was built (roll or
+      <li><b>The rest needed small additive plumbing</b>: how the XI was built (roll or
       budget, and the spend), formation and style, the slot each player filled, chemistry at
-      kickoff, and a few career counters for streaks.</li>
+      kickoff, and a few career counters for streaks. That is the plumbing wave below, now
+      shipped.</li>
       <li><b>Three traps are written down</b>, each already a real bug here once: ratings
       must be judged on the dataset player (<code>run.xi</code> has boost deltas baked in,
       exactly the album's <code>BASE_BY_ID</code> bug), the final XI is not the XI you built
@@ -363,30 +364,30 @@
     <code>viewOf</code> + <code>completedIn</code>), the seam in
     <code>applyRunResult</code>, <code>CareerState.completedChallenges</code> (local, and
     on the server via migration <code>0011</code>), the <code>/challenges</code> catalogue
-    screen, the hub card, and the run-end list. <strong>103 are judged; 27 carry a
-    <code>blocked</code> reason</strong> and render as "not tracked yet". Five new checks
-    cover it: catalogue well-formedness, predicate totality and purity, the three traps as
-    hand-built cases, paid-once accounting, and the fixed-point counter.</p>
+    screen, the hub card, and the run-end list. That first wave left 103 judged and 27
+    carrying a <code>blocked</code> reason; the plumbing wave below cleared the 27. Five
+    checks came with it: catalogue well-formedness, predicate totality and purity, the three
+    traps as hand-built cases, paid-once accounting, and the fixed-point counter.</p>
     <p><strong>The server side is live too</strong>: migration <code>0011</code> was applied
     to the NAS on 2026-08-19 (item 20), so a signed-in player's challenge progress now
     persists and follows them between devices. Guests were unaffected either way.</p>
-    <p><strong>What is left</strong>, in the order it is worth doing:</p>
+    <p><strong>The plumbing wave shipped 2026-08-19</strong>, so <b>all 130 are judged</b>
+    and the catalogue's "not tracked yet" filter hides itself. No SQL migration was needed in
+    any of it, as planned: <code>CareerStats</code> is a merged jsonb column and
+    <code>RunState</code> a jsonb blob, both confirmed against the NAS. What landed:
+    <b>A.</b> ten counters on <code>CareerStats</code>, updated in <code>applyRunResult</code>
+    before the catalogue is judged (cup / final / semi streaks, last and previous outcome,
+    ever-lost-a-final, cups per Ascension tier, runs at Ascension II+, Prestige spent from the
+    perk shop and boon unlocks, cup-winning formations), plus the catalogue fix: On a Roll
+    duplicated Three-Peat and is now "reach a final in three consecutive runs", same id.
+    <b>B.</b> <code>RunState.shape</code>, <b>C.</b> <code>RunState.build</code> and
+    <b>D.</b> <code>RunState.chemistry</code>, all recorded at kickoff by
+    <code>beginRun</code> from what the build page holds, and all optional, so a run saved
+    before the change still finishes. Eight new checks cover it: hand-built career sequences
+    for the streaks, the shape and build predicates against real ratings and prices, and that
+    a run with no kickoff record completes none of it.</p>
+    <p><strong>What is left</strong>:</p>
     <ul>
-      <li><b>The plumbing wave</b> unblocks the last 27, which is what "all of them
-      available at launch" needs. Planned in full as section 8 of
-      <code>docs/challenges-spec.html</code>: four slices, <b>no SQL migration in any of
-      them</b> (<code>CareerStats</code> is a merged jsonb column and <code>RunState</code> is
-      a jsonb blob). <b>A.</b> nine career counters in <code>applyRunResult</code> (cup and
-      final and semi streaks, the previous outcome, ever-lost-a-final, cups per Ascension
-      tier, runs at Ascension II+, Prestige spent, cup-winning formations), plus a catalogue
-      fix: On a Roll currently duplicates Three-Peat and becomes "reach a final in three
-      consecutive runs". <b>B.</b> <code>RunState.shape</code> - formation, style and the slot
-      each player filled, recorded at kickoff because <code>placedPlayers</code> promotes the
-      slot role and boosts change the XI later. <b>C.</b> <code>RunState.build</code> - method,
-      budget, spend, dearest player, re-rolls and swaps used, recorded at kickoff because the
-      album (and so the discount) moves. <b>D.</b> <code>RunState.chemistry</code>, one number
-      from the existing <code>chemistryOf</code>. Every field is optional, so a run saved
-      before the change still finishes.</li>
       <li><b>The awards are off</b> (<code>FEATURES.challengeAwards</code>, added
       2026-08-18) until they are tuned against real runs. A finished run pays roughly 9 to 30
       Prestige; a first cup completes a dozen or more challenges at 10/30/75 each, so early on
@@ -395,12 +396,13 @@
       and are still stored, so turning it on later costs only the arrears.</li>
       <li><b>Trophy cabinet</b> (item 06) can now read <code>completedChallenges</code>.</li>
     </ul>
-    <p class="next"><strong>Next step:</strong> slice A, the career counters. It is the
-    cheapest (one file plus two lines in the spend functions), it needs no new seam between
-    the build page and the run, and it unblocks nine of the 27: Back to Back, Three-Peat,
-    Nearly Man, Ladder Climb, Hard Habit, Straight Up, Spendthrift, On a Roll and
-    Consistency.</p>
-    <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/components/ChallengesScreen.tsx, supabase/migrations/0011_career_challenges.sql</p>
+    <p class="next"><strong>Next step:</strong> turn the awards on. That is the last thing
+    between this item and done, and it is a tuning question rather than a build one: play
+    enough runs to see what the catalogue actually pays out early, then set the bronze /
+    silver / gold numbers against a run's own 9 to 30 Prestige and flip
+    <code>FEATURES.challengeAwards</code>. Everything else is already recorded, so switching
+    it on only owes the arrears.</p>
+    <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/App.tsx, src/components/CupRunScreen.tsx, src/components/ChallengesScreen.tsx, scripts/checks.ts, supabase/migrations/0011_career_challenges.sql</p>
   </div>
 </details>
 

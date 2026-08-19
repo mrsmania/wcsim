@@ -21,6 +21,8 @@ import {
   rerollOffer,
   chemistryOf,
   type RunState,
+  type RunShape,
+  type RunBuild,
   type KoMatch,
   type RoundRecord,
 } from '../domain/run';
@@ -64,6 +66,8 @@ import { OUTCOME_LABEL, koWinHeading, type Reveal, type Reward } from './cupRun/
  *  the final XI's collectibles are banked to the sticker album via onRunEnd. */
 export default function CupRunScreen({
   draftedXi,
+  draftedShape,
+  draftedBuild,
   onReDraft,
   speed,
   onSetSpeed,
@@ -75,6 +79,11 @@ export default function CupRunScreen({
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
+  /** The shape that XI kicks off in, and how it was built: what the build page knows
+   *  and the run cannot recover later, recorded onto the run for the challenge
+   *  catalogue. Null alongside an incomplete XI, and "Replay same XI" reuses both. */
+  draftedShape: RunShape | null;
+  draftedBuild: RunBuild | null;
   /** Reset the draft and go draft a fresh XI (each run is a new team). */
   onReDraft: () => void;
   /** Match playback speed (shared with the main game, so the preference persists). */
@@ -245,7 +254,10 @@ export default function CupRunScreen({
       setCareer(c);
       void store.saveCareer(c);
     }
-    const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen);
+    const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen, {
+      shape: draftedShape ?? undefined,
+      build: draftedBuild ?? undefined,
+    });
     const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);
     setLastKoMatch(null);

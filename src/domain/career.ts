@@ -19,6 +19,32 @@ export interface CareerStats {
   bestFinish: RunOutcome | null;
   /** Highest Ascension tier a cup has been won at (0 = only Base, shown when cups > 0). */
   bestCupAscension: number;
+  // --- Counters the challenge catalogue reads (docs/challenges-spec.html, slice A).
+  // Updated in applyRunResult BEFORE the challenges are judged, so a run completes the
+  // challenge it just satisfied rather than the next one. They live on `stats` because
+  // that is a merged jsonb column on the server, so none of this needed a migration.
+  /** Consecutive runs ending as champion; any other outcome resets it to 0. */
+  cupStreak: number;
+  /** Consecutive runs reaching the final or better. */
+  finalStreak: number;
+  /** Consecutive runs reaching the semi-final or better. */
+  semiStreak: number;
+  /** The outcome of the run just banked. */
+  lastOutcome: RunOutcome | null;
+  /** The outcome of the run before that one. Its own field because challenges are
+   *  judged AFTER the run lands, so "lose a final, then win the cup" cannot read the
+   *  previous run out of `lastOutcome` any more - by then it is this run's. */
+  prevOutcome: RunOutcome | null;
+  /** A final has been lost at least once in this career. */
+  everLostFinal: boolean;
+  /** Cups won per Ascension tier, indexed by tier (may be shorter than the ladder). */
+  cupsByAscension: number[];
+  /** Finished runs played at Ascension II or higher. */
+  runsAtHighAscension: number;
+  /** Lifetime Prestige spent, in the perk shop and on boon unlocks. */
+  prestigeSpent: number;
+  /** Distinct formations a cup has been won with (needs RunState.shape, slice B). */
+  cupFormations: string[];
 }
 
 export interface CareerState {
@@ -52,7 +78,23 @@ export const INITIAL_CAREER: CareerState = {
   unlockedBoons: [],
   ascension: 0,
   completedChallenges: [],
-  stats: { runs: 0, cups: 0, bestScore: 0, bestFinish: null, bestCupAscension: 0 },
+  stats: {
+    runs: 0,
+    cups: 0,
+    bestScore: 0,
+    bestFinish: null,
+    bestCupAscension: 0,
+    cupStreak: 0,
+    finalStreak: 0,
+    semiStreak: 0,
+    lastOutcome: null,
+    prevOutcome: null,
+    everLostFinal: false,
+    cupsByAscension: [],
+    runsAtHighAscension: 0,
+    prestigeSpent: 0,
+    cupFormations: [],
+  },
 };
 
 /** Flat XP per level. Tuned so the level gates on perks/Ascension actually bite:
@@ -83,6 +125,28 @@ function betterFinish(a: RunOutcome | null, b: RunOutcome | null): RunOutcome | 
   if (!b) return a;
   return FINISH_ORDER.indexOf(b) > FINISH_ORDER.indexOf(a) ? b : a;
 }
+/** Whether an outcome reached `least` or better (null = the run never finished). */
+const reached = (o: RunOutcome | null, least: RunOutcome): boolean =>
+  !!o && FINISH_ORDER.indexOf(o) >= FINISH_ORDER.indexOf(least);
+
+/** `counts` with one more at index `i`, growing it as needed. Defensive about the
+ *  stored value: `stats` is a merged blob, so an old or hand-edited save can hand back
+ *  something that is not an array. */
+function bumpAt(counts: number[], i: number): number[] {
+  const next = Array.isArray(counts) ? [...counts] : [];
+  while (next.length <= i) next.push(0);
+  next[i] += 1;
+  return next;
+}
+/** `list` with `value` appended if it is not already there (same defensiveness). */
+const withValue = (list: string[], value: string): string[] => {
+  const next = Array.isArray(list) ? list : [];
+  return next.includes(value) ? next : [...next, value];
+};
+
+/** The Ascension tier at which a run counts as "high" for the career counters, i.e.
+ *  Ascension II. Named so the challenge copy and the counter cannot drift apart. */
+export const HIGH_ASCENSION = 2;
 
 /** One purchasable step of a perk track. `cost` is Prestige for THIS tier; `levelReq`
  *  is the career level needed to buy it (this is where Level earns its keep). */
@@ -242,6 +306,26 @@ export function applyRunResult(career: CareerState, run: RunState, ch?: Challeng
       bestCupAscension: wonCup
         ? Math.max(career.stats.bestCupAscension, run.ascension)
         : career.stats.bestCupAscension,
+      // The streaks count THIS run too, so three cups in a row completes Three-Peat on
+      // the third rather than the fourth. Any lesser finish resets the streak it breaks.
+      cupStreak: wonCup ? career.stats.cupStreak + 1 : 0,
+      finalStreak: reached(outcome, 'final') ? career.stats.finalStreak + 1 : 0,
+      semiStreak: reached(outcome, 'sf') ? career.stats.semiStreak + 1 : 0,
+      lastOutcome: outcome,
+      prevOutcome: career.stats.lastOutcome,
+      everLostFinal: career.stats.everLostFinal || outcome === 'final',
+      cupsByAscension: wonCup
+        ? bumpAt(career.stats.cupsByAscension, run.ascension)
+        : career.stats.cupsByAscension,
+      runsAtHighAscension:
+        career.stats.runsAtHighAscension + (run.ascension >= HIGH_ASCENSION ? 1 : 0),
+      // Spending is the only thing here the run does not decide; buyPerkTier and
+      // unlockBoon keep it, so it just rides along.
+      prestigeSpent: career.stats.prestigeSpent,
+      cupFormations:
+        wonCup && run.shape
+          ? withValue(career.stats.cupFormations, run.shape.formation)
+          : career.stats.cupFormations,
     },
   };
   // Challenges are judged against the career AFTER this run's XP/Prestige/stats land,
@@ -275,6 +359,7 @@ export function buyPerkTier(career: CareerState, perkId: string): CareerState {
     ...career,
     prestige: career.prestige - tier.cost,
     perkLevels: { ...career.perkLevels, [perkId]: tier.level },
+    stats: { ...career.stats, prestigeSpent: career.stats.prestigeSpent + tier.cost },
   };
 }
 
@@ -289,5 +374,6 @@ export function unlockBoon(career: CareerState, boonId: string): CareerState {
     ...career,
     prestige: career.prestige - cost,
     unlockedBoons: [...career.unlockedBoons, boonId],
+    stats: { ...career.stats, prestigeSpent: career.stats.prestigeSpent + cost },
   };
 }
