@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-19<br>
-    <strong>Open:</strong> 9 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -318,164 +318,6 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">01</span>
-    <span class="title">Challenges
-      <span class="sub">Something to aim at in Career Mode. All 130 shipped and judged and the awards now tuned; the arrears and the switch are what is left.</span>
-    </span>
-    <span class="tag">Career</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The highest-value gap. The career layer has no goals: you play, you earn Prestige, you
-    buy perks, and that is the entire loop. Challenges give a reason to attempt a particular
-    kind of run rather than the same strongest one, they give Prestige a second faucet, and
-    they are what would fill the trophy cabinet (item 06, which waits on this).</p>
-    <p><strong>Planned 2026-08-18 in <code>docs/challenges-spec.html</code></strong>: the
-    model, the evaluation seam, a 130-challenge catalogue in twelve families, the app
-    surfaces, and the build order. Read that first; the summary is:</p>
-    <p>The look is drawn in <code>docs/redesign-2026/turf-flat/challenges.html</code>, a comp
-    in the same house style as the album: the hub Challenges card, the catalogue screen with
-    its completion counter, filters and all 130 entries in their three states, and the
-    run-end reward moment.</p>
-    <ul>
-      <li><b>Every challenge is permanent</b> (decided 2026-08-18). "Honours" are the whole
-      catalogue, completable once each, each worth a fixed Prestige award. The rotating
-      three-at-a-time layer the plan originally paired with them is cut from this item and
-      moved to item 19, so the catalogue ships before anything rotates through it. That also
-      defers the build-page strip and the in-run chips, which only work over a handful of
-      targeted challenges.</li>
-      <li><b>About 100 of the 130 needed no new tracking.</b> A finished <code>RunState</code>
-      already carried the XI, the outcome, the Ascension, the boosts, and per-round records
-      with scorelines, how each tie was decided, and goal events including scorer.</li>
-      <li><b>The rest needed small additive plumbing</b>: how the XI was built (roll or
-      budget, and the spend), formation and style, the slot each player filled, chemistry at
-      kickoff, and a few career counters for streaks. That is the plumbing wave below, now
-      shipped.</li>
-      <li><b>Three traps are written down</b>, each already a real bug here once: ratings
-      must be judged on the dataset player (<code>run.xi</code> has boost deltas baked in,
-      exactly the album's <code>BASE_BY_ID</code> bug), the final XI is not the XI you built
-      (<code>boostedIds</code>), and shootout goals are not goals conceded.</li>
-    </ul>
-    <p><strong>Shipped 2026-08-18</strong>, the engine and the screens:
-    <code>domain/challenges.ts</code> (the model, all 130 entries in 12 families,
-    <code>viewOf</code> + <code>completedIn</code>), the seam in
-    <code>applyRunResult</code>, <code>CareerState.completedChallenges</code> (local, and
-    on the server via migration <code>0011</code>), the <code>/challenges</code> catalogue
-    screen, the hub card, and the run-end list. That first wave left 103 judged and 27
-    carrying a <code>blocked</code> reason; the plumbing wave below cleared the 27. Five
-    checks came with it: catalogue well-formedness, predicate totality and purity, the three
-    traps as hand-built cases, paid-once accounting, and the fixed-point counter.</p>
-    <p><strong>The server side is live too</strong>: migration <code>0011</code> was applied
-    to the NAS on 2026-08-19 (item 20), so a signed-in player's challenge progress now
-    persists and follows them between devices. Guests were unaffected either way.</p>
-    <p><strong>The plumbing wave shipped 2026-08-19</strong>, so <b>all 130 are judged</b>
-    and the catalogue's "not tracked yet" filter hides itself. No SQL migration was needed in
-    any of it, as planned: <code>CareerStats</code> is a merged jsonb column and
-    <code>RunState</code> a jsonb blob, both confirmed against the NAS. What landed:
-    <b>A.</b> ten counters on <code>CareerStats</code>, updated in <code>applyRunResult</code>
-    before the catalogue is judged (cup / final / semi streaks, last and previous outcome,
-    ever-lost-a-final, cups per Ascension tier, runs at Ascension II+, Prestige spent from the
-    perk shop and boon unlocks, cup-winning formations), plus the catalogue fix: On a Roll
-    duplicated Three-Peat and is now "reach a final in three consecutive runs", same id.
-    <b>B.</b> <code>RunState.shape</code>, <b>C.</b> <code>RunState.build</code> and
-    <b>D.</b> <code>RunState.chemistry</code>, all recorded at kickoff by
-    <code>beginRun</code> from what the build page holds, and all optional, so a run saved
-    before the change still finishes. Eight new checks cover it: hand-built career sequences
-    for the streaks, the shape and build predicates against real ratings and prices, and that
-    a run with no kickoff record completes none of it.</p>
-    <p><strong>The catalogue was made quieter on 2026-08-19</strong>, the "Ledger" option
-    from <code>docs/redesign-2026/turf-flat/challenges-quieter-mock.html</code>. The screen
-    had been painting all 130 entries at once: a family hue on every card's left edge, a
-    filled tier chip in three more hues, a status caption in its own colour and the tifo
-    hard shadow, about 400 coloured elements at rest, so nothing on it read. 130 honours
-    want a list, not a grid of tiles, so the cards are gone: hairline rows two to a line
-    inside each family, and the colour budget is down to about 40. The family accent is
-    spent once per family, as the rule under its heading, never on an entry. Tier stops
-    being a colour and becomes three monochrome pips, which is what it actually says while
-    the awards are off (difficulty, a scale rather than a category), in the counter's legend
-    as well as on the rows. Earned is the only ink on the page: a completed entry is full
-    strength with a green tick, everything else is grey, and an entry waiting on tracking
-    just fades a step further with a lock and its reason on hover, no red, because "not
-    tracked yet" is not a failure. Two greys came in as tokens for it, <code>--color-dim</code>
-    (the unearned name and description, held at AA on all three surfaces: greyed out, never
-    unreadable) and <code>--color-hair</code> (the row rule, a step lighter than
-    <code>--color-line</code> so 130 of them recede). The two-column grid is a grid rather
-    than CSS columns on purpose: a grid row levels both cells' heights, which keeps the pair
-    of hairlines in line when one description wraps and the other does not. It collapses to
-    one column below 700px. <b>To see it:</b> open <code>/challenges</code> from the Cup Run
-    hub, in both themes.</p>
-    <p><strong>First Blood was unreachable, fixed 2026-08-19.</strong> It read
-    <code>wonCup &amp;&amp; stats.cups === 1</code>, and <code>stats.cups</code> has been
-    counting since career mode shipped, long before the catalogue did. So on any career
-    that had already won a cup the counter was past 1 and only ever climbed: the entry was
-    locked shut by the player having played earlier, the one thing in the catalogue you
-    could be shut out of. It is plain <code>wonCup</code> now, which says the same thing
-    without reading a counter, since a completion is one-shot and permanent anyway. The
-    general rule went into CLAUDE.md as a fourth trap: thresholds are fine, exact equality
-    on a lifetime counter is not. A check asserts a veteran career still takes it.
-    <b>To see it:</b> win a Cup Run on a career that already has cups; First Blood is in
-    the run-end list.</p>
-    <p><strong>The awards were tuned by simulation, 2026-08-19.</strong> The blocker was
-    always "play enough runs to see what the catalogue pays", which is a thing a machine can
-    do faster: a throwaway probe played <b>16 careers of 150 real Cup Runs</b> through the
-    actual engine (budget-built XI each time, boosts taken at random, Ascension climbing as
-    it unlocks, the album growing so its challenges and the owned-sticker discount both
-    move), banking every run through <code>applyRunResult</code> with a real
-    <code>ChallengeInput</code> and paying each candidate schedule into its own wallet, with
-    a greedy shopper spending it the way a player would.</p>
-    <p>The anchor that settles it is not the run reward, it is <b>the shop: every perk tier
-    plus every locked boost costs 2,525 Prestige</b>. Measured against that:</p>
-    <ul>
-      <li><b>A run pays a median of 9</b> Prestige (p25 4, p75 16, best seen 63), and 150
-      runs earn about 1,930 without any challenge income, so runs alone do not buy the shop
-      out inside a long career.</li>
-      <li><b>10/30/75 was worth 4,705</b> for the full catalogue, <b>186% of the shop</b>,
-      and 56% of everything a 150-run career earns. The catalogue would have been the
-      primary faucet and the runs the side income, which is backwards. Now confirmed rather
-      than suspected, which is what the item was waiting for.</li>
-      <li><b>3/8/20 is the pick.</b> The full catalogue is worth 1,266, <b>50% of the
-      shop</b>; challenges come to <b>a quarter</b> of a long career's Prestige; and the
-      shop, never bought out inside 150 runs today, buys out around run 140. A real second
-      faucet that shortens the grind without replacing it.</li>
-      <li>The neighbours, for the record: 5/12/30 gives 76% of the shop and a 35% share,
-      4/10/25 gives 63% and 31%, 2/6/15 gives 37% and 21%. The curve is smooth, so the exact
-      pick is a taste question inside that band rather than a cliff edge.</li>
-      <li><b>The early game is a windfall, deliberately.</b> At 3/8/20 the first run pays
-      about 25 from challenges against 8 from the run, and the <b>first cup pays about 168
-      against the run's own 28</b>. That is roughly the five cheapest perk tiers at once,
-      which reads as the shop opening up rather than as a broken economy. It is also the
-      most lopsided moment in a career, so it is the thing to eyeball in play before the
-      switch goes on.</li>
-      <li><b>Awards buy but do not gate.</b> Challenge Prestige grants no XP, so the level
-      requirements on the dearest perk tiers (up to level 32) can still only be met by
-      playing. That is a good property and worth keeping if the numbers move again.</li>
-    </ul>
-    <p><code>AWARD</code> is set to <b>3 / 8 / 20</b> in <code>domain/challenges.ts</code>,
-    with the reasoning in a comment beside it. Nothing pays or shows yet, since
-    <code>FEATURES.challengeAwards</code> still governs both halves.</p>
-    <p><strong>What is left</strong>:</p>
-    <ul>
-      <li><b>Decide the arrears.</b> Found while checking: switching the awards on does
-      <i>not</i> pay for challenges already completed. The wallet is only ever credited by
-      <code>applyRunResult</code>, for the ids completed in that run, while the catalogue's
-      "Prestige earned" cell and the hub's counter are both computed from every completion
-      held (<code>challengeProgress</code>). So on the day it is flipped the screen will
-      report a total the wallet never received, and the two stay apart by exactly the
-      backlog. Either pay the arrears once on first load after the switch, or show only what
-      was actually paid. Small either way, but it has to be chosen before the switch rather
-      than after.</li>
-      <li><b>Then flip <code>FEATURES.challengeAwards</code></b>, ideally after a few runs
-      against the new numbers to sanity-check the first-cup moment above.</li>
-      <li><b>Trophy cabinet</b> (item 06) can now read <code>completedChallenges</code>.</li>
-    </ul>
-    <p class="next"><strong>Next step:</strong> pick the arrears behaviour, then turn the
-    awards on. The numbers are no longer the open question.</p>
-    <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, docs/redesign-2026/turf-flat/challenges-quieter-mock.html, src/index.css, src/components/challengeUi.tsx, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/App.tsx, src/components/CupRunScreen.tsx, src/components/ChallengesScreen.tsx, scripts/checks.ts, supabase/migrations/0011_career_challenges.sql</p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -849,6 +691,58 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>01 Challenges.</b> Done 2026-08-19. Permanent honours over a finished Cup
+      Run: <b>130 one-off goals in 12 families</b>, each worth Prestige, giving the career
+      layer something to aim at besides "earn Prestige, buy perks". Planned in
+      <code>docs/challenges-spec.html</code>; <code>domain/challenges.ts</code> holds the
+      model, the catalogue, <code>viewOf</code> and <code>completedIn</code>, with the seam
+      in <code>applyRunResult</code> and the whole of the state in
+      <code>CareerState.completedChallenges</code>. Surfaces: the <code>/challenges</code>
+      catalogue, the career-hub block, and the run-end list.
+      <br><b>Decided: everything is permanent</b>, completable once and never expiring. The
+      rotating three-at-a-time layer originally paired with it moved to item 19, which
+      reads this same catalogue; that also deferred the build-page strip and the in-run
+      chips, which only work over a handful of targeted challenges rather than 130.
+      <br><b>All 130 are judged.</b> About 100 needed no new tracking; the plumbing wave
+      added <code>RunState.shape</code> / <code>build</code> / <code>chemistry</code> (all
+      recorded at kickoff, all optional so an older run still finishes) and ten
+      <code>CareerStats</code> counters for the streaks, updated <i>before</i> the catalogue
+      is judged so a run completes what it just satisfied. Thirteen checks cover it.
+      <br><b>Four traps, each a real bug here once</b>, written up in CLAUDE.md: ratings are
+      judged on the dataset player and not the boosted copy; the final XI is not the XI you
+      built (<code>boostedIds</code>); shootout goals are not goals conceded; and never key
+      an entry to an exact lifetime count - First Blood was <code>stats.cups === 1</code>
+      and so was unreachable on any career that had already won a cup, found by playing.
+      <br><b>The catalogue is a ledger, not a grid of cards.</b> The first version painted a
+      family hue, a tier chip, a status caption and the tifo shadow onto every one of the
+      130, so nothing read. Reworked to hairline rows two to a line, the family accent spent
+      once per family as the rule under its heading, tier as monochrome pips rather than a
+      colour, and earned as the only ink. Two tokens came with it,
+      <code>--color-dim</code> and <code>--color-hair</code>.
+      <br><b>The awards are on, at 3/8/20</b>, tuned by simulating 16 careers of 150 real
+      Cup Runs rather than by guessing. The anchor is the shop, not the run reward: every
+      perk tier plus every locked boost costs 2,525 Prestige and a run pays a median of 9.
+      The original 10/30/75 made the full catalogue worth 4,705, 186% of the shop and 56% of
+      a career's whole income, which is what had kept the switch off; 3/8/20 makes it 1,266,
+      about half the shop and a quarter of career income, so runs stay the primary faucet.
+      A nice property to preserve: awards <i>buy</i> but do not <i>gate</i>, since challenge
+      Prestige grants no XP and the dear perk tiers are level-locked up to level 32.
+      <br><b>A level gate was considered and rejected on the data.</b> Opening the catalogue
+      at level 3 sounds like good onboarding, but level 3 arrives around run 8 while the
+      first cup is won around run 4, so 14 to 16 careers in 16 win the cup before the
+      catalogue opens and are paid nothing for the best moment in the game. It changes the
+      economy not at all (24 to 26% at every gate from level 1 to 5) and permanently costs 2
+      to 4 suppressed challenges. If the onboarding worry returns, the version that works is
+      to keep judging from run 1 and gate only the <i>reveal</i>, paying the backlog as one
+      catch-up at the unlock (about 240 Prestige over 34 challenges at level 3).
+      <br>The arrears question dissolved with no production save to owe, though the
+      behaviour is recorded in the flag's comment: flipping
+      <code>FEATURES.challengeAwards</code> does not pay a backlog, because the wallet is
+      credited per run while the counter is computed from every completion held.
+      <br>Server side: <code>completed_challenges</code> is one column on
+      <code>career</code> (migration <code>0011</code>, applied to the NAS the same day, see
+      item 20). <b>Item 06</b> (trophy cabinet) can now read it, and <b>item 19</b> (daily
+      challenges) reads this same catalogue, so neither needs anything further.</li>
       <li><b>20 Migration 0011 applied on the NAS.</b> Done 2026-08-19, which closes the
       one manual step item 01 left behind: <code>career.completed_challenges</code> now
       exists on the server, so a signed-in player's challenge progress is saved and follows

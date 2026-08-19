@@ -666,20 +666,29 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   original 10/30/75 guess was worth 4705, nearly twice the shop. If the numbers ever move,
   keep the property that **awards buy but do not gate**: challenge Prestige grants no XP,
   so the level requirements on the dearest perk tiers can still only be met by playing.
-- **Awards are behind their own flag, `FEATURES.challengeAwards`, currently OFF.** One
-  switch for both halves deliberately: with it false nothing is paid **and** no award is
-  shown anywhere (`AWARDS_ON` gates the catalogue cards, the hub card, the run-end list and
+- **Awards are behind their own flag, `FEATURES.challengeAwards`, ON since 2026-08-19.**
+  One switch for both halves deliberately: with it false nothing is paid **and** no award is
+  shown anywhere (`AWARDS_ON` gates the catalogue rows, the hub card, the run-end list and
   the counter's Prestige cell), because Prestige arriving from an invisible source is worse
-  than either. Completions still happen and are still stored, so switching it on later
-  costs nothing but the arrears. The reason it is off: a run pays roughly 9 to 30 Prestige
-  and a first cup clears a dozen challenges at 10/30/75, so the catalogue would be by far
-  the bigger faucet early on (now measured, not assumed - see the `AWARD` note above; the
-  numbers were the open question and no longer are). The tier stays visible either way - as
-  pips, it reads as difficulty. **Switching the flag on does not pay the backlog:** the
-  wallet is only credited by `applyRunResult` for the ids completed in that run, while
-  `challengeProgress().prestige` (the catalogue counter and the hub) is computed from every
-  completion held, so the display and the wallet would disagree by exactly the arrears
-  until that is decided one way or the other.
+  than either. It was off until the numbers were tuned by simulation (see the `AWARD` note
+  above); the tier stays visible either way, as pips reading as difficulty. Two things to
+  keep in mind:
+  - **Flipping it on does not pay the backlog.** The wallet is only credited by
+    `applyRunResult` for the ids completed in that run, while `challengeProgress().prestige`
+    (the catalogue counter and the hub) is computed from every completion held, so the
+    display and the wallet disagree by exactly the arrears. It cost nothing when it went on,
+    because there was no real save to owe, but it would if the flag is ever cycled.
+  - **The `+N` on a row is green only when the entry is earned.** Painting all 130 accent
+    puts the ledger straight back to a field of colour, which is the one thing that layout
+    exists to avoid.
+- **A level gate was considered and rejected** (2026-08-19), on measurement rather than
+  taste: opening the catalogue at level 3 sounds like onboarding, but level 3 arrives around
+  run 8 while the first cup is won around run 4, so 14 to 16 careers in 16 win the cup
+  before it opens and are paid nothing for it. It leaves the economy unchanged (24-26% at
+  every gate from level 1 to 5) and permanently costs 2-4 suppressed challenges. If the
+  onboarding worry returns, gate only the **reveal**: keep judging from run 1 and pay the
+  backlog as one visible catch-up at the unlock (~240 Prestige over ~34 challenges at
+  level 3), which loses nothing and makes the unlock a moment.
 - **All 130 are judged.** The plumbing wave (2026-08-19, section 8 of the spec) cleared the
   27 that used to carry a `blocked` reason, so the catalogue screen's "not tracked yet"
   filter and legend chip hide themselves. No SQL migration was needed: `CareerStats` is a

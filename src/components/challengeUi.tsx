@@ -145,8 +145,15 @@ export function ChallengeLedgerRow({
           {challenge.description}
         </span>
       </span>
+      {/* Green only once it is yours. The award is on all 130 rows, so painting it
+          accent regardless would put the page straight back to a field of colour, which
+          is the one thing this layout exists to avoid: earned is the only ink. */}
       {AWARDS_ON && (
-        <span className="mt-px shrink-0 font-mono text-[11.5px] font-bold text-accent">
+        <span
+          className={`mt-px shrink-0 font-mono text-[11.5px] font-bold ${
+            done ? 'text-accent' : 'text-dim'
+          }`}
+        >
           +{AWARD[challenge.tier]}
         </span>
       )}
