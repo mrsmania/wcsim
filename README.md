@@ -5,8 +5,12 @@ three decades (position by position, each from a randomly rolled national team),
 then take them through a simulated group stage and knockout rounds to try to win
 the World Cup.
 
-Pure client-side. No backend, no database. All player data lives in fixed
-TypeScript objects under `src/data/`.
+Client-side by default: played as a guest there is no backend and no database, and all
+player data lives in fixed TypeScript objects under `src/data/`. Accounts are the one
+optional exception - point the build at a Supabase server and your album, career and
+in-progress run follow you between devices (requirements in
+`docs/cloud-sync-requirements.md`, server setup in `docs/nas-setup.md`); with no server
+configured that whole layer is absent from the bundle.
 
 > **All nine tournaments from 1990 to 2022 are researched full datasets** - about
 > 6,270 player rows. 1990 and 1994 are 24-nation fields, 1998 onward are 32; squad
@@ -50,9 +54,15 @@ src/
                position display helpers), squads.ts (the dataset)
   domain/      pure logic: formations, draft, match (sim + shootout), tournament
                (group/standings), knockout + bracket (16-team tree), clock (playback),
-               chemistry, validateSquads (dev-time dataset checks)
+               chemistry, odds, difficulty, validateSquads (dev-time dataset checks),
+               plus the flagged layers: album (stickers), pricing + budget (transfer
+               market), boons / run / career / ascension (Cup Run), challenges
   state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group ->
-               knockout) + persist.ts (whole game <-> localStorage)
+               knockout) + store/ (one persistence seam, local or account-backed)
+               over persist.ts / albumStorage.ts / careerStorage.ts / runStorage.ts /
+               settingsStorage.ts, and auth.ts for accounts
+  hooks/       useMatchClock (match reveal), useFollowBottom (auto-scroll),
+               useSettings (theme / difficulty / year pool), useStickerAlbum
   components/  SetupPanel, SquadPanel, Pitch (+ PlayerBadge), BoxScore (ratings +
                chemistry), XiTable (line-up sheet), CompletePanel, the group screen
                (TournamentScreen -> GroupDrawReveal modal / StandingsTable / MatchdayCard)
@@ -94,6 +104,12 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Team chemistry: cohesion bonus to the user XI, feature-flagged in `src/config.ts`
 - [x] Squad browser: browse every squad by World Cup or by team (with all-time "Legends" per team), feature-flagged
 - [x] Real URLs with working browser Back / Forward; the in-progress game persists across a refresh
+- [x] Transfer market: build the XI by buying within a budget instead of rolling squads, feature-flagged
+- [x] Sticker album: a persistent Panini-style collection of the elite players you draft, with duplicates and trades, feature-flagged
+- [x] Cup Run + career: a roguelike run (boosts between rounds, an Ascension difficulty ladder) over a persistent career of XP, levels, Prestige and tiered perks, feature-flagged
+- [x] Challenges: 130 permanent honours judged from a finished run, feature-flagged (their Prestige awards are currently switched off)
+- [x] Optional accounts: sign in with an emailed code and your album, career, settings and in-progress run live on a server instead of the browser (absent unless the build is given one)
+- [x] Settings: match speed, a casual/normal/hard difficulty, a light/dark theme, and which World Cups the game draws from
 
 ## Hosting
 

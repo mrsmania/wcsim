@@ -1,7 +1,10 @@
 # Budget Draft ("Transfer Market") - Requirements
 
-**Status:** Requirements + high-level design. The pricing model is implemented
-(`src/domain/pricing.ts`); the UI + integration are specified here, not yet built.
+**Status:** Shipped (behind `FEATURES.budgetDraft`), so this reads as the requirements
+record rather than a plan. Two things it proposes were decided otherwise while building:
+the market is the **left column of the existing build page**, not a separate `/build`
+screen (which briefly existed and was removed), and the auto-fill helper is randomized.
+See `CLAUDE.md` "Budget draft / Transfer Market" for the shipped shape.
 **Goal:** let the player build their XI in **two ways** - the current random roll, or a
 fixed-budget market where they hand-pick players priced by rating.
 

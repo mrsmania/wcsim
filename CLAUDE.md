@@ -142,9 +142,16 @@ src/
                odds.ts       (simulateTitleOdds: Monte-Carlo an XI's cup-win % over
                               many simulated tournaments; drives the Cup Run readout)
                pricing.ts    (budget-draft price by rating; convex; BUDGET from config)
+               budget.ts     (the market's randomized "Auto-fill & spend")
                boons.ts      (Cup Run boons: rating + roster transforms; gated)
                run.ts        (Cup Run state machine; chemistryOf; gated - see below)
                career.ts     (Cup Run career: XP/level/Prestige/perks; gated)
+               ascension.ts  (the Cup Run difficulty ladder: handicap, draw slope,
+                              reward multiplier, level gate - see below)
+               difficulty.ts (the casual/normal/hard setting: +3/0/-3 to the user's
+                              own attack + defense, nothing else)
+               challenges.ts (the 130-entry catalogue + completedIn; gated - see below)
+               random.ts     (shuffled + pick, the shared Math.random helpers)
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
                fully built XI; a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER
@@ -154,7 +161,10 @@ src/
                (the sticker album <-> its own localStorage keys), careerStorage.ts
                (the Cup Run career <-> wcsim_career_v1), runStorage.ts, settingsStorage.ts
   hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
-               match-reveal clock used by both tournament screens)
+               match-reveal clock used by both tournament screens), useSettings.ts
+               (theme / difficulty / year pool, through the store), useStickerAlbum.ts
+               (the album + the run-end banking rule, see below), motion.ts
+               (prefersReducedMotion)
   components/  presentational React (App composes them); the group screen
                (TournamentScreen) splits into GroupDrawReveal / StandingsTable /
                MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
@@ -164,9 +174,11 @@ src/
                screen; BudgetMarket is the budget build's left-column panel (shares
                the home page's Pitch + ratings/line-up, not a separate screen)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
-               randomTeam, squadBrowser, stickerAlbum, stickerImages, careerMode,
-               budgetDraft) +
-               STICKER_TIERS / STICKER_TRADE_COST + BUDGET_DRAFT
+               randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
+               stickerImages, careerMode, budgetDraft, challenges, challengeAwards;
+               plus `accounts`, which is DERIVED from the build env, see below) +
+               STICKER_TIERS / STICKER_TRADE_COST / STICKER_DISCOUNT +
+               BUDGET_DRAFT / BUDGET_BY_TIER
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
@@ -269,6 +281,28 @@ rather than partially.
   open slot. `canPlace` allows any slot whose role is in `positions`; re-rolls are
   "another team" (same year), "another cup" (same nation), or "any".
 - **Chemistry** (`chemistry.ts`, see below).
+
+## Settings (theme, difficulty, year pool, speed)
+
+`SettingsModal.tsx` is the sheet behind the masthead's settings button. It shows four
+controls, and they do **not** all live in the same place, which is the thing to know before
+looking for one:
+
+- **Persisted preferences** (`hooks/useSettings.ts` over `state/settingsStorage.ts`, key
+  `wcsim_settings_v1`, through the store seam, seeded from the boot snapshot): `theme`
+  (`light | dark`, applied to the document by the hook), `difficulty`
+  (`casual | normal | hard` -> `domain/difficulty.ts`, which adds +3 / 0 / -3 to the
+  **user's own** attack and defense in their matches and touches nothing else), and
+  `poolYears`.
+- **Match `speed`** is reducer state (`SET_SPEED`, default `fast`), not a preference,
+  because it belongs to playback of the run in progress. The modal just receives it.
+
+**`poolYears` is the one with reach.** It is which World Cups the game draws from, and
+`squadsInPool(years)` (data/squads.ts) narrows the pool that `App` derives once and hands
+to the squad rolls, the transfer market, the opponents, and the sticker album's completion
+target. Defaults to every year; it is **never empty** (an empty selection falls back to
+all), and loading tolerates years that are not in the dataset. Keeping settings on their
+own key is deliberate: resetting the game, album, career or run never touches them.
 
 ## The dataset (`src/data/squads.ts`)
 
@@ -393,9 +427,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 39 / 12 / 2 = 53 across the dataset). Collectibility
-  is derived at runtime (`domain/album.ts` `tierOf`), so adding players/tournaments
-  grows the album automatically - no lookup table.
+  **Monumental** 97-99 (currently 58 / 18 / 5 = **81** across the dataset; it was 53 before
+  the 1990-2002 squads were researched, so re-derive a count rather than trusting one
+  written down here). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),
   `executeTrade`, `pendingNewStickers`, `albumStats`, plus the `AlbumState`
@@ -403,12 +438,13 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 - **Persistence.** `state/albumStorage.ts` owns `wcsim_album_v1` (the collection) and
   `wcsim_album_stats_v1` (trade-cost telemetry: runsPlayed / stickersEarned /
   tradesCompleted), **separate keys from the game** so a reset never wipes the album.
-  `App` holds `album` in `useState(loadAlbum)` and prop-drills it (no context).
-- **Earning: `FEATURES.stickersOnCupWinOnly`** (added 2026-08-15). **True (default):**
-  only a cup win banks - it used to bank on any run end, including a group exit, which
-  made the album a record of who you had *drafted* rather than what you had *won*.
-  **False:** the old behaviour, any finished run banks the final XI. The flag also
-  switches the copy that explains it (home page, draft call-out).
+  `App` gets the album from the boot snapshot and holds it in `useStickerAlbum`
+  (hooks/), which owns the banking rule and prop-drills the result (no context).
+- **Earning: `FEATURES.stickersOnCupWinOnly`** (added 2026-08-15, and **set back to
+  `false` the same day**, which is the shipped setting). **False:** any finished run banks
+  the final XI, so the album records who you *drafted*. **True:** only a cup win banks, so
+  it records what you *won*. The flag also switches the copy that explains it (home page,
+  draft call-out).
   Stickers are never awarded mid-run either way.
   On a **cup win** `App` shows `CupRewardPicker` (pick any one uncollected Legendary or
   Iconic sticker - Monumental excluded, FR-3/D-1) and then banks the **final XI**'s
@@ -564,10 +600,13 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   `onRunEnd`; `App` applies them (a loss banks immediately; a cup win shows `CupRewardPicker`
   first), then the shared `RunEndStickerSummary` shows any new cards. Reload-safe via the flag.
 - **Career** (`domain/career.ts`, `state/careerStorage.ts` key `wcsim_career_v1`):
-  a run awards XP (-> levels) and Prestige, spent in a small perk shop (Scout Network,
-  Deep Squad, Extra Choice, Transfer Budget, Physio Table, Extra Re-roll) that feeds the
-  next run. The shop is data-driven off `PERKS`, so a new perk appears by being added
-  there; what needs wiring is only its effect. A trophy record (runs/cups/best) sits in
+  a run awards XP (-> levels, `XP_PER_LEVEL = 200`) and Prestige, spent in a perk shop of
+  six tracks (Scout Network, Deep Squad, Extra Choice, Transfer Budget, Physio Table, Extra
+  Re-roll) that feeds the next run. **Perks are tiered and level-gated**, not one-off buys:
+  each track has two steps except Transfer Budget's eight, every step costs Prestige and
+  carries a `levelReq`, so a level is a gate rather than a decoration. The shop is
+  data-driven off `PERKS`, so a new perk or tier appears by being added there; what needs
+  wiring is only its effect. A trophy record (runs/cups/best) sits in
   the `CupRunScreen` hub. Separate storage from the game + album.
   **Two perks reach outside the run**, both Career-Mode-only and both read in `App`
   (a Quick Run keeps the plain defaults): `transfer-budget` -> `BUDGET_BY_TIER` -> the
@@ -584,8 +623,23 @@ A roguelike layer over the core loop, plus a persistent career. Design:
 - **Cup-win confetti.** A Cup Run that ends as `champion` rains the shared `Confetti`
   (same self-contained canvas as the main game; `run?.outcome === 'champion'` in
   `CupRunScreen`), layering above the cup-win reward picker like the standard game.
-- Known gaps (prototype): the career meta-layer is still thin - level is a cosmetic XP
-  tally with no mechanical effect, and Prestige only buys the 3 perks (no lasting sink).
+- **Ascension** (`domain/ascension.ts`) is the run's difficulty ladder, chosen per run:
+  Base plus five tiers, each handing the user a rating handicap in **their own** matches
+  (0 to -10, the same lever as the difficulty setting), steepening the knockout draw toward
+  stronger squads, and multiplying the run's XP + Prestige (1.0 to 2.25). A tier unlocks by
+  winning a cup at the tier below **and** reaching its `levelReq` (1/3/6/10/20/30), so the
+  ceiling is earned twice over. `run.ts` applies the levers; `career.ts` keeps the unlock
+  and the reward multiplier. Not to be confused with `domain/difficulty.ts`, the player's
+  own casual/normal/hard **setting** (+3/0/-3 to the user's attack and defense, nothing
+  else), which is orthogonal and applies in both modes.
+- **Prestige also unlocks boosts.** 6 of the 19 boons are `starter`s; the rest are bought
+  into the offer pool with Prestige (`BOON_UNLOCK_COST` common 15 / rare 30 / legendary 55,
+  `unlockBoon`, the pool shown in `CareerHub`), and `availableBoons(unlockedBoons)` is what
+  an offer draws from. So Prestige has two sinks, perk tiers and boost unlocks, and (once
+  `FEATURES.challengeAwards` goes on) challenge awards would be its second faucet.
+- Known gaps (prototype): the layer is deeper than it looks from `CareerState` alone, but
+  Ascension's tuning is a first pass (`ASCENSIONS` is marked tunable, and the odds sim in
+  `domain/odds.ts` is the tool for it), and level does nothing beyond gating.
 
 ## Challenges (flagged)
 
@@ -710,7 +764,8 @@ A second way to build the XI, alongside the random roll. Spec:
   the budget forces trade-offs). The budget is a `budget` prop (not a constant): Quick Run
   (and career-off) use the fixed `BUDGET_DRAFT` ($110); **Career Mode scales it** by the
   owned `transfer-budget` career perk via `config.ts` `BUDGET_BY_TIER` ($70 base -> $150),
-  computed in `App` (reads `loadCareer()`) and passed to `BudgetMarket`.
+  computed in `App` (reads `store.peek().career`, synchronously) and passed to
+  `BudgetMarket`.
 - **The owned-sticker discount.** A player whose sticker is already in the album costs
   `STICKER_DISCOUNT` (config.ts, 25%) less: `priceFor(player, ownedIds)` on top of the
   curve, with `pricerFor(ownedIds)` for the places that price many players. **In both

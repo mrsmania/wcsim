@@ -1,6 +1,8 @@
 # Roguelike Cup Runs + Manager Career - Design
 
-**Status:** Design draft (product + high-level architecture). No implementation yet.
+**Status:** Shipped (behind `FEATURES.careerMode`), as the high-level vision behind what
+was built. `docs/career-depth-spec.md` is the code-level plan that followed and
+**supersedes this doc's section 6**; `CLAUDE.md` describes what actually shipped.
 **Goal:** turn the core loop (draft an XI, win the cup) into something players return to
 daily and stick with long-term, by wrapping each run in roguelike variety and hanging a
 persistent manager career off the back of it.

@@ -1,9 +1,14 @@
 # Career Depth - Implementation Spec (Economy 2.0)
 
-**Status:** In progress. **A/B/C/G shipped.** A = boon-pool unlocks + rarity-weighted
-offers; B = tiered, level-gated perks (+ CareerState v1->v2 migration); C = Ascension
-tiers; G = Transfer Budget progression (see 6.5 for the shipped values). XP was slowed to
-`XP_PER_LEVEL = 200` so level gates bite. **E (Challenges) is next.**
+**Status:** **A/B/C/G/E shipped.** A = boon-pool unlocks + rarity-weighted offers; B =
+tiered, level-gated perks (+ CareerState v1->v2 migration); C = Ascension tiers; G =
+Transfer Budget progression (see 6.5 for the shipped values). XP was slowed to
+`XP_PER_LEVEL = 200` so level gates bite. **E (Challenges) shipped 2026-08-18/19** and grew
+its own spec on the way, `docs/challenges-spec.html`: permanent honours only, all 130
+judged, awards behind `FEATURES.challengeAwards` (off). The sketch of E kept below is
+superseded by that document. **D** (in-run economy / node variety) and **F** (daily seeded
+run) are the only clusters still open; F's odds readout shipped separately as
+`domain/odds.ts`.
 Sits on top of `docs/roguelike-career-design.md` (the high-level vision). This document is
 the concrete, code-level plan; it supersedes that doc's section 6 where they disagree.
 **Scope:** clusters **A** (boon-pool unlocks + rarity-weighted offers), **B** (tiered,
