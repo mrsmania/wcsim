@@ -109,7 +109,13 @@ mistyped redirect URI.
    the `studio` container is the whole mitigation - the API paths the game uses are
    unaffected.
 4. **Control Panel → Security → Firewall:** allow the forwarded port, and keep Postgres
-   (5432) LAN-only.
+   (5432) LAN-only. That single inbound port is all the game needs: the proxy reaches the
+   gateway over loopback, which the firewall does not filter, and `db` publishes nothing
+   once the pooler is dropped (§4). If a rule scopes 443 to selected countries, remember
+   that it is the *player's* location being matched. **Enabling the firewall or editing any
+   rule here breaks container-to-container traffic** and needs the recovery in "The
+   container firewall rules" below, which is a different problem from a closed port and has
+   its own one-command test.
 
 ---
 
@@ -409,20 +415,44 @@ DSM's firewall applies to the docker bridges, so with it enabled containers cann
 each other and the stack breaks in a way that looks like the app's fault: the gateway
 answers, every service behind it returns 503. The rules below fix it. They live in a
 **boot-up task** (Control Panel → Task Scheduler → Triggered Task, user root), because
-DSM rewrites these chains on boot *and* whenever firewall settings are edited - so if
-container traffic dies right after you touch the firewall, re-run them.
+DSM rewrites these chains on boot *and* whenever firewall settings are edited.
 
 ```
-sleep 60
+# Wait for dockerd at boot; returns immediately when the task is run by hand later.
+i=0
+while [ ! -d /sys/class/net/docker0 ] && [ $i -lt 90 ]; do sleep 1; i=$((i+1)); done
+/sbin/iptables -C FORWARD_FIREWALL -i docker+ -o docker+ -j ACCEPT 2>/dev/null && exit 0
 /sbin/iptables -I FORWARD_FIREWALL 1 -i docker+ -o docker+ -j ACCEPT
 /sbin/iptables -I FORWARD_FIREWALL 2 -i docker+ -d 192.168.1.0/24 -p udp --dport 53 -j ACCEPT
 /sbin/iptables -I FORWARD_FIREWALL 3 -i docker+ -d 192.168.1.0/24 -p tcp --dport 53 -j ACCEPT
 /sbin/iptables -I FORWARD_FIREWALL 4 -i docker+ -d 192.168.1.0/24 -j DROP
 /sbin/iptables -I FORWARD_FIREWALL 5 -i docker+ -j ACCEPT
+logger -t docker-bridge-firewall "re-inserted docker bridge FORWARD rules"
 ```
 
 Order matters. Containers talk to each other (1), may ask the router for DNS (2, 3), may
-not otherwise touch the LAN (4), and may reach the internet (5).
+not otherwise touch the LAN (4), and may reach the internet (5). The first two lines are
+the only additions to the original version, which opened with a blind `sleep 60`: waiting
+on `docker0` instead means clicking **Run** heals the stack at once rather than a minute
+later, and the `-C` guard makes a re-run a no-op when the rules are already in place.
+
+**The trigger is Boot-up, so nothing re-applies these after a firewall edit** (found
+2026-08-19, the second time this bit). Enabling the profile or changing a single rule makes
+DSM rewrite the chain, the boot task does not fire, and the stack is down until you go to
+Task Scheduler and press **Run** on it. That is the whole recovery. Turning the firewall
+off also "fixes" it, which misleads: it removes the blocking chain rather than restoring
+these rules. A repeating scheduled task would automate it, at the cost of a window minutes
+wide after each edit and a job running forever for something you do twice a year, so the
+manual click is the deliberate choice.
+
+**This cannot be fixed in the app or the compose file.** The block is in the host's
+`FORWARD` chain, below anything a container can influence: envoy must reach `rest`/`auth`
+and they must reach `db` over the bridge. Sharing one network namespace
+(`network_mode: service:db`) would put that traffic on loopback and out of iptables' way,
+but PostgREST and studio both listen on 3000, so they collide, and it forks the upstream
+compose that setup relies on. Nor is an extra open port the answer: 443 in, the reverse
+proxy reaching the gateway on loopback, and a `db` that publishes nothing (the pooler was
+dropped) are all unaffected by this.
 
 **The DNS trap**, found 2026-08-17 the hard way. Rules 2 and 3 are not optional. Without
 them, rule 4 also blocks the DNS queries Docker's internal resolver forwards to the
@@ -443,6 +473,27 @@ Two other symptoms of the same class, worth recognising:
   always recover on its own.
 - **Sign-in works but nothing loads** - PostgREST holding a dead connection pool after the
   network was cut under it. `docker compose restart rest`.
+
+**Telling this apart from a closed port takes one command**, and it is worth doing before
+touching any firewall rule, since the two look identical in a browser (the app sits on its
+boot spinner for five seconds, then shows the "can't reach your account" screen):
+
+```
+curl -s -w "\n[%{http_code} in %{time_total}s]\n" -H "apikey: $ANON_KEY" \
+  https://HOST/auth/v1/health
+```
+
+- `upstream connect error or disconnect/reset before headers. reset reason: connection
+  timeout` with a **503 in ~5s** is this section: 443 and envoy are fine, the bridge is
+  blocked. Press Run on the task.
+- A **timeout or refused connection** is the inbound path instead: router forward, the
+  reverse proxy rule, or the DSM firewall's own allow rule for 443 (§3).
+- A version JSON means the server is healthy and the problem is elsewhere.
+
+Note that the port list in a DSM rule scoped to `172.17.0.0-172.31.255.255` covers only
+container → host traffic. Container → container never appears in the firewall UI at all,
+which is why the console shows every `/rest/v1/*` read failing while the gateway itself
+answers instantly.
 
 ## Afterwards
 
