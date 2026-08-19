@@ -323,7 +323,7 @@
   <summary>
     <span class="num">01</span>
     <span class="title">Challenges
-      <span class="sub">Something to aim at in Career Mode. All 130 shipped and judged; only the Prestige awards are still switched off.</span>
+      <span class="sub">Something to aim at in Career Mode. All 130 shipped and judged and the awards now tuned; the arrears and the switch are what is left.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -418,22 +418,61 @@
     on a lifetime counter is not. A check asserts a veteran career still takes it.
     <b>To see it:</b> win a Cup Run on a career that already has cups; First Blood is in
     the run-end list.</p>
+    <p><strong>The awards were tuned by simulation, 2026-08-19.</strong> The blocker was
+    always "play enough runs to see what the catalogue pays", which is a thing a machine can
+    do faster: a throwaway probe played <b>16 careers of 150 real Cup Runs</b> through the
+    actual engine (budget-built XI each time, boosts taken at random, Ascension climbing as
+    it unlocks, the album growing so its challenges and the owned-sticker discount both
+    move), banking every run through <code>applyRunResult</code> with a real
+    <code>ChallengeInput</code> and paying each candidate schedule into its own wallet, with
+    a greedy shopper spending it the way a player would.</p>
+    <p>The anchor that settles it is not the run reward, it is <b>the shop: every perk tier
+    plus every locked boost costs 2,525 Prestige</b>. Measured against that:</p>
+    <ul>
+      <li><b>A run pays a median of 9</b> Prestige (p25 4, p75 16, best seen 63), and 150
+      runs earn about 1,930 without any challenge income, so runs alone do not buy the shop
+      out inside a long career.</li>
+      <li><b>10/30/75 was worth 4,705</b> for the full catalogue, <b>186% of the shop</b>,
+      and 56% of everything a 150-run career earns. The catalogue would have been the
+      primary faucet and the runs the side income, which is backwards. Now confirmed rather
+      than suspected, which is what the item was waiting for.</li>
+      <li><b>3/8/20 is the pick.</b> The full catalogue is worth 1,266, <b>50% of the
+      shop</b>; challenges come to <b>a quarter</b> of a long career's Prestige; and the
+      shop, never bought out inside 150 runs today, buys out around run 140. A real second
+      faucet that shortens the grind without replacing it.</li>
+      <li>The neighbours, for the record: 5/12/30 gives 76% of the shop and a 35% share,
+      4/10/25 gives 63% and 31%, 2/6/15 gives 37% and 21%. The curve is smooth, so the exact
+      pick is a taste question inside that band rather than a cliff edge.</li>
+      <li><b>The early game is a windfall, deliberately.</b> At 3/8/20 the first run pays
+      about 25 from challenges against 8 from the run, and the <b>first cup pays about 168
+      against the run's own 28</b>. That is roughly the five cheapest perk tiers at once,
+      which reads as the shop opening up rather than as a broken economy. It is also the
+      most lopsided moment in a career, so it is the thing to eyeball in play before the
+      switch goes on.</li>
+      <li><b>Awards buy but do not gate.</b> Challenge Prestige grants no XP, so the level
+      requirements on the dearest perk tiers (up to level 32) can still only be met by
+      playing. That is a good property and worth keeping if the numbers move again.</li>
+    </ul>
+    <p><code>AWARD</code> is set to <b>3 / 8 / 20</b> in <code>domain/challenges.ts</code>,
+    with the reasoning in a comment beside it. Nothing pays or shows yet, since
+    <code>FEATURES.challengeAwards</code> still governs both halves.</p>
     <p><strong>What is left</strong>:</p>
     <ul>
-      <li><b>The awards are off</b> (<code>FEATURES.challengeAwards</code>, added
-      2026-08-18) until they are tuned against real runs. A finished run pays roughly 9 to 30
-      Prestige; a first cup completes a dozen or more challenges at 10/30/75 each, so early on
-      the catalogue would be by far the bigger faucet. One switch governs paying and showing
-      alike, so nothing arrives from a source the player cannot see; completions still happen
-      and are still stored, so turning it on later costs only the arrears.</li>
+      <li><b>Decide the arrears.</b> Found while checking: switching the awards on does
+      <i>not</i> pay for challenges already completed. The wallet is only ever credited by
+      <code>applyRunResult</code>, for the ids completed in that run, while the catalogue's
+      "Prestige earned" cell and the hub's counter are both computed from every completion
+      held (<code>challengeProgress</code>). So on the day it is flipped the screen will
+      report a total the wallet never received, and the two stay apart by exactly the
+      backlog. Either pay the arrears once on first load after the switch, or show only what
+      was actually paid. Small either way, but it has to be chosen before the switch rather
+      than after.</li>
+      <li><b>Then flip <code>FEATURES.challengeAwards</code></b>, ideally after a few runs
+      against the new numbers to sanity-check the first-cup moment above.</li>
       <li><b>Trophy cabinet</b> (item 06) can now read <code>completedChallenges</code>.</li>
     </ul>
-    <p class="next"><strong>Next step:</strong> turn the awards on. That is the last thing
-    between this item and done, and it is a tuning question rather than a build one: play
-    enough runs to see what the catalogue actually pays out early, then set the bronze /
-    silver / gold numbers against a run's own 9 to 30 Prestige and flip
-    <code>FEATURES.challengeAwards</code>. Everything else is already recorded, so switching
-    it on only owes the arrears.</p>
+    <p class="next"><strong>Next step:</strong> pick the arrears behaviour, then turn the
+    awards on. The numbers are no longer the open question.</p>
     <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, docs/redesign-2026/turf-flat/challenges-quieter-mock.html, src/index.css, src/components/challengeUi.tsx, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/App.tsx, src/components/CupRunScreen.tsx, src/components/ChallengesScreen.tsx, scripts/checks.ts, supabase/migrations/0011_career_challenges.sql</p>
   </div>
 </details>

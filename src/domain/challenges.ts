@@ -38,7 +38,16 @@ export type ChallengeTier = 'bronze' | 'silver' | 'gold';
 
 /** Prestige paid for completing one, by tier. Paid into the same wallet the perk
  *  shop spends from. */
-export const AWARD: Record<ChallengeTier, number> = { bronze: 10, silver: 30, gold: 75 };
+/** Prestige per tier. Tuned 2026-08-19 by simulating 16 careers of 150 real Cup Runs
+ *  (roadmap item 01), against the one anchor that matters: the perk shop plus every
+ *  locked boost costs 2525 Prestige, and a run itself pays a median of 9.
+ *  At 3/8/20 the whole catalogue is worth 1266, about half the shop, and challenges
+ *  come to roughly a quarter of the Prestige a long career earns, so runs stay the
+ *  primary faucet. The first 10/30/75 guess was worth 4705, nearly twice the shop and
+ *  56% of all income, which is what kept the awards switched off.
+ *  Note the awards buy but do not gate: challenge Prestige grants no XP, so the level
+ *  requirements on the dearest perk tiers can still only be met by playing. */
+export const AWARD: Record<ChallengeTier, number> = { bronze: 3, silver: 8, gold: 20 };
 
 export const FAMILY_NAME: Record<ChallengeFamily, string> = {
   silverware: 'Silverware & progression',

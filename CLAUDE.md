@@ -658,7 +658,14 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   130-entry `CHALLENGES` catalogue in 12 families, `viewOf` (derives the run once: the
   final XI at dataset ratings, the XI minus roster boosts, every match, goals for and
   against, clean sheets, boost rarities) and `completedIn(ctx)`, which returns the ids a
-  finished run newly satisfies. `AWARD` is bronze 10, silver 30, gold 75.
+  finished run newly satisfies. `AWARD` is bronze 3, silver 8, gold 20, **tuned by
+  simulation** (2026-08-19, 16 careers x 150 real runs) against the anchor that decides
+  it: the perk shop plus every locked boost costs **2525 Prestige**, and a run pays a
+  median of 9. At 3/8/20 the whole catalogue is worth 1266, about half the shop, and
+  challenges are ~25% of a long career's Prestige, so runs stay the primary faucet. The
+  original 10/30/75 guess was worth 4705, nearly twice the shop. If the numbers ever move,
+  keep the property that **awards buy but do not gate**: challenge Prestige grants no XP,
+  so the level requirements on the dearest perk tiers can still only be met by playing.
 - **Awards are behind their own flag, `FEATURES.challengeAwards`, currently OFF.** One
   switch for both halves deliberately: with it false nothing is paid **and** no award is
   shown anywhere (`AWARDS_ON` gates the catalogue cards, the hub card, the run-end list and
@@ -666,8 +673,13 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   than either. Completions still happen and are still stored, so switching it on later
   costs nothing but the arrears. The reason it is off: a run pays roughly 9 to 30 Prestige
   and a first cup clears a dozen challenges at 10/30/75, so the catalogue would be by far
-  the bigger faucet early on. The tier stays visible either way - as pips, it reads as
-  difficulty.
+  the bigger faucet early on (now measured, not assumed - see the `AWARD` note above; the
+  numbers were the open question and no longer are). The tier stays visible either way - as
+  pips, it reads as difficulty. **Switching the flag on does not pay the backlog:** the
+  wallet is only credited by `applyRunResult` for the ids completed in that run, while
+  `challengeProgress().prestige` (the catalogue counter and the hub) is computed from every
+  completion held, so the display and the wallet would disagree by exactly the arrears
+  until that is decided one way or the other.
 - **All 130 are judged.** The plumbing wave (2026-08-19, section 8 of the spec) cleared the
   27 that used to carry a `blocked` reason, so the catalogue screen's "not tracked yet"
   filter and legend chip hide themselves. No SQL migration was needed: `CareerStats` is a
