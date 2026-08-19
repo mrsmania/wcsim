@@ -386,6 +386,27 @@
     before the change still finishes. Eight new checks cover it: hand-built career sequences
     for the streaks, the shape and build predicates against real ratings and prices, and that
     a run with no kickoff record completes none of it.</p>
+    <p><strong>The catalogue was made quieter on 2026-08-19</strong>, the "Ledger" option
+    from <code>docs/redesign-2026/turf-flat/challenges-quieter-mock.html</code>. The screen
+    had been painting all 130 entries at once: a family hue on every card's left edge, a
+    filled tier chip in three more hues, a status caption in its own colour and the tifo
+    hard shadow, about 400 coloured elements at rest, so nothing on it read. 130 honours
+    want a list, not a grid of tiles, so the cards are gone: hairline rows two to a line
+    inside each family, and the colour budget is down to about 40. The family accent is
+    spent once per family, as the rule under its heading, never on an entry. Tier stops
+    being a colour and becomes three monochrome pips, which is what it actually says while
+    the awards are off (difficulty, a scale rather than a category), in the counter's legend
+    as well as on the rows. Earned is the only ink on the page: a completed entry is full
+    strength with a green tick, everything else is grey, and an entry waiting on tracking
+    just fades a step further with a lock and its reason on hover, no red, because "not
+    tracked yet" is not a failure. Two greys came in as tokens for it, <code>--color-dim</code>
+    (the unearned name and description, held at AA on all three surfaces: greyed out, never
+    unreadable) and <code>--color-hair</code> (the row rule, a step lighter than
+    <code>--color-line</code> so 130 of them recede). The two-column grid is a grid rather
+    than CSS columns on purpose: a grid row levels both cells' heights, which keeps the pair
+    of hairlines in line when one description wraps and the other does not. It collapses to
+    one column below 700px. <b>To see it:</b> open <code>/challenges</code> from the Cup Run
+    hub, in both themes.</p>
     <p><strong>What is left</strong>:</p>
     <ul>
       <li><b>The awards are off</b> (<code>FEATURES.challengeAwards</code>, added
@@ -402,7 +423,7 @@
     silver / gold numbers against a run's own 9 to 30 Prestige and flip
     <code>FEATURES.challengeAwards</code>. Everything else is already recorded, so switching
     it on only owes the arrears.</p>
-    <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/App.tsx, src/components/CupRunScreen.tsx, src/components/ChallengesScreen.tsx, scripts/checks.ts, supabase/migrations/0011_career_challenges.sql</p>
+    <p class="files">docs/challenges-spec.html, docs/redesign-2026/turf-flat/challenges.html, docs/redesign-2026/turf-flat/challenges-quieter-mock.html, src/index.css, src/components/challengeUi.tsx, src/domain/challenges.ts, src/domain/career.ts, src/domain/run.ts, src/App.tsx, src/components/CupRunScreen.tsx, src/components/ChallengesScreen.tsx, scripts/checks.ts, supabase/migrations/0011_career_challenges.sql</p>
   </div>
 </details>
 

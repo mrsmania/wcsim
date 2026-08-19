@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
   AWARD,
@@ -9,7 +10,7 @@ import {
   type Challenge,
   type ChallengeFamily,
 } from '../domain/challenges';
-import { ChallengeCard, FAMILY_COLOR, TIER_COLOR } from './challengeUi';
+import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
 import { StageCrumb, StageHeader } from './matchUi';
 
 type Filter = 'all' | 'open' | 'done' | 'blocked';
@@ -82,14 +83,13 @@ export default function ChallengesScreen({
               style={{ width: `${pct}%` }}
             />
           </div>
+          {/* Tier reads as difficulty here too, so the legend carries the same pips the
+              rows do rather than the three swatches it used to - the page is down to
+              one hue per family and a tick, and this was the last of the old colour. */}
           <div className="mt-3.5 flex flex-wrap gap-x-4 gap-y-2">
             {(['bronze', 'silver', 'gold'] as const).map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
-                <span
-                  className="h-2.5 w-2.5 rounded-[2px]"
-                  style={{ background: TIER_COLOR[t] }}
-                  aria-hidden="true"
-                />
+                <TierPips tier={t} />
                 <span className="capitalize">{t}</span>
                 <b className="font-bold text-ink">
                   {progress.byTier[t].completed}/{progress.byTier[t].total}
@@ -98,7 +98,7 @@ export default function ChallengesScreen({
             ))}
             {progress.blocked > 0 && (
               <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
-                <span className="h-2.5 w-2.5 rounded-[2px] bg-loss" aria-hidden="true" />
+                <Lock size={11} className="text-dim" aria-hidden="true" />
                 Not tracked yet <b className="font-bold text-ink">{progress.blocked}</b>
               </span>
             )}
@@ -156,23 +156,27 @@ export default function ChallengesScreen({
         const total = CHALLENGES.filter((c) => c.family === family).length;
         const got = CHALLENGES.filter((c) => c.family === family && done.has(c.id)).length;
         return (
-          <section key={family} className="mt-8">
-            <div className="mb-3.5 flex flex-wrap items-center gap-2.5 border-b-2 border-ink pb-2">
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ background: FAMILY_COLOR[family] }}
-                aria-hidden="true"
-              />
-              <h3 className="font-display text-[19px] font-extrabold tracking-[-0.01em]">
+          <section key={family} className="mt-[22px]">
+            {/* The family accent is spent here and nowhere else: twelve rules on the
+                page instead of a 3px edge on all 130 entries. */}
+            <div
+              className="flex flex-wrap items-center gap-2.5 border-b-2 pb-1.5"
+              style={{ borderBottomColor: FAMILY_COLOR[family] }}
+            >
+              <h3 className="font-display text-[15px] font-extrabold tracking-[-0.01em]">
                 {FAMILY_NAME[family]}
               </h3>
-              <span className="font-mono text-[12px] font-bold text-muted">
+              <span className="ml-auto font-mono text-[11.5px] font-semibold text-muted">
                 {got} / {total}
               </span>
             </div>
-            <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(250px,1fr))]">
+            {/* Two entries to a row, so a 16-entry family is 8 rows deep. Grid rather
+                than columns because a grid row levels both cells' heights, which keeps
+                the two hairlines in line when one description wraps and the other
+                does not. */}
+            <div className="grid grid-cols-1 gap-x-[30px] min-[700px]:grid-cols-2">
               {list.map((c) => (
-                <ChallengeCard key={c.id} challenge={c} done={done.has(c.id)} />
+                <ChallengeLedgerRow key={c.id} challenge={c} done={done.has(c.id)} />
               ))}
             </div>
           </section>

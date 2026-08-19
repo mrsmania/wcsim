@@ -25,17 +25,34 @@ export const FAMILY_COLOR: Record<ChallengeFamily, string> = {
   career: '#8a5a2b',
 };
 
-/** Award tiers, bronze -> silver -> gold. */
-export const TIER_COLOR: Record<ChallengeTier, string> = {
-  bronze: '#a9722f',
-  silver: '#6f7a83',
-  gold: '#b98c2e',
-};
+/** Award tiers, bronze -> silver -> gold. Deliberately NOT a colour any more: the
+ *  catalogue is 130 entries and it could not afford three more hues on top of the
+ *  twelve family accents. While awards are off the tier reads as difficulty, which is
+ *  a scale rather than a category, so `TierPips` draws it as three filled slots. */
 export const TIER_NAME: Record<ChallengeTier, string> = {
   bronze: 'Bronze',
   silver: 'Silver',
   gold: 'Gold',
 };
+const TIER_STEP: Record<ChallengeTier, number> = { bronze: 1, silver: 2, gold: 3 };
+
+/** Difficulty as three monochrome slots, filled 1 / 2 / 3. Both opacities are of the
+ *  ink, so the pips sit in whatever theme is on without a token of their own. */
+export function TierPips({ tier }: { tier: ChallengeTier }) {
+  const n = TIER_STEP[tier];
+  return (
+    <span className="inline-flex shrink-0 gap-[2px] text-ink" title={`${TIER_NAME[tier]} (${n} of 3)`}>
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className={`h-[5px] w-[5px] rounded-[1px] bg-current ${
+            i <= n ? 'opacity-50' : 'opacity-[0.13]'
+          }`}
+        />
+      ))}
+    </span>
+  );
+}
 
 /** The family dot, the one marker every challenge surface shares. */
 export function FamilyDot({ family }: { family: ChallengeFamily }) {
@@ -76,9 +93,13 @@ export default function ChallengeRow({
   );
 }
 
-/** One catalogue entry, in its three states: completed (green tick), still open, or
- *  waiting on tracking that does not exist yet (dashed, with the reason on hover). */
-export function ChallengeCard({
+/** One catalogue line. No card, no border, no shadow: 130 honours want a list, not a
+ *  grid of tiles, so an entry is type on paper between two hairlines. Its whole state
+ *  is ink versus dim on the name, plus the mark on the left - a green tick is the only
+ *  colour an entry ever carries, and it only appears once you have earned it. An entry
+ *  still waiting on tracking fades a step further and says why on hover; no red,
+ *  because "not tracked yet" is not a failure. */
+export function ChallengeLedgerRow({
   challenge,
   done,
 }: {
@@ -87,53 +108,51 @@ export function ChallengeCard({
 }) {
   const blocked = !!challenge.blocked && !done;
   return (
-    <article
-      className={`relative flex flex-col gap-1 rounded-md border p-2.5 pl-3 ${
-        blocked ? 'border-dashed border-line opacity-70' : 'border-line bg-panel shadow-hard'
+    <div
+      className={`flex items-start gap-[11px] border-b border-hair px-0.5 py-2 ${
+        blocked ? 'opacity-[0.72]' : ''
       }`}
-      style={{ borderLeft: `3px solid ${FAMILY_COLOR[challenge.family]}` }}
+      title={blocked ? challenge.blocked : undefined}
     >
-      <div className="flex items-center gap-2">
-        <span
-          className="rounded-[3px] px-1.5 py-[1px] font-mono text-[8.5px] font-bold uppercase tracking-[0.12em] text-white"
-          style={{ background: TIER_COLOR[challenge.tier] }}
-        >
-          {TIER_NAME[challenge.tier]}
-        </span>
-        {AWARDS_ON && (
-          <span className="ml-auto font-mono text-[12px] font-bold text-accent">
-            +{AWARD[challenge.tier]}
-          </span>
+      <span
+        className={`mt-0.5 grid h-[15px] w-[15px] shrink-0 place-items-center ${
+          done ? 'text-pitch' : 'text-dim'
+        }`}
+        aria-hidden="true"
+      >
+        {done ? (
+          <Check size={11} strokeWidth={3.2} />
+        ) : blocked ? (
+          <Lock size={10} strokeWidth={2.4} />
+        ) : (
+          <span className="h-[9px] w-[9px] rounded-full border-[1.5px] border-current opacity-45" />
         )}
-      </div>
-      <h4 className="font-display text-[15px] font-extrabold leading-tight tracking-[-0.01em]">
-        {challenge.name}
-      </h4>
-      <p className="text-[12.5px] leading-snug text-muted">{challenge.description}</p>
-      {done ? (
-        <p className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-accent">
-          Completed
-        </p>
-      ) : blocked ? (
-        <p
-          className="flex items-center gap-1 font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-loss"
-          title={challenge.blocked}
-        >
-          <Lock size={10} aria-hidden="true" /> Not tracked yet
-        </p>
-      ) : (
-        <p className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted opacity-60">
-          Not yet
-        </p>
-      )}
-      {done && (
+      </span>
+      <span className="min-w-0 flex-1">
         <span
-          className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-pitch text-white ring-2 ring-ground"
-          aria-hidden="true"
+          className={`block font-display text-[13.5px] leading-tight tracking-[-0.005em] ${
+            done ? 'font-extrabold text-ink' : 'font-bold text-dim'
+          }`}
         >
-          <Check size={12} strokeWidth={3} />
+          {challenge.name}
+          {/* The mark is the visual state; this is the same fact for a screen reader,
+              which cannot see that the name is a shade darker. */}
+          <span className="sr-only">
+            {done ? ' - completed' : blocked ? ' - not tracked yet' : ' - not yet won'}
+          </span>
+        </span>
+        <span className={`block text-[12px] leading-[1.35] ${done ? 'text-muted' : 'text-dim'}`}>
+          {challenge.description}
+        </span>
+      </span>
+      {AWARDS_ON && (
+        <span className="mt-px shrink-0 font-mono text-[11.5px] font-bold text-accent">
+          +{AWARD[challenge.tier]}
         </span>
       )}
-    </article>
+      <span className="mt-[5px]">
+        <TierPips tier={challenge.tier} />
+      </span>
+    </div>
   );
 }

@@ -666,7 +666,7 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   than either. Completions still happen and are still stored, so switching it on later
   costs nothing but the arrears. The reason it is off: a run pays roughly 9 to 30 Prestige
   and a first cup clears a dozen challenges at 10/30/75, so the catalogue would be by far
-  the bigger faucet early on. The tier chip stays visible either way - it reads as
+  the bigger faucet early on. The tier stays visible either way - as pips, it reads as
   difficulty.
 - **All 130 are judged.** The plumbing wave (2026-08-19, section 8 of the spec) cleared the
   27 that used to carry a `blocked` reason, so the catalogue screen's "not tracked yet"
@@ -730,8 +730,25 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   available / completed / not tracked yet - the third hides itself while nothing is blocked,
   which is the case today - and every entry grouped by family), and the
   run-end panel listing what the run completed. Shared atoms live in
-  `components/challengeUi.tsx` (family accents, tier colours, `ChallengeRow`,
-  `ChallengeCard`).
+  `components/challengeUi.tsx` (family accents, `TierPips`, `ChallengeRow`,
+  `ChallengeLedgerRow`).
+- **The catalogue is a ledger, not a grid of cards** (2026-08-19, the "Ledger" option in
+  `docs/redesign-2026/turf-flat/challenges-quieter-mock.html`). The rule it exists to keep:
+  **130 entries cannot each be painted.** The card version spent a family hue, a filled tier
+  chip, a coloured status caption and the tifo hard shadow on every one of them, and nothing
+  on the page read. So: hairline rows, two to a line inside a family (`ChallengeLedgerRow`),
+  no card, no border, no shadow. **The family accent is spent once per family**, as the rule
+  under its heading, never on an entry. **Tier is not a colour** - `TierPips` draws three
+  monochrome slots, on the rows and in the counter's legend alike (`TIER_COLOR` is gone).
+  **Earned is the only ink**: completed is full-strength with a green tick, everything else
+  is `text-dim`, and a blocked entry just fades further with a lock and its reason on hover,
+  never red. Two tokens came with it (`src/index.css`): `--color-dim`, which carries the name
+  and description of most of the catalogue and is therefore held at AA on ground / panel /
+  chalk, and `--color-hair`, the row rule, a step lighter than `--color-line`. The two
+  columns are a **grid, not CSS columns**, because a grid row levels both cells' heights and
+  so keeps the pair of hairlines in line when one description wraps and the other does not;
+  one column below 700px. When `FEATURES.challengeAwards` is on, the row shows its `+N` where
+  the card used to.
 - **Accounts:** `completed_challenges` is one column on `career`, added by
   `supabase/migrations/0011_career_challenges.sql` (applied to the NAS 2026-08-19), which
   also teaches `save_career` and `import_guest_progress` to carry it.
