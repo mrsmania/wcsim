@@ -501,13 +501,15 @@
       picks what the single "Start Run" CTA does (<code>App.tsx:647</code>). Quick Run goes
       to the World Cup (<code>/group</code>, <code>/knockout</code>); Career Mode goes to the
       Cup Run (<code>/cup-run</code>).</li>
-      <li><b>The album advances in both modes, the career and the challenges in neither but
-      one.</b> There are two banking paths: the World Cup's, keyed off the bracket or a group
-      exit (<code>useStickerAlbum.ts:194</code>), and the Cup Run's
-      (<code>useStickerAlbum.ts:201</code>). But <code>applyRunResult</code> is called from
-      exactly one place (<code>CupRunScreen.tsx:284</code>), so XP, Prestige, Ascension and
-      every challenge exist only inside a Cup Run. Winning the World Cup in Quick Run is
-      worth stickers and nothing else, which is not written down anywhere a player can see.</li>
+      <li><b>The album advances in both modes, the career and the challenges in only one.</b>
+      Banking funnels through a single <code>applyStickers</code>
+      (<code>useStickerAlbum.ts:140</code>) with four triggers, two per mode: the World Cup's
+      loss and cup win (<code>:194</code>, <code>:236</code>) and the Cup Run's
+      (<code>:201</code>, <code>:241</code>). No mode check anywhere in the hook. But
+      <code>applyRunResult</code> is called from exactly one place
+      (<code>CupRunScreen.tsx:284</code>), so XP, Prestige, Ascension and every challenge
+      exist only inside a Cup Run. Winning the World Cup in Quick Run is worth stickers and
+      nothing else, which is not written down anywhere a player can see.</li>
       <li><b>Two career perks reach backwards into the build page</b>, both gated on mode:
       the transfer budget (<code>App.tsx:87</code>, <code>675</code>) and the extra re-rolls
       (<code>App.tsx:334</code>). So the build page is mode-aware in two places for two
@@ -532,9 +534,39 @@
       (<code>domain/tournament.ts</code> + <code>domain/bracket.ts</code>, driven by
       <code>TournamentScreen</code> / <code>KnockoutScreen</code>) and the Cup Run
       (<code>domain/run.ts</code>, driven by <code>CupRunScreen</code>). They share the match
-      sim, the group build, the draw and the live clock; they duplicate the round-by-round
-      shell, the result presentation and the notion of "the run ended". Two of the facts
-      above are downstream of that split rather than of any decision about modes.</li>
+      sim, the group build, the draw, <code>resolveKoTie</code> and the live clock; they
+      duplicate the round-by-round shell, the result presentation, the outcome model
+      (<code>BracketState.outcome</code> vs <code>RunOutcome</code> + <code>phase</code>),
+      the run-end UI and even the once-per-run sticker guard
+      (<code>GameState.stickersApplied</code> vs <code>RunState.stickersApplied</code>).
+      <b>They also disagree on chemistry:</b> the World Cup scores it by the slot each player
+      fills (<code>App.tsx:523</code>), the Cup Run by each player's natural role
+      (<code>run.ts:191</code>, because a run tracks players and not slots). Same feature,
+      two answers for the same XI. Several of the facts above are downstream of that split
+      rather than of any decision about modes.</li>
+    </ul>
+
+    <p><strong>Four cross-mode leaks are already reachable</strong>, found while surveying
+    this. None is urgent and none is worth a separate item, because each of them dissolves
+    once the questions below are answered rather than being worth patching in place:</p>
+    <ul>
+      <li><b>The budget changes under a build in progress.</b> The live budget reads the
+      route (<code>App.tsx:676</code>) while the recorded one reads stored
+      <code>buildMode</code> (<code>App.tsx:701</code>), so walking from
+      <code>/career-mode</code> to <code>/quick-run</code> mid-build silently moves the cap
+      from $70 plus perk tier to $110, and the run record then reports the career budget.
+      The re-roll allowance is derived twice the same way (<code>App.tsx:332</code> from the
+      route, <code>717</code> from <code>buildMode</code>).</li>
+      <li><b><code>/cup-run</code> accepts a Quick-Run-built XI</b> and applies the career's
+      perks and unlocked boosts to it unconditionally (<code>CupRunScreen.tsx:257</code>),
+      so a $110 three-re-roll build can be run as a full career run.</li>
+      <li><b><code>/group</code> and <code>/knockout</code> accept a Career-built XI</b>
+      (neither is mode-gated, <code>App.tsx:855</code>, <code>875</code>), and starting over
+      from either always returns to <code>/quick-run</code> (<code>App.tsx:564</code>) even
+      when the build was a career one.</li>
+      <li><b>A stale cup win outranks a fresh one.</b> The two reward-picker producers are
+      priority-ordered rather than mode-scoped (<code>useStickerAlbum.ts:236</code>), so an
+      un-applied World Cup win takes precedence over a Cup Run win.</li>
     </ul>
 
     <p><strong>What has to be decided before any code moves.</strong> This is a design
