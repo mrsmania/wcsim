@@ -418,23 +418,40 @@ answers, every service behind it returns 503. The rules below fix it. They live 
 DSM rewrites these chains on boot *and* whenever firewall settings are edited.
 
 ```
-# Wait for dockerd at boot; returns immediately when the task is run by hand later.
-i=0
-while [ ! -d /sys/class/net/docker0 ] && [ $i -lt 90 ]; do sleep 1; i=$((i+1)); done
+# At boot, let DSM finish writing its own chains first (see below); run by hand
+# later there is nothing to wait for, so it heals the stack immediately.
+[ "$(cut -d. -f1 /proc/uptime)" -lt 300 ] && sleep 60
+# Firewall off means the chain does not exist, and there is nothing to do.
+/sbin/iptables -L FORWARD_FIREWALL -n >/dev/null 2>&1 || exit 0
+# Already in place: a re-run is a no-op rather than a second copy of each rule.
 /sbin/iptables -C FORWARD_FIREWALL -i docker+ -o docker+ -j ACCEPT 2>/dev/null && exit 0
 /sbin/iptables -I FORWARD_FIREWALL 1 -i docker+ -o docker+ -j ACCEPT
 /sbin/iptables -I FORWARD_FIREWALL 2 -i docker+ -d 192.168.1.0/24 -p udp --dport 53 -j ACCEPT
 /sbin/iptables -I FORWARD_FIREWALL 3 -i docker+ -d 192.168.1.0/24 -p tcp --dport 53 -j ACCEPT
 /sbin/iptables -I FORWARD_FIREWALL 4 -i docker+ -d 192.168.1.0/24 -j DROP
 /sbin/iptables -I FORWARD_FIREWALL 5 -i docker+ -j ACCEPT
-logger -t docker-bridge-firewall "re-inserted docker bridge FORWARD rules"
+logger -t docker-bridge-firewall "re-inserted docker bridge FORWARD rules" 2>/dev/null
+exit 0
 ```
 
 Order matters. Containers talk to each other (1), may ask the router for DNS (2, 3), may
-not otherwise touch the LAN (4), and may reach the internet (5). The first two lines are
-the only additions to the original version, which opened with a blind `sleep 60`: waiting
-on `docker0` instead means clicking **Run** heals the stack at once rather than a minute
-later, and the `-C` guard makes a re-run a no-op when the rules are already in place.
+not otherwise touch the LAN (4), and may reach the internet (5). Everything around them is
+scaffolding over the original version, which opened with a blind `sleep 60`.
+
+**What that delay is for is DSM, not Docker.** `iptables` inserts a rule naming an
+interface that does not exist yet quite happily, so nothing here waits on dockerd; the wait
+is for DSM to finish writing its own firewall chains at boot, since these five have to land
+on top of that rather than be wiped by a rewrite arriving afterwards. Hence the uptime gate
+rather than a test for `docker0`, which can appear first and would silently cost the boot
+path what it is waiting for. Below 300 seconds of uptime means "this is boot", so the
+proven 60-second settle stands; a manual run skips it and heals the stack at once.
+
+The rest keeps DSM from reporting the task as terminated abnormally, which is what it does
+when the last command fails: `-L` exits cleanly when the firewall is off and the chain does
+not exist, `-C` makes a re-run a no-op instead of a second copy of every rule, and `logger`
+is redirected with an explicit `exit 0` after it, so a missing `logger` cannot look like a
+failed run. Its lines land in `/var/log/messages`, which is how to see how often this
+actually fires.
 
 **The trigger is Boot-up, so nothing re-applies these after a firewall edit** (found
 2026-08-19, the second time this bit). Enabling the profile or changing a single rule makes
