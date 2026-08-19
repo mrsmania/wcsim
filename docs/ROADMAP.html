@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-19<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Open:</strong> 9 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -578,9 +578,63 @@
   </summary>
   <div class="detail">
     <p>A place for a career's achievements to live. Mostly waiting on item 01, since
-    challenges are what would fill it; the run history it needs is already recorded per
-    account in <code>run_results</code>.</p>
+    challenges are what would fill it. <b>Do not count on <code>run_results</code> for the
+    run history</b> (checked 2026-08-19): the table exists per account, but only
+    <code>outcome</code>, <code>won_cup</code> and <code>ended_at</code> are real -
+    <code>ascension</code>, <code>score</code>, <code>rounds_won</code> and <code>xi</code>
+    have been taking their defaults since <code>0006</code>. See item 21.</p>
     <p class="files">src/components/CupRunScreen.tsx, supabase/migrations/0001_schema.sql</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">21</span>
+    <span class="title">Dead columns on <code>run_results</code>
+      <span class="sub">Four columns nothing writes and nothing reads. Decide in a clean-up pass: drop them, or revive the table as a real run archive.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Found 2026-08-19 while trying to answer "how many runs has this account finished at
+    Ascension II or higher?" from the database. The answer is that it cannot be, and the
+    column that looks like it should say so reads 0 for every row.</p>
+    <p><code>run_results</code> was created by <code>0001</code> as a genuine per-run archive
+    and populated in full by <code>0003</code>. <code>0006_client_surface.sql</code> then
+    narrowed the function deliberately, and for a good reason it states in its own header:
+    banking stickers and computing the career award turned out to be two different moments in
+    two different places, so <code>finish_run</code> kept everything that protects the
+    collection and gave the career award back to the client. The career facts stopped being
+    passed, and the columns holding them went quiet. <code>0009</code> and <code>0010</code>
+    carried the narrowed insert forward.</p>
+    <p><b>Confirmed against the live server</b>, not just the migration files: neither
+    <code>finish_run</code> nor <code>finish_run_v2</code> takes an ascension, score,
+    rounds-won or XI argument, so the client cannot send them even in principle. The insert
+    is <code>(user_id, run_key, outcome, won_cup, xi)</code> with <code>xi</code> a literal
+    <code>'[]'::jsonb</code>; the rest take their defaults (<code>0</code>, <code>0</code>,
+    <code>0</code>). Across 33 rows from two accounts, <code>ascension &gt; 0</code> matches
+    nothing.</p>
+    <p><b>The table still earns its keep</b> and must not be dropped: the unique
+    <code>(user_id, run_key)</code> is what rejects a double submit before a single sticker
+    moves, and <code>import_guest_progress</code> reads it to decide whether an account is
+    empty. Only the four columns are dead weight.</p>
+    <p><b>Two ways to go</b>, decided 2026-08-19 to be neither for now, since nothing is
+    broken and the career counters cover what the challenges need:</p>
+    <ul>
+      <li><b>Drop them.</b> Honest, and stops the next person building on a column that is
+      always 0. It is what item 06 nearly did.</li>
+      <li><b>Revive them.</b> Repopulate on finish and the table becomes the real per-run
+      history: "runs finished at Ascension II" answerable retroactively, and a foundation
+      for the trophy cabinet (item 06) or any leaderboard. Costs a <b>new function name</b>
+      (<code>finish_run_v3</code>): the signature would change, and a changed signature has
+      the same PGRST202 problem a changed return shape had, since migrations are applied by
+      hand while the client ships on push to <code>main</code>. Account-only either way -
+      guests write nothing to the server.</li>
+    </ul>
+    <p>Either way it only ever covers runs from the change onward. The rows already there
+    cannot be back-filled; the facts were never sent.</p>
+    <p class="files">supabase/migrations/0001_schema.sql, supabase/migrations/0006_client_surface.sql, supabase/migrations/0010_finish_run_one_trip.sql, src/state/store/remoteStore.ts</p>
   </div>
 </details>
 
