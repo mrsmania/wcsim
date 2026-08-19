@@ -658,14 +658,16 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   130-entry `CHALLENGES` catalogue in 12 families, `viewOf` (derives the run once: the
   final XI at dataset ratings, the XI minus roster boosts, every match, goals for and
   against, clean sheets, boost rarities) and `completedIn(ctx)`, which returns the ids a
-  finished run newly satisfies. `AWARD` is bronze 3, silver 8, gold 20, **tuned by
+  finished run newly satisfies. `AWARD` is bronze 2, silver 5, gold 12, **sized by
   simulation** (2026-08-19, 16 careers x 150 real runs) against the anchor that decides
   it: the perk shop plus every locked boost costs **2525 Prestige**, and a run pays a
-  median of 9. At 3/8/20 the whole catalogue is worth 1266, about half the shop, and
-  challenges are ~25% of a long career's Prestige, so runs stay the primary faucet. The
-  original 10/30/75 guess was worth 4705, nearly twice the shop. If the numbers ever move,
-  keep the property that **awards buy but do not gate**: challenge Prestige grants no XP,
-  so the level requirements on the dearest perk tiers can still only be met by playing.
+  median of 9. At 2/5/12 the whole catalogue is worth 779, about a third of the shop, and
+  challenges are ~1/6 of a long career's Prestige, so runs stay clearly the primary
+  faucet. For scale: 10/30/75 (the first guess) was worth 4705, nearly twice the shop and
+  56% of all income, which is what kept the awards off; 3/8/20 was 1266, half the shop.
+  If the numbers ever move, keep the property that **awards buy but do not gate**:
+  challenge Prestige grants no XP, so the level requirements on the dearest perk tiers can
+  still only be met by playing.
 - **Awards are behind their own flag, `FEATURES.challengeAwards`, ON since 2026-08-19.**
   One switch for both halves deliberately: with it false nothing is paid **and** no award is
   shown anywhere (`AWARDS_ON` gates the catalogue rows, the hub card, the run-end list and

@@ -70,11 +70,11 @@ export const FEATURES = {
      *  it false nothing is paid AND no award is shown anywhere (the catalogue rows, the
      *  hub card, the run-end list, the counter's Prestige cell), because Prestige arriving
      *  from an invisible source is worse than either.
-     *  ON since 2026-08-19, once the numbers were tuned by simulation: `AWARD` is 3/8/20
+     *  ON since 2026-08-19, once the numbers were sized by simulation: `AWARD` is 2/5/12
      *  (see the note beside it in domain/challenges.ts), which puts the whole catalogue at
-     *  about half the perk shop and challenges at ~25% of a long career's Prestige, so
-     *  runs stay the primary faucet. The first guess of 10/30/75 was worth nearly twice
-     *  the shop, which is what kept this off.
+     *  about a third of the perk shop and challenges at ~1/6 of a long career's Prestige,
+     *  so runs stay clearly the primary faucet. The first guess of 10/30/75 was worth
+     *  nearly twice the shop, which is what kept this off.
      *  The tier (bronze/silver/gold) stays visible either way: it reads as difficulty.
      *  NOTE if it is ever switched off and on again: flipping it does NOT pay the backlog.
      *  The wallet is only credited by `applyRunResult` for the ids completed in that run,
