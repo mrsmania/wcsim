@@ -468,6 +468,107 @@
   </div>
 </details>
 
+<details class="item">
+  <summary>
+    <span class="num">22</span>
+    <span class="title">Quick Run, Career Mode and the three progression systems
+      <span class="sub">Which mode feeds the album, the career and the challenges is ad hoc. Decide the rule, then make the app obey one.</span>
+    </span>
+    <span class="tag">Structure</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask (2026-08-19):</strong> rework how the two play modes and the three
+    progression systems fit together. Nothing here is broken in the sense of a bug; the
+    problem is that the rules were each reasonable when they landed and were never decided
+    as a set, so the app now answers "what does winning earn me?" differently depending on
+    which door you came through, and there is no stated principle a new feature can be held
+    against. The goal is fewer rules, each one sayable in a sentence.</p>
+
+    <p><strong>How it got here.</strong> The career design (<code>docs/roguelike-career-design.md</code>,
+    line 206) said the plain game stays as "Quick Play / Exhibition", no boons and no career,
+    with the roguelike layer strictly opt-in. The launcher shipped on that basis (2026-07-09).
+    Since then the album grew a market discount, difficulty grew an album reset, and
+    challenges arrived attached to the Cup Run only. Each was locally sensible. Together they
+    mean Quick Run is no longer an exhibition: it pays into one of the three systems, is
+    charged by a second, and is invisible to the third.</p>
+
+    <p><strong>What is actually true today</strong>, verified in the code rather than
+    remembered:</p>
+    <ul>
+      <li><b>The mode decides one thing at build time and one thing at kickoff.</b> Both
+      cards lead to the same 3-column build page with both build methods; the route only
+      picks what the single "Start Run" CTA does (<code>App.tsx:647</code>). Quick Run goes
+      to the World Cup (<code>/group</code>, <code>/knockout</code>); Career Mode goes to the
+      Cup Run (<code>/cup-run</code>).</li>
+      <li><b>The album advances in both modes, the career and the challenges in neither but
+      one.</b> There are two banking paths: the World Cup's, keyed off the bracket or a group
+      exit (<code>useStickerAlbum.ts:194</code>), and the Cup Run's
+      (<code>useStickerAlbum.ts:201</code>). But <code>applyRunResult</code> is called from
+      exactly one place (<code>CupRunScreen.tsx:284</code>), so XP, Prestige, Ascension and
+      every challenge exist only inside a Cup Run. Winning the World Cup in Quick Run is
+      worth stickers and nothing else, which is not written down anywhere a player can see.</li>
+      <li><b>Two career perks reach backwards into the build page</b>, both gated on mode:
+      the transfer budget (<code>App.tsx:87</code>, <code>675</code>) and the extra re-rolls
+      (<code>App.tsx:334</code>). So the build page is mode-aware in two places for two
+      reasons, while the pricing discount below is mode-blind on purpose.</li>
+      <li><b>The owned-sticker discount applies in both modes</b> (item 02, decided
+      deliberately: the album is global, so a mode-dependent price would have meant the
+      market, the line-up column and the auto-fill spender all needing to know the mode).
+      That decision is still right on its own terms, and it is also the clearest case of
+      Quick Run being charged by a system it cannot advance any faster than Career Mode can.</li>
+      <li><b>The mode is derived twice.</b> <code>modeOfPath</code> reads it from the route
+      (<code>App.tsx:83</code>), and the reducer separately stores <code>buildMode</code>
+      (<code>gameReducer.ts:60</code>) because the route cannot answer "which page was this
+      build started on" once you have left it. Both are needed today and both are correct,
+      but two sources for one fact is the kind of thing that only stays in step by hand: the
+      challenges kickoff record already has a comment explaining that it must use
+      <code>buildMode</code> and not the route.</li>
+      <li><b>Changing the difficulty setting wipes the sticker album</b>
+      (<code>App.tsx:156</code>) on the grounds that stickers are scoped to the difficulty
+      they were earned under. Nothing wipes the career or the challenges, which are earned
+      under a difficulty too. Whatever the right answer is, the three should agree.</li>
+      <li><b>There are two tournament engines.</b> The World Cup
+      (<code>domain/tournament.ts</code> + <code>domain/bracket.ts</code>, driven by
+      <code>TournamentScreen</code> / <code>KnockoutScreen</code>) and the Cup Run
+      (<code>domain/run.ts</code>, driven by <code>CupRunScreen</code>). They share the match
+      sim, the group build, the draw and the live clock; they duplicate the round-by-round
+      shell, the result presentation and the notion of "the run ended". Two of the facts
+      above are downstream of that split rather than of any decision about modes.</li>
+    </ul>
+
+    <p><strong>What has to be decided before any code moves.</strong> This is a design
+    question first, and a small refactor second. The questions, roughly in dependency order:</p>
+    <ul>
+      <li><b>What is Quick Run for?</b> Three coherent answers: a true exhibition that earns
+      nothing and is charged nothing (closest to the original intent); a shorter on-ramp that
+      earns a reduced share of everything; or the same game as Career Mode with the roguelike
+      layer switched off. Pick one. Most of the rest follows from it.</li>
+      <li><b>Is the album global or per-mode?</b> It is global today and that is defensible,
+      but if it stays global then the difficulty reset is the odd one out, and if it goes
+      per-mode then the discount, the swap allowance and the completion target all have to
+      learn about modes.</li>
+      <li><b>Should challenges judge a World Cup?</b> Most of the 130 entries only reference
+      an XI, matches and scorelines, which a World Cup has. The three families that could
+      not survive outside a Cup Run are Ascension (8), Boosts (12) and Career (12), so 98 of
+      the 130 are in principle judgeable either side of the split. If the answer is yes, the
+      judging seam has to move off <code>applyRunResult</code>, which is a career function.</li>
+      <li><b>Do the two tournament engines converge?</b> Not required to answer the above,
+      but it is the thing that would stop the duplication growing, and item 04 (in-run
+      economy and node variety) will widen the gap if it lands first.</li>
+    </ul>
+
+    <p class="next"><strong>Next step:</strong> answer the four questions above in a short
+    design note before touching code, since the code changes are small once the rules are
+    settled and unbounded while they are not. Worth doing before items 04, 05 and 19, each
+    of which adds to the Career side of the split and would have to be redone.
+    <b>Placement:</b> parked here in Next up because it is architectural and every later
+    Career item rests on it; move it to Later if the content work (item 03) should go first.</p>
+
+    <p class="files">docs/roguelike-career-design.md, src/App.tsx, src/hooks/useStickerAlbum.ts, src/domain/run.ts, src/domain/career.ts, src/domain/challenges.ts, src/domain/tournament.ts, src/state/gameReducer.ts, src/components/CupRunScreen.tsx, src/components/ModeSelect.tsx</p>
+  </div>
+</details>
+
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
 <details class="item">
