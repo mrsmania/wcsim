@@ -193,8 +193,11 @@ still under-spend, which is a rounding error next to inventing stickers, and D3 
 1. Every id in `collectible_ids` exists in `collectibles` (rejects invented players and
    non-collectible ones).
 2. `count <= 11 + 1` (an XI plus the cup pick).
-3. `cup_pick` is non-null only if `won_cup`, is **not** Monumental tier, and is not already
-   collected (FR-3 of the album spec, D-1).
+3. `cup_pick` is non-null only if `won_cup` and is **not** Monumental tier (D-1). It may
+   already be collected: once the pickable tiers are exhausted the reward IS a duplicate
+   (FR-3 of the album spec), and the server cannot tell exhausted from not - the picker
+   draws from the player's selected World Cups (`poolYears`), a legitimately smaller set
+   than the catalogue. Refusing it cost the whole bank; see migration `0012`.
 4. `swaps_used <= 2` (`INITIAL_SWAPS`).
 5. **Once per run:** the submitted run has an id, and a `run_results` row for it must not
    already exist. This is the server-side twin of the `stickersApplied` flag and the reason

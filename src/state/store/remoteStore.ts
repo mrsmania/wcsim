@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { emptyAlbum, type AlbumState } from '../../domain/album';
 import { INITIAL_CAREER, levelForXp, type CareerState } from '../../domain/career';
 import { DEFAULT_SETTINGS } from '../settingsStorage';
-import type { AccountSnapshot, AlbumStats, Store } from './types';
+import type { AccountSnapshot, AlbumStats, FinishRunResult, Store } from './types';
 
 // ---------------------------------------------------------------------------
 // The signed-in implementation of `Store`: the database is the only copy (D8).
@@ -42,6 +42,12 @@ class RpcError extends Error {
 const isMissingFunction = (err: unknown) =>
   err instanceof RpcError &&
   (err.code === 'PGRST202' || /could not find the function/i.test(err.message));
+
+/** A pre-0012 server refusing a cup pick the album already holds (a full album, where
+ *  the reward is a duplicate by design). Its `raise` aborts the transaction, so nothing
+ *  was written and the same run key can be submitted again - see `finishRun`. */
+const isDuplicateCupPick = (err: unknown) =>
+  err instanceof RpcError && /cup pick .* is already collected/.test(err.message);
 
 /** Album rows -> the client's shape: a row means collected, copies-1 are duplicates. */
 function albumFromRows(rows: { player_id: string; copies: number }[]): AlbumState {
@@ -241,6 +247,62 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
     },
 
     async finishRun({ runKey, collectibleIds, wonCup, cupPickId, swapsUsed, outcome }) {
+      const bank = async (args: Record<string, unknown>): Promise<FinishRunResult> => {
+        // One round trip (migration 0010). Banking used to cost three - the call, then a
+        // version read, then the album + stats - and that multiplier, not the function
+        // (1-9 ms) or the release timer, is what made a finished run sit for a second or
+        // two. finish_run_v2 returns everything those reads were for, computed inside the
+        // same transaction, so the "server counted, do not guess" rule is unchanged.
+        if (hasFinishRunV2) {
+          try {
+            const p = await rpc<FinishRunPayload>('finish_run_v2', args);
+            // Keep the old value if the payload somehow lacks one: the next write then
+            // fails as stale and the rpc retry re-reads it, rather than sending undefined.
+            version = p.version ?? version;
+            const album = albumFromRows(p.album ?? []);
+            patch({
+              album,
+              albumStats: {
+                runsPlayed: p.stats?.runs_played ?? 0,
+                stickersEarned: p.stats?.stickers_earned ?? 0,
+                tradesCompleted: p.stats?.trades_completed ?? 0,
+              },
+              run: null,
+            });
+            return { album, newly: p.newly ?? [] };
+          } catch (err) {
+            if (!isMissingFunction(err)) throw err;
+            // A server that has not had 0010 applied yet. Nothing ran (see
+            // isMissingFunction), so the older call below is a first attempt, and this
+            // client stops asking for the rest of the session.
+            hasFinishRunV2 = false;
+          }
+        }
+
+        const newly = await rpc<string[]>('finish_run', args);
+        // The server counted; re-read rather than guess at the result. Its version comes
+        // back too, since a retry inside the call may have moved it.
+        version = await readVersion();
+        const [album, stats] = await Promise.all([
+          readAlbum(),
+          client
+            .from('album_stats')
+            .select('runs_played, stickers_earned, trades_completed')
+            .eq('user_id', userId)
+            .maybeSingle(),
+        ]);
+        patch({
+          album,
+          albumStats: {
+            runsPlayed: stats.data?.runs_played ?? 0,
+            stickersEarned: stats.data?.stickers_earned ?? 0,
+            tradesCompleted: stats.data?.trades_completed ?? 0,
+          },
+          run: null,
+        });
+        return { album, newly: newly ?? [] };
+      };
+
       const args = {
         p_run_key: runKey,
         p_collectible_ids: collectibleIds,
@@ -250,59 +312,23 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
         p_outcome: outcome,
       };
 
-      // One round trip (migration 0010). Banking used to cost three - the call, then a
-      // version read, then the album + stats - and that multiplier, not the function
-      // (1-9 ms) or the release timer, is what made a finished run sit for a second or
-      // two. finish_run_v2 returns everything those reads were for, computed inside the
-      // same transaction, so the "server counted, do not guess" rule is unchanged.
-      if (hasFinishRunV2) {
-        try {
-          const p = await rpc<FinishRunPayload>('finish_run_v2', args);
-          // Keep the old value if the payload somehow lacks one: the next write then
-          // fails as stale and the rpc retry re-reads it, rather than sending undefined.
-          version = p.version ?? version;
-          const album = albumFromRows(p.album ?? []);
-          patch({
-            album,
-            albumStats: {
-              runsPlayed: p.stats?.runs_played ?? 0,
-              stickersEarned: p.stats?.stickers_earned ?? 0,
-              tradesCompleted: p.stats?.trades_completed ?? 0,
-            },
-            run: null,
-          });
-          return { album, newly: p.newly ?? [] };
-        } catch (err) {
-          if (!isMissingFunction(err)) throw err;
-          // A server that has not had 0010 applied yet. Nothing ran (see
-          // isMissingFunction), so the older call below is a first attempt, and this
-          // client stops asking for the rest of the session.
-          hasFinishRunV2 = false;
-        }
+      try {
+        return await bank(args);
+      } catch (err) {
+        // A cup pick the album already holds is legal - with nothing left to collect the
+        // reward IS a duplicate (album spec FR-3) - but a server without migration 0012
+        // refuses it and loses the whole bank. So submit the pick as one more of the
+        // run's collectibles instead: those are added copy by copy with no
+        // already-collected check, which is exactly what a duplicate needs, and 11 + 1
+        // still fits the server's cap of 12. Safe as a retry because the refusal aborted
+        // the transaction, so the run key it claimed was rolled back with it.
+        if (!isDuplicateCupPick(err) || !cupPickId || collectibleIds.length >= 12) throw err;
+        return await bank({
+          ...args,
+          p_cup_pick: null,
+          p_collectible_ids: [...collectibleIds, cupPickId],
+        });
       }
-
-      const newly = await rpc<string[]>('finish_run', args);
-      // The server counted; re-read rather than guess at the result. Its version comes
-      // back too, since a retry inside the call may have moved it.
-      version = await readVersion();
-      const [album, stats] = await Promise.all([
-        readAlbum(),
-        client
-          .from('album_stats')
-          .select('runs_played, stickers_earned, trades_completed')
-          .eq('user_id', userId)
-          .maybeSingle(),
-      ]);
-      patch({
-        album,
-        albumStats: {
-          runsPlayed: stats.data?.runs_played ?? 0,
-          stickersEarned: stats.data?.stickers_earned ?? 0,
-          tradesCompleted: stats.data?.trades_completed ?? 0,
-        },
-        run: null,
-      });
-      return { album, newly: newly ?? [] };
     },
 
     async trade(tier, playerId) {
