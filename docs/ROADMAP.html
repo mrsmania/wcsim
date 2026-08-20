@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-20<br>
-    <strong>Open:</strong> 11 items<br>
+    <strong>Open:</strong> 10 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -816,51 +816,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">25</span>
-    <span class="title">Apply migration 0012 on the NAS
-      <span class="sub">The duplicate-cup-pick fix shipped client-first, as every migration does. Needs one command from the LAN or VPN.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Opened 2026-08-20</strong>, with the fix it belongs to already on
-    <code>main</code>.</p>
-
-    <p><strong>What it is.</strong> <code>supabase/migrations/0012_duplicate_cup_pick.sql</code>
-    lets the cup-win pick be a card the album already holds. With every pickable sticker collected
-    the reward picker offers the whole Legendary/Iconic list on purpose and the pick lands as a
-    duplicate (album spec FR-3); the server refused it, which rolled the whole bank back and left a
-    signed-in player on the blocking "can't reach your account" screen. So a full album made
-    winning the cup unplayable for an account.</p>
-
-    <p><strong>The command</strong>, from a machine on the LAN or VPN with
-    <code>dkr/.env</code> present:</p>
-    <p><code>npm run push:sql -- supabase/migrations/0012_duplicate_cup_pick.sql</code>
-    (add <code>-- --dry-run</code> first to see it without sending).</p>
-
-    <p><strong>Not urgent, because the client already copes.</strong>
-    <code>remoteStore.finishRun</code> retries a refused pick as one more entry in
-    <code>collectibleIds</code> - those are added copy by copy with no already-collected check, and
-    11 + 1 still fits the server's cap of 12 - so a pre-0012 server banks the duplicate instead of
-    losing the run. Applying the migration is what removes the wasted round trip and the misleading
-    audit row (the pick is logged as an earned collectible on that path).</p>
-
-    <p><strong>Verified before shipping</strong> against a local Postgres 16 with the real
-    migrations 0001-0012 and the generated catalogue: the failure reproduces pre-0012 (with
-    <code>run_results</code> rolled back, which is what makes the client's retry safe), the
-    duplicate banks post-0012 with <code>album_stats</code> and the run row intact, and the other
-    three guards (cup win, active collectible, never Monumental) still raise.</p>
-
-    <p class="next"><strong>Next step:</strong> run the command, then check
-    <code>select prosrc from pg_proc where proname = 'finish_run_v2'</code> no longer contains
-    "already collected" and close this item.</p>
-    <p class="files">supabase/migrations/0012_duplicate_cup_pick.sql, scripts/push-sql.mjs, src/state/store/remoteStore.ts</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">26</span>
     <span class="title">Wipe the account server for testing
       <span class="sub">Requested: an empty database to test against. The script is written and on main; it needs one command from the LAN or VPN.</span>
@@ -871,7 +826,8 @@
   <div class="detail">
     <p><strong>Asked for 2026-08-20.</strong> The script exists and is committed;
     what is left is running it, which needs <code>dkr/.env</code> and reach to the NAS.
-    Whoever picks this up can do it in the same visit as item 25.</p>
+    It is the same route item 25 took on 2026-08-20, so <code>push:sql</code> is proven
+    against this server; only the wipe itself is untried.</p>
 
     <p><strong>The command</strong>, dry run first:</p>
     <p><code>npm run push:sql -- --dry-run supabase/maintenance/reset-user-data.sql</code><br>
@@ -908,9 +864,10 @@
     for the seven keys. Note <code>wcsim_settings_v1</code> is listed separately there because a
     reset deliberately keeps theme, difficulty and year pool.</p>
 
-    <p><strong>It does not replace item 25.</strong> A wipe removes rows, not function definitions,
-    so migration 0012 still has to be applied either way. In the other direction the wipe does make
-    25 less pressing for a while, since a fresh album cannot be full.</p>
+    <p><strong>It cannot undo item 25.</strong> Migration 0012 went on 2026-08-20 and a wipe
+    removes rows, not function definitions, so <code>finish_run_v2</code> keeps the fix however
+    often the user tables are emptied. Worth knowing while testing: a freshly wiped album cannot
+    be full, so the duplicate cup pick 0012 legalised is not reachable again until one is.</p>
 
     <p class="next"><strong>Next step:</strong> run the dry run, read the row counts it reports, then
     run it for real and confirm every user table reads 0 while <code>collectibles</code> still reads
@@ -924,6 +881,26 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>25 Apply migration 0012 on the NAS.</b> Done 2026-08-20, the same day the
+      client-side fix shipped, with
+      <code>npm run push:sql -- supabase/migrations/0012_duplicate_cup_pick.sql</code>. The
+      duplicate cup pick is now legal server-side, so a full album no longer makes winning
+      the cup unplayable for an account by the long way round.
+      <br><b>Verified on the server, not just assumed.</b> Before: the guard string sat at
+      character 1985 of <code>finish_run_v2</code>. After: it is gone, the other four raises
+      are all still there (cup win, active collectible, never Monumental, the cap of 12 and
+      the swap cap), <code>prosecdef</code> is still true, and the <code>execute</code>
+      grants are byte-identical to what 0008 set - <code>authenticated</code> and
+      <code>service_role</code> yes, <code>anon</code> no - which is the thing
+      <code>create or replace</code> was chosen for. <code>finish_run</code> was not touched
+      and still delegates to v2, so the one replace fixed both entry points, as the
+      migration header claimed it would.
+      <br><b>The client's retry path stays.</b> <code>remoteStore.finishRun</code> still
+      re-submits a refused pick as one more entry in <code>collectibleIds</code>. It is dead
+      code against this server now, but deployment is client-first by design and a fork can
+      run any migration level, so it is the compatibility shim it always was, not leftovers.
+      What applying this removes is the wasted round trip and the misleading audit row, which
+      was always the point - the bug itself was already survivable.</li>
       <li><b>06 Trophy cabinet.</b> Done 2026-08-20, as <b>option B</b> of the four the
       item had worked out: a read-only <code>/cabinet</code> screen, lazy-loaded like
       <code>/challenges</code>, behind <code>FEATURES.trophyCabinet</code> and reached from

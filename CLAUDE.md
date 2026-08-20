@@ -1056,13 +1056,15 @@ keep working.
   server refused it ("cup pick bra-1998-9 is already collected"), and since that raise
   rolls the whole bank back and a failed signed-in write is the blocking unreachable
   state, a full album made a cup win unplayable for an account. Migration `0012` drops
-  that check. Do not put back a narrower "only when nothing is left to collect" version:
-  the picker draws from the player's selected World Cups (`poolYears`), so a finished
-  2022 pool offers duplicates while the catalogue still holds uncollected 1990 cards, and
-  any exhaustion test on the server would refuse that legal pick. Deployment being
-  client-first, `remoteStore.finishRun` also retries a refused pick as one more entry in
-  `collectibleIds` (added copy by copy, no already-collected check, and 11 + 1 still fits
-  the cap of 12), so a pre-`0012` server banks the duplicate instead of losing the run.
+  that check (applied to the NAS 2026-08-20). Do not put back a narrower "only when
+  nothing is left to collect" version: the picker draws from the player's selected World
+  Cups (`poolYears`), so a finished 2022 pool offers duplicates while the catalogue still
+  holds uncollected 1990 cards, and any exhaustion test on the server would refuse that
+  legal pick. Deployment being client-first, `remoteStore.finishRun` also retries a
+  refused pick as one more entry in `collectibleIds` (added copy by copy, no
+  already-collected check, and 11 + 1 still fits the cap of 12), so a pre-`0012` server
+  banks the duplicate instead of losing the run. That retry is now dead code against our
+  own server, and stays anyway: a fork runs whatever migration level it has applied.
 
 ## Conventions and working agreements
 
