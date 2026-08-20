@@ -9,6 +9,13 @@ in a browser and check it first if you are continuing the project. It replaced t
 `docs/ROADMAP.md` + `docs/todo/TODO.html` pair, which held overlapping copies of the same
 items and drifted apart.
 
+**Cleanup work has its own list:** `docs/hygiene-audit.html` (roadmap item 23) is a
+wave-by-wave backlog of dead code and behaviour-preserving refactorings, H1 to H105, plus
+the decisions they need and an explicit list of what not to touch. It is **blocked on item
+22** and should not be started before it. Note that it records several claims in this file
+as drifted (see its wave 1d); those corrections are backlog items, so do not be surprised
+to find them still wrong here.
+
 ## What this is
 
 **World Cup Simulator** - a single-page game. You draft an XI of real World Cup

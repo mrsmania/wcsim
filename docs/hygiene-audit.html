@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hygiene - Dead Code and Refactoring Backlog</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1c1c1a;
+    --ink-mid:    #5a5a52;
+    --ink-faint:  #9a9a8e;
+    --ground:     #f6f2eb;
+    --card:       #fffcf7;
+    --rule:       #ddd8ce;
+    --pitch:      #1e3d2f;
+    --amber:      #b8841e;
+    --amber-tint: #f5e9d0;
+    --loss:       #a8322a;
+  }
+
+  html { background: var(--ground); }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink);
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+
+  .doc-header {
+    border-top: 3px solid var(--pitch);
+    padding-top: 26px;
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
+  }
+  .eyebrow {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--pitch); margin-bottom: 9px;
+  }
+  .doc-header h1 { font-size: 32px; font-weight: normal; line-height: 1.15; letter-spacing: -.01em; }
+  .doc-header h1 em { font-style: normal; color: var(--pitch); }
+  .meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11.5px; color: var(--ink-mid); text-align: right; line-height: 1.8;
+  }
+  .meta strong { color: var(--ink); font-weight: 600; }
+
+  .lede {
+    background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--pitch);
+    padding: 13px 18px; margin-bottom: 26px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12.5px; line-height: 1.55; color: var(--ink-mid);
+  }
+  .lede b { color: var(--ink); }
+  .lede p { margin-bottom: 9px; }
+  .lede p:last-child { margin-bottom: 0; }
+
+  h2 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--pitch); border-bottom: 2px solid var(--pitch);
+    padding-bottom: 6px; margin: 38px 0 14px;
+  }
+  h3 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px; font-weight: 700; color: var(--ink); margin: 24px 0 8px;
+  }
+  h3 .w { color: var(--pitch); }
+  p { margin-bottom: 12px; }
+  ul, ol { margin: 0 0 12px 20px; }
+  li { margin-bottom: 6px; }
+
+  pre {
+    font-family: 'Courier New', Courier, monospace; font-size: 12.5px; line-height: 1.6;
+    background: #ece7dd; border-left: 2px solid var(--ink-faint); border-radius: 2px;
+    padding: 10px 13px; margin: 9px 0 13px; overflow-x: auto;
+  }
+  code {
+    font-family: 'Courier New', Courier, monospace; font-size: 12.5px;
+    background: #ece7dd; border-radius: 2px; padding: 1px 5px; word-break: break-word;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 18px; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--pitch);
+    border-bottom: 2px solid var(--pitch);
+  }
+  td.id {
+    font-family: 'Courier New', Courier, monospace; font-size: 11.5px; font-weight: bold;
+    color: var(--pitch); width: 44px; white-space: nowrap;
+  }
+  td.pr { width: 62px; }
+  td.er { width: 74px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: var(--ink-mid); white-space: nowrap; }
+  tr.dec td { background: #fdf7ea; }
+
+  .tag {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 9px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; border-radius: 2px;
+    padding: 2px 5px; white-space: nowrap; color: #4a4a4a; background: #e3e3e0;
+  }
+  .p-dead { color: #6b2f2a; background: #f1ddda; }
+  .p-dry  { color: #1e3d2f; background: #dbe6de; }
+  .p-kiss { color: #5a4410; background: #f0e5cd; }
+  .p-soc  { color: #2c3a52; background: #dde2ec; }
+  .p-yag  { color: #4a2f55; background: #e7dcec; }
+
+  .callout {
+    background: var(--amber-tint); border-left: 3px solid var(--amber);
+    padding: 12px 16px; margin: 14px 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 1.55;
+  }
+  .callout .ct {
+    display: block; font-weight: 700; color: var(--amber); text-transform: uppercase;
+    letter-spacing: .1em; font-size: 10px; margin-bottom: 5px;
+  }
+  .callout code { background: #ecdcbd; }
+  .callout p { margin-bottom: 9px; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .stop {
+    background: #f7e6e4; border-left: 3px solid var(--loss);
+    padding: 12px 16px; margin: 14px 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 1.55;
+  }
+  .stop .ct {
+    display: block; font-weight: 700; color: var(--loss); text-transform: uppercase;
+    letter-spacing: .1em; font-size: 10px; margin-bottom: 5px;
+  }
+  .stop code { background: #efd6d3; }
+
+  footer {
+    margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 12px;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11.5px; color: var(--ink-faint);
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 32px 18px 60px; }
+    .doc-header { grid-template-columns: 1fr; }
+    .meta { text-align: left; }
+    table { font-size: 12px; }
+    td.pr, td.er { display: none; }
+    th:nth-child(2), th:nth-child(5), th:nth-child(6) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div>
+    <div class="eyebrow">World Cup Simulator</div>
+    <h1>Hygiene <em>dead code and refactoring backlog</em></h1>
+  </div>
+  <div class="meta">
+    <strong>Audited:</strong> 2026-08-20<br>
+    <strong>Status:</strong> backlog, not started<br>
+    <strong>Roadmap:</strong> item 23
+  </div>
+</div>
+
+<div class="lede">
+  <p><b>What this is.</b> A worked list of dead code and behaviour-preserving refactorings across
+  the whole codebase, judged against DRY, KISS, SoC and YAGNI. It is written to be
+  <b>executed</b>, in waves, by a team that was not in the room when it was written: every
+  entry names the files, the fix, whether it changes behaviour, effort and risk.</p>
+  <p><b>The single rule.</b> <b>No change in functionality.</b> The app that comes out plays
+  exactly like the app that went in. Where an item cannot honour that, it says so and is
+  parked in <a href="#decisions">Decisions</a> instead of being smuggled in as a cleanup.</p>
+  <p><b>The gate.</b> <code>npm run build</code> clean and <code>npm run checks</code> at
+  59/59, verified green on <code>main</code> at 2026-08-20 before any of this. There is no
+  unit-test runner, so those two plus reading the diff are the whole safety net. That is why
+  wave 7 puts <code>npm run checks</code> into CI first.</p>
+  <p><b>How it was produced.</b> Six independent reviews of the tree in parallel: dead weight,
+  DRY, SoC/layering, KISS/YAGNI, type model and naming, and tooling/SQL/assets. Overlaps were
+  merged and the load-bearing claims re-verified by hand. Roughly 190 findings survived.</p>
+</div>
+
+<div class="stop">
+  <span class="ct">Do not start before roadmap item 22</span>
+  <p>Item 22 (Quick Run, Career Mode and the three progression systems) is a design decision
+  that moves the same code this backlog touches: the two tournament engines, the two chemistry
+  definitions, the mode fact being derived twice, the run-end sticker triggers, and the
+  difficulty-resets-the-album rule. Doing hygiene first means doing several of these twice, and
+  the second pass would be the one that loses.</p>
+  <p>The <a href="#offlimits">Off limits</a> section lists exactly what item 22 owns. Everything
+  else here is independent of it.</p>
+</div>
+
+<h2 id="rules">Ground rules for the implementing team</h2>
+
+<ol>
+  <li><b>One wave per branch, one item per commit</b> (or one commit per tight group of
+  identical mechanical edits, e.g. "un-export 12 symbols"). A 40-file wave in one commit cannot
+  be reviewed, and this whole backlog is only worth doing if the diffs are reviewable.</li>
+  <li><b>Run the gate before every commit.</b> <code>npm run build</code> always;
+  <code>npm run checks</code> whenever the commit touches <code>src/domain/</code> or
+  <code>scripts/</code>. Both are fast (build ~4s, checks ~14s).</li>
+  <li><b>Never reformat as a side effect.</b> 2-space indent, match the surrounding file. If a
+  file is the wrong width, that is its own commit (see H17), not a rider on a logic change.</li>
+  <li><b>No em-dashes</b> in anything you write, including commit messages and comments.
+  "rating" not elo, "boost" not boon, in any user-visible string.</li>
+  <li><b>If an item turns out to be wrong, stop and say so.</b> Every claim below was verified
+  once, but a claim can rot between the audit and the work. A finding that no longer reproduces
+  is a finding about this document, not a licence to improvise a different change.</li>
+  <li><b>Behaviour-preserving means observably identical</b>, including the things that are easy
+  to forget: <code>aria-label</code> text, the order of a rendered list, what a
+  <code>title</code> tooltip says, which element receives focus, and what lands in
+  <code>localStorage</code>. Anything persisted is a compatibility surface: a renamed field in
+  <code>wcsim_run_v1</code> or the <code>active_run.data</code> blob breaks a run in progress
+  unless the loader tolerates both spellings.</li>
+  <li><b>Deleting an export is not free if <code>scripts/checks.ts</code> imports it.</b> The
+  harness is the only test suite; keep it compiling and keep its coverage.</li>
+</ol>
+
+<p>Principle tags used below:
+<span class="tag p-dead">dead</span>
+<span class="tag p-dry">dry</span>
+<span class="tag p-kiss">kiss</span>
+<span class="tag p-soc">soc</span>
+<span class="tag p-yag">yagni</span>.
+Effort is S (under an hour), M (a sitting), L (its own piece of work). Rows shaded
+<span style="background:#fdf7ea">amber</span> need an owner decision first and are cross-linked
+to <a href="#decisions">Decisions</a>.</p>
+
+<h2 id="w1">Wave 1 <span class="w">- free deletions and truth fixes</span></h2>
+
+<p>Nothing here needs a decision, nothing here can change behaviour, and it clears the noise
+that would otherwise obscure the later waves. Verified individually: each symbol below was
+grepped whole-word across <code>src/</code>, <code>scripts/</code>, <code>supabase/</code>,
+<code>public/</code> and <code>docs/</code>.</p>
+
+<h3>1a. Genuinely dead code</h3>
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H1</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>isSignedIn</code> (<code>state/store/index.ts:65</code>) has zero references anywhere. The module-level <code>remote</code> flag it reads is still needed by <code>reporting()</code>.</td>
+    <td>Delete the export and its doc comment.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H2</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>StickerAlbumApi.enabled</code> (<code>hooks/useStickerAlbum.ts:38</code>, returned at <code>:264</code>). The hook's only consumer is <code>App.tsx:149</code>, which uses its own <code>const STICKERS = FEATURES.stickerAlbum</code> and never reads <code>stickers.enabled</code>.</td>
+    <td>Drop the interface field and the returned key. The local <code>const enabled</code> stays (10 internal uses).</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H3</td><td class="pr"><span class="tag p-yag">yagni</span></td>
+    <td><code>FollowBottomOpts.margin</code> and <code>.threshold</code> (<code>hooks/useFollowBottom.ts:6,9</code>). All three call sites pass only <code>active</code>; the type is not exported, so there are no other callers. They cost two refs plus a per-render <code>.current =</code> write.</td>
+    <td>Module constants (24 / 120); <code>opts</code> becomes <code>{ active?: boolean }</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H4</td><td class="pr"><span class="tag p-yag">yagni</span></td>
+    <td><code>confettiBurst(x, y, count = 80)</code> (<code>Confetti.tsx:43</code>) - <code>count</code> never passed by its one caller (<code>Bracket.tsx:165</code>).</td>
+    <td>Drop the parameter.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H5</td><td class="pr"><span class="tag p-yag">yagni</span></td>
+    <td><code>useStickerAlbum(..., allPlayers = ALL_PLAYERS)</code> (<code>:79</code>) - a default for a parameter the one caller always passes.</td>
+    <td>Make it required.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H6</td><td class="pr"><span class="tag p-yag">yagni</span></td>
+    <td><code>BoxScore.showChemistry</code> (<code>:54,83</code>) - one call site, always passes it (JSX boolean shorthand, <code>App.tsx:1118</code>). <code>FEATURES.chemistry</code> is the real gate.</td>
+    <td>Drop the prop, read the flag.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H7</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>ChallengeRow.award</code> (<code>challengeUi.tsx:71-79</code>) - both callers pass exactly <code>AWARD[c.tier]</code>, which the component can read from <code>challenge.tier</code> itself, as its sibling <code>ChallengeLedgerRow</code> already does (<code>:157</code>).</td>
+    <td>Drop the prop.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H8</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>interface PendingReward { onPick }</code> (<code>useStickerAlbum.ts:32-34</code>) - a one-field object wrapper.</td>
+    <td><code>pendingReward: ((playerId: string) =&gt; void) | null</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H9</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>state/store/index.ts:5-12</code> re-exports six types; only <code>AccountSnapshot</code> has an importer. <code>Store</code> is imported by both store implementations from <code>./types</code> directly, not from the index.</td>
+    <td>Keep <code>AccountSnapshot</code> (and add <code>Theme</code>, see H63); drop the rest.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H10</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Twelve symbols are exported but used only inside their own module: <code>ATTACK_CATS</code> (<code>data/types.ts:92</code>), <code>FIELD_SIZE</code> (<code>bracket.ts:7</code>), <code>perkById</code> (<code>career.ts:238</code>), <code>CHALLENGE_BY_ID</code> (<code>challenges.ts:710</code>), <code>CHEM_NAME</code> (<code>chemistry.ts:25</code>), <code>qualifiers</code> (<code>tournament.ts:188</code>), <code>SHOOTOUT_START_MS</code> + <code>SHOOTOUT_END_HOLD_MS</code> (<code>useMatchClock.ts:16,18</code>), <code>TIER_NAME</code> + <code>FamilyDot</code> (<code>challengeUi.tsx:32,58</code>), <code>PenPip</code> (<code>matchUi.tsx:81</code>), <code>StaleVersionError</code> (<code>remoteStore.ts:18</code>).</td>
+    <td>Drop the <code>export</code> keyword. <b>Do not</b> touch <code>sideOf</code>, <code>bestEleven</code>, <code>canMove</code>, <code>viewOf</code>: <code>scripts/checks.ts</code> imports those four.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H11</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>lockableBoons</code> (<code>boons.ts:304</code>) says in its own comment it is "for the unlock library UI", but <code>CareerHub.tsx:302</code> filters <code>BOONS</code> inline instead. Only <code>scripts/checks.ts</code> keeps it alive.</td>
+    <td>Either use it in <code>CareerHub</code> (preferred, the comment becomes true) or mark it harness-only like <code>playGroupStage</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H12</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>tsconfig.json</code>: <code>resolveJsonModule</code> (no <code>.json</code> import anywhere), <code>allowImportingTsExtensions</code> (no import carries a <code>.ts</code> suffix), <code>useDefineForClassFields</code> (the only two classes declare no fields). Vite-template leftovers.</td>
+    <td>Delete the three lines. Safe: <code>allowImportingTsExtensions</code> requires <code>noEmit</code>, which is set.</td><td class="er">S</td><td class="er">none</td></tr>
+</table>
+
+<h3>1b. Complexity with nothing on the other side of the trade</h3>
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H13</td><td class="pr"><span class="tag p-yag">yagni</span></td>
+    <td><b>There is no <code>React.memo</code> anywhere in the codebase</b> (verified), yet <code>App.tsx</code> wraps 19 handlers in <code>useCallback</code>. Exactly one identity is consumed: <code>runRoll</code>, in the draw-next-squad effect's dep array (<code>:321</code>). The other 18 buy nothing and cost a hand-maintained dep array each, which is the actual bug surface (<code>handleReset</code> at <code>:549</code> even carries a comment explaining why <code>stickers.onNewRun</code> must be in its deps).</td>
+    <td>Keep <code>useCallback</code> on <code>runRoll</code>; make the other 18 plain arrow consts. Removing memoization cannot cause staleness, only the reverse.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H14</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Four <code>useMemo</code>s keyed on <code>[path]</code> whose bodies read <code>store.peek()</code> (<code>App.tsx:659, 669, 724, 739</code>), two of them needing an <code>eslint-disable</code>. <code>peek()</code> is a synchronous in-memory field read; the memo caches nothing and the key is a lie about the dependency.</td>
+    <td>Plain reads in the render body. Strictly fresher: a memo keyed on path can serve a career that <code>saveCareer</code> has already replaced.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H15</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>CareerHub</code> takes <code>hubOpen</code>, <code>showBody</code> and <code>showToggle</code> for one caller, where <code>showToggle</code> is literal <code>true</code> and <code>showBody={showHubBody}</code> with <code>const showHubBody = hubOpen</code> (<code>CupRunScreen.tsx:385</code>). The <code>showToggle ? ... : ...</code> else-branch (<code>CareerHub.tsx:99-113</code>) is a 15-line alternate header nothing can render.</td>
+    <td>Props become <code>{ career, prog, open, onToggle, onPurchase, onUnlockBoost }</code>; delete the else-branch and the alias.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H16</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>CupRunScreen.tsx:130-132</code>: an effect clamping <code>ascSel</code> to <code>maxAsc</code>, when every reader already clamps independently (<code>:192, 251, 405, 476, 495</code>). Nothing observes an unclamped value.</td>
+    <td>Delete the effect.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H17</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>App.tsx:600, 830-832, 1204</code> gate props on <code>STICKERS</code> that the hook already neutralises when off (empty album, <code>banking</code> false, <code>summary</code> null). Only the route gate and <code>{STICKERS &amp;&amp; &lt;RunEndOverlays/&gt;}</code> do real work.</td>
+    <td>Drop the redundant gates.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H18</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>KnockoutScreen.tsx:122-127</code> duplicates <code>startPlay</code>'s body inside the auto-play effect instead of calling it.</td>
+    <td>Call <code>startPlay</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H19</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>Pitch.tsx:358-371</code>: a nested ternary whose three arms resolve to the identical class string (<code>moveHere</code>, <code>target === 'secondary'</code>, <code>shopHere</code>).</td>
+    <td>Collapse to one disjunction.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H20</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Three casts that are pure no-ops: <code>SquadBrowser.tsx:385</code> (<code>as Legend</code>, the literal already satisfies it; only the parens were needed for <code>??</code> precedence), <code>album.ts:172-176</code> (<code>as Record&lt;StickerTier, ...&gt;</code>, every key present), <code>RoundReview.tsx:67</code> (<code>record.stage as number</code>, which narrows correctly today after the <code>=== 'group'</code> early return).</td>
+    <td>Remove all three. Note the sibling cast at <code>CupRunScreen.tsx:689</code> is <b>load-bearing</b> until H70.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H21</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Four non-null assertions that are all the same mistake, a derived boolean discarding the narrowing: <code>Pitch.tsx:523</code> (<code>selectedPlayer!</code>, after <code>matches</code> collapsed it to a boolean), <code>XiTable.tsx:87</code> (<code>player!.id</code> inside <code>{tier &amp;&amp; ...}</code>), <code>BudgetMarket.tsx:238</code> (<code>targetSlot!.label</code> inside <code>{position ? ...}</code>), <code>KnockoutScreen.tsx:186-187</code> (<code>finished!</code> inside a second, unlinked <code>g.result ?</code>).</td>
+    <td>Test the nullable value itself in each guard. One-liners.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H22</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>Piece.life?</code> (<code>Confetti.tsx:18</code>) is optional because <code>Piece</code> is really two variants: the burst always sets it, the rain never does. That is the sole reason for <code>p.life!</code> at <code>:100,102</code>.</td>
+    <td><code>interface BurstPiece extends Piece { life: number }</code>, and type the burst pool as <code>BurstPiece[]</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H23</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>BracketResult.pens</code> (<code>bracket.ts:13</code>) is declared as an inline subset while <code>bracket.ts:103</code> assigns a whole <code>ShootoutResult</code>. Because it comes from a variable, excess-property checking never fires, so <code>homeWon</code> is carried at runtime, invisible to the type, and persisted into the game blob. <code>run.ts:151</code> already uses the honest type for the same field.</td>
+    <td><code>pens?: ShootoutResult</code>.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H24</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>ReturnType&lt;typeof catOf&gt;</code> (<code>boons.ts:57</code>) where <code>PositionCategory</code> is the answer and is already in the dependency graph. <code>budget.ts:68</code> shadows its own <code>pool</code> parameter with a local <code>const pool</code>.</td>
+    <td>Name the type; rename the local.</td><td class="er">S</td><td class="er">none</td></tr>
+</table>
+
+<h3>1c. Repo and asset weight</h3>
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H25</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>public/formations/.claude/launch.json</code> is git-tracked inside <code>public/</code>, so Vite copies it into <code>dist/</code> and <b>it is published to GitHub Pages</b> at <code>/wcsim/formations/.claude/launch.json</code>. Contents are innocuous (a <code>python -m http.server</code> config) but a <code>.claude/</code> path on a public site is not a pattern to establish. <b>Not covered by CR-D3</b>, which adjudicated the assets, not tooling configs.</td>
+    <td><code>git rm</code>.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H26</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>public/jerseys/done/bra2006-rr - Copy.jpg</code> is a byte-identical duplicate of its sibling (same md5), 470 KB, the only filename with a space anywhere in <code>public/</code> or <code>art/</code>, and the only exact duplicate pair in the directory. CR-D3 accepted the reference set; it did not accept an accidental copy of one member of it.</td>
+    <td><code>git rm</code>.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H27</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td>Root <code>collectibles.csv</code>: a 68-row art-tracking sheet (BOM-prefixed, semicolon-delimited, every row already marked done) that nothing reads. Stale by construction - 68 rows against the current 81 collectibles, so it predates the 1990-2002 research wave. Root placement makes it look like configuration.</td>
+    <td>Delete, or move to <code>art/</code>. Its job is better done by H108's drift guard, which cannot go stale.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H28</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>scripts/scrape_7a0.js</code> (743 lines, scrapes 1950-2026) plus <code>scripts/out/{players,teams,rating_comparison}.csv</code> (490 KB), all tracked, none referenced by any npm script or doc. One passing mention in <code>squads.ts:1240</code>. The dataset is hand-researched now; <code>scripts/</code> otherwise contains only live tools.</td>
+    <td>Move to <code>docs/research/</code> and update the <code>squads.ts</code> comment to point at the new path. Deleting is also defensible - history keeps them - but the provenance is worth keeping findable.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H29</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>.gitignore</code>: <code>dist-ssr</code> is ignored though there is no SSR (template leftover), and <b>plain <code>.env</code> is not ignored</b> in a public repo whose documented dev path is <code>.env.local</code> (covered only by <code>*.local</code>). One <code>cp .env.local .env</code> from committing a URL and anon key.</td>
+    <td>Drop <code>dist-ssr</code>; add <code>.env</code> and <code>.env.*</code>.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H30</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>scripts/copy-404.mjs:9-10</code> is 4-space indented, the only file in <code>scripts/</code> that is, against the stated 2-space convention.</td>
+    <td>Reindent. Its own commit, per ground rule 3.</td><td class="er">S</td><td class="er">none</td></tr>
+</table>
+
+<h3>1d. Comments and docs that are no longer true</h3>
+
+<p>Each of these will send a reader looking for something that is not there, which is the most
+expensive kind of dead weight. All eleven verified against the code.</p>
+
+<table>
+  <tr><th>ID</th><th>P</th><th>The claim, and what is actually true</th><th>Eff</th></tr>
+  <tr><td class="id">H31</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><b>CLAUDE.md</b> describes <code>domain/random.ts</code> as "<code>shuffled</code> + <code>pick</code>, the shared <code>Math.random</code> helpers". <code>random.ts</code> is 11 lines and exports <code>shuffled</code> only. <code>pick</code> is private in <code>match.ts:81</code> and open-coded in 11 places. Fixed for real by H36, which makes the sentence true rather than editing it.</td><td class="er">S</td></tr>
+  <tr><td class="id">H32</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><b>CLAUDE.md</b>: "Legends Reunion and Wildcard Legend deal from the 93+ pool". Legends' Reunion is <code>elo &gt;= 93</code> (<code>boons.ts:289</code>) but <b>Wildcard Legend is <code>elo &gt;= 90</code></b> (<code>:213</code>, described in-game as "a random 90+ legend"). The same wrong claim sits in the code at <code>useStickerAlbum.ts:203-204</code>. Correct both.</td><td class="er">S</td></tr>
+  <tr><td class="id">H33</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>useStickerAlbum.ts:135-137</code>: "<b>On (the default)</b> only a cup win banks". The flag is <code>false</code> (<code>config.ts:43</code>), and CLAUDE.md correctly records that it was set back to false the same day it landed. The code comment states the opposite default.</td><td class="er">S</td></tr>
+  <tr><td class="id">H34</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td>Eight more, all one-line fixes: <code>albumStorage.ts:5</code> claims to be "the only place that reads or writes these keys" (<code>localStore.ts:27-34</code> also does, see H88) &middot; <code>formations.ts:16</code> says <code>Slot.position</code> is one of "the 10 player positions" (<code>Position</code> has 12) &middot; <code>store/types.ts:53</code> documents <code>outcome</code> as <code>'champion' | 'out' | 'group'</code> while the producer emits <code>'champion' | 'out' | 'run-end'</code> (see H43) &middot; <code>App.tsx:73-76</code> calls the 1080px query "Tailwind's <code>lg</code>" (<code>lg</code> is 1024; 1080 is the comp's custom breakpoint) &middot; <code>challenges.ts:20</code> says "Three traps" where four are documented, the fourth in that same file at <code>:298-304</code> &middot; <code>formations.ts:11,33,41</code> talk about reading a CSV that nothing reads at runtime &middot; <code>nginx.conf:7</code> says "there is no client-side router yet" when the <code>try_files</code> fallback is now load-bearing &middot; <code>index.html:31</code> lists <code>--color-muted</code> among the tokens the boot CSS copies, and no muted value appears there.</td><td class="er">S</td></tr>
+  <tr><td class="id">H35</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><code>docs/code-review-2026-07-round2.md:600-606</code> still lists CR-D4 ("add esbuild to devDependencies") as remaining work. It is done (<code>package.json:31</code>). Mark it resolved the way CR-D2 and CR-D3 are. Also: <b>CLAUDE.md's Hosting section should record that ~27 MB of <code>public/jerseys/</code> ships deliberately</b> (CR-D3), or every future reviewer re-derives it, as two of the six did here. And add <code>npm run checks</code> to README's Develop list - it is the project's only test command and README omits it.</td><td class="er">S</td></tr>
+</table>
+
+<h2 id="w2">Wave 2 <span class="w">- name the constants, share the one-liners</span></h2>
+
+<p>All small, all mechanical, all verified. These are the highest payoff-per-minute items in the
+backlog: each removes a fact that is currently written down twice.</p>
+
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H36</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>Math.floor(Math.random() * arr.length)</code> is open-coded 11 times across 8 files (<code>draft.ts:195,217</code>, <code>budget.ts:73,92</code>, <code>boons.ts:93,187,215</code>, <code>clock.ts:24</code>, <code>match.ts:82</code>, <code>GroupDrawReveal.tsx:15</code>, <code>App.tsx:262</code>), while <code>match.ts:81</code> has a private <code>pick&lt;T&gt;</code> and CLAUDE.md already claims <code>random.ts</code> exports one.</td>
+    <td>Export <code>pick</code> from <code>domain/random.ts</code>; delete the private copy; use it at the 8 domain sites. Identical distribution.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H37</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Match-clock literals: full time <code>90</code> is bare in 8 component sites and <code>120</code> in one, while <code>match.ts:91-92</code> has <code>REG_MINUTES</code> / <code>ET_MINUTES</code> unexported. The shootout's best-of-five <code>5</code> appears three times in one function (<code>match.ts:190,191,196</code>) in a file where nine other tuning numbers are named. Half-time boundaries are bare in <code>clock.ts:35-43</code> (45, 46, 90, 91).</td>
+    <td>Export <code>REG_MINUTES</code>, add <code>ET_END_MINUTES</code>, <code>SHOOTOUT_ROUNDS</code>, <code>HALF_MINUTES</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H38</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>League points <code>3</code> and <code>1</code> are bare at <code>tournament.ts:163,167,172</code>, in the file that names <code>GROUP_MATCHDAYS</code> and <code>QUALIFY_COUNT</code> for exactly this reason. "3 group opponents" is a literal in two files (<code>run.ts:274</code>, <code>odds.ts:41</code>) and is <em>not</em> <code>GROUP_MATCHDAYS</code>, which is also 3 for a different reason. <code>11</code> is a literal in <code>bestEleven</code> and the same top-11 logic is re-implemented inline at <code>boons.ts:255</code>.</td>
+    <td><code>POINTS_WIN</code>, <code>POINTS_DRAW</code>, <code>GROUP_OPPONENTS</code>, <code>XI_SIZE</code>; reuse <code>bestEleven</code> in <code>boons.ts</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H39</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>BudgetMarket.tsx:36</code> computes value-per-dollar as <code>(p.elo - 58) / price(p)</code>, where <code>58</code> is <code>BASE</code>, a <b>private</b> constant in <code>domain/pricing.ts:17</code>. Tune the curve and the Value sort silently misranks.</td>
+    <td>Better than exporting the constant: move the rule, <code>export const valuePerDollar = (p, price) =&gt; ...</code> in <code>pricing.ts</code>.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H40</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>The rating clamp exists three ways: <code>boons.ts:64-67</code> clamps both ends, <code>run.ts:220</code> (Deep Squad) clamps only the top, <code>checks.ts:901</code> hardcodes <code>Math.min(99, ...)</code>. "Average elo" exists five ways, of which only some are the same question (<code>challenges.ts:245</code> is deliberately unrounded and its thresholds are calibrated to that).</td>
+    <td><code>clampElo</code> and an unrounded <code>avgElo</code> in <code>data/types.ts</code> beside <code>ELO_MIN</code>/<code>ELO_MAX</code>; callers round. <b>Keep <code>challenges.ts</code> unrounded.</b></td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H41</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>boons.ts:213,289</code> encode the collectible tier boundaries (90, 93) in both the predicate and the user-facing description string, duplicating <code>STICKER_TIERS</code> in <code>config.ts</code>. CLAUDE.md's "after changing <code>STICKER_TIERS</code>" warning does not mention that two boons and two strings also encode them.</td>
+    <td>Read the config in the predicates; comment the strings. See also H32 - the doc has this wrong today.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H42</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>STRENGTH_BANDS['very-strong'].max = 200</code> (<code>draft.ts:163</code>), a sentinel 101 above <code>ELO_MAX</code>. <code>odds.ts:52</code> guards with <code>&lt; 8</code> next to a comment saying it always resolves in 4 or fewer. <code>App.tsx:77</code> and <code>:920</code> duplicate the 1080px breakpoint (a Tailwind arbitrary value cannot read a TS constant, so the honest fix is a named constant plus a comment pinning the class string to it).</td>
+    <td>Name each; <code>ELO_MAX + 1</code> or <code>Infinity</code> for the band.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H43</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Six unnamed inline unions: <code>'quick' | 'career'</code> 8 times (<code>gameReducer.ts:60,71,75,82</code>, <code>App.tsx:83,647</code>, <code>CompletePanel.tsx:15</code>), <code>'home' | 'away'</code> 8 times across 4 files, <code>ResultTag.kind</code> declared twice (<code>matchView.ts:12-15</code> and <code>matchUi.tsx:321</code>, with a comment admitting the coupling), <code>{name, elo}[]</code> three times for pen takers, <code>'roll' | 'budget'</code> twice (<code>BuildMethod</code> plus <code>RunBuild.method</code>), and <code>FinishRunInput.outcome: string</code> whose real domain is <code>'champion' | 'out' | 'run-end'</code>.</td>
+    <td><code>PlayMode</code>, <code>MatchSide</code>, one <code>MatchTag['kind']</code>, <code>PenTaker</code>, <code>BankedOutcome</code>; move <code>BuildMethod</code> to <code>data/types.ts</code> and re-export from the reducer, since <code>domain/</code> must not import <code>state/</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H44</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Small repeated expressions: <code>Object.keys(X) as Y[]</code> in 4 places &middot; <code>Math.round((a/b)*100)</code> in 4 places next to a <code>pct</code> helper that already handles the sub-1% case (<code>cupRun/types.ts:23</code>) &middot; the three-tier record literal spelled out instead of derived from <code>STICKER_TIERS</code> / <code>ChallengeTier</code> in 3 places &middot; per-family tallies recomputed in <code>ChallengesScreen.tsx:156-157</code> although <code>challengeProgress</code> already walks the catalogue &middot; the GK-DEF-MID-FWD comparator written out 4 times (<code>XiTable.tsx:185</code>, <code>TournamentSummary.tsx:155</code>, <code>SquadPanel.tsx:60</code>, <code>TeamRoster.tsx:63</code>).</td>
+    <td><code>keysOf</code>, shared <code>pctOf</code>, <code>emptyByTier()</code> + a <code>TIERS</code> array, <code>byFamily</code> on <code>ChallengeProgress</code>, and <code>bySlotCategory</code> / <code>byPlayerCategory</code> in <code>data/types.ts</code> (which already owns <code>CATEGORY_ORDER</code>).</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H45</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>tierOf(p)!</code> appears 6 times because <code>collectiblePlayers</code> (<code>album.ts:63</code>) returns <code>Player[]</code> and throws the tier away; every consumer re-derives what it just proved. <code>AlbumScreen.tsx:56-58</code> hand-rolls the grouping.</td>
+    <td><code>collectiblesByTier(all): Record&lt;StickerTier, Player[]&gt;</code> in <code>album.ts</code>.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H46</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Four more near-duplicate pairs: <code>rollAnotherTeam</code>/<code>hasAnotherTeam</code> and the cup pair restate their filter predicates (<code>draft.ts:231-264</code>) &middot; <code>bumpLowest</code>/<code>bumpHighest</code> differ only by sort direction (<code>boons.ts:70-79</code>) &middot; the <code>CareerHub</code> header is written twice, once wrapped in a button and once in a div (fixed by H15) &middot; <code>App.tsx:252-277</code> and <code>GroupDrawReveal.tsx:10-51</code> both scramble for 1300 ms with their own loop and their own copy of the duration.</td>
+    <td>Shared predicates; <code>bumpExtreme(xi, n, d, dir)</code>; at minimum one exported <code>SCRAMBLE_MS</code> (a shared <code>useScramble</code> hook is the fuller fix, M).</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H47</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>BudgetMarket.tsx:384-391</code> and <code>:428-432</code>: the struck-through-discount price block is character-identical between the grid and list renderings.</td>
+    <td>One <code>&lt;MarketPrice&gt;</code>. Leave the grid/list split itself alone - that is a real design difference.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H48</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>INITIAL_SWAPS</code> lives in <code>state/gameReducer.ts:23</code> and is mirrored as <code>ALL_SWAPS</code> in <code>domain/challenges.ts:269</code>, because the domain deliberately does not import from <code>state/</code>. Documented, and <code>npm run checks</code> asserts they agree - but the mirror is avoidable.</td>
+    <td>Move <code>INITIAL_SWAPS</code> and <code>INITIAL_REROLLS</code> to <code>config.ts</code>, which <code>domain/</code> already imports, and re-export from the reducer. Also deletes <code>checks.ts:88</code>'s and <code>gen-collectibles.ts:19</code>'s imports of <code>state/</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+</table>
+
+<h2 id="w3">Wave 3 <span class="w">- design tokens and shared UI atoms</span></h2>
+
+<p>CLAUDE.md already declares <code>src/index.css</code> <code>@theme</code> the single source of the
+palette, so the literals here are rule violations rather than taste. Nothing in this wave is
+verifiable by <code>tsc</code>: diff by eye and look at the page.</p>
+
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H49</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><b>Start here.</b> <code>matchUi.tsx:50-55</code> already defines <code>EYEBROW</code>, <code>TABLE_HEAD</code> and <code>MONO_CAP</code>, and they are used twice each while the identical strings are re-typed inline: <code>MONO_CAP</code>'s exact string in 9 places, the <code>0.2em</code> page eyebrow in 8.</td>
+    <td>Use the constants that exist; add <code>PAGE_EYEBROW</code> for the <code>0.2em</code> variant.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H50</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>The flat-card recipe <code>rounded-md border border-line bg-panel ... shadow-hard</code> appears ~35 times across 20+ files.</td>
+    <td><code>CARD</code> / <code>CARD_FLAT</code> string constants beside <code>PRIMARY_BTN</code> in <code>matchUi.tsx</code>, which already owns this pattern; padding stays at the call site. <b>Not</b> a <code>&lt;Card&gt;</code> component: too many sites need <code>overflow-hidden</code>, <code>self-start</code>, a grid area, or a ref.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H51</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Palette hexes outside <code>index.css</code>: <code>#9a6512</code> (the readable amber ink) in 5 files &middot; the pitch grass pair <code>#1a7d45</code>/<code>#1f8a4d</code> in <code>Pitch.tsx:481,489</code> and again in <code>ModeSelect.tsx:52-53</code>, the latter carrying a comment saying it mirrors Pitch by hand.</td>
+    <td><code>--color-amber-ink</code>, <code>--color-grass</code>, <code>--color-grass-stripe</code> tokens; both SVG <code>fill</code> and the CSS gradient take <code>var(--...)</code>. Check dark theme after.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H52</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>StickerCard</code> has become a de-facto token module: <code>AlbumScreen.tsx:15-21</code> derives <code>TIER_ORDER</code> from its <code>TIER_META</code>, <code>cupRun/types.ts:1-12</code> imports it to colour boost rarities, <code>XiTable</code> and <code>challengeUi</code> reach for the same. Tier ordering is a fact about tiers, not about a card.</td>
+    <td><code>components/stickerTheme.ts</code> exporting <code>TIER_META</code>, <code>TIER_ORDER</code>, the gold accents and <code>stickerArtSrc</code>. <b>Not</b> in <code>domain/</code> - these are hexes.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H53</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>AccountPanel.tsx:154-189</code> hand-rolls the inline destructive-confirm flow that <code>ConfirmAction</code> (used at 3 sites) already provides.</td>
+    <td>Use <code>ConfirmAction</code>; it needs a <code>busyLabel</code> prop for "Deleting...".</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H54</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>"When X becomes true, rAF then scroll this into view" is written three times (<code>TournamentScreen.tsx:95-104</code>, <code>KnockoutScreen.tsx:87-95</code>, <code>CupRunScreen.tsx:236-241</code>), and <code>TournamentScreen</code>'s copy hand-rolls <code>window.scrollTo</code> instead of calling the existing <code>scrollIntoViewRespectingMotion</code>.</td>
+    <td><code>hooks/useScrollToWhen(active, ref, block)</code>. Nearly preserving: the <code>-16px</code> offset must become <code>scroll-mt-4</code>, as <code>KnockoutScreen</code> already does.</td><td class="er">S</td><td class="er">low</td></tr>
+</table>
+
+<h2 id="w4">Wave 4 <span class="w">- put the logic where it belongs (SoC)</span></h2>
+
+<p>The stated layering holds better than most codebases: <code>domain/</code> is genuinely pure (no
+React, DOM, storage or <code>import.meta</code> anywhere in it, every <code>Math.random</code> one
+of the documented intentional ones), and only five files outside <code>state/</code> touch the
+store. The erosion is concentrated in pure computations that ended up in leaves.</p>
+
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H55</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><b>Do this first in the wave.</b> <code>state/store/types.ts:10</code> and <code>state/runStorage.ts:4</code> import <code>Reveal</code> from <code>components/cupRun/types.ts</code>, so the shape of persisted data is defined in the presentation layer. Type-only, and commented as such, but <code>Reveal</code> is composed entirely of domain types: it is a domain view-model living next to its renderer.</td>
+    <td>Move it to <code>domain/run.ts</code>; <code>components/cupRun/types.ts</code> re-exports so no component import changes. Unblocks H80.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H56</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><b>Highest drift risk in the domain layer.</b> "Normalise a fixture to the user's perspective" is hand-written four times (<code>TournamentScreen.tsx:181-213</code>, <code>TournamentSummary.tsx:52-61</code> and <code>:102-114</code>; <code>run.ts:282-293</code> dodges it by asserting the invariant instead). "The user's position in the group table" is written 4 times. The 3-matchday group loop is written twice (<code>odds.ts:42-44</code>, <code>run.ts:276-278</code>).</td>
+    <td>In <code>domain/tournament.ts</code>: <code>userFixture</code>, <code>userPosition</code>, <code>playWholeGroup</code>. In <code>domain/bracket.ts</code>: <code>userGameView(b, round)</code>.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H57</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Budget spend is computed independently three times: <code>BudgetMarket.tsx:133-139</code>, <code>XiTable.tsx:43-45</code> (both rendering the same number on the same screen from different expressions) and <code>App.tsx:703-707</code> for the run record. CLAUDE.md already names keeping these in step as the thing to watch.</td>
+    <td><code>spendOf(players, pricer)</code> (and <code>dearestOf</code>) in <code>domain/pricing.ts</code>; all three call it.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H58</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>Swap eligibility is derived at set level in two places on top of the domain predicate: a 13-line memo in <code>App.tsx:580-592</code> and the per-slot half in <code>Pitch.tsx:530-534</code>, with <code>gameReducer.ts:245-250</code> as the authority.</td>
+    <td><code>swapEligibleIds</code> and <code>swapTargetSlots</code> in <code>domain/album.ts</code>; <code>Pitch</code> takes the set as a prop, since App owns the <code>swapsLeft</code> gating. <b>Keep each caller's <code>usedPersonIds</code> source unchanged</b> (App's comes from state, Pitch's is derived from <code>filled</code>) or the rules shift.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H59</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>Pitch.tsx</code> contains a 48-line Hungarian min-cost assignment (<code>:16-75</code>) and a move-destination search: an IIFE running <code>planMove</code> for all 11 slots (<code>:441-455</code>) plus a second full sweep per badge at <code>:546-551</code>, all unmemoized and re-run every render.</td>
+    <td><code>assignNearest</code> into <code>domain/formations.ts</code> (pure geometry over <code>Slot</code>); <code>moveOptions</code> + <code>movableSlots</code> into <code>domain/draft.ts</code>; one <code>useMemo</code> keyed on <code>[formation, filled, moving]</code>. Check the two aria-labels afterwards - the shift count drives "rotating N players".</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H60</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>The kickoff records are built by string-and-arithmetic in a container: <code>draftedShape</code> (<code>App.tsx:685-694</code>) and <code>draftedBuild</code> (<code>:698-719</code>), including the re-roll allowance formula whose explanatory comment is a domain rule sitting in a component memo.</td>
+    <td><code>runShapeOf</code> and <code>runBuildOf</code> in <code>domain/run.ts</code>. App keeps only the memos that <em>choose</em> the inputs. Re-run <code>npm run checks</code>: this record feeds challenge predicates and the harness asserts the re-roll relationship.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H61</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>CupRunScreen.tsx:195-214</code> hand-writes a 15-field <code>RunState</code> literal so the ladder and XI panel can be reused before a run starts, duplicating <code>beginRun</code>'s defaults minus the perk effects. It will rot the next time a field is added (the three optional kickoff fields already show how).</td>
+    <td><code>previewRun(xi, career, ascension)</code> in <code>domain/run.ts</code>, or <code>beginRun</code> with an explicit "skip perks" flag. <b>The preview deliberately shows the un-boosted XI</b> - preserve that. Verify the pre-run odds and ratings are unchanged.</td><td class="er">S</td><td class="er">med</td></tr>
+  <tr><td class="id">H62</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>BudgetMarket.tsx:20-44,114-159</code> owns market rules: the sort keys and comparators, the facet derivation, the filter pipeline and <code>MAX_RESULTS</code>. Pure queries over the dataset.</td>
+    <td><code>domain/market.ts</code> with <code>MarketQuery</code>, <code>marketFacets</code>, <code>marketResults</code>. Preserve the tie-breakers and the exact position of the <code>.slice(0, MAX_RESULTS)</code>. Pass <code>yearOf</code>/<code>regionOf</code> in if you want the module dataset-free.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H63</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>hooks/useSettings.ts:2</code> imports types from <code>state/settingsStorage</code>, against the stated rule, because <code>store/index.ts</code> re-exports <code>Settings</code> but not <code>Theme</code>. And <code>Difficulty</code> has two import paths app-wide, since <code>settingsStorage.ts:6</code> re-exports the domain one.</td>
+    <td>Add <code>Theme</code> to the store's type re-exports; <code>useSettings</code> takes <code>Difficulty</code> from <code>domain/difficulty</code>; drop the pass-through.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H64</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>gameReducer.ts</code>'s <code>BUY_PLAYER</code> (<code>:163</code>), <code>PLACE_PLAYER</code> (<code>:209</code>) and <code>SWAP_PLAYER</code> (<code>:228</code>) end in the same six lines: write <code>filled[slot.id]</code>, recompute <code>usedPersonIds</code>, recompute <code>phase</code> from <code>isComplete</code>.</td>
+    <td>A private <code>place(state, slot, player, freeing?)</code>; each case keeps its own guard. <b>Keep one asymmetry deliberate:</b> place and swap clear <code>currentSquad</code>/<code>selectedPlayerId</code>, buy does not (there is no drawn squad). Make it a parameter, not an accident.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H65</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>CareerHub.tsx:218-222</code> and <code>:302-304</code> re-derive shop affordability and level gating, which <code>buyPerkTier</code> (<code>career.ts:355-357</code>) and <code>unlockBoon</code> (<code>:368-372</code>) hold authoritatively. They agree today; nothing keeps them in step.</td>
+    <td><code>perkPurchaseState</code> and <code>boonUnlockState</code> in <code>domain/career.ts</code>, used by both the buttons and the refusals. The component picks only the label.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H66</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>Three small predicates that only exist inline: <code>worldCupInProgress</code> reads <code>bracket.outcome !== 'champion' &amp;&amp; !== 'out'</code> in <code>App.tsx:651-653</code>, the only place outside <code>bracket.ts</code> that knows that union's members &middot; the build sub-view is derived from data in <code>App.tsx:235-239</code> while effects key on <code>phase</code>, a deliberate split that is nowhere named &middot; <code>navigate(-1)</code> with a <code>location.key === 'default'</code> fallback is duplicated in two <code>onClose</code> props (<code>App.tsx:844, 851-853</code>).</td>
+    <td><code>isBracketAlive</code> in <code>bracket.ts</code>; <code>homeViewOf(formation, filled)</code> in <code>draft.ts</code> plus a comment on <code>Phase</code> saying which consumers may read it; <code>hooks/useBackTo(fallback)</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H67</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>GroupTeam</code> (<code>tournament.ts:13-23</code>) already satisfies <code>Side</code> (<code>match.ts:23-27</code>) structurally, but the relationship is unstated: <code>knockout.ts:28</code> exports <code>sideOf</code> to project one onto the other, and <code>tournament.ts:240-241</code> open-codes the same projection instead of calling it.</td>
+    <td><code>interface GroupTeam extends Side</code>, which makes <code>sideOf</code> and both inline literals unnecessary.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H68</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>KnockoutScreen.tsx:171-234</code> rebuilds inline exactly what <code>cupRun/FinishedKoCard.tsx:59-113</code> already is. Its <em>live</em> branch is genuinely different, so only the settled branch is duplicated. <code>koWinHeading</code> (<code>cupRun/types.ts:45-49</code>) and <code>koResultLabel</code> (<code>matchView.ts:125-130</code>) both encode "how to word a win by <code>KoDecided</code>", with different wording.</td>
+    <td>Move <code>FinishedKoCard</code> up to <code>components/</code> (it has no Cup Run dependency) and render it from the settled branch; fold <code>koWinHeading</code> in next to its sibling. ~50 lines. <b>Safe despite item 22</b> - it does not touch the engines.</td><td class="er">S</td><td class="er">low</td></tr>
+</table>
+
+<h2 id="w5">Wave 5 <span class="w">- the type model</span></h2>
+
+<p>Baseline for context: <b>zero <code>any</code></b>, <b>no <code>@ts-ignore</code></b>, 8 non-null
+assertions in <code>src/</code> (4 of them removed by H21, 2 by H22). What is left is modelling
+gaps, and one of them (H70) is the single change that deletes the most noise in the codebase.</p>
+
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H69</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>Filled = Record&lt;string, Player | null&gt;</code> (<code>draft.ts:5</code>) has a dead arm: no site ever assigns <code>null</code> (removal uses <code>delete</code>, in both the reducer and <code>planMove</code>). It also lies the other way, since with <code>noUncheckedIndexedAccess</code> off <code>filled[id]</code> is never typed <code>undefined</code>, which is what it actually is after a delete. The phantom <code>null</code> forces three explicit type predicates that exist only to re-narrow it.</td>
+    <td><code>Partial&lt;Record&lt;string, Player&gt;&gt;</code>. TS 5.7 infers predicates from <code>.filter(p =&gt; !!p)</code>, so those three annotations become plain truthiness filters. No nulls were ever serialized, so saves are unaffected.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H70</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><b>The biggest single win in this wave.</b> <code>RoundRecord</code> (<code>run.ts:44-67</code>) is a two-variant union pretending to be one interface: <code>stage: 'group' | number</code> plus 14 optional fields, 9 knockout-only and 3 group-only. It costs 18 unreachable <code>??</code> fallbacks (<code>RoundReview.tsx:68-77</code>, <code>CupRunScreen.tsx:690-700</code>), one load-bearing <code>as number</code> cast, and a hand-rolled discriminant check at <code>CupRunScreen.tsx:419</code> whose narrowing is discarded on assignment.</td>
+    <td>A real discriminated union on <code>stage</code>. <b>The persisted JSON shape does not change</b> - each stored record already carries exactly one variant's fields - but add a tolerant guard in <code>runStorage</code>, since history is not validated per field today. Do this <b>before</b> H81.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H71</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>domain/formations.ts</code> runs a whole lowercase parallel vocabulary for a CSV it no longer reads: <code>CsvPos</code> + <code>CSV_POS</code> (a clone of <code>Position</code>), <code>CODE_TO_POS</code> (a 12-entry bridge), <code>Member.pos</code> vs <code>.matchPos</code>, <code>mem()</code>'s never-passed <code>label</code> parameter, <code>RawStyle</code> + <code>STYLE_FROM_RAW</code> (a second name for <code>Style</code>), and a cast in <code>countPositions</code> caused by all of it. <code>RAW_FORMATIONS</code> is authored right there in uppercase.</td>
+    <td>Key everything on <code>Position</code> and <code>Style</code> directly; delete the six bridge symbols and the cast. ~35 lines. The emitted <code>Slot.position</code>/<code>label</code> are unchanged. Also drop <code>getFormation</code>'s <code>data</code> parameter - both call sites pass the module's own singleton.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H72</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Twelve module-level immutable catalogues are typed as mutable arrays (<code>SQUADS</code>, <code>WORLD_CUP_YEARS</code>, <code>CATEGORY_ORDER</code>, <code>ATTACK_CATS</code>, <code>DEF_CATS</code>, <code>BOONS</code>, <code>LOST_IN</code>, <code>FAMILIES</code>, <code>CHALLENGES</code>, <code>PERKS</code>, <code>STYLES</code>, <code>ASCENSIONS</code>); only two are <code>as const</code>. Verified no in-place mutation of any of them.</td>
+    <td><code>readonly T[]</code>. Each forced parameter widening downstream is itself an improvement. Mechanical but touches many signatures.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H73</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>loadReveal()</code> (<code>runStorage.ts:56-63</code>) is the one persisted-key loader with no shape validation: <code>JSON.parse(raw) as Reveal</code>, handed straight to render. Every sibling validates (<code>loadGame</code> checks <code>phase</code>, <code>loadRun</code> checks <code>phase</code> + <code>Array.isArray(xi)</code>, <code>loadAlbum</code> checks the version, <code>loadSettings</code> clamps every field). Separately, <code>loadRun</code> mutates the parsed object rather than building a merged copy, which is why its <code>as RunState</code> cast is doing real work.</td>
+    <td>Guard on <code>kind</code> plus that variant's fields; build a fresh object in <code>loadRun</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H74</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Version discipline differs four ways across four keys: <code>AlbumState.version</code> is written and checked; <code>CareerState.version</code> is written and never read (migration is by shape-sniffing); <code>RunState</code> has no version and tolerates missing fields ad hoc; <code>Settings</code> and <code>GameState</code> rely on the key name plus a merge. Nothing is broken, but there is no stated rule, so the next schema change invents a fifth approach.</td>
+    <td>Write the policy down in CLAUDE.md (suggested: the key name carries the version, loaders rebuild explicitly, no in-band <code>version</code> except where already shipped). Unifying the code is M and optional.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H75</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>rpcPlain</code> (<code>remoteStore.ts:180-185</code>) throws a bare <code>Error(error.message)</code>, losing both the code and the <code>StaleVersionError</code> mapping that its sibling <code>rpc</code> applies. It serves <code>save_settings</code> and <code>import_guest_progress</code>; <code>readVersion</code> and <code>readAlbum</code> do the same. So <code>moveGuestProgressIn</code> cannot distinguish "the account already holds something" from a dropped connection.</td>
+    <td>One <code>wrapError(error)</code> producing <code>StaleVersionError | RpcError</code>, used by all four. Preserving unless a caller starts branching.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H76</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Four smaller items in the store: <code>careerToRow</code> has no return type and no counterpart to the typed <code>CareerRow</code>, so nothing records that the jsonb payload is camelCase by contract with <code>save_career</code> (verified correct against migration <code>0011</code>) &middot; <code>onStoreError</code> is a single-slot registry shaped like a subscription, whose disposer nulls unconditionally &middot; <code>finishRun</code>'s v2 path zeroes the stats cache when the payload omits stats, unlike the <code>version</code> field two lines up which keeps the old value with a comment saying why &middot; <code>localStore.finishRun</code> silently drops 2 of <code>FinishRunInput</code>'s 6 fields (correct by design, undocumented).</td>
+    <td>A named <code>CareerPayload</code> with that comment; rename to <code>setStoreErrorHandler</code> or make it a <code>Set</code>; keep previous counters; one doc line on <code>FinishRunInput</code>.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H77</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Two five-positional-parameter functions with defaults, where setting the last means passing all the others: <code>beginRun(xi, perkLevels, unlockedBoons, ascension, kickoff)</code> and <code>simulateTitleOdds(players, sims, chemistryBonus, atkDefDelta, pool)</code>. <code>CupRunScreen.tsx:257</code> already passes four positionally.</td>
+    <td>Options objects.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H78</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Two <code>BudgetMarket</code> dep arrays are hand-maintained with an <code>eslint-disable</code> (<code>:127, :158</code>): <code>results</code> reads <code>price</code>, which closes over <code>ownedStickerIds</code>, but does not depend on it. Latent rather than broken today (banking only happens at run end), but if the album ever changed while the market was open the price sort and the row prices would disagree.</td>
+    <td><code>const price = useMemo(() =&gt; pricerFor(ownedStickerIds), [ownedStickerIds])</code>, then add it to the deps and delete the suppression.</td><td class="er">S</td><td class="er">low</td></tr>
+</table>
+
+<h2 id="w6">Wave 6 <span class="w">- structural extractions</span></h2>
+
+<p>The big ones. <code>App.tsx</code> is 1232 lines holding roughly 15 distinct jobs, and
+<code>CupRunScreen.tsx</code> is 788 lines that own the career's persistence. Do this wave last
+among the code waves, one item per branch, and exercise each by hand: these are the only items
+here that can break the app in a way neither <code>tsc</code> nor the checks harness will see.</p>
+
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H79</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>The squad-roll scramble animation and the draw-next-squad policy (<code>App.tsx:163-187, 252-284, 292-323</code>): four refs, an unmount cleanup, orphan-roll recovery for StrictMode remounts, and a re-entry guard. The subtlest code in the file, and not composition.</td>
+    <td><code>hooks/useSquadRoll</code> returning <code>{ displaySquad, reroll }</code>. <b>Copy the effect's dep array and the guard ordering verbatim.</b> Verify by hand: fresh draft, place a player, all three reroll kinds, refresh mid-scramble, remove from a complete XI, a dev StrictMode remount. Regression symptom is a stuck "Drawing a squad..." or a double roll.</td><td class="er">M</td><td class="er">med</td></tr>
+  <tr><td class="id">H80</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>Two transient interaction machines in App: the budget build's held card and target slot with six handlers (<code>:127-128, 364-407, 476-497, 609-617</code>), and the move-a-placed-player machine (<code>:131, 452-472</code>). They cross-cancel each other by design.</td>
+    <td><code>hooks/useBudgetBuild</code> and <code>hooks/useMovePlayer</code>, <b>in one change</b> - splitting them across commits leaves the cross-cancellation half-wired. Two things to preserve exactly: the cancel effect is keyed on <code>[formation, phase]</code> and <b>must not</b> watch the selection (carry the comment across, or a move cancels itself the instant it starts); and the held-player lookup resolves against <code>ALL_PLAYERS</code>, not the pool - keep it, and raise the scope question as H86.</td><td class="er">M</td><td class="er">med</td></tr>
+  <tr><td class="id">H81</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><b>The largest and riskiest item in the backlog.</b> <code>CupRunScreen</code> is the only component that imports <code>store</code>: four reads on mount, four keys written, the career economy, and the once-per-run bank guard. That is also why <code>App.tsx:659-673</code> has two <code>store.peek()</code> memos with <code>eslint-disable</code>s, re-reading the career on every navigation.</td>
+    <td><code>hooks/useCareer</code> and <code>hooks/useCupRun</code>, mirroring <code>useStickerAlbum</code>'s shape; App passes the boot snapshot down and reads the hook's live value, deleting both workarounds. The toast string belongs to the screen, not the hook - return <code>{ swappedIn, swappedOut, boon }</code>. Verify: refresh mid-group-reveal, mid-KO-reveal, and on the ended screen (must not re-bank), buy a perk then start a run, "Replay same XI", cup win into reward picker into summary. <b>Needs H55 and H61 first.</b></td><td class="er">L</td><td class="er">high</td></tr>
+  <tr><td class="id">H82</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>Route resolution in App: ten <code>is*</code> booleans (<code>:633-653</code>), a ~300-line ternary chain, three inline <code>&lt;Navigate&gt;</code> guards, and the reset-target mapping inside <code>handleReset</code>.</td>
+    <td><b>The pure module only:</b> <code>state/routes.ts</code> with <code>screenOf(path)</code> and <code>buildRouteAfterReset(path)</code>. Removes ~30 lines and makes the contract assertable. The <code>&lt;Routes&gt;</code> rewrite is a separate, larger change. <b>Do not touch <code>modeOfPath</code></b> or the reset target - item 22.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H83</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>The launcher's resume derivations (<code>App.tsx:724-752</code>): building a human summary from a <code>RunState</code>, and the "when is a half-built XI offerable" rule with its copy. Pure functions in <code>useMemo</code>s keyed on <code>[isLauncher]</code>.</td>
+    <td><code>state/resume.ts</code> with <code>cupRunResume</code> and <code>buildResume</code>, no React.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H84</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td>App's own JSX: the masthead (<code>:766-809</code>), the whole 3-column build grid including the section-header copy (<code>:906-1134</code>, the single largest block), and the footer nav. The mobile scroll choreography (<code>:76-77, 245-249</code>) is why <code>handlePlace</code>/<code>handleSwap</code> know about the DOM at all.</td>
+    <td><code>Masthead.tsx</code>, <code>BuildPage.tsx</code>, <code>FooterNav.tsx</code>, and <code>hooks/useStackedScroll</code>. <b>After H79-H80</b>, or the prop lists churn twice. Note the scroll calls use raw <code>behavior: 'smooth'</code> and ignore <code>prefers-reduced-motion</code>, unlike every other scroll in the app; routing them through <code>hooks/motion.ts</code> is an accessibility <em>fix</em>, so ship it separately.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H85</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>CupRunScreen</code>'s remaining 220 lines of branching JSX: the pre-run panel and Ascension stepper (<code>:444-520</code>), the reveal branch with a nested IIFE (<code>:578-657</code>), and the idle branch's five <code>run.phase ===</code> conditions (<code>:661-777</code>), two of which are the same condition rendered consecutively.</td>
+    <td><code>PreRunPanel</code> (with <code>AscensionSelector</code>), <code>GroupRevealPanel</code> (the IIFE becomes its body), <code>RunPhasePanel</code>. The Ascension unlock-hint arithmetic (<code>:405-412</code>) is a career rule - move it to <code>domain/ascension.ts</code>. <b>After H81.</b></td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H86</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>poolPlayers</code>/<code>poolSquads</code> is derived once in App and threaded to ten consumers, including screens that need it only for a completion total or a top-5 list; <code>SettingsModal</code> separately recomputes the same thing. Related: <code>App.tsx:478</code> and <code>:617</code> resolve the held market player from <code>ALL_PLAYERS</code>, outside the pool the market itself lists - harmless today, a real bug the moment an id is persisted or the pool changes mid-build.</td>
+    <td><code>hooks/usePool()</code> reading the store, with a listener on <code>saveSettings</code> (the same shape <code>onStoreError</code> already uses). Screens call it; leaves like <code>BudgetMarket</code> keep the prop, since a leaf reading a global is the worse trade. <b>A missed subscription means a silently stale pool</b> - consider read-side screens first. Then scope the held-player lookup to the pool and treat a miss as "drop the card" (a deliberate edge-case behaviour change).</td><td class="er">M</td><td class="er">med</td></tr>
+  <tr><td class="id">H87</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>19 <code>try { localStorage... } catch {}</code> blocks across six storage modules, nine of them the byte-identical write-and-swallow shape.</td>
+    <td><code>state/storage/kv.ts</code> with <code>readJson</code>, <code>writeJson</code>, <code>removeKeys</code>. Each module keeps its own revive function - that is the real logic (the career v1 to v2 migration, the settings clamp, the run field defaults). <b>Preserve each site's exact fallback.</b></td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H88</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Every storage key is declared privately in its owning module and <b>re-typed as a literal</b> in <code>localStore.ts:27-34</code>'s <code>GUEST_KEYS</code>, with a seventh copy in <code>docs/cloud-sync-requirements.md</code>. A version bump in any module silently breaks the guest-to-account import and <code>clearGuestData</code> for that slice, with no type error. (Also note one key uses colons, <code>wcsim:game:v1</code>, and six use underscores; renaming it would orphan saves, so comment it rather than fix it.)</td>
+    <td>Export each <code>KEY</code>; build <code>GUEST_KEYS</code> from those exports.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H89</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>The two <code>Store</code> implementations re-declare shared plumbing: the <code>peek</code>+<code>patch</code> cache pair is character-equivalent in both; the <code>album_stats</code> row mapping appears three times in one file; and <code>CareerState</code> hydration from untrusted partial data exists twice (<code>careerStorage.ts:152-177</code> and <code>remoteStore.ts:79-94</code>), in two field lists that must be extended together for every new career field.</td>
+    <td><code>store/cache.ts</code> with <code>createSnapshotCache()</code>; a local <code>albumStatsFromRow</code>; and <code>hydrateCareer</code> in <code>domain/career.ts</code> as the one place that knows the field list, leaving <code>loadCareer</code> with only its v1 migration and <code>careerFromRow</code> with only the case conversion. <b>Keep the <code>completed_challenges</code> optionality note</b> - a server without migration 0011 must still work.</td><td class="er">M</td><td class="er">med</td></tr>
+  <tr><td class="id">H90</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>The run-end sticker flow is already correctly funnelled through one <code>applyStickers</code>, but its <em>carrier</em> is duplicated per mode: two near-identical loss-banking effects (<code>useStickerAlbum.ts:194-197</code> and <code>:212-216</code>) and two near-identical <code>pendingReward</code> branches (<code>:238-248</code>) differing only in the guard they clear.</td>
+    <td>Normalise both into one <code>{ ids, wonCup, mark } | null</code> and drive one effect off it. <b>Keep the branch priority order exactly as it is and leave a comment</b>: the order is the stale-cup-win bug item 22 records, and changing it is item 22's call, not this backlog's.</td><td class="er">M</td><td class="er">med</td></tr>
+</table>
+
+<h2 id="w7">Wave 7 <span class="w">- harness, CI and tooling</span></h2>
+
+<p>H91 is the first thing to do in the entire backlog, before any code moves: it is what makes
+the gate real rather than a convention.</p>
+
+<table>
+  <tr><th>ID</th><th>P</th><th>What and where</th><th>Fix</th><th>Eff</th><th>Risk</th></tr>
+  <tr><td class="id">H91</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><b><code>npm run checks</code> never runs in CI.</b> <code>.github/workflows/deploy.yml</code> runs <code>npm ci</code> then <code>npm run build</code>, nothing else. So the 59 invariants <em>and</em> the collectible-seed staleness guard, which CLAUDE.md presents as the mechanism that makes forgetting <code>gen:collectibles</code> impossible, gate nothing automatically. They depend entirely on the author remembering.</td>
+    <td>Add <code>- run: npm run checks</code> before the build (14s, no secrets, no network), or a separate job so a red harness does not block a docs-only deploy.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H92</td><td class="pr"><span class="tag p-dead">dead</span></td>
+    <td><b>A documented procedure that silently produces the wrong artifact.</b> README says to rebuild for another path with <code>npm run build -- --base=/</code>. npm appends forwarded args to the <em>last</em> command in the chain, so it runs <code>node scripts/copy-404.mjs --base=/</code>; <code>copy-404</code> ignores unknown argv and exits 0, and you get a <code>/wcsim/</code>-based build that looks successful. <b>Verified empirically.</b> The Docker path in the same section is wrong for the same reason: the Dockerfile runs plain <code>npm run build</code> while nginx roots at <code>/</code>, so every <code>/wcsim/assets/*</code> 404s.</td>
+    <td>Read the base from an env var in <code>vite.config.ts</code> (<code>process.env.VITE_BASE ?? (command === 'build' ? '/wcsim/' : '/')</code>). The recipe becomes <code>VITE_BASE=/ npm run build</code> and works for Docker too (<code>ARG VITE_BASE</code>). Fix the README text and note it in the Dockerfile. Default unchanged.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H93</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>check(name, ok)</code> (<code>checks.ts:100</code>) takes a pre-computed boolean, so any exception inside the expression aborts the whole harness (later blocks never run, and you get a stack trace instead of a named failure), and a failure over 3000 iterations reports only a name, never the counterexample. The 3 non-null assertions in the file are the concrete route to that.</td>
+    <td><code>check(name, () =&gt; boolean)</code> that catches and records <code>name + ': threw ...'</code>, optionally with a detail string. Biggest debuggability win in the file, and it makes H104 much less churn.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H94</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>The "play a Cup Run to <code>ended</code>" loop is copy-pasted five times (<code>checks.ts:642, 657, 776, 844, 935</code>) with silent divergence: four pick <code>offer[0]</code>, one picks <code>offer[i % len]</code>. Each re-invents the same <code>guard++ &lt; 20</code> bail. Separately, four run factories and three challenge-context builders are re-declared across the file.</td>
+    <td><code>playToEnd(run, pick)</code> locally, plus a <code>scripts/testkit.ts</code> (node-only, the way <code>scripts/collectibles.ts</code> already is) with <code>endedRun</code>, <code>challengeCtx</code>, <code>completedIds</code>. ~35 lines out.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H95</td><td class="pr"><span class="tag p-yag">yagni</span></td>
+    <td><b>Hidden flakiness beyond the documented seeded block.</b> Two existence claims run unseeded over random trials: <code>autoFillBudget</code> fills all 11 slots on 3000/3000 attempts (<code>:306</code>), and at least one of 3000 discounted XIs undercuts list price (<code>:328</code>). Neither is a statistically bounded property; both pass today but a budget or curve tweak could make them fail intermittently, which is the exact failure mode the boon block was seeded to avoid. Also <code>:472-483</code> applies each boon <b>once</b>, unseeded, so a roster boon that duplicates a <code>personId</code> only on some draws is caught roughly one run in N.</td>
+    <td>Extract <code>withSeed(seed, fn)</code> from the existing inline monkeypatch (so seeding is a named, bounded construct), then seed both existence checks and put the boon-distinctness assertion in a 200-iteration loop with a varying opponent.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H96</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>The 4-line "each tier costs more and gates no lower" loop is duplicated for two perk tracks; the other four tracks are never checked for well-formedness at all. And magic dataset indices (<code>SQUADS[0]</code>, <code>[1]</code>, <code>[3]</code>) appear in nine places, so reordering <code>squads.ts</code> silently changes what is measured, most visibly the printed boon-power table. Two later blocks already do it right with <code>find(s =&gt; s.code === 'BRA')</code>.</td>
+    <td>One loop over <code>PERKS</code> (fewer lines, 3x the coverage - it may surface a real violation in an unchecked track, which is the point), and named constants for the fixtures.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H97</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>checks.ts:538-541</code>'s local <code>side()</code> duplicates the ungrouped core of <code>xiStrength</code>, deliberately unrounded. If <code>xiStrength</code>'s grouping ever changes, the boon-power table keeps measuring the old grouping while still passing.</td>
+    <td>Export an unrounded <code>groupAverages(players)</code> from <code>match.ts</code>; both read it. Pairs naturally with H115.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H98</td><td class="pr"><span class="tag p-yag">yagni</span></td>
+    <td>Two challenge assertions are written to pass under either setting of <code>FEATURES.challengeAwards</code> (<code>:944, :972</code>). Deliberate, but it means the harness cannot detect an accidental flag flip, and CLAUDE.md records that flipping it has a real economic consequence (unpaid arrears).</td>
+    <td>One assertion pinning the shipped value: <code>check('challenges: awards are on', AWARDS_ON)</code>. Trivially removable if it is ever turned off deliberately.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H99</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td>Nothing guards sticker art against the dataset. Verified <b>currently perfectly clean</b> (81 collectibles, 81 files in <code>art/stickers-src/</code>, 81 in <code>public/stickers/</code>, zero orphans either way) - but a rating change that promotes a player ships an album card that silently falls back to text, and a demoted one leaves a dead 40 KB webp.</td>
+    <td>One assertion in the harness comparing <code>readdirSync('public/stickers')</code> to <code>collectiblePlayers(ALL_PLAYERS)</code> in both directions, the same shape as the existing seed guard. This is what makes H27's stale CSV genuinely unnecessary.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H100</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td>Script papercuts: <code>dkr-env.mjs:61</code> detects failure by <code>body.includes('"error"')</code>, so any successful query whose rows contain that literal (an <code>audit_log</code> payload, say) reports as refused &middot; <code>push-collectibles.mjs:26</code> hand-duplicates <code>CATALOGUE_PATH</code> because a <code>.mjs</code> cannot import the <code>.ts</code> (honest, still a drift risk with a misleading error) &middot; <code>build-sticker-art.py:54</code> keys freshness on mtime, so a restored or <code>rsync -t</code>'d replacement can no-op &middot; <code>push-sql.mjs:50</code> counts statements by splitting on <code>;</code>, which over-counts wildly inside <code>$$</code> bodies and prints a wrong number in a confirmation prompt.</td>
+    <td>Parse then inspect; make it <code>push-collectibles.ts</code> through the same esbuild pipe; hash or <code>--force</code>; print bytes, or count only top-level semicolons.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H101</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>package.json</code>: <code>checks</code> and <code>gen:collectibles</code> pipe into node without the trailing <code>-</code> that <code>album:fill</code> has (harmless, but it is why neither can accept forwarded args, which H104 will want). No <code>engines</code> field and no <code>.nvmrc</code>, while the workflow pins node 22 and the Dockerfile pins <code>node:22-alpine</code> - three assertions of a node version, none of them local.</td>
+    <td>Add the <code>-</code> to all three; add <code>engines</code> and <code>.nvmrc</code>.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H102</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
+    <td><code>index.html</code> has no <code>theme-color</code> meta, which matters here because the boot cover paints its own literal background before CSS loads, so mobile browser chrome does not match it. No <code>description</code> either. Also <code>index.html:14</code> hardcodes <code>'wcsim_settings_v1'</code> in the pre-paint theme script: bump that key and every dark-theme user gets a light flash on load, with no compile error. Not fixable in code (the script runs before any module) - document it next to the existing colour-coupling note.</td>
+    <td>Two meta tags; one comment.</td><td class="er">S</td><td class="er">none</td></tr>
+  <tr><td class="id">H103</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><code>finish_run</code>'s ~90-line body is written out in full <b>four times</b> across migrations 0003, 0006, 0009 and 0010, each a full re-statement to change one thing, so the "collectible ids must be active" rule now exists in four textually different forms and 0010's own header has to say "keep this and the wrapper below in step". <code>save_career</code> is written three times and <code>import_guest_progress</code> twice, duplicating one career upsert three ways - which is why adding <code>completed_challenges</code> in 0011 needed three edits. Also, migration 0003's <code>bump_version</code> still raises SQLSTATE <code>40001</code>, the exact bug CLAUDE.md warns about, fixed only in 0007 with no forward pointer in 0003.</td>
+    <td><b>Do not rewrite history.</b> Add a <code>supabase/migrations/README.md</code> indexing the current effective definition of each function and which file holds it, plus a one-line "superseded by 0007" comment in 0003. For the <em>next</em> change, extract <code>upsert_career(uuid, jsonb)</code> so a new career column is one edit.</td><td class="er">S</td><td class="er">low</td></tr>
+  <tr><td class="id">H104</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>scripts/checks.ts</code> is 1275 lines in 26 comment-delimited blocks that share no state beyond <code>check</code> and the failure list. Assertions were cross-checked: <b>none contradict each other</b>, and the overlaps are intentional.</td>
+    <td>Split per concern: <code>scripts/checks/harness.ts</code> (<code>check</code>, <code>withSeed</code>, <code>playToEnd</code>, <code>summary</code>) then one file each for dataset, sim, standings, bracket, chemistry, pricing, draft, boons, run, career, ascension, odds, seed and challenges (~440 lines, likely two files). <code>checks.ts</code> becomes an index. <b>Two constraints:</b> the seeded block must not straddle a module boundary with unseeded work, and <code>summary()</code> must run last - an index of side-effecting imports in today's order keeps both. Do <b>after</b> H93.</td><td class="er">M</td><td class="er">low</td></tr>
+  <tr><td class="id">H105</td><td class="pr"><span class="tag p-soc">soc</span></td>
+    <td><code>tsconfig.json</code> applies <code>"types": ["node"]</code> to the whole program, so <code>process</code>, <code>Buffer</code> and <code>__dirname</code> are in scope inside <code>src/</code>, the browser bundle. Nothing abuses it today (verified: zero occurrences), so it is a guard-rail gap: a <code>process.env.X</code> typo in a component would typecheck and be <code>undefined</code> at runtime.</td>
+    <td>The standard Vite three-file split: root with <code>references</code>, <code>tsconfig.app.json</code> (<code>include: ["src"]</code>, no <code>types</code>), <code>tsconfig.node.json</code> (<code>scripts</code> + <code>vite.config.ts</code>, <code>types: ["node"]</code>); <code>typecheck</code> becomes <code>tsc -b</code>. May surface a few real errors, which is the value. Also enable <code>verbatimModuleSyntax</code> - the codebase already writes <code>import type</code> consistently, so expect a near-zero diff.</td><td class="er">M</td><td class="er">med</td></tr>
+</table>
+
+<h2 id="decisions">Decisions needed from the owner</h2>
+
+<p>Each of these is either not behaviour-preserving, or a matter of taste the audit should not
+settle by itself. They are ordered by how much they unblock.</p>
+
+<table>
+  <tr><th>ID</th><th>Question</th><th>What the audit found</th></tr>
+  <tr class="dec"><td class="id">D1</td><td><b>Which <code>FEATURES</code> flags retire?</b></td>
+    <td>Four are safe to retire on the evidence: <code>removePlayers</code> (false, 1 read, and the <code>onRemove</code> plumbing stays alive anyway because the budget build uses it unconditionally - only <code>App.handleRemove</code> dies) &middot; <code>randomTeam</code> (false, and its on-path keeps ~60 lines alive: <code>randomXI</code>, <code>STRENGTH_BANDS</code>, <code>TeamStrength</code>, <code>SetupPanel</code>'s tier control and menu state, <code>handleRandomTeam</code>; <code>randomXI</code> has no other consumer, not even the harness) &middot; <code>budgetDraft</code> (true, 1 read, a shipped and documented first-class build method whose off state is one hidden button, with the market, pricing, <code>BUY_PLAYER</code> and Pitch's <code>onSelectSlot</code> all unconditional) &middot; <code>stickerImages</code> (true, and <code>StickerCard</code> already has a per-file <code>onError</code> fallback, so the flag duplicates a mechanism that works without it). Three need a real call: <code>stickersOnCupWinOnly</code> is a design toggle, not a feature flag, and forks two copy blocks as well as the earning rule &middot; <code>challengeAwards</code> <b>cannot be safely toggled</b> (CLAUDE.md documents that cycling it desynchronises the wallet from the display by exactly the arrears), and a flag you cannot toggle is not a flag &middot; <code>careerMode</code> has 14 reads and forks routing semantics, so its off-path is a different app nobody exercises - keep it only if a career-less build is a live requirement. Keep the rest, including <code>accounts</code> (derived from build env, needed for forks) and <code>stickerAlbum</code> (20 sites, but the off-path is real and skips localStorage entirely).</td></tr>
+  <tr class="dec"><td class="id">D2</td><td><b>Add a linter or formatter?</b></td>
+    <td>There is none today: no ESLint, Prettier, Biome, or <code>.editorconfig</code>; the only static gate is <code>tsc</code>. <b>The audit's recommendation is not as part of this backlog.</b> A first run over ~60 files produces hundreds of diffs, which CLAUDE.md explicitly forbids as a side effect and which would bury every substantive item here. If it happens, it is its own workstream, and the flags worth having are <code>react-hooks/exhaustive-deps</code> (expect several deliberate suppressions, with the existing reasoning as the comment), <code>no-floating-promises</code> (it will flag every deliberate <code>void</code> on a store write) and <code>import/no-cycle</code>.</td></tr>
+  <tr class="dec"><td class="id">D3</td><td><b><code>noUncheckedIndexedAccess</code>?</b></td>
+    <td>It is the single change most likely to find a real latent crash - the code indexes arrays constantly (<code>SQUADS[i % len]</code>, <code>KO_ROUNDS[round]</code>, <code>table[k-1]</code>, <code>perk.tiers[0]</code>, <code>filled[id]</code>) - and it would surface the real cause of several items in wave 5. It is also an L-sized project with dozens of diagnostics. <b>Decide it explicitly rather than drifting into it</b>, and do not attempt it inside a hygiene pass.</td></tr>
+  <tr class="dec"><td class="id">D4</td><td><b>The <code>boon</code> / <code>boost</code> split</b></td>
+    <td>CLAUDE.md says the code says boon and the copy says boost. In fact <b>both are code identifiers, in the same interfaces</b>: <code>RunState</code> carries <code>activeBoons</code>, <code>unlockedBoons</code> <em>and</em> <code>boostedIds</code>; <code>RoundRecord</code> has <code>boostId</code>; <code>challenges.ts:290</code> is <code>tieAfterBoost(v, boonId)</code>, both names in one signature. Since the user-facing term is settled as "boost" and six persisted or server names are already boon-flavoured, the cheap canonical choice is boon in code and rename the 11 boost identifiers. <b>But <code>RoundRecord.boostId</code> and <code>RunState.boostedIds</code> are persisted</b> (in <code>wcsim_run_v1</code> and the <code>active_run.data</code> blob), so renaming those two needs a tolerant read in <code>runStorage</code> or they stay. Either way the CLAUDE.md sentence needs correcting.</td></tr>
+  <tr class="dec"><td class="id">D5</td><td><b>Keep the Hungarian solver in <code>Pitch</code>?</b></td>
+    <td>48 lines of O(n^3) min-cost assignment with potentials, the densest block in the app, serving a 450ms cosmetic slide of 11 badges during setup only. A greedy nearest-pair is ~8 lines. <b>Not strictly behaviour-preserving</b>: greedy can pick a different (still short) assignment in rare configurations, so a badge occasionally takes a different path. If the animation quality was tuned deliberately, keep it - and either way H59 still moves it out of the component.</td></tr>
+  <tr class="dec"><td class="id">D6</td><td><b><code>Challenge.blocked</code>'s UI branches</b></td>
+    <td>No catalogue entry sets it, so <code>progress.blocked</code> is permanently 0 and every consumer branch is unreachable: the <code>'blocked'</code> filter variant, a self-hiding filter chip, a self-hiding legend row, ~20 lines of lock-icon rendering in <code>ChallengeLedgerRow</code>, and two <code>Lock</code> imports used only there. <b>The domain field stays</b> - CLAUDE.md says so and it costs nothing. The question is only the four UI branches, in a file whose whole design premise is that 130 entries cannot each be painted. If the next batch of entries is not imminent, delete them and re-add them with the entries that need them.</td></tr>
+  <tr class="dec"><td class="id">D7</td><td><b>Att / Mid / Def means two different things</b></td>
+    <td><code>BoxScore.tsx:84-89</code> computes attack as FWD only; <code>xiStrength</code> (<code>match.ts:32-38</code>) computes it as MID+FWD, because that is what the sim reads and what the boon budget in <code>npm run checks</code> is measured against. <code>RunXiPanel</code> labels the sim's numbers "Ovr / Att / Def". So the same three-letter label means one thing on the build page and another on the Cup Run page, for the same XI. H62's <code>ratingsStrip</code> extraction is behaviour-preserving; <b>deciding which number the Cup Run panel should show is not</b>. Ship the extraction, decide the label separately.</td></tr>
+  <tr class="dec"><td class="id">D8</td><td><b>Three visible fixes worth taking</b></td>
+    <td>Small, real, and each changes what you see: <b>(a)</b> <code>CareerHub.tsx:16-20</code>'s <code>RARITY_DOT</code> and <code>cupRun/types.ts:8-12</code>'s <code>RARITY_COLOR</code> are two rarity palettes that <em>already disagree</em>, so the boost library paints rarity differently from every other boost surface - deleting <code>RARITY_DOT</code> fixes it &middot; <b>(b)</b> <code>GroupDrawReveal</code> hand-rolls a modal shell that <code>Overlay</code> already provides <em>with</em> the Escape handler and scroll lock the draw modal lacks (and a different z-index) &middot; <b>(c)</b> <code>ErrorBoundary.tsx:44,80,93,94</code> hardcodes four hexes that match <b>none</b> of the current tokens and has no dark-theme branch, a third place with copied colour literals that CLAUDE.md's discipline does not cover.</td></tr>
+  <tr class="dec"><td class="id">D9</td><td><b><code>art/stickers-archive/</code></b></td>
+    <td>140 MB of <code>art/</code> is tracked, essentially the whole packed repo; 38 MB of it is the archive, read by nothing. It is <em>not</em> "superseded versions of current cards" as CLAUDE.md describes: 31 of its 34 files use a different naming scheme (<code>de1974_beckenbauer.png</code>) for tournaments <b>not in the dataset at all</b> (1974-1986). So it is art for an abandoned scope, or a reference set for future tournaments - which item 03 would actually want. Either drop it or say which it is in a README. Note that removing it shrinks the working tree, not the pack, unless history is rewritten, which is out of scope.</td></tr>
+  <tr class="dec"><td class="id">D10</td><td><b>Narrow the RLS write grants?</b></td>
+    <td><code>0002</code> grants <code>for all</code> on <code>career</code>, <code>settings</code>, <code>game_state</code> and <code>active_run</code>, so a client can write them directly - while <code>career</code> is <em>also</em> written through <code>save_career</code>, which is the only path that bumps <code>state_version</code>. A client bug could therefore bypass the version counter and defeat the concurrency guard for the other tables' next write. Migration 0006 knowingly took the "career is a client write" trade, but the grant is broader than that decision. Verified that no client path writes those tables directly, so narrowing to <code>for select</code> looks safe - but <b>this removes a capability</b> and needs its own verification against a live signed-in account. Also <code>export_account()</code> is granted and has no caller, deliberately (FR-25 not built).</td></tr>
+  <tr class="dec"><td class="id">D11</td><td><b>Two smaller judgement calls</b></td>
+    <td><code>FormationName = string</code> could be a union derived from <code>RAW_FORMATIONS</code>, but it is <em>persisted</em> state, so a stored unknown name must keep loading - which argues for a validating parse in <code>persist.ts</code> more than for a union. And <code>accountIsEmpty</code> (<code>store/index.ts:68-76</code>) ignores <code>albumStats</code> and <code>career.completedChallenges</code>, so an account that finished runs which banked nothing reads as empty and guest data gets merged in. Low probability, benign failure mode, but the name promises more than it checks.</td></tr>
+</table>
+
+<h2 id="notthis">Found here, but not hygiene</h2>
+
+<p>Real bugs surfaced by the audit. They are <b>not</b> in the waves above, because fixing them
+changes behaviour, which is exactly what this backlog promises not to do. Each is on the roadmap
+in its own right.</p>
+
+<ul>
+  <li><b>Resetting the album, or changing the difficulty, blocks the app for a signed-in
+  player.</b> <code>remoteStore.clearAlbum()</code> throws by design, and its comment says "the
+  album screen's reset stays guest-only" - but that gating does not exist: the reset footer
+  renders unconditionally, and <code>changeDifficulty</code> (<code>App.tsx:159-162</code>) calls
+  the same path with no account check. The throw goes through <code>reporting()</code> and
+  surfaces as the blocking <code>UnreachableScreen</code>, after the in-memory album has already
+  been emptied. <b>Roadmap item 24</b>, verified end to end.</li>
+  <li><b>The Docker/other-path build recipe does not work</b> (H92). Filed as a tooling item
+  because the fix is a config change, but note it means anyone following the README today gets a
+  broken deployment.</li>
+  <li><b><code>App.tsx</code>'s three imperative scrolls ignore
+  <code>prefers-reduced-motion</code></b>, unlike every other scroll in the app (H84). An
+  accessibility fix, so it ships as its own change.</li>
+</ul>
+
+<h2 id="offlimits">Off limits: what roadmap item 22 owns</h2>
+
+<p>Do not fold any of this into the waves above, even where it looks like obvious duplication.
+Item 22 asks for a design note first, and every one of these is downstream of a question it has
+not answered yet.</p>
+
+<ul>
+  <li><b>The two tournament engines.</b> <code>domain/tournament</code> + <code>domain/bracket</code>
+  driven by <code>TournamentScreen</code>/<code>KnockoutScreen</code>, versus
+  <code>domain/run</code> driven by <code>CupRunScreen</code>. Including the four parallel
+  "settled knockout tie" types (<code>KoTieResult</code>, <code>BracketResult</code>,
+  <code>KoMatch</code>, <code>RoundRecord</code>) and the two adapters between them, the two
+  outcome models, the two <code>stickersApplied</code> guards, and the duplicated round-by-round
+  shell. H68 and H70 are the two pieces that are safe now, because they are local to one side.</li>
+  <li><b>The two chemistry definitions.</b> <code>teamChemistry(formation, filled)</code> scores by
+  the slot each player fills; <code>chemistryOf(xi)</code> scores by natural role. Same XI, two
+  answers.</li>
+  <li><b>The mode fact derived twice.</b> <code>modeOfPath</code> from the route versus
+  <code>GameState.buildMode</code> - and therefore <code>budgetOf</code> and
+  <code>extraRerollsOf</code> each being computed from both sources
+  (<code>App.tsx:334/677</code> versus <code>:706/717</code>). H82 re-homes only
+  <code>screenOf</code>.</li>
+  <li><b>The run-end sticker trigger set</b> and its priority order in
+  <code>useStickerAlbum</code>, including the stale-cup-win precedence. H90 refactors the carrier
+  and deliberately preserves the order.</li>
+  <li><b>The difficulty-resets-the-album rule</b> (<code>App.tsx:156-162</code>). Item 24 fixes the
+  crash it causes for signed-in players; whether the rule should exist at all is item 22's.</li>
+  <li><b>The four cross-mode leaks</b> item 22 enumerates, and <b>moving the challenge-judging
+  seam off <code>applyRunResult</code></b>.</li>
+  <li><b>The owned-sticker discount being mode-blind</b>, which is a recorded decision (item 02),
+  and <code>simulateTitleOdds</code> measuring the Quick Play bracket while advertising a Cup Run
+  - the same engine-convergence question.</li>
+</ul>
+
+<h2 id="leave">Leave alone: complexity that is earning its keep</h2>
+
+<p>Recorded so nobody "fixes" a decision, and so the next audit does not re-derive these.</p>
+
+<ul>
+  <li><b><code>planMove</code>'s bipartite augmenting-path search</b> (<code>draft.ts:42-79</code>).
+  The rare case where the general algorithm is the <em>simple</em> expression of the rule: its
+  comment carries a real dataset counterexample and the measured 9.3% figure.</li>
+  <li><b>The async <code>Store</code> seam.</b> Judged, and it holds: there are genuinely two
+  implementations, one of them 354 lines with write serialisation and version-conflict retry, so
+  the promises are already paid for rather than speculative.</li>
+  <li><b><code>useFollowBottom</code>'s owned rAF easing loop.</b> Every branch is annotated with
+  the specific bug it fixes. Touch nothing beyond the unused options (H3).</li>
+  <li><b><code>challenges.ts</code>'s <code>viewOf</code> / <code>completedIn</code>.</b> 808 lines,
+  but the shape is right: derive once, then 130 one-line predicates. The fixed-point loop is
+  required by self-referential entries and the reason is written down.</li>
+  <li><b><code>ChallengeRow</code> vs <code>ChallengeLedgerRow</code></b> - two renderings of one
+  row, deliberately, because 130 entries cannot each be painted. Do not merge.</li>
+  <li><b><code>TIER_META</code>'s fixed hexes and <code>Confetti</code>'s literal palette</b> -
+  declared intentionally non-theme-swapped and canvas-bound.</li>
+  <li><b><code>playGroupStage</code> / <code>playKnockoutRound</code></b> - documented thin wrappers
+  kept for the harness, which is a test-facing API, not speculative generality. Same for
+  <code>checksumInFile</code>.</li>
+  <li><b>The documented safety nets</b>: the shootout's coin-flip after
+  <code>MAX_SUDDEN_DEATH_ROUNDS</code>, <code>odds.ts</code>'s round guard, and the reducer's
+  <code>default: return state</code> (unreachable given an exhaustive <code>Action</code> union,
+  and worth two lines).</li>
+  <li><b>27 MB of <code>public/jerseys/</code>, <code>public/formations/</code>,
+  <code>public/formations.csv</code> and <code>public/img/image.png</code></b> - CR-D3, resolved as
+  "the owner accepts the deploy weight, do not re-litigate". H25 and H26 are the two specifics
+  that decision did not cover.</li>
+  <li><b>Deliberate near-duplicates</b>: the storage key that uses colons (renaming orphans
+  saves), and the two <code>Object.keys</code> casts that survive because
+  <code>Object.fromEntries</code> is untyped.</li>
+</ul>
+
+<h2 id="clean">Verified clean</h2>
+
+<p>Negative results, recorded so the next pass can skip them. Each was checked exhaustively, not
+sampled.</p>
+
+<ul>
+  <li><b>No dead CSS.</b> All 40 custom classes in <code>index.css</code> and all 13 colour tokens
+  are used, checked individually including the prefix-collision traps (<code>.bkt-h</code> is
+  built as a template string). <b>Do not remove <code>--font-sans</code> on a grep</b> - it has no
+  <code>font-sans</code> utility use, but Tailwind v4 derives <code>--default-font-family</code>
+  from it, which is what puts the body font on <code>html</code>.</li>
+  <li><b>No unused dependency and no undocumented npm script.</b> Every entry in
+  <code>package.json</code> has a real importer (counted), and all nine scripts appear in
+  CLAUDE.md.</li>
+  <li><b>No dead <code>config.ts</code> entry.</b> All eight exports have consumers; 13 of the 14
+  flags are read in <code>src/</code>.</li>
+  <li><b>No unreferenced source module</b> in <code>src/</code>, and <b>no unread component
+  prop</b>: every field of every props interface resolves to a read. Three apparent
+  never-passed optional props (<code>BoxScore.showChemistry</code>, <code>StickerCard.isNew</code>,
+  <code>Tooltip.wide</code>) are passed by JSX boolean shorthand.</li>
+  <li><b>All 21 reducer actions are dispatched</b>, and every optional <code>RoundRecord</code> and
+  <code>BoonChoice</code> field is both written and read.</li>
+  <li><b>Sticker art is exactly in sync</b> with the dataset in all three directions (81 / 81 /
+  81, zero orphans) - which is what H99 exists to keep true.</li>
+  <li><b>Migrations and client are in sync.</b> Every RPC the client calls exists at the expected
+  signature and is granted to <code>authenticated</code>; every table read has a matching
+  <code>select</code> policy; no superseded function is still granted (the 13-arg
+  <code>finish_run</code> and <code>enforce_invite</code> were properly dropped); the v2-to-v1
+  PGRST202 fallback matches what 0010 provides. The generated seed's header and checksum match
+  the dataset.</li>
+  <li><b><code>validateSquads</code> is correctly gated and fully eliminated</b> from the
+  production bundle (verified against <code>dist/assets/*.js</code>), and it reports 0 problems.
+  Console usage is 7 calls, all on genuine failure paths, no stray <code>log</code> or
+  <code>warn</code>.</li>
+  <li><b>Zero <code>any</code>, no <code>@ts-ignore</code></b>, and no assertion in
+  <code>checks.ts</code> contradicts another.</li>
+  <li><b>Roadmap item 22's own claims are accurate.</b> All 18 line references land on what they
+  claim, and the four cross-mode leaks are each reachable as described. So are the dataset counts
+  (272 squads, 6,270 players), the collectible split (58/18/5), 19 boons with 6 starters, 130
+  challenges in 12 families with no duplicate ids, and the economy arithmetic (catalogue 779
+  against a 2,525 shop, "about a third").</li>
+</ul>
+
+<footer>
+  Produced 2026-08-20 from six parallel reviews of the tree at
+  <code>5a22fca</code>, with the load-bearing claims re-verified by hand. Roadmap item 23.
+  Gate: <code>npm run build</code> plus <code>npm run checks</code>, both green at that commit
+  before any of this. The rule, once more: <b>no change in functionality</b>.
+</footer>
+
+</body>
+</html>

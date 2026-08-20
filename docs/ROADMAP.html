@@ -306,8 +306,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-19<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Updated:</strong> 2026-08-20<br>
+    <strong>Open:</strong> 10 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -479,6 +479,85 @@
     Career item rests on it; move it to Later if the content work (item 03) should go first.</p>
 
     <p class="files">docs/roguelike-career-design.md, src/App.tsx, src/hooks/useStickerAlbum.ts, src/domain/run.ts, src/domain/career.ts, src/domain/challenges.ts, src/domain/tournament.ts, src/state/gameReducer.ts, src/components/CupRunScreen.tsx, src/components/ModeSelect.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">23</span>
+    <span class="title">Hygiene: dead code and refactorings
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Blocked on item 22.</span>
+    </span>
+    <span class="tag">Structure</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask (2026-08-20):</strong> review the whole codebase for dead code and
+    refactorings, and produce a todo list another team can implement. The <b>one rule</b> is that
+    the app that comes out plays exactly like the app that went in.</p>
+
+    <p><strong>The backlog is <code>docs/hygiene-audit.html</code></strong>, which is the
+    deliverable: 105 numbered items (H1-H105) in seven waves, each naming the files, the fix,
+    whether it is behaviour-preserving, effort and risk, plus eleven decisions that need an owner
+    and an explicit list of what not to touch. It was produced from six independent parallel
+    reviews of the tree (dead weight, DRY, SoC/layering, KISS/YAGNI, type model and naming,
+    tooling/SQL/assets), merged, with the load-bearing claims re-verified by hand.</p>
+
+    <p><strong>Do not start before item 22.</strong> Item 22 moves the same code: the two
+    tournament engines, the two chemistry definitions, the mode fact derived twice, the run-end
+    sticker triggers, the difficulty-resets-the-album rule. Doing hygiene first means doing
+    several of them twice, and the second pass is the one that loses. The audit lists exactly what
+    item 22 owns and keeps its hands off it.</p>
+
+    <p><strong>The waves</strong>, in execution order:</p>
+    <ol>
+      <li><b>Free deletions and truth fixes</b> (H1-H35). Genuinely dead exports and props,
+      complexity with nothing on the other side of the trade, repo weight, and eleven comments or
+      doc claims that are no longer true. No decisions, no behaviour change.</li>
+      <li><b>Name the constants, share the one-liners</b> (H36-H48). Highest payoff per minute:
+      each item removes a fact currently written down twice.</li>
+      <li><b>Design tokens and shared UI atoms</b> (H49-H54). The palette and caption constants
+      already exist in <code>index.css</code> and <code>matchUi.tsx</code> and are bypassed by
+      inline copies.</li>
+      <li><b>Put the logic where it belongs</b> (H55-H68). Pure computations that ended up in
+      leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
+      rules, budget spend computed three times, the kickoff records built in <code>App</code>.</li>
+      <li><b>The type model</b> (H69-H78). Chiefly <code>RoundRecord</code> as a real
+      discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
+      and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
+      <li><b>Structural extractions</b> (H79-H90). The risky ones, one per branch:
+      <code>App.tsx</code>'s 15 jobs into hooks and screens, and
+      <code>CupRunScreen</code> handing back the career's persistence.</li>
+      <li><b>Harness, CI and tooling</b> (H91-H105).</li>
+    </ol>
+
+    <p><strong>Two findings worth knowing before reading the rest.</strong> Both are in wave 7 and
+    both are the reason to start there rather than with the code:</p>
+    <ul>
+      <li><b><code>npm run checks</code> never runs in CI.</b> The workflow runs
+      <code>npm ci</code> and <code>npm run build</code>, nothing else, so the 59 invariants
+      <i>and</i> the collectible-seed staleness guard gate nothing automatically. Since there is no
+      unit-test runner, that harness plus the build is the whole safety net for this backlog, and
+      it currently depends on the author remembering.</li>
+      <li><b>The documented "serve it at another path" recipe silently produces a wrong
+      artifact.</b> <code>npm run build -- --base=/</code> appends the argument to the last command
+      in the <code>&amp;&amp;</code> chain, so it reaches <code>copy-404.mjs</code>, which ignores
+      unknown argv and exits 0. Verified empirically. The Docker option in the README is wrong for
+      the same reason.</li>
+    </ul>
+
+    <p><strong>What the audit did not find</strong>, recorded so the next pass can skip it: no dead
+    CSS (all 40 custom classes and 13 tokens used), no unused dependency, no dead
+    <code>config.ts</code> entry, no unreferenced module in <code>src/</code>, no unread component
+    prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
+    three directions, migrations and client in sync, zero <code>any</code>, and item 22's own 18
+    line references all landing where it says they do.</p>
+
+    <p class="next"><strong>Next step:</strong> after item 22's design note lands, take wave 7's
+    H91 first (checks into CI, one line) so the gate is real, then waves 1 to 3 as one pass each.
+    Waves 4 to 6 want the decisions in the audit's Decisions table answered first, in particular
+    which <code>FEATURES</code> flags retire.</p>
+    <p class="files">docs/hygiene-audit.html, src/App.tsx, src/components/CupRunScreen.tsx, src/domain/, src/state/, scripts/checks.ts, .github/workflows/deploy.yml</p>
   </div>
 </details>
 
@@ -762,6 +841,70 @@
 </details>
 
 <div class="band"><h2>From playing</h2><span>found in real runs, small to medium</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">24</span>
+    <span class="title">Signed in, resetting the album (or changing difficulty) blocks the app
+      <span class="sub">The account store refuses to clear an album, and the refusal surfaces as the "server unreachable" screen. Two paths reach it, one of them by accident.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Found 2026-08-20</strong> while auditing for item 23, not in a run, and verified end
+    to end in the code.</p>
+
+    <p><code>remoteStore.clearAlbum()</code> throws on purpose, and its comment gives a good
+    reason: "wiping a synced collection from a settings toggle is a bigger decision than a local
+    reset, and it is what account deletion is for." It then says <b>"the album screen's reset stays
+    guest-only"</b> - and that gating does not exist anywhere. Two paths reach the throw while
+    signed in:</p>
+    <ul>
+      <li>The album screen's <b>"Reset album"</b> footer renders unconditionally
+      (<code>AlbumScreen.tsx:236-245</code>), wired straight to <code>stickers.onResetAlbum</code>
+      (<code>App.tsx:839</code>). The player asked for it, so the refusal is at least honest - but
+      the button should not have been offered.</li>
+      <li><b>Changing the difficulty setting</b> calls the same thing
+      (<code>App.tsx:159-162</code>), with no account check, because stickers are scoped to the
+      difficulty they were earned under. Here the player did not ask to reset anything.</li>
+    </ul>
+
+    <p><strong>What happens.</strong> <code>onResetAlbum</code> sets the in-memory album to empty
+    <i>first</i>, then calls <code>store.clearAlbum()</code>; the throw goes through
+    <code>reporting()</code>, which fires the store-error listener because the session is remote,
+    and <code>App</code> renders the blocking <code>UnreachableScreen</code> over everything
+    (<code>App.tsx:1220-1228</code>). So the screen says the server cannot be reached when the
+    server was never asked, and behind the overlay the album now reads as empty while the account
+    still holds every sticker. A reload restores it, which is the one mercy.</p>
+
+    <p><strong>Three ways to fix it</strong>, and the choice is a product decision rather than a
+    technical one:</p>
+    <ul>
+      <li><b>Honour the comment.</b> Hide the reset footer when signed in (the album screen would
+      need to know, which it currently does not) and make <code>changeDifficulty</code> skip the
+      album for an account. Cheapest, and it keeps the stated rule. Leaves the difficulty rule
+      inconsistent between guests and accounts, which item 22 is already looking at.</li>
+      <li><b>Support it server-side.</b> A <code>reset_album</code> function along
+      <code>execute_trade</code>, since the browser talks to Postgres directly and the sticker
+      economy is validated in <code>security definer</code> functions. Costs a hand-applied
+      migration and a new name, and it is the option that makes the two worlds behave alike.</li>
+      <li><b>Drop the difficulty-resets-the-album rule</b> and keep the reset button guest-only.
+      This is really item 22's question (nothing wipes the career or the challenges, which are
+      earned under a difficulty too), so it should not be settled here.</li>
+    </ul>
+
+    <p><strong>Whatever is chosen, fix the ordering:</strong> clear the in-memory album only once
+    the store write has resolved, so a refusal cannot leave the UI disagreeing with the account.
+    And correct the comment in <code>remoteStore</code>, which currently asserts a guard that is
+    not there.</p>
+
+    <p class="next"><strong>Next step:</strong> the first option, as a stopgap, is small and stops
+    a signed-in player hitting a blocking screen from the settings sheet. Decide between the other
+    two alongside item 22, since both touch the same rule.</p>
+    <p class="files">src/state/store/remoteStore.ts, src/hooks/useStickerAlbum.ts, src/App.tsx, src/components/AlbumScreen.tsx</p>
+  </div>
+</details>
 
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
@@ -1233,7 +1376,8 @@
   <code>FEATURES</code> flag, no em-dashes in generated text, "rating" not "elo" and "boost"
   not "boon" in anything user-facing, and commit straight to <code>main</code>. The full
   picture is in <code>CLAUDE.md</code>; detailed specs in <code>docs/career-depth-spec.md</code>
-  and <code>docs/roguelike-career-design.md</code>.
+  and <code>docs/roguelike-career-design.md</code>; the cleanup backlog in
+  <code>docs/hygiene-audit.html</code>.
 </footer>
 
 <script>
