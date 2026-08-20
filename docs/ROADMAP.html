@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-20<br>
-    <strong>Open:</strong> 9 items<br>
+    <strong>Open:</strong> 11 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -856,6 +856,66 @@
     <code>select prosrc from pg_proc where proname = 'finish_run_v2'</code> no longer contains
     "already collected" and close this item.</p>
     <p class="files">supabase/migrations/0012_duplicate_cup_pick.sql, scripts/push-sql.mjs, src/state/store/remoteStore.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">26</span>
+    <span class="title">Wipe the account server for testing
+      <span class="sub">Requested: an empty database to test against. The script is written and on main; it needs one command from the LAN or VPN.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Asked for 2026-08-20.</strong> The script exists and is committed;
+    what is left is running it, which needs <code>dkr/.env</code> and reach to the NAS.
+    Whoever picks this up can do it in the same visit as item 25.</p>
+
+    <p><strong>The command</strong>, dry run first:</p>
+    <p><code>npm run push:sql -- --dry-run supabase/maintenance/reset-user-data.sql</code><br>
+    <code>npm run push:sql -- supabase/maintenance/reset-user-data.sql</code></p>
+
+    <p><strong>What it deletes.</strong> One <code>delete from auth.users</code> does almost all
+    of it: <code>profiles.id</code> references it <code>on delete cascade</code> and every per-user
+    table references <code>profiles</code> the same way, so it takes the album, album stats, career,
+    settings, game state, active run, run results, and the accounts themselves. Sessions and refresh
+    tokens go with them, so anything still signed in falls back to the guest path until it signs in
+    again. <code>audit_log</code> is the exception - it references <code>profiles</code>
+    <code>on delete set null</code>, so its rows survive the cascade with a null user and are
+    deleted explicitly. Keeping the audit trail is one commented-out line in the script.</p>
+
+    <div class="callout">
+      <span class="ct">Three tables must survive, and this is the easy mistake</span>
+      <code>collectibles</code> is generated reference data (<code>npm run gen:collectibles</code>),
+      and <code>finish_run</code> validates every banked sticker id against it - so an empty table
+      makes <b>every run bank nothing while the album silently stops filling</b>, with no error
+      anywhere. <code>economy_constants</code> holds the trade costs and the swap cap, mirrored from
+      <code>src/config.ts</code>. <code>allowed_emails</code> is the retired invite gate. The
+      script touches none of them and ends in a row-count <code>select</code> so the operator can
+      see the user tables at 0 and those two still populated. If <code>collectibles</code> is ever
+      lost, <code>npm run push:collectibles</code> restores it.
+    </div>
+
+    <p><strong>It is irreversible, and two accounts hold data</strong> (33 <code>run_results</code>
+    rows across them, counted while surveying item 21). Worth confirming both are the owner's before
+    running it rather than after.</p>
+
+    <p><strong>Guest progress is not covered</strong>, and cannot be: it is
+    <code>localStorage</code> in a browser, never the server (design decision D8, two worlds never
+    mixed). A device is cleared from its own console, and the script's header carries the snippet
+    for the seven keys. Note <code>wcsim_settings_v1</code> is listed separately there because a
+    reset deliberately keeps theme, difficulty and year pool.</p>
+
+    <p><strong>It does not replace item 25.</strong> A wipe removes rows, not function definitions,
+    so migration 0012 still has to be applied either way. In the other direction the wipe does make
+    25 less pressing for a while, since a fresh album cannot be full.</p>
+
+    <p class="next"><strong>Next step:</strong> run the dry run, read the row counts it reports, then
+    run it for real and confirm every user table reads 0 while <code>collectibles</code> still reads
+    81. Then close this item.</p>
+    <p class="files">supabase/maintenance/reset-user-data.sql, scripts/push-sql.mjs, scripts/dkr-env.mjs, docs/nas-setup.md</p>
   </div>
 </details>
 
