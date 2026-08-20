@@ -343,8 +343,16 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
 
     async clearAlbum() {
       // Deliberately unsupported for an account: wiping a synced collection from a
-      // settings toggle is a bigger decision than a local reset, and it is what
-      // account deletion is for. The album screen's reset stays guest-only.
+      // settings toggle is a bigger decision than a local reset, and it is what account
+      // deletion is for.
+      //
+      // This throw is now a backstop rather than the gate. It used to be the only thing
+      // saying no, while claiming a guest-only reset that was not implemented anywhere -
+      // so both callers reached it, and since a failed write while signed in is the
+      // blocking unreachable state (D9), refusing here showed the player a server error
+      // for a request that never left the browser. `useStickerAlbum`'s `canResetAlbum`
+      // is the real gate: it hides the album screen's footer and stops a difficulty
+      // change from touching an account's album.
       throw new Error('Resetting the album is not available while signed in.');
     },
 

@@ -29,8 +29,10 @@ interface Props {
     album: AlbumState;
     allPlayers: Player[];
     onTrade: (tier: StickerTier, playerId: string) => void;
-    /** Wipe the whole album (collection + trade stats) back to empty. */
-    onReset: () => void;
+    /** Wipe the whole album (collection + trade stats) back to empty. Omitted when a
+     *  reset is not available (a signed-in player's collection is synced; deleting the
+     *  account is the account-level reset), and the footer is then not rendered at all. */
+    onReset?: () => void;
     onClose: () => void;
 }
 
@@ -233,17 +235,22 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
             })}
 
             {/* Manual reset (destructive; inline confirm). Clears the collection +
-                trade stats from browser storage. Tucked at the foot, out of the way. */}
-            <div className="mt-12 flex justify-center border-t border-line pt-6">
-                <ConfirmAction
-                    prompt="Reset the whole album? This clears every sticker and can't be undone."
-                    confirmLabel="Yes, reset album"
-                    onConfirm={onReset}
-                    triggerLabel="Reset album"
-                    triggerClassName="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-loss"
-                    rowClassName="flex flex-wrap items-center justify-center gap-2.5 text-center"
-                />
-            </div>
+                trade stats from browser storage. Tucked at the foot, out of the way.
+                Absent for an account: the store refuses to wipe a synced collection, and
+                offering a button whose only outcome is the blocking unreachable screen is
+                worse than not offering it. */}
+            {onReset && (
+                <div className="mt-12 flex justify-center border-t border-line pt-6">
+                    <ConfirmAction
+                        prompt="Reset the whole album? This clears every sticker and can't be undone."
+                        confirmLabel="Yes, reset album"
+                        onConfirm={onReset}
+                        triggerLabel="Reset album"
+                        triggerClassName="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-loss"
+                        rowClassName="flex flex-wrap items-center justify-center gap-2.5 text-center"
+                    />
+                </div>
+            )}
 
             {trade && (
                 <TradeModal

@@ -11,7 +11,7 @@ import {
 } from '../domain/album';
 import { FEATURES, type StickerTier } from '../config';
 import { INITIAL_SWAPS, type Action, type GameState } from '../state/gameReducer';
-import { store } from '../state/store';
+import { isSignedIn, store } from '../state/store';
 
 /** How long starting a new run waits for the previous one's stickers to save. Long
  *  enough that the summary is always seen on a working server, short enough that a
@@ -56,7 +56,13 @@ export interface StickerAlbumApi {
    *  haul is always shown before the next run begins. Released after a few seconds
    *  regardless, so a slow or dead server cannot stop you playing. */
   banking: boolean;
-  /** Wipe the album (collection + trade stats); leaves the game / career / run alone. */
+  /** Whether wiping the album is offered at all. False while signed in: the collection
+   *  is synced, `remoteStore.clearAlbum` refuses by design, and that refusal surfaces as
+   *  the blocking unreachable screen (D9). Deleting the account is the account-level
+   *  reset. */
+  canResetAlbum: boolean;
+  /** Wipe the album (collection + trade stats); leaves the game / career / run alone.
+   *  A no-op unless `canResetAlbum`. */
   onResetAlbum: () => void;
 }
 
@@ -222,12 +228,27 @@ export function useStickerAlbum(
       .catch((err: unknown) => console.error('trade failed', err));
   }, []);
 
+  // Whether a reset is possible at all. An account's album is synced and
+  // `remoteStore.clearAlbum` refuses on purpose, so the answer is no while signed in.
+  // Read per render rather than subscribed to: signing in or out reloads the page.
+  const canResetAlbum = enabled && !isSignedIn();
+
   // Manual album reset: wipe the stored album (collection + trade stats) and clear the
   // in-memory album. Leaves the game / career / run untouched.
+  //
+  // Two things here were bugs. The guard is not merely a hidden button: both callers (the
+  // album screen's footer and a difficulty change) reached the store's refusal, and for an
+  // account that refusal IS the blocking unreachable screen - so the app blamed the server
+  // for a call it had never made. And the in-memory clear now waits for the write, because
+  // doing it first left the UI showing an empty album while storage still held every
+  // sticker, until a reload put it back.
   const onResetAlbum = useCallback(() => {
-    void store.clearAlbum();
-    setAlbum(emptyAlbum());
-  }, []);
+    if (!canResetAlbum) return;
+    void store
+      .clearAlbum()
+      .then(() => setAlbum(emptyAlbum()))
+      .catch((err: unknown) => console.error('resetting the album failed', err));
+  }, [canResetAlbum]);
 
   // Normalize the two cup-win flows into one pending reward (standard game first,
   // then the Cup Run), so App renders a single CupRewardPicker. Each keeps its own
@@ -271,6 +292,7 @@ export function useStickerAlbum(
     pendingReward,
     onCupRunEnd,
     onTrade,
+    canResetAlbum,
     onResetAlbum,
   };
 }

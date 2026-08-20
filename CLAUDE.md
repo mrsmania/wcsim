@@ -340,7 +340,10 @@ looking for one:
   (`light | dark`, applied to the document by the hook), `difficulty`
   (`casual | normal | hard` -> `domain/difficulty.ts`, which adds +3 / 0 / -3 to the
   **user's own** attack and defense in their matches and touches nothing else), and
-  `poolYears`.
+  `poolYears`. Changing `difficulty` has one side effect beyond the rating: it wipes a
+  **guest's** sticker album, which is scoped to the difficulty it was earned under (the
+  modal confirms first). It never wipes an account's - see `canResetAlbum` under the
+  sticker album.
 - **Match `speed`** is reducer state (`SET_SPEED`, default `fast`), not a preference,
   because it belongs to playback of the run in progress. The modal just receives it.
 
@@ -507,9 +510,20 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   Iconic, Legendary) of `StickerCard`s (collected = flag+name+rating+tier; uncollected =
   silhouette with a `?`), a per-tier **Trade** action (`TradeModal`) when affordable,
   a 100% completion state, and a **"Reset album"** footer button (inline confirm ->
-  `onReset` -> `clearAlbum()` in `albumStorage.ts`, which removes the album + stats keys;
-  App resets the in-memory album to `emptyAlbum()`). Reset touches only the album, not the
-  game / career / run. `StickerCard` shows real artwork when
+  `onReset` -> `store.clearAlbum()`, which for a guest removes the album + stats keys;
+  the in-memory album is cleared **only once that write resolves**). Reset touches only
+  the album, not the game / career / run.
+  **The reset is guest-only, and one flag says so in one place**: `useStickerAlbum`
+  exposes `canResetAlbum` (`enabled && !isSignedIn()`), which hides this footer entirely
+  and stops a difficulty change from touching an account's album. An account's collection
+  is synced, `remoteStore.clearAlbum` refuses by design, and a failed write while signed
+  in IS the blocking unreachable screen (D9) - so both callers used to show a server error
+  for a request that never left the browser, and the album screen went briefly empty while
+  the account still held every sticker. Deleting the account is the account-level reset.
+  Deliberate consequence: **the difficulty-resets-the-album rule now applies to guests
+  only**. Whether that rule should exist at all is still open (roadmap item 24) - nothing
+  wipes the career or the challenges, which are earned under a difficulty too.
+  `StickerCard` shows real artwork when
   `FEATURES.stickerImages` is on (default), with a per-missing-file text+flag fallback,
   so partial art sets are fine; set the flag false to always use the placeholder.
   **Art pipeline:** originals (full-size PNG) live in **`art/stickers-src/`**, which is
