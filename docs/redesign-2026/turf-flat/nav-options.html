@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Navigation rework, five concepts - World Cup Simulator (mock)</title>
+<!--
+  NAVIGATION REWORK INDEX - the audit, the five concepts, and the comparison.
+  Start here.
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    --pitch-deep: #0e5c34; --pitch: #15924c; --chalk: #e8f0e8; --paper: #f4f2ec;
+    --panel: #ffffff; --ink: #13211a; --muted: #5c6a60; --line: #d4ded5;
+    --dim: #636c65; --hair: #e3e8e2; --faint: #ecebe3; --amber: #e4922b;
+    --amber-ink: #9a6512; --loss: #c8453c;
+    --disp: "Archivo", system-ui, "Segoe UI", Roboto, sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--body);
+    line-height: 1.5; padding: 22px clamp(14px, 3.5vw, 40px) 80px;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+
+  .mast { display: flex; align-items: center; gap: 14px; padding-bottom: 14px;
+    border-bottom: 2px solid var(--ink); }
+  .mast .cr { width: 38px; height: 38px; border-radius: 6px; background: var(--pitch-deep);
+    display: grid; place-items: center; color: var(--amber); flex: 0 0 auto; }
+  .mast .cr svg { width: 21px; height: 21px; }
+  .mast h1 { font-family: var(--disp); font-weight: 900; font-size: 21px;
+    letter-spacing: -0.02em; text-transform: uppercase; line-height: 1; margin: 0; }
+  .mast h1 em { font-style: normal; color: var(--pitch); }
+  .mast .tag { font-size: 12.5px; color: var(--muted); border-left: 1px solid var(--line);
+    padding-left: 14px; }
+  .mast .of { margin-left: auto; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  @media (max-width: 700px) { .mast .tag { display: none; } }
+
+  .onav { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; }
+  .onav a { font-family: var(--mono); font-size: 11px; text-decoration: none;
+    color: var(--muted); border: 1px solid var(--line); border-radius: 4px;
+    padding: 5px 9px; background: var(--panel); }
+  .onav a.here { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .ohead { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;
+    margin: 26px 0 8px; }
+  .oletter { font-family: var(--disp); font-weight: 900; font-size: 40px; line-height: 1;
+    width: 68px; height: 68px; border-radius: 8px; background: var(--pitch-deep);
+    color: #fff; display: grid; place-items: center; box-shadow: 6px 6px 0 var(--amber); }
+  .eyebrow { font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--pitch); margin: 0 0 6px; }
+  .ohead h2 { font-family: var(--disp); font-weight: 800; font-size: clamp(25px, 4vw, 34px);
+    letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  .rule { margin: 14px 0 0; padding: 14px 16px; background: var(--panel);
+    border: 1px solid var(--line); border-left: 4px solid var(--pitch); border-radius: 5px;
+    font-size: 15.5px; }
+  .rule b { font-family: var(--disp); text-transform: uppercase; font-size: 11px;
+    letter-spacing: 0.16em; color: var(--pitch); display: block; margin-bottom: 4px; }
+  @media (max-width: 560px) { .ohead { grid-template-columns: 1fr; } }
+
+  .sec { margin-top: 40px; }
+  .sec > h3 { font-family: var(--disp); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.01em; margin: 0 0 4px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--ink); display: flex; align-items: baseline; gap: 10px; }
+  .sec > h3 span { font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    margin-left: auto; }
+  .sec > p.lede { color: var(--muted); font-size: 14px; margin: 10px 0 18px;
+    max-width: 74ch; }
+
+  /* ---- key/value rows ---- */
+  .qa-r { display: grid; grid-template-columns: 26% 1fr; gap: 18px; padding: 12px 0;
+    border-bottom: 1px solid var(--hair); align-items: start; }
+  .qa-r:first-child { border-top: 1px solid var(--hair); }
+  .qa-q { font-family: var(--disp); font-weight: 700; font-size: 13.5px; }
+  .qa-a { font-size: 13.5px; }
+  @media (max-width: 700px) { .qa-r { grid-template-columns: 1fr; gap: 3px; } }
+
+  /* ---- click table ---- */
+  .ct { margin-top: 14px; }
+  .ct-h, .ct-r { display: grid; grid-template-columns: 1fr 68px 68px 1fr; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--hair); align-items: baseline; }
+  .ct-h { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); border-bottom-color: var(--line); }
+  .ct-r { font-size: 13px; }
+  .ct-n { font-family: var(--mono); font-size: 13px; text-align: center; font-weight: 600; }
+  .ct-n.bad { color: var(--loss); }
+  .ct-n.good { color: var(--pitch); }
+  .ct-n.same { color: var(--dim); }
+  .ct-note { font-size: 12px; color: var(--dim); }
+  @media (max-width: 760px) { .ct-h, .ct-r { grid-template-columns: 1fr 44px 44px; }
+    .ct-note { display: none; } }
+
+  /* ---- findings ---- */
+  .fnd { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 13px 0;
+    border-bottom: 1px solid var(--hair); }
+  .fnd:first-child { border-top: 1px solid var(--hair); }
+  .fnd-n { font-family: var(--mono); font-size: 12px; font-weight: 600;
+    color: var(--loss); padding-top: 1px; }
+  .fnd h4 { font-family: var(--disp); font-weight: 700; font-size: 13.5px; margin: 0; }
+  .fnd p { margin: 3px 0 0; font-size: 12.5px; color: var(--dim); }
+  .fnd .fix { margin-top: 6px; font-size: 13px; color: var(--ink); padding-left: 11px;
+    border-left: 3px solid var(--pitch); }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--faint);
+    border-radius: 3px; padding: 0 3px; }
+
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 14px; }
+  @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+  .cols2 h4 { font-family: var(--disp); font-weight: 800; font-size: 13px; margin: 0 0 8px;
+    text-transform: uppercase; letter-spacing: 0.06em; }
+  .cols2 h4.gain { color: var(--pitch); }
+  .cols2 h4.cost { color: var(--loss); }
+  .cols2 ul { margin: 0; padding-left: 17px; font-size: 13.5px; }
+  .cols2 li { margin-bottom: 7px; }
+
+  /* ================= the screen frames ================= */
+  .frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px; margin-top: 16px; align-items: start; }
+  .frame { }
+  .frame.wide { grid-column: 1 / -1; }
+  @media (max-width: 779px) { .frame.wide { grid-column: auto; } }
+  .frame > figcaption { font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 7px; display: flex; gap: 8px; align-items: baseline; }
+  .frame > figcaption b { font-family: var(--body); font-size: 12.5px; color: var(--ink);
+    letter-spacing: 0; text-transform: none; }
+
+  .ch { background: var(--paper); border: 1px solid var(--ink); border-radius: 6px;
+    box-shadow: 4px 4px 0 var(--ink); overflow: hidden; font-size: 11px; }
+  .ch-top { display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+    background: var(--panel); border-bottom: 2px solid var(--ink); }
+  .ch-top b { font-family: var(--disp); font-size: 11.5px; font-weight: 800;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ch-crest { width: 20px; height: 20px; border-radius: 4px; background: var(--pitch-deep);
+    color: var(--amber); display: grid; place-items: center; flex: 0 0 auto; }
+  .ch-crest svg { width: 12px; height: 12px; }
+  .ch-ic { width: 19px; height: 19px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--panel); color: var(--muted); display: grid; place-items: center;
+    font-size: 10px; flex: 0 0 auto; }
+  .ch-top .ch-ic:first-of-type { margin-left: auto; }
+  .ch-body { padding: 9px; display: grid; gap: 8px; min-height: 150px;
+    align-content: start; }
+  .ch-body.dim { opacity: 0.35; }
+
+  .ch-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ch-nav.v { display: grid; gap: 3px; }
+  .ch-i { font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    padding: 4px 7px; border-radius: 4px; border: 1px solid transparent;
+    white-space: nowrap; }
+  .ch-i.on { background: var(--pitch-deep); color: #fff; }
+
+  /* rail */
+  .ch-rail { display: grid; grid-template-columns: 116px 1fr; }
+  .ch-side { background: var(--panel); border-right: 2px solid var(--ink); padding: 8px 7px;
+    display: flex; flex-direction: column; gap: 9px; }
+  .ch-side .ch-crest { width: 24px; height: 24px; }
+  .ch-side .ch-crest svg { width: 14px; height: 14px; }
+  .ch-side-f { margin-top: auto; display: flex; align-items: center; gap: 4px;
+    flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--hair); }
+  .ch-lvl { font-family: var(--mono); font-size: 9px; color: var(--muted);
+    width: 100%; }
+  .ch-main { min-width: 0; }
+  .ch-crumb { display: flex; align-items: baseline; gap: 8px; padding: 7px 9px;
+    border-bottom: 1px solid var(--line); background: var(--chalk); }
+  .ch-crumb code { font-size: 9.5px; background: var(--panel); border: 1px solid var(--line); }
+  .ch-crumb b { font-family: var(--disp); font-size: 11.5px; font-weight: 800; }
+
+  /* tabs */
+  .ch-tabs { display: flex; gap: 3px; padding: 6px 8px; background: var(--chalk);
+    border-bottom: 1px solid var(--line); overflow: hidden; }
+  .ch-bar { display: flex; justify-content: space-between; gap: 2px; padding: 6px 6px;
+    background: var(--panel); border-top: 2px solid var(--ink); }
+  .ch-bar .ch-i { font-size: 8.5px; padding: 3px 4px; text-align: center; }
+
+  /* two-level */
+  .ch-sub { display: flex; gap: 3px; padding: 5px 8px; background: var(--chalk);
+    border-bottom: 1px solid var(--line); overflow: hidden; }
+  .ch-sub .ch-i { font-size: 8.5px; padding: 3px 6px; background: var(--panel);
+    border-color: var(--line); }
+  .ch-sub .ch-i.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .ch-sub.scroll { position: relative; }
+
+  /* dashboard */
+  .ch-back { font-family: var(--mono); font-size: 9px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--pitch);
+    border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px;
+    white-space: nowrap; }
+  .ch-cont { margin-left: auto; font-family: var(--mono); font-size: 9px;
+    background: var(--amber); color: var(--ink); border-radius: 4px; padding: 3px 7px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ch-cont + .ch-ic { margin-left: 4px !important; }
+
+  /* flow */
+  .ch-step { display: flex; align-items: center; gap: 0; padding: 6px 8px;
+    background: var(--chalk); border-bottom: 1px solid var(--line); }
+  .ch-s { font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim);
+    padding: 3px 7px; border-radius: 20px; white-space: nowrap; }
+  .ch-s.on { background: var(--pitch-deep); color: #fff; }
+  .ch-s + .ch-s::before { content: ''; }
+  .ch-draw { position: relative; }
+  .ch-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 62%;
+    background: var(--panel); border-left: 2px solid var(--ink);
+    box-shadow: -8px 0 18px rgba(0,0,0,0.12); padding: 8px; overflow: hidden;
+    display: grid; gap: 8px; align-content: start; }
+  .ch-dh { display: flex; align-items: center; gap: 6px;
+    border-bottom: 1px solid var(--hair); padding-bottom: 5px; }
+  .ch-dh b { font-family: var(--disp); font-size: 11.5px; font-weight: 800; }
+  .ch-x { margin-left: auto; color: var(--muted); font-size: 13px; }
+  .ch-draw.mob .ch-drawer { width: 82%; }
+
+  /* mobile frame */
+  .ch-mob { max-width: 258px; margin: 0 auto; }
+  .ch-mob .ch-body { min-height: 300px; }
+
+  /* ================= wireframe vocabulary ================= */
+  .wf-p { border: 1px solid var(--line); border-radius: 4px; background: var(--panel);
+    padding: 6px 7px; display: grid; gap: 5px; align-content: start; min-width: 0; }
+  .wf-p.pitchbg { background: var(--faint); }
+  .wf-p.hero { border-color: var(--pitch); box-shadow: inset 3px 0 0 var(--pitch); }
+  .wf-lbl { font-family: var(--mono); font-size: 8px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .wf-tag { font-family: var(--mono); font-size: 8px; color: var(--amber-ink); }
+  .wf-lines { display: grid; gap: 3px; }
+  .wf-lines i { height: 5px; border-radius: 3px; background: var(--hair); display: block; }
+  .wf-cols { display: grid; gap: 7px; min-width: 0; }
+  .wf-rl { display: grid; gap: 2px; }
+  .wf-r { display: flex; align-items: baseline; gap: 6px; font-size: 9px;
+    padding: 2px 0; border-bottom: 1px solid var(--hair); }
+  .wf-r:last-child { border-bottom: 0; }
+  .wf-r span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap;
+    text-overflow: ellipsis; }
+  .wf-r b { font-family: var(--mono); font-size: 8.5px; color: var(--dim);
+    font-weight: 600; }
+  .wf-r.goal b, .wf-r.goal span { color: var(--pitch); }
+  .wf-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .wf-chip { font-family: var(--mono); font-size: 8px; border: 1px solid var(--line);
+    border-radius: 3px; padding: 2px 5px; background: var(--faint); color: var(--dim); }
+  .wf-chip.hero { background: var(--pitch-deep); color: #fff; border-color: var(--pitch-deep); }
+  .wf-chip.amber { background: var(--amber); color: var(--ink); border-color: var(--amber); }
+  .wf-chip.flag { background: var(--chalk); color: var(--ink); }
+  .wf-foot { display: flex; gap: 5px; flex-wrap: wrap; padding-top: 4px; }
+  .wf-cta { font-family: var(--disp); font-size: 8.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.04em; border-radius: 4px;
+    padding: 5px 8px; background: var(--pitch-deep); color: #fff; }
+  .wf-cta.ghost { background: var(--panel); color: var(--dim); border: 1px solid var(--line); }
+
+  .wf-pitch { position: relative; background:
+    repeating-linear-gradient(0deg, #1f8a4d 0 12px, #1a7d45 12px 24px);
+    border-radius: 3px; aspect-ratio: 3 / 4; min-height: 104px; max-height: 168px;
+    justify-self: center; width: 100%; max-width: 126px; }
+  .wf-pitch.sm { min-height: 74px; }
+  .wf-mid { position: absolute; left: 4%; right: 4%; top: 50%; height: 1px;
+    background: rgba(255,255,255,0.75); }
+  .wf-circ { position: absolute; left: 50%; top: 50%; width: 26%; aspect-ratio: 1;
+    transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.75);
+    border-radius: 50%; }
+  .wf-box { position: absolute; left: 27%; right: 27%; height: 12%;
+    border: 1px solid rgba(255,255,255,0.7); }
+  .wf-box.t { top: 3.5%; } .wf-box.b { bottom: 3.5%; }
+  .wf-pitch i { position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--paper); border: 1px solid var(--ink);
+    transform: translate(-50%, -50%); }
+
+  .wf-bkt { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+    align-items: center; }
+  .wf-bkt-c { display: grid; gap: 4px; }
+  .wf-bkt-m { height: 13px; border: 1px solid var(--line); border-radius: 3px;
+    background: var(--panel); }
+  .wf-cup { display: grid; place-items: center; height: 30px; border-radius: 3px;
+    background: var(--pitch-deep); color: var(--amber); font-family: var(--mono);
+    font-size: 8px; letter-spacing: 0.1em; }
+
+  .wf-lad { display: flex; gap: 4px; flex-wrap: wrap; }
+  .wf-lad-n { font-family: var(--mono); font-size: 8px; border: 1px solid var(--line);
+    border-radius: 3px; padding: 3px 6px; color: var(--dim); background: var(--panel); }
+  .wf-lad-n.done { color: var(--pitch); border-color: color-mix(in srgb, var(--pitch) 40%, var(--line)); }
+  .wf-lad-n.now { background: var(--pitch-deep); color: #fff; border-color: var(--pitch-deep); }
+
+  .wf-stk { display: grid; grid-template-columns: repeat(auto-fill, minmax(18px, 1fr));
+    gap: 3px; }
+  .wf-s { aspect-ratio: 3 / 4; border-radius: 2px; background: var(--faint);
+    border: 1px solid var(--hair); }
+  .wf-s.on { background: var(--chalk); border-color: var(--pitch); }
+
+  .wf-fam { display: flex; align-items: baseline; gap: 8px; margin-top: 3px; }
+  .wf-fam b { font-family: var(--disp); font-size: 9px; }
+  .wf-fam span { font-family: var(--mono); font-size: 8px; color: var(--dim);
+    margin-left: auto; }
+  .wf-led { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .wf-led-r { height: 8px; border-bottom: 1px solid var(--hair); }
+  .wf-led-r.on { border-bottom-color: var(--pitch); }
+
+  .wf-shelf { display: flex; gap: 4px; align-items: flex-end; }
+  .wf-tro { width: 15px; border-radius: 2px 2px 0 0; background: var(--chalk);
+    border: 1px solid var(--line); }
+  .wf-tro.r0 { height: 14px; } .wf-tro.r1 { height: 20px; background: var(--faint); }
+  .wf-tro.r2 { height: 26px; background: var(--chalk); border-color: var(--pitch); }
+  .wf-tro.r3 { height: 32px; background: var(--pitch-deep); border-color: var(--pitch-deep); }
+
+  .wf-nat { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+    gap: 4px; }
+  .wf-n { height: 20px; border-radius: 3px; background: var(--panel);
+    border: 1px solid var(--line); }
+
+  .wf-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .wf-tile { border: 1px solid var(--line); border-radius: 4px; background: var(--panel);
+    padding: 6px 7px; box-shadow: 2px 2px 0 var(--ink); }
+  .wf-tile b { display: block; font-family: var(--disp); font-size: 10px;
+    font-weight: 800; }
+  .wf-tile span { font-family: var(--mono); font-size: 8px; color: var(--dim); }
+  .wf-tile.hero { background: var(--pitch-deep); border-color: var(--pitch-deep); }
+  .wf-tile.hero b { color: #fff; } .wf-tile.hero span { color: rgba(255,255,255,0.75); }
+
+  .files { margin-top: 14px; font-family: var(--mono); font-size: 11.5px;
+    color: var(--dim); line-height: 1.8; }
+  .files b { font-family: var(--body); font-size: 12.5px; color: var(--ink);
+    display: block; margin-bottom: 4px; letter-spacing: 0; }
+  .foot { margin-top: 46px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <span class="cr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Navigation and click-path rework - same features, new chrome</span>
+    <span class="of">mock</span>
+  </header>
+  <nav class="onav">
+    <a href="nav-options.html" class="here">Compare all five</a>
+    <a href="nav-1-rail.html">1 Left rail</a>
+    <a href="nav-2-tabs.html">2 Five tabs</a>
+    <a href="nav-3-two-level.html">3 Sections</a>
+    <a href="nav-4-dashboard.html">4 Dashboard</a>
+    <a href="nav-5-flow.html">5 Stage flow</a>
+  </nav>
+<div class="ohead">
+    <span class="oletter">UX</span>
+    <div>
+      <p class="eyebrow">Five navigation reworks, one decision</p>
+      <h2>The click paths are the problem, not the features</h2>
+      <div class="rule"><b>The brief</b>Keep every feature exactly as it is. Rework the
+      UI and the click paths, which have grown six separate navigation mechanisms, none of
+      which can reach everything, and a 130-entry catalogue that is four taps in behind a
+      collapsed panel.</div>
+    </div>
+  </div>
+
+  <section class="sec">
+    <h3>What is actually wrong <span>read in the code, not remembered</span></h3>
+    <p class="lede">Ten findings. Each is a navigation or layout fact, with the file that
+    proves it. None of them is a missing feature, and none of the five concepts adds or
+    removes one.</p>
+    <div class="fnd">
+      <span class="fnd-n">F1</span>
+      <div><h4>Six navigation mechanisms, none of them complete</h4><p>The crest links home; a footer text nav lists four of the eleven destinations; the launcher has two door cards plus up to three resume buttons; the build page has two entry cards inside a content column; the career hub has the only links to <code>/challenges</code> and a second one to <code>/cabinet</code>; the tournament screens have their own crumbs. Six systems, and no single one of them can reach everything.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F2</span>
+      <div><h4>Challenges is four clicks in, behind a collapsed panel</h4><p>The only door is inside <code>CareerHub</code> (<code>cupRun/CareerHub.tsx:196</code>), which lives on <code>/cup-run</code>, which is reached from a card that only renders on the career build page in the setup sub-view. The hub body also starts collapsed, so the link is not on screen when you arrive. 130 entries and the catalogue is effectively unlisted.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F3</span>
+      <div><h4>Two doors lead to the same page</h4><p><code>/quick-run</code> and <code>/career-mode</code> are the identical 3-column build page. The route only decides what the single Start Run CTA does (<code>App.tsx:647</code>) and two perk values. The player is asked to choose before they have anything to choose with.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F4</span>
+      <div><h4><code>/cup-run</code> is two screens sharing one route</h4><p>It is the career hub (perk shop, boost library, challenges, trophies) AND the live run. During a run the hub collapses to a strip with a chevron, so a shop is also a header. A destination and a step of play cannot be the same address.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F5</span>
+      <div><h4>Navigation lives inside a content column</h4><p>The album card and the "Cup Run career" card are the first two things in the build page's left column (<code>App.tsx:947</code>, <code>978</code>), above the setup panel. The second is conditional on <code>mode === 'career' &amp;&amp; homeView === 'setup'</code>, so it disappears the moment you place a player.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F6</span>
+      <div><h4>One column is four different things</h4><p>The left column is <code>SetupPanel</code>, then <code>SquadPanel</code> or <code>BudgetMarket</code>, then <code>CompletePanel</code>, plus the two nav cards. It has no stable identity, so nothing on the page tells you what that region is for.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F7</span>
+      <div><h4>There is no persistent "where am I"</h4><p>The only global location signal is the active colour on the footer nav: 11px mono, below the fold. The build page has a phase eyebrow, the tournament screens have a crumb, and the rest have nothing.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F8</span>
+      <div><h4>Reset and back land in inconsistent places</h4><p><code>handleReset</code> returns to the build route matching where it fired, so a World Cup always goes to <code>/quick-run</code> even when the build was a career one (<code>App.tsx:564</code>). Browser Back, the crumbs and the CTAs are three separate answers to "go back".</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F9</span>
+      <div><h4>Six overlays compete for the same space</h4><p>Settings, Account, the group draw, the cup reward picker, the sticker trade and the run-end summary are all modals; confetti sits above them at <code>z-[90]</code>. Two can be earned in the same moment at the end of a run.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">F10</span>
+      <div><h4>On a phone the pitch is in the middle</h4><p>The single column stacks source panel, then pitch, then ratings and line-up. The thing you tap is sandwiched between the thing you pick from and the thing you check, so a draft is a scroll up, a tap, a scroll down, repeated eleven times.</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>The five concepts</h3>
+    <p class="lede">Each is a different answer to "what is always on screen". They are drawn
+    over the same thirteen screens, so the comparison is like for like: only the frame and
+    the paths differ.</p>
+    <div class="frames">
+<figure class="frame">
+  <figcaption><span>concept 1</span><b>Left rail</b></figcaption>
+  <div class="ch ch-rail"><aside class="ch-side"><span class="ch-crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span><div class="ch-nav v"><span class="ch-i on">Play</span><span class="ch-i ">Career</span><span class="ch-i ">Album</span><span class="ch-i ">Records</span><span class="ch-i ">Squads</span></div><div class="ch-side-f"><span class="ch-lvl">Lvl 7 &middot; 284</span><span class="ch-ic">&#9881;</span><span class="ch-ic">&#128100;</span></div></aside><div class="ch-main"><div class="ch-crumb"><code>/</code><b>Entry screen</b></div><div class="ch-body"><div class="wf-cols" style="grid-template-columns:1fr 1fr"><div class="wf-p "><span class="wf-lbl">Continue</span><div class="wf-rl"><div class="wf-r "><span>Cup Run, Quarter-final vs Argentina 1986</span><b>resume</b></div><div class="wf-r "><span>World Cup, Group C matchday 3</span><b>resume</b></div></div><div class="wf-foot"><span class="wf-cta green">Resume</span><span class="wf-cta ghost">New XI</span></div></div><div class="wf-p "><span class="wf-lbl">Build a new XI</span><div class="wf-chips"><span class="wf-chip hero">Roll squads</span><span class="wf-chip ">Transfer market</span></div><div class="wf-rl"><div class="wf-r "><span>Mode</span><b>Career</b></div><div class="wf-r "><span>Formation</span><b>4-3-3 off</b></div></div><div class="wf-foot"><span class="wf-cta green">Build</span></div></div></div></div></div></div>
+  <p style="margin:9px 0 0;font-size:13px">One persistent rail on the left holds all five destinations. Everything in the app is one click from everywhere, on every screen.</p>
+  <p style="margin:7px 0 0"><a href="nav-1-rail.html" style="font-family:var(--mono);font-size:11.5px">Open the mock &rarr;</a></p>
+</figure>
+<figure class="frame">
+  <figcaption><span>concept 2</span><b>Five tabs</b></figcaption>
+  <div class="ch"><div class="ch-top"><span class="ch-crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span><b>World Cup Simulator</b><span class="ch-ic">&#9881;</span><span class="ch-ic">&#128100;</span></div><div class="ch-tabs"><span class="ch-i on">Play</span><span class="ch-i ">Career</span><span class="ch-i ">Album</span><span class="ch-i ">Records</span><span class="ch-i ">Squads</span></div><div class="ch-body"><div class="wf-p "><span class="wf-lbl">Continue</span><div class="wf-rl"><div class="wf-r "><span>Cup Run, QF vs Argentina 1986</span><b>resume</b></div></div><div class="wf-foot"><span class="wf-cta green">Resume</span></div></div><div class="wf-cols" style="grid-template-columns:1fr 1fr"><div class="wf-p "><span class="wf-lbl">Roll squads</span><div class="wf-lines "><i style="width:100%"></i><i style="width:70%"></i></div><span class="wf-cta ghost">Build</span></div><div class="wf-p "><span class="wf-lbl">Transfer market</span><div class="wf-lines "><i style="width:100%"></i><i style="width:62%"></i></div><span class="wf-cta ghost">Build</span></div></div></div></div>
+  <p style="margin:9px 0 0;font-size:13px">Five tabs, bottom on a phone and top on a desktop, with the same five destinations in the same order everywhere.</p>
+  <p style="margin:7px 0 0"><a href="nav-2-tabs.html" style="font-family:var(--mono);font-size:11.5px">Open the mock &rarr;</a></p>
+</figure>
+<figure class="frame">
+  <figcaption><span>concept 3</span><b>Sections and sub-nav</b></figcaption>
+  <div class="ch"><div class="ch-top"><span class="ch-crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span><div class="ch-nav"><span class="ch-i on">Play</span><span class="ch-i ">Collection</span><span class="ch-i ">Career</span><span class="ch-i ">Reference</span></div><span class="ch-ic">&#9881;</span><span class="ch-ic">&#128100;</span></div><div class="ch-sub"><span class="ch-i on">Build</span><span class="ch-i ">Group</span><span class="ch-i ">Knockout</span><span class="ch-i ">Cup Run</span></div><div class="ch-body"><div class="wf-p "><span class="wf-lbl">Play</span><div class="wf-chips"><span class="wf-chip hero">Career mode</span><span class="wf-chip ">Quick</span></div><div class="wf-cols" style="grid-template-columns:1fr 1fr"><div class="wf-p "><span class="wf-lbl">Roll squads</span><div class="wf-lines "><i style="width:100%"></i><i style="width:66%"></i></div><span class="wf-cta ghost">Build</span></div><div class="wf-p "><span class="wf-lbl">Transfer market</span><div class="wf-lines "><i style="width:100%"></i><i style="width:72%"></i></div><span class="wf-cta ghost">Build</span></div></div></div><div class="wf-p "><span class="wf-lbl">In progress</span><div class="wf-rl"><div class="wf-r "><span>Cup Run, QF vs Argentina 1986</span><b>resume</b></div><div class="wf-r "><span>XI half built, 7 of 11</span><b>resume</b></div></div></div></div></div>
+  <p style="margin:9px 0 0;font-size:13px">Four sections across the top, each with its own second row. Every screen belongs to exactly one section, and the second row says what else is in it.</p>
+  <p style="margin:7px 0 0"><a href="nav-3-two-level.html" style="font-family:var(--mono);font-size:11.5px">Open the mock &rarr;</a></p>
+</figure>
+<figure class="frame">
+  <figcaption><span>concept 4</span><b>Dashboard hub</b></figcaption>
+  <div class="ch"><div class="ch-top"><span class="ch-crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span><b>Entry screen</b><span class="ch-cont">Continue: QF vs ARG</span><span class="ch-ic">&#9881;</span><span class="ch-ic">&#128100;</span></div><div class="ch-body"><div class="wf-p hero"><span class="wf-lbl">Continue where you left off</span><div class="wf-rl"><div class="wf-r "><span>Cup Run, Quarter-final vs Argentina 1986</span><b>resume</b></div></div><div class="wf-foot"><span class="wf-cta green">Resume the run</span><span class="wf-cta ghost">Build a new XI</span></div></div><div class="wf-tiles"><div class="wf-tile hero"><b>Career</b><span>Level 7 &middot; 284 Prestige</span></div><div class="wf-tile "><b>Album</b><span>34 / 81 collected</span></div><div class="wf-tile "><b>Challenges</b><span>41 / 130 &middot; +188</span></div><div class="wf-tile "><b>Cabinet</b><span>6 cups &middot; Ascension 3</span></div><div class="wf-tile "><b>Squads</b><span>9 World Cups &middot; 6,270 players</span></div><div class="wf-tile "><b>Settings</b><span>Theme, difficulty, pool</span></div></div></div></div>
+  <p style="margin:9px 0 0;font-size:13px">Home is a real dashboard with a Continue card and one live tile per system. Nothing is more than two clicks away because everything goes through it.</p>
+  <p style="margin:7px 0 0"><a href="nav-4-dashboard.html" style="font-family:var(--mono);font-size:11.5px">Open the mock &rarr;</a></p>
+</figure>
+<figure class="frame">
+  <figcaption><span>concept 5</span><b>Stage flow and drawers</b></figcaption>
+  <div class="ch"><div class="ch-top"><span class="ch-crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span><b>World Cup Simulator</b><span class="ch-ic">&#9733;</span><span class="ch-ic">&#127942;</span><span class="ch-ic">&#9776;</span><span class="ch-ic">&#9881;</span></div><div class="ch-step"><span class="ch-s on">Setup</span><span class="ch-s ">Build</span><span class="ch-s ">Group</span><span class="ch-s ">Knockout</span><span class="ch-s ">Result</span></div><div class="ch-body"><div class="wf-p "><span class="wf-lbl">Set up the run</span><div class="wf-chips"><span class="wf-chip hero">4-3-3</span><span class="wf-chip ">offensive</span><span class="wf-chip amber">Career</span></div><div class="wf-cols" style="grid-template-columns:1fr 1fr"><div class="wf-p "><span class="wf-lbl">Roll squads</span><div class="wf-lines "><i style="width:100%"></i><i style="width:70%"></i></div></div><div class="wf-p "><span class="wf-lbl">Transfer market</span><div class="wf-lines "><i style="width:100%"></i><i style="width:64%"></i></div></div></div><div class="wf-foot"><span class="wf-cta green">Next: build the XI</span></div></div><div class="wf-p "><span class="wf-lbl">Or pick up where you left off</span><div class="wf-rl"><div class="wf-r "><span>Cup Run, QF vs Argentina 1986</span><b>resume</b></div></div></div></div></div>
+  <p style="margin:9px 0 0;font-size:13px">The tournament is the app: one stage stepper across the top, always showing where you are in the run. Everything else opens as a drawer over it, so you never leave.</p>
+  <p style="margin:7px 0 0"><a href="nav-5-flow.html" style="font-family:var(--mono);font-size:11.5px">Open the mock &rarr;</a></p>
+</figure>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>Side by side</h3>
+    <div class="ct">
+      <div class="ct-h cmp"><span></span><span>Today</span><span>1 Rail</span>
+        <span>2 Tabs</span><span>3 Sections</span><span>4 Dash</span><span>5 Flow</span></div>
+      <div class="ct-r cmp"><span>Nav mechanisms</span><span class="ct-n same">6</span><span class="ct-n same">1</span><span class="ct-n same">1</span><span class="ct-n same">1 (two levels)</span><span class="ct-n same">1</span><span class="ct-n same">2 (by design)</span></div>
+      <div class="ct-r cmp"><span>Max depth</span><span class="ct-n same">4</span><span class="ct-n same">2</span><span class="ct-n same">2</span><span class="ct-n same">2</span><span class="ct-n same">2</span><span class="ct-n same">2</span></div>
+      <div class="ct-r cmp"><span>Destinations at one tap</span><span class="ct-n same">7 of 11</span><span class="ct-n same">9</span><span class="ct-n same">9</span><span class="ct-n same">9</span><span class="ct-n same">10</span><span class="ct-n same">9</span></div>
+      <div class="ct-r cmp"><span>Horizontal space cost</span><span class="ct-n same">none</span><span class="ct-n same">116px rail</span><span class="ct-n same">none</span><span class="ct-n same">none</span><span class="ct-n same">none</span><span class="ct-n same">none</span></div>
+      <div class="ct-r cmp"><span>Vertical chrome</span><span class="ct-n same">1 row</span><span class="ct-n same">1 crumb</span><span class="ct-n same">2 rows</span><span class="ct-n same">3 rows</span><span class="ct-n same">1 row</span><span class="ct-n same">2 rows</span></div>
+      <div class="ct-r cmp"><span>Phone story</span><span class="ct-n same">weak</span><span class="ct-n same">bottom bar</span><span class="ct-n same">native</span><span class="ct-n same">scrolling row</span><span class="ct-n same">tiles</span><span class="ct-n same">sheets</span></div>
+      <div class="ct-r cmp"><span>Fixes the build page</span><span class="ct-n same">n/a</span><span class="ct-n same">partly</span><span class="ct-n same">partly</span><span class="ct-n same">partly</span><span class="ct-n same">no</span><span class="ct-n same">yes</span></div>
+      <div class="ct-r cmp"><span>Fixes the overlay pile</span><span class="ct-n same">n/a</span><span class="ct-n same">partly</span><span class="ct-n same">no</span><span class="ct-n same">partly</span><span class="ct-n same">partly</span><span class="ct-n same">needs specifying</span></div>
+      <div class="ct-r cmp"><span>Scales to new screens</span><span class="ct-n same">no</span><span class="ct-n same">to 5</span><span class="ct-n same">to 5</span><span class="ct-n same">freely</span><span class="ct-n same">freely</span><span class="ct-n same">freely</span></div>
+      <div class="ct-r cmp"><span>Size of the diff</span><span class="ct-n same">n/a</span><span class="ct-n same">medium</span><span class="ct-n same">medium</span><span class="ct-n same">medium</span><span class="ct-n same">small</span><span class="ct-n same">large</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>What all five agree on <span>decide these once, whichever wins</span></h3>
+    <div class="fnd">
+      <span class="fnd-n">A</span>
+      <div><h4>The two launcher doors go</h4>
+      <p class="fix">Every concept turns the mode into a control on the build page instead
+      of a choice made before you have anything to choose with. That is finding F3, and no
+      nav model survives keeping it.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">B</span>
+      <div><h4>The career hub and the live run stop sharing a route</h4>
+      <p class="fix">A shop and a step of play cannot be the same address. Every concept
+      splits them, which is a component move rather than a feature change: CareerHub is
+      already its own file.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">C</span>
+      <div><h4>The two nav cards leave the build page's left column</h4>
+      <p class="fix">Navigation that lives inside content, one of it conditional on a
+      sub-view, is finding F5. Wherever the nav ends up, it is not in that column.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">D</span>
+      <div><h4>The build page needs its phone order changed</h4>
+      <p class="fix">Pitch first, source panel under it, ratings and line-up collapsed to a
+      bar. Finding F10 is independent of the nav model, so it is work either way, and only
+      concept 5 claims to address it as part of the rework.</p></div>
+    </div>
+  </section>
+
+
+  <section class="sec">
+    <h3>Does Quick Run make sense at all? <span>asked directly, answered directly</span></h3>
+    <p class="lede">No, not as a door. Yes, as a switch. The capability is worth keeping and
+    the mode is what has to go, and that turns out to be a navigation change rather than a
+    feature one.</p>
+    <div class="fnd">
+      <span class="fnd-n">1</span>
+      <div><h4>The two doors are already the same page</h4>
+      <p>Both cards lead to the identical 3-column build page with both build methods. The
+      route decides what one CTA does (<code>App.tsx:647</code>) and two perk values, the
+      transfer budget (<code>App.tsx:87</code>, <code>675</code>) and the extra re-rolls
+      (<code>App.tsx:334</code>). That is the whole of the difference at build time.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">2</span>
+      <div><h4>A Cup Run is a superset of a World Cup</h4>
+      <p>They share the match sim, the group build, the draw, <code>resolveKoTie</code> and
+      the live clock. A Cup Run adds boosts and Ascension on top. There is nothing a Quick
+      Run can do that a Cup Run at Base ascension with no boost taken cannot, which makes it
+      a strictly dominated option, and a strictly dominated option on a launcher is a
+      question the player cannot answer.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">3</span>
+      <div><h4>The door is expensive</h4>
+      <p>It buys a second tournament engine, a duplicated round shell, two outcome models,
+      two once-per-run sticker guards, two run-end panels, a chemistry rule that disagrees
+      with itself (by slot in the World Cup, by natural role in a Cup Run), four reachable
+      cross-mode leaks, and a mode derived twice (<code>modeOfPath</code> from the route and
+      <code>buildMode</code> in the reducer, because the route cannot answer where a build
+      started once you have left it).</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">4</span>
+      <div><h4>What it genuinely provides, and how to keep it</h4>
+      <p>Two real things: a consequence-free way to learn the draft, and a shorter session
+      with no between-rounds decision. Neither needs a mode. Both are settings on a run:
+      <b>no extras</b> (which Base ascension with boosts off already is) and <b>nothing
+      banked</b>.</p>
+      <p class="fix"><b>The recommendation:</b> keep the capability, drop the door. One
+      entry, one build page, and a two-state control on it, "Career run" or "One-off",
+      sitting next to formation and style where every other build choice already lives. Set
+      it to One-off and the reward rules stay <b>exactly</b> what Quick Run's are today, so
+      nothing is added or removed: stickers bank, the career does not. That is a chrome
+      change, in scope for this rework, and it deletes finding F3 outright.</p></div>
+    </div>
+    <div class="fnd">
+      <span class="fnd-n">5</span>
+      <div><h4>What this deliberately does not decide</h4>
+      <p class="fix">Whether a one-off run should <b>pay</b> (XP, Prestige, the 98 challenges
+      a World Cup could judge) is roadmap item 22, and it is a functionality question, not a
+      navigation one. The switch above is neutral on it: item 22 can later change what
+      One-off pays without touching the nav again. Whether the two engines converge is the
+      same, and it is the thing that would let One-off be one code path instead of two.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>Reading order</h3>
+    <p class="lede">4 is the smallest change and the weakest orientation. 1 and 2 are the
+    same idea at two screen sizes: five destinations, always visible. 3 is the only one that
+    scales past eleven screens without a second thought, which matters because items 04, 05
+    and 19 each add one. 5 is the only one that treats the run as the spine of the app, and
+    the only one that fixes the build page rather than framing it.</p>
+  </section>
+  <p class="foot">Static comp. No JavaScript, no build step: open it in a browser. Every
+  screen body is the shipped layout, schematic: the rework is the chrome and the paths, so
+  if a body had to change to suit a nav model, the nav model would be changing the app.</p>
+</div>
+</body>
+</html>

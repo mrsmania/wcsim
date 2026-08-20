@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-20<br>
-    <strong>Open:</strong> 10 items<br>
+    <strong>Open:</strong> 11 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -495,6 +495,100 @@
     Career item rests on it; move it to Later if the content work (item 03) should go first.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/item22-options.html (+ item22-{a,b,c,d,e}-*.html), docs/roguelike-career-design.md, src/App.tsx, src/hooks/useStickerAlbum.ts, src/domain/run.ts, src/domain/career.ts, src/domain/challenges.ts, src/domain/tournament.ts, src/state/gameReducer.ts, src/components/CupRunScreen.tsx, src/components/ModeSelect.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">27</span>
+    <span class="title">Navigation and click-path rework
+      <span class="sub">Six navigation mechanisms, none of them complete, and a 130-entry catalogue four taps in behind a collapsed panel. Same features, new chrome.</span>
+    </span>
+    <span class="tag">UI/UX</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask (2026-08-20):</strong> keep every feature exactly as it is and rework
+    the UI and the click paths. Nothing here is about what the app does; it is about how you
+    get to it. The screens themselves are fine and were each designed carefully. What was
+    never designed is the thing between them.</p>
+
+    <p><strong>Ten findings</strong>, read in the code rather than remembered. The full audit
+    with the file and line behind each one is on
+    <code>docs/redesign-2026/turf-flat/nav-options.html</code>:</p>
+    <ul>
+      <li><b>F1 Six navigation mechanisms, none of them complete.</b> The crest links home; a
+      footer text nav lists four of the eleven destinations; the launcher has two door cards
+      plus up to three resume buttons; the build page has two entry cards inside a content
+      column; the career hub holds the only link to <code>/challenges</code>; the tournament
+      screens have their own crumbs. No single one of them can reach everything.</li>
+      <li><b>F2 Challenges is four taps in, behind a collapsed panel.</b> Its only door is
+      inside <code>CareerHub</code> (<code>cupRun/CareerHub.tsx:196</code>), on
+      <code>/cup-run</code>, reached from a card that only renders on the career build page
+      in the setup sub-view, and the hub body starts collapsed. 130 entries, effectively
+      unlisted.</li>
+      <li><b>F3 Two doors lead to the same page.</b> <code>/quick-run</code> and
+      <code>/career-mode</code> are the identical 3-column build page; the route decides one
+      CTA (<code>App.tsx:647</code>) and two perk values.</li>
+      <li><b>F4 <code>/cup-run</code> is two screens sharing one route</b>, the career hub
+      and the live run, with the hub collapsing to a strip mid-run. A shop and a step of play
+      cannot be the same address.</li>
+      <li><b>F5 Navigation lives inside a content column.</b> The album card and the "Cup Run
+      career" card are the first two things in the build page's left column
+      (<code>App.tsx:947</code>, <code>978</code>), and the second disappears the moment you
+      place a player.</li>
+      <li><b>F6 One column is four different things</b> (setup, drawn squad or market,
+      complete, plus the two nav cards), so nothing tells you what that region is for.</li>
+      <li><b>F7 There is no persistent "where am I".</b> The only global signal is the active
+      colour on an 11px mono footer nav, below the fold.</li>
+      <li><b>F8 Reset and back land inconsistently.</b> A World Cup always resets to
+      <code>/quick-run</code> even from a career build (<code>App.tsx:564</code>), and the
+      crumbs, the CTAs and browser Back are three separate answers to "go back".</li>
+      <li><b>F9 Six overlays compete</b> (settings, account, group draw, cup reward pick,
+      trade, run-end summary), and two can be earned in the same moment.</li>
+      <li><b>F10 On a phone the pitch is in the middle</b>, between the panel you pick from
+      and the ratings you check, so a draft is scroll up, tap, scroll down, eleven times.</li>
+    </ul>
+
+    <p><strong>Five concepts are drawn</strong>, each over the same thirteen screens (entry,
+    both build states, complete, group, knockout, Cup Run, career hub, album, challenges,
+    cabinet, squads, settings) plus three phone views, so the comparison is like for like:
+    <b>1 Left rail</b> (five destinations always visible, nine of eleven one tap),
+    <b>2 Five tabs</b> (the same idea, phone-first, bottom bar), <b>3 Sections and sub-nav</b>
+    (four sections with a second row, the only one that scales past eleven screens),
+    <b>4 Dashboard hub</b> (home is a tile grid with live counters, smallest diff, weakest
+    orientation), <b>5 Stage flow and drawers</b> (a run stepper across the top, everything
+    else opens over it and never costs you your place). The screen bodies are identical in
+    all five files on purpose: if a body had to change to suit a nav model, the nav model
+    would be changing the app.</p>
+
+    <p><strong>Four things every concept agreed on</strong>, so they are decisions rather
+    than options: the two launcher doors go (mode becomes a build-page control), the career
+    hub and the live run stop sharing a route, the two nav cards leave the build page's left
+    column, and the build page needs its phone order changed (pitch first) regardless of
+    which nav wins.</p>
+
+    <p><strong>Does Quick Run make sense at all?</strong> Asked directly while surveying
+    this. <b>Not as a door, yes as a switch.</b> A Cup Run is a superset of a World Cup (they
+    share the match sim, the group build, the draw, <code>resolveKoTie</code> and the live
+    clock; a Cup Run adds boosts and Ascension), so there is nothing a Quick Run can do that
+    a Cup Run at Base with no boost taken cannot, which makes it a strictly dominated option
+    on the launcher. What it genuinely provides is a consequence-free way to learn the draft
+    and a shorter session with no between-rounds decision, and neither needs a mode:
+    <b>one entry, one build page, and a two-state "Career run / One-off" control on it</b>,
+    beside formation and style. Set to One-off it keeps today's reward rules exactly (stickers
+    bank, the career does not), so nothing is added or removed and F3 is deleted outright.
+    Whether a one-off should <b>pay</b> is item 22 and is a functionality question; this
+    switch is neutral on it.</p>
+
+    <p class="next"><strong>Next step:</strong> pick a concept, then write the four agreed
+    decisions up as one short note with the phone build-page order included. <b>Sequencing:</b>
+    worth landing before or with item 23, which touches <code>App.tsx</code> heavily for other
+    reasons, and before items 04, 05 and 19, each of which adds a screen the nav will have to
+    hold. Independent of item 22: this changes chrome only, no <code>domain/</code>, no
+    <code>state/</code>, no reducer action, no feature flag.</p>
+
+    <p class="files">docs/redesign-2026/turf-flat/nav-options.html (+ nav-{1..5}-*.html), src/App.tsx, src/components/ModeSelect.tsx, src/components/cupRun/CareerHub.tsx, src/components/CupRunScreen.tsx, src/components/SettingsModal.tsx, src/components/AccountModal.tsx</p>
   </div>
 </details>
 
