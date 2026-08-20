@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Item 22, option D: One collection, two ledgers - World Cup Simulator (mock)</title>
+<!--
+  ITEM 22 OPTION MOCK - standalone comp (opens directly in a browser).
+  One of five candidate answers to roadmap item 22 ("Quick Run, Career Mode
+  and the three progression systems"), drawn across every screen the answer
+  touches. Not a proposal to build as drawn: the point is to make the four
+  questions decidable by seeing their consequences on real surfaces.
+  Sibling files: item22-options.html (the comparison) plus the other four.
+  Matches the shipped "turf-flat" identity. Fonts: the app uses Archivo /
+  Schibsted Grotesk / Spline Sans Mono; offline this falls back to system
+  stacks.
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    --pitch-deep: #0e5c34;
+    --pitch: #15924c;
+    --chalk: #e8f0e8;
+    --paper: #f4f2ec;
+    --panel: #ffffff;
+    --ink: #13211a;
+    --muted: #5c6a60;
+    --line: #d4ded5;
+    --dim: #636c65;
+    --hair: #e3e8e2;
+    --faint: #ecebe3;
+    --amber: #e4922b;
+    --amber-ink: #9a6512;
+    --loss: #c8453c;
+    --cup-deep: #0a1b12;
+    --disp: "Archivo", system-ui, "Segoe UI", Roboto, sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    line-height: 1.5;
+    padding: 22px clamp(14px, 3.5vw, 40px) 80px;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ---- masthead ---- */
+  .mast { display: flex; align-items: center; gap: 14px; padding-bottom: 14px;
+    border-bottom: 2px solid var(--ink); }
+  .crest { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 6px;
+    background: var(--pitch-deep); display: grid; place-items: center; color: var(--amber); }
+  .crest svg { width: 21px; height: 21px; }
+  .mast h1 { font-family: var(--disp); font-weight: 900; font-size: 21px;
+    letter-spacing: -0.02em; text-transform: uppercase; line-height: 1; margin: 0; }
+  .mast h1 em { font-style: normal; color: var(--pitch); }
+  .mast .tag { font-size: 12.5px; color: var(--muted); border-left: 1px solid var(--line);
+    padding-left: 14px; }
+  .mast .of { margin-left: auto; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  @media (max-width: 640px) { .mast .tag { display: none; } }
+
+  /* ---- option head ---- */
+  .ohead { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;
+    margin: 26px 0 8px; }
+  .oletter { font-family: var(--disp); font-weight: 900; font-size: 40px; line-height: 1;
+    width: 68px; height: 68px; border-radius: 8px; background: var(--pitch-deep);
+    color: #fff; display: grid; place-items: center;
+    box-shadow: 6px 6px 0 var(--amber); }
+  .eyebrow { font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--pitch); margin: 0 0 6px; }
+  .ohead h2 { font-family: var(--disp); font-weight: 800; font-size: clamp(25px, 4vw, 34px);
+    letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  .rule { margin: 14px 0 0; padding: 14px 16px; background: var(--panel);
+    border: 1px solid var(--line); border-left: 4px solid var(--pitch);
+    border-radius: 5px; font-size: 15.5px; }
+  .rule b { font-family: var(--disp); text-transform: uppercase; font-size: 11px;
+    letter-spacing: 0.16em; color: var(--pitch); display: block; margin-bottom: 4px; }
+  @media (max-width: 560px) { .ohead { grid-template-columns: 1fr; } }
+
+  /* ---- section ---- */
+  .sec { margin-top: 40px; }
+  .sec > h3 { font-family: var(--disp); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.01em; margin: 0 0 4px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--ink); display: flex; align-items: baseline; gap: 10px; }
+  .sec > h3 span { font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    margin-left: auto; }
+  .sec > p.lede { color: var(--muted); font-size: 14px; margin: 10px 0 18px;
+    max-width: 74ch; }
+
+  /* ---- answers ---- */
+  .qa { display: grid; gap: 0; margin-top: 14px; }
+  .qa-r { display: grid; grid-template-columns: 30% 1fr; gap: 18px;
+    padding: 13px 0; border-bottom: 1px solid var(--hair); align-items: start; }
+  .qa-r:first-child { border-top: 1px solid var(--hair); }
+  .qa-q { font-family: var(--disp); font-weight: 700; font-size: 14px; }
+  .qa-a { font-size: 14px; }
+  .qa-a b { font-weight: 700; }
+  .qa-a small { display: block; color: var(--dim); font-size: 12.5px; margin-top: 3px; }
+  @media (max-width: 700px) { .qa-r { grid-template-columns: 1fr; gap: 4px; } }
+
+  /* ---- screens ---- */
+  .screens { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+    gap: 18px; margin-top: 16px; align-items: start; }
+  .screen.wide { grid-column: span 2; }
+  @media (max-width: 719px) { .screen.wide { grid-column: auto; } }
+  .screen { background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 4px 4px 0 var(--ink); overflow: hidden; }
+  .screen-h { display: flex; align-items: center; gap: 9px; padding: 9px 12px;
+    background: var(--chalk); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .screen-h .route { font-family: var(--mono); font-size: 11px; color: var(--pitch-deep);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 6px; }
+  .screen-h b { font-family: var(--disp); font-size: 13px; font-weight: 800; }
+  .st { margin-left: auto; font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; border-radius: 3px;
+    padding: 2px 6px; border: 1px solid; }
+  .st.chg { color: var(--amber-ink); border-color: color-mix(in srgb, var(--amber) 55%, var(--line)); background: color-mix(in srgb, var(--amber) 12%, transparent); }
+  .st.new { color: #fff; border-color: var(--pitch); background: var(--pitch); }
+  .st.gone { color: var(--loss); border-color: color-mix(in srgb, var(--loss) 40%, var(--line)); }
+  .st.same { color: var(--dim); border-color: var(--line); }
+  .screen-b { padding: 13px 14px; }
+  .screen-n { margin: 0; padding: 10px 14px 12px; border-top: 1px solid var(--hair);
+    font-size: 12.5px; color: var(--dim); background: var(--faint); }
+  .screen-n b { color: var(--ink); }
+
+  /* ---- rows ---- */
+  .rows { display: grid; }
+  .row { display: flex; align-items: baseline; gap: 10px; padding: 7px 0;
+    border-bottom: 1px solid var(--hair); font-size: 13px; }
+  .rows.tight .row { padding: 5px 0; font-size: 12.5px; }
+  .row:last-child { border-bottom: 0; }
+  .row .k { flex: 1; min-width: 0; }
+  .row .k small { display: block; color: var(--dim); font-size: 11.5px; }
+  .row .v { font-family: var(--mono); font-size: 12px; font-weight: 600;
+    white-space: nowrap; color: var(--dim); }
+  .row .v.on { color: var(--pitch); }
+  .row .v.off { color: var(--dim); }
+  .row .v.half { color: var(--amber-ink); }
+  .row .v.new { color: var(--pitch-deep); }
+  .row .v.same { color: var(--ink); }
+
+  /* ---- launcher cards ---- */
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .modes.one { grid-template-columns: 1fr; }
+  @media (max-width: 620px) { .modes { grid-template-columns: 1fr; } }
+  .mcard { border: 1px solid var(--line); border-radius: 6px; padding: 14px;
+    background: var(--panel); box-shadow: 4px 4px 0 var(--pitch-deep);
+    display: flex; flex-direction: column; }
+  .mcard.career { box-shadow: 4px 4px 0 var(--amber);
+    border-color: color-mix(in srgb, var(--amber) 40%, var(--line)); }
+  .mcard-top { display: flex; gap: 10px; align-items: start; }
+  .mcard-ic { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 5px;
+    background: var(--chalk); color: var(--pitch-deep); display: grid; place-items: center;
+    font-size: 12px; }
+  .mcard.career .mcard-ic { background: color-mix(in srgb, var(--amber) 20%, transparent);
+    color: var(--amber-ink); }
+  .mcard h4 { font-family: var(--disp); font-weight: 800; font-size: 15px; margin: 0; }
+  .mcard-top p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+  .mcard-l { margin: 11px 0 0; padding-left: 16px; font-size: 12.5px; color: var(--ink); }
+  .mcard-l li { margin-bottom: 3px; }
+  .pays { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--hair); }
+  .pays-h { font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .mcard-cta { margin-top: 12px; align-self: flex-start; font-family: var(--disp);
+    font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em;
+    background: var(--pitch-deep); color: #fff; border-radius: 5px; padding: 9px 14px; }
+  .mcard.career .mcard-cta { background: var(--amber); color: var(--ink); }
+  .mcard.off { box-shadow: none; opacity: 0.72; border-style: dashed; }
+  .mcard.off .mcard-cta { background: var(--chalk); color: var(--dim); }
+
+  /* ---- chips strip ---- */
+  .strip { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1px solid var(--line); border-radius: 5px; padding: 6px 9px;
+    background: var(--faint); min-width: 84px; }
+  .chip small { display: block; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .chip b { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+  .chip.on { border-color: color-mix(in srgb, var(--pitch) 45%, var(--line));
+    background: color-mix(in srgb, var(--pitch) 8%, transparent); }
+  .chip.on b { color: var(--pitch-deep); }
+  .chip.half { border-color: color-mix(in srgb, var(--amber) 55%, var(--line));
+    background: color-mix(in srgb, var(--amber) 10%, transparent); }
+  .chip.half b { color: var(--amber-ink); }
+  .chip.off b { color: var(--dim); text-decoration: line-through; }
+  .chip.new { border-color: var(--pitch-deep); background: var(--pitch-deep); }
+  .chip.new small { color: rgba(255,255,255,0.7); }
+  .chip.new b { color: #fff; }
+
+  /* ---- cta ---- */
+  .cta { margin-top: 12px; display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--disp); font-weight: 800; font-size: 12.5px; text-transform: uppercase;
+    letter-spacing: 0.04em; background: var(--pitch-deep); color: #fff; border-radius: 6px;
+    padding: 11px 16px; }
+  .cta.amber { background: var(--amber); color: var(--ink); }
+
+  /* ---- banner ---- */
+  .ban { border-radius: 5px; padding: 10px 12px; margin-bottom: 11px;
+    border: 1px solid var(--line); }
+  .ban b { font-family: var(--disp); font-weight: 800; font-size: 14px; display: block; }
+  .ban span { font-size: 12.5px; }
+  .ban.win { background: var(--pitch-deep); border-color: var(--pitch-deep); color: #fff; }
+  .ban.win span { color: rgba(255,255,255,0.8); }
+  .ban.flat { background: var(--faint); }
+  .ban.flat span { color: var(--dim); }
+  .ban.amber { background: color-mix(in srgb, var(--amber) 14%, transparent);
+    border-color: color-mix(in srgb, var(--amber) 45%, var(--line)); }
+  .ban.amber span { color: var(--amber-ink); }
+
+  /* ---- family matrix ---- */
+  .fm { font-size: 12.5px; }
+  .fm-h, .fm-r { display: grid; grid-template-columns: 1fr 26px 62px 62px;
+    align-items: center; gap: 4px; padding: 6px 0; border-bottom: 1px solid var(--hair); }
+  .fm.five .fm-h, .fm.five .fm-r { grid-template-columns: 1fr 8px repeat(5, minmax(44px, 1fr)); }
+  .fm-h { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); border-bottom-color: var(--line); }
+  .fm-n { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .fm-n i { width: 7px; height: 7px; border-radius: 2px; flex: 0 0 auto; }
+  .fm-k, .fm-c { font-family: var(--mono); font-size: 11.5px; text-align: center;
+    color: var(--dim); }
+  .fm-c.yes { color: var(--pitch); font-weight: 700; }
+  .fm-c.no { color: var(--dim); }
+  .fm-c.part { color: var(--amber-ink); font-weight: 700; }
+  .fm-f { margin: 9px 0 0; font-size: 12px; color: var(--dim); }
+
+  /* ---- index mini answers ---- */
+  .mini-r { padding: 8px 0; border-bottom: 1px solid var(--hair); }
+  .mini-r:last-child { border-bottom: 0; }
+  .mini-r span { display: block; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    margin-bottom: 2px; }
+  .mini-r b { font-size: 13px; font-weight: 600; }
+  .mini-r b b { font-weight: 800; }
+
+  /* ---- leaks / files ---- */
+  .leaks { margin-top: 14px; }
+  .leak { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 13px 0;
+    border-bottom: 1px solid var(--hair); }
+  .leak:first-child { border-top: 1px solid var(--hair); }
+  .leak-n { font-family: var(--mono); font-size: 12px; color: var(--muted);
+    padding-top: 1px; }
+  .leak h4 { font-family: var(--disp); font-weight: 700; font-size: 13.5px; margin: 0; }
+  .leak p { margin: 3px 0 0; font-size: 12.5px; color: var(--dim); }
+  .leak .fix { margin-top: 6px; font-size: 13px; color: var(--ink);
+    padding-left: 11px; border-left: 3px solid var(--pitch); }
+  code { font-family: var(--mono); font-size: 0.9em;
+    background: var(--faint); border-radius: 3px; padding: 0 3px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 14px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .cols h4 { font-family: var(--disp); font-weight: 800; font-size: 13px; margin: 0 0 8px;
+    text-transform: uppercase; letter-spacing: 0.06em; }
+  .cols h4.gain { color: var(--pitch); }
+  .cols h4.cost { color: var(--loss); }
+  .cols ul { margin: 0; padding-left: 17px; font-size: 13.5px; }
+  .cols li { margin-bottom: 7px; }
+
+  .files { margin-top: 14px; font-family: var(--mono); font-size: 11.5px;
+    color: var(--dim); line-height: 1.8; }
+  .files b { font-family: var(--body); font-size: 12.5px; color: var(--ink);
+    display: block; margin-bottom: 4px; letter-spacing: 0; }
+
+  /* ---- nav ---- */
+  .onav { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; }
+  .onav a { font-family: var(--mono); font-size: 11px; text-decoration: none;
+    color: var(--muted); border: 1px solid var(--line); border-radius: 4px;
+    padding: 5px 9px; background: var(--panel); }
+  .onav a.here { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .foot { margin-top: 46px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <span class="crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Roadmap item 22 - modes and the three progression systems</span>
+    <span class="of">mock</span>
+  </header>
+  <nav class="onav">
+    <a href="item22-options.html">Compare all five</a>
+    <a href="item22-a-exhibition.html">A Exhibition</a>
+    <a href="item22-b-one-ledger.html">B One ledger</a>
+    <a href="item22-c-on-ramp.html">C On-ramp</a>
+    <a href="item22-d-one-collection.html" class="here">D One collection</a>
+    <a href="item22-e-one-engine.html">E One engine</a>
+  </nav>
+<div class="ohead">
+    <span class="oletter">D</span>
+    <div>
+      <p class="eyebrow">Option D of five</p>
+      <h2>One collection, two ledgers</h2>
+      <div class="rule"><b>The rule, in one sentence</b>The album is the one thing both modes share. The career and the challenges belong to Career Mode, and the launcher says so.</div>
+    </div>
+  </div>
+
+  <section class="sec">
+    <h3>The four answers <span>item 22, in dependency order</span></h3>
+    <div class="qa">
+    <div class="qa-r"><div class="qa-q">What is Quick Run for?</div><div class="qa-a"><b>The World Cup, plus the album.</b><small>It is what the app already does. This option changes the copy, the gates and the difficulty wipe, and leaves the economy alone.</small></div></div>
+    <div class="qa-r"><div class="qa-q">Is the album global or per-mode?</div><div class="qa-a"><b>Global, and promoted to the shared system.</b><small>Which makes the discount, the swap allowance and the completion target correct as they stand, and makes the difficulty wipe indefensible.</small></div></div>
+    <div class="qa-r"><div class="qa-q">Should challenges judge a World Cup?</div><div class="qa-a"><b>No.</b> Career Mode only, stated up front.<small>A Quick Run cup win gets an unpaid roll of honour instead, so it is marked without becoming a second Prestige faucet.</small></div></div>
+    <div class="qa-r"><div class="qa-q">Do the two tournament engines converge?</div><div class="qa-a"><b>Not required.</b> Worth doing for its own sake.<small>Nothing in this option depends on it, which is why it can ship first and unblock item 23.</small></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>Every screen the answer touches <span>9 screens</span></h3>
+    <p class="lede">Nine screens, seven of them unchanged or nearly so. The work is in the launcher copy, the run-end panel, four route gates and one deletion.</p>
+    <div class="screens">
+<section class="screen wide">
+  <header class="screen-h">
+    <code class="route">/</code>
+    <b>Launcher (ModeSelect)</b>
+    <span class="st chg">changed</span>
+  </header>
+  <div class="screen-b">
+<div class="modes">
+<div class="mcard quick">
+  <div class="mcard-top">
+    <span class="mcard-ic">&#9654;</span>
+    <div>
+      <h4>Quick Run</h4>
+      <p>The World Cup, and the album.</p>
+    </div>
+  </div>
+  <ul class="mcard-l">
+      <li>Roll or buy within the fixed $110 budget</li>
+      <li>Stickers are earned and spent here, same as anywhere</li>
+      <li>No XP, no Prestige, no challenges: those are the career</li>
+  </ul>
+  <div class="pays">
+    <span class="pays-h">This mode feeds</span>
+<div class="rows tight">
+  <div class="row">
+    <span class="k">Sticker album</span>
+    <span class="v on">full, shared</span>
+  </div>
+  <div class="row">
+    <span class="k">Career (XP, Prestige)</span>
+    <span class="v off">nothing</span>
+  </div>
+  <div class="row">
+    <span class="k">Challenges</span>
+    <span class="v off">nothing</span>
+  </div>
+</div>
+  </div>
+  <span class="mcard-cta">Start a Quick Run</span>
+</div>
+<div class="mcard career">
+  <div class="mcard-top">
+    <span class="mcard-ic">&#9733;</span>
+    <div>
+      <h4>Career Mode</h4>
+      <p>The album, plus a career.</p>
+    </div>
+  </div>
+  <ul class="mcard-l">
+      <li>The perk-scaled budget and the extra re-rolls</li>
+      <li>Boosts between rounds, the Ascension ladder</li>
+      <li>XP, Prestige and all 130 challenges</li>
+  </ul>
+  <div class="pays">
+    <span class="pays-h">This mode feeds</span>
+<div class="rows tight">
+  <div class="row">
+    <span class="k">Sticker album</span>
+    <span class="v on">full, shared</span>
+  </div>
+  <div class="row">
+    <span class="k">Career (XP, Prestige)</span>
+    <span class="v on">full</span>
+  </div>
+  <div class="row">
+    <span class="k">Challenges</span>
+    <span class="v on">all 130</span>
+  </div>
+</div>
+  </div>
+  <span class="mcard-cta">Continue career</span>
+</div>
+    </div>
+  </div>
+  <p class="screen-n">Today's behaviour, said out loud. The album row is green on both cards and the other two are grey on one, which is the whole rule in a glance.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">/quick-run</code>
+    <b>Build page, Quick Run</b>
+    <span class="st same">same</span>
+  </header>
+  <div class="screen-b">
+<div class="strip">
+  <div class="chip same"><small>Budget</small><b>$110</b></div>
+  <div class="chip same"><small>Re-rolls</small><b>3</b></div>
+  <div class="chip same"><small>Swaps</small><b>2</b></div>
+  <div class="chip on"><small>Discount</small><b>25%</b></div>
+</div>
+<div class="rows ">
+  <div class="row">
+    <span class="k">Collectible markers</span>
+    <span class="v on">shown</span>
+  </div>
+  <div class="row">
+    <span class="k">Owned-sticker discount<small>the album is global</small></span>
+    <span class="v on">25%</span>
+  </div>
+  <div class="row">
+    <span class="k">Career perks</span>
+    <span class="v off">not applied</span>
+  </div>
+  <div class="row">
+    <span class="k">This run pays</span>
+    <span class="v on">stickers only</span>
+  </div>
+</div>
+<span class="cta">Start the World Cup</span>
+  </div>
+  <p class="screen-n">Unchanged, and correct as it stands. Item 02 decided the discount is mode-blind on purpose, and this is the option that keeps that decision and builds the rest around it.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">/career-mode</code>
+    <b>Build page, Career Mode</b>
+    <span class="st same">same</span>
+  </header>
+  <div class="screen-b">
+<div class="strip">
+  <div class="chip on"><small>Budget</small><b>$90</b></div>
+  <div class="chip on"><small>Re-rolls</small><b>4</b></div>
+  <div class="chip same"><small>Swaps</small><b>2</b></div>
+  <div class="chip on"><small>Discount</small><b>25%</b></div>
+</div>
+<div class="rows ">
+  <div class="row">
+    <span class="k">Transfer Budget perk</span>
+    <span class="v on">tier 2</span>
+  </div>
+  <div class="row">
+    <span class="k">Extra Re-roll perk</span>
+    <span class="v on">tier 1</span>
+  </div>
+  <div class="row">
+    <span class="k">This run pays</span>
+    <span class="v on">stickers, XP, Prestige, challenges</span>
+  </div>
+</div>
+<span class="cta amber">Enter the Cup Run</span>
+  </div>
+  <p class="screen-n">Unchanged. The two perks stay the only mode-aware thing on the build page, and they are now the only difference between the two strips.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">/album</code>
+    <b>Sticker album</b>
+    <span class="st chg">changed</span>
+  </header>
+  <div class="screen-b">
+<div class="rows ">
+  <div class="row">
+    <span class="k">Scope</span>
+    <span class="v new">global, the one shared system</span>
+  </div>
+  <div class="row">
+    <span class="k">Earned in either mode</span>
+    <span class="v on">yes</span>
+  </div>
+  <div class="row">
+    <span class="k">Spends in either mode<small>the 25% discount</small></span>
+    <span class="v on">yes</span>
+  </div>
+  <div class="row">
+    <span class="k">Wiped by a difficulty change<small>the wipe is deleted</small></span>
+    <span class="v new">no</span>
+  </div>
+  <div class="row">
+    <span class="k">Difficulty</span>
+    <span class="v new">recorded, never scoped</span>
+  </div>
+</div>
+  </div>
+  <p class="screen-n">The album is promoted from "happens to be global" to "is the shared system", which is what lets the other two be strictly career-side without the split feeling arbitrary.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">/challenges</code>
+    <b>Catalogue</b>
+    <span class="st same">same</span>
+  </header>
+  <div class="screen-b">
+<div class="fm">
+  <div class="fm-h"><span class="fm-n">Family</span><span class="fm-k">n</span><span class="fm-c">Quick Run</span><span class="fm-c">Career</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#b8862b"></i>Silverware & progression</span><span class="fm-k">12</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#6d5bd0"></i>Ascension</span><span class="fm-k">8</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#2e7d57"></i>Squad identity</span><span class="fm-k">16</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#2465b0"></i>Rating & value</span><span class="fm-k">12</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#4a6572"></i>Defence</span><span class="fm-k">10</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#c24a34"></i>Attack</span><span class="fm-k">12</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#9b3a6b"></i>Knockout drama</span><span class="fm-k">10</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#1e8a8a"></i>Boosts & perks</span><span class="fm-k">12</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#a8762b"></i>Album & collectibles</span><span class="fm-k">10</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#2f6e8f"></i>Shape & positions</span><span class="fm-k">8</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#5e8c2b"></i>Market & budget</span><span class="fm-k">8</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+  <div class="fm-r"><span class="fm-n"><i style="background:#8a5a2b"></i>Career & streaks</span><span class="fm-k">12</span><span class="fm-c no">&ndash;</span><span class="fm-c yes">&#10003;</span></div>
+</div>
+<p class="fm-f">All 130 judged in a Cup Run, none in a Quick Run. Unchanged from today, and now stated on the launcher card rather than discovered.</p>
+  </div>
+  <p class="screen-n">The judging seam stays on <code>applyRunResult</code>, so this option needs no work in the challenge layer at all.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">/quick-run</code>
+    <b>Roll of honour</b>
+    <span class="st new">new</span>
+  </header>
+  <div class="screen-b">
+<div class="rows ">
+  <div class="row">
+    <span class="k">World Cups won</span>
+    <span class="v on">6</span>
+  </div>
+  <div class="row">
+    <span class="k">Runs played</span>
+    <span class="v same">31</span>
+  </div>
+  <div class="row">
+    <span class="k">Best XI</span>
+    <span class="v same">87.4 avg, 2002 Brazil core</span>
+  </div>
+  <div class="row">
+    <span class="k">Paid in Prestige</span>
+    <span class="v off">nothing</span>
+  </div>
+  <div class="row">
+    <span class="k">Stored with</span>
+    <span class="v new">the album, not the career</span>
+  </div>
+</div>
+  </div>
+  <p class="screen-n">A small unpaid record so a Quick Run cup win is <b>marked</b> even though it is not <b>paid</b>. Derived from the album stats key, in the spirit of <code>domain/badges.ts</code>: nothing stored, nothing paid, thresholds only.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">/group &rarr; /knockout</code>
+    <b>Quick Run, cup won</b>
+    <span class="st chg">changed</span>
+  </header>
+  <div class="screen-b">
+<div class="ban win"><b>Champions</b><span>Brazil 2002 lift the cup.</span></div><div class="rows ">
+  <div class="row">
+    <span class="k">Stickers banked</span>
+    <span class="v on">4 new</span>
+  </div>
+  <div class="row">
+    <span class="k">Reward pick</span>
+    <span class="v on">1 of 81</span>
+  </div>
+  <div class="row">
+    <span class="k">Roll of honour</span>
+    <span class="v new">6th World Cup</span>
+  </div>
+  <div class="row">
+    <span class="k">XP, Prestige</span>
+    <span class="v off">career only</span>
+  </div>
+  <div class="row">
+    <span class="k">Challenges</span>
+    <span class="v off">career only</span>
+  </div>
+</div>
+<span class="cta">Play again</span>
+  </div>
+  <p class="screen-n">The two grey rows are the change: the panel now says what it does not pay, with a link to the door that does. That single line is most of what item 22 is complaining about.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">/cup-run</code>
+    <b>Career run, cup won</b>
+    <span class="st same">same</span>
+  </header>
+  <div class="screen-b">
+<div class="ban win"><b>Champions</b><span>Ascension 2, reward multiplier 1.35x.</span></div><div class="rows ">
+  <div class="row">
+    <span class="k">Stickers banked</span>
+    <span class="v on">4 new</span>
+  </div>
+  <div class="row">
+    <span class="k">Reward pick</span>
+    <span class="v on">1 of 81</span>
+  </div>
+  <div class="row">
+    <span class="k">XP</span>
+    <span class="v on">+189</span>
+  </div>
+  <div class="row">
+    <span class="k">Prestige</span>
+    <span class="v on">+38</span>
+  </div>
+  <div class="row">
+    <span class="k">Challenges</span>
+    <span class="v on">5 completed, +31</span>
+  </div>
+</div>
+  </div>
+  <p class="screen-n">Unchanged.</p>
+</section>
+<section class="screen">
+  <header class="screen-h">
+    <code class="route">Settings sheet</code>
+    <b>Difficulty</b>
+    <span class="st chg">changed</span>
+  </header>
+  <div class="screen-b">
+<div class="rows ">
+  <div class="row">
+    <span class="k">Theme</span>
+    <span class="v same">light / dark</span>
+  </div>
+  <div class="row">
+    <span class="k">Difficulty</span>
+    <span class="v same">casual / normal / hard</span>
+  </div>
+  <div class="row">
+    <span class="k">World Cups in the pool</span>
+    <span class="v same">all nine</span>
+  </div>
+  <div class="row">
+    <span class="k">Match speed</span>
+    <span class="v same">fast</span>
+  </div>
+  <div class="row">
+    <span class="k">Album wipe on change<small>recorded on the run row instead</small></span>
+    <span class="v new">deleted</span>
+  </div>
+</div>
+  </div>
+  <p class="screen-n">If the album is the one global system, a setting cannot be allowed to destroy it. The difficulty goes on the run archive row, where Ascension already is.</p>
+</section>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>The four cross-mode leaks <span>how each one dissolves</span></h3>
+    <p class="lede">Item 22 lists four leaks that are reachable today and says none is worth
+    patching in place, because each dissolves once the rule is decided. Under this option:</p>
+    <div class="leaks">
+    <div class="leak">
+      <span class="leak-n">L1</span>
+      <div>
+        <h4>The budget changes under a build in progress</h4>
+        <p>The live budget reads the route (App.tsx:676), the recorded one reads stored <code>buildMode</code> (App.tsx:701), so walking from /career-mode to /quick-run mid-build moves the cap and misreports it.</p>
+        <p class="fix">Fixed at the source: both the live and the recorded budget read <code>buildMode</code>, and the build page shows which mode it is in so the change is never silent.</p>
+      </div>
+    </div>
+    <div class="leak">
+      <span class="leak-n">L2</span>
+      <div>
+        <h4>/cup-run accepts a Quick-Run-built XI</h4>
+        <p>and applies the career perks and unlocked boosts to it unconditionally (CupRunScreen.tsx:257).</p>
+        <p class="fix">Mode-gate <code>/cup-run</code> on a career build. Necessary here, because a Quick Run build is genuinely cheaper and the perks would otherwise be free.</p>
+      </div>
+    </div>
+    <div class="leak">
+      <span class="leak-n">L3</span>
+      <div>
+        <h4>/group and /knockout accept a Career-built XI</h4>
+        <p>neither route is mode-gated (App.tsx:855, 875), and starting over always returns to /quick-run (App.tsx:564).</p>
+        <p class="fix">Mode-gate <code>/group</code> and <code>/knockout</code>, and make "start over" return to the door in <code>buildMode</code>.</p>
+      </div>
+    </div>
+    <div class="leak">
+      <span class="leak-n">L4</span>
+      <div>
+        <h4>A stale cup win outranks a fresh one</h4>
+        <p>the two reward-picker producers are priority-ordered rather than mode-scoped (useStickerAlbum.ts:236).</p>
+        <p class="fix">Scope the two reward-picker producers by mode instead of ordering them, which is a two-line change once the run-end panels are separate on purpose.</p>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h3>What it buys, what it costs</h3>
+    <div class="cols">
+      <div>
+        <h4 class="gain">Buys</h4>
+        <ul>
+      <li>The smallest change of the five, and the only one that ships without re-simming the economy: it states the rules already in force and deletes the one that contradicts them.</li>
+      <li>It keeps item 02's decision (a mode-blind price) and makes it a principle rather than an exception.</li>
+      <li>It unblocks item 23 quickly, since the hygiene backlog is waiting on a decision here rather than on a large refactor.</li>
+      <li>A Quick Run cup win is finally marked somewhere, which is the specific complaint that "winning the World Cup in Quick Run is worth stickers and nothing else, which is not written down anywhere a player can see".</li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="cost">Costs</h4>
+        <ul>
+      <li>It leaves 98 of the 130 challenges unreachable from the World Cup, and the catalogue will keep looking like a career catalogue for content that is not.</li>
+      <li>The two tournament engines stay apart, so items 04, 05 and 19 keep widening the gap the item warns about.</li>
+      <li>It is the least ambitious answer to "what is Quick Run for", and the answer is more or less "for the album", which may not be enough to justify a door.</li>
+      <li>The roll of honour is a new surface, small but new, and new surfaces have a way of growing into a second economy.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="files"><b>Code it moves</b>src/components/ModeSelect.tsx (the copy and the two feed lists), src/App.tsx (four route gates, the difficulty wipe, buildMode for the budget and the re-rolls, the mode-scoped reward picker), src/hooks/useStickerAlbum.ts, src/components/KnockoutScreen.tsx (the run-end panel and the roll of honour), src/state/albumStorage.ts</p>
+  </section>
+  <p class="foot">Static comp. No JavaScript, no build step: open it in a browser.
+  Fonts fall back to system stacks offline. Colours are literal copies of the light
+  theme tokens in <code>src/index.css</code>.</p>
+</div>
+</body>
+</html>
