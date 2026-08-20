@@ -108,6 +108,20 @@ mistyped redirect URI.
    runs arbitrary SQL. Keep that password long, and if the calculus ever changes, stopping
    the `studio` container is the whole mitigation - the API paths the game uses are
    unaffected.
+
+   **Always enter at the root, `https://HOST/`, and let it redirect.** Opening a deep
+   Studio URL directly (`/project/default`, an SQL-editor link, a bookmark from inside the
+   app) answers **"You do not have access to this project"**, which reads like a permissions
+   problem on the database and is not one. Envoy's `basic_auth` filter builds the realm from
+   the *full request URL*, so every path is a separate protection space: authenticate at
+   `/project/default` and the browser holds credentials for that path only, then Studio's own
+   `fetch` calls to `/api/platform/profile` and `/api/platform/projects` get a bare 401 - and a
+   401 to `fetch` raises no password prompt, it just returns to the page, which renders it as
+   no access. Authenticating at `/` instead covers the whole path tree, and `/` 307s to
+   `/project/default` anyway. Verified 2026-08-20: with credentials supplied, `/project/default`,
+   `/api/platform/profile` and `/api/platform/projects` are all 200, so nothing server-side is
+   involved. The realm is not configurable on that filter, so entering at the root is the fix,
+   not a workaround to remove later.
 4. **Control Panel → Security → Firewall:** allow the forwarded port, and keep Postgres
    (5432) LAN-only. That single inbound port is all the game needs: the proxy reaches the
    gateway over loopback, which the firewall does not filter, and `db` publishes nothing

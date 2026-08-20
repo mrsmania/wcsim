@@ -860,9 +860,22 @@
       lost, <code>npm run push:collectibles</code> restores it.
     </div>
 
-    <p><strong>It is irreversible, and two accounts hold data</strong> (33 <code>run_results</code>
-    rows across them, counted while surveying the dead <code>run_results</code> columns, now the audit's D12). Worth confirming both are the owner's before
-    running it rather than after.</p>
+    <p><strong>It is irreversible, and the survey has moved.</strong> Counted 2026-08-20 against
+    the server itself: <code>auth.users</code> is <b>5</b>, not the 2 recorded while surveying the
+    dead <code>run_results</code> columns (now the audit's D12), and <code>run_results</code> is
+    <b>52</b>, not 33. But <code>profiles</code> is <b>1</b>, and every progress table references
+    <code>profiles (id) on delete cascade</code> (0001), so all of it - 81 stickers, the career,
+    settings, game state, active run, 52 run rows - belongs to a single account, and the other
+    four have no profile row and hold nothing. Confirm all five are the owner's before running
+    rather than after: <code>auth.users</code> is the only table that can say, so it is a manual
+    look in Studio (see <code>docs/nas-setup.md</code>, and mind the entry-point trap noted
+    there).</p>
+
+    <p><strong>One thing to weigh first</strong>, from the same survey:
+    <code>album_stickers</code> is 81, the whole catalogue, so that account holds a <b>complete
+    album</b> - precisely the state that produced the item 25 bug. Wiping it means the duplicate
+    cup pick cannot be exercised again until an album is refilled, which is a fair trade for a
+    clean database but should be a choice rather than a discovery.</p>
 
     <p><strong>Guest progress is not covered</strong>, and cannot be: it is
     <code>localStorage</code> in a browser, never the server (design decision D8, two worlds never
@@ -875,9 +888,10 @@
     often the user tables are emptied. Worth knowing while testing: a freshly wiped album cannot
     be full, so the duplicate cup pick 0012 legalised is not reachable again until one is.</p>
 
-    <p class="next"><strong>Next step:</strong> run the dry run, read the row counts it reports, then
-    run it for real and confirm every user table reads 0 while <code>collectibles</code> still reads
-    81. Then close this item.</p>
+    <p class="next"><strong>Next step:</strong> the dry run was done 2026-08-20 and its counts are
+    above. It is <b>held there deliberately</b>, on confirming the five accounts are the owner's.
+    Once they are: run it for real, confirm every user table reads 0 while <code>collectibles</code>
+    still reads 81, and close this item.</p>
     <p class="files">supabase/maintenance/reset-user-data.sql, scripts/push-sql.mjs, scripts/dkr-env.mjs, docs/nas-setup.md</p>
   </div>
 </details>
