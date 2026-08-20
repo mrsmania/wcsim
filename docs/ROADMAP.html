@@ -701,8 +701,7 @@
     looking winnable. The earlier comp of both is in the git history of
     <code>docs/redesign-2026/turf-flat/challenges.html</code>.</p>
     <p><strong>The questions to settle</strong>: daily or weekly (daily is a much faster
-    treadmill and pairs naturally with the seeded run in item 05, where everyone gets the
-    same rolls and the same objective; weekly asks less of a player who plays twice a week);
+    treadmill; weekly asks less of a player who plays twice a week);
     whether a missed day is simply gone; whether the pick is filtered to what is actually
     reachable for that career, since offering "Win at Ascension III" to a level-2 account is
     noise; and whether a re-roll exists at all, which if it does should cost Prestige rather
@@ -787,18 +786,26 @@
 <details class="item">
   <summary>
     <span class="num">05</span>
-    <span class="title">Career depth F - odds at each decision, and a daily run
-      <span class="sub">Show what a choice is worth; one shared seeded run per day.</span>
+    <span class="title">Career depth F - odds at each decision
+      <span class="sub">Show what a choice is worth, at the moment the choice is made.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>Two halves. Surfacing the title odds at each boost choice (the machinery exists in
-    <code>domain/odds.ts</code>) so a pick is informed rather than a guess. And a daily
-    seeded run, which needs a seedable RNG in <code>domain/random.ts</code> - the sim
-    currently calls <code>Math.random</code> directly in several places.</p>
-    <p class="files">src/domain/odds.ts, src/domain/random.ts (new)</p>
+    <p>Surface the title odds at each boost choice, so a pick is informed rather than a
+    guess. The machinery already exists: <code>domain/odds.ts</code>
+    (<code>simulateTitleOdds</code>) Monte-Carlos an XI's cup-win percentage over many
+    simulated tournaments and already drives the Cup Run readout. What is missing is running
+    it per offered boost rather than once for the current XI, and showing the delta on the
+    card.</p>
+    <p><strong>Scoped down (2026-08-20):</strong> this item used to carry a second half, a
+    daily seeded run where everyone gets the same rolls and the same objective. That is
+    dropped. It was the only thing asking for a seedable RNG in
+    <code>domain/random.ts</code> (the sim calls <code>Math.random</code> directly in several
+    places), so that dependency goes with it and this item no longer touches the random
+    helpers at all.</p>
+    <p class="files">src/domain/odds.ts, src/components/cupRun/BoostOffer.tsx</p>
   </div>
 </details>
 
