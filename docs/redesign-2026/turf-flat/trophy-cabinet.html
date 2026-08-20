@@ -1,0 +1,836 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trophy Cabinet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap">
+<script>
+/* Apply a saved theme before paint, same shared key as the other turf-flat comps.
+   Nothing is stamped until the reader picks one, so an untouched page keeps following
+   its host (prefers-color-scheme locally, the claude.ai theme in the Artifact). */
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+  /* TROPHY CABINET - roadmap item 06. Two comps of the same content: the /cabinet screen
+     (option B) and the block that would live in the existing Cup Run hub (option A, the
+     one that ships first). Turf-flat tokens copied from src/index.css so both themes
+     match the app.
+
+     Every number on this page is DERIVED from a field that already exists on
+     CareerState / AlbumState, against one mock save (level 14, 61 runs, 7 cups). The
+     source map at the bottom says which field each block reads. The one block that
+     cannot be built today is shown as the empty state it would actually have.
+
+     Opens standalone in a browser AND publishes as an Artifact, which is why the top of
+     the file looks the way it does: the doctype is what makes a local open render in
+     standards mode, the reset below is the page's own rather than the wrapper's, and the
+     theme button exists because the two hosts source the theme differently. */
+
+  /* ---- tokens: light (turf-flat "pitch") ------------------------------------ */
+  :root {
+    --paper: #f4f2ec; --panel: #ffffff; --chalk: #e8f0e8;
+    --ink: #13211a; --muted: #5c6a60; --line: #d4ded5;
+    --pitch: #15924c; --pitch-deep: #0e5c34; --accent: #0e5c34; --amber: #e4922b;
+    --faint: #ecebe3; --dim: #636c65; --hair: #e3e8e2;
+    --amber-ink: #9a6512;
+    /* The shelf's rank ramp, one hue getting deeper. It needs its own token per theme
+       rather than reusing --ink for the top step: in dark, --ink is near-white, so the
+       highest tier came out as the LIGHTEST plinth and the ramp read backwards. */
+    --cup-3: #0a1b12;
+    --hard: 6px 6px 0 var(--pitch-deep);
+    --hard-sm: 4px 4px 0 var(--pitch-deep);
+    --disp: "Archivo", system-ui, "Segoe UI", sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
+  }
+  /* ---- tokens: dark (the app's graphite scheme) ----------------------------- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #131417; --panel: #1c1e22; --chalk: #26282e;
+      --ink: #eceef1; --muted: #a4a9b0; --line: #33363d;
+      --pitch: #22a35d; --pitch-deep: #17492f; --accent: #34c06f; --amber: #eea23a;
+      --faint: #191b1f; --dim: #848b92; --hair: #2a2d33; --amber-ink: #eea23a;
+      --cup-3: #0a2417;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #131417; --panel: #1c1e22; --chalk: #26282e;
+    --ink: #eceef1; --muted: #a4a9b0; --line: #33363d;
+    --pitch: #22a35d; --pitch-deep: #17492f; --accent: #34c06f; --amber: #eea23a;
+    --faint: #191b1f; --dim: #848b92; --hair: #2a2d33; --amber-ink: #eea23a;
+    --cup-3: #0a2417;
+  }
+
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--body); line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  h1, h2, h3, h4, h5, p, ol, ul { margin: 0; }
+  ol, ul { padding: 0; list-style: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; }
+  table { border-collapse: collapse; width: 100%; }
+  .doc { max-width: 1060px; margin: 0 auto; padding: 30px clamp(16px, 4vw, 34px) 90px; }
+  svg { display: block; }
+  code { font-family: var(--mono); font-size: .92em; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  /* ---- document chrome ----------------------------------------------------- */
+  .kicker { font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--disp); font-weight: 900; font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -.025em; line-height: 1.02; margin: 8px 0 0; text-wrap: balance; }
+  .lede { color: var(--muted); font-size: 15px; max-width: 68ch; margin: 12px 0 0; }
+  .doc-head { display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; }
+  .theme-btn { font-family: var(--disp); font-size: 10.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); border-radius: 5px; padding: 8px 13px;
+    margin-top: 4px; cursor: pointer; }
+  .theme-btn:hover { border-color: var(--pitch); color: var(--accent); }
+
+  .diag { margin-top: 26px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel); box-shadow: var(--hard); padding: 20px 22px; }
+  .diag h2 { font-family: var(--disp); font-size: 15px; font-weight: 800; margin: 0 0 12px;
+    letter-spacing: -.01em; }
+  .diag ul { display: grid; gap: 9px;
+    grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); }
+  .diag li { font-size: 13.5px; color: var(--muted); display: flex; gap: 9px; align-items: flex-start; }
+  .diag li b { color: var(--ink); font-weight: 700; }
+  .diag .cnt { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink);
+    background: var(--chalk); border-radius: 3px; padding: 1px 5px; flex: 0 0 auto;
+    font-variant-numeric: tabular-nums; }
+  .rule-note { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--hair);
+    font-size: 13px; color: var(--muted); }
+  .rule-note b { color: var(--ink); }
+
+  /* ---- option framing ------------------------------------------------------ */
+  .opt { margin-top: 48px; }
+  .opt-head { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap;
+    border-bottom: 2px solid var(--ink); padding-bottom: 9px; }
+  .opt-num { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+    color: #fff; background: var(--pitch-deep); border-radius: 999px; padding: 3px 9px; }
+  .opt-name { font-family: var(--disp); font-weight: 800; font-size: 22px; letter-spacing: -.02em; }
+  .opt-thesis { font-size: 13.5px; color: var(--muted); margin-left: auto; }
+  .opt-why { margin: 14px 0 0; display: grid; gap: 7px;
+    grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); }
+  .opt-why li { font-size: 13.5px; color: var(--muted); padding-left: 15px; position: relative; }
+  .opt-why li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--pitch); }
+  .opt-why li b { color: var(--ink); font-weight: 700; }
+  .frame { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--paper); padding: 18px clamp(13px, 2.4vw, 22px) 26px; }
+  .frame-tag { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
+
+  /* ---- in-screen chrome: the app's masthead + section header --------------- */
+  .mast { display: flex; align-items: center; gap: 11px; padding-bottom: 13px;
+    border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .mast .tile { width: 34px; height: 34px; border-radius: 6px; background: var(--pitch-deep);
+    display: grid; place-items: center; flex: 0 0 auto; }
+  .mast .wm { font-family: var(--disp); font-weight: 900; font-size: 14px; letter-spacing: -.01em;
+    line-height: 1.1; }
+  .mast .wm i { display: block; font-style: normal; font-family: var(--mono); font-size: 9px;
+    font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .mast .nav { margin-left: auto; display: flex; gap: 6px; }
+  .mast .nav span { font-family: var(--disp); font-size: 10px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; }
+  .mast .nav span.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+  .scr-h { display: flex; align-items: flex-end; gap: 13px; margin-bottom: 8px; }
+  .scr-h h3 { font-family: var(--disp); font-weight: 800; font-size: clamp(21px, 3.4vw, 26px);
+    letter-spacing: -.02em; margin: 2px 0 0; line-height: 1; }
+  .scr-h .eyebrow { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--accent); }
+  .scr-h .rule { flex: 1; border-top: 2px solid var(--line); align-self: center; height: 0; }
+  .scr-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; max-width: 72ch; }
+
+  /* headline strip: the career in one line */
+  .head-strip { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: 6px; overflow: hidden; box-shadow: var(--hard-sm); margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(min(128px, 45%), 1fr)); }
+  .hs { background: var(--panel); padding: 11px 13px; }
+  .hs.hero { background: var(--pitch-deep); color: #fff; }
+  .hs .k { font-family: var(--mono); font-size: 8.5px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); }
+  .hs.hero .k { color: rgba(255,255,255,.72); }
+  .hs .v { font-family: var(--disp); font-weight: 900; font-size: 21px; letter-spacing: -.02em;
+    line-height: 1.1; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .hs .s { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 1px;
+    font-variant-numeric: tabular-nums; }
+  .hs.hero .s { color: rgba(255,255,255,.7); }
+
+  /* ---- generic card + block heading --------------------------------------- */
+  .card { border: 1px solid var(--line); background: var(--panel); border-radius: 6px;
+    box-shadow: var(--hard-sm); }
+  .bh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    padding: 12px 14px 10px; border-bottom: 1px solid var(--hair); }
+  .bh h4 { font-family: var(--disp); font-weight: 800; font-size: 14.5px; letter-spacing: -.01em;
+    margin: 0; }
+  .bh .n { font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--muted);
+    font-variant-numeric: tabular-nums; }
+  .bh .link { margin-left: auto; font-family: var(--disp); font-size: 10.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+  .bh .hint { font-size: 12px; color: var(--muted); }
+  .bd { padding: 14px; }
+
+  .cols { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
+  .stack { display: grid; gap: 14px; }
+
+  /* ---- the shelf ----------------------------------------------------------- */
+  .shelf { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .cup { width: 74px; flex: 0 0 auto; text-align: center; }
+  .cup .plinth { border-radius: 6px 6px 3px 3px; border: 1px solid var(--line);
+    padding: 11px 0 8px; display: grid; place-items: center; gap: 5px; }
+  /* One hue family, depth for rank. Tier is NOT a new colour: it is the plinth depth
+     plus the numeral, the same rule the challenge ledger settled on (TIER_COLOR is
+     gone). A six-hue shelf would be the rainbow that rule exists to prevent. */
+  .cup.t0 .plinth { background: var(--chalk); }
+  .cup.t1 .plinth { background: var(--pitch); border-color: var(--pitch); }
+  .cup.t2 .plinth { background: var(--pitch-deep); border-color: var(--pitch-deep); }
+  .cup.t3 .plinth { background: var(--cup-3); border-color: var(--cup-3); }
+  .cup .tier { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; }
+  .cup.t0 .tier { color: var(--muted); }
+  .cup.t1 .tier, .cup.t2 .tier, .cup.t3 .tier { color: rgba(255,255,255,.82); }
+  .cup .yr { font-family: var(--mono); font-size: 9.5px; color: var(--dim); margin-top: 4px;
+    font-variant-numeric: tabular-nums; }
+  .shelf-board { height: 5px; border-radius: 2px; background: var(--line); margin-top: 3px; }
+
+  /* ---- the ladder --------------------------------------------------------- */
+  .ladder { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: 5px; overflow: hidden; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  @media (max-width: 620px) { .ladder { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .lc { background: var(--panel); padding: 10px 6px 9px; text-align: center; position: relative; }
+  .lc .t { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); }
+  .lc .c { font-family: var(--disp); font-weight: 900; font-size: 20px; line-height: 1.1;
+    margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .lc .m { font-family: var(--mono); font-size: 8.5px; color: var(--dim); margin-top: 2px; }
+  .lc.zero .c { color: var(--dim); }
+  .lc.locked { background: var(--faint); }
+  .lc.locked .t, .lc.locked .c, .lc.locked .m { color: var(--dim); }
+  .lc.ceiling::after { content: ""; position: absolute; inset: auto 0 0 0; height: 3px;
+    background: var(--amber); }
+  .lc.won::after { content: ""; position: absolute; inset: auto 0 0 0; height: 3px;
+    background: var(--pitch); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle;
+    margin-right: 5px; border-radius: 2px; }
+
+  /* ---- records ------------------------------------------------------------- */
+  .recs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 26px; }
+  @media (max-width: 560px) { .recs { grid-template-columns: 1fr; } }
+  .rec { display: flex; align-items: baseline; gap: 9px; padding: 7px 0;
+    border-bottom: 1px solid var(--hair); }
+  .rec .k { font-size: 12.5px; color: var(--muted); }
+  .rec .v { margin-left: auto; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+    color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
+  .rec .v.dim { color: var(--dim); font-weight: 600; }
+  .rec .v em { font-style: normal; font-family: var(--body); font-weight: 600; }
+
+  /* ---- formation chips ---------------------------------------------------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-family: var(--mono); font-size: 11px; font-weight: 700; border-radius: 999px;
+    padding: 4px 11px; border: 1px solid var(--hair); background: var(--faint); color: var(--dim);
+    display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .chip.on { background: var(--chalk); border-color: var(--line); color: var(--ink); }
+  .chip.on svg { color: var(--pitch); }
+
+  /* ---- tier pips (monochrome, as the ledger settled) --------------------- */
+  .pips { display: inline-flex; gap: 2px; flex: 0 0 auto; color: var(--ink); }
+  .pips span { width: 5px; height: 5px; border-radius: 1px; background: currentColor; opacity: .13; }
+  .pips span.on { opacity: .5; }
+
+  /* ---- challenge summary ------------------------------------------------- */
+  .bar { height: 7px; border-radius: 20px; background: var(--chalk); overflow: hidden;
+    border: 1px solid var(--hair); }
+  .bar i { display: block; height: 100%; background: var(--pitch); }
+  .tier-rows { display: grid; gap: 8px; margin-top: 13px; }
+  .tr { display: flex; align-items: center; gap: 10px; }
+  .tr .nm { font-family: var(--disp); font-weight: 700; font-size: 12.5px; width: 88px;
+    flex: 0 0 auto; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tr .bar { flex: 1 1 auto; }
+  .tr .n { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+    flex: 0 0 auto; font-variant-numeric: tabular-nums; width: 52px; text-align: right; }
+  .fams { display: grid; gap: 6px 22px; margin-top: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 620px) { .fams { grid-template-columns: 1fr; } }
+  .fam { display: flex; align-items: center; gap: 9px; padding: 5px 0;
+    border-bottom: 1px solid var(--hair); }
+  .fam .nm { font-size: 12.5px; color: var(--ink); flex: 1 1 auto; min-width: 0; }
+  .fam .bar { flex: 0 1 74px; min-width: 34px; height: 5px; }
+  .fam .n { font-family: var(--mono); font-size: 10.5px; color: var(--muted); flex: 0 0 auto;
+    font-variant-numeric: tabular-nums; width: 40px; text-align: right; }
+  .fam.none .nm { color: var(--dim); }
+  .prestige-line { display: flex; align-items: center; gap: 8px; margin-top: 13px;
+    padding-top: 11px; border-top: 1px solid var(--hair); font-size: 12.5px; color: var(--muted); }
+  .prestige-line b { font-family: var(--mono); font-weight: 700; color: var(--amber-ink); }
+
+  /* ---- badges ------------------------------------------------------------- */
+  .badges { display: grid; gap: 9px;
+    grid-template-columns: repeat(auto-fill, minmax(min(212px, 100%), 1fr)); }
+  .bg { border-radius: 6px; padding: 10px 11px; display: flex; gap: 10px; align-items: flex-start; }
+  .bg.open { background: var(--faint); border: 1px solid var(--hair); }
+  .bg.done { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--hard-sm); }
+  .bg .mk { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: grid;
+    place-items: center; margin-top: 1px; }
+  .bg.done .mk { background: var(--pitch); color: #fff; }
+  .bg.open .mk { border: 1.5px dashed var(--line); color: var(--dim); }
+  .bg .tx { min-width: 0; }
+  .bg h5 { font-family: var(--disp); font-weight: 800; font-size: 13.5px; letter-spacing: -.01em;
+    margin: 0; line-height: 1.15; color: var(--dim); }
+  .bg.done h5 { color: var(--ink); }
+  .bg p { font-size: 11.5px; line-height: 1.35; margin: 2px 0 0; color: var(--dim); }
+  .bg.done p { color: var(--muted); }
+  .bg .prog { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--dim);
+    margin-top: 4px; display: block; font-variant-numeric: tabular-nums; }
+
+  /* ---- album strip -------------------------------------------------------- */
+  .stick-row { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; }
+  .stick { width: 78px; flex: 0 0 auto; border-radius: 5px; border: 1px solid var(--line);
+    background: var(--panel); padding: 6px 5px; text-align: center; }
+  .stick .art { height: 46px; border-radius: 3px; background: var(--chalk); display: grid;
+    place-items: center; color: var(--pitch-deep); }
+  .stick.miss { background: var(--faint); border-color: var(--hair); }
+  .stick.miss .art { background: transparent; border: 1px dashed var(--line); color: var(--dim); }
+  .stick b { display: block; font-family: var(--disp); font-weight: 800; font-size: 9.5px;
+    letter-spacing: -.005em; margin-top: 5px; line-height: 1.15; }
+  .stick.miss b { color: var(--dim); }
+  .stick i { display: block; font-style: normal; font-family: var(--mono); font-size: 8.5px;
+    color: var(--dim); font-variant-numeric: tabular-nums; }
+
+  /* ---- the deliberately empty block -------------------------------------- */
+  .empty { border: 1px dashed var(--line); border-radius: 6px; background: var(--faint);
+    padding: 16px 15px; }
+  .empty h4 { font-family: var(--disp); font-weight: 800; font-size: 14px; margin: 0;
+    color: var(--dim); }
+  .empty p { font-size: 12.5px; color: var(--dim); margin: 6px 0 0; max-width: 74ch; }
+  .empty p b { color: var(--muted); }
+  .empty .stamp { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--dim); }
+
+  /* ---- option A: the hub block ------------------------------------------- */
+  .hub { border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+    box-shadow: var(--hard-sm); overflow: hidden; }
+  .hub-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 11px 14px; border-bottom: 1px solid var(--line); }
+  .hub-h .t { font-family: var(--disp); font-weight: 800; font-size: 16px; letter-spacing: -.01em; }
+  .hub-h .lv { font-family: var(--mono); font-size: 10.5px; font-weight: 600; color: var(--accent);
+    background: var(--chalk); border-radius: 999px; padding: 2px 8px; }
+  .hub-h .pr { font-family: var(--mono); font-size: 10.5px; font-weight: 600; color: var(--amber-ink);
+    background: rgba(228,146,43,.14); border-radius: 999px; padding: 2px 8px; }
+  .hub-h .ch { margin-left: auto; font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--pitch); }
+  .hub-sec { padding: 13px 14px; border-top: 1px solid var(--line); }
+  .hub-sec:first-of-type { border-top: 0; }
+  .hub-k { font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: .15em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 9px; display: flex;
+    align-items: baseline; gap: 9px; }
+  .hub-k .n { letter-spacing: 0; color: var(--ink); font-size: 11px; }
+  .hub-k .link { margin-left: auto; font-family: var(--disp); font-size: 10px; font-weight: 800;
+    letter-spacing: .05em; color: var(--accent); }
+  .hub-ghost { margin-top: 11px; font-size: 12px; color: var(--dim); font-style: italic; }
+
+  /* ---- source map -------------------------------------------------------- */
+  .src { margin-top: 48px; }
+  /* The two nowrap columns put the table's min-content over a phone's width, so it
+     scrolls inside its own box rather than pushing the page sideways. */
+  .src .tw { overflow-x: auto; margin-top: 12px; }
+  .src table { font-size: 13px; min-width: 440px; }
+  .src th, .src td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--hair);
+    vertical-align: top; }
+  .src th { font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent); border-bottom: 2px solid var(--line); }
+  .src td.blk { font-family: var(--disp); font-weight: 700; white-space: nowrap; }
+  .src td.fld { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .src td.nw { font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+  .src .ok { color: var(--pitch); font-weight: 700; }
+  .src .no { color: var(--amber-ink); font-weight: 700; }
+
+  .foot { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 10.5px; color: var(--dim); line-height: 1.7; }
+</style>
+
+<div class="doc">
+
+  <div class="doc-head">
+    <div>
+      <div class="kicker">World Cup Simulator &middot; roadmap item 06</div>
+      <h1>Trophy Cabinet</h1>
+      <p class="lede">A career records far more than it shows. Cups per Ascension tier, the
+      formations a cup was won with, the streak counters, best cup tier and best score are all on
+      <code>CareerStats</code> already, and almost none of it is read anywhere outside
+      <code>domain/challenges.ts</code>. This is the readout. Two comps of the same content: the
+      screen, and the block that ships first.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+  </div>
+
+  <section class="diag">
+    <h2>What this mock commits to</h2>
+    <ul>
+      <li><span class="cnt">1</span><span><b>Every number is derived</b>, not recorded. One mock
+      save: level 14, 61 runs, 7 cups, 47 of 130 challenges, 52 of 81 stickers. The source map at
+      the bottom names the field behind each block.</span></li>
+      <li><span class="cnt">2</span><span><b>The catalogue is real.</b> 130 challenges, 12
+      families with their true totals, tier split 34/63/33, awards 2/5/12. The Ascension ladder,
+      the eight formations and the five Monumental players are the real ones.</span></li>
+      <li><span class="cnt">3</span><span><b>Badges are recomputed, never stored</b>, so an
+      existing career lights them up retroactively, and they pay <b>no Prestige</b>. Challenges
+      stay the faucet.</span></li>
+      <li><span class="cnt">4</span><span><b>Tier is not a colour.</b> The shelf is one hue at
+      three depths plus a numeral, and challenge tiers are monochrome pips - the rule the
+      challenge ledger settled on when 130 painted cards stopped reading.</span></li>
+      <li><span class="cnt">5</span><span><b>Run history is shown as the empty state it would
+      actually have.</b> Nothing client-side keeps per-run rows, and the server columns that look
+      like they should are the dead ones in item 21.</span></li>
+      <li><span class="cnt">6</span><span><b>No new storage, no migration</b>, and identical for
+      guests and accounts - everything here already rides the existing career write.</span></li>
+    </ul>
+    <p class="rule-note"><b>One honest limit, found while building this.</b> The streaks on
+    <code>CareerStats</code> are <i>live counters</i>, not records: <code>cupStreak</code> resets
+    to 0 on any lesser finish, so "best run of cups ever" is not recorded anywhere. The cabinet
+    can still say it, because a completed <b>Three-Peat</b> is itself the evidence that a
+    three-cup streak happened. Reading the record off the challenge ids rather than adding a
+    counter is why the Records block below says "best (from honours)".</p>
+  </section>
+
+  <!-- ============================================================ OPTION B -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">Option B</span>
+      <span class="opt-name">The <code>/cabinet</code> screen</span>
+      <span class="opt-thesis">Room to breathe. Lazy route, like <code>/challenges</code> and <code>/album</code>.</span>
+    </div>
+    <ul class="opt-why">
+      <li><b>The shelf is the point.</b> Seven cups, ranked, is a thing you scroll to look at; a row in a hub is not.</li>
+      <li><b>Reuses what exists:</b> the ledger atoms in <code>challengeUi.tsx</code>, the album's counter, the gold <code>Trophy</code> and the champion-node green.</li>
+      <li><b>Costs a route and a link</b>, no state. Do it after option A if the hub block outgrows the hub, or instead of A if the shelf is what you want.</li>
+    </ul>
+
+    <div class="frame">
+      <div class="frame-tag">Screen comp &middot; /cabinet &middot; 1060px</div>
+
+      <div class="mast">
+        <div class="tile">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+          </svg>
+        </div>
+        <div class="wm">WORLD CUP SIMULATOR<i>Career records</i></div>
+        <div class="nav"><span>Play</span><span>Squads</span><span class="on">Cabinet</span></div>
+      </div>
+
+      <div class="scr-h">
+        <div>
+          <div class="eyebrow">Career</div>
+          <h3>Trophy Cabinet</h3>
+        </div>
+        <div class="rule"></div>
+      </div>
+      <p class="scr-sub">Everything this career has to show for itself. Cups and honours are
+      permanent; the counters below are read live from the career, so they change as you play.</p>
+
+      <div class="head-strip">
+        <div class="hs hero">
+          <div class="k">Cups</div>
+          <div class="v">7</div>
+          <div class="s">best: Ascension III</div>
+        </div>
+        <div class="hs">
+          <div class="k">Level</div>
+          <div class="v">14</div>
+          <div class="s">112 / 200 XP</div>
+        </div>
+        <div class="hs">
+          <div class="k">Prestige</div>
+          <div class="v">214</div>
+          <div class="s">1,180 spent</div>
+        </div>
+        <div class="hs">
+          <div class="k">Runs</div>
+          <div class="v">61</div>
+          <div class="s">12 at Asc II+</div>
+        </div>
+        <div class="hs">
+          <div class="k">Honours</div>
+          <div class="v">47</div>
+          <div class="s">of 130</div>
+        </div>
+        <div class="hs">
+          <div class="k">Album</div>
+          <div class="v">52</div>
+          <div class="s">of 81</div>
+        </div>
+      </div>
+
+      <!-- ---- the shelf ---- -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="bh">
+          <h4>The shelf</h4>
+          <span class="n">7 cups</span>
+          <span class="hint">One trophy per cup, ranked by the tier it was won at.</span>
+        </div>
+        <div class="bd">
+          <div class="shelf">
+            <div class="cup t0"><div class="plinth">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">Base</span></div><div class="yr">run 6</div></div>
+            <div class="cup t0"><div class="plinth">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">Base</span></div><div class="yr">run 11</div></div>
+            <div class="cup t0"><div class="plinth">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">Base</span></div><div class="yr">run 19</div></div>
+            <div class="cup t1"><div class="plinth">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">Asc I</span></div><div class="yr">run 24</div></div>
+            <div class="cup t1"><div class="plinth">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">Asc I</span></div><div class="yr">run 33</div></div>
+            <div class="cup t2"><div class="plinth">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">Asc II</span></div><div class="yr">run 45</div></div>
+            <div class="cup t3"><div class="plinth">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">Asc III</span></div><div class="yr">run 58</div></div>
+          </div>
+          <div class="shelf-board"></div>
+          <p style="font-size:12px;color:var(--muted);margin-top:11px">The run number is the only
+          per-cup fact available today, and it is derived (<code>cupsByAscension</code> gives the
+          counts, not the runs). <b>If option D ever lands, this is where a date goes.</b></p>
+        </div>
+      </div>
+
+      <!-- ---- ladder + records ---- -->
+      <div class="cols" style="margin-bottom:14px">
+        <div class="card">
+          <div class="bh"><h4>Cups by Ascension tier</h4><span class="n">7</span></div>
+          <div class="bd">
+            <div class="ladder">
+              <div class="lc won"><div class="t">Base</div><div class="c">3</div><div class="m">x1.0</div></div>
+              <div class="lc won"><div class="t">Asc I</div><div class="c">2</div><div class="m">x1.25</div></div>
+              <div class="lc won"><div class="t">Asc II</div><div class="c">1</div><div class="m">x1.5</div></div>
+              <div class="lc won"><div class="t">Asc III</div><div class="c">1</div><div class="m">x1.75</div></div>
+              <div class="lc zero ceiling"><div class="t">Asc IV</div><div class="c">0</div><div class="m">level 20</div></div>
+              <div class="lc locked"><div class="t">Asc V</div><div class="c">0</div><div class="m">locked</div></div>
+            </div>
+            <div class="legend">
+              <span><i style="background:var(--pitch)"></i>won here</span>
+              <span><i style="background:var(--amber)"></i>unlocked, not yet won</span>
+              <span><i style="background:var(--line)"></i>locked</span>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin-top:11px">Winning at III unlocked
+            <b>IV</b>, but IV needs <b>level 20</b> and this career is 14, so the highest
+            selectable tier is still III. Two gates, and the cabinet is the only place they are
+            shown side by side.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="bh"><h4>Records</h4><span class="hint">read live from the career</span></div>
+          <div class="bd">
+            <div class="recs">
+              <div class="rec"><span class="k">Best finish</span><span class="v"><em>Champion</em></span></div>
+              <div class="rec"><span class="k">Best score</span><span class="v">168</span></div>
+              <div class="rec"><span class="k">Cup streak, current</span><span class="v dim">0</span></div>
+              <div class="rec"><span class="k">Cup streak, best (from honours)</span><span class="v">3</span></div>
+              <div class="rec"><span class="k">Finals reached in a row, current</span><span class="v">2</span></div>
+              <div class="rec"><span class="k">Semis reached in a row, current</span><span class="v">4</span></div>
+              <div class="rec"><span class="k">Finals lost</span><span class="v"><em>yes</em></span></div>
+              <div class="rec"><span class="k">Runs at Ascension II or higher</span><span class="v">12</span></div>
+              <div class="rec"><span class="k">Prestige spent, lifetime</span><span class="v">1,180</span></div>
+              <div class="rec"><span class="k">Perk tiers owned</span><span class="v">11 / 18</span></div>
+            </div>
+            <div class="hub-k" style="margin:15px 0 8px">Cups won with <span class="n">3 of 8 formations</span></div>
+            <div class="chips">
+              <span class="chip on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>4-3-3</span>
+              <span class="chip on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>3-5-2</span>
+              <span class="chip on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>4-2-3-1</span>
+              <span class="chip">5-3-2</span><span class="chip">4-5-1</span><span class="chip">4-4-2</span>
+              <span class="chip">3-4-3</span><span class="chip">4-2-4</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- honours ---- -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="bh">
+          <h4>Honours</h4>
+          <span class="n">47 / 130</span>
+          <span class="link">All challenges &rarr;</span>
+        </div>
+        <div class="bd">
+          <div class="bar"><i style="width:36%"></i></div>
+          <div class="tier-rows">
+            <div class="tr"><span class="nm">Bronze <span class="pips"><span class="on"></span><span></span><span></span></span></span><span class="bar"><i style="width:65%"></i></span><span class="n">22 / 34</span></div>
+            <div class="tr"><span class="nm">Silver <span class="pips"><span class="on"></span><span class="on"></span><span></span></span></span><span class="bar"><i style="width:32%"></i></span><span class="n">20 / 63</span></div>
+            <div class="tr"><span class="nm">Gold <span class="pips"><span class="on"></span><span class="on"></span><span class="on"></span></span></span><span class="bar"><i style="width:15%"></i></span><span class="n">5 / 33</span></div>
+          </div>
+          <div class="hub-k" style="margin:18px 0 4px">By family</div>
+          <div class="fams">
+            <div class="fam"><span class="nm">Silverware &amp; progression</span><span class="bar"><i style="width:58%"></i></span><span class="n">7/12</span></div>
+            <div class="fam"><span class="nm">Ascension</span><span class="bar"><i style="width:50%"></i></span><span class="n">4/8</span></div>
+            <div class="fam"><span class="nm">Identity</span><span class="bar"><i style="width:31%"></i></span><span class="n">5/16</span></div>
+            <div class="fam"><span class="nm">Rating</span><span class="bar"><i style="width:25%"></i></span><span class="n">3/12</span></div>
+            <div class="fam"><span class="nm">Defence</span><span class="bar"><i style="width:30%"></i></span><span class="n">3/10</span></div>
+            <div class="fam"><span class="nm">Attack</span><span class="bar"><i style="width:50%"></i></span><span class="n">6/12</span></div>
+            <div class="fam"><span class="nm">Drama</span><span class="bar"><i style="width:40%"></i></span><span class="n">4/10</span></div>
+            <div class="fam"><span class="nm">Boosts &amp; perks</span><span class="bar"><i style="width:33%"></i></span><span class="n">4/12</span></div>
+            <div class="fam"><span class="nm">Album</span><span class="bar"><i style="width:40%"></i></span><span class="n">4/10</span></div>
+            <div class="fam"><span class="nm">Shape</span><span class="bar"><i style="width:38%"></i></span><span class="n">3/8</span></div>
+            <div class="fam"><span class="nm">Market</span><span class="bar"><i style="width:25%"></i></span><span class="n">2/8</span></div>
+            <div class="fam"><span class="nm">Career</span><span class="bar"><i style="width:17%"></i></span><span class="n">2/12</span></div>
+          </div>
+          <div class="prestige-line">
+            <span>Paid out so far</span><b>204 Prestige</b>
+            <span style="color:var(--dim)">&middot; 22 bronze at 2, 20 silver at 5, 5 gold at 12</span>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:11px">A summary, not a second
+          catalogue. The full 130 stay on <code>/challenges</code>, where the ledger already
+          holds them; painting them twice is how the cabinet would become the thing that page was
+          rebuilt to stop being.</p>
+        </div>
+      </div>
+
+      <!-- ---- badges ---- -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="bh">
+          <h4>Badges</h4>
+          <span class="n">3 / 8</span>
+          <span class="hint">Lifetime completeness. Recomputed from what you hold, so they pay nothing.</span>
+        </div>
+        <div class="bd">
+          <div class="badges">
+            <div class="bg done">
+              <span class="mk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+              <span class="tx"><h5>Half Way</h5><p>Half the sticker album collected.</p><span class="prog">52 / 81 &middot; 64%</span></span>
+            </div>
+            <div class="bg done">
+              <span class="mk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+              <span class="tx"><h5>Big Spender</h5><p>1,000 Prestige spent across the shop and the boost library.</p><span class="prog">1,180 spent</span></span>
+            </div>
+            <div class="bg done">
+              <span class="mk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+              <span class="tx"><h5>Full House</h5><p>At least one honour completed in every family.</p><span class="prog">12 / 12 families</span></span>
+            </div>
+            <div class="bg open">
+              <span class="mk"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="tx"><h5>Every Tier</h5><p>A cup won at every Ascension tier.</p><span class="prog">4 / 6 tiers</span></span>
+            </div>
+            <div class="bg open">
+              <span class="mk"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="tx"><h5>All Formations</h5><p>A cup won with each of the eight formations.</p><span class="prog">3 / 8</span></span>
+            </div>
+            <div class="bg open">
+              <span class="mk"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="tx"><h5>Full Library</h5><p>Every boost unlocked into the offer pool.</p><span class="prog">9 / 13 locked boosts</span></span>
+            </div>
+            <div class="bg open">
+              <span class="mk"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="tx"><h5>Fully Kitted</h5><p>Every perk track at its top tier.</p><span class="prog">11 / 18 tiers</span></span>
+            </div>
+            <div class="bg open">
+              <span class="mk"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span class="tx"><h5>Complete Set</h5><p>The whole album, all 81 stickers.</p><span class="prog">52 / 81</span></span>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:13px">Every one is a question
+          about <b>what a career holds</b>, which no challenge asks - challenges judge a single
+          run. That is what keeps the two from being the same list twice, and why none of these
+          reads a lifetime count that only ever climbs.</p>
+        </div>
+      </div>
+
+      <!-- ---- album + empty history ---- -->
+      <div class="cols">
+        <div class="card">
+          <div class="bh"><h4>Album</h4><span class="n">52 / 81</span><span class="link">Open album &rarr;</span></div>
+          <div class="bd">
+            <div class="tier-rows" style="margin-top:0">
+              <div class="tr"><span class="nm">Legendary</span><span class="bar"><i style="width:69%"></i></span><span class="n">40 / 58</span></div>
+              <div class="tr"><span class="nm">Iconic</span><span class="bar"><i style="width:56%"></i></span><span class="n">10 / 18</span></div>
+              <div class="tr"><span class="nm">Monumental</span><span class="bar"><i style="width:40%"></i></span><span class="n">2 / 5</span></div>
+            </div>
+            <div class="hub-k" style="margin:16px 0 0">The five Monumentals</div>
+            <div class="stick-row">
+              <div class="stick"><div class="art"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div><b>Ronaldo</b><i>BRA 2002 &middot; 98</i></div>
+              <div class="stick"><div class="art"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div><b>Lionel Messi</b><i>ARG 2022 &middot; 99</i></div>
+              <div class="stick miss"><div class="art">?</div><b>Zidane</b><i>FRA 2006 &middot; 97</i></div>
+              <div class="stick miss"><div class="art">?</div><b>Neuer</b><i>GER 2014 &middot; 97</i></div>
+              <div class="stick miss"><div class="art">?</div><b>Mbapp&eacute;</b><i>FRA 2022 &middot; 97</i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="empty">
+            <span class="stamp">Not recorded</span>
+            <h4 style="margin-top:5px">Run history</h4>
+            <p><b>Deliberately empty.</b> A dated list of finished runs is the one thing on this
+            screen that no existing field can answer: nothing client-side keeps per-run rows, and
+            the server columns that look like they should (<code>ascension</code>,
+            <code>score</code>, <code>rounds_won</code>, <code>xi</code> on
+            <code>run_results</code>) have been taking their defaults since migration
+            <code>0006</code>. See roadmap item 21.</p>
+            <p>Shown as a state rather than left off, because "your last 20 runs" is the first
+            thing anyone will ask this screen for. It is <b>option D</b>: the only part of item 06
+            that needs new recording, and it only ever covers runs from the change onward.</p>
+          </div>
+          <div class="empty" style="border-style:solid;background:var(--panel);border-color:var(--line)">
+            <span class="stamp" style="color:var(--accent)">Design note</span>
+            <h4 style="margin-top:5px;color:var(--ink)">What is not here</h4>
+            <p style="color:var(--muted)">No XP bar and no perk shop: those are the <i>hub's</i>
+            job, and duplicating them would make the cabinet a second career screen rather than a
+            record. The link in the header goes back. Equally no Prestige balance as a
+            call to action - <b>214</b> appears in the headline strip as a fact about the career,
+            not as a prompt to go spend it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ OPTION A -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">Option A</span>
+      <span class="opt-name">A block in the existing hub</span>
+      <span class="opt-thesis">Ships first. Pure derivation, no route, no storage, half a day.</span>
+    </div>
+    <ul class="opt-why">
+      <li><b>Most of the value for a fraction of the work</b>, and it is where a player already looks between runs.</li>
+      <li><b>The trade:</b> the hub is already four sections deep, so this is a fifth. Hence the shelf collapses to one line and the honours to a counter.</li>
+      <li><b>It is a subset, not a different design</b> - every block below is lifted verbatim from the screen above, which is what makes A then B a sequence rather than a rewrite.</li>
+    </ul>
+
+    <div class="frame">
+      <div class="frame-tag">Screen comp &middot; /cup-run, between runs &middot; the hub with the cabinet block added</div>
+
+      <div class="hub">
+        <div class="hub-h">
+          <span class="t">Cup Run Hub</span>
+          <span class="lv">Level 14</span>
+          <span class="pr">214 Prestige</span>
+          <span class="ch">Hide</span>
+        </div>
+
+        <div class="hub-sec">
+          <div class="hub-k">Progress</div>
+          <div class="bar" style="height:8px"><i style="width:56%"></i></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px">112 / 200 XP to level 15</div>
+        </div>
+
+        <div class="hub-sec" style="background:var(--paper)">
+          <div class="hub-k">Cabinet <span class="n">7 cups &middot; 47 honours &middot; 3 badges</span>
+            <span class="link">Full cabinet &rarr;</span></div>
+
+          <div class="shelf" style="gap:7px">
+            <div class="cup t0" style="width:56px"><div class="plinth" style="padding:8px 0 6px">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">x3</span></div></div>
+            <div class="cup t1" style="width:56px"><div class="plinth" style="padding:8px 0 6px">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">x2</span></div></div>
+            <div class="cup t2" style="width:56px"><div class="plinth" style="padding:8px 0 6px">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">x1</span></div></div>
+            <div class="cup t3" style="width:56px"><div class="plinth" style="padding:8px 0 6px">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e4922b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier">x1</span></div></div>
+            <div class="cup" style="width:56px"><div class="plinth" style="padding:8px 0 6px;background:var(--faint);border-style:dashed">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--dim)"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier" style="color:var(--dim)">Asc IV</span></div></div>
+            <div class="cup" style="width:56px"><div class="plinth" style="padding:8px 0 6px;background:var(--faint);border-style:dashed">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--dim)"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <span class="tier" style="color:var(--dim)">Asc V</span></div></div>
+          </div>
+
+          <div class="recs" style="margin-top:13px">
+            <div class="rec"><span class="k">Best finish</span><span class="v"><em>Champion at Ascension III</em></span></div>
+            <div class="rec"><span class="k">Honours</span><span class="v">47 / 130 &middot; 204 Prestige</span></div>
+            <div class="rec"><span class="k">Best cup streak</span><span class="v">3</span></div>
+            <div class="rec"><span class="k">Album</span><span class="v">52 / 81</span></div>
+            <div class="rec"><span class="k">Cup formations</span><span class="v">3 / 8</span></div>
+            <div class="rec"><span class="k">Runs at Asc II+</span><span class="v">12 of 61</span></div>
+          </div>
+
+          <p class="hub-ghost">Collapsed to one shelf row and six records. The tier ladder, the
+          family breakdown, the badge grid and the Monumental strip are what option B adds when
+          this outgrows the hub.</p>
+        </div>
+
+        <div class="hub-sec">
+          <div class="hub-k">Perks <span class="n">(spend Prestige - applies to future runs)</span></div>
+          <p class="hub-ghost" style="margin-top:0">Unchanged. Six tracks, 11 of 18 tiers owned.</p>
+        </div>
+        <div class="hub-sec">
+          <div class="hub-k">Boost library <span class="n">(9 of 13 unlocked)</span></div>
+          <p class="hub-ghost" style="margin-top:0">Unchanged.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ SOURCES -->
+  <section class="src">
+    <div class="opt-head">
+      <span class="opt-num">Sources</span>
+      <span class="opt-name">Every block, and the field behind it</span>
+      <span class="opt-thesis">Nine of ten blocks need no new recording at all.</span>
+    </div>
+    <div class="tw">
+    <table>
+      <tr><th>Block</th><th>Reads</th><th>New storage</th></tr>
+      <tr><td class="blk">The shelf</td><td class="fld">stats.cupsByAscension</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Tier ladder</td><td class="fld">stats.cupsByAscension, career.ascension, career.level, ASCENSIONS[].levelReq</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Headline strip</td><td class="fld">level, xp, prestige, stats.runs, stats.cups, stats.bestCupAscension, stats.runsAtHighAscension</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Records</td><td class="fld">stats.bestFinish, bestScore, cupStreak, finalStreak, semiStreak, everLostFinal, prestigeSpent, perkLevels</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Best cup streak</td><td class="fld">completedChallenges - the Back to Back / Three-Peat ids stand in for a record the counters do not keep</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Cup formations</td><td class="fld">stats.cupFormations, FORMATIONS_DATA.names</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Honours</td><td class="fld">completedChallenges + CHALLENGES / AWARD (challengeProgress, plus a byFamily addition)</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Badges</td><td class="fld">the whole career + AlbumState, as pure predicates in a new domain/badges.ts</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Album</td><td class="fld">albumStats(album, poolPlayers), collectiblesByTier</td><td class="nw"><span class="ok">none</span></td></tr>
+      <tr><td class="blk">Run history</td><td class="fld">nothing that exists - needs per-run rows and dates</td><td class="nw"><span class="no">option D</span></td></tr>
+    </table>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:14px">Two of these want a small
+    addition to code that already exists rather than new state: <code>byFamily</code> on
+    <code>ChallengeProgress</code> (the screen recomputes it today, which the hygiene backlog
+    already flags as H44), and <code>collectiblesByTier</code> in <code>domain/album.ts</code>
+    (H45). So building the cabinet takes two items off that list rather than adding to it.</p>
+  </section>
+
+  <p class="foot">Static mockup &middot; non-clickable comp &middot; self-contained HTML/CSS &middot; roadmap item 06<br>
+  Real data: 130 challenges in 12 families (34 bronze / 63 silver / 33 gold, awards 2/5/12), the six-tier Ascension ladder, the eight formations, 81 collectibles (58/18/5) and the five Monumentals. One mock save for every count.</p>
+</div>
+
+<script>
+/* Theme button: light / dark only (the app ships one scheme), persisted under the same
+   key the other turf-flat comps use. Untouched, the page follows its host. */
+(function () {
+  var KEY = 'turf-flat-theme';
+  var btn = document.getElementById('themeBtn');
+  function dark() {
+    var t = document.documentElement.getAttribute('data-theme');
+    if (t) return t === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function label() { btn.textContent = dark() ? 'Light' : 'Dark'; }
+  label();
+  btn.addEventListener('click', function () {
+    var next = dark() ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+    label();
+  });
+})();
+</script>
