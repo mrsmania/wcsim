@@ -2,7 +2,15 @@ import type { Player } from '../data/types';
 import { albumStats, collectiblesByTier, type AlbumState, type AlbumStatsView } from './album';
 import { ASCENSIONS, maxSelectableAscension } from './ascension';
 import { badgeRows, badgesEarned, perkTiersOwned, type BadgeRow } from './badges';
-import { PERKS, levelProgress, type CareerState } from './career';
+import {
+  HISTORY_LIMIT,
+  PERKS,
+  PLAYER_RECORD_LIMIT,
+  levelProgress,
+  type CareerState,
+  type PlayerRecord,
+  type RunHistoryEntry,
+} from './career';
 import type { RunOutcome } from './run';
 import { challengeProgress, type ChallengeProgress } from './challenges';
 import { FORMATIONS_DATA } from './formations';
@@ -97,7 +105,32 @@ export interface CabinetView {
   monumentals: { player: Player; owned: boolean }[];
   /** True once there is nothing left to earn anywhere, for the complete state. */
   complete: boolean;
+  /** The run archive, newest first. Empty on a career that predates the recording. */
+  history: RunHistoryEntry[];
+  /** How many runs the archive holds, and the cap it holds them to - so a list that has
+   *  started dropping its oldest rows can say so rather than implying it is all of them. */
+  historyHeld: number;
+  historyLimit: number;
+  /** Most-used and top-scoring players, `LEADERBOARD_ROWS` each. */
+  topUsed: PlayerRow[];
+  topScorers: PlayerRow[];
+  /** How many players have a record at all, and the cap. The leaderboards show ten of
+   *  these, and the gap between ten and this is the reason to print it. */
+  playersTracked: number;
+  playersLimit: number;
+  /** Totals over every record held: matches fielded and goals scored. */
+  playerTotals: { apps: number; goals: number };
 }
+
+/** One player's lifetime record, resolved against the dataset for display. */
+export interface PlayerRow {
+  player: Player;
+  record: PlayerRecord;
+}
+
+/** How many rows the two leaderboards show. Everything is recorded (up to
+ *  `PLAYER_RECORD_LIMIT`); this is only how much of it is on screen. */
+export const LEADERBOARD_ROWS = 10;
 
 /** The tier whose full list the cabinet shows (the shortest, so it fits one row). */
 const STRIP_TIER: StickerTier = 'monumental';
@@ -148,6 +181,44 @@ export function cabinetView(
     owned: collected.has(player.id),
   }));
 
+  // The player records, resolved against the dataset. An id the dataset no longer has
+  // (a squad edited out from under an old save) keeps its record but cannot be shown,
+  // so it is dropped from the leaderboards and still counted in the totals.
+  const records = career.stats.players ?? {};
+  const byId = new Map(allPlayers.map((p) => [p.id, p]));
+  const rows: PlayerRow[] = [];
+  let appsTotal = 0;
+  let goalsTotal = 0;
+  for (const [id, record] of Object.entries(records)) {
+    appsTotal += record.apps;
+    goalsTotal += record.goals;
+    const player = byId.get(id);
+    if (player) rows.push({ player, record });
+  }
+  // Ties broken the same way in both, so the order is stable rather than whatever
+  // Object.entries happened to give: the other metric, then the better rating, then
+  // the name.
+  const topUsed = [...rows]
+    .sort(
+      (a, b) =>
+        b.record.apps - a.record.apps ||
+        b.record.goals - a.record.goals ||
+        b.player.elo - a.player.elo ||
+        a.player.name.localeCompare(b.player.name),
+    )
+    .slice(0, LEADERBOARD_ROWS);
+  const topScorers = [...rows]
+    .filter((r) => r.record.goals > 0)
+    .sort(
+      (a, b) =>
+        b.record.goals - a.record.goals ||
+        b.record.apps - a.record.apps ||
+        b.player.elo - a.player.elo ||
+        a.player.name.localeCompare(b.player.name),
+    )
+    .slice(0, LEADERBOARD_ROWS);
+  const history = Array.isArray(career.stats.history) ? career.stats.history : [];
+
   return {
     shelf,
     ladder,
@@ -188,5 +259,13 @@ export function cabinetView(
       stats.total > 0 &&
       stats.collected === stats.total &&
       badgesEarned(badges) === badges.length,
+    history,
+    historyHeld: history.length,
+    historyLimit: HISTORY_LIMIT,
+    topUsed,
+    topScorers,
+    playersTracked: Object.keys(records).length,
+    playersLimit: PLAYER_RECORD_LIMIT,
+    playerTotals: { apps: appsTotal, goals: goalsTotal },
   };
 }

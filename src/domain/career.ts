@@ -1,5 +1,5 @@
 import type { Player } from '../data/types';
-import type { RunOutcome, RunState } from './run';
+import { runTotals, type RunOutcome, type RunState, type RunTally } from './run';
 import { boonById, BOON_UNLOCK_COST } from './boons';
 import { ascensionAt, MAX_ASCENSION } from './ascension';
 import { FEATURES } from '../config';
@@ -45,7 +45,71 @@ export interface CareerStats {
   prestigeSpent: number;
   /** Distinct formations a cup has been won with (needs RunState.shape, slice B). */
   cupFormations: string[];
+  // --- The run archive and the player records (roadmap item 06, option D).
+  //
+  // Both live on `stats` ON PURPOSE, and it is the whole reason they needed no SQL:
+  // `save_career` persists `stats` as one merged jsonb column and ignores top-level keys
+  // it does not know, so a new field HERE survives a signed-in save while a new field on
+  // `CareerState` would be silently dropped. Same trick the challenge counters used.
+  // Both are optional, so a save written before this loads and starts recording from the
+  // next run.
+  /** Finished runs, NEWEST FIRST, capped at `HISTORY_LIMIT`. The only part of the
+   *  cabinet that is recorded rather than derived, because nothing else can answer
+   *  "when". It therefore only ever covers runs from this change onward. */
+  history?: RunHistoryEntry[];
+  /** Lifetime appearances and goals per PLAYER ID, capped at `PLAYER_RECORD_LIMIT`.
+   *  Every player a career has ever fielded is kept, not just the ones on show. */
+  players?: Record<string, PlayerRecord>;
 }
+
+/** One finished run, for the archive. Deliberately small: at `HISTORY_LIMIT` rows this
+ *  rides every career write, so it holds the facts a history list shows and nothing
+ *  else (notably not the XI, which would triple the size for something the player
+ *  records below already answer better). */
+export interface RunHistoryEntry {
+  /** Epoch ms, passed in by the caller so the domain stays pure. Absent when the
+   *  caller had no clock to hand (the checks harness), and shown as "-". */
+  at?: number;
+  /** Nullable for the same reason `bestFinish` and `lastOutcome` are: a run can in
+   *  principle be banked without one, and inventing 'group' there would put a finish in
+   *  the archive that never happened. */
+  outcome: RunOutcome | null;
+  ascension: number;
+  score: number;
+  /** XP and Prestige the run itself paid, before challenge awards. */
+  xp: number;
+  prestige: number;
+  /** Knockout ties won, and the run's goals for and against. */
+  roundsWon: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  /** The formation it kicked off in, when the run recorded a shape. */
+  formation?: string;
+  /** How many challenges this run completed. */
+  challenges?: number;
+}
+
+/** A player's lifetime record with this career. */
+export interface PlayerRecord {
+  /** Matches in the XI. */
+  apps: number;
+  /** Goals in normal or extra time; never shootout kicks (see `RunTally`). */
+  goals: number;
+  /** Runs this player was picked for. */
+  runs: number;
+}
+
+/** How many finished runs the archive keeps. A hundred rows is a long history to read
+ *  and about 13 KB on the wire; older runs fall off the end rather than being summarised,
+ *  which is honest but does mean the lifetime counters above and the archive can disagree
+ *  once a career passes it. The cabinet says so rather than implying the list is all of
+ *  them. */
+export const HISTORY_LIMIT = 100;
+/** How many players keep a record. Well past the "at least 50" the cabinet shows, and
+ *  past what any normal career fields (11 a run, mostly repeats); a career that somehow
+ *  exceeds it drops its least-used players first, and the cabinet prints the count so the
+ *  cap is never invisible. */
+export const PLAYER_RECORD_LIMIT = 600;
 
 export interface CareerState {
   version: number;
@@ -143,6 +207,46 @@ const withValue = (list: string[], value: string): string[] => {
   const next = Array.isArray(list) ? list : [];
   return next.includes(value) ? next : [...next, value];
 };
+
+/** The run's tally merged into the career's player records: appearances and goals add
+ *  up, and every player who appeared at all gains one run. Same defensiveness as the
+ *  helpers above, since `stats` is a merged blob an old save can hand back anything.
+ *
+ *  When the merge would exceed `PLAYER_RECORD_LIMIT`, the least-used records are
+ *  dropped - but never one this run touched, or a career at the cap would stop
+ *  recording the players it is actually using. */
+function mergePlayerRecords(
+  held: Record<string, PlayerRecord> | undefined,
+  tally: RunTally | undefined,
+): Record<string, PlayerRecord> | undefined {
+  const base: Record<string, PlayerRecord> =
+    held && typeof held === 'object' && !Array.isArray(held) ? held : {};
+  if (!tally) return held;
+  const touched = new Set([...Object.keys(tally.apps ?? {}), ...Object.keys(tally.goals ?? {})]);
+  if (!touched.size) return held;
+  const next: Record<string, PlayerRecord> = { ...base };
+  for (const id of touched) {
+    const prev = next[id] ?? { apps: 0, goals: 0, runs: 0 };
+    next[id] = {
+      apps: prev.apps + (tally.apps?.[id] ?? 0),
+      goals: prev.goals + (tally.goals?.[id] ?? 0),
+      // A player with goals but no appearances cannot happen (goals are only counted
+      // for the XI that played), but the run still counts once either way.
+      runs: prev.runs + 1,
+    };
+  }
+  const ids = Object.keys(next);
+  if (ids.length <= PLAYER_RECORD_LIMIT) return next;
+  const keep = ids
+    .sort((a, b) => {
+      const ta = touched.has(a) ? 1 : 0;
+      const tb = touched.has(b) ? 1 : 0;
+      if (ta !== tb) return tb - ta; // this run's players are never dropped
+      return next[b].apps - next[a].apps || next[b].goals - next[a].goals;
+    })
+    .slice(0, PLAYER_RECORD_LIMIT);
+  return Object.fromEntries(keep.map((id) => [id, next[id]]));
+}
 
 /** The Ascension tier at which a run counts as "high" for the career counters, i.e.
  *  Ascension II. Named so the challenge copy and the counter cannot drift apart. */
@@ -281,7 +385,14 @@ export interface ChallengeInput {
   trades: number;
 }
 
-export function applyRunResult(career: CareerState, run: RunState, ch?: ChallengeInput): RunReward {
+export function applyRunResult(
+  career: CareerState,
+  run: RunState,
+  ch?: ChallengeInput,
+  /** Epoch ms for the archive row. Passed in rather than read from a clock so this stays
+   *  pure and the checks harness stays deterministic; omitted, the row carries no date. */
+  at?: number,
+): RunReward {
   // Ascension scales the run's reward; a cup win raises the unlocked ceiling + best.
   const mult = ascensionAt(run.ascension).rewardMult;
   const xpGained = Math.round(run.score * mult);
@@ -326,6 +437,9 @@ export function applyRunResult(career: CareerState, run: RunState, ch?: Challeng
         wonCup && run.shape
           ? withValue(career.stats.cupFormations, run.shape.formation)
           : career.stats.cupFormations,
+      players: mergePlayerRecords(career.stats.players, run.tally),
+      // The archive row is appended below, once the challenge count is known.
+      history: career.stats.history,
     },
   };
   // Challenges are judged against the career AFTER this run's XP/Prestige/stats land,
@@ -336,11 +450,29 @@ export function applyRunResult(career: CareerState, run: RunState, ch?: Challeng
   // FEATURES.challengeAwards off: challenges still complete and are still recorded,
   // they simply pay nothing (and nothing is shown paying).
   const challengePrestige = FEATURES.challengeAwards ? prestigeFor(challengesCompleted) : 0;
+  // The archive row, newest first and trimmed to the cap. Written after the challenges
+  // are judged so it can carry how many this run completed.
+  const totals = runTotals(run);
+  const entry: RunHistoryEntry = {
+    ...(at === undefined ? {} : { at }),
+    outcome,
+    ascension: run.ascension,
+    score: run.score,
+    xp: xpGained,
+    prestige: prestigeGained,
+    roundsWon: totals.roundsWon,
+    goalsFor: totals.goalsFor,
+    goalsAgainst: totals.goalsAgainst,
+    ...(run.shape ? { formation: run.shape.formation } : {}),
+    ...(challengesCompleted.length ? { challenges: challengesCompleted.length } : {}),
+  };
+  const held = Array.isArray(banked.stats.history) ? banked.stats.history : [];
   return {
     career: {
       ...banked,
       prestige: banked.prestige + challengePrestige,
       completedChallenges: [...banked.completedChallenges, ...challengesCompleted],
+      stats: { ...banked.stats, history: [entry, ...held].slice(0, HISTORY_LIMIT) },
     },
     xpGained,
     prestigeGained,

@@ -4,10 +4,18 @@ import { Link } from 'react-router-dom';
 import { FEATURES } from '../config';
 import type { Player } from '../data/types';
 import type { AlbumState } from '../domain/album';
-import { cabinetView, type CabinetView, type LadderRung, type ShelfCup } from '../domain/cabinet';
-import { FINISH_LABEL, type CareerState } from '../domain/career';
+import {
+  cabinetView,
+  LEADERBOARD_ROWS,
+  type CabinetView,
+  type LadderRung,
+  type PlayerRow,
+  type ShelfCup,
+} from '../domain/cabinet';
+import { FINISH_LABEL, type CareerState, type RunHistoryEntry } from '../domain/career';
 import { AWARD, AWARDS_ON, FAMILIES, FAMILY_NAME } from '../domain/challenges';
 import type { BadgeRow } from '../domain/badges';
+import type { RunOutcome } from '../domain/run';
 import { TierPips } from './challengeUi';
 import Flag from './Flag';
 import { StageCrumb, StageHeader } from './matchUi';
@@ -168,6 +176,125 @@ function BadgeTile({ row }: { row: BadgeRow }) {
         </span>
       </span>
     </li>
+  );
+}
+
+/** How many archive rows are on screen. The archive holds far more (HISTORY_LIMIT);
+ *  this is a readable page, not the whole ledger. */
+const HISTORY_SHOWN = 12;
+
+/** Short outcome labels for the archive, where `FINISH_LABEL`'s "Round of 16" and
+ *  "Runner-up" are too long for a dense row. */
+const SHORT_FINISH: Record<RunOutcome, string> = {
+  group: 'Group',
+  r16: 'R16',
+  qf: 'QF',
+  sf: 'SF',
+  final: 'Final',
+  champion: 'Cup',
+};
+
+/** A date, or a dash when the row predates the caller passing a clock in. */
+function runDate(at?: number): string {
+  if (!at) return '-';
+  const d = new Date(at);
+  return `${d.getDate()} ${d.toLocaleString('en', { month: 'short' })} ${String(d.getFullYear()).slice(2)}`;
+}
+
+/** One archived run. A cup is the only row that gets ink: the same "earned is the only
+ *  colour" rule the honours ledger and the badges follow. */
+function HistoryRow({ entry }: { entry: RunHistoryEntry }) {
+  const won = entry.outcome === 'champion';
+  return (
+    <li className="flex items-baseline gap-2.5 border-b border-hair py-[7px] last:border-0">
+      <span className="w-[66px] shrink-0 whitespace-nowrap font-mono text-[10.5px] tabular-nums text-dim">
+        {runDate(entry.at)}
+      </span>
+      <span
+        className={`w-[44px] shrink-0 font-display text-[12px] font-extrabold ${
+          won ? 'text-accent' : 'text-ink'
+        }`}
+      >
+        {entry.outcome ? SHORT_FINISH[entry.outcome] : '-'}
+      </span>
+      <span className="w-[42px] shrink-0 font-mono text-[10.5px] text-muted">
+        {entry.ascension > 0 ? `A${entry.ascension}` : 'Base'}
+      </span>
+      <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] tabular-nums text-muted">
+        {entry.goalsFor}-{entry.goalsAgainst}
+        {entry.roundsWon > 0 && ` · ${entry.roundsWon} ${entry.roundsWon === 1 ? 'tie' : 'ties'}`}
+        {entry.formation && ` · ${entry.formation}`}
+        {!!entry.challenges && ` · +${entry.challenges} honours`}
+      </span>
+      <span className="shrink-0 text-right font-mono text-[11px] font-bold tabular-nums">
+        {entry.score}
+      </span>
+    </li>
+  );
+}
+
+/** One leaderboard row: rank, flag, name, the year he was capped in, and the two
+ *  numbers. `metric` is which of them this board is ranked by, so it is the bold one. */
+function PlayerLeaderRow({
+  row,
+  rank,
+  metric,
+}: {
+  row: PlayerRow;
+  rank: number;
+  metric: 'apps' | 'goals';
+}) {
+  const squad = SQUAD_BY_ID[row.player.squadId];
+  const { apps, goals, runs } = row.record;
+  return (
+    <li className="flex items-baseline gap-2.5 border-b border-hair py-[7px] last:border-0">
+      <span className="w-[15px] shrink-0 text-right font-mono text-[10.5px] tabular-nums text-dim">
+        {rank}
+      </span>
+      {squad ? (
+        <Flag code={squad.code} className="h-2.5 w-4 shrink-0 self-center" />
+      ) : (
+        <span className="w-4 shrink-0" />
+      )}
+      <span className="min-w-0 flex-1 truncate font-display text-[13px] font-bold tracking-[-0.005em]">
+        {row.player.name}
+        <span className="ml-1.5 font-mono text-[10px] font-normal tabular-nums text-dim">
+          {squad?.year}
+        </span>
+      </span>
+      <span
+        className={`w-11 shrink-0 text-right font-mono text-[11px] tabular-nums ${
+          metric === 'goals' ? 'font-bold text-ink' : 'text-muted'
+        }`}
+      >
+        {goals}
+      </span>
+      <span
+        className={`w-12 shrink-0 text-right font-mono text-[11px] tabular-nums ${
+          metric === 'apps' ? 'font-bold text-ink' : 'text-muted'
+        }`}
+      >
+        {apps}
+      </span>
+      <span className="w-10 shrink-0 text-right font-mono text-[10.5px] tabular-nums text-dim max-[560px]:hidden">
+        {runs}
+      </span>
+    </li>
+  );
+}
+
+/** The leaderboard's column heads. Same widths as `PlayerLeaderRow`, so the cells can
+ *  be bare numbers instead of carrying a unit each ("96 mts" was the alternative). */
+function LeaderHead() {
+  return (
+    <div className="flex items-baseline gap-2.5 border-b border-line pb-1.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.12em] text-muted">
+      <span className="w-[15px] shrink-0" />
+      <span className="w-4 shrink-0" />
+      <span className="min-w-0 flex-1">Player</span>
+      <span className="w-11 shrink-0 text-right">Goals</span>
+      <span className="w-12 shrink-0 text-right">Matches</span>
+      <span className="w-10 shrink-0 text-right max-[560px]:hidden">Runs</span>
+    </div>
   );
 }
 
@@ -510,8 +637,69 @@ export default function CabinetScreen({
         </div>
       </Card>
 
-      {/* ---- album + the block that cannot exist yet ---- */}
-      <div className="grid grid-cols-1 gap-3.5 min-[900px]:grid-cols-2">
+      {/* ---- who actually played ----
+          Both boards are the top ten of a record that goes far wider; the caption says
+          how much wider, because a leaderboard that silently truncates reads as "this is
+          everyone". Ranked lists rather than cards: this is the same "130 entries cannot
+          each be painted" lesson at a smaller scale. */}
+      {v.playersTracked > 0 && (
+        <div className="mb-3.5 grid grid-cols-1 items-start gap-3.5 min-[900px]:grid-cols-2">
+          <Card>
+            <BlockHead
+              title="Most used"
+              count={`top ${Math.min(LEADERBOARD_ROWS, v.topUsed.length)}`}
+              hint={`of ${v.playersTracked} players tracked`}
+            />
+            <div className="p-3.5">
+              <LeaderHead />
+              <ol className="grid grid-cols-1">
+                {v.topUsed.map((row, i) => (
+                  <PlayerLeaderRow key={row.player.id} row={row} rank={i + 1} metric="apps" />
+                ))}
+              </ol>
+              <p className="mt-2.5 text-[12px] text-muted">
+                {v.playerTotals.apps.toLocaleString()} appearances across{' '}
+                {v.playersTracked} players
+                {v.playersTracked >= v.playersLimit
+                  ? `, the most this career keeps records for (${v.playersLimit}); the least-used drop off first.`
+                  : '. Every player you have fielded keeps a record, not just these ten.'}
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <BlockHead
+              title="Top scorers"
+              count={`top ${Math.min(LEADERBOARD_ROWS, v.topScorers.length)}`}
+              hint="Shootout penalties do not count."
+            />
+            <div className="p-3.5">
+              {v.topScorers.length > 0 ? (
+                <>
+                  <LeaderHead />
+                  <ol className="grid grid-cols-1">
+                    {v.topScorers.map((row, i) => (
+                      <PlayerLeaderRow key={row.player.id} row={row} rank={i + 1} metric="goals" />
+                    ))}
+                  </ol>
+                  <p className="mt-2.5 text-[12px] text-muted">
+                    {v.playerTotals.goals.toLocaleString()} goals in normal and extra time.
+                    A tie won on penalties adds none: those kicks are a shootout, not a
+                    scoreline.
+                  </p>
+                </>
+              ) : (
+                <p className="text-[13px] text-muted">
+                  No goals recorded yet. They are counted from your next finished run.
+                </p>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ---- album + the run archive ---- */}
+      <div className="grid grid-cols-1 items-start gap-3.5 min-[900px]:grid-cols-2">
         <Card>
           <BlockHead
             title="Album"
@@ -584,27 +772,48 @@ export default function CabinetScreen({
         </Card>
 
         <div className="grid content-start gap-3.5">
-          {/* Shown as a state rather than left off: "your last 20 runs" is the
-            first thing anyone asks this screen for, and saying why it is not
-            here beats a silent gap. Roadmap item 06 option D / item 21. */}
-          <div className="rounded-md border border-dashed border-line bg-faint p-[16px_15px]">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-dim">
-              Not recorded
-            </span>
-            <h3 className="mt-1 font-display text-[14px] font-extrabold text-dim">
-              Run history
-            </h3>
-            <p className="mt-1.5 max-w-[74ch] text-[12.5px] text-dim">
-              A dated list of finished runs is the one thing on this screen no
-              existing field can answer: nothing on this device keeps per-run rows,
-              and the columns on the server that look like they should have been
-              taking their defaults for several migrations.
-            </p>
-            <p className="mt-1.5 text-[12.5px] text-dim">
-              Everything else here is derived from the career and the album, which is
-              why the cabinet needed no new storage at all.
-            </p>
-          </div>
+          {/* The run archive. Unlike everything else on this screen it is RECORDED,
+              because nothing derivable can answer "when" - so a career that predates
+              the recording gets the explanation rather than a blank list. */}
+          {v.history.length > 0 ? (
+            <Card>
+              <BlockHead
+                title="Run history"
+                count={`${v.historyHeld}${v.historyHeld >= v.historyLimit ? ` (last ${v.historyLimit})` : ''}`}
+                hint="Newest first."
+              />
+              <div className="p-3.5">
+                <ol className="grid grid-cols-1">
+                  {v.history.slice(0, HISTORY_SHOWN).map((h, i) => (
+                    <HistoryRow key={`${h.at ?? 'x'}-${i}`} entry={h} />
+                  ))}
+                </ol>
+                {v.historyHeld > HISTORY_SHOWN && (
+                  <p className="mt-2.5 text-[12px] text-muted">
+                    Showing {HISTORY_SHOWN} of {v.historyHeld} runs held
+                    {v.historyHeld >= v.historyLimit
+                      ? `; the archive keeps the last ${v.historyLimit}, so the lifetime counters above reach further back than this list does.`
+                      : '.'}
+                  </p>
+                )}
+              </div>
+            </Card>
+          ) : (
+            <div className="rounded-md border border-dashed border-line bg-faint p-[16px_15px]">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-dim">
+                Nothing recorded yet
+              </span>
+              <h3 className="mt-1 font-display text-[14px] font-extrabold text-dim">
+                Run history
+              </h3>
+              <p className="mt-1.5 max-w-[74ch] text-[12.5px] text-dim">
+                The one part of this screen that is recorded rather than worked out from
+                the career, because nothing derivable can answer "when". It starts filling
+                at your next finished run, and only ever covers runs from now on - the
+                ones already played left no date behind.
+              </p>
+            </div>
+          )}
 
           {v.complete && (
             <div className="rounded-md border border-line bg-panel p-[16px_15px] shadow-hard-sm">

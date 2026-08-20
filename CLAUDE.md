@@ -823,7 +823,7 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
 (and Career Mode, like the rest of that layer), reached from a "Trophy cabinet" link in
 `CareerHub`.
 
-- **It records nothing.** The career layer already stored far more than it showed:
+- **Almost all of it is derived.** The career layer already stored far more than it showed:
   `cupsByAscension`, `bestCupAscension`, `cupFormations`, the three streak counters,
   `everLostFinal`, `runsAtHighAscension`, `prestigeSpent` and `bestScore` were all being
   written and read by nothing but `domain/challenges.ts` (and `bestScore` by nothing at
@@ -834,8 +834,8 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
 - **Blocks:** a headline strip, the **shelf** (one trophy per cup), the Ascension
   **ladder**, **Records**, the formations a cup has been won with, an **honours** summary
   (counter, tier bars, all 12 families, linking to `/challenges` for the full ledger),
-  **badges**, album completion with the Monumental strip, and **run history as an empty
-  state** (see below).
+  **badges**, album completion with the Monumental strip, the **run archive**, and two
+  leaderboards: **Most used** and **Top scorers**.
 - **Rank is one hue getting deeper, plus a numeral** - not six colours. Same rule the
   challenge ledger arrived at when 130 painted entries stopped reading (`TIER_COLOR` is
   gone). The top step needs its own token: `bg-ink` would make the **highest** tier the
@@ -862,10 +862,31 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
   going forward), `bestCupStreakOf` reads it off the honours: **holding Three-Peat is
   itself proof a three-cup streak happened.** Works retroactively, and `npm run checks`
   asserts a career whose counter has been reset still reports 3.
-- **Run history is deliberately an empty state**, not omitted: a dated list of finished
-  runs is the only thing on the screen no existing field can answer, and "your last 20
-  runs" is the first thing anyone will ask it for. It is option D in roadmap item 06 and
-  needs either a new local key or reviving the dead `run_results` columns (item 21).
+- **The run archive and the player records are the one RECORDED part** (option D, added
+  2026-08-20), because nothing derivable can answer "when" or "who scored". Both live on
+  **`CareerStats`**, and that is the whole reason they needed **no SQL at all**:
+  `save_career` persists `stats` as one merged jsonb column and ignores top-level keys it
+  does not know, so a new field on `stats` survives a signed-in save while a new field on
+  `CareerState` would be silently dropped. Same trick the challenge counters used. Both
+  fields are optional, so a save from before this loads and starts recording at the next
+  run. Caps are `HISTORY_LIMIT` (100 runs) and `PLAYER_RECORD_LIMIT` (600 players), and
+  **the screen prints both counts** rather than letting a truncated list read as "this is
+  everything".
+- **The tally is accumulated match by match, not derived at run end** (`RunTally` in
+  `domain/run.ts`, added to `RunState`, merged by `applyRunResult`). Two reasons, both of
+  which would be silent bugs the other way round: a **roster boost changes the XI**, so a
+  group scorer may not be in `run.xi` when the run is banked; and a **`MatchEvent` carries
+  a scorer NAME, not an id** (`scorerPool` is built from `player.name`), so the only place
+  it resolves to a player is against the XI that was actually on the pitch. Names are
+  unique per person across the dataset, which is what makes that lookup exact.
+- **Shootout penalties are not goals**, and they are excluded *by construction* rather
+  than by a filter: kicks live in `KoMatch.pens` and never in `events`, so the tally
+  cannot see them. `npm run checks` asserts it against runs that actually went to
+  penalties, because it is exactly the kind of thing a later refactor breaks quietly.
+- **The date is passed in**, not read inside the domain (`applyRunResult(..., at?)`, with
+  `Date.now()` supplied by `CupRunScreen`), so the function stays pure and the checks
+  harness stays deterministic. A row banked without a clock carries no date and shows a
+  dash rather than a fake one.
 - With **`FEATURES.trophyCabinet` = false**: the route redirects home, the hub link
   disappears, and nothing else changes.
 

@@ -140,6 +140,89 @@ export interface RunState {
    *  change ratings and the roster, and chemistry counts players in their primary
    *  position, so asking again at run end answers a different question. */
   chemistry?: number;
+  /** Appearances and goals per player, accumulated match by match (see `RunTally`).
+   *  Optional for the same reason as the three above: a run persisted before it existed
+   *  finishes normally and simply contributes nothing to the career's player records. */
+  tally?: RunTally;
+}
+
+/**
+ * Per-run appearance and goal tallies, keyed on PLAYER ID.
+ *
+ * Accumulated as each match is played rather than derived when the run ends, for two
+ * reasons that are easy to get wrong:
+ *
+ *  1. **The XI changes mid-run.** A roster boost swaps players in, so someone who
+ *     scored in the group may not be in `xi` by the time the run is banked.
+ *  2. **A `MatchEvent` carries a scorer NAME, not an id** (`scorerPool` is built from
+ *     `player.name`). The only place that name can be resolved back to a player id is
+ *     against the XI that was actually on the pitch for that match.
+ *
+ * Shootout penalties are excluded by construction, not by a filter: they live in
+ * `KoMatch.pens`, never in `events`, so nothing here can see them. `npm run checks`
+ * asserts that, because it is the kind of thing a later refactor could quietly break.
+ */
+export interface RunTally {
+  /** Matches this player was in the XI for. */
+  apps: Record<string, number>;
+  /** Goals in normal or extra time. Never shootout kicks - see above. */
+  goals: Record<string, number>;
+}
+
+export const emptyTally = (): RunTally => ({ apps: {}, goals: {} });
+
+/** Add `matches` to a tally: every player in `xi` gains an appearance per match, and
+ *  each of the user's goal events gains its scorer a goal. `userSide` is which side of
+ *  the events is the user's - always 'home', since both the group fixtures and the
+ *  knockout ties are normalised that way, but named rather than assumed. */
+export function addMatches(
+  tally: RunTally,
+  xi: Player[],
+  matches: { events: MatchEvent[] }[],
+  userSide: 'home' | 'away' = 'home',
+): RunTally {
+  if (!matches.length) return tally;
+  const apps = { ...tally.apps };
+  const goals = { ...tally.goals };
+  for (const p of xi) apps[p.id] = (apps[p.id] ?? 0) + matches.length;
+  // Names are unique per person across the dataset (personId is the name slug), so a
+  // scorer name resolves to exactly one player of the XI. An unmatched name - the sim's
+  // 'Unknown' fallback when a scorer pool is empty - is dropped rather than guessed.
+  const byName = new Map(xi.map((p) => [p.name, p.id]));
+  for (const m of matches) {
+    for (const e of m.events) {
+      if (e.side !== userSide) continue;
+      const id = byName.get(e.scorer);
+      if (id) goals[id] = (goals[id] ?? 0) + 1;
+    }
+  }
+  return { apps, goals };
+}
+
+/** Goals for and against, and knockout ties won, read back off a run's own history.
+ *  Used by the career's run archive; `viewOf` in challenges.ts computes the same three
+ *  numbers its own way (worth folding together, but that is a hygiene item, not this). */
+export function runTotals(run: RunState): {
+  goalsFor: number;
+  goalsAgainst: number;
+  roundsWon: number;
+} {
+  let goalsFor = 0;
+  let goalsAgainst = 0;
+  let roundsWon = 0;
+  for (const r of run.history) {
+    if (r.stage === 'group') {
+      for (const g of r.groupResults ?? []) {
+        goalsFor += g.us;
+        goalsAgainst += g.them;
+      }
+    } else {
+      goalsFor += r.userGoals ?? 0;
+      goalsAgainst += r.oppGoals ?? 0;
+      if (r.won) roundsWon++;
+    }
+  }
+  return { goalsFor, goalsAgainst, roundsWon };
 }
 
 /** A finished knockout tie, normalised to the user's perspective (user = home).
@@ -249,6 +332,7 @@ export function beginRun(
     score: 0,
     outcome: null,
     history: [],
+    tally: emptyTally(),
     boostedIds,
     stickersApplied: false,
     shape: kickoff.shape,
@@ -295,6 +379,13 @@ export function prepareGroupStage(
   const table = standings(group);
   const pos = table.findIndex((s) => s.team.isUser) + 1;
   const advanced = userAdvanced(group);
+  // Three appearances each, plus whoever scored. Done here rather than at run end
+  // because this is the only point that holds both the XI that played and the events.
+  const tally = addMatches(
+    run.tally ?? emptyTally(),
+    run.xi,
+    userMatches.map((m) => m.result),
+  );
   const groupRecord: RoundRecord = {
     stage: 'group',
     won: advanced,
@@ -315,6 +406,7 @@ export function prepareGroupStage(
         outcome: 'group',
         score: STAGE_SCORE.group,
         history: [...run.history, groupRecord],
+        tally,
       },
       userMatches,
       group,
@@ -332,6 +424,7 @@ export function prepareGroupStage(
       facedIds: [...faced, opp.id],
       score: STAGE_SCORE.group,
       history: [...run.history, groupRecord],
+      tally,
     },
     userMatches,
     group,
@@ -441,6 +534,10 @@ export function prepareKnockoutRound(
     // chooseBoon stamps it onto this record when the next boost is chosen.
   };
   const history = [...run.history, record];
+  // One appearance each for the XI that played the tie, plus its scorers. The shootout
+  // is not in `match.events`, so a tie won on penalties adds no goals here - which is
+  // the definition the cabinet's top-scorer list advertises.
+  const tally = addMatches(run.tally ?? emptyTally(), run.xi, [match]);
 
   let next: RunState;
   if (!match.userWon) {
@@ -452,6 +549,7 @@ export function prepareKnockoutRound(
       score: STAGE_SCORE[outcome],
       nextOpponent: null,
       history,
+      tally,
     };
   } else if (round >= KO_ROUNDS.length - 1) {
     next = {
@@ -461,6 +559,7 @@ export function prepareKnockoutRound(
       score: STAGE_SCORE.champion,
       nextOpponent: null,
       history,
+      tally,
     };
   } else {
     const nextRound = round + 1;
@@ -474,6 +573,7 @@ export function prepareKnockoutRound(
       facedIds: [...run.facedIds, nextOpp.id],
       score: STAGE_SCORE[LOST_IN[round]],
       history,
+      tally,
     };
   }
   return { next, match, opp, roundName };

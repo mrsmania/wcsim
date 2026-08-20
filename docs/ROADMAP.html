@@ -731,7 +731,12 @@
       always 0. It is what item 06 nearly did.</li>
       <li><b>Revive them.</b> Repopulate on finish and the table becomes the real per-run
       history: "runs finished at Ascension II" answerable retroactively, and a foundation
-      for the trophy cabinet (item 06) or any leaderboard. Costs a <b>new function name</b>
+      for any server-side leaderboard. <b>Updated 2026-08-20:</b> the trophy cabinet no
+      longer needs this. Item 06 shipped its own archive on <code>CareerStats</code>, which
+      rides the existing <code>save_career</code> jsonb and so works for guests too (the
+      project rule is guest-first). What reviving these columns would still buy is
+      <i>server-side</i> querying across accounts, which is a leaderboard feature rather
+      than a cabinet one. Costs a <b>new function name</b>
       (<code>finish_run_v3</code>): the signature would change, and a changed signature has
       the same PGRST202 problem a changed return shape had, since migrations are applied by
       hand while the client ships on push to <code>main</code>. Account-only either way -
@@ -848,10 +853,30 @@
       the screen. <code>npm run checks</code> asserts it (71 assertions now, up from 59;
       the new block covers the shelf, both ladder gates, the badge invariants, an
       over-claiming save and a save written before the counters existed).
-      <br><b>What is left:</b> <b>option D</b>, a dated per-run history, which is the one
-      block that cannot be derived and is why it ships as an empty state naming item 21.
-      Option A (the same content as a hub block) was not built - the screen covers it, and
-      the hub keeps a link instead. Two small additions to existing code were needed and
+      <br><b>Option D shipped the same day</b>, along with two metrics that were not in
+      the original item: a <b>run archive</b> (dated rows, newest first,
+      <code>HISTORY_LIMIT</code> 100) and lifetime <b>player records</b> feeding a
+      <b>Most used</b> and a <b>Top scorers</b> board (top ten shown,
+      <code>PLAYER_RECORD_LIMIT</code> 600 recorded). This is the only recorded part of the
+      screen, and it needed <b>no SQL</b>: both fields sit on <code>CareerStats</code>,
+      which <code>save_career</code> persists as one merged jsonb column while ignoring
+      top-level keys it does not know - so a field there survives a signed-in save where a
+      new field on <code>CareerState</code> would be dropped. The same trick the challenge
+      counters used. Both are optional, so an existing save starts recording at its next
+      run rather than breaking.
+      <br><b>Three things that had to be right</b>, all now asserted: the tally is
+      accumulated <b>match by match</b> rather than at run end, because a roster boost
+      changes the XI (a group scorer may be gone by the final) and because a
+      <code>MatchEvent</code> carries a scorer <b>name</b>, not an id, so the only place it
+      resolves is against the XI that was on the pitch; <b>shootout penalties are not
+      goals</b>, excluded by construction since kicks live in <code>pens</code> and never
+      in <code>events</code>; and the <b>date is passed in</b> rather than read inside the
+      domain, so <code>applyRunResult</code> stays pure. Verified end to end by playing a
+      real run through the UI, not only in the harness: 82 assertions now, up from 71.
+      <br><b>What is left:</b> nothing in item 06. Option A (the same content as a hub
+      block) was not built - the screen covers it and the hub keeps a link instead. The
+      archive only ever covers runs from the change onward; the runs already played left no
+      date behind, and the screen says so. Two small additions to existing code were needed and
       both were already on item 23's list rather than new debt: <code>byFamily</code> on
       <code>ChallengeProgress</code> (H44) and <code>collectiblesByTier</code> (H45, half
       done - <code>AlbumScreen</code> still has its own copy).

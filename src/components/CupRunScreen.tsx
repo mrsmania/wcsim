@@ -281,7 +281,15 @@ export default function CupRunScreen({
   // Step the run; award XP/Prestige exactly once when it ends.
   const advance = (next: RunState) => {
     if (next.phase === 'ended' && run && run.phase !== 'ended') {
-      const r = applyRunResult(career, next, CHALLENGES_ON ? challengeInput() : undefined);
+      // The clock is passed in rather than read inside the domain, so `applyRunResult`
+      // stays pure and the checks harness stays deterministic. It is the only thing the
+      // run archive cannot work out for itself.
+      const r = applyRunResult(
+        career,
+        next,
+        CHALLENGES_ON ? challengeInput() : undefined,
+        Date.now(),
+      );
       setCareer(r.career);
       void store.saveCareer(r.career);
       setReward({
