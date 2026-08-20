@@ -305,18 +305,25 @@ The seed is idempotent, so re-running it after a dataset change is the whole upd
 procedure. Regenerate it with `npm run gen:collectibles` whenever ratings or
 `STICKER_TIERS` change; `npm run checks` fails while it is stale.
 
-Then let yourself in, or nothing can sign up:
+**There is no invite step any more.** An `insert into allowed_emails` used to go here, one
+row per person, without which nobody could sign up. Migration `0005` opened signup and
+`drop table`d it, so that insert now fails with *relation "allowed_emails" does not exist*
+(confirmed against the server 2026-08-20). Nothing needs doing: signup is open, and the only
+trigger left on `auth.users` is `create_profile_on_signup`, which gives each new account its
+`profiles` row.
 
-```sql
-insert into allowed_emails (email, note) values ('you@example.com', 'owner');
-```
-
-One insert per person. Signup is refused for anything not in that table.
+**That trigger is load-bearing, and it only fires on INSERT.** An `auth.users` row without a
+matching `profiles` row cannot save anything - every per-user table is
+`references profiles (id)`, so each write is a foreign-key violation, which the client shows
+as the blocking "can't reach your account" screen rather than as a fault. Nothing back-fills
+a profile at sign-in. Four accounts on this server predated the trigger and were exactly that
+broken until the 2026-08-20 reset cleared them, so if you ever restore or hand-insert an auth
+user, insert its profile row too.
 
 **Worth a look while you are in Studio,** because these are the checks that cannot be run
 until the database exists:
 
-- an uninvited address is refused at signup
+- a new signup lands a `profiles` row (the trigger above; there is no invite gate to test)
 - a second `finish_run` with the same run key is refused (that is what makes banking a
   run's stickers once-per-run)
 - a trade the duplicate pool cannot afford is refused

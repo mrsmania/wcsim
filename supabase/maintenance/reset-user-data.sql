@@ -31,7 +31,7 @@
 -- --------------------------------------------------------------------------
 -- WHAT THIS MUST NOT TOUCH, AND WHY
 -- --------------------------------------------------------------------------
--- These three tables are NOT user data. They are reference data the app needs to work,
+-- These two tables are NOT user data. They are reference data the app needs to work,
 -- and wiping them is the likely mistake in a "delete everything" pass:
 --
 --   collectibles       Who is collectible, generated from the TypeScript dataset by
@@ -41,7 +41,11 @@
 --                      `npm run push:collectibles` to restore it.
 --   economy_constants  Trade costs and the swap cap, mirrored from src/config.ts by the
 --                      same generator.
---   allowed_emails     The old invite gate. Unused since 0005 opened signup, and empty.
+--
+-- `allowed_emails` was listed here as a third, and is not one: 0005 DROPPED the table when
+-- it opened signup, so there is nothing to protect. Confirmed absent on the server
+-- 2026-08-20. The confirmation select below never checked it, which is why the wrong entry
+-- survived this long.
 --
 -- --------------------------------------------------------------------------
 -- GUEST DATA IS NOT HERE

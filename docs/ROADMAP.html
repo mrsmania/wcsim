@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-20<br>
-    <strong>Open:</strong> 9 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -820,87 +820,51 @@
   </div>
 </details>
 
-<details class="item">
-  <summary>
-    <span class="num">26</span>
-    <span class="title">Wipe the account server for testing
-      <span class="sub">Requested: an empty database to test against. The script is written and on main; it needs one command from the LAN or VPN.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Asked for 2026-08-20.</strong> The script exists and is committed;
-    what is left is running it, which needs <code>dkr/.env</code> and reach to the NAS.
-    It is the same route item 25 took on 2026-08-20, so <code>push:sql</code> is proven
-    against this server; only the wipe itself is untried.</p>
-
-    <p><strong>The command</strong>, dry run first:</p>
-    <p><code>npm run push:sql -- --dry-run supabase/maintenance/reset-user-data.sql</code><br>
-    <code>npm run push:sql -- supabase/maintenance/reset-user-data.sql</code></p>
-
-    <p><strong>What it deletes.</strong> One <code>delete from auth.users</code> does almost all
-    of it: <code>profiles.id</code> references it <code>on delete cascade</code> and every per-user
-    table references <code>profiles</code> the same way, so it takes the album, album stats, career,
-    settings, game state, active run, run results, and the accounts themselves. Sessions and refresh
-    tokens go with them, so anything still signed in falls back to the guest path until it signs in
-    again. <code>audit_log</code> is the exception - it references <code>profiles</code>
-    <code>on delete set null</code>, so its rows survive the cascade with a null user and are
-    deleted explicitly. Keeping the audit trail is one commented-out line in the script.</p>
-
-    <div class="callout">
-      <span class="ct">Three tables must survive, and this is the easy mistake</span>
-      <code>collectibles</code> is generated reference data (<code>npm run gen:collectibles</code>),
-      and <code>finish_run</code> validates every banked sticker id against it - so an empty table
-      makes <b>every run bank nothing while the album silently stops filling</b>, with no error
-      anywhere. <code>economy_constants</code> holds the trade costs and the swap cap, mirrored from
-      <code>src/config.ts</code>. <code>allowed_emails</code> is the retired invite gate. The
-      script touches none of them and ends in a row-count <code>select</code> so the operator can
-      see the user tables at 0 and those two still populated. If <code>collectibles</code> is ever
-      lost, <code>npm run push:collectibles</code> restores it.
-    </div>
-
-    <p><strong>It is irreversible, and the survey has moved.</strong> Counted 2026-08-20 against
-    the server itself: <code>auth.users</code> is <b>5</b>, not the 2 recorded while surveying the
-    dead <code>run_results</code> columns (now the audit's D12), and <code>run_results</code> is
-    <b>52</b>, not 33. But <code>profiles</code> is <b>1</b>, and every progress table references
-    <code>profiles (id) on delete cascade</code> (0001), so all of it - 81 stickers, the career,
-    settings, game state, active run, 52 run rows - belongs to a single account, and the other
-    four have no profile row and hold nothing. Confirm all five are the owner's before running
-    rather than after: <code>auth.users</code> is the only table that can say, so it is a manual
-    look in Studio (see <code>docs/nas-setup.md</code>, and mind the entry-point trap noted
-    there).</p>
-
-    <p><strong>One thing to weigh first</strong>, from the same survey:
-    <code>album_stickers</code> is 81, the whole catalogue, so that account holds a <b>complete
-    album</b> - precisely the state that produced the item 25 bug. Wiping it means the duplicate
-    cup pick cannot be exercised again until an album is refilled, which is a fair trade for a
-    clean database but should be a choice rather than a discovery.</p>
-
-    <p><strong>Guest progress is not covered</strong>, and cannot be: it is
-    <code>localStorage</code> in a browser, never the server (design decision D8, two worlds never
-    mixed). A device is cleared from its own console, and the script's header carries the snippet
-    for the seven keys. Note <code>wcsim_settings_v1</code> is listed separately there because a
-    reset deliberately keeps theme, difficulty and year pool.</p>
-
-    <p><strong>It cannot undo item 25.</strong> Migration 0012 went on 2026-08-20 and a wipe
-    removes rows, not function definitions, so <code>finish_run_v2</code> keeps the fix however
-    often the user tables are emptied. Worth knowing while testing: a freshly wiped album cannot
-    be full, so the duplicate cup pick 0012 legalised is not reachable again until one is.</p>
-
-    <p class="next"><strong>Next step:</strong> the dry run was done 2026-08-20 and its counts are
-    above. It is <b>held there deliberately</b>, on confirming the five accounts are the owner's.
-    Once they are: run it for real, confirm every user table reads 0 while <code>collectibles</code>
-    still reads 81, and close this item.</p>
-    <p class="files">supabase/maintenance/reset-user-data.sql, scripts/push-sql.mjs, scripts/dkr-env.mjs, docs/nas-setup.md</p>
-  </div>
-</details>
-
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>26 Wipe the account server for testing.</b> Done 2026-08-20 with
+      <code>npm run push:sql -- supabase/maintenance/reset-user-data.sql</code>, after a dry run
+      and an explicit go-ahead. Every user table reads 0, <code>collectibles</code> still reads 81
+      and <code>economy_constants</code> 4, which is the confirmation select the script ends in.
+      <code>audit_log</code> went too (the deliberate default: "empty for testing" means empty).
+      <br><b>It was not run on sight, and the pause earned itself.</b> The item recorded 2
+      accounts and 33 <code>run_results</code> from an earlier survey; the server had <b>5</b> and
+      <b>52</b>. The item also said to confirm the accounts were the owner's before running rather
+      than after, and that could not be answered from the counts, so it stopped there and asked.
+      Worth keeping as a habit: the figure written in an item is a snapshot, and a destructive
+      command is exactly where a stale one costs something.
+      <br><b>What the five turned out to be</b>, which the audit log settled: across ~150 rows
+      there was exactly <b>one</b> distinct user. Three accounts signed up 2026-08-13 and one on
+      08-14 with <b>no <code>profiles</code> row at all</b>; the fifth had one and held everything
+      (52 runs, the full 81-sticker album, the career). The split is the
+      <code>create_profile_on_signup</code> trigger, which arrived in <b>0004</b>: the four
+      predate it. A sixth account existed and was deleted properly on 08-15 -
+      <code>delete_account</code> hard-deletes <code>auth.users</code> and the cascade nulled its
+      audit rows - so the four were never deletion leftovers.
+      <br><b>That is a real latent bug, and it is now written down</b> in
+      <code>docs/nas-setup.md</code> rather than fixed here, since the reset cleared this
+      instance. The trigger fires <code>after insert on auth.users</code> only, and nothing
+      back-fills at sign-in, so an auth user with no profile row cannot write anything: every
+      per-user table is <code>references profiles (id)</code>, so each save is a foreign-key
+      violation, which D9 surfaces as the blocking "can't reach your account" screen rather than
+      as a fault. Those four accounts were unusable, not merely empty. If a general fix is ever
+      wanted it is a profile ensured at sign-in or first save, not a second trigger.
+      <br><b>Two documentation corrections came out of it.</b> The script and this item both
+      listed <b>three</b> tables that must survive a wipe; <code>allowed_emails</code> is not one,
+      because <b>0005 dropped it</b> when it opened signup, and it is genuinely absent from the
+      server. The wrong entry survived because the confirmation select never checked it. And
+      <code>docs/nas-setup.md</code> still told a new operator to
+      <code>insert into allowed_emails</code> "or nothing can sign up", a step that now fails with
+      <i>relation does not exist</i>. The design docs keep their <code>allowed_emails</code>
+      references on purpose: they record the design as decided, not the schema as it stands.
+      <br><b>Known cost, accepted.</b> The wiped account held a complete 81-sticker album, which
+      is the state that produced the item 25 bug, so the duplicate cup pick cannot be exercised
+      again until an album refills. Flagged before running rather than discovered after. The
+      server is testable: signup is open, no invite gate remains, and
+      <code>create_profile_on_signup</code> is the only trigger left on <code>auth.users</code>.</li>
       <li><b>25 Apply migration 0012 on the NAS.</b> Done 2026-08-20, the same day the
       client-side fix shipped, with
       <code>npm run push:sql -- supabase/migrations/0012_duplicate_cup_pick.sql</code>. The
