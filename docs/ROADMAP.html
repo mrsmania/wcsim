@@ -629,7 +629,84 @@
     <code>outcome</code>, <code>won_cup</code> and <code>ended_at</code> are real -
     <code>ascension</code>, <code>score</code>, <code>rounds_won</code> and <code>xi</code>
     have been taking their defaults since <code>0006</code>. See item 21.</p>
-    <p class="files">src/components/CupRunScreen.tsx, supabase/migrations/0001_schema.sql</p>
+
+    <p><strong>What it is for</strong> (written down 2026-08-20, since the one-line summary
+    did not say). The career layer records far more than it shows. Winning a cup at
+    Ascension III, winning with three different formations, a three-cup streak and 34
+    completed challenges are all already in <code>CareerState</code>, and a player sees
+    none of them: the hub shows a level, a Prestige balance, an XP bar and three numbers
+    (Runs / Cups / Best). So the run is rewarded twice over in the fiction and once on
+    screen. The cabinet is the surface where a career reads back as a history rather than a
+    balance - which is also what makes Ascension and the 130 challenges feel like they were
+    for something, rather than a multiplier and a counter.</p>
+
+    <p><strong>What already exists to fill it</strong>, verified in the code rather than
+    remembered:</p>
+    <ul>
+      <li><code>CareerStats</code> (<code>domain/career.ts:15</code>) already carries
+      <code>cupsByAscension</code> (cups per tier), <code>bestCupAscension</code>,
+      <code>cupFormations</code>, <code>cupStreak</code> / <code>finalStreak</code> /
+      <code>semiStreak</code>, <code>everLostFinal</code>, <code>runsAtHighAscension</code>,
+      <code>prestigeSpent</code>, <code>bestScore</code> and <code>bestFinish</code>.</li>
+      <li><b>Almost all of it is currently write-only.</b> The ten challenge counters are
+      read by <code>domain/challenges.ts</code> and nothing else; <code>bestCupAscension</code>
+      is read only by <code>scripts/checks.ts</code>; <code>bestScore</code> is written by
+      <code>applyRunResult</code> and read by nobody at all. The cabinet is mostly a
+      <em>readout</em> job, not a recording job.</li>
+      <li><code>completedChallenges</code> plus <code>challengeProgress</code> /
+      <code>CHALLENGES</code> give the tier and family tallies for free, and
+      <code>albumStats</code> gives album completion.</li>
+      <li>What genuinely does <b>not</b> exist anywhere: <b>per-run rows</b> (a dated list of
+      finished runs) and <b>dates</b> of any kind. Nothing client-side keeps them, and the
+      server columns that look like they should are the dead ones in item 21.</li>
+    </ul>
+
+    <p><strong>Four ways to build it</strong>, roughly cheapest first. A, B and C compose;
+    D is a separate decision:</p>
+    <ul>
+      <li><b>A. A cabinet block in the existing hub.</b> One more section in
+      <code>CareerHub</code>, pure derivation from <code>CareerState</code>: a cups-by-tier
+      row (one cell per Ascension tier, from <code>cupsByAscension</code>, the unlocked
+      ceiling marked), best finish, the streak records, the formations a cup has been won
+      with, and challenge tallies by tier. No new state, no storage, no migration, works
+      identically for guests and accounts. Half a day, and it is the version that pays most
+      of the value. Risk: the hub is already long, and this is a fifth section in it.</li>
+      <li><b>B. A <code>/cabinet</code> screen.</b> The same data with room to breathe, as a
+      lazy-loaded route like <code>/challenges</code> and <code>/album</code>, linked from
+      the hub: a trophy shelf (one trophy per cup, tinted by the tier it was won at, the
+      existing gold <code>Trophy</code> icon and the champion-node green already carry the
+      visual language), the challenge ledger summarised by family, album completion, and the
+      records as a short table. Reuses <code>challengeUi.tsx</code>, so the ledger look is
+      not re-invented. Do B <em>after</em> A if the hub block turns out to want more space;
+      do B instead of A if the shelf is the point.</li>
+      <li><b>C. Badges as a derived layer.</b> A <code>domain/badges.ts</code> in the shape
+      of <code>challenges.ts</code>, but each predicate reads the <em>career and album</em>
+      rather than one run: "cup at every tier", "album 50%", "every formation", "1000
+      Prestige spent". Nothing new to persist, because a badge is recomputed from state that
+      is already there rather than recorded when earned - which also sidesteps the trap
+      documented for item 01 (<b>never key an entry to an exact lifetime count</b>) and
+      means an existing career lights up its badges retroactively. Keep them
+      <b>unpaid</b>: challenges are the Prestige faucet, and badges paying too would need
+      the same arrears reasoning that <code>FEATURES.challengeAwards</code> already carries.
+      Note the risk of doing this before A: badges over the same counters the challenge
+      catalogue reads is a third surface for one fact.</li>
+      <li><b>D. Real run history.</b> The only option that needs new recording, and the only
+      one that can show "your last 20 runs". Two routes, and they are not equivalent: a
+      client-side <code>wcsim_history_v1</code> key through the store seam (works for
+      guests, which is the project rule, and needs no SQL), or reviving
+      <code>run_results</code> per item 21 (account-only, costs
+      <code>finish_run_v3</code> and a hand-applied migration). If both, the local key is
+      the source and the server copy is the backup, exactly as the album and career already
+      work. Either way it only ever covers runs from the change onward.</li>
+    </ul>
+
+    <p class="next"><strong>Next step:</strong> A, then C, then B if the block outgrows the
+    hub. Hold D until item 21 is decided, since it is the same question asked from the other
+    end. <b>Sequencing:</b> item 22 first if the cabinet is meant to count World Cups too -
+    it is a Career-side surface today, and 22 decides whether Quick Run feeds any of the
+    three progression systems. Building the cabinet before that answer means building it
+    twice.</p>
+    <p class="files">src/components/cupRun/CareerHub.tsx, src/domain/career.ts, src/domain/challenges.ts, src/components/challengeUi.tsx, supabase/migrations/0001_schema.sql</p>
   </div>
 </details>
 
