@@ -58,44 +58,60 @@ export default function CareerHub({
                 shows a "Prestige to spend" hint and an "Open" chevron-in-a-ring; open it
                 shows the Prestige chip and a "Hide" ring. */}
             {showToggle ? (
-                <button
-                    type="button"
-                    onClick={onToggleHub}
-                    aria-expanded={hubOpen}
-                    className={`group flex w-full flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-chalk ${showBody ? 'border-b border-line' : ''}`}
+                // The toggle and the cabinet link are siblings rather than nested: a
+                // <Link> inside a <button> is invalid, and the link has to survive the
+                // hub being collapsed (its first home was in the body, which is clipped
+                // when closed - so the cabinet had no reachable entry point at all).
+                <div
+                    className={`flex items-stretch ${showBody ? 'border-b border-line' : ''}`}
                 >
-                    <span className="flex flex-wrap items-center gap-2.5">
-                        <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
-                            Cup Run Hub
-                        </span>
-                        <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent transition group-hover:bg-panel">
-                            Level {career.level}
-                        </span>
-                        {hubOpen ? (
-                            <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
-                                {career.prestige} Prestige
+                    <button
+                        type="button"
+                        onClick={onToggleHub}
+                        aria-expanded={hubOpen}
+                        className="group flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-chalk"
+                    >
+                        <span className="flex flex-wrap items-center gap-2.5">
+                            <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
+                                Cup Run Hub
                             </span>
-                        ) : (
-                            <span className="text-[12.5px] text-muted">
-                                &middot;{' '}
-                                <b className="font-semibold text-accent">
-                                    {career.prestige} Prestige
-                                </b>{' '}
-                                to spend on perks
+                            <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent transition group-hover:bg-panel">
+                                Level {career.level}
                             </span>
-                        )}
-                    </span>
-                    <span className="inline-flex shrink-0 items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch">
-                        {hubOpen ? 'Hide' : 'Open'}
-                        <span className="grid h-[26px] w-[26px] place-items-center rounded-full border-[1.5px] border-pitch transition group-hover:bg-pitch group-hover:text-white">
                             {hubOpen ? (
-                                <ChevronUp size={14} strokeWidth={2.5} />
+                                <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
+                                    {career.prestige} Prestige
+                                </span>
                             ) : (
-                                <ChevronDown size={14} strokeWidth={2.5} />
+                                <span className="text-[12.5px] text-muted">
+                                    &middot;{' '}
+                                    <b className="font-semibold text-accent">
+                                        {career.prestige} Prestige
+                                    </b>{' '}
+                                    to spend on perks
+                                </span>
                             )}
                         </span>
-                    </span>
-                </button>
+                        <span className="inline-flex shrink-0 items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch">
+                            {hubOpen ? 'Hide' : 'Open'}
+                            <span className="grid h-[26px] w-[26px] place-items-center rounded-full border-[1.5px] border-pitch transition group-hover:bg-pitch group-hover:text-white">
+                                {hubOpen ? (
+                                    <ChevronUp size={14} strokeWidth={2.5} />
+                                ) : (
+                                    <ChevronDown size={14} strokeWidth={2.5} />
+                                )}
+                            </span>
+                        </span>
+                    </button>
+                    {FEATURES.trophyCabinet && (
+                        <Link
+                            to="/cabinet"
+                            className="flex shrink-0 items-center border-l border-line px-3 font-display text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-accent transition hover:bg-chalk"
+                        >
+                            Cabinet
+                        </Link>
+                    )}
+                </div>
             ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                     <div className="flex items-baseline gap-2.5">
@@ -121,16 +137,8 @@ export default function CareerHub({
                 <div className="min-h-0 overflow-hidden">
                     <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
                         <div className="bg-panel p-4">
-                            <div className="mb-1.5 flex items-baseline gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                            <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                                 Progress
-                                {FEATURES.trophyCabinet && (
-                                    <Link
-                                        to="/cabinet"
-                                        className="ml-auto font-display text-[11px] font-extrabold tracking-[0.05em] text-accent transition hover:underline"
-                                    >
-                                        Trophy cabinet &rarr;
-                                    </Link>
-                                )}
                             </div>
                             <div className="h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
                                 <div

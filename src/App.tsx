@@ -760,6 +760,12 @@ export default function App({
         { label: 'Home', to: '/', active: isLauncher || isBuild },
         squadsEnabled && { label: 'Squads', to: '/squads/by-world-cup', active: isSquads },
         STICKERS && { label: 'Album', to: '/album', active: isAlbum },
+        // The cabinet's primary door. It also has a link inside the Cup Run hub, but that
+        // one is in the hub's collapsible body on a screen two clicks in, so it is not an
+        // entry point on its own - a read-only career screen belongs here beside the
+        // album, for the same reason the album does.
+        FEATURES.careerMode &&
+            FEATURES.trophyCabinet && { label: 'Cabinet', to: '/cabinet', active: isCabinet },
     ].filter(Boolean) as { label: string; to: string; active: boolean }[];
 
     return (
