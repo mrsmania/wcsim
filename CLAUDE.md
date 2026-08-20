@@ -12,7 +12,9 @@ items and drifted apart.
 **Cleanup work has its own list:** `docs/hygiene-audit.html` (roadmap item 23) is a
 wave-by-wave backlog of dead code and behaviour-preserving refactorings, H1 to H105, plus
 the decisions they need and an explicit list of what not to touch. It is **blocked on item
-22** and should not be started before it. Note that it records several claims in this file
+27** (the navigation rework, which moves the same code) and should not be started before it.
+Roadmap item 22 used to be the blocker and was dropped on 2026-08-20; the audit's off-limits
+section now splits what it owned into item 27's half and an explicitly unowned half. Note that it records several claims in this file
 as drifted (see its wave 1d); those corrections are backlog items, so do not be surprised
 to find them still wrong here.
 

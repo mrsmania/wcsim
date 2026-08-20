@@ -186,14 +186,19 @@
 </div>
 
 <div class="stop">
-  <span class="ct">Do not start before roadmap item 22</span>
-  <p>Item 22 (Quick Run, Career Mode and the three progression systems) is a design decision
-  that moves the same code this backlog touches: the two tournament engines, the two chemistry
-  definitions, the mode fact being derived twice, the run-end sticker triggers, and the
-  difficulty-resets-the-album rule. Doing hygiene first means doing several of these twice, and
-  the second pass would be the one that loses.</p>
-  <p>The <a href="#offlimits">Off limits</a> section lists exactly what item 22 owns. Everything
-  else here is independent of it.</p>
+  <span class="ct">Do not start before roadmap item 27</span>
+  <p>Item 27 (the navigation and click-path rework) moves the same code this backlog touches:
+  <code>App.tsx</code>'s route branch, the mode fact being derived twice, the reset target, the
+  two nav cards in the build page's left column, and the career hub splitting off the run screen.
+  Doing hygiene first means doing several of these twice, and the second pass would be the one
+  that loses.</p>
+  <p><b>Updated 2026-08-20:</b> this callout used to name roadmap item 22, which has been
+  dropped. Its navigational half is item 27's. The rest of what it owned (the two tournament
+  engines, the two chemistry definitions, the run-end sticker trigger order, the
+  difficulty-resets-the-album rule, whether a non-career run pays) now has <b>no owner</b>, and
+  is still not this backlog's to settle, because none of it is behaviour-preserving.</p>
+  <p>The <a href="#offlimits">Off limits</a> section says which is which. Everything else here is
+  independent of both.</p>
 </div>
 
 <h2 id="rules">Ground rules for the implementing team</h2>
@@ -489,7 +494,7 @@ store. The erosion is concentrated in pure computations that ended up in leaves.
     <td><code>interface GroupTeam extends Side</code>, which makes <code>sideOf</code> and both inline literals unnecessary.</td><td class="er">S</td><td class="er">low</td></tr>
   <tr><td class="id">H68</td><td class="pr"><span class="tag p-dry">dry</span></td>
     <td><code>KnockoutScreen.tsx:171-234</code> rebuilds inline exactly what <code>cupRun/FinishedKoCard.tsx:59-113</code> already is. Its <em>live</em> branch is genuinely different, so only the settled branch is duplicated. <code>koWinHeading</code> (<code>cupRun/types.ts:45-49</code>) and <code>koResultLabel</code> (<code>matchView.ts:125-130</code>) both encode "how to word a win by <code>KoDecided</code>", with different wording.</td>
-    <td>Move <code>FinishedKoCard</code> up to <code>components/</code> (it has no Cup Run dependency) and render it from the settled branch; fold <code>koWinHeading</code> in next to its sibling. ~50 lines. <b>Safe despite item 22</b> - it does not touch the engines.</td><td class="er">S</td><td class="er">low</td></tr>
+    <td>Move <code>FinishedKoCard</code> up to <code>components/</code> (it has no Cup Run dependency) and render it from the settled branch; fold <code>koWinHeading</code> in next to its sibling. ~50 lines. <b>Safe despite the engine split</b> - it does not touch the engines.</td><td class="er">S</td><td class="er">low</td></tr>
 </table>
 
 <h2 id="w5">Wave 5 <span class="w">- the type model</span></h2>
@@ -552,7 +557,7 @@ here that can break the app in a way neither <code>tsc</code> nor the checks har
     <td><code>hooks/useCareer</code> and <code>hooks/useCupRun</code>, mirroring <code>useStickerAlbum</code>'s shape; App passes the boot snapshot down and reads the hook's live value, deleting both workarounds. The toast string belongs to the screen, not the hook - return <code>{ swappedIn, swappedOut, boon }</code>. Verify: refresh mid-group-reveal, mid-KO-reveal, and on the ended screen (must not re-bank), buy a perk then start a run, "Replay same XI", cup win into reward picker into summary. <b>Needs H55 and H61 first.</b></td><td class="er">L</td><td class="er">high</td></tr>
   <tr><td class="id">H82</td><td class="pr"><span class="tag p-soc">soc</span></td>
     <td>Route resolution in App: ten <code>is*</code> booleans (<code>:633-653</code>), a ~300-line ternary chain, three inline <code>&lt;Navigate&gt;</code> guards, and the reset-target mapping inside <code>handleReset</code>.</td>
-    <td><b>The pure module only:</b> <code>state/routes.ts</code> with <code>screenOf(path)</code> and <code>buildRouteAfterReset(path)</code>. Removes ~30 lines and makes the contract assertable. The <code>&lt;Routes&gt;</code> rewrite is a separate, larger change. <b>Do not touch <code>modeOfPath</code></b> or the reset target - item 22.</td><td class="er">S</td><td class="er">low</td></tr>
+    <td><b>The pure module only:</b> <code>state/routes.ts</code> with <code>screenOf(path)</code> and <code>buildRouteAfterReset(path)</code>. Removes ~30 lines and makes the contract assertable. The <code>&lt;Routes&gt;</code> rewrite is a separate, larger change. <b>Do not touch <code>modeOfPath</code></b> or the reset target - item 27.</td><td class="er">S</td><td class="er">low</td></tr>
   <tr><td class="id">H83</td><td class="pr"><span class="tag p-soc">soc</span></td>
     <td>The launcher's resume derivations (<code>App.tsx:724-752</code>): building a human summary from a <code>RunState</code>, and the "when is a half-built XI offerable" rule with its copy. Pure functions in <code>useMemo</code>s keyed on <code>[isLauncher]</code>.</td>
     <td><code>state/resume.ts</code> with <code>cupRunResume</code> and <code>buildResume</code>, no React.</td><td class="er">S</td><td class="er">low</td></tr>
@@ -576,7 +581,7 @@ here that can break the app in a way neither <code>tsc</code> nor the checks har
     <td><code>store/cache.ts</code> with <code>createSnapshotCache()</code>; a local <code>albumStatsFromRow</code>; and <code>hydrateCareer</code> in <code>domain/career.ts</code> as the one place that knows the field list, leaving <code>loadCareer</code> with only its v1 migration and <code>careerFromRow</code> with only the case conversion. <b>Keep the <code>completed_challenges</code> optionality note</b> - a server without migration 0011 must still work.</td><td class="er">M</td><td class="er">med</td></tr>
   <tr><td class="id">H90</td><td class="pr"><span class="tag p-dry">dry</span></td>
     <td>The run-end sticker flow is already correctly funnelled through one <code>applyStickers</code>, but its <em>carrier</em> is duplicated per mode: two near-identical loss-banking effects (<code>useStickerAlbum.ts:194-197</code> and <code>:212-216</code>) and two near-identical <code>pendingReward</code> branches (<code>:238-248</code>) differing only in the guard they clear.</td>
-    <td>Normalise both into one <code>{ ids, wonCup, mark } | null</code> and drive one effect off it. <b>Keep the branch priority order exactly as it is and leave a comment</b>: the order is the stale-cup-win bug item 22 records, and changing it is item 22's call, not this backlog's.</td><td class="er">M</td><td class="er">med</td></tr>
+    <td>Normalise both into one <code>{ ids, wonCup, mark } | null</code> and drive one effect off it. <b>Keep the branch priority order exactly as it is and leave a comment</b>: the order is the stale-cup-win bug recorded in the off-limits section, and changing it is a behaviour change, not this backlog's call.</td><td class="er">M</td><td class="er">med</td></tr>
 </table>
 
 <h2 id="w7">Wave 7 <span class="w">- harness, CI and tooling</span></h2>
@@ -662,6 +667,8 @@ settle by itself. They are ordered by how much they unblock.</p>
     <td><code>0002</code> grants <code>for all</code> on <code>career</code>, <code>settings</code>, <code>game_state</code> and <code>active_run</code>, so a client can write them directly - while <code>career</code> is <em>also</em> written through <code>save_career</code>, which is the only path that bumps <code>state_version</code>. A client bug could therefore bypass the version counter and defeat the concurrency guard for the other tables' next write. Migration 0006 knowingly took the "career is a client write" trade, but the grant is broader than that decision. Verified that no client path writes those tables directly, so narrowing to <code>for select</code> looks safe - but <b>this removes a capability</b> and needs its own verification against a live signed-in account. Also <code>export_account()</code> is granted and has no caller, deliberately (FR-25 not built).</td></tr>
   <tr class="dec"><td class="id">D11</td><td><b>Two smaller judgement calls</b></td>
     <td><code>FormationName = string</code> could be a union derived from <code>RAW_FORMATIONS</code>, but it is <em>persisted</em> state, so a stored unknown name must keep loading - which argues for a validating parse in <code>persist.ts</code> more than for a union. And <code>accountIsEmpty</code> (<code>store/index.ts:68-76</code>) ignores <code>albumStats</code> and <code>career.completedChallenges</code>, so an account that finished runs which banked nothing reads as empty and guest data gets merged in. Low probability, benign failure mode, but the name promises more than it checks.</td></tr>
+  <tr class="dec"><td class="id">D12</td><td><b>The four dead columns on <code>run_results</code>: drop them or revive them?</b></td>
+    <td><b>Merged in from roadmap item 21 on 2026-08-20</b>, which was closed as a duplicate of this table rather than of the waves: it was always a decision, never a refactor. <code>run_results</code> was created by <code>0001</code> as a genuine per-run archive and populated in full by <code>0003</code>. <code>0006_client_surface.sql</code> then narrowed the function deliberately and says why in its own header: banking stickers and computing the career award turned out to be two moments in two places, so <code>finish_run</code> kept everything that protects the collection and handed the career award back to the client. The career facts stopped being passed and the columns holding them went quiet; <code>0009</code> and <code>0010</code> carried the narrowed insert forward. <b>Confirmed against the live server</b>, not just the migrations: neither <code>finish_run</code> nor <code>finish_run_v2</code> takes an ascension, score, rounds-won or XI argument, so the client cannot send them even in principle. The insert is <code>(user_id, run_key, outcome, won_cup, xi)</code> with <code>xi</code> a literal <code>'[]'::jsonb</code> and the rest taking their defaults; across 33 rows from two accounts, <code>ascension &gt; 0</code> matches nothing. <b>The table itself must not be dropped:</b> its unique <code>(user_id, run_key)</code> is what rejects a double submit before a single sticker moves, and <code>import_guest_progress</code> reads it to decide whether an account is empty. Only the four columns are dead weight. <b>Drop them</b> and the next person stops building on a column that is always 0, which is what item 06 nearly did. <b>Revive them</b> and the table becomes real per-run history, answering "runs finished at Ascension II" retroactively and founding any server-side leaderboard - but the trophy cabinet no longer needs it (item 06 shipped its archive on <code>CareerStats</code>, riding the existing <code>save_career</code> jsonb, so it works for guests too, and guest-first is the project rule), and it costs a <b>new function name</b> (<code>finish_run_v3</code>), since a changed signature has the same PGRST202 problem a changed return shape had while migrations are applied by hand and the client ships on push to <code>main</code>. Either way it only ever covers runs from the change onward: the rows already there cannot be back-filled, because the facts were never sent. Account-only in all cases; guests write nothing to the server. <b>Files:</b> <code>supabase/migrations/{0001_schema,0006_client_surface,0010_finish_run_one_trip}.sql</code>, <code>src/state/store/remoteStore.ts</code>.</td></tr>
 </table>
 
 <h2 id="notthis">Found here, but not hygiene</h2>
@@ -686,11 +693,32 @@ in its own right.</p>
   accessibility fix, so it ships as its own change.</li>
 </ul>
 
-<h2 id="offlimits">Off limits: what roadmap item 22 owns</h2>
+<h2 id="offlimits">Off limits: what item 27 owns, and what nobody owns</h2>
 
 <p>Do not fold any of this into the waves above, even where it looks like obvious duplication.
-Item 22 asks for a design note first, and every one of these is downstream of a question it has
-not answered yet.</p>
+<b>Updated 2026-08-20:</b> this list used to have a single owner, roadmap item 22, which has been
+dropped as framed around the wrong question. It is now two lists. The first is roadmap item 27's,
+which lands before this backlog. The second has <b>no owner at all</b>: still real, still
+verified, and still not this backlog's, because none of it is behaviour-preserving. Anyone taking
+one of those on is making a design decision, not doing hygiene, and should say so in the commit.</p>
+
+<h3>Item 27 owns these</h3>
+
+<ul>
+  <li><b>The mode fact derived twice.</b> <code>modeOfPath</code> from the route versus
+  <code>GameState.buildMode</code> - and therefore <code>budgetOf</code> and
+  <code>extraRerollsOf</code> each being computed from both sources
+  (<code>App.tsx:334/677</code> versus <code>:706/717</code>). H82 re-homes only
+  <code>screenOf</code>.</li>
+  <li><b>The two launcher doors and the reset target</b>, and with them three of the four
+  cross-mode leaks: the budget changing under a build in progress, <code>/group</code> and
+  <code>/knockout</code> accepting a career build, and "start over" always returning to
+  <code>/quick-run</code>.</li>
+  <li><b>The two nav cards in the build page's left column</b> and the career hub sharing
+  <code>/cup-run</code> with the live run.</li>
+</ul>
+
+<h3>No owner: real, verified, and not hygiene</h3>
 
 <ul>
   <li><b>The two tournament engines.</b> <code>domain/tournament</code> + <code>domain/bracket</code>
@@ -703,18 +731,18 @@ not answered yet.</p>
   <li><b>The two chemistry definitions.</b> <code>teamChemistry(formation, filled)</code> scores by
   the slot each player fills; <code>chemistryOf(xi)</code> scores by natural role. Same XI, two
   answers.</li>
-  <li><b>The mode fact derived twice.</b> <code>modeOfPath</code> from the route versus
-  <code>GameState.buildMode</code> - and therefore <code>budgetOf</code> and
-  <code>extraRerollsOf</code> each being computed from both sources
-  (<code>App.tsx:334/677</code> versus <code>:706/717</code>). H82 re-homes only
-  <code>screenOf</code>.</li>
   <li><b>The run-end sticker trigger set</b> and its priority order in
   <code>useStickerAlbum</code>, including the stale-cup-win precedence. H90 refactors the carrier
   and deliberately preserves the order.</li>
-  <li><b>The difficulty-resets-the-album rule</b> (<code>App.tsx:156-162</code>). Item 24 fixes the
-  crash it causes for signed-in players; whether the rule should exist at all is item 22's.</li>
-  <li><b>The four cross-mode leaks</b> item 22 enumerates, and <b>moving the challenge-judging
-  seam off <code>applyRunResult</code></b>.</li>
+  <li><b>The difficulty-resets-the-album rule</b> (<code>App.tsx:156-162</code>). Item 24 fixes
+  the crash it causes for signed-in players; whether the rule should exist at all is nobody's,
+  and it is the clearest inconsistency left here, since nothing wipes the career or the
+  challenges and those are earned under a difficulty too.</li>
+  <li><b>The fourth cross-mode leak</b>, the two reward-picker producers being priority-ordered
+  rather than mode-scoped, which is the stale-cup-win precedence H90 preserves deliberately.</li>
+  <li><b>Whether a non-career run pays anything</b>, and with it <b>moving the challenge-judging
+  seam off <code>applyRunResult</code></b>, which is a career function. 98 of the 130 challenges
+  only reference an XI, matches and scorelines, which a World Cup has.</li>
   <li><b>The owned-sticker discount being mode-blind</b>, which is a recorded decision (item 02),
   and <code>simulateTitleOdds</code> measuring the Quick Play bracket while advertising a Cup Run
   - the same engine-convergence question.</li>
@@ -792,8 +820,10 @@ sampled.</p>
   <code>warn</code>.</li>
   <li><b>Zero <code>any</code>, no <code>@ts-ignore</code></b>, and no assertion in
   <code>checks.ts</code> contradicts another.</li>
-  <li><b>Roadmap item 22's own claims are accurate.</b> All 18 line references land on what they
-  claim, and the four cross-mode leaks are each reachable as described. So are the dataset counts
+  <li><b>The cross-mode findings are accurate.</b> Re-verified from the dropped roadmap item
+  22 before it went: all 18 of its line references landed on what they claimed, and the four
+  cross-mode leaks are each reachable as described (three of them are item 27's now). So are the
+  dataset counts
   (272 squads, 6,270 players), the collectible split (58/18/5), 19 boons with 6 starters, 130
   challenges in 12 families with no duplicate ids, and the economy arithmetic (catalogue 779
   against a 2,525 shop, "about a third").</li>

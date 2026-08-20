@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-20<br>
-    <strong>Open:</strong> 11 items<br>
+    <strong>Open:</strong> 9 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -346,155 +346,6 @@
     <p class="next"><strong>Next step:</strong> do 1986 end to end as the template for the
     rest.</p>
     <p class="files">src/data/squads.ts, scripts/gen-collectibles.ts</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">22</span>
-    <span class="title">Quick Run, Career Mode and the three progression systems
-      <span class="sub">Which mode feeds the album, the career and the challenges is ad hoc. Decide the rule, then make the app obey one.</span>
-    </span>
-    <span class="tag">Structure</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The ask (2026-08-19):</strong> rework how the two play modes and the three
-    progression systems fit together. Nothing here is broken in the sense of a bug; the
-    problem is that the rules were each reasonable when they landed and were never decided
-    as a set, so the app now answers "what does winning earn me?" differently depending on
-    which door you came through, and there is no stated principle a new feature can be held
-    against. The goal is fewer rules, each one sayable in a sentence.</p>
-
-    <p><strong>How it got here.</strong> The career design (<code>docs/roguelike-career-design.md</code>,
-    line 206) said the plain game stays as "Quick Play / Exhibition", no boons and no career,
-    with the roguelike layer strictly opt-in. The launcher shipped on that basis (2026-07-09).
-    Since then the album grew a market discount, difficulty grew an album reset, and
-    challenges arrived attached to the Cup Run only. Each was locally sensible. Together they
-    mean Quick Run is no longer an exhibition: it pays into one of the three systems, is
-    charged by a second, and is invisible to the third.</p>
-
-    <p><strong>What is actually true today</strong>, verified in the code rather than
-    remembered:</p>
-    <ul>
-      <li><b>The mode decides one thing at build time and one thing at kickoff.</b> Both
-      cards lead to the same 3-column build page with both build methods; the route only
-      picks what the single "Start Run" CTA does (<code>App.tsx:647</code>). Quick Run goes
-      to the World Cup (<code>/group</code>, <code>/knockout</code>); Career Mode goes to the
-      Cup Run (<code>/cup-run</code>).</li>
-      <li><b>The album advances in both modes, the career and the challenges in only one.</b>
-      Banking funnels through a single <code>applyStickers</code>
-      (<code>useStickerAlbum.ts:140</code>) with four triggers, two per mode: the World Cup's
-      loss and cup win (<code>:194</code>, <code>:236</code>) and the Cup Run's
-      (<code>:201</code>, <code>:241</code>). No mode check anywhere in the hook. But
-      <code>applyRunResult</code> is called from exactly one place
-      (<code>CupRunScreen.tsx:284</code>), so XP, Prestige, Ascension and every challenge
-      exist only inside a Cup Run. Winning the World Cup in Quick Run is worth stickers and
-      nothing else, which is not written down anywhere a player can see.</li>
-      <li><b>Two career perks reach backwards into the build page</b>, both gated on mode:
-      the transfer budget (<code>App.tsx:87</code>, <code>675</code>) and the extra re-rolls
-      (<code>App.tsx:334</code>). So the build page is mode-aware in two places for two
-      reasons, while the pricing discount below is mode-blind on purpose.</li>
-      <li><b>The owned-sticker discount applies in both modes</b> (item 02, decided
-      deliberately: the album is global, so a mode-dependent price would have meant the
-      market, the line-up column and the auto-fill spender all needing to know the mode).
-      That decision is still right on its own terms, and it is also the clearest case of
-      Quick Run being charged by a system it cannot advance any faster than Career Mode can.</li>
-      <li><b>The mode is derived twice.</b> <code>modeOfPath</code> reads it from the route
-      (<code>App.tsx:83</code>), and the reducer separately stores <code>buildMode</code>
-      (<code>gameReducer.ts:60</code>) because the route cannot answer "which page was this
-      build started on" once you have left it. Both are needed today and both are correct,
-      but two sources for one fact is the kind of thing that only stays in step by hand: the
-      challenges kickoff record already has a comment explaining that it must use
-      <code>buildMode</code> and not the route.</li>
-      <li><b>Changing the difficulty setting wipes the sticker album</b>
-      (<code>App.tsx:156</code>) on the grounds that stickers are scoped to the difficulty
-      they were earned under. Nothing wipes the career or the challenges, which are earned
-      under a difficulty too. Whatever the right answer is, the three should agree.</li>
-      <li><b>There are two tournament engines.</b> The World Cup
-      (<code>domain/tournament.ts</code> + <code>domain/bracket.ts</code>, driven by
-      <code>TournamentScreen</code> / <code>KnockoutScreen</code>) and the Cup Run
-      (<code>domain/run.ts</code>, driven by <code>CupRunScreen</code>). They share the match
-      sim, the group build, the draw, <code>resolveKoTie</code> and the live clock; they
-      duplicate the round-by-round shell, the result presentation, the outcome model
-      (<code>BracketState.outcome</code> vs <code>RunOutcome</code> + <code>phase</code>),
-      the run-end UI and even the once-per-run sticker guard
-      (<code>GameState.stickersApplied</code> vs <code>RunState.stickersApplied</code>).
-      <b>They also disagree on chemistry:</b> the World Cup scores it by the slot each player
-      fills (<code>App.tsx:523</code>), the Cup Run by each player's natural role
-      (<code>run.ts:191</code>, because a run tracks players and not slots). Same feature,
-      two answers for the same XI. Several of the facts above are downstream of that split
-      rather than of any decision about modes.</li>
-    </ul>
-
-    <p><strong>Four cross-mode leaks are already reachable</strong>, found while surveying
-    this. None is urgent and none is worth a separate item, because each of them dissolves
-    once the questions below are answered rather than being worth patching in place:</p>
-    <ul>
-      <li><b>The budget changes under a build in progress.</b> The live budget reads the
-      route (<code>App.tsx:676</code>) while the recorded one reads stored
-      <code>buildMode</code> (<code>App.tsx:701</code>), so walking from
-      <code>/career-mode</code> to <code>/quick-run</code> mid-build silently moves the cap
-      from $70 plus perk tier to $110, and the run record then reports the career budget.
-      The re-roll allowance is derived twice the same way (<code>App.tsx:332</code> from the
-      route, <code>717</code> from <code>buildMode</code>).</li>
-      <li><b><code>/cup-run</code> accepts a Quick-Run-built XI</b> and applies the career's
-      perks and unlocked boosts to it unconditionally (<code>CupRunScreen.tsx:257</code>),
-      so a $110 three-re-roll build can be run as a full career run.</li>
-      <li><b><code>/group</code> and <code>/knockout</code> accept a Career-built XI</b>
-      (neither is mode-gated, <code>App.tsx:855</code>, <code>875</code>), and starting over
-      from either always returns to <code>/quick-run</code> (<code>App.tsx:564</code>) even
-      when the build was a career one.</li>
-      <li><b>A stale cup win outranks a fresh one.</b> The two reward-picker producers are
-      priority-ordered rather than mode-scoped (<code>useStickerAlbum.ts:236</code>), so an
-      un-applied World Cup win takes precedence over a Cup Run win.</li>
-    </ul>
-
-    <p><strong>What has to be decided before any code moves.</strong> This is a design
-    question first, and a small refactor second. The questions, roughly in dependency order:</p>
-    <ul>
-      <li><b>What is Quick Run for?</b> Three coherent answers: a true exhibition that earns
-      nothing and is charged nothing (closest to the original intent); a shorter on-ramp that
-      earns a reduced share of everything; or the same game as Career Mode with the roguelike
-      layer switched off. Pick one. Most of the rest follows from it.</li>
-      <li><b>Is the album global or per-mode?</b> It is global today and that is defensible,
-      but if it stays global then the difficulty reset is the odd one out, and if it goes
-      per-mode then the discount, the swap allowance and the completion target all have to
-      learn about modes.</li>
-      <li><b>Should challenges judge a World Cup?</b> Most of the 130 entries only reference
-      an XI, matches and scorelines, which a World Cup has. The three families that could
-      not survive outside a Cup Run are Ascension (8), Boosts (12) and Career (12), so 98 of
-      the 130 are in principle judgeable either side of the split. If the answer is yes, the
-      judging seam has to move off <code>applyRunResult</code>, which is a career function.</li>
-      <li><b>Do the two tournament engines converge?</b> Not required to answer the above,
-      but it is the thing that would stop the duplication growing, and item 04 (in-run
-      economy and node variety) will widen the gap if it lands first.</li>
-    </ul>
-
-    <p><strong>Five candidate answers are drawn out screen by screen</strong>
-    (2026-08-20): <code>docs/redesign-2026/turf-flat/item22-options.html</code> compares them
-    and links to one mock per option. Each carries the same nine surfaces (launcher, both
-    build pages, album, challenge catalogue, career hub, both run-end panels, the settings
-    sheet) plus its own answers to the four questions, how each of the four leaks dissolves
-    under it, and what it buys and costs. The five are points on one axis, how much the
-    non-career door touches the three systems: <b>A Exhibition</b> (earns nothing, is charged
-    nothing), <b>D One collection, two ledgers</b> (the album is the shared system, today's
-    behaviour stated and gated), <b>C On-ramp</b> (half of everything except the album, which
-    cannot be halved), <b>B One ledger</b> (both doors pay the same, 98 of the 130 challenges
-    judge a World Cup), <b>E One run, one engine</b> (no modes, the roguelike layer is a
-    switch). They are raw material for the note, not a decision. Three findings held across
-    all five, so they are decisions whichever option wins: the difficulty wipe goes, the four
-    routes get mode gates or stop having modes, and the run-end panel has to say what it did
-    not pay.</p>
-
-    <p class="next"><strong>Next step:</strong> pick one of the five and write it up as the
-    short design note before touching code, since the code changes are small once the rules
-    are settled and unbounded while they are not. Worth doing before items 04, 05 and 19, each
-    of which adds to the Career side of the split and would have to be redone.
-    <b>Placement:</b> parked here in Next up because it is architectural and every later
-    Career item rests on it; move it to Later if the content work (item 03) should go first.</p>
-
-    <p class="files">docs/redesign-2026/turf-flat/item22-options.html (+ item22-{a,b,c,d,e}-*.html), docs/roguelike-career-design.md, src/App.tsx, src/hooks/useStickerAlbum.ts, src/domain/run.ts, src/domain/career.ts, src/domain/challenges.ts, src/domain/tournament.ts, src/state/gameReducer.ts, src/components/CupRunScreen.tsx, src/components/ModeSelect.tsx</p>
   </div>
 </details>
 
@@ -578,15 +429,18 @@
     <b>one entry, one build page, and a two-state "Career run / One-off" control on it</b>,
     beside formation and style. Set to One-off it keeps today's reward rules exactly (stickers
     bank, the career does not), so nothing is added or removed and F3 is deleted outright.
-    Whether a one-off should <b>pay</b> is item 22 and is a functionality question; this
-    switch is neutral on it.</p>
+    Whether a one-off should <b>pay</b> (XP, Prestige, and the 98 of the 130 challenges a World
+    Cup could in principle judge) is a functionality question, and it has no item of its own since
+    item 22 was dropped; the audit's off-limits section carries it as unowned. This switch is
+    neutral on it either way, so it can be answered later without touching the navigation
+    again.</p>
 
     <p class="next"><strong>Next step:</strong> pick a concept, then write the four agreed
     decisions up as one short note with the phone build-page order included. <b>Sequencing:</b>
     worth landing before or with item 23, which touches <code>App.tsx</code> heavily for other
     reasons, and before items 04, 05 and 19, each of which adds a screen the nav will have to
-    hold. Independent of item 22: this changes chrome only, no <code>domain/</code>, no
-    <code>state/</code>, no reducer action, no feature flag.</p>
+    hold. Chrome only: no <code>domain/</code>, no <code>state/</code>, no reducer action and no
+    feature flag, which is what makes it safe to land ahead of everything else.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/nav-options.html (+ nav-{1..5}-*.html), src/App.tsx, src/components/ModeSelect.tsx, src/components/cupRun/CareerHub.tsx, src/components/CupRunScreen.tsx, src/components/SettingsModal.tsx, src/components/AccountModal.tsx</p>
   </div>
@@ -596,7 +450,7 @@
   <summary>
     <span class="num">23</span>
     <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Blocked on item 22.</span>
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Blocked on item 27.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -608,16 +462,29 @@
 
     <p><strong>The backlog is <code>docs/hygiene-audit.html</code></strong>, which is the
     deliverable: 105 numbered items (H1-H105) in seven waves, each naming the files, the fix,
-    whether it is behaviour-preserving, effort and risk, plus eleven decisions that need an owner
-    and an explicit list of what not to touch. It was produced from six independent parallel
+    whether it is behaviour-preserving, effort and risk, plus twelve decisions that need an owner
+    and an explicit list of what not to touch, split since 2026-08-20 into what item 27 owns and
+    what nobody does. It was produced from six independent parallel
     reviews of the tree (dead weight, DRY, SoC/layering, KISS/YAGNI, type model and naming,
     tooling/SQL/assets), merged, with the load-bearing claims re-verified by hand.</p>
 
-    <p><strong>Do not start before item 22.</strong> Item 22 moves the same code: the two
-    tournament engines, the two chemistry definitions, the mode fact derived twice, the run-end
-    sticker triggers, the difficulty-resets-the-album rule. Doing hygiene first means doing
-    several of them twice, and the second pass is the one that loses. The audit lists exactly what
-    item 22 owns and keeps its hands off it.</p>
+    <p><strong>Do not start before item 27.</strong> The navigation rework moves the same code
+    this backlog touches: <code>App.tsx</code>'s route branch, the mode fact derived twice
+    (<code>modeOfPath</code> versus <code>GameState.buildMode</code>), the reset target, the two
+    nav cards in the build page's left column, and the career hub splitting off the run screen.
+    Doing hygiene first means doing several of them twice, and the second pass is the one that
+    loses. The audit's off-limits section says what item 27 owns and keeps its hands off it.</p>
+
+    <p><strong>It also carries what item 22 left behind.</strong> Item 22 was dropped on
+    2026-08-20 as framed around the wrong question, and its navigational half is item 27's now.
+    What it also held was a set of verified findings that are now nobody's: the two tournament
+    engines and their duplicated round shell, the <b>two chemistry definitions</b>
+    (<code>teamChemistry</code> scores by the slot each player fills, <code>chemistryOf</code> by
+    natural role, so the same XI gets two answers), the run-end sticker trigger order, the
+    difficulty-resets-the-album rule, and whether a non-career run pays anything at all. The
+    audit's off-limits section now lists these as <b>unowned</b> rather than as item 22's, because
+    none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
+    not forgotten.</p>
 
     <p><strong>The waves</strong>, in execution order:</p>
     <ol>
@@ -660,13 +527,17 @@
     CSS (all 40 custom classes and 13 tokens used), no unused dependency, no dead
     <code>config.ts</code> entry, no unreferenced module in <code>src/</code>, no unread component
     prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
-    three directions, migrations and client in sync, zero <code>any</code>, and item 22's own 18
-    line references all landing where it says they do.</p>
+    three directions, migrations and client in sync, and zero <code>any</code>.</p>
 
-    <p class="next"><strong>Next step:</strong> after item 22's design note lands, take wave 7's
-    H91 first (checks into CI, one line) so the gate is real, then waves 1 to 3 as one pass each.
-    Waves 4 to 6 want the decisions in the audit's Decisions table answered first, in particular
-    which <code>FEATURES</code> flags retire.</p>
+    <p class="next"><strong>Next step:</strong> after item 27 lands, take wave 7's H91 first
+    (checks into CI, one line) so the gate is real, then waves 1 to 3 as one pass each. Waves 4 to
+    6 want the decisions in the audit's Decisions table answered first, in particular which
+    <code>FEATURES</code> flags retire. That table also holds <b>D12</b>, the four dead
+    <code>run_results</code> columns, merged in from item 21 on 2026-08-20: the table itself must
+    <em>not</em> be dropped (its unique <code>(user_id, run_key)</code> is what rejects a double
+    submit before a sticker moves, and <code>import_guest_progress</code> reads it to decide
+    whether an account is empty), only the four columns are dead weight, and reviving them would
+    cost a <code>finish_run_v3</code> and only ever cover runs from the change onward.</p>
     <p class="files">docs/hygiene-audit.html, src/App.tsx, src/components/CupRunScreen.tsx, src/domain/, src/state/, scripts/checks.ts, .github/workflows/deploy.yml</p>
   </div>
 </details>
@@ -840,12 +711,13 @@
     </ul>
 
     <p class="next"><strong>Next step:</strong> nothing yet, and deliberately so. Depends on
-    nothing in A/B/C (boost unlocks, tiered perks and Ascension all shipped), but two items
-    point at it: <b>item 22</b> says this one "will widen the gap if it lands first", since
-    every node type is Cup-Run-only machinery piling onto <code>domain/run.ts</code>, the
-    heavier side of the two-engine split; and <b>item 27</b> notes that items 04, 05 and 19
-    each add a screen the navigation will have to hold, which a shop node and an event node
-    both do. So: settle 22, land 27, then build this. Building it first means redoing it.
+    nothing in A/B/C (boost unlocks, tiered perks and Ascension all shipped), but two things bear
+    on it. Every node type is Cup-Run-only machinery piling onto <code>domain/run.ts</code>, the
+    heavier side of the split between the two tournament engines, so building this widens a
+    duplication the hygiene audit deliberately leaves alone and nobody currently owns. And
+    <b>item 27</b> notes that items 04, 05 and 19 each add a screen the navigation will have to
+    hold, which a shop node and an event node both do. So: land 27, then build this. Building it
+    first means redoing it.
     When it does start, do the effect ledger as its own step before any node type, since every
     node type wants it and it is the part that cannot be retrofitted.</p>
 
@@ -876,62 +748,6 @@
     places), so that dependency goes with it and this item no longer touches the random
     helpers at all.</p>
     <p class="files">src/domain/odds.ts, src/components/cupRun/BoostOffer.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">21</span>
-    <span class="title">Dead columns on <code>run_results</code>
-      <span class="sub">Four columns nothing writes and nothing reads. Decide in a clean-up pass: drop them, or revive the table as a real run archive.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Found 2026-08-19 while trying to answer "how many runs has this account finished at
-    Ascension II or higher?" from the database. The answer is that it cannot be, and the
-    column that looks like it should say so reads 0 for every row.</p>
-    <p><code>run_results</code> was created by <code>0001</code> as a genuine per-run archive
-    and populated in full by <code>0003</code>. <code>0006_client_surface.sql</code> then
-    narrowed the function deliberately, and for a good reason it states in its own header:
-    banking stickers and computing the career award turned out to be two different moments in
-    two different places, so <code>finish_run</code> kept everything that protects the
-    collection and gave the career award back to the client. The career facts stopped being
-    passed, and the columns holding them went quiet. <code>0009</code> and <code>0010</code>
-    carried the narrowed insert forward.</p>
-    <p><b>Confirmed against the live server</b>, not just the migration files: neither
-    <code>finish_run</code> nor <code>finish_run_v2</code> takes an ascension, score,
-    rounds-won or XI argument, so the client cannot send them even in principle. The insert
-    is <code>(user_id, run_key, outcome, won_cup, xi)</code> with <code>xi</code> a literal
-    <code>'[]'::jsonb</code>; the rest take their defaults (<code>0</code>, <code>0</code>,
-    <code>0</code>). Across 33 rows from two accounts, <code>ascension &gt; 0</code> matches
-    nothing.</p>
-    <p><b>The table still earns its keep</b> and must not be dropped: the unique
-    <code>(user_id, run_key)</code> is what rejects a double submit before a single sticker
-    moves, and <code>import_guest_progress</code> reads it to decide whether an account is
-    empty. Only the four columns are dead weight.</p>
-    <p><b>Two ways to go</b>, decided 2026-08-19 to be neither for now, since nothing is
-    broken and the career counters cover what the challenges need:</p>
-    <ul>
-      <li><b>Drop them.</b> Honest, and stops the next person building on a column that is
-      always 0. It is what item 06 nearly did.</li>
-      <li><b>Revive them.</b> Repopulate on finish and the table becomes the real per-run
-      history: "runs finished at Ascension II" answerable retroactively, and a foundation
-      for any server-side leaderboard. <b>Updated 2026-08-20:</b> the trophy cabinet no
-      longer needs this. Item 06 shipped its own archive on <code>CareerStats</code>, which
-      rides the existing <code>save_career</code> jsonb and so works for guests too (the
-      project rule is guest-first). What reviving these columns would still buy is
-      <i>server-side</i> querying across accounts, which is a leaderboard feature rather
-      than a cabinet one. Costs a <b>new function name</b>
-      (<code>finish_run_v3</code>): the signature would change, and a changed signature has
-      the same PGRST202 problem a changed return shape had, since migrations are applied by
-      hand while the client ships on push to <code>main</code>. Account-only either way -
-      guests write nothing to the server.</li>
-    </ul>
-    <p>Either way it only ever covers runs from the change onward. The rows already there
-    cannot be back-filled; the facts were never sent.</p>
-    <p class="files">supabase/migrations/0001_schema.sql, supabase/migrations/0006_client_surface.sql, supabase/migrations/0010_finish_run_one_trip.sql, src/state/store/remoteStore.ts</p>
   </div>
 </details>
 
@@ -979,14 +795,16 @@
       <li><b>Honour the comment.</b> Hide the reset footer when signed in (the album screen would
       need to know, which it currently does not) and make <code>changeDifficulty</code> skip the
       album for an account. Cheapest, and it keeps the stated rule. Leaves the difficulty rule
-      inconsistent between guests and accounts, which item 22 is already looking at.</li>
+      inconsistent between guests and accounts.</li>
       <li><b>Support it server-side.</b> A <code>reset_album</code> function along
       <code>execute_trade</code>, since the browser talks to Postgres directly and the sticker
       economy is validated in <code>security definer</code> functions. Costs a hand-applied
       migration and a new name, and it is the option that makes the two worlds behave alike.</li>
       <li><b>Drop the difficulty-resets-the-album rule</b> and keep the reset button guest-only.
-      This is really item 22's question (nothing wipes the career or the challenges, which are
-      earned under a difficulty too), so it should not be settled here.</li>
+      This is the broader question of whether the rule should exist at all, since nothing wipes
+      the career or the challenges and those are earned under a difficulty too. Nothing owns that
+      since item 22 was dropped (the audit's off-limits section parks it), so settling it here
+      would be a decision rather than a deferral.</li>
     </ul>
 
     <p><strong>Whatever is chosen, fix the ordering:</strong> clear the in-memory album only once
@@ -996,7 +814,8 @@
 
     <p class="next"><strong>Next step:</strong> the first option, as a stopgap, is small and stops
     a signed-in player hitting a blocking screen from the settings sheet. Decide between the other
-    two alongside item 22, since both touch the same rule.</p>
+    two together, since both turn on whether the difficulty-resets-the-album rule should exist
+    at all.</p>
     <p class="files">src/state/store/remoteStore.ts, src/hooks/useStickerAlbum.ts, src/App.tsx, src/components/AlbumScreen.tsx</p>
   </div>
 </details>
@@ -1042,7 +861,7 @@
     </div>
 
     <p><strong>It is irreversible, and two accounts hold data</strong> (33 <code>run_results</code>
-    rows across them, counted while surveying item 21). Worth confirming both are the owner's before
+    rows across them, counted while surveying the dead <code>run_results</code> columns, now the audit's D12). Worth confirming both are the owner's before
     running it rather than after.</p>
 
     <p><strong>Guest progress is not covered</strong>, and cannot be: it is
@@ -1149,9 +968,9 @@
       both were already on item 23's list rather than new debt: <code>byFamily</code> on
       <code>ChallengeProgress</code> (H44) and <code>collectiblesByTier</code> (H45, half
       done - <code>AlbumScreen</code> still has its own copy).
-      <br><b>Note for item 22:</b> this is a Career-side surface, which is what the career
-      was when it was built. If 22 decides Quick Run feeds the progression systems, the
-      cabinet is one of the screens that has to learn about modes.</li>
+      <br><b>Note:</b> this is a Career-side surface, which is what the career was when it was
+      built. If a non-career run is ever made to feed the progression systems, the cabinet is one
+      of the screens that has to learn about modes.</li>
       <li><b>01 Challenges.</b> Done 2026-08-19. Permanent honours over a finished Cup
       Run: <b>130 one-off goals in 12 families</b>, each worth Prestige, giving the career
       layer something to aim at besides "earn Prestige, buy perks". Planned in
