@@ -340,10 +340,14 @@ looking for one:
   (`light | dark`, applied to the document by the hook), `difficulty`
   (`casual | normal | hard` -> `domain/difficulty.ts`, which adds +3 / 0 / -3 to the
   **user's own** attack and defense in their matches and touches nothing else), and
-  `poolYears`. Changing `difficulty` has one side effect beyond the rating: it wipes a
-  **guest's** sticker album, which is scoped to the difficulty it was earned under (the
-  modal confirms first). It never wipes an account's - see `canResetAlbum` under the
-  sticker album.
+  `poolYears`. **`difficulty` really does touch nothing else**: it persists the preference
+  and stops. It used to wipe the sticker album, on the rule that the album was "scoped to
+  the difficulty it was earned under", and that rule was **dropped 2026-08-20** - nothing
+  wipes the career or the challenges, which are earned under a difficulty just as much
+  (challenge Prestige especially, since a casual run completes the same entries for the
+  same award). So the album now spans difficulties, a casual run can fill it, and the
+  settings sheet has no danger dialog. Do not reinstate it for one of the three without
+  the other two.
 - **Match `speed`** is reducer state (`SET_SPEED`, default `fast`), not a preference,
   because it belongs to playback of the run in progress. The modal just receives it.
 
@@ -513,16 +517,14 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `onReset` -> `store.clearAlbum()`, which for a guest removes the album + stats keys;
   the in-memory album is cleared **only once that write resolves**). Reset touches only
   the album, not the game / career / run.
-  **The reset is guest-only, and one flag says so in one place**: `useStickerAlbum`
-  exposes `canResetAlbum` (`enabled && !isSignedIn()`), which hides this footer entirely
-  and stops a difficulty change from touching an account's album. An account's collection
-  is synced, `remoteStore.clearAlbum` refuses by design, and a failed write while signed
-  in IS the blocking unreachable screen (D9) - so both callers used to show a server error
-  for a request that never left the browser, and the album screen went briefly empty while
-  the account still held every sticker. Deleting the account is the account-level reset.
-  Deliberate consequence: **the difficulty-resets-the-album rule now applies to guests
-  only**. Whether that rule should exist at all is still open (roadmap item 24) - nothing
-  wipes the career or the challenges, which are earned under a difficulty too.
+  **This footer is the only way to wipe an album, and it is guest-only**: `useStickerAlbum`
+  exposes `canResetAlbum` (`enabled && !isSignedIn()`), which hides it entirely for an
+  account. That collection is synced, `remoteStore.clearAlbum` refuses by design, and a
+  failed write while signed in IS the blocking unreachable screen (D9) - so the button used
+  to show a server error for a request that never left the browser, and the screen went
+  briefly empty while the account still held every sticker. Deleting the account is the
+  account-level reset. The `clearAlbum` throw is a **backstop**, not the gate; keep the gate
+  in the hook, where one flag covers every caller.
   `StickerCard` shows real artwork when
   `FEATURES.stickerImages` is on (default), with a per-missing-file text+flag fallback,
   so partial art sets are fine; set the flag false to always use the placeholder.

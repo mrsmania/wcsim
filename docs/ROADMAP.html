@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-20<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -751,61 +751,6 @@
   </div>
 </details>
 
-<div class="band"><h2>From playing</h2><span>found in real runs, small to medium</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">24</span>
-    <span class="title">Should changing difficulty wipe the album at all?
-      <span class="sub">The blocking bug is fixed and the rule is guest-only now, which is a knowing inconsistency rather than a settled design.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What shipped 2026-08-20</strong> was the stopgap this item recommended, plus the
-    two fixes it said to make whichever option won (see the history entry). The blocking screen is
-    gone, the album screen no longer offers a button that could only fail, and the in-memory album
-    is no longer emptied before the write that might refuse it. <b>This item is what is left</b>,
-    and it is a product decision rather than a bug.</p>
-
-    <p><strong>The question.</strong> The album is wiped when difficulty changes because it is
-    "scoped to the difficulty it was earned under". That rule now applies to <b>guests only</b>:
-    an account keeps its album across a difficulty change, because a synced collection is not
-    wiped from a settings toggle. Two players, two behaviours, one rule.</p>
-
-    <div class="callout">
-      <span class="ct">The argument the fix exposed</span>
-      Nothing wipes the <b>career</b> or the <b>challenges</b>, and both are earned under a
-      difficulty too - challenge Prestige especially, since a casual run completes the same
-      entries for the same award. If scoping earned things to their difficulty were really the
-      principle it would have to reach those; if it is not the principle, the album is the odd one
-      out. That is the whole decision.
-    </div>
-
-    <p><strong>Two ways to settle it</strong>, mutually exclusive:</p>
-    <ul>
-      <li><b>Drop the rule.</b> A difficulty change stops touching the album for anyone, and the
-      guest/account split disappears on its own. Cheapest, consistent with the career and the
-      challenges, and it removes a confirm dialog from the settings sheet. It costs whatever the
-      rule was protecting, which is worth saying out loud before removing it: the album becomes a
-      record that spans difficulties, and a casual run can fill it.</li>
-      <li><b>Support the reset server-side</b> and keep the rule for everyone: a
-      <code>reset_album</code> <code>security definer</code> function beside
-      <code>execute_trade</code>, since the browser talks to Postgres directly. Makes the two
-      worlds behave alike, and costs a hand-applied migration and a new function name. Note that
-      it argues directly against the comment in <code>remoteStore.clearAlbum</code>, which holds
-      that a synced wipe is what account deletion is for - so choosing this means overruling that,
-      not merely implementing it.</li>
-    </ul>
-
-    <p class="next"><strong>Next step:</strong> decide on the career/challenges consistency
-    argument rather than on cost, since both are small now the bug is out of the way. Dropping the
-    rule needs no server work and no migration, so if the two look close that is the tie-breaker.</p>
-    <p class="files">src/App.tsx, src/hooks/useStickerAlbum.ts, src/components/SettingsModal.tsx, src/state/store/remoteStore.ts</p>
-  </div>
-</details>
-
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
@@ -813,9 +758,9 @@
     <ul>
       <li><b>24 Signed in, resetting the album (or changing difficulty) blocked the app.</b>
       Fixed 2026-08-20 as <b>option A of the three</b> the item laid out - the stopgap it
-      recommended - plus both of the fixes it said to make whichever option won. The item stays
-      open for the half that was never a bug: whether the difficulty-resets-the-album rule should
-      exist at all.
+      recommended - plus both of the fixes it said to make whichever option won. The rule question
+      that was the item's other half, and never a bug, was settled the same day: <b>the rule was
+      dropped</b> (last paragraph below), which is what closed this.
       <br><b>The bug was a refusal doing duty as a guard.</b>
       <code>remoteStore.clearAlbum</code> threw on purpose, and its comment claimed "the album
       screen's reset stays guest-only" - gating that existed nowhere, so both callers reached the
@@ -840,7 +785,31 @@
       touch the album is that prop working as specified rather than a special case - and it stops
       the sheet promising a reset that is no longer going to happen.
       <br><b>The throw stayed</b>, demoted to a backstop with its comment corrected to describe the
-      gate that now exists. Deleting it would leave the refusal resting on the UI layer alone.</li>
+      gate that now exists. Deleting it would leave the refusal resting on the UI layer alone.
+      <br><b>Then the rule itself went</b>, decided the same day on the consistency argument the
+      fix had exposed rather than on cost. A difficulty change no longer touches the sticker album
+      <b>for anyone</b>: it persists the preference and stops. The case was that <b>nothing wipes
+      the career or the challenges</b>, and both are earned under a difficulty too - challenge
+      Prestige especially, since a casual run completes the same entries for the same award. Either
+      that principle had to reach all three or the album was the odd one out, and reaching all
+      three was never on the table. The guest/account split the stopgap had knowingly introduced
+      therefore lasted hours and resolved itself: there is no longer a rule to be inconsistent
+      about, and the rejected alternative - a <code>reset_album</code> server function - would have
+      cost a migration to make a behaviour universal that is now simply gone.
+      <br><b>It deleted more than it added.</b> Out went <code>changeDifficulty</code> in
+      <code>App</code>, both <code>SettingsModal</code> props (<code>onChangeDifficulty</code> and
+      <code>albumCount</code>), its <code>pending</code> state and the whole danger dialog - the
+      modal now drives <code>setDifficulty</code> straight off the settings API it already
+      received, like <code>setTheme</code> and <code>setPoolYears</code> - and with them four
+      imports across the two files that <code>noUnusedLocals</code> confirmed were dead
+      (<code>useState</code>, <code>DANGER_BTN</code>, <code>SECONDARY_BTN</code>, and the
+      <code>Difficulty</code> type).
+      <code>canResetAlbum</code> <b>stays</b>, because the album screen's own reset button remains
+      and remains guest-only; it simply has one caller now instead of two.
+      <br><b>Known consequence, accepted deliberately:</b> the album now spans difficulties, so a
+      casual run can fill it. That was the thing the rule protected, and dropping it is a judgement
+      that a collection is a record of what you drafted rather than a per-difficulty scoreboard.
+      If it is ever revisited, revisit it for the career and the challenges at the same time.</li>
       <li><b>26 Wipe the account server for testing.</b> Done 2026-08-20 with
       <code>npm run push:sql -- supabase/maintenance/reset-user-data.sql</code>, after a dry run
       and an explicit go-ahead. Every user table reads 0, <code>collectibles</code> still reads 81

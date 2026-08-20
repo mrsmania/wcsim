@@ -39,7 +39,7 @@ import {
 import { teamChemistry } from './domain/chemistry';
 import { buildBracket } from './domain/bracket';
 import { KO_ROUNDS } from './domain/knockout';
-import { userRatingDelta, type Difficulty } from './domain/difficulty';
+import { userRatingDelta } from './domain/difficulty';
 import { extraRerollsOf, type CareerState } from './domain/career';
 import { priceFor } from './domain/pricing';
 import type { RunBuild, RunShape } from './domain/run';
@@ -154,20 +154,6 @@ export default function App({
     // a global overlay like the album's.
     const [storeError, setStoreError] = useState<Error | null>(null);
     useEffect(() => onStoreError(setStoreError), []);
-    // Changing difficulty resets the sticker album (it is scoped to the difficulty it
-    // was earned under; the same will hold for future challenge modes). The modal
-    // confirms first when the album is non-empty.
-    //
-    // Not for an account: a synced album is not wiped from a settings toggle, so the
-    // reset is skipped rather than attempted. It used to be attempted, and the store's
-    // refusal put a signed-in player on the blocking unreachable screen having asked for
-    // nothing but a difficulty change. The rule is therefore knowingly inconsistent
-    // between guests and accounts; whether it should exist at all is the open half of
-    // roadmap item 24.
-    const changeDifficulty = (d: Difficulty) => {
-        settings.setDifficulty(d);
-        if (stickers.canResetAlbum) stickers.onResetAlbum();
-    };
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
@@ -1230,11 +1216,6 @@ export default function App({
                     onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
                     auto={auto}
                     onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
-                    onChangeDifficulty={changeDifficulty}
-                    // Stickers AT RISK, so 0 whenever the change will not touch the
-                    // album - which suppresses a confirm that would promise a reset
-                    // that is no longer going to happen.
-                    albumCount={stickers.canResetAlbum ? stickers.album.collected.length : 0}
                 />
             )}
 

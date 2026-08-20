@@ -348,11 +348,11 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       //
       // This throw is now a backstop rather than the gate. It used to be the only thing
       // saying no, while claiming a guest-only reset that was not implemented anywhere -
-      // so both callers reached it, and since a failed write while signed in is the
-      // blocking unreachable state (D9), refusing here showed the player a server error
-      // for a request that never left the browser. `useStickerAlbum`'s `canResetAlbum`
-      // is the real gate: it hides the album screen's footer and stops a difficulty
-      // change from touching an account's album.
+      // so the album screen offered the button to everyone, and since a failed write while
+      // signed in is the blocking unreachable state (D9), refusing here showed the player a
+      // server error for a request that never left the browser.
+      // `useStickerAlbum`'s `canResetAlbum` is the real gate, and it hides that footer.
+      // (A difficulty change used to come through here too; that rule is gone - item 24.)
       throw new Error('Resetting the album is not available while signed in.');
     },
 

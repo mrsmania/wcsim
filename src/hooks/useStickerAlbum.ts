@@ -236,12 +236,11 @@ export function useStickerAlbum(
   // Manual album reset: wipe the stored album (collection + trade stats) and clear the
   // in-memory album. Leaves the game / career / run untouched.
   //
-  // Two things here were bugs. The guard is not merely a hidden button: both callers (the
-  // album screen's footer and a difficulty change) reached the store's refusal, and for an
-  // account that refusal IS the blocking unreachable screen - so the app blamed the server
-  // for a call it had never made. And the in-memory clear now waits for the write, because
-  // doing it first left the UI showing an empty album while storage still held every
-  // sticker, until a reload put it back.
+  // Two things here were bugs. The guard is not merely a hidden button: the caller used to
+  // reach the store's refusal, and for an account that refusal IS the blocking unreachable
+  // screen - so the app blamed the server for a call it had never made. And the in-memory
+  // clear now waits for the write, because doing it first left the UI showing an empty
+  // album while storage still held every sticker, until a reload put it back.
   const onResetAlbum = useCallback(() => {
     if (!canResetAlbum) return;
     void store

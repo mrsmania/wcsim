@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import Overlay from './Overlay';
-import { DANGER_BTN, SECONDARY_BTN, SegControl, SpeedControl } from './matchUi';
+import { SegControl, SpeedControl } from './matchUi';
 import type { MatchSpeed } from '../domain/clock';
 import type { Difficulty } from '../domain/difficulty';
 import { WORLD_CUP_YEARS, squadsInPool } from '../data/squads';
@@ -57,8 +56,6 @@ export default function SettingsModal({
     onSetSpeed,
     auto,
     onSetAuto,
-    onChangeDifficulty,
-    albumCount,
 }: {
     onClose: () => void;
     settings: SettingsApi;
@@ -66,19 +63,15 @@ export default function SettingsModal({
     onSetSpeed: (s: MatchSpeed) => void;
     auto: boolean;
     onSetAuto: (a: boolean) => void;
-    /** Commit a difficulty change (App also resets the sticker album). */
-    onChangeDifficulty: (d: Difficulty) => void;
-    /** Collected stickers at risk when difficulty changes (0 hides the confirm). */
-    albumCount: number;
 }) {
-    const { settings: s, setTheme, setPoolYears } = settings;
-    // A difficulty awaiting confirmation (changing difficulty wipes the album).
-    const [pending, setPending] = useState<Difficulty | null>(null);
+    const { settings: s, setTheme, setDifficulty, setPoolYears } = settings;
 
+    // Nothing to confirm: a difficulty change persists the preference and stops there.
+    // It used to wipe the sticker album, which is why this had a danger dialog; the rule
+    // was dropped 2026-08-20 (roadmap item 24) because nothing wipes the career or the
+    // challenges either, and those are earned under a difficulty just as much.
     const pickDifficulty = (d: Difficulty) => {
-        if (d === s.difficulty) return;
-        if (albumCount > 0) setPending(d);
-        else onChangeDifficulty(d);
+        if (d !== s.difficulty) setDifficulty(d);
     };
 
     // Toggle a World Cup in/out of the pool, keeping at least one selected.
@@ -186,34 +179,6 @@ export default function SettingsModal({
                     <p className="mt-2 font-mono text-[11px] leading-snug text-muted">
                         {DIFF_DESC[s.difficulty]}
                     </p>
-                    {pending && (
-                        <div className="mt-3 rounded-md border border-loss/40 bg-loss/[0.06] p-3">
-                            <p className="text-[12.5px] leading-snug">
-                                Switching difficulty resets your sticker album. You will lose{' '}
-                                <b>{albumCount}</b> collected{' '}
-                                {albumCount === 1 ? 'sticker' : 'stickers'}.
-                            </p>
-                            <div className="mt-2.5 flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        onChangeDifficulty(pending);
-                                        setPending(null);
-                                    }}
-                                    className={DANGER_BTN}
-                                >
-                                    Change &amp; reset album
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPending(null)}
-                                    className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Match playback */}
