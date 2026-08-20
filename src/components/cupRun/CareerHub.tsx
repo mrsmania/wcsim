@@ -121,8 +121,16 @@ export default function CareerHub({
                 <div className="min-h-0 overflow-hidden">
                     <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
                         <div className="bg-panel p-4">
-                            <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                            <div className="mb-1.5 flex items-baseline gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                                 Progress
+                                {FEATURES.trophyCabinet && (
+                                    <Link
+                                        to="/cabinet"
+                                        className="ml-auto font-display text-[11px] font-extrabold tracking-[0.05em] text-accent transition hover:underline"
+                                    >
+                                        Trophy cabinet &rarr;
+                                    </Link>
+                                )}
                             </div>
                             <div className="h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
                                 <div

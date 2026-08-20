@@ -29,9 +29,26 @@
        `hair` is the row rule, a step lighter than `line` so 130 of them recede. */
     --color-dim: #636c65;
     --color-hair: #e3e8e2;
+    /* Three tokens the trophy cabinet needed, all following the same rule as `dim`
+       and `hair`: a state the page has to render many of, so it gets a token rather
+       than a literal at each site.
+       `faint` is the UNEARNED surface (a badge you have not got, a formation you have
+       not won with), flatter than chalk so an earned card reads as the lit one.
+       `cup-deep` is the shelf's top rank step. It cannot just be `ink`: ink is
+       near-white in the dark theme, which would make the HIGHEST Ascension tier the
+       lightest plinth and read the whole ramp backwards.
+       `amber-ink` is amber as TEXT. The surface amber fails AA on paper, so every
+       Prestige figure was reaching for a literal #9a6512 (five sites before this). */
+    --color-faint: #ecebe3;
+    --color-cup-deep: #0a1b12;
+    --color-amber-ink: #9a6512;
     --shadow-soft: 0 1px 2px rgba(19, 33, 26, 0.05), 0 12px 30px rgba(19, 33, 26, 0.07);
     /* Tifo-style hard drop shadow for cards: solid colour, zero blur, offset. */
     --shadow-hard: 6px 6px 0 var(--color-pitch-dark);
+    /* The same tifo shadow at card-in-a-grid scale: the cabinet stacks eight cards on
+       one page, where the full 6px offset stops reading as depth and starts reading as
+       clutter. */
+    --shadow-hard-sm: 4px 4px 0 var(--color-pitch-dark);
     --font-sans: 'Schibsted Grotesk', system-ui, sans-serif;
     --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
     --font-display: 'Archivo', system-ui, sans-serif;
@@ -64,6 +81,12 @@
     --color-loss: #e86b5b;
     --color-dim: #848b92;
     --color-hair: #2a2d33;
+    --color-faint: #191b1f;
+    /* Deeper than pitch-dark, so the rank ramp still runs chalk -> pitch -> pitch-dark
+       -> cup-deep here rather than inverting. */
+    --color-cup-deep: #0a2417;
+    /* On graphite the surface amber already clears AA, so ink and surface converge. */
+    --color-amber-ink: #eea23a;
 }
 :root[data-theme='dark'] body {
     /* Faint green glow at the very top, tying the accent into the neutral base. */

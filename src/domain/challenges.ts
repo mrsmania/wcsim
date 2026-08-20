@@ -781,6 +781,9 @@ export interface ChallengeProgress {
   available: number;
   blocked: number;
   byTier: Record<ChallengeTier, { total: number; completed: number }>;
+  /** Per-family totals, in the same shape as `byTier`. Here rather than in the screens
+   *  because both the catalogue and the cabinet want it and it is one walk either way. */
+  byFamily: Record<ChallengeFamily, { total: number; completed: number }>;
   prestige: number;
 }
 export function challengeProgress(completed: string[]): ChallengeProgress {
@@ -790,10 +793,17 @@ export function challengeProgress(completed: string[]): ChallengeProgress {
     silver: { total: 0, completed: 0 },
     gold: { total: 0, completed: 0 },
   };
+  const byFamily = Object.fromEntries(
+    FAMILIES.map((f) => [f, { total: 0, completed: 0 }]),
+  ) as ChallengeProgress['byFamily'];
   let blocked = 0;
   for (const c of CHALLENGES) {
     byTier[c.tier].total++;
-    if (done.has(c.id)) byTier[c.tier].completed++;
+    byFamily[c.family].total++;
+    if (done.has(c.id)) {
+      byTier[c.tier].completed++;
+      byFamily[c.family].completed++;
+    }
     if (c.blocked) blocked++;
   }
   const completedCount = CHALLENGES.filter((c) => done.has(c.id)).length;
@@ -803,6 +813,7 @@ export function challengeProgress(completed: string[]): ChallengeProgress {
     available: CHALLENGES.length - completedCount - blocked,
     blocked,
     byTier,
+    byFamily,
     prestige: prestigeFor(CHALLENGES.filter((c) => done.has(c.id)).map((c) => c.id)),
   };
 }

@@ -46,7 +46,9 @@ import {
   prestigeFor,
   viewOf,
 } from '../src/domain/challenges';
-import { emptyAlbum } from '../src/domain/album';
+import { collectiblePlayers, collectiblesByTier, emptyAlbum } from '../src/domain/album';
+import { BADGES, badgeRows, badgesEarned, perkTiersOwned } from '../src/domain/badges';
+import { bestCupStreakOf, cabinetView } from '../src/domain/cabinet';
 import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemistry';
 import { priceFor, priceOf, pricerFor } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
@@ -1261,6 +1263,198 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('challenges: a rolled build and a bought build never claim each other', rollOk);
   check('challenges: Swap Meet tracks the reducer swap allowance', swapOk);
   check('challenges: chemistry is judged at kickoff', chemOk);
+}
+
+// --- Trophy cabinet + badges (item 06) -------------------------------------
+// The cabinet records nothing: every figure is derived from a CareerState / AlbumState
+// that already existed. So what is worth asserting is that the derivation stays honest
+// against the states it will actually meet - an untouched career, a save written before
+// any of this existed, and a maxed-out one.
+{
+  // A career from before the counters landed: the three optional arrays are absent, and
+  // the cabinet must still render rather than throwing on a spread of undefined.
+  const stale = {
+    ...INITIAL_CAREER,
+    stats: {
+      ...INITIAL_CAREER.stats,
+      cupsByAscension: undefined as unknown as number[],
+      cupFormations: undefined as unknown as string[],
+    },
+  };
+  const empty = cabinetView(INITIAL_CAREER, emptyAlbum(), ALL_PLAYERS);
+  const staleView = cabinetView(stale, emptyAlbum(), ALL_PLAYERS);
+
+  check(
+    'cabinet: a fresh career has an empty shelf, a full ladder and no best tier',
+    empty.shelf.length === 0 &&
+      empty.ladder.length === ASCENSIONS.length &&
+      empty.headline.bestCupAscension === null &&
+      !empty.complete,
+  );
+  check(
+    'cabinet: a save written before the career counters still renders',
+    staleView.shelf.length === 0 &&
+      staleView.ladder.every((r) => r.cups === 0) &&
+      staleView.formations.every((f) => !f.won),
+  );
+
+  // One trophy per cup, at the tier it was won at, for every distribution the ladder
+  // allows. Built by playing the real reward path so the counters are the ones the game
+  // writes rather than ones hand-set here.
+  let shelfOk = true;
+  let ladderOk = true;
+  let career = INITIAL_CAREER;
+  for (const a of ASCENSIONS) {
+    // Level the career up enough to select the tier, then win there twice.
+    career = { ...career, level: 99, ascension: a.tier };
+    for (let i = 0; i < 2; i++) {
+      const run: RunState = {
+        ...beginRun(bestEleven(SQUADS[0].players), career.perkLevels, career.unlockedBoons, a.tier),
+        phase: 'ended',
+        outcome: 'champion',
+        score: 140,
+      };
+      career = applyRunResult(career, run).career;
+    }
+    const v = cabinetView(career, emptyAlbum(), ALL_PLAYERS);
+    if (v.shelf.length !== career.stats.cups) shelfOk = false;
+    if (v.shelf.filter((c) => c.tier === a.tier).length !== 2) shelfOk = false;
+    // Every cup on the shelf carries the label of the tier it was won at, and its
+    // "n of m" is within range.
+    if (v.shelf.some((c) => c.label !== ASCENSIONS[c.tier].label)) shelfOk = false;
+    if (v.shelf.some((c) => c.nth < 1 || c.nth > c.ofTier)) shelfOk = false;
+    // Selectable implies unlocked, and both are downward-closed: a gap in the ladder
+    // would mean a tier you could pick with a lower one you could not.
+    const sel = v.ladder.map((r) => r.selectable);
+    const unl = v.ladder.map((r) => r.unlocked);
+    if (v.ladder.some((r) => r.selectable && !r.unlocked)) ladderOk = false;
+    for (let i = 1; i < sel.length; i++) {
+      if (sel[i] && !sel[i - 1]) ladderOk = false;
+      if (unl[i] && !unl[i - 1]) ladderOk = false;
+    }
+    if (v.ladder[0].cups === 0) ladderOk = false; // Base was won first, above
+  }
+  check('cabinet: the shelf is one trophy per cup, at the tier it was won at', shelfOk);
+  check('cabinet: selectable implies unlocked, and both are downward-closed', ladderOk);
+
+  // The record the counters do NOT keep. `cupStreak` resets on any lesser finish, so a
+  // career that once won three in a row and then went out still has to report 3 - which
+  // it can only do by reading the honours it holds.
+  const streaky = {
+    ...INITIAL_CAREER,
+    stats: { ...INITIAL_CAREER.stats, cups: 3, cupStreak: 0 },
+    completedChallenges: ['first-blood', 'back-to-back', 'three-peat'],
+  };
+  check(
+    'cabinet: the best cup streak survives the counter being reset',
+    bestCupStreakOf(streaky) === 3 &&
+      bestCupStreakOf({ ...streaky, completedChallenges: ['back-to-back'] }) === 2 &&
+      // Never below 1 once a cup exists, and never above the live counter.
+      bestCupStreakOf({ ...streaky, completedChallenges: [] }) === 1 &&
+      bestCupStreakOf(INITIAL_CAREER) === 0 &&
+      bestCupStreakOf({
+        ...INITIAL_CAREER,
+        stats: { ...INITIAL_CAREER.stats, cups: 5, cupStreak: 5 },
+      }) === 5,
+  );
+
+  // Badges: earned is DERIVED from the fraction, so the two can never disagree, and
+  // `have` is clamped so no badge reads past complete.
+  const albumFull = {
+    ...emptyAlbum(),
+    collected: collectiblePlayers(ALL_PLAYERS).map((p) => p.id),
+  };
+  const maxed = {
+    ...INITIAL_CAREER,
+    level: 99,
+    prestige: 0,
+    perkLevels: Object.fromEntries(PERKS.map((pk) => [pk.id, pk.tiers.length])),
+    unlockedBoons: lockableBoons().map((b) => b.id),
+    ascension: ASCENSIONS.length - 1,
+    completedChallenges: CHALLENGES.map((c) => c.id),
+    stats: {
+      ...INITIAL_CAREER.stats,
+      cups: 12,
+      prestigeSpent: 5000,
+      cupsByAscension: ASCENSIONS.map(() => 2),
+      cupFormations: [...FORMATIONS_DATA.names],
+    },
+  };
+  const emptyRows = badgeRows(INITIAL_CAREER, { collected: 0, total: 81 });
+  const fullRows = badgeRows(maxed, { collected: 81, total: 81 });
+  const consistent = [...emptyRows, ...fullRows].every(
+    (r) => r.done === (r.have >= r.need) && r.have <= r.need && r.have >= 0,
+  );
+  check(
+    'badges: earned is derived from the fraction, and nothing reads past complete',
+    consistent && BADGES.length > 0,
+  );
+  check(
+    'badges: a fresh career has earned none and a maxed one has earned every badge',
+    badgesEarned(emptyRows) === 0 && badgesEarned(fullRows) === fullRows.length,
+  );
+  // Distinct ids, and no badge phrased as a single-run goal (that is a challenge).
+  check(
+    'badges: ids are unique',
+    new Set(BADGES.map((b) => b.id)).size === BADGES.length,
+  );
+  // An over-claiming save (a perk tier that no longer exists) cannot read as more than
+  // the tracks hold - the same clamp `extraRerollsOf` applies.
+  const overclaim = {
+    ...INITIAL_CAREER,
+    perkLevels: Object.fromEntries(PERKS.map((pk) => [pk.id, pk.tiers.length + 5])),
+  };
+  const perkTotal = PERKS.reduce((n, pk) => n + pk.tiers.length, 0);
+  check(
+    'badges: an over-claiming save is clamped to the tiers that exist',
+    perkTiersOwned(overclaim) === perkTotal && perkTiersOwned(INITIAL_CAREER) === 0,
+  );
+  // The complete state means complete: honours, badges and album all full.
+  const done = cabinetView(maxed, albumFull, ALL_PLAYERS);
+  check(
+    'cabinet: the complete state needs every honour, every badge and every sticker',
+    done.complete &&
+      !cabinetView(maxed, emptyAlbum(), ALL_PLAYERS).complete &&
+      done.honours.completed === done.honours.total &&
+      done.album.collected === done.album.total,
+  );
+}
+
+// --- Challenge and album groupings the cabinet reads ------------------------
+{
+  const someIds = CHALLENGES.filter((_, i) => i % 3 === 0).map((c) => c.id);
+  const prog = challengeProgress(someIds);
+  const famTotal = FAMILIES.reduce((n, f) => n + prog.byFamily[f].total, 0);
+  const famDone = FAMILIES.reduce((n, f) => n + prog.byFamily[f].completed, 0);
+  const perFamilyOk = FAMILIES.every(
+    (f) =>
+      prog.byFamily[f].total === CHALLENGES.filter((c) => c.family === f).length &&
+      prog.byFamily[f].completed ===
+        CHALLENGES.filter((c) => c.family === f && someIds.includes(c.id)).length,
+  );
+  check(
+    'challenges: byFamily reconciles with the catalogue and with the totals',
+    perFamilyOk && famTotal === prog.total && famDone === prog.completed,
+  );
+
+  // The tier grouping partitions the collectibles exactly: every collectible in one
+  // list, nothing else in any of them, each sorted rating-desc.
+  const byTier = collectiblesByTier(ALL_PLAYERS);
+  const flat = [...byTier.monumental, ...byTier.iconic, ...byTier.legendary];
+  const collectible = collectiblePlayers(ALL_PLAYERS);
+  const sortedOk = Object.values(byTier).every((list) =>
+    list.every((p, i) => i === 0 || list[i - 1].elo >= p.elo),
+  );
+  const tieredOk = (Object.keys(byTier) as (keyof typeof byTier)[]).every((t) =>
+    byTier[t].every((p) => tierOf(p) === t),
+  );
+  check(
+    'album: collectiblesByTier partitions the collectibles, rating-desc',
+    flat.length === collectible.length &&
+      new Set(flat.map((p) => p.id)).size === collectible.length &&
+      tieredOk &&
+      sortedOk,
+  );
 }
 
 // --- Summary ---------------------------------------------------------------

@@ -46,8 +46,14 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
 - **Tokens** live in `src/index.css` `@theme` (single source of truth; Tailwind v4
   generates the utilities). Palette: `--color-ground` (paper), `--color-panel`,
   `--color-chalk`, `--color-ink`, `--color-muted`, `--color-line`, `--color-pitch`,
-  `--color-pitch-dark`, `--color-amber`, `--color-loss`. Shadows: `--shadow-hard`
-  (the signature tifo hard offset card shadow, used via `shadow-hard`) + a soft one.
+  `--color-pitch-dark`, `--color-amber`, `--color-loss`, plus the greys and the three
+  the ledger and the cabinet added: `--color-dim` (unearned text, held at AA on every
+  surface), `--color-hair` (the row rule), `--color-faint` (the unearned SURFACE),
+  `--color-amber-ink` (amber as text, since the surface amber fails AA on paper) and
+  `--color-cup-deep` (the trophy shelf's top rank step - it cannot reuse `ink`, which
+  is near-white in dark and would invert the ramp). Shadows: `--shadow-hard`
+  (the signature tifo hard offset card shadow, used via `shadow-hard`), a 4px
+  `--shadow-hard-sm` for cards stacked many-to-a-page, + a soft one.
 - **Cards** are flat: `rounded-md` (6px) + 1px `border-line` + `shadow-hard`.
 - **Pitch** (`Pitch.tsx`) is **2D only** (the old 3D/perspective pitch and its
   `pitch3d` flag were removed). It draws an SVG board in a fixed 480x640 box, markings
@@ -158,6 +164,10 @@ src/
                difficulty.ts (the casual/normal/hard setting: +3/0/-3 to the user's
                               own attack + defense, nothing else)
                challenges.ts (the 130-entry catalogue + completedIn; gated - see below)
+               badges.ts     (the trophy cabinet's lifetime badges: pure predicates over
+                              the career + album, derived not stored, unpaid - see below)
+               cabinet.ts    (cabinetView: the whole trophy-cabinet readout, derived
+                              from CareerState + AlbumState; gated)
                random.ts     (shuffled + pick, the shared Math.random helpers)
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
@@ -178,11 +188,13 @@ src/
                presentational atoms + per-match view-model used by both screens;
                SquadBrowser + TeamRoster are the read-only squad archive (see below);
                CupRunScreen (Cup Run + career) is a lazy-loaded (React.lazy) route
-               screen; BudgetMarket is the budget build's left-column panel (shares
+               screen, as are ChallengesScreen and CabinetScreen (the trophy cabinet);
+               BudgetMarket is the budget build's left-column panel (shares
                the home page's Pitch + ratings/line-up, not a separate screen)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
-               stickerImages, careerMode, budgetDraft, challenges, challengeAwards;
+               stickerImages, careerMode, budgetDraft, challenges, challengeAwards,
+               trophyCabinet;
                plus `accounts`, which is DERIVED from the build env, see below) +
                STICKER_TIERS / STICKER_TRADE_COST / STICKER_DISCOUNT +
                BUDGET_DRAFT / BUDGET_BY_TIER
@@ -228,7 +240,8 @@ reducer stays the source of truth for *game data*. `App` branches on
 `location.pathname`: `/` (the launcher when `careerMode` is on, else the build page),
 `/quick-run` + `/career-mode` (the build page = setup/draft/complete, sub-view derived from
 `formation` + `isComplete`, not `phase`), `/group`, `/knockout` (both redirect `/` when
-their data is missing), `/cup-run`, `/album`, and `/squads/*`. Navigation happens via
+their data is missing), `/cup-run`, `/album`, `/challenges`, `/cabinet`, and
+`/squads/*`. Navigation happens via
 `useNavigate` in the footer nav and the transition handlers (`handleStartGroup`,
 `handleEnterKnockout`, `handleReset`), which never rebuild existing state. So Back/
 Forward move between screens (knockout <-> group <-> home) without losing progress. On
@@ -801,6 +814,60 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   changing an id orphans what players have already earned. That is why `on-a-roll` kept its
   id when it was redefined from "win three runs in a row" (which was Three-Peat under another
   name) to "reach a final in three consecutive runs".
+
+## Trophy cabinet (flagged)
+
+A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap item 06
+(option B of the four in that entry); comp in
+`docs/redesign-2026/turf-flat/trophy-cabinet.html`. Behind **`FEATURES.trophyCabinet`**
+(and Career Mode, like the rest of that layer), reached from a "Trophy cabinet" link in
+`CareerHub`.
+
+- **It records nothing.** The career layer already stored far more than it showed:
+  `cupsByAscension`, `bestCupAscension`, `cupFormations`, the three streak counters,
+  `everLostFinal`, `runsAtHighAscension`, `prestigeSpent` and `bestScore` were all being
+  written and read by nothing but `domain/challenges.ts` (and `bestScore` by nothing at
+  all). So the cabinet is a **readout**, not a recording job: `domain/cabinet.ts`
+  `cabinetView(career, album, allPlayers)` derives every figure on the page, which is why
+  it needed no new state, no migration, and behaves identically for a guest and an
+  account. `CabinetScreen` only lays the result out.
+- **Blocks:** a headline strip, the **shelf** (one trophy per cup), the Ascension
+  **ladder**, **Records**, the formations a cup has been won with, an **honours** summary
+  (counter, tier bars, all 12 families, linking to `/challenges` for the full ledger),
+  **badges**, album completion with the Monumental strip, and **run history as an empty
+  state** (see below).
+- **Rank is one hue getting deeper, plus a numeral** - not six colours. Same rule the
+  challenge ledger arrived at when 130 painted entries stopped reading (`TIER_COLOR` is
+  gone). The top step needs its own token: `bg-ink` would make the **highest** tier the
+  **lightest** plinth in the dark theme and read the ramp backwards, hence
+  `--color-cup-deep`.
+- **`domain/badges.ts`** is the cabinet's long tail, and the distinction that keeps it
+  from being the challenge catalogue twice: **a badge asks what a career HOLDS, a
+  challenge asks what one RUN did.** Nothing here could be phrased "win the cup with...".
+  Three rules: nothing is recorded (pure predicates, so a career that predates the file
+  lights up retroactively and no stored set can disagree with the display); nothing is
+  paid (challenges are the Prestige faucet, and a second one would need the same arrears
+  reasoning `challengeAwards` carries); and no exact lifetime counts, only thresholds and
+  set-coverage (the First Blood trap, and worse here since a derived exact count would
+  flicker as the counter passed). A badge defines only `progress`, and **earned is derived
+  from it**, so it cannot claim to be earned while showing an incomplete fraction.
+- **Two things needed adding to existing code**, both of which were already on the hygiene
+  backlog rather than new debt: `byFamily` on `ChallengeProgress` (H44 - the catalogue
+  screen was recomputing it) and `collectiblesByTier` in `domain/album.ts` (H45 - six
+  callers were re-deriving a tier they had just proved). `AlbumScreen` still hand-rolls
+  its own grouping; pointing it at the shared one is what is left of H45.
+- **"Best cup streak" is not a stored field**, and this is the one number on the screen
+  that took thought. `cupStreak` is a live counter that resets on any lesser finish, so
+  nothing records the best run ever. Rather than add a counter (which would only work
+  going forward), `bestCupStreakOf` reads it off the honours: **holding Three-Peat is
+  itself proof a three-cup streak happened.** Works retroactively, and `npm run checks`
+  asserts a career whose counter has been reset still reports 3.
+- **Run history is deliberately an empty state**, not omitted: a dated list of finished
+  runs is the only thing on the screen no existing field can answer, and "your last 20
+  runs" is the first thing anyone will ask it for. It is option D in roadmap item 06 and
+  needs either a new local key or reviving the dead `run_results` columns (item 21).
+- With **`FEATURES.trophyCabinet` = false**: the route redirects home, the hub link
+  disappears, and nothing else changes.
 
 ## Budget draft / Transfer Market (flagged)
 

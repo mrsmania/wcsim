@@ -66,6 +66,7 @@ const KnockoutScreen = lazy(() => import('./components/KnockoutScreen'));
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
+const CabinetScreen = lazy(() => import('./components/CabinetScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
@@ -635,6 +636,7 @@ export default function App({
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
     const isAlbum = STICKERS && path === '/album';
     const isChallenges = FEATURES.careerMode && FEATURES.challenges && path === '/challenges';
+    const isCabinet = FEATURES.careerMode && FEATURES.trophyCabinet && path === '/cabinet';
     const isCupRun = FEATURES.careerMode && path === '/cup-run';
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
@@ -843,6 +845,21 @@ export default function App({
                             // there is no history to pop - fall back to the launcher.
                             onClose={() => (location.key === 'default' ? navigate('/') : navigate(-1))}
                         />
+                    ) : isCabinet ? (
+                        // Career + album, both read live. The cabinet records nothing of
+                        // its own; `domain/cabinet.ts` derives every figure on it.
+                        careerPeek ? (
+                            <CabinetScreen
+                                career={careerPeek}
+                                album={stickers.album}
+                                allPlayers={poolPlayers}
+                                onClose={() =>
+                                    location.key === 'default' ? navigate('/') : navigate(-1)
+                                }
+                            />
+                        ) : (
+                            <Navigate to="/" replace />
+                        )
                     ) : isChallenges ? (
                         <ChallengesScreen
                             completed={challengeIds}

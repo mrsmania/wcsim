@@ -66,6 +66,14 @@ export const FEATURES = {
      *  evaluated, no Prestige is paid for one, and the screen and its entry points
      *  disappear. Plan: docs/challenges-spec.html. */
     challenges: true,
+    /** Trophy cabinet: a read-only /cabinet screen showing what a career has to show
+     *  for itself - the cups it has won by Ascension tier, the records, the honours
+     *  summary, the derived badges (domain/badges.ts) and album completion. Career Mode
+     *  only, like the rest of that layer, and entirely derived: it reads the career and
+     *  the album and records nothing of its own, so switching it off removes the route
+     *  and the hub link and changes nothing else. Roadmap item 06; comp in
+     *  docs/redesign-2026/turf-flat/trophy-cabinet.html. */
+    trophyCabinet: true,
     /** Whether a challenge PAYS Prestige. One switch for both halves, deliberately: with
      *  it false nothing is paid AND no award is shown anywhere (the catalogue rows, the
      *  hub card, the run-end list, the counter's Prestige cell), because Prestige arriving

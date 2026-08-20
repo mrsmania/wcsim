@@ -64,6 +64,23 @@ export function collectiblePlayers(allPlayers: Player[]): Player[] {
     return allPlayers.filter(isCollectible);
 }
 
+/** The collectibles grouped by tier, each sorted rating-desc then by name - the order
+ *  the album grid and the cabinet's tier strips both read in. Here rather than in a
+ *  component because "which tier is a player in" is already this module's job and every
+ *  caller was otherwise re-deriving the tier it had just proved.
+ *  (`AlbumScreen` still hand-rolls its own copy; folding it in is hygiene item H45.) */
+export function collectiblesByTier(allPlayers: Player[]): Record<StickerTier, Player[]> {
+    const groups = { monumental: [], iconic: [], legendary: [] } as Record<StickerTier, Player[]>;
+    for (const p of allPlayers) {
+        const tier = tierOf(p);
+        if (tier) groups[tier].push(p);
+    }
+    for (const list of Object.values(groups)) {
+        list.sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
+    }
+    return groups;
+}
+
 /** Add one copy of a player id to an album (immutably): first copy -> collected,
  *  otherwise bump the duplicate counter. */
 function addCopy(album: AlbumState, id: string): AlbumState {
