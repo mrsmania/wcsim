@@ -1,5 +1,5 @@
-import type { Player } from '../data/types';
-import { categoryOf, isAttacker, isDefender, primaryPosition } from '../data/types';
+import type { Player, Position } from '../data/types';
+import { isAttacker, isDefender, primaryPosition } from '../data/types';
 
 export interface Strength {
   attack: number;
@@ -19,11 +19,24 @@ export interface MatchResult {
   events: MatchEvent[];
 }
 
+/** One candidate scorer and how likely he is relative to his team-mates. */
+export interface ScorerWeight {
+  name: string;
+  weight: number;
+}
+
+/** A candidate scorer pool. A bare string is a LEGACY entry, weight 1: the pool used to
+ *  be a `string[]` with a player's name repeated once per point of weight, so reading
+ *  each entry as 1 reproduces the old distribution exactly. That matters because a
+ *  `GroupTeam` is persisted (the game state, the active run, and a run's drawn
+ *  `nextOpponent`), so a match in flight when this shipped keeps its old pool. */
+export type ScorerPool = readonly (ScorerWeight | string)[];
+
 /** A participant in a single match. */
 export interface Side {
   strength: Strength;
-  /** Candidate scorer names, already weighted (forwards appear more often). */
-  scorers: string[];
+  /** Candidate scorers with their relative weights (see `scorerPool`). */
+  scorers: ScorerPool;
 }
 
 const avg = (nums: number[]) => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0);
@@ -40,15 +53,84 @@ export function xiStrength(players: Player[]): Strength {
   };
 }
 
-/** Weighted scorer pool: forwards likeliest, midfielders less, defenders rare, GK never. */
-export function scorerPool(players: Player[]): string[] {
-  const names: string[] = [];
-  for (const p of players) {
-    const cat = categoryOf(primaryPosition(p));
-    const weight = cat === 'FWD' ? 4 : cat === 'MID' ? 2 : cat === 'DEF' ? 1 : 0;
-    for (let i = 0; i < weight; i++) names.push(p.name);
+/**
+ * How likely each POSITION is to score, relative to the others. Replaces the old
+ * four-band weighting by category (FWD 4 / MID 2 / DEF 1 / GK 0), which had two
+ * consequences nobody wanted once goals became visible on the cabinet's top-scorer
+ * board: an attacking midfielder scored at exactly a holding midfielder's rate, and an
+ * AM at half a striker's, because the band was flat inside a category.
+ *
+ * Read against a full-back at 1.0: a striker is ~4.4x, a winger 3.6x, an AM 3x, a
+ * central midfielder 2x, a holding midfielder 1.2x, a centre-back 0.8x. A keeper never
+ * scores from open play (he still takes his turn in a shootout, which is a separate
+ * pool). The ordering is asserted in `npm run checks` so it cannot drift quietly.
+ *
+ * NOTE this keys off `positions[0]`, which `placedPlayers` promotes to the slot the
+ * player was placed in - so it is where he is PLAYED, not what the dataset calls him.
+ * Playing a winger at striker really does make him score more.
+ */
+export const POSITION_WEIGHT: Record<Position, number> = {
+  GK: 0,
+  CB: 0.8,
+  LB: 1,
+  RB: 1,
+  DM: 1.2,
+  CM: 2,
+  LM: 2.2,
+  RM: 2.2,
+  AM: 3,
+  LW: 3.6,
+  RW: 3.6,
+  ST: 4.4,
+};
+
+/** Where the rating tilt is neutral, and how steep it is. Deliberately mild: at 0.02
+ *  per point a 99 is 1.48x a 75 and 2.1x a 60, so the shape of the XI still decides
+ *  most of who scores while a genuine star stands out from the squad player beside him.
+ *  Before this, rating was ignored entirely - a 99 striker and an 80 striker in the same
+ *  XI were exactly as likely, while `penTakersFrom` already sorted penalties by rating.
+ *
+ *  It is bounded, not neutralised: no rating gap the dataset allows can turn a defender
+ *  into an attacker (the worst possible attacker still outweighs the best possible
+ *  defender, asserted in the checks). ADJACENT lines are deliberately crossable though -
+ *  a 99 full-back edges a 60 central midfielder, which is the tilt earning its keep. */
+const RATING_PIVOT = 75;
+const RATING_PER_POINT = 0.02;
+
+/** A player's scoring weight: his position, tilted by his rating. */
+export function scorerWeight(player: Player): number {
+  const base = POSITION_WEIGHT[primaryPosition(player)] ?? 0;
+  if (base === 0) return 0;
+  // Floored well above zero so no rating the dataset allows (ELO_MIN is 60, giving
+  // 0.7) can make a player unable to score, or invert the position ordering.
+  const tilt = Math.max(0.2, 1 + (player.elo - RATING_PIVOT) * RATING_PER_POINT);
+  return base * tilt;
+}
+
+/** Weighted scorer pool: forwards likeliest, midfielders less, defenders rare, GK never
+ *  - and within a line, the better player more often. An XI of nothing but keepers (no
+ *  weight at all) falls back to everyone equally likely rather than nobody scoring. */
+export function scorerPool(players: Player[]): ScorerWeight[] {
+  const pool = players.map((p) => ({ name: p.name, weight: scorerWeight(p) }));
+  return pool.some((s) => s.weight > 0) ? pool : players.map((p) => ({ name: p.name, weight: 1 }));
+}
+
+/** One scorer drawn from a pool, proportional to weight. Tolerates the legacy
+ *  `string[]` shape (see `ScorerPool`) and a pool whose weights are all zero. */
+export function pickScorer(pool: ScorerPool): string | undefined {
+  if (!pool.length) return undefined;
+  const weightOf = (s: ScorerWeight | string) => (typeof s === 'string' ? 1 : s.weight);
+  const nameOf = (s: ScorerWeight | string) => (typeof s === 'string' ? s : s.name);
+  let total = 0;
+  for (const s of pool) total += Math.max(0, weightOf(s));
+  if (total <= 0) return nameOf(pool[Math.floor(Math.random() * pool.length)]);
+  let roll = Math.random() * total;
+  for (const s of pool) {
+    roll -= Math.max(0, weightOf(s));
+    if (roll < 0) return nameOf(s);
   }
-  return names.length ? names : players.map((p) => p.name);
+  // Only reachable on a floating-point edge; the last eligible entry is the answer.
+  return nameOf(pool[pool.length - 1]);
 }
 
 const BASE_GOALS = 1.3;
@@ -78,10 +160,6 @@ function poisson(lambda: number): number {
   return k - 1;
 }
 
-function pick<T>(arr: T[]): T | undefined {
-  return arr.length ? arr[Math.floor(Math.random() * arr.length)] : undefined;
-}
-
 /** Chronological event order: earliest minute first; on the same minute, home
  *  before away (a stable, deterministic tiebreak for the goal feed). */
 function eventOrder(a: MatchEvent, b: MatchEvent): number {
@@ -104,9 +182,13 @@ function simulatePeriod(
   const awayGoals = poisson(expectedGoals(away.strength.attack, home.strength.defense) * lambdaScale);
 
   const events: MatchEvent[] = [];
-  const addGoals = (n: number, side: 'home' | 'away', scorers: string[]) => {
+  const addGoals = (n: number, side: 'home' | 'away', scorers: ScorerPool) => {
     for (let i = 0; i < n; i++) {
-      events.push({ minute: minuteBase + Math.floor(Math.random() * minuteSpan), side, scorer: pick(scorers) ?? 'Unknown' });
+      events.push({
+        minute: minuteBase + Math.floor(Math.random() * minuteSpan),
+        side,
+        scorer: pickScorer(scorers) ?? 'Unknown',
+      });
     }
   };
   addGoals(homeGoals, 'home', home.scorers);

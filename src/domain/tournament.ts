@@ -1,6 +1,13 @@
 import type { Player, Squad } from '../data/types';
 import { SQUADS } from '../data/squads';
-import { scorerPool, simulateMatch, xiStrength, type MatchResult, type Strength } from './match';
+import {
+  scorerPool,
+  simulateMatch,
+  xiStrength,
+  type MatchResult,
+  type ScorerPool,
+  type Strength,
+} from './match';
 import { shuffled } from './random';
 
 export const GROUP_MATCHDAYS = 3;
@@ -17,7 +24,7 @@ export interface GroupTeam {
   year?: number;
   isUser: boolean;
   strength: Strength;
-  scorers: string[];
+  scorers: ScorerPool;
   /** Penalty takers, best first (used by the knockout shootout). */
   penTakers: { name: string; elo: number }[];
 }

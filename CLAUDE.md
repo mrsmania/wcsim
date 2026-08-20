@@ -300,6 +300,31 @@ rather than partially.
 - **Draft**: roll a squad -> pick an eligible player -> place into a position-matching
   open slot. `canPlace` allows any slot whose role is in `positions`; re-rolls are
   "another team" (same year), "another cup" (same nation), or "any".
+- **Who scores a goal** (`match.ts` `POSITION_WEIGHT` / `scorerWeight` / `scorerPool`):
+  the sim decides HOW MANY goals from the two sides' strengths, then credits each one to
+  a weighted random player, so nothing here can change a scoreline - only the name beside
+  it. Weight is **per position, tilted by rating**: read against a full-back at 1.0, a
+  striker is 4.4x, a winger 3.6x, an AM 3x, a CM 2x, a DM 1.2x, a centre-back 0.8x, and a
+  keeper never scores from open play. The tilt is `1 + (elo - 75) * 0.02`, so a 99 is
+  1.48x a 75 and 2.1x a 60.
+  - It replaced a flat four-band weighting by CATEGORY (FWD 4 / MID 2 / DEF 1 / GK 0),
+    which measured out at exactly 4x / 2x / 1x per player but had two consequences that
+    only became visible when the cabinet started showing a top-scorer board: **an AM
+    scored at a DM's rate** (both MID), and **rating was ignored entirely** - a 99 striker
+    and an 80 striker in the same XI were equally likely, while penalty takers were
+    already sorted by rating.
+  - **The weight keys off `positions[0]`, which is the SLOT** (`placedPlayers` promotes
+    it), so it is where a player is played, not what the dataset calls him.
+  - **Bounded, not neutralised:** no rating gap the dataset allows can turn a defender
+    into an attacker (asserted), but adjacent lines are deliberately crossable - a 99
+    full-back edges a 60 central midfielder.
+  - **`Side.scorers` tolerates the old `string[]` shape**, because a `GroupTeam` is
+    persisted (the game state, the active run, a run's drawn `nextOpponent`): the old pool
+    repeated a name once per point of weight, so reading each entry as weight 1
+    reproduces the old distribution exactly for a match that was already in flight.
+  - Measured side effect, for the two challenges that read scorer identity: a hat-trick in
+    a match went 1.76% -> 2.11%, distinct scorers per match 1.659 -> 1.639, and goals per
+    match did not move (1.868 -> 1.865), which is the "scorelines are untouched" claim.
 - **Chemistry** (`chemistry.ts`, see below).
 
 ## Settings (theme, difficulty, year pool, speed)

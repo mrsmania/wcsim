@@ -12,9 +12,16 @@
  */
 import { readFileSync } from 'node:fs';
 import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID, basePlayer } from '../src/data/squads';
-import { isAttacker, isDefender, primaryPosition, type Player, type Position } from '../src/data/types';
+import { ELO_MAX, ELO_MIN, isAttacker, isDefender, primaryPosition, type Player, type Position } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
-import { simulateMatch, simulateShootout } from '../src/domain/match';
+import {
+  POSITION_WEIGHT,
+  pickScorer,
+  scorerPool,
+  scorerWeight,
+  simulateMatch,
+  simulateShootout,
+} from '../src/domain/match';
 import {
   bestEleven,
   createGroup,
@@ -1515,6 +1522,11 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // scored-in-open-play total matches the tally, ignoring the shootout entirely.
   let pensSeen = 0;
   let pensOk = true;
+  // Kicks CONVERTED by the user across the whole sample, not per run: a shootout lost
+  // 0-3 converts none, so requiring every sampled run to have scored one made this
+  // assertion fail on an unlucky draw rather than on a real defect. What has to hold per
+  // run is only that the tally ignores the shootout.
+  let penKicksSeen = 0;
   for (let i = 0; i < 400 && pensSeen < 12; i++) {
     let r: RunState = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0);
     r = playGroupStage(r);
@@ -1532,12 +1544,12 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     const tallied = Object.values(r.tally?.goals ?? {}).reduce((a, b) => a + b, 0);
     // Every goal the run's own records show, from the scorelines, excluding shootouts.
     const scored = runTotals(r).goalsFor;
-    const penKicks = shootouts.reduce((n, h) => n + (h.pens?.home ?? 0), 0);
-    if (tallied !== scored || penKicks === 0) pensOk = false;
+    penKicksSeen += shootouts.reduce((n, h) => n + (h.pens?.home ?? 0), 0);
+    if (tallied !== scored) pensOk = false;
   }
   check(
     'tally: a shootout adds kicks to the scoreline but no goals to a scorer',
-    pensSeen > 0 && pensOk,
+    pensSeen > 0 && penKicksSeen > 0 && pensOk,
   );
 
   // addMatches directly: an unknown scorer name is dropped rather than guessed, and the
@@ -1659,6 +1671,122 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       scorersOrdered &&
       view.playersTracked === Object.keys(rec).length &&
       view.history.length === 2,
+  );
+}
+
+// --- Who scores: position weighting + the rating tilt ----------------------
+// `scorerPool` decides which player is CREDITED with a goal, never how many are
+// scored (that is expectedGoals from the two strengths), so nothing here can move a
+// scoreline. What it can do is drift: the ordering below is the whole design, and a
+// stray edit to one number would silently make a holding midfielder a striker.
+{
+  const anyPlayer = ALL_PLAYERS[0];
+  const at = (pos: Position, elo: number): Player => ({ ...anyPlayer, positions: [pos], elo });
+
+  // 1. The ordering, at one fixed rating so only position is in play.
+  const ORDER: Position[] = ['ST', 'LW', 'AM', 'RM', 'CM', 'DM', 'LB', 'CB'];
+  const weights = ORDER.map((pos) => scorerWeight(at(pos, 80)));
+  const strictlyDescending = weights.every((w, i) => i === 0 || weights[i - 1] > w);
+  check(
+    'scorers: ST > winger > AM > wide mid > CM > DM > full-back > CB at equal rating',
+    strictlyDescending &&
+      scorerWeight(at('LW', 80)) === scorerWeight(at('RW', 80)) &&
+      scorerWeight(at('LB', 80)) === scorerWeight(at('RB', 80)),
+  );
+  check(
+    'scorers: a keeper cannot score from open play, at any rating',
+    POSITION_WEIGHT.GK === 0 &&
+      scorerWeight(at('GK', 99)) === 0 &&
+      scorerWeight(at('GK', 60)) === 0,
+  );
+
+  // 2. The rating tilt: monotone within a position, and bounded so that no rating gap
+  //    the dataset allows can turn a defender into an attacker. ADJACENT lines are a
+  //    different matter and are deliberately crossable - a 99 full-back (1.48) does
+  //    outscore a 60 central midfielder (1.40), which is the tilt doing its job. What
+  //    must hold is the attack/defence divide: the worst attacker still beats the best
+  //    defender, so the shape of the XI decides the shape of the scoring.
+  const tilt = [ELO_MIN, 75, 85, ELO_MAX].map((elo) => scorerWeight(at('ST', elo)));
+  const ATTACKING: Position[] = ['ST', 'LW', 'RW', 'AM'];
+  const DEFENDING: Position[] = ['CB', 'LB', 'RB'];
+  const worstAttacker = Math.min(...ATTACKING.map((pos) => scorerWeight(at(pos, ELO_MIN))));
+  const bestDefender = Math.max(...DEFENDING.map((pos) => scorerWeight(at(pos, ELO_MAX))));
+  check(
+    'scorers: rating tilts within a line but never turns a defender into an attacker',
+    tilt.every((w, i) => i === 0 || w > tilt[i - 1]) && worstAttacker > bestDefender,
+  );
+
+  // 3. An XI with no eligible scorer at all (eleven keepers) still credits someone,
+  //    rather than every goal reading 'Unknown'.
+  const keepers = Array.from({ length: 11 }, (_, i) => at('GK', 70 + i));
+  const gkPool = scorerPool(keepers);
+  check(
+    'scorers: an XI that cannot score falls back to everyone equally likely',
+    gkPool.length === 11 &&
+      gkPool.every((s) => s.weight === 1) &&
+      !!pickScorer(gkPool) &&
+      pickScorer([]) === undefined,
+  );
+
+  // 4. Legacy tolerance. A GroupTeam is persisted (the game state, the active run and
+  //    a run's drawn nextOpponent), so a match in flight when the weights shipped hands
+  //    back the old `string[]` pool - a name repeated once per point of weight. Reading
+  //    each entry as 1 has to reproduce that old distribution exactly.
+  const legacy = ['Striker', 'Striker', 'Striker', 'Striker', 'Defender'];
+  let striker = 0;
+  for (let i = 0; i < 40000; i++) if (pickScorer(legacy) === 'Striker') striker++;
+  const ratio = striker / (40000 - striker);
+  check(
+    'scorers: a run persisted before the weights keeps its old string pool working',
+    ratio > 3.4 && ratio < 4.6,
+  );
+
+  // 5. End to end through the real sim: the per-player ordering holds, and no keeper
+  //    ever appears in a goal feed.
+  const f = getFormation(FORMATIONS_DATA, '4-2-3-1', 'off')!;
+  const used = new Set<string>();
+  const filled: Filled = {};
+  for (const slot of f.slots) {
+    const p = ALL_PLAYERS.filter(
+      (x) => !used.has(x.personId) && x.positions.includes(slot.position),
+    ).sort((a, b) => b.elo - a.elo)[0];
+    if (p) {
+      used.add(p.personId);
+      filled[slot.id] = p;
+    }
+  }
+  const xi = placedPlayers(f, filled);
+  const byName = new Map(xi.map((p) => [p.name, p]));
+  const user = userGroupTeam(xi);
+  const opp = squadGroupTeam(SQUADS[1]);
+  const perPos = new Map<Position, number>();
+  const countPos = new Map<Position, number>();
+  for (const p of xi) countPos.set(primaryPosition(p), (countPos.get(primaryPosition(p)) ?? 0) + 1);
+  let goals = 0;
+  let unknown = 0;
+  for (let i = 0; i < 6000; i++) {
+    for (const e of simulateMatch(user, opp).events) {
+      if (e.side !== 'home') continue;
+      goals++;
+      const p = byName.get(e.scorer);
+      if (!p) {
+        unknown++;
+        continue;
+      }
+      const pos = primaryPosition(p);
+      perPos.set(pos, (perPos.get(pos) ?? 0) + 1);
+    }
+  }
+  const rate = (pos: Position) => (perPos.get(pos) ?? 0) / (countPos.get(pos) ?? 1) / goals;
+  check(
+    'scorers: over 6000 matches the measured order is ST > AM > CM > full-back > CB',
+    goals > 5000 &&
+      unknown === 0 &&
+      !perPos.has('GK') &&
+      rate('ST') > rate('AM') &&
+      rate('AM') > rate('CM') &&
+      rate('CM') > rate('RB') &&
+      rate('RB') > rate('CB'),
   );
 }
 
