@@ -814,6 +814,51 @@
   </div>
 </details>
 
+<details class="item">
+  <summary>
+    <span class="num">25</span>
+    <span class="title">Apply migration 0012 on the NAS
+      <span class="sub">The duplicate-cup-pick fix shipped client-first, as every migration does. Needs one command from the LAN or VPN.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Opened 2026-08-20</strong>, with the fix it belongs to already on
+    <code>main</code>.</p>
+
+    <p><strong>What it is.</strong> <code>supabase/migrations/0012_duplicate_cup_pick.sql</code>
+    lets the cup-win pick be a card the album already holds. With every pickable sticker collected
+    the reward picker offers the whole Legendary/Iconic list on purpose and the pick lands as a
+    duplicate (album spec FR-3); the server refused it, which rolled the whole bank back and left a
+    signed-in player on the blocking "can't reach your account" screen. So a full album made
+    winning the cup unplayable for an account.</p>
+
+    <p><strong>The command</strong>, from a machine on the LAN or VPN with
+    <code>dkr/.env</code> present:</p>
+    <p><code>npm run push:sql -- supabase/migrations/0012_duplicate_cup_pick.sql</code>
+    (add <code>-- --dry-run</code> first to see it without sending).</p>
+
+    <p><strong>Not urgent, because the client already copes.</strong>
+    <code>remoteStore.finishRun</code> retries a refused pick as one more entry in
+    <code>collectibleIds</code> - those are added copy by copy with no already-collected check, and
+    11 + 1 still fits the server's cap of 12 - so a pre-0012 server banks the duplicate instead of
+    losing the run. Applying the migration is what removes the wasted round trip and the misleading
+    audit row (the pick is logged as an earned collectible on that path).</p>
+
+    <p><strong>Verified before shipping</strong> against a local Postgres 16 with the real
+    migrations 0001-0012 and the generated catalogue: the failure reproduces pre-0012 (with
+    <code>run_results</code> rolled back, which is what makes the client's retry safe), the
+    duplicate banks post-0012 with <code>album_stats</code> and the run row intact, and the other
+    three guards (cup win, active collectible, never Monumental) still raise.</p>
+
+    <p class="next"><strong>Next step:</strong> run the command, then check
+    <code>select prosrc from pg_proc where proname = 'finish_run_v2'</code> no longer contains
+    "already collected" and close this item.</p>
+    <p class="files">supabase/migrations/0012_duplicate_cup_pick.sql, scripts/push-sql.mjs, src/state/store/remoteStore.ts</p>
+  </div>
+</details>
+
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
