@@ -775,11 +775,81 @@
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>Form as an in-run currency, plus node variety between rounds: a shop, an event, a
-    curse. Turns a run into a sequence of decisions rather than five ties and four boosts.</p>
-    <p class="next"><strong>Note:</strong> boosts deliberately last the whole run, so any
-    node type that grants a temporary effect needs new machinery in the run engine.</p>
-    <p class="files">docs/career-depth-spec.md, src/domain/run.ts</p>
+    <p><strong>The ask</strong> (<code>docs/career-depth-spec.md</code> section D, where it is
+    parked as a future idea rather than a spec): give a run an economy and a shape of its own.
+    Two halves that only make sense together.</p>
+
+    <p><strong>Form, an in-run currency.</strong> Earned from wins and goal margins
+    <em>during</em> a run and spent between rounds on re-rolls, rating heals or an extra
+    boost. It lives and dies with the run, unlike Prestige, which is the career-level currency
+    that survives it. So the run gains a wallet, and a reason to care about a 3-0 over a
+    1-0.</p>
+
+    <p><strong>Node variety.</strong> Today every gap between rounds is the same gap: pick 1
+    of 3 boosts. That is literal rather than a figure of speech, since
+    <code>RunPhase</code> is <code>'group' | 'boon' | 'match' | 'ended'</code> and the
+    between-round step <em>is</em> <code>boon</code>. Variety rotates it: sometimes a boost
+    pick, sometimes a <b>shop</b> (spend Form), sometimes an <b>event</b> (a themed trade-off
+    choice), sometimes a <b>curse</b> (a genuinely optional high-risk boost).</p>
+
+    <p><strong>Why it is wanted.</strong> A run is currently five ties and four boost picks,
+    and each pick reduces to taking the biggest number. The spec's own phrasing is that this
+    is what makes <em>the run itself</em> skillful rather than pick-the-biggest-number: the
+    difference between a run being a sequence of decisions and a sequence of results.</p>
+
+    <p><strong>Why it is the expensive one.</strong> Three costs, in order of nastiness:</p>
+    <ul>
+      <li><b>1. Temporary effects have nowhere to live.</b> This is the note this item has
+      always carried, and it is exact. <code>Boon.apply</code> is
+      <code>(xi, ctx) =&gt; Player[]</code> and <code>RunState.xi</code> is documented as "the
+      current XI, with any boon rating deltas baked in": a boost is applied by <em>rewriting
+      the players</em>, and nothing records what was applied or by how much. So nothing can
+      expire. Two ways out, and only one is sound. <b>An effect ledger</b> beside the XI, with
+      <code>xi</code> recomputed from base plus active effects each round, is the clean fix,
+      and it incidentally settles something <code>domain/challenges.ts</code> already works
+      around: <code>run.xi</code> diverges from the dataset ratings, which is why
+      <code>basePlayer</code> exists. <b>An inverse transform</b> per effect is the tempting
+      one and it is fragile, because the bumps clamp at 99 and so are not reversible: a +2 on
+      a 98 is +1, and the inverse does not know that.</li>
+      <li><b>2. The phase machine has to branch.</b> <code>RunPhase</code> grows from four
+      states to about six, and <code>prepareKnockoutRound</code> hard-codes
+      <code>phase: 'boon'</code> with an offer as the thing that follows a tie
+      (<code>run.ts:421</code>). Every consumer changes with it: <code>CupRunScreen</code>'s
+      content switch, <code>RunLadder</code>, and the persisted <code>wcsim_run_v1</code>
+      shape, including a run saved mid-shop having to resume.</li>
+      <li><b>3. A second currency has to be balanced against the first.</b> Prestige was sized
+      by simulation: the perk shop plus every locked boost is 2,525, a run pays a median of 9,
+      and the challenge awards were tuned to 2/5/12 against that anchor. Form needs the same
+      treatment. And <code>npm run checks</code> already asserts boost budgets of common 2.0,
+      rare 3.2, legendary 4.5, so a shop that <em>sells rating points</em> has to fit inside
+      those bands or it invalidates the assertion.</li>
+    </ul>
+
+    <p><strong>What already exists in its favour</strong>, which is more than the item's one
+    line suggested:</p>
+    <ul>
+      <li><b>Glass Cannon</b> (+5 to attackers, -3 to defenders) is a working curse template,
+      and it is already exempt from the boost budget check for precisely the reason a curse
+      needs to be: it gives points back.</li>
+      <li><b><code>rerollOffer</code> + <code>RunState.rerollsLeft</code></b> already exist for
+      the Physio Table perk. That is the shop's re-roll item, already built and already
+      persisted.</li>
+      <li><b><code>domain/odds.ts</code></b> is how to judge whether a node's choice is
+      meaningful at all, which is item 05's whole content, so the two are natural
+      companions.</li>
+    </ul>
+
+    <p class="next"><strong>Next step:</strong> nothing yet, and deliberately so. Depends on
+    nothing in A/B/C (boost unlocks, tiered perks and Ascension all shipped), but two items
+    point at it: <b>item 22</b> says this one "will widen the gap if it lands first", since
+    every node type is Cup-Run-only machinery piling onto <code>domain/run.ts</code>, the
+    heavier side of the two-engine split; and <b>item 27</b> notes that items 04, 05 and 19
+    each add a screen the navigation will have to hold, which a shop node and an event node
+    both do. So: settle 22, land 27, then build this. Building it first means redoing it.
+    When it does start, do the effect ledger as its own step before any node type, since every
+    node type wants it and it is the part that cannot be retrofitted.</p>
+
+    <p class="files">docs/career-depth-spec.md, src/domain/run.ts, src/domain/boons.ts, src/domain/odds.ts, src/components/CupRunScreen.tsx, src/components/RunLadder.tsx, src/components/cupRun/BoostOffer.tsx, src/state/runStorage.ts, scripts/checks.ts</p>
   </div>
 </details>
 
