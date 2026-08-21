@@ -7,6 +7,7 @@ export interface SettingsApi {
     setTheme: (t: Theme) => void;
     setDifficulty: (d: Difficulty) => void;
     setPoolYears: (years: number[]) => void;
+    setShowFullDraw: (open: boolean) => void;
 }
 
 /** Owns the persisted user preferences and applies the theme to the document.
@@ -35,6 +36,10 @@ export function useSettings(initial: Settings): SettingsApi {
         (poolYears: number[]) => setSettings((s) => ({ ...s, poolYears })),
         [],
     );
+    const setShowFullDraw = useCallback(
+        (showFullDraw: boolean) => setSettings((s) => ({ ...s, showFullDraw })),
+        [],
+    );
 
-    return { settings, setTheme, setDifficulty, setPoolYears };
+    return { settings, setTheme, setDifficulty, setPoolYears, setShowFullDraw };
 }

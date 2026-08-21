@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ChevronDown, Trophy } from 'lucide-react';
 import Bracket from '../Bracket';
 import Flag from '../Flag';
@@ -24,6 +23,10 @@ import { USER_ID } from '../../domain/tournament';
  * Short round labels below `sm`, and the path becomes a column rather than five columns:
  * five cells do not fit a phone, and a horizontally scrolling strip hides the round you
  * are actually in half the time.
+ *
+ * Open/closed is a persisted PREFERENCE (`Settings.showFullDraw`), not component state:
+ * a run spans many navigations, and re-collapsing the draw on every return made the
+ * control something you had to re-open rather than something you had set.
  */
 
 const SHORT: Record<string, string> = {
@@ -136,8 +139,16 @@ function CupCell({ bracket, className = '' }: { bracket: BracketState; className
     );
 }
 
-export default function RunBracket({ bracket }: { bracket: BracketState }) {
-    const [open, setOpen] = useState(false);
+export default function RunBracket({
+    bracket,
+    open,
+    onSetOpen,
+}: {
+    bracket: BracketState;
+    /** Whether the full 16-team draw is showing (persisted, see the note above). */
+    open: boolean;
+    onSetOpen: (open: boolean) => void;
+}) {
     // Rounds the user has not been drawn into yet, and whether the cup has been decided:
     // both only matter to the phone layout, which shows what has happened rather than a
     // column of placeholders.
@@ -150,7 +161,7 @@ export default function RunBracket({ bracket }: { bracket: BracketState }) {
         <div className="rounded-md border border-line bg-panel shadow-hard">
             <button
                 type="button"
-                onClick={() => setOpen((o) => !o)}
+                onClick={() => onSetOpen(!open)}
                 aria-expanded={open}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-pitch/[0.04]"
             >

@@ -410,15 +410,30 @@
     <code>location.state</code>, which survives a reload), and arriving without one falls
     back to the pre-run card instead of starting anything.</p>
 
-    <p class="next"><strong>Next step:</strong> two things left. Give the tree own-path
-    nodes a click target that opens the round review, which is what the ladder used to do and
-    the only thing lost with it. And decide whether the open/closed state should persist
-    across navigation - it is component state today, so it re-collapses when you come back to
-    the run, which is either right or annoying depending on how often you consult it. Then
-    finish the convergence the classic chrome's deletion started: with one navigation there is one
-    run, and <code>domain/tournament</code> + <code>domain/bracket</code> driven by
-    TournamentScreen/KnockoutScreen are now reachable only by a legacy saved World Cup or by a
-    fork with <code>FEATURES.careerMode</code> off.</p>
+    <p><b>The accordion persists (2026-08-21).</b> Open/closed was component state, so the
+    full draw re-collapsed every time you navigated back into the run - a control you had to
+    re-open rather than one you had set. It is now <code>Settings.showFullDraw</code>, a
+    persisted preference beside theme, difficulty and the squad pool: <code>App</code> owns it
+    and passes it down, <code>RunBracket</code> is controlled. It is deliberately NOT a
+    control in the settings sheet (the chevron is its control) and deliberately not on the run
+    (it is a viewing preference, not run data, so it should not reset every run). No migration:
+    the server stores settings as one jsonb blob, so a new field costs nothing, and an old save
+    reads it as <code>false</code>, which is the default anyway.</p>
+
+    <p class="next"><strong>Next step:</strong> one thing left of the original two. Give the
+    tree own-path nodes a click target that opens the round review, which is what the ladder
+    used to do and the only thing lost with it - <code>RoundReview</code> is still imported by
+    <code>CupRunScreen</code> but rendered only behind <code>!run.useStages</code>, so no new
+    run can reach it. Then the convergence, which is now a <b>deletion</b> rather than a
+    design question: the tournament ENGINE was never duplicated (<code>domain/tournament</code>,
+    <code>bracket</code>, <code>knockout</code>, <code>match</code> and the shared
+    <code>StandingsTable</code> / <code>GroupDrawReveal</code> / <code>MatchdayCard</code> /
+    <code>Bracket</code> are one copy, used by both), so what is left is the second
+    ORCHESTRATION: TournamentScreen + KnockoutScreen + TournamentSummary (~780 lines), the
+    reducer's <code>group</code> / <code>knockout</code> phases, and the second home for a run
+    in flight (the game state vs <code>wcsim_run_v1</code>). Reachable only by a legacy saved
+    World Cup or a fork with <code>FEATURES.careerMode</code> off, which is what has to be
+    decided before any of it goes.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
   </div>

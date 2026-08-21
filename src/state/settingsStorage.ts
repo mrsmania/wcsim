@@ -14,6 +14,11 @@ export interface Settings {
      *  market, the opponents, and the sticker-album target. Defaults to every year
      *  in the dataset. Never empty (an empty selection falls back to all). */
     poolYears: number[];
+    /** Whether a Cup Run's bracket shows the full 16-team draw rather than just your
+     *  own path (the "Your path" accordion in `RunBracket`). Set by the control itself,
+     *  not by the settings sheet: it is a viewing preference, and holding it here is
+     *  what stops it re-collapsing every time you navigate back into the run. */
+    showFullDraw: boolean;
 }
 
 const KEY = 'wcsim_settings_v1';
@@ -22,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
     theme: 'light',
     difficulty: 'normal',
     poolYears: WORLD_CUP_YEARS,
+    showFullDraw: false,
 };
 
 /** Load saved preferences, merged over the defaults (tolerant of an absent key,
@@ -43,6 +49,7 @@ export function loadSettings(): Settings {
                     ? parsed.difficulty
                     : 'normal',
             poolYears: years.length ? years : WORLD_CUP_YEARS,
+            showFullDraw: parsed.showFullDraw === true,
         };
     } catch {
         return DEFAULT_SETTINGS;

@@ -356,6 +356,9 @@ looking for one:
   same award). So the album now spans difficulties, a casual run can fill it, and the
   settings sheet has no danger dialog. Do not reinstate it for one of the three without
   the other two.
+- **One preference has no control in the sheet:** `showFullDraw`, whether a Cup Run's
+  bracket shows the full 16-team draw or just your own path. Its control is the accordion's
+  own chevron (see "Runs as tournaments" below); it lives here so it survives navigation.
 - **Match `speed`** is reducer state (`SET_SPEED`, default `fast`), not a preference,
   because it belongs to playback of the run in progress. The modal just receives it.
 
@@ -759,7 +762,7 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     bracket stores a snapshot of the user's team, so it is **refreshed each round** because
     boosts change the XI. A knockout loss still completes the tree, so a Cup Run crowns a
     champion the way a World Cup does.
-  - **The tree is collapsed by default** (`cupRun/RunBracket`): a "Your path" accordion
+  - **The tree is collapsed by default, and that state persists** (`cupRun/RunBracket`): a "Your path" accordion
     showing your own tie in each round - opponent, score, and which one is next - with the
     full 16-team draw behind a chevron. A tree that tall cannot sit above every screen of a
     run, and collapsed it also says what the ladder used to (which round is this, how did
@@ -768,6 +771,12 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     reached plus a one-line "QF, SF, Final to come" - five rows of "not reached" is most
     of a phone screen, which is the height the control exists to give back. Opening it
     swaps in the shipped `<Bracket>`, which already has its own two-sided phone tree.
+    Open/closed is `Settings.showFullDraw`, a **persisted preference** rather than component
+    state: a run spans many navigations, and re-collapsing on every return made the chevron
+    something you re-opened rather than something you had set. It is not on the run (a viewing
+    preference should not reset every run) and not a control in the settings sheet (the chevron
+    is its control). `App` owns it via `useSettings` and passes it to both `CupRunScreen`
+    mounts; the component is controlled.
   - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21), all
     `stages`-only: **Ascension is picked on the build page**, in `SetupPanel` beside
     formation and style (`App` holds the tier and mirrors it onto the career's

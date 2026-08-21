@@ -1015,6 +1015,8 @@ export default function App({
                             onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
                             difficulty={settings.settings.difficulty}
                             pool={poolSquads}
+                            showFullDraw={settings.settings.showFullDraw}
+                            onSetShowFullDraw={settings.setShowFullDraw}
                             onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                             onRunStart={STICKERS ? stickers.onNewRun : undefined}
                             banking={STICKERS ? stickers.banking : false}
@@ -1031,6 +1033,8 @@ export default function App({
                             onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
                             difficulty={settings.settings.difficulty}
                             pool={poolSquads}
+                            showFullDraw={settings.settings.showFullDraw}
+                            onSetShowFullDraw={settings.setShowFullDraw}
                             onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                             onRunStart={STICKERS ? stickers.onNewRun : undefined}
                             banking={STICKERS ? stickers.banking : false}

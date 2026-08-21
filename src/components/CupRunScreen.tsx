@@ -77,6 +77,8 @@ export default function CupRunScreen({
   banking = false,
   view = 'both',
   buildTo = '/career-mode',
+  showFullDraw = false,
+  onSetShowFullDraw,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
@@ -113,6 +115,11 @@ export default function CupRunScreen({
   view?: 'both' | 'hub' | 'run';
   /** Where "back to the build" goes (the route differs between the two navigations). */
   buildTo?: string;
+  /** The bracket's "Your path" accordion: whether the full draw shows, and the setter.
+   *  A persisted preference (App owns it) rather than component state, so consulting the
+   *  draw once does not have to be redone on every navigation back into the run. */
+  showFullDraw?: boolean;
+  onSetShowFullDraw?: (open: boolean) => void;
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const CHALLENGES_ON = FEATURES.challenges;
@@ -590,7 +597,11 @@ export default function CupRunScreen({
               begun without one. Hidden while reviewing a past round. */}
           {run.bracket && reviewIndex === null && (
             <div className="mb-4">
-              <RunBracket bracket={run.bracket} />
+              <RunBracket
+                bracket={run.bracket}
+                open={showFullDraw}
+                onSetOpen={(o) => onSetShowFullDraw?.(o)}
+              />
             </div>
           )}
 
