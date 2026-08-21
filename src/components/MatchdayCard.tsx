@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { PenKick } from '../domain/match';
 import type { MatchView } from './matchView';
 import GoalList from './GoalList';
@@ -32,11 +33,17 @@ interface Props {
   penShown?: number;
   /** Whether the shootout sheet should be visible yet (gated on reaching full time). */
   showShootout?: boolean;
+  /** Collapse the goal feed behind a toggle, so the card is just its result. Set on
+   *  a settled group card: three of them stack up on one screen and the scoreline is
+   *  the part still worth reading, while the feed is what you have already watched. */
+  collapsible?: boolean;
 }
 
 /** One match card: the fixture header plus the live/settled goal feed (and, in the
  *  knockout, the penalty shootout). Shared by the group and knockout screens; the
- *  auto-scroll tail lives at each screen's scroll root, not inside this card. */
+ *  auto-scroll tail lives at each screen's scroll root, not inside this card.
+ *  With `collapsible` the feed starts folded away behind a "Goals" strip, leaving
+ *  the result. */
 export default function MatchdayCard({
   label,
   tag,
@@ -53,9 +60,16 @@ export default function MatchdayCard({
   penKicks,
   penShown,
   showShootout,
+  collapsible,
 }: Props) {
+  const [feedOpen, setFeedOpen] = useState(false);
   const liveLabel = clockLabel === 'HT' ? 'Half time' : `Live · ${clockLabel}`;
-  const showFeed = view.feedEvents !== null;
+  const events = view.feedEvents;
+  const hasFeed = events !== null;
+  // A goalless match has nothing to put behind a toggle, so it collapses to the
+  // header outright rather than offering a "Goals" strip that opens on "No goals".
+  const toggleable = !!collapsible && hasFeed && events.length > 0;
+  const showFeed = hasFeed && (!collapsible || (toggleable && feedOpen));
 
   return (
     <div className="mt-[26px]">
@@ -80,10 +94,21 @@ export default function MatchdayCard({
           userRating={userRating}
           oppRating={oppRating}
         />
+        {toggleable && (
+          <button
+            type="button"
+            onClick={() => setFeedOpen((v) => !v)}
+            aria-expanded={feedOpen}
+            className="flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 py-[9px] font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted transition hover:text-pitch"
+          >
+            Goals
+            {feedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          </button>
+        )}
         {showFeed && (
           <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
             <GoalList
-              events={view.feedEvents ?? []}
+              events={events ?? []}
               userSide={userSide}
               oppCode={oppCode}
               live={view.live}

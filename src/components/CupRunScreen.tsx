@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Player, Squad } from '../data/types';
 import { xiStrength } from '../domain/match';
@@ -50,7 +50,6 @@ import Confetti from './Confetti';
 import Flag from './Flag';
 import LiveCupMatch from './cupRun/LiveCupMatch';
 import GroupResultCard from './cupRun/GroupResultCard';
-import OtherFixture from './cupRun/OtherFixture';
 import FinishedKoCard from './cupRun/FinishedKoCard';
 import RoundReview from './cupRun/RoundReview';
 import BoostOffer from './cupRun/BoostOffer';
@@ -645,12 +644,10 @@ export default function CupRunScreen({
                               onEnd={handleMatchEnd}
                             />
                           );
-                        return (
-                          <Fragment key={i}>
-                            <GroupResultCard m={m} i={i} userRating={userRating} />
-                            {run.useStages && <OtherFixture group={reveal.group} matchday={i + 1} />}
-                          </Fragment>
-                        );
+                        // The other group fixture used to sit under each card; the
+                        // table's own "All results" already lists every one of the six,
+                        // so it was the same scoreline printed twice.
+                        return <GroupResultCard key={i} m={m} i={i} userRating={userRating} />;
                       })}
                       {reveal.done && (() => {
                         const advanced = reveal.next.phase !== 'ended';

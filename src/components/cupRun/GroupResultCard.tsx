@@ -3,7 +3,9 @@ import { liveMatchView, resultTag } from '../matchView';
 import { ResultTag } from '../matchUi';
 import MatchdayCard from '../MatchdayCard';
 
-/** A settled group match rendered as a finished card (used before the standings). */
+/** A settled group match rendered as a finished card (used before the standings).
+ *  Collapsed to its result: three of these stack up over a group and the goal feed is
+ *  the half you have just watched, so it folds away behind the card's "Goals" strip. */
 export default function GroupResultCard({ m, i, userRating }: { m: UserMatch; i: number; userRating: number }) {
   const ug = m.result.homeGoals;
   const og = m.result.awayGoals;
@@ -27,6 +29,7 @@ export default function GroupResultCard({ m, i, userRating }: { m: UserMatch; i:
       userSide="home"
       playing={false}
       clockLabel=""
+      collapsible
     />
   );
 }
