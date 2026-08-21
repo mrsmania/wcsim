@@ -362,7 +362,12 @@ export default function CupRunScreen({
   const playKo = () => {
     if (!run) return;
     const p = prepareKnockoutRound(run, diffDelta, pool);
-    if (p) setReveal({ kind: 'ko', next: p.next, match: p.match, opp: p.opp, roundName: p.roundName });
+    if (!p) return;
+    // Records the round's decisions on the run before a ball is kicked, so a reload
+    // replays this tie rather than rolling a new one (identical object, and so no write,
+    // when they are already there).
+    setRun(p.current);
+    setReveal({ kind: 'ko', next: p.next, match: p.match, opp: p.opp, roundName: p.roundName });
   };
 
   // A revealed match finished: advance the group reveal (or show its final table when

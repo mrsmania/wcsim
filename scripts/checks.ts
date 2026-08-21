@@ -813,6 +813,68 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('run/group: the state committed after the group no longer carries it', committedDropsIt);
 }
 
+// --- Nothing a round decides can be re-rolled by preparing it again ---------
+// The anti-reload-cheat invariant: a reload replays the round, it does not roll a new
+// one. Everything random is decided when the round starts and kept on the run - the
+// user's own scoreline, the rest of the tree, the boost offer and the next opponent -
+// so preparing the same run twice must be identical in all of it.
+{
+  let groupExitStable = true;
+  let koStable = true;
+  let koRecorded = true;
+  let koDropped = true;
+  let tiesChecked = 0;
+  for (let i = 0; i < 120; i++) {
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0, {
+      stages: true,
+    });
+    const g1 = prepareGroupStage(begun)!;
+    // Surviving the group also decides the field of 16, the first offer and the R16
+    // opponent; a second prepare must hand back exactly those.
+    const g2 = prepareGroupStage(g1.current)!;
+    if (
+      JSON.stringify(g2.next.bracket) !== JSON.stringify(g1.next.bracket) ||
+      JSON.stringify(g2.next.offer) !== JSON.stringify(g1.next.offer) ||
+      JSON.stringify(g2.next.nextOpponent) !== JSON.stringify(g1.next.nextOpponent)
+    ) {
+      groupExitStable = false;
+    }
+    if (g1.next.phase !== 'boon' || !g1.next.offer) continue;
+    // Into the knockouts, and through as many ties as this run survives.
+    let run: RunState = chooseBoon(g1.next, g1.next.offer[0].id).next;
+    let guard = 0;
+    while (run.phase === 'match' && guard++ < 8) {
+      const k1 = prepareKnockoutRound(run)!;
+      if (!k1.current.koPending || run.koPending) koRecorded = false;
+      const k2 = prepareKnockoutRound(k1.current)!;
+      if (
+        JSON.stringify(k2.match) !== JSON.stringify(k1.match) ||
+        JSON.stringify(k2.next.bracket) !== JSON.stringify(k1.next.bracket) ||
+        JSON.stringify(k2.next.offer) !== JSON.stringify(k1.next.offer) ||
+        JSON.stringify(k2.next.nextOpponent) !== JSON.stringify(k1.next.nextOpponent) ||
+        k2.next.phase !== k1.next.phase
+      ) {
+        koStable = false;
+      }
+      if (k2.current !== k1.current || k1.next.koPending !== undefined) koDropped = false;
+      tiesChecked++;
+      run = k1.next;
+      if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
+    }
+  }
+  check(`run/ko: ties replayed (${tiesChecked}) rather than re-rolled`, tiesChecked > 200);
+  check('run/ko: the decided round is recorded on the run it is revealed from', koRecorded);
+  check(
+    'run/ko: preparing again replays the same tie, tree, offer and next opponent',
+    koStable,
+  );
+  check('run/ko: the state committed after the tie no longer carries the decisions', koDropped);
+  check(
+    'run/group: preparing again replays the same tree, first offer and R16 opponent',
+    groupExitStable,
+  );
+}
+
 // --- Career: run rewards + perk purchases account correctly -----------------
 {
   let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));

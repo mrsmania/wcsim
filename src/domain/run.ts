@@ -152,6 +152,13 @@ export interface RunState {
    *  group already in progress. Optional: a run saved before this field existed draws
    *  its group the first time it plays, as it always did. */
   group?: GroupState;
+  /** The pending knockout round, decided up front and kept until it is committed (see
+   *  `KoPending`). Optional: a run persisted before this existed decides its next tie
+   *  the first time it plays it, as it always did. */
+  koPending?: KoPending;
+  /** What surviving the group decided (see `GroupExit`), held until the group is
+   *  committed. Optional, like the two above. */
+  groupExit?: GroupExit;
   score: number;
   outcome: RunOutcome | null;
   /** Per-round results for the progress ladder (oldest first). */
@@ -269,6 +276,50 @@ export interface KoMatch {
   userWon: boolean;
 }
 
+/**
+ * Everything a knockout round decides by dice, settled the moment the round starts and
+ * held on the run until the round is committed.
+ *
+ * The point is that a reload cannot re-roll it. Playback is transient by design (and for
+ * a signed-in player never persisted at all), so a tie that lived only on the screen's
+ * reveal was re-simulated on every reload - reload until you win. Everything random in
+ * the round is in here, not just the scoreline: the other ties of the round (inside
+ * `bracket`), the boost offer that follows, and the next opponent. Otherwise the same
+ * reload re-rolls the offer that the Physio Table perk charges Prestige to re-roll.
+ */
+export interface KoPending {
+  /** The `koRound` this belongs to, so a stale one can never be replayed into another
+   *  round. Committing the round drops it, so this is belt and braces. */
+  round: number;
+  /** The user's tie. The live reveal is playback of exactly this. */
+  match: KoMatch;
+  /** The tree with the whole round played into it (the user's result spliced in, the
+   *  other ties resolved). Absent on a run without a bracket. */
+  bracket?: BracketState;
+  /** The boost offer waiting after this tie, and the opponent of the round after it.
+   *  Both absent when the tie ends the run (a loss, or the final). */
+  offer?: Boon[];
+  nextOpponent?: GroupTeam;
+}
+
+/**
+ * What surviving the group decided, beyond the group itself: the knockout tree it seeds,
+ * the first boost offer, and the Round-of-16 opponent.
+ *
+ * Same reason as {@link KoPending} - rolled once, when the group is prepared, and held on
+ * the run - because otherwise a reload mid-group re-drew the field of 16 (and so the next
+ * opponent) and re-rolled the boost offer that the Physio Table perk charges Prestige to
+ * re-roll. Kept beside `group` rather than inside it because `GroupState` is the shared
+ * tournament type, not a run type. Only ever set when the group was survived: an exit
+ * decides nothing.
+ */
+export interface GroupExit {
+  /** The 16-team tree, on a run playing with one. */
+  bracket?: BracketState;
+  offer: Boon[];
+  nextOpponent: GroupTeam;
+}
+
 /** One of the user's group matches, normalised to the user-as-home perspective. */
 export interface UserMatch {
   opp: GroupTeam;
@@ -292,6 +343,10 @@ export interface PreparedGroup {
 /** A prepared knockout tie: the committed next state plus the revealed match. */
 export interface PreparedKnockout {
   next: RunState;
+  /** The run to hold WHILE the tie reveals: the same run with the round's decisions
+   *  recorded on it, so a reload replays them instead of rolling again. The identical
+   *  object when they were already there, so a resume writes nothing. */
+  current: RunState;
   match: KoMatch;
   opp: GroupTeam;
   roundName: string;
@@ -402,6 +457,42 @@ function drawAndPlayGroup(run: RunState, userDelta: number, pool: Squad[]): Grou
   return group;
 }
 
+/** The squad ids of a group's three opponents. Read off the group rather than the draw
+ *  that produced it, so a replayed group excludes exactly the same teams. */
+const oppIdsOf = (group: GroupState): string[] =>
+  group.teams.filter((t) => !t.isUser).map((t) => t.id);
+
+/** Roll what surviving the group decides: the tree (or a single drawn opponent on a run
+ *  without one) and the first boost offer. The one place those dice are thrown, so
+ *  `prepareGroupStage` can skip it for a group whose exit is already decided. */
+function decideGroupExit(
+  run: RunState,
+  group: GroupState,
+  drawSlopeBonus: number,
+  pool: Squad[],
+): GroupExit {
+  const offer = offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels));
+  // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
+  // (the user, whoever qualified with them, and the whole group excluded), so the next
+  // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
+  // or the higher tiers would field a Base-strength field.
+  if (run.useStages) {
+    const seed = bracketSeedFromGroup(group);
+    const bracket = buildBracket(seed.user, seed.coQualifier, seed.excludeIds, pool, drawSlopeBonus);
+    const first = currentGame(bracket);
+    const opp0 = first ? opponentOf(bracket, first) : undefined;
+    if (!first || !opp0) {
+      throw new Error('decideGroupExit: a freshly built bracket must have the user in round 0');
+    }
+    return { bracket, offer, nextOpponent: opp0 };
+  }
+  // Exclude the group opponents from the knockout draw (no immediate rematch). Read off
+  // the group rather than the draw that made it, so a replayed group excludes the same
+  // three teams (a group team's id IS its squad id).
+  const faced = new Set([...run.facedIds, ...oppIdsOf(group)]);
+  return { offer, nextOpponent: drawOpponent(faced, pool, drawSlopeBonus) };
+}
+
 /** Simulate the group stage up front, returning the committed next state plus the
  *  user's three matches (for live reveal). Qualify -> draw the R16 opponent + offer
  *  a boon; otherwise the run ends. */
@@ -415,7 +506,6 @@ export function prepareGroupStage(
   // A group already drawn is replayed, never re-drawn: it is the same three opponents
   // and the same three results, so a reload cannot change the group under the player.
   const group = run.group ?? drawAndPlayGroup(run, atkDefDelta + asc.userDelta, pool);
-  const current = group === run.group ? run : { ...run, group };
   // The user's three fixtures. createGroup schedules the user as the home side of
   // every group fixture (the match card renders the user on the left), so the
   // results are already in the user's perspective; the throw guards that invariant.
@@ -454,6 +544,16 @@ export function prepareGroupStage(
       them: m.result.awayGoals,
     })),
   };
+  // Both halves are decided once and then replayed: the group, and (if it was survived)
+  // what comes out of it. `current` is the run holding them, and is the run itself when
+  // they were already there, so replaying writes nothing.
+  const exit = advanced
+    ? (run.groupExit ?? decideGroupExit(run, group, asc.drawSlopeBonus, pool))
+    : undefined;
+  const current: RunState =
+    group === run.group && exit === run.groupExit
+      ? run
+      : { ...run, group, ...(exit ? { groupExit: exit } : {}) };
   if (!advanced) {
     return {
       // `group: undefined` on every committed state below: the group belongs to the
@@ -463,6 +563,7 @@ export function prepareGroupStage(
         phase: 'ended',
         outcome: 'group',
         group: undefined,
+        groupExit: undefined,
         score: STAGE_SCORE.group,
         history: [...run.history, groupRecord],
         tally,
@@ -472,49 +573,21 @@ export function prepareGroupStage(
       group,
     };
   }
-  // Exclude the group opponents from the knockout draw (no immediate rematch). Read off
-  // the group rather than the draw that made it, so a replayed group excludes the same
-  // three teams (a group team's id IS its squad id).
-  const faced = [...run.facedIds, ...group.teams.filter((t) => !t.isUser).map((t) => t.id)];
-  // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
-  // (the user, whoever qualified with them, and the whole group excluded), so the next
-  // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
-  // or the higher tiers would field a Base-strength field.
-  if (run.useStages) {
-    const seed = bracketSeedFromGroup(group);
-    const bracket = buildBracket(seed.user, seed.coQualifier, seed.excludeIds, pool, asc.drawSlopeBonus);
-    const first = currentGame(bracket);
-    const opp0 = first ? opponentOf(bracket, first) : undefined;
-    if (!first || !opp0) {
-      throw new Error('prepareGroupStage: a freshly built bracket must have the user in round 0');
-    }
-    return {
-      next: {
-        ...run,
-        phase: 'boon',
-        offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
-        bracket,
-        group: undefined,
-        nextOpponent: opp0,
-        facedIds: [...faced, opp0.id],
-        score: STAGE_SCORE.group,
-        history: [...run.history, groupRecord],
-        tally,
-      },
-      current,
-      userMatches,
-      group,
-    };
-  }
-  const opp = drawOpponent(new Set(faced), pool, asc.drawSlopeBonus);
+  if (!exit) throw new Error('prepareGroupStage: a survived group must carry its exit');
+  // The tree (when there is one), the offer and the next opponent are all read from the
+  // exit decided above - the two branches this used to have now differ only in whether
+  // that exit came with a bracket.
   return {
     next: {
       ...run,
       phase: 'boon',
-      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+      offer: exit.offer,
+      ...(exit.bracket ? { bracket: exit.bracket } : {}),
       group: undefined,
-      nextOpponent: opp,
-      facedIds: [...faced, opp.id],
+      groupExit: undefined,
+      nextOpponent: exit.nextOpponent,
+      // Exclude the group opponents from the knockout draw too (no immediate rematch).
+      facedIds: [...run.facedIds, ...oppIdsOf(group), exit.nextOpponent.id],
       score: STAGE_SCORE.group,
       history: [...run.history, groupRecord],
       tally,
@@ -649,6 +722,40 @@ export function runChampion(run: RunState) {
   return run.bracket ? bracketChampion(run.bracket) : null;
 }
 
+/**
+ * Roll everything this knockout round decides: the user's tie, the rest of the round on
+ * the tree, and - if the tie is survived - the boost offer and the opponent after it.
+ * The one place the dice are thrown for a round, so `prepareKnockoutRound` can skip it
+ * for a round already decided.
+ */
+function decideKoRound(
+  run: RunState,
+  userTeam: GroupTeam,
+  opp: GroupTeam,
+  round: number,
+  drawSlopeBonus: number,
+  pool: Squad[],
+): KoPending {
+  const match = simulateKoTie(userTeam, opp);
+  // With a bracket: the user's own tie is still the one simulated above (so the run's
+  // boosts, chemistry, Ascension handicap and difficulty all apply exactly as before),
+  // and its result is spliced into the tree; the other ties in the round resolve from
+  // their own ratings. The user's team is refreshed first because boosts change the XI
+  // between rounds, and the bracket stores a snapshot.
+  const bracket = run.bracket ? advanceBracket(run.bracket, userTeam, match, opp.id) : undefined;
+  const pending: KoPending = { round, match, ...(bracket ? { bracket } : {}) };
+  // A tie that ends the run decides nothing further: no boost is offered and there is
+  // no round after it.
+  if (!match.userWon || round >= KO_ROUNDS.length - 1) return pending;
+  // The bracket already knows who is next; only a run without one draws.
+  const fromBracket = bracket ? nextOpponentOf(bracket) : null;
+  return {
+    ...pending,
+    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+    nextOpponent: fromBracket ?? drawOpponent(new Set(run.facedIds), pool, drawSlopeBonus),
+  };
+}
+
 /** Prepare the pending knockout tie: simulate it up front (keeping the events for a
  *  live reveal) and compute the committed next state (win -> next round + boon, or
  *  the trophy; loss -> ended). */
@@ -663,15 +770,15 @@ export function prepareKnockoutRound(
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
   const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta + asc.userDelta);
-  const match = simulateKoTie(userTeam, opp);
-  // With a bracket: the user's own tie is still the one simulated above (so the run's
-  // boosts, chemistry, Ascension handicap and difficulty all apply exactly as before),
-  // and its result is spliced into the tree; the other ties in the round resolve from
-  // their own ratings. The user's team is refreshed first because boosts change the XI
-  // between rounds, and the bracket stores a snapshot.
-  const nextBracket = run.bracket
-    ? advanceBracket(run.bracket, userTeam, match, opp.id)
-    : undefined;
+  // A round already decided is replayed, never re-rolled: the same scoreline, the same
+  // shootout, the same rest of the tree, the same boost offer waiting after it.
+  const decided =
+    run.koPending?.round === round
+      ? run.koPending
+      : decideKoRound(run, userTeam, opp, round, asc.drawSlopeBonus, pool);
+  const current = decided === run.koPending ? run : { ...run, koPending: decided };
+  const { match } = decided;
+  const nextBracket = decided.bracket;
   const record: RoundRecord = {
     stage: round,
     won: match.userWon,
@@ -694,6 +801,8 @@ export function prepareKnockoutRound(
   // the definition the cabinet's top-scorer list advertises.
   const tally = addMatches(run.tally ?? emptyTally(), run.xi, [match]);
 
+  // `koPending: undefined` on every committed state below: the round's decisions belong
+  // to the round being left, and `history` carries its result from here on.
   let next: RunState;
   if (!match.userWon) {
     const outcome = LOST_IN[round];
@@ -703,6 +812,7 @@ export function prepareKnockoutRound(
       outcome,
       score: STAGE_SCORE[outcome],
       nextOpponent: null,
+      koPending: undefined,
       // Kept, and completed: `recordRound` plays out the rest of the tree when the user
       // is knocked out, so the run's last screen can still crown a champion.
       ...(nextBracket ? { bracket: nextBracket } : {}),
@@ -716,29 +826,33 @@ export function prepareKnockoutRound(
       outcome: 'champion',
       score: STAGE_SCORE.champion,
       nextOpponent: null,
+      koPending: undefined,
       ...(nextBracket ? { bracket: nextBracket } : {}),
       history,
       tally,
     };
   } else {
-    const nextRound = round + 1;
-    // The bracket already knows who is next; only a run without one draws.
-    const fromBracket = nextBracket ? nextOpponentOf(nextBracket) : null;
-    const nextOpp = fromBracket ?? drawOpponent(new Set(run.facedIds), pool, asc.drawSlopeBonus);
+    // Both were decided when the round started, so they are read rather than drawn.
+    const nextOpp = decided.nextOpponent;
+    const offer = decided.offer;
+    if (!nextOpp || !offer) {
+      throw new Error('prepareKnockoutRound: a survived tie must carry its offer + next opponent');
+    }
     next = {
       ...run,
       phase: 'boon',
-      koRound: nextRound,
-      offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+      koRound: round + 1,
+      offer,
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
+      koPending: undefined,
       ...(nextBracket ? { bracket: nextBracket } : {}),
       score: STAGE_SCORE[LOST_IN[round]],
       history,
       tally,
     };
   }
-  return { next, match, opp, roundName };
+  return { next, current, match, opp, roundName };
 }
 
 /** Commit the pending knockout tie without revealing it (used by the checks harness). */

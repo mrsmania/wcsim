@@ -802,20 +802,33 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built
   (`handleReset`/`handleStart`/random team/budget confirm), so a stale run never resumes onto a
   new team.
-  **What is drawn is on the RUN; only playback is transient.** The reveal is a playback
-  pointer and nothing else may live there alone: a guest's reveal is mirrored to
+  **Every roll is on the RUN; only playback is transient. A RELOAD MUST NOT RE-ROLL
+  ANYTHING** - otherwise reloading until you win is the optimal way to play, and it also
+  re-rolls the boost offer that the Physio Table perk charges Prestige for. The reveal is
+  a playback pointer and nothing may live there alone: a guest's reveal is mirrored to
   `wcsim_run_reveal_v1`, but `remoteStore` keeps it in memory only and returns
   `reveal: null` from `load()`, so for a signed-in player it does not survive a reload at
-  all. The group used to live only there, and a reload mid-group therefore offered "Play
-  group stage" again, which drew three fresh opponents over the group in progress.
-  `RunState.group` now holds the drawn, fully played group from the draw until the run
-  leaves the stage (`prepareGroupStage` reuses it when present and sets
-  `group: undefined` on every state it commits), so a replay is the same opponents and
-  the same six results. `prepareGroupStage` returns `current` for this - the run with the
-  group recorded, the identical object on a resume - and both call sites hold it. The
-  knockouts were always safe this way: `nextOpponent` and `bracket` are run fields, so a
-  reload re-simulates the tie but never re-draws the opponent. `npm run checks` asserts
-  all three halves (recorded, stable across a second prepare, dropped on commit).
+  all - a reload dropped back to the "Play ..." button, which prepared the round again
+  from scratch. Three fields now hold what each stage has decided, all optional (a run
+  saved before them decides at its next play, as it always did) and all cleared on the
+  state that commits the stage, so none outlives the stage it belongs to:
+  - **`RunState.group`** (`GroupState`) - the drawn, fully played group, held from the
+    draw until the group is left. Was the reported bug: a reload drew three new opponents
+    over the group in progress.
+  - **`RunState.groupExit`** (`GroupExit`) - what SURVIVING the group decided: the 16-team
+    tree, the first boost offer, the R16 opponent. Set only when the group was survived.
+  - **`RunState.koPending`** (`KoPending`) - the whole knockout round: the user's tie
+    (scoreline, goal events, shootout), the rest of the round on the tree, and the offer +
+    next opponent that follow it. Keyed on `round` as belt and braces.
+  The dice are thrown in exactly two private helpers, `decideGroupExit` and
+  `decideKoRound`; `prepareGroupStage` / `prepareKnockoutRound` skip them when the field
+  is already there and otherwise derive `next` from it, which is why the group's two
+  return branches collapsed into one. Both return **`current`** - the run with the
+  decisions recorded, the identical object on a resume so a replay writes nothing - and
+  every call site holds it. Anything new that is random and outlives one function call
+  belongs in one of these three, not in the reveal. `npm run checks` asserts the lot
+  (recorded, identical across a second prepare, dropped on commit); breaking the reuse
+  fails three checks.
 - **Stickers.** At a run's end the final XI's collectibles are banked to the album, guarded
   once-per-run by `RunState.stickersApplied`. **Players a roster boost handed over earn
   nothing** (`RunState.boostedIds` is passed to `onCupRunEnd`, which subtracts them): Legends
