@@ -798,8 +798,15 @@ deleted with the plain World Cup it used to gate). Design:
     only undoes the browser defaults and adds hover/focus), because the tree's `::after`
     connectors are positioned off that box - give it its own element and they drift.
     **The GROUP has no box anywhere on the bracket**, so its review (finishing
-    position, the three scorelines, the first boost) is still unreachable -
-    the one piece of the ladder not restored.
+    position, the three scorelines, the first boost) is still unreachable - the one piece of
+    the ladder not restored, and **deliberately parked** (roadmap item 28): `reviewIndex` is
+    only ever set to `r + 1` for a knockout round, so the `reviewIndex === 0` lookup and
+    `RoundReview`'s `stage === 'group'` branch are dead code awaiting a wire-it-or-drop-it
+    decision. Do not delete the group's `RoundRecord` fields while that is open:
+    `domain/challenges.ts` reads `groupResults` and `groupPos`, and the group-results screen
+    reads the record for its banner. The group's outcome is still visible *while* you are in
+    the group (banner, final table, the three matchday cards); only the retrospective view is
+    missing.
   - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21):
     **Ascension is picked on the build page**, in `SetupPanel` beside
     formation and style (`App` holds the tier and mirrors it onto the career's

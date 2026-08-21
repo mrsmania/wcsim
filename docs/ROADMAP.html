@@ -323,7 +323,7 @@
   <summary>
     <span class="num">28</span>
     <span class="title">One run, one tournament: the draw and the bracket in a Cup Run
-      <span class="sub">Done bar one cell: a run is the tournament now - the draw, a live table, a real 16-team bracket - and the second tournament orchestration is deleted. The group's own round review has nowhere to be opened from yet.</span>
+      <span class="sub">Shipped, bar one deferred call. A run IS the tournament now - the draw, a live table, a real 16-team bracket - the second tournament orchestration is deleted, and a tie you played opens its round review. Only the group's own summary has no door, and whether to give it one is the owner's call, parked on purpose.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -479,12 +479,22 @@
     positioned off it. Verified in both layouts: 1 of 15 boxes clickable, the one you played,
     opening the feed, with no console errors.</p>
 
-    <p class="next"><strong>Next step:</strong> the group's own review, which has no box on
-    the bracket to open it from - so it is a wire-it-or-drop-it call: a leading Group cell on
-    the path row, or delete the <code>reviewIndex === 0</code> lookup and
-    <code>RoundReview</code>'s group branch (~33 lines that nothing can currently reach).
-    Either way the group's own record stays, since <code>domain/challenges.ts</code> reads it.
-    After that this item is done.</p>
+    <p class="next"><strong>Open, and DEFERRED by the owner (2026-08-21):</strong> the group's
+    own summary. Everything else in this item has shipped. The group has no box anywhere on the
+    bracket, so the review it would open is unreachable: <code>reviewIndex</code> is only ever
+    set to <i>r</i>+1 for a knockout round <i>r</i>, so the <code>reviewIndex === 0</code>
+    lookup in <code>CupRunScreen</code> and <code>RoundReview</code>'s whole
+    <code>stage === 'group'</code> branch (~33 lines: finishing position, the three matchday
+    scorelines, the first boost) are currently dead. It is a <b>wire-it-or-drop-it</b> call, not
+    a task: either a leading Group cell on the path row - which changes the row from five cells
+    plus the cup to six, and needs a decision about the phone layout, since that lists only the
+    rounds actually reached - or delete those two pieces. <b>Either way the group's RECORD stays
+    put</b>: <code>domain/challenges.ts</code> reads <code>groupResults</code> for the goals-for
+    aggregation and <code>groupPos</code> for two silverware entries, and the group-results
+    screen reads it for the banner. Do not "tidy up" the record while deciding the view. Note
+    also that the group's outcome IS visible while you are in the group - the banner, the final
+    table and the three matchday cards - so what is missing is only the retrospective view.
+    Nothing else blocks; this item closes on that one decision.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
   </div>
