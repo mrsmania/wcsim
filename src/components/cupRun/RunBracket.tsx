@@ -86,7 +86,9 @@ function PathCell({
                 <Flag code={opp.code} className="h-3 w-[18px]" />
                 <span className="min-w-0 truncate text-[12.5px] font-semibold">
                     {opp.code}{' '}
-                    <span className="font-mono text-[10.5px] font-normal text-muted">{opp.year}</span>
+                    <span className="font-mono text-[10.5px] font-normal text-muted">
+                        {opp.year}
+                    </span>
                 </span>
                 <span className="ml-auto shrink-0 font-mono text-[12.5px] font-bold">
                     {res ? (
@@ -153,13 +155,13 @@ export default function RunBracket({ bracket }: { bracket: BracketState }) {
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-pitch/[0.04]"
             >
                 <span className="font-display text-[13px] font-extrabold uppercase tracking-[0.06em]">
-                    Your path
+                    The bracket
                 </span>
                 <span className="ml-auto font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch">
                     <span className="max-sm:hidden">
-                        {open ? 'Hide the full draw' : 'Show the full draw'}
+                        {open ? 'Hide the full bracket' : 'Show the full bracket'}
                     </span>
-                    <span className="sm:hidden">{open ? 'Hide' : 'Full draw'}</span>
+                    <span className="sm:hidden">{open ? 'Hide' : 'Full bracket'}</span>
                 </span>
                 <ChevronDown
                     size={17}
@@ -188,10 +190,7 @@ export default function RunBracket({ bracket }: { bracket: BracketState }) {
                             {toCome.join(', ')} to come
                         </div>
                     )}
-                    <CupCell
-                        bracket={bracket}
-                        className={decided ? '' : 'max-sm:hidden'}
-                    />
+                    <CupCell bracket={bracket} className={decided ? '' : 'max-sm:hidden'} />
                 </div>
             )}
 

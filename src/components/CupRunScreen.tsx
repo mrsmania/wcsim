@@ -681,10 +681,18 @@ export default function CupRunScreen({
                                 body={advanced ? 'Pick your first boost, then into the Round of 16.' : undefined}
                               />
                             </div>
-                            <div className="mt-4 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                              Final group table
-                            </div>
-                            <StandingsTable group={reveal.group} groupFinished advanced={advanced} />
+                            {/* No final table here: the live one above IS the final table
+                                once the third matchday is in, and printing it again put
+                                the same eight rows on screen twice. A run begun before
+                                that table existed has nothing above it, so it keeps one. */}
+                            {!run.useStages && (
+                              <>
+                                <div className="mt-4 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                                  Final group table
+                                </div>
+                                <StandingsTable group={reveal.group} groupFinished advanced={advanced} />
+                              </>
+                            )}
                             {advanced && reveal.next.offer ? (
                               <div className="mt-4 rounded-md border border-line bg-panel p-5 shadow-hard">
                                 <BoostOffer
