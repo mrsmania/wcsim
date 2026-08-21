@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { PenKick } from '../domain/match';
 import type { MatchView } from './matchView';
@@ -66,6 +66,26 @@ export default function MatchdayCard({
   const liveLabel = clockLabel === 'HT' ? 'Half time' : `Live · ${clockLabel}`;
   const events = view.feedEvents;
   const hasFeed = events !== null;
+  // Keep the newest line in view inside the card's OWN scroller. The feed is capped at
+  // 230px, and once it overflows the page-level follow (`useFollowBottom`) has nothing
+  // left to do: the document stops growing, so every line after that lands below this
+  // box's fold. Worst in a penalty shootout, which is taller than the cap on its own -
+  // the feed simply stopped moving once the third kick pushed the scrollbar in.
+  //
+  // Two things this must not do. It cannot key off `view.live`, which is false from full
+  // time and so would miss the entire shootout (the kicks arrive after the clock stops);
+  // it keys off `playing`, i.e. "this card is the one being revealed", which is true
+  // throughout and false on a settled card, where the feed should start at the top. And
+  // it scrolls instantly rather than smoothly: a smooth scroll reports intermediate
+  // positions far from the bottom, which the handler below would read as the user having
+  // scrolled away, and the follow would switch itself off mid-shootout.
+  const feedRef = useRef<HTMLDivElement | null>(null);
+  const feedStuck = useRef(true);
+  useEffect(() => {
+    const el = feedRef.current;
+    if (!el || !playing || !feedStuck.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, [playing, events?.length, penShown, showShootout]);
   // A goalless match has nothing to put behind a toggle, so it collapses to the
   // header outright rather than offering a "Goals" strip that opens on "No goals".
   const toggleable = !!collapsible && hasFeed && events.length > 0;
@@ -106,7 +126,16 @@ export default function MatchdayCard({
           </button>
         )}
         {showFeed && (
-          <div className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3">
+          <div
+            ref={feedRef}
+            onScroll={(e) => {
+              // Scrolling up inside the feed pauses the follow (you are reading back);
+              // returning to the bottom resumes it.
+              const el = e.currentTarget;
+              feedStuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+            }}
+            className="max-h-[230px] overflow-y-auto border-t border-line px-[18px] py-3"
+          >
             <GoalList
               events={events ?? []}
               userSide={userSide}

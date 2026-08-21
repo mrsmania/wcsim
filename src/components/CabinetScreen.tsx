@@ -262,13 +262,12 @@ function PlayerLeaderRow({
           {squad?.year}
         </span>
       </span>
-      <span
-        className={`w-11 shrink-0 text-right font-mono text-[11px] tabular-nums ${
-          metric === 'goals' ? 'font-bold text-ink' : 'text-muted'
-        }`}
-      >
-        {goals}
-      </span>
+      {/* Goals only on the board they rank (see `LeaderHead`). */}
+      {metric === 'goals' && (
+        <span className="w-11 shrink-0 text-right font-mono text-[11px] font-bold tabular-nums text-ink">
+          {goals}
+        </span>
+      )}
       <span
         className={`w-12 shrink-0 text-right font-mono text-[11px] tabular-nums ${
           metric === 'apps' ? 'font-bold text-ink' : 'text-muted'
@@ -285,13 +284,17 @@ function PlayerLeaderRow({
 
 /** The leaderboard's column heads. Same widths as `PlayerLeaderRow`, so the cells can
  *  be bare numbers instead of carrying a unit each ("96 mts" was the alternative). */
-function LeaderHead() {
+/** The column heads of a leaderboard. Takes the board's metric because the two boards
+ *  do not carry the same columns: goals are the point of Top scorers and beside the
+ *  point on Most used, where they were a second number competing with the one the board
+ *  is ranked by. */
+function LeaderHead({ metric }: { metric: 'apps' | 'goals' }) {
   return (
     <div className="flex items-baseline gap-2.5 border-b border-line pb-1.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.12em] text-muted">
       <span className="w-[15px] shrink-0" />
       <span className="w-4 shrink-0" />
       <span className="min-w-0 flex-1">Player</span>
-      <span className="w-11 shrink-0 text-right">Goals</span>
+      {metric === 'goals' && <span className="w-11 shrink-0 text-right">Goals</span>}
       <span className="w-12 shrink-0 text-right">Matches</span>
       <span className="w-10 shrink-0 text-right max-[560px]:hidden">Runs</span>
     </div>
@@ -653,7 +656,7 @@ export default function CabinetScreen({
               hint={`of ${v.playersTracked} players tracked`}
             />
             <div className="p-3.5">
-              <LeaderHead />
+              <LeaderHead metric="apps" />
               <ol className="grid grid-cols-1">
                 {v.topUsed.map((row, i) => (
                   <PlayerLeaderRow key={row.player.id} row={row} rank={i + 1} metric="apps" />
@@ -678,7 +681,7 @@ export default function CabinetScreen({
             <div className="p-3.5">
               {v.topScorers.length > 0 ? (
                 <>
-                  <LeaderHead />
+                  <LeaderHead metric="goals" />
                   <ol className="grid grid-cols-1">
                     {v.topScorers.map((row, i) => (
                       <PlayerLeaderRow key={row.player.id} row={row} rank={i + 1} metric="goals" />
