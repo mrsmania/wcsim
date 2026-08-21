@@ -739,7 +739,16 @@ the default flips, not by a refactor here.</p>
   "settled knockout tie" types (<code>KoTieResult</code>, <code>BracketResult</code>,
   <code>KoMatch</code>, <code>RoundRecord</code>) and the two adapters between them, the two
   outcome models, the two <code>stickersApplied</code> guards, and the duplicated round-by-round
-  shell. H68 and H70 are the two pieces that are safe now, because they are local to one side.</li>
+  shell. H68 and H70 are the two pieces that are safe now, because they are local to one side.
+  <br><b>Updated 2026-08-21 (roadmap item 28): the knockout half has partly converged.</b> A
+  Cup Run in the five-tab chrome now plays its knockouts on <code>domain/bracket.ts</code> -
+  the same <code>BracketState</code>, the same <code>buildBracket</code> /
+  <code>playRound</code> / <code>recordRound</code>, the same <code>&lt;Bracket&gt;</code>
+  renderer - with the user's own tie still simulated by <code>run.ts</code> and spliced in. So
+  the duplication above is smaller and one-directional rather than symmetric, and the end
+  state it was always pointing at (one engine) is reachable. Still not this backlog's to
+  finish: none of it is behaviour-preserving, and the two paths coexist until the navigation
+  default flips.</li>
   <li><b>The two chemistry definitions.</b> <code>teamChemistry(formation, filled)</code> scores by
   the slot each player fills; <code>chemistryOf(xi)</code> scores by natural role. Same XI, two
   answers.</li>

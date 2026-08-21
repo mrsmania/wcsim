@@ -3,6 +3,16 @@
 **Status:** Shipped (behind `FEATURES.careerMode`), as the high-level vision behind what
 was built. `docs/career-depth-spec.md` is the code-level plan that followed and
 **supersedes this doc's section 6**; `CLAUDE.md` describes what actually shipped.
+
+**Updated 2026-08-21 (roadmap item 28):** in the five-tab chrome a run now plays as a
+**tournament** rather than as five ties in a row - the group opens with the draw and a
+table that fills in as the matchdays reveal, and the knockouts run on a real 16-team
+bracket (`domain/bracket.ts`, the same model the World Cup uses) collapsed to your own
+path with the full draw behind a chevron. There is also no One-off run there: a career run
+at Base Ascension is the same tournament, so the mode went. Section 4's `RunState` sketch
+below was always a sketch - `difficulty`, `stage` and `form` never shipped under those
+names, and `form` (the in-run currency) is still unbuilt as roadmap item 04. The shipped
+shape is in `src/domain/run.ts`, described in `CLAUDE.md`.
 **Goal:** turn the core loop (draft an XI, win the cup) into something players return to
 daily and stick with long-term, by wrapping each run in roguelike variety and hanging a
 persistent manager career off the back of it.

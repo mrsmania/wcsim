@@ -5,7 +5,8 @@ tiered, level-gated perks (+ CareerState v1->v2 migration); C = Ascension tiers;
 Transfer Budget progression (see 6.5 for the shipped values). XP was slowed to
 `XP_PER_LEVEL = 200` so level gates bite. **E (Challenges) shipped 2026-08-18/19** and grew
 its own spec on the way, `docs/challenges-spec.html`: permanent honours only, all 130
-judged, awards behind `FEATURES.challengeAwards` (off). The sketch of E kept below is
+judged, awards behind `FEATURES.challengeAwards` (**on** since 2026-08-19, at bronze 2 /
+silver 5 / gold 12). The sketch of E kept below is
 superseded by that document. **D** (in-run economy / node variety) and **F** (daily seeded
 run) are the only clusters still open; F's odds readout shipped separately as
 `domain/odds.ts`.
@@ -349,6 +350,10 @@ All three levers are cheap because the plumbing exists:
    `ASCENSIONS[run.ascension].rewardMult`:
    `xpGained = Math.round(run.score * mult)`, `prestigeGained = Math.max(1, Math.round(run.score * mult / 5))`.
 3. **Opponent draw strength (enhancement):** pass `drawSlopeBonus` into `drawOpponent`
+   (**and, since roadmap item 28, into `buildBracket`** - a run in the five-tab chrome
+   draws a 16-team field once instead of an opponent per round, and `buildBracket` filled
+   its 14 open seeds at the default weighting, so this lever silently did nothing there
+   until it was threaded through. `npm run checks` now measures the field it produces.)
    (add it to `DRAW_WEIGHT_SLOPE`) and bias `pickOpponents` toward stronger squads
    (replace the plain `shuffled().slice()` with a weighted pick reusing the same slope).
    This makes the *field* genuinely tougher rather than only handicapping the user.
@@ -366,7 +371,8 @@ defaulting to the highest selectable, showing the handicap + reward-multiplier p
 
 Tie the budget-draft ("Transfer Market") budget to career progression: start smaller and
 earn your way up. **Shipped decisions:** budget ramps **$70 -> $150** over 8 tiers; it
-applies to **Career Mode builds only** (`mode === 'career'`); **Quick Run stays fixed at
+applies to **Career Mode builds only** (`mode === 'career'`; in the five-tab chrome every
+run is a career run, so it always applies); **Quick Run stays fixed at
 `$110`** (and career-off is unchanged). Reuses the cluster-B tiered-perk machinery. Paired
 with an XP slowdown (`XP_PER_LEVEL` 100 -> 200) so the level gates on the tiers bite.
 
@@ -446,7 +452,10 @@ auto-win; the biggest single sink in the game, gated to a long tail.
 - **Ascension selector (pre-run):** a small stepper/segmented control on the
   "Start a Cup Run" panel: tier, "Field +X / You -Y", "Rewards x1.5", and the unlock
   hint for the next tier ("Win an Ascension II cup, reach level 10"). During a run,
-  show the active tier as a chip near the `RunLadder`.
+  show the active tier as a chip near the `RunLadder`. (**Item 28:** in the five-tab
+  chrome the tier is *chosen* on the build page beside formation and style, since there is
+  no pre-run screen there any more, and the `RunLadder` itself is gone - the group table
+  and the bracket say which round it is. The chip stays.)
 - **Run-reward readout:** the existing end-of-run XP/Prestige toast/summary already
   exists (`reward` state); show the Ascension multiplier as a line ("Ascension II x1.5").
 - Copy stays jargon-light per repo convention: "boosts" not "boons", "rating" not "elo".

@@ -113,7 +113,8 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Challenges: 130 permanent honours judged from a finished run, feature-flagged (their Prestige awards are on: bronze 2, silver 5, gold 12)
 - [x] Optional accounts: sign in with an emailed code and your album, career, settings and in-progress run live on a server instead of the browser (absent unless the build is given one)
 - [x] Settings: match speed, a casual/normal/hard difficulty, a light/dark theme, and which World Cups the game draws from
-- [x] Navigation preview: a five-tab chrome (Play / Career / Album / Records / Squads, with a bottom bar on a phone) at `?nav=tabs`, or from Settings. Same features, new click paths; `?nav=classic` switches back
+- [x] Navigation preview: a five-tab chrome (Play / Career / Album / Records / Squads, with a bottom bar on a phone) at `?nav=tabs`, or from Settings. `?nav=classic` switches back
+- [x] In that preview, a Cup Run plays as a tournament: the group opens with the draw and a table that fills in as the matchdays play, and the knockouts run on a 16-team bracket, collapsed to your own path with the full draw one click away
 
 ## Hosting
 
