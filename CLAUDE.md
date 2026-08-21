@@ -1239,6 +1239,15 @@ keep working.
   PGRST202 (a missing function, which PostgREST refuses before Postgres runs anything, so
   the fallback is a first attempt and not a double submit). Never fall back on any other
   error. Adding a return field to a function means a new name for the same reason.
+- **`finish_run` clears `active_run`, so the client writes the run back.** The server is
+  right that a banked run is not active, but the client still needs it: the run-end screen
+  must survive a reload until the player picks "New run" or leaves, and a signed-in reload
+  found no run and fell back to the build page. `remoteStore.finishRun` therefore
+  re-saves whatever run the cache holds once the bank lands, which also stops a finished
+  **World Cup** (which banks through the same call) from wiping an unrelated Cup Run still
+  in flight. Read the run AFTER the bank, never before: by then it carries
+  `stickersApplied`, and writing back an unflagged run would let a reload bank it twice.
+  A guest never had either problem, since `localStore.finishRun` does not touch the run.
 - **Run-end actions wait for the save** so the sticker haul is always shown before the
   next run starts, with a 4s release and a run-generation guard so a slow server cannot
   block play or drop a stale summary into the next run.

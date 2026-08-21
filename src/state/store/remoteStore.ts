@@ -267,7 +267,6 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
                 stickersEarned: p.stats?.stickers_earned ?? 0,
                 tradesCompleted: p.stats?.trades_completed ?? 0,
               },
-              run: null,
             });
             return { album, newly: p.newly ?? [] };
           } catch (err) {
@@ -298,7 +297,6 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
             stickersEarned: stats.data?.stickers_earned ?? 0,
             tradesCompleted: stats.data?.trades_completed ?? 0,
           },
-          run: null,
         });
         return { album, newly: newly ?? [] };
       };
@@ -312,8 +310,9 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
         p_outcome: outcome,
       };
 
+      let banked: FinishRunResult;
       try {
-        return await bank(args);
+        banked = await bank(args);
       } catch (err) {
         // A cup pick the album already holds is legal - with nothing left to collect the
         // reward IS a duplicate (album spec FR-3) - but a server without migration 0012
@@ -323,12 +322,31 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
         // still fits the server's cap of 12. Safe as a retry because the refusal aborted
         // the transaction, so the run key it claimed was rolled back with it.
         if (!isDuplicateCupPick(err) || !cupPickId || collectibleIds.length >= 12) throw err;
-        return await bank({
+        banked = await bank({
           ...args,
           p_cup_pick: null,
           p_collectible_ids: [...collectibleIds, cupPickId],
         });
       }
+
+      // Put the run back. `finish_run` clears `active_run` server-side - reasonably, the
+      // run is over - but the client still needs it: the run-end screen has to survive a
+      // reload until the player picks "New run" or walks away, and without this a
+      // signed-in reload found no run and dropped back to the build page. A guest never
+      // had the problem (`localStore.finishRun` does not touch the run), so writing it
+      // back is what makes the two worlds behave the same rather than a special case.
+      //
+      // It also covers a case that has nothing to do with the run that just ended: the
+      // standard World Cup banks through here too, and clearing `active_run` for it wiped
+      // an unrelated Cup Run that was still in flight (both can be live at once).
+      // Read after the bank, not before: the cache holds the run with its
+      // once-per-run `stickersApplied` flag already set by then (the screen sets it in
+      // the same effect that reports the end, and a child's effect runs before the
+      // parent's), and writing back an UNflagged run would let a reload bank it a
+      // second time.
+      const heldRun = peek().run;
+      if (heldRun) version = await rpc<number>('save_run', { p_data: heldRun });
+      return banked;
     },
 
     async trade(tier, playerId) {

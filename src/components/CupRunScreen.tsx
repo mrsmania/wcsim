@@ -611,7 +611,11 @@ export default function CupRunScreen({
                 <RoundReview record={reviewRecord} onBack={() => setReviewIndex(null)} />
               ) : (
                 <>
-              {run.phase !== 'ended' && (
+              {/* No speed control on the group screen: the group is one continuous
+                  reveal you sit through, and the table plus three cards below already
+                  fill it. It returns for the knockouts, where each round is its own
+                  screen and its own decision to start. */}
+              {run.phase !== 'ended' && run.phase !== 'group' && (
                 <div className="flex items-center justify-end gap-2">
                   <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
                 </div>
