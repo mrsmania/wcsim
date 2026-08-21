@@ -29,23 +29,14 @@ import {
     type Filled,
     type TeamStrength,
 } from './domain/draft';
-import {
-    bracketSeedFromGroup,
-    createGroup,
-    pickOpponents,
-    userGroupTeam,
-} from './domain/tournament';
-import { teamChemistry } from './domain/chemistry';
-import { buildBracket } from './domain/bracket';
 import { KO_ROUNDS } from './domain/knockout';
-import { userRatingDelta } from './domain/difficulty';
 import { extraRerollsOf, type CareerState } from './domain/career';
 import { maxSelectableAscension } from './domain/ascension';
 import { priceFor } from './domain/pricing';
 import type { RunBuild, RunShape } from './domain/run';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
-import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
+import { BUDGET_BY_TIER, FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
 import { useLiveMatch } from './nav/liveMatch';
 import { RouteCrumb, SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
@@ -64,8 +55,6 @@ import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
 import XiTable from './components/XiTable';
 // Route-gated screens are code-split so the home/setup initial load stays small.
-const TournamentScreen = lazy(() => import('./components/TournamentScreen'));
-const KnockoutScreen = lazy(() => import('./components/KnockoutScreen'));
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
@@ -82,15 +71,10 @@ const isStackedLayout = () =>
 
 type HomeView = 'setup' | 'draft' | 'complete';
 
-/** The transfer-market budget: the fixed one for a Quick Run (and with career mode off),
- *  scaled by the owned `transfer-budget` perk tier for a Career Mode build. Pass null for
- *  anything that is not a Career Mode build. */
-const budgetOf = (career: CareerState | null): number =>
-    career
-        ? BUDGET_BY_TIER[
-              Math.min(career.perkLevels['transfer-budget'] ?? 0, BUDGET_BY_TIER.length - 1)
-          ]
-        : BUDGET_DRAFT;
+/** The transfer-market budget: the base one, raised by the owned `transfer-budget` perk
+ *  tier. Every build is a career build, so there is no unscaled case. */
+const budgetOf = (career: CareerState): number =>
+    BUDGET_BY_TIER[Math.min(career.perkLevels['transfer-budget'] ?? 0, BUDGET_BY_TIER.length - 1)];
 
 /** Section eyebrow/title for the home screen, by sub-view. The home sub-view is
  *  derived from the drafted data (not `phase`), so navigating Back to home
@@ -145,7 +129,7 @@ export default function App({
         [settings.settings.poolYears],
     );
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
-    const stickers = useStickerAlbum(state, dispatch, snapshot.album, poolPlayers);
+    const stickers = useStickerAlbum(state, snapshot.album, poolPlayers);
     // The Ascension tier for the next run, picked on the build page (roadmap item 28)
     // rather than on a pre-run screen that no longer exists in the tabs chrome. Held here
     // as UI state and mirrored onto the career's `lastAscension`, which is where the run
@@ -207,12 +191,8 @@ export default function App({
         usedPersonIds,
         rerollsLeft,
         rolling,
-        group,
-        bracket,
         speed,
-        auto,
         swapsLeft,
-        buildMode,
     } = state;
 
     // Persist the whole game so the clean-path routes survive a refresh.
@@ -319,33 +299,25 @@ export default function App({
         poolSquads,
     ]);
 
-    // There is one kind of run: a career run, unless the career layer is switched off
-    // entirely (a fork with `FEATURES.careerMode` false), where the only thing a build can
-    // lead to is a plain World Cup. One-off was dropped with the two launcher doors
-    // (roadmap items 27 and 28).
-    const startMode: 'quick' | 'career' = FEATURES.careerMode ? 'career' : 'quick';
-
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
         // A fresh draft means a fresh team, so drop any in-progress Cup Run.
-        if (FEATURES.careerMode) void store.saveRun(null);
-        // Career Mode tops up the re-rolls via the Extra Re-roll perk; a Quick Run keeps
-        // the base three. Read at the click (store.peek is synchronous), so buying the
-        // perk in the hub and coming straight back applies without a reload.
-        const mode = startMode;
-        const extraRerolls =
-            FEATURES.careerMode && mode === 'career' ? extraRerollsOf(store.peek().career) : 0;
+        void store.saveRun(null);
+        // The Extra Re-roll perk tops up the base three. Read at the click (store.peek is
+        // synchronous), so buying the perk in the hub and coming straight back applies
+        // without a reload.
+        const extraRerolls = extraRerollsOf(store.peek().career);
         // Just enter the draft; the draw-next-squad effect rolls the first squad
         // from committed state (an open slot with no squad in hand).
-        dispatch({ type: 'START_DRAFT', formation: previewFormation, mode, extraRerolls });
-    }, [previewFormation, startMode]);
+        dispatch({ type: 'START_DRAFT', formation: previewFormation, extraRerolls });
+    }, [previewFormation]);
 
     // Testing shortcut: auto-pick a full valid XI (within a strength band) and
     // jump straight to "complete".
     const handleRandomTeam = useCallback(
         (tier: TeamStrength) => {
             if (!previewFormation) return;
-            if (FEATURES.careerMode) void store.saveRun(null);
+            void store.saveRun(null);
             const { filled, usedPersonIds } = randomXI(
                 previewFormation,
                 poolSquads,
@@ -356,25 +328,20 @@ export default function App({
                 formation: previewFormation,
                 filled,
                 usedPersonIds,
-                mode: startMode,
             });
         },
-        [previewFormation, poolSquads, startMode],
+        [previewFormation, poolSquads],
     );
 
     // Budget build: enter it in place (no route change) - the left column swaps to
     // the market, while the pitch + ratings/line-up stay put.
     const handleBudget = useCallback(() => {
         if (!previewFormation) return;
-        if (FEATURES.careerMode) void store.saveRun(null);
+        void store.saveRun(null);
         setHeldId(null);
         setBudgetTargetId(null);
-        dispatch({
-            type: 'START_BUDGET',
-            formation: previewFormation,
-            mode: startMode,
-        });
-    }, [previewFormation, startMode]);
+        dispatch({ type: 'START_BUDGET', formation: previewFormation });
+    }, [previewFormation]);
 
     // Hold / release a market player (its eligible slots then pulse on the pitch).
     // Taking a card in hand drops a move in progress: only one thing is being aimed
@@ -531,45 +498,11 @@ export default function App({
         [formation, currentSquad, filled, usedPersonIds, rerollsLeft, rolling, runRoll, poolSquads],
     );
 
-    const handleStartGroup = useCallback(() => {
-        // Already drawn (e.g. navigated Back to home): just return to the group.
-        if (group) {
-            navigate('/group');
-            return;
-        }
-        if (!formation) return;
-        const players = placedPlayers(formation, filled);
-        const bonus = FEATURES.chemistry ? teamChemistry(formation, filled).bonus : 0;
-        dispatch({
-            type: 'START_GROUP',
-            group: createGroup(
-                userGroupTeam(players, bonus, userRatingDelta(settings.settings.difficulty)),
-                pickOpponents(3, poolSquads),
-            ),
-        });
-        navigate('/group');
-    }, [group, formation, filled, navigate, settings.settings.difficulty, poolSquads]);
-
-    const handleEnterKnockout = useCallback(() => {
-        // Already built (navigated Back to the group): just return to the bracket.
-        if (bracket) {
-            navigate('/knockout');
-            return;
-        }
-        if (!group) return;
-        const { user, coQualifier, excludeIds } = bracketSeedFromGroup(group);
-        dispatch({
-            type: 'START_BRACKET',
-            bracket: buildBracket(user, coQualifier, excludeIds, poolSquads),
-        });
-        navigate('/knockout');
-    }, [bracket, group, navigate, poolSquads]);
-
     const handleReset = useCallback(() => {
         // A reset is a brand-new team, so drop any in-progress Cup Run too - and any
         // sticker summary still arriving for the run being abandoned.
         if (STICKERS) stickers.onNewRun();
-        if (FEATURES.careerMode) void store.saveRun(null);
+        void store.saveRun(null);
         dispatch({ type: 'RESET' });
         // Re-open setup in the path that matches where the reset came from: stay on a
         // build route; a Cup Run -> the career build; a World Cup -> the quick build;
@@ -638,47 +571,30 @@ export default function App({
         return ps.length === formation.slots.length ? ps : null;
     }, [formation, filled]);
 
-    // Route -> which screen. `location.pathname` is basename-relative. The flow is
-    // mode-first: `/` is the launcher (Quick Run vs Career Mode), and both modes build
-    // on the same 3-column page at `/quick-run` and `/career-mode`. With careerMode off
-    // there is no launcher - `/` is the build page directly (the plain game, unchanged).
+    // Route -> which screen. `location.pathname` is basename-relative. `/` is the front
+    // page (the hero + the beats + one Continue), `/play` the build, `/cup-run` the run.
     const path = location.pathname;
     const squadsEnabled = FEATURES.squadBrowser;
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
     const isAlbum = STICKERS && path === '/album';
-    const isChallenges = FEATURES.careerMode && FEATURES.challenges && path === '/challenges';
-    const isCabinet = FEATURES.careerMode && FEATURES.trophyCabinet && path === '/cabinet';
-    const isCupRun = FEATURES.careerMode && path === '/cup-run';
-    const isGroup = path === '/group';
-    const isKnockout = path === '/knockout';
-    const isLauncher = FEATURES.careerMode && path === '/';
+    const isChallenges = FEATURES.challenges && path === '/challenges';
+    const isCabinet = FEATURES.trophyCabinet && path === '/cabinet';
+    const isCupRun = path === '/cup-run';
+    const isLauncher = path === '/';
     // `/play` is the build route; `/quick-run` and `/career-mode` are kept as aliases so
     // old links, bookmarks and anything a player saved before the navigation rework still
-    // land somewhere sensible. With the career layer off, `/` is the build page directly.
-    const isBuild =
-        path === '/play' ||
-        path === '/quick-run' ||
-        path === '/career-mode' ||
-        (!FEATURES.careerMode && path === '/');
+    // land somewhere sensible.
+    const isBuild = path === '/play' || path === '/quick-run' || path === '/career-mode';
     // `/career` is the hub, split off the live run (finding F4); `/records` holds the two
     // honours screens as segments, with `/challenges` and `/cabinet` as aliases.
-    const isCareerHub = FEATURES.careerMode && path === '/career';
+    const isCareerHub = path === '/career';
     const tabsRecords =
-        FEATURES.careerMode &&
-        (path === '/records' ||
-            path === '/records/cabinet' ||
-            (FEATURES.challenges && path === '/challenges') ||
-            (FEATURES.trophyCabinet && path === '/cabinet'));
+        path === '/records' ||
+        path === '/records/cabinet' ||
+        (FEATURES.challenges && path === '/challenges') ||
+        (FEATURES.trophyCabinet && path === '/cabinet');
     const recordsCabinet =
         FEATURES.trophyCabinet && (path === '/records/cabinet' || path === '/cabinet');
-    // One kind of run (see `startMode`), so there is nothing to derive from the route.
-    const mode: 'quick' | 'career' = startMode;
-    // A World Cup counts as "in progress" only until it finishes, so a decided
-    // tournament never hijacks a fresh mode pick. Its route is where entering Quick
-    // Run (or the resume action) returns you.
-    const worldCupInProgress =
-        !!group && (!bracket || (bracket.outcome !== 'champion' && bracket.outcome !== 'out'));
-    const worldCupRoute = worldCupInProgress ? (bracket ? '/knockout' : '/group') : null;
     const albumSummary = stickers.summary;
 
     // The completed-challenge set. Same shape as careerPeek below: the career lives in
@@ -687,8 +603,7 @@ export default function App({
     // sub-line - and because the catalogue is reached at `/records`, where `isChallenges`
     // is false.
     const challengeIds = useMemo(
-        () =>
-            FEATURES.careerMode ? store.peek().career.completedChallenges : [],
+        () => store.peek().career.completedChallenges,
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [path],
     );
@@ -698,15 +613,14 @@ export default function App({
     // the build route the way the budget below is, because the kickoff build record is
     // computed on `/cup-run` too, where the budget in force is still the career one.
     const careerPeek = useMemo(
-        () => (FEATURES.careerMode ? store.peek().career : null),
+        () => store.peek().career,
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [path],
     );
     // The Ascension picker's props for the build page: the tier in force and the highest
-    // one currently selectable (unlocked AND level-gated). Only the tabs chrome shows it;
-    // the classic one still picks on its pre-run screen.
-    const ascensionMax = careerPeek ? maxSelectableAscension(careerPeek.ascension, careerPeek.level) : 0;
-    const ascensionTier = Math.min(ascension ?? careerPeek?.lastAscension ?? ascensionMax, ascensionMax);
+    // one currently selectable (unlocked AND level-gated).
+    const ascensionMax = maxSelectableAscension(careerPeek.ascension, careerPeek.level);
+    const ascensionTier = Math.min(ascension ?? careerPeek.lastAscension ?? ascensionMax, ascensionMax);
     const pickAscension = useCallback(
         (tier: number) => {
             setAscension(tier);
@@ -716,10 +630,10 @@ export default function App({
         [],
     );
 
-    // Transfer-market budget. Quick Run (and career-off) use the fixed BUDGET_DRAFT;
-    // Career Mode scales it by the owned `transfer-budget` perk tier.
-    const buildCareer = isBuild && mode === 'career' ? careerPeek : null;
-    const budget = budgetOf(buildCareer);
+    // Transfer-market budget, scaled by the owned `transfer-budget` perk tier. The build
+    // record below reads the same figure, so what the market charged and what the run
+    // recorded cannot drift.
+    const budget = budgetOf(careerPeek);
 
     // What the build page knows and the run cannot work out afterwards: the shape the XI
     // kicks off in, and how it was assembled. Both are handed to `beginRun` so the
@@ -738,17 +652,16 @@ export default function App({
             : null;
     }, [formation, filled, draftedXi]);
 
-    // The build record. `buildMode` (not the route) decides which budget was in force,
-    // since this is also read from `/cup-run`, one navigation after the market closed.
+    // The build record. The career's budget is the one in force, and this is also read
+    // from `/cup-run`, one navigation after the market closed.
     const draftedBuild = useMemo<RunBuild | null>(() => {
         if (!draftedXi) return null;
         const swapsUsed = INITIAL_SWAPS - swapsLeft;
-        const careerBuild = buildMode === 'career' ? careerPeek : null;
         if (build === 'budget') {
             const prices = draftedXi.map((p) => priceFor(p, ownedStickerIds));
             return {
                 method: 'budget',
-                budget: budgetOf(careerBuild),
+                budget: budgetOf(careerPeek),
                 spent: prices.reduce((n, c) => n + c, 0),
                 dearest: Math.max(...prices),
                 discounted: draftedXi.filter((p) => ownedStickerIds.has(p.id)).length,
@@ -759,15 +672,14 @@ export default function App({
         // perk in the middle of a draft (which does not top up the re-rolls already
         // granted) would read as one more used than there was. It costs a reducer field
         // to make exact and the window is narrow, so this follows the plan's formula.
-        const allowance = INITIAL_REROLLS + (careerBuild ? extraRerollsOf(careerBuild) : 0);
+        const allowance = INITIAL_REROLLS + extraRerollsOf(careerPeek);
         return { method: 'roll', rerollsUsed: Math.max(0, allowance - rerollsLeft), swapsUsed };
-    }, [draftedXi, build, buildMode, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
+    }, [draftedXi, build, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
 
     // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
     // mid-flight (not yet ended), with a short round summary for the resume button.
     // Null when there is nothing to resume.
     const resumeCupRun = useMemo(() => {
-        if (!FEATURES.careerMode) return null;
         const r = store.peek().run;
         if (!r || r.phase === 'ended') return null;
         const round = r.phase === 'group' ? 'Group stage' : (KO_ROUNDS[r.koRound] ?? 'Knockouts');
@@ -777,25 +689,21 @@ export default function App({
     }, [isLauncher, path]);
 
     // Launcher-only read: an XI left mid-build, so coming back to the site is not a
-    // dead end. Only when there is nothing further along to resume (an in-progress
-    // World Cup or Cup Run already covers those, and both imply a finished XI), and
-    // only before a tournament has been entered, so a decided run never reads as
-    // "ready to play". It links back to the mode the build was started from; saves
-    // from before `buildMode` existed fall back to Quick Run.
+    // dead end. Only when there is nothing further along to resume (an in-progress Cup
+    // Run already covers that, and implies a finished XI).
     const resumeBuild = useMemo(() => {
-        if (!formation || group || worldCupRoute || resumeCupRun) return null;
+        if (!formation || resumeCupRun) return null;
         const picked = filledCount(formation, filled);
         if (picked === 0) return null;
         const to = '/play';
-        const where = formation.name;
         return picked === formation.slots.length
-            ? { to, label: 'Your XI is ready', sub: `${formation.name} · ${where}` }
+            ? { to, label: 'Your XI is ready', sub: formation.name }
             : {
                   to,
                   label: 'Finish your XI',
                   sub: `${formation.name} · ${picked} of ${formation.slots.length} picked`,
               };
-    }, [isLauncher, formation, filled, buildMode, group, worldCupRoute, resumeCupRun]);
+    }, [isLauncher, formation, filled, resumeCupRun]);
 
     // ---------------------------------------------------------------- tabs chrome
     // A match reveal is transient state (deliberately not persisted), so the bar goes
@@ -803,10 +711,8 @@ export default function App({
     const liveMatch = useLiveMatch();
     // Where the Play tab lands: the run if there is one, the build if one is half done,
     // otherwise the cover. The crest always returns to the cover.
-    const playTo = resumeCupRun
-        ? '/cup-run'
-        : (worldCupRoute ?? (formation ? '/play' : FEATURES.careerMode ? '/' : '/play'));
-    const isPlayTab = isLauncher || isBuild || isGroup || isKnockout || isCupRun || path === '/';
+    const playTo = resumeCupRun ? '/cup-run' : formation ? '/play' : '/';
+    const isPlayTab = isLauncher || isBuild || isCupRun;
     const tabs: TabItem[] = (
         [
               {
@@ -818,22 +724,18 @@ export default function App({
                   // sub-line; where you are is always current.
                   sub: isCupRun
                       ? (resumeCupRun?.round ?? 'Cup Run')
-                      : isGroup || isKnockout
-                        ? 'World Cup'
-                        : resumeCupRun
-                          ? resumeCupRun.round
-                          : worldCupRoute
-                            ? 'World Cup'
-                            : formation && homeView !== 'setup'
-                              ? `${filledCount(formation, filled)} of ${formation.slots.length}`
-                              : undefined,
+                      : resumeCupRun
+                        ? resumeCupRun.round
+                        : formation && homeView !== 'setup'
+                          ? `${filledCount(formation, filled)} of ${formation.slots.length}`
+                          : undefined,
                   to: playTo,
                   active: isPlayTab,
               },
-              FEATURES.careerMode && {
+              {
                   key: 'career' as const,
                   label: 'Career',
-                  sub: careerPeek ? `Lv ${careerPeek.level} · ${careerPeek.prestige}` : undefined,
+                  sub: `Lv ${careerPeek.level} · ${careerPeek.prestige}`,
                   to: '/career',
                   active: isCareerHub,
               },
@@ -846,14 +748,13 @@ export default function App({
                   to: '/album',
                   active: isAlbum,
               },
-              FEATURES.careerMode &&
-                  (FEATURES.challenges || FEATURES.trophyCabinet) && {
-                      key: 'records' as const,
-                      label: 'Records',
-                      sub: FEATURES.challenges ? `${challengeIds.length} earned` : undefined,
-                      to: FEATURES.challenges ? '/records' : '/records/cabinet',
-                      active: tabsRecords,
-                  },
+              (FEATURES.challenges || FEATURES.trophyCabinet) && {
+                  key: 'records' as const,
+                  label: 'Records',
+                  sub: FEATURES.challenges ? `${challengeIds.length} earned` : undefined,
+                  to: FEATURES.challenges ? '/records' : '/records/cabinet',
+                  active: tabsRecords,
+              },
               squadsEnabled && {
                   key: 'squads' as const,
                   label: 'Squads',
@@ -889,47 +790,33 @@ export default function App({
                         state: liveMatch ? 'Live' : resumeCupRun?.round,
                         tone: liveMatch ? 'warm' : 'pitch',
                     }
-                  : isGroup
-                    ? { parts: ['Play', 'Group stage'], state: liveMatch ? 'Live' : undefined, tone: 'warm' }
-                    : isKnockout
-                      ? { parts: ['Play', 'Knockouts'], state: liveMatch ? 'Live' : undefined, tone: 'warm' }
-                      : isBuild
-                        ? {
-                              parts: [
-                                  'Play',
-                                  'Build',
-                                  homeView === 'setup'
-                                      ? 'Set up'
-                                      : homeView === 'complete'
-                                        ? 'Ready'
-                                        : isBudgetBuild
-                                          ? 'Transfer market'
-                                          : 'Rolled squad',
-                              ],
-                              state: formation
-                                  ? `${filledCount(formation, filled)} of ${formation.slots.length} picked`
-                                  : undefined,
-                          }
-                        : { parts: ['Play', 'Home'] };
+                  : isBuild
+                    ? {
+                          parts: [
+                              'Play',
+                              'Build',
+                              homeView === 'setup'
+                                  ? 'Set up'
+                                  : homeView === 'complete'
+                                    ? 'Ready'
+                                    : isBudgetBuild
+                                      ? 'Transfer market'
+                                      : 'Rolled squad',
+                          ],
+                          state: formation
+                              ? `${filledCount(formation, filled)} of ${formation.slots.length} picked`
+                              : undefined,
+                      }
+                    : { parts: ['Play', 'Home'] };
 
-    // The cover's single Continue action, in priority order: a live Cup Run, a live World
-    // Cup, then a half-built XI. One action because this navigation keeps one run at a
-    // time; "build a new XI" beside it discards whichever of the three it is.
+    // The cover's single Continue action: a live Cup Run, else a half-built XI. One
+    // action because this navigation keeps one run at a time; "build a new XI" beside it
+    // discards whichever of the two it is.
     const continueAction = resumeCupRun
-          ? {
-                to: '/cup-run',
-                label: 'Resume your Cup Run',
-                sub: resumeCupRun.summary,
-            }
-          : worldCupRoute
-            ? {
-                  to: worldCupRoute,
-                  label: 'Resume the World Cup',
-                  sub: bracket ? 'Back to your bracket' : 'Back to your group',
-              }
-            : resumeBuild
-              ? { to: resumeBuild.to, label: resumeBuild.label, sub: resumeBuild.sub }
-              : null;
+        ? { to: '/cup-run', label: 'Resume your Cup Run', sub: resumeCupRun.summary }
+        : resumeBuild
+          ? { to: resumeBuild.to, label: resumeBuild.label, sub: resumeBuild.sub }
+          : null;
 
     return (
         <div className="min-h-full text-ink">
@@ -1080,15 +967,11 @@ export default function App({
                                 ]}
                             />
                             {recordsCabinet ? (
-                                careerPeek ? (
-                                    <CabinetScreen
-                                        career={careerPeek}
-                                        album={stickers.album}
-                                        allPlayers={poolPlayers}
-                                    />
-                                ) : (
-                                    <Navigate to="/" replace />
-                                )
+                                <CabinetScreen
+                                    career={careerPeek}
+                                    album={stickers.album}
+                                    allPlayers={poolPlayers}
+                                />
                             ) : (
                                 <ChallengesScreen completed={challengeIds} />
                             )}
@@ -1096,18 +979,14 @@ export default function App({
                     ) : isCabinet ? (
                         // Career + album, both read live. The cabinet records nothing of
                         // its own; `domain/cabinet.ts` derives every figure on it.
-                        careerPeek ? (
-                            <CabinetScreen
-                                career={careerPeek}
-                                album={stickers.album}
-                                allPlayers={poolPlayers}
-                                onClose={() =>
-                                    location.key === 'default' ? navigate('/') : navigate(-1)
-                                }
-                            />
-                        ) : (
-                            <Navigate to="/" replace />
-                        )
+                        <CabinetScreen
+                            career={careerPeek}
+                            album={stickers.album}
+                            allPlayers={poolPlayers}
+                            onClose={() =>
+                                location.key === 'default' ? navigate('/') : navigate(-1)
+                            }
+                        />
                     ) : isChallenges ? (
                         <ChallengesScreen
                             completed={challengeIds}
@@ -1117,46 +996,6 @@ export default function App({
                                 location.key === 'default' ? navigate('/') : navigate(-1)
                             }
                         />
-                    ) : isGroup ? (
-                        group && formation ? (
-                            <TournamentScreen
-                                group={group}
-                                formation={formation}
-                                filled={filled}
-                                speed={speed}
-                                auto={auto}
-                                onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
-                                onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                                onRecordMatchday={(results) =>
-                                    dispatch({ type: 'RECORD_MATCHDAY', results })
-                                }
-                                onEnterKnockout={handleEnterKnockout}
-                                hasBracket={!!bracket}
-                                onReset={handleReset}
-                            />
-                        ) : (
-                            <Navigate to="/" replace />
-                        )
-                    ) : isKnockout ? (
-                        bracket && group && formation ? (
-                            <KnockoutScreen
-                                bracket={bracket}
-                                group={group}
-                                formation={formation}
-                                filled={filled}
-                                speed={speed}
-                                auto={auto}
-                                onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
-                                onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                                onRecordRound={(games) =>
-                                    dispatch({ type: 'RECORD_BRACKET_ROUND', games })
-                                }
-                                onViewGroup={() => navigate('/group')}
-                                onReset={handleReset}
-                            />
-                        ) : (
-                            <Navigate to="/" replace />
-                        )
                     ) : isLauncher ? (
                         <ModeSelect
                             continueAction={continueAction}
@@ -1214,15 +1053,11 @@ export default function App({
                                             onBudgetDraft={
                                                 FEATURES.budgetDraft ? handleBudget : undefined
                                             }
-                                            ascension={
-                                                FEATURES.careerMode
-                                                    ? {
-                                                          tier: ascensionTier,
-                                                          max: ascensionMax,
-                                                          onSelect: pickAscension,
-                                                      }
-                                                    : undefined
-                                            }
+                                            ascension={{
+                                                tier: ascensionTier,
+                                                max: ascensionMax,
+                                                onSelect: pickAscension,
+                                            }}
                                         />
                                     )}
                                     {homeView === 'draft' &&
@@ -1270,20 +1105,14 @@ export default function App({
                                             formation={formation}
                                             filled={filled}
                                             style={style}
-                                            mode={mode}
-                                            onStartRun={
-                                                mode === 'career'
-                                                    ? () => {
-                                                          // Tell the run screen this
-                                                          // navigation is a kickoff, so it
-                                                          // never has to infer that from
-                                                          // "no run in progress" - which a
-                                                          // reload also looks like.
-                                                          requestRunStart();
-                                                          navigate('/cup-run');
-                                                      }
-                                                    : handleStartGroup
-                                            }
+                                            onStartRun={() => {
+                                                // Tell the run screen this navigation is a
+                                                // kickoff, so it never has to infer that
+                                                // from "no run in progress" - which a
+                                                // reload also looks like.
+                                                requestRunStart();
+                                                navigate('/cup-run');
+                                            }}
                                             onReset={handleReset}
                                         />
                                     )}
@@ -1411,8 +1240,6 @@ export default function App({
                     settings={settings}
                     speed={speed}
                     onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                    auto={auto}
-                    onSetAuto={(a) => dispatch({ type: 'SET_AUTO', auto: a })}
                 />
             )}
 

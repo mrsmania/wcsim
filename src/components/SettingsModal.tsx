@@ -54,15 +54,11 @@ export default function SettingsModal({
     settings,
     speed,
     onSetSpeed,
-    auto,
-    onSetAuto,
 }: {
     onClose: () => void;
     settings: SettingsApi;
     speed: MatchSpeed;
     onSetSpeed: (s: MatchSpeed) => void;
-    auto: boolean;
-    onSetAuto: (a: boolean) => void;
 }) {
     const { settings: s, setTheme, setDifficulty, setPoolYears } = settings;
 
@@ -184,22 +180,9 @@ export default function SettingsModal({
                 {/* Match playback */}
                 <div className={GROUP}>
                     <div className={GH}>Match playback</div>
-                    <p className={HINT}>
-                        Speed of the live reveal, and whether tournament rounds auto-play or wait for
-                        you.
-                    </p>
+                    <p className={HINT}>Speed of the live reveal.</p>
                     <div className="mt-3 flex flex-wrap gap-2.5">
                         <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
-                        <SegControl
-                            ariaLabel="Tournament rounds"
-                            label="Rounds"
-                            value={auto ? 'auto' : 'manual'}
-                            onSelect={(v) => onSetAuto(v === 'auto')}
-                            options={[
-                                { value: 'manual', label: 'Manual' },
-                                { value: 'auto', label: 'Auto-play' },
-                            ]}
-                        />
                     </div>
                 </div>
 

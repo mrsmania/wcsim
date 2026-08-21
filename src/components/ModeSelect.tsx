@@ -9,8 +9,7 @@ import { SQUAD_BY_ID } from '../data/squads';
 import { stickerArtSrc, TIER_META } from './StickerCard';
 
 /** The front page (route `/`): a marketing hero that sells the fantasy, then a 3-beat
- *  "how it works" and a "chase the legends" showcase. Shown only when
- *  `FEATURES.careerMode` is on (with it off, `/` is the build page directly).
+ *  "how it works" and a "chase the legends" showcase.
  *
  *  It used to be a LAUNCHER, with two door cards (Quick Run / Career Mode) and up to
  *  three resume buttons. Both went with the navigation rework (roadmap items 27 and 28):

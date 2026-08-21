@@ -45,7 +45,6 @@ import {
 import StandingsTable from './StandingsTable';
 import GroupDrawReveal from './GroupDrawReveal';
 import RunBracket from './cupRun/RunBracket';
-import RunLadder from './RunLadder';
 import Confetti from './Confetti';
 import Flag from './Flag';
 import LiveCupMatch from './cupRun/LiveCupMatch';
@@ -131,7 +130,7 @@ export default function CupRunScreen({
   const [reveal, setReveal] = useState<Reveal | null>(() => store.peek().reveal);
   // The just-finished knockout tie, kept on screen through the following boost pick.
   const [lastKoMatch, setLastKoMatch] = useState<{ match: KoMatch; opp: GroupTeam; roundName: string } | null>(null);
-  // The group draw, shown once per group before the matchdays reveal (stages runs only).
+  // The group draw, shown once per group before the matchdays reveal.
   // Its own state rather than a field on the reveal: it is a one-shot dismissal, and the
   // matchdays must not start playing behind it.
   const [drawOpen, setDrawOpen] = useState(false);
@@ -288,10 +287,6 @@ export default function CupRunScreen({
     const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen, {
       shape: draftedShape ?? undefined,
       build: draftedBuild ?? undefined,
-      // Every run is a tournament: the draw, a table that fills in, and a bracket. Kept as
-      // a field on the run rather than assumed, so a run saved before this existed still
-      // finishes the way it started (see `RunState.useStages`).
-      stages: true,
     });
     const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);
@@ -305,7 +300,7 @@ export default function CupRunScreen({
       setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
       // The draw comes first: the table and the matchdays stay behind it, so the group is
       // not spoiled before it is dismissed.
-      setDrawOpen(!!begun.useStages);
+      setDrawOpen(true);
     }
   };
 
@@ -572,32 +567,19 @@ export default function CupRunScreen({
       {/* Active run */}
       {!hubOnly && run && (
         <>
-          {/* Progress ladder: Group -> R16 -> QF -> SF -> Final -> Cup. Clicking a step
-              switches the content area below to that round; the current step returns
-              to the live view. Locked while a match is playing out.
-              Dropped with `stages`: the group table and the bracket already say which
-              round this is and how the earlier ones went, so it was the same content
-              twice. Its round-review side survived the move: the tree's own played cells
-              open the same `RoundReview` below (see `RunBracket`), so the only step with
-              no way back into it there is the GROUP, which has no cell on the tree. */}
-          <div className="mb-4">
-            {run.ascension > 0 && (
-              <div className="mb-2 flex justify-center">
-                <span className="rounded-full border border-amber/40 bg-amber/[0.12] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a6512]">
-                  {ascensionAt(run.ascension).label} &middot; rewards x{ascensionAt(run.ascension).rewardMult}
-                </span>
-              </div>
-            )}
-            {!run.useStages && (
-              <RunLadder
-                run={run}
-                currentIndex={currentRoundIndex}
-                viewedIndex={reviewIndex ?? currentRoundIndex}
-                onSelectStep={(i) => setReviewIndex(i === currentRoundIndex ? null : i)}
-                locked={!!reveal}
-              />
-            )}
-          </div>
+          {/* There was a progress ladder here (Group -> R16 -> ... -> Cup). It went with
+              the second chrome: the group table and the bracket already say which round
+              this is and how the earlier ones went. Its round-review side survived the
+              move - the bracket's own played cells open the same `RoundReview` below (see
+              `RunBracket`), so the only step with no way back into it is the GROUP, which
+              has no cell on the bracket. */}
+          {run.ascension > 0 && (
+            <div className="mb-4 flex justify-center">
+              <span className="rounded-full border border-amber/40 bg-amber/[0.12] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a6512]">
+                {ascensionAt(run.ascension).label} &middot; rewards x{ascensionAt(run.ascension).rewardMult}
+              </span>
+            </div>
+          )}
 
           {/* The knockouts play out on the tree (roadmap item 28, option A), collapsed to
               the user own path with the full 16-team draw behind a chevron: the tree is
@@ -665,7 +647,7 @@ export default function CupRunScreen({
                       )}
                       {/* The table as it stands: projected to the matchdays revealed so
                           far, so it fills in as the group plays out. */}
-                      {run.useStages && !drawOpen && (
+                      {!drawOpen && (
                         <div className="mb-4">
                           <StandingsTable
                             group={groupAsOf(reveal.group, revealedMatchdays)}
@@ -714,16 +696,7 @@ export default function CupRunScreen({
                             </div>
                             {/* No final table here: the live one above IS the final table
                                 once the third matchday is in, and printing it again put
-                                the same eight rows on screen twice. A run begun before
-                                that table existed has nothing above it, so it keeps one. */}
-                            {!run.useStages && (
-                              <>
-                                <div className="mt-4 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                                  Final group table
-                                </div>
-                                <StandingsTable group={reveal.group} groupFinished advanced={advanced} />
-                              </>
-                            )}
+                                the same eight rows on screen twice. */}
                             {advanced && reveal.next.offer ? (
                               <div className="mt-4 rounded-md border border-line bg-panel p-5 shadow-hard">
                                 <BoostOffer

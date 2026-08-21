@@ -737,7 +737,20 @@ what the block was about.</p>
 <h3>No owner: real, verified, and not hygiene</h3>
 
 <ul>
-  <li><b>The two tournament engines.</b> <code>domain/tournament</code> + <code>domain/bracket</code>
+  <li><b>The two tournament engines - SETTLED 2026-08-21, by deletion.</b> Roadmap item 28
+  deleted the second orchestration: <code>TournamentScreen</code>,
+  <code>KnockoutScreen</code>, <code>TournamentSummary</code> and <code>RunLadder</code>, the
+  reducer's <code>group</code>/<code>knockout</code> phases and their state, the
+  <code>/group</code> and <code>/knockout</code> routes, and the <code>careerMode</code> flag.
+  The two questions this entry said were not hygiene's to answer were answered by the owner:
+  there are no production users, so an orphaned saved World Cup needs no compatibility code,
+  and a career-less build is not a live requirement. <b>Entries this voids:</b> the
+  <code>careerMode</code> row of the feature-flag wave (the flag is gone), and every entry
+  whose only sites were in the three deleted screens - check the line references before
+  starting one. Entries that still stand but shrank: the "settled knockout tie" types are now
+  three not four, and the two <code>stickersApplied</code> guards are one. The original
+  framing is kept below as the record.
+  <br><b>Was:</b> <code>domain/tournament</code> + <code>domain/bracket</code>
   driven by <code>TournamentScreen</code>/<code>KnockoutScreen</code>, versus
   <code>domain/run</code> driven by <code>CupRunScreen</code>. Including the four parallel
   "settled knockout tie" types (<code>KoTieResult</code>, <code>BracketResult</code>,

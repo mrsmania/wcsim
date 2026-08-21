@@ -1,7 +1,7 @@
 import { initialState, type GameState } from './gameReducer';
 
-// Persist the whole game so clean-path routes (/group, /knockout) survive a
-// refresh and are bookmarkable. One versioned key; bump it on a schema change.
+// Persist the whole game (the build: formation, the XI in progress, the drawn squad)
+// so a refresh mid-build resumes it. One versioned key; bump it on a schema change.
 const KEY = 'wcsim:game:v1';
 
 /** Load a persisted game, or null if absent / unreadable / stale. Only the roll

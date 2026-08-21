@@ -1,12 +1,10 @@
 import type { Player, Squad } from '../data/types';
 import type { Formation, FormationName, Style } from '../domain/formations';
 import { canPlace, isComplete, planMove, type Filled } from '../domain/draft';
-import { recordMatchday, type GroupState, type MatchdayResult } from '../domain/tournament';
-import { recordRound, type BracketGame, type BracketState } from '../domain/bracket';
 import { canSwapInto } from '../domain/album';
 import type { MatchSpeed } from '../domain/clock';
 
-export type Phase = 'setup' | 'draft' | 'complete' | 'group' | 'knockout';
+export type Phase = 'setup' | 'draft' | 'complete';
 
 /** How the XI is being assembled: rolling random squads ('roll') or hand-picking
  *  from all squads within a budget ('budget'). Both share the same draft state
@@ -39,47 +37,28 @@ export interface GameState {
   selectedPlayerId: string | null;
   usedPersonIds: string[];
   rerollsLeft: number;
-  /** Group stage, set once the World Cup starts. */
-  group: GroupState | null;
-  /** Knockout bracket, built when the user enters the knockouts. */
-  bracket: BracketState | null;
   /** Match simulation playback speed. */
   speed: MatchSpeed;
-  /** "Automatic" playback toggle, shared across group + knockout so it carries over. */
-  auto: boolean;
-  /** Whether this run's collectibles have been merged into the sticker album yet.
-   *  The run-end condition (group elimination / bracket outcome) is persistent, so
-   *  this guards a once-per-run apply that survives a reload. Reset with the run. */
-  stickersApplied: boolean;
   /** Remaining collectible swaps this run (sticker album feature). */
   swapsLeft: number;
-  /** Which launcher path this XI is being built for, so the home screen can offer to
-   *  resume an unfinished build on the page it was started from. The build state itself
-   *  is shared by both routes (only the finishing CTA differs), so this is presentation,
-   *  not a rule. Absent on saves from before it existed. */
-  buildMode?: 'quick' | 'career';
 }
 
 export type Action =
   | { type: 'SET_FORMATION'; name: FormationName }
   | { type: 'SET_STYLE'; style: Style }
-  // `mode` stamps which launcher path the build belongs to; omitted means keep whatever
-  // it already was (the market's "Clear" re-enters the same build).
   | {
       type: 'START_DRAFT';
       formation: Formation;
-      mode?: 'quick' | 'career';
       /** Extra re-rolls on top of INITIAL_REROLLS (the Extra Re-roll perk's tier). */
       extraRerolls?: number;
     }
-  | { type: 'START_BUDGET'; formation: Formation; mode?: 'quick' | 'career' }
+  | { type: 'START_BUDGET'; formation: Formation }
   | { type: 'BUY_PLAYER'; slotId: string; player: Player }
   | {
       type: 'AUTOFILL';
       formation: Formation;
       filled: Filled;
       usedPersonIds: string[];
-      mode?: 'quick' | 'career';
     }
   | { type: 'ROLL_START'; isReroll: boolean }
   | { type: 'ROLL_SETTLE'; squad: Squad }
@@ -89,13 +68,7 @@ export type Action =
   | { type: 'SWAP_PLAYER'; slotId: string }
   | { type: 'REMOVE_PLAYER'; slotId: string }
   | { type: 'MOVE_PLAYER'; fromSlotId: string; toSlotId: string }
-  | { type: 'START_GROUP'; group: GroupState }
-  | { type: 'RECORD_MATCHDAY'; results: MatchdayResult[] }
-  | { type: 'START_BRACKET'; bracket: BracketState }
-  | { type: 'RECORD_BRACKET_ROUND'; games: BracketGame[] }
   | { type: 'SET_SPEED'; speed: MatchSpeed }
-  | { type: 'SET_AUTO'; auto: boolean }
-  | { type: 'MARK_STICKERS_APPLIED' }
   | { type: 'RESET' };
 
 export const initialState: GameState = {
@@ -110,11 +83,7 @@ export const initialState: GameState = {
   selectedPlayerId: null,
   usedPersonIds: [],
   rerollsLeft: INITIAL_REROLLS,
-  group: null,
-  bracket: null,
   speed: 'fast',
-  auto: false,
-  stickersApplied: false,
   swapsLeft: INITIAL_SWAPS,
 };
 
@@ -138,7 +107,6 @@ export function gameReducer(state: GameState, action: Action): GameState {
         build: 'roll',
         formation: action.formation,
         filled: {},
-        buildMode: action.mode ?? state.buildMode,
         // Set here rather than left at the initial value: a draft can start without a
         // reset in between, and the perk that tops it up is read per draft.
         rerollsLeft: INITIAL_REROLLS + Math.max(0, action.extraRerolls ?? 0),
@@ -152,7 +120,6 @@ export function gameReducer(state: GameState, action: Action): GameState {
         phase: 'draft',
         build: 'budget',
         formation: action.formation,
-        buildMode: action.mode ?? state.buildMode,
         filled: {},
         usedPersonIds: [],
         currentSquad: null,
@@ -184,7 +151,6 @@ export function gameReducer(state: GameState, action: Action): GameState {
         ...state,
         phase: 'complete',
         formation: action.formation,
-        buildMode: action.mode ?? state.buildMode,
         filled: action.filled,
         usedPersonIds: action.usedPersonIds,
         currentSquad: null,
@@ -304,34 +270,12 @@ export function gameReducer(state: GameState, action: Action): GameState {
       return { ...state, filled: moved };
     }
 
-    case 'START_GROUP':
-      return { ...state, phase: 'group', group: action.group };
-
-    case 'RECORD_MATCHDAY':
-      return state.group
-        ? { ...state, group: recordMatchday(state.group, action.results) }
-        : state;
-
-    case 'START_BRACKET':
-      return { ...state, phase: 'knockout', bracket: action.bracket };
-
-    case 'RECORD_BRACKET_ROUND':
-      return state.bracket
-        ? { ...state, bracket: recordRound(state.bracket, action.games) }
-        : state;
-
     case 'SET_SPEED':
       return { ...state, speed: action.speed };
 
-    case 'SET_AUTO':
-      return { ...state, auto: action.auto };
-
-    case 'MARK_STICKERS_APPLIED':
-      return { ...state, stickersApplied: true };
-
     case 'RESET':
       // Keep the display prefs across a reset.
-      return { ...initialState, speed: state.speed, auto: state.auto };
+      return { ...initialState, speed: state.speed };
 
     default:
       return state;

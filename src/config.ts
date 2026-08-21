@@ -49,22 +49,16 @@ export const FEATURES = {
      *  sets are fine - a player without a file just shows the flag + text. Set to
      *  false to skip the image requests entirely and always use the placeholder. */
     stickerImages: true,
-    /** Career "Cup Run" mode (prototype). Adds a /cup-run screen and a home-screen
-     *  entry: take a drafted XI through the tournament, picking a team boost between
-     *  rounds, with a live title-odds readout and a run score. Off by default
-     *  (experimental); set true to expose the entry and route. */
-    careerMode: true,
     /** Budget draft ("Transfer Market"): a second way to build the XI - hand-pick
-     *  players from all squads within a fixed budget (BUDGET_DRAFT), priced by rating
+     *  players from all squads within a budget (BUDGET_BY_TIER), priced by rating
      *  (domain/pricing.ts). Adds a "Buy with a budget" setup entry that swaps the
      *  draft's left column to the market (same page). Set false to hide it and keep
      *  only the random roll. */
     budgetDraft: true,
     /** Challenges: permanent honours over a finished Cup Run (a catalogue of one-off
      *  goals), the /challenges catalogue screen, the hub card, and the run-end completion
-     *  list. Career Mode only, like the rest of that layer. Set false and no challenge is
-     *  evaluated, no Prestige is paid for one, and the screen and its entry points
-     *  disappear. Plan: docs/challenges-spec.html. */
+     *  list. Set false and no challenge is evaluated, no Prestige is paid for one, and the
+     *  screen and its entry points disappear. Plan: docs/challenges-spec.html. */
     challenges: true,
     /** Trophy cabinet: a read-only /cabinet screen showing what a career has to show
      *  for itself - the cups it has won by Ascension tier, the records, the honours
@@ -127,11 +121,12 @@ export const STICKER_TRADE_COST: Record<StickerTier, number> = {
     monumental: 50,
 } as const;
 
-/** Budget draft ("Transfer Market"): total "$" to spend on a full XI (see
+/** Budget draft ("Transfer Market"): a reference total "$" for a full XI (see
  *  docs/budget-draft-requirements.md). Prices are convex (domain/pricing.ts), so with
- *  the current curve this budget maps to a uniform-rating ceiling of roughly:
- *  $99 -> all-82, $110 -> all-83, $121 -> all-84. This is the Quick Run budget (and the
- *  baseline when career mode is off). Career Mode scales it via BUDGET_BY_TIER below. */
+ *  the current curve a budget maps to a uniform-rating ceiling of roughly:
+ *  $99 -> all-82, $110 -> all-83, $121 -> all-84. No screen reads this any more - every
+ *  build is a career build and takes its budget from BUDGET_BY_TIER below - so it is kept
+ *  as the mid-ladder figure the checks harness prices against. */
 export const BUDGET_DRAFT = 110;
 
 /** Budget draft: how much cheaper a player is when his sticker is already in your album
@@ -142,7 +137,7 @@ export const BUDGET_DRAFT = 110;
 export const STICKER_DISCOUNT = 0.25;
 
 /** Career-scaled transfer budget, indexed by the owned tier of the `transfer-budget`
- *  perk (0 = base). Career Mode builds use this instead of BUDGET_DRAFT; Quick Run
- *  always uses BUDGET_DRAFT. Tunable ladder (rises $70 -> $150). Keep in sync with the
+ *  perk (0 = base). Every build reads its budget from here. Tunable ladder (rises
+ *  $70 -> $150). Keep in sync with the
  *  `transfer-budget` perk tiers in domain/career.ts (one entry per tier + the base). */
 export const BUDGET_BY_TIER = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;

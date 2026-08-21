@@ -49,7 +49,7 @@ const SELECT =
 interface Props {
   formation: Formation;
   filled: Filled;
-  /** Total "$" to spend (Quick Run = BUDGET_DRAFT; Career Mode = career-scaled). */
+  /** Total "$" to spend (BUDGET_BY_TIER, raised by the transfer-budget perk tier). */
   budget: number;
   /** The player pool (squad-pool setting); the market lists and prices only these. */
   poolPlayers: Player[];

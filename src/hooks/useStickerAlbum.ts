@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import { ALL_PLAYERS, basePlayer } from '../data/squads';
-import { isGroupFinished, userAdvanced } from '../domain/tournament';
 import {
   albumStats,
   emptyAlbum,
@@ -10,7 +9,7 @@ import {
   type AlbumStatsView,
 } from '../domain/album';
 import { FEATURES, type StickerTier } from '../config';
-import { INITIAL_SWAPS, type Action, type GameState } from '../state/gameReducer';
+import { INITIAL_SWAPS, type GameState } from '../state/gameReducer';
 import { isSignedIn, store } from '../state/store';
 
 /** How long starting a new run waits for the previous one's stickers to save. Long
@@ -69,23 +68,20 @@ export interface StickerAlbumApi {
 /**
  * Owns the entire sticker-album lifecycle that used to live inline in App: the album
  * useState, the run-end apply (banking the final XI's collectibles once per run), the
- * bank-on-loss effects for BOTH the standard game and the Cup Run, and the trade /
- * reset handlers. It normalizes the two cup-win flows into a single `pendingReward`
- * so App renders one CupRewardPicker.
+ * bank-on-loss effect, the cup-win `pendingReward` App renders as the CupRewardPicker,
+ * and the trade / reset handlers.
  *
- * Once-per-run guards are preserved exactly: the standard game gates on the reducer's
- * `stickersApplied` flag (set via MARK_STICKERS_APPLIED), and the Cup Run guards itself
- * (RunState.stickersApplied, so it only calls back once). A cup win banks only after the
- * reward is picked; a loss banks immediately (then the summary shows).
+ * The once-per-run guard belongs to the run itself (RunState.stickersApplied, so
+ * CupRunScreen only calls back once). A cup win banks only after the reward is picked;
+ * a loss banks immediately (then the summary shows).
  */
 export function useStickerAlbum(
   state: GameState,
-  dispatch: Dispatch<Action>,
   initialAlbum: AlbumState,
   allPlayers: Player[] = ALL_PLAYERS,
 ): StickerAlbumApi {
   const enabled = FEATURES.stickerAlbum;
-  const { filled, stickersApplied, group, bracket, swapsLeft } = state;
+  const { swapsLeft } = state;
   /** Collectible swaps spent this run, which the server validates against its cap. */
   const swapsUsed = INITIAL_SWAPS - swapsLeft;
 
@@ -106,36 +102,15 @@ export function useStickerAlbum(
   /** True while a run's stickers are being saved. */
   const [banking, setBanking] = useState(false);
   const bankTimerRef = useRef<number | null>(null);
-  /** A finished Cup Run's collectibles awaiting the sticker apply (its own path,
-   *  since a Cup Run lives outside the reducer's group/bracket run-end). */
+  /** A finished Cup Run's collectibles awaiting the sticker apply. */
   const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean } | null>(
     null,
   );
 
-  // Collectibles in the final XI (derived, so autofill and swaps are handled for
-  // free - no incremental pending log to keep in sync).
-  const draftedCollectibleIds = useMemo(
-    () => collectibleIdsOf(Object.values(filled).filter((p): p is Player => !!p)),
-    [filled],
-  );
-
-  // The run's terminal state (persistent): group elimination, or the bracket end.
-  const runEnd = useMemo<{ wonCup: boolean } | null>(() => {
-    if (!enabled) return null;
-    if (bracket) {
-      if (bracket.outcome === 'champion') return { wonCup: true };
-      if (bracket.outcome === 'out') return { wonCup: false };
-      return null;
-    }
-    if (group && isGroupFinished(group) && !userAdvanced(group)) return { wonCup: false };
-    return null;
-  }, [enabled, bracket, group]);
-
   // Merge a finished run's collectibles into the album. `collectibleIds` are the
-  // collectible ids from the final XI (the standard game passes the drafted XI's; a
-  // Cup Run passes its own, minus anyone a roster boost handed it - see onCupRunEnd).
-  // `markReducer` sets the once-per-run reducer guard, used only by the standard game
-  // (a Cup Run guards itself).
+  // collectible ids from the run's final XI, minus anyone a roster boost handed it
+  // (see onCupRunEnd). The run guards itself against a second bank
+  // (RunState.stickersApplied), so there is no flag to set here.
   //
   // **How stickers are earned is `FEATURES.stickersOnCupWinOnly`** (added 2026-08-15).
   // On (the default) only a cup win banks: drafting a legend and going out in the group
@@ -144,10 +119,9 @@ export function useStickerAlbum(
   // Either way a losing run still reports in - so the run is recorded, `runs_played`
   // stays honest and the server-side active run is cleared - it just carries nothing.
   const applyStickers = useCallback(
-    (collectibleIds: string[], wonCup: boolean, cupPickId: string | null, markReducer: boolean) => {
-      // In flight already: the run-end effect can re-fire on a re-render, and the
-      // reducer flag is now only set on success (below), so this ref is what stops a
-      // second attempt overlapping the first.
+    (collectibleIds: string[], wonCup: boolean, cupPickId: string | null) => {
+      // In flight already: the run-end effect can re-fire on a re-render, so this ref
+      // is what stops a second attempt overlapping the first.
       if (bankingRef.current) return;
       bankingRef.current = true;
       setBanking(true);
@@ -165,7 +139,7 @@ export function useStickerAlbum(
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const outcome = wonCup ? 'champion' : markReducer ? 'out' : 'run-end';
+      const outcome = wonCup ? 'champion' : 'run-end';
       const gen = runGenRef.current;
       // The rule, enforced in one place so no caller can bypass it.
       const earned = wonCup || !FEATURES.stickersOnCupWinOnly ? collectibleIds : [];
@@ -176,9 +150,6 @@ export function useStickerAlbum(
           setAlbum(next);
           // Only show the haul if this is still the run the player is looking at.
           if (runGenRef.current === gen) setNewStickerIds(newly);
-          // Only now: a failure must leave the run bankable rather than silently
-          // marking it done and losing the stickers.
-          if (markReducer) dispatch({ type: 'MARK_STICKERS_APPLIED' });
         })
         .catch((err: unknown) => {
           console.error('banking this run failed', err);
@@ -192,15 +163,8 @@ export function useStickerAlbum(
           setBanking(false);
         });
     },
-    [dispatch, swapsUsed],
+    [swapsUsed],
   );
-
-  // Bank stickers once when the run ends by loss/elimination. Cup wins wait for the
-  // reward pick (pendingReward below), which then calls applyStickers.
-  useEffect(() => {
-    if (!enabled || stickersApplied || !runEnd || runEnd.wonCup) return;
-    applyStickers(draftedCollectibleIds, false, null, true);
-  }, [enabled, stickersApplied, runEnd, applyStickers, draftedCollectibleIds]);
 
   // A Cup Run reported its end (CupRunScreen calls this once). A loss banks
   // immediately; a cup win waits for the reward pick (pendingReward below).
@@ -217,7 +181,7 @@ export function useStickerAlbum(
   }, []);
   useEffect(() => {
     if (!enabled || !cupRunSticker || cupRunSticker.wonCup) return;
-    applyStickers(cupRunSticker.ids, false, null, false);
+    applyStickers(cupRunSticker.ids, false, null);
     setCupRunSticker(null);
   }, [enabled, cupRunSticker, applyStickers]);
 
@@ -249,25 +213,18 @@ export function useStickerAlbum(
       .catch((err: unknown) => console.error('resetting the album failed', err));
   }, [canResetAlbum]);
 
-  // Normalize the two cup-win flows into one pending reward (standard game first,
-  // then the Cup Run), so App renders a single CupRewardPicker. Each keeps its own
-  // once-per-run guard: the standard game marks the reducer flag; the Cup Run clears
-  // its transient carrier (its RunState.stickersApplied already blocks a re-report).
+  // A cup win's pending reward, which App renders as the CupRewardPicker. Clearing the
+  // transient carrier is the once-per-run guard here (the run's own
+  // RunState.stickersApplied already blocks a re-report).
   const pendingReward = useMemo<PendingReward | null>(() => {
-    if (!enabled) return null;
-    if (runEnd?.wonCup && !stickersApplied) {
-      return { onPick: (playerId) => applyStickers(draftedCollectibleIds, true, playerId, true) };
-    }
-    if (cupRunSticker?.wonCup) {
-      return {
-        onPick: (playerId) => {
-          applyStickers(cupRunSticker.ids, true, playerId, false);
-          setCupRunSticker(null);
-        },
-      };
-    }
-    return null;
-  }, [enabled, runEnd, stickersApplied, cupRunSticker, applyStickers, draftedCollectibleIds]);
+    if (!enabled || !cupRunSticker?.wonCup) return null;
+    return {
+      onPick: (playerId) => {
+        applyStickers(cupRunSticker.ids, true, playerId);
+        setCupRunSticker(null);
+      },
+    };
+  }, [enabled, cupRunSticker, applyStickers]);
 
   const summary = useMemo(
     () => (enabled ? albumStats(album, allPlayers) : null),

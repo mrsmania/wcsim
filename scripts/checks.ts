@@ -681,7 +681,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let oppFromBracket = true;
   for (let i = 0; i < 200 && completes && ownTieMatches && oppFromBracket; i++) {
     const squad = SQUADS[(i * 5) % SQUADS.length];
-    let r: RunState = beginRun(bestEleven(squad.players), {}, [], i % 6, { stages: true });
+    let r: RunState = beginRun(bestEleven(squad.players), {}, [], i % 6);
     r = playGroupStage(r);
     let guard = 0;
     while (r.phase !== 'ended' && guard++ < 20) {
@@ -727,13 +727,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     let total = 0;
     let n = 0;
     for (let i = 0; i < 120; i++) {
-      let r: RunState = beginRun(
-        bestEleven(SQUADS[(i * 3) % SQUADS.length].players),
-        {},
-        [],
-        tier,
-        { stages: true },
-      );
+      let r: RunState = beginRun(bestEleven(SQUADS[(i * 3) % SQUADS.length].players), {}, [], tier);
       r = playGroupStage(r);
       const b = r.bracket;
       if (!b) continue;
@@ -792,9 +786,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let recorded = true;
   let committedDropsIt = true;
   for (let i = 0; i < 200 && stable && recorded && committedDropsIt; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0, {
-      stages: true,
-    });
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0);
     const first = prepareGroupStage(begun)!;
     // The run held while the group reveals carries it; the run it was prepared from
     // did not.
@@ -825,9 +817,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let koDropped = true;
   let tiesChecked = 0;
   for (let i = 0; i < 120; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0, {
-      stages: true,
-    });
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0);
     const g1 = prepareGroupStage(begun)!;
     // Surviving the group also decides the field of 16, the first offer and the R16
     // opponent; a second prepare must hand back exactly those.

@@ -299,7 +299,7 @@ export const PERKS: Perk[] = [
     ],
   },
   {
-    // Raises the Career-Mode transfer-draft budget (Quick Run stays at BUDGET_DRAFT).
+    // Raises the transfer-market budget (BUDGET_BY_TIER, read in App).
     // The tier -> dollars mapping lives in config.ts BUDGET_BY_TIER (base $70 at tier 0).
     id: 'transfer-budget',
     name: 'Transfer Budget',

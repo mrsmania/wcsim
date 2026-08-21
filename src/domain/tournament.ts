@@ -186,10 +186,6 @@ export function standings(group: GroupState): Standing[] {
   );
 }
 
-export function isGroupFinished(group: GroupState): boolean {
-  return group.matchday > GROUP_MATCHDAYS;
-}
-
 /** The teams that advance from the group: the top `QUALIFY_COUNT` of the table.
  *  The single source of the "top 2 advance" rule. */
 export function qualifiers(group: GroupState): GroupTeam[] {

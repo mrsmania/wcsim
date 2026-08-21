@@ -12,7 +12,6 @@ interface Props {
     style: Style;
     /** Which path this build is on (chosen up front on the launcher). Decides the
      *  single "Start Run" destination and the surrounding copy. */
-    mode: 'quick' | 'career';
     /** Start the run: a standard World Cup (quick) or the Cup Run screen (career). */
     onStartRun: () => void;
     onReset: () => void;
@@ -24,7 +23,6 @@ export default function CompletePanel({
     formation,
     filled,
     style,
-    mode,
     onStartRun,
     onReset,
 }: Props) {
@@ -63,9 +61,8 @@ export default function CompletePanel({
 
             <div className="p-[18px]">
                 <p className="mb-4 text-[13px] text-muted">
-                    {mode === 'career'
-                        ? 'Your XI is set. Take it on a Cup Run: pick a team boost between rounds and climb the Ascension tiers, earning XP and Prestige for your career.'
-                        : "Your XI is set. You'll be drawn into a group of four - finish in the top two, reach the knockouts, and win the cup."}
+                    Your XI is set. Take it on a Cup Run: pick a team boost between rounds
+                    and climb the Ascension tiers, earning XP and Prestige for your career.
                 </p>
                 <div className="flex flex-col gap-2.5">
                     <button onClick={onStartRun} className={CTA}>

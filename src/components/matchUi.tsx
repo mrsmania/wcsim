@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Play, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 import type { MatchSpeed } from '../domain/clock';
 import type { KoDecided } from '../domain/knockout';
 import type { PenKick } from '../domain/match';
@@ -46,11 +46,6 @@ export const DANGER_BTN =
 
 /** Shared caption class strings (the turf-flat mono labels). Each is the exact
  *  string that repeats across screens; reuse rather than re-typing the utilities. */
-/** Pitch-green section eyebrow (small mono caps). */
-export const EYEBROW = 'font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-pitch';
-/** Card/table header row (mono caps on the ink underline). */
-export const TABLE_HEAD =
-  'font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted';
 /** Muted mono caption used inside cards. */
 export const MONO_CAP = 'font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted';
 
@@ -59,23 +54,6 @@ export const ordinal = (n: number) =>
 
 /** Final minute of a knockout game by how it was decided (regulation vs extra time). */
 export const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
-
-/** Delay (ms) between an idle beat and auto-playing the next matchday/round. */
-export const AUTO_PLAY_DELAY_MS = 700;
-
-/** The "Next game" call to action (shared by the group and knockout screens), a
- *  centred primary button that plays the next matchday / round on click. */
-export function NextGameButton({ onClick }: { onClick: () => void }) {
-  return (
-    <div className="mt-[22px] flex justify-center">
-      <button onClick={onClick} className={PRIMARY_BTN}>
-        <Play size={13} fill="currentColor" strokeWidth={0} />
-        Next game
-        <ArrowRight size={15} strokeWidth={2.5} />
-      </button>
-    </div>
-  );
-}
 
 /** A scored/missed pip (green check / red cross) for one penalty. */
 export function PenPip({ scored }: { scored: boolean }) {
@@ -210,35 +188,6 @@ export function SpeedControl({
       onSelect={onSetSpeed}
       options={SPEED_OPTIONS}
     />
-  );
-}
-
-/** The two playback selectors (mode + speed), shown in the active stage header. */
-export function PlaybackControls({
-  auto,
-  speed,
-  onSetAuto,
-  onSetSpeed,
-}: {
-  auto: boolean;
-  speed: MatchSpeed;
-  onSetAuto: (a: boolean) => void;
-  onSetSpeed: (s: MatchSpeed) => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-end gap-2 max-sm:w-full">
-      <SegControl
-        ariaLabel="Playback mode"
-        label="Mode"
-        value={auto ? 'auto' : 'manual'}
-        onSelect={(v) => onSetAuto(v === 'auto')}
-        options={[
-          { value: 'manual', label: 'Game by game' },
-          { value: 'auto', label: 'Automatic' },
-        ]}
-      />
-      <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
-    </div>
   );
 }
 

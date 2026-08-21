@@ -323,7 +323,7 @@
   <summary>
     <span class="num">28</span>
     <span class="title">One run, one tournament: the draw and the bracket in a Cup Run
-      <span class="sub">Implemented for the tabs chrome (option A): One-off is gone, the group opens with the draw and a table that fills in, and the knockouts play out on a real 16-team bracket.</span>
+      <span class="sub">Done bar one cell: a run is the tournament now - the draw, a live table, a real 16-team bracket - and the second tournament orchestration is deleted. The group's own round review has nowhere to be opened from yet.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -435,22 +435,38 @@
     in this chrome. Adding a leading Group cell to the path is the obvious fix and a visual
     change to a shipped control, so it is left as a decision rather than assumed.</p>
 
-    <p><b>Both convergence questions answered (2026-08-21):</b> there are no production
-    users, so an orphaned saved World Cup is not worth a line of compatibility code; and the
-    <code>FEATURES.careerMode</code>-off configuration is not worth keeping for forks. So
-    nothing is blocking the deletion any more - it is scope, not risk.</p>
-
-    <p class="next"><strong>Next step:</strong> the group's own review (above), then the
-    convergence, which is now a <b>deletion</b> rather than a
-    design question: the tournament ENGINE was never duplicated (<code>domain/tournament</code>,
+    <p><b>The convergence is done: one tournament (2026-08-21).</b> Both questions gating it
+    were answered no - there are no production users, so an orphaned saved World Cup is not
+    worth a line of compatibility code, and the <code>FEATURES.careerMode</code>-off
+    configuration is not worth keeping for forks - so the second orchestration was deleted.
+    The <b>engine was never duplicated</b> and is untouched: <code>domain/tournament</code>,
     <code>bracket</code>, <code>knockout</code>, <code>match</code> and the shared
-    <code>StandingsTable</code> / <code>GroupDrawReveal</code> / <code>MatchdayCard</code> /
-    <code>Bracket</code> are one copy, used by both), so what is left is the second
-    ORCHESTRATION: TournamentScreen + KnockoutScreen + TournamentSummary (~780 lines), the
-    reducer's <code>group</code> / <code>knockout</code> phases, and the second home for a run
-    in flight (the game state vs <code>wcsim_run_v1</code>). Reachable only by a legacy saved
-    World Cup or a fork with <code>FEATURES.careerMode</code> off, which is what has to be
-    decided before any of it goes.</p>
+    <code>GroupDrawReveal</code> / <code>StandingsTable</code> / <code>MatchdayCard</code> /
+    <code>Bracket</code> were always one copy used by both. What went, ~1,400 lines: the
+    <code>TournamentScreen</code> / <code>KnockoutScreen</code> / <code>TournamentSummary</code>
+    screens and <code>RunLadder</code>; the reducer's <code>group</code> and
+    <code>knockout</code> phases with their state, their four actions and the
+    <code>auto</code> playback field; the <code>/group</code> and <code>/knockout</code>
+    routes (they hit the catch-all and redirect to <code>/</code>); the
+    <code>careerMode</code> flag; the <code>buildMode</code> / <code>mode</code> /
+    <code>startMode</code> plumbing that told the two modes apart; the settings sheet's
+    Auto-play control; <code>useStickerAlbum</code>'s separate World-Cup banking path (and
+    with it the hook's <code>dispatch</code> argument); <code>RunState.useStages</code> and
+    the <code>stages</code> kickoff flag; and six orphaned shared atoms
+    (<code>PlaybackControls</code>, <code>NextGameButton</code>, <code>AUTO_PLAY_DELAY_MS</code>,
+    <code>EYEBROW</code>, <code>TABLE_HEAD</code>, <code>isGroupFinished</code>). Two knock-on
+    simplifications worth knowing: a knockout round now <b>throws</b> if it has no bracket
+    rather than falling back to a one-opponent draw, and <code>prepareKnockoutRound</code>
+    dropped its <code>pool</code> parameter because nothing is drawn after the group. It also
+    settles <b>one run at a time</b> by deletion - the only way two could be live was a World
+    Cup in the game state beside a Cup Run in <code>wcsim_run_v1</code>. Verified by the 94
+    characterization checks plus a browser click-through: cover to build to autofill to the
+    draw to a played group, then a seeded mid-run through the QF with both path cells
+    reviewable and no console errors.</p>
+
+    <p class="next"><strong>Next step:</strong> the group's own review - a leading Group cell
+    on the path row, which is the one piece of the old ladder still missing. After that this
+    item is done.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
   </div>

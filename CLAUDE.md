@@ -184,16 +184,16 @@ src/
                (the sticker album <-> its own localStorage keys), careerStorage.ts
                (the Cup Run career <-> wcsim_career_v1), runStorage.ts, settingsStorage.ts
   hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
-               match-reveal clock used by both tournament screens), useSettings.ts
+               match-reveal clock, used by every live match), useSettings.ts
                (theme / difficulty / year pool, through the store), useStickerAlbum.ts
                (the album + the run-end banking rule, see below), motion.ts
                (prefersReducedMotion)
-  nav/         navMode.ts (the tabs-navigation runtime switch, see below),
-               liveMatch.ts ("a match is revealing", published by useMatchClock)
-  components/  presentational React (App composes them); the group screen
-               (TournamentScreen) splits into GroupDrawReveal / StandingsTable /
-               MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
-               presentational atoms + per-match view-model used by both screens;
+  nav/         liveMatch.ts ("a match is revealing", published by useMatchClock),
+               pendingRun.ts (a kickoff is REQUESTED, never inferred - see below)
+  components/  presentational React (App composes them); the tournament is drawn by
+               GroupDrawReveal / StandingsTable / MatchdayCard / Bracket, with
+               matchUi.tsx + matchView.ts holding the shared presentational atoms and
+               the per-match view-model;
                SquadBrowser + TeamRoster are the read-only squad archive (see below);
                CupRunScreen (Cup Run + career) is a lazy-loaded (React.lazy) route
                screen, as are ChallengesScreen and CabinetScreen (the trophy cabinet);
@@ -203,66 +203,61 @@ src/
                RouteCrumb, SubTabs)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
-               stickerImages, careerMode, budgetDraft, challenges, challengeAwards,
+               stickerImages, budgetDraft, challenges, challengeAwards,
                trophyCabinet;
                plus `accounts`, which is DERIVED from the build env, see below) +
                STICKER_TIERS / STICKER_TRADE_COST / STICKER_DISCOUNT +
-               BUDGET_DRAFT / BUDGET_BY_TIER
+               BUDGET_BY_TIER (BUDGET_DRAFT is checks-only now)
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
 ```
 
-**Play mode = chosen up front on the launcher.** With `FEATURES.careerMode` on, `/` is a
-launcher (`ModeSelect`) with two cards: **Quick Run** (-> `/quick-run`) and **Career Mode**
-(-> `/career-mode`). Both lead to the *same* 3-column build page (roll a squad or buy within
-a budget - both build methods are available in either mode); the chosen path is derived from
-the route (`mode: 'quick' | 'career'`) and only decides what the single `CompletePanel`
-"Start Run" CTA does: quick -> `handleStartGroup` -> `/group`; career -> `/cup-run`. The
-launcher surfaces resume actions for an in-progress World Cup (`worldCupRoute`), an
-in-progress Cup Run (`resumeCupRun`) and a **half-finished build** (`resumeBuild` ->
-`buildResume`: "Finish your XI - 4-3-3 - 7 of 11 picked", or "Your XI is ready" for a
-complete XI that never kicked off; suppressed when a tournament or Cup Run already covers
-it). That last one needs to know which page to go back to, which the route alone cannot
-say once you have left it, so `START_DRAFT` / `START_BUDGET` / `AUTOFILL` carry the mode
-(`modeOfPath`) and the reducer stores it as `buildMode` - presentation only, since the
-build state itself is shared by both routes. It also shows the career headline
-(level/Prestige) on the Career card. With
-`careerMode` off there is **no launcher**: `/` is the build page directly (a single "Start
-Run" -> World Cup), i.e. the plain game unchanged. `handleReset` returns to the build route
-that matches where it was triggered (Cup Run -> `/career-mode`, World Cup -> `/quick-run`).
+**There is ONE way to play, and one tournament.** `/` is the front page (`ModeSelect`),
+`/play` the build page, `/cup-run` the run. Build an XI (roll a squad or buy within a
+budget - both are always available), then the single `CompletePanel` "Start Run" CTA
+requests a kickoff and goes to `/cup-run`. The front page surfaces one **Continue**: a
+live Cup Run, else a **half-finished build** ("Finish your XI - 4-3-3 - 7 of 11 picked",
+or "Your XI is ready" for a complete XI that never kicked off). `handleReset` always
+returns to `/play`.
 
-**Data flow / phases.** `gameReducer` drives `phase: setup -> draft -> complete ->
-group -> knockout`. `group` (`TournamentScreen.tsx`) and `knockout`
-(`KnockoutScreen.tsx`) are separate screens: you play the group one matchday at a
-time, then click "Enter the knockouts" to reach the bracket and play it one round at
-a time. The group opens with the draw as a **modal** (`GroupDrawReveal`, shown once
-for a freshly drawn group); the standings + matchdays stay hidden behind it until it
-is dismissed, so the draw is not spoiled. Components dispatch actions; `App` runs side effects (the roll scramble
-animation, scroll follow) and the phase transitions. The `domain/` modules are
+This used to be two of everything - a Quick Run playing a plain World Cup on
+`TournamentScreen`/`KnockoutScreen`, and a Career Mode Cup Run - chosen on a launcher with
+two door cards, with a `FEATURES.careerMode` flag switching the whole career layer off.
+**All of it was deleted on 2026-08-21** (roadmap item 28), because once a Cup Run became a
+real tournament (the group draw, a live table, a 16-team bracket) a career run at Base
+Ascension with no boost taken *was* the World Cup, only with progression attached. What
+went: the two screens plus `TournamentSummary`, the reducer's `group`/`knockout` phases and
+their state and actions, the `/group` + `/knockout` routes (they now hit the catch-all and
+redirect to `/`), the `careerMode` flag, `RunLadder`, the `buildMode` / `mode` /
+`startMode` plumbing that told the two modes apart, the `auto` playback state and its
+settings control, and the sticker hook's separate World-Cup banking path. The
+**engine was never duplicated** and is untouched: `domain/tournament`, `bracket`,
+`knockout` and `match`, and the shared `GroupDrawReveal` / `StandingsTable` /
+`MatchdayCard` / `Bracket` components, were always one copy used by both.
+
+**Data flow / phases.** `gameReducer` drives `phase: setup -> draft -> complete`, i.e. the
+build only; the tournament itself lives in `RunState` (`domain/run.ts`, its own storage
+key), not in the reducer. Components dispatch actions; `App` runs side effects (the roll
+scramble animation, scroll follow) and the phase transitions. The `domain/` modules are
 deterministic except where they intentionally call `Math.random` (match sim, opponent
 draw, roll). Strong pattern: **each match's result is computed up front, then the
-clock only reveals it** (`clock.ts` + the screen components) - simulation is separate
+clock only reveals it** (`clock.ts` + `useMatchClock`) - simulation is separate
 from playback.
 
 **Routing & persistence.** The URL is the source of truth for *which screen*; the
-reducer stays the source of truth for *game data*. `App` branches on
-`location.pathname`: `/` (the launcher when `careerMode` is on, else the build page),
-`/quick-run` + `/career-mode` (the build page = setup/draft/complete, sub-view derived from
-`formation` + `isComplete`, not `phase`), `/group`, `/knockout` (both redirect `/` when
-their data is missing), `/cup-run`, `/album`, `/challenges`, `/cabinet`, and
-`/squads/*`. Navigation happens via
-`useNavigate` in the footer nav and the transition handlers (`handleStartGroup`,
-`handleEnterKnockout`, `handleReset`), which never rebuild existing state. So Back/
-Forward move between screens (knockout <-> group <-> home) without losing progress. On
-top of browser Back/Forward, each tournament screen carries a `StageCrumb` link in its
-`StageHeader` for explicit, discoverable cross-navigation: the knockout screen links back
-to `/group` (`onViewGroup`), and once a bracket exists the group screen links forward to
-`/knockout` (reusing `onEnterKnockout`, which only navigates when the bracket is already
-built, and whose qualified-CTA button then reads "Back to the knockouts"). The
-whole `GameState` is mirrored to storage and restored on load, so `/group` and
-`/knockout` survive a refresh (transient draft fields are reset
-on restore). `SquadBrowser` derives its view from route params via `useMatch`
+reducer stays the source of truth for *the build*. `App` branches on
+`location.pathname`: `/` (the front page), `/play` (the build page =
+setup/draft/complete, sub-view derived from `formation` + `isComplete`, not `phase`;
+`/quick-run` and `/career-mode` are kept as aliases), `/cup-run`, `/career`, `/album`,
+`/records` + `/records/cabinet` (with `/challenges` and `/cabinet` as aliases), and
+`/squads/*`. Anything else hits a catch-all `<Navigate to="/">`, which is what the
+deleted `/group` and `/knockout` now do. Navigation happens via `useNavigate` in the tab
+bar and the transition handlers (`handleReset`), which never rebuild existing state, so
+Back/Forward move between screens without losing progress. The whole `GameState` is
+mirrored to storage and restored on load, so a refresh mid-build resumes it (transient
+draft fields are reset on restore); the run in flight has its own key.
+`SquadBrowser` derives its view from route params via `useMatch`
 (`/squads/by-world-cup/:year`, `/squads/by-team/:code`, `/squads/team/:squadId`); team
 codes in URLs are lowercase and matched case-insensitively.
 
@@ -341,7 +336,9 @@ rather than partially.
 
 `SettingsModal.tsx` is the sheet behind the masthead's settings button. It shows four
 controls, and they do **not** all live in the same place, which is the thing to know before
-looking for one:
+looking for one. (There was a fifth - an Auto-play / Manual toggle for tournament rounds -
+read only by the two deleted World Cup screens; it went with them on 2026-08-21, along with
+the reducer's `auto` field and `SET_AUTO`.)
 
 - **Persisted preferences** (`hooks/useSettings.ts` over `state/settingsStorage.ts`, key
   `wcsim_settings_v1`, through the store seam, seeded from the boot snapshot): `theme`
@@ -388,27 +385,22 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   a shop and a step of play cannot be the same address), `/records` +
   `/records/cabinet` (the two honours screens as segments of one destination, which is
   what keeps the bar at five). `/quick-run`, `/career-mode`, `/challenges` and `/cabinet`
-  still resolve. `/group` and `/knockout` still exist but are only reachable by a **legacy
-  saved World Cup** (the cover's Continue offers it) or by a fork with
-  `FEATURES.careerMode` off, where a build has nowhere else to go.
+  still resolve. `/group` and `/knockout` are **gone** (see "There is one way to play"
+  above); they hit the catch-all and redirect to `/`.
 - **The mode doors go, the front page stays.** `/` is still `ModeSelect` - the hero
   tactics board, the three beats and the "Chase the legends" showcase are what sell the
-  game - but `variant="cover"` drops the two door cards (mode is a **Career run /
-  One-off** control in `SetupPanel`, beside formation and style) and collapses the three
-  resume buttons into one **Continue**, in priority order Cup Run, World Cup, half-built
-  XI. "Build a new XI" beside it confirms first, because it discards whichever of the
-  three that is.
-- **There is one kind of run.** The Career run / One-off control that first shipped here
+  game - but the two door cards went, and the three resume buttons collapsed into one
+  **Continue**: a live Cup Run, else a half-built XI. "Build a new XI" beside it confirms
+  first, because it discards whichever of the two that is.
+- **There is one kind of run.** A Career run / One-off control shipped here briefly and
   was **removed 2026-08-21** (roadmap item 28): a career run at Base Ascension with no
   boost taken is the same tournament, so One-off was a strictly dominated choice, and
-  deleting it answers "should a one-off pay?" by deletion. `startMode` is `'career'`
-  whenever `FEATURES.careerMode` is on, the two Career-Mode-only perks always apply, and
-  `handleStartGroup` (the World Cup) is only reached with the career layer off.
+  deleting it answers "should a one-off pay?" by deletion. The plain World Cup it led to
+  was deleted with it later the same day, along with the `careerMode` flag.
 - **The bar goes inert while a match reveals** (`nav/liveMatch.ts`), because the live
   playback is transient state that is deliberately not persisted - leaving the screen
-  loses it. Published from `useMatchClock`, the one hook the group screen, the knockout
-  screen and the Cup Run all share, so one effect covers all three; the run ladder already
-  took a `locked` flag for exactly this. With the classic navigation nothing subscribes.
+  loses it. Published from `useMatchClock`, so it covers every live match; the tree's
+  review cells go inert on the same signal, for the same reason.
 - **The two navigation cards leave the build page's left column.** The phone build page
   briefly went **pitch first** too (item 27's decision D, on the reasoning that the thing
   you tap was sandwiched between the panel you pick from and the ratings you check).
@@ -416,29 +408,25 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   picking a player scrolls the pitch up, placing him scrolls the panel back - and
   pitch-first breaks the pairing, because scrolling "to the pitch" is a no-op when the
   pitch is already at the top and the return scroll then travels the wrong way. The source
-  panel (setup / drawn squad / market / complete, all one grid area) is first again in both
-  chromes.
+  panel (setup / drawn squad / market / complete, all one grid area) is first again.
 - **Layering:** the bottom bar is `z-20`, under every overlay - the group draw is its own
   centred `z-40`, the shared `Overlay` is `z-[80]` and confetti `z-[90]`, all over a
   full-screen backdrop. Nothing here is bottom-anchored, so there is no conflict to
   design around.
-- **One run at a time is NOT implemented**, deliberately: it is functionality, not chrome.
-  The cover picks one Continue by priority and "Build a new XI" resets, so it *reads* as
-  one run, but two can still be live (a World Cup lives in the game state, a Cup Run in
-  `wcsim_run_v1`, and `handleStartGroup` never clears the run). Settling that is the same
-  question as converging the two tournament engines, which the hygiene audit lists as
-  unowned.
-- **Not decided by the preview:** whether a One-off run should pay (XP, Prestige,
-  challenges), the six-overlay pile, and per-screen adaptations now that the chrome
-  around them changed. Comps: `docs/redesign-2026/turf-flat/nav2/` (ten pages), audit:
-  `docs/redesign-2026/turf-flat/nav-options.html`.
+- **One run at a time is now TRUE**, and by deletion rather than by a rule: there was only
+  ever one way for two runs to be live at once (a World Cup in the game state alongside a
+  Cup Run in `wcsim_run_v1`), and the World Cup is gone. `wcsim_run_v1` holds the only run
+  there is, and every path that starts a build clears it.
+- **Not decided by the preview:** the six-overlay pile, and per-screen adaptations now that
+  the chrome around them changed. Comps: `docs/redesign-2026/turf-flat/nav2/` (ten pages),
+  audit: `docs/redesign-2026/turf-flat/nav-options.html`.
 - **What the deletion took with it**, for anyone reading old commits: `navMode.ts` and
   every `TABS` branch, the Settings "Navigation (preview)" group, `modeOfPath` and the
   quick/career route split, the footer nav array and its markup, `ModeSelect`'s `launcher`
-  variant (with `ResumeButton` and its five props), `CupRunScreen`'s `stages` prop (every
-  run is a tournament now; `RunState.useStages` stays, so a run saved before that still
-  finishes the way it started), and the pre-run Ascension picker with its `ascSel` state -
-  the tier is chosen on the build page and read from the career's `lastAscension`.
+  variant (with `ResumeButton` and its five props), `CupRunScreen`'s `stages` prop and
+  `RunState.useStages` (every run is a tournament, so there is nothing to record), and the
+  pre-run Ascension picker with its `ascSel` state - the tier is chosen on the build page
+  and read from the career's `lastAscension`.
 
 ## The dataset (`src/data/squads.ts`)
 
@@ -484,8 +472,11 @@ display; opponents are real, intact squads with innate chemistry). Lives in
 
 ## Knockout bracket
 
-After qualifying from the group, the user clicks through to a separate **knockout
-page** (`KnockoutScreen.tsx`), driven by `domain/bracket.ts`.
+`domain/bracket.ts` is the 16-team knockout model. A run builds one the moment the group
+is survived (see "Runs as tournaments" below) and plays it out in `CupRunScreen`; the tree
+itself is drawn by `Bracket.tsx`. It used to have its own screen
+(`KnockoutScreen.tsx`, deleted 2026-08-21) - the notes below are about the model, which
+is unchanged, and the renderer.
 
 - **Field**: a 16-team bracket. Seed 0 is the user; the team that qualified alongside
   them in the group is seeded into the opposite half; the other 14 are drawn
@@ -584,9 +575,12 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   Stickers are never awarded mid-run either way.
   On a **cup win** `App` shows `CupRewardPicker` (pick any one uncollected Legendary or
   Iconic sticker - Monumental excluded, FR-3/D-1) and then banks the **final XI**'s
-  collectibles plus that pick, guarded once-per-run by the persisted `stickersApplied`
-  reducer flag. `RunEndStickerSummary` then shows the newly earned cards (only if any
-  were new, FR-8). Both are global overlays in `App`.
+  collectibles plus that pick, guarded once-per-run by `RunState.stickersApplied`.
+  `RunEndStickerSummary` then shows the newly earned cards (only if any were new, FR-8).
+  Both are global overlays in `App`. (There used to be a second, parallel banking path for
+  the plain World Cup, guarded by a `stickersApplied` flag on the REDUCER and keyed off
+  `state.group` / `state.bracket`; it went with that tournament on 2026-08-21, so
+  `useStickerAlbum` no longer takes `dispatch` at all.)
   A **losing** run still reports in with an empty list, so the run is recorded, the
   `runs_played` telemetry stays honest and the server-side active run is cleared - it
   simply banks nothing. The rule is enforced in one place (`useStickerAlbum`'s
@@ -655,10 +649,12 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 - With **`FEATURES.stickerAlbum` = false**: no album route/entry, no markers, no swap,
   no overlays, and no album localStorage reads/writes; the game is unchanged.
 
-## Cup Run + Career (flagged, prototype)
+## Cup Run + Career (prototype)
 
-A roguelike layer over the core loop, plus a persistent career. Design:
-`docs/roguelike-career-design.md`. Entirely behind **`FEATURES.careerMode`**.
+A roguelike layer over the core loop, plus a persistent career - and since 2026-08-21 the
+only way the game is played, so it is no longer behind a flag (`FEATURES.careerMode` was
+deleted with the plain World Cup it used to gate). Design:
+`docs/roguelike-career-design.md`.
 
 - **Cup Run** (`domain/run.ts`, route `/cup-run`, `CupRunScreen.tsx`): build your XI the
   normal way, then pick the "Enter the Cup Run" CTA on `CompletePanel` (see "Play mode"
@@ -701,16 +697,15 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   harness) just return `next`. `CupRunScreen` reveals the three group matches one by one, then the
   knockout tie, via a keyed `LiveCupMatch` (shared `useMatchClock` + `MatchdayCard`), committing
   `next` when the reveal ends. A **Speed** control (shared with the game's `speed`) sets the pace.
-- **In-run layout.** A `RunLadder` sits up top (Group -> R16 -> QF -> SF -> Final -> Cup; current
-  step lit and auto-scrolled to centre) as a **basic history tracker** (node glyph ✓/✗ + round
-  label; the current step shows "vs XXX"). Clicking a step **switches the content area below** to
-  that round (tab-like): the current step is the live/interactive view, a past step opens a
-  read-only `RoundReview`. `CupRunScreen` owns `reviewIndex` (null = live) + `currentRoundIndex`;
-  it maps a click to review-or-live and snaps back to live when the run advances (effect on
-  `currentRoundIndex`); the ladder is `locked` while a match is playing. Both reviews show the
-  **boost taken after that round** (`RoundRecord.boostId`, see below): a KO review re-renders the
-  finished match card (`FinishedKoCard`, from the record's stored `events`/`pens`/ratings) + the
-  boost; the group review shows the finishing position + its three matchday scorelines
+- **In-run layout.** The group table and the bracket say which round this is and how the
+  earlier ones went; a `RunLadder` used to sit up top saying the same thing again, and was
+  deleted 2026-08-21. What survived it is `RoundReview`, opened from the tree's own played
+  cells (see "Runs as tournaments" below). `CupRunScreen` owns `reviewIndex` (null = live) +
+  `currentRoundIndex`, and snaps back to live when the run advances (effect on
+  `currentRoundIndex`). A review shows the **boost taken after that round**
+  (`RoundRecord.boostId`, see below): a KO review re-renders the finished match card
+  (`FinishedKoCard`, from the record's stored `events`/`pens`/ratings) + the boost; the
+  group review shows the finishing position + its three matchday scorelines
   (`RoundRecord.groupResults`) + the boost - all from `RunState.history`. The career hub
   collapses to a slim strip with a chevron during a run (shown in full
   only between runs). The XI panel lists **active boosts** as chips and tags players a roster boost
@@ -731,12 +726,11 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   players in/out, e.g. Poach; otherwise the boost's description). The ended screen uses the same
   `RunBanner`: green for the cup win, flat white for a knockout loss / group exit. (There is **no
   run-log feed**: every per-round fact - match scores + goal feeds, results, the boost taken - is
-  in the ladder's `RoundReview`s, so `RunState` carries no narrative `log`.)
-- **Runs as tournaments (`stages`, tabs chrome only).** Roadmap item 28, option A:
-  with `stages` on, a run plays like a World Cup rather than like five ties in a row.
-  `beginRun`'s `Kickoff.stages` records `RunState.useStages`, and `App` passes
-  `stages={TABS}` - so the classic chrome gets today's run, byte for byte, and a run in
-  flight keeps whatever it began with. Three parts:
+  in the tree's `RoundReview`s, so `RunState` carries no narrative `log`.)
+- **Runs are tournaments.** Roadmap item 28, option A: a run plays like a World Cup rather
+  than like five ties in a row. It shipped behind a `stages` kickoff flag so the old
+  five-ties shape could be compared against it; the flag, `RunState.useStages` and the old
+  shape were deleted 2026-08-21, and this is simply how a run works. Three parts:
   - **The group draw**, then a live table. `GroupDrawReveal` (unchanged, `{userTeam,
     opponents, onContinue}`) opens over the reveal, and the matchdays do not start playing
     until it is dismissed. Behind it `StandingsTable` fills in as they land, plus the
@@ -751,8 +745,9 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     only accumulate.
   - **A real 16-team bracket.** Built when the group is survived, never before (there is
     nothing to seed it from until then): `bracketSeedFromGroup(group)` +
-    `buildBracket(...)`, then the knockouts run on it. `RunState.bracket` is optional, so
-    a run saved before this resumes on the old one-opponent draw. The user's own tie is
+    `buildBracket(...)`, then the knockouts run on it. `RunState.bracket` stays
+    optional because there is no tree during the group; after it, `prepareKnockoutRound`
+    throws rather than falling back to a draw. The user's own tie is
     still `simulateKoTie` (so boosts, chemistry, the Ascension handicap and the difficulty
     setting all apply exactly as before) and its result is **spliced** into the tree by
     `advanceBracket`; the other ties resolve from their own ratings. `nextOpponent` stays
@@ -788,18 +783,17 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     revealing**, as the ladder was `locked` for the same reason (the live playback is not
     persisted, so leaving loses it); and the tree hides itself while a review is open, so
     the two never stack. **The GROUP has no cell on the tree**, so its review (finishing
-    position, the three scorelines, the first boost) is still unreachable in this chrome -
-    the one piece of the ladder not yet restored.
-  - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21), all
-    `stages`-only: **Ascension is picked on the build page**, in `SetupPanel` beside
+    position, the three scorelines, the first boost) is still unreachable -
+    the one piece of the ladder not restored.
+  - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21):
+    **Ascension is picked on the build page**, in `SetupPanel` beside
     formation and style (`App` holds the tier and mirrors it onto the career's
     `lastAscension`, which is where the run already read its default from - so nothing new
     reaches `beginRun`); **"Start run" goes straight into the draw**, which is the one to
     read the note below about; and
-    **`RunLadder` is gone** there, because the group table and the bracket already say
+    **`RunLadder` is gone**, because the group table and the bracket already say
     which round this is and how the earlier ones went. `RoundReview` stayed, though: the
-    tree's own cells open it now (see above). All three are untouched in the classic chrome,
-    which keeps its pre-run screen, its picker and its ladder.
+    tree's own cells open it now (see above).
   - **The kickoff is REQUESTED, never inferred** (`nav/pendingRun.ts`), and the first
     version of it lost runs. It started a run whenever `/cup-run` was reached with none in
     progress - which is the same shape as a reload, a Back navigation, a bookmark, a tab
@@ -866,8 +860,8 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   data-driven off `PERKS`, so a new perk or tier appears by being added there; what needs
   wiring is only its effect. A trophy record (runs/cups/best) sits in
   the `CupRunScreen` hub. Separate storage from the game + album.
-  **Two perks reach outside the run**, both Career-Mode-only and both read in `App`
-  (a Quick Run keeps the plain defaults): `transfer-budget` -> `BUDGET_BY_TIER` -> the
+  **Two perks reach outside the run**, both read in `App`:
+  `transfer-budget` -> `BUDGET_BY_TIER` -> the
   market's budget, and `extra-reroll` -> `extraRerollsOf` -> `START_DRAFT`'s
   `extraRerolls`, which sets `rerollsLeft` to `INITIAL_REROLLS` + the owned tier (so
   tier 1 is a 4th re-roll, tier 2 a 5th). The reducer knows nothing about the career,
@@ -1145,16 +1139,16 @@ A second way to build the XI, alongside the random roll. Spec:
   rating-sorted, searchable list for the targeted position (all shown; unaffordable/used rows
   disabled; collectible tier stars). You buy from all squads within a budget, each priced by
   rating via **`domain/pricing.ts`** (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so
-  the budget forces trade-offs). The budget is a `budget` prop (not a constant): Quick Run
-  (and career-off) use the fixed `BUDGET_DRAFT` ($110); **Career Mode scales it** by the
-  owned `transfer-budget` career perk via `config.ts` `BUDGET_BY_TIER` ($70 base -> $150),
-  computed in `App` (reads `store.peek().career`, synchronously) and passed to
-  `BudgetMarket`.
+  the budget forces trade-offs). The budget is a `budget` prop (not a constant): it is the
+  owned `transfer-budget` career perk's tier through `config.ts` `BUDGET_BY_TIER` ($70 base
+  -> $150), computed in `App` (reads `store.peek().career`, synchronously) and passed to
+  `BudgetMarket`. `BUDGET_DRAFT` ($110) is no longer read by any screen - every build is a
+  career build - and is kept only as the mid-ladder figure `npm run checks` prices against.
 - **The owned-sticker discount.** A player whose sticker is already in the album costs
   `STICKER_DISCOUNT` (config.ts, 25%) less: `priceFor(player, ownedIds)` on top of the
   curve, with `pricerFor(ownedIds)` for the places that price many players. **In both
-  modes** - the album is global, shared by Quick Run, Career Mode and guests, so there is
-  one price rule rather than a mode-dependent one; set the constant to 0 to switch it off.
+  **for signed-in players and guests alike** - the album is global, so there is one price
+  rule; set the constant to 0 to switch it off.
   Everything that touches money goes through it, and that is the part to keep in step:
   the market rows (which show the full price struck through beside the discounted one),
   the **price and value sort comparators** (sorting by a price the player is not paying
@@ -1172,8 +1166,8 @@ A second way to build the XI, alongside the random roll. Spec:
 - The "Auto-fill & spend" helper is randomized: fills the empty slots in a shuffled order, each a
   random pick from the best few players it can still afford (reserving the minimum for the rest),
   then a random upgrade pass spends the leftover - so every click yields a different XI that still
-  spends most of the budget (committed via `AUTOFILL`). The built XI plays through Quick Play +
-  Cup Run exactly like a rolled one.
+  spends most of the budget (committed via `AUTOFILL`). The built XI plays a Cup Run exactly
+  like a rolled one.
 
 ## Accounts (optional, config-gated)
 

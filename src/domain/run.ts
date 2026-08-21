@@ -133,15 +133,10 @@ export interface RunState {
    *  single field every consumer reads, including the two boons that key off the next
    *  opponent (Poach, Familiar Foes). */
   nextOpponent: GroupTeam | null;
-  /** The 16-team knockout bracket, when this run was begun with one (roadmap item 28).
-   *  Optional and absent by default: a run begun without it keeps the original
-   *  one-opponent-per-round draw, which is what the classic chrome still uses, and a run
-   *  persisted before this existed resumes and finishes on the old path. Built when the
-   *  group is survived, never before - there is nothing to seed it from until then. */
+  /** The 16-team knockout bracket (roadmap item 28). Optional because it is genuinely
+   *  absent for the whole group stage: it is built when the group is survived, never
+   *  before, because there is nothing to seed it from until then. */
   bracket?: BracketState;
-  /** Whether this run wants a bracket. Needed as its own field because the decision is
-   *  made at kickoff but acted on three matchdays later, when the group ends. */
-  useStages?: boolean;
   /** The group as drawn and played, held from the draw until the run leaves the group
    *  phase (it is dropped from the state `prepareGroupStage` commits, so it never
    *  outlives the stage it belongs to).
@@ -378,11 +373,7 @@ const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra
 export interface Kickoff {
   shape?: RunShape;
   build?: RunBuild;
-  /** Play this run as a tournament (roadmap item 28): the group draw and a live table
-   *  during the group, and a 16-team bracket in the knockouts instead of a fresh opponent
-   *  per round. The caller decides, because it is a chrome-level choice - the five-tab
-   *  navigation asks for it, the classic one does not. */
-  stages?: boolean;
+
 }
 
 export function beginRun(
@@ -435,7 +426,6 @@ export function beginRun(
     stickersApplied: false,
     shape: kickoff.shape,
     build: kickoff.build,
-    useStages: kickoff.stages,
     // Kickoff chemistry: of the XI that actually starts, so a Scout Network roster boost
     // is already in it. (Rating perks cannot move it - chemistry reads squads, nations,
     // eras and primary positions, never elo.)
@@ -476,21 +466,14 @@ function decideGroupExit(
   // (the user, whoever qualified with them, and the whole group excluded), so the next
   // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
   // or the higher tiers would field a Base-strength field.
-  if (run.useStages) {
-    const seed = bracketSeedFromGroup(group);
-    const bracket = buildBracket(seed.user, seed.coQualifier, seed.excludeIds, pool, drawSlopeBonus);
-    const first = currentGame(bracket);
-    const opp0 = first ? opponentOf(bracket, first) : undefined;
-    if (!first || !opp0) {
-      throw new Error('decideGroupExit: a freshly built bracket must have the user in round 0');
-    }
-    return { bracket, offer, nextOpponent: opp0 };
+  const seed = bracketSeedFromGroup(group);
+  const bracket = buildBracket(seed.user, seed.coQualifier, seed.excludeIds, pool, drawSlopeBonus);
+  const first = currentGame(bracket);
+  const opp0 = first ? opponentOf(bracket, first) : undefined;
+  if (!first || !opp0) {
+    throw new Error('decideGroupExit: a freshly built bracket must have the user in round 0');
   }
-  // Exclude the group opponents from the knockout draw (no immediate rematch). Read off
-  // the group rather than the draw that made it, so a replayed group excludes the same
-  // three teams (a group team's id IS its squad id).
-  const faced = new Set([...run.facedIds, ...oppIdsOf(group)]);
-  return { offer, nextOpponent: drawOpponent(faced, pool, drawSlopeBonus) };
+  return { bracket, offer, nextOpponent: opp0 };
 }
 
 /** Simulate the group stage up front, returning the committed next state plus the
