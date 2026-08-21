@@ -7,17 +7,17 @@
 <link rel="stylesheet" href="nav2.css" />
 <!--
   NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the Play tab, setup sub-view.
-  This page is where the launcher used to be. There is no launcher any more:
-  the resume actions move to the top of Play, and the two door cards become a
-  two-state control next to formation and style (decisions A and B of the four
-  every concept agreed on).
+  What the two launcher MODE DOORS become: a two-state control next to formation
+  and style (decision A). Revised 2026-08-21 - the launcher SCREEN is kept, as
+  home.html, so the resume list that stood at the top of this page is gone: the
+  cover holds Continue, and with one run at a time there is only ever one.
 -->
 </head>
 <body>
 <div class="wrap">
 
   <header class="mast">
-    <a class="crest" href="play-entry.html" aria-label="World Cup Simulator - home">
+    <a class="crest" href="home.html" aria-label="World Cup Simulator - home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
     </a>
     <h1>World Cup <em>Simulator</em></h1>
@@ -42,68 +42,27 @@
 
   <div class="crumb">
     <span>Play</span><span class="sep">/</span><b>Set up</b>
-    <span class="state warm">2 runs in progress</span>
+    <span class="state">Nothing in progress</span>
   </div>
 
   <div class="sec-h">
     <div>
       <p class="eyebrow">Play</p>
-      <h2>Pick up, or start something new</h2>
+      <h2>Set up your run</h2>
     </div>
     <div class="chalkline"></div>
     <div class="aside">One entry, one build page</div>
   </div>
 
-  <!-- ============ RESUME: what the launcher used to hold ============ -->
-  <section class="card field-edge" style="margin-bottom: 12px">
-    <div class="hd"><h3>Pick up where you left off</h3><span class="r">3 saved</span></div>
-
-    <div class="prow" style="padding: 12px 15px">
-      <div class="who">
-        <span class="flag f-arg"></span>
-        <div>
-          <b>Cup Run &middot; Quarter-final</b>
-          <div class="mono dimt" style="font-size: 11px">
-            vs Argentina 1986 &middot; Ascension II &middot; title odds 18%
-          </div>
-        </div>
-      </div>
-      <div></div>
-      <a class="btn sm primary" href="run.html">Resume</a>
-    </div>
-
-    <div class="prow" style="padding: 12px 15px">
-      <div class="who">
-        <span class="flag f-you"></span>
-        <div>
-          <b>World Cup &middot; Group C, matchday 3</b>
-          <div class="mono dimt" style="font-size: 11px">2nd on 6 points &middot; one-off run</div>
-        </div>
-      </div>
-      <div></div>
-      <a class="btn sm" href="run.html">Resume</a>
-    </div>
-
-    <div class="prow" style="padding: 12px 15px">
-      <div class="who">
-        <span class="flag f-por"></span>
-        <div>
-          <b>Half-built XI &middot; 7 of 11 picked</b>
-          <div class="mono dimt" style="font-size: 11px">4-3-3 balanced &middot; rolled squads &middot; career run</div>
-        </div>
-      </div>
-      <div></div>
-      <a class="btn sm" href="build.html">Resume</a>
-    </div>
-  </section>
-
   <div class="ann" style="margin-bottom: 22px">
-    <b>Findings F1, F3 &middot; decision A</b>
-    The launcher is gone. Its resume buttons are this card, and its two door cards
-    (<code>ModeSelect.tsx</code>) become the Career run / One-off control below, next to
-    formation and style, where every other build choice already lives. Both doors led to
-    this identical page anyway: the route only decided what one CTA did
-    (<code>App.tsx:647</code>) and two perk values.
+    <b>Finding F3 &middot; decision A &middot; revised 2026-08-21</b>
+    The two door cards (<code>ModeSelect.tsx</code>) become the Career run / One-off control
+    below, next to formation and style, where every other build choice already lives. Both
+    doors led to this identical page anyway: the route only decided what one CTA did
+    (<code>App.tsx:647</code>) and two perk values. <b>The launcher screen itself stays</b>
+    - it is <a href="home.html">the cover</a>, and it is where Continue lives. There is no
+    resume list on this page: with one run at a time there is nothing to list, and if a run
+    exists the cover holds it as a single action.
   </div>
 
   <div class="xi-grid">
@@ -222,6 +181,7 @@
   <nav class="setnav">
     <span>Concept 2 pages</span>
     <a href="index.html">Overview</a>
+    <a href="home.html">Home</a>
     <a class="here" href="play-entry.html">Play: set up</a>
     <a href="build.html">Play: build</a>
     <a href="market.html">Play: market</a>

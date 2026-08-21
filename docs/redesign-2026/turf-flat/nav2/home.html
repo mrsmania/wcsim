@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home / the cover - nav concept 2</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the front page, kept.
+  Added 2026-08-21 on review. The four agreed decisions delete the launcher's two
+  MODE DOORS, not the launcher screen: concept 2's own schematic always had an
+  entry screen, and the first draft of this set wrongly folded it into the top of
+  the build page. It is back, as a cover rather than a chooser.
+
+  Also drawn here: ONE run at a time. Today two can be live at once (see the
+  annotation), so the resume list could be three rows; with the rule it is always
+  exactly one, and starting a new XI has to say what it ends.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="home.html" aria-label="World Cup Simulator - home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <div class="acts">
+      <button class="ibtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
+      </button>
+      <button class="ibtn dot" title="Account: signed in" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4.1 3.4-6.4 7.5-6.4s7.5 2.3 7.5 6.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Main">
+    <a class="on" href="home.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="crumb">
+    <span>Play</span><span class="sep">/</span><b>Home</b>
+    <span class="state">1 run in progress</span>
+  </div>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Matchday</p>
+      <h2>Your Cup Run is at the quarter-final</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">Ascension II &middot; title odds 18%</div>
+  </div>
+
+  <!-- ============ THE ONE ACTION ============ -->
+  <section class="card field-edge">
+    <div class="hd"><h3>Continue</h3><span class="r">One run at a time</span></div>
+    <div class="blk" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+      <span class="flag lg f-arg"></span>
+      <div style="min-width: 220px; flex: 1">
+        <div style="font-family: var(--disp); font-weight: 800; font-size: 19px">
+          Quarter-final vs Argentina 1986
+        </div>
+        <div class="mono dimt" style="font-size: 11.5px">
+          Career run &middot; Ascension II &middot; group won 9 pts &middot; R16 won 3-1
+        </div>
+      </div>
+      <a class="btn primary" href="run.html" style="min-width: 150px">Resume the run</a>
+    </div>
+    <div class="blk" style="display: flex; gap: 18px; flex-wrap: wrap">
+      <div class="ladder" style="flex: 1">
+        <div class="lstep done"><div class="g">&#10003;</div><div class="rl">Group</div><div class="vs">1st, 9 pts</div></div>
+        <div class="lstep done"><div class="g">&#10003;</div><div class="rl">R16</div><div class="vs">won 3-1</div></div>
+        <div class="lstep now"><div class="g">&#9679;</div><div class="rl">QF</div><div class="vs">vs ARG</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">SF</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Final</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Cup</div><div class="vs">&nbsp;</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THE OTHER ACTION, WHICH NOW COSTS SOMETHING ============ -->
+  <div class="rowsplit mt18">
+    <section class="card">
+      <div class="hd"><h3>Start something new</h3></div>
+      <div class="blk">
+        <div class="cta-row">
+          <a class="btn" style="flex: 1" href="play-entry.html">Build a new XI</a>
+        </div>
+        <div class="ann" style="margin-top: 12px">
+          <b>The consequence of one run at a time</b>
+          This ends the quarter-final. With two runs allowed, "build a new XI" was free
+          and the old one sat waiting; with one, it is destructive and has to say so, so
+          it opens the same inline confirm the Start over button already uses.
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="hd"><h3>Career</h3><span class="r">Level 7</span></div>
+      <div class="blk" style="display: flex; gap: 18px; align-items: center; flex-wrap: wrap">
+        <div>
+          <div style="font-family: var(--disp); font-weight: 800; font-size: 19px">
+            284 Prestige
+          </div>
+          <div class="mono dimt" style="font-size: 11.5px">
+            38 runs &middot; 6 cups &middot; 140 of 200 XP to level 8
+          </div>
+          <div class="bar" style="width: 190px"><i style="width: 70%"></i></div>
+        </div>
+        <a class="btn sm ghost" href="career.html" style="margin-left: auto">Perks and boosts</a>
+      </div>
+      <div class="blk">
+        <p class="hint mt0">
+          The headline only. The shop, the boost library and the Ascension ladder are the
+          Career tab, and the honours are Records: this page never becomes a dashboard of
+          everything, because the bar already reaches all of it.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <div class="ann">
+    <b>What was actually deleted, and what was not</b>
+    The two <b>mode doors</b> go: Quick Run and Career Mode led to the identical build page,
+    and the choice is now a switch on it. The <b>screen</b> stays. Concept 2's schematic
+    always had an entry screen (<code>../nav-2-tabs.html</code>); the first draft of this
+    set folded it into the top of the build page, which cost the app its front page for no
+    gain. A cover with one Continue action is also the correct primary action on a return
+    visit, which is the one thing the dashboard concept got right.
+  </div>
+
+  <h3 class="sub">One run at a time: what it changes in the code</h3>
+  <p class="lede">
+    This is the one item in this set that is <b>not</b> chrome, so it is worth being exact
+    about. Today two runs really can be live at once, and it is not hypothetical: a World
+    Cup lives in the game state, a Cup Run in <code>wcsim_run_v1</code>, and
+    <code>handleStartGroup</code> (<code>App.tsx:509</code>) never clears the run. So
+    starting a Cup Run, returning home, and kicking off a World Cup with the same XI leaves
+    both in progress, which is why the launcher takes both a <code>worldCupRoute</code> and
+    a <code>cupRunInProgress</code> prop.
+  </p>
+  <table class="t mt12" style="max-width: 880px">
+    <thead><tr><th>Today</th><th>With one run</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Up to three resume rows: World Cup, Cup Run, half-built XI (the third is
+          already suppressed when either of the first two exists).</td>
+        <td>Exactly one Continue, whatever state it is in: mid-build, group, knockout or
+          Cup Run.</td>
+      </tr>
+      <tr>
+        <td>Building a fresh XI clears the run (<code>saveRun(null)</code> at four call
+          sites) but <b>not</b> the tournament, so a stale group can outlive the XI that
+          played it.</td>
+        <td>One kickoff clears the other, in one place, and "build a new XI" confirms
+          first.</td>
+      </tr>
+      <tr>
+        <td>Two engines, two outcome models, two once-per-run sticker guards, two run-end
+          panels.</td>
+        <td>The switch makes One-off a Cup Run at Base with no boosts, so there is one
+          run to be in progress at all.</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="ann">
+    <b>Sequencing</b>
+    The rule is functionality, and item 27 is chrome, so it does not have to land together
+    with the nav. But it points the same way as the engine convergence the audit lists as
+    unowned, and it deletes the multi-resume list that the cover would otherwise have to
+    hold. Worth deciding before the nav is built, since the cover's shape depends on the
+    answer.
+  </div>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a href="index.html">Overview</a>
+    <a class="here" href="home.html">Home</a>
+    <a href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a href="market.html">Play: market</a>
+    <a href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a href="album.html">Album</a>
+    <a href="records.html">Records</a>
+    <a href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">Static comp for roadmap item 27. Sibling audit: <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

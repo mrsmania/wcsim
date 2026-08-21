@@ -25,7 +25,7 @@
   </header>
 
   <nav class="tabs" aria-label="The five tabs, for reference">
-    <a class="on" href="play-entry.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
+    <a class="on" href="home.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
     <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
     <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
     <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
@@ -38,12 +38,12 @@
       <h2>Five tabs, and what they cost</h2>
     </div>
     <div class="chalkline"></div>
-    <div class="aside">9 pages &middot; one stylesheet</div>
+    <div class="aside">10 pages &middot; one stylesheet</div>
   </div>
 
   <p class="lede">
     The five candidate models are compared in <code>../nav-options.html</code>. This set
-    takes the recommended one and draws it at full scale on nine screens, because a nav
+    takes the recommended one and draws it at full scale on ten screens, because a nav
     model is easy to like as a diagram and hard to like once a 130-row ledger, a
     three-column build page and a live match are inside it. Every screen body is the
     shipped layout. Nothing here adds, removes or moves a feature.
@@ -53,8 +53,11 @@
   <div class="rowsplit">
     <div>
       <ul class="tight">
-        <li><a href="play-entry.html"><b>Play: set up</b></a> - where the launcher used to
-          be. Resume card on top, mode as a control.</li>
+        <li><a href="home.html"><b>Home</b></a> - the front page, kept. One Continue
+          action, the career headline, and what "build a new XI" now costs.
+          <b>Revised 2026-08-21.</b></li>
+        <li><a href="play-entry.html"><b>Play: set up</b></a> - formation, style and the
+          Career run / One-off control. No resume list: the cover has it.</li>
         <li><a href="build.html"><b>Play: build</b></a> - mid-draft with a rolled squad.
           The screen that rules out the rail.</li>
         <li><a href="market.html"><b>Play: market</b></a> - the same page with the transfer
@@ -85,8 +88,10 @@
     <tbody>
       <tr>
         <td><b>Play</b></td>
-        <td>Build (setup, draft, complete), group, knockout, Cup Run</td>
-        <td>Which one you see is a step of a run, not a place you choose.</td>
+        <td>Home (the cover), build (setup, draft, complete), group, knockout, Cup Run</td>
+        <td>Which one you see is a step of a run, not a place you choose. The tab lands on
+          the run if there is one, on the cover if there is not; the crest always returns
+          to the cover.</td>
       </tr>
       <tr>
         <td><b>Career</b></td>
@@ -133,9 +138,12 @@
     </tbody>
   </table>
   <p class="hint" style="max-width: 860px">
-    Nine of eleven at one tap, maximum depth two, one mechanism instead of six. The
-    cabinet costs a tap: it is a footer link today and a segment of Records here. That is
-    the price of keeping the bar at five, and it buys the catalogue two taps back.
+    Nine of eleven at one tap, maximum depth two, one mechanism instead of six. Two things
+    cost a tap and are counted from the cover, exactly as today: the <b>cabinet</b> (a
+    footer link today, a segment of Records here, which is the price of keeping the bar at
+    five) and the <b>build page</b> when a run is already in progress, because the cover
+    then leads with Continue rather than with the build. Both were true of the launcher
+    too.
   </p>
 
   <h3 class="sub">What this set commits to</h3>
@@ -193,6 +201,16 @@
       <span></span><span class="aw">added</span>
     </div>
     <div class="lrow done">
+      <span class="tick">4</span>
+      <span><span class="nm">The cover stays, and holds one run</span>
+        <span class="ds">Decision A deletes the two mode DOORS, not the launcher screen,
+        which concept 2's own schematic always had. Paired with one run at a time, so the
+        cover carries a single Continue instead of up to three resume rows. The one-run
+        rule is functionality rather than chrome - see <a href="home.html">Home</a> for
+        what it changes.</span></span>
+      <span></span><span class="aw">added</span>
+    </div>
+    <div class="lrow done">
       <span class="tick">3</span>
       <span><span class="nm">Optional counters in the tab sub-line</span>
         <span class="ds">34/81, 41/130, Lv 7. The dashboard concept's one real advantage,
@@ -247,6 +265,7 @@
   <nav class="setnav">
     <span>Concept 2 pages</span>
     <a class="here" href="index.html">Overview</a>
+    <a href="home.html">Home</a>
     <a href="play-entry.html">Play: set up</a>
     <a href="build.html">Play: build</a>
     <a href="market.html">Play: market</a>
