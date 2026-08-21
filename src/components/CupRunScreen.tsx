@@ -279,7 +279,10 @@ export default function CupRunScreen({
     setReward(null);
     setLastKoMatch(null);
     setReviewIndex(null);
-    setRun(begun);
+    // `p.current` is the run with the drawn group recorded on it, which is what makes the
+    // group survive a reload: the reveal below is transient (and for an account never
+    // persisted at all), so it cannot be the only place the draw lives.
+    setRun(p?.current ?? begun);
     if (p) {
       setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
       // The draw comes first: the table and the matchdays stay behind it, so the group is
@@ -348,7 +351,13 @@ export default function CupRunScreen({
   const playGroup = () => {
     if (!run) return;
     const p = prepareGroupStage(run, diffDelta, pool);
-    if (p) setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
+    if (!p) return;
+    // Records the group on the run the first time (identical object, so no write, once
+    // it is already there). No draw modal here: this is either a group being replayed
+    // after a reload, whose draw the player has already seen, or the classic chrome,
+    // which never had one.
+    setRun(p.current);
+    setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
   };
   const playKo = () => {
     if (!run) return;

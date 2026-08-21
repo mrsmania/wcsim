@@ -802,6 +802,20 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built
   (`handleReset`/`handleStart`/random team/budget confirm), so a stale run never resumes onto a
   new team.
+  **What is drawn is on the RUN; only playback is transient.** The reveal is a playback
+  pointer and nothing else may live there alone: a guest's reveal is mirrored to
+  `wcsim_run_reveal_v1`, but `remoteStore` keeps it in memory only and returns
+  `reveal: null` from `load()`, so for a signed-in player it does not survive a reload at
+  all. The group used to live only there, and a reload mid-group therefore offered "Play
+  group stage" again, which drew three fresh opponents over the group in progress.
+  `RunState.group` now holds the drawn, fully played group from the draw until the run
+  leaves the stage (`prepareGroupStage` reuses it when present and sets
+  `group: undefined` on every state it commits), so a replay is the same opponents and
+  the same six results. `prepareGroupStage` returns `current` for this - the run with the
+  group recorded, the identical object on a resume - and both call sites hold it. The
+  knockouts were always safe this way: `nextOpponent` and `bracket` are run fields, so a
+  reload re-simulates the tie but never re-draws the opponent. `npm run checks` asserts
+  all three halves (recorded, stable across a second prepare, dropped on commit).
 - **Stickers.** At a run's end the final XI's collectibles are banked to the album, guarded
   once-per-run by `RunState.stickersApplied`. **Players a roster boost handed over earn
   nothing** (`RunState.boostedIds` is passed to `onCupRunEnd`, which subtracts them): Legends

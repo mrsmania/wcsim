@@ -782,6 +782,37 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('groupAsOf: results and points only ever accumulate', monotonic);
 }
 
+// --- The drawn group survives on the run ------------------------------------
+// A group is drawn once and then replayed, never re-drawn. It has to live on the
+// RunState, because the screen's live reveal is transient (and for a signed-in player
+// never persisted at all): when the draw lived only there, a reload mid-group drew
+// three new opponents over the group already in progress.
+{
+  let stable = true;
+  let recorded = true;
+  let committedDropsIt = true;
+  for (let i = 0; i < 200 && stable && recorded && committedDropsIt; i++) {
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0, {
+      stages: true,
+    });
+    const first = prepareGroupStage(begun)!;
+    // The run held while the group reveals carries it; the run it was prepared from
+    // did not.
+    if (!first.current.group || begun.group) recorded = false;
+    // Preparing again from that held run replays the same group: same three opponents,
+    // same six results. (`next` is re-derived, so its bracket is drawn afresh - it is
+    // not committed until the reveal ends.)
+    const again = prepareGroupStage(first.current)!;
+    if (JSON.stringify(again.group) !== JSON.stringify(first.group)) stable = false;
+    if (again.current !== first.current) recorded = false;
+    // Advancing past the group leaves it behind: the round record carries the results.
+    if (first.next.group !== undefined) committedDropsIt = false;
+  }
+  check('run/group: the drawn group is recorded on the run it is revealed from', recorded);
+  check('run/group: preparing again replays the same group rather than drawing one', stable);
+  check('run/group: the state committed after the group no longer carries it', committedDropsIt);
+}
+
 // --- Career: run rewards + perk purchases account correctly -----------------
 {
   let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));

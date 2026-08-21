@@ -142,6 +142,16 @@ export interface RunState {
   /** Whether this run wants a bracket. Needed as its own field because the decision is
    *  made at kickoff but acted on three matchdays later, when the group ends. */
   useStages?: boolean;
+  /** The group as drawn and played, held from the draw until the run leaves the group
+   *  phase (it is dropped from the state `prepareGroupStage` commits, so it never
+   *  outlives the stage it belongs to).
+   *
+   *  It lives here rather than only on the screen's live reveal because the reveal is
+   *  transient - and for a signed-in player it is never persisted at all - so a reload
+   *  mid-group had nothing to restore and simply drew three new opponents over the
+   *  group already in progress. Optional: a run saved before this field existed draws
+   *  its group the first time it plays, as it always did. */
+  group?: GroupState;
   score: number;
   outcome: RunOutcome | null;
   /** Per-round results for the progress ladder (oldest first). */
@@ -269,6 +279,11 @@ export interface UserMatch {
  *  three matches for live reveal (simulation is separate from playback). */
 export interface PreparedGroup {
   next: RunState;
+  /** The run as it must be held WHILE the group is revealed: the same run with the
+   *  drawn group recorded on it, so a reload replays that group instead of drawing a
+   *  fresh one. The identical object when the group was already on the run, so
+   *  committing it is a no-op on a resume. */
+  current: RunState;
   userMatches: UserMatch[];
   /** The fully simulated group, for the final-standings overview after the reveal. */
   group: GroupState;
@@ -373,6 +388,20 @@ export function beginRun(
   };
 }
 
+/** Draw three opponents and play all three matchdays at once. The random half of the
+ *  group, split out so `prepareGroupStage` can skip it for a group already drawn. All
+ *  three matchdays have to be played in one pass: the XI, its chemistry and the run's
+ *  tally are settled together, which is why the live table is projected backwards
+ *  (`groupAsOf`) rather than simulated forwards. */
+function drawAndPlayGroup(run: RunState, userDelta: number, pool: Squad[]): GroupState {
+  const user = userGroupTeam(run.xi, chemistryOf(run.xi), userDelta);
+  let group = createGroup(user, pickOpponents(3, pool));
+  for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
+    group = recordMatchday(group, simulateMatchday(group, md));
+  }
+  return group;
+}
+
 /** Simulate the group stage up front, returning the committed next state plus the
  *  user's three matches (for live reveal). Qualify -> draw the R16 opponent + offer
  *  a boon; otherwise the run ends. */
@@ -383,12 +412,10 @@ export function prepareGroupStage(
 ): PreparedGroup | null {
   if (run.phase !== 'group') return null;
   const asc = ascensionAt(run.ascension);
-  const user = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta + asc.userDelta);
-  const opponents = pickOpponents(3, pool);
-  let group = createGroup(user, opponents);
-  for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
-    group = recordMatchday(group, simulateMatchday(group, md));
-  }
+  // A group already drawn is replayed, never re-drawn: it is the same three opponents
+  // and the same three results, so a reload cannot change the group under the player.
+  const group = run.group ?? drawAndPlayGroup(run, atkDefDelta + asc.userDelta, pool);
+  const current = group === run.group ? run : { ...run, group };
   // The user's three fixtures. createGroup schedules the user as the home side of
   // every group fixture (the match card renders the user on the left), so the
   // results are already in the user's perspective; the throw guards that invariant.
@@ -429,20 +456,26 @@ export function prepareGroupStage(
   };
   if (!advanced) {
     return {
+      // `group: undefined` on every committed state below: the group belongs to the
+      // stage being left, and the run's own history carries the results it needs.
       next: {
         ...run,
         phase: 'ended',
         outcome: 'group',
+        group: undefined,
         score: STAGE_SCORE.group,
         history: [...run.history, groupRecord],
         tally,
       },
+      current,
       userMatches,
       group,
     };
   }
-  // Exclude the group opponents from the knockout draw (no immediate rematch).
-  const faced = [...run.facedIds, ...opponents.map((s) => s.id)];
+  // Exclude the group opponents from the knockout draw (no immediate rematch). Read off
+  // the group rather than the draw that made it, so a replayed group excludes the same
+  // three teams (a group team's id IS its squad id).
+  const faced = [...run.facedIds, ...group.teams.filter((t) => !t.isUser).map((t) => t.id)];
   // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
   // (the user, whoever qualified with them, and the whole group excluded), so the next
   // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
@@ -461,12 +494,14 @@ export function prepareGroupStage(
         phase: 'boon',
         offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
         bracket,
+        group: undefined,
         nextOpponent: opp0,
         facedIds: [...faced, opp0.id],
         score: STAGE_SCORE.group,
         history: [...run.history, groupRecord],
         tally,
       },
+      current,
       userMatches,
       group,
     };
@@ -477,12 +512,14 @@ export function prepareGroupStage(
       ...run,
       phase: 'boon',
       offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+      group: undefined,
       nextOpponent: opp,
       facedIds: [...faced, opp.id],
       score: STAGE_SCORE.group,
       history: [...run.history, groupRecord],
       tally,
     },
+    current,
     userMatches,
     group,
   };
