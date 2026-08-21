@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Play / Build, transfer market - nav concept 2</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the build page with the transfer market
+  in column one. Same page, same route, same pitch and same right column as the
+  rolled-squad state: only the player source swaps. That is finding F6, and the
+  crumb is what names which of the four things the column currently is.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="play-entry.html" aria-label="World Cup Simulator - home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <div class="acts">
+      <button class="ibtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
+      </button>
+      <button class="ibtn dot" title="Account: signed in" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4.1 3.4-6.4 7.5-6.4s7.5 2.3 7.5 6.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Main">
+    <a class="on" href="market.html"><span class="lb">Play</span><span class="sub">Building XI</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="crumb">
+    <span>Play</span><span class="sep">/</span><b>Build</b><span class="sep">/</span><span>Transfer market</span>
+    <span class="state">$36 of $110 left</span>
+  </div>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Transfer market</p>
+      <h2>Shopping: striker</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">4-3-3 balanced &middot; Career run</div>
+  </div>
+
+  <div class="xi-grid">
+
+    <!-- ============ COLUMN 1: the market ============ -->
+    <div>
+      <section class="card">
+        <div class="hd">
+          <h3>Transfer market</h3>
+          <span class="r">Budget $110</span>
+        </div>
+
+        <div class="blk">
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <span class="mono" style="font-weight: 700; font-size: 19px">$36</span>
+            <span class="dimt" style="font-size: 12.5px">left &middot; $74 spent on 8</span>
+          </div>
+          <div class="bar"><i style="width: 67%"></i></div>
+          <div style="display: flex; gap: 8px; margin-top: 12px">
+            <button class="btn sm primary" style="flex: 1">Auto-fill &amp; spend</button>
+            <button class="btn sm ghost">Clear</button>
+          </div>
+        </div>
+
+        <div class="blk" style="padding: 11px 15px">
+          <div class="seg">
+            <button class="on">Rating</button><button>Price</button><button>Value</button>
+          </div>
+          <p class="hint mt0" style="margin-top: 9px">
+            Sorting by price or value uses the price you would actually pay, discount
+            included.
+          </p>
+        </div>
+
+        <div class="prow">
+          <div class="who"><span class="star mon">&#10003;</span><b>Ronaldo</b><span class="pp">BRA 02</span></div>
+          <div class="price"><s>$25</s>$19</div>
+          <div class="rate">98</div>
+        </div>
+        <div class="prow off">
+          <div class="who"><span class="star ico">&#9733;</span><b>Rom&aacute;rio</b><span class="pp">BRA 94</span></div>
+          <div class="price">$23</div>
+          <div class="rate">96</div>
+        </div>
+        <div class="prow">
+          <div class="who"><span class="star leg">&#10003;</span><b>Bebeto</b><span class="pp">BRA 94</span></div>
+          <div class="price"><s>$16</s>$12</div>
+          <div class="rate">90</div>
+        </div>
+        <div class="prow">
+          <div class="who"><b>Miroslav Klose</b><span class="pp">GER 02</span></div>
+          <div class="price">$12</div>
+          <div class="rate">86</div>
+        </div>
+        <div class="prow">
+          <div class="who"><b>Christian Vieri</b><span class="pp">ITA 98</span></div>
+          <div class="price">$11</div>
+          <div class="rate">85</div>
+        </div>
+        <div class="prow">
+          <div class="who"><b>Emmanuel Adebayor</b><span class="pp">TOG 06</span></div>
+          <div class="price">$6</div>
+          <div class="rate">78</div>
+        </div>
+
+        <div class="blk" style="display: flex; gap: 8px">
+          <button class="btn sm ghost" style="flex: 1">Start over</button>
+        </div>
+      </section>
+
+      <div class="ann">
+        <b>Unchanged &middot; shown because it is easy to break</b>
+        Rom&aacute;rio is greyed because $23 is more than the $36 left once the last two
+        slots are reserved. Ronaldo and Bebeto show the owned-sticker discount struck
+        through. Every money surface reads one pricer, and the nav rework touches none of
+        it.
+      </div>
+    </div>
+
+    <!-- ============ COLUMN 2: the pitch, ST targeted ============ -->
+    <div class="board-col">
+      <div class="board" role="img" aria-label="4-3-3 with the striker slot targeted">
+        <div class="mk out"></div><div class="mk mid"></div><div class="mk circ"></div>
+        <div class="mk spot"></div><div class="mk boxT"></div><div class="mk boxB"></div>
+        <div class="mk sixT"></div><div class="mk sixB"></div>
+        <div class="parc t"></div><div class="parc b"></div>
+        <div class="pspot t"></div><div class="pspot b"></div>
+        <div class="corn tl"></div><div class="corn tr"></div>
+        <div class="corn bl"></div><div class="corn br"></div>
+
+        <div class="tok" style="left: 22%; top: 16%">
+          <div class="disc">11</div>
+          <span class="plate"><span class="nm">Ronaldinho</span><span class="pos">LW</span></span>
+        </div>
+        <div class="tok open tgt" style="left: 50%; top: 11%">
+          <div class="disc can">+</div>
+          <span class="plate"><span class="pos">ST &middot; shopping</span></span>
+        </div>
+        <div class="tok" style="left: 78%; top: 16%">
+          <div class="disc">7</div>
+          <span class="plate"><span class="nm">Figo</span><span class="pos">RW</span></span>
+        </div>
+        <div class="tok" style="left: 30%; top: 40%">
+          <div class="disc">8</div>
+          <span class="plate"><span class="nm">Xavi</span><span class="pos">CM</span></span>
+        </div>
+        <div class="tok" style="left: 70%; top: 40%">
+          <div class="disc">21</div>
+          <span class="plate"><span class="nm">Pirlo</span><span class="pos">CM</span></span>
+        </div>
+        <div class="tok open" style="left: 50%; top: 56%">
+          <div class="disc open">+</div>
+          <span class="plate"><span class="pos">DM</span></span>
+        </div>
+        <div class="tok" style="left: 15%; top: 73%">
+          <div class="disc">3</div>
+          <span class="plate"><span class="nm">Maldini</span><span class="pos">LB</span></span>
+        </div>
+        <div class="tok" style="left: 38%; top: 77%">
+          <div class="disc">5</div>
+          <span class="plate"><span class="nm">Cannavaro</span><span class="pos">CB</span></span>
+        </div>
+        <div class="tok" style="left: 62%; top: 77%">
+          <div class="disc">4</div>
+          <span class="plate"><span class="nm">Koeman</span><span class="pos">CB</span></span>
+        </div>
+        <div class="tok" style="left: 85%; top: 73%">
+          <div class="disc">2</div>
+          <span class="plate"><span class="nm">Cafu</span><span class="pos">RB</span></span>
+        </div>
+        <div class="tok" style="left: 50%; top: 92%">
+          <div class="disc">1</div>
+          <span class="plate"><span class="nm">Casillas</span><span class="pos">GK</span></span>
+        </div>
+      </div>
+      <p class="hint" style="text-align: center; max-width: 420px">
+        Tap an empty slot to shop that position, or tap a player to hold him and then tap
+        a lit slot. Both directions, exactly as shipped.
+      </p>
+    </div>
+
+    <!-- ============ COLUMN 3 ============ -->
+    <div class="stack">
+      <div class="ratings">
+        <div class="rt ovr"><div class="k">Ovr</div><div class="v">88</div></div>
+        <div class="rt"><div class="k">Att</div><div class="v">90</div></div>
+        <div class="rt"><div class="k">Mid</div><div class="v">92</div></div>
+        <div class="rt"><div class="k">Def</div><div class="v">86</div></div>
+      </div>
+
+      <section class="card sm">
+        <div class="hd"><h3>Spend</h3><span class="r">9 of 11</span></div>
+        <table class="t">
+          <thead><tr><th>Pos</th><th>Player</th><th class="num">Rtg</th><th class="num">Cost</th></tr></thead>
+          <tbody>
+            <tr><td class="pos-tag">LW</td><td>Ronaldinho</td><td class="num">93</td><td class="num">$14</td></tr>
+            <tr><td class="pos-tag">RW</td><td>Figo</td><td class="num">88</td><td class="num">$14</td></tr>
+            <tr><td class="pos-tag">CM</td><td>Xavi</td><td class="num">94</td><td class="num">$16</td></tr>
+            <tr><td class="pos-tag">CM</td><td>Pirlo</td><td class="num">91</td><td class="num">$13</td></tr>
+            <tr><td class="pos-tag">CB</td><td>Cannavaro</td><td class="num">96</td><td class="num">$17</td></tr>
+            <tr class="gk"><td class="pos-tag">GK</td><td>Casillas</td><td class="num">90</td><td class="num">$12</td></tr>
+            <tr><td colspan="3" style="font-weight: 700">Total</td><td class="num" style="font-weight: 700">$74</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+
+  <h3 class="sub">Why this page matters to the decision</h3>
+  <p class="lede">
+    This and the rolled-squad state are the same route, the same crumb line, the same
+    pitch and the same right column: only column one swaps. Finding F6 is that the column
+    is four different things with nothing naming which. The crumb answers it in three
+    words and costs one line of chrome. It is the cheapest of the ten fixes, and it works
+    the same in all five concepts, which is why it is worth doing whichever wins.
+  </p>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a href="index.html">Overview</a>
+    <a href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a class="here" href="market.html">Play: market</a>
+    <a href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a href="album.html">Album</a>
+    <a href="records.html">Records</a>
+    <a href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">Static comp for roadmap item 27. Sibling audit: <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

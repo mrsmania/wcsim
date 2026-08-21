@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Play / Cup Run - nav concept 2</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the live Cup Run, under the Play tab.
+  Two states of the same screen are shown, because between them sits the one thing
+  a tab bar can lose that a drawer would not: the live match reveal, which is
+  transient state and deliberately not persisted.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="play-entry.html" aria-label="World Cup Simulator - home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <div class="acts">
+      <button class="ibtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
+      </button>
+      <button class="ibtn dot" title="Account: signed in" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4.1 3.4-6.4 7.5-6.4s7.5 2.3 7.5 6.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= STATE 1: a match is playing, the bar is locked ================= -->
+  <nav class="tabs locked" aria-label="Main">
+    <a class="on" href="run.html"><span class="lb">Play</span><span class="sub">QF, 78'</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+    <span class="lockmsg">Match in play</span>
+  </nav>
+
+  <div class="crumb">
+    <span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Quarter-final</span>
+    <span class="state warm">Live &middot; 78'</span>
+  </div>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Cup Run &middot; Ascension II</p>
+      <h2>Quarter-final</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">Title odds 18% &middot; speed fast</div>
+  </div>
+
+  <div class="ladder" style="margin-bottom: 16px">
+    <div class="lstep done"><div class="g">&#10003;</div><div class="rl">Group</div><div class="vs">1st, 9 pts</div></div>
+    <div class="lstep done"><div class="g">&#10003;</div><div class="rl">R16</div><div class="vs">won 3-1</div></div>
+    <div class="lstep now"><div class="g">&#9679;</div><div class="rl">QF</div><div class="vs">vs ARG</div></div>
+    <div class="lstep todo"><div class="g">&middot;</div><div class="rl">SF</div><div class="vs">&nbsp;</div></div>
+    <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Final</div><div class="vs">&nbsp;</div></div>
+    <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Cup</div><div class="vs">&nbsp;</div></div>
+  </div>
+
+  <div class="rowsplit" style="grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr)">
+    <div>
+      <section class="card">
+        <div class="hd"><h3>Quarter-final</h3><span class="r">Live</span></div>
+        <div class="score">
+          <div class="side a">
+            <b>Your XI</b><span class="flag f-you"></span>
+          </div>
+          <div>
+            <div class="gg">2 &ndash; 1</div>
+            <div class="clock">78'</div>
+          </div>
+          <div class="side">
+            <span class="flag f-arg"></span><b>Argentina 1986</b>
+          </div>
+        </div>
+        <div class="feed">
+          <div class="ev"><span class="min">72'</span><span class="flag sm f-you"></span> Ronaldo</div>
+          <div class="ev"><span class="min">61'</span><span class="flag sm f-arg"></span> Maradona</div>
+          <div class="ev"><span class="min">34'</span><span class="flag sm f-you"></span> Rivaldo</div>
+        </div>
+      </section>
+
+      <div class="ann">
+        <b>The one amendment that matters</b>
+        A live reveal is transient: it is not written to <code>wcsim_run_v1</code>, so
+        leaving the screen mid-match loses the playback (a refresh already replays the
+        current match). The bar therefore goes inert for the ~30 seconds a match runs,
+        reusing the pattern <code>RunLadder</code> already has: it is
+        <code>locked</code> while a match is playing. This is the whole of what concept 5's
+        drawers would have bought here, and it costs one boolean.
+      </div>
+    </div>
+
+    <div class="stack">
+      <section class="card sm">
+        <div class="hd"><h3>Your XI</h3><span class="r">Ovr 93</span></div>
+        <div class="blk" style="padding-bottom: 11px">
+          <div class="mono dimt" style="font-size: 10px; letter-spacing: 0.14em">ACTIVE BOOSTS</div>
+          <div class="chips">
+            <span class="chip on">Golden Generation</span>
+            <span class="chip on">Set-Piece Drills</span>
+            <span class="chip boost">Poach: Maradona</span>
+          </div>
+        </div>
+        <table class="t">
+          <tbody>
+            <tr class="gk"><td class="pos-tag">GK</td><td>Buffon</td><td class="num">95</td></tr>
+            <tr><td class="pos-tag">CB</td><td>Cannavaro</td><td class="num">96</td></tr>
+            <tr><td class="pos-tag">CM</td><td>Maniche</td><td class="num">84</td></tr>
+            <tr><td class="pos-tag">LW</td><td>Rivaldo</td><td class="num">95</td></tr>
+            <tr><td class="pos-tag">ST</td><td>Ronaldo</td><td class="num">99</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <div class="ann">
+        <b>Finding F4</b>
+        This screen no longer shares a route with the perk shop. The career hub is the
+        Career tab; the run is a step of Play. Nothing collapses to a header any more.
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= STATE 2: the tie is over, the bar is live again ================= -->
+  <h3 class="sub">Same screen, one moment later: the boost pick</h3>
+  <p class="lede">
+    The match has finished, so the bar is live again and the finished tie stays on screen
+    under the banner, exactly as shipped. Nothing about the boost flow changes.
+  </p>
+
+  <nav class="tabs" aria-label="Main (unlocked)" style="margin-top: 14px">
+    <a class="on" href="run.html"><span class="lb">Play</span><span class="sub">Pick a boost</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="crumb">
+    <span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Quarter-final</span>
+    <span class="state">Won 2-1</span>
+  </div>
+
+  <div class="banner" style="margin: 16px 0 14px">Won 2-1 &middot; Through to the Semi-final</div>
+
+  <div class="offer">
+    <div class="bcard c">
+      <div class="top">Common</div>
+      <div class="bd">
+        <h5>Star Signing</h5>
+        <p>+3 to your best-rated player.</p>
+      </div>
+    </div>
+    <div class="bcard r">
+      <div class="top">Rare</div>
+      <div class="bd">
+        <h5>Catenaccio</h5>
+        <p>+4 to your defence, -1 to your attack.</p>
+      </div>
+    </div>
+    <div class="bcard l">
+      <div class="top">Legendary</div>
+      <div class="bd">
+        <h5>Gal&aacute;cticos</h5>
+        <p>+2 to every player rated 90 or above.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 14px; margin-top: 14px; flex-wrap: wrap">
+    <button class="btn sm ghost">Re-roll the offer (1 left)</button>
+    <span class="mono dimt" style="font-size: 11.5px">
+      Next: <span class="flag sm f-ger"></span> Germany <b>1990</b> in the Semi-final
+    </span>
+  </div>
+
+  <div class="ann">
+    <b>Not shown, on purpose</b>
+    No title-odds delta on the boost cards. That is roadmap item 05, a feature; this
+    rework is chrome only. Item 27's own note says items 04, 05 and 19 each add a surface
+    the nav will have to hold, which is the argument for landing the nav first, not for
+    drawing their features now.
+  </div>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a href="index.html">Overview</a>
+    <a href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a href="market.html">Play: market</a>
+    <a class="here" href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a href="album.html">Album</a>
+    <a href="records.html">Records</a>
+    <a href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">Static comp for roadmap item 27. Sibling audit: <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

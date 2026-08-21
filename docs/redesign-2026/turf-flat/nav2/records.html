@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Records / Challenges - nav concept 2</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the Records tab.
+  Records holds the two read-only honours screens as segmented views, Challenges
+  and Cabinet, because they are the same kind of thing and neither earns a tab of
+  its own. This is the fix for finding F2: the catalogue goes from four clicks
+  behind a collapsed panel to two, both visible.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="play-entry.html" aria-label="World Cup Simulator - home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <div class="acts">
+      <button class="ibtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
+      </button>
+      <button class="ibtn dot" title="Account: signed in" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4.1 3.4-6.4 7.5-6.4s7.5 2.3 7.5 6.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Main">
+    <a href="play-entry.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a class="on" href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="crumb">
+    <span>Records</span><span class="sep">/</span><b>Challenges</b>
+    <span class="state">41 of 130 &middot; +188 Prestige</span>
+  </div>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Records</p>
+      <h2>Challenges</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div style="width: 260px; margin-bottom: 4px">
+      <div class="seg">
+        <a class="on" href="records.html">Challenges</a>
+        <a href="#cabinet">Cabinet</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="mets" style="margin-bottom: 8px">
+    <div class="met">
+      <div class="k">Completed</div><div class="v">41 / 130</div>
+      <div class="bar"><i style="width: 32%"></i></div>
+    </div>
+    <div class="met"><div class="k">Prestige earned</div><div class="v">+188</div><div class="s">of 779 in the catalogue</div></div>
+    <div class="met">
+      <div class="k">By tier</div>
+      <div class="s" style="margin-top: 4px; display: flex; gap: 12px; align-items: baseline">
+        <span><span class="pips"><i class="f"></i><i></i><i></i></span> <span class="mono">24</span></span>
+        <span><span class="pips"><i class="f"></i><i class="f"></i><i></i></span> <span class="mono">13</span></span>
+        <span><span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span> <span class="mono">4</span></span>
+      </div>
+      <div class="s" style="margin-top: 5px">bronze +2 &middot; silver +5 &middot; gold +12</div>
+    </div>
+    <div class="met"><div class="k">Families</div><div class="v">12</div><div class="s">all judged, none blocked</div></div>
+  </div>
+
+  <div style="display: flex; gap: 7px; flex-wrap: wrap; margin: 16px 0 4px">
+    <div class="seg" style="max-width: 300px">
+      <button class="on">All</button><button>Available</button><button>Completed</button>
+    </div>
+  </div>
+
+  <!-- ============ THE LEDGER: family accent once per heading, earned is the ink ============ -->
+  <div class="fam">
+    <h4>Silverware &amp; progression <span class="c">5 of 12</span></h4>
+    <div class="accent" style="background: #b8862b"></div>
+    <div class="led">
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">First Blood</span><span class="ds">Win your first cup.</span></span>
+        <span class="pips"><i class="f"></i><i></i><i></i></span><span class="aw">+2</span>
+      </div>
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">Back to Back</span><span class="ds">Win cups in two consecutive runs.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i></i></span><span class="aw">+5</span>
+      </div>
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">Three-Peat</span><span class="ds">Win cups in three consecutive runs.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="aw">+12</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">Serial Winner</span><span class="ds">Win 10 cups in total.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i></i></span><span class="aw">+5</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">Perfect Run</span><span class="ds">Win the cup without losing a single match, group included.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="aw">+12</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">Escape Artist</span><span class="ds">Qualify second, then win the cup.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i></i></span><span class="aw">+5</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fam">
+    <h4>Ascension <span class="c">3 of 8</span></h4>
+    <div class="accent" style="background: #6d5bd0"></div>
+    <div class="led">
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">Step Up</span><span class="ds">Win at Ascension I.</span></span>
+        <span class="pips"><i class="f"></i><i></i><i></i></span><span class="aw">+2</span>
+      </div>
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">Higher Ground</span><span class="ds">Win at Ascension II.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i></i></span><span class="aw">+5</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">The Summit</span><span class="ds">Win at the highest Ascension tier.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="aw">+12</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">No Safety Net</span><span class="ds">Win at Ascension III or higher without taking a legendary boost.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="aw">+12</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fam">
+    <h4>Squad identity <span class="c">6 of 16</span></h4>
+    <div class="accent" style="background: #2e7d57"></div>
+    <div class="led">
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">United Nations</span><span class="ds">Win with 5 or more different nations in the XI.</span></span>
+        <span class="pips"><i class="f"></i><i></i><i></i></span><span class="aw">+2</span>
+      </div>
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">Cosmopolitan</span><span class="ds">Win with 8 or more different nations.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i></i></span><span class="aw">+5</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">Babel</span><span class="ds">Win with 11 different nations.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="aw">+12</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">Club Class</span><span class="ds">Win with every player from a single squad.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="aw">+12</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fam">
+    <h4>Defence <span class="c">4 of 10</span></h4>
+    <div class="accent" style="background: #4a6572"></div>
+    <div class="led">
+      <div class="lrow done">
+        <span class="tick">&#10003;</span>
+        <span><span class="nm">Clean Group</span><span class="ds">Concede nothing in the group stage.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i></i></span><span class="aw">+5</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">The Wall</span><span class="ds">Win every knockout tie without conceding.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="aw">+12</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">Fortress</span><span class="ds">Win the cup conceding 2 goals or fewer all run.</span></span>
+        <span class="pips"><i class="f"></i><i class="f"></i><i></i></span><span class="aw">+5</span>
+      </div>
+      <div class="lrow todo">
+        <span></span>
+        <span><span class="nm">Understudy</span><span class="ds">Win with a goalkeeper rated under 75.</span></span>
+        <span class="pips"><i class="f"></i><i></i><i></i></span><span class="aw">+2</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="lede" style="margin-top: 20px">
+    Then Rating &amp; value, Attack, Knockout drama, Boosts &amp; perks, Album &amp;
+    collectibles, Market &amp; budget, Shape &amp; positions and Career &amp; streaks:
+    twelve families, 130 entries, unchanged from what ships today.
+  </p>
+
+  <div class="ann">
+    <b>Finding F2 &middot; the whole reason this concept puts Records on the bar</b>
+    Today the only door to this catalogue is inside the career hub's collapsed body, on a
+    route reached from a card that only renders on the career build page in the setup
+    sub-view. Four clicks, and the last one lands on something not yet on screen. Here it
+    is Records then Challenges: two, both visible from every screen in the app.
+  </div>
+
+  <!-- ============ THE OTHER SEGMENT ============ -->
+  <h3 class="sub" id="cabinet">The other segment: Cabinet</h3>
+  <div style="width: 260px; margin-bottom: 14px">
+    <div class="seg">
+      <a href="records.html">Challenges</a>
+      <a class="on" href="#cabinet">Cabinet</a>
+    </div>
+  </div>
+
+  <div class="mets">
+    <div class="met"><div class="k">Cups</div><div class="v">6</div><div class="s">best: Ascension III</div></div>
+    <div class="met"><div class="k">Best cup streak</div><div class="v">3</div><div class="s">derived from Three-Peat</div></div>
+    <div class="met"><div class="k">Cleanest run</div><div class="v">1</div><div class="s">goal conceded</div></div>
+    <div class="met"><div class="k">Top scorer</div><div class="v">14</div><div class="s">Ronaldo 2002</div></div>
+    <div class="met"><div class="k">Runs archived</div><div class="v">38</div><div class="s">of 100 kept</div></div>
+  </div>
+
+  <div class="rowsplit mt18">
+    <section class="card">
+      <div class="hd"><h3>The shelf</h3><span class="r">6 trophies</span></div>
+      <div class="blk" style="display: flex; gap: 10px; flex-wrap: wrap">
+        <div style="text-align: center">
+          <div style="width: 54px; height: 40px; border-radius: 4px; background: var(--cup-deep); color: var(--amber); display: grid; place-items: center; font-family: var(--mono); font-weight: 700">III</div>
+          <div class="mono dimt" style="font-size: 10px; margin-top: 4px">x1</div>
+        </div>
+        <div style="text-align: center">
+          <div style="width: 54px; height: 40px; border-radius: 4px; background: #14663c; color: var(--amber); display: grid; place-items: center; font-family: var(--mono); font-weight: 700">II</div>
+          <div class="mono dimt" style="font-size: 10px; margin-top: 4px">x2</div>
+        </div>
+        <div style="text-align: center">
+          <div style="width: 54px; height: 40px; border-radius: 4px; background: #1c7a49; color: var(--amber); display: grid; place-items: center; font-family: var(--mono); font-weight: 700">I</div>
+          <div class="mono dimt" style="font-size: 10px; margin-top: 4px">x2</div>
+        </div>
+        <div style="text-align: center">
+          <div style="width: 54px; height: 40px; border-radius: 4px; background: #2a8f58; color: var(--amber); display: grid; place-items: center; font-family: var(--mono); font-weight: 700">B</div>
+          <div class="mono dimt" style="font-size: 10px; margin-top: 4px">x1</div>
+        </div>
+      </div>
+      <div class="blk">
+        <p class="hint mt0">One hue getting deeper plus a numeral, never six colours.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="hd"><h3>Run archive</h3><span class="r">last 4 of 38</span></div>
+      <table class="t">
+        <thead><tr><th>Result</th><th>Shape</th><th>Asc</th><th class="num">Date</th></tr></thead>
+        <tbody>
+          <tr><td style="color: var(--pitch); font-weight: 600">Champion</td><td>4-3-3 off</td><td class="num">II</td><td class="num">08-18</td></tr>
+          <tr><td>Semi-final</td><td>4-4-2 bal</td><td class="num">II</td><td class="num">08-17</td></tr>
+          <tr><td>Quarter-final</td><td>3-5-2 def</td><td class="num">III</td><td class="num">08-16</td></tr>
+          <tr><td>Group stage</td><td>4-3-3 bal</td><td class="num">III</td><td class="num">08-16</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="ann">
+    <b>Why one tab, not two</b>
+    Both are read-only honours derived from the same career, so they are the same kind of
+    thing: nothing in the app tells you that today. Segmenting them is also what keeps the
+    bar at five, which is the only place this concept needs a second level.
+  </div>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a href="index.html">Overview</a>
+    <a href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a href="market.html">Play: market</a>
+    <a href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a href="album.html">Album</a>
+    <a class="here" href="records.html">Records</a>
+    <a href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">Static comp for roadmap item 27. Sibling audit: <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nav concept 2, five tabs - detail pages</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - the set's contents page.
+  Roadmap item 27. This folder is the recommended concept drawn at full scale,
+  one page per screen, so the chrome can be judged against real content rather
+  than against 11px schematics. The comparison of all five concepts and the audit
+  of the ten findings stay in ../nav-options.html.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="index.html" aria-label="World Cup Simulator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Item 27 &middot; navigation rework</span>
+  </header>
+
+  <nav class="tabs" aria-label="The five tabs, for reference">
+    <a class="on" href="play-entry.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Concept 2, drawn at scale</p>
+      <h2>Five tabs, and what they cost</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">9 pages &middot; one stylesheet</div>
+  </div>
+
+  <p class="lede">
+    The five candidate models are compared in <code>../nav-options.html</code>. This set
+    takes the recommended one and draws it at full scale on nine screens, because a nav
+    model is easy to like as a diagram and hard to like once a 130-row ledger, a
+    three-column build page and a live match are inside it. Every screen body is the
+    shipped layout. Nothing here adds, removes or moves a feature.
+  </p>
+
+  <h3 class="sub">The pages</h3>
+  <div class="rowsplit">
+    <div>
+      <ul class="tight">
+        <li><a href="play-entry.html"><b>Play: set up</b></a> - where the launcher used to
+          be. Resume card on top, mode as a control.</li>
+        <li><a href="build.html"><b>Play: build</b></a> - mid-draft with a rolled squad.
+          The screen that rules out the rail.</li>
+        <li><a href="market.html"><b>Play: market</b></a> - the same page with the transfer
+          market in column one.</li>
+        <li><a href="run.html"><b>Play: Cup Run</b></a> - a live tie with the bar locked,
+          then the boost pick with it live again.</li>
+        <li><a href="career.html"><b>Career</b></a> - the hub, no longer sharing a route
+          with the run.</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="tight">
+        <li><a href="album.html"><b>Album</b></a> - unchanged screen, promoted from a card
+          in a build column.</li>
+        <li><a href="records.html"><b>Records</b></a> - Challenges and Cabinet as two
+          segments. The fix for the four-click catalogue.</li>
+        <li><a href="squads.html"><b>Squads</b></a> - the read-only archive, the fifth
+          tab.</li>
+        <li><a href="phone.html"><b>Phone</b></a> - four device frames, including the
+          pitch-first build order. <b>The page to read second.</b></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="sub">Eleven destinations into five tabs</h3>
+  <table class="t" style="max-width: 860px">
+    <thead><tr><th>Tab</th><th>Holds</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Play</b></td>
+        <td>Build (setup, draft, complete), group, knockout, Cup Run</td>
+        <td>Which one you see is a step of a run, not a place you choose.</td>
+      </tr>
+      <tr>
+        <td><b>Career</b></td>
+        <td>Perk shop, boost library, Ascension, headline</td>
+        <td>A shop is a destination. It stops collapsing into a header mid-run.</td>
+      </tr>
+      <tr>
+        <td><b>Album</b></td>
+        <td>The 81-sticker collection, duplicates, trade</td>
+        <td>Its own thing, and the one players check while building.</td>
+      </tr>
+      <tr>
+        <td><b>Records</b></td>
+        <td>Challenges (130) and Cabinet, segmented</td>
+        <td>Both read-only honours over the same career. Neither earns a slot alone.</td>
+      </tr>
+      <tr>
+        <td><b>Squads</b></td>
+        <td>The dataset browser, by cup and by team</td>
+        <td>The only destination that is not about your career.</td>
+      </tr>
+      <tr class="you">
+        <td><b>Not tabs</b></td>
+        <td>Settings, Account</td>
+        <td>Masthead buttons: sheets you adjust without leaving, not places you go.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">Taps from a cold open</h3>
+  <table class="t" style="max-width: 860px">
+    <thead><tr><th>Destination</th><th class="num">Today</th><th class="num">This</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Build page</td><td class="num">1</td><td class="num">1</td><td class="dimt">-</td></tr>
+      <tr><td>Group stage</td><td class="num">1</td><td class="num">1</td><td class="dimt">resume card</td></tr>
+      <tr><td>Knockout bracket</td><td class="num">2</td><td class="num">1</td><td class="dimt">was a crumb or CTA away</td></tr>
+      <tr><td>Cup Run, live</td><td class="num">1</td><td class="num">1</td><td class="dimt">resume card</td></tr>
+      <tr><td>Career hub</td><td class="num">2</td><td class="num">1</td><td class="dimt">was a card that hid once you placed a player</td></tr>
+      <tr><td><b>Challenges catalogue</b></td><td class="num">4</td><td class="num" style="color: var(--pitch); font-weight: 700">2</td><td class="dimt">and the fourth tap used to land on a collapsed panel</td></tr>
+      <tr><td>Trophy cabinet</td><td class="num">1</td><td class="num" style="color: var(--loss)">2</td><td class="dimt">the honest regression: it is a footer link today</td></tr>
+      <tr><td>Sticker album</td><td class="num">1</td><td class="num">1</td><td class="dimt">footer today, tab here</td></tr>
+      <tr><td>Squad browser</td><td class="num">1</td><td class="num">1</td><td class="dimt">-</td></tr>
+      <tr><td>Settings / account</td><td class="num">1</td><td class="num">1</td><td class="dimt">masthead, unchanged</td></tr>
+    </tbody>
+  </table>
+  <p class="hint" style="max-width: 860px">
+    Nine of eleven at one tap, maximum depth two, one mechanism instead of six. The
+    cabinet costs a tap: it is a footer link today and a segment of Records here. That is
+    the price of keeping the bar at five, and it buys the catalogue two taps back.
+  </p>
+
+  <h3 class="sub">What this set commits to</h3>
+  <p class="lede">
+    Four of these are not choices: all five concepts arrived at them independently, so they
+    are decisions whichever model wins. The last three are what makes this concept 2 rather
+    than the schematic in <code>../nav-2-tabs.html</code>.
+  </p>
+
+  <div class="led" style="margin-top: 6px">
+    <div class="lrow done">
+      <span class="tick">A</span>
+      <span><span class="nm">The two launcher doors go</span>
+        <span class="ds">Mode becomes a "Career run / One-off" control on the build page,
+        beside formation and style. One-off keeps today's Quick Run reward rules exactly.
+        Deletes finding F3.</span></span>
+      <span></span><span class="aw">agreed</span>
+    </div>
+    <div class="lrow done">
+      <span class="tick">B</span>
+      <span><span class="nm">The career hub and the live run split routes</span>
+        <span class="ds">A shop and a step of play cannot be the same address.
+        <code>CareerHub</code> is already its own file, so this is a move, not a rewrite.</span></span>
+      <span></span><span class="aw">agreed</span>
+    </div>
+    <div class="lrow done">
+      <span class="tick">C</span>
+      <span><span class="nm">The two nav cards leave the build column</span>
+        <span class="ds">Album and career stop being cards inside content, one of them
+        conditional on a sub-view. They are tabs.</span></span>
+      <span></span><span class="aw">agreed</span>
+    </div>
+    <div class="lrow done">
+      <span class="tick">D</span>
+      <span><span class="nm">The phone build page goes pitch first</span>
+        <span class="ds">Pitch, then the source panel, then ratings collapsed to a bar.
+        Independent of the nav model, so it is work either way.</span></span>
+      <span></span><span class="aw">agreed</span>
+    </div>
+    <div class="lrow done">
+      <span class="tick">1</span>
+      <span><span class="nm">The tab row carries the masthead rule</span>
+        <span class="ds">The tabs sit inside the identity block rather than as a strip
+        below it, which is the answer to "a top tab bar reads as a sub-nav". Plus a route
+        crumb under it, so "where am I" has two signals.</span></span>
+      <span></span><span class="aw">added</span>
+    </div>
+    <div class="lrow done">
+      <span class="tick">2</span>
+      <span><span class="nm">The bar is inert while a match reveals</span>
+        <span class="ds">The one thing a tab can lose that a drawer cannot. Same
+        <code>locked</code> flag the run ladder already takes. Everything else about
+        leaving and returning is lossless, because progress is reducer state mirrored to
+        storage.</span></span>
+      <span></span><span class="aw">added</span>
+    </div>
+    <div class="lrow done">
+      <span class="tick">3</span>
+      <span><span class="nm">Optional counters in the tab sub-line</span>
+        <span class="ds">34/81, 41/130, Lv 7. The dashboard concept's one real advantage,
+        imported at zero horizontal cost. First thing to cut if the bar feels busy.</span></span>
+      <span></span><span class="aw">added</span>
+    </div>
+  </div>
+
+  <h3 class="sub">Layering, since the bar is new furniture</h3>
+  <table class="t" style="max-width: 700px">
+    <thead><tr><th>Layer</th><th class="num">z</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td>Tab bar</td><td class="num">&lt; 40</td><td>New. Must sit under every overlay.</td></tr>
+      <tr><td>Group draw</td><td class="num">40</td><td>Its own centred layer, not the shared modal.</td></tr>
+      <tr><td>Overlays</td><td class="num">80</td><td>Settings, account, trade, cup reward, run-end summary.</td></tr>
+      <tr><td>Confetti</td><td class="num">90</td><td>Above the reward picker on a cup win, as shipped.</td></tr>
+    </tbody>
+  </table>
+  <div class="ann">
+    <b>Correcting the concept's own cost list</b>
+    <code>../nav-2-tabs.html</code> says a bottom bar competes with the run-end summary and
+    reward picker "both of which are bottom-anchored today". They are not:
+    <code>Overlay.tsx</code> is <code>fixed inset-0 z-[80] grid place-items-center</code>
+    over a full-screen backdrop, and the group draw is a separate centred
+    <code>z-40</code>. So this is one z-index line, not a design conflict. Finding F9 (six
+    overlays) is left for its own pass either way.
+  </div>
+
+  <h3 class="sub">What this set does not decide</h3>
+  <ul class="tight" style="max-width: 76ch">
+    <li><b>Whether a one-off run pays.</b> XP, Prestige and the 98 challenges a World Cup
+      could judge. That is functionality, it has no roadmap item since 22 was dropped, and
+      the mode switch is neutral on it.</li>
+    <li><b>Whether the two tournament engines converge.</b> The thing that would make
+      One-off one code path instead of two. Unowned, and not behaviour-preserving, so not
+      the hygiene backlog's either.</li>
+    <li><b>The overlay pile (F9).</b> Reduced by nothing here; the bar just stays under
+      it.</li>
+    <li><b>Dark theme.</b> These comps are light only. The shipped tokens cover both.</li>
+  </ul>
+
+  <h3 class="sub">Chrome it touches</h3>
+  <p class="lede">
+    <code>src/App.tsx</code> (masthead, footer nav, route branch),
+    <code>src/components/ModeSelect.tsx</code> (deleted), the two in-column entry cards in
+    <code>App.tsx</code>, <code>src/components/cupRun/CareerHub.tsx</code> (split from the
+    run screen), <code>SettingsModal.tsx</code> and <code>AccountModal.tsx</code>. No
+    <code>domain/</code>, no <code>state/</code>, no reducer action, no feature flag, which
+    is what makes item 27 safe to land ahead of items 23, 04, 05 and 19.
+  </p>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a class="here" href="index.html">Overview</a>
+    <a href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a href="market.html">Play: market</a>
+    <a href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a href="album.html">Album</a>
+    <a href="records.html">Records</a>
+    <a href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">
+    Static comps, no JavaScript, no build step: open any page in a browser. The five-way
+    comparison and the ten findings are in <code>../nav-options.html</code>; the schematic
+    version of this concept is <code>../nav-2-tabs.html</code>.
+  </p>
+</div>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Album - nav concept 2</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the Album tab.
+  Reached today from a card at the top of the build page's left column and from an
+  11px footer link. It is a tab here, which is the whole change: the screen itself
+  is unchanged.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="play-entry.html" aria-label="World Cup Simulator - home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <div class="acts">
+      <button class="ibtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
+      </button>
+      <button class="ibtn dot" title="Account: signed in" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4.1 3.4-6.4 7.5-6.4s7.5 2.3 7.5 6.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Main">
+    <a href="play-entry.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a class="on" href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="crumb">
+    <span>Album</span><span class="sep">/</span><b>Collection</b>
+    <span class="state">34 of 81 &middot; 12 duplicates</span>
+  </div>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Sticker album</p>
+      <h2>34 of 81 collected</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">All nine World Cups in the pool</div>
+  </div>
+
+  <div class="mets" style="margin-bottom: 24px">
+    <div class="met">
+      <div class="k">Completion</div><div class="v">42%</div>
+      <div class="bar"><i style="width: 42%"></i></div>
+    </div>
+    <div class="met"><div class="k">Monumental</div><div class="v">2 / 5</div><div class="s">97-99 rated</div></div>
+    <div class="met"><div class="k">Iconic</div><div class="v">7 / 18</div><div class="s">93-96 rated</div></div>
+    <div class="met"><div class="k">Legendary</div><div class="v">25 / 58</div><div class="s">90-92 rated</div></div>
+    <div class="met"><div class="k">Duplicates</div><div class="v">12</div><div class="s">trade 3 for one card</div></div>
+  </div>
+
+  <h3 class="sub" style="margin-top: 0">
+    Monumental
+    <span class="mono dimt" style="font-size: 11px; font-weight: 500; letter-spacing: 0.1em">&nbsp; 2 of 5</span>
+  </h3>
+  <div class="album">
+    <div class="st">
+      <div class="tierbar mon"></div>
+      <div class="art"><span class="flag lg f-arg"></span></div>
+      <div class="bd">
+        <div class="n">Lionel Messi</div>
+        <div class="m"><span class="flag sm f-arg"></span> 2022 &middot; 99</div>
+      </div>
+    </div>
+    <div class="st">
+      <div class="tierbar mon"></div>
+      <div class="art"><span class="flag lg f-bra"></span></div>
+      <div class="bd">
+        <div class="n">Ronaldo</div>
+        <div class="m"><span class="flag sm f-bra"></span> 2002 &middot; 98</div>
+      </div>
+    </div>
+    <div class="st empty">
+      <div class="tierbar mon"></div>
+      <div class="art"><span class="sil">?</span></div>
+      <div class="bd">
+        <div class="n">Not collected</div>
+        <div class="m">Monumental</div>
+      </div>
+    </div>
+    <div class="st empty">
+      <div class="tierbar mon"></div>
+      <div class="art"><span class="sil">?</span></div>
+      <div class="bd">
+        <div class="n">Not collected</div>
+        <div class="m">Monumental</div>
+      </div>
+    </div>
+    <div class="st empty">
+      <div class="tierbar mon"></div>
+      <div class="art"><span class="sil">?</span></div>
+      <div class="bd">
+        <div class="n">Not collected</div>
+        <div class="m">Monumental</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub">
+    Iconic
+    <span class="mono dimt" style="font-size: 11px; font-weight: 500; letter-spacing: 0.1em">&nbsp; 7 of 18</span>
+    <a class="btn sm ghost" style="margin-left: auto" href="#trade">Trade 3 duplicates</a>
+  </h3>
+  <div class="album">
+    <div class="st">
+      <div class="tierbar ico"></div>
+      <div class="art"><span class="flag lg f-ita"></span></div>
+      <div class="bd">
+        <div class="n">Gianluigi Buffon</div>
+        <div class="m"><span class="flag sm f-ita"></span> 2006 &middot; 95</div>
+      </div>
+    </div>
+    <div class="st">
+      <div class="tierbar ico"></div>
+      <div class="art"><span class="flag lg f-ita"></span></div>
+      <div class="bd">
+        <div class="n">Fabio Cannavaro</div>
+        <div class="m"><span class="flag sm f-ita"></span> 2006 &middot; 96</div>
+      </div>
+    </div>
+    <div class="st">
+      <div class="tierbar ico"></div>
+      <div class="art"><span class="flag lg f-fra"></span></div>
+      <div class="bd">
+        <div class="n">Zinedine Zidane</div>
+        <div class="m"><span class="flag sm f-fra"></span> 1998 &middot; 95</div>
+      </div>
+    </div>
+    <div class="st">
+      <div class="tierbar ico"></div>
+      <div class="art"><span class="flag lg f-esp"></span></div>
+      <div class="bd">
+        <div class="n">Xavi</div>
+        <div class="m"><span class="flag sm f-esp"></span> 2010 &middot; 94</div>
+      </div>
+    </div>
+    <div class="st empty">
+      <div class="tierbar ico"></div>
+      <div class="art"><span class="sil">?</span></div>
+      <div class="bd"><div class="n">Not collected</div><div class="m">Iconic</div></div>
+    </div>
+    <div class="st empty">
+      <div class="tierbar ico"></div>
+      <div class="art"><span class="sil">?</span></div>
+      <div class="bd"><div class="n">Not collected</div><div class="m">Iconic</div></div>
+    </div>
+  </div>
+
+  <h3 class="sub">
+    Legendary
+    <span class="mono dimt" style="font-size: 11px; font-weight: 500; letter-spacing: 0.1em">&nbsp; 25 of 58</span>
+  </h3>
+  <div class="album">
+    <div class="st">
+      <div class="tierbar leg"></div>
+      <div class="art"><span class="flag lg f-bra"></span></div>
+      <div class="bd">
+        <div class="n">Roberto Carlos</div>
+        <div class="m"><span class="flag sm f-bra"></span> 2002 &middot; 92</div>
+      </div>
+    </div>
+    <div class="st">
+      <div class="tierbar leg"></div>
+      <div class="art"><span class="flag lg f-ger"></span></div>
+      <div class="bd">
+        <div class="n">Lothar Matth&auml;us</div>
+        <div class="m"><span class="flag sm f-ger"></span> 1990 &middot; 92</div>
+      </div>
+    </div>
+    <div class="st">
+      <div class="tierbar leg"></div>
+      <div class="art"><span class="flag lg f-esp"></span></div>
+      <div class="bd">
+        <div class="n">Iker Casillas</div>
+        <div class="m"><span class="flag sm f-esp"></span> 2010 &middot; 90</div>
+      </div>
+    </div>
+    <div class="st">
+      <div class="tierbar leg"></div>
+      <div class="art"><span class="flag lg f-ita"></span></div>
+      <div class="bd">
+        <div class="n">Andrea Pirlo</div>
+        <div class="m"><span class="flag sm f-ita"></span> 2006 &middot; 91</div>
+      </div>
+    </div>
+    <div class="st empty">
+      <div class="tierbar leg"></div>
+      <div class="art"><span class="sil">?</span></div>
+      <div class="bd"><div class="n">Not collected</div><div class="m">Legendary</div></div>
+    </div>
+    <div class="st empty">
+      <div class="tierbar leg"></div>
+      <div class="art"><span class="sil">?</span></div>
+      <div class="bd"><div class="n">Not collected</div><div class="m">Legendary</div></div>
+    </div>
+  </div>
+
+  <div class="ann" id="trade">
+    <b>Unchanged, and worth stating</b>
+    Trade stays a modal here (concept 3 was the one that made it a sibling page). The
+    reset footer is still guest-only: signed in, the collection is the account's and
+    deleting the account is the account-level reset. A nav rework must not quietly change
+    either rule.
+  </div>
+
+  <div class="foot" style="display: flex; justify-content: space-between; align-items: baseline; gap: 14px; flex-wrap: wrap">
+    <span>Signed in as mario@&hellip; &middot; the album syncs to your account.</span>
+    <span class="mono" style="font-size: 11px">Reset is hidden while signed in</span>
+  </div>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a href="index.html">Overview</a>
+    <a href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a href="market.html">Play: market</a>
+    <a href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a class="here" href="album.html">Album</a>
+    <a href="records.html">Records</a>
+    <a href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">Static comp for roadmap item 27. Sibling audit: <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

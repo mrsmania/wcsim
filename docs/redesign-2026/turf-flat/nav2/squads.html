@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Squads - nav concept 2</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the Squads tab.
+  The read-only dataset browser. Included because it is the fifth tab and the tab
+  has to be justified: this is the one destination that is not about your career at
+  all, and it is where a five-slot bar is least under pressure.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="play-entry.html" aria-label="World Cup Simulator - home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <div class="acts">
+      <button class="ibtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
+      </button>
+      <button class="ibtn dot" title="Account: signed in" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4.1 3.4-6.4 7.5-6.4s7.5 2.3 7.5 6.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Main">
+    <a href="play-entry.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a class="on" href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="crumb">
+    <span>Squads</span><span class="sep">/</span><span>By World Cup</span><span class="sep">/</span><b>Italy 2006</b>
+    <span class="state">6,270 players</span>
+  </div>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Squad archive</p>
+      <h2>Italy 2006</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div style="width: 250px; margin-bottom: 4px">
+      <div class="seg">
+        <a class="on" href="squads.html">By World Cup</a>
+        <a href="squads.html">By team</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="rowsplit" style="grid-template-columns: 250px minmax(0, 1fr)">
+    <div>
+      <section class="card sm">
+        <div class="hd"><h3>World Cups</h3><span class="r">9</span></div>
+        <div class="blk" style="padding: 11px 13px">
+          <input
+            type="search" placeholder="Search 6,270 players"
+            style="width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font-family: var(--body); font-size: 13px"
+          />
+        </div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>2022</b><span class="pp">32 teams</span></div><div></div><div class="rate">26</div></div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>2018</b><span class="pp">32 teams</span></div><div></div><div class="rate">23</div></div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>2014</b><span class="pp">32 teams</span></div><div></div><div class="rate">23</div></div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>2010</b><span class="pp">32 teams</span></div><div></div><div class="rate">23</div></div>
+        <div class="prow held" style="padding: 7px 14px"><div class="who"><b>2006</b><span class="pp">32 teams</span></div><div></div><div class="rate">23</div></div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>2002</b><span class="pp">32 teams</span></div><div></div><div class="rate">23</div></div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>1998</b><span class="pp">32 teams</span></div><div></div><div class="rate">22</div></div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>1994</b><span class="pp">24 teams</span></div><div></div><div class="rate">22</div></div>
+        <div class="prow" style="padding: 7px 14px"><div class="who"><b>1990</b><span class="pp">24 teams</span></div><div></div><div class="rate">22</div></div>
+        <div class="blk"><p class="hint mt0">Right-hand number is the squad size.</p></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="hd">
+        <h3><span class="flag f-ita" style="margin-right: 8px"></span>Italy 2006</h3>
+        <span class="r">Squad rating 87 &middot; 23 players</span>
+      </div>
+      <table class="t">
+        <thead><tr><th class="num">#</th><th>Player</th><th>Pos</th><th class="num">Rating</th></tr></thead>
+        <tbody>
+          <tr class="gk"><td class="num">1</td><td><span class="nmcell"><span class="star ico">&#9733;</span>Gianluigi Buffon</span></td><td class="pos-tag">GK</td><td class="num">95</td></tr>
+          <tr class="gk"><td class="num">12</td><td>Angelo Peruzzi</td><td class="pos-tag">GK</td><td class="num">78</td></tr>
+          <tr><td class="num">5</td><td><span class="nmcell"><span class="star ico">&#9733;</span>Fabio Cannavaro</span></td><td class="pos-tag">CB</td><td class="num">96</td></tr>
+          <tr><td class="num">13</td><td>Alessandro Nesta</td><td class="pos-tag">CB</td><td class="num">89</td></tr>
+          <tr><td class="num">3</td><td>Fabio Grosso</td><td class="pos-tag">LB</td><td class="num">81</td></tr>
+          <tr><td class="num">19</td><td>Gianluca Zambrotta</td><td class="pos-tag">RB</td><td class="num">85</td></tr>
+          <tr><td class="num">21</td><td><span class="nmcell"><span class="star leg">&#9733;</span>Andrea Pirlo</span></td><td class="pos-tag">CM</td><td class="num">91</td></tr>
+          <tr><td class="num">8</td><td>Gennaro Gattuso</td><td class="pos-tag">DM</td><td class="num">83</td></tr>
+          <tr><td class="num">16</td><td>Mauro Camoranesi</td><td class="pos-tag">RM</td><td class="num">80</td></tr>
+          <tr><td class="num">10</td><td><span class="nmcell"><span class="star leg">&#9733;</span>Francesco Totti</span></td><td class="pos-tag">AM</td><td class="num">90</td></tr>
+          <tr><td class="num">7</td><td>Alessandro Del Piero</td><td class="pos-tag">ST</td><td class="num">86</td></tr>
+          <tr><td class="num">9</td><td>Luca Toni</td><td class="pos-tag">ST</td><td class="num">84</td></tr>
+        </tbody>
+      </table>
+      <div class="blk">
+        <p class="hint mt0">
+          Main position only, ratings always visible: this view exists to expose the
+          numbers. Twelve of the 23 shown.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <div class="ann">
+    <b>Why the star stays a star here</b>
+    A tick would say "already in your album", which is the picking signal. This is a
+    reference view over the whole dataset, not a surface you pick from, so it keeps the
+    plain collectible star. Unchanged by the nav rework, listed because it is the sort of
+    detail a chrome change quietly breaks.
+  </div>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a href="index.html">Overview</a>
+    <a href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a href="market.html">Play: market</a>
+    <a href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a href="album.html">Album</a>
+    <a href="records.html">Records</a>
+    <a class="here" href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">Static comp for roadmap item 27. Sibling audit: <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

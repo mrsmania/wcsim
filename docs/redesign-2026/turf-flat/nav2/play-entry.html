@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Play / Set up - nav concept 2</title>
+<link rel="stylesheet" href="nav2.css" />
+<!--
+  NAV CONCEPT 2 (five tabs) - DETAIL PAGE: the Play tab, setup sub-view.
+  This page is where the launcher used to be. There is no launcher any more:
+  the resume actions move to the top of Play, and the two door cards become a
+  two-state control next to formation and style (decisions A and B of the four
+  every concept agreed on).
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="play-entry.html" aria-label="World Cup Simulator - home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Draft a random XI. Win the cup.</span>
+    <div class="acts">
+      <button class="ibtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
+      </button>
+      <button class="ibtn dot" title="Account: signed in" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4.1 3.4-6.4 7.5-6.4s7.5 2.3 7.5 6.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Main">
+    <a class="on" href="play-entry.html"><span class="lb">Play</span><span class="sub">QF vs ARG</span></a>
+    <a href="career.html"><span class="lb">Career</span><span class="sub">Lv 7 &middot; 284</span></a>
+    <a href="album.html"><span class="lb">Album</span><span class="sub">34 / 81</span></a>
+    <a href="records.html"><span class="lb">Records</span><span class="sub">41 / 130</span></a>
+    <a href="squads.html"><span class="lb">Squads</span><span class="sub">9 cups</span></a>
+  </nav>
+
+  <div class="crumb">
+    <span>Play</span><span class="sep">/</span><b>Set up</b>
+    <span class="state warm">2 runs in progress</span>
+  </div>
+
+  <div class="sec-h">
+    <div>
+      <p class="eyebrow">Play</p>
+      <h2>Pick up, or start something new</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">One entry, one build page</div>
+  </div>
+
+  <!-- ============ RESUME: what the launcher used to hold ============ -->
+  <section class="card field-edge" style="margin-bottom: 12px">
+    <div class="hd"><h3>Pick up where you left off</h3><span class="r">3 saved</span></div>
+
+    <div class="prow" style="padding: 12px 15px">
+      <div class="who">
+        <span class="flag f-arg"></span>
+        <div>
+          <b>Cup Run &middot; Quarter-final</b>
+          <div class="mono dimt" style="font-size: 11px">
+            vs Argentina 1986 &middot; Ascension II &middot; title odds 18%
+          </div>
+        </div>
+      </div>
+      <div></div>
+      <a class="btn sm primary" href="run.html">Resume</a>
+    </div>
+
+    <div class="prow" style="padding: 12px 15px">
+      <div class="who">
+        <span class="flag f-you"></span>
+        <div>
+          <b>World Cup &middot; Group C, matchday 3</b>
+          <div class="mono dimt" style="font-size: 11px">2nd on 6 points &middot; one-off run</div>
+        </div>
+      </div>
+      <div></div>
+      <a class="btn sm" href="run.html">Resume</a>
+    </div>
+
+    <div class="prow" style="padding: 12px 15px">
+      <div class="who">
+        <span class="flag f-por"></span>
+        <div>
+          <b>Half-built XI &middot; 7 of 11 picked</b>
+          <div class="mono dimt" style="font-size: 11px">4-3-3 balanced &middot; rolled squads &middot; career run</div>
+        </div>
+      </div>
+      <div></div>
+      <a class="btn sm" href="build.html">Resume</a>
+    </div>
+  </section>
+
+  <div class="ann" style="margin-bottom: 22px">
+    <b>Findings F1, F3 &middot; decision A</b>
+    The launcher is gone. Its resume buttons are this card, and its two door cards
+    (<code>ModeSelect.tsx</code>) become the Career run / One-off control below, next to
+    formation and style, where every other build choice already lives. Both doors led to
+    this identical page anyway: the route only decided what one CTA did
+    (<code>App.tsx:647</code>) and two perk values.
+  </div>
+
+  <div class="xi-grid">
+
+    <!-- ============ COLUMN 1: setup ============ -->
+    <div>
+      <section class="card">
+        <div class="hd"><h3>Set up the run</h3></div>
+
+        <div class="blk">
+          <p class="seglbl">This run</p>
+          <div class="seg">
+            <button class="on">Career run</button>
+            <button>One-off</button>
+          </div>
+          <p class="hint">
+            A career run earns XP, Prestige and challenges, and spends your perks.
+            One-off keeps today's Quick Run rules exactly: stickers bank, the career does
+            not move.
+          </p>
+        </div>
+
+        <div class="blk">
+          <p class="seglbl">Ascension</p>
+          <div class="seg">
+            <button>Base</button>
+            <button>I</button>
+            <button class="on">II</button>
+            <button>III</button>
+          </div>
+          <p class="hint">-4 to your own attack and defence &middot; rewards x1.5</p>
+        </div>
+
+        <div class="blk">
+          <p class="seglbl">Formation</p>
+          <div class="opts">
+            <div class="opt">5-3-2</div><div class="opt">4-5-1</div>
+            <div class="opt">4-4-2</div><div class="opt">4-2-3-1</div>
+            <div class="opt on">4-3-3</div><div class="opt">3-4-3</div>
+            <div class="opt">3-5-2</div><div class="opt">4-2-4</div>
+          </div>
+        </div>
+
+        <div class="blk">
+          <p class="seglbl">Style</p>
+          <div class="seg">
+            <button>Defensive</button><button class="on">Balanced</button><button>Offensive</button>
+          </div>
+        </div>
+
+        <div class="blk">
+          <p class="seglbl">Build your XI</p>
+          <div class="cta-row">
+            <a class="btn primary" style="flex: 1" href="build.html">Roll squads</a>
+            <a class="btn" style="flex: 1" href="market.html">Transfer market</a>
+          </div>
+          <p class="hint">
+            Roll a national-team squad and pick one player into an open slot, eleven times.
+            Or buy any player from any squad inside a $110 budget.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ COLUMN 2: empty pitch ============ -->
+    <div class="board-col">
+      <div class="board" role="img" aria-label="Empty 4-3-3 pitch, eleven open slots">
+        <div class="mk out"></div><div class="mk mid"></div><div class="mk circ"></div>
+        <div class="mk spot"></div><div class="mk boxT"></div><div class="mk boxB"></div>
+        <div class="mk sixT"></div><div class="mk sixB"></div>
+        <div class="parc t"></div><div class="parc b"></div>
+        <div class="pspot t"></div><div class="pspot b"></div>
+        <div class="corn tl"></div><div class="corn tr"></div>
+        <div class="corn bl"></div><div class="corn br"></div>
+
+        <div class="tok open" style="left: 22%; top: 16%"><div class="disc open">+</div><span class="plate"><span class="pos">LW</span></span></div>
+        <div class="tok open" style="left: 50%; top: 11%"><div class="disc open">+</div><span class="plate"><span class="pos">ST</span></span></div>
+        <div class="tok open" style="left: 78%; top: 16%"><div class="disc open">+</div><span class="plate"><span class="pos">RW</span></span></div>
+        <div class="tok open" style="left: 30%; top: 40%"><div class="disc open">+</div><span class="plate"><span class="pos">CM</span></span></div>
+        <div class="tok open" style="left: 70%; top: 40%"><div class="disc open">+</div><span class="plate"><span class="pos">CM</span></span></div>
+        <div class="tok open" style="left: 50%; top: 56%"><div class="disc open">+</div><span class="plate"><span class="pos">DM</span></span></div>
+        <div class="tok open" style="left: 15%; top: 73%"><div class="disc open">+</div><span class="plate"><span class="pos">LB</span></span></div>
+        <div class="tok open" style="left: 38%; top: 77%"><div class="disc open">+</div><span class="plate"><span class="pos">CB</span></span></div>
+        <div class="tok open" style="left: 62%; top: 77%"><div class="disc open">+</div><span class="plate"><span class="pos">CB</span></span></div>
+        <div class="tok open" style="left: 85%; top: 73%"><div class="disc open">+</div><span class="plate"><span class="pos">RB</span></span></div>
+        <div class="tok open" style="left: 50%; top: 92%"><div class="disc open">+</div><span class="plate"><span class="pos">GK</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ COLUMN 3: empty ratings ============ -->
+    <div class="stack">
+      <div class="ratings">
+        <div class="rt ovr"><div class="k">Ovr</div><div class="v dash">&ndash;</div></div>
+        <div class="rt"><div class="k">Att</div><div class="v dash">&ndash;</div></div>
+        <div class="rt"><div class="k">Mid</div><div class="v dash">&ndash;</div></div>
+        <div class="rt"><div class="k">Def</div><div class="v dash">&ndash;</div></div>
+      </div>
+      <section class="card sm">
+        <div class="hd"><h3>Line-up</h3><span class="r">0 of 11</span></div>
+        <div class="blk">
+          <p class="hint mt0">
+            Your XI appears here as you pick. Ratings, chemistry and the line-up sheet stay
+            in this column for the whole build, so nothing you check moves.
+          </p>
+        </div>
+      </section>
+      <div class="ann">
+        <b>What is NOT here</b>
+        No album card, no career card, no perk summary. Those are the Album and Career
+        tabs, one tap away on every screen instead of two cards wedged into a build
+        column.
+      </div>
+    </div>
+  </div>
+
+  <nav class="setnav">
+    <span>Concept 2 pages</span>
+    <a href="index.html">Overview</a>
+    <a class="here" href="play-entry.html">Play: set up</a>
+    <a href="build.html">Play: build</a>
+    <a href="market.html">Play: market</a>
+    <a href="run.html">Play: Cup Run</a>
+    <a href="career.html">Career</a>
+    <a href="album.html">Album</a>
+    <a href="records.html">Records</a>
+    <a href="squads.html">Squads</a>
+    <a href="phone.html">Phone</a>
+  </nav>
+  <p class="foot">
+    Static comp for roadmap item 27. Sibling audit: <code>../nav-options.html</code>.
+  </p>
+</div>
+</body>
+</html>
