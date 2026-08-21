@@ -34,6 +34,7 @@ import {
   type CareerState,
 } from '../domain/career';
 import { store } from '../state/store';
+import { consumeRunStart } from '../nav/pendingRun';
 import { basePlayer } from '../data/squads';
 import { FEATURES } from '../config';
 import { useFollowBottom } from '../hooks/useFollowBottom';
@@ -299,11 +300,17 @@ export default function CupRunScreen({
 
   // "Start run" lands here and the draw opens immediately: with the Ascension picked on
   // the build page there is nothing left for a pre-run screen to ask, so it is gone.
-  // Guarded by a ref rather than by `run`, because `startAndPlayGroup` sets the run
-  // asynchronously and a second render would otherwise begin a second one.
+  //
+  // It fires only when the navigation ASKED for a kickoff (`requestRunStart`, consumed
+  // once). The first version inferred it from "no run in progress", which is the same
+  // shape as a reload, a Back navigation, a bookmark or a save that has not landed - and
+  // each of those then drew a fresh group over the run that was there. Module state, not
+  // router state: `location.state` survives a reload, which would put the bug straight
+  // back. The ref is still needed because `startAndPlayGroup` sets the run asynchronously.
   const autoStarted = useRef(false);
   useEffect(() => {
     if (!stages || view === 'hub' || run || !draftedXi || autoStarted.current) return;
+    if (!consumeRunStart()) return;
     autoStarted.current = true;
     startAndPlayGroup();
     // startAndPlayGroup closes over state that is settled by the time this can fire; it is
@@ -510,19 +517,23 @@ export default function CupRunScreen({
       {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
           picker) with the hub open below; one "Play group stage" both starts the run and
           reveals the group. No separate "Start a Cup Run" step.
-          Skipped entirely with `stages`: the Ascension is picked on the build page and the
-          effect above starts the run on arrival, so there is nothing to show. */}
-      {!hubOnly && !stages && previewRun && (
+          With `stages` this is the FALLBACK rather than the norm: a kickoff goes straight
+          into the draw, so this shows only when you arrive without one and with no run to
+          resume. It keeps the button (so nothing is a dead end) and drops the two things
+          that moved: the ladder, and the Ascension picker, which is on the build page. */}
+      {!hubOnly && previewRun && (
         <>
-          <div className="mb-4">
-            <RunLadder
-              run={previewRun}
-              currentIndex={0}
-              viewedIndex={0}
-              onSelectStep={() => {}}
-              locked={false}
-            />
-          </div>
+          {!stages && (
+            <div className="mb-4">
+              <RunLadder
+                run={previewRun}
+                currentIndex={0}
+                viewedIndex={0}
+                onSelectStep={() => {}}
+                locked={false}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
             <RunXiPanel
               xi={previewRun.xi}
@@ -534,8 +545,13 @@ export default function CupRunScreen({
             />
             <section className="flex min-w-0 flex-col gap-4">
               <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
-                {/* Ascension selector: a harder run for a bigger reward. */}
-                <div className="mx-auto max-w-[380px] rounded-md border border-line bg-chalk p-3">
+                {/* Ascension selector: a harder run for a bigger reward. Picked on the
+                    build page in the five-tab chrome, so it is not offered twice. */}
+                <div
+                    className={`mx-auto max-w-[380px] rounded-md border border-line bg-chalk p-3 ${
+                        stages ? 'hidden' : ''
+                    }`}
+                >
                   <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                     Ascension
                   </div>

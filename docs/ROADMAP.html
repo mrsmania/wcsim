@@ -399,6 +399,17 @@
     "not reached" is most of a phone screen. Opening it swaps in the shipped
     <code>&lt;Bracket&gt;</code>, which already has its own two-sided phone tree.</p>
 
+    <p><b>Bug, found and fixed 2026-08-21:</b> the kickoff effect started a run whenever
+    <code>/cup-run</code> was reached with none in progress, which is indistinguishable from
+    a reload, a Back navigation or a save that has not landed. Signed in it lost runs -
+    <code>remoteStore.finishRun</code> sets <code>run: null</code> because the server clears
+    <code>active_run</code> at run end, so a reload after a finished run silently drew a
+    fresh group. A guest never saw it (the local <code>finishRun</code> leaves the run in
+    storage), which is why it survived testing. The kickoff is now requested explicitly by
+    the build page (<code>nav/pendingRun.ts</code>, module state rather than
+    <code>location.state</code>, which survives a reload), and arriving without one falls
+    back to the pre-run card instead of starting anything.</p>
+
     <p class="next"><strong>Next step:</strong> two things left. Give the tree own-path
     nodes a click target that opens the round review, which is what the ladder used to do and
     the only thing lost with it. And decide whether the open/closed state should persist

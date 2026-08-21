@@ -771,14 +771,26 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     `stages`-only: **Ascension is picked on the build page**, in `SetupPanel` beside
     formation and style (`App` holds the tier and mirrors it onto the career's
     `lastAscension`, which is where the run already read its default from - so nothing new
-    reaches `beginRun`); **"Start run" goes straight into the draw** (a one-shot effect in
-    `CupRunScreen` starts the run on arrival, ref-guarded because `startAndPlayGroup` sets
-    the run asynchronously, and the preview block is skipped so it cannot flash); and
+    reaches `beginRun`); **"Start run" goes straight into the draw**, which is the one to
+    read the note below about; and
     **`RunLadder` is gone** there, because the group table and the bracket already say
     which round this is and how the earlier ones went. That drops `RoundReview` with it in
     this chrome - the tree shows every result on the user's own path, and making its nodes
     open the review is the follow-up. All three are untouched in the classic chrome, which
     keeps its pre-run screen, its picker and its ladder.
+  - **The kickoff is REQUESTED, never inferred** (`nav/pendingRun.ts`), and the first
+    version of it lost runs. It started a run whenever `/cup-run` was reached with none in
+    progress - which is the same shape as a reload, a Back navigation, a bookmark, a tab
+    tap, or a save that has not landed. The reported bug was the signed-in case:
+    `remoteStore.finishRun` sets `run: null` (the server clears `active_run` at run end),
+    so after a run finished a **reload silently drew a fresh group** over the screen still
+    showing the old one. A guest never saw it, because the local `finishRun` leaves the run
+    in storage. So the build page's Start Run now calls `requestRunStart()` and the effect
+    only fires on `consumeRunStart()`. **Module state, not `location.state`:** router state
+    lives in `history.state`, which survives a reload, so it would reintroduce the bug it
+    was meant to fix. Arriving without a request and without a run falls back to the
+    pre-run card - the "Play group stage" button, minus the ladder and the Ascension picker
+    that moved - so nothing is a dead end and nothing starts on its own.
   - **The trap that would have gone unnoticed:** `buildBracket` drew its 14 open seeds at
     the default weighting, so Ascension's `drawSlopeBonus` - half of what a tier means -
     would have done nothing. It now takes the slope as an optional last argument (the

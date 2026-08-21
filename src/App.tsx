@@ -51,6 +51,7 @@ import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './sta
 import { TABS } from './nav/navMode';
 import { useLiveMatch } from './nav/liveMatch';
 import { RouteCrumb, SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
+import { requestRunStart } from './nav/pendingRun';
 import { onStoreError, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
@@ -1406,7 +1407,15 @@ export default function App({
                                             mode={mode}
                                             onStartRun={
                                                 mode === 'career'
-                                                    ? () => navigate('/cup-run')
+                                                    ? () => {
+                                                          // Tell the run screen this
+                                                          // navigation is a kickoff, so it
+                                                          // never has to infer that from
+                                                          // "no run in progress" - which a
+                                                          // reload also looks like.
+                                                          requestRunStart();
+                                                          navigate('/cup-run');
+                                                      }
                                                     : handleStartGroup
                                             }
                                             onReset={handleReset}
