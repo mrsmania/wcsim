@@ -385,10 +385,22 @@ export default function App({
     // Hold / release a market player (its eligible slots then pulse on the pitch).
     // Taking a card in hand drops a move in progress: only one thing is being aimed
     // at a time, and the last tap is what the user means.
-    const handleBudgetHold = useCallback((player: Player) => {
-        setMovingSlotId(null);
-        setHeldId((id) => (id === player.id ? null : player.id));
-    }, []);
+    // Mobile: holding a card scrolls the pitch up, exactly as picking a drawn player does.
+    // The roll draft gets that from the `selectedPlayerId` effect below; the market holds
+    // its card in local state, so it never fired there - the same gesture with half the
+    // help. `willHold` is computed here rather than inside the updater, because a scroll
+    // is a side effect and setState updaters can run twice.
+    const handleBudgetHold = useCallback(
+        (player: Player) => {
+            setMovingSlotId(null);
+            const willHold = heldId !== player.id;
+            setHeldId(willHold ? player.id : null);
+            if (willHold && isStackedLayout()) {
+                pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        },
+        [heldId],
+    );
 
     // Same rule for a drawn-squad card.
     const handleSelectPlayer = useCallback((playerId: string) => {
@@ -490,6 +502,10 @@ export default function App({
             setHeldId(null);
             const next = formation.slots.find((s) => s.id !== slotId && !filled[s.id]);
             setBudgetTargetId(next ? next.id : null);
+            // Mobile: back up to the market for the next position, as a placement does.
+            if (isStackedLayout()) {
+                squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         },
         [heldId, formation, filled],
     );
@@ -1235,18 +1251,19 @@ export default function App({
                                     <span className="absolute -top-[5px] left-0 h-2 w-2 rounded-full border-2 border-line bg-panel" />
                                 </div>
                             </div>
-                            {/* One column below 760, two to 1080, three above. The tabs
-                                navigation puts the PITCH FIRST on the phone (decision D):
-                                the thing you tap was sandwiched between the panel you pick
-                                from and the ratings you check, so a draft was scroll up,
-                                tap, scroll down, eleven times. */}
-                            <div
-                                className={`grid items-start gap-[22px] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px] ${
-                                    TABS
-                                        ? "[grid-template-areas:'board'_'sum'_'stack']"
-                                        : "[grid-template-areas:'sum'_'board'_'stack']"
-                                }`}
-                            >
+                            {/* One column below 760, two to 1080, three above; the source
+                                panel (setup / drawn squad / market / complete) is always
+                                FIRST on a phone, then the pitch, then the ratings.
+                                The tabs navigation briefly put the pitch first (item 27's
+                                decision D, on the reasoning that the thing you tap was
+                                sandwiched between the panel you pick from and the ratings
+                                you check). Reverted 2026-08-21: that problem was already
+                                solved by motion rather than by order - picking a player
+                                scrolls the pitch up, placing him scrolls the panel back -
+                                and pitch-first breaks the pairing, because scrolling "to
+                                the pitch" is a no-op when the pitch is already at the top
+                                and the return scroll then travels the wrong way. */}
+                            <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
                                 {/* Col 1: setup -> drawn squad -> complete */}
                                 <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
                                     {/* Navigation inside a content column is finding F5,

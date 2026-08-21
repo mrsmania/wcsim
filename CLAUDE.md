@@ -409,9 +409,15 @@ Settings sheet has a "Navigation (preview)" control. The choice persists in its 
   loses it. Published from `useMatchClock`, the one hook the group screen, the knockout
   screen and the Cup Run all share, so one effect covers all three; the run ladder already
   took a `locked` flag for exactly this. With the classic navigation nothing subscribes.
-- **Phone build page goes pitch first** (the thing you tap was sandwiched between the
-  panel you pick from and the ratings you check), and the two navigation cards leave the
-  build page's left column.
+- **The two navigation cards leave the build page's left column.** The phone build page
+  briefly went **pitch first** too (item 27's decision D, on the reasoning that the thing
+  you tap was sandwiched between the panel you pick from and the ratings you check).
+  **Reverted 2026-08-21:** that problem was already solved by motion rather than by order -
+  picking a player scrolls the pitch up, placing him scrolls the panel back - and
+  pitch-first breaks the pairing, because scrolling "to the pitch" is a no-op when the
+  pitch is already at the top and the return scroll then travels the wrong way. The source
+  panel (setup / drawn squad / market / complete, all one grid area) is first again in both
+  chromes.
 - **Layering:** the bottom bar is `z-20`, under every overlay - the group draw is its own
   centred `z-40`, the shared `Overlay` is `z-[80]` and confetti `z-[90]`, all over a
   full-screen backdrop. Nothing here is bottom-anchored, so there is no conflict to
@@ -1257,6 +1263,15 @@ keep working.
   small chip next to it (standings, fixtures, bracket seeds, summary recaps). It is
   hidden below the `sm` breakpoint (no hover on mobile, space is tight) and toggled
   globally by `FEATURES.teamRatings`. This replaced the earlier title-hover tooltips.
+- **The build page's scroll dance** (mobile, i.e. below the 1080px three-column
+  breakpoint): picking a player scrolls the **pitch** to the top so a slot can be tapped,
+  and placing him scrolls the **source panel** back. Two `scrollIntoView` calls, one in the
+  `selectedPlayerId` effect and one in `handlePlace`, both gated on `isStackedLayout()`.
+  It is why the source panel has to come FIRST on a phone (see the navigation-preview note
+  above): the dance is a there-and-back, and it only reads as one if the panel is above the
+  board. The transfer market got the same pair on 2026-08-21 - it holds its card in local
+  state, not in `selectedPlayerId`, so the effect never fired there and the same gesture
+  had half the help.
 - **Auto-scroll**: `useFollowBottom` eases the page down to follow growing content
   (live goal feeds, new match / round cards, the qualify call-to-action). It follows
   down only, pauses when the user scrolls up, and never cancels its own in-flight ease.

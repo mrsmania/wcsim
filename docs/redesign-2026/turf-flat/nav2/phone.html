@@ -52,7 +52,7 @@
 
     <!-- ==================== 1: BUILD, PITCH FIRST ==================== -->
     <figure style="margin: 0">
-      <p class="phcap">Play / Build <b>Decision D: pitch first</b></p>
+      <p class="phcap">Play / Build <b>Decision D: pitch first (reverted)</b></p>
       <div class="ph">
         <div class="pmast">
           <span class="crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/><path d="M4 22h16"/></svg></span>
@@ -123,6 +123,15 @@
         no scroll between the thing you pick from and the thing you tap. Finding F10 is
         work in every concept, so it is drawn here.
       </p>
+      <div class="ann" style="max-width: 336px">
+        <b>Built, then reverted &middot; 2026-08-21</b>
+        This one did not survive contact. The sandwich it fixes was already solved by
+        motion rather than by order: picking a player scrolls the pitch up and placing him
+        scrolls the panel back, a there-and-back that only reads as one if the panel is
+        ABOVE the board. Pitch first breaks the pairing - scrolling to a pitch already at
+        the top does nothing, and the return scroll then travels the wrong way. The shipped
+        phone order is the source panel first, as before, in both chromes.
+      </div>
     </figure>
 
     <!-- ==================== 2: CUP RUN, BAR LOCKED ==================== -->

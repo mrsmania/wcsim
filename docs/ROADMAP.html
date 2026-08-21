@@ -509,7 +509,12 @@
     than options: the two launcher doors go (mode becomes a build-page control), the career
     hub and the live run stop sharing a route, the two nav cards leave the build page's left
     column, and the build page needs its phone order changed (pitch first) regardless of
-    which nav wins.</p>
+    which nav wins. <b>That last one was tried and reverted on 2026-08-21:</b> the problem it
+    named was already solved by motion, not order - picking a player scrolls the pitch up and
+    placing him scrolls the panel back - and pitch-first breaks the pairing, because
+    scrolling to a pitch that is already at the top does nothing and the return scroll then
+    goes the wrong way. So three of the four agreed decisions stand; the fourth was a
+    misreading of a solved problem.</p>
 
     <p><strong>Does Quick Run make sense at all?</strong> Asked directly while surveying
     this. <b>Not as a door, yes as a switch.</b> A Cup Run is a superset of a World Cup (they
@@ -538,7 +543,8 @@
     crumb, <code>/play</code> as the one build route, <code>/career</code> split off the live
     run, <code>/records</code> holding Challenges and Cabinet as segments, mode as a
     <b>Career run / One-off</b> control on the build page, the two nav cards out of the build
-    column, the phone build page pitch first, and the bar going inert while a match reveals.
+    column, and the bar going inert while a match reveals. (The phone build page went pitch
+    first too, and was reverted on 2026-08-21 - see the four agreed decisions above.)
     The old routes stay valid aliases. Kept on review: the <b>front page</b>. Decision A
     deletes the two mode doors, not the launcher screen - the hero tactics board, the beats and
     the legends showcase are what sell the game - so <code>/</code> is still

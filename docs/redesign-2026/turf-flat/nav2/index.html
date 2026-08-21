@@ -48,7 +48,8 @@
     the default, so the two can be compared in one build on the same progress and the same
     account. Everything on these pages shipped: the kept cover, the run-kind control, the
     split career route, the segmented Records tab, the bar going inert during a match reveal
-    and the phone's pitch-first build page. What did NOT ship is the one item here that was
+    and the phone's pitch-first build page - though that last one was <b>reverted on
+    2026-08-21</b>, see decision D below. What did NOT ship is the one item here that was
     never chrome - <b>one run at a time</b>. The cover picks a single Continue by priority
     and "build a new XI" resets, so it reads as one run, but two can still be live. See
     <code>CLAUDE.md</code> for the shipped detail and roadmap item 27 for what is left.
@@ -191,9 +192,14 @@
     </div>
     <div class="lrow done">
       <span class="tick">D</span>
-      <span><span class="nm">The phone build page goes pitch first</span>
+      <span><span class="nm">The phone build page goes pitch first &mdash; REVERTED</span>
         <span class="ds">Pitch, then the source panel, then ratings collapsed to a bar.
-        Independent of the nav model, so it is work either way.</span></span>
+        Independent of the nav model, so it is work either way. <b>Built, then reverted on
+        2026-08-21:</b> the sandwich this was meant to fix was already solved by motion, not
+        by order - picking a player scrolls the pitch up, placing him scrolls the panel back
+        - and pitch-first breaks that pairing, because scrolling to a pitch already at the
+        top does nothing and the return scroll then travels the wrong way. The one of the
+        four that did not survive contact.</span></span>
       <span></span><span class="aw">agreed</span>
     </div>
     <div class="lrow done">
