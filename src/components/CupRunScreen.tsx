@@ -114,7 +114,7 @@ export default function CupRunScreen({
   view?: 'both' | 'hub' | 'run';
   /** Where "back to the build" goes (the route differs between the two navigations). */
   buildTo?: string;
-  /** The bracket's "Your path" accordion: whether the full draw shows, and the setter.
+  /** The bracket accordion: whether the full 16-team bracket shows, and the setter.
    *  A persisted preference (App owns it) rather than component state, so consulting the
    *  draw once does not have to be redone on every navigation back into the run. */
   showFullDraw?: boolean;
@@ -582,7 +582,7 @@ export default function CupRunScreen({
           )}
 
           {/* The knockouts play out on the tree (roadmap item 28, option A), collapsed to
-              the user own path with the full 16-team draw behind a chevron: the tree is
+              the user's own path with the full 16-team bracket behind a chevron: the tree is
               the right thing to look at between rounds and too tall to sit above every
               screen of a run. Full width rather than inside the content column, because a
               16-team tree squeezed beside the XI panel scrolls sideways. Absent during the

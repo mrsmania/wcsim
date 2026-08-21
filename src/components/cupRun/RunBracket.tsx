@@ -173,7 +173,7 @@ export default function RunBracket({
     onOpenReview,
 }: {
     bracket: BracketState;
-    /** Whether the full 16-team draw is showing (persisted, see the note above). */
+    /** Whether the full 16-team bracket is showing (persisted, see the note above). */
     open: boolean;
     onSetOpen: (open: boolean) => void;
     /** KO rounds that have a history record to review. The caller decides, since the
