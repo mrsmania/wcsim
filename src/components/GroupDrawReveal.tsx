@@ -23,7 +23,12 @@ interface Props {
 
 /** The opening group draw: opponent flags scramble for a beat, then settle on the
  *  real teams, and a button continues to the group stage. Rendered as a modal over
- *  the group screen, shown once for a freshly drawn group. */
+ *  the group screen, shown once for a freshly drawn group.
+ *
+ *  Dismissed by the Continue button ONLY: a backdrop click and Escape deliberately do
+ *  nothing, because the draw is the reveal and closing it by accident spoils it. The
+ *  callers hide the standings behind it for the same reason, so the modal never has to
+ *  rely on its backdrop tint to keep the opponents secret. */
 export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Props) {
   const [settled, setSettled] = useState(false);
   const [revealCodes, setRevealCodes] = useState<string[]>(() => opponents.map(() => randomCode()));
@@ -50,17 +55,26 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Lock background scroll while the draw is up: the page behind it is the group it
+  // is hiding, so scrolling it defeats the modal. Same pattern as `Overlay` (own
+  // effect with [] deps so the original overflow is captured once and restored on
+  // dismiss); the page scrolls on the document element, so lock that.
+  useEffect(() => {
+    const el = document.documentElement;
+    const prev = el.style.overflow;
+    el.style.overflow = 'hidden';
+    return () => {
+      el.style.overflow = prev;
+    };
+  }, []);
+
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
-      onClick={settled ? onContinue : undefined}
     >
-      <div
-        className="w-full max-w-[560px] rounded-md border border-line bg-panel p-5 shadow-hard sm:p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-md border border-line bg-panel p-5 shadow-hard sm:p-6">
         <div className="mb-4">
           <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
             Group draw

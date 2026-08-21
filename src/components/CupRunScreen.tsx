@@ -608,9 +608,10 @@ export default function CupRunScreen({
                 <div>
                   {reveal.kind === 'group' ? (
                     <>
-                      {/* The draw, once per group. The table and the matchdays render
-                          behind it but the matches do not start playing until it is
-                          dismissed, so nothing is spoiled. */}
+                      {/* The draw, once per group. Nothing behind it renders until it is
+                          dismissed: the table names the four teams, so leaving it up
+                          showed the opponents through the backdrop while the flags were
+                          still scrambling in front. */}
                       {drawOpen && groupDraw && (
                         <GroupDrawReveal
                           userTeam={groupDraw.user}
@@ -620,7 +621,7 @@ export default function CupRunScreen({
                       )}
                       {/* The table as it stands: projected to the matchdays revealed so
                           far, so it fills in as the group plays out. */}
-                      {run.useStages && (
+                      {run.useStages && !drawOpen && (
                         <div className="mb-4">
                           <StandingsTable
                             group={groupAsOf(reveal.group, revealedMatchdays)}
