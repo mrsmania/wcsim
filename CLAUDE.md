@@ -489,7 +489,10 @@ is unchanged, and the renderer.
 - **A champion is always crowned**: if the user loses, `bracket.ts` simulates the
   remaining rounds (higher elo more likely to advance) so the tree still completes and
   the trophy is awarded.
-- **`Bracket.tsx`** renders the tree responsively: a wide left-to-right layout on
+- **`Bracket.tsx`** takes an optional `reviewableRounds` + `onOpenReview` so a Cup Run can
+  make the user's own played tie a click target (see "Runs are tournaments" below); with
+  neither, every box is an inert `div`, which is what a plain read-only tree wants. It
+  renders the tree responsively: a wide left-to-right layout on
   desktop and a two-sided vertical tree (top-down + bottom-up, converging on the cup)
   on mobile so there is no horizontal scroll (toggled at max-width 900px; `bkt-`
   prefixed CSS in `index.css`, with desktop and mobile connectors scoped separately so
@@ -772,17 +775,29 @@ deleted with the plain World Cup it used to gate). Design:
     preference should not reset every run) and not a control in the settings sheet (the chevron
     is its control). `App` owns it via `useSettings` and passes it to both `CupRunScreen`
     mounts; the component is controlled.
-  - **The tree's played cells open the round review** (2026-08-21). `RunBracket`'s path
-    cells are buttons where a round has a `RoundRecord`, and a click sets `CupRunScreen`'s
-    `reviewIndex` (round `r` -> index `r + 1`), which swaps the content column for the same
-    `RoundReview` the ladder's steps used to open: the tie's goal feed, how it was decided,
-    and the boost taken after it. Three things keep it honest: **reviewable = a history
-    record exists**, which is why the live round never steals its own view (a record is
-    written as `koRound` advances, so the round on screen has none - except on an ended run,
-    where reviewing the last tie is the point); the set is emptied **while a match is
-    revealing**, as the ladder was `locked` for the same reason (the live playback is not
-    persisted, so leaving loses it); and the tree hides itself while a review is open, so
-    the two never stack. **The GROUP has no cell on the tree**, so its review (finishing
+  - **A tie you played opens its round review** (2026-08-21), collapsed or expanded - one
+    gesture either way, which is the point: the first version only wired the collapsed path
+    cells, so the review vanished exactly when you opened the bracket to study it.
+    Collapsed, `RunBracket`'s path cells are the buttons; expanded, `Bracket` takes
+    `reviewableRounds` + `onOpenReview` and the **game box** is. Either way a click sets
+    `CupRunScreen`'s `reviewIndex` (round `r` -> index `r + 1`), swapping the content column
+    for the same `RoundReview` the ladder's steps used to open: the tie's goal feed, how it
+    was decided, and the boost taken after it. Four things keep it honest:
+    - **Reviewable = a history record exists**, which is why the live round never steals its
+      own view (a record is written as `koRound` advances, so the round on screen has none -
+      except on an ended run, where reviewing the last tie is the point).
+    - **Only YOUR ties can be reviewed**, and that is a data fact rather than a choice: a
+      `RoundRecord` is written per user tie, while the other 14 teams' games resolve from
+      their ratings and store a scoreline and nothing else. In the tree the test is
+      `BracketGame.hasUser` **and not the game index** - once the user is knocked out the
+      rest of the tree is simulated, so game 0 of a later round is somebody else's.
+    - The set is emptied **while a match is revealing**, as the ladder was `locked` for the
+      same reason (the live playback is not persisted, so leaving loses it).
+    - The collapsed cells hide themselves while a review is open, so the two never stack.
+    A game box turned button keeps `.bkt-match` exactly (`button.bkt-match` in `index.css`
+    only undoes the browser defaults and adds hover/focus), because the tree's `::after`
+    connectors are positioned off that box - give it its own element and they drift.
+    **The GROUP has no box anywhere on the bracket**, so its review (finishing
     position, the three scorelines, the first boost) is still unreachable -
     the one piece of the ladder not restored.
   - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21):

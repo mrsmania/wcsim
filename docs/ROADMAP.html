@@ -464,9 +464,27 @@
     draw to a played group, then a seeded mid-run through the QF with both path cells
     reviewable and no console errors.</p>
 
-    <p class="next"><strong>Next step:</strong> the group's own review - a leading Group cell
-    on the path row, which is the one piece of the old ladder still missing. After that this
-    item is done.</p>
+    <p><b>The expanded bracket opens it too (2026-08-21).</b> The first cut wired only the
+    collapsed path cells, so the review vanished exactly when you opened the bracket to study
+    it - which is where you would look for it. <code>Bracket</code> now takes the same
+    <code>reviewableRounds</code> + <code>onOpenReview</code>, and the <b>game box</b> of a tie
+    you played is the button, in both the wide and the two-sided phone layout. One gesture
+    either way: your tie, collapsed or expanded. <b>Only your own ties are ever clickable</b>,
+    and that is data rather than taste - a <code>RoundRecord</code> is written per user tie,
+    while the other 14 teams' games resolve from their ratings and store a scoreline and
+    nothing else, so there is no feed to show. The test is <code>BracketGame.hasUser</code>,
+    not the game index: once you are knocked out the rest of the tree is simulated, so game 0
+    of a later round belongs to somebody else. The box keeps <code>.bkt-match</code> exactly
+    (the button rule only undoes the browser defaults) because the tree's connectors are
+    positioned off it. Verified in both layouts: 1 of 15 boxes clickable, the one you played,
+    opening the feed, with no console errors.</p>
+
+    <p class="next"><strong>Next step:</strong> the group's own review, which has no box on
+    the bracket to open it from - so it is a wire-it-or-drop-it call: a leading Group cell on
+    the path row, or delete the <code>reviewIndex === 0</code> lookup and
+    <code>RoundReview</code>'s group branch (~33 lines that nothing can currently reach).
+    Either way the group's own record stays, since <code>domain/challenges.ts</code> reads it.
+    After that this item is done.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
   </div>

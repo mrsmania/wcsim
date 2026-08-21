@@ -26,6 +26,9 @@ import { USER_ID } from '../../domain/tournament';
  * five cells do not fit a phone, and a horizontally scrolling strip hides the round you
  * are actually in half the time.
  *
+ * A played tie opens that round's review, collapsed (its path cell) or expanded (the
+ * game box in the tree) - one gesture either way.
+ *
  * Open/closed is a persisted PREFERENCE (`Settings.showFullDraw`), not component state:
  * a run spans many navigations, and re-collapsing the draw on every return made the
  * control something you had to re-open rather than something you had set.
@@ -244,7 +247,14 @@ export default function RunBracket({
 
             {open && (
                 <div className="border-t border-line px-3 pb-4 pt-4">
-                    <Bracket bracket={bracket} />
+                    {/* The same review, on the same rule, from the expanded tree: your own
+                        played tie is the click target there too. Without this the gesture
+                        vanished exactly when you opened the tree to study it. */}
+                    <Bracket
+                        bracket={bracket}
+                        reviewableRounds={reviewableRounds}
+                        onOpenReview={onOpenReview}
+                    />
                 </div>
             )}
         </div>

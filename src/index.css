@@ -288,6 +288,26 @@ button:not(:disabled) {
     border: 1px solid var(--color-line);
     border-radius: 5px;
 }
+/* A tie the user played is a button that opens its round review (Cup Run only). It has
+   to keep .bkt-match's box exactly - the ::after connectors are positioned off it - so
+   this only undoes the browser's button defaults and adds the affordance. The narrow
+   layout's `.bkt-mtree .bkt-match.bkt-vs` outranks these on specificity, so its flex row
+   and padding survive. */
+button.bkt-match {
+    display: block;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+button.bkt-match:hover {
+    border-color: var(--color-pitch);
+}
+button.bkt-match:focus-visible {
+    outline: 2px solid var(--color-pitch);
+    outline-offset: 2px;
+}
 .bkt-seed {
     display: flex;
     align-items: center;

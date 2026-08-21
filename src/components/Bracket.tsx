@@ -87,7 +87,7 @@ function Seed({ side, score }: { side: SideView; score?: number }) {
 
 /** One team column in the narrow (mobile) match box: flag over code+year over
  *  the goals it scored. Two of these sit side by side with a result dash between
- *  them (see MobileMatch), so a played tie reads as three rows, not four. */
+ *  them (see MobileBody), so a played tie reads as three rows, not four. */
 function MSide({ side, score }: { side: SideView; score?: number }) {
   const team = side.team;
   const isUser = team?.id === USER_ID;
@@ -120,26 +120,56 @@ function MSide({ side, score }: { side: SideView; score?: number }) {
 
 /** Narrow layout: home | away side by side, with a dash between their goals to
  *  read as a result. */
-function MobileMatch({ view }: { view: GameView }) {
+function MobileBody({ view }: { view: GameView }) {
   const hasScore = view.homeScore !== undefined && view.awayScore !== undefined;
   return (
-    <div className="bkt-match bkt-vs">
+    <>
       <MSide side={view.home} score={view.homeScore} />
       <span className="bkt-dash" aria-hidden>
         {hasScore ? '–' : ''}
       </span>
       <MSide side={view.away} score={view.awayScore} />
-    </div>
+    </>
   );
 }
 
-function Match({ view, stacked }: { view: GameView; stacked: boolean }) {
-  if (stacked) return <MobileMatch view={view} />;
-  return (
-    <div className="bkt-match">
+/** One game box. `onReview` turns it into a button that opens that round's review -
+ *  set only for a tie the USER played, because only those have anything to review: a
+ *  `RoundRecord` (the goal feed, how it was decided, the boost taken) is written per
+ *  user tie, while the other 14 teams' games resolve from their ratings and store a
+ *  scoreline and nothing else. The element keeps `.bkt-match` exactly either way, since
+ *  the CSS connectors are positioned off that box. */
+function Match({
+  view,
+  stacked,
+  label,
+  onReview,
+}: {
+  view: GameView;
+  stacked: boolean;
+  label?: string;
+  onReview?: () => void;
+}) {
+  const body = stacked ? (
+    <MobileBody view={view} />
+  ) : (
+    <>
       <Seed side={view.home} score={view.homeScore} />
       <Seed side={view.away} score={view.awayScore} />
-    </div>
+    </>
+  );
+  const cls = stacked ? 'bkt-match bkt-vs' : 'bkt-match';
+  if (!onReview) return <div className={cls}>{body}</div>;
+  return (
+    <button
+      type="button"
+      className={cls}
+      onClick={onReview}
+      aria-label={label ? `Review the ${label}` : 'Review this round'}
+      title={label ? `Review the ${label}` : undefined}
+    >
+      {body}
+    </button>
   );
 }
 
@@ -192,9 +222,28 @@ function Cup({ b, stacked }: { b: BracketState; stacked: boolean }) {
 
 /** The knockout bracket. Renders both the wide (left-to-right) and narrow
  *  (two-sided, converging on the cup) layouts; CSS shows one at a time. */
-export default function Bracket({ bracket }: { bracket: BracketState }) {
+export default function Bracket({
+  bracket,
+  reviewableRounds,
+  onOpenReview,
+}: {
+  bracket: BracketState;
+  /** Rounds with a review to open. The caller decides, since the record lives on the
+   *  run and the tree only knows the tie. */
+  reviewableRounds?: number[];
+  onOpenReview?: (round: number) => void;
+}) {
   const b = bracket;
   const v = (round: number, g: number) => gameView(b, round, g);
+  /** The review handler for one game, or undefined when there is nothing to open:
+   *  no caller, the round has no record, or this is not a tie the user played. */
+  const reviewOf = (round: number, g: number): (() => void) | undefined => {
+    if (!onOpenReview || !reviewableRounds?.includes(round)) return undefined;
+    const game = b.rounds[round]?.[g];
+    // `hasUser` rather than the game index: once the user is knocked out the rest of
+    // the tree is simulated, and game 0 of a later round is then somebody else's.
+    return game?.hasUser && game.result ? () => onOpenReview(round) : undefined;
+  };
   const heads = [...KO_ROUNDS, 'Champion'];
   const nowIdx = b.outcome === 'champion' ? heads.length - 1 : b.outcome === 'out' ? -1 : b.current;
 
@@ -217,7 +266,13 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
                 {pairs(views).map((pv, pi) => (
                   <div className="bkt-pair" key={pi}>
                     {pv.map((view, gi) => (
-                      <Match key={gi} view={view} stacked={false} />
+                      <Match
+                        key={gi}
+                        view={view}
+                        stacked={false}
+                        label={KO_ROUNDS[round]}
+                        onReview={reviewOf(round, pi * 2 + gi)}
+                      />
                     ))}
                   </div>
                 ))}
@@ -225,7 +280,12 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
             );
           })}
           <div className="bkt-round bkt-final">
-            <Match view={v(3, 0)} stacked={false} />
+            <Match
+              view={v(3, 0)}
+              stacked={false}
+              label={KO_ROUNDS[3]}
+              onReview={reviewOf(3, 0)}
+            />
           </div>
           <div className="bkt-round bkt-champ">
             <Cup b={b} stacked={false} />
@@ -239,50 +299,125 @@ export default function Bracket({ bracket }: { bracket: BracketState }) {
           {/* top half (the user's half), flowing down */}
           <div className="bkt-mband bkt-r16">
             <div className="bkt-vpair">
-              <Match view={v(0, 0)} stacked />
-              <Match view={v(0, 1)} stacked />
+              <Match
+                view={v(0, 0)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 0)}
+              />
+              <Match
+                view={v(0, 1)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 1)}
+              />
             </div>
             <div className="bkt-vpair">
-              <Match view={v(0, 2)} stacked />
-              <Match view={v(0, 3)} stacked />
+              <Match
+                view={v(0, 2)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 2)}
+              />
+              <Match
+                view={v(0, 3)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 3)}
+              />
             </div>
           </div>
           <div className="bkt-mband bkt-qf">
             <div className="bkt-vpair">
-              <Match view={v(1, 0)} stacked />
-              <Match view={v(1, 1)} stacked />
+              <Match
+                view={v(1, 0)}
+                stacked
+                label={KO_ROUNDS[1]}
+                onReview={reviewOf(1, 0)}
+              />
+              <Match
+                view={v(1, 1)}
+                stacked
+                label={KO_ROUNDS[1]}
+                onReview={reviewOf(1, 1)}
+              />
             </div>
           </div>
           <div className="bkt-mband bkt-sf">
-            <Match view={v(2, 0)} stacked />
+            <Match
+                view={v(2, 0)}
+                stacked
+                label={KO_ROUNDS[2]}
+                onReview={reviewOf(2, 0)}
+              />
           </div>
 
           <div className="bkt-mcenter">
             <div className="bkt-mfinal">
               <div className="bkt-mfinal-lbl">Final</div>
-              <Match view={v(3, 0)} stacked />
+              <Match
+                view={v(3, 0)}
+                stacked
+                label={KO_ROUNDS[3]}
+                onReview={reviewOf(3, 0)}
+              />
             </div>
             <Cup b={b} stacked />
           </div>
 
           {/* bottom half, flowing up */}
           <div className="bkt-mband bkt-sf bkt-up">
-            <Match view={v(2, 1)} stacked />
+            <Match
+                view={v(2, 1)}
+                stacked
+                label={KO_ROUNDS[2]}
+                onReview={reviewOf(2, 1)}
+              />
           </div>
           <div className="bkt-mband bkt-qf bkt-up">
             <div className="bkt-vpair">
-              <Match view={v(1, 2)} stacked />
-              <Match view={v(1, 3)} stacked />
+              <Match
+                view={v(1, 2)}
+                stacked
+                label={KO_ROUNDS[1]}
+                onReview={reviewOf(1, 2)}
+              />
+              <Match
+                view={v(1, 3)}
+                stacked
+                label={KO_ROUNDS[1]}
+                onReview={reviewOf(1, 3)}
+              />
             </div>
           </div>
           <div className="bkt-mband bkt-r16 bkt-up">
             <div className="bkt-vpair">
-              <Match view={v(0, 4)} stacked />
-              <Match view={v(0, 5)} stacked />
+              <Match
+                view={v(0, 4)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 4)}
+              />
+              <Match
+                view={v(0, 5)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 5)}
+              />
             </div>
             <div className="bkt-vpair">
-              <Match view={v(0, 6)} stacked />
-              <Match view={v(0, 7)} stacked />
+              <Match
+                view={v(0, 6)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 6)}
+              />
+              <Match
+                view={v(0, 7)}
+                stacked
+                label={KO_ROUNDS[0]}
+                onReview={reviewOf(0, 7)}
+              />
             </div>
           </div>
         </div>
