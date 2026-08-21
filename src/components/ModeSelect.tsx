@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, CircleDashed, Play, Swords, Trophy } from 'lucide-react';
+import ConfirmAction from './ConfirmAction';
 import type { Player } from '../data/types';
 import { FEATURES } from '../config';
 import { collectiblePlayers, tierOf } from '../domain/album';
@@ -11,8 +12,26 @@ import { stickerArtSrc, TIER_META } from './StickerCard';
  *  3-beat "how it works" and a "chase the legends" showcase. Quick Run and Career Mode
  *  both lead to the same 3-column build page; the choice only decides what the single
  *  "Start Run" does and whether the run feeds a persistent career. Shown only when
- *  `FEATURES.careerMode` is on (with it off, `/` is the build page directly). */
+ *  `FEATURES.careerMode` is on (with it off, `/` is the build page directly).
+ *
+ *  `variant` picks which chrome it serves. `launcher` is the shipped page, unchanged.
+ *  `cover` is the tabs-navigation preview (roadmap item 27): the same hero, the same
+ *  beats and the same legends showcase - the parts that sell the game - but the two MODE
+ *  DOORS are gone, since mode is a control on the build page there, and the three resume
+ *  buttons collapse to one Continue, since that navigation keeps one run at a time.
+ *  Everything else is deliberately identical: the doors were the problem, not the front
+ *  page. */
 interface Props {
+    /** Which chrome this is serving (see the note above). Defaults to the shipped page. */
+    variant?: 'launcher' | 'cover';
+    /** cover only: the single Continue action (a live run, a tournament, or a half-built
+     *  XI), or null when nothing is in progress. */
+    continueAction?: { to: string; label: string; sub: string } | null;
+    /** cover only: where "Build your XI" goes. */
+    buildTo?: string;
+    /** cover only: discard what is in progress and start a fresh build. Destructive, so
+     *  it confirms inline - which is the visible cost of one run at a time. */
+    onNewXi?: () => void;
     /** Target route for the "Quick Run" CTA (resumes an in-progress World Cup if there
      *  is one, else the quick-run build page). A real link, so middle/ctrl-click works. */
     quickTo: string;
@@ -104,6 +123,10 @@ function Beat({
 }
 
 export default function ModeSelect({
+    variant = 'launcher',
+    continueAction = null,
+    buildTo = '/',
+    onNewXi,
     quickTo,
     careerTo,
     worldCupRoute,
@@ -112,6 +135,8 @@ export default function ModeSelect({
     buildResume,
     allPlayers,
 }: Props) {
+    const cover = variant === 'cover';
+
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
     const legends = useMemo(() => {
         if (!FEATURES.stickerAlbum) return [];
@@ -146,29 +171,81 @@ export default function ModeSelect({
                         a time, then run the gauntlet - group stage to final, live and minute by minute.
                     </p>
 
-                    <div className="mt-6 flex flex-wrap gap-3">
-                        <Link
-                            to={quickTo}
-                            className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
-                        >
-                            Play a Quick Run
-                            <ArrowRight size={17} strokeWidth={2.5} />
-                        </Link>
-                        <Link
-                            to={careerTo}
-                            className={`${CTA} bg-amber text-[#13211a] hover:bg-amber/90`}
-                        >
-                            Enter Career Mode
-                            <ArrowRight size={17} strokeWidth={2.5} />
-                        </Link>
-                    </div>
-                    <p className="mt-3.5 text-[12.5px] text-white/70">
-                        <b className="font-semibold text-white">Quick Run</b> is a one-off.{' '}
-                        <b className="font-semibold text-white">Career Mode</b> keeps your progress -
-                        boosts, Prestige and unlocks that carry between runs.
-                    </p>
+                    {cover ? (
+                        <>
+                            <div className="mt-6 flex flex-wrap items-center gap-3">
+                                {continueAction ? (
+                                    <>
+                                        <Link
+                                            to={continueAction.to}
+                                            className={`${CTA} bg-amber text-[#13211a] hover:bg-amber/90`}
+                                        >
+                                            {continueAction.label}
+                                            <ArrowRight size={17} strokeWidth={2.5} />
+                                        </Link>
+                                        {onNewXi && (
+                                            <ConfirmAction
+                                                triggerLabel="Build a new XI"
+                                                triggerClassName={`${CTA} border border-white/35 bg-white/[0.08] text-white hover:bg-white/[0.16]`}
+                                                prompt="This ends what you have in progress."
+                                                confirmLabel="Start a new XI"
+                                                onConfirm={onNewXi}
+                                                rowClassName="flex flex-wrap items-center gap-2.5"
+                                                promptClassName="text-[12.5px] font-semibold text-white/85"
+                                            />
+                                        )}
+                                    </>
+                                ) : (
+                                    <Link
+                                        to={buildTo}
+                                        className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
+                                    >
+                                        Build your XI
+                                        <ArrowRight size={17} strokeWidth={2.5} />
+                                    </Link>
+                                )}
+                            </div>
+                            <p className="mt-3.5 text-[12.5px] text-white/70">
+                                {continueAction ? (
+                                    continueAction.sub
+                                ) : (
+                                    <>
+                                        Pick a formation, roll real squads or shop a transfer budget,
+                                        then choose{' '}
+                                        <b className="font-semibold text-white">Career run</b> or{' '}
+                                        <b className="font-semibold text-white">One-off</b> on the
+                                        build page.
+                                    </>
+                                )}
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <div className="mt-6 flex flex-wrap gap-3">
+                                <Link
+                                    to={quickTo}
+                                    className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
+                                >
+                                    Play a Quick Run
+                                    <ArrowRight size={17} strokeWidth={2.5} />
+                                </Link>
+                                <Link
+                                    to={careerTo}
+                                    className={`${CTA} bg-amber text-[#13211a] hover:bg-amber/90`}
+                                >
+                                    Enter Career Mode
+                                    <ArrowRight size={17} strokeWidth={2.5} />
+                                </Link>
+                            </div>
+                            <p className="mt-3.5 text-[12.5px] text-white/70">
+                                <b className="font-semibold text-white">Quick Run</b> is a one-off.{' '}
+                                <b className="font-semibold text-white">Career Mode</b> keeps your
+                                progress - boosts, Prestige and unlocks that carry between runs.
+                            </p>
+                        </>
+                    )}
 
-                    {(cupRunInProgress || worldCupRoute || buildResume) && (
+                    {!cover && (cupRunInProgress || worldCupRoute || buildResume) && (
                         <div className="mt-5 flex flex-wrap gap-2.5">
                             {buildResume && (
                                 <ResumeButton
@@ -269,12 +346,14 @@ export default function ModeSelect({
                                 These five are the rarest of all.
                             </p>
                         </div>
-                        <Link
-                            to="/album"
-                            className="whitespace-nowrap font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch transition hover:text-pitch-dark"
-                        >
-                            Open the album &rarr;
-                        </Link>
+                        {!cover && (
+                            <Link
+                                to="/album"
+                                className="whitespace-nowrap font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch transition hover:text-pitch-dark"
+                            >
+                                Open the album &rarr;
+                            </Link>
+                        )}
                     </div>
                     <div className="grid grid-cols-2 gap-3 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5">
                         {legends.map((p) => {
@@ -331,7 +410,9 @@ export default function ModeSelect({
                     From Maradona in '90 to Mbapp&eacute; in '22.{' '}
                     <span className="font-medium text-muted">Nine World Cups, every squad, one trophy.</span>
                 </div>
-                <div className="flex gap-2">
+                {/* Album and Squads are tabs in the cover chrome, so these two shortcuts
+                    would be a third way to the same places. */}
+                <div className={`flex gap-2 ${cover ? 'hidden' : ''}`}>
                     {FEATURES.stickerAlbum && (
                         <Link
                             to="/album"

@@ -13,6 +13,7 @@ export default function ConfirmAction({
   triggerLabel,
   triggerClassName,
   rowClassName = 'flex flex-wrap items-center justify-center gap-2',
+  promptClassName = 'text-xs font-semibold text-muted',
 }: {
   /** The question shown while confirming. */
   prompt: string;
@@ -25,13 +26,16 @@ export default function ConfirmAction({
   triggerClassName: string;
   /** The confirm row's layout (defaults to a centred wrap). */
   rowClassName?: string;
+  /** The prompt's className. Overridden where the row sits on a dark surface (the
+   *  cover's grass hero), since the default muted grey is a paper-on-white colour. */
+  promptClassName?: string;
 }) {
   const [confirm, setConfirm] = useState(false);
 
   if (confirm) {
     return (
       <div className={rowClassName}>
-        <span className="text-xs font-semibold text-muted">{prompt}</span>
+        <span className={promptClassName}>{prompt}</span>
         <button
           onClick={() => {
             onConfirm();

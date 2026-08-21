@@ -27,7 +27,9 @@ export default function ChallengesScreen({
 }: {
   /** Ids the career has completed. */
   completed: string[];
-  onClose: () => void;
+  /** Back out of the screen. Omitted by the tabs navigation, where the Records
+   *  sub-tabs are the way in and out and a "Back" crumb would be a second answer. */
+  onClose?: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const done = useMemo(() => new Set(completed), [completed]);
@@ -60,7 +62,7 @@ export default function ChallengesScreen({
       <StageHeader
         eyebrow="Your honours"
         title="Challenges"
-        crumb={<StageCrumb dir="back" label="Back" onClick={onClose} />}
+        crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
       />
 
       {/* Completion counter, deliberately the album's shape: same page, same reading. */}

@@ -76,6 +76,8 @@ export default function CupRunScreen({
   onRunEnd,
   onRunStart,
   banking = false,
+  view = 'both',
+  buildTo = '/career-mode',
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
@@ -102,6 +104,16 @@ export default function CupRunScreen({
   /** The finished run's stickers are still saving: the run-end actions wait, so the
    *  haul is shown before the next run can begin. */
   banking?: boolean;
+  /** Which half of this screen to render. `both` is the shipped behaviour: the career
+   *  hub and the live run share one route, with the hub collapsing to a strip mid-run.
+   *  The tabs navigation splits them (roadmap item 27, finding F4 - a shop and a step of
+   *  play cannot be the same address), so it mounts this screen twice: `hub` for the
+   *  Career tab (hub only, always open) and `run` under Play (the run, no hub). The
+   *  career state and the purchase handlers stay here either way, so the split is a
+   *  render branch rather than a state lift. */
+  view?: 'both' | 'hub' | 'run';
+  /** Where "back to the build" goes (the route differs between the two navigations). */
+  buildTo?: string;
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const CHALLENGES_ON = FEATURES.challenges;
@@ -395,14 +407,15 @@ export default function CupRunScreen({
 
   // The career hub element. On the pre-run screen it renders BELOW the preview so the
   // "Play group stage" button stays visible; for an active run / no XI it sits on top.
+  const hubOnly = view === 'hub';
   const hub = (
     <CareerHub
       career={career}
       prog={prog}
-      hubOpen={hubOpen}
+      hubOpen={hubOnly || hubOpen}
       onToggleHub={() => setHubOpen((o) => !o)}
-      showBody={showHubBody}
-      showToggle
+      showBody={hubOnly || showHubBody}
+      showToggle={!hubOnly}
       onPurchase={purchase}
       onUnlockBoost={unlockBoost}
     />
@@ -441,15 +454,18 @@ export default function CupRunScreen({
           </div>
         </div>
       )}
-      <StageCrumb dir="back" label="Back to the build" to="/career-mode" className="mt-7" />
+      {view !== 'hub' && (
+        <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-7" />
+      )}
 
-      {/* Career hub - open above the content; a slim strip during an active run. */}
-      {hub}
+      {/* Career hub - open above the content; a slim strip during an active run. Its own
+          page in the tabs navigation, where the run is a separate route. */}
+      {view !== 'run' && hub}
 
       {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
           picker) with the hub open below; one "Play group stage" both starts the run and
           reveals the group. No separate "Start a Cup Run" step. */}
-      {previewRun && (
+      {!hubOnly && previewRun && (
         <>
           <div className="mb-4">
             <RunLadder
@@ -526,19 +542,19 @@ export default function CupRunScreen({
           </div>
         </>
       )}
-      {!run && !draftedXi && (
+      {!hubOnly && !run && !draftedXi && (
         <div className="rounded-md border border-dashed border-line bg-panel p-8 text-center shadow-hard">
           <p className="mb-4 text-[13.5px] text-muted">
             Draft your XI first, then bring it here for a Cup Run.
           </p>
-          <Link to="/career-mode" className={PRIMARY_BTN}>
+          <Link to={buildTo} className={PRIMARY_BTN}>
             Draft your XI
           </Link>
         </div>
       )}
 
       {/* Active run */}
-      {run && (
+      {!hubOnly && run && (
         <>
           {/* Progress ladder: Group -> R16 -> QF -> SF -> Final -> Cup. Clicking a step
               switches the content area below to that round; the current step returns

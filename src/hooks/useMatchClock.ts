@@ -7,6 +7,7 @@ import {
   type MatchSpeed,
 } from '../domain/clock';
 import type { PenKick } from '../domain/match';
+import { holdLiveMatch } from '../nav/liveMatch';
 
 /** Hold (ms) on the final scoreline before the group screen records + advances. */
 export const FT_HOLD_MS = 700;
@@ -67,6 +68,11 @@ export function useMatchClock(spec: MatchClockSpec): MatchClockState {
   specRef.current = spec;
 
   const { active } = spec;
+
+  // Publish "a match is revealing" for the tabs navigation, which goes inert while one
+  // runs (the playback is transient and is lost by leaving the screen). Its own effect
+  // so the timer logic below is untouched; a no-op with the classic navigation.
+  useEffect(() => (active ? holdLiveMatch() : undefined), [active]);
 
   useEffect(() => {
     if (!active) return;

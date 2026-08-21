@@ -435,12 +435,33 @@
     neutral on it either way, so it can be answered later without touching the navigation
     again.</p>
 
-    <p class="next"><strong>Next step:</strong> pick a concept, then write the four agreed
-    decisions up as one short note with the phone build-page order included. <b>Sequencing:</b>
-    worth landing before or with item 23, which touches <code>App.tsx</code> heavily for other
-    reasons, and before items 04, 05 and 19, each of which adds a screen the nav will have to
-    hold. Chrome only: no <code>domain/</code>, no <code>state/</code>, no reducer action and no
-    feature flag, which is what makes it safe to land ahead of everything else.</p>
+    <p><b>Concept 2 (five tabs) was picked and is live behind a runtime switch
+    (2026-08-21).</b> It is not the default: <code>?nav=tabs</code> turns it on,
+    <code>?nav=classic</code> off, and the Settings sheet has a "Navigation (preview)" control,
+    so the two chromes can be compared in one deployed build on the same progress and the same
+    account. Ten full-scale comps are in
+    <code>docs/redesign-2026/turf-flat/nav2/</code>; <code>src/nav/navMode.ts</code> is the
+    switch and CLAUDE.md has the shipped detail. What landed: five tabs (Play, Career, Album,
+    Records, Squads) as a row that carries the masthead rule and a phone bottom bar, a route
+    crumb, <code>/play</code> as the one build route, <code>/career</code> split off the live
+    run, <code>/records</code> holding Challenges and Cabinet as segments, mode as a
+    <b>Career run / One-off</b> control on the build page, the two nav cards out of the build
+    column, the phone build page pitch first, and the bar going inert while a match reveals.
+    The old routes stay valid aliases. Kept on review: the <b>front page</b>. Decision A
+    deletes the two mode doors, not the launcher screen - the hero tactics board, the beats and
+    the legends showcase are what sell the game - so <code>/</code> is still
+    <code>ModeSelect</code>, with one Continue instead of three resume buttons.</p>
+
+    <p class="next"><strong>Next step:</strong> play both chromes and decide the per-screen
+    adaptations now that the frame around them changed (the album screen still carries its own
+    "back to game" link, for one). Then flip the default and delete the losing chrome. Two
+    things it deliberately did not settle, both functionality rather than chrome: <b>one run at
+    a time</b> (the cover shows one Continue by priority, but a World Cup and a Cup Run can
+    still both be live, since <code>handleStartGroup</code> never clears the run - the same
+    question as converging the two tournament engines, which the hygiene audit leaves unowned)
+    and whether a One-off run should pay. <b>Sequencing unchanged:</b> before or with item 23,
+    which touches <code>App.tsx</code> heavily for other reasons, and before items 04, 05 and
+    19, each of which adds a surface the nav will have to hold.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/nav-options.html (+ nav-{1..5}-*.html), src/App.tsx, src/components/ModeSelect.tsx, src/components/cupRun/CareerHub.tsx, src/components/CupRunScreen.tsx, src/components/SettingsModal.tsx, src/components/AccountModal.tsx</p>
   </div>

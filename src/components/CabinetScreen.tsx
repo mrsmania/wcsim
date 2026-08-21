@@ -350,7 +350,9 @@ export default function CabinetScreen({
   /** The pool's players, so album completion tracks the year filter like the album
    *  screen's does. */
   allPlayers: Player[];
-  onClose: () => void;
+  /** Back out of the screen. Omitted by the tabs navigation, where the Records
+   *  sub-tabs are the way in and out and a "Back" crumb would be a second answer. */
+  onClose?: () => void;
 }) {
   const v: CabinetView = useMemo(
     () => cabinetView(career, album, allPlayers),
@@ -365,7 +367,7 @@ export default function CabinetScreen({
       <StageHeader
         eyebrow="Career"
         title="Trophy Cabinet"
-        crumb={<StageCrumb dir="back" label="Back" onClick={onClose} />}
+        crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
       />
 
       <p className="mb-[18px] max-w-[72ch] text-[13px] text-muted">

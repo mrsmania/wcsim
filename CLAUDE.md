@@ -184,6 +184,8 @@ src/
                (theme / difficulty / year pool, through the store), useStickerAlbum.ts
                (the album + the run-end banking rule, see below), motion.ts
                (prefersReducedMotion)
+  nav/         navMode.ts (the tabs-navigation runtime switch, see below),
+               liveMatch.ts ("a match is revealing", published by useMatchClock)
   components/  presentational React (App composes them); the group screen
                (TournamentScreen) splits into GroupDrawReveal / StandingsTable /
                MatchdayCard, and matchUi.tsx + matchView.ts hold the shared
@@ -192,7 +194,9 @@ src/
                CupRunScreen (Cup Run + career) is a lazy-loaded (React.lazy) route
                screen, as are ChallengesScreen and CabinetScreen (the trophy cabinet);
                BudgetMarket is the budget build's left-column panel (shares
-               the home page's Pitch + ratings/line-up, not a separate screen)
+               the home page's Pitch + ratings/line-up, not a separate screen);
+               navUi.tsx holds the tabs navigation's atoms (TabRow, TabBottomBar,
+               RouteCrumb, SubTabs)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
                stickerImages, careerMode, budgetDraft, challenges, challengeAwards,
@@ -357,6 +361,68 @@ to the squad rolls, the transfer market, the opponents, and the sticker album's 
 target. Defaults to every year; it is **never empty** (an empty selection falls back to
 all), and loading tolerates years that are not in the dataset. Keeping settings on their
 own key is deliberate: resetting the game, album, career or run never touches them.
+
+## Navigation preview: five tabs (runtime switch)
+
+Roadmap item 27's chrome, **shipped behind a runtime switch rather than a `FEATURES`
+flag** so the old and the new navigation can be compared in one deployed build, on the
+same progress and the same account. `?nav=tabs` turns it on, `?nav=classic` off, and the
+Settings sheet has a "Navigation (preview)" control. The choice persists in its own key
+(`wcsim_nav_v1`) because client-side navigation drops the query string.
+
+- **`src/nav/navMode.ts`** exports `TABS`, read **once at module load** like `FEATURES`:
+  each mode is a different tree of chrome and a different set of routes, so flipping
+  mid-session would remount half the app. `setNavMode` writes the key and reloads (the
+  same handover signing in/out already uses).
+- **What it changes, all of it chrome:** the footer text nav (four of eleven destinations,
+  11px, below the fold) is replaced by five tabs - **Play, Career, Album, Records,
+  Squads** - as a row that carries the masthead's ink rule from 700px up and a fixed
+  bottom bar below it, plus a route crumb as the second "where am I" signal. Settings and
+  account stay masthead buttons: they are sheets you adjust without leaving, not places
+  you go.
+- **Routes it adds, with the old ones kept as aliases** so bookmarks and the run-end deep
+  links keep working: `/play` (the one build route), `/career` (the hub, split off the
+  live run - a shop and a step of play cannot be the same address), `/records` +
+  `/records/cabinet` (the two honours screens as segments of one destination, which is
+  what keeps the bar at five). `/quick-run`, `/career-mode`, `/challenges` and `/cabinet`
+  still resolve.
+- **The mode doors go, the front page stays.** `/` is still `ModeSelect` - the hero
+  tactics board, the three beats and the "Chase the legends" showcase are what sell the
+  game - but `variant="cover"` drops the two door cards (mode is a **Career run /
+  One-off** control in `SetupPanel`, beside formation and style) and collapses the three
+  resume buttons into one **Continue**, in priority order Cup Run, World Cup, half-built
+  XI. "Build a new XI" beside it confirms first, because it discards whichever of the
+  three that is.
+- **`runKind` is App state, not a route.** It seeds from the persisted `buildMode` and is
+  handed to `START_DRAFT` / `START_BUDGET` / `AUTOFILL` as their `mode`, so the reducer is
+  unchanged and the two Career-Mode-only perks (`transfer-budget` -> the market budget,
+  `extra-reroll`) key off the control instead of the path. Verified end to end: the same
+  build page reads $70 with Career run and $110 with One-off.
+- **The bar goes inert while a match reveals** (`nav/liveMatch.ts`), because the live
+  playback is transient state that is deliberately not persisted - leaving the screen
+  loses it. Published from `useMatchClock`, the one hook the group screen, the knockout
+  screen and the Cup Run all share, so one effect covers all three; the run ladder already
+  took a `locked` flag for exactly this. With the classic navigation nothing subscribes.
+- **Phone build page goes pitch first** (the thing you tap was sandwiched between the
+  panel you pick from and the ratings you check), and the two navigation cards leave the
+  build page's left column.
+- **Layering:** the bottom bar is `z-20`, under every overlay - the group draw is its own
+  centred `z-40`, the shared `Overlay` is `z-[80]` and confetti `z-[90]`, all over a
+  full-screen backdrop. Nothing here is bottom-anchored, so there is no conflict to
+  design around.
+- **One run at a time is NOT implemented**, deliberately: it is functionality, not chrome.
+  The cover picks one Continue by priority and "Build a new XI" resets, so it *reads* as
+  one run, but two can still be live (a World Cup lives in the game state, a Cup Run in
+  `wcsim_run_v1`, and `handleStartGroup` never clears the run). Settling that is the same
+  question as converging the two tournament engines, which the hygiene audit lists as
+  unowned.
+- **Not decided by the preview:** whether a One-off run should pay (XP, Prestige,
+  challenges), the six-overlay pile, and per-screen adaptations now that the chrome
+  around them changed. Comps: `docs/redesign-2026/turf-flat/nav2/` (ten pages), audit:
+  `docs/redesign-2026/turf-flat/nav-options.html`.
+- **To retire it**, whichever way it goes: delete `src/nav/navMode.ts` and the `TABS`
+  branches, the Settings group, and either `ModeSelect`'s `variant` or the whole classic
+  chrome. `useMatchClock`'s publish effect and `navUi.tsx` only matter to the tabs.
 
 ## The dataset (`src/data/squads.ts`)
 
