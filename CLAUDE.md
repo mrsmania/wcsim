@@ -752,6 +752,18 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     bracket stores a snapshot of the user's team, so it is **refreshed each round** because
     boosts change the XI. A knockout loss still completes the tree, so a Cup Run crowns a
     champion the way a World Cup does.
+  - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21), all
+    `stages`-only: **Ascension is picked on the build page**, in `SetupPanel` beside
+    formation and style (`App` holds the tier and mirrors it onto the career's
+    `lastAscension`, which is where the run already read its default from - so nothing new
+    reaches `beginRun`); **"Start run" goes straight into the draw** (a one-shot effect in
+    `CupRunScreen` starts the run on arrival, ref-guarded because `startAndPlayGroup` sets
+    the run asynchronously, and the preview block is skipped so it cannot flash); and
+    **`RunLadder` is gone** there, because the group table and the bracket already say
+    which round this is and how the earlier ones went. That drops `RoundReview` with it in
+    this chrome - the tree shows every result on the user's own path, and making its nodes
+    open the review is the follow-up. All three are untouched in the classic chrome, which
+    keeps its pre-run screen, its picker and its ladder.
   - **The trap that would have gone unnoticed:** `buildBracket` drew its 14 open seeds at
     the default weighting, so Ascension's `drawSlopeBonus` - half of what a tier means -
     would have done nothing. It now takes the slope as an optional last argument (the

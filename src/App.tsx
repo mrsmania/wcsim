@@ -41,6 +41,7 @@ import { buildBracket } from './domain/bracket';
 import { KO_ROUNDS } from './domain/knockout';
 import { userRatingDelta } from './domain/difficulty';
 import { extraRerollsOf, type CareerState } from './domain/career';
+import { maxSelectableAscension } from './domain/ascension';
 import { priceFor } from './domain/pricing';
 import type { RunBuild, RunShape } from './domain/run';
 import { canSwapInto } from './domain/album';
@@ -151,6 +152,11 @@ export default function App({
     );
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
     const stickers = useStickerAlbum(state, dispatch, snapshot.album, poolPlayers);
+    // The Ascension tier for the next run, picked on the build page (roadmap item 28)
+    // rather than on a pre-run screen that no longer exists in the tabs chrome. Held here
+    // as UI state and mirrored onto the career's `lastAscension`, which is where the run
+    // already read its default from - so nothing new has to be threaded to `beginRun`.
+    const [ascension, setAscension] = useState<number | null>(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [accountOpen, setAccountOpen] = useState(false);
     // Accounts (gated): the blocking state for a failed save while signed in (D9),
@@ -699,6 +705,20 @@ export default function App({
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [path],
     );
+    // The Ascension picker's props for the build page: the tier in force and the highest
+    // one currently selectable (unlocked AND level-gated). Only the tabs chrome shows it;
+    // the classic one still picks on its pre-run screen.
+    const ascensionMax = careerPeek ? maxSelectableAscension(careerPeek.ascension, careerPeek.level) : 0;
+    const ascensionTier = Math.min(ascension ?? careerPeek?.lastAscension ?? ascensionMax, ascensionMax);
+    const pickAscension = useCallback(
+        (tier: number) => {
+            setAscension(tier);
+            const career = store.peek().career;
+            if (career.lastAscension !== tier) void store.saveCareer({ ...career, lastAscension: tier });
+        },
+        [],
+    );
+
     // Transfer-market budget. Quick Run (and career-off) use the fixed BUDGET_DRAFT;
     // Career Mode scales it by the owned `transfer-budget` perk tier.
     const buildCareer = isBuild && mode === 'career' ? careerPeek : null;
@@ -1309,6 +1329,15 @@ export default function App({
                                             }
                                             onBudgetDraft={
                                                 FEATURES.budgetDraft ? handleBudget : undefined
+                                            }
+                                            ascension={
+                                                TABS && FEATURES.careerMode
+                                                    ? {
+                                                          tier: ascensionTier,
+                                                          max: ascensionMax,
+                                                          onSelect: pickAscension,
+                                                      }
+                                                    : undefined
                                             }
                                         />
                                     )}

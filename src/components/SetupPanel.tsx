@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
+import { ASCENSIONS, ascensionAt } from '../domain/ascension';
 import type { TeamStrength } from '../domain/draft';
 import { ChevronDown, Coins, Dices } from 'lucide-react';
 import { PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
@@ -33,6 +34,13 @@ interface Props {
     onRandomTeam?: (tier: TeamStrength) => void;
     /** Build the XI in the budget market instead of rolling (budgetDraft feature). */
     onBudgetDraft?: () => void;
+    /** The run's Ascension tier, chosen here rather than on the Cup Run screen (roadmap
+     *  item 28): it belongs with formation and style, because it is a choice about the run
+     *  you are building, and "start run" now goes straight into the draw. `max` is the
+     *  highest tier currently selectable (unlocked AND level-gated); anything above it
+     *  renders as locked with the requirement. Omitted by the classic navigation, which
+     *  still picks it on its pre-run screen. */
+    ascension?: { tier: number; max: number; onSelect: (tier: number) => void };
 }
 
 export default function SetupPanel({
@@ -46,6 +54,7 @@ export default function SetupPanel({
     onStart,
     onRandomTeam,
     onBudgetDraft,
+    ascension,
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
@@ -101,6 +110,49 @@ export default function SetupPanel({
                     })}
                 </div>
             </div>
+
+            {/* Ascension: the run's difficulty ladder. Chosen with the shape, since both
+                are decisions about the run being built and there is no pre-run screen to
+                make them on any more. */}
+            {ascension && (
+                <div className="border-t border-line p-[18px]">
+                    <p className={SEGLBL}>Ascension</p>
+                    <div className="grid grid-cols-6 gap-[5px]">
+                        {ASCENSIONS.map((a) => {
+                            const active = a.tier === ascension.tier;
+                            const locked = a.tier > ascension.max;
+                            return (
+                                <button
+                                    key={a.tier}
+                                    disabled={locked}
+                                    onClick={() => ascension.onSelect(a.tier)}
+                                    aria-pressed={active}
+                                    title={
+                                        locked
+                                            ? `Win a cup at the tier below and reach level ${a.levelReq}`
+                                            : a.label
+                                    }
+                                    className={[
+                                        'rounded-[4px] border py-2.5 text-center font-mono text-[11.5px] font-semibold transition',
+                                        active
+                                            ? 'border-ink bg-ink text-ground'
+                                            : locked
+                                              ? 'border-line bg-panel text-line'
+                                              : 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch',
+                                    ].join(' ')}
+                                >
+                                    {a.label.replace('Ascension ', '')}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <p className="mt-2.5 text-[12px] leading-snug text-muted">
+                        {ascension.tier === 0
+                            ? 'Standard difficulty. Rewards at face value.'
+                            : `${ascensionAt(ascension.tier).userDelta} to your own attack and defence, a stronger knockout field, and rewards x${ascensionAt(ascension.tier).rewardMult}.`}
+                    </p>
+                </div>
+            )}
 
             {/* Build your XI */}
             <div className="border-t border-line p-[18px]">

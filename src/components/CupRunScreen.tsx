@@ -297,6 +297,20 @@ export default function CupRunScreen({
     }
   };
 
+  // "Start run" lands here and the draw opens immediately: with the Ascension picked on
+  // the build page there is nothing left for a pre-run screen to ask, so it is gone.
+  // Guarded by a ref rather than by `run`, because `startAndPlayGroup` sets the run
+  // asynchronously and a second render would otherwise begin a second one.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!stages || view === 'hub' || run || !draftedXi || autoStarted.current) return;
+    autoStarted.current = true;
+    startAndPlayGroup();
+    // startAndPlayGroup closes over state that is settled by the time this can fire; it is
+    // deliberately not a dependency, or picking an Ascension would restart the run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stages, view, run, draftedXi]);
+
   /** What the challenge predicates need beyond the run and the career: dataset
    *  ratings (the run's XI carries boost deltas), the album as it stands, and the
    *  lifetime trade count. Read at run end rather than held in state, so it reflects
@@ -495,8 +509,10 @@ export default function CupRunScreen({
 
       {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
           picker) with the hub open below; one "Play group stage" both starts the run and
-          reveals the group. No separate "Start a Cup Run" step. */}
-      {!hubOnly && previewRun && (
+          reveals the group. No separate "Start a Cup Run" step.
+          Skipped entirely with `stages`: the Ascension is picked on the build page and the
+          effect above starts the run on arrival, so there is nothing to show. */}
+      {!hubOnly && !stages && previewRun && (
         <>
           <div className="mb-4">
             <RunLadder
@@ -589,7 +605,12 @@ export default function CupRunScreen({
         <>
           {/* Progress ladder: Group -> R16 -> QF -> SF -> Final -> Cup. Clicking a step
               switches the content area below to that round; the current step returns
-              to the live view. Locked while a match is playing out. */}
+              to the live view. Locked while a match is playing out.
+              Dropped with `stages`: the group table and the bracket already say which
+              round this is and how the earlier ones went, so it was the same content
+              twice. Its round-review side (RoundReview) goes with it there - the tree
+              shows every result on the user's path, and making its nodes open the review
+              is the follow-up. */}
           <div className="mb-4">
             {run.ascension > 0 && (
               <div className="mb-2 flex justify-center">
@@ -598,13 +619,15 @@ export default function CupRunScreen({
                 </span>
               </div>
             )}
-            <RunLadder
-              run={run}
-              currentIndex={currentRoundIndex}
-              viewedIndex={reviewIndex ?? currentRoundIndex}
-              onSelectStep={(i) => setReviewIndex(i === currentRoundIndex ? null : i)}
-              locked={!!reveal}
-            />
+            {!run.useStages && (
+              <RunLadder
+                run={run}
+                currentIndex={currentRoundIndex}
+                viewedIndex={reviewIndex ?? currentRoundIndex}
+                onSelectStep={(i) => setReviewIndex(i === currentRoundIndex ? null : i)}
+                locked={!!reveal}
+              />
+            )}
           </div>
 
           {/* The knockouts play out on the tree (roadmap item 28, option A): the bracket,
