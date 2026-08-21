@@ -11,12 +11,12 @@ items and drifted apart.
 
 **Cleanup work has its own list:** `docs/hygiene-audit.html` (roadmap item 23) is a
 wave-by-wave backlog of dead code and behaviour-preserving refactorings, H1 to H105, plus
-the decisions they need and an explicit list of what not to touch. It is **blocked on item
-27** (the navigation rework, which moves the same code) and should not be started before it.
-Item 27's chrome has landed, but as a **preview behind a runtime switch** (see "Navigation
-preview" below), so `App.tsx` now carries BOTH chromes and the block is tighter rather than
-looser: refactoring either path means doing it twice, and one of the two is about to be
-deleted. It lifts when the default flips.
+the decisions they need and an explicit list of what not to touch. It was **blocked on item
+27** (the navigation rework, which moved the same code) and is **unblocked as of 2026-08-21**:
+item 27 shipped and its losing chrome was deleted, so the five things the block named are
+settled, several of them by deletion. Read the audit's off-limits section critically now - it
+was written against the old tree, and its "item 27 owns these" list is history rather than a
+warning.
 Roadmap item 22 used to be the blocker and was dropped on 2026-08-20; the audit's off-limits
 section now splits what it owned into item 27's half and an explicitly unowned half. Note that it records several claims in this file
 as drifted (see its wave 1d); those corrections are backlog items, so do not be surprised
@@ -366,30 +366,28 @@ target. Defaults to every year; it is **never empty** (an empty selection falls 
 all), and loading tolerates years that are not in the dataset. Keeping settings on their
 own key is deliberate: resetting the game, album, career or run never touches them.
 
-## Navigation preview: five tabs (runtime switch)
+## Navigation: five tabs
 
-Roadmap item 27's chrome, **shipped behind a runtime switch rather than a `FEATURES`
-flag** so the old and the new navigation can be compared in one deployed build, on the
-same progress and the same account. `?nav=tabs` turns it on, `?nav=classic` off, and the
-Settings sheet has a "Navigation (preview)" control. The choice persists in its own key
-(`wcsim_nav_v1`) because client-side navigation drops the query string.
+Roadmap item 27, **shipped 2026-08-21 and now the only navigation.** It went in behind a
+runtime switch (`?nav=tabs`), was compared against the old chrome for a day, and the
+switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There is no
+`TABS` branch and no preview toggle any more: if you find one, it is a leftover.
 
-- **`src/nav/navMode.ts`** exports `TABS`, read **once at module load** like `FEATURES`:
-  each mode is a different tree of chrome and a different set of routes, so flipping
-  mid-session would remount half the app. `setNavMode` writes the key and reloads (the
-  same handover signing in/out already uses).
-- **What it changes, all of it chrome:** the footer text nav (four of eleven destinations,
-  11px, below the fold) is replaced by five tabs - **Play, Career, Album, Records,
-  Squads** - as a row that carries the masthead's ink rule from 700px up and a fixed
-  bottom bar below it, plus a route crumb as the second "where am I" signal. Settings and
-  account stay masthead buttons: they are sheets you adjust without leaving, not places
-  you go.
-- **Routes it adds, with the old ones kept as aliases** so bookmarks and the run-end deep
-  links keep working: `/play` (the one build route), `/career` (the hub, split off the
-  live run - a shop and a step of play cannot be the same address), `/records` +
+- **What replaced what:** the footer text nav (four of eleven destinations, 11px, below the
+  fold) is gone, and so are the two launcher door cards and the two navigation cards that
+  sat inside the build page's left column. In their place: five tabs - **Play, Career,
+  Album, Records, Squads** - as a row that carries the masthead's ink rule from 700px up
+  and a fixed bottom bar below it, plus a route crumb as the second "where am I" signal.
+  Settings and account stay masthead buttons: they are sheets you adjust without leaving,
+  not places you go.
+- **Routes**, with the old ones kept as aliases so bookmarks and the run-end deep links
+  keep working: `/play` (the one build route), `/career` (the hub, split off the live run -
+  a shop and a step of play cannot be the same address), `/records` +
   `/records/cabinet` (the two honours screens as segments of one destination, which is
   what keeps the bar at five). `/quick-run`, `/career-mode`, `/challenges` and `/cabinet`
-  still resolve.
+  still resolve. `/group` and `/knockout` still exist but are only reachable by a **legacy
+  saved World Cup** (the cover's Continue offers it) or by a fork with
+  `FEATURES.careerMode` off, where a build has nowhere else to go.
 - **The mode doors go, the front page stays.** `/` is still `ModeSelect` - the hero
   tactics board, the three beats and the "Chase the legends" showcase are what sell the
   game - but `variant="cover"` drops the two door cards (mode is a **Career run /
@@ -401,9 +399,8 @@ Settings sheet has a "Navigation (preview)" control. The choice persists in its 
   was **removed 2026-08-21** (roadmap item 28): a career run at Base Ascension with no
   boost taken is the same tournament, so One-off was a strictly dominated choice, and
   deleting it answers "should a one-off pay?" by deletion. `startMode` is `'career'`
-  whenever `TABS`, the two Career-Mode-only perks always apply, and `handleStartGroup`
-  (the World Cup) is unreachable in this chrome - `/group` and `/knockout` are
-  classic-only.
+  whenever `FEATURES.careerMode` is on, the two Career-Mode-only perks always apply, and
+  `handleStartGroup` (the World Cup) is only reached with the career layer off.
 - **The bar goes inert while a match reveals** (`nav/liveMatch.ts`), because the live
   playback is transient state that is deliberately not persisted - leaving the screen
   loses it. Published from `useMatchClock`, the one hook the group screen, the knockout
@@ -432,9 +429,13 @@ Settings sheet has a "Navigation (preview)" control. The choice persists in its 
   challenges), the six-overlay pile, and per-screen adaptations now that the chrome
   around them changed. Comps: `docs/redesign-2026/turf-flat/nav2/` (ten pages), audit:
   `docs/redesign-2026/turf-flat/nav-options.html`.
-- **To retire it**, whichever way it goes: delete `src/nav/navMode.ts` and the `TABS`
-  branches, the Settings group, and either `ModeSelect`'s `variant` or the whole classic
-  chrome. `useMatchClock`'s publish effect and `navUi.tsx` only matter to the tabs.
+- **What the deletion took with it**, for anyone reading old commits: `navMode.ts` and
+  every `TABS` branch, the Settings "Navigation (preview)" group, `modeOfPath` and the
+  quick/career route split, the footer nav array and its markup, `ModeSelect`'s `launcher`
+  variant (with `ResumeButton` and its five props), `CupRunScreen`'s `stages` prop (every
+  run is a tournament now; `RunState.useStages` stays, so a run saved before that still
+  finishes the way it started), and the pre-run Ascension picker with its `ascSel` state -
+  the tier is chosen on the build page and read from the career's `lastAscension`.
 
 ## The dataset (`src/data/squads.ts`)
 

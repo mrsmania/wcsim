@@ -5,7 +5,6 @@ import type { Difficulty } from '../domain/difficulty';
 import { WORLD_CUP_YEARS, squadsInPool } from '../data/squads';
 import { collectiblePlayers } from '../domain/album';
 import type { SettingsApi } from '../hooks/useSettings';
-import { setNavMode, TABS } from '../nav/navMode';
 
 const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
 const GH = 'font-display text-[14px] font-extrabold';
@@ -204,34 +203,6 @@ export default function SettingsModal({
                     </div>
                 </div>
 
-                {/* Navigation preview (roadmap item 27). A runtime switch rather than a
-                    FEATURES flag, so the old and the new chrome can be compared in one
-                    deployed build, on the same progress. Switching reloads: each mode is a
-                    different tree of chrome and a different set of routes. Remove this
-                    group, and `nav/navMode.ts`, once one of them wins. */}
-                <div className={GROUP}>
-                    <div className={GH}>
-                        Navigation <span className="text-muted">(preview)</span>
-                    </div>
-                    <p className={HINT}>
-                        Try the five-tab navigation: Play, Career, Album, Records, Squads, with a
-                        bottom bar on a phone. Same features, new chrome - the page reloads.
-                    </p>
-                    <div className="mt-3 flex">
-                        <SegControl
-                            ariaLabel="Navigation"
-                            label="Style"
-                            value={TABS ? 'tabs' : 'classic'}
-                            onSelect={(v) => {
-                                if ((v === 'tabs') !== TABS) setNavMode(v as 'tabs' | 'classic');
-                            }}
-                            options={[
-                                { value: 'classic', label: 'Classic' },
-                                { value: 'tabs', label: 'Five tabs' },
-                            ]}
-                        />
-                    </div>
-                </div>
             </div>
         </Overlay>
     );

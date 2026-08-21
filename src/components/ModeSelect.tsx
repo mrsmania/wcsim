@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronRight, CircleDashed, Play, Swords, Trophy } from 'lucide-react';
+import { ArrowRight, CircleDashed, Swords, Trophy } from 'lucide-react';
 import ConfirmAction from './ConfirmAction';
 import type { Player } from '../data/types';
 import { FEATURES } from '../config';
@@ -8,44 +8,25 @@ import { collectiblePlayers, tierOf } from '../domain/album';
 import { SQUAD_BY_ID } from '../data/squads';
 import { stickerArtSrc, TIER_META } from './StickerCard';
 
-/** The landing launcher (route `/`): a marketing hero that sells the fantasy, then a
- *  3-beat "how it works" and a "chase the legends" showcase. Quick Run and Career Mode
- *  both lead to the same 3-column build page; the choice only decides what the single
- *  "Start Run" does and whether the run feeds a persistent career. Shown only when
+/** The front page (route `/`): a marketing hero that sells the fantasy, then a 3-beat
+ *  "how it works" and a "chase the legends" showcase. Shown only when
  *  `FEATURES.careerMode` is on (with it off, `/` is the build page directly).
  *
- *  `variant` picks which chrome it serves. `launcher` is the shipped page, unchanged.
- *  `cover` is the tabs-navigation preview (roadmap item 27): the same hero, the same
- *  beats and the same legends showcase - the parts that sell the game - but the two MODE
- *  DOORS are gone, since mode is a control on the build page there, and the three resume
- *  buttons collapse to one Continue, since that navigation keeps one run at a time.
- *  Everything else is deliberately identical: the doors were the problem, not the front
- *  page. */
+ *  It used to be a LAUNCHER, with two door cards (Quick Run / Career Mode) and up to
+ *  three resume buttons. Both went with the navigation rework (roadmap items 27 and 28):
+ *  the doors led to the identical build page, so the choice became a control on it and
+ *  then disappeared entirely when One-off was dropped; and the resume trio became one
+ *  Continue. What is left is the part that was always worth keeping - the hero board, the
+ *  beats and the legends - plus one primary action. */
 interface Props {
-    /** Which chrome this is serving (see the note above). Defaults to the shipped page. */
-    variant?: 'launcher' | 'cover';
-    /** cover only: the single Continue action (a live run, a tournament, or a half-built
-     *  XI), or null when nothing is in progress. */
-    continueAction?: { to: string; label: string; sub: string } | null;
-    /** cover only: where "Build your XI" goes. */
-    buildTo?: string;
-    /** cover only: discard what is in progress and start a fresh build. Destructive, so
-     *  it confirms inline - which is the visible cost of one run at a time. */
+    /** The single Continue action (a live run, a tournament, or a half-built XI), or null
+     *  when nothing is in progress. */
+    continueAction: { to: string; label: string; sub: string } | null;
+    /** Where "Build your XI" goes. */
+    buildTo: string;
+    /** Discard what is in progress and start a fresh build. Destructive, so it confirms
+     *  inline. */
     onNewXi?: () => void;
-    /** Target route for the "Quick Run" CTA (resumes an in-progress World Cup if there
-     *  is one, else the quick-run build page). A real link, so middle/ctrl-click works. */
-    quickTo: string;
-    /** Target route for the "Career Mode" CTA (resumes an in-progress Cup Run, else the
-     *  career build page). */
-    careerTo: string;
-    /** A World Cup in progress -> its route (resume), else null. */
-    worldCupRoute: string | null;
-    /** A Cup Run in progress -> offer to resume it, with a short round summary. */
-    cupRunInProgress: boolean;
-    cupRunSummary?: string;
-    /** An XI left mid-build -> offer to go back and finish it (App decides when this
-     *  applies and which build route it belongs to). Null when there is none. */
-    buildResume: { to: string; label: string; sub: string } | null;
     /** The active squad pool, for the rarest-stickers showcase. */
     allPlayers: Player[];
 }
@@ -74,32 +55,6 @@ const GRASS_STRIPE = '#1f8a4d';
 const CTA =
     'inline-flex items-center gap-2 rounded-lg px-[22px] py-[14px] font-display text-[14px] font-extrabold uppercase tracking-[0.04em] transition';
 
-function ResumeButton({
-    to,
-    label,
-    sub,
-}: {
-    to: string;
-    label: string;
-    sub: string;
-}) {
-    return (
-        <Link
-            to={to}
-            className="inline-flex items-center gap-3 rounded-[10px] border border-white/20 bg-white/[0.08] py-[9px] pl-[9px] pr-[14px] text-left text-white transition hover:bg-white/[0.14]"
-        >
-            <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg bg-amber text-ink">
-                <Play size={15} fill="currentColor" strokeWidth={0} />
-            </span>
-            <span className="min-w-0">
-                <b className="block font-display text-[14px] font-extrabold leading-[1.1]">{label}</b>
-                <small className="mt-[2px] block truncate font-mono text-[11px] text-white/70">{sub}</small>
-            </span>
-            <ChevronRight size={16} className="ml-0.5 shrink-0 text-white/60" />
-        </Link>
-    );
-}
-
 function Beat({
     icon,
     title,
@@ -122,21 +77,7 @@ function Beat({
     );
 }
 
-export default function ModeSelect({
-    variant = 'launcher',
-    continueAction = null,
-    buildTo = '/',
-    onNewXi,
-    quickTo,
-    careerTo,
-    worldCupRoute,
-    cupRunInProgress,
-    cupRunSummary,
-    buildResume,
-    allPlayers,
-}: Props) {
-    const cover = variant === 'cover';
-
+export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayers }: Props) {
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
     const legends = useMemo(() => {
         if (!FEATURES.stickerAlbum) return [];
@@ -171,105 +112,52 @@ export default function ModeSelect({
                         a time, then run the gauntlet - group stage to final, live and minute by minute.
                     </p>
 
-                    {cover ? (
-                        <>
-                            <div className="mt-6 flex flex-wrap items-center gap-3">
-                                {continueAction ? (
-                                    <>
-                                        <Link
-                                            to={continueAction.to}
-                                            className={`${CTA} bg-amber text-[#13211a] hover:bg-amber/90`}
-                                        >
-                                            {continueAction.label}
-                                            <ArrowRight size={17} strokeWidth={2.5} />
-                                        </Link>
-                                        {onNewXi && (
-                                            <ConfirmAction
-                                                triggerLabel="Build a new XI"
-                                                triggerClassName={`${CTA} border border-white/35 bg-white/[0.08] text-white hover:bg-white/[0.16]`}
-                                                prompt="This ends what you have in progress."
-                                                confirmLabel="Start a new XI"
-                                                onConfirm={onNewXi}
-                                                rowClassName="flex flex-wrap items-center gap-2.5"
-                                                promptClassName="text-[12.5px] font-semibold text-white/85"
-                                            />
-                                        )}
-                                    </>
-                                ) : (
-                                    <Link
-                                        to={buildTo}
-                                        className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
-                                    >
-                                        Build your XI
-                                        <ArrowRight size={17} strokeWidth={2.5} />
-                                    </Link>
-                                )}
-                            </div>
-                            <p className="mt-3.5 text-[12.5px] text-white/70">
-                                {continueAction ? (
-                                    continueAction.sub
-                                ) : (
-                                    <>
-                                        Pick a formation, roll real squads or shop a transfer budget,
-                                        then take your XI through a group and four knockout rounds -
-                                        earning <b className="font-semibold text-white">XP</b>,{' '}
-                                        <b className="font-semibold text-white">Prestige</b> and
-                                        honours as you go.
-                                    </>
-                                )}
-                            </p>
-                        </>
-                    ) : (
-                        <>
-                            <div className="mt-6 flex flex-wrap gap-3">
+
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                        {continueAction ? (
+                            <>
                                 <Link
-                                    to={quickTo}
-                                    className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
-                                >
-                                    Play a Quick Run
-                                    <ArrowRight size={17} strokeWidth={2.5} />
-                                </Link>
-                                <Link
-                                    to={careerTo}
+                                    to={continueAction.to}
                                     className={`${CTA} bg-amber text-[#13211a] hover:bg-amber/90`}
                                 >
-                                    Enter Career Mode
+                                    {continueAction.label}
                                     <ArrowRight size={17} strokeWidth={2.5} />
                                 </Link>
-                            </div>
-                            <p className="mt-3.5 text-[12.5px] text-white/70">
-                                <b className="font-semibold text-white">Quick Run</b> is a one-off.{' '}
-                                <b className="font-semibold text-white">Career Mode</b> keeps your
-                                progress - boosts, Prestige and unlocks that carry between runs.
-                            </p>
-                        </>
-                    )}
-
-                    {!cover && (cupRunInProgress || worldCupRoute || buildResume) && (
-                        <div className="mt-5 flex flex-wrap gap-2.5">
-                            {buildResume && (
-                                <ResumeButton
-                                    to={buildResume.to}
-                                    label={buildResume.label}
-                                    sub={buildResume.sub}
-                                />
-                            )}
-                            {cupRunInProgress && (
-                                <ResumeButton
-                                    to="/cup-run"
-                                    label="Resume your Cup Run"
-                                    sub={cupRunSummary ?? 'Pick up where you left off'}
-                                />
-                            )}
-                            {worldCupRoute && (
-                                <ResumeButton
-                                    to={worldCupRoute}
-                                    label="Resume the World Cup"
-                                    sub="Back to your tournament"
-                                />
-                            )}
-                        </div>
-                    )}
+                                {onNewXi && (
+                                    <ConfirmAction
+                                        triggerLabel="Build a new XI"
+                                        triggerClassName={`${CTA} border border-white/35 bg-white/[0.08] text-white hover:bg-white/[0.16]`}
+                                        prompt="This ends what you have in progress."
+                                        confirmLabel="Start a new XI"
+                                        onConfirm={onNewXi}
+                                        rowClassName="flex flex-wrap items-center gap-2.5"
+                                        promptClassName="text-[12.5px] font-semibold text-white/85"
+                                    />
+                                )}
+                            </>
+                        ) : (
+                            <Link
+                                to={buildTo}
+                                className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
+                            >
+                                Build your XI
+                                <ArrowRight size={17} strokeWidth={2.5} />
+                            </Link>
+                        )}
+                    </div>
+                    <p className="mt-3.5 text-[12.5px] text-white/70">
+                        {continueAction ? (
+                            continueAction.sub
+                        ) : (
+                            <>
+                                Pick a formation, roll real squads or shop a transfer budget, then
+                                take your XI through a group and four knockout rounds - earning{' '}
+                                <b className="font-semibold text-white">XP</b>,{' '}
+                                <b className="font-semibold text-white">Prestige</b> and honours as
+                                you go.
+                            </>
+                        )}
+                    </p>
                 </div>
 
                 {/* All-time 4-3-3 on the tactics board (desktop only) */}
@@ -346,14 +234,7 @@ export default function ModeSelect({
                                 These five are the rarest of all.
                             </p>
                         </div>
-                        {!cover && (
-                            <Link
-                                to="/album"
-                                className="whitespace-nowrap font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch transition hover:text-pitch-dark"
-                            >
-                                Open the album &rarr;
-                            </Link>
-                        )}
+
                     </div>
                     <div className="grid grid-cols-2 gap-3 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5">
                         {legends.map((p) => {
@@ -410,26 +291,8 @@ export default function ModeSelect({
                     From Maradona in '90 to Mbapp&eacute; in '22.{' '}
                     <span className="font-medium text-muted">Nine World Cups, every squad, one trophy.</span>
                 </div>
-                {/* Album and Squads are tabs in the cover chrome, so these two shortcuts
-                    would be a third way to the same places. */}
-                <div className={`flex gap-2 ${cover ? 'hidden' : ''}`}>
-                    {FEATURES.stickerAlbum && (
-                        <Link
-                            to="/album"
-                            className="rounded-md border border-line px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted transition hover:border-pitch hover:text-pitch"
-                        >
-                            Sticker Album
-                        </Link>
-                    )}
-                    {FEATURES.squadBrowser && (
-                        <Link
-                            to="/squads/by-world-cup"
-                            className="rounded-md border border-line px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted transition hover:border-pitch hover:text-pitch"
-                        >
-                            Squad Browser
-                        </Link>
-                    )}
-                </div>
+                {/* Album and Squads are tabs, so shortcuts here would be a third way to
+                    the same two places. */}
             </div>
         </div>
     );

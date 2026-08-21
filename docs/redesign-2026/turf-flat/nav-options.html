@@ -555,11 +555,13 @@
     and 19 each add one. 5 is the only one that treats the run as the spine of the app, and
     the only one that fixes the build page rather than framing it.</p>
   </section>
-  <p class="foot"><b>Outcome (2026-08-21):</b> concept 2 was picked and built, switched at
-  runtime by <code>?nav=tabs</code> so both chromes ship in one build and can be compared on
-  the same progress. All four agreed decisions landed, with one correction on review: decision
-  A deletes the two mode DOORS, not the launcher SCREEN, which stays as the front page.
-  Full-scale comps of the winner are in <code>nav2/</code>; the shipped detail is in
+  <p class="foot"><b>Outcome (2026-08-21):</b> concept 2 was picked, built behind
+  <code>?nav=tabs</code>, compared against the old chrome for a day, and then made the ONLY
+  navigation - the switch and the old chrome were deleted the same day. Three of the four agreed
+  decisions stood; the fourth (pitch first on a phone) was built and reverted, because the
+  sandwich it fixed was already solved by the build page's scroll dance. One correction on
+  review: decision A deletes the two mode DOORS, not the launcher SCREEN, which stays as the
+  front page. Full-scale comps of the winner are in <code>nav2/</code>; the shipped detail is in
   <code>CLAUDE.md</code>.</p>
   <p class="foot">Static comp. No JavaScript, no build step: open it in a browser. Every
   screen body is the shipped layout, schematic: the rework is the chrome and the paths, so

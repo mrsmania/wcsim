@@ -1,5 +1,4 @@
 import {
-    Fragment,
     lazy,
     Suspense,
     useCallback,
@@ -10,7 +9,7 @@ import {
     useState,
 } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Settings as SettingsIcon, Swords, Trophy, User } from 'lucide-react';
+import { Settings as SettingsIcon, Trophy, User } from 'lucide-react';
 import { ALL_PLAYERS, SQUADS, squadsInPool } from './data/squads';
 import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -48,7 +47,6 @@ import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, BUDGET_DRAFT, FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
-import { TABS } from './nav/navMode';
 import { useLiveMatch } from './nav/liveMatch';
 import { RouteCrumb, SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
 import { requestRunStart } from './nav/pendingRun';
@@ -83,11 +81,6 @@ const isStackedLayout = () =>
     typeof window !== 'undefined' && !window.matchMedia('(min-width: 1080px)').matches;
 
 type HomeView = 'setup' | 'draft' | 'complete';
-
-/** Which launcher path a build belongs to, derived from the route. With careerMode off
- *  there is only one path, so everything is a quick run. */
-const modeOfPath = (path: string): 'quick' | 'career' =>
-    FEATURES.careerMode && path === '/career-mode' ? 'career' : 'quick';
 
 /** The transfer-market budget: the fixed one for a Quick Run (and with career mode off),
  *  scaled by the owned `transfer-budget` perk tier for a Career Mode build. Pass null for
@@ -326,11 +319,11 @@ export default function App({
         poolSquads,
     ]);
 
-    // Which mode a fresh build belongs to. The classic navigation reads it off the route
-    // (two doors to the same page). The tabs navigation has one kind of run: One-off was
-    // dropped (roadmap item 28) because a career run at Base Ascension with no boost taken
-    // is the same tournament and pays for itself, so every run there is a career run.
-    const startMode: 'quick' | 'career' = TABS ? 'career' : modeOfPath(location.pathname);
+    // There is one kind of run: a career run, unless the career layer is switched off
+    // entirely (a fork with `FEATURES.careerMode` false), where the only thing a build can
+    // lead to is a plain World Cup. One-off was dropped with the two launcher doors
+    // (roadmap items 27 and 28).
+    const startMode: 'quick' | 'career' = FEATURES.careerMode ? 'career' : 'quick';
 
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
@@ -581,19 +574,9 @@ export default function App({
         // Re-open setup in the path that matches where the reset came from: stay on a
         // build route; a Cup Run -> the career build; a World Cup -> the quick build;
         // anywhere else -> the launcher.
-        const p = location.pathname;
-        // The tabs navigation has one build route, so a reset always lands there and the
-        // inconsistency finding F8 answers itself.
-        const target = TABS
-            ? '/play'
-            : p === '/quick-run' || p === '/career-mode'
-              ? p
-              : p === '/cup-run'
-                ? '/career-mode'
-                : p === '/group' || p === '/knockout'
-                  ? '/quick-run'
-                  : '/';
-        navigate(target);
+        // One build route, so a reset always lands there and finding F8 (three different
+        // answers to "go back") answers itself.
+        navigate('/play');
         // `stickers.onNewRun` is a stable callback, so this stays referentially quiet.
     }, [navigate, location.pathname, STICKERS, stickers.onNewRun]);
 
@@ -669,18 +652,18 @@ export default function App({
     const isGroup = path === '/group';
     const isKnockout = path === '/knockout';
     const isLauncher = FEATURES.careerMode && path === '/';
+    // `/play` is the build route; `/quick-run` and `/career-mode` are kept as aliases so
+    // old links, bookmarks and anything a player saved before the navigation rework still
+    // land somewhere sensible. With the career layer off, `/` is the build page directly.
     const isBuild =
+        path === '/play' ||
         path === '/quick-run' ||
-        (FEATURES.careerMode && path === '/career-mode') ||
-        (!FEATURES.careerMode && path === '/') ||
-        (TABS && path === '/play');
-    // Tabs-navigation routes (roadmap item 27). `/play` is the one build route, `/career`
-    // the hub split off the live run (finding F4), and `/records` holds the two honours
-    // screens as segments. The classic routes stay valid aliases, so old links, bookmarks
-    // and the run-end deep links keep working in either chrome.
-    const isCareerHub = TABS && FEATURES.careerMode && path === '/career';
+        path === '/career-mode' ||
+        (!FEATURES.careerMode && path === '/');
+    // `/career` is the hub, split off the live run (finding F4); `/records` holds the two
+    // honours screens as segments, with `/challenges` and `/cabinet` as aliases.
+    const isCareerHub = FEATURES.careerMode && path === '/career';
     const tabsRecords =
-        TABS &&
         FEATURES.careerMode &&
         (path === '/records' ||
             path === '/records/cabinet' ||
@@ -688,9 +671,8 @@ export default function App({
             (FEATURES.trophyCabinet && path === '/cabinet'));
     const recordsCabinet =
         FEATURES.trophyCabinet && (path === '/records/cabinet' || path === '/cabinet');
-    // The build's chosen mode. The classic navigation derives it from the route; the tabs
-    // navigation has only career runs, so there is nothing to derive.
-    const mode: 'quick' | 'career' = TABS ? 'career' : modeOfPath(path);
+    // One kind of run (see `startMode`), so there is nothing to derive from the route.
+    const mode: 'quick' | 'career' = startMode;
     // A World Cup counts as "in progress" only until it finishes, so a decided
     // tournament never hijacks a fresh mode pick. Its route is where entering Quick
     // Run (or the resume action) returns you.
@@ -699,16 +681,14 @@ export default function App({
     const worldCupRoute = worldCupInProgress ? (bracket ? '/knockout' : '/group') : null;
     const albumSummary = stickers.summary;
 
-    // The completed-challenge set for the catalogue screen. Same shape as careerPeek
-    // below: the career lives in CupRunScreen, so it is re-read from the store whenever
-    // the route changes rather than lifted into App. The tabs navigation reads it on every
-    // route, since its Records tab shows the count as a sub-line - and since the catalogue
-    // is reached at `/records` there, where `isChallenges` is false.
+    // The completed-challenge set. Same shape as careerPeek below: the career lives in
+    // CupRunScreen, so it is re-read from the store whenever the route changes rather than
+    // lifted into App. Read on every route, because the Records tab shows the count as its
+    // sub-line - and because the catalogue is reached at `/records`, where `isChallenges`
+    // is false.
     const challengeIds = useMemo(
         () =>
-            isChallenges || tabsRecords || (TABS && FEATURES.careerMode)
-                ? store.peek().career.completedChallenges
-                : [],
+            FEATURES.careerMode ? store.peek().career.completedChallenges : [],
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [path],
     );
@@ -788,9 +768,6 @@ export default function App({
     // Null when there is nothing to resume.
     const resumeCupRun = useMemo(() => {
         if (!FEATURES.careerMode) return null;
-        // The classic launcher is the only reader in that chrome; the tabs navigation also
-        // needs it for the Play tab's target and sub-line, so it reads on every route.
-        if (!TABS && !isLauncher) return null;
         const r = store.peek().run;
         if (!r || r.phase === 'ended') return null;
         const round = r.phase === 'group' ? 'Group stage' : (KO_ROUNDS[r.koRound] ?? 'Knockouts');
@@ -806,18 +783,11 @@ export default function App({
     // "ready to play". It links back to the mode the build was started from; saves
     // from before `buildMode` existed fall back to Quick Run.
     const resumeBuild = useMemo(() => {
-        if ((!TABS && !isLauncher) || !formation || group || worldCupRoute || resumeCupRun)
-            return null;
+        if (!formation || group || worldCupRoute || resumeCupRun) return null;
         const picked = filledCount(formation, filled);
         if (picked === 0) return null;
-        const to = TABS ? '/play' : buildMode === 'career' ? '/career-mode' : '/quick-run';
-        const where = TABS
-            ? buildMode === 'career'
-                ? 'Career run'
-                : 'One-off'
-            : buildMode === 'career'
-              ? 'Career Mode'
-              : 'Quick Run';
+        const to = '/play';
+        const where = formation.name;
         return picked === formation.slots.length
             ? { to, label: 'Your XI is ready', sub: `${formation.name} · ${where}` }
             : {
@@ -826,21 +796,6 @@ export default function App({
                   sub: `${formation.name} · ${picked} of ${formation.slots.length} picked`,
               };
     }, [isLauncher, formation, filled, buildMode, group, worldCupRoute, resumeCupRun]);
-
-    // Footer navigation, shown on every page: Home (the launcher) plus the app's
-    // secondary areas, each gated by its flag. Modes are chosen on the launcher, and
-    // in-progress runs are resumed from there, so there is no separate "Play" link.
-    const footerNav = [
-        { label: 'Home', to: '/', active: isLauncher || isBuild },
-        squadsEnabled && { label: 'Squads', to: '/squads/by-world-cup', active: isSquads },
-        STICKERS && { label: 'Album', to: '/album', active: isAlbum },
-        // The cabinet's primary door. It also has a link inside the Cup Run hub, but that
-        // one is in the hub's collapsible body on a screen two clicks in, so it is not an
-        // entry point on its own - a read-only career screen belongs here beside the
-        // album, for the same reason the album does.
-        FEATURES.careerMode &&
-            FEATURES.trophyCabinet && { label: 'Cabinet', to: '/cabinet', active: isCabinet },
-    ].filter(Boolean) as { label: string; to: string; active: boolean }[];
 
     // ---------------------------------------------------------------- tabs chrome
     // A match reveal is transient state (deliberately not persisted), so the bar goes
@@ -851,10 +806,9 @@ export default function App({
     const playTo = resumeCupRun
         ? '/cup-run'
         : (worldCupRoute ?? (formation ? '/play' : FEATURES.careerMode ? '/' : '/play'));
-    const isPlayTab =
-        isLauncher || isBuild || isGroup || isKnockout || isCupRun || (TABS && path === '/');
-    const tabs: TabItem[] = TABS
-        ? ([
+    const isPlayTab = isLauncher || isBuild || isGroup || isKnockout || isCupRun || path === '/';
+    const tabs: TabItem[] = (
+        [
               {
                   key: 'play' as const,
                   label: 'Play',
@@ -907,14 +861,12 @@ export default function App({
                   to: '/squads/by-world-cup',
                   active: isSquads,
               },
-          ].filter(Boolean) as TabItem[])
-        : [];
+        ] as (TabItem | false)[]
+    ).filter(Boolean) as TabItem[];
 
     // The route crumb: the second "where am I" signal, and the line that names which of
     // its four things the build page's left column currently is.
-    const crumb: { parts: string[]; state?: string; tone?: 'pitch' | 'warm' } | null = !TABS
-        ? null
-        : isSquads
+    const crumb: { parts: string[]; state?: string; tone?: 'pitch' | 'warm' } = isSquads
           ? { parts: ['Squads'], state: `${SQUADS.length} squads` }
           : isAlbum
             ? {
@@ -963,9 +915,7 @@ export default function App({
     // The cover's single Continue action, in priority order: a live Cup Run, a live World
     // Cup, then a half-built XI. One action because this navigation keeps one run at a
     // time; "build a new XI" beside it discards whichever of the three it is.
-    const continueAction = !TABS
-        ? null
-        : resumeCupRun
+    const continueAction = resumeCupRun
           ? {
                 to: '/cup-run',
                 label: 'Resume your Cup Run',
@@ -983,16 +933,11 @@ export default function App({
 
     return (
         <div className="min-h-full text-ink">
-            <div
-                className={`mx-auto max-w-[1180px] px-[22px] pt-5 ${
-                    TABS ? 'pb-20 max-[699px]:pb-28' : 'pb-20'
-                }`}
-            >
-                <header
-                    className={`flex items-center gap-3 ${
-                        TABS ? 'pb-3' : 'border-b-2 border-ink pb-4'
-                    }`}
-                >
+            {/* The extra bottom padding below 700px is the room the phone tab bar occupies. */}
+            <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5 max-[699px]:pb-28">
+                {/* No bottom rule: the tab row below carries it, so the tabs read as part
+                    of the identity block rather than as a strip under it. */}
+                <header className="flex items-center gap-3 pb-3">
                     <Link
                         to="/"
                         aria-label="World Cup Simulator - home"
@@ -1037,21 +982,13 @@ export default function App({
                     </div>
                 </header>
 
-                {/* Tabs navigation (roadmap item 27, concept 2). The row carries the
-                    masthead's ink rule, so the tabs read as part of the identity block
-                    rather than as a strip below it; the crumb is the second location
-                    signal. On a phone the same five move to a fixed bottom bar. */}
-                {TABS && tabs.length > 0 && (
+                {/* The five destinations (roadmap item 27, concept 2): a row here, a fixed
+                    bottom bar on a phone, and the crumb as the second location signal. */}
+                {tabs.length > 0 && (
                     <>
                         <TabRow items={tabs} locked={liveMatch} />
                         <TabBottomBar items={tabs} locked={liveMatch} />
-                        {crumb && (
-                            <RouteCrumb
-                                parts={crumb.parts}
-                                state={crumb.state}
-                                tone={crumb.tone}
-                            />
-                        )}
+                        <RouteCrumb parts={crumb.parts} state={crumb.state} tone={crumb.tone} />
                     </>
                 )}
 
@@ -1084,12 +1021,8 @@ export default function App({
                         />
                     ) : isCupRun ? (
                         <CupRunScreen
-                            view={TABS ? 'run' : 'both'}
-                            buildTo={TABS ? '/play' : '/career-mode'}
-                            // Roadmap item 28: the tabs chrome plays a run as a
-                            // tournament - the group draw, a table that fills in as the
-                            // matchdays reveal, and the knockouts on a 16-team bracket.
-                            stages={TABS}
+                            view="run"
+                            buildTo="/play"
                             draftedXi={draftedXi}
                             draftedShape={draftedShape}
                             draftedBuild={draftedBuild}
@@ -1222,19 +1155,9 @@ export default function App({
                         )
                     ) : isLauncher ? (
                         <ModeSelect
-                            // The tabs navigation keeps this page - the hero board, the
-                            // beats and the legends showcase are what sell the game - and
-                            // drops only the two mode doors and the resume trio.
-                            variant={TABS ? 'cover' : 'launcher'}
                             continueAction={continueAction}
                             buildTo="/play"
                             onNewXi={handleReset}
-                            quickTo={worldCupRoute ?? '/quick-run'}
-                            careerTo={resumeCupRun ? '/cup-run' : '/career-mode'}
-                            worldCupRoute={worldCupRoute}
-                            cupRunInProgress={!!resumeCupRun}
-                            cupRunSummary={resumeCupRun?.summary}
-                            buildResume={resumeBuild}
                             allPlayers={poolPlayers}
                         />
                     ) : isBuild ? (
@@ -1267,67 +1190,6 @@ export default function App({
                             <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
                                 {/* Col 1: setup -> drawn squad -> complete */}
                                 <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
-                                    {/* Navigation inside a content column is finding F5,
-                                        so both cards go where the tabs reach them. */}
-                                    {!TABS && STICKERS && albumSummary && (
-                                        <Link
-                                            to="/album"
-                                            className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
-                                        >
-                                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
-                                                <Trophy
-                                                    size={18}
-                                                    strokeWidth={2}
-                                                    className="text-amber"
-                                                />
-                                            </span>
-                                            <span className="flex flex-col leading-tight">
-                                                <b className="font-display text-[14px] font-extrabold">
-                                                    Sticker album
-                                                </b>
-                                                <span className="font-mono text-[11px] text-muted">
-                                                    {albumSummary.collected} / {albumSummary.total}{' '}
-                                                    collected
-                                                </span>
-                                            </span>
-                                            <ArrowRight
-                                                size={15}
-                                                strokeWidth={2.5}
-                                                className="ml-auto text-pitch"
-                                            />
-                                        </Link>
-                                    )}
-                                    {/* Career hub entry. Career-mode build, setup sub-view only:
-                                the door to the perk shop + trophies before a run. Hidden in
-                                Quick Run (no career) and once drafting (it would be noise). */}
-                                    {!TABS && mode === 'career' && homeView === 'setup' && (
-                                        <Link
-                                            to="/cup-run"
-                                            className="mb-4 flex w-full items-center gap-3 rounded-md border border-line bg-panel px-3.5 py-3 text-left shadow-hard transition hover:border-pitch"
-                                        >
-                                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
-                                                <Swords
-                                                    size={18}
-                                                    strokeWidth={2}
-                                                    className="text-amber"
-                                                />
-                                            </span>
-                                            <span className="flex flex-col leading-tight">
-                                                <b className="font-display text-[14px] font-extrabold">
-                                                    Cup Run career{' '}
-                                                    <span className="text-muted">(beta)</span>
-                                                </b>
-                                                <span className="font-mono text-[11px] text-muted">
-                                                    Perks, Prestige &amp; trophies
-                                                </span>
-                                            </span>
-                                            <ArrowRight
-                                                size={15}
-                                                strokeWidth={2.5}
-                                                className="ml-auto text-pitch"
-                                            />
-                                        </Link>
-                                    )}
                                     {homeView === 'setup' && (
                                         <SetupPanel
                                             names={FORMATIONS_DATA.names}
@@ -1349,7 +1211,7 @@ export default function App({
                                                 FEATURES.budgetDraft ? handleBudget : undefined
                                             }
                                             ascension={
-                                                TABS && FEATURES.careerMode
+                                                FEATURES.careerMode
                                                     ? {
                                                           tier: ascensionTier,
                                                           max: ascensionMax,
@@ -1503,35 +1365,10 @@ export default function App({
                     )}
                 </Suspense>
 
-                {/* Footer, shown on every page: the app's secondary nav (Play returns
-                    to the furthest game screen reached) plus a fan-made disclaimer. */}
-                <footer className="mt-16 flex flex-col items-center gap-2.5 border-t border-line pt-5 sm:flex-row sm:justify-between">
-                    {/* The tabs navigation reaches every destination, so the footer text
-                        nav (four of eleven, 11px, below the fold - finding F1) goes. */}
-                    <nav
-                        className={`flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 ${
-                            TABS ? 'hidden' : ''
-                        }`}
-                    >
-                        {footerNav.map(({ label, to, active }, i) => (
-                            <Fragment key={label}>
-                                {i > 0 && (
-                                    <span aria-hidden className="text-line">
-                                        &middot;
-                                    </span>
-                                )}
-                                <Link
-                                    to={to}
-                                    className={[
-                                        'font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition',
-                                        active ? 'text-pitch' : 'text-muted hover:text-pitch',
-                                    ].join(' ')}
-                                >
-                                    {label}
-                                </Link>
-                            </Fragment>
-                        ))}
-                    </nav>
+                {/* Footer: the fan-made disclaimer. The text nav that used to sit here
+                    (four of eleven destinations, 11px, below the fold - finding F1) is gone;
+                    the tabs reach everything. */}
+                <footer className="mt-16 flex flex-col items-center gap-2.5 border-t border-line pt-5 sm:flex-row sm:justify-center">
                     <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
                         <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                             Made in Switzerland

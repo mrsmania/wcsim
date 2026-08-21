@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-21<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -415,8 +415,10 @@
     the only thing lost with it. And decide whether the open/closed state should persist
     across navigation - it is component state today, so it re-collapses when you come back to
     the run, which is either right or annoying depending on how often you consult it. Then
-    decide whether the classic chrome keeps the old run at all, which is the same question as
-    converging the two tournament engines.</p>
+    finish the convergence the classic chrome's deletion started: with one navigation there is one
+    run, and <code>domain/tournament</code> + <code>domain/bracket</code> driven by
+    TournamentScreen/KnockoutScreen are now reachable only by a legacy saved World Cup or by a
+    fork with <code>FEATURES.careerMode</code> off.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
   </div>
@@ -454,133 +456,9 @@
 
 <details class="item">
   <summary>
-    <span class="num">27</span>
-    <span class="title">Navigation and click-path rework
-      <span class="sub">Concept 2 (five tabs) is implemented and live behind <code>?nav=tabs</code>. What is left is the per-screen pass, then flipping the default and deleting the losing chrome.</span>
-    </span>
-    <span class="tag">UI/UX</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The ask (2026-08-20):</strong> keep every feature exactly as it is and rework
-    the UI and the click paths. Nothing here is about what the app does; it is about how you
-    get to it. The screens themselves are fine and were each designed carefully. What was
-    never designed is the thing between them.</p>
-
-    <p><strong>Ten findings</strong>, read in the code rather than remembered. The full audit
-    with the file and line behind each one is on
-    <code>docs/redesign-2026/turf-flat/nav-options.html</code>:</p>
-    <ul>
-      <li><b>F1 Six navigation mechanisms, none of them complete.</b> The crest links home; a
-      footer text nav lists four of the eleven destinations; the launcher has two door cards
-      plus up to three resume buttons; the build page has two entry cards inside a content
-      column; the career hub holds the only link to <code>/challenges</code>; the tournament
-      screens have their own crumbs. No single one of them can reach everything.</li>
-      <li><b>F2 Challenges is four taps in, behind a collapsed panel.</b> Its only door is
-      inside <code>CareerHub</code> (<code>cupRun/CareerHub.tsx:196</code>), on
-      <code>/cup-run</code>, reached from a card that only renders on the career build page
-      in the setup sub-view, and the hub body starts collapsed. 130 entries, effectively
-      unlisted.</li>
-      <li><b>F3 Two doors lead to the same page.</b> <code>/quick-run</code> and
-      <code>/career-mode</code> are the identical 3-column build page; the route decides one
-      CTA (<code>App.tsx:647</code>) and two perk values.</li>
-      <li><b>F4 <code>/cup-run</code> is two screens sharing one route</b>, the career hub
-      and the live run, with the hub collapsing to a strip mid-run. A shop and a step of play
-      cannot be the same address.</li>
-      <li><b>F5 Navigation lives inside a content column.</b> The album card and the "Cup Run
-      career" card are the first two things in the build page's left column
-      (<code>App.tsx:947</code>, <code>978</code>), and the second disappears the moment you
-      place a player.</li>
-      <li><b>F6 One column is four different things</b> (setup, drawn squad or market,
-      complete, plus the two nav cards), so nothing tells you what that region is for.</li>
-      <li><b>F7 There is no persistent "where am I".</b> The only global signal is the active
-      colour on an 11px mono footer nav, below the fold.</li>
-      <li><b>F8 Reset and back land inconsistently.</b> A World Cup always resets to
-      <code>/quick-run</code> even from a career build (<code>App.tsx:564</code>), and the
-      crumbs, the CTAs and browser Back are three separate answers to "go back".</li>
-      <li><b>F9 Six overlays compete</b> (settings, account, group draw, cup reward pick,
-      trade, run-end summary), and two can be earned in the same moment.</li>
-      <li><b>F10 On a phone the pitch is in the middle</b>, between the panel you pick from
-      and the ratings you check, so a draft is scroll up, tap, scroll down, eleven times.</li>
-    </ul>
-
-    <p><strong>Five concepts are drawn</strong>, each over the same thirteen screens (entry,
-    both build states, complete, group, knockout, Cup Run, career hub, album, challenges,
-    cabinet, squads, settings) plus three phone views, so the comparison is like for like:
-    <b>1 Left rail</b> (five destinations always visible, nine of eleven one tap),
-    <b>2 Five tabs</b> (the same idea, phone-first, bottom bar), <b>3 Sections and sub-nav</b>
-    (four sections with a second row, the only one that scales past eleven screens),
-    <b>4 Dashboard hub</b> (home is a tile grid with live counters, smallest diff, weakest
-    orientation), <b>5 Stage flow and drawers</b> (a run stepper across the top, everything
-    else opens over it and never costs you your place). The screen bodies are identical in
-    all five files on purpose: if a body had to change to suit a nav model, the nav model
-    would be changing the app.</p>
-
-    <p><strong>Four things every concept agreed on</strong>, so they are decisions rather
-    than options: the two launcher doors go (mode becomes a build-page control), the career
-    hub and the live run stop sharing a route, the two nav cards leave the build page's left
-    column, and the build page needs its phone order changed (pitch first) regardless of
-    which nav wins. <b>That last one was tried and reverted on 2026-08-21:</b> the problem it
-    named was already solved by motion, not order - picking a player scrolls the pitch up and
-    placing him scrolls the panel back - and pitch-first breaks the pairing, because
-    scrolling to a pitch that is already at the top does nothing and the return scroll then
-    goes the wrong way. So three of the four agreed decisions stand; the fourth was a
-    misreading of a solved problem.</p>
-
-    <p><strong>Does Quick Run make sense at all?</strong> Asked directly while surveying
-    this. <b>Not as a door, yes as a switch.</b> A Cup Run is a superset of a World Cup (they
-    share the match sim, the group build, the draw, <code>resolveKoTie</code> and the live
-    clock; a Cup Run adds boosts and Ascension), so there is nothing a Quick Run can do that
-    a Cup Run at Base with no boost taken cannot, which makes it a strictly dominated option
-    on the launcher. What it genuinely provides is a consequence-free way to learn the draft
-    and a shorter session with no between-rounds decision, and neither needs a mode:
-    <b>one entry, one build page, and a two-state "Career run / One-off" control on it</b>,
-    beside formation and style. Set to One-off it keeps today's reward rules exactly (stickers
-    bank, the career does not), so nothing is added or removed and F3 is deleted outright.
-    Whether a one-off should <b>pay</b> (XP, Prestige, and the 98 of the 130 challenges a World
-    Cup could in principle judge) is a functionality question, and it has no item of its own since
-    item 22 was dropped; the audit's off-limits section carries it as unowned. This switch is
-    neutral on it either way, so it can be answered later without touching the navigation
-    again.</p>
-
-    <p><b>Concept 2 (five tabs) was picked and is live behind a runtime switch
-    (2026-08-21).</b> It is not the default: <code>?nav=tabs</code> turns it on,
-    <code>?nav=classic</code> off, and the Settings sheet has a "Navigation (preview)" control,
-    so the two chromes can be compared in one deployed build on the same progress and the same
-    account. Ten full-scale comps are in
-    <code>docs/redesign-2026/turf-flat/nav2/</code>; <code>src/nav/navMode.ts</code> is the
-    switch and CLAUDE.md has the shipped detail. What landed: five tabs (Play, Career, Album,
-    Records, Squads) as a row that carries the masthead rule and a phone bottom bar, a route
-    crumb, <code>/play</code> as the one build route, <code>/career</code> split off the live
-    run, <code>/records</code> holding Challenges and Cabinet as segments, mode as a
-    <b>Career run / One-off</b> control on the build page, the two nav cards out of the build
-    column, and the bar going inert while a match reveals. (The phone build page went pitch
-    first too, and was reverted on 2026-08-21 - see the four agreed decisions above.)
-    The old routes stay valid aliases. Kept on review: the <b>front page</b>. Decision A
-    deletes the two mode doors, not the launcher screen - the hero tactics board, the beats and
-    the legends showcase are what sell the game - so <code>/</code> is still
-    <code>ModeSelect</code>, with one Continue instead of three resume buttons.</p>
-
-    <p class="next"><strong>Next step:</strong> play both chromes and decide the per-screen
-    adaptations now that the frame around them changed (the album screen still carries its own
-    "back to game" link, for one). Then flip the default and delete the losing chrome. Two
-    things it deliberately did not settle, both functionality rather than chrome: <b>one run at
-    a time</b> (the cover shows one Continue by priority, but a World Cup and a Cup Run can
-    still both be live, since <code>handleStartGroup</code> never clears the run - the same
-    question as converging the two tournament engines, which the hygiene audit leaves unowned)
-    and whether a One-off run should pay. <b>Sequencing unchanged:</b> before or with item 23,
-    which touches <code>App.tsx</code> heavily for other reasons, and before items 04, 05 and
-    19, each of which adds a surface the nav will have to hold.</p>
-
-    <p class="files">docs/redesign-2026/turf-flat/nav-options.html (+ nav-{1..5}-*.html), src/App.tsx, src/components/ModeSelect.tsx, src/components/cupRun/CareerHub.tsx, src/components/CupRunScreen.tsx, src/components/SettingsModal.tsx, src/components/AccountModal.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">23</span>
     <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Blocked on item 27.</span>
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Unblocked 2026-08-21: item 27 has shipped and its losing chrome is deleted.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -598,12 +476,15 @@
     reviews of the tree (dead weight, DRY, SoC/layering, KISS/YAGNI, type model and naming,
     tooling/SQL/assets), merged, with the load-bearing claims re-verified by hand.</p>
 
-    <p><strong>Do not start before item 27.</strong> The navigation rework moves the same code
-    this backlog touches: <code>App.tsx</code>'s route branch, the mode fact derived twice
-    (<code>modeOfPath</code> versus <code>GameState.buildMode</code>), the reset target, the two
+    <p><strong>Unblocked 2026-08-21.</strong> This waited on item 27, which moved the same code:
+    <code>App.tsx</code>'s route branch, the mode fact derived twice, the reset target, the two
     nav cards in the build page's left column, and the career hub splitting off the run screen.
-    Doing hygiene first means doing several of them twice, and the second pass is the one that
-    loses. The audit's off-limits section says what item 27 owns and keeps its hands off it.</p>
+    That has now shipped <i>and</i> had its losing half deleted, which is what the block was
+    really waiting for - so those five are settled rather than pending, and several of them are
+    settled by deletion (<code>modeOfPath</code>, the footer nav and the two nav cards are gone;
+    there is one build route and one reset target). <b>Re-read the audit's off-limits section
+    before starting:</b> it was written against the old tree and its "item 27 owns these" list is
+    now history rather than a warning.</p>
 
     <p><strong>It also carries what item 22 left behind.</strong> Item 22 was dropped on
     2026-08-20 as framed around the wrong question, and its navigational half is item 27's now.
@@ -659,7 +540,7 @@
     prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
     three directions, migrations and client in sync, and zero <code>any</code>.</p>
 
-    <p class="next"><strong>Next step:</strong> after item 27 lands, take wave 7's H91 first
+    <p class="next"><strong>Next step:</strong> take wave 7's H91 first
     (checks into CI, one line) so the gate is real, then waves 1 to 3 as one pass each. Waves 4 to
     6 want the decisions in the audit's Decisions table answered first, in particular which
     <code>FEATURES</code> flags retire. That table also holds <b>D12</b>, the four dead
@@ -886,6 +767,30 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>27 Navigation and click-path rework.</b> <b>Shipped 2026-08-21, and it is now the
+      only navigation:</b> concept 2 (five tabs - Play, Career, Album, Records, Squads) went in
+      behind a runtime switch on 2026-08-21, was compared against the old chrome for a day, and
+      the switch, the classic chrome and <code>src/nav/navMode.ts</code> were deleted the same
+      day once it won. The ten findings the audit opened with are answered: one navigation
+      mechanism instead of six, the challenge catalogue two taps from anywhere instead of four
+      behind a collapsed panel, one build route instead of two doors, the career hub split off
+      the live run, the two navigation cards out of the build column, a route crumb as a second
+      "where am I", and a reset that always lands in the same place.
+      <br><b>Four decisions came out of the concept comparison, and three of them stood.</b>
+      The two launcher doors went (and then One-off went with them, item 28); the career hub and
+      the live run stopped sharing a route; the two navigation cards left the build page's left
+      column. The fourth - pitch first on a phone - was built and <b>reverted</b>: the sandwich
+      it was meant to fix was already solved by motion rather than order (picking a player
+      scrolls the pitch up, placing him scrolls the panel back), and pitch-first broke that
+      pairing.
+      <br><b>What was kept, against the first draft's instinct:</b> the front page. Decision A
+      deletes the two mode DOORS, not the launcher screen - the hero tactics board, the three
+      beats and the "Chase the legends" showcase are what sell the game - so <code>/</code> is
+      still <code>ModeSelect</code>, with one Continue action where three resume buttons used to
+      be.
+      <br><b>The comps are still worth reading</b> (<code>docs/redesign-2026/turf-flat/</code>):
+      <code>nav-options.html</code> is the ten findings and the five concepts side by side, and
+      <code>nav2/</code> is the winner drawn at full scale over ten screens.</li>
       <li><b>24 Signed in, resetting the album (or changing difficulty) blocked the app.</b>
       Fixed 2026-08-20 as <b>option A of the three</b> the item laid out - the stopgap it
       recommended - plus both of the fixes it said to make whichever option won. The rule question

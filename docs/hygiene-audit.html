@@ -186,21 +186,23 @@
 </div>
 
 <div class="stop">
-  <span class="ct">Do not start before roadmap item 27 has flipped its default</span>
+  <span class="ct">Unblocked 2026-08-21 &mdash; read this before starting</span>
   <p>Item 27 (the navigation and click-path rework) moves the same code this backlog touches:
   <code>App.tsx</code>'s route branch, the mode fact being derived twice, the reset target, the
   two nav cards in the build page's left column, and the career hub splitting off the run screen.
   Doing hygiene first means doing several of these twice, and the second pass would be the one
   that loses.</p>
-  <p><b>Updated 2026-08-21: item 27's chrome has landed, but as a PREVIEW, not as the
-  default.</b> Concept 2 (five tabs) is implemented behind a runtime switch
-  (<code>?nav=tabs</code>, <code>src/nav/navMode.ts</code>), so <code>App.tsx</code> now carries
-  <b>both</b> chromes: the classic route branch, footer nav, two build routes and
-  <code>modeOfPath</code>, alongside the <code>TABS</code> branches, <code>/play</code>,
-  <code>/career</code>, <code>/records</code> and the run-kind control. That makes this callout
-  <b>more</b> binding rather than less: refactoring either path now means doing it twice, and one
-  of the two is about to be deleted. The block lifts when the default flips and the losing chrome
-  goes - not when the preview shipped.</p>
+  <p><b>Updated 2026-08-21, later the same day: the block is LIFTED.</b> Item 27 shipped, the
+  five-tab chrome became the default, and the old chrome was deleted - the runtime switch,
+  <code>src/nav/navMode.ts</code>, every <code>TABS</code> branch, <code>modeOfPath</code>, the
+  footer nav, the two in-column nav cards and <code>ModeSelect</code>'s launcher variant all went
+  with it. So the five things this callout named are settled, and several of them are settled by
+  deletion rather than by refactoring.
+  <br><b>But this backlog was written against the old tree, so read it sceptically.</b> Items
+  that touch <code>App.tsx</code>'s route branch, the mode fact, the reset target or the two nav
+  cards may already be done, moot, or now describing code that no longer exists. The "Item 27
+  owns these" list in the off-limits section is history, not a warning. Wave 7's H91 (the checks
+  harness into CI) is untouched by any of it and is still the right first move.</p>
   <p><b>Updated 2026-08-20:</b> this callout used to name roadmap item 22, which has been
   dropped. Its navigational half is item 27's. The rest of what it owned (the two tournament
   engines, the two chemistry definitions, the run-end sticker trigger order, the
@@ -712,9 +714,11 @@ verified, and still not this backlog's, because none of it is behaviour-preservi
 one of those on is making a design decision, not doing hygiene, and should say so in the commit.</p>
 
 <h3>Item 27 owns these</h3>
-<p><b>2026-08-21:</b> all three are now <b>fixed in the tabs chrome and unchanged in
-the classic one</b>, which is why they are still off limits. Each will be settled by deletion when
-the default flips, not by a refactor here.</p>
+<p><b>2026-08-21: all three are now HISTORY.</b> The tabs chrome became the default and the
+classic one was deleted the same day, so each of these was settled by deletion rather than by a
+refactor: there is one build route and one reset target, <code>modeOfPath</code> is gone, and both
+in-column nav cards and the shared <code>/cup-run</code> are gone. Kept below as the record of
+what the block was about.</p>
 
 <ul>
   <li><b>The mode fact derived twice.</b> <code>modeOfPath</code> from the route versus
@@ -740,15 +744,19 @@ the default flips, not by a refactor here.</p>
   <code>KoMatch</code>, <code>RoundRecord</code>) and the two adapters between them, the two
   outcome models, the two <code>stickersApplied</code> guards, and the duplicated round-by-round
   shell. H68 and H70 are the two pieces that are safe now, because they are local to one side.
-  <br><b>Updated 2026-08-21 (roadmap item 28): the knockout half has partly converged.</b> A
-  Cup Run in the five-tab chrome now plays its knockouts on <code>domain/bracket.ts</code> -
+  <br><b>Updated 2026-08-21 (roadmap item 28): the knockout half has partly converged, and one
+  side is now nearly unreachable.</b> A Cup Run plays its knockouts on
+  <code>domain/bracket.ts</code> -
   the same <code>BracketState</code>, the same <code>buildBracket</code> /
   <code>playRound</code> / <code>recordRound</code>, the same <code>&lt;Bracket&gt;</code>
   renderer - with the user's own tie still simulated by <code>run.ts</code> and spliced in. So
-  the duplication above is smaller and one-directional rather than symmetric, and the end
-  state it was always pointing at (one engine) is reachable. Still not this backlog's to
-  finish: none of it is behaviour-preserving, and the two paths coexist until the navigation
-  default flips.</li>
+  the duplication above is smaller and one-directional rather than symmetric. And with the
+  navigation rework shipped there is only one kind of run, so
+  <code>domain/tournament</code> + <code>domain/bracket</code> driven by
+  TournamentScreen/KnockoutScreen are reachable only by a <b>legacy saved World Cup</b> or by a
+  fork with <code>FEATURES.careerMode</code> off. The end state (one engine) is now a deletion
+  rather than a merge - but still not this backlog's to make, because it is not
+  behaviour-preserving for either of those two audiences.</li>
   <li><b>The two chemistry definitions.</b> <code>teamChemistry(formation, filled)</code> scores by
   the slot each player fills; <code>chemistryOf(xi)</code> scores by natural role. Same XI, two
   answers.</li>

@@ -5,11 +5,7 @@ import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
 import { userRatingDelta, type Difficulty } from '../domain/difficulty';
 import { KO_ROUNDS } from '../domain/knockout';
-import {
-  ASCENSIONS,
-  ascensionAt,
-  maxSelectableAscension,
-} from '../domain/ascension';
+import { ascensionAt, maxSelectableAscension } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
 import { groupAsOf, GROUP_MATCHDAYS, type GroupTeam } from '../domain/tournament';
 import { type Boon } from '../domain/boons';
@@ -82,7 +78,6 @@ export default function CupRunScreen({
   banking = false,
   view = 'both',
   buildTo = '/career-mode',
-  stages = false,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
@@ -119,11 +114,6 @@ export default function CupRunScreen({
   view?: 'both' | 'hub' | 'run';
   /** Where "back to the build" goes (the route differs between the two navigations). */
   buildTo?: string;
-  /** Play runs as tournaments (roadmap item 28): the group draw animation, a group table
-   *  that fills in as the matchdays reveal, and a 16-team bracket in the knockouts. Set by
-   *  the five-tab navigation; the classic chrome leaves it off and gets today's run. It is
-   *  recorded on the run at kickoff, so a run in flight keeps whatever it began with. */
-  stages?: boolean;
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const CHALLENGES_ON = FEATURES.challenges;
@@ -148,14 +138,12 @@ export default function CupRunScreen({
   // scrolling); the whole-bar toggle opens it to shop perks. It re-collapses when a run
   // starts so the match reveal is not hidden (see the run-presence effect below).
   const [hubOpen, setHubOpen] = useState(false);
-  // The Ascension tier chosen for the next run. Defaults to the last tier the player
-  // chose (persisted on the career), falling back to the highest selectable the first
-  // time; always clamped to what is currently selectable.
+  // The Ascension tier for the next run. Chosen on the build page, which persists it as
+  // the career's `lastAscension`; read here and clamped to what is currently selectable, so
+  // a stale saved tier (a career that lost a level gate, or a save from another device)
+  // cannot start a run above the ceiling.
   const maxAsc = maxSelectableAscension(career.ascension, career.level);
-  const [ascSel, setAscSel] = useState(() => Math.min(career.lastAscension ?? maxAsc, maxAsc));
-  useEffect(() => {
-    setAscSel((s) => Math.min(s, maxAsc));
-  }, [maxAsc]);
+  const chosenAscension = Math.min(career.lastAscension ?? maxAsc, maxAsc);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -215,7 +203,7 @@ export default function CupRunScreen({
   // The XI + Ascension to show: the live run, or - before it starts - a preview of the
   // drafted XI at the currently-chosen tier (B: the run only commits when "Play group
   // stage" is clicked, so the hub/ascension stay adjustable until then).
-  const chosenAsc = Math.min(ascSel, maxAsc);
+  const chosenAsc = chosenAscension;
   const activeXi = run?.xi ?? draftedXi ?? null;
   const activeAsc = run?.ascension ?? chosenAsc;
   const previewRun: RunState | null =
@@ -274,7 +262,7 @@ export default function CupRunScreen({
     // The previous run's sticker haul may still be in flight; it belongs to that run,
     // not this one.
     onRunStart?.();
-    const chosen = Math.min(ascSel, maxAsc);
+    const chosen = chosenAscension;
     if (career.lastAscension !== chosen) {
       const c = { ...career, lastAscension: chosen };
       setCareer(c);
@@ -283,7 +271,10 @@ export default function CupRunScreen({
     const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen, {
       shape: draftedShape ?? undefined,
       build: draftedBuild ?? undefined,
-      stages,
+      // Every run is a tournament: the draw, a table that fills in, and a bracket. Kept as
+      // a field on the run rather than assumed, so a run saved before this existed still
+      // finishes the way it started (see `RunState.useStages`).
+      stages: true,
     });
     const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);
@@ -309,14 +300,14 @@ export default function CupRunScreen({
   // back. The ref is still needed because `startAndPlayGroup` sets the run asynchronously.
   const autoStarted = useRef(false);
   useEffect(() => {
-    if (!stages || view === 'hub' || run || !draftedXi || autoStarted.current) return;
+    if (view === 'hub' || run || !draftedXi || autoStarted.current) return;
     if (!consumeRunStart()) return;
     autoStarted.current = true;
     startAndPlayGroup();
     // startAndPlayGroup closes over state that is settled by the time this can fire; it is
     // deliberately not a dependency, or picking an Ascension would restart the run.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stages, view, run, draftedXi]);
+  }, [view, run, draftedXi]);
 
   /** What the challenge predicates need beyond the run and the career: dataset
    *  ratings (the run's XI carries boost deltas), the album as it stands, and the
@@ -473,17 +464,6 @@ export default function CupRunScreen({
     />
   );
 
-  // Ascension selector (pre-run): the chosen tier and the requirement to unlock the
-  // next one (a cup at the tier below + the career level gate).
-  const selAsc = ascensionAt(Math.min(ascSel, maxAsc));
-  const nextAsc = ASCENSIONS[maxAsc + 1];
-  const nextAscHint = nextAsc
-    ? [
-        career.ascension < nextAsc.tier ? `win a ${ascensionAt(maxAsc).label} cup` : null,
-        career.level < nextAsc.levelReq ? `reach level ${nextAsc.levelReq}` : null,
-      ].filter(Boolean)
-    : [];
-
   // The final knockout tie of an ended run (the loss, or the won final), rebuilt from
   // history so the ended screen still shows the opponent + scoreline - the live
   // `lastKoMatch` is cleared when a run ends. Null for a group-stage exit (no KO tie).
@@ -517,23 +497,11 @@ export default function CupRunScreen({
       {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
           picker) with the hub open below; one "Play group stage" both starts the run and
           reveals the group. No separate "Start a Cup Run" step.
-          With `stages` this is the FALLBACK rather than the norm: a kickoff goes straight
-          into the draw, so this shows only when you arrive without one and with no run to
-          resume. It keeps the button (so nothing is a dead end) and drops the two things
-          that moved: the ladder, and the Ascension picker, which is on the build page. */}
+          This is the FALLBACK rather than the norm: a kickoff goes straight into the draw,
+          so it shows only when you arrive without one and with no run to resume. It keeps
+          the button, so nothing is a dead end. */}
       {!hubOnly && previewRun && (
         <>
-          {!stages && (
-            <div className="mb-4">
-              <RunLadder
-                run={previewRun}
-                currentIndex={0}
-                viewedIndex={0}
-                onSelectStep={() => {}}
-                locked={false}
-              />
-            </div>
-          )}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
             <RunXiPanel
               xi={previewRun.xi}
@@ -545,52 +513,6 @@ export default function CupRunScreen({
             />
             <section className="flex min-w-0 flex-col gap-4">
               <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
-                {/* Ascension selector: a harder run for a bigger reward. Picked on the
-                    build page in the five-tab chrome, so it is not offered twice. */}
-                <div
-                    className={`mx-auto max-w-[380px] rounded-md border border-line bg-chalk p-3 ${
-                        stages ? 'hidden' : ''
-                    }`}
-                >
-                  <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                    Ascension
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      aria-label="Lower Ascension"
-                      disabled={ascSel <= 0}
-                      onClick={() => setAscSel((s) => Math.max(0, s - 1))}
-                      className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
-                    >
-                      &minus;
-                    </button>
-                    <div className="min-w-[150px]">
-                      <div className="font-display text-[15px] font-extrabold leading-tight">
-                        {selAsc.label}
-                      </div>
-                      <div className="font-mono text-[11px] text-muted">
-                        {selAsc.tier === 0
-                          ? 'Standard difficulty'
-                          : `You ${selAsc.userDelta} rating, rewards x${selAsc.rewardMult}`}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Higher Ascension"
-                      disabled={ascSel >= maxAsc}
-                      onClick={() => setAscSel((s) => Math.min(maxAsc, s + 1))}
-                      className="grid h-8 w-8 place-items-center rounded-full border border-line bg-panel font-mono text-[15px] font-bold text-ink transition enabled:hover:border-pitch disabled:opacity-30"
-                    >
-                      +
-                    </button>
-                  </div>
-                  {nextAscHint.length > 0 && (
-                    <div className="mt-2 font-mono text-[10px] leading-snug text-muted">
-                      Unlock {nextAsc.label}: {nextAscHint.join(' and ')}
-                    </div>
-                  )}
-                </div>
                 <div className="mt-4 text-center">
                   <p className="mb-4 text-[13.5px] text-muted">
                     Pick a team boost between rounds; every run earns XP and Prestige. Finish top
