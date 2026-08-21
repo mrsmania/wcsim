@@ -47,7 +47,7 @@ import {
 } from './matchUi';
 import StandingsTable from './StandingsTable';
 import GroupDrawReveal from './GroupDrawReveal';
-import Bracket from './Bracket';
+import RunBracket from './cupRun/RunBracket';
 import RunLadder from './RunLadder';
 import Confetti from './Confetti';
 import Flag from './Flag';
@@ -630,21 +630,16 @@ export default function CupRunScreen({
             )}
           </div>
 
-          {/* The knockouts play out on the tree (roadmap item 28, option A): the bracket,
-              a "Your run" divider, then your own tie under it - the shape the World Cup
-              knockout screen already has. Full width rather than inside the content
-              column, because a 16-team tree squeezed beside the XI panel scrolls
-              sideways. Absent during the group (nothing to seed it from until the group
-              is survived) and on any run begun without one. Hidden while reviewing a past
-              round, which owns the content area. */}
+          {/* The knockouts play out on the tree (roadmap item 28, option A), collapsed to
+              the user own path with the full 16-team draw behind a chevron: the tree is
+              the right thing to look at between rounds and too tall to sit above every
+              screen of a run. Full width rather than inside the content column, because a
+              16-team tree squeezed beside the XI panel scrolls sideways. Absent during the
+              group (nothing to seed it from until the group is survived) and on any run
+              begun without one. Hidden while reviewing a past round. */}
           {run.bracket && reviewIndex === null && (
             <div className="mb-4">
-              <Bracket bracket={run.bracket} />
-              <div className="relative mx-auto mt-8 max-w-[780px] border-t-2 border-line">
-                <span className="absolute -top-[11px] left-1/2 -translate-x-1/2 bg-ground px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-                  Your run
-                </span>
-              </div>
+              <RunBracket bracket={run.bracket} />
             </div>
           )}
 
