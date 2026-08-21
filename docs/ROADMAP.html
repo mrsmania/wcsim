@@ -420,11 +420,23 @@
     the server stores settings as one jsonb blob, so a new field costs nothing, and an old save
     reads it as <code>false</code>, which is the default anyway.</p>
 
-    <p class="next"><strong>Next step:</strong> one thing left of the original two. Give the
-    tree own-path nodes a click target that opens the round review, which is what the ladder
-    used to do and the only thing lost with it - <code>RoundReview</code> is still imported by
-    <code>CupRunScreen</code> but rendered only behind <code>!run.useStages</code>, so no new
-    run can reach it. Then the convergence, which is now a <b>deletion</b> rather than a
+    <p><b>The tree opens the round review (2026-08-21).</b> The last of the two follow-ups.
+    A path cell for a round with a <code>RoundRecord</code> is a button, and a click sets
+    <code>reviewIndex</code> (round <i>r</i> -> index <i>r</i>+1), swapping the content column
+    for the same <code>RoundReview</code> the ladder's steps used to open: the tie's goal feed,
+    how it was decided, the boost taken after it. Reviewable is defined as <b>a history record
+    exists</b>, which is what stops a click stealing the live view: a record is written as
+    <code>koRound</code> advances, so the round on screen has none - except on an ended run,
+    where reviewing the last tie is exactly the point. Verified over 400 simulated runs (1,359
+    cells resolved to the right record, no live overlap, all 220 runs past the group able to
+    review their last tie). The set is emptied while a match reveals, as the ladder was
+    locked. <b>One piece is still missing:</b> the group has no cell on the tree, so its
+    review - finishing position, the three scorelines, the first boost - remains unreachable
+    in this chrome. Adding a leading Group cell to the path is the obvious fix and a visual
+    change to a shipped control, so it is left as a decision rather than assumed.</p>
+
+    <p class="next"><strong>Next step:</strong> the group's own review (above), then the
+    convergence, which is now a <b>deletion</b> rather than a
     design question: the tournament ENGINE was never duplicated (<code>domain/tournament</code>,
     <code>bracket</code>, <code>knockout</code>, <code>match</code> and the shared
     <code>StandingsTable</code> / <code>GroupDrawReveal</code> / <code>MatchdayCard</code> /

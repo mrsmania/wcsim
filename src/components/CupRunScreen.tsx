@@ -171,6 +171,17 @@ export default function CupRunScreen({
   useEffect(() => {
     setReviewIndex(null);
   }, [currentRoundIndex]);
+  // KO rounds the tree can open a review for: exactly those with a history record.
+  // A record is written when the round is played, and `koRound` advances in the same
+  // breath, so the live round never has one - except on an ended run, where the review
+  // of the last tie is worth having (the content column is the end panel by then).
+  const reviewableRounds = useMemo(
+    () =>
+      (run?.history ?? [])
+        .map((h) => h.stage)
+        .filter((st): st is number => typeof st === 'number'),
+    [run?.history],
+  );
   const reviewRecord: RoundRecord | undefined =
     run && reviewIndex !== null
       ? reviewIndex === 0
@@ -566,9 +577,9 @@ export default function CupRunScreen({
               to the live view. Locked while a match is playing out.
               Dropped with `stages`: the group table and the bracket already say which
               round this is and how the earlier ones went, so it was the same content
-              twice. Its round-review side (RoundReview) goes with it there - the tree
-              shows every result on the user's path, and making its nodes open the review
-              is the follow-up. */}
+              twice. Its round-review side survived the move: the tree's own played cells
+              open the same `RoundReview` below (see `RunBracket`), so the only step with
+              no way back into it there is the GROUP, which has no cell on the tree. */}
           <div className="mb-4">
             {run.ascension > 0 && (
               <div className="mb-2 flex justify-center">
@@ -601,6 +612,11 @@ export default function CupRunScreen({
                 bracket={run.bracket}
                 open={showFullDraw}
                 onSetOpen={(o) => onSetShowFullDraw?.(o)}
+                // A played cell opens that round's review, which is what the ladder's
+                // steps used to do. Locked while a match is revealing, as the ladder was:
+                // the live playback is not persisted, so leaving the screen loses it.
+                reviewableRounds={reveal ? [] : reviewableRounds}
+                onOpenReview={(r) => setReviewIndex(r + 1)}
               />
             </div>
           )}

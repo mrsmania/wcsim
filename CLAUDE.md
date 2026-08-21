@@ -777,6 +777,19 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     preference should not reset every run) and not a control in the settings sheet (the chevron
     is its control). `App` owns it via `useSettings` and passes it to both `CupRunScreen`
     mounts; the component is controlled.
+  - **The tree's played cells open the round review** (2026-08-21). `RunBracket`'s path
+    cells are buttons where a round has a `RoundRecord`, and a click sets `CupRunScreen`'s
+    `reviewIndex` (round `r` -> index `r + 1`), which swaps the content column for the same
+    `RoundReview` the ladder's steps used to open: the tie's goal feed, how it was decided,
+    and the boost taken after it. Three things keep it honest: **reviewable = a history
+    record exists**, which is why the live round never steals its own view (a record is
+    written as `koRound` advances, so the round on screen has none - except on an ended run,
+    where reviewing the last tie is the point); the set is emptied **while a match is
+    revealing**, as the ladder was `locked` for the same reason (the live playback is not
+    persisted, so leaving loses it); and the tree hides itself while a review is open, so
+    the two never stack. **The GROUP has no cell on the tree**, so its review (finishing
+    position, the three scorelines, the first boost) is still unreachable in this chrome -
+    the one piece of the ladder not yet restored.
   - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21), all
     `stages`-only: **Ascension is picked on the build page**, in `SetupPanel` beside
     formation and style (`App` holds the tier and mirrors it onto the career's
@@ -784,10 +797,9 @@ A roguelike layer over the core loop, plus a persistent career. Design:
     reaches `beginRun`); **"Start run" goes straight into the draw**, which is the one to
     read the note below about; and
     **`RunLadder` is gone** there, because the group table and the bracket already say
-    which round this is and how the earlier ones went. That drops `RoundReview` with it in
-    this chrome - the tree shows every result on the user's own path, and making its nodes
-    open the review is the follow-up. All three are untouched in the classic chrome, which
-    keeps its pre-run screen, its picker and its ladder.
+    which round this is and how the earlier ones went. `RoundReview` stayed, though: the
+    tree's own cells open it now (see above). All three are untouched in the classic chrome,
+    which keeps its pre-run screen, its picker and its ladder.
   - **The kickoff is REQUESTED, never inferred** (`nav/pendingRun.ts`), and the first
     version of it lost runs. It started a run whenever `/cup-run` was reached with none in
     progress - which is the same shape as a reload, a Back navigation, a bookmark, a tab

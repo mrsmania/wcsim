@@ -18,7 +18,9 @@ import { USER_ID } from '../../domain/tournament';
  * every screen of a run - so it opens on demand and closes by default. Collapsed, it is
  * the one row that matters: your tie in each round, with the score if it has been played.
  * That also subsumes what the run ladder used to say (which round is this, how did the
- * earlier ones go), which is why the ladder went rather than sitting beside it.
+ * earlier ones go), which is why the ladder went rather than sitting beside it. A played
+ * cell is also the way back into that round's REVIEW - its goal feed and the boost taken
+ * - which the ladder's steps used to open and nothing else did.
  *
  * Short round labels below `sm`, and the path becomes a column rather than five columns:
  * five cells do not fit a phone, and a horizontally scrolling strip hides the round you
@@ -39,14 +41,20 @@ const SHORT: Record<string, string> = {
 const CELL = 'rounded-[5px] border px-2.5 py-2 min-w-0';
 const LABEL = 'font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em]';
 
-/** One round of the user's path: the tie, its score, or a placeholder if not reached. */
+/** One round of the user's path: the tie, its score, or a placeholder if not reached.
+ *  A played round is a button that opens its round review (the one thing lost when the
+ *  run ladder went); anything else is inert, so the affordance only appears where there
+ *  is something to read. */
 function PathCell({
     bracket,
     round,
+    onOpenReview,
     className = '',
 }: {
     bracket: BracketState;
     round: number;
+    /** Open this round's review. Omitted when there is no record to show. */
+    onOpenReview?: () => void;
     className?: string;
 }) {
     const label = KO_ROUNDS[round];
@@ -69,18 +77,23 @@ function PathCell({
         );
     }
 
-    return (
-        <div
-            className={[
-                CELL,
-                res
-                    ? won
-                        ? 'border-pitch/45 bg-pitch/[0.07]'
-                        : 'border-loss/45 bg-loss/[0.06]'
-                    : 'border-amber bg-amber/[0.08]',
-                className,
-            ].join(' ')}
-        >
+    const cls = [
+        CELL,
+        res
+            ? won
+                ? 'border-pitch/45 bg-pitch/[0.07]'
+                : 'border-loss/45 bg-loss/[0.06]'
+            : 'border-amber bg-amber/[0.08]',
+        // A ring rather than a background or a lift: it composes with the cell's own
+        // result tint and border (two `bg-*` utilities would fight), and inset means a
+        // hovered cell cannot overlap its neighbour in a tight five-column row.
+        onOpenReview
+            ? 'w-full cursor-pointer text-left transition hover:ring-1 hover:ring-inset hover:ring-pitch/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-pitch'
+            : '',
+        className,
+    ].join(' ');
+    const body = (
+        <>
             <div className={`${LABEL} ${res ? 'text-muted' : 'text-amber-ink'}`}>
                 <span className="sm:hidden">{SHORT[label] ?? label}</span>
                 <span className="max-sm:hidden">{label}</span>
@@ -110,7 +123,20 @@ function PathCell({
                     )}
                 </span>
             </div>
-        </div>
+        </>
+    );
+
+    if (!onOpenReview) return <div className={cls}>{body}</div>;
+    return (
+        <button
+            type="button"
+            onClick={onOpenReview}
+            className={cls}
+            aria-label={`Review the ${label}`}
+            title={`Review the ${label}`}
+        >
+            {body}
+        </button>
     );
 }
 
@@ -143,11 +169,17 @@ export default function RunBracket({
     bracket,
     open,
     onSetOpen,
+    reviewableRounds,
+    onOpenReview,
 }: {
     bracket: BracketState;
     /** Whether the full 16-team draw is showing (persisted, see the note above). */
     open: boolean;
     onSetOpen: (open: boolean) => void;
+    /** KO rounds that have a history record to review. The caller decides, since the
+     *  record lives on the run and the tree only knows the tie. */
+    reviewableRounds?: number[];
+    onOpenReview?: (round: number) => void;
 }) {
     // Rounds the user has not been drawn into yet, and whether the cup has been decided:
     // both only matter to the phone layout, which shows what has happened rather than a
@@ -190,6 +222,11 @@ export default function RunBracket({
                             key={r}
                             bracket={bracket}
                             round={r}
+                            onOpenReview={
+                                onOpenReview && reviewableRounds?.includes(r)
+                                    ? () => onOpenReview(r)
+                                    : undefined
+                            }
                             // Five columns cost nothing side by side; five ROWS of
                             // "not reached" is most of a phone screen, which is the
                             // height this whole control exists to give back.
