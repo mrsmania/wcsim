@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Player, Squad } from '../data/types';
 import { xiStrength } from '../domain/match';
@@ -11,7 +11,7 @@ import {
   maxSelectableAscension,
 } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
-import type { GroupTeam } from '../domain/tournament';
+import { groupAsOf, GROUP_MATCHDAYS, type GroupTeam } from '../domain/tournament';
 import { type Boon } from '../domain/boons';
 import {
   beginRun,
@@ -46,11 +46,14 @@ import {
   StageCrumb,
 } from './matchUi';
 import StandingsTable from './StandingsTable';
+import GroupDrawReveal from './GroupDrawReveal';
+import Bracket from './Bracket';
 import RunLadder from './RunLadder';
 import Confetti from './Confetti';
 import Flag from './Flag';
 import LiveCupMatch from './cupRun/LiveCupMatch';
 import GroupResultCard from './cupRun/GroupResultCard';
+import OtherFixture from './cupRun/OtherFixture';
 import FinishedKoCard from './cupRun/FinishedKoCard';
 import RoundReview from './cupRun/RoundReview';
 import BoostOffer from './cupRun/BoostOffer';
@@ -78,6 +81,7 @@ export default function CupRunScreen({
   banking = false,
   view = 'both',
   buildTo = '/career-mode',
+  stages = false,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
@@ -114,6 +118,11 @@ export default function CupRunScreen({
   view?: 'both' | 'hub' | 'run';
   /** Where "back to the build" goes (the route differs between the two navigations). */
   buildTo?: string;
+  /** Play runs as tournaments (roadmap item 28): the group draw animation, a group table
+   *  that fills in as the matchdays reveal, and a 16-team bracket in the knockouts. Set by
+   *  the five-tab navigation; the classic chrome leaves it off and gets today's run. It is
+   *  recorded on the run at kickoff, so a run in flight keeps whatever it began with. */
+  stages?: boolean;
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const CHALLENGES_ON = FEATURES.challenges;
@@ -125,6 +134,10 @@ export default function CupRunScreen({
   const [reveal, setReveal] = useState<Reveal | null>(() => store.peek().reveal);
   // The just-finished knockout tie, kept on screen through the following boost pick.
   const [lastKoMatch, setLastKoMatch] = useState<{ match: KoMatch; opp: GroupTeam; roundName: string } | null>(null);
+  // The group draw, shown once per group before the matchdays reveal (stages runs only).
+  // Its own state rather than a field on the reveal: it is a one-shot dismissal, and the
+  // matchdays must not start playing behind it.
+  const [drawOpen, setDrawOpen] = useState(false);
   // A transient toast for what a boost just did (so the run log isn't needed).
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -269,6 +282,7 @@ export default function CupRunScreen({
     const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen, {
       shape: draftedShape ?? undefined,
       build: draftedBuild ?? undefined,
+      stages,
     });
     const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);
@@ -277,6 +291,9 @@ export default function CupRunScreen({
     setRun(begun);
     if (p) {
       setReveal({ kind: 'group', next: p.next, matches: p.userMatches, group: p.group, index: 0, done: false });
+      // The draw comes first: the table and the matchdays stay behind it, so the group is
+      // not spoiled before it is dismissed.
+      setDrawOpen(!!begun.useStages);
     }
   };
 
@@ -400,6 +417,20 @@ export default function CupRunScreen({
     setCareer(c);
     void store.saveCareer(c);
   };
+
+  // The draw's two halves, read off the group the reveal is carrying.
+  const groupDraw =
+    reveal?.kind === 'group'
+      ? (() => {
+            const user = reveal.group.teams.find((t) => t.isUser);
+            const opponents = reveal.group.teams.filter((t) => !t.isUser);
+            return user && opponents.length ? { user, opponents } : null;
+        })()
+      : null;
+  // Matchdays fully revealed so far: while matchday N is playing, N-1 are complete, and
+  // once the reveal is done all three are. This is what the table is projected to.
+  const revealedMatchdays =
+    reveal?.kind === 'group' ? (reveal.done ? GROUP_MATCHDAYS : reveal.index) : 0;
 
   const prog = levelProgress(career.xp);
   const showHubBody = hubOpen;
@@ -576,6 +607,24 @@ export default function CupRunScreen({
             />
           </div>
 
+          {/* The knockouts play out on the tree (roadmap item 28, option A): the bracket,
+              a "Your run" divider, then your own tie under it - the shape the World Cup
+              knockout screen already has. Full width rather than inside the content
+              column, because a 16-team tree squeezed beside the XI panel scrolls
+              sideways. Absent during the group (nothing to seed it from until the group
+              is survived) and on any run begun without one. Hidden while reviewing a past
+              round, which owns the content area. */}
+          {run.bracket && reviewIndex === null && (
+            <div className="mb-4">
+              <Bracket bracket={run.bracket} />
+              <div className="relative mx-auto mt-8 max-w-[780px] border-t-2 border-line">
+                <span className="absolute -top-[11px] left-1/2 -translate-x-1/2 bg-ground px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                  Your run
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
             {/* Your XI + active boosts */}
             <RunXiPanel
@@ -603,7 +652,28 @@ export default function CupRunScreen({
                 <div>
                   {reveal.kind === 'group' ? (
                     <>
-                      {reveal.matches.map((m, i) => {
+                      {/* The draw, once per group. The table and the matchdays render
+                          behind it but the matches do not start playing until it is
+                          dismissed, so nothing is spoiled. */}
+                      {drawOpen && groupDraw && (
+                        <GroupDrawReveal
+                          userTeam={groupDraw.user}
+                          opponents={groupDraw.opponents}
+                          onContinue={() => setDrawOpen(false)}
+                        />
+                      )}
+                      {/* The table as it stands: projected to the matchdays revealed so
+                          far, so it fills in as the group plays out. */}
+                      {run.useStages && (
+                        <div className="mb-4">
+                          <StandingsTable
+                            group={groupAsOf(reveal.group, revealedMatchdays)}
+                            groupFinished={reveal.done}
+                            advanced={reveal.done && reveal.next.phase !== 'ended'}
+                          />
+                        </div>
+                      )}
+                      {!drawOpen && reveal.matches.map((m, i) => {
                         if (i > reveal.index) return null;
                         if (i === reveal.index && !reveal.done)
                           return (
@@ -618,7 +688,12 @@ export default function CupRunScreen({
                               onEnd={handleMatchEnd}
                             />
                           );
-                        return <GroupResultCard key={i} m={m} i={i} userRating={userRating} />;
+                        return (
+                          <Fragment key={i}>
+                            <GroupResultCard m={m} i={i} userRating={userRating} />
+                            {run.useStages && <OtherFixture group={reveal.group} matchday={i + 1} />}
+                          </Fragment>
+                        );
                       })}
                       {reveal.done && (() => {
                         const advanced = reveal.next.phase !== 'ended';

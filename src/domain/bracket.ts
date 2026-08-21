@@ -57,12 +57,19 @@ function pairGames(ids: string[]): BracketGame[] {
  * index 8 (the opposite half), so they can only meet again in the final. The
  * remaining 14 spots are drawn elo-weighted, excluding the whole group (so no
  * immediate rematches).
+ *
+ * `drawSlopeBonus` steepens that weighting toward stronger squads. It exists for the
+ * Cup Run, where it is Ascension's second lever (the first being the user's own rating
+ * handicap): without it a bracket at Ascension V would field the same opponents as one
+ * at Base, and half of what the tier is supposed to mean would quietly do nothing. The
+ * World Cup passes nothing and draws at the default weighting, exactly as before.
  */
 export function buildBracket(
   user: GroupTeam,
   coQualifier: GroupTeam,
   excludeIds: string[],
   pool: Squad[] = SQUADS,
+  drawSlopeBonus = 0,
 ): BracketState {
   const faced = new Set<string>([USER_ID, coQualifier.id, ...excludeIds]);
   const teams: Record<string, GroupTeam> = { [USER_ID]: user, [coQualifier.id]: coQualifier };
@@ -72,7 +79,7 @@ export function buildBracket(
   seeds[FIELD_SIZE / 2] = coQualifier.id; // index 8: the other half of the draw
   for (let i = 0; i < FIELD_SIZE; i++) {
     if (seeds[i]) continue;
-    const t = drawOpponent(faced, pool);
+    const t = drawOpponent(faced, pool, drawSlopeBonus);
     faced.add(t.id);
     teams[t.id] = t;
     seeds[i] = t.id;

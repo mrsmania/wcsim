@@ -323,7 +323,7 @@
   <summary>
     <span class="num">28</span>
     <span class="title">One run, one tournament: the draw and the bracket in a Cup Run
-      <span class="sub">Drop One-off from the tabs navigation, and move the two screens worth keeping from it - the group draw and the knockout bracket - into the career run. Mocks drawn; the bracket's home is the open question.</span>
+      <span class="sub">Implemented for the tabs chrome (option A): One-off is gone, the group opens with the draw and a table that fills in, and the knockouts play out on a real 16-team bracket.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -338,6 +338,19 @@
     <p><b>Mocks:</b> <code>docs/redesign-2026/turf-flat/cuprun/</code> - six pages. The group
     half is drawn as settled; the bracket half has four candidate homes, one page each, with
     what each buys and costs.</p>
+
+    <p><b>Built 2026-08-21, option A, tabs chrome only.</b> One-off is gone (so
+    <code>startMode</code> is always career there, and <code>/group</code> and
+    <code>/knockout</code> are classic-only); the group opens with
+    <code>GroupDrawReveal</code> and a <code>StandingsTable</code> that fills in behind it,
+    matchday by matchday, with the other group fixture beside each result; and the knockouts
+    render the real <code>&lt;Bracket&gt;</code> full width with a "Your run" divider and
+    your tie under it. <code>RunState.bracket</code> and <code>.useStages</code> are both
+    optional, and <code>App</code> passes <code>stages={TABS}</code>, so the classic chrome
+    and any run already in flight are untouched. Six new assertions in
+    <code>npm run checks</code> (94 passing): the tree always completes, it records the
+    user's own tie rather than a re-simulation, the next opponent is read off it, a higher
+    Ascension fields a stronger draw, and the two <code>groupAsOf</code> properties.</p>
 
     <p><b>Four facts from the code decide most of it.</b>
     <code>prepareGroupStage</code> already simulates all three matchdays up front and returns
@@ -373,14 +386,13 @@
     state. <code>/group</code> and <code>/knockout</code> stay reachable in the classic chrome
     meanwhile; nothing is deleted by this item.</p>
 
-    <p class="next"><strong>Next step:</strong> pick a bracket option, then build it in this
-    order - the <code>groupAsOf</code> projection and the group reveal first (settled, and it
-    stands alone), then the bracket in <code>RunState</code> with the slope fix, then the
-    chosen layout. <code>RunState.bracket</code> is optional like <code>shape</code>,
-    <code>build</code> and <code>chemistry</code>, so a run saved before it resumes and
-    finishes on the old one-opponent draw. Extend <code>npm run checks</code> with the two
-    invariants the World Cup bracket already asserts: exactly one champion, and the user's own
-    tie is the one they played.</p>
+    <p class="next"><strong>Next step:</strong> play it and judge the two things the mocks
+    could not settle. First, the run screen now carries <b>both</b> a ladder and a tree - the
+    option A page argued they answer different questions (where am I / who is left), and that
+    is the claim to test. Second, the <b>phone</b>: ladder plus a two-sided tree plus the tie
+    is a long column, and the played rounds probably want collapsing by default. Then decide
+    whether the classic chrome keeps the old run at all, which is the same question as
+    converging the two tournament engines.</p>
 
     <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
   </div>

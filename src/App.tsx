@@ -151,12 +151,6 @@ export default function App({
     );
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
     const stickers = useStickerAlbum(state, dispatch, snapshot.album, poolPlayers);
-    // Tabs navigation (roadmap item 27, decision A): the kind of run is a control on the
-    // build page rather than a route, so it needs somewhere to live before a draft starts.
-    // Seeded from the persisted `buildMode`, which takes over once a draft is under way.
-    const [runKind, setRunKind] = useState<'quick' | 'career'>(() =>
-        FEATURES.careerMode ? (snapshot.game?.buildMode ?? 'career') : 'quick',
-    );
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [accountOpen, setAccountOpen] = useState(false);
     // Accounts (gated): the blocking state for a failed save while signed in (D9),
@@ -326,8 +320,10 @@ export default function App({
     ]);
 
     // Which mode a fresh build belongs to. The classic navigation reads it off the route
-    // (two doors to the same page); the tabs navigation reads the control.
-    const startMode = TABS ? runKind : modeOfPath(location.pathname);
+    // (two doors to the same page). The tabs navigation has one kind of run: One-off was
+    // dropped (roadmap item 28) because a career run at Base Ascension with no boost taken
+    // is the same tournament and pays for itself, so every run there is a career run.
+    const startMode: 'quick' | 'career' = TABS ? 'career' : modeOfPath(location.pathname);
 
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
@@ -670,13 +666,8 @@ export default function App({
     const recordsCabinet =
         FEATURES.trophyCabinet && (path === '/records/cabinet' || path === '/cabinet');
     // The build's chosen mode. The classic navigation derives it from the route; the tabs
-    // navigation reads the control while setting up, then the reducer's record of what the
-    // draft was started as (the control only exists on the setup sub-view).
-    const mode: 'quick' | 'career' = TABS
-        ? homeView === 'setup'
-            ? runKind
-            : (buildMode ?? 'quick')
-        : modeOfPath(path);
+    // navigation has only career runs, so there is nothing to derive.
+    const mode: 'quick' | 'career' = TABS ? 'career' : modeOfPath(path);
     // A World Cup counts as "in progress" only until it finishes, so a decided
     // tournament never hijacks a fresh mode pick. Its route is where entering Quick
     // Run (or the resume action) returns you.
@@ -1058,6 +1049,10 @@ export default function App({
                         <CupRunScreen
                             view={TABS ? 'run' : 'both'}
                             buildTo={TABS ? '/play' : '/career-mode'}
+                            // Roadmap item 28: the tabs chrome plays a run as a
+                            // tournament - the group draw, a table that fills in as the
+                            // matchdays reveal, and the knockouts on a 16-team bracket.
+                            stages={TABS}
                             draftedXi={draftedXi}
                             draftedShape={draftedShape}
                             draftedBuild={draftedBuild}
@@ -1314,15 +1309,6 @@ export default function App({
                                             }
                                             onBudgetDraft={
                                                 FEATURES.budgetDraft ? handleBudget : undefined
-                                            }
-                                            // Decision A: with the two doors gone, the
-                                            // choice they made lives here, beside
-                                            // formation and style.
-                                            runKind={
-                                                TABS && FEATURES.careerMode ? runKind : undefined
-                                            }
-                                            onSetRunKind={
-                                                TABS && FEATURES.careerMode ? setRunKind : undefined
                                             }
                                         />
                                     )}

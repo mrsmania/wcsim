@@ -31,15 +31,19 @@ import {
   squadGroupTeam,
   standings,
   userGroupTeam,
+  groupAsOf,
   GROUP_MATCHDAYS,
+  USER_ID,
 } from '../src/domain/tournament';
 import {
   buildBracket,
+  bracketChampion,
   bracketChampionId,
   currentGame,
   opponentOf,
   playRound,
   recordRound,
+  userGameInRound,
 } from '../src/domain/bracket';
 import { sideOf, KO_ROUNDS } from '../src/domain/knockout';
 import {
@@ -664,6 +668,118 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     else if (r.score !== EXPECT[r.outcome] || r.xi.length !== 11) ok = false;
   }
   check('run: every Cup Run ends with a valid outcome, score, and 11 players', ok);
+}
+
+// --- Cup Run on a bracket (roadmap item 28) ---------------------------------
+// A run begun with `bracket: true` plays its knockouts on a 16-team tree instead of a
+// fresh opponent per round. Three things have to hold, and each of them is the kind
+// that breaks silently: the tree completes, the user's own tie is the one the tree
+// records, and Ascension's draw slope actually reaches the field.
+{
+  let completes = true;
+  let ownTieMatches = true;
+  let oppFromBracket = true;
+  for (let i = 0; i < 200 && completes && ownTieMatches && oppFromBracket; i++) {
+    const squad = SQUADS[(i * 5) % SQUADS.length];
+    let r: RunState = beginRun(bestEleven(squad.players), {}, [], i % 6, { stages: true });
+    r = playGroupStage(r);
+    let guard = 0;
+    while (r.phase !== 'ended' && guard++ < 20) {
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
+      else if (r.phase === 'match') {
+        // The opponent handed to the next tie must be the one the tree says it is.
+        const g = r.bracket ? userGameInRound(r.bracket, r.koRound) : undefined;
+        const treeOpp = g && r.bracket ? opponentOf(r.bracket, g) : undefined;
+        if (r.bracket && treeOpp?.id !== r.nextOpponent?.id) oppFromBracket = false;
+        r = playKnockoutRound(r);
+      } else break;
+    }
+    // A group exit never builds one; anything past the group must have a finished tree.
+    if (r.outcome === 'group') {
+      if (r.bracket) completes = false;
+      continue;
+    }
+    const b = r.bracket;
+    if (!b || !bracketChampion(b)) {
+      completes = false;
+      continue;
+    }
+    // The user's last tie, as the tree recorded it, must match the run's own history.
+    const last = r.history[r.history.length - 1];
+    const game = typeof last?.stage === 'number' ? userGameInRound(b, last.stage) : undefined;
+    const res = game?.result;
+    if (
+      !res ||
+      res.homeGoals !== last.userGoals ||
+      res.awayGoals !== last.oppGoals ||
+      (res.winnerId === USER_ID) !== !!last.won
+    ) {
+      ownTieMatches = false;
+    }
+  }
+  check('run/bracket: every run past the group crowns exactly one champion', completes);
+  check("run/bracket: the tree records the user's own tie, not a re-simulation", ownTieMatches);
+  check('run/bracket: the next opponent is read off the tree', oppFromBracket);
+
+  // Ascension's slope has to reach buildBracket, or the high tiers field a Base-strength
+  // draw and half of what the tier means does nothing. Measured over the whole field.
+  const fieldStrength = (tier: number) => {
+    let total = 0;
+    let n = 0;
+    for (let i = 0; i < 120; i++) {
+      let r: RunState = beginRun(
+        bestEleven(SQUADS[(i * 3) % SQUADS.length].players),
+        {},
+        [],
+        tier,
+        { stages: true },
+      );
+      r = playGroupStage(r);
+      const b = r.bracket;
+      if (!b) continue;
+      for (const [id, t] of Object.entries(b.teams)) {
+        if (id === USER_ID) continue;
+        total += t.strength.overall;
+        n += 1;
+      }
+    }
+    return n ? total / n : 0;
+  };
+  const base = fieldStrength(0);
+  const top = fieldStrength(5);
+  check(
+    `run/bracket: a higher Ascension fields a stronger draw (Base ${base.toFixed(1)} < V ${top.toFixed(1)})`,
+    top > base + 0.5,
+  );
+}
+
+// --- groupAsOf: the projection the Cup Run's live table reads ---------------
+{
+  let identity = true;
+  let monotonic = true;
+  for (let i = 0; i < 200 && identity && monotonic; i++) {
+    const user = userGroupTeam(bestEleven(SQUADS[i % SQUADS.length].players), 0, 0);
+    let group = createGroup(user, pickOpponents(3, SQUADS));
+    for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
+      group = recordMatchday(group, simulateMatchday(group, md));
+    }
+    // At the last matchday the projection is the group itself.
+    const full = groupAsOf(group, GROUP_MATCHDAYS);
+    if (JSON.stringify(full) !== JSON.stringify(group)) identity = false;
+    // Played fixtures only ever accumulate, and points never fall.
+    let played = -1;
+    let pts = -1;
+    for (let md = 0; md <= GROUP_MATCHDAYS; md++) {
+      const g = groupAsOf(group, md);
+      const p = g.fixtures.filter((f) => f.result).length;
+      const userPts = standings(g).find((st) => st.team.isUser)?.points ?? 0;
+      if (p < played || userPts < pts) monotonic = false;
+      played = p;
+      pts = userPts;
+    }
+  }
+  check('groupAsOf: the projection at the final matchday is the group itself', identity);
+  check('groupAsOf: results and points only ever accumulate', monotonic);
 }
 
 // --- Career: run rewards + perk purchases account correctly -----------------

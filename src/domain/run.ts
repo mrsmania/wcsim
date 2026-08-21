@@ -12,6 +12,7 @@ import {
   userAdvanced,
   standings,
   pickOpponents,
+  bracketSeedFromGroup,
   GROUP_MATCHDAYS,
   USER_ID,
   type GroupState,
@@ -27,6 +28,16 @@ import {
   type KoDecided,
 } from './knockout';
 import { offerBoons, availableBoons, boonById, type Boon } from './boons';
+import {
+  bracketChampion,
+  buildBracket,
+  currentGame,
+  opponentOf,
+  playRound,
+  recordRound,
+  type BracketGame,
+  type BracketState,
+} from './bracket';
 import { ascensionAt } from './ascension';
 
 // ---------------------------------------------------------------------------
@@ -117,8 +128,20 @@ export interface RunState {
   offer: Boon[] | null;
   /** Boost-offer re-rolls left this run (Physio Table perk; absent on older saves). */
   rerollsLeft?: number;
-  /** The drawn opponent for the upcoming knockout tie (shown before it is played). */
+  /** The drawn opponent for the upcoming knockout tie (shown before it is played).
+   *  With a bracket this is derived from it rather than drawn directly - it stays the
+   *  single field every consumer reads, including the two boons that key off the next
+   *  opponent (Poach, Familiar Foes). */
   nextOpponent: GroupTeam | null;
+  /** The 16-team knockout bracket, when this run was begun with one (roadmap item 28).
+   *  Optional and absent by default: a run begun without it keeps the original
+   *  one-opponent-per-round draw, which is what the classic chrome still uses, and a run
+   *  persisted before this existed resumes and finishes on the old path. Built when the
+   *  group is survived, never before - there is nothing to seed it from until then. */
+  bracket?: BracketState;
+  /** Whether this run wants a bracket. Needed as its own field because the decision is
+   *  made at kickoff but acted on three matchdays later, when the group ends. */
+  useStages?: boolean;
   score: number;
   outcome: RunOutcome | null;
   /** Per-round results for the progress ladder (oldest first). */
@@ -285,6 +308,11 @@ const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra
 export interface Kickoff {
   shape?: RunShape;
   build?: RunBuild;
+  /** Play this run as a tournament (roadmap item 28): the group draw and a live table
+   *  during the group, and a 16-team bracket in the knockouts instead of a fresh opponent
+   *  per round. The caller decides, because it is a chrome-level choice - the five-tab
+   *  navigation asks for it, the classic one does not. */
+  stages?: boolean;
 }
 
 export function beginRun(
@@ -337,6 +365,7 @@ export function beginRun(
     stickersApplied: false,
     shape: kickoff.shape,
     build: kickoff.build,
+    useStages: kickoff.stages,
     // Kickoff chemistry: of the XI that actually starts, so a Scout Network roster boost
     // is already in it. (Rating perks cannot move it - chemistry reads squads, nations,
     // eras and primary positions, never elo.)
@@ -414,6 +443,34 @@ export function prepareGroupStage(
   }
   // Exclude the group opponents from the knockout draw (no immediate rematch).
   const faced = [...run.facedIds, ...opponents.map((s) => s.id)];
+  // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
+  // (the user, whoever qualified with them, and the whole group excluded), so the next
+  // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
+  // or the higher tiers would field a Base-strength field.
+  if (run.useStages) {
+    const seed = bracketSeedFromGroup(group);
+    const bracket = buildBracket(seed.user, seed.coQualifier, seed.excludeIds, pool, asc.drawSlopeBonus);
+    const first = currentGame(bracket);
+    const opp0 = first ? opponentOf(bracket, first) : undefined;
+    if (!first || !opp0) {
+      throw new Error('prepareGroupStage: a freshly built bracket must have the user in round 0');
+    }
+    return {
+      next: {
+        ...run,
+        phase: 'boon',
+        offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+        bracket,
+        nextOpponent: opp0,
+        facedIds: [...faced, opp0.id],
+        score: STAGE_SCORE.group,
+        history: [...run.history, groupRecord],
+        tally,
+      },
+      userMatches,
+      group,
+    };
+  }
   const opp = drawOpponent(new Set(faced), pool, asc.drawSlopeBonus);
   return {
     next: {
@@ -502,6 +559,59 @@ function simulateKoTie(user: GroupTeam, opp: GroupTeam): KoMatch {
   };
 }
 
+/**
+ * Play one bracket round around a tie that has already been simulated.
+ *
+ * The user's game is index 0 of the current round and the user is always its home side
+ * (`buildBracket` seeds them at 0, and `pairGames` keeps a winner at the index its game
+ * had), which is the same invariant `simulateKoTie` relies on - so the tie's result maps
+ * straight onto the game, and the other games in the round are simulated normally.
+ */
+function advanceBracket(
+  b: BracketState,
+  userTeam: GroupTeam,
+  match: KoMatch,
+  oppId: string,
+): BracketState {
+  // Refresh the stored user side: boosts change the XI between rounds.
+  const withUser: BracketState = { ...b, teams: { ...b.teams, [USER_ID]: userTeam } };
+  const played = playRound(withUser);
+  const own = played[0];
+  if (!own?.hasUser || own.homeId !== USER_ID) {
+    throw new Error('advanceBracket: the user must be the home side of game 0 of their round');
+  }
+  const games: BracketGame[] = played.map((g, i) =>
+    i === 0
+      ? {
+          ...g,
+          result: {
+            homeGoals: match.userGoals,
+            awayGoals: match.oppGoals,
+            decided: match.decided,
+            pens: match.pens,
+            events: match.events,
+            winnerId: match.userWon ? USER_ID : oppId,
+          },
+        }
+      : g,
+  );
+  return recordRound(withUser, games);
+}
+
+/** The user's opponent in the round they play next, or null once the run is over. */
+function nextOpponentOf(b: BracketState): GroupTeam | null {
+  const g = currentGame(b);
+  if (!g) return null;
+  return opponentOf(b, g) ?? null;
+}
+
+/** The champion of a run's bracket, whoever it turned out to be (the user, or the team
+ *  that went on to win it after they went out). Null without a bracket, or before the
+ *  final has been played. Exposed for the run's ended screen. */
+export function runChampion(run: RunState) {
+  return run.bracket ? bracketChampion(run.bracket) : null;
+}
+
 /** Prepare the pending knockout tie: simulate it up front (keeping the events for a
  *  live reveal) and compute the committed next state (win -> next round + boon, or
  *  the trophy; loss -> ended). */
@@ -517,6 +627,14 @@ export function prepareKnockoutRound(
   const opp = run.nextOpponent;
   const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta + asc.userDelta);
   const match = simulateKoTie(userTeam, opp);
+  // With a bracket: the user's own tie is still the one simulated above (so the run's
+  // boosts, chemistry, Ascension handicap and difficulty all apply exactly as before),
+  // and its result is spliced into the tree; the other ties in the round resolve from
+  // their own ratings. The user's team is refreshed first because boosts change the XI
+  // between rounds, and the bracket stores a snapshot.
+  const nextBracket = run.bracket
+    ? advanceBracket(run.bracket, userTeam, match, opp.id)
+    : undefined;
   const record: RoundRecord = {
     stage: round,
     won: match.userWon,
@@ -548,6 +666,9 @@ export function prepareKnockoutRound(
       outcome,
       score: STAGE_SCORE[outcome],
       nextOpponent: null,
+      // Kept, and completed: `recordRound` plays out the rest of the tree when the user
+      // is knocked out, so the run's last screen can still crown a champion.
+      ...(nextBracket ? { bracket: nextBracket } : {}),
       history,
       tally,
     };
@@ -558,12 +679,15 @@ export function prepareKnockoutRound(
       outcome: 'champion',
       score: STAGE_SCORE.champion,
       nextOpponent: null,
+      ...(nextBracket ? { bracket: nextBracket } : {}),
       history,
       tally,
     };
   } else {
     const nextRound = round + 1;
-    const nextOpp = drawOpponent(new Set(run.facedIds), pool, asc.drawSlopeBonus);
+    // The bracket already knows who is next; only a run without one draws.
+    const fromBracket = nextBracket ? nextOpponentOf(nextBracket) : null;
+    const nextOpp = fromBracket ?? drawOpponent(new Set(run.facedIds), pool, asc.drawSlopeBonus);
     next = {
       ...run,
       phase: 'boon',
@@ -571,6 +695,7 @@ export function prepareKnockoutRound(
       offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
+      ...(nextBracket ? { bracket: nextBracket } : {}),
       score: STAGE_SCORE[LOST_IN[round]],
       history,
       tally,

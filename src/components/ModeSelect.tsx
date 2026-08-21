@@ -211,10 +211,10 @@ export default function ModeSelect({
                                 ) : (
                                     <>
                                         Pick a formation, roll real squads or shop a transfer budget,
-                                        then choose{' '}
-                                        <b className="font-semibold text-white">Career run</b> or{' '}
-                                        <b className="font-semibold text-white">One-off</b> on the
-                                        build page.
+                                        then take your XI through a group and four knockout rounds -
+                                        earning <b className="font-semibold text-white">XP</b>,{' '}
+                                        <b className="font-semibold text-white">Prestige</b> and
+                                        honours as you go.
                                     </>
                                 )}
                             </p>

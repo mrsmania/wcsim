@@ -150,7 +150,7 @@ src/
                draft.ts      (placement rules, rolling/re-rolling squads)
                match.ts      (xiStrength, Poisson match sim, penalty shootout)
                tournament.ts (group build, fixtures, standings, simulateMatchday,
-                              qualifiers, bracket seeding)
+                              qualifiers, bracket seeding, groupAsOf)
                knockout.ts   (opponent draw + shared KO round labels: drawOpponent,
                               KO_ROUNDS, KoDecided)
                bracket.ts    (the 16-team knockout bracket model; see below)
@@ -397,11 +397,13 @@ Settings sheet has a "Navigation (preview)" control. The choice persists in its 
   resume buttons into one **Continue**, in priority order Cup Run, World Cup, half-built
   XI. "Build a new XI" beside it confirms first, because it discards whichever of the
   three that is.
-- **`runKind` is App state, not a route.** It seeds from the persisted `buildMode` and is
-  handed to `START_DRAFT` / `START_BUDGET` / `AUTOFILL` as their `mode`, so the reducer is
-  unchanged and the two Career-Mode-only perks (`transfer-budget` -> the market budget,
-  `extra-reroll`) key off the control instead of the path. Verified end to end: the same
-  build page reads $70 with Career run and $110 with One-off.
+- **There is one kind of run.** The Career run / One-off control that first shipped here
+  was **removed 2026-08-21** (roadmap item 28): a career run at Base Ascension with no
+  boost taken is the same tournament, so One-off was a strictly dominated choice, and
+  deleting it answers "should a one-off pay?" by deletion. `startMode` is `'career'`
+  whenever `TABS`, the two Career-Mode-only perks always apply, and `handleStartGroup`
+  (the World Cup) is unreachable in this chrome - `/group` and `/knockout` are
+  classic-only.
 - **The bar goes inert while a match reveals** (`nav/liveMatch.ts`), because the live
   playback is transient state that is deliberately not persisted - leaving the screen
   loses it. Published from `useMatchClock`, the one hook the group screen, the knockout
@@ -720,6 +722,41 @@ A roguelike layer over the core loop, plus a persistent career. Design:
   `RunBanner`: green for the cup win, flat white for a knockout loss / group exit. (There is **no
   run-log feed**: every per-round fact - match scores + goal feeds, results, the boost taken - is
   in the ladder's `RoundReview`s, so `RunState` carries no narrative `log`.)
+- **Runs as tournaments (`stages`, tabs chrome only).** Roadmap item 28, option A:
+  with `stages` on, a run plays like a World Cup rather than like five ties in a row.
+  `beginRun`'s `Kickoff.stages` records `RunState.useStages`, and `App` passes
+  `stages={TABS}` - so the classic chrome gets today's run, byte for byte, and a run in
+  flight keeps whatever it began with. Three parts:
+  - **The group draw**, then a live table. `GroupDrawReveal` (unchanged, `{userTeam,
+    opponents, onContinue}`) opens over the reveal, and the matchdays do not start playing
+    until it is dismissed. Behind it `StandingsTable` fills in as they land, plus the
+    other group fixture of each matchday (`cupRun/OtherFixture`), which is what makes the
+    table's movements legible - the data was always there, the run just threw half of it
+    away.
+  - **The table is PROJECTED, not simulated forward.** `prepareGroupStage` plays all
+    three matchdays up front (it has to: the XI, its chemistry and the tally are settled
+    in one pass), so the live table needs `groupAsOf(group, md)` from
+    `domain/tournament.ts` - pure, blanks the later results, and `npm run checks` asserts
+    both that the projection at matchday 3 equals the group and that results and points
+    only accumulate.
+  - **A real 16-team bracket.** Built when the group is survived, never before (there is
+    nothing to seed it from until then): `bracketSeedFromGroup(group)` +
+    `buildBracket(...)`, then the knockouts run on it. `RunState.bracket` is optional, so
+    a run saved before this resumes on the old one-opponent draw. The user's own tie is
+    still `simulateKoTie` (so boosts, chemistry, the Ascension handicap and the difficulty
+    setting all apply exactly as before) and its result is **spliced** into the tree by
+    `advanceBracket`; the other ties resolve from their own ratings. `nextOpponent` stays
+    the single field every consumer reads - including Poach and Familiar Foes - it is just
+    read off the tree now. Two invariants worth knowing: the user is always the **home**
+    side of game 0 of their round (asserted, and `simulateKoTie` depends on it), and the
+    bracket stores a snapshot of the user's team, so it is **refreshed each round** because
+    boosts change the XI. A knockout loss still completes the tree, so a Cup Run crowns a
+    champion the way a World Cup does.
+  - **The trap that would have gone unnoticed:** `buildBracket` drew its 14 open seeds at
+    the default weighting, so Ascension's `drawSlopeBonus` - half of what a tier means -
+    would have done nothing. It now takes the slope as an optional last argument (the
+    World Cup passes none). `npm run checks` measures the field: drop the slope and the
+    check fails with Base 81.3 against V 81.3.
 - **Persistence** (`state/runStorage.ts` key `wcsim_run_v1`): the in-progress run is mirrored to
   its own key, so a refresh mid-run resumes it (the transient live-reveal is not persisted, so a
   refresh mid-reveal just replays the current match). It is cleared when a fresh XI is built

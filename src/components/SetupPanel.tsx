@@ -33,12 +33,6 @@ interface Props {
     onRandomTeam?: (tier: TeamStrength) => void;
     /** Build the XI in the budget market instead of rolling (budgetDraft feature). */
     onBudgetDraft?: () => void;
-    /** The kind of run this build is for, as a control rather than a route (roadmap item
-     *  27, decision A: the two launcher doors led to this same page, so the choice
-     *  belongs here beside formation and style). Omitted by the classic navigation,
-     *  which derives it from the route and renders no control. */
-    runKind?: 'career' | 'quick';
-    onSetRunKind?: (kind: 'career' | 'quick') => void;
 }
 
 export default function SetupPanel({
@@ -52,49 +46,12 @@ export default function SetupPanel({
     onStart,
     onRandomTeam,
     onBudgetDraft,
-    runKind,
-    onSetRunKind,
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
         <div className="rounded-md border border-line bg-panel shadow-hard">
-            {/* This run: career or one-off. First block on purpose - it is the one choice
-                that used to be made before you had anything to choose with. */}
-            {runKind && onSetRunKind && (
-                <div className="p-[18px]">
-                    <p className={SEGLBL}>This run</p>
-                    <div className="flex overflow-hidden rounded-[5px] border border-line">
-                        {(
-                            [
-                                { value: 'career', label: 'Career run' },
-                                { value: 'quick', label: 'One-off' },
-                            ] as const
-                        ).map((o) => (
-                            <button
-                                key={o.value}
-                                onClick={() => onSetRunKind(o.value)}
-                                aria-pressed={runKind === o.value}
-                                className={[
-                                    'flex-1 border-r border-line px-1 py-2.5 text-[12.5px] font-semibold transition last:border-r-0',
-                                    runKind === o.value
-                                        ? 'bg-pitch-dark text-white'
-                                        : 'bg-panel text-muted hover:text-ink',
-                                ].join(' ')}
-                            >
-                                {o.label}
-                            </button>
-                        ))}
-                    </div>
-                    <p className="mt-2.5 text-[12px] leading-snug text-muted">
-                        {runKind === 'career'
-                            ? 'Earns XP, Prestige and challenges, and spends your perks. Pick a boost between rounds.'
-                            : 'A single tournament. Stickers still bank; your career does not move.'}
-                    </p>
-                </div>
-            )}
-
             {/* Formation */}
-            <div className="p-[18px] [&:not(:first-child)]:border-t [&:not(:first-child)]:border-line">
+            <div className="p-[18px]">
                 <p className={SEGLBL}>Formation</p>
                 <div className="grid grid-cols-4 gap-[5px]">
                     {names.map((name) => {

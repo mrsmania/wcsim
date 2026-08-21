@@ -221,6 +221,24 @@ export function bracketSeedFromGroup(group: GroupState): {
   return { user, coQualifier, excludeIds };
 }
 
+/**
+ * The group as it stood after matchday `md`: every later result blanked, and the
+ * "next matchday to play" wound back to match.
+ *
+ * The World Cup screen never needs this - it records one matchday at a time, so its
+ * group IS the group as of now. A Cup Run does: `prepareGroupStage` plays all three
+ * matchdays up front (it has to, because the run's XI, its chemistry and its tally are
+ * settled in one pass), so revealing the table matchday by matchday means projecting
+ * backwards rather than simulating forwards. Pure, and `standings` does the rest.
+ */
+export function groupAsOf(group: GroupState, md: number): GroupState {
+  return {
+    ...group,
+    fixtures: group.fixtures.map((f) => (f.matchday <= md ? f : { ...f, result: undefined })),
+    matchday: Math.min(md + 1, GROUP_MATCHDAYS + 1),
+  };
+}
+
 /** Merge a played matchday's results into the group and advance to the next
  *  matchday. The reducer delegates here (mirrors `recordRound` for the bracket). */
 export function recordMatchday(group: GroupState, results: MatchdayResult[]): GroupState {
