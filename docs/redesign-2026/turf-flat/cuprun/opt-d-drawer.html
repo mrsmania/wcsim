@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Option D: the bracket on demand</title>
+<link rel="stylesheet" href="../nav2/nav2.css" />
+<link rel="stylesheet" href="cuprun.css" />
+<!--
+  OPTION D: the run screen is untouched and a "view the draw" button opens the tree
+  over it. The cheapest of the four, and the one that treats the bracket as a
+  reference rather than as part of the competition.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="index.html" aria-label="World Cup Simulator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Option D &middot; on demand</span>
+  </header>
+
+  <div class="ohead">
+    <div class="oletter">D</div>
+    <div>
+      <p class="verdict no">Cheapest, and the least of the four</p>
+      <h2>A button that opens the draw</h2>
+    </div>
+  </div>
+
+  <p class="lede">
+    The run screen stays exactly as it is; a "view the draw" button sits beside the ladder
+    and opens the tree over the top. It is the smallest change that can honestly claim to
+    have the bracket in a career run - and it is the one that keeps the bracket furthest
+    from the run, since nothing about playing your tie ever refers to it.
+  </p>
+
+  <div class="card" style="margin-top: 16px; position: relative; overflow: hidden">
+    <div class="blk">
+      <div class="crumb" style="padding-top: 0">
+        <span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Quarter-final</span>
+        <span class="state warm">Live &middot; 67'</span>
+      </div>
+
+      <div style="display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 14px">
+        <div class="ladder" style="flex: 1">
+          <div class="lstep done"><div class="g">&#10003;</div><div class="rl">Group</div><div class="vs">1st, 7 pts</div></div>
+          <div class="lstep done"><div class="g">&#10003;</div><div class="rl">R16</div><div class="vs">won 2-1</div></div>
+          <div class="lstep now"><div class="g">&#9679;</div><div class="rl">QF</div><div class="vs">vs BRA</div></div>
+          <div class="lstep todo"><div class="g">&middot;</div><div class="rl">SF</div><div class="vs">&nbsp;</div></div>
+          <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Final</div><div class="vs">&nbsp;</div></div>
+        </div>
+        <button class="btn sm ghost" style="white-space: nowrap">View the draw</button>
+      </div>
+
+      <div style="max-width: 600px; margin: 0 auto; opacity: 0.35">
+        <div class="card sm">
+          <div class="hd"><h3>Quarter-final</h3><span class="r">Live</span></div>
+          <div class="score">
+            <div class="side a"><b>Your XI</b><span class="flag f-you"></span></div>
+            <div><div class="gg">1 &ndash; 0</div><div class="clock">67'</div></div>
+            <div class="side"><span class="flag f-bra"></span><b>Brazil 2002</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- the overlay -->
+    <div style="position: absolute; inset: 0; background: rgba(19, 33, 26, 0.45); display: grid; place-items: center; padding: 20px">
+      <div class="card" style="width: 100%; max-width: 900px; box-shadow: 6px 6px 0 var(--ink)">
+        <div class="hd">
+          <h3>The draw</h3>
+          <span class="r">Quarter-finals &middot; 8 left</span>
+          <button class="btn sm ghost" style="margin-left: 10px">Close</button>
+        </div>
+        <div class="blk">
+          <div class="bk">
+            <div class="bkcol">
+              <div class="lb">R16</div>
+              <div class="bkm mine"><div class="bks you w"><span class="flag sm f-you"></span><span class="cd">You</span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-arg"></span><span class="cd">ARG</span><span class="g">1</span></div></div>
+              <div class="bkm"><div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA</span><span class="g">3</span></div><div class="bks l"><span class="flag sm f-jpn"></span><span class="cd">JPN</span><span class="g">0</span></div></div>
+              <div class="bkm"><div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER</span><span class="g">1</span></div><div class="bks w"><span class="flag sm f-fra"></span><span class="cd">FRA</span><span class="g">2</span></div></div>
+              <div class="bkm"><div class="bks w"><span class="flag sm f-ita"></span><span class="cd">ITA</span><span class="g">1</span></div><div class="bks l"><span class="flag sm f-nga"></span><span class="cd">NGA</span><span class="g">0</span></div></div>
+              <div class="bkm"><div class="bks w"><span class="flag sm f-esp"></span><span class="cd">ESP</span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-gha"></span><span class="cd">GHA</span><span class="g">1</span></div></div>
+              <div class="bkm"><div class="bks l"><span class="flag sm f-ned"></span><span class="cd">NED</span><span class="g">0</span></div><div class="bks w"><span class="flag sm f-eng"></span><span class="cd">ENG</span><span class="g">1</span></div></div>
+              <div class="bkm"><div class="bks w"><span class="flag sm f-por"></span><span class="cd">POR</span><span class="g">3</span></div><div class="bks l"><span class="flag sm f-cro"></span><span class="cd">CRO</span><span class="g">2</span></div></div>
+              <div class="bkm"><div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA</span><span class="g">1</span></div><div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER</span><span class="g">0</span></div></div>
+            </div>
+            <div class="bkcol">
+              <div class="lb">QF</div>
+              <div class="bkm next"><div class="bks you"><span class="flag sm f-you"></span><span class="cd">You</span><span class="g">1</span></div><div class="bks"><span class="flag sm f-bra"></span><span class="cd">BRA</span><span class="g">0</span></div></div>
+              <div class="bkm"><div class="bks"><span class="flag sm f-fra"></span><span class="cd">FRA</span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-ita"></span><span class="cd">ITA</span><span class="g">&ndash;</span></div></div>
+              <div class="bkm"><div class="bks"><span class="flag sm f-esp"></span><span class="cd">ESP</span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-eng"></span><span class="cd">ENG</span><span class="g">&ndash;</span></div></div>
+              <div class="bkm"><div class="bks"><span class="flag sm f-por"></span><span class="cd">POR</span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-bra"></span><span class="cd">BRA</span><span class="g">&ndash;</span></div></div>
+            </div>
+            <div class="bkcol">
+              <div class="lb">SF</div>
+              <div class="bkm"><div class="bks tbd"><span></span><span class="cd">QF1</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">QF2</span><span class="g">&ndash;</span></div></div>
+              <div class="bkm"><div class="bks tbd"><span></span><span class="cd">QF3</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">QF4</span><span class="g">&ndash;</span></div></div>
+            </div>
+            <div class="bkcol">
+              <div class="lb">Final</div>
+              <div class="bkm"><div class="bks tbd"><span></span><span class="cd">SF1</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">SF2</span><span class="g">&ndash;</span></div></div>
+            </div>
+            <div class="bkcol">
+              <div class="lb">Cup</div>
+              <div class="bkcup"><div class="t">&#127942;</div><div class="n">&mdash;</div><div class="s">Not yet</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gains">
+    <div>
+      <h4 class="g">What it buys</h4>
+      <ul>
+        <li><b>Nothing on the run screen moves</b>, so the layout risk is zero and it works
+          the same on a phone as on a desktop.</li>
+        <li>It is the one option that could ship in the same change as the group stage
+          without touching how a tie is played.</li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="c">What it costs</h4>
+      <ul>
+        <li><b>A seventh overlay.</b> Finding F9 counted six already competing, two of them
+          earnable in the same moment; the layering would need saying out loud.</li>
+        <li><b>The bracket becomes reference material.</b> If you never have to open it, it
+          is not part of the run - and most players will not.</li>
+        <li>Same domain cost as A and B: a real bracket in <code>RunState</code>. Paying
+          that and then hiding it behind a button is the worst ratio of the four.</li>
+      </ul>
+    </div>
+  </div>
+
+  <nav class="setnav">
+    <span>Cup Run stages</span>
+    <a href="index.html">Overview</a>
+    <a href="group.html">Group stage</a>
+    <a href="opt-a-stage.html">A &middot; Stage</a>
+    <a href="opt-b-between.html">B &middot; Between rounds</a>
+    <a href="opt-c-toggle.html">C &middot; Toggle</a>
+    <a class="here" href="opt-d-drawer.html">D &middot; On demand</a>
+  </nav>
+  <p class="foot">Static comp. Sibling sets: <code>../nav2/</code>, <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

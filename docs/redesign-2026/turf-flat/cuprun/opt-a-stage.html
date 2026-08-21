@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Option A: the bracket is the stage</title>
+<link rel="stylesheet" href="../nav2/nav2.css" />
+<link rel="stylesheet" href="cuprun.css" />
+<!--
+  OPTION A (recommended): the Cup Run's knockout content area becomes the World Cup
+  knockout screen - the tree, then a "Your run" divider, then your tie played live
+  under it. The ladder stays above as the run's progress + review control, and the
+  boost pick lands under the tie when it finishes.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="index.html" aria-label="World Cup Simulator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Option A &middot; the bracket is the stage</span>
+  </header>
+
+  <div class="ohead">
+    <div class="oletter rec">A</div>
+    <div>
+      <p class="verdict">Recommended</p>
+      <h2>The knockout screen, wrapped in the ladder and the boosts</h2>
+    </div>
+  </div>
+
+  <p class="lede">
+    The run's content area becomes the World Cup knockout screen: the tree, a
+    <b>Your run</b> divider, and your tie played live under it - which is the shape that
+    screen already has (<code>KnockoutScreen</code>: <code>StageHeader</code>,
+    <code>&lt;Bracket&gt;</code>, divider, then one card per round). The ladder stays above
+    it and keeps its job, and the boost pick appears under the tie when it finishes. So the
+    thing you liked is not reproduced - it is reused.
+  </p>
+
+  <div class="card" style="margin-top: 16px">
+    <div class="blk">
+      <div class="crumb" style="padding-top: 0">
+        <span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Quarter-final</span>
+        <span class="state warm">Live &middot; 67'</span>
+      </div>
+
+      <div class="ladder" style="margin: 12px 0 16px">
+        <div class="lstep done"><div class="g">&#10003;</div><div class="rl">Group</div><div class="vs">1st, 7 pts</div></div>
+        <div class="lstep done"><div class="g">&#10003;</div><div class="rl">R16</div><div class="vs">won 2-1</div></div>
+        <div class="lstep now"><div class="g">&#9679;</div><div class="rl">QF</div><div class="vs">vs BRA</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">SF</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Final</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Cup</div><div class="vs">&nbsp;</div></div>
+      </div>
+
+      <!-- ======================= THE TREE ======================= -->
+      <div class="bk">
+        <div class="bkcol">
+          <div class="lb">Round of 16</div>
+          <div class="bkm mine">
+            <div class="bks you w"><span class="flag sm f-you"></span><span class="cd">Your XI</span><span class="g">2</span></div>
+            <div class="bks l"><span class="flag sm f-arg"></span><span class="cd">ARG <span class="yr">86</span></span><span class="g">1</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">02</span></span><span class="g">3</span></div>
+            <div class="bks l"><span class="flag sm f-jpn"></span><span class="cd">JPN <span class="yr">18</span></span><span class="g">0</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER <span class="yr">90</span></span><span class="g">1</span></div>
+            <div class="bks w"><span class="flag sm f-fra"></span><span class="cd">FRA <span class="yr">98</span></span><span class="g">2</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks w"><span class="flag sm f-ita"></span><span class="cd">ITA <span class="yr">06</span></span><span class="g">1</span></div>
+            <div class="bks l"><span class="flag sm f-nga"></span><span class="cd">NGA <span class="yr">94</span></span><span class="g">0</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks w"><span class="flag sm f-esp"></span><span class="cd">ESP <span class="yr">10</span></span><span class="g">2</span></div>
+            <div class="bks l"><span class="flag sm f-gha"></span><span class="cd">GHA <span class="yr">06</span></span><span class="g">1</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks l"><span class="flag sm f-ned"></span><span class="cd">NED <span class="yr">98</span></span><span class="g">0</span></div>
+            <div class="bks w"><span class="flag sm f-eng"></span><span class="cd">ENG <span class="yr">90</span></span><span class="g">1</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks w"><span class="flag sm f-por"></span><span class="cd">POR <span class="yr">06</span></span><span class="g">3</span></div>
+            <div class="bks l"><span class="flag sm f-cro"></span><span class="cd">CRO <span class="yr">98</span></span><span class="g">2</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">94</span></span><span class="g">1</span></div>
+            <div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER <span class="yr">14</span></span><span class="g">0</span></div>
+          </div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Quarter-finals</div>
+          <div class="bkm next">
+            <div class="bks you"><span class="flag sm f-you"></span><span class="cd">Your XI</span><span class="g">1</span></div>
+            <div class="bks"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">02</span></span><span class="g">0</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks"><span class="flag sm f-fra"></span><span class="cd">FRA <span class="yr">98</span></span><span class="g">&ndash;</span></div>
+            <div class="bks"><span class="flag sm f-ita"></span><span class="cd">ITA <span class="yr">06</span></span><span class="g">&ndash;</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks"><span class="flag sm f-esp"></span><span class="cd">ESP <span class="yr">10</span></span><span class="g">&ndash;</span></div>
+            <div class="bks"><span class="flag sm f-eng"></span><span class="cd">ENG <span class="yr">90</span></span><span class="g">&ndash;</span></div>
+          </div>
+          <div class="bkm">
+            <div class="bks"><span class="flag sm f-por"></span><span class="cd">POR <span class="yr">06</span></span><span class="g">&ndash;</span></div>
+            <div class="bks"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">94</span></span><span class="g">&ndash;</span></div>
+          </div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Semi-finals</div>
+          <div class="bkm"><div class="bks tbd"><span></span><span class="cd">winner QF1</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">winner QF2</span><span class="g">&ndash;</span></div></div>
+          <div class="bkm"><div class="bks tbd"><span></span><span class="cd">winner QF3</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">winner QF4</span><span class="g">&ndash;</span></div></div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Final</div>
+          <div class="bkm"><div class="bks tbd"><span></span><span class="cd">winner SF1</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">winner SF2</span><span class="g">&ndash;</span></div></div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Champion</div>
+          <div class="bkcup">
+            <div class="t">&#127942;</div>
+            <div class="n">&mdash;</div>
+            <div class="s">Not yet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= YOUR RUN ======================= -->
+      <div style="position: relative; max-width: 640px; margin: 30px auto 0; border-top: 2px solid var(--line)">
+        <span style="position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--paper); padding: 0 14px; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--pitch)">
+          Your run
+        </span>
+      </div>
+
+      <div style="max-width: 640px; margin: 16px auto 0">
+        <div class="card sm">
+          <div class="hd"><h3>Quarter-final</h3><span class="r">Live</span></div>
+          <div class="score">
+            <div class="side a"><b>Your XI</b><span class="flag f-you"></span></div>
+            <div><div class="gg">1 &ndash; 0</div><div class="clock">67'</div></div>
+            <div class="side"><span class="flag f-bra"></span><b>Brazil 2002</b></div>
+          </div>
+          <div class="feed">
+            <div class="ev"><span class="min">41'</span><span class="flag sm f-you"></span> Ronaldo</div>
+          </div>
+        </div>
+        <p class="hint" style="text-align: center">
+          When it ends: the other three quarter-finals resolve on the tree above, and the
+          boost picker opens here.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-note">
+    <b>Reading the tree.</b> Your tie is the amber-ringed box; a played tie of yours keeps
+    the green ring. Everything else fills in a round at a time, exactly as it does in a
+    World Cup - which is the part that makes a run feel like a tournament rather than five
+    ties in a row.
+  </div>
+
+  <div class="gains">
+    <div>
+      <h4 class="g">What it buys</h4>
+      <ul>
+        <li><b>The actual screen.</b> Playing your tie <i>on</i> the tree is what is good
+          about the World Cup knockouts; a tree you only look at is a different, smaller
+          thing.</li>
+        <li><b>No new mechanism.</b> One progress view (the ladder), no toggle, no seventh
+          overlay. The tree is content.</li>
+        <li><b>The ladder gets better, not redundant:</b> it stays the compact "where am I
+          and what did I do" control, and the tree answers "who else is left" - two
+          different questions.</li>
+        <li><b>It unifies the two knockout paths</b> at the data level, which is the
+          precondition for ever deleting the second tournament engine.</li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="c">What it costs</h4>
+      <ul>
+        <li><b>A real bracket in <code>RunState</code></b>, drawn after the group from
+          <code>bracketSeedFromGroup</code> + <code>buildBracket</code>, and the per-round
+          <code>drawOpponent</code> replaced by <code>currentGame(bracket)</code>.</li>
+        <li><b>Ascension's draw slope has to reach <code>buildBracket</code></b>, which
+          currently draws its 14 seeds at the default weighting. Miss this and the high
+          tiers quietly field ordinary opponents.</li>
+        <li><b>A taller content area.</b> On a phone the tree is the two-sided vertical
+          layout, and it is the tallest thing in the run.</li>
+        <li><b>Two boons need re-reading:</b> Poach and Familiar Foes key off
+          <code>nextOpponent</code>. It stays populated, derived from the bracket, so they
+          keep working - but they are the two to test.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="sub">On a phone</h3>
+  <div class="phones">
+    <figure style="margin: 0">
+      <p class="phcap">Cup Run / QF <b>The two-sided tree, then your tie</b></p>
+      <div class="ph">
+        <div class="pmast">
+          <span class="crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/><path d="M4 22h16"/></svg></span>
+          <b>World Cup Sim</b>
+        </div>
+        <div class="pcrumb"><span>Play / Cup Run / QF</span><span class="state">Live 67'</span></div>
+        <div class="pbody">
+          <div class="ladder" style="gap: 4px">
+            <div class="lstep done" style="min-width: 54px; padding: 5px"><div class="g">&#10003;</div><div class="rl" style="font-size: 10px">Grp</div></div>
+            <div class="lstep done" style="min-width: 54px; padding: 5px"><div class="g">&#10003;</div><div class="rl" style="font-size: 10px">R16</div></div>
+            <div class="lstep now" style="min-width: 54px; padding: 5px"><div class="g">&#9679;</div><div class="rl" style="font-size: 10px">QF</div></div>
+            <div class="lstep todo" style="min-width: 54px; padding: 5px"><div class="g">&middot;</div><div class="rl" style="font-size: 10px">SF</div></div>
+            <div class="lstep todo" style="min-width: 54px; padding: 5px"><div class="g">&middot;</div><div class="rl" style="font-size: 10px">Fin</div></div>
+          </div>
+
+          <p class="sl">Round of 16</p>
+          <div class="bkph">
+            <div class="row">
+              <div class="bkm mine">
+                <div class="bks you w" style="padding: 3px 5px"><span class="flag sm f-you"></span><span class="cd">You</span><span class="g">2</span></div>
+                <div class="bks l" style="padding: 3px 5px"><span class="flag sm f-arg"></span><span class="cd">ARG</span><span class="g">1</span></div>
+              </div>
+              <div class="bkm">
+                <div class="bks w" style="padding: 3px 5px"><span class="flag sm f-bra"></span><span class="cd">BRA</span><span class="g">3</span></div>
+                <div class="bks l" style="padding: 3px 5px"><span class="flag sm f-jpn"></span><span class="cd">JPN</span><span class="g">0</span></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="bkm">
+                <div class="bks l" style="padding: 3px 5px"><span class="flag sm f-ger"></span><span class="cd">GER</span><span class="g">1</span></div>
+                <div class="bks w" style="padding: 3px 5px"><span class="flag sm f-fra"></span><span class="cd">FRA</span><span class="g">2</span></div>
+              </div>
+              <div class="bkm">
+                <div class="bks w" style="padding: 3px 5px"><span class="flag sm f-ita"></span><span class="cd">ITA</span><span class="g">1</span></div>
+                <div class="bks l" style="padding: 3px 5px"><span class="flag sm f-nga"></span><span class="cd">NGA</span><span class="g">0</span></div>
+              </div>
+            </div>
+          </div>
+
+          <p class="sl">Quarter-finals</p>
+          <div class="bkph">
+            <div class="row">
+              <div class="bkm next">
+                <div class="bks you" style="padding: 3px 5px"><span class="flag sm f-you"></span><span class="cd">You</span><span class="g">1</span></div>
+                <div class="bks" style="padding: 3px 5px"><span class="flag sm f-bra"></span><span class="cd">BRA</span><span class="g">0</span></div>
+              </div>
+              <div class="bkm">
+                <div class="bks" style="padding: 3px 5px"><span class="flag sm f-fra"></span><span class="cd">FRA</span><span class="g">&ndash;</span></div>
+                <div class="bks" style="padding: 3px 5px"><span class="flag sm f-ita"></span><span class="cd">ITA</span><span class="g">&ndash;</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card sm" style="margin-top: 10px">
+            <div class="score" style="padding: 10px; gap: 6px">
+              <div class="side a"><b style="font-size: 12px">You</b><span class="flag sm f-you"></span></div>
+              <div><div class="gg" style="font-size: 19px">1 &ndash; 0</div><div class="clock" style="font-size: 10px">67'</div></div>
+              <div class="side"><span class="flag sm f-bra"></span><b style="font-size: 12px">BRA 02</b></div>
+            </div>
+          </div>
+        </div>
+        <nav class="pbar locked">
+          <a class="on" href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></svg></span><span class="lb">Play</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/></svg></span><span class="lb">Career</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span><span class="lb">Album</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8"/></svg></span><span class="lb">Records</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span><span class="lb">Squads</span></a>
+        </nav>
+      </div>
+      <p class="hint" style="max-width: 336px">
+        The shipped bracket already switches to a two-sided vertical tree below 900px, so
+        the phone layout is not new work - but it is long, and the ladder plus the tree plus
+        the tie is a lot of column. Worth collapsing the played rounds by default.
+      </p>
+    </figure>
+  </div>
+
+  <nav class="setnav">
+    <span>Cup Run stages</span>
+    <a href="index.html">Overview</a>
+    <a href="group.html">Group stage</a>
+    <a class="here" href="opt-a-stage.html">A &middot; Stage</a>
+    <a href="opt-b-between.html">B &middot; Between rounds</a>
+    <a href="opt-c-toggle.html">C &middot; Toggle</a>
+    <a href="opt-d-drawer.html">D &middot; On demand</a>
+  </nav>
+  <p class="foot">Static comp. Sibling sets: <code>../nav2/</code>, <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

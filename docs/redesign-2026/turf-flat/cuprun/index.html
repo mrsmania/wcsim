@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cup Run stages: the draw and the bracket</title>
+<link rel="stylesheet" href="../nav2/nav2.css" />
+<link rel="stylesheet" href="cuprun.css" />
+<!--
+  CUP RUN STAGES - the brief, the code facts, and four options for the bracket.
+  Asked 2026-08-21: drop One-off from the tabs navigation, and bring the two
+  screens worth keeping from it - the group draw animation and the knockout
+  bracket - into the career run. The group half is specified; the bracket half is
+  the open question, which is what the four option pages are for.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="index.html" aria-label="World Cup Simulator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Cup Run stages &middot; the draw and the bracket</span>
+  </header>
+
+  <div class="sec-h" style="margin-top: 18px">
+    <div>
+      <p class="eyebrow">Asked 2026-08-21</p>
+      <h2>One-off goes. Its two best screens move in.</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">4 options &middot; 1 settled</div>
+  </div>
+
+  <p class="lede">
+    Two decisions, and they are not the same size. <b>Dropping One-off from the tabs
+    navigation</b> is settled and small. <b>Bringing the group draw and the knockout
+    bracket into a career run</b> is the work: the group half is specified below, and the
+    bracket half has four candidate homes, one page each. Read the facts first - two of
+    them decide most of it.
+  </p>
+
+  <h3 class="sub">The facts, read in the code</h3>
+  <table class="cmp" style="max-width: 940px">
+    <thead><tr><th style="width: 27%">What</th><th>State today</th><th style="width: 22%">What it means here</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="k">The group is already fully simulated</td>
+        <td><code>prepareGroupStage</code> (domain/run.ts) plays all three matchdays up
+          front and returns the whole <code>Group</code> - every fixture, every result,
+          the other two teams' games included - plus the user's three matches.</td>
+        <td class="y">A live, matchday-by-matchday reveal needs <b>no new simulation</b>,
+          only a projection of the group "as of matchday N".</td>
+      </tr>
+      <tr>
+        <td class="k">The draw modal is already generic</td>
+        <td><code>GroupDrawReveal</code> takes <code>{ userTeam, opponents, onContinue }</code>
+          and nothing else. It scrambles flags, settles, and respects reduced motion.</td>
+        <td class="y">Reusable <b>as is</b>. Nothing to fork.</td>
+      </tr>
+      <tr>
+        <td class="k">The standings table is already shared</td>
+        <td><code>StandingsTable</code> takes <code>{ group, groupFinished, advanced }</code>,
+          and the Cup Run's group-results screen already renders it - just once, at the
+          end.</td>
+        <td class="y">Showing it earlier, updating per matchday, is the same component with
+          a different group value.</td>
+      </tr>
+      <tr>
+        <td class="k">The bracket renderer is pure</td>
+        <td><code>&lt;Bracket bracket={...} /&gt;</code> - one prop, a
+          <code>BracketState</code>. It draws the wide left-to-right tree and the
+          two-sided phone tree, and crowns the champion.</td>
+        <td class="y">Whatever we decide, the <b>view costs nothing</b>. The question is
+          only where it sits and what feeds it.</td>
+      </tr>
+      <tr>
+        <td class="k">A Cup Run has no bracket at all</td>
+        <td>The knockout draws <b>one opponent per round</b>:
+          <code>drawOpponent(faced, pool, asc.drawSlopeBonus)</code>, with
+          <code>koRound</code> 0 to 4. There is no field of 16, no other ties, nothing for
+          a tree to show.</td>
+        <td class="n">This is the real work. The view is free; <b>the data is not</b>.</td>
+      </tr>
+      <tr>
+        <td class="k">But building one is nearly free</td>
+        <td><code>buildBracket(user, coQualifier, excludeIds, pool)</code> already seeds a
+          16-team field with the user at seed 0 and the co-qualifier in the opposite half,
+          and <code>bracketSeedFromGroup(group)</code> already derives its three arguments
+          from a finished group.</td>
+        <td class="y">The Cup Run can call the same two functions it already has in the
+          building.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="stack-note warn">
+    <b>The one snag in that last row.</b> <code>buildBracket</code> fills its 14 open seeds
+    with <code>drawOpponent(faced, pool)</code> and passes <b>no slope</b>, so it always
+    draws at the default weighting. Ascension's whole second lever is
+    <code>drawSlopeBonus</code> - a steeper draw toward stronger squads - so it needs one
+    optional parameter threaded through, or Ascension III would field the same opponents as
+    Base. Small, but it is exactly the kind of thing that goes unnoticed until someone
+    wonders why the higher tiers feel easy.
+  </div>
+
+  <h3 class="sub">Settled: dropping One-off</h3>
+  <div class="gains">
+    <div>
+      <h4 class="g">What goes</h4>
+      <ul class="tight">
+        <li>The <b>Career run / One-off</b> control in <code>SetupPanel</code>, and with it
+          the <code>runKind</code> state in <code>App</code>. Every run in the tabs chrome
+          is a career run.</li>
+        <li>The build page's mode branch: <code>CompletePanel</code>'s CTA always leads to
+          <code>/cup-run</code>, and the two Career-Mode perks (transfer budget, extra
+          re-roll) always apply.</li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="c">What it decides by deletion</h4>
+      <ul class="tight">
+        <li><b>"Should a one-off pay?"</b> - the question the nav audit deliberately left
+          open. There is no one-off, so it pays nothing by not existing.</li>
+        <li><code>/group</code> and <code>/knockout</code> become <b>classic-chrome only</b>.
+          The World Cup engine is still there and still reachable at
+          <code>?nav=classic</code>; nothing is deleted yet.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="stack-note">
+    <b>And it points somewhere.</b> A Cup Run with a real 16-team bracket, at Base
+    Ascension with no boost taken, <i>is</i> a World Cup. That is the "a Cup Run is a
+    superset" argument from the navigation audit, and it turns the two tournament engines
+    from a duplication nobody owns into something with an obvious end state. Not this
+    change - but this change is the step that makes it possible.
+  </div>
+
+  <h3 class="sub">Settled: the group stage</h3>
+  <p class="lede">
+    Exactly as asked: <b>Play group stage</b> opens the draw animation, and behind it the
+    group table and the three matchdays reveal one at a time, with the table updating as
+    they land - the World Cup group screen, inside the run. Drawn on its own page:
+    <a href="group.html"><b>the group stage &rarr;</b></a>
+  </p>
+
+  <h3 class="sub">Open: where the bracket lives</h3>
+  <table class="cmp" style="max-width: 940px">
+    <thead>
+      <tr>
+        <th style="width: 21%">Option</th>
+        <th>Where the tree sits</th>
+        <th style="width: 13%">Progress views</th>
+        <th style="width: 13%">New overlay</th>
+        <th style="width: 12%">Diff</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="pick">
+        <td class="k"><a href="opt-a-stage.html">A &middot; The bracket is the stage</a></td>
+        <td>The content area becomes the knockout screen: the tree, with your tie played on
+          it, exactly as the World Cup does. Boost pick after.</td>
+        <td class="y">1 (ladder)</td>
+        <td class="y">none</td>
+        <td class="m">medium</td>
+      </tr>
+      <tr>
+        <td class="k"><a href="opt-b-between.html">B &middot; Between rounds only</a></td>
+        <td>You play your tie on the card you play it on today; the tree appears after it,
+          above the boost cards, updating as the other ties resolve.</td>
+        <td class="y">1 (ladder)</td>
+        <td class="y">none</td>
+        <td class="y">small</td>
+      </tr>
+      <tr>
+        <td class="k"><a href="opt-c-toggle.html">C &middot; A second view of the ladder</a></td>
+        <td>Ladder and bracket are two views of the same progress, switched at the top of
+          the run.</td>
+        <td class="n">2</td>
+        <td class="y">none</td>
+        <td class="m">medium</td>
+      </tr>
+      <tr>
+        <td class="k"><a href="opt-d-drawer.html">D &middot; On demand</a></td>
+        <td>A "view the draw" button opens the tree over whatever is on screen.</td>
+        <td class="y">1 (ladder)</td>
+        <td class="n">one more</td>
+        <td class="y">small</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="ohead" style="margin-top: 26px">
+    <div class="oletter rec">A</div>
+    <div>
+      <p class="verdict">Recommended</p>
+      <h2>The bracket is the stage, because that is the screen you liked</h2>
+    </div>
+  </div>
+  <ul class="tight" style="max-width: 82ch">
+    <li><b>It is the thing itself.</b> What is good about the World Cup knockout screen is
+      not the tree as a picture - it is playing your tie <i>on</i> the tree, with the rest
+      of the round filling in around you. B, C and D all show you a tree; only A gives you
+      that.</li>
+    <li><b>It adds no mechanism.</b> The ladder stays the one progress view and keeps its
+      review role; no toggle, no seventh overlay. The tree is content, not chrome - which
+      is also why it does not reopen anything the navigation rework settled.</li>
+    <li><b>It makes the run read as a tournament</b> rather than as five ties in a row,
+      which is the same instinct behind roadmap item 04's node variety: the gap between
+      rounds should feel like part of a competition.</li>
+    <li><b>The cost is honest and bounded:</b> <code>RunState</code> gains an optional
+      <code>bracket</code>, the per-round <code>drawOpponent</code> becomes
+      <code>currentGame(bracket)</code>, and the content area gets taller - on a phone
+      noticeably, which is what the two-sided tree already exists for.</li>
+  </ul>
+
+  <div class="stack-note">
+    <b>If the appetite is smaller, B is the honest fallback</b> and it upgrades into A
+    later without rework: the same <code>BracketState</code>, the same renderer, moved from
+    "after the tie" to "the tie is played on it".
+  </div>
+
+  <h3 class="sub">What every option shares</h3>
+  <ul class="tight" style="max-width: 82ch">
+    <li><b>One new pure helper</b>, whatever we pick: a group projection ("as of matchday
+      N") so <code>StandingsTable</code> can be fed a partial group without re-simulating
+      one. Belongs in <code>domain/tournament.ts</code> beside <code>standings</code>.</li>
+    <li><b>Two new run phases at most.</b> <code>RunPhase</code> is
+      <code>'group' | 'boon' | 'match' | 'ended'</code> today; a revealed group needs the
+      group step to be enterable and dismissable, which is reveal state rather than a
+      phase - the same distinction the run already makes for its live match.</li>
+    <li><b>Persistence is safe by precedent.</b> <code>RunState.shape</code>,
+      <code>.build</code> and <code>.chemistry</code> are all optional so a run saved
+      before them resumes; <code>.bracket</code> follows the same rule, and a run mid-flight
+      when this ships simply finishes on the old one-opponent draw.</li>
+    <li><b>The checks harness has to grow with it:</b> a bracket in a run must still crown
+      exactly one champion, and the user's own tie must be the one they played - both are
+      already asserted for the World Cup bracket, so the assertions are copyable.</li>
+  </ul>
+
+  <nav class="setnav">
+    <span>Cup Run stages</span>
+    <a class="here" href="index.html">Overview</a>
+    <a href="group.html">Group stage</a>
+    <a href="opt-a-stage.html">A &middot; Stage</a>
+    <a href="opt-b-between.html">B &middot; Between rounds</a>
+    <a href="opt-c-toggle.html">C &middot; Toggle</a>
+    <a href="opt-d-drawer.html">D &middot; On demand</a>
+  </nav>
+  <p class="foot">
+    Static comps, no JavaScript, no build step. Sibling sets:
+    <code>../nav2/</code> (the five-tab chrome these pages sit in) and
+    <code>../nav-options.html</code> (the navigation audit).
+  </p>
+</div>
+</body>
+</html>

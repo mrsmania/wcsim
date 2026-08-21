@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-21<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -318,6 +318,73 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">28</span>
+    <span class="title">One run, one tournament: the draw and the bracket in a Cup Run
+      <span class="sub">Drop One-off from the tabs navigation, and move the two screens worth keeping from it - the group draw and the knockout bracket - into the career run. Mocks drawn; the bracket's home is the open question.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask (2026-08-21):</strong> One-off earns nothing that a career run at Base
+    Ascension does not, so it goes from the tabs navigation. But two things in it are worth
+    keeping: the <b>group draw animation</b> and the <b>knockout bracket</b>. Both should
+    happen inside a Cup Run - the draw when "Play group stage" is pressed, then the group
+    table filling in as the matchdays play, exactly as the World Cup screen does it.</p>
+
+    <p><b>Mocks:</b> <code>docs/redesign-2026/turf-flat/cuprun/</code> - six pages. The group
+    half is drawn as settled; the bracket half has four candidate homes, one page each, with
+    what each buys and costs.</p>
+
+    <p><b>Four facts from the code decide most of it.</b>
+    <code>prepareGroupStage</code> already simulates all three matchdays up front and returns
+    the whole <code>Group</code>, so a live reveal is a projection rather than new logic;
+    <code>GroupDrawReveal</code> and <code>StandingsTable</code> are already generic enough to
+    reuse unchanged; <code>&lt;Bracket&gt;</code> is a pure renderer over one
+    <code>BracketState</code> prop, so the view is free. The catch is that <b>a Cup Run has no
+    bracket at all</b> - the knockout draws one opponent per round via
+    <code>drawOpponent</code> - so the data is the work, not the picture. Building one is
+    cheap even so: <code>bracketSeedFromGroup</code> + <code>buildBracket</code> already exist
+    and already seed a 16-team field with the user at seed 0.</p>
+
+    <p><b>Recommendation: option A</b> - the knockout content area becomes the knockout
+    screen (the tree, a "Your run" divider, your tie played live under it), with the ladder
+    above it and the boost pick after. It is the shape <code>KnockoutScreen</code> already
+    has, it adds no new mechanism, and playing your tie <i>on</i> the tree is the half that
+    makes that screen worth keeping. Option B (the tree between rounds only) is the honest
+    fallback and upgrades into A without rework.</p>
+
+    <p><b>Two traps, both named in the mocks.</b> <code>buildBracket</code> fills its 14 open
+    seeds with <code>drawOpponent(faced, pool)</code> and passes <b>no slope</b>, so
+    Ascension's draw-steepening lever would silently stop working above Base: it needs one
+    optional parameter threaded through. And the group table cannot be recomputed matchday by
+    matchday the way the World Cup screen does it, because the Cup Run's group is already
+    played when the reveal starts - it needs a pure <code>groupAsOf(group, matchday)</code>
+    projection beside <code>standings</code>, which is assertable (the projection at matchday
+    3 must equal the group).</p>
+
+    <p><b>What it settles by deletion:</b> "should a one-off pay?", which the navigation audit
+    deliberately left open - there is no one-off. And it points at the bigger one: a Cup Run
+    with a real bracket, at Base with no boost taken, <i>is</i> a World Cup, which turns the
+    two tournament engines from a duplication nobody owns into something with an obvious end
+    state. <code>/group</code> and <code>/knockout</code> stay reachable in the classic chrome
+    meanwhile; nothing is deleted by this item.</p>
+
+    <p class="next"><strong>Next step:</strong> pick a bracket option, then build it in this
+    order - the <code>groupAsOf</code> projection and the group reveal first (settled, and it
+    stands alone), then the bracket in <code>RunState</code> with the slope fix, then the
+    chosen layout. <code>RunState.bracket</code> is optional like <code>shape</code>,
+    <code>build</code> and <code>chemistry</code>, so a run saved before it resumes and
+    finishes on the old one-opponent draw. Extend <code>npm run checks</code> with the two
+    invariants the World Cup bracket already asserts: exactly one champion, and the user's own
+    tie is the one they played.</p>
+
+    <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
+  </div>
+</details>
 
 <details class="item">
   <summary>

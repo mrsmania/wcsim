@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cup Run: the group stage</title>
+<link rel="stylesheet" href="../nav2/nav2.css" />
+<link rel="stylesheet" href="cuprun.css" />
+<!--
+  THE SETTLED HALF: the group draw animation and the live group table, inside a
+  career run. Three states of one screen, plus the phone. Nothing here is a
+  question - it is drawn so the implementation has something exact to build to.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="index.html" aria-label="World Cup Simulator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Cup Run &middot; group stage</span>
+  </header>
+
+  <div class="sec-h" style="margin-top: 18px">
+    <div>
+      <p class="eyebrow">Settled</p>
+      <h2>Play group stage, and the draw comes first</h2>
+    </div>
+    <div class="chalkline"></div>
+    <div class="aside">3 states &middot; 1 phone</div>
+  </div>
+
+  <p class="lede">
+    The button that today jumps straight to a results table now opens the draw, then the
+    group plays out in front of you. Every piece is a component that already exists;
+    <code>prepareGroupStage</code> already has the whole group simulated when the button is
+    pressed, so this is a reveal, not new logic.
+  </p>
+
+  <!-- ===================== STATE 1: THE DRAW ===================== -->
+  <h3 class="sub">1 &middot; The draw <span class="badge reuse">GroupDrawReveal, unchanged</span></h3>
+  <div class="card" style="position: relative; overflow: hidden">
+    <div class="blk" style="padding: 0">
+      <!-- the run screen, dimmed under the modal -->
+      <div style="opacity: 0.32; pointer-events: none; padding: 15px">
+        <div class="ladder">
+          <div class="lstep now"><div class="g">&#9679;</div><div class="rl">Group</div><div class="vs">3 to play</div></div>
+          <div class="lstep todo"><div class="g">&middot;</div><div class="rl">R16</div><div class="vs">&nbsp;</div></div>
+          <div class="lstep todo"><div class="g">&middot;</div><div class="rl">QF</div><div class="vs">&nbsp;</div></div>
+          <div class="lstep todo"><div class="g">&middot;</div><div class="rl">SF</div><div class="vs">&nbsp;</div></div>
+          <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Final</div><div class="vs">&nbsp;</div></div>
+          <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Cup</div><div class="vs">&nbsp;</div></div>
+        </div>
+        <div class="mets" style="margin-top: 12px">
+          <div class="met"><div class="k">Ovr</div><div class="v">88</div></div>
+          <div class="met"><div class="k">Chemistry</div><div class="v">+4</div></div>
+          <div class="met"><div class="k">Ascension</div><div class="v">II</div></div>
+          <div class="met"><div class="k">Title odds</div><div class="v">18%</div></div>
+        </div>
+      </div>
+
+      <!-- the modal -->
+      <div style="position: absolute; inset: 0; background: rgba(19, 33, 26, 0.4); display: grid; place-items: center; padding: 18px">
+        <div class="card" style="max-width: 430px; width: 100%; box-shadow: 6px 6px 0 var(--ink)">
+          <div class="blk" style="text-align: center">
+            <p class="eyebrow" style="text-align: center">The draw</p>
+            <div style="font-family: var(--disp); font-weight: 800; font-size: 19px; margin-bottom: 4px">
+              Group C
+            </div>
+            <p class="hint mt0" style="margin-bottom: 14px">Your three opponents</p>
+            <div style="display: flex; justify-content: center; gap: 14px">
+              <div style="text-align: center">
+                <span class="flag lg f-bra"></span>
+                <div class="mono" style="font-size: 11px; margin-top: 5px">BRA <b>02</b></div>
+              </div>
+              <div style="text-align: center">
+                <span class="flag lg f-nga"></span>
+                <div class="mono" style="font-size: 11px; margin-top: 5px">NGA <b>94</b></div>
+              </div>
+              <div style="text-align: center">
+                <span class="flag lg f-jpn"></span>
+                <div class="mono" style="font-size: 11px; margin-top: 5px">JPN <b>18</b></div>
+              </div>
+            </div>
+            <button class="btn primary block" style="margin-top: 16px">To the group stage</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="stack-note">
+    Shown <b>once per group</b>, exactly as the World Cup shows it: the flags scramble for a
+    beat and settle, reduced motion skips the scramble, and the table behind it stays hidden
+    until it is dismissed so the group is not spoiled. The only new thing is the caller.
+  </div>
+
+  <!-- ===================== STATE 2: MID-REVEAL ===================== -->
+  <h3 class="sub">2 &middot; Playing it out <span class="badge reuse">StandingsTable + MatchdayCard</span></h3>
+  <div class="card">
+    <div class="blk">
+      <div class="ladder" style="margin-bottom: 14px">
+        <div class="lstep now"><div class="g">&#9679;</div><div class="rl">Group</div><div class="vs">MD 2</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">R16</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">QF</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">SF</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Final</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Cup</div><div class="vs">&nbsp;</div></div>
+      </div>
+
+      <table class="gt">
+        <thead>
+          <tr><th>Group C</th><th class="n">P</th><th class="n">W</th><th class="n">D</th><th class="n">L</th><th class="n">GD</th><th class="n">Pts</th></tr>
+        </thead>
+        <tbody>
+          <tr class="thru"><td><span class="team"><span class="pos">1</span><span class="flag sm f-bra"></span> Brazil <span class="mono dimt">02</span></span></td><td class="n">1</td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">+2</td><td class="n">3</td></tr>
+          <tr class="you thru"><td><span class="team"><span class="pos">2</span><span class="flag sm f-you"></span> Your XI</span></td><td class="n">1</td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">+1</td><td class="n">3</td></tr>
+          <tr><td><span class="team"><span class="pos">3</span><span class="flag sm f-nga"></span> Nigeria <span class="mono dimt">94</span></span></td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">1</td><td class="n">-1</td><td class="n">0</td></tr>
+          <tr><td><span class="team"><span class="pos">4</span><span class="flag sm f-jpn"></span> Japan <span class="mono dimt">18</span></span></td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">1</td><td class="n">-2</td><td class="n">0</td></tr>
+        </tbody>
+      </table>
+
+      <div class="md">
+        <div class="h"><b>Matchday 1</b><span class="done">Played</span></div>
+        <div class="fx mine">
+          <div class="a"><b>Your XI</b><span class="flag sm f-you"></span></div>
+          <div class="sc">2 - 1</div>
+          <div class="b"><span class="flag sm f-jpn"></span> Japan <span class="mono dimt">18</span></div>
+        </div>
+        <div class="fx">
+          <div class="a">Brazil <span class="mono dimt">02</span><span class="flag sm f-bra"></span></div>
+          <div class="sc">3 - 1</div>
+          <div class="b"><span class="flag sm f-nga"></span> Nigeria <span class="mono dimt">94</span></div>
+        </div>
+      </div>
+
+      <div class="md" style="border-color: var(--loss)">
+        <div class="h"><b>Matchday 2</b><span class="live">Live &middot; 67'</span></div>
+        <div class="fx mine">
+          <div class="a"><b>Your XI</b><span class="flag sm f-you"></span></div>
+          <div class="sc">1 - 0</div>
+          <div class="b"><span class="flag sm f-nga"></span> Nigeria <span class="mono dimt">94</span></div>
+        </div>
+        <div class="feed">
+          <div class="ev" style="border-top: 1px solid var(--hair)"><span class="min">54'</span><span class="flag sm f-you"></span> Ronaldo</div>
+        </div>
+        <div class="fx">
+          <div class="a">Brazil <span class="mono dimt">02</span><span class="flag sm f-bra"></span></div>
+          <div class="sc">2 - 0</div>
+          <div class="b"><span class="flag sm f-jpn"></span> Japan <span class="mono dimt">18</span></div>
+        </div>
+      </div>
+
+      <div class="md" style="opacity: 0.55">
+        <div class="h"><b>Matchday 3</b><span class="mono" style="margin-left: auto">To play</span></div>
+        <div class="fx">
+          <div class="a"><b>Your XI</b><span class="flag sm f-you"></span></div>
+          <div class="sc" style="background: none"><span class="tbd">vs</span></div>
+          <div class="b"><span class="flag sm f-bra"></span> Brazil <span class="mono dimt">02</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-note warn">
+    <b>The one piece of new code, and it is small.</b> The Cup Run has the group
+    <i>already played</i> when the reveal starts, so the table cannot be recomputed
+    matchday by matchday the way the World Cup screen does it - it has to be
+    <b>projected</b>: a pure <code>groupAsOf(group, matchday)</code> that blanks the results
+    after matchday N, so <code>StandingsTable</code> can be handed a partial group and stay
+    exactly as it is. Belongs beside <code>standings</code> in
+    <code>domain/tournament.ts</code>, and it is assertable: the projection at matchday 3
+    must equal the group itself.
+  </div>
+  <div class="stack-note">
+    <b>Where the other two teams' scores come from:</b> they are already in the group
+    <code>prepareGroupStage</code> returns. Today the Cup Run throws that half away and
+    shows only the user's three results; the table has always been derived from all six
+    fixtures.
+  </div>
+
+  <!-- ===================== STATE 3: THROUGH ===================== -->
+  <h3 class="sub">3 &middot; Through, and the first boost <span class="badge reuse">today's screen, one layer up</span></h3>
+  <div class="card">
+    <div class="blk">
+      <div class="banner" style="margin-bottom: 14px">Won the group &middot; Through to the Round of 16</div>
+      <table class="gt" style="margin-bottom: 14px">
+        <thead>
+          <tr><th>Group C &middot; final</th><th class="n">P</th><th class="n">GD</th><th class="n">Pts</th></tr>
+        </thead>
+        <tbody>
+          <tr class="you thru"><td><span class="team"><span class="pos">1</span><span class="flag sm f-you"></span> Your XI</span></td><td class="n">3</td><td class="n">+4</td><td class="n">7</td></tr>
+          <tr class="thru"><td><span class="team"><span class="pos">2</span><span class="flag sm f-bra"></span> Brazil <span class="mono dimt">02</span></span></td><td class="n">3</td><td class="n">+5</td><td class="n">7</td></tr>
+          <tr><td><span class="team"><span class="pos">3</span><span class="flag sm f-nga"></span> Nigeria <span class="mono dimt">94</span></span></td><td class="n">3</td><td class="n">-3</td><td class="n">3</td></tr>
+          <tr><td><span class="team"><span class="pos">4</span><span class="flag sm f-jpn"></span> Japan <span class="mono dimt">18</span></span></td><td class="n">3</td><td class="n">-6</td><td class="n">0</td></tr>
+        </tbody>
+      </table>
+      <p class="seglbl">Pick a boost</p>
+      <div class="offer">
+        <div class="bcard c"><div class="top">Common</div><div class="bd"><h5>Star Signing</h5><p>+3 to your best-rated player.</p></div></div>
+        <div class="bcard r"><div class="top">Rare</div><div class="bd"><h5>Catenaccio</h5><p>+4 to your defence, -1 to your attack.</p></div></div>
+        <div class="bcard l"><div class="top">Legendary</div><div class="bd"><h5>Gal&aacute;cticos</h5><p>+2 to every player rated 90 or above.</p></div></div>
+      </div>
+      <p class="hint">
+        Next: <span class="flag sm f-arg"></span> Argentina <b>1986</b> in the Round of 16
+        &mdash; or, under option A, "the draw is in" and the bracket says who.
+      </p>
+    </div>
+  </div>
+  <div class="stack-note">
+    This state is <b>today's screen</b>: the run banner, the standings and the boost picker
+    are already exactly this. What changes above it is that the table was not a reveal at
+    the end any more - it was the thing you watched.
+  </div>
+
+  <!-- ===================== PHONE ===================== -->
+  <h3 class="sub">On a phone</h3>
+  <div class="phones">
+    <figure style="margin: 0">
+      <p class="phcap">Cup Run / Group <b>Draw, then table</b></p>
+      <div class="ph">
+        <div class="pmast">
+          <span class="crest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/><path d="M4 22h16"/></svg></span>
+          <b>World Cup Sim</b>
+        </div>
+        <div class="pcrumb"><span>Play / Cup Run / Group</span><span class="state">MD 2</span></div>
+        <div class="pbody">
+          <div class="ladder" style="gap: 4px">
+            <div class="lstep now" style="min-width: 58px; padding: 5px"><div class="g">&#9679;</div><div class="rl" style="font-size: 10px">Group</div></div>
+            <div class="lstep todo" style="min-width: 58px; padding: 5px"><div class="g">&middot;</div><div class="rl" style="font-size: 10px">R16</div></div>
+            <div class="lstep todo" style="min-width: 58px; padding: 5px"><div class="g">&middot;</div><div class="rl" style="font-size: 10px">QF</div></div>
+            <div class="lstep todo" style="min-width: 58px; padding: 5px"><div class="g">&middot;</div><div class="rl" style="font-size: 10px">SF</div></div>
+          </div>
+          <div class="card sm" style="margin-top: 9px; overflow: hidden">
+            <table class="gt" style="font-size: 11.5px">
+              <thead><tr><th>Group C</th><th class="n">GD</th><th class="n">Pts</th></tr></thead>
+              <tbody>
+                <tr class="thru"><td><span class="team"><span class="pos">1</span><span class="flag sm f-bra"></span> BRA</span></td><td class="n">+2</td><td class="n">3</td></tr>
+                <tr class="you thru"><td><span class="team"><span class="pos">2</span><span class="flag sm f-you"></span> You</span></td><td class="n">+1</td><td class="n">3</td></tr>
+                <tr><td><span class="team"><span class="pos">3</span><span class="flag sm f-nga"></span> NGA</span></td><td class="n">-1</td><td class="n">0</td></tr>
+                <tr><td><span class="team"><span class="pos">4</span><span class="flag sm f-jpn"></span> JPN</span></td><td class="n">-2</td><td class="n">0</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="md" style="border-color: var(--loss); margin-top: 9px">
+            <div class="h" style="padding: 6px 9px"><b>MD 2</b><span class="live">67'</span></div>
+            <div class="fx mine" style="padding: 7px 9px; font-size: 12px">
+              <div class="a"><b>You</b><span class="flag sm f-you"></span></div>
+              <div class="sc">1 - 0</div>
+              <div class="b"><span class="flag sm f-nga"></span> NGA</div>
+            </div>
+            <div class="fx" style="padding: 7px 9px; font-size: 12px">
+              <div class="a">BRA<span class="flag sm f-bra"></span></div>
+              <div class="sc">2 - 0</div>
+              <div class="b"><span class="flag sm f-jpn"></span> JPN</div>
+            </div>
+          </div>
+        </div>
+        <nav class="pbar locked">
+          <a class="on" href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></svg></span><span class="lb">Play</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/></svg></span><span class="lb">Career</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span><span class="lb">Album</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8"/></svg></span><span class="lb">Records</span></a>
+          <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span><span class="lb">Squads</span></a>
+        </nav>
+      </div>
+      <p class="hint" style="max-width: 336px">
+        The table above the matchdays, both scrollable in one column, and the tab bar inert
+        while a matchday reveals - the rule the five-tab chrome already has.
+      </p>
+    </figure>
+  </div>
+
+  <nav class="setnav">
+    <span>Cup Run stages</span>
+    <a href="index.html">Overview</a>
+    <a class="here" href="group.html">Group stage</a>
+    <a href="opt-a-stage.html">A &middot; Stage</a>
+    <a href="opt-b-between.html">B &middot; Between rounds</a>
+    <a href="opt-c-toggle.html">C &middot; Toggle</a>
+    <a href="opt-d-drawer.html">D &middot; On demand</a>
+  </nav>
+  <p class="foot">Static comp. Sibling sets: <code>../nav2/</code>, <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

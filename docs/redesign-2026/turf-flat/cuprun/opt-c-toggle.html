@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Option C: ladder or bracket</title>
+<link rel="stylesheet" href="../nav2/nav2.css" />
+<link rel="stylesheet" href="cuprun.css" />
+<!--
+  OPTION C: the ladder and the bracket are two views of the same progress, switched
+  at the top of the run. Drawn because it is the obvious idea, and because seeing it
+  drawn is how you notice it puts a second progress control on the same screen.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="index.html" aria-label="World Cup Simulator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Option C &middot; ladder or bracket</span>
+  </header>
+
+  <div class="ohead">
+    <div class="oletter">C</div>
+    <div>
+      <p class="verdict warn">Works, but adds a control</p>
+      <h2>Two views of the same progress</h2>
+    </div>
+  </div>
+
+  <p class="lede">
+    A segmented control at the top of the run swaps the compact ladder for the full tree.
+    The ladder stays the phone default; the bracket is the wide view. It reads well as an
+    idea - and the drawing is what shows the problem: the run screen now has two things
+    that both answer "where am I", and the navigation audit already flagged a second
+    stepper on this screen as something needing reconciling.
+  </p>
+
+  <div class="card" style="margin-top: 16px">
+    <div class="blk">
+      <div class="crumb" style="padding-top: 0">
+        <span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Quarter-final</span>
+        <span class="state warm">Live &middot; 67'</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; margin: 12px 0 14px; flex-wrap: wrap">
+        <div class="seg" style="max-width: 260px">
+          <button>Ladder</button><button class="on">Bracket</button>
+        </div>
+        <span class="mono dimt" style="font-size: 11px">Quarter-final of 5 &middot; 8 teams left</span>
+      </div>
+
+      <div class="bk">
+        <div class="bkcol">
+          <div class="lb">Round of 16</div>
+          <div class="bkm mine"><div class="bks you w"><span class="flag sm f-you"></span><span class="cd">Your XI</span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-arg"></span><span class="cd">ARG <span class="yr">86</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">02</span></span><span class="g">3</span></div><div class="bks l"><span class="flag sm f-jpn"></span><span class="cd">JPN <span class="yr">18</span></span><span class="g">0</span></div></div>
+          <div class="bkm"><div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER <span class="yr">90</span></span><span class="g">1</span></div><div class="bks w"><span class="flag sm f-fra"></span><span class="cd">FRA <span class="yr">98</span></span><span class="g">2</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-ita"></span><span class="cd">ITA <span class="yr">06</span></span><span class="g">1</span></div><div class="bks l"><span class="flag sm f-nga"></span><span class="cd">NGA <span class="yr">94</span></span><span class="g">0</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-esp"></span><span class="cd">ESP <span class="yr">10</span></span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-gha"></span><span class="cd">GHA <span class="yr">06</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks l"><span class="flag sm f-ned"></span><span class="cd">NED <span class="yr">98</span></span><span class="g">0</span></div><div class="bks w"><span class="flag sm f-eng"></span><span class="cd">ENG <span class="yr">90</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-por"></span><span class="cd">POR <span class="yr">06</span></span><span class="g">3</span></div><div class="bks l"><span class="flag sm f-cro"></span><span class="cd">CRO <span class="yr">98</span></span><span class="g">2</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">94</span></span><span class="g">1</span></div><div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER <span class="yr">14</span></span><span class="g">0</span></div></div>
+        </div>
+        <div class="bkcol">
+          <div class="lb">Quarter-finals</div>
+          <div class="bkm next"><div class="bks you"><span class="flag sm f-you"></span><span class="cd">Your XI</span><span class="g">1</span></div><div class="bks"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">02</span></span><span class="g">0</span></div></div>
+          <div class="bkm"><div class="bks"><span class="flag sm f-fra"></span><span class="cd">FRA <span class="yr">98</span></span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-ita"></span><span class="cd">ITA <span class="yr">06</span></span><span class="g">&ndash;</span></div></div>
+          <div class="bkm"><div class="bks"><span class="flag sm f-esp"></span><span class="cd">ESP <span class="yr">10</span></span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-eng"></span><span class="cd">ENG <span class="yr">90</span></span><span class="g">&ndash;</span></div></div>
+          <div class="bkm"><div class="bks"><span class="flag sm f-por"></span><span class="cd">POR <span class="yr">06</span></span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">94</span></span><span class="g">&ndash;</span></div></div>
+        </div>
+        <div class="bkcol">
+          <div class="lb">Semi-finals</div>
+          <div class="bkm"><div class="bks tbd"><span></span><span class="cd">winner QF1</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">winner QF2</span><span class="g">&ndash;</span></div></div>
+          <div class="bkm"><div class="bks tbd"><span></span><span class="cd">winner QF3</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">winner QF4</span><span class="g">&ndash;</span></div></div>
+        </div>
+        <div class="bkcol">
+          <div class="lb">Final</div>
+          <div class="bkm"><div class="bks tbd"><span></span><span class="cd">winner SF1</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">winner SF2</span><span class="g">&ndash;</span></div></div>
+        </div>
+        <div class="bkcol">
+          <div class="lb">Champion</div>
+          <div class="bkcup"><div class="t">&#127942;</div><div class="n">&mdash;</div><div class="s">Not yet</div></div>
+        </div>
+      </div>
+
+      <div style="max-width: 600px; margin: 20px auto 0">
+        <div class="card sm">
+          <div class="hd"><h3>Quarter-final</h3><span class="r">Live</span></div>
+          <div class="score">
+            <div class="side a"><b>Your XI</b><span class="flag f-you"></span></div>
+            <div><div class="gg">1 &ndash; 0</div><div class="clock">67'</div></div>
+            <div class="side"><span class="flag f-bra"></span><b>Brazil 2002</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-note no">
+    <b>What the drawing exposes.</b> With the bracket on, the ladder is gone - and with it
+    the review affordance, which is the ladder's other job: clicking a past step opens that
+    round's read-only recap. So the toggle does not swap two views of one thing; it swaps a
+    <i>control</i> for a <i>picture</i>. Either the bracket learns to be clickable per node
+    (which is option A with extra steps) or you lose review while looking at the tree.
+  </div>
+
+  <div class="gains">
+    <div>
+      <h4 class="g">What it buys</h4>
+      <ul>
+        <li><b>The phone keeps the compact view by default</b>, and the tree is opt-in where
+          there is width for it.</li>
+        <li>Nothing about the run flow changes - the toggle is additive, so it is easy to
+          ship and easy to remove.</li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="c">What it costs</h4>
+      <ul>
+        <li><b>A second progress control on one screen</b>, which is precisely what the
+          navigation audit said needed reconciling rather than duplicating.</li>
+        <li><b>A state to remember</b>: which view you last used, per run or per device -
+          another small preference nobody asked for.</li>
+        <li>You still never play on the tree.</li>
+      </ul>
+    </div>
+  </div>
+
+  <nav class="setnav">
+    <span>Cup Run stages</span>
+    <a href="index.html">Overview</a>
+    <a href="group.html">Group stage</a>
+    <a href="opt-a-stage.html">A &middot; Stage</a>
+    <a href="opt-b-between.html">B &middot; Between rounds</a>
+    <a class="here" href="opt-c-toggle.html">C &middot; Toggle</a>
+    <a href="opt-d-drawer.html">D &middot; On demand</a>
+  </nav>
+  <p class="foot">Static comp. Sibling sets: <code>../nav2/</code>, <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>

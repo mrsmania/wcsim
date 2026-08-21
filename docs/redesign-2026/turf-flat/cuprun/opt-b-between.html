@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Option B: the bracket between rounds</title>
+<link rel="stylesheet" href="../nav2/nav2.css" />
+<link rel="stylesheet" href="cuprun.css" />
+<!--
+  OPTION B: you play your tie on the card you play it on today; the tree appears
+  after it, above the boost cards, showing the round resolving and who is next.
+  The cheap version of A, and it upgrades into A without rework.
+-->
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a class="crest" href="index.html" aria-label="World Cup Simulator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2C16.1 18.8 17 20.2 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </a>
+    <h1>World Cup <em>Simulator</em></h1>
+    <span class="tag">Option B &middot; between rounds</span>
+  </header>
+
+  <div class="ohead">
+    <div class="oletter">B</div>
+    <div>
+      <p class="verdict warn">The honest fallback</p>
+      <h2>The tree shows up when it has news</h2>
+    </div>
+  </div>
+
+  <p class="lede">
+    Nothing changes about how you play a tie: it is the card it is today. What changes is
+    what happens when it ends - instead of going straight to three boost cards, the bracket
+    opens above them, the other ties in the round resolve on it, and your next opponent is
+    read off the tree rather than announced in a line of text.
+  </p>
+
+  <div class="card" style="margin-top: 16px">
+    <div class="blk">
+      <div class="crumb" style="padding-top: 0">
+        <span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Quarter-final</span>
+        <span class="state">Won 2-0</span>
+      </div>
+
+      <div class="ladder" style="margin: 12px 0 14px">
+        <div class="lstep done"><div class="g">&#10003;</div><div class="rl">Group</div><div class="vs">1st, 7 pts</div></div>
+        <div class="lstep done"><div class="g">&#10003;</div><div class="rl">R16</div><div class="vs">won 2-1</div></div>
+        <div class="lstep now"><div class="g">&#10003;</div><div class="rl">QF</div><div class="vs">won 2-0</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">SF</div><div class="vs">vs FRA</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Final</div><div class="vs">&nbsp;</div></div>
+        <div class="lstep todo"><div class="g">&middot;</div><div class="rl">Cup</div><div class="vs">&nbsp;</div></div>
+      </div>
+
+      <div class="banner" style="margin-bottom: 14px">Won 2-0 &middot; Through to the Semi-final</div>
+
+      <!-- the finished tie stays on screen, as it already does -->
+      <div style="max-width: 600px; margin: 0 auto 18px">
+        <div class="card sm">
+          <div class="hd"><h3>Quarter-final</h3><span class="r">Full time</span></div>
+          <div class="score">
+            <div class="side a"><b>Your XI</b><span class="flag f-you"></span></div>
+            <div><div class="gg">2 &ndash; 0</div><div class="clock" style="color: var(--pitch)">FT</div></div>
+            <div class="side"><span class="flag f-bra"></span><b>Brazil 2002</b></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="seglbl" style="text-align: center">The round, resolved</p>
+      <div class="bk">
+        <div class="bkcol">
+          <div class="lb">Round of 16</div>
+          <div class="bkm mine"><div class="bks you w"><span class="flag sm f-you"></span><span class="cd">Your XI</span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-arg"></span><span class="cd">ARG <span class="yr">86</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">02</span></span><span class="g">3</span></div><div class="bks l"><span class="flag sm f-jpn"></span><span class="cd">JPN <span class="yr">18</span></span><span class="g">0</span></div></div>
+          <div class="bkm"><div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER <span class="yr">90</span></span><span class="g">1</span></div><div class="bks w"><span class="flag sm f-fra"></span><span class="cd">FRA <span class="yr">98</span></span><span class="g">2</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-ita"></span><span class="cd">ITA <span class="yr">06</span></span><span class="g">1</span></div><div class="bks l"><span class="flag sm f-nga"></span><span class="cd">NGA <span class="yr">94</span></span><span class="g">0</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-esp"></span><span class="cd">ESP <span class="yr">10</span></span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-gha"></span><span class="cd">GHA <span class="yr">06</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks l"><span class="flag sm f-ned"></span><span class="cd">NED <span class="yr">98</span></span><span class="g">0</span></div><div class="bks w"><span class="flag sm f-eng"></span><span class="cd">ENG <span class="yr">90</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-por"></span><span class="cd">POR <span class="yr">06</span></span><span class="g">3</span></div><div class="bks l"><span class="flag sm f-cro"></span><span class="cd">CRO <span class="yr">98</span></span><span class="g">2</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">94</span></span><span class="g">1</span></div><div class="bks l"><span class="flag sm f-ger"></span><span class="cd">GER <span class="yr">14</span></span><span class="g">0</span></div></div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Quarter-finals</div>
+          <div class="bkm mine"><div class="bks you w"><span class="flag sm f-you"></span><span class="cd">Your XI</span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">02</span></span><span class="g">0</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-fra"></span><span class="cd">FRA <span class="yr">98</span></span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-ita"></span><span class="cd">ITA <span class="yr">06</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks l"><span class="flag sm f-esp"></span><span class="cd">ESP <span class="yr">10</span></span><span class="g">0</span></div><div class="bks w"><span class="flag sm f-eng"></span><span class="cd">ENG <span class="yr">90</span></span><span class="g">1</span></div></div>
+          <div class="bkm"><div class="bks w"><span class="flag sm f-por"></span><span class="cd">POR <span class="yr">06</span></span><span class="g">2</span></div><div class="bks l"><span class="flag sm f-bra"></span><span class="cd">BRA <span class="yr">94</span></span><span class="g">1</span></div></div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Semi-finals</div>
+          <div class="bkm next"><div class="bks you"><span class="flag sm f-you"></span><span class="cd">Your XI</span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-fra"></span><span class="cd">FRA <span class="yr">98</span></span><span class="g">&ndash;</span></div></div>
+          <div class="bkm"><div class="bks"><span class="flag sm f-eng"></span><span class="cd">ENG <span class="yr">90</span></span><span class="g">&ndash;</span></div><div class="bks"><span class="flag sm f-por"></span><span class="cd">POR <span class="yr">06</span></span><span class="g">&ndash;</span></div></div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Final</div>
+          <div class="bkm"><div class="bks tbd"><span></span><span class="cd">winner SF1</span><span class="g">&ndash;</span></div><div class="bks tbd"><span></span><span class="cd">winner SF2</span><span class="g">&ndash;</span></div></div>
+        </div>
+
+        <div class="bkcol">
+          <div class="lb">Champion</div>
+          <div class="bkcup"><div class="t">&#127942;</div><div class="n">&mdash;</div><div class="s">Two to go</div></div>
+        </div>
+      </div>
+
+      <p class="seglbl" style="margin: 22px 0 8px">Pick a boost</p>
+      <div class="offer">
+        <div class="bcard c"><div class="top">Common</div><div class="bd"><h5>Defensive Drills</h5><p>+3 to your defence.</p></div></div>
+        <div class="bcard r"><div class="top">Rare</div><div class="bd"><h5>Poach</h5><p>Take a player from your next opponent.</p></div></div>
+        <div class="bcard l"><div class="top">Legendary</div><div class="bd"><h5>Wildcard Legend</h5><p>A 93+ player joins your XI.</p></div></div>
+      </div>
+      <p class="hint">
+        Next: <span class="flag sm f-fra"></span> France <b>1998</b> in the Semi-final - and
+        now you can see they beat Italy to get there.
+      </p>
+    </div>
+  </div>
+
+  <div class="gains">
+    <div>
+      <h4 class="g">What it buys</h4>
+      <ul>
+        <li><b>The same data cost as A, none of the layout risk.</b> The run screen you play
+          on is untouched; the tree only appears where there is already a full-width slot
+          between rounds.</li>
+        <li><b>The boost pick gets context.</b> "Poach" reads differently when you can see
+          who France beat to reach you.</li>
+        <li><b>It upgrades into A later</b> with no rework: same
+          <code>BracketState</code>, same renderer, moved from "after the tie" to "the tie
+          is played on it".</li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="c">What it costs</h4>
+      <ul>
+        <li><b>You never play on the tree</b>, which is the half of the World Cup knockout
+          screen that makes it worth keeping. This is a tree you look at.</li>
+        <li><b>The between-rounds screen gets long:</b> banner, finished tie, tree, three
+          boost cards. On a phone that is a lot of scrolling before the decision.</li>
+        <li>Same domain work as A - the bracket in <code>RunState</code>, the draw slope
+          reaching <code>buildBracket</code> - so it is not cheaper where the risk actually
+          is.</li>
+      </ul>
+    </div>
+  </div>
+
+  <nav class="setnav">
+    <span>Cup Run stages</span>
+    <a href="index.html">Overview</a>
+    <a href="group.html">Group stage</a>
+    <a href="opt-a-stage.html">A &middot; Stage</a>
+    <a class="here" href="opt-b-between.html">B &middot; Between rounds</a>
+    <a href="opt-c-toggle.html">C &middot; Toggle</a>
+    <a href="opt-d-drawer.html">D &middot; On demand</a>
+  </nav>
+  <p class="foot">Static comp. Sibling sets: <code>../nav2/</code>, <code>../nav-options.html</code>.</p>
+</div>
+</body>
+</html>
