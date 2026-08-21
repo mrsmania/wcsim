@@ -1303,6 +1303,11 @@ keep working.
   commas, parentheses, or hyphens.
 - Workflow: commit and push directly to `main` for this repo. Always `npm run build`
   before committing. End commit messages with the `Co-Authored-By` trailer.
+- **There are no production users yet** (recorded 2026-08-21, until further notice). So
+  breaking a persisted shape, orphaning a saved game, or dropping a supported
+  configuration is a free choice rather than a migration: decide it on the merits and do
+  not write compatibility code for a player who does not exist. This is the standing
+  answer to "but what about someone who has X saved?".
 - When delegating to agents, review their diff before committing - they can
   overreach (reformatting, incidental behavior changes).
 
