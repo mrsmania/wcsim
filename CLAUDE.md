@@ -13,6 +13,10 @@ items and drifted apart.
 wave-by-wave backlog of dead code and behaviour-preserving refactorings, H1 to H105, plus
 the decisions they need and an explicit list of what not to touch. It is **blocked on item
 27** (the navigation rework, which moves the same code) and should not be started before it.
+Item 27's chrome has landed, but as a **preview behind a runtime switch** (see "Navigation
+preview" below), so `App.tsx` now carries BOTH chromes and the block is tighter rather than
+looser: refactoring either path means doing it twice, and one of the two is about to be
+deleted. It lifts when the default flips.
 Roadmap item 22 used to be the blocker and was dropped on 2026-08-20; the audit's off-limits
 section now splits what it owned into item 27's half and an explicitly unowned half. Note that it records several claims in this file
 as drifted (see its wave 1d); those corrections are backlog items, so do not be surprised

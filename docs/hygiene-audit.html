@@ -186,12 +186,21 @@
 </div>
 
 <div class="stop">
-  <span class="ct">Do not start before roadmap item 27</span>
+  <span class="ct">Do not start before roadmap item 27 has flipped its default</span>
   <p>Item 27 (the navigation and click-path rework) moves the same code this backlog touches:
   <code>App.tsx</code>'s route branch, the mode fact being derived twice, the reset target, the
   two nav cards in the build page's left column, and the career hub splitting off the run screen.
   Doing hygiene first means doing several of these twice, and the second pass would be the one
   that loses.</p>
+  <p><b>Updated 2026-08-21: item 27's chrome has landed, but as a PREVIEW, not as the
+  default.</b> Concept 2 (five tabs) is implemented behind a runtime switch
+  (<code>?nav=tabs</code>, <code>src/nav/navMode.ts</code>), so <code>App.tsx</code> now carries
+  <b>both</b> chromes: the classic route branch, footer nav, two build routes and
+  <code>modeOfPath</code>, alongside the <code>TABS</code> branches, <code>/play</code>,
+  <code>/career</code>, <code>/records</code> and the run-kind control. That makes this callout
+  <b>more</b> binding rather than less: refactoring either path now means doing it twice, and one
+  of the two is about to be deleted. The block lifts when the default flips and the losing chrome
+  goes - not when the preview shipped.</p>
   <p><b>Updated 2026-08-20:</b> this callout used to name roadmap item 22, which has been
   dropped. Its navigational half is item 27's. The rest of what it owned (the two tournament
   engines, the two chemistry definitions, the run-end sticker trigger order, the
@@ -703,6 +712,9 @@ verified, and still not this backlog's, because none of it is behaviour-preservi
 one of those on is making a design decision, not doing hygiene, and should say so in the commit.</p>
 
 <h3>Item 27 owns these</h3>
+<p><b>2026-08-21:</b> all three are now <b>fixed in the tabs chrome and unchanged in
+the classic one</b>, which is why they are still off limits. Each will be settled by deletion when
+the default flips, not by a refactor here.</p>
 
 <ul>
   <li><b>The mode fact derived twice.</b> <code>modeOfPath</code> from the route versus

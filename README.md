@@ -32,6 +32,9 @@ configured that whole layer is absent from the bundle.
 - State as a single `useReducer` game machine; pure game logic in `src/domain/`
 - **Routing** via `react-router-dom` (clean paths); the whole game is mirrored to
   `localStorage`, so browser Back/Forward work and an in-progress run survives a refresh
+- **Two navigations in one build:** the shipped chrome, plus a five-tab preview at
+  `?nav=tabs` (roadmap item 27). Runtime switch, so both can be compared on the same
+  progress - see `CLAUDE.md`
 - **Design:** the flat "turf-flat" look (top-down tactics-board pitch, hard-shadow
   cards) with Archivo / Schibsted Grotesk / Spline Sans Mono web fonts. Tokens live
   in `src/index.css`; reference mockups in `docs/redesign-2026/turf-flat/`.
@@ -107,9 +110,10 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Transfer market: build the XI by buying within a budget instead of rolling squads, feature-flagged
 - [x] Sticker album: a persistent Panini-style collection of the elite players you draft, with duplicates and trades, feature-flagged
 - [x] Cup Run + career: a roguelike run (boosts between rounds, an Ascension difficulty ladder) over a persistent career of XP, levels, Prestige and tiered perks, feature-flagged
-- [x] Challenges: 130 permanent honours judged from a finished run, feature-flagged (their Prestige awards are currently switched off)
+- [x] Challenges: 130 permanent honours judged from a finished run, feature-flagged (their Prestige awards are on: bronze 2, silver 5, gold 12)
 - [x] Optional accounts: sign in with an emailed code and your album, career, settings and in-progress run live on a server instead of the browser (absent unless the build is given one)
 - [x] Settings: match speed, a casual/normal/hard difficulty, a light/dark theme, and which World Cups the game draws from
+- [x] Navigation preview: a five-tab chrome (Play / Career / Album / Records / Squads, with a bottom bar on a phone) at `?nav=tabs`, or from Settings. Same features, new click paths; `?nav=classic` switches back
 
 ## Hosting
 
