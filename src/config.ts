@@ -68,6 +68,17 @@ export const FEATURES = {
      *  and the hub link and changes nothing else. Roadmap item 06; comp in
      *  docs/redesign-2026/turf-flat/trophy-cabinet.html. */
     trophyCabinet: true,
+    /** Run nodes: the stop between two Cup Run rounds is not always a boost pick. With
+     *  this on, the stop after the Round of 16 is a **shop** (spend Form on something you
+     *  choose) and the one after the Semi-final is an **event** (a themed either/or, which
+     *  is where the curses live). Roadmap item 04; see `docs/run-nodes-plan.md`.
+     *
+     *  Set to false and every stop is a boost pick again, which is exactly the run as it
+     *  was before this existed: Form is still earned and shown, but nothing spends it, and
+     *  no shop or event screen can be reached. This flag is the rollback switch - it needs
+     *  no code revert and leaves a run in flight playable, since an unreachable node kind
+     *  simply never gets decided. */
+    runNodes: true,
     /** Whether a challenge PAYS Prestige. One switch for both halves, deliberately: with
      *  it false nothing is paid AND no award is shown anywhere (the catalogue rows, the
      *  hub card, the run-end list, the counter's Prestige cell), because Prestige arriving

@@ -38,6 +38,16 @@ import {
 import { xiOf, type RunEffect } from './effects';
 import { formFor, formForAll } from './form';
 import {
+  makeEvent,
+  makeShop,
+  nodeKindFor,
+  shopItemById,
+  eventById,
+  type NodeEffect,
+  type NodeKind,
+  type ShopStock,
+} from './nodes';
+import {
   bracketChampion,
   buildBracket,
   currentGame,
@@ -54,7 +64,7 @@ import { ascensionAt } from './ascension';
 // the sim. The UI steps it: playGroupStage -> chooseBoon -> playKnockoutRound ...
 // ---------------------------------------------------------------------------
 
-export type RunPhase = 'group' | 'boon' | 'match' | 'ended';
+export type RunPhase = 'group' | 'boon' | 'shop' | 'event' | 'match' | 'ended';
 
 /** The round number the group stage grants effects on. Knockout rounds are 0-based
  *  (`koRound`), so the group sits one below them. */
@@ -233,6 +243,15 @@ export interface RunState {
    *  away with the run - it never reaches the career. Optional so a run saved before it
    *  existed resumes; it simply starts earning from its next result. */
   form?: number;
+  /** The shop's stock, when `phase === 'shop'`. Decided in the round's decision helper and
+   *  stored, never drawn at render time - a reload must not re-roll the shop. */
+  shop?: ShopStock;
+  /** The drawn event's id, when `phase === 'event'`. Stored for the same reason. */
+  event?: string;
+  /** Extra cards on every later boost offer, bought at a shop. */
+  bonusOfferSize?: number;
+  /** The bracket has been revealed for the rest of the run (a shop purchase). */
+  revealed?: boolean;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played).
    *  With a bracket this is derived from it rather than drawn directly - it stays the
    *  single field every consumer reads, including the two boons that key off the next
@@ -400,6 +419,13 @@ export interface KoPending {
    *  Both absent when the tie ends the run (a loss, or the final). */
   offer?: Boon[];
   nextOpponent?: GroupTeam;
+  /** Which kind of stop follows this tie, and whatever that kind had to draw. Decided
+   *  HERE, with the rest of the round, because a node drawn at render time would be
+   *  re-drawn by a reload - the same rule that put the group, the tree and the offer on
+   *  the run in the first place. Absent on a run whose tie ends it. */
+  nodeKind?: NodeKind;
+  shop?: ShopStock;
+  event?: string;
 }
 
 /**
@@ -418,6 +444,12 @@ export interface GroupExit {
   bracket?: BracketState;
   offer: Boon[];
   nextOpponent: GroupTeam;
+  /** The stop that follows the group, decided here for the same reason the tree and the
+   *  offer are: a reload must replay it, never re-draw it. Optional so a run saved before
+   *  run nodes existed resumes straight into its boost pick, as it always did. */
+  nodeKind?: NodeKind;
+  shop?: ShopStock;
+  event?: string;
 }
 
 /** One of the user's group matches, normalised to the user-as-home perspective. */
@@ -470,7 +502,20 @@ export function chemistryOf(xi: Player[]): number {
 }
 
 /** Boon offer size (3), widened by the Extra Choice perk (+1 per owned tier). */
-const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra-boon'] ?? 0);
+/** Cards in a boost offer: three, plus the Extra Choice perk's tier, plus anything bought
+ *  at a shop (`bonusOfferSize`). */
+const offerSize = (perkLevels: Record<string, number>, bonus = 0) =>
+  3 + (perkLevels['extra-boon'] ?? 0) + bonus;
+
+/** Decide the stop that follows a round: its kind, and whatever that kind draws.
+ *  Called ONLY from `decideGroupExit` / `decideKoRound`, which is what keeps a node from
+ *  being re-drawn by a reload. */
+function decideNode(afterRound: number): { nodeKind: NodeKind; shop?: ShopStock; event?: string } {
+  const nodeKind = nodeKindFor(afterRound);
+  if (nodeKind === 'shop') return { nodeKind, shop: makeShop() };
+  if (nodeKind === 'event') return { nodeKind, event: makeEvent() };
+  return { nodeKind };
+}
 
 /** What the build page knows at kickoff and the run cannot work out later. Optional
  *  in full: a caller with nothing to hand (the checks harness) begins a run that simply
@@ -583,7 +628,8 @@ function decideGroupExit(
   drawSlopeBonus: number,
   pool: Squad[],
 ): GroupExit {
-  const offer = offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels));
+  const offer = offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels, run.bonusOfferSize));
+  const node = decideNode(GROUP_ROUND);
   // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
   // (the user, whoever qualified with them, and the whole group excluded), so the next
   // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
@@ -595,7 +641,7 @@ function decideGroupExit(
   if (!first || !opp0) {
     throw new Error('decideGroupExit: a freshly built bracket must have the user in round 0');
   }
-  return { bracket, offer, nextOpponent: opp0 };
+  return { bracket, offer, nextOpponent: opp0, ...node };
 }
 
 /** Simulate the group stage up front, returning the committed next state plus the
@@ -692,8 +738,13 @@ export function prepareGroupStage(
   return {
     next: {
       ...run,
-      phase: 'boon',
+      // The stop the group decided (a boost pick unless run nodes are on). `offer` is
+      // carried whatever the kind: a shop or an event still leads into the next tie, and
+      // the offer it holds is the one the NEXT boost stop will show.
+      phase: exit.nodeKind ?? 'boon',
       offer: exit.offer,
+      ...(exit.shop ? { shop: exit.shop } : {}),
+      ...(exit.event ? { event: exit.event } : {}),
       ...(exit.bracket ? { bracket: exit.bracket } : {}),
       group: undefined,
       groupExit: undefined,
@@ -733,9 +784,102 @@ export function rerollOffer(run: RunState): RunState {
   if (run.phase !== 'boon' || !run.offer || (run.rerollsLeft ?? 0) <= 0) return run;
   return {
     ...run,
-    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels, run.bonusOfferSize)),
     rerollsLeft: (run.rerollsLeft ?? 0) - 1,
   };
+}
+
+/**
+ * Apply one node effect to a run. The single place a shop item or an event option becomes
+ * a change, so the node catalogue never has to know how the run stores anything.
+ *
+ * Rating effects go through the ledger like a boost, so they are itemised and can expire;
+ * `lasts` is a number of rounds INCLUDING the current one, so `lasts: 1` means "this round
+ * and no further".
+ */
+function applyNodeEffect(
+  run: RunState,
+  eff: NodeEffect,
+  source: string,
+  label: string,
+): RunState {
+  const ctx = { opponentSquadId: run.nextOpponent?.id ?? null };
+  switch (eff.kind) {
+    case 'rating': {
+      const roster = run.roster ?? run.xi;
+      const effects = run.effects ?? [];
+      const plans = eff.plan(xiOf(roster, effects, run.koRound), ctx);
+      const expiresAfter = eff.lasts === undefined ? undefined : run.koRound + eff.lasts - 1;
+      return recomputeXi({
+        ...run,
+        effects: [...effects, ...effectsFrom(plans, source, label, run.koRound, expiresAfter)],
+      });
+    }
+    case 'roster': {
+      const roster = eff.apply(run.roster ?? run.xi, ctx);
+      const inP = roster.find((p) => !(run.roster ?? run.xi).some((b) => b.id === p.id));
+      return recomputeXi({
+        ...run,
+        roster,
+        boostedIds: inP ? [...run.boostedIds, inP.id] : run.boostedIds,
+      });
+    }
+    case 'reroll':
+      return { ...run, rerollsLeft: (run.rerollsLeft ?? 0) + eff.n };
+    case 'offerSize':
+      return { ...run, bonusOfferSize: (run.bonusOfferSize ?? 0) + eff.n };
+    case 'form':
+      // Clamped at zero: an option that charges Form is gated on affording it, but a
+      // negative balance must be unrepresentable rather than merely unlikely.
+      return { ...run, form: Math.max(0, (run.form ?? 0) + eff.n) };
+    case 'reveal':
+      return { ...run, revealed: true };
+    case 'none':
+      return run;
+  }
+}
+
+/** Form an event option costs, as a positive number (0 when it costs nothing). Used to
+ *  gate the option in the UI, so a player is never offered a trade they cannot make. */
+export function optionCost(effects: NodeEffect[]): number {
+  return effects.reduce((c, e) => c + (e.kind === 'form' && e.n < 0 ? -e.n : 0), 0);
+}
+
+/** Buy one item from the shop stop. Refuses silently when it is not affordable, already
+ *  bought, or not in this stop's stock, so the caller can gate on the same facts for the
+ *  button and still be safe if it does not. */
+export function buyShopItem(run: RunState, itemId: string): RunState {
+  if (run.phase !== 'shop' || !run.shop) return run;
+  if (!run.shop.itemIds.includes(itemId) || run.shop.purchased.includes(itemId)) return run;
+  const item = shopItemById(itemId);
+  if (!item || (run.form ?? 0) < item.cost) return run;
+  const paid: RunState = {
+    ...run,
+    form: (run.form ?? 0) - item.cost,
+    shop: { ...run.shop, purchased: [...run.shop.purchased, itemId] },
+  };
+  return applyNodeEffect(paid, item.effect, item.id, item.name);
+}
+
+/** Leave the shop and go on to the tie. The shop is dropped, so it cannot be revisited
+ *  or replayed - it belongs to the stop being left, like every other pending decision. */
+export function leaveShop(run: RunState): RunState {
+  if (run.phase !== 'shop') return run;
+  return { ...run, phase: 'match', shop: undefined };
+}
+
+/** Take one option on the event stop. */
+export function chooseEventOption(run: RunState, optionId: string): RunState {
+  if (run.phase !== 'event' || !run.event) return run;
+  const card = eventById(run.event);
+  const option = card?.options.find((o) => o.id === optionId);
+  if (!card || !option) return run;
+  if ((run.form ?? 0) < optionCost(option.effects)) return run;
+  let next: RunState = { ...run };
+  for (const eff of option.effects) {
+    next = applyNodeEffect(next, eff, `${card.id}:${option.id}`, card.title);
+  }
+  return { ...next, phase: 'match', event: undefined };
 }
 
 export function chooseBoon(run: RunState, boonId: string): BoonChoice {
@@ -869,8 +1013,9 @@ function decideKoRound(
   const fromBracket = bracket ? nextOpponentOf(bracket) : null;
   return {
     ...pending,
-    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels, run.bonusOfferSize)),
     nextOpponent: fromBracket ?? drawOpponent(new Set(run.facedIds), pool, drawSlopeBonus),
+    ...decideNode(round),
   };
 }
 
@@ -959,11 +1104,17 @@ export function prepareKnockoutRound(
     if (!nextOpp || !offer) {
       throw new Error('prepareKnockoutRound: a survived tie must carry its offer + next opponent');
     }
-    next = {
+    // `recomputeXi` after the increment, never before: `koRound` is what `xiOf` tests
+    // expiry against, so a temporary effect only wears off once the round has advanced.
+    // This is the one transition where that matters, since it is the only one that moves
+    // the round on.
+    next = recomputeXi({
       ...run,
-      phase: 'boon',
+      phase: decided.nodeKind ?? 'boon',
       koRound: round + 1,
       offer,
+      ...(decided.shop ? { shop: decided.shop } : {}),
+      ...(decided.event ? { event: decided.event } : {}),
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
       koPending: undefined,
@@ -972,7 +1123,7 @@ export function prepareKnockoutRound(
       history,
       tally,
       form,
-    };
+    });
   }
   return { next, current, match, opp, roundName };
 }
