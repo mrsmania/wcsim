@@ -636,6 +636,7 @@ export default function CupRunScreen({
               boostedIds={boostedIds}
               odds={odds}
               str={str}
+              form={run.form}
             />
 
             {/* Run panel: the live/interactive round view, or a past round's review */}

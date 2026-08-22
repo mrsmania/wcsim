@@ -75,6 +75,7 @@ import {
   BOON_UNLOCK_COST,
 } from '../src/domain/boons';
 import { xiOf, type RunEffect } from '../src/domain/effects';
+import { formFor, FORM_MARGIN_CAP } from '../src/domain/form';
 import {
   addMatches,
   beginRun,
@@ -571,6 +572,54 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     }
   }
   check(`effects: run.xi always equals xiOf(roster, effects, koRound) (${checked} states)`, ok);
+}
+
+// --- Form: the faucet, measured before anything is priced against it ---------
+// Roadmap item 04 slice 2. The shop's prices are derived from this distribution, so it is
+// PRINTED rather than only asserted - the next person to price an item needs the number,
+// and a figure written down in a doc goes stale while this cannot.
+{
+  const byOutcome = new Map<string, number[]>();
+  let ok = true;
+  for (let seed = 0; seed < 120; seed++) {
+    let run = beginRun(bestEleven(SQUADS[seed % SQUADS.length].players), {}, [], 0);
+    let last = run.form ?? 0;
+    let guard = 0;
+    while (run.phase !== 'ended' && guard++ < 12) {
+      if (run.phase === 'group') run = playGroupStage(run);
+      else if (run.phase === 'boon') run = chooseBoon(run, (run.offer ?? [])[0]?.id ?? '').next;
+      else run = playKnockoutRound(run);
+      const now = run.form ?? 0;
+      // Never negative, and never decreases while there is no sink to spend it at.
+      if (now < last) ok = false;
+      last = now;
+    }
+    const key = run.outcome ?? 'none';
+    byOutcome.set(key, [...(byOutcome.get(key) ?? []), run.form ?? 0]);
+  }
+  const median = (xs: number[]) => {
+    const a = [...xs].sort((x, y) => x - y);
+    return a.length ? a[Math.floor(a.length / 2)] : 0;
+  };
+  const all = [...byOutcome.values()].flat();
+  console.log('\n  form earned per run (120 runs, no sink)');
+  console.log('    ' + 'outcome'.padEnd(12) + 'runs'.padStart(6) + 'median'.padStart(8) + 'min'.padStart(6) + 'max'.padStart(6));
+  for (const [outcome, xs] of [...byOutcome.entries()].sort()) {
+    console.log(
+      '    ' + outcome.padEnd(12) + String(xs.length).padStart(6) +
+      String(median(xs)).padStart(8) + String(Math.min(...xs)).padStart(6) + String(Math.max(...xs)).padStart(6),
+    );
+  }
+  console.log('    ' + 'ALL'.padEnd(12) + String(all.length).padStart(6) + String(median(all)).padStart(8) +
+    String(Math.min(...all)).padStart(6) + String(Math.max(...all)).padStart(6));
+  if (all.some((f) => f < 0)) ok = false;
+  // A group exit plays three matches, so even the worst run earns something to look at.
+  check('form: never negative, never decreases without a sink', ok);
+  // The scoring rule itself, at the boundaries.
+  const rule =
+    formFor(0, 1) === 0 && formFor(1, 1) === 1 && formFor(1, 0) === 3 &&
+    formFor(3, 0) === 3 + FORM_MARGIN_CAP && formFor(9, 0) === 3 + FORM_MARGIN_CAP;
+  check('form: loss 0, draw 1, win 3, margin bonus capped', rule);
 }
 
 // --- Boon power: what each one is actually worth, against its rarity band ---

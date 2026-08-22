@@ -36,6 +36,7 @@ import {
   type RatingPlan,
 } from './boons';
 import { xiOf, type RunEffect } from './effects';
+import { formFor, formForAll } from './form';
 import {
   bracketChampion,
   buildBracket,
@@ -228,6 +229,10 @@ export interface RunState {
   offer: Boon[] | null;
   /** Boost-offer re-rolls left this run (Physio Table perk; absent on older saves). */
   rerollsLeft?: number;
+  /** Form earned so far this run (see `domain/form.ts`). Spent at shop nodes and thrown
+   *  away with the run - it never reaches the career. Optional so a run saved before it
+   *  existed resumes; it simply starts earning from its next result. */
+  form?: number;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played).
    *  With a bracket this is derived from it rather than drawn directly - it stays the
    *  single field every consumer reads, including the two boons that key off the next
@@ -533,6 +538,7 @@ export function beginRun(
     offer: null,
     // Physio Table perk: re-rolls of a boost offer available this run (0 without it).
     rerollsLeft: perkLevels['physio'] ?? 0,
+    form: 0,
     nextOpponent: null,
     score: 0,
     outcome: null,
@@ -631,6 +637,12 @@ export function prepareGroupStage(
     run.xi,
     userMatches.map((m) => m.result),
   );
+  // Form for all three group results at once, for the same reason the tally is: this is
+  // the point that holds them. Awarded on the COMMITTED state, so a replayed prepare
+  // (a reload mid-reveal) cannot pay twice.
+  const form =
+    (run.form ?? 0) +
+    formForAll(userMatches.map((m) => ({ us: m.result.homeGoals, them: m.result.awayGoals })));
   const groupRecord: RoundRecord = {
     stage: 'group',
     won: advanced,
@@ -666,6 +678,7 @@ export function prepareGroupStage(
         score: STAGE_SCORE.group,
         history: [...run.history, groupRecord],
         tally,
+        form,
       },
       current,
       userMatches,
@@ -690,6 +703,7 @@ export function prepareGroupStage(
       score: STAGE_SCORE.group,
       history: [...run.history, groupRecord],
       tally,
+      form,
     },
     current,
     userMatches,
@@ -904,6 +918,7 @@ export function prepareKnockoutRound(
   // is not in `match.events`, so a tie won on penalties adds no goals here - which is
   // the definition the cabinet's top-scorer list advertises.
   const tally = addMatches(run.tally ?? emptyTally(), run.xi, [match]);
+  const form = (run.form ?? 0) + formFor(match.userGoals, match.oppGoals);
 
   // `koPending: undefined` on every committed state below: the round's decisions belong
   // to the round being left, and `history` carries its result from here on.
@@ -922,6 +937,7 @@ export function prepareKnockoutRound(
       ...(nextBracket ? { bracket: nextBracket } : {}),
       history,
       tally,
+      form,
     };
   } else if (round >= KO_ROUNDS.length - 1) {
     next = {
@@ -934,6 +950,7 @@ export function prepareKnockoutRound(
       ...(nextBracket ? { bracket: nextBracket } : {}),
       history,
       tally,
+      form,
     };
   } else {
     // Both were decided when the round started, so they are read rather than drawn.
@@ -954,6 +971,7 @@ export function prepareKnockoutRound(
       score: STAGE_SCORE[LOST_IN[round]],
       history,
       tally,
+      form,
     };
   }
   return { next, current, match, opp, roundName };
