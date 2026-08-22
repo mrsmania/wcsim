@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-22<br>
-    <strong>Open:</strong> 5 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -318,6 +318,70 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">29</span>
+    <span class="title">Decisions, not calculations
+      <span class="sub">All 19 boosts sit on one axis, so an offer of three is arithmetic. Ideas for choices with no common scale: <code>docs/run-decisions.md</code>.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask (2026-08-22), from playing item 04:</strong> the run should ask the
+    player to DECIDE something, rather than to pick the largest of three benefits.</p>
+
+    <p><strong>The diagnosis is not "too few node kinds".</strong> It is that every one of the
+    19 boosts is "+N to some subset of the XI", so any offer reduces to working out which one
+    moves the attack and defence averages most. That is a calculation. Item 04 added node
+    kinds and did not fix it, because a shop selling rating points is the same axis with a
+    price on it.</p>
+
+    <p><strong>Form is answered NO for this format, and that is settled.</strong> A currency
+    needs enough transactions to be worth reasoning about and a World Cup has SEVEN matches;
+    earning Form in the semi-final is close to meaningless. <code>FEATURES.runNodes</code> is
+    off. The effect ledger and expiry stay on and load-bearing, and the node machinery stays
+    in the tree for a future kind that costs something other than a currency.</p>
+
+    <p><strong>The test a new decision has to pass</strong>, from the write-up:
+    <b>incomparable options</b> (the moment two are both "+N", the bigger N wins and the
+    decision evaporates); <b>the right answer depends on the player's own situation</b>, so
+    two players facing the same card should correctly choose differently; and <b>it costs
+    something they already care about</b>, not a resource invented for the purpose. Plus one
+    hard-won constraint: <b>nothing can sell INFORMATION</b> - the game shows the player the
+    full bracket, the title odds and every rating, so there is no fog to lift. That is what
+    killed the Scouting Report, which charged for a thing the accordion's chevron already did
+    for free.</p>
+
+    <p><strong>Recommendation: option A, wager the payout.</strong> "Double or Nothing" (2x
+    XP and Prestige on a cup win, nothing otherwise) against "take half now, guaranteed". It
+    is the cheapest to build, has <b>no balance surface at all</b> - it touches no rating, no
+    roster and no chemistry, so the boost bands are untouched - and it turns on a number the
+    player is already looking at, since <code>domain/odds.ts</code> computes the title odds
+    and <code>RunXiPanel</code> displays them. One field on <code>RunState</code>, read by
+    <code>applyRunResult</code>, which is already the single place a run's reward is
+    computed.</p>
+
+    <p><strong>Then the two single cards that need no node machinery:</strong> <b>Sell the
+    star</b> (lose your best player, +4 to the other ten - the first boost whose value can be
+    negative, and which XI shape decides it), and <b>making chemistry deltas explicit</b>, since
+    chemistry is the one second axis the engine reads and no boost touches. Poach already
+    trades rating against chemistry by accident.</p>
+
+    <p><strong>The big one, when there is appetite:</strong> a <b>squad of 14 rather than an
+    XI</b>, fielding 11 each round. It makes every round a decision with no number to rank and
+    unlocks injuries, suspensions and matchup choices, which are impossible today. It is a
+    project, not a card - it touches the draft, the pitch, the persisted run, the challenge
+    catalogue's <code>shape</code> record and the sticker banking rule - but every other idea
+    gets better if it lands.</p>
+
+    <p class="next"><strong>Next step:</strong> build A on its own and play it. It proves or
+    kills the premise for this format at the lowest cost, and needs no new balance work.</p>
+
+    <p class="files">docs/run-decisions.md, src/domain/odds.ts, src/domain/career.ts, src/domain/run.ts, src/domain/boons.ts, src/components/cupRun/BoostOffer.tsx</p>
+  </div>
+</details>
 
 <details class="item">
   <summary>
