@@ -34,6 +34,7 @@ import {
   type Boon,
   type BoonContext,
   type RatingPlan,
+  type RunModifier,
 } from './boons';
 import { xiOf, type RunEffect } from './effects';
 import {
@@ -55,9 +56,20 @@ import { ascensionAt } from './ascension';
 
 export type RunPhase = 'group' | 'boon' | 'match' | 'ended';
 
-/** The round number the group stage grants effects on. Knockout rounds are 0-based
- *  (`koRound`), so the group sits one below them. */
-export const GROUP_ROUND = -1;
+/**
+ * The round a run starts on, and the round the group is played on.
+ *
+ * `koRound` does NOT advance when the group is committed - it is 0 through the group and
+ * the Round of 16 alike, and only moves when a knockout tie is won. So effects granted
+ * before kickoff (the Scout Network perk) and after the group are all granted at 0.
+ *
+ * This used to be -1, on the reasoning that the group sits "below" the knockout rounds.
+ * That was wrong and it was not cosmetic: `beginRun` derived its XI at -1 while storing
+ * `koRound: 0`, so a Scout Network boost with a duration expired **before the first ball
+ * was kicked**. Any round number used to grant an effect has to be the one the run will
+ * actually be read at.
+ */
+export const START_ROUND = 0;
 
 /** What granting one boon did: the new roster, the new ledger, and (for a roster boon)
  *  who came in and who went out, so the UI can describe the swap without re-diffing. */
@@ -66,6 +78,8 @@ interface Granted {
   effects: RunEffect[];
   swappedIn?: Player;
   swappedOut?: Player;
+  /** Run-level levers the card pulled (see `RunModifier`), applied by the caller. */
+  mods: RunModifier[];
 }
 
 /**
@@ -90,17 +104,28 @@ function grantBoon(
    *  than being added back when the first temporary effect arrives. */
   expiresAfter?: number,
 ): Granted {
-  if (boon.effect.kind === 'roster') {
-    const next = boon.effect.apply(roster, ctx);
-    return {
-      roster: next,
-      effects,
-      swappedIn: next.find((p) => !roster.some((b) => b.id === p.id)),
-      swappedOut: roster.find((p) => !next.some((b) => b.id === p.id)),
-    };
+  let nextRoster = roster;
+  let nextEffects = effects;
+  const mods: RunModifier[] = [];
+  let swappedIn: Player | undefined;
+  let swappedOut: Player | undefined;
+  for (const eff of boon.effects) {
+    if (eff.kind === 'roster') {
+      const before = nextRoster;
+      nextRoster = eff.apply(before, ctx);
+      swappedIn = nextRoster.find((p) => !before.some((b) => b.id === p.id)) ?? swappedIn;
+      swappedOut = before.find((p) => !nextRoster.some((b) => b.id === p.id)) ?? swappedOut;
+    } else if (eff.kind === 'rating') {
+      const plans = eff.plan(xiOf(nextRoster, nextEffects, atRound), ctx);
+      nextEffects = [
+        ...nextEffects,
+        ...effectsFrom(plans, boon.id, boon.name, atRound, expiresAfter),
+      ];
+    } else {
+      mods.push(eff.mod);
+    }
   }
-  const plans = boon.effect.plan(xiOf(roster, effects, atRound), ctx);
-  return { roster, effects: [...effects, ...effectsFrom(plans, boon.id, boon.name, atRound, expiresAfter)] };
+  return { roster: nextRoster, effects: nextEffects, swappedIn, swappedOut, mods };
 }
 
 /** Turn resolved plans into ledger entries. Empty plans (a conditional boon whose
@@ -115,15 +140,23 @@ export function effectsFrom(
 ): RunEffect[] {
   return plans
     .filter((pl) => pl.ids.length > 0 && pl.delta !== 0)
-    .map((pl, i) => ({
-      id: `${source}-${atRound}-${i}-${pl.delta}`,
-      source,
-      label,
-      target: { ids: pl.ids },
-      delta: pl.delta,
-      appliedAt: atRound,
-      ...(expiresAfter !== undefined ? { expiresAfter } : {}),
-    }));
+    .map((pl, i) => {
+      // A plan can carry its own window (Second Wind lasts one round; Sold Out Stadium's
+      // debt starts one round later and lasts one). The caller's `expiresAfter` is the
+      // fallback for plans that say nothing.
+      const from = atRound + (pl.startsIn ?? 0);
+      const until = pl.lasts !== undefined ? from + pl.lasts - 1 : expiresAfter;
+      return {
+        id: `${source}-${atRound}-${i}-${pl.delta}`,
+        source,
+        label,
+        target: { ids: pl.ids },
+        delta: pl.delta,
+        appliedAt: atRound,
+        ...(pl.startsIn ? { appliesFrom: from } : {}),
+        ...(until !== undefined ? { expiresAfter: until } : {}),
+      };
+    });
 }
 
 /** Rewrite the `xi` cache from the roster + ledger. Every transition that touches either
@@ -263,6 +296,13 @@ export interface RunState {
   history: RoundRecord[];
   /** Ids of players brought into the XI by a roster boost, for tagging on the XI. */
   boostedIds: string[];
+  /** Shootout-only rating bonus and how many takers it reaches (Ice Veins). Kept off the
+   *  ledger deliberately: it is not a rating change, it never touches the attack or
+   *  defence averages, and it must not reach the scoreline. */
+  penBonus?: number;
+  penBonusTop?: number;
+  /** The run pays no XP or Prestige unless it wins the cup (Mortgage the Future). */
+  mortgaged?: boolean;
   /** Whether this run's collectibles have been merged into the sticker album. Guards
    *  a once-per-run apply that survives a reload (mirrors the main game's flag). */
   stickersApplied: boolean;
@@ -504,7 +544,7 @@ export function beginRun(
         label: 'Deep Squad',
         target: { ids: roster.map((p) => p.id) },
         delta: deepSquad,
-        appliedAt: GROUP_ROUND,
+        appliedAt: START_ROUND,
       },
     ];
   }
@@ -515,7 +555,7 @@ export function beginRun(
   if (scout > 0) {
     const commons = availableBoons(unlockedBoons).filter((b) => b.rarity === 'common');
     for (const boon of offerBoons(commons, scout)) {
-      const granted = grantBoon(roster, effects, boon, { opponentSquadId: null }, GROUP_ROUND);
+      const granted = grantBoon(roster, effects, boon, { opponentSquadId: null }, START_ROUND);
       roster = granted.roster;
       effects = granted.effects;
       if (granted.swappedIn) boostedIds.push(granted.swappedIn.id);
@@ -523,7 +563,7 @@ export function beginRun(
     }
   }
   return {
-    xi: xiOf(roster, effects, GROUP_ROUND),
+    xi: xiOf(roster, effects, START_ROUND),
     roster,
     effects,
     phase: 'group',
@@ -548,7 +588,7 @@ export function beginRun(
     // Kickoff chemistry: of the XI that actually starts, so a Scout Network roster boost
     // is already in it. (Rating perks cannot move it - chemistry reads squads, nations,
     // eras and primary positions, never elo.)
-    chemistry: chemistryOf(xiOf(roster, effects, GROUP_ROUND)),
+    chemistry: chemistryOf(xiOf(roster, effects, START_ROUND)),
   };
 }
 
@@ -558,7 +598,7 @@ export function beginRun(
  *  tally are settled together, which is why the live table is projected backwards
  *  (`groupAsOf`) rather than simulated forwards. */
 function drawAndPlayGroup(run: RunState, userDelta: number, pool: Squad[]): GroupState {
-  const user = userGroupTeam(run.xi, chemistryOf(run.xi), userDelta);
+  const user = userGroupTeam(run.xi, chemistryOf(run.xi), userDelta, run.penBonus ?? 0, run.penBonusTop ?? 0);
   let group = createGroup(user, pickOpponents(3, pool));
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
@@ -727,7 +767,68 @@ export function rerollOffer(run: RunState): RunState {
   };
 }
 
-export function chooseBoon(run: RunState, boonId: string): BoonChoice {
+/**
+ * Apply the run-level levers a card pulled. Everything here is a lever the match sim reads
+ * that is NOT the attack or defence average, which is the whole point of the group: a card
+ * built on one of these is incomparable to a "+N" card by construction.
+ */
+function applyRunMods(run: RunState, mods: RunModifier[], pool: Squad[]): RunState {
+  let next = run;
+  for (const mod of mods) {
+    if (mod.what === 'penBonus') {
+      next = { ...next, penBonus: (next.penBonus ?? 0) + mod.n, penBonusTop: mod.top };
+    } else if (mod.what === 'mortgage') {
+      next = { ...next, mortgaged: true };
+    } else if (mod.what === 'redrawOpponent') {
+      next = redrawOpponent(next, pool);
+    }
+  }
+  return next;
+}
+
+/**
+ * Kind Draw: draw an alternative next opponent and keep the weaker of the two.
+ *
+ * **Both the run and the tree have to move together.** `run.nextOpponent` is the field every
+ * consumer reads, but `prepareKnockoutRound` also splices the user's result into the bracket
+ * by `opp.id`, so leaving the tree on the old opponent would play one team and draw another.
+ * The substitution is a straight swap of the away seed in the user's own game: the round has
+ * not been played, no result references the outgoing team, and no other game in the tree
+ * mentions it - so the tree stays complete and consistent with one team exchanged for
+ * another. (A run without a bracket, which is only a very old save, just moves the field.)
+ *
+ * Worth nothing when the draw was already kind, which is what keeps the card honest.
+ */
+function redrawOpponent(run: RunState, pool: Squad[]): RunState {
+  const current = run.nextOpponent;
+  if (!current) return run;
+  const asc = ascensionAt(run.ascension);
+  // Exclude the incumbent as well as everyone already faced, so the alternative is a real
+  // alternative rather than possibly the same team again.
+  const faced = new Set([...run.facedIds, current.id]);
+  const alt = drawOpponent(faced, pool, asc.drawSlopeBonus);
+  if (alt.strength.overall >= current.strength.overall) return run;
+
+  const bracket = run.bracket;
+  if (!bracket) return { ...run, nextOpponent: alt, facedIds: [...run.facedIds, alt.id] };
+  const games = bracket.rounds[run.koRound];
+  const game = games?.[0];
+  if (!game) return run;
+  // The user is always the HOME side of game 0 of their round (`buildBracket` seeds them
+  // there and `pairGames` keeps a winner at its game's index), which is the same invariant
+  // `simulateKoTie` and `advanceBracket` rely on. So the substitution is the away seed.
+  const nextRounds = bracket.rounds.map((rd, r) =>
+    r === run.koRound ? rd.map((g, i) => (i === 0 ? { ...g, awayId: alt.id } : g)) : rd,
+  );
+  return {
+    ...run,
+    nextOpponent: alt,
+    facedIds: [...run.facedIds, alt.id],
+    bracket: { ...bracket, teams: { ...bracket.teams, [alt.id]: alt }, rounds: nextRounds },
+  };
+}
+
+export function chooseBoon(run: RunState, boonId: string, pool: Squad[] = SQUADS): BoonChoice {
   if (run.phase !== 'boon') return { next: run };
   const boon = boonById(boonId);
   if (!boon) return { next: run };
@@ -745,9 +846,10 @@ export function chooseBoon(run: RunState, boonId: string): BoonChoice {
   const last = run.history.length - 1;
   const history =
     last >= 0 ? run.history.map((r, i) => (i === last ? { ...r, boostId: boon.id } : r)) : run.history;
+  const withMods = applyRunMods(run, granted.mods, pool);
   return {
     next: recomputeXi({
-      ...run,
+      ...withMods,
       roster: granted.roster,
       effects: granted.effects,
       activeBoons: [...run.activeBoons, boon.id],
@@ -876,7 +978,7 @@ export function prepareKnockoutRound(
   const round = run.koRound;
   const roundName = KO_ROUNDS[round];
   const opp = run.nextOpponent;
-  const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta + asc.userDelta);
+  const userTeam = userGroupTeam(run.xi, chemistryOf(run.xi), atkDefDelta + asc.userDelta, run.penBonus ?? 0, run.penBonusTop ?? 0);
   // A round already decided is replayed, never re-rolled: the same scoreline, the same
   // shootout, the same rest of the tree, the same boost offer waiting after it.
   const decided =
@@ -945,7 +1047,12 @@ export function prepareKnockoutRound(
     if (!nextOpp || !offer) {
       throw new Error('prepareKnockoutRound: a survived tie must carry its offer + next opponent');
     }
-    next = {
+    // `recomputeXi` AFTER the increment, never before: `koRound` is what `xiOf` tests an
+    // effect's window against, so a temporary effect only wears off (and a deferred one
+    // only lands) once the round has actually advanced. This is the one transition that
+    // moves the round on, so it is the only place it matters - and it is what Second Wind
+    // and Sold Out Stadium need to work at all.
+    next = recomputeXi({
       ...run,
       phase: 'boon',
       koRound: round + 1,
@@ -957,7 +1064,7 @@ export function prepareKnockoutRound(
       score: STAGE_SCORE[LOST_IN[round]],
       history,
       tally,
-    };
+    });
   }
   return { next, current, match, opp, roundName };
 }

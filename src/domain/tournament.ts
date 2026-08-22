@@ -29,9 +29,20 @@ export interface GroupTeam {
   penTakers: { name: string; elo: number }[];
 }
 
-/** Ranked penalty takers (best elo first). */
-function penTakersFrom(players: Player[]): { name: string; elo: number }[] {
-  return [...players].sort((a, b) => b.elo - a.elo).map((p) => ({ name: p.name, elo: p.elo }));
+/** Ranked penalty takers (best elo first).
+ *
+ *  `bonus` lifts the first `top` of them and NOTHING else - it never reaches `strength`,
+ *  so it cannot move a scoreline, only the shootout that follows one. That separation is
+ *  the whole point of the Ice Veins boost: a lever the sim reads which the attack and
+ *  defence averages do not. */
+function penTakersFrom(
+  players: Player[],
+  bonus = 0,
+  top = 0,
+): { name: string; elo: number }[] {
+  return [...players]
+    .sort((a, b) => b.elo - a.elo)
+    .map((p, i) => ({ name: p.name, elo: i < top ? p.elo + bonus : p.elo }));
 }
 
 export interface Fixture {
@@ -62,7 +73,16 @@ export interface GroupState {
  *  from those, so it moves the user's win probability - while overall (the displayed
  *  rating) is left untouched. Both must reach attack/defense; overall carries the
  *  chemistry bonus for the ratings strip. */
-export function userGroupTeam(players: Player[], chemistryBonus = 0, atkDefDelta = 0): GroupTeam {
+export function userGroupTeam(
+  players: Player[],
+  chemistryBonus = 0,
+  atkDefDelta = 0,
+  /** Shootout-only bonus and how many takers it reaches (Ice Veins). Deliberately a
+   *  separate argument from the two above: those reach `strength` and so the scoreline,
+   *  and this must not. */
+  penBonus = 0,
+  penBonusTop = 0,
+): GroupTeam {
   const base = xiStrength(players);
   const strength: Strength = {
     attack: base.attack + chemistryBonus + atkDefDelta,
@@ -76,7 +96,7 @@ export function userGroupTeam(players: Player[], chemistryBonus = 0, atkDefDelta
     isUser: true,
     strength,
     scorers: scorerPool(players),
-    penTakers: penTakersFrom(players),
+    penTakers: penTakersFrom(players, penBonus, penBonusTop),
   };
 }
 

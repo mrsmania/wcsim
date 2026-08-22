@@ -39,14 +39,14 @@ export interface RunEffect {
   delta: number;
   /** The `koRound` this was granted on (the group grants at -1). */
   appliedAt: number;
+  /** First `koRound` on which it applies. Absent = from the moment it was granted.
+   *  Set by an effect that lands LATER than the card that caused it - a boost that
+   *  borrows now and pays next round. */
+  appliesFrom?: number;
   /** Last `koRound` on which it still applies. Absent = lasts the rest of the run, which
-   *  is what every boost does, so **nothing sets this today**.
-   *
-   *  It stays because it is the whole reason the ledger is worth having over the rewrite it
-   *  replaced: a temporary effect is expressible here and was not expressible before. The
-   *  plumbing is complete and tested (`xiOf` honours it, `grantBoon` takes it), so the first
-   *  effect that wants to wear off is a one-line caller change rather than a redesign.
-   *  Roadmap item 29 has several candidates. */
+   *  is what most boosts do. Second Wind and Sold Out Stadium are the two that set it -
+   *  the pair of fields is what makes "+6 now, -6 next round" expressible at all, and
+   *  what the ledger exists for over the rewrite it replaced. */
   expiresAfter?: number;
 }
 
@@ -57,9 +57,11 @@ export const bump = (p: Player, d: number): Player => ({
   elo: Math.max(ELO_MIN, Math.min(ELO_MAX, p.elo + d)),
 });
 
-/** Whether an effect is live on the given round. */
+/** Whether an effect is live on the given round. A window, open at both ends by
+ *  default: most effects start when granted and never end. */
 export const effectActive = (e: RunEffect, atRound: number): boolean =>
-  e.expiresAfter === undefined || atRound <= e.expiresAfter;
+  (e.appliesFrom === undefined || atRound >= e.appliesFrom) &&
+  (e.expiresAfter === undefined || atRound <= e.expiresAfter);
 
 /**
  * The XI as it is actually played: the base roster with every active effect applied.

@@ -395,8 +395,12 @@ export function applyRunResult(
 ): RunReward {
   // Ascension scales the run's reward; a cup win raises the unlocked ceiling + best.
   const mult = ascensionAt(run.ascension).rewardMult;
-  const xpGained = Math.round(run.score * mult);
-  const prestigeGained = Math.max(1, Math.round((run.score * mult) / 5));
+  // Mortgage the Future: the run took +4 to the XI against its own payout, so unless it
+  // lifted the cup it pays NOTHING - not even the floor of 1 Prestige every other run
+  // gets. That floor is what makes the card bite; leave it out on purpose.
+  const mortgagedOut = run.mortgaged === true && run.outcome !== 'champion';
+  const xpGained = mortgagedOut ? 0 : Math.round(run.score * mult);
+  const prestigeGained = mortgagedOut ? 0 : Math.max(1, Math.round((run.score * mult) / 5));
   const xp = career.xp + xpGained;
   const level = levelForXp(xp);
   const outcome = run.outcome;

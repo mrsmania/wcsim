@@ -1,8 +1,17 @@
 # Meaningful decisions in a Cup Run
 
 Written 2026-08-22, after roadmap item 04 was built, played and **rolled back in full**.
-Ideas, not a plan: nothing here is built, and the ordering is a recommendation rather than a
-schedule.
+
+> **First six cards SHIPPED 2026-08-22.** Ice Veins, Kind Draw, Second Wind, Sold Out
+> Stadium, The Coin Toss and Mortgage the Future are in the game, along with the removal of
+> Glass Cannon and Familiar Foes and three retunes (Marquee Signing now targets the worst
+> player, Transfer demands at least +8, Catenaccio's description lost its tagline). The
+> catalogue is 23 cards.
+>
+> **Still open:** the MECHANISMS below (A to H). Every card that shipped is a card - dealt
+> in the usual 1-of-3 offer - so the *shape* of a stop has not changed yet. What changed is
+> that six of the cards you might be dealt are no longer on the rating axis, which is a
+> different fix for the same problem and a much cheaper one.
 
 **Note on what exists.** Item 04's **effect ledger was kept** when the rest of it was rolled
 back (`domain/effects.ts`): a run holds `roster` + `effects` and derives `xi`, so what a boost
@@ -58,7 +67,7 @@ power at all** - which means no balance risk against the boost bands, and no new
 
 ---
 
-## A. Wager the payout (recommended first)
+## A. Wager the payout (recommended first) - NOT BUILT
 
 **The idea.** After a round, offer a bet on the rest of the run.
 
@@ -84,7 +93,7 @@ none.
 multiplier without thought - two multipliers on the same number compound faster than they
 read.
 
-## B. Choose your own path
+## B. Choose your own path - NOT BUILT
 
 **The idea.** Instead of the bracket handing you an opponent, choose one of three - and the
 stronger the pick, the larger the run's reward multiplier.
@@ -99,7 +108,7 @@ rather than fixed, and keeping the tree honest afterwards - `advanceBracket` spl
 user's result in by index, so the invariant that **the user is game 0 of their round** has
 to survive.
 
-## C. Sell the star
+## C. Sell the star - NOT BUILT
 
 **The idea.** "Your best player is sold. The other ten get +4."
 
@@ -112,7 +121,7 @@ decision rather than a gift.
 takes a roster change and a rating plan, so the whole card is a `BoonEffect` and a catalogue
 entry.
 
-## D. Commit before the draw
+## D. Commit before the draw - NOT BUILT
 
 **The idea.** Pick a tactic - attacking (+4 attack, -3 defence), balanced, defensive (the
 mirror) - **before** the next opponent is revealed.
@@ -126,7 +135,7 @@ today you take them knowing who you face.
 so "before the draw" means holding the reveal, not re-ordering the dice. The stored decision
 must not move, or reloading re-rolls your opponent after you have committed.
 
-## E. Burn a sticker
+## E. Burn a sticker - NOT BUILT
 
 **The idea.** Give up a sticker you own, permanently, for a large boost this run.
 
@@ -137,7 +146,7 @@ currency can. It is the only idea here where the cost outlives the run.
 simply feel bad rather than tense. It also interacts with the owned-sticker price discount
 in the market. Worth prototyping small - one card, high cost - rather than as a node.
 
-## F. A squad, not an XI (the big one)
+## F. A squad, not an XI (the big one) - NOT BUILT
 
 **The idea.** Draft **14**, field 11 each round.
 
@@ -188,6 +197,9 @@ no currency and no node machinery. The ideas above (A to H) are MECHANISMS; this
 individual cards.
 
 ## Still buildable, and worth it
+
+**SHIPPED 2026-08-22**, all but Sell the Star. What follows is the design note each was
+built from; `CLAUDE.md` has what the code actually does.
 
 | Card | What it does | Why it is not just another "+N" |
 | --- | --- | --- |

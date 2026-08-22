@@ -929,6 +929,54 @@ deleted with the plain World Cup it used to gate). Design:
   Ascension's tuning is a first pass (`ASCENSIONS` is marked tunable, and the odds sim in
   `domain/odds.ts` is the tool for it), and level does nothing beyond gating.
 
+## Boosts: the catalogue, and the levers beyond the rating average
+
+23 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
+made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
+its first six cards shipped 2026-08-22.
+
+- **A boon declares `effects: BoonEffect[]`**, a LIST, because a card can do two things at
+  once (Mortgage the Future raises the XI *and* mortgages the payout). Three kinds:
+  `rating` (a plan, recorded in the effect ledger), `roster` (rewrites the base roster), and
+  **`run`** (a `RunModifier`, interpreted by `domain/run.ts`).
+- **`RunModifier` is plain data on purpose.** The catalogue says what a card MEANS without
+  importing the run's state machine, which would be a cycle. Adding a lever is a case in
+  `boons.ts` and a case in `applyRunMods`.
+- **A `RatingPlan` can carry its own window** (`lasts`, `startsIn`), which is what makes
+  "+6 now, -6 next round" expressible. `effectsFrom` turns those into the ledger's
+  `appliesFrom` / `expiresAfter`.
+- **`START_ROUND` is 0, and used to be -1, which was a real bug.** `koRound` does not
+  advance when the group is committed - it is 0 through the group AND the Round of 16.
+  `beginRun` derived its XI at -1 while storing `koRound: 0`, so a Scout Network boost with
+  a duration **expired before the first ball was kicked**. Any round number used to grant an
+  effect has to be the one the run will actually be read at.
+- **`recomputeXi` must run AFTER `koRound` advances**, in `prepareKnockoutRound`. That is the
+  only transition that moves the round on, and it is what makes a window open and close at
+  all.
+
+### The six cards on new levers (2026-08-22)
+
+| Card | Lever | The point |
+| --- | --- | --- |
+| **Ice Veins** | the shootout | +8 to the top 5 penalty takers and **nothing else**. `userGroupTeam` takes `penBonus`/`penBonusTop` as arguments SEPARATE from the chemistry and difficulty deltas, precisely because those reach `strength` and this must not: it cannot move a scoreline, only the shootout after one. Free against the rarity bands by construction, and asserted as such. |
+| **Kind Draw** | the draw | Re-draws the next opponent and keeps the weaker. **The run and the TREE must move together** - `run.nextOpponent` is what the tie reads, but `prepareKnockoutRound` splices the result into the bracket by `opp.id`, so moving one and not the other would play a team the tree does not show. The substitution is the away seed of game 0 (the user is always home). Fires ~53% of the time, softening the opponent by ~5 rating. |
+| **Second Wind** | time | +4 to the XI for one round. Rare, not common: measured at 9.9 against a common's 2.0, because for the round it lasts it is worth twice a legendary. |
+| **Sold Out Stadium** | time | +6 now, -6 the round after. **Known hole: taken before the Final it is free**, because there is no round after. Left as-is deliberately rather than silently redesigned; the fix is either not offering it in the last round or moving the debt. |
+| **The Coin Toss** | variance | +8 or -4, **derived** from the XI and opponent via `coinFor`, never rolled. A pick-time `Math.random` would be re-rollable by reloading, and for a 12-point swing that is the whole card broken. ~48% heads over 200 draws. |
+| **Mortgage the Future** | the payout | +4 to the XI, and the run pays **no XP or Prestige at all** unless it wins the cup - not even the floor of 1 Prestige every other run gets, which is what makes it bite. The only card whose cost lands on the career rather than inside the run. |
+
+### Catalogue changes made at the same time
+
+- **Removed: Glass Cannon and Familiar Foes.**
+- **Marquee Signing retargeted** from the best player to the **worst**. On the best it was
+  mostly wasted (a top XI's star is near the 99 ceiling, so the +12 evaporated) and it
+  duplicated Galacticos.
+- **Transfer requires a real upgrade**, at least `TRANSFER_MIN_GAIN` (8) rating points. The
+  old rule was "any stronger player", which a 1-point swap satisfied and which read as
+  broken.
+- **Catenaccio's "Win it 1-0." dropped** from its description.
+
 ## The effect ledger
 
 `domain/effects.ts`, the one piece of roadmap item 04 that survived it (the rest - Form and

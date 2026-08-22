@@ -573,6 +573,131 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check(`effects: run.xi always equals xiOf(roster, effects, koRound) (${checked} states)`, ok);
 }
 
+// --- The item 29 cards: the levers that are not the rating averages -----------
+// Each of these is a claim the balance table above cannot check, because the table only
+// measures attack and defence. These are those claims.
+
+// Ice Veins lifts the SHOOTOUT and nothing else. If it ever touched `strength` it would
+// move scorelines, and it would be just another "+N" card wearing a different hat.
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const plain = userGroupTeam(xi, 0, 0);
+  const iced = userGroupTeam(xi, 0, 0, 8, 5);
+  let ok =
+    JSON.stringify(plain.strength) === JSON.stringify(iced.strength) &&
+    JSON.stringify(plain.scorers) === JSON.stringify(iced.scorers);
+  // The top five takers are lifted by exactly 8, and nobody else is touched.
+  for (let i = 0; i < plain.penTakers.length; i++) {
+    const want = plain.penTakers[i].elo + (i < 5 ? 8 : 0);
+    if (iced.penTakers[i].elo !== want) ok = false;
+  }
+  check('ice-veins: lifts the shootout, and leaves strength and scorers untouched', ok);
+}
+
+// Kind Draw keeps the weaker of two opponents, and - the part that could silently rot -
+// leaves the run and the TREE agreeing on who is next. They are read by different code
+// paths (`run.nextOpponent` by the tie, `bracket` by everything drawn on screen and by
+// the splice `advanceBracket` does by id), so a card that moved one and not the other
+// would play a team the tree does not show.
+{
+  let ok = true, redrawn = 0, seen = 0;
+  for (let i = 0; i < 60; i++) {
+    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
+    let guard = 0;
+    while (run.phase !== 'ended' && guard++ < 12) {
+      if (run.phase === 'boon') {
+        if (run.bracket && run.nextOpponent) {
+          seen++;
+          const before = run.nextOpponent;
+          const after = chooseBoon(run, 'kind-draw').next;
+          const opp = after.nextOpponent!;
+          // Never worse off: the card keeps the weaker, so the opponent can only soften.
+          if (opp.strength.overall > before.strength.overall) ok = false;
+          if (opp.id !== before.id) redrawn++;
+          // The tree names the same team the run does.
+          const game = after.bracket!.rounds[after.koRound]?.[0];
+          if (!game || game.awayId !== opp.id) ok = false;
+          if (!after.bracket!.teams[opp.id]) ok = false;
+          // And the tree is otherwise untouched: same rounds, same games, same count.
+          if (after.bracket!.rounds.length !== run.bracket.rounds.length) ok = false;
+          if (after.bracket!.rounds[after.koRound].length !== run.bracket.rounds[after.koRound].length) ok = false;
+        }
+        run = chooseBoon(run, (run.offer ?? [])[0]?.id ?? '').next;
+      } else if (run.phase === 'match') run = playKnockoutRound(run);
+      else break;
+    }
+  }
+  check(`kind-draw: never a stronger opponent, and the tree agrees (${redrawn}/${seen} redrawn)`, ok);
+}
+
+// Mortgage the Future: nothing at all unless the cup is won - not even the floor of 1
+// Prestige every other run gets, which is what makes the card bite.
+{
+  const career = INITIAL_CAREER;
+  const base = bestEleven(SQUADS[0].players);
+  const lost: RunState = { ...beginRun(base), phase: 'ended', outcome: 'sf', score: 60, mortgaged: true };
+  const won: RunState = { ...beginRun(base), phase: 'ended', outcome: 'champion', score: 100, mortgaged: true };
+  const lostPlain: RunState = { ...lost, mortgaged: undefined };
+  const a = applyRunResult(career, lost);
+  const b = applyRunResult(career, won);
+  const c = applyRunResult(career, lostPlain);
+  const ok =
+    a.xpGained === 0 && a.prestigeGained === 0 &&
+    b.prestigeGained > 0 && b.xpGained > 0 &&
+    c.prestigeGained > 0; // the same run unmortgaged still pays
+  check('mortgage-future: pays nothing unless the cup is won, floor included', ok);
+}
+
+// Second Wind and Sold Out Stadium are the first cards with a lifetime. The window is the
+// price, so a window that does not close (or a debt that never lands) is the card broken.
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const run = { ...beginRun(xi), phase: 'boon' as const, offer: [], koRound: 1 };
+  const sw = chooseBoon(run, 'second-wind').next;
+  const swEff = (sw.effects ?? []).filter((e) => e.source === 'second-wind');
+  let ok = swEff.length === 1 && swEff[0].expiresAfter === 1 && swEff[0].appliesFrom === undefined;
+  // Live this round, gone the next.
+  const now = xiOf(sw.roster!, sw.effects!, 1).reduce((t, p) => t + p.elo, 0);
+  const later = xiOf(sw.roster!, sw.effects!, 2).reduce((t, p) => t + p.elo, 0);
+  const base = xi.reduce((t, p) => t + p.elo, 0);
+  if (!(now > base && later === base)) ok = false;
+
+  const so = chooseBoon(run, 'sold-out-stadium').next;
+  const soEff = (so.effects ?? []).filter((e) => e.source === 'sold-out-stadium');
+  // A bonus that ends with this round, and a debt that starts with the next and ends there.
+  const bonus = soEff.find((e) => e.delta > 0);
+  const debt = soEff.find((e) => e.delta < 0);
+  if (!bonus || !debt) ok = false;
+  else if (bonus.expiresAfter !== 1 || debt.appliesFrom !== 2 || debt.expiresAfter !== 2) ok = false;
+  const t1 = xiOf(so.roster!, so.effects!, 1).reduce((t, p) => t + p.elo, 0);
+  const t2 = xiOf(so.roster!, so.effects!, 2).reduce((t, p) => t + p.elo, 0);
+  const t3 = xiOf(so.roster!, so.effects!, 3).reduce((t, p) => t + p.elo, 0);
+  if (!(t1 > base && t2 < base && t3 === base)) ok = false;
+  check('second-wind / sold-out-stadium: the window opens, closes, and the debt lands', ok);
+}
+
+// The Coin Toss is DERIVED, not rolled: picking it twice from the same run gives the same
+// face. Rolled at pick time it would be reload-scummable, which for a +8/-4 swing is the
+// whole card broken.
+{
+  let ok = true;
+  let heads = 0, total = 0;
+  for (let i = 0; i < 40; i++) {
+    const xi = bestEleven(SQUADS[i % SQUADS.length].players);
+    const run = { ...beginRun(xi), phase: 'boon' as const, offer: [], koRound: 1 };
+    const a = chooseBoon(run, 'coin-toss').next;
+    const b = chooseBoon(run, 'coin-toss').next;
+    const da = (a.effects ?? []).find((e) => e.source === 'coin-toss')?.delta;
+    const db = (b.effects ?? []).find((e) => e.source === 'coin-toss')?.delta;
+    if (da !== db) ok = false;
+    if (da === 8) heads++;
+    total++;
+  }
+  // Both faces have to actually turn up, or it is a constant with extra steps.
+  if (heads === 0 || heads === total) ok = false;
+  check(`coin-toss: stable across replays, and both faces occur (${heads}/${total} heads)`, ok);
+}
+
 // --- Boon power: what each one is actually worth, against its rarity band ---
 // The match sim reads two numbers: the AVERAGE of the attack group (MID/FWD) and of
 // the defence group (GK/DEF). So a boon is worth what it moves those averages, not
@@ -588,12 +713,17 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // Boons that may exceed the band because they give something back or need the draw
   // to cooperate: they are not free power.
   const EXEMPT = new Set([
-    'glass-cannon', // -3 defence
     'catenaccio', // -2 attack
     'counter-attack', // -2 midfield
     'underdog-spirit', // only against a stronger opponent
-    'familiar-foes', // only against a same-continent opponent
     'poach', // depends entirely on the opponent
+    // --- item 29 cards. Each pays for its power somewhere this measurement cannot see:
+    // the table below reports what a card does to the XI that plays the NEXT match, which
+    // is the right question for a permanent card and only half the question for these.
+    'second-wind', // lasts one round; the table shows that round, not the four it skips
+    'sold-out-stadium', // gives every point back the round after
+    'mortgage-future', // paid for out of the run's own XP and Prestige, not out of the sim
+    'coin-toss', // half the time it is -4; the table averages the two faces
   ]);
 
   // Measure against what people actually field: a budget-built XI (~81), not a national

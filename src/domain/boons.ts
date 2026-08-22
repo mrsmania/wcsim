@@ -1,7 +1,6 @@
 import type { Player } from '../data/types';
 import { categoryOf, isAttacker, isDefender, primaryPosition } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
-import { CONFEDERATION } from '../data/confederations';
 import { bump } from './effects';
 
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
@@ -39,7 +38,30 @@ export interface BoonContext {
 export interface RatingPlan {
   ids: string[];
   delta: number;
+  /** How many rounds it lasts, counting the one it is granted on. Absent = the rest of
+   *  the run, which is what most boosts do. */
+  lasts?: number;
+  /** How many rounds until it starts, counting from the one it is granted on. Absent or
+   *  0 = immediately. A boost that borrows now and pays later sets this on its debt. */
+  startsIn?: number;
 }
+
+/**
+ * A change to the RUN rather than to a rating - the levers the sim reads that are not the
+ * attack and defence averages.
+ *
+ * Declared here as plain data and interpreted by `domain/run.ts`, deliberately: the boon
+ * catalogue should say what a card MEANS without importing the run's state machine, which
+ * would be a cycle. Adding a lever is a case here plus a case there.
+ */
+export type RunModifier =
+  /** Add `n` to the top `top` penalty takers, FOR SHOOTOUTS ONLY. Does not touch the
+   *  attack or defence averages, so it does not move a match's scoreline at all. */
+  | { what: 'penBonus'; n: number; top: number }
+  /** The run pays no XP or Prestige at all unless it wins the cup. */
+  | { what: 'mortgage' }
+  /** Draw an alternative next opponent and keep the weaker of the two. */
+  | { what: 'redrawOpponent' };
 
 /** The two things a boon can actually do, split so the rating half can be recorded rather
  *  than baked in (see `domain/effects.ts`).
@@ -50,7 +72,8 @@ export interface RatingPlan {
  *    not retroactively bumped - which is exactly what the old baked-in version did. */
 export type BoonEffect =
   | { kind: 'rating'; plan: (xi: Player[], ctx: BoonContext) => RatingPlan[] }
-  | { kind: 'roster'; apply: (roster: Player[], ctx: BoonContext) => Player[] };
+  | { kind: 'roster'; apply: (roster: Player[], ctx: BoonContext) => Player[] }
+  | { kind: 'run'; mod: RunModifier };
 
 /** A boon chosen between rounds of a Cup Run.
  *
@@ -64,11 +87,39 @@ export interface Boon {
   /** In the offer pool from the start (no Prestige unlock needed). Locked boons are
    *  bought into the pool via career Prestige (see `BOON_UNLOCK_COST` / `unlockBoon`). */
   starter?: boolean;
-  effect: BoonEffect;
+  /** What the card does. A LIST, because a card can do two things at once - Mortgage the
+   *  Future raises the XI and mortgages the payout, and Sold Out Stadium grants a bonus
+   *  and a debt. Applied in order. */
+  effects: BoonEffect[];
 }
 
 /** Prestige price to unlock a locked (non-starter) boon into the offer pool, by rarity. */
 export const BOON_UNLOCK_COST: Record<Rarity, number> = { common: 15, rare: 30, legendary: 55 };
+
+/**
+ * The Coin Toss's result, DERIVED from the run rather than rolled.
+ *
+ * Every other random thing in a run is decided once and stored, because a reload must
+ * never re-roll anything - otherwise reloading until you like the outcome is the optimal
+ * way to play. A boon has nowhere of its own to store a pre-roll, so this takes the other
+ * route to the same guarantee: it is a pure function of facts that are already fixed when
+ * the card is picked (the XI's ratings and the opponent), so every replay gives the same
+ * answer and the player cannot influence it.
+ *
+ * Not cryptographic and does not need to be. It only has to be unpredictable to a person
+ * looking at their own team sheet, and stable across a reload.
+ */
+function coinFor(xi: Player[], ctx: BoonContext): boolean {
+  let h = 2166136261;
+  for (const ch of xi.map((p) => `${p.id}:${p.elo}`).join('|') + (ctx.opponentSquadId ?? '')) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) & 1) === 1;
+}
+
+/** The smallest upgrade Transfer will accept, in rating points. */
+const TRANSFER_MIN_GAIN = 8;
 
 /** Relative offer weight by rarity, so legendaries turn up rarely in a 1-of-N offer. */
 const RARITY_WEIGHT: Record<Rarity, number> = { common: 6, rare: 3, legendary: 1 };
@@ -125,16 +176,20 @@ export const BOONS: Boon[] = [
     name: 'Golden Generation',
     rarity: 'legendary',
     description: '+2 rating to your entire XI.',
-    effect: { kind: 'rating', plan: (xi) => planAll(xi, 2) },
+    effects: [{ kind: 'rating', plan: (xi) => planAll(xi, 2) }],
   },
   {
     id: 'marquee-signing',
     name: 'Marquee Signing',
-    // Was legendary. One star can only move an average so far: +6 to a single
-    // attacker is +1 attack, which a common already beats.
+    // Was legendary. One player can only move an average so far: +12 to a single
+    // player is about +2 on his side, which a common already beats.
     rarity: 'rare',
-    description: '+12 to your best player.',
-    effect: { kind: 'rating', plan: (xi) => planHighest(xi, 1, 12) },
+    // Retargeted 2026-08-22 from the BEST player to the WORST. On the best it was
+    // usually wasted - a top XI's star is near the 99 ceiling, so most of the +12
+    // evaporated - and it duplicated Galacticos. On the worst it is the same card as
+    // Star Signing scaled up, and it always lands in full.
+    description: '+12 to your weakest player.',
+    effects: [{ kind: 'rating', plan: (xi) => planLowest(xi, 1, 12) }],
   },
   {
     id: 'star-signing',
@@ -143,17 +198,7 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+6 to your weakest player.',
-    effect: { kind: 'rating', plan: (xi) => planLowest(xi, 1, 6) },
-  },
-  {
-    id: 'glass-cannon',
-    name: 'Glass Cannon',
-    rarity: 'rare',
-    description: '+5 to attackers, -3 to defenders. High risk.',
-    effect: {
-      kind: 'rating',
-      plan: (xi) => [...planWhere(xi, isAttacker, 5), ...planWhere(xi, isDefender, -3)],
-    },
+    effects: [{ kind: 'rating', plan: (xi) => planLowest(xi, 1, 6) }],
   },
   {
     id: 'veteran-core',
@@ -161,7 +206,7 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+3 to your three lowest-rated players.',
-    effect: { kind: 'rating', plan: (xi) => planLowest(xi, 3, 3) },
+    effects: [{ kind: 'rating', plan: (xi) => planLowest(xi, 3, 3) }],
   },
   {
     id: 'attacking-masterclass',
@@ -169,7 +214,7 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+2 to your midfielders and forwards.',
-    effect: { kind: 'rating', plan: (xi) => planWhere(xi, isAttacker, 2) },
+    effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, isAttacker, 2) }],
   },
   {
     id: 'defensive-drills',
@@ -177,82 +222,72 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+2 to your goalkeeper and defenders.',
-    effect: { kind: 'rating', plan: (xi) => planWhere(xi, isDefender, 2) },
-  },
-  {
-    // Replaces Chemistry Catalyst ("+2 to your most-represented nation"), which was a
-    // legendary effect at common rarity: a single-nation XI is trivial to buy in the
-    // transfer market, and the chemistry bonus already rewards cohesion at build time.
-    // This hangs on the draw instead, which nobody controls.
-    id: 'familiar-foes',
-    name: 'Familiar Foes',
-    rarity: 'rare',
-    description: '+3 to players from the same continent as your next opponent.',
-    effect: {
-      kind: 'rating',
-      plan: (xi, ctx) => {
-        const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
-        const conf = opp ? CONFEDERATION[opp.code] : undefined;
-        if (!conf) return [];
-        return planWhere(xi, (p) => CONFEDERATION[SQUAD_BY_ID[p.squadId]?.code ?? ''] === conf, 3);
-      },
-    },
+    effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, isDefender, 2) }],
   },
   {
     id: 'transfer',
     name: 'Transfer',
     rarity: 'rare',
     starter: true,
-    description: 'Swap your weakest player for a stronger one in the same position.',
-    effect: {
-      kind: 'roster',
-      apply: (roster) => {
-        const out = weakest(roster);
-        const cat = catOf(out);
-        const used = new Set(roster.map((p) => p.personId));
-        const cands = ALL_PLAYERS.filter(
-          (p) => catOf(p) === cat && p.elo > out.elo && !used.has(p.personId),
-        );
-        if (!cands.length) return roster;
-        return swap(roster, out.id, cands[Math.floor(Math.random() * cands.length)]);
+    description: 'Swap your weakest player for one at least 8 rating better, same position.',
+    effects: [
+      {
+        kind: 'roster',
+        apply: (roster) => {
+          const out = weakest(roster);
+          const cat = catOf(out);
+          const used = new Set(roster.map((p) => p.personId));
+          // At least +8, not merely "better": a 1-point upgrade satisfied the old rule
+          // and made the card read as broken. If nobody clears the bar it does nothing,
+          // which is only reachable with a weakest player already near the ceiling.
+          const cands = ALL_PLAYERS.filter(
+            (p) => catOf(p) === cat && p.elo >= out.elo + TRANSFER_MIN_GAIN && !used.has(p.personId),
+          );
+          if (!cands.length) return roster;
+          return swap(roster, out.id, cands[Math.floor(Math.random() * cands.length)]);
+        },
       },
-    },
+    ],
   },
   {
     id: 'poach',
     name: 'Poach',
     rarity: 'rare',
     description: "Steal your next opponent's best player.",
-    effect: {
-      kind: 'roster',
-      apply: (roster, ctx) => {
-        const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
-        if (!opp) return roster;
-        const used = new Set(roster.map((p) => p.personId));
-        const cands = opp.players.filter((p) => !used.has(p.personId));
-        if (!cands.length) return roster;
-        const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
-        const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
-        return swap(roster, out.id, inP);
+    effects: [
+      {
+        kind: 'roster',
+        apply: (roster, ctx) => {
+          const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
+          if (!opp) return roster;
+          const used = new Set(roster.map((p) => p.personId));
+          const cands = opp.players.filter((p) => !used.has(p.personId));
+          if (!cands.length) return roster;
+          const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
+          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+          return swap(roster, out.id, inP);
+        },
       },
-    },
+    ],
   },
   {
     id: 'wildcard',
     name: 'Wildcard Legend',
     rarity: 'legendary',
     description: 'Add a random 90+ legend to your XI.',
-    effect: {
-      kind: 'roster',
-      apply: (roster) => {
-        const used = new Set(roster.map((p) => p.personId));
-        const legends = ALL_PLAYERS.filter((p) => p.elo >= 90 && !used.has(p.personId));
-        if (!legends.length) return roster;
-        const inP = legends[Math.floor(Math.random() * legends.length)];
-        const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
-        return swap(roster, out.id, inP);
+    effects: [
+      {
+        kind: 'roster',
+        apply: (roster) => {
+          const used = new Set(roster.map((p) => p.personId));
+          const legends = ALL_PLAYERS.filter((p) => p.elo >= 90 && !used.has(p.personId));
+          if (!legends.length) return roster;
+          const inP = legends[Math.floor(Math.random() * legends.length)];
+          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+          return swap(roster, out.id, inP);
+        },
       },
-    },
+    ],
   },
   // --- added 2026-08-15: the pool was 11 with 5 starters, so early runs saw the same
   // handful every time. Three of these hang on the draw rather than on your build.
@@ -262,45 +297,48 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+6 to your goalkeeper.',
-    effect: { kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'GK', 6) },
+    effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'GK', 6) }],
   },
   {
     id: 'squad-rotation',
     name: 'Squad Rotation',
     rarity: 'common',
     description: '+4 to your two weakest players.',
-    effect: { kind: 'rating', plan: (xi) => planLowest(xi, 2, 4) },
+    effects: [{ kind: 'rating', plan: (xi) => planLowest(xi, 2, 4) }],
   },
   {
     id: 'set-piece-drills',
     name: 'Set-Piece Drills',
     rarity: 'common',
     description: '+2 to your outfield defenders.',
-    effect: { kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'DEF', 2) },
+    effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'DEF', 2) }],
   },
   {
-    // The mirror of Glass Cannon, so the trade-off cuts both ways.
     id: 'catenaccio',
     name: 'Catenaccio',
     rarity: 'rare',
-    description: '+4 to your defence, -2 to your attack. Win it 1-0.',
-    effect: {
-      kind: 'rating',
-      plan: (xi) => [...planWhere(xi, isDefender, 4), ...planWhere(xi, isAttacker, -2)],
-    },
+    description: '+4 to your defence, -2 to your attack.',
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi) => [...planWhere(xi, isDefender, 4), ...planWhere(xi, isAttacker, -2)],
+      },
+    ],
   },
   {
     id: 'counter-attack',
     name: 'Counter Attack',
     rarity: 'rare',
     description: '+8 to your forwards, -2 to your midfielders.',
-    effect: {
-      kind: 'rating',
-      plan: (xi) => [
-        ...planWhere(xi, (p) => catOf(p) === 'FWD', 8),
-        ...planWhere(xi, (p) => catOf(p) === 'MID', -2),
-      ],
-    },
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi) => [
+          ...planWhere(xi, (p) => catOf(p) === 'FWD', 8),
+          ...planWhere(xi, (p) => catOf(p) === 'MID', -2),
+        ],
+      },
+    ],
   },
   {
     // Conditional on the draw, so it cannot be set up in advance: strong when it fires,
@@ -309,23 +347,25 @@ export const BOONS: Boon[] = [
     name: 'Underdog Spirit',
     rarity: 'rare',
     description: '+3 to your entire XI, but only against a stronger opponent.',
-    effect: {
-      kind: 'rating',
-      plan: (xi, ctx) => {
-        const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
-        if (!opp) return [];
-        const oppBest = [...opp.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
-        const mean = (ps: Player[]) => ps.reduce((s, p) => s + p.elo, 0) / (ps.length || 1);
-        return mean(oppBest) > mean(xi) ? planAll(xi, 3) : [];
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi, ctx) => {
+          const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
+          if (!opp) return [];
+          const oppBest = [...opp.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
+          const mean = (ps: Player[]) => ps.reduce((s, p) => s + p.elo, 0) / (ps.length || 1);
+          return mean(oppBest) > mean(xi) ? planAll(xi, 3) : [];
+        },
       },
-    },
+    ],
   },
   {
     id: 'galacticos',
     name: 'Galacticos',
     rarity: 'legendary',
     description: '+6 to your three best players.',
-    effect: { kind: 'rating', plan: (xi) => planHighest(xi, 3, 6) },
+    effects: [{ kind: 'rating', plan: (xi) => planHighest(xi, 3, 6) }],
   },
   {
     id: 'legends-reunion',
@@ -334,10 +374,101 @@ export const BOONS: Boon[] = [
     // One swap, but from a rarer shelf than Wildcard's 90+, so the two are distinct
     // without stacking to twice a Golden Generation (which two 90+ swaps measured at).
     description: 'Your weakest player is replaced by a 93+ icon.',
-    effect: {
-      kind: 'roster',
-      apply: (roster) => replaceWeakest(roster, 1, ALL_PLAYERS.filter((p) => p.elo >= 93)),
-    },
+    effects: [
+      {
+        kind: 'roster',
+        apply: (roster) => replaceWeakest(roster, 1, ALL_PLAYERS.filter((p) => p.elo >= 93)),
+      },
+    ],
+  },
+  // --- added 2026-08-22 (roadmap item 29). Every card above moves a rating average and
+  // nothing else, which is what made an offer of three a sum rather than a choice. These
+  // six reach for the levers the sim has and the catalogue never used: the shootout, the
+  // draw, the run's payout, and time itself.
+  {
+    id: 'ice-veins',
+    name: 'Ice Veins',
+    rarity: 'common',
+    starter: true,
+    description: '+8 to your five best penalty takers. Shootouts only.',
+    // The only card in the pool that does not move a scoreline. Penalty takers are
+    // already sorted by rating and conversion is already linear in it, so this is a real
+    // effect on a lever nothing else touches - it does nothing in most ties, and decides
+    // the ones that go the distance. Free against the rarity bands by construction: the
+    // attack and defence averages the balance harness measures are untouched.
+    effects: [{ kind: 'run', mod: { what: 'penBonus', n: 8, top: 5 } }],
+  },
+  {
+    id: 'kind-draw',
+    name: 'Kind Draw',
+    rarity: 'rare',
+    description: 'Re-draw your next opponent and keep the weaker of the two.',
+    // Acts on the DRAW. Two cards read the next opponent (Poach did, Familiar Foes did
+    // before it was cut); none changed it. Worth nothing when the draw was already kind,
+    // which is what keeps it honest - and it is exempt from the bands for the same reason
+    // the other draw-conditional cards are.
+    effects: [{ kind: 'run', mod: { what: 'redrawOpponent' } }],
+  },
+  {
+    id: 'second-wind',
+    name: 'Second Wind',
+    // Rare, not common. Measured at 9.9 against a common's band of 2.0: for the one round
+    // it lasts it is worth more than twice a legendary, and taken before the Final that
+    // round is the one that matters. The duration is the price, not a discount.
+    rarity: 'rare',
+    description: '+4 to your entire XI, for this round only.',
+    // The first card in the game that wears off. A big number you have to spend at the
+    // right moment rather than bank, which is a different decision from every permanent
+    // card above.
+    effects: [{ kind: 'rating', plan: (xi) => planAll(xi, 4).map((p) => ({ ...p, lasts: 1 })) }],
+  },
+  {
+    id: 'sold-out-stadium',
+    name: 'Sold Out Stadium',
+    rarity: 'rare',
+    description: '+6 to your XI this round, then -6 in the round after it.',
+    // Borrow from your future self. Take it in the semi-final and you play the Final
+    // weakened - which is exactly the point, and why it is exempt: it gives the points
+    // back, in full, one round later.
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi) => [
+          ...planAll(xi, 6).map((p) => ({ ...p, lasts: 1 })),
+          ...planAll(xi, -6).map((p) => ({ ...p, startsIn: 1, lasts: 1 })),
+        ],
+      },
+    ],
+  },
+  {
+    id: 'coin-toss',
+    name: 'The Coin Toss',
+    rarity: 'rare',
+    description: 'Heads +8 to your XI, tails -4. The coin is already in the air.',
+    // Genuine variance in a game that otherwise has none. The result is DERIVED from the
+    // run rather than rolled (see `coinFor`), so a reload cannot change it - the whole
+    // card would be broken if reloading until it lands right were the optimal play.
+    // Exempt: it gives points back half the time.
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi, ctx) => planAll(xi, coinFor(xi, ctx) ? 8 : -4),
+      },
+    ],
+  },
+  {
+    id: 'mortgage-future',
+    name: 'Mortgage the Future',
+    rarity: 'legendary',
+    description: '+4 to your XI. The run pays nothing at all unless you win the cup.',
+    // The only card whose cost lands on the CAREER rather than inside the run, so what it
+    // is worth depends on how the run is already going: cheap when you were winning the
+    // cup anyway, ruinous when you were not. Exempt for that reason - the points are paid
+    // for outside the sim, where the balance harness cannot see them.
+    effects: [
+      { kind: 'rating', plan: (xi) => planAll(xi, 4) },
+      { kind: 'run', mod: { what: 'mortgage' } },
+    ],
   },
 ];
 
@@ -351,11 +482,21 @@ export const BOONS: Boon[] = [
  * playing. Same fold, same per-step clamp, so the two agree by construction.
  */
 export function applyBoon(xi: Player[], boon: Boon, ctx: BoonContext): Player[] {
-  if (boon.effect.kind === 'roster') return boon.effect.apply(xi, ctx);
   let out = xi;
-  for (const plan of boon.effect.plan(xi, ctx)) {
-    const ids = new Set(plan.ids);
-    out = out.map((p) => (ids.has(p.id) ? bump(p, plan.delta) : p));
+  for (const eff of boon.effects) {
+    if (eff.kind === 'roster') {
+      out = eff.apply(out, ctx);
+    } else if (eff.kind === 'rating') {
+      // Measured at the round it is granted, so a `startsIn` plan (a debt that lands
+      // later) contributes nothing here - which is correct: this measures what the card
+      // does to the XI that plays the next match.
+      for (const plan of eff.plan(out, ctx)) {
+        if (plan.startsIn) continue;
+        const ids = new Set(plan.ids);
+        out = out.map((p) => (ids.has(p.id) ? bump(p, plan.delta) : p));
+      }
+    }
+    // `run` effects touch no rating, so the measurement path ignores them entirely.
   }
   return out;
 }
