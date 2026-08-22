@@ -1,5 +1,5 @@
 import type { Player, Position, Squad } from '../data/types';
-import { ELO_MAX, primaryPosition } from '../data/types';
+import { primaryPosition } from '../data/types';
 import type { FormationName, Style } from './formations';
 import { SQUADS } from '../data/squads';
 import { FEATURES } from '../config';
@@ -27,7 +27,15 @@ import {
   type Finish,
   type KoDecided,
 } from './knockout';
-import { offerBoons, availableBoons, boonById, type Boon } from './boons';
+import {
+  offerBoons,
+  availableBoons,
+  boonById,
+  type Boon,
+  type BoonContext,
+  type RatingPlan,
+} from './boons';
+import { xiOf, type RunEffect } from './effects';
 import {
   bracketChampion,
   buildBracket,
@@ -46,6 +54,80 @@ import { ascensionAt } from './ascension';
 // ---------------------------------------------------------------------------
 
 export type RunPhase = 'group' | 'boon' | 'match' | 'ended';
+
+/** The round number the group stage grants effects on. Knockout rounds are 0-based
+ *  (`koRound`), so the group sits one below them. */
+export const GROUP_ROUND = -1;
+
+/** What granting one boon did: the new roster, the new ledger, and (for a roster boon)
+ *  who came in and who went out, so the UI can describe the swap without re-diffing. */
+interface Granted {
+  roster: Player[];
+  effects: RunEffect[];
+  swappedIn?: Player;
+  swappedOut?: Player;
+}
+
+/**
+ * Apply one boon to the roster + ledger.
+ *
+ * The single place a boon becomes a change, so the two halves cannot drift: a `rating`
+ * boon RESOLVES its plan once against the XI as it currently stands and appends the
+ * resulting effects, and a `roster` boon rewrites the roster.
+ *
+ * Resolving once is the point. "Your weakest player" has to mean whoever that was when the
+ * card was taken; a plan re-evaluated on every recompute would let a later effect move the
+ * target and change the run under the player.
+ */
+function grantBoon(
+  roster: Player[],
+  effects: RunEffect[],
+  boon: Boon,
+  ctx: BoonContext,
+  atRound: number,
+  expiresAfter?: number,
+): Granted {
+  if (boon.effect.kind === 'roster') {
+    const next = boon.effect.apply(roster, ctx);
+    return {
+      roster: next,
+      effects,
+      swappedIn: next.find((p) => !roster.some((b) => b.id === p.id)),
+      swappedOut: roster.find((p) => !next.some((b) => b.id === p.id)),
+    };
+  }
+  const plans = boon.effect.plan(xiOf(roster, effects, atRound), ctx);
+  return { roster, effects: [...effects, ...effectsFrom(plans, boon.id, boon.name, atRound, expiresAfter)] };
+}
+
+/** Turn resolved plans into ledger entries. Empty plans (a conditional boon whose
+ *  condition did not fire) contribute nothing, which is how "it did nothing this time"
+ *  is represented - never a zero-delta entry. */
+export function effectsFrom(
+  plans: RatingPlan[],
+  source: string,
+  label: string,
+  atRound: number,
+  expiresAfter?: number,
+): RunEffect[] {
+  return plans
+    .filter((pl) => pl.ids.length > 0 && pl.delta !== 0)
+    .map((pl, i) => ({
+      id: `${source}-${atRound}-${i}-${pl.delta}`,
+      source,
+      label,
+      target: { ids: pl.ids },
+      delta: pl.delta,
+      appliedAt: atRound,
+      ...(expiresAfter !== undefined ? { expiresAfter } : {}),
+    }));
+}
+
+/** Rewrite the `xi` cache from the roster + ledger. Every transition that touches either
+ *  input must end with this; `npm run checks` asserts the cache agrees. */
+function recomputeXi(run: RunState): RunState {
+  return { ...run, xi: xiOf(run.roster ?? run.xi, run.effects ?? [], run.koRound) };
+}
 /** How far the run ended: the shared Finish union, under the run's own name
  *  (career.ts and the checks harness key off RunOutcome). */
 export type RunOutcome = Finish;
@@ -109,8 +191,26 @@ export interface RunBuild {
 }
 
 export interface RunState {
-  /** The current XI, with any boon rating deltas baked in. */
+  /** The XI as it is actually played: `roster` with every active `effect` applied.
+   *
+   *  This is a CACHE, rewritten by `recomputeXi` at every transition that touches either
+   *  input. It stays a stored field rather than being derived at each read so that every
+   *  existing consumer - the sim, `xiStrength`, `chemistryOf`, `domain/challenges.ts`, the
+   *  sticker banking, every component - is untouched by the ledger. `npm run checks`
+   *  asserts it agrees with `xiOf` at every phase of a run, which is what catches a new
+   *  transition that forgets to recompute. */
   xi: Player[];
+  /** Who is in the XI, at DATASET ratings. Roster boosts (Transfer, Poach, Wildcard,
+   *  Legends' Reunion) rewrite this; nothing else does.
+   *
+   *  Optional only so a run persisted before the effect ledger existed still resumes -
+   *  `runStorage` fills it from `xi`, which leaves that run's boosts baked in but lets it
+   *  finish. Treat it as required in new code. */
+  roster?: Player[];
+  /** What has been done to the roster, oldest first. Order is load-bearing: `xiOf` folds
+   *  the deltas in sequence and clamps at every step. Optional for the same reason as
+   *  `roster`. */
+  effects?: RunEffect[];
   phase: RunPhase;
   /** Index into KO_ROUNDS for the next knockout tie (0 = Round of 16). */
   koRound: number;
@@ -383,13 +483,27 @@ export function beginRun(
   ascension = 0,
   kickoff: Kickoff = {},
 ): RunState {
-  let players = xi;
+  // The roster is the drafted XI at dataset ratings; everything done to it goes in the
+  // ledger, including the two perks that used to rewrite the players here.
+  let roster = xi;
+  let effects: RunEffect[] = [];
   const activeBoons: string[] = [];
   const boostedIds: string[] = [];
-  // Deep Squad perk: a flat +N to the drafted XI at kickoff (N = owned tier).
+  // Deep Squad perk: a flat +N to the drafted XI at kickoff (N = owned tier). An effect
+  // rather than a rewrite, so the XI panel can name it like any other bonus.
   const deepSquad = perkLevels['deep-squad'] ?? 0;
   if (deepSquad > 0) {
-    players = players.map((p) => ({ ...p, elo: Math.min(ELO_MAX, p.elo + deepSquad) }));
+    effects = [
+      ...effects,
+      {
+        id: `deep-squad-${effects.length}`,
+        source: 'deep-squad',
+        label: 'Deep Squad',
+        target: { ids: roster.map((p) => p.id) },
+        delta: deepSquad,
+        appliedAt: GROUP_ROUND,
+      },
+    ];
   }
   // Scout Network perk: begin with N distinct team boosts already applied (N = tier).
   // Commons only - a free legendary before kick-off outweighed every boost choice the
@@ -398,15 +512,17 @@ export function beginRun(
   if (scout > 0) {
     const commons = availableBoons(unlockedBoons).filter((b) => b.rarity === 'common');
     for (const boon of offerBoons(commons, scout)) {
-      const before = players;
-      players = boon.apply(players, { opponentSquadId: null });
-      const inP = players.find((p) => !before.some((b) => b.id === p.id));
-      if (inP) boostedIds.push(inP.id);
+      const granted = grantBoon(roster, effects, boon, { opponentSquadId: null }, GROUP_ROUND);
+      roster = granted.roster;
+      effects = granted.effects;
+      if (granted.swappedIn) boostedIds.push(granted.swappedIn.id);
       activeBoons.push(boon.id);
     }
   }
   return {
-    xi: players,
+    xi: xiOf(roster, effects, GROUP_ROUND),
+    roster,
+    effects,
     phase: 'group',
     koRound: 0,
     facedIds: [],
@@ -429,7 +545,7 @@ export function beginRun(
     // Kickoff chemistry: of the XI that actually starts, so a Scout Network roster boost
     // is already in it. (Rating perks cannot move it - chemistry reads squads, nations,
     // eras and primary positions, never elo.)
-    chemistry: chemistryOf(players),
+    chemistry: chemistryOf(xiOf(roster, effects, GROUP_ROUND)),
   };
 }
 
@@ -612,26 +728,31 @@ export function chooseBoon(run: RunState, boonId: string): BoonChoice {
   if (run.phase !== 'boon') return { next: run };
   const boon = boonById(boonId);
   if (!boon) return { next: run };
-  const before = run.xi;
-  const xi = boon.apply(before, { opponentSquadId: run.nextOpponent?.id ?? null });
+  const granted = grantBoon(
+    run.roster ?? run.xi,
+    run.effects ?? [],
+    boon,
+    { opponentSquadId: run.nextOpponent?.id ?? null },
+    run.koRound,
+  );
   // If the boon swapped the roster, tag the incoming player (an amber "Boost" mark).
-  const swappedIn = xi.find((p) => !before.some((b) => b.id === p.id));
-  const swappedOut = before.find((p) => !xi.some((b) => b.id === p.id));
+  const { swappedIn, swappedOut } = granted;
   // The boost is chosen right after a round's games, so record it on that round (the
   // most recent history entry) - e.g. the after-group boost lands on the group step.
   const last = run.history.length - 1;
   const history =
     last >= 0 ? run.history.map((r, i) => (i === last ? { ...r, boostId: boon.id } : r)) : run.history;
   return {
-    next: {
+    next: recomputeXi({
       ...run,
-      xi,
+      roster: granted.roster,
+      effects: granted.effects,
       activeBoons: [...run.activeBoons, boon.id],
       boostedIds: swappedIn ? [...run.boostedIds, swappedIn.id] : run.boostedIds,
       offer: null,
       phase: 'match',
       history,
-    },
+    }),
     swappedIn,
     swappedOut,
   };

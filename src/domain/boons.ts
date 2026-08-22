@@ -1,7 +1,8 @@
 import type { Player } from '../data/types';
-import { categoryOf, isAttacker, isDefender, primaryPosition, ELO_MAX, ELO_MIN } from '../data/types';
+import { categoryOf, isAttacker, isDefender, primaryPosition } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
 import { CONFEDERATION } from '../data/confederations';
+import { bump } from './effects';
 
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
 export type Rarity = 'common' | 'rare' | 'legendary';
@@ -30,11 +31,31 @@ export interface BoonContext {
 // trivial to buy in the transfer market.
 // ---------------------------------------------------------------------------
 
-/** A boon chosen between rounds of a Cup Run. `apply` is a pure transform of the XI
- *  - either rating deltas (flowing into `xiStrength`/the sim) or a roster change (a
- *  player swapped in/out). Rating boons ignore the context.
+/** What a rating boon decides when it is picked: exactly who is affected, and by how
+ *  much. Resolved ONCE, against the XI as it stands at the moment of the pick, and then
+ *  stored as a `RunEffect`. It is deliberately not a predicate that could be re-evaluated
+ *  later: "your weakest player" must mean who that was when you took the card, or the run
+ *  would change under the player as other effects land. */
+export interface RatingPlan {
+  ids: string[];
+  delta: number;
+}
+
+/** The two things a boon can actually do, split so the rating half can be recorded rather
+ *  than baked in (see `domain/effects.ts`).
  *
- *  Boons last the whole run: every one applies to the XI and stays applied. */
+ *  - `rating` returns a PLAN. The run records it in its effect ledger and derives the XI.
+ *  - `roster` changes WHO is in the XI, so it rewrites the base roster and is permanent by
+ *    nature. Rating effects already granted keep their frozen ids, so an incoming player is
+ *    not retroactively bumped - which is exactly what the old baked-in version did. */
+export type BoonEffect =
+  | { kind: 'rating'; plan: (xi: Player[], ctx: BoonContext) => RatingPlan[] }
+  | { kind: 'roster'; apply: (roster: Player[], ctx: BoonContext) => Player[] };
+
+/** A boon chosen between rounds of a Cup Run.
+ *
+ *  Boons last the whole run: every one applies and stays applied. (The ledger supports
+ *  expiry, but no boon uses it - only the temporary effects a run node can hand out.) */
 export interface Boon {
   id: string;
   name: string;
@@ -43,7 +64,7 @@ export interface Boon {
   /** In the offer pool from the start (no Prestige unlock needed). Locked boons are
    *  bought into the pool via career Prestige (see `BOON_UNLOCK_COST` / `unlockBoon`). */
   starter?: boolean;
-  apply: (xi: Player[], ctx: BoonContext) => Player[];
+  effect: BoonEffect;
 }
 
 /** Prestige price to unlock a locked (non-starter) boon into the offer pool, by rarity. */
@@ -61,26 +82,27 @@ const weakestOfCat = (xi: Player[], cat: ReturnType<typeof catOf>): Player | nul
 const swap = (xi: Player[], outId: string, inP: Player) =>
   xi.map((p) => (p.id === outId ? inP : p));
 
-const bump = (p: Player, d: number): Player => ({
-  ...p,
-  elo: Math.max(ELO_MIN, Math.min(ELO_MAX, p.elo + d)),
-});
+// Plan builders. Each resolves a predicate to concrete ids against the XI in hand, so
+// what the effect ledger stores is "these eleven players, +2" rather than a rule that
+// could pick different players later.
 
-/** Bump the `n` lowest-rated players by `d`. */
-function bumpLowest(xi: Player[], n: number, d: number): Player[] {
-  const ids = new Set([...xi].sort((a, b) => a.elo - b.elo).slice(0, n).map((p) => p.id));
-  return xi.map((p) => (ids.has(p.id) ? bump(p, d) : p));
-}
+/** The `n` lowest-rated players, by `d`. */
+const planLowest = (xi: Player[], n: number, d: number): RatingPlan[] => [
+  { ids: [...xi].sort((a, b) => a.elo - b.elo).slice(0, n).map((p) => p.id), delta: d },
+];
 
-/** Bump the `n` highest-rated players by `d`. */
-function bumpHighest(xi: Player[], n: number, d: number): Player[] {
-  const ids = new Set([...xi].sort((a, b) => b.elo - a.elo).slice(0, n).map((p) => p.id));
-  return xi.map((p) => (ids.has(p.id) ? bump(p, d) : p));
-}
+/** The `n` highest-rated players, by `d`. */
+const planHighest = (xi: Player[], n: number, d: number): RatingPlan[] => [
+  { ids: [...xi].sort((a, b) => b.elo - a.elo).slice(0, n).map((p) => p.id), delta: d },
+];
 
-/** Bump every player the predicate picks out. */
-const bumpWhere = (xi: Player[], pick: (p: Player) => boolean, d: number) =>
-  xi.map((p) => (pick(p) ? bump(p, d) : p));
+/** Everyone the predicate picks out, by `d`. An empty selection is a legal no-op plan. */
+const planWhere = (xi: Player[], pick: (p: Player) => boolean, d: number): RatingPlan[] => [
+  { ids: xi.filter(pick).map((p) => p.id), delta: d },
+];
+
+/** The whole XI, by `d`. */
+const planAll = (xi: Player[], d: number): RatingPlan[] => [{ ids: xi.map((p) => p.id), delta: d }];
 
 /** Replace the `n` weakest players with picks from `pool`, cheapest slot first. Used by
  *  the legend boons; skips anyone already in the XI (by person, not card). */
@@ -103,7 +125,7 @@ export const BOONS: Boon[] = [
     name: 'Golden Generation',
     rarity: 'legendary',
     description: '+2 rating to your entire XI.',
-    apply: (xi) => xi.map((p) => bump(p, 2)),
+    effect: { kind: 'rating', plan: (xi) => planAll(xi, 2) },
   },
   {
     id: 'marquee-signing',
@@ -112,7 +134,7 @@ export const BOONS: Boon[] = [
     // attacker is +1 attack, which a common already beats.
     rarity: 'rare',
     description: '+12 to your best player.',
-    apply: (xi) => bumpHighest(xi, 1, 12),
+    effect: { kind: 'rating', plan: (xi) => planHighest(xi, 1, 12) },
   },
   {
     id: 'star-signing',
@@ -121,14 +143,17 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+6 to your weakest player.',
-    apply: (xi) => bumpLowest(xi, 1, 6),
+    effect: { kind: 'rating', plan: (xi) => planLowest(xi, 1, 6) },
   },
   {
     id: 'glass-cannon',
     name: 'Glass Cannon',
     rarity: 'rare',
     description: '+5 to attackers, -3 to defenders. High risk.',
-    apply: (xi) => xi.map((p) => (isAttacker(p) ? bump(p, 5) : isDefender(p) ? bump(p, -3) : p)),
+    effect: {
+      kind: 'rating',
+      plan: (xi) => [...planWhere(xi, isAttacker, 5), ...planWhere(xi, isDefender, -3)],
+    },
   },
   {
     id: 'veteran-core',
@@ -136,7 +161,7 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+3 to your three lowest-rated players.',
-    apply: (xi) => bumpLowest(xi, 3, 3),
+    effect: { kind: 'rating', plan: (xi) => planLowest(xi, 3, 3) },
   },
   {
     id: 'attacking-masterclass',
@@ -144,7 +169,7 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+2 to your midfielders and forwards.',
-    apply: (xi) => xi.map((p) => (isAttacker(p) ? bump(p, 2) : p)),
+    effect: { kind: 'rating', plan: (xi) => planWhere(xi, isAttacker, 2) },
   },
   {
     id: 'defensive-drills',
@@ -152,7 +177,7 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+2 to your goalkeeper and defenders.',
-    apply: (xi) => xi.map((p) => (isDefender(p) ? bump(p, 2) : p)),
+    effect: { kind: 'rating', plan: (xi) => planWhere(xi, isDefender, 2) },
   },
   {
     // Replaces Chemistry Catalyst ("+2 to your most-represented nation"), which was a
@@ -163,11 +188,14 @@ export const BOONS: Boon[] = [
     name: 'Familiar Foes',
     rarity: 'rare',
     description: '+3 to players from the same continent as your next opponent.',
-    apply: (xi, ctx) => {
-      const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
-      const conf = opp ? CONFEDERATION[opp.code] : undefined;
-      if (!conf) return xi;
-      return bumpWhere(xi, (p) => CONFEDERATION[SQUAD_BY_ID[p.squadId]?.code ?? ''] === conf, 3);
+    effect: {
+      kind: 'rating',
+      plan: (xi, ctx) => {
+        const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
+        const conf = opp ? CONFEDERATION[opp.code] : undefined;
+        if (!conf) return [];
+        return planWhere(xi, (p) => CONFEDERATION[SQUAD_BY_ID[p.squadId]?.code ?? ''] === conf, 3);
+      },
     },
   },
   {
@@ -176,15 +204,18 @@ export const BOONS: Boon[] = [
     rarity: 'rare',
     starter: true,
     description: 'Swap your weakest player for a stronger one in the same position.',
-    apply: (xi) => {
-      const out = weakest(xi);
-      const cat = catOf(out);
-      const used = new Set(xi.map((p) => p.personId));
-      const cands = ALL_PLAYERS.filter(
-        (p) => catOf(p) === cat && p.elo > out.elo && !used.has(p.personId),
-      );
-      if (!cands.length) return xi;
-      return swap(xi, out.id, cands[Math.floor(Math.random() * cands.length)]);
+    effect: {
+      kind: 'roster',
+      apply: (roster) => {
+        const out = weakest(roster);
+        const cat = catOf(out);
+        const used = new Set(roster.map((p) => p.personId));
+        const cands = ALL_PLAYERS.filter(
+          (p) => catOf(p) === cat && p.elo > out.elo && !used.has(p.personId),
+        );
+        if (!cands.length) return roster;
+        return swap(roster, out.id, cands[Math.floor(Math.random() * cands.length)]);
+      },
     },
   },
   {
@@ -192,15 +223,18 @@ export const BOONS: Boon[] = [
     name: 'Poach',
     rarity: 'rare',
     description: "Steal your next opponent's best player.",
-    apply: (xi, ctx) => {
-      const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
-      if (!opp) return xi;
-      const used = new Set(xi.map((p) => p.personId));
-      const cands = opp.players.filter((p) => !used.has(p.personId));
-      if (!cands.length) return xi;
-      const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
-      const out = weakestOfCat(xi, catOf(inP)) ?? weakest(xi);
-      return swap(xi, out.id, inP);
+    effect: {
+      kind: 'roster',
+      apply: (roster, ctx) => {
+        const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
+        if (!opp) return roster;
+        const used = new Set(roster.map((p) => p.personId));
+        const cands = opp.players.filter((p) => !used.has(p.personId));
+        if (!cands.length) return roster;
+        const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
+        const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+        return swap(roster, out.id, inP);
+      },
     },
   },
   {
@@ -208,13 +242,16 @@ export const BOONS: Boon[] = [
     name: 'Wildcard Legend',
     rarity: 'legendary',
     description: 'Add a random 90+ legend to your XI.',
-    apply: (xi) => {
-      const used = new Set(xi.map((p) => p.personId));
-      const legends = ALL_PLAYERS.filter((p) => p.elo >= 90 && !used.has(p.personId));
-      if (!legends.length) return xi;
-      const inP = legends[Math.floor(Math.random() * legends.length)];
-      const out = weakestOfCat(xi, catOf(inP)) ?? weakest(xi);
-      return swap(xi, out.id, inP);
+    effect: {
+      kind: 'roster',
+      apply: (roster) => {
+        const used = new Set(roster.map((p) => p.personId));
+        const legends = ALL_PLAYERS.filter((p) => p.elo >= 90 && !used.has(p.personId));
+        if (!legends.length) return roster;
+        const inP = legends[Math.floor(Math.random() * legends.length)];
+        const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+        return swap(roster, out.id, inP);
+      },
     },
   },
   // --- added 2026-08-15: the pool was 11 with 5 starters, so early runs saw the same
@@ -225,21 +262,21 @@ export const BOONS: Boon[] = [
     rarity: 'common',
     starter: true,
     description: '+6 to your goalkeeper.',
-    apply: (xi) => bumpWhere(xi, (p) => catOf(p) === 'GK', 6),
+    effect: { kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'GK', 6) },
   },
   {
     id: 'squad-rotation',
     name: 'Squad Rotation',
     rarity: 'common',
     description: '+4 to your two weakest players.',
-    apply: (xi) => bumpLowest(xi, 2, 4),
+    effect: { kind: 'rating', plan: (xi) => planLowest(xi, 2, 4) },
   },
   {
     id: 'set-piece-drills',
     name: 'Set-Piece Drills',
     rarity: 'common',
     description: '+2 to your outfield defenders.',
-    apply: (xi) => bumpWhere(xi, (p) => catOf(p) === 'DEF', 2),
+    effect: { kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'DEF', 2) },
   },
   {
     // The mirror of Glass Cannon, so the trade-off cuts both ways.
@@ -247,15 +284,23 @@ export const BOONS: Boon[] = [
     name: 'Catenaccio',
     rarity: 'rare',
     description: '+4 to your defence, -2 to your attack. Win it 1-0.',
-    apply: (xi) => xi.map((p) => (isDefender(p) ? bump(p, 4) : isAttacker(p) ? bump(p, -2) : p)),
+    effect: {
+      kind: 'rating',
+      plan: (xi) => [...planWhere(xi, isDefender, 4), ...planWhere(xi, isAttacker, -2)],
+    },
   },
   {
     id: 'counter-attack',
     name: 'Counter Attack',
     rarity: 'rare',
     description: '+8 to your forwards, -2 to your midfielders.',
-    apply: (xi) =>
-      xi.map((p) => (catOf(p) === 'FWD' ? bump(p, 8) : catOf(p) === 'MID' ? bump(p, -2) : p)),
+    effect: {
+      kind: 'rating',
+      plan: (xi) => [
+        ...planWhere(xi, (p) => catOf(p) === 'FWD', 8),
+        ...planWhere(xi, (p) => catOf(p) === 'MID', -2),
+      ],
+    },
   },
   {
     // Conditional on the draw, so it cannot be set up in advance: strong when it fires,
@@ -264,12 +309,15 @@ export const BOONS: Boon[] = [
     name: 'Underdog Spirit',
     rarity: 'rare',
     description: '+3 to your entire XI, but only against a stronger opponent.',
-    apply: (xi, ctx) => {
-      const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
-      if (!opp) return xi;
-      const oppBest = [...opp.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
-      const mean = (ps: Player[]) => ps.reduce((s, p) => s + p.elo, 0) / (ps.length || 1);
-      return mean(oppBest) > mean(xi) ? xi.map((p) => bump(p, 3)) : xi;
+    effect: {
+      kind: 'rating',
+      plan: (xi, ctx) => {
+        const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
+        if (!opp) return [];
+        const oppBest = [...opp.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
+        const mean = (ps: Player[]) => ps.reduce((s, p) => s + p.elo, 0) / (ps.length || 1);
+        return mean(oppBest) > mean(xi) ? planAll(xi, 3) : [];
+      },
     },
   },
   {
@@ -277,7 +325,7 @@ export const BOONS: Boon[] = [
     name: 'Galacticos',
     rarity: 'legendary',
     description: '+6 to your three best players.',
-    apply: (xi) => bumpHighest(xi, 3, 6),
+    effect: { kind: 'rating', plan: (xi) => planHighest(xi, 3, 6) },
   },
   {
     id: 'legends-reunion',
@@ -286,9 +334,31 @@ export const BOONS: Boon[] = [
     // One swap, but from a rarer shelf than Wildcard's 90+, so the two are distinct
     // without stacking to twice a Golden Generation (which two 90+ swaps measured at).
     description: 'Your weakest player is replaced by a 93+ icon.',
-    apply: (xi) => replaceWeakest(xi, 1, ALL_PLAYERS.filter((p) => p.elo >= 93)),
+    effect: {
+      kind: 'roster',
+      apply: (roster) => replaceWeakest(roster, 1, ALL_PLAYERS.filter((p) => p.elo >= 93)),
+    },
   },
 ];
+
+/**
+ * Apply a boon straight to an XI and hand back the result, the way `Boon.apply` used to.
+ *
+ * The run itself does NOT use this - it goes through the effect ledger (`grantBoon` in
+ * domain/run.ts), so it can record what was applied. This exists for callers that only
+ * want the resulting XI and have no run to record against: the balance harness, which
+ * measures a boon by the movement it causes, and anything else measuring rather than
+ * playing. Same fold, same per-step clamp, so the two agree by construction.
+ */
+export function applyBoon(xi: Player[], boon: Boon, ctx: BoonContext): Player[] {
+  if (boon.effect.kind === 'roster') return boon.effect.apply(xi, ctx);
+  let out = xi;
+  for (const plan of boon.effect.plan(xi, ctx)) {
+    const ids = new Set(plan.ids);
+    out = out.map((p) => (ids.has(p.id) ? bump(p, plan.delta) : p));
+  }
+  return out;
+}
 
 const BY_ID = new Map(BOONS.map((b) => [b.id, b]));
 export const boonById = (id: string): Boon | undefined => BY_ID.get(id);
