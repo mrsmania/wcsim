@@ -6,11 +6,11 @@
 Everything a run does between rounds lives here: the effect ledger the boosts now run on,
 the Form currency, and the shop / event nodes that replaced two of the four boost picks.
 
-> **ROLLED BACK 2026-08-22. None of this is in the tree.** It was built in full, played,
-> and reverted the same day; the code is recoverable from git history (`c5a9071` the effect
-> ledger, `6d345a0` Form, `40e6bd0` the shop and event nodes) but no longer ships. This
-> document stays as the record of the attempt, and everything below describes what WAS built
-> rather than what exists.
+> **ROLLED BACK 2026-08-22, except slice 1.** Built in full, played, and reverted the same
+> day - with one exception: **the effect ledger (slice 1) was kept** and is in the tree at
+> `domain/effects.ts`. Form (slice 2) and the shop/event nodes (slices 3 to 5) are gone and
+> recoverable only from git history (`6d345a0`, `40e6bd0`). Read slice 1 below as a
+> description of shipped code; read everything after it as a record of an attempt.
 >
 > **Why it failed:** a currency needs enough transactions to be worth reasoning about, and a
 > World Cup has **seven matches**. Earning Form in the semi-final is close to meaningless -

@@ -68,11 +68,13 @@ import { canMove, moveTargets, placedPlayers, planMove, type Filled } from '../s
 import { BUDGET_DRAFT, BUDGET_BY_TIER, STICKER_DISCOUNT } from '../src/config';
 import {
   BOONS,
+  applyBoon,
   offerBoons,
   availableBoons,
   lockableBoons,
   BOON_UNLOCK_COST,
 } from '../src/domain/boons';
+import { xiOf, type RunEffect } from '../src/domain/effects';
 import {
   addMatches,
   beginRun,
@@ -490,7 +492,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const xi = bestEleven(SQUADS[0].players);
   let ok = true;
   for (const b of BOONS) {
-    const after = b.apply(xi, { opponentSquadId: SQUADS[1].id });
+    const after = applyBoon(xi, b, { opponentSquadId: SQUADS[1].id });
     if (after.length !== xi.length) ok = false; // roster boons swap, never grow/shrink
     if (new Set(after.map((p) => p.personId)).size !== after.length) ok = false; // no dupes
   }
@@ -501,6 +503,74 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   if (offer.some((b) => !pool.some((p) => p.id === b.id))) ok = false;
   if (offerBoons(pool, pool.length + 5).length !== pool.length) ok = false;
   check('boons: every boon keeps 11 distinct players; offers are distinct + in pool', ok);
+}
+
+// --- The effect ledger: the XI is roster + effects, and stays that way -----
+// Roadmap item 04, slice 1. The boon-power table above is the real regression test for
+// the refactor (it must not move); these are the properties the ledger itself has to
+// hold, each of which is a bug the old baked-in version could not even express.
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const ids = xi.map((p) => p.id);
+  let ok = true;
+
+  // Pure: same inputs, same XI, however many times it is asked.
+  const eff: RunEffect[] = [
+    { id: 'a', source: 'x', label: 'X', target: { ids }, delta: 2, appliedAt: -1 },
+    { id: 'b', source: 'y', label: 'Y', target: { ids: [ids[0]] }, delta: -3, appliedAt: 0 },
+  ];
+  const once = xiOf(xi, eff, 0);
+  const twice = xiOf(xi, eff, 0);
+  if (JSON.stringify(once) !== JSON.stringify(twice)) ok = false;
+
+  // Per-step clamping, which is the whole reason an inverse transform is unsound. A 98
+  // with +2 then -3 is 96 (clamp to 99, then subtract), NOT 97 (sum to 97, then clamp).
+  // Asserted as a literal because "simplifying" xiOf to a sum is the tempting mistake.
+  const high = [{ ...xi[0], id: 'clamp-me', elo: 98 }];
+  const stacked: RunEffect[] = [
+    { id: 'up', source: 'x', label: 'X', target: { ids: ['clamp-me'] }, delta: 2, appliedAt: -1 },
+    { id: 'dn', source: 'y', label: 'Y', target: { ids: ['clamp-me'] }, delta: -3, appliedAt: -1 },
+  ];
+  if (xiOf(high, stacked, 0)[0].elo !== 96) ok = false;
+
+  // Expiry: live on its round, gone after it, and the un-bumped value is the base.
+  const temp: RunEffect[] = [
+    { id: 't', source: 'x', label: 'X', target: { ids: [ids[0]] }, delta: 5, appliedAt: 0, expiresAfter: 1 },
+  ];
+  if (xiOf(xi, temp, 1)[0].elo !== Math.min(ELO_MAX, xi[0].elo + 5)) ok = false;
+  if (xiOf(xi, temp, 2)[0].elo !== xi[0].elo) ok = false;
+
+  // A target id nobody matches (a roster boost swapped that player out) is a no-op, not
+  // a throw and not a misapplied bump.
+  const orphan: RunEffect[] = [
+    { id: 'o', source: 'x', label: 'X', target: { ids: ['nobody'] }, delta: 9, appliedAt: 0 },
+  ];
+  if (JSON.stringify(xiOf(xi, orphan, 0)) !== JSON.stringify(xi)) ok = false;
+
+  check('effects: xiOf is pure, clamps per step, expires, and tolerates orphan ids', ok);
+}
+
+// --- The xi cache agrees with the ledger at every phase of a real run ------
+// The invariant that catches a future transition which forgets to recompute.
+{
+  let ok = true;
+  let checked = 0;
+  for (let seed = 0; seed < 40; seed++) {
+    let run = beginRun(bestEleven(SQUADS[seed % SQUADS.length].players), { 'deep-squad': 2, scout: 1 }, lockableBoons().map((b) => b.id), 0);
+    const agrees = (r: RunState) =>
+      JSON.stringify(r.xi) === JSON.stringify(xiOf(r.roster ?? r.xi, r.effects ?? [], r.koRound));
+    if (!agrees(run)) ok = false;
+    checked++;
+    let guard = 0;
+    while (run.phase !== 'ended' && guard++ < 12) {
+      if (run.phase === 'group') run = playGroupStage(run);
+      else if (run.phase === 'boon') run = chooseBoon(run, (run.offer ?? [])[0]?.id ?? '').next;
+      else run = playKnockoutRound(run);
+      if (!agrees(run)) ok = false;
+      checked++;
+    }
+  }
+  check(`effects: run.xi always equals xiOf(roster, effects, koRound) (${checked} states)`, ok);
 }
 
 // --- Boon power: what each one is actually worth, against its rarity band ---
@@ -576,7 +646,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     for (const sample of samples) {
       const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
       for (let i = 0; i < N; i++) {
-        const after = b.apply(sample, { opponentSquadId: SQUADS[3].id });
+        const after = applyBoon(sample, b, { opponentSquadId: SQUADS[3].id });
         att += side(after, isAttacker) - before.att;
         def += side(after, isDefender) - before.def;
         tot += totalElo(after) - totalElo(sample);

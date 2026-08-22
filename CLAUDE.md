@@ -162,7 +162,8 @@ src/
                               many simulated tournaments; drives the Cup Run readout)
                pricing.ts    (budget-draft price by rating; convex; BUDGET from config)
                budget.ts     (the market's randomized "Auto-fill & spend")
-               boons.ts      (Cup Run boons: rating + roster transforms; gated)
+               boons.ts      (Cup Run boons: rating PLANS + roster transforms)
+               effects.ts    (the effect ledger: xiOf(roster, effects, round))
                run.ts        (Cup Run state machine; chemistryOf; gated - see below)
                career.ts     (Cup Run career: XP/level/Prestige/perks; gated)
                ascension.ts  (the Cup Run difficulty ladder: handicap, draw slope,
@@ -927,6 +928,46 @@ deleted with the plain World Cup it used to gate). Design:
 - Known gaps (prototype): the layer is deeper than it looks from `CareerState` alone, but
   Ascension's tuning is a first pass (`ASCENSIONS` is marked tunable, and the odds sim in
   `domain/odds.ts` is the tool for it), and level does nothing beyond gating.
+
+## The effect ledger
+
+`domain/effects.ts`, the one piece of roadmap item 04 that survived it (the rest - Form and
+the shop/event nodes - was built, played and rolled back; see the item and
+`docs/run-nodes-plan.md`). It changes nothing observable and is load-bearing anyway.
+
+- **A run holds `roster` and `effects`; `xi` is derived.** `roster` is who is in the XI at
+  DATASET ratings, `effects` is what has been done to them, and `xi` is a **cache** rewritten
+  by `recomputeXi` at every transition that touches either input. Before this, a boost was
+  applied by REWRITING the players and nothing recorded what had been applied, so nothing
+  could expire or be listed with its magnitude, and the run's ratings drifted from the
+  dataset (which is why `basePlayer` exists for the challenge catalogue to work around).
+- **`xi` stays a stored cache rather than being derived at each read**, so the ~40 existing
+  consumers (the sim, `xiStrength`, `chemistryOf`, `domain/challenges.ts`, the sticker
+  banking, every component) read `run.xi` unchanged. `npm run checks` asserts the cache
+  agrees with `xiOf` at every phase of 40 runs, which is what catches a new transition that
+  forgets to recompute.
+- **`Boon.apply` is gone.** A boon declares `effect: { kind: 'rating', plan }` or
+  `{ kind: 'roster', apply }`. A rating plan resolves to **concrete player ids at pick time**
+  and is then frozen: "your weakest player" must mean whoever that was when the card was
+  taken, and a plan re-evaluated on each recompute would let a later effect move the target.
+  Freezing also reproduces the old interaction with roster boons exactly (a player swapped in
+  afterwards is not retroactively bumped), and an orphaned id is a harmless no-op.
+- **Effects fold IN ORDER, clamping at EVERY step.** Two mistakes are tempting and both are
+  wrong. An **inverse transform** (subtract the boost back off when it ends) is unsound
+  because `bump` clamps: a +2 on a 98 is really a +1. **Summing the deltas and clamping
+  once** is also wrong: a base 98 with +2 then -3 is **96** the old way and 97 if summed. The
+  checks assert that literal 96, because "simplifying" `xiOf` to a sum is the obvious next
+  refactor and it would change the game quietly.
+- **`RunEffect.expiresAfter` is wired but unused.** Every boost is permanent, so nothing sets
+  it. It stays because it is the whole reason the ledger beats the rewrite it replaced: a
+  temporary effect is expressible now and was not before, and the plumbing is complete and
+  tested, so the first one that wants to wear off is a caller change rather than a redesign.
+- `applyBoon()` in `boons.ts` is the MEASUREMENT path, reproducing the old behaviour for
+  callers that want a resulting XI and have no run to record against. Only the balance
+  harness uses it.
+- **The regression test already existed.** The **boon-power table** `npm run checks` prints
+  is byte-identical before and after the refactor, for all 19 boons - twice over now, since
+  it was verified again when the ledger was restored after the item 04 rollback.
 
 ## Challenges (flagged)
 

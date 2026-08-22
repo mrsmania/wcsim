@@ -4,12 +4,12 @@ Written 2026-08-22, after roadmap item 04 was built, played and **rolled back in
 Ideas, not a plan: nothing here is built, and the ordering is a recommendation rather than a
 schedule.
 
-**Note on what exists.** Item 04's effect ledger is gone with the rest of it, so a boost is
-once again applied by rewriting the players (`Boon.apply` is `(xi, ctx) => Player[]`) and
-nothing records what was applied. That matters to several ideas below: anything TEMPORARY, or
-anything that wants to show what a boost did, needs a ledger first. It is recoverable from
-`c5a9071` if that turns out to be the shape wanted. Option A, the recommended one, needs none
-of it.
+**Note on what exists.** Item 04's **effect ledger was kept** when the rest of it was rolled
+back (`domain/effects.ts`): a run holds `roster` + `effects` and derives `xi`, so what a boost
+did is recorded rather than baked in, and `RunEffect.expiresAfter` is wired though nothing
+sets it yet. That matters to several ideas below - anything TEMPORARY, and anything that wants
+to show the player what a boost did, is a caller change rather than a redesign. What is gone
+is Form, the shop and event nodes, and the `runNodes` flag.
 
 ## What went wrong, stated precisely
 
@@ -49,7 +49,7 @@ average", and the list is short:
 | chemistry | `chemistry.ts`, capped at 6, added to overall | no |
 | the shootout | `penTakersFrom`, `penProb` (linear in rating) | no |
 | the opponent draw | `drawOpponent(faced, pool, slope)` | Poach + Familiar Foes read it, none CHANGE it |
-| roster identity | `RunState.xi` (the boosts rewrite it in place) | 4 roster boosts |
+| roster identity | `RunState.roster` (the ledger's base) | 4 roster boosts |
 | the run's payout | `applyRunResult`: `score x ascensionAt().rewardMult` | no |
 | the sticker album | banked at run end | no |
 
@@ -108,9 +108,9 @@ player can see: a top-heavy XI (one 95 and ten 70s) loses more than a flat one d
 also the first boost whose value can be NEGATIVE for some XIs, which is what makes it a
 decision rather than a gift.
 
-**Note.** It could ship as a plain boost with no node machinery at all. Without the ledger it
-has to rewrite the players like every other boost does, which is fine - it is permanent, so
-nothing needs to expire.
+**Note.** It could ship as a plain boost with no node machinery at all: the ledger already
+takes a roster change and a rating plan, so the whole card is a `BoonEffect` and a catalogue
+entry.
 
 ## D. Commit before the draw
 

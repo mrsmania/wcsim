@@ -387,7 +387,7 @@
   <summary>
     <span class="num">04</span>
     <span class="title">Career depth D - in-run economy and node variety
-      <span class="sub">Attempted and ROLLED BACK 2026-08-22. Form does not work in a seven-match tournament. Kept as the record of a dead end; the live work is item 29.</span>
+      <span class="sub">Attempted and ROLLED BACK 2026-08-22, except its effect ledger, which was kept. Form does not work in a seven-match tournament. The live work is item 29.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -398,12 +398,14 @@
     goal margins, and <b>node variety</b> so the gap between rounds is not always "pick 1 of 3
     boosts".</p>
 
-    <p><strong>Built in full on 2026-08-22, played, and rolled back the same day.</strong>
-    The whole implementation is reverted - <code>domain/effects.ts</code>,
-    <code>domain/form.ts</code>, <code>domain/nodes.ts</code>, the shop and event screens, the
-    <code>runNodes</code> flag and every check - so the tree is exactly as it was at
-    <code>7cb870c</code>. It is recoverable from git history if any of it is wanted back;
-    <code>docs/run-nodes-plan.md</code> is the plan it was built from and stays as the record.</p>
+    <p><strong>Built in full on 2026-08-22, played, and rolled back the same day - except
+    the effect ledger, which was kept.</strong> Gone: <code>domain/form.ts</code>,
+    <code>domain/nodes.ts</code>, the shop and event screens, the <code>runNodes</code> flag
+    and their checks. Kept: <code>domain/effects.ts</code>, because it changes nothing
+    observable, it fixed a real flaw (a boost REWROTE the players and nothing recorded what
+    had been applied), and it is what makes several item 29 ideas a caller change rather than
+    a redesign. <code>docs/run-nodes-plan.md</code> is the plan it was built from and stays as
+    the record.</p>
 
     <p><strong>Why it failed, and this is the part worth keeping:</strong> <b>a currency needs
     enough transactions to be worth reasoning about, and a World Cup has SEVEN matches</b>
@@ -433,15 +435,15 @@
       faucet before pricing the sink.</li>
       <li><b>Effects cannot be undone by subtraction.</b> <code>bump</code> clamps, so a +2 on
       a 98 is really a +1 and taking 2 back off is wrong by one; and summing deltas before
-      clamping gives 97 where folding-and-clamping-each gives 96. Any future attempt at
-      temporary effects has to replay from a base rather than invert.</li>
+      clamping gives 97 where folding-and-clamping-each gives 96. That is why the ledger
+      replays from a base, and why it was the piece worth keeping.</li>
     </ul>
 
     <p class="next"><strong>Next step: none. This item is a record, not a queue.</strong> If
     an in-run economy is ever wanted, it needs a format with more matches than a World Cup
     has. The live successor is <b>item 29</b>.</p>
 
-    <p class="files">docs/run-nodes-plan.md, docs/run-decisions.md, docs/career-depth-spec.md</p>
+    <p class="files">docs/run-nodes-plan.md, docs/run-decisions.md, docs/career-depth-spec.md, src/domain/effects.ts</p>
   </div>
 </details>
 
