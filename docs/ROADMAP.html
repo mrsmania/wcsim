@@ -546,7 +546,7 @@
   <summary>
     <span class="num">04</span>
     <span class="title">Career depth D - in-run economy and node variety
-      <span class="sub">A currency during a run, and rounds that are not all "play the tie".</span>
+      <span class="sub">A currency during a run, and rounds that are not all "play the tie". Planned and being built 2026-08-22: <code>docs/run-nodes-plan.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -616,18 +616,20 @@
       companions.</li>
     </ul>
 
-    <p class="next"><strong>Next step:</strong> nothing yet, and deliberately so. Depends on
-    nothing in A/B/C (boost unlocks, tiered perks and Ascension all shipped), but two things bear
-    on it. Every node type is Cup-Run-only machinery piling onto <code>domain/run.ts</code>, the
-    heavier side of the split between the two tournament engines, so building this widens a
-    duplication the hygiene audit deliberately leaves alone and nobody currently owns. And
-    <b>item 27</b> notes that items 04, 05 and 19 each add a screen the navigation will have to
-    hold, which a shop node and an event node both do. So: land 27, then build this. Building it
-    first means redoing it.
-    When it does start, do the effect ledger as its own step before any node type, since every
-    node type wants it and it is the part that cannot be retrofitted.</p>
+    <p class="next"><strong>Next step: the plan is written and the build is under way</strong>
+    (2026-08-22) - <code>docs/run-nodes-plan.md</code> holds it, in five slices, with the
+    content catalogue for all four node kinds in its appendix. <b>Both reasons this item gave
+    for waiting have expired.</b> It said to land item 27 first (shipped 2026-08-21) and warned
+    that every node type piles Cup-Run-only machinery onto the heavier side of a two-engine
+    duplication - and item 28 <b>deleted the second engine</b> the same day, so there is no
+    duplication left to widen. Its file list is also stale:
+    <code>src/components/RunLadder.tsx</code> went with item 28.
+    <br>The order that matters: <b>the effect ledger is its own slice, before any node type</b>,
+    because every node wants it and it is the one part that cannot be retrofitted. It also has a
+    free regression test - the boon-power table <code>npm run checks</code> already prints must
+    come out unchanged.</p>
 
-    <p class="files">docs/career-depth-spec.md, src/domain/run.ts, src/domain/boons.ts, src/domain/odds.ts, src/components/CupRunScreen.tsx, src/components/RunLadder.tsx, src/components/cupRun/BoostOffer.tsx, src/state/runStorage.ts, scripts/checks.ts</p>
+    <p class="files">docs/run-nodes-plan.md, docs/career-depth-spec.md, src/domain/run.ts, src/domain/boons.ts, src/domain/effects.ts, src/domain/form.ts, src/domain/nodes.ts, src/components/CupRunScreen.tsx, src/components/cupRun/BoostOffer.tsx, src/state/runStorage.ts, scripts/checks.ts</p>
   </div>
 </details>
 
