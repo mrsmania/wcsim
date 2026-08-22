@@ -1,7 +1,15 @@
 # Meaningful decisions in a Cup Run
 
-Written 2026-08-22, after `FEATURES.runNodes` was turned off. Ideas, not a plan: nothing
-here is built, and the ordering is a recommendation rather than a schedule.
+Written 2026-08-22, after roadmap item 04 was built, played and **rolled back in full**.
+Ideas, not a plan: nothing here is built, and the ordering is a recommendation rather than a
+schedule.
+
+**Note on what exists.** Item 04's effect ledger is gone with the rest of it, so a boost is
+once again applied by rewriting the players (`Boon.apply` is `(xi, ctx) => Player[]`) and
+nothing records what was applied. That matters to several ideas below: anything TEMPORARY, or
+anything that wants to show what a boost did, needs a ledger first. It is recoverable from
+`c5a9071` if that turns out to be the shape wanted. Option A, the recommended one, needs none
+of it.
 
 ## What went wrong, stated precisely
 
@@ -41,7 +49,7 @@ average", and the list is short:
 | chemistry | `chemistry.ts`, capped at 6, added to overall | no |
 | the shootout | `penTakersFrom`, `penProb` (linear in rating) | no |
 | the opponent draw | `drawOpponent(faced, pool, slope)` | Poach + Familiar Foes read it, none CHANGE it |
-| roster identity | `RunState.roster` | 4 roster boosts |
+| roster identity | `RunState.xi` (the boosts rewrite it in place) | 4 roster boosts |
 | the run's payout | `applyRunResult`: `score x ascensionAt().rewardMult` | no |
 | the sticker album | banked at run end | no |
 
@@ -100,9 +108,9 @@ player can see: a top-heavy XI (one 95 and ten 70s) loses more than a flat one d
 also the first boost whose value can be NEGATIVE for some XIs, which is what makes it a
 decision rather than a gift.
 
-**Note.** This is expressible today - the ledger takes a roster change and a rating plan in
-one option, and `EventOption.effects` is already an array. It could ship as a boost without
-any node at all.
+**Note.** It could ship as a plain boost with no node machinery at all. Without the ledger it
+has to rewrite the players like every other boost does, which is fine - it is permanent, so
+nothing needs to expire.
 
 ## D. Commit before the draw
 

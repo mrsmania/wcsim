@@ -6,36 +6,28 @@
 Everything a run does between rounds lives here: the effect ledger the boosts now run on,
 the Form currency, and the shop / event nodes that replaced two of the four boost picks.
 
-> **Verdict (2026-08-22): `FEATURES.runNodes` is OFF.** The owner turned it off on playing
-> it, and the reason is a fact about the format rather than the tuning: **a currency needs
-> enough transactions to be worth reasoning about, and a World Cup has seven matches.**
-> Earning Form in the semi-final is close to meaningless - one stop is left to spend it at
-> and no time to plan around it. It would work in a 20-plus game league. No repricing fixes
-> that, so the whole Form-as-economy premise of section D is answered NO for this format.
-> The **effect ledger and expiry stay on and load-bearing**, and the node machinery is kept
-> because it is a working way to pose a question that is not "which number is biggest" - a
-> future node kind that costs something other than a currency reuses all of it. See
-> `docs/run-decisions.md` for what to build instead.
+> **ROLLED BACK 2026-08-22. None of this is in the tree.** It was built in full, played,
+> and reverted the same day; the code is recoverable from git history (`c5a9071` the effect
+> ledger, `6d345a0` Form, `40e6bd0` the shop and event nodes) but no longer ships. This
+> document stays as the record of the attempt, and everything below describes what WAS built
+> rather than what exists.
 >
-> The **Scouting Report** shop item was deleted the same day: the full bracket is already
-> free behind the accordion's chevron, so it charged for a click, and forcing the accordion
-> open left its Hide button inert. Nothing here can sell information - the game shows the
-> player everything.
-
-> **Status: built 2026-08-22, in three commits.** Slices 3 to 5 (the shop node, the event
-> node and expiring effects) are behind **`FEATURES.runNodes`**; with it `false` a run is
-> exactly the four boost picks it was before, and `npm run checks` asserts that too. Slices
-> 1 and 2 are unflagged: the ledger changes nothing observable, and Form with no sink is a
-> counter.
+> **Why it failed:** a currency needs enough transactions to be worth reasoning about, and a
+> World Cup has **seven matches**. Earning Form in the semi-final is close to meaningless -
+> one stop is left to spend it at and no time to plan around it. That is a fact about the
+> format, not the prices, so no repricing fixes it. Form would work in a 20-plus game league.
 >
-> **Two numbers in the plan below were wrong, and the harness corrected them.** The wallet at
-> the shop stop is a median of **12** (range 6 to 20), not the "7 to 9" estimated here: the
-> group pays three matchdays with margins, so most of it is earned before the shop opens.
-> Prices were raised to suit. And the strict `cost = budget x rate` pricing rule in 3.3 was
-> **not** adopted - it mis-prices the point of the node, since the same movement is worth
-> more when you choose it than when it is dealt to you. What ships is an upper bound
-> (nothing in the shop out-moves a legendary boost) plus the median-wallet rule. Treat every
-> other figure below as an estimate and read `npm run checks` for the measured one.
+> **And the diagnosis underneath was wrong.** This plan assumed the problem was too few node
+> KINDS. It is not: all 19 boosts sit on one axis ("+N to some subset of the XI"), so an
+> offer of three reduces to arithmetic, and a shop selling rating points is that same axis
+> with a price on it. **`docs/run-decisions.md` is the corrected diagnosis and the live
+> successor**, tracked as roadmap item 29.
+>
+> Three things below were wrong on their own terms and are worth reading for that alone: the
+> shop wallet was measured at a median of **12**, not the "7 to 9" estimated here; the strict
+> `cost = budget x rate` pricing rule in 3.3 was never adopted; and a `reveal` item selling
+> "see the full bracket" had to be deleted because the bracket is already free behind the
+> accordion's chevron - **nothing here can sell information.**
 
 ---
 

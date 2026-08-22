@@ -14,7 +14,6 @@ export default function RunXiPanel({
   boostedIds,
   odds,
   str,
-  form,
 }: {
   xi: Player[];
   score: number;
@@ -22,9 +21,6 @@ export default function RunXiPanel({
   boostedIds: Set<string>;
   odds: number;
   str: { attack: number; defense: number; overall: number };
-  /** Form in hand (domain/form.ts). Undefined on a run saved before it existed, which
-   *  reads as "nothing to show" rather than a zero the player never earned. */
-  form?: number;
 }) {
   return (
     <section className="self-start overflow-hidden rounded-md border border-line bg-panel shadow-hard">
@@ -32,15 +28,8 @@ export default function RunXiPanel({
         <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
           Your XI
         </span>
-        <span className="flex items-center gap-3 font-mono text-[11px] font-semibold text-muted">
-          {form !== undefined && (
-            <span title="Form: earned from results, spent between rounds, lost with the run">
-              Form <span className="text-amber-ink">{form}</span>
-            </span>
-          )}
-          <span>
-            Score <span className="text-ink">{score}</span>
-          </span>
+        <span className="font-mono text-[11px] font-semibold text-muted">
+          Score <span className="text-ink">{score}</span>
         </span>
       </div>
       <div className="grid grid-cols-4 gap-px border-b border-line bg-line text-center">

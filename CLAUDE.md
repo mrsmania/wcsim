@@ -162,10 +162,7 @@ src/
                               many simulated tournaments; drives the Cup Run readout)
                pricing.ts    (budget-draft price by rating; convex; BUDGET from config)
                budget.ts     (the market's randomized "Auto-fill & spend")
-               boons.ts      (Cup Run boons: rating PLANS + roster transforms)
-               effects.ts    (the effect ledger: xiOf(roster, effects, round))
-               form.ts       (Form, the in-run currency)
-               nodes.ts      (run nodes: the shop + event catalogues, the rotation)
+               boons.ts      (Cup Run boons: rating + roster transforms; gated)
                run.ts        (Cup Run state machine; chemistryOf; gated - see below)
                career.ts     (Cup Run career: XP/level/Prestige/perks; gated)
                ascension.ts  (the Cup Run difficulty ladder: handicap, draw slope,
@@ -930,94 +927,6 @@ deleted with the plain World Cup it used to gate). Design:
 - Known gaps (prototype): the layer is deeper than it looks from `CareerState` alone, but
   Ascension's tuning is a first pass (`ASCENSIONS` is marked tunable, and the odds sim in
   `domain/odds.ts` is the tool for it), and level does nothing beyond gating.
-
-## The effect ledger, Form, and run nodes
-
-Roadmap item 04, built 2026-08-22. Plan: `docs/run-nodes-plan.md` (its appendix is the
-content catalogue). Three things, of which only the first two are always on.
-
-- **The effect ledger (`domain/effects.ts`) is the load-bearing part.** A run holds
-  **`roster`** (who is in the XI, at DATASET ratings) and **`effects`** (what has been done
-  to them); `xi` is derived from the two and kept as a **cache**, rewritten by `recomputeXi`
-  at every transition that touches either input. It stays a stored field so the ~40 existing
-  consumers (the sim, `xiStrength`, `chemistryOf`, `domain/challenges.ts`, the sticker
-  banking, every component) read `run.xi` unchanged; `npm run checks` asserts the cache
-  agrees with `xiOf` at every phase of 40 runs, which is what catches a transition that
-  forgets to recompute. Before this, a boost REWROTE the players and nothing recorded what
-  had been applied, so nothing could expire or be itemised.
-  - **`Boon.apply` is gone.** A boon declares `effect: { kind: 'rating', plan }` or
-    `{ kind: 'roster', apply }`. A rating plan resolves to **concrete player ids at pick
-    time** and is then frozen: "your weakest player" must mean whoever that was when the
-    card was taken, and a plan re-evaluated on each recompute would let a later effect move
-    the target. Freezing also reproduces the old interaction with roster boons exactly (a
-    player swapped in afterwards is not retroactively bumped), and an orphaned id is a
-    harmless no-op.
-  - **Effects fold IN ORDER, clamping at EVERY step.** Two mistakes are tempting and both
-    are wrong. An **inverse transform** (subtract the boost back off) is unsound because
-    `bump` clamps: a +2 on a 98 is really a +1. **Summing the deltas and clamping once** is
-    also wrong: a base 98 with +2 then -3 is **96** the old way and 97 if summed. The checks
-    assert that literal 96.
-  - `applyBoon()` in `boons.ts` is the MEASUREMENT path, reproducing the old behaviour for
-    callers with no run to record against. Only the balance harness uses it.
-  - The regression test for the whole refactor already existed: the **boon-power table**
-    `npm run checks` prints is byte-identical before and after, for all 19 boons.
-- **Form (`domain/form.ts`)** is the in-run currency: win 3, draw 1, loss 0, plus one per
-  goal of margin beyond the first, capped at 2. Earned on the **committed** state in
-  `prepareGroupStage` / `prepareKnockoutRound` (so a replayed prepare cannot pay twice) and
-  **discarded with the run** - it never reaches the career, which is the whole distinction
-  from Prestige. **Deliberately not multiplied by Ascension**: the tier already multiplies
-  the XP and Prestige paid at run END, and scaling an in-run currency by it would make a
-  hard run easier mid-flight. The harness prints the faucet (median 12 a run, 24 for a
-  champion, 3 for a group exit).
-- **Run nodes (`domain/nodes.ts`), behind `FEATURES.runNodes`, which is OFF since
-  2026-08-22.** Turned off by the owner on playing it, and the reason is a fact about the
-  FORMAT rather than about the tuning, so do not reach for it again without changing that:
-  **a currency needs enough transactions to be worth reasoning about, and a World Cup has
-  seven matches.** Earning Form in the semi-final is close to meaningless - one stop is left
-  to spend it at and there is no time to plan around it. It would work in a 20-plus game
-  league. No repricing fixes it.
-  What survives, and is worth knowing when the next attempt is made: the **effect ledger and
-  expiry are unflagged and load-bearing**, and the node MACHINERY is a working way to ask a
-  question that is not "which of these numbers is biggest" - a future node kind that costs
-  something other than a currency reuses all of it. The description below is of the shipped
-  behaviour with the flag on.
-  There are **four** stops in
-  a winning run - `KO_ROUNDS` has four entries, a stop sits after a round that was survived,
-  and there is none after the Final. This does not change that count, only what two of them
-  contain: group -> **boost**, R16 -> **shop**, QF -> **boost**, SF -> **event**.
-  - Each kind asks a different question, which is the only reason to have more than one: a
-    boost is free, dealt and powerful; the **shop** is paid and **CHOSEN** (that, not the
-    currency, is why it earns a place) and weaker per point; an **event** is a forced
-    either/or and is where **curses** live, as an option with over-band power and a real
-    cost rather than a node of their own.
-  - **The rotation is FIXED, not random**, and that matters more at four stops than it would
-    on a longer ladder: a random rotation leaves some runs with no shop at all, and then the
-    Form earned across that whole run is unspendable.
-  - **A node is decided in `decideGroupExit` / `decideKoRound` and stored**, like the group
-    draw, the tree and the boost offer. Decide it at render time and reloading until you
-    like the shop is the optimal way to play. Asserted over 60 runs, and confirmed in a
-    browser (the same event twice across two reloads).
-  - **Prices were measured, and the plan's estimate was wrong.** It assumed a wallet of 7 to
-    9 at the shop; the harness says median **12**, range 6 to 20, because the group pays
-    three matchdays with margins and most of the wallet is earned before the shop opens. The
-    rule asserted is that a **median wallet cannot clear a median stop** (12 against 25), so
-    something is always left behind; a great run clearing one is allowed on purpose and the
-    harness prints how often (0% over 46 runs). Shop items are also measured on the boost
-    scale, with an **upper bound** (nothing out-moves a legendary) rather than a
-    `cost = budget x rate` formula, which would mis-price the node's whole point.
-  - **Expiry** (`RunEffect.expiresAfter`) came nearly free once the ledger existed. Note
-    `recomputeXi` must run **after** `koRound` advances, since that is what expiry is tested
-    against. Tired Legs is its first customer.
-  - **The flag is the rollback**, and its OFF state is checked too: with `runNodes` false
-    every stop is a boost pick, Form is still earned and shown but nothing spends it, and no
-    shop or event screen can be reached. 113 checks pass with it on, 112 with it off (the
-    shipped setting).
-  - **A `reveal` effect selling "see the full bracket" was deleted 2026-08-22.** The full
-    bracket is **already free** - the accordion's chevron opens it and `Settings.showFullDraw`
-    remembers - so it charged for a thing one click already did, and forcing the accordion
-    open left its own Hide button inert because a purchase and a preference were fighting
-    over one piece of state. The general lesson: **nothing here can sell INFORMATION**, since
-    the game shows the player everything.
 
 ## Challenges (flagged)
 

@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-22<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -380,6 +380,68 @@
     kills the premise for this format at the lowest cost, and needs no new balance work.</p>
 
     <p class="files">docs/run-decisions.md, src/domain/odds.ts, src/domain/career.ts, src/domain/run.ts, src/domain/boons.ts, src/components/cupRun/BoostOffer.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">04</span>
+    <span class="title">Career depth D - in-run economy and node variety
+      <span class="sub">Attempted and ROLLED BACK 2026-08-22. Form does not work in a seven-match tournament. Kept as the record of a dead end; the live work is item 29.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask</strong> (<code>docs/career-depth-spec.md</code> section D): give a run
+    an economy and a shape of its own. <b>Form</b>, an in-run currency earned from wins and
+    goal margins, and <b>node variety</b> so the gap between rounds is not always "pick 1 of 3
+    boosts".</p>
+
+    <p><strong>Built in full on 2026-08-22, played, and rolled back the same day.</strong>
+    The whole implementation is reverted - <code>domain/effects.ts</code>,
+    <code>domain/form.ts</code>, <code>domain/nodes.ts</code>, the shop and event screens, the
+    <code>runNodes</code> flag and every check - so the tree is exactly as it was at
+    <code>7cb870c</code>. It is recoverable from git history if any of it is wanted back;
+    <code>docs/run-nodes-plan.md</code> is the plan it was built from and stays as the record.</p>
+
+    <p><strong>Why it failed, and this is the part worth keeping:</strong> <b>a currency needs
+    enough transactions to be worth reasoning about, and a World Cup has SEVEN matches</b>
+    (three group, four knockout). Earning Form in the semi-final is close to meaningless -
+    one stop is left to spend it at and no time to plan around it. That is a fact about the
+    FORMAT, not about the prices, so no repricing fixes it. Form would work in a 20-plus game
+    league. Do not reach for it again here without changing the format first.</p>
+
+    <p><strong>And the diagnosis underneath it was wrong.</strong> The item assumed the
+    problem was too few node KINDS. It is not: <b>all 19 boosts sit on one axis</b> - every
+    one is "+N to some subset of the XI" - so an offer of three reduces to arithmetic. Adding
+    a shop did not help, because a shop selling rating points is the same axis with a price
+    on it. That correction is what <b>item 29</b> exists to act on, and it is where the live
+    work went.</p>
+
+    <p><strong>Three smaller things learned, each of which cost a build to find:</strong></p>
+    <ul>
+      <li><b>Nothing here can sell INFORMATION.</b> A "Scouting Report" item sold "see the
+      full bracket" - which the accordion's chevron already does for free, and
+      <code>Settings.showFullDraw</code> already remembers. It was also broken as a direct
+      consequence: forcing the accordion open left its own Hide button inert, because a
+      purchase and a preference were fighting over one piece of state. The game shows the
+      player the bracket, the odds and every rating; there is no fog to lift.</li>
+      <li><b>The wallet was bigger than the plan assumed</b> - a measured median of 12 at the
+      shop stop against an estimated 7 to 9, because the group pays three matchdays with
+      margins and most of a run's Form is earned before the only shop opens. Measure the
+      faucet before pricing the sink.</li>
+      <li><b>Effects cannot be undone by subtraction.</b> <code>bump</code> clamps, so a +2 on
+      a 98 is really a +1 and taking 2 back off is wrong by one; and summing deltas before
+      clamping gives 97 where folding-and-clamping-each gives 96. Any future attempt at
+      temporary effects has to replay from a base rather than invert.</li>
+    </ul>
+
+    <p class="next"><strong>Next step: none. This item is a record, not a queue.</strong> If
+    an in-run economy is ever wanted, it needs a format with more matches than a World Cup
+    has. The live successor is <b>item 29</b>.</p>
+
+    <p class="files">docs/run-nodes-plan.md, docs/run-decisions.md, docs/career-depth-spec.md</p>
   </div>
 </details>
 
@@ -637,46 +699,6 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
-      <li><b>04 Career depth D - in-run economy and node variety.</b>
-      <b>Built 2026-08-22</b>, in five slices; plan and content catalogue in
-      <code>docs/run-nodes-plan.md</code>. A run between rounds is no longer always "pick 1
-      of 3 boosts".
-      <br><b>The blocker was never the nodes, it was that a boost REWROTE the players.</b>
-      <code>Boon.apply</code> was <code>(xi, ctx) =&gt; Player[]</code> and nothing recorded
-      what had been applied or by how much, so nothing could expire or be itemised. A run now
-      holds <code>roster</code> (at dataset ratings) and <code>effects</code>, with
-      <code>xi</code> derived. Three decisions carry it: rating plans resolve to concrete
-      player ids <b>at pick time</b> and freeze (so "your weakest player" keeps meaning who it
-      meant); effects fold <b>in order, clamping at every step</b> (an inverse transform is
-      unsound because <code>bump</code> clamps, and summing before clamping gives 97 where the
-      old code gave 96 - the checks assert that literal); and <code>xi</code> stays a stored
-      <b>cache</b> so the ~40 existing consumers were untouched. The regression test already
-      existed: the boon-power table is byte-identical for all 19 boons.
-      <br><b>Form was shipped as a faucet with no sink first</b>, deliberately, because the
-      only way to avoid guessing the faucet and the sink at the same time is to measure one
-      before inventing the other. That paid off immediately: <b>the plan's estimate was
-      wrong</b>. It assumed a wallet of 7 to 9 at the shop; the harness says median <b>12</b>,
-      range 6 to 20, because the group pays three matchdays with margins and most of the
-      wallet is earned before the shop opens. Prices were raised to suit.
-      <br><b>Four stops, not six</b> - <code>KO_ROUNDS</code> has four entries and a stop sits
-      after a round that was survived, with none after the Final. The count is unchanged; two
-      of the four changed kind: group &rarr; boost, R16 &rarr; <b>shop</b>, QF &rarr; boost,
-      SF &rarr; <b>event</b>. Each asks a different question, which is the only reason to have
-      more than one - the shop is the only node where the player <b>chooses</b> rather than
-      picks, and that, not the currency, is why it earns a place. Curses are event options
-      rather than a node of their own. The rotation is <b>fixed</b>: at four stops a random
-      one leaves some runs with no shop, and then a whole run's Form is unspendable.
-      <br><b>The rule that could have broken silently:</b> a node is decided in
-      <code>decideGroupExit</code>/<code>decideKoRound</code> and stored, like the group draw
-      and the boost offer. Decided at render time, reloading until you like the shop would be
-      the optimal way to play. Asserted over 60 runs and confirmed in a browser.
-      <br><b>Behind <code>FEATURES.runNodes</code>, and its OFF state is checked too:</b> with
-      it false every stop is a boost pick and the run is exactly what it was. 113 checks pass
-      with it on, 112 with it off.
-      <br><b>Not adopted from the plan:</b> its strict <code>cost = budget x rate</code>
-      pricing rule. The same movement is worth more when you choose it than when it is dealt
-      to you, so what ships is an upper bound (nothing in the shop out-moves a legendary
-      boost) plus a median-wallet rule (12 cannot clear a 25 stop).</li>
       <li><b>28 One run, one tournament: the draw and the bracket in a Cup Run.</b>
       <b>Closed 2026-08-22.</b> A run IS the tournament now - the group draw, a live table
       and a real 16-team bracket - and the second tournament orchestration is gone.

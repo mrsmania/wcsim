@@ -1,5 +1,5 @@
 import type { Player, Position, Squad } from '../data/types';
-import { primaryPosition } from '../data/types';
+import { ELO_MAX, primaryPosition } from '../data/types';
 import type { FormationName, Style } from './formations';
 import { SQUADS } from '../data/squads';
 import { FEATURES } from '../config';
@@ -27,26 +27,7 @@ import {
   type Finish,
   type KoDecided,
 } from './knockout';
-import {
-  offerBoons,
-  availableBoons,
-  boonById,
-  type Boon,
-  type BoonContext,
-  type RatingPlan,
-} from './boons';
-import { xiOf, type RunEffect } from './effects';
-import { formFor, formForAll } from './form';
-import {
-  makeEvent,
-  makeShop,
-  nodeKindFor,
-  shopItemById,
-  eventById,
-  type NodeEffect,
-  type NodeKind,
-  type ShopStock,
-} from './nodes';
+import { offerBoons, availableBoons, boonById, type Boon } from './boons';
 import {
   bracketChampion,
   buildBracket,
@@ -64,81 +45,7 @@ import { ascensionAt } from './ascension';
 // the sim. The UI steps it: playGroupStage -> chooseBoon -> playKnockoutRound ...
 // ---------------------------------------------------------------------------
 
-export type RunPhase = 'group' | 'boon' | 'shop' | 'event' | 'match' | 'ended';
-
-/** The round number the group stage grants effects on. Knockout rounds are 0-based
- *  (`koRound`), so the group sits one below them. */
-export const GROUP_ROUND = -1;
-
-/** What granting one boon did: the new roster, the new ledger, and (for a roster boon)
- *  who came in and who went out, so the UI can describe the swap without re-diffing. */
-interface Granted {
-  roster: Player[];
-  effects: RunEffect[];
-  swappedIn?: Player;
-  swappedOut?: Player;
-}
-
-/**
- * Apply one boon to the roster + ledger.
- *
- * The single place a boon becomes a change, so the two halves cannot drift: a `rating`
- * boon RESOLVES its plan once against the XI as it currently stands and appends the
- * resulting effects, and a `roster` boon rewrites the roster.
- *
- * Resolving once is the point. "Your weakest player" has to mean whoever that was when the
- * card was taken; a plan re-evaluated on every recompute would let a later effect move the
- * target and change the run under the player.
- */
-function grantBoon(
-  roster: Player[],
-  effects: RunEffect[],
-  boon: Boon,
-  ctx: BoonContext,
-  atRound: number,
-  expiresAfter?: number,
-): Granted {
-  if (boon.effect.kind === 'roster') {
-    const next = boon.effect.apply(roster, ctx);
-    return {
-      roster: next,
-      effects,
-      swappedIn: next.find((p) => !roster.some((b) => b.id === p.id)),
-      swappedOut: roster.find((p) => !next.some((b) => b.id === p.id)),
-    };
-  }
-  const plans = boon.effect.plan(xiOf(roster, effects, atRound), ctx);
-  return { roster, effects: [...effects, ...effectsFrom(plans, boon.id, boon.name, atRound, expiresAfter)] };
-}
-
-/** Turn resolved plans into ledger entries. Empty plans (a conditional boon whose
- *  condition did not fire) contribute nothing, which is how "it did nothing this time"
- *  is represented - never a zero-delta entry. */
-export function effectsFrom(
-  plans: RatingPlan[],
-  source: string,
-  label: string,
-  atRound: number,
-  expiresAfter?: number,
-): RunEffect[] {
-  return plans
-    .filter((pl) => pl.ids.length > 0 && pl.delta !== 0)
-    .map((pl, i) => ({
-      id: `${source}-${atRound}-${i}-${pl.delta}`,
-      source,
-      label,
-      target: { ids: pl.ids },
-      delta: pl.delta,
-      appliedAt: atRound,
-      ...(expiresAfter !== undefined ? { expiresAfter } : {}),
-    }));
-}
-
-/** Rewrite the `xi` cache from the roster + ledger. Every transition that touches either
- *  input must end with this; `npm run checks` asserts the cache agrees. */
-function recomputeXi(run: RunState): RunState {
-  return { ...run, xi: xiOf(run.roster ?? run.xi, run.effects ?? [], run.koRound) };
-}
+export type RunPhase = 'group' | 'boon' | 'match' | 'ended';
 /** How far the run ended: the shared Finish union, under the run's own name
  *  (career.ts and the checks harness key off RunOutcome). */
 export type RunOutcome = Finish;
@@ -202,26 +109,8 @@ export interface RunBuild {
 }
 
 export interface RunState {
-  /** The XI as it is actually played: `roster` with every active `effect` applied.
-   *
-   *  This is a CACHE, rewritten by `recomputeXi` at every transition that touches either
-   *  input. It stays a stored field rather than being derived at each read so that every
-   *  existing consumer - the sim, `xiStrength`, `chemistryOf`, `domain/challenges.ts`, the
-   *  sticker banking, every component - is untouched by the ledger. `npm run checks`
-   *  asserts it agrees with `xiOf` at every phase of a run, which is what catches a new
-   *  transition that forgets to recompute. */
+  /** The current XI, with any boon rating deltas baked in. */
   xi: Player[];
-  /** Who is in the XI, at DATASET ratings. Roster boosts (Transfer, Poach, Wildcard,
-   *  Legends' Reunion) rewrite this; nothing else does.
-   *
-   *  Optional only so a run persisted before the effect ledger existed still resumes -
-   *  `runStorage` fills it from `xi`, which leaves that run's boosts baked in but lets it
-   *  finish. Treat it as required in new code. */
-  roster?: Player[];
-  /** What has been done to the roster, oldest first. Order is load-bearing: `xiOf` folds
-   *  the deltas in sequence and clamps at every step. Optional for the same reason as
-   *  `roster`. */
-  effects?: RunEffect[];
   phase: RunPhase;
   /** Index into KO_ROUNDS for the next knockout tie (0 = Round of 16). */
   koRound: number;
@@ -239,17 +128,6 @@ export interface RunState {
   offer: Boon[] | null;
   /** Boost-offer re-rolls left this run (Physio Table perk; absent on older saves). */
   rerollsLeft?: number;
-  /** Form earned so far this run (see `domain/form.ts`). Spent at shop nodes and thrown
-   *  away with the run - it never reaches the career. Optional so a run saved before it
-   *  existed resumes; it simply starts earning from its next result. */
-  form?: number;
-  /** The shop's stock, when `phase === 'shop'`. Decided in the round's decision helper and
-   *  stored, never drawn at render time - a reload must not re-roll the shop. */
-  shop?: ShopStock;
-  /** The drawn event's id, when `phase === 'event'`. Stored for the same reason. */
-  event?: string;
-  /** Extra cards on every later boost offer, bought at a shop. */
-  bonusOfferSize?: number;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played).
    *  With a bracket this is derived from it rather than drawn directly - it stays the
    *  single field every consumer reads, including the two boons that key off the next
@@ -417,13 +295,6 @@ export interface KoPending {
    *  Both absent when the tie ends the run (a loss, or the final). */
   offer?: Boon[];
   nextOpponent?: GroupTeam;
-  /** Which kind of stop follows this tie, and whatever that kind had to draw. Decided
-   *  HERE, with the rest of the round, because a node drawn at render time would be
-   *  re-drawn by a reload - the same rule that put the group, the tree and the offer on
-   *  the run in the first place. Absent on a run whose tie ends it. */
-  nodeKind?: NodeKind;
-  shop?: ShopStock;
-  event?: string;
 }
 
 /**
@@ -442,12 +313,6 @@ export interface GroupExit {
   bracket?: BracketState;
   offer: Boon[];
   nextOpponent: GroupTeam;
-  /** The stop that follows the group, decided here for the same reason the tree and the
-   *  offer are: a reload must replay it, never re-draw it. Optional so a run saved before
-   *  run nodes existed resumes straight into its boost pick, as it always did. */
-  nodeKind?: NodeKind;
-  shop?: ShopStock;
-  event?: string;
 }
 
 /** One of the user's group matches, normalised to the user-as-home perspective. */
@@ -500,20 +365,7 @@ export function chemistryOf(xi: Player[]): number {
 }
 
 /** Boon offer size (3), widened by the Extra Choice perk (+1 per owned tier). */
-/** Cards in a boost offer: three, plus the Extra Choice perk's tier, plus anything bought
- *  at a shop (`bonusOfferSize`). */
-const offerSize = (perkLevels: Record<string, number>, bonus = 0) =>
-  3 + (perkLevels['extra-boon'] ?? 0) + bonus;
-
-/** Decide the stop that follows a round: its kind, and whatever that kind draws.
- *  Called ONLY from `decideGroupExit` / `decideKoRound`, which is what keeps a node from
- *  being re-drawn by a reload. */
-function decideNode(afterRound: number): { nodeKind: NodeKind; shop?: ShopStock; event?: string } {
-  const nodeKind = nodeKindFor(afterRound);
-  if (nodeKind === 'shop') return { nodeKind, shop: makeShop() };
-  if (nodeKind === 'event') return { nodeKind, event: makeEvent() };
-  return { nodeKind };
-}
+const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra-boon'] ?? 0);
 
 /** What the build page knows at kickoff and the run cannot work out later. Optional
  *  in full: a caller with nothing to hand (the checks harness) begins a run that simply
@@ -531,27 +383,13 @@ export function beginRun(
   ascension = 0,
   kickoff: Kickoff = {},
 ): RunState {
-  // The roster is the drafted XI at dataset ratings; everything done to it goes in the
-  // ledger, including the two perks that used to rewrite the players here.
-  let roster = xi;
-  let effects: RunEffect[] = [];
+  let players = xi;
   const activeBoons: string[] = [];
   const boostedIds: string[] = [];
-  // Deep Squad perk: a flat +N to the drafted XI at kickoff (N = owned tier). An effect
-  // rather than a rewrite, so the XI panel can name it like any other bonus.
+  // Deep Squad perk: a flat +N to the drafted XI at kickoff (N = owned tier).
   const deepSquad = perkLevels['deep-squad'] ?? 0;
   if (deepSquad > 0) {
-    effects = [
-      ...effects,
-      {
-        id: `deep-squad-${effects.length}`,
-        source: 'deep-squad',
-        label: 'Deep Squad',
-        target: { ids: roster.map((p) => p.id) },
-        delta: deepSquad,
-        appliedAt: GROUP_ROUND,
-      },
-    ];
+    players = players.map((p) => ({ ...p, elo: Math.min(ELO_MAX, p.elo + deepSquad) }));
   }
   // Scout Network perk: begin with N distinct team boosts already applied (N = tier).
   // Commons only - a free legendary before kick-off outweighed every boost choice the
@@ -560,17 +398,15 @@ export function beginRun(
   if (scout > 0) {
     const commons = availableBoons(unlockedBoons).filter((b) => b.rarity === 'common');
     for (const boon of offerBoons(commons, scout)) {
-      const granted = grantBoon(roster, effects, boon, { opponentSquadId: null }, GROUP_ROUND);
-      roster = granted.roster;
-      effects = granted.effects;
-      if (granted.swappedIn) boostedIds.push(granted.swappedIn.id);
+      const before = players;
+      players = boon.apply(players, { opponentSquadId: null });
+      const inP = players.find((p) => !before.some((b) => b.id === p.id));
+      if (inP) boostedIds.push(inP.id);
       activeBoons.push(boon.id);
     }
   }
   return {
-    xi: xiOf(roster, effects, GROUP_ROUND),
-    roster,
-    effects,
+    xi: players,
     phase: 'group',
     koRound: 0,
     facedIds: [],
@@ -581,7 +417,6 @@ export function beginRun(
     offer: null,
     // Physio Table perk: re-rolls of a boost offer available this run (0 without it).
     rerollsLeft: perkLevels['physio'] ?? 0,
-    form: 0,
     nextOpponent: null,
     score: 0,
     outcome: null,
@@ -594,7 +429,7 @@ export function beginRun(
     // Kickoff chemistry: of the XI that actually starts, so a Scout Network roster boost
     // is already in it. (Rating perks cannot move it - chemistry reads squads, nations,
     // eras and primary positions, never elo.)
-    chemistry: chemistryOf(xiOf(roster, effects, GROUP_ROUND)),
+    chemistry: chemistryOf(players),
   };
 }
 
@@ -626,8 +461,7 @@ function decideGroupExit(
   drawSlopeBonus: number,
   pool: Squad[],
 ): GroupExit {
-  const offer = offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels, run.bonusOfferSize));
-  const node = decideNode(GROUP_ROUND);
+  const offer = offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels));
   // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
   // (the user, whoever qualified with them, and the whole group excluded), so the next
   // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
@@ -639,7 +473,7 @@ function decideGroupExit(
   if (!first || !opp0) {
     throw new Error('decideGroupExit: a freshly built bracket must have the user in round 0');
   }
-  return { bracket, offer, nextOpponent: opp0, ...node };
+  return { bracket, offer, nextOpponent: opp0 };
 }
 
 /** Simulate the group stage up front, returning the committed next state plus the
@@ -681,12 +515,6 @@ export function prepareGroupStage(
     run.xi,
     userMatches.map((m) => m.result),
   );
-  // Form for all three group results at once, for the same reason the tally is: this is
-  // the point that holds them. Awarded on the COMMITTED state, so a replayed prepare
-  // (a reload mid-reveal) cannot pay twice.
-  const form =
-    (run.form ?? 0) +
-    formForAll(userMatches.map((m) => ({ us: m.result.homeGoals, them: m.result.awayGoals })));
   const groupRecord: RoundRecord = {
     stage: 'group',
     won: advanced,
@@ -722,7 +550,6 @@ export function prepareGroupStage(
         score: STAGE_SCORE.group,
         history: [...run.history, groupRecord],
         tally,
-        form,
       },
       current,
       userMatches,
@@ -736,13 +563,8 @@ export function prepareGroupStage(
   return {
     next: {
       ...run,
-      // The stop the group decided (a boost pick unless run nodes are on). `offer` is
-      // carried whatever the kind: a shop or an event still leads into the next tie, and
-      // the offer it holds is the one the NEXT boost stop will show.
-      phase: exit.nodeKind ?? 'boon',
+      phase: 'boon',
       offer: exit.offer,
-      ...(exit.shop ? { shop: exit.shop } : {}),
-      ...(exit.event ? { event: exit.event } : {}),
       ...(exit.bracket ? { bracket: exit.bracket } : {}),
       group: undefined,
       groupExit: undefined,
@@ -752,7 +574,6 @@ export function prepareGroupStage(
       score: STAGE_SCORE.group,
       history: [...run.history, groupRecord],
       tally,
-      form,
     },
     current,
     userMatches,
@@ -782,131 +603,35 @@ export function rerollOffer(run: RunState): RunState {
   if (run.phase !== 'boon' || !run.offer || (run.rerollsLeft ?? 0) <= 0) return run;
   return {
     ...run,
-    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels, run.bonusOfferSize)),
+    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
     rerollsLeft: (run.rerollsLeft ?? 0) - 1,
   };
-}
-
-/**
- * Apply one node effect to a run. The single place a shop item or an event option becomes
- * a change, so the node catalogue never has to know how the run stores anything.
- *
- * Rating effects go through the ledger like a boost, so they are itemised and can expire;
- * `lasts` is a number of rounds INCLUDING the current one, so `lasts: 1` means "this round
- * and no further".
- */
-function applyNodeEffect(
-  run: RunState,
-  eff: NodeEffect,
-  source: string,
-  label: string,
-): RunState {
-  const ctx = { opponentSquadId: run.nextOpponent?.id ?? null };
-  switch (eff.kind) {
-    case 'rating': {
-      const roster = run.roster ?? run.xi;
-      const effects = run.effects ?? [];
-      const plans = eff.plan(xiOf(roster, effects, run.koRound), ctx);
-      const expiresAfter = eff.lasts === undefined ? undefined : run.koRound + eff.lasts - 1;
-      return recomputeXi({
-        ...run,
-        effects: [...effects, ...effectsFrom(plans, source, label, run.koRound, expiresAfter)],
-      });
-    }
-    case 'roster': {
-      const roster = eff.apply(run.roster ?? run.xi, ctx);
-      const inP = roster.find((p) => !(run.roster ?? run.xi).some((b) => b.id === p.id));
-      return recomputeXi({
-        ...run,
-        roster,
-        boostedIds: inP ? [...run.boostedIds, inP.id] : run.boostedIds,
-      });
-    }
-    case 'reroll':
-      return { ...run, rerollsLeft: (run.rerollsLeft ?? 0) + eff.n };
-    case 'offerSize':
-      return { ...run, bonusOfferSize: (run.bonusOfferSize ?? 0) + eff.n };
-    case 'form':
-      // Clamped at zero: an option that charges Form is gated on affording it, but a
-      // negative balance must be unrepresentable rather than merely unlikely.
-      return { ...run, form: Math.max(0, (run.form ?? 0) + eff.n) };
-    case 'none':
-      return run;
-  }
-}
-
-/** Form an event option costs, as a positive number (0 when it costs nothing). Used to
- *  gate the option in the UI, so a player is never offered a trade they cannot make. */
-export function optionCost(effects: NodeEffect[]): number {
-  return effects.reduce((c, e) => c + (e.kind === 'form' && e.n < 0 ? -e.n : 0), 0);
-}
-
-/** Buy one item from the shop stop. Refuses silently when it is not affordable, already
- *  bought, or not in this stop's stock, so the caller can gate on the same facts for the
- *  button and still be safe if it does not. */
-export function buyShopItem(run: RunState, itemId: string): RunState {
-  if (run.phase !== 'shop' || !run.shop) return run;
-  if (!run.shop.itemIds.includes(itemId) || run.shop.purchased.includes(itemId)) return run;
-  const item = shopItemById(itemId);
-  if (!item || (run.form ?? 0) < item.cost) return run;
-  const paid: RunState = {
-    ...run,
-    form: (run.form ?? 0) - item.cost,
-    shop: { ...run.shop, purchased: [...run.shop.purchased, itemId] },
-  };
-  return applyNodeEffect(paid, item.effect, item.id, item.name);
-}
-
-/** Leave the shop and go on to the tie. The shop is dropped, so it cannot be revisited
- *  or replayed - it belongs to the stop being left, like every other pending decision. */
-export function leaveShop(run: RunState): RunState {
-  if (run.phase !== 'shop') return run;
-  return { ...run, phase: 'match', shop: undefined };
-}
-
-/** Take one option on the event stop. */
-export function chooseEventOption(run: RunState, optionId: string): RunState {
-  if (run.phase !== 'event' || !run.event) return run;
-  const card = eventById(run.event);
-  const option = card?.options.find((o) => o.id === optionId);
-  if (!card || !option) return run;
-  if ((run.form ?? 0) < optionCost(option.effects)) return run;
-  let next: RunState = { ...run };
-  for (const eff of option.effects) {
-    next = applyNodeEffect(next, eff, `${card.id}:${option.id}`, card.title);
-  }
-  return { ...next, phase: 'match', event: undefined };
 }
 
 export function chooseBoon(run: RunState, boonId: string): BoonChoice {
   if (run.phase !== 'boon') return { next: run };
   const boon = boonById(boonId);
   if (!boon) return { next: run };
-  const granted = grantBoon(
-    run.roster ?? run.xi,
-    run.effects ?? [],
-    boon,
-    { opponentSquadId: run.nextOpponent?.id ?? null },
-    run.koRound,
-  );
+  const before = run.xi;
+  const xi = boon.apply(before, { opponentSquadId: run.nextOpponent?.id ?? null });
   // If the boon swapped the roster, tag the incoming player (an amber "Boost" mark).
-  const { swappedIn, swappedOut } = granted;
+  const swappedIn = xi.find((p) => !before.some((b) => b.id === p.id));
+  const swappedOut = before.find((p) => !xi.some((b) => b.id === p.id));
   // The boost is chosen right after a round's games, so record it on that round (the
   // most recent history entry) - e.g. the after-group boost lands on the group step.
   const last = run.history.length - 1;
   const history =
     last >= 0 ? run.history.map((r, i) => (i === last ? { ...r, boostId: boon.id } : r)) : run.history;
   return {
-    next: recomputeXi({
+    next: {
       ...run,
-      roster: granted.roster,
-      effects: granted.effects,
+      xi,
       activeBoons: [...run.activeBoons, boon.id],
       boostedIds: swappedIn ? [...run.boostedIds, swappedIn.id] : run.boostedIds,
       offer: null,
       phase: 'match',
       history,
-    }),
+    },
     swappedIn,
     swappedOut,
   };
@@ -1009,9 +734,8 @@ function decideKoRound(
   const fromBracket = bracket ? nextOpponentOf(bracket) : null;
   return {
     ...pending,
-    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels, run.bonusOfferSize)),
+    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
     nextOpponent: fromBracket ?? drawOpponent(new Set(run.facedIds), pool, drawSlopeBonus),
-    ...decideNode(round),
   };
 }
 
@@ -1059,7 +783,6 @@ export function prepareKnockoutRound(
   // is not in `match.events`, so a tie won on penalties adds no goals here - which is
   // the definition the cabinet's top-scorer list advertises.
   const tally = addMatches(run.tally ?? emptyTally(), run.xi, [match]);
-  const form = (run.form ?? 0) + formFor(match.userGoals, match.oppGoals);
 
   // `koPending: undefined` on every committed state below: the round's decisions belong
   // to the round being left, and `history` carries its result from here on.
@@ -1078,7 +801,6 @@ export function prepareKnockoutRound(
       ...(nextBracket ? { bracket: nextBracket } : {}),
       history,
       tally,
-      form,
     };
   } else if (round >= KO_ROUNDS.length - 1) {
     next = {
@@ -1091,7 +813,6 @@ export function prepareKnockoutRound(
       ...(nextBracket ? { bracket: nextBracket } : {}),
       history,
       tally,
-      form,
     };
   } else {
     // Both were decided when the round started, so they are read rather than drawn.
@@ -1100,17 +821,11 @@ export function prepareKnockoutRound(
     if (!nextOpp || !offer) {
       throw new Error('prepareKnockoutRound: a survived tie must carry its offer + next opponent');
     }
-    // `recomputeXi` after the increment, never before: `koRound` is what `xiOf` tests
-    // expiry against, so a temporary effect only wears off once the round has advanced.
-    // This is the one transition where that matters, since it is the only one that moves
-    // the round on.
-    next = recomputeXi({
+    next = {
       ...run,
-      phase: decided.nodeKind ?? 'boon',
+      phase: 'boon',
       koRound: round + 1,
       offer,
-      ...(decided.shop ? { shop: decided.shop } : {}),
-      ...(decided.event ? { event: decided.event } : {}),
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
       koPending: undefined,
@@ -1118,8 +833,7 @@ export function prepareKnockoutRound(
       score: STAGE_SCORE[LOST_IN[round]],
       history,
       tally,
-      form,
-    });
+    };
   }
   return { next, current, match, opp, roundName };
 }

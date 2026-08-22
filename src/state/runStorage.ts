@@ -26,12 +26,6 @@ export function loadRun(): RunState | null {
     if (!Array.isArray(run.unlockedBoons)) run.unlockedBoons = [];
     if (!run.perkLevels || typeof run.perkLevels !== 'object') run.perkLevels = {};
     if (typeof run.ascension !== 'number') run.ascension = 0;
-    // The effect ledger (roadmap item 04) split the XI into a base roster plus a list of
-    // what has been done to it. A run saved before that has only the baked-in XI, so its
-    // boosts cannot be itemised retroactively - taking the XI as the roster and starting
-    // the ledger empty lets it finish correctly, which is all that is wanted here.
-    if (!Array.isArray(run.roster)) run.roster = run.xi;
-    if (!Array.isArray(run.effects)) run.effects = [];
     return run;
   } catch {
     return null;

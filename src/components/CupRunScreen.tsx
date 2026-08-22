@@ -16,10 +16,6 @@ import {
   chooseBoon,
   rerollOffer,
   chemistryOf,
-  buyShopItem,
-  leaveShop,
-  chooseEventOption,
-  type RunPhase,
   type RunState,
   type RunShape,
   type RunBuild,
@@ -59,22 +55,8 @@ import BoostOffer from './cupRun/BoostOffer';
 import CareerHub from './cupRun/CareerHub';
 import RunXiPanel from './cupRun/RunXiPanel';
 import RunEndPanel from './cupRun/RunEndPanel';
-import ShopNode from './cupRun/ShopNode';
-import EventNode from './cupRun/EventNode';
 import GroupCell from './cupRun/GroupCell';
 import { OUTCOME_LABEL, koWinHeading, type Reveal, type Reward } from './cupRun/types';
-
-/** The three phases that are a STOP between two rounds: the boost pick and, with run
- *  nodes on, the shop and the event. They share a slot, a card and the scroll-into-view,
- *  because they are one thing - the stop after a round - of three kinds. */
-const isNodePhase = (phase: RunPhase) => phase === 'boon' || phase === 'shop' || phase === 'event';
-
-/** What the banner tells you to do next, per stop kind. */
-const NODE_PROMPT: Partial<Record<RunPhase, string>> = {
-  boon: 'Pick a boost below.',
-  shop: 'Spend your Form below.',
-  event: 'A decision to make below.',
-};
 
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
@@ -290,7 +272,7 @@ export default function CupRunScreen({
   // When a run enters the boost phase, scroll the boost picker into view so the user
   // lands on it after a knockout tie (or the group table) without hunting for it.
   useEffect(() => {
-    if (!run || !isNodePhase(run.phase)) return;
+    if (run?.phase !== 'boon') return;
     const el = boostRef.current;
     if (!el) return;
     scrollIntoViewRespectingMotion(el, 'center');
@@ -417,11 +399,11 @@ export default function CupRunScreen({
       if (reveal.index < reveal.matches.length - 1) setReveal({ ...reveal, index: reveal.index + 1 });
       else setReveal({ ...reveal, done: true }); // all three played -> show the table
     } else {
-      // A knockout tie that leads to another stop - a boost pick, the shop or an event -
-      // keeps the finished card on screen through it (auto-scrolled to below). A loss or
-      // the final commits straight to the ended panel.
+      // A knockout tie that leads to another boost: keep the finished card on screen
+      // through the boost pick (auto-scrolled to below). A loss / the final commits
+      // straight to the ended panel.
       setLastKoMatch(
-        isNodePhase(reveal.next.phase)
+        reveal.next.phase === 'boon'
           ? { match: reveal.match, opp: reveal.opp, roundName: reveal.roundName }
           : null,
       );
@@ -654,7 +636,6 @@ export default function CupRunScreen({
               boostedIds={boostedIds}
               odds={odds}
               str={str}
-              form={run.form}
             />
 
             {/* Run panel: the live/interactive round view, or a past round's review */}
@@ -781,7 +762,7 @@ export default function CupRunScreen({
                 </div>
               ) : (
                 <>
-                {isNodePhase(run.phase) && lastKoMatch && (
+                {run.phase === 'boon' && lastKoMatch && (
                   <FinishedKoCard
                     roundName={lastKoMatch.roundName}
                     oppName={lastKoMatch.opp.name}
@@ -797,13 +778,13 @@ export default function CupRunScreen({
                     userWon={lastKoMatch.match.userWon}
                   />
                 )}
-                {isNodePhase(run.phase) && lastKoMatch && (
+                {run.phase === 'boon' && lastKoMatch && (
                   <Banner
                     champion
                     size="sm"
                     eyebrow={lastKoMatch.roundName}
                     heading={koWinHeading(lastKoMatch.match)}
-                    body={`Through to the ${KO_ROUNDS[run.koRound]}. ${NODE_PROMPT[run.phase] ?? ''}`}
+                    body={`Through to the ${KO_ROUNDS[run.koRound]}. Pick a boost below.`}
                   />
                 )}
                 {run.phase === 'ended' && endedKoRecord && (
@@ -840,7 +821,7 @@ export default function CupRunScreen({
                   />
                 )}
                 <div
-                  ref={isNodePhase(run.phase) ? boostRef : undefined}
+                  ref={run.phase === 'boon' ? boostRef : undefined}
                   className="rounded-md border border-line bg-panel p-5 shadow-hard"
                 >
                   {run.phase === 'group' && (
@@ -862,32 +843,6 @@ export default function CupRunScreen({
                       onPick={pickBoost}
                       rerollsLeft={run.rerollsLeft ?? 0}
                       onReroll={() => setRun(rerollOffer(run))}
-                    />
-                  )}
-
-                  {/* The two other stops a round can lead into (roadmap item 04). They
-                      render in the same slot as the boost pick, because they ARE the boost
-                      pick's slot: one stop after a round, of whichever kind that round
-                      decided. Both drop their own pending state when they commit, so
-                      neither can be revisited or replayed. */}
-                  {run.phase === 'shop' && run.shop && (
-                    <ShopNode
-                      stock={run.shop}
-                      form={run.form ?? 0}
-                      nextOpponent={run.nextOpponent}
-                      roundName={KO_ROUNDS[run.koRound]}
-                      onBuy={(id) => setRun(buyShopItem(run, id))}
-                      onLeave={() => setRun(leaveShop(run))}
-                    />
-                  )}
-
-                  {run.phase === 'event' && run.event && (
-                    <EventNode
-                      eventId={run.event}
-                      form={run.form ?? 0}
-                      nextOpponent={run.nextOpponent}
-                      roundName={KO_ROUNDS[run.koRound]}
-                      onChoose={(id) => setRun(chooseEventOption(run, id))}
                     />
                   )}
 

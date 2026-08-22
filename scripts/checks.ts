@@ -65,24 +65,14 @@ import { priceFor, priceOf, pricerFor } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA, getFormation, type Style } from '../src/domain/formations';
 import { canMove, moveTargets, placedPlayers, planMove, type Filled } from '../src/domain/draft';
-import { BUDGET_DRAFT, BUDGET_BY_TIER, STICKER_DISCOUNT, FEATURES } from '../src/config';
+import { BUDGET_DRAFT, BUDGET_BY_TIER, STICKER_DISCOUNT } from '../src/config';
 import {
   BOONS,
-  applyBoon,
   offerBoons,
   availableBoons,
   lockableBoons,
   BOON_UNLOCK_COST,
 } from '../src/domain/boons';
-import { xiOf, type RunEffect } from '../src/domain/effects';
-import { formFor, FORM_MARGIN_CAP } from '../src/domain/form';
-import {
-  EVENTS,
-  SHOP_ITEMS,
-  eventById,
-  nodeKindFor,
-  shopItemById,
-} from '../src/domain/nodes';
 import {
   addMatches,
   beginRun,
@@ -93,10 +83,6 @@ import {
   prepareKnockoutRound,
   runTotals,
   chooseBoon,
-  buyShopItem,
-  leaveShop,
-  chooseEventOption,
-  optionCost,
   playKnockoutRound,
   type RunBuild,
   type RunOutcome,
@@ -504,7 +490,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const xi = bestEleven(SQUADS[0].players);
   let ok = true;
   for (const b of BOONS) {
-    const after = applyBoon(xi, b, { opponentSquadId: SQUADS[1].id });
+    const after = b.apply(xi, { opponentSquadId: SQUADS[1].id });
     if (after.length !== xi.length) ok = false; // roster boons swap, never grow/shrink
     if (new Set(after.map((p) => p.personId)).size !== after.length) ok = false; // no dupes
   }
@@ -515,359 +501,6 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   if (offer.some((b) => !pool.some((p) => p.id === b.id))) ok = false;
   if (offerBoons(pool, pool.length + 5).length !== pool.length) ok = false;
   check('boons: every boon keeps 11 distinct players; offers are distinct + in pool', ok);
-}
-
-/**
- * Advance whichever STOP a run is sitting on, so the harness can drive a run to its end
- * without a UI. Roadmap item 04 gave a run three kinds of stop (a boost pick, a shop and
- * an event) where there used to be one, and every loop below drives a run the same way.
- *
- * It takes the FIRST option at each, and buys nothing at the shop. Buying nothing is the
- * deliberate default: it keeps these runs comparable with the ones measured before the
- * shop existed, so a balance figure moving means the balance moved rather than the harness
- * having gone shopping. The shop and event mechanics get their own checks instead.
- */
-function stepNode(r: RunState): RunState {
-  if (r.phase === 'boon') return chooseBoon(r, (r.offer ?? [])[0]?.id ?? '').next;
-  if (r.phase === 'shop') return leaveShop(r);
-  if (r.phase === 'event') {
-    const card = r.event ? eventById(r.event) : undefined;
-    return card ? chooseEventOption(r, card.options[0].id) : r;
-  }
-  return r;
-}
-
-const isStop = (p: string) => p === 'boon' || p === 'shop' || p === 'event';
-
-/** Like `stepNode`, but never spends Form: at an event it takes an option that costs
- *  nothing where the card offers one. Used only by the faucet measurement, which wants
- *  what a run EARNS rather than what it has left after shopping. */
-function stepNodeFrugal(r: RunState): RunState {
-  if (r.phase === 'event' && r.event) {
-    const card = eventById(r.event);
-    const free = card?.options.find((o) => optionCost(o.effects) === 0);
-    if (card && free) return chooseEventOption(r, free.id);
-  }
-  return stepNode(r);
-}
-
-// --- The effect ledger: the XI is roster + effects, and stays that way -----
-// Roadmap item 04, slice 1. The boon-power table above is the real regression test for
-// the refactor (it must not move); these are the properties the ledger itself has to
-// hold, each of which is a bug the old baked-in version could not even express.
-{
-  const xi = bestEleven(SQUADS[0].players);
-  const ids = xi.map((p) => p.id);
-  let ok = true;
-
-  // Pure: same inputs, same XI, however many times it is asked.
-  const eff: RunEffect[] = [
-    { id: 'a', source: 'x', label: 'X', target: { ids }, delta: 2, appliedAt: -1 },
-    { id: 'b', source: 'y', label: 'Y', target: { ids: [ids[0]] }, delta: -3, appliedAt: 0 },
-  ];
-  const once = xiOf(xi, eff, 0);
-  const twice = xiOf(xi, eff, 0);
-  if (JSON.stringify(once) !== JSON.stringify(twice)) ok = false;
-
-  // Per-step clamping, which is the whole reason an inverse transform is unsound. A 98
-  // with +2 then -3 is 96 (clamp to 99, then subtract), NOT 97 (sum to 97, then clamp).
-  // Asserted as a literal because "simplifying" xiOf to a sum is the tempting mistake.
-  const high = [{ ...xi[0], id: 'clamp-me', elo: 98 }];
-  const stacked: RunEffect[] = [
-    { id: 'up', source: 'x', label: 'X', target: { ids: ['clamp-me'] }, delta: 2, appliedAt: -1 },
-    { id: 'dn', source: 'y', label: 'Y', target: { ids: ['clamp-me'] }, delta: -3, appliedAt: -1 },
-  ];
-  if (xiOf(high, stacked, 0)[0].elo !== 96) ok = false;
-
-  // Expiry: live on its round, gone after it, and the un-bumped value is the base.
-  const temp: RunEffect[] = [
-    { id: 't', source: 'x', label: 'X', target: { ids: [ids[0]] }, delta: 5, appliedAt: 0, expiresAfter: 1 },
-  ];
-  if (xiOf(xi, temp, 1)[0].elo !== Math.min(ELO_MAX, xi[0].elo + 5)) ok = false;
-  if (xiOf(xi, temp, 2)[0].elo !== xi[0].elo) ok = false;
-
-  // A target id nobody matches (a roster boost swapped that player out) is a no-op, not
-  // a throw and not a misapplied bump.
-  const orphan: RunEffect[] = [
-    { id: 'o', source: 'x', label: 'X', target: { ids: ['nobody'] }, delta: 9, appliedAt: 0 },
-  ];
-  if (JSON.stringify(xiOf(xi, orphan, 0)) !== JSON.stringify(xi)) ok = false;
-
-  check('effects: xiOf is pure, clamps per step, expires, and tolerates orphan ids', ok);
-}
-
-// --- The xi cache agrees with the ledger at every phase of a real run ------
-// The invariant that catches a future transition which forgets to recompute.
-{
-  let ok = true;
-  let checked = 0;
-  for (let seed = 0; seed < 40; seed++) {
-    let run = beginRun(bestEleven(SQUADS[seed % SQUADS.length].players), { 'deep-squad': 2, scout: 1 }, lockableBoons().map((b) => b.id), 0);
-    const agrees = (r: RunState) =>
-      JSON.stringify(r.xi) === JSON.stringify(xiOf(r.roster ?? r.xi, r.effects ?? [], r.koRound));
-    if (!agrees(run)) ok = false;
-    checked++;
-    let guard = 0;
-    while (run.phase !== 'ended' && guard++ < 12) {
-      if (run.phase === 'group') run = playGroupStage(run);
-      else if (isStop(run.phase)) run = stepNode(run);
-      else run = playKnockoutRound(run);
-      if (!agrees(run)) ok = false;
-      checked++;
-    }
-  }
-  check(`effects: run.xi always equals xiOf(roster, effects, koRound) (${checked} states)`, ok);
-}
-
-// --- Form: the faucet, measured before anything is priced against it ---------
-// Roadmap item 04 slice 2. The shop's prices are derived from this distribution, so it is
-// PRINTED rather than only asserted - the next person to price an item needs the number,
-// and a figure written down in a doc goes stale while this cannot.
-{
-  const byOutcome = new Map<string, number[]>();
-  let ok = true;
-  for (let seed = 0; seed < 120; seed++) {
-    let run = beginRun(bestEleven(SQUADS[seed % SQUADS.length].players), {}, [], 0);
-    let last = run.form ?? 0;
-    let guard = 0;
-    while (run.phase !== 'ended' && guard++ < 12) {
-      if (run.phase === 'group') run = playGroupStage(run);
-      else if (isStop(run.phase)) run = stepNodeFrugal(run);
-      else run = playKnockoutRound(run);
-      const now = run.form ?? 0;
-      // Never negative, and - driven frugally - never decreases: the faucet is what a run
-      // EARNS. What it has left after shopping is a different question, and the sink has
-      // its own checks below.
-      if (now < last) ok = false;
-      last = now;
-    }
-    const key = run.outcome ?? 'none';
-    byOutcome.set(key, [...(byOutcome.get(key) ?? []), run.form ?? 0]);
-  }
-  const median = (xs: number[]) => {
-    const a = [...xs].sort((x, y) => x - y);
-    return a.length ? a[Math.floor(a.length / 2)] : 0;
-  };
-  const all = [...byOutcome.values()].flat();
-  console.log('\n  form earned per run (120 runs, no sink)');
-  console.log('    ' + 'outcome'.padEnd(12) + 'runs'.padStart(6) + 'median'.padStart(8) + 'min'.padStart(6) + 'max'.padStart(6));
-  for (const [outcome, xs] of [...byOutcome.entries()].sort()) {
-    console.log(
-      '    ' + outcome.padEnd(12) + String(xs.length).padStart(6) +
-      String(median(xs)).padStart(8) + String(Math.min(...xs)).padStart(6) + String(Math.max(...xs)).padStart(6),
-    );
-  }
-  console.log('    ' + 'ALL'.padEnd(12) + String(all.length).padStart(6) + String(median(all)).padStart(8) +
-    String(Math.min(...all)).padStart(6) + String(Math.max(...all)).padStart(6));
-  if (all.some((f) => f < 0)) ok = false;
-  // A group exit plays three matches, so even the worst run earns something to look at.
-  check('form: never negative, and monotonic when nothing is spent', ok);
-  // The scoring rule itself, at the boundaries.
-  const rule =
-    formFor(0, 1) === 0 && formFor(1, 1) === 1 && formFor(1, 0) === 3 &&
-    formFor(3, 0) === 3 + FORM_MARGIN_CAP && formFor(9, 0) === 3 + FORM_MARGIN_CAP;
-  check('form: loss 0, draw 1, win 3, margin bonus capped', rule);
-}
-
-// --- Run nodes: the stop after a round, and the rule that keeps it honest ----
-// Roadmap item 04 slices 3 to 5.
-{
-  let ok = true;
-
-  // The rotation. Four stops in a winning run, and exactly one of them is a shop - the
-  // reason it is fixed rather than random at this count is that a run with no shop has
-  // earned Form it can never spend.
-  const kinds = [-1, 0, 1, 2].map(nodeKindFor);
-  if (FEATURES.runNodes) {
-    if (kinds.filter((k) => k === 'shop').length !== 1) ok = false;
-    if (kinds.filter((k) => k === 'event').length !== 1) ok = false;
-    if (kinds[0] !== 'boon') ok = false; // the first stop stays familiar
-    check(`nodes: four stops, exactly one shop and one event (${kinds.join(' -> ')})`, ok);
-  } else {
-    // The flag is the rollback, so its OFF state is checked too: every stop is a boost
-    // pick, which is exactly the run as it was before run nodes existed.
-    check(
-      `nodes: with FEATURES.runNodes off, every stop is a boost pick (${kinds.join(' -> ')})`,
-      kinds.every((k) => k === 'boon'),
-    );
-  }
-}
-
-// A node is DECIDED with the round, never at render time. Break this and reloading until
-// you like the shop is the optimal way to play - the same rule that put the group draw,
-// the tree and the boost offer on the run in the first place.
-{
-  let ok = true;
-  let compared = 0;
-  for (let i = 0; i < 60; i++) {
-    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
-    let guard = 0;
-    while (run.phase !== 'ended' && guard++ < 12) {
-      if (isStop(run.phase)) {
-        // The stop's own contents must survive being looked at twice.
-        const a = JSON.stringify({ shop: run.shop, event: run.event });
-        const b = JSON.stringify({ shop: run.shop, event: run.event });
-        if (a !== b) ok = false;
-        run = stepNode(run);
-      } else if (run.phase === 'match') {
-        // Preparing the same round twice must reuse the decision, node included.
-        const p1 = prepareKnockoutRound(run, 0, SQUADS);
-        const p2 = prepareKnockoutRound(p1!.current, 0, SQUADS);
-        if (JSON.stringify(p1!.next.shop) !== JSON.stringify(p2!.next.shop)) ok = false;
-        if (p1!.next.event !== p2!.next.event) ok = false;
-        if (p1!.next.phase !== p2!.next.phase) ok = false;
-        compared++;
-        run = p2!.next;
-      } else break;
-    }
-  }
-  check(`nodes: a replayed round reuses its stop, never re-draws it (${compared} rounds)`, ok);
-}
-
-// The shop: pay for what you get, get what you pay for, and never go negative.
-{
-  let ok = true;
-  for (const item of SHOP_ITEMS) {
-    // Every item is reachable within one stop's wallet at the outside, or it is stock the
-    // player can only look at.
-    if (item.cost > 12) ok = false;
-  }
-  // Drive to the shop stop and exercise it.
-  let shopsSeen = 0;
-  for (let i = 0; i < 40 && shopsSeen < 12; i++) {
-    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
-    let guard = 0;
-    while (run.phase !== 'ended' && guard++ < 12) {
-      if (run.phase === 'shop' && run.shop) {
-        shopsSeen++;
-        const rich = { ...run, form: 50 };
-        // Buy everything affordable: the wallet falls by exactly the price each time, and
-        // nothing can be bought twice.
-        let cur: RunState = rich;
-        for (const id of cur.shop!.itemIds) {
-          const before = cur.form ?? 0;
-          const item = shopItemById(id)!;
-          cur = buyShopItem(cur, id);
-          if ((cur.form ?? 0) !== before - item.cost) ok = false;
-          const again = buyShopItem(cur, id);
-          if ((again.form ?? 0) !== (cur.form ?? 0)) ok = false; // no double buy
-        }
-        // Broke: nothing is purchasable and the balance cannot go under.
-        let broke: RunState = { ...run, form: 0 };
-        for (const id of broke.shop!.itemIds) broke = buyShopItem(broke, id);
-        if ((broke.form ?? 0) !== 0) ok = false;
-        if ((broke.shop?.purchased.length ?? 0) !== 0) ok = false;
-        // Leaving drops the stock, so it cannot be revisited.
-        const left = leaveShop(run);
-        if (left.shop !== undefined || left.phase !== 'match') ok = false;
-        run = left;
-      } else if (isStop(run.phase)) run = stepNode(run);
-      else if (run.phase === 'match') run = playKnockoutRound(run);
-      else break;
-    }
-  }
-  check(`nodes/shop: prices charged exactly, no double buy, never negative (${shopsSeen} shops)`, ok);
-}
-
-// What the wallet actually holds WHEN THE SHOP OPENS, which is the number that prices the
-// stock - not what a run earns over its whole life. The shop is reached once, after the
-// group and the Round of 16, so most of a champion's eventual Form is earned after it has
-// closed. Printed, because the next person adding an item needs it.
-if (FEATURES.runNodes) {
-  const wallets: number[] = [];
-  const stocks: number[] = [];
-  let cleared = 0;
-  let ok = true;
-  for (let i = 0; i < 80; i++) {
-    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
-    let guard = 0;
-    while (run.phase !== 'ended' && guard++ < 12) {
-      if (run.phase === 'shop' && run.shop) {
-        wallets.push(run.form ?? 0);
-        const stock = run.shop.itemIds.reduce((c, id) => c + (shopItemById(id)?.cost ?? 0), 0);
-        stocks.push(stock);
-        cleared += stock <= (run.form ?? 0) ? 1 : 0;
-        run = leaveShop(run);
-      } else if (isStop(run.phase)) run = stepNode(run);
-      else if (run.phase === 'match') run = playKnockoutRound(run);
-      else break;
-    }
-  }
-  const sorted = [...wallets].sort((a, b) => a - b);
-  const med = sorted[Math.floor(sorted.length / 2)] ?? 0;
-  const medStock = [...stocks].sort((a, b) => a - b)[Math.floor(stocks.length / 2)] ?? 0;
-  const clearedPct = Math.round((cleared / Math.max(1, wallets.length)) * 100);
-  console.log(
-    `\n  form in hand when the shop opens (${wallets.length} runs): ` +
-    `median ${med}, min ${Math.min(...wallets)}, max ${Math.max(...wallets)}` +
-    ` | median stock ${medStock}, whole stop cleared ${clearedPct}% of the time`,
-  );
-  // The MEDIAN wallet must leave something behind, or the shop is a checklist rather than
-  // a choice. A great run clearing a stop is deliberately allowed: it is the reward for
-  // the margins that earned the Form, and the figure above says how rare it is.
-  ok = med < medStock;
-  check(`nodes/shop: a median wallet (${med}) cannot clear a median stop (${medStock})`, ok);
-}
-
-// Events: every card has a way out, every option is affordable or refused, and the detail
-// text is not the thing being asserted - only that taking an option always leaves the stop.
-{
-  let ok = true;
-  for (const card of EVENTS) {
-    if (card.options.length < 2) ok = false;
-    // A card whose every option costs Form could strand a broke player, so at least one
-    // has to be free. (Today that is the decline on most cards, and the paying option's
-    // mirror on Contract Dispute.)
-    if (!card.options.some((o) => optionCost(o.effects) === 0)) ok = false;
-  }
-  // Taking any option commits the stop and drops the card.
-  let seen = 0;
-  for (let i = 0; i < 60 && seen < 15; i++) {
-    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
-    let guard = 0;
-    while (run.phase !== 'ended' && guard++ < 12) {
-      if (run.phase === 'event' && run.event) {
-        seen++;
-        const card = eventById(run.event)!;
-        for (const o of card.options) {
-          const rich = chooseEventOption({ ...run, form: 50 }, o.id);
-          if (rich.phase !== 'match' || rich.event !== undefined) ok = false;
-          if ((rich.form ?? 0) < 0) ok = false;
-        }
-        // An option that cannot be paid for is refused rather than half-applied.
-        const costly = card.options.find((o) => optionCost(o.effects) > 0);
-        if (costly) {
-          const broke = chooseEventOption({ ...run, form: 0 }, costly.id);
-          if (broke.phase !== 'event') ok = false;
-        }
-        run = stepNode(run);
-      } else if (isStop(run.phase)) run = stepNode(run);
-      else if (run.phase === 'match') run = playKnockoutRound(run);
-      else break;
-    }
-  }
-  check(`nodes/event: always a way out, options commit or refuse cleanly (${seen} events)`, ok);
-}
-
-// Expiry: a temporary effect is live on the round it is granted and gone the round after,
-// and the XI it leaves behind is the one the base plus the surviving effects give.
-{
-  const xi = bestEleven(SQUADS[0].players);
-  let run = beginRun(xi);
-  run = { ...run, phase: 'match', koRound: 0 };
-  const before = run.xi.map((p) => p.elo);
-  // Grant a one-round -4 the way Tired Legs does, through the same path.
-  const tired = EVENTS.find((e) => e.id === 'tired-legs')!;
-  const rest = tired.options.find((o) => o.id === 'rest')!;
-  const withTired = chooseEventOption({ ...run, phase: 'event', event: 'tired-legs' }, rest.id);
-  const during = withTired.xi.map((p) => p.elo);
-  let ok = during.every((e, i) => e === Math.max(ELO_MIN, before[i] - 4));
-  // Advance a round: the effect is past its expiry and the XI is back to base.
-  const after = xiOf(withTired.roster ?? withTired.xi, withTired.effects ?? [], withTired.koRound + 1);
-  if (!after.every((p, i) => p.elo === before[i])) ok = false;
-  // And it really was in the ledger with an expiry, rather than never applied.
-  if (!(withTired.effects ?? []).some((e) => e.expiresAfter !== undefined)) ok = false;
-  check('nodes/expiry: a one-round effect applies, then wears off exactly', ok);
 }
 
 // --- Boon power: what each one is actually worth, against its rarity band ---
@@ -943,7 +576,7 @@ if (FEATURES.runNodes) {
     for (const sample of samples) {
       const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
       for (let i = 0; i < N; i++) {
-        const after = applyBoon(sample, b, { opponentSquadId: SQUADS[3].id });
+        const after = b.apply(sample, { opponentSquadId: SQUADS[3].id });
         att += side(after, isAttacker) - before.att;
         def += side(after, isDefender) - before.def;
         tot += totalElo(after) - totalElo(sample);
@@ -970,48 +603,6 @@ if (FEATURES.runNodes) {
     'boons: every boon sits inside its rarity band (or pays for exceeding it)',
     overBand.length === 0,
   );
-
-  // --- Shop stock, measured on the SAME scale, because it sells rating points ------
-  // A shop that sells power can smuggle its way past the boon bands otherwise: the check
-  // above only looks at boons. What is asserted here is deliberately an upper bound
-  // rather than a formula. A strict cost = budget x rate mis-prices the whole point of
-  // the node, which is that Form buys a CHOICE rather than raw movement - the same
-  // movement is worth more when you pick it than when it is dealt to you.
-  console.log('\n  shop power (same measure, vs the same XIs)');
-  console.log('    ' + 'item'.padEnd(22) + 'cost'.padStart(5) + 'attack'.padStart(8) + 'defence'.padStart(9) + '   per form');
-  const shopOver: string[] = [];
-  // A legendary boost is the ceiling: the shop is the weaker, chosen node, so nothing in
-  // it may out-move the strongest card the free node can deal.
-  const CEILING = BAND.legendary;
-  for (const item of SHOP_ITEMS) {
-    if (item.effect.kind !== 'rating') {
-      console.log('    ' + item.id.padEnd(22) + String(item.cost).padStart(5) + '        -        -   (not a rating item)');
-      continue;
-    }
-    let att = 0, def = 0;
-    for (const sample of samples) {
-      const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
-      let after = sample;
-      for (const plan of item.effect.plan(sample, { opponentSquadId: SQUADS[3].id })) {
-        const ids = new Set(plan.ids);
-        after = after.map((p) => (ids.has(p.id) ? { ...p, elo: Math.max(ELO_MIN, Math.min(ELO_MAX, p.elo + plan.delta)) } : p));
-      }
-      att += side(after, isAttacker) - before.att;
-      def += side(after, isDefender) - before.def;
-    }
-    att /= samples.length; def /= samples.length;
-    const spent = Number((att + def).toFixed(1));
-    if (spent > CEILING) shopOver.push(`${item.id} ${spent.toFixed(1)} > ${CEILING.toFixed(1)}`);
-    console.log(
-      '    ' + item.id.padEnd(22) + String(item.cost).padStart(5) +
-      att.toFixed(1).padStart(8) + def.toFixed(1).padStart(9) +
-      (spent > 0 ? (item.cost / spent).toFixed(1).padStart(11) : '          -') +
-      (spent > CEILING ? '   <-- OVER' : ''),
-    );
-  }
-  if (shopOver.length) console.log('    over ceiling: ' + shopOver.join(', '));
-  check('nodes/shop: no item out-moves a legendary boost', shopOver.length === 0);
-
   } finally {
     Math.random = realRandom;
   }
@@ -1069,7 +660,7 @@ if (FEATURES.runNodes) {
     let r = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
     let guard = 0;
     while (r.phase !== 'ended' && guard++ < 20) {
-      if (isStop(r.phase)) r = stepNode(r);
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
       else if (r.phase === 'match') r = playKnockoutRound(r);
       else break;
     }
@@ -1094,7 +685,7 @@ if (FEATURES.runNodes) {
     r = playGroupStage(r);
     let guard = 0;
     while (r.phase !== 'ended' && guard++ < 20) {
-      if (isStop(r.phase)) r = stepNode(r);
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
       else if (r.phase === 'match') {
         // The opponent handed to the next tie must be the one the tree says it is.
         const g = r.bracket ? userGameInRound(r.bracket, r.koRound) : undefined;
@@ -1258,7 +849,7 @@ if (FEATURES.runNodes) {
       if (k2.current !== k1.current || k1.next.koPending !== undefined) koDropped = false;
       tiesChecked++;
       run = k1.next;
-      if (isStop(run.phase)) run = stepNode(run);
+      if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
     }
   }
   check(`run/ko: ties replayed (${tiesChecked}) rather than re-rolled`, tiesChecked > 200);
@@ -1279,7 +870,7 @@ if (FEATURES.runNodes) {
   let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
   let guard = 0;
   while (run.phase !== 'ended' && guard++ < 20) {
-    if (isStop(run.phase)) run = stepNode(run);
+    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
     else if (run.phase === 'match') run = playKnockoutRound(run);
     else break;
   }
@@ -1398,7 +989,7 @@ if (FEATURES.runNodes) {
     let r = playGroupStage(beginRun(bestEleven(SQUADS[t % SQUADS.length].players), {}, [], t));
     let guard = 0;
     while (r.phase !== 'ended' && guard++ < 20) {
-      if (isStop(r.phase)) r = stepNode(r);
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
       else if (r.phase === 'match') r = playKnockoutRound(r);
       else break;
     }
@@ -1557,7 +1148,7 @@ if (FEATURES.runNodes) {
   let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
   let guard = 0;
   while (run.phase !== 'ended' && guard++ < 20) {
-    if (isStop(run.phase)) run = stepNode(run);
+    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
     else if (run.phase === 'match') run = playKnockoutRound(run);
     else break;
   }
