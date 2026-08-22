@@ -618,10 +618,7 @@ export default function CupRunScreen({
             <div className="mb-4">
               <RunBracket
                 bracket={run.bracket}
-                // A Scouting Report bought at the shop forces the full draw open for
-                // the rest of the run: it is the thing that was paid for, so it must not
-                // be closable back into the state it was bought out of.
-                open={showFullDraw || !!run.revealed}
+                open={showFullDraw}
                 onSetOpen={(o) => onSetShowFullDraw?.(o)}
                 // A played cell opens that round's review, which is what the ladder's
                 // steps used to do. Locked while a match is revealing, as the ladder was:

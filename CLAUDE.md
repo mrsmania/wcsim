@@ -969,7 +969,19 @@ content catalogue). Three things, of which only the first two are always on.
   the XP and Prestige paid at run END, and scaling an in-run currency by it would make a
   hard run easier mid-flight. The harness prints the faucet (median 12 a run, 24 for a
   champion, 3 for a group exit).
-- **Run nodes (`domain/nodes.ts`), behind `FEATURES.runNodes`.** There are **four** stops in
+- **Run nodes (`domain/nodes.ts`), behind `FEATURES.runNodes`, which is OFF since
+  2026-08-22.** Turned off by the owner on playing it, and the reason is a fact about the
+  FORMAT rather than about the tuning, so do not reach for it again without changing that:
+  **a currency needs enough transactions to be worth reasoning about, and a World Cup has
+  seven matches.** Earning Form in the semi-final is close to meaningless - one stop is left
+  to spend it at and there is no time to plan around it. It would work in a 20-plus game
+  league. No repricing fixes it.
+  What survives, and is worth knowing when the next attempt is made: the **effect ledger and
+  expiry are unflagged and load-bearing**, and the node MACHINERY is a working way to ask a
+  question that is not "which of these numbers is biggest" - a future node kind that costs
+  something other than a currency reuses all of it. The description below is of the shipped
+  behaviour with the flag on.
+  There are **four** stops in
   a winning run - `KO_ROUNDS` has four entries, a stop sits after a round that was survived,
   and there is none after the Final. This does not change that count, only what two of them
   contain: group -> **boost**, R16 -> **shop**, QF -> **boost**, SF -> **event**.
@@ -998,7 +1010,14 @@ content catalogue). Three things, of which only the first two are always on.
     against. Tired Legs is its first customer.
   - **The flag is the rollback**, and its OFF state is checked too: with `runNodes` false
     every stop is a boost pick, Form is still earned and shown but nothing spends it, and no
-    shop or event screen can be reached. 113 checks pass with it on, 112 with it off.
+    shop or event screen can be reached. 113 checks pass with it on, 112 with it off (the
+    shipped setting).
+  - **A `reveal` effect selling "see the full bracket" was deleted 2026-08-22.** The full
+    bracket is **already free** - the accordion's chevron opens it and `Settings.showFullDraw`
+    remembers - so it charged for a thing one click already did, and forcing the accordion
+    open left its own Hide button inert because a purchase and a preference were fighting
+    over one piece of state. The general lesson: **nothing here can sell INFORMATION**, since
+    the game shows the player everything.
 
 ## Challenges (flagged)
 

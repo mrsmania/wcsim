@@ -250,8 +250,6 @@ export interface RunState {
   event?: string;
   /** Extra cards on every later boost offer, bought at a shop. */
   bonusOfferSize?: number;
-  /** The bracket has been revealed for the rest of the run (a shop purchase). */
-  revealed?: boolean;
   /** The drawn opponent for the upcoming knockout tie (shown before it is played).
    *  With a bracket this is derived from it rather than drawn directly - it stays the
    *  single field every consumer reads, including the two boons that key off the next
@@ -832,8 +830,6 @@ function applyNodeEffect(
       // Clamped at zero: an option that charges Form is gated on affording it, but a
       // negative balance must be unrepresentable rather than merely unlikely.
       return { ...run, form: Math.max(0, (run.form ?? 0) + eff.n) };
-    case 'reveal':
-      return { ...run, revealed: true };
     case 'none':
       return run;
   }

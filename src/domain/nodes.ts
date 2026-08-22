@@ -75,10 +75,16 @@ export type NodeEffect =
   | { kind: 'offerSize'; n: number }
   /** Hand back Form (an event that sells something). */
   | { kind: 'form'; n: number }
-  /** Reveal more of the bracket. Pure information, no mechanical effect. */
-  | { kind: 'reveal' }
   /** Decline. Every event needs one, or it is a boost pick in a costume. */
   | { kind: 'none' };
+
+// There was a `reveal` kind here, selling "see the full bracket", and it was deleted on
+// 2026-08-22 for a reason worth not re-learning: **the full bracket is already free.** The
+// accordion's chevron opens it and `Settings.showFullDraw` remembers that, so the item
+// charged Form for a thing one click already did. It was also broken in a way that follows
+// directly from that - forcing the accordion open left its own Hide button inert, because
+// the purchase and the preference were fighting over one piece of state. Anything that
+// sells INFORMATION here has the same problem: this game shows the player everything.
 
 // Plan builders, mirroring boons.ts. Kept here rather than exported from there because a
 // node's catalogue is its own thing and the two lists should be free to diverge.
@@ -120,13 +126,6 @@ export interface ShopItem {
  * hole, it is the reward for the margins that earned it, and it is rare by construction.
  */
 export const SHOP_ITEMS: ShopItem[] = [
-  {
-    id: 'scouting-report',
-    name: 'Scouting Report',
-    description: 'See the full bracket for the rest of the run.',
-    cost: 3,
-    effect: { kind: 'reveal' },
-  },
   {
     id: 'reroll-token',
     name: 'Re-roll Token',

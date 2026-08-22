@@ -6,6 +6,22 @@
 Everything a run does between rounds lives here: the effect ledger the boosts now run on,
 the Form currency, and the shop / event nodes that replaced two of the four boost picks.
 
+> **Verdict (2026-08-22): `FEATURES.runNodes` is OFF.** The owner turned it off on playing
+> it, and the reason is a fact about the format rather than the tuning: **a currency needs
+> enough transactions to be worth reasoning about, and a World Cup has seven matches.**
+> Earning Form in the semi-final is close to meaningless - one stop is left to spend it at
+> and no time to plan around it. It would work in a 20-plus game league. No repricing fixes
+> that, so the whole Form-as-economy premise of section D is answered NO for this format.
+> The **effect ledger and expiry stay on and load-bearing**, and the node machinery is kept
+> because it is a working way to pose a question that is not "which number is biggest" - a
+> future node kind that costs something other than a currency reuses all of it. See
+> `docs/run-decisions.md` for what to build instead.
+>
+> The **Scouting Report** shop item was deleted the same day: the full bracket is already
+> free behind the accordion's chevron, so it charged for a click, and forcing the accordion
+> open left its Hide button inert. Nothing here can sell information - the game shows the
+> player everything.
+
 > **Status: built 2026-08-22, in three commits.** Slices 3 to 5 (the shop node, the event
 > node and expiring effects) are behind **`FEATURES.runNodes`**; with it `false` a run is
 > exactly the four boost picks it was before, and `npm run checks` asserts that too. Slices

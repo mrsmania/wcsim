@@ -73,12 +73,19 @@ export const FEATURES = {
      *  choose) and the one after the Semi-final is an **event** (a themed either/or, which
      *  is where the curses live). Roadmap item 04; see `docs/run-nodes-plan.md`.
      *
-     *  Set to false and every stop is a boost pick again, which is exactly the run as it
-     *  was before this existed: Form is still earned and shown, but nothing spends it, and
-     *  no shop or event screen can be reached. This flag is the rollback switch - it needs
-     *  no code revert and leaves a run in flight playable, since an unreachable node kind
-     *  simply never gets decided. */
-    runNodes: true,
+     *  **OFF since 2026-08-22, by the owner, and the reason is worth keeping.** A currency
+     *  needs enough transactions to be worth reasoning about, and a World Cup has SEVEN
+     *  matches. Earning Form in the semi-final is close to meaningless - there is one stop
+     *  left to spend it at and no time to plan around it. Form works in a 20+ game league
+     *  and does not work here, which is a fact about the format rather than about the
+     *  tuning, so no amount of reprising fixes it.
+     *
+     *  What the slices under it are worth keeping for: the **effect ledger**
+     *  (`domain/effects.ts`) and **expiry** are unflagged and load-bearing, and the node
+     *  MACHINERY is a working way to ask a question that is not "which of these numbers is
+     *  biggest". A future node kind that costs something other than a currency can reuse
+     *  all of it. Off, every stop is a boost pick, exactly as the run was before. */
+    runNodes: false,
     /** Whether a challenge PAYS Prestige. One switch for both halves, deliberately: with
      *  it false nothing is paid AND no award is shown anywhere (the catalogue rows, the
      *  hub card, the run-end list, the counter's Prestige cell), because Prestige arriving
