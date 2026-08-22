@@ -444,6 +444,12 @@ table that already exists.
 
 # Appendix A - content suggestions
 
+> **The usable half of this appendix has MOVED.** Ten cards that need neither Form nor the
+> node machinery were carried over to the end of `docs/run-decisions.md` when item 04 was
+> rolled back, and that is where they are maintained. What is left here is the catalogue as
+> it was written, including the shop stock and the events that only make sense with a
+> currency - kept for the reasoning, not as a to-do list.
+
 **Read the design rule before the lists.** Nineteen boosts already exist and the item's own
 diagnosis is that every pick "reduces to taking the biggest number". Adding a twentieth card
 of the same shape makes the list longer, not the run more skilful. So each node type below

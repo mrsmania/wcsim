@@ -175,6 +175,59 @@ against the balance bands because it moves neither average.
 
 ---
 
+---
+
+# Cards carried over from item 04
+
+Item 04's plan came with a content catalogue (its Appendix A) and the plan is now filed as a
+record of a failed attempt, so anything still usable had to move here or it would be lost.
+
+Most of that catalogue died with Form: every shop item was priced in it, and four of the five
+events paid or charged it. **These ten did not** - they are plain boosts, buildable today with
+no currency and no node machinery. The ideas above (A to H) are MECHANISMS; this is a list of
+individual cards.
+
+## Still buildable, and worth it
+
+| Card | What it does | Why it is not just another "+N" |
+| --- | --- | --- |
+| **Ice Veins** | +8 to your five best players, **for penalty shootouts only** | The pick of the list. Nothing in the existing 19 touches the shootout, and the model is already there (takers are sorted by rating, and scoring chance is linear in it). It does nothing in most ties and wins the rest, which no rating card can say. |
+| **Kind Draw** | Re-draw your next opponent, keep the weaker | Acts on the DRAW, which no card does today - two read it, none change it. Free against the balance bands because it moves neither average. |
+| **Dressing Room** | +2 team chemistry, capped as chemistry always is | The only card on the chemistry axis, and it has a lovely inversion: the better you built your XI, the closer to the cap you already are, so **the more cohesive your team the worse this card is**. |
+| **Rotation Policy** | +6 to your three weakest, -2 to your three best | Compresses the squad. Strong for a lopsided budget build, weak for a national side - so its value depends on a shape you can see. |
+| **Second Wind** | +5 to the XI, **for one round only** | The obvious first customer for the ledger's expiry, which is wired and waiting. A big number you have to spend at the right moment rather than bank. |
+| **Sold Out Stadium** | +6 now, **-6 the round after** | Borrow from your future self. Take it in the semi-final and you play the Final weakened. |
+| **Devil's Bargain** | +10 to your attack, -6 to your defence | Glass Cannon turned up. Already-proven shape, and it gives points back so it is allowed to exceed its band. |
+| **Mortgage the Future** | +4 to the whole XI, but the run pays **no Prestige at all** unless you win the cup | **The most interesting of the lot**, and it pairs directly with idea A above: it is the only card whose cost lands on the CAREER rather than inside the run, so what it is worth depends on how the run is already going. |
+| **The Coin Toss** | Either +8 to the XI or -4, decided when the card is dealt | Genuine variance in a game that has none. **See the trap below** - this one is easy to build wrong. |
+| **Sell the Star** | Your best player leaves, the other ten get +4 | Also listed as idea C above. The item 04 version paid Form for it; without Form it is simply a card, and a better one for it. |
+
+## The one to never build
+
+**Homecoming** - "+4 to players from the same continent as your next opponent's group". It
+reads as draw-conditional, which would make it fair, but **you choose your nations at build
+time**, so a transfer-market XI can be set up to trigger it every run. That is exactly the
+trap that killed the old Chemistry Catalyst. It is written down here so it does not get
+re-invented a third time.
+
+## The trap in The Coin Toss (and any random card)
+
+Its result must be decided **when the offer is dealt** and stored with the run - never when
+the player clicks. Decide it on the click and reloading the page until the coin lands right
+becomes the best way to play. This is the same rule that already governs the group draw, the
+knockout bracket and the boost offer itself, and it is the single easiest thing to get wrong
+about a card with randomness in it.
+
+## What died with Form, for the record
+
+Every shop item (Re-roll Token, Treatment Table, Wider Shortlist, Sports Science, Marquee
+Window) was priced in Form and has no meaning without it. So did four of the five events -
+Media Storm, The Prodigy, Contract Dispute and Tired Legs all pay or charge it. And the
+Scouting Report was deleted before that on its own merits: **it sold information, and this
+game has none to sell.**
+
+---
+
 ## Recommendation
 
 **A first.** It is the cheapest to build, has no balance surface at all, uses a number the
