@@ -6,11 +6,20 @@
 Everything a run does between rounds lives here: the effect ledger the boosts now run on,
 the Form currency, and the shop / event nodes that replaced two of the four boost picks.
 
-> **Status.** All five slices are built. Slices 3 to 5 (the shop node, the event node and
-> expiring effects) are behind **`FEATURES.runNodes`**; with it `false` a run is exactly the
-> four boost picks it was before. Slices 1 and 2 are unflagged: the ledger changes nothing
-> observable, and Form with no sink is a counter. The balance figures below were paper
-> estimates when this was written - the measured ones are printed by `npm run checks`.
+> **Status: built 2026-08-22, in three commits.** Slices 3 to 5 (the shop node, the event
+> node and expiring effects) are behind **`FEATURES.runNodes`**; with it `false` a run is
+> exactly the four boost picks it was before, and `npm run checks` asserts that too. Slices
+> 1 and 2 are unflagged: the ledger changes nothing observable, and Form with no sink is a
+> counter.
+>
+> **Two numbers in the plan below were wrong, and the harness corrected them.** The wallet at
+> the shop stop is a median of **12** (range 6 to 20), not the "7 to 9" estimated here: the
+> group pays three matchdays with margins, so most of it is earned before the shop opens.
+> Prices were raised to suit. And the strict `cost = budget x rate` pricing rule in 3.3 was
+> **not** adopted - it mis-prices the point of the node, since the same movement is worth
+> more when you choose it than when it is dealt to you. What ships is an upper bound
+> (nothing in the shop out-moves a legendary boost) plus the median-wallet rule. Treat every
+> other figure below as an estimate and read `npm run checks` for the measured one.
 
 ---
 

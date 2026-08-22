@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-22<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 5 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -544,97 +544,6 @@
 
 <details class="item">
   <summary>
-    <span class="num">04</span>
-    <span class="title">Career depth D - in-run economy and node variety
-      <span class="sub">A currency during a run, and rounds that are not all "play the tie". Planned and being built 2026-08-22: <code>docs/run-nodes-plan.md</code>.</span>
-    </span>
-    <span class="tag">Career</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The ask</strong> (<code>docs/career-depth-spec.md</code> section D, where it is
-    parked as a future idea rather than a spec): give a run an economy and a shape of its own.
-    Two halves that only make sense together.</p>
-
-    <p><strong>Form, an in-run currency.</strong> Earned from wins and goal margins
-    <em>during</em> a run and spent between rounds on re-rolls, rating heals or an extra
-    boost. It lives and dies with the run, unlike Prestige, which is the career-level currency
-    that survives it. So the run gains a wallet, and a reason to care about a 3-0 over a
-    1-0.</p>
-
-    <p><strong>Node variety.</strong> Today every gap between rounds is the same gap: pick 1
-    of 3 boosts. That is literal rather than a figure of speech, since
-    <code>RunPhase</code> is <code>'group' | 'boon' | 'match' | 'ended'</code> and the
-    between-round step <em>is</em> <code>boon</code>. Variety rotates it: sometimes a boost
-    pick, sometimes a <b>shop</b> (spend Form), sometimes an <b>event</b> (a themed trade-off
-    choice), sometimes a <b>curse</b> (a genuinely optional high-risk boost).</p>
-
-    <p><strong>Why it is wanted.</strong> A run is currently five ties and four boost picks,
-    and each pick reduces to taking the biggest number. The spec's own phrasing is that this
-    is what makes <em>the run itself</em> skillful rather than pick-the-biggest-number: the
-    difference between a run being a sequence of decisions and a sequence of results.</p>
-
-    <p><strong>Why it is the expensive one.</strong> Three costs, in order of nastiness:</p>
-    <ul>
-      <li><b>1. Temporary effects have nowhere to live.</b> This is the note this item has
-      always carried, and it is exact. <code>Boon.apply</code> is
-      <code>(xi, ctx) =&gt; Player[]</code> and <code>RunState.xi</code> is documented as "the
-      current XI, with any boon rating deltas baked in": a boost is applied by <em>rewriting
-      the players</em>, and nothing records what was applied or by how much. So nothing can
-      expire. Two ways out, and only one is sound. <b>An effect ledger</b> beside the XI, with
-      <code>xi</code> recomputed from base plus active effects each round, is the clean fix,
-      and it incidentally settles something <code>domain/challenges.ts</code> already works
-      around: <code>run.xi</code> diverges from the dataset ratings, which is why
-      <code>basePlayer</code> exists. <b>An inverse transform</b> per effect is the tempting
-      one and it is fragile, because the bumps clamp at 99 and so are not reversible: a +2 on
-      a 98 is +1, and the inverse does not know that.</li>
-      <li><b>2. The phase machine has to branch.</b> <code>RunPhase</code> grows from four
-      states to about six, and <code>prepareKnockoutRound</code> hard-codes
-      <code>phase: 'boon'</code> with an offer as the thing that follows a tie
-      (<code>run.ts:421</code>). Every consumer changes with it: <code>CupRunScreen</code>'s
-      content switch, <code>RunLadder</code>, and the persisted <code>wcsim_run_v1</code>
-      shape, including a run saved mid-shop having to resume.</li>
-      <li><b>3. A second currency has to be balanced against the first.</b> Prestige was sized
-      by simulation: the perk shop plus every locked boost is 2,525, a run pays a median of 9,
-      and the challenge awards were tuned to 2/5/12 against that anchor. Form needs the same
-      treatment. And <code>npm run checks</code> already asserts boost budgets of common 2.0,
-      rare 3.2, legendary 4.5, so a shop that <em>sells rating points</em> has to fit inside
-      those bands or it invalidates the assertion.</li>
-    </ul>
-
-    <p><strong>What already exists in its favour</strong>, which is more than the item's one
-    line suggested:</p>
-    <ul>
-      <li><b>Glass Cannon</b> (+5 to attackers, -3 to defenders) is a working curse template,
-      and it is already exempt from the boost budget check for precisely the reason a curse
-      needs to be: it gives points back.</li>
-      <li><b><code>rerollOffer</code> + <code>RunState.rerollsLeft</code></b> already exist for
-      the Physio Table perk. That is the shop's re-roll item, already built and already
-      persisted.</li>
-      <li><b><code>domain/odds.ts</code></b> is how to judge whether a node's choice is
-      meaningful at all, which is item 05's whole content, so the two are natural
-      companions.</li>
-    </ul>
-
-    <p class="next"><strong>Next step: the plan is written and the build is under way</strong>
-    (2026-08-22) - <code>docs/run-nodes-plan.md</code> holds it, in five slices, with the
-    content catalogue for all four node kinds in its appendix. <b>Both reasons this item gave
-    for waiting have expired.</b> It said to land item 27 first (shipped 2026-08-21) and warned
-    that every node type piles Cup-Run-only machinery onto the heavier side of a two-engine
-    duplication - and item 28 <b>deleted the second engine</b> the same day, so there is no
-    duplication left to widen. Its file list is also stale:
-    <code>src/components/RunLadder.tsx</code> went with item 28.
-    <br>The order that matters: <b>the effect ledger is its own slice, before any node type</b>,
-    because every node wants it and it is the one part that cannot be retrofitted. It also has a
-    free regression test - the boon-power table <code>npm run checks</code> already prints must
-    come out unchanged.</p>
-
-    <p class="files">docs/run-nodes-plan.md, docs/career-depth-spec.md, src/domain/run.ts, src/domain/boons.ts, src/domain/effects.ts, src/domain/form.ts, src/domain/nodes.ts, src/components/CupRunScreen.tsx, src/components/cupRun/BoostOffer.tsx, src/state/runStorage.ts, scripts/checks.ts</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">05</span>
     <span class="title">Career depth F - odds at each decision
       <span class="sub">Show what a choice is worth, at the moment the choice is made.</span>
@@ -664,6 +573,46 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>04 Career depth D - in-run economy and node variety.</b>
+      <b>Built 2026-08-22</b>, in five slices; plan and content catalogue in
+      <code>docs/run-nodes-plan.md</code>. A run between rounds is no longer always "pick 1
+      of 3 boosts".
+      <br><b>The blocker was never the nodes, it was that a boost REWROTE the players.</b>
+      <code>Boon.apply</code> was <code>(xi, ctx) =&gt; Player[]</code> and nothing recorded
+      what had been applied or by how much, so nothing could expire or be itemised. A run now
+      holds <code>roster</code> (at dataset ratings) and <code>effects</code>, with
+      <code>xi</code> derived. Three decisions carry it: rating plans resolve to concrete
+      player ids <b>at pick time</b> and freeze (so "your weakest player" keeps meaning who it
+      meant); effects fold <b>in order, clamping at every step</b> (an inverse transform is
+      unsound because <code>bump</code> clamps, and summing before clamping gives 97 where the
+      old code gave 96 - the checks assert that literal); and <code>xi</code> stays a stored
+      <b>cache</b> so the ~40 existing consumers were untouched. The regression test already
+      existed: the boon-power table is byte-identical for all 19 boons.
+      <br><b>Form was shipped as a faucet with no sink first</b>, deliberately, because the
+      only way to avoid guessing the faucet and the sink at the same time is to measure one
+      before inventing the other. That paid off immediately: <b>the plan's estimate was
+      wrong</b>. It assumed a wallet of 7 to 9 at the shop; the harness says median <b>12</b>,
+      range 6 to 20, because the group pays three matchdays with margins and most of the
+      wallet is earned before the shop opens. Prices were raised to suit.
+      <br><b>Four stops, not six</b> - <code>KO_ROUNDS</code> has four entries and a stop sits
+      after a round that was survived, with none after the Final. The count is unchanged; two
+      of the four changed kind: group &rarr; boost, R16 &rarr; <b>shop</b>, QF &rarr; boost,
+      SF &rarr; <b>event</b>. Each asks a different question, which is the only reason to have
+      more than one - the shop is the only node where the player <b>chooses</b> rather than
+      picks, and that, not the currency, is why it earns a place. Curses are event options
+      rather than a node of their own. The rotation is <b>fixed</b>: at four stops a random
+      one leaves some runs with no shop, and then a whole run's Form is unspendable.
+      <br><b>The rule that could have broken silently:</b> a node is decided in
+      <code>decideGroupExit</code>/<code>decideKoRound</code> and stored, like the group draw
+      and the boost offer. Decided at render time, reloading until you like the shop would be
+      the optimal way to play. Asserted over 60 runs and confirmed in a browser.
+      <br><b>Behind <code>FEATURES.runNodes</code>, and its OFF state is checked too:</b> with
+      it false every stop is a boost pick and the run is exactly what it was. 113 checks pass
+      with it on, 112 with it off.
+      <br><b>Not adopted from the plan:</b> its strict <code>cost = budget x rate</code>
+      pricing rule. The same movement is worth more when you choose it than when it is dealt
+      to you, so what ships is an upper bound (nothing in the shop out-moves a legendary
+      boost) plus a median-wallet rule (12 cannot clear a 25 stop).</li>
       <li><b>28 One run, one tournament: the draw and the bracket in a Cup Run.</b>
       <b>Closed 2026-08-22.</b> A run IS the tournament now - the group draw, a live table
       and a real 16-team bracket - and the second tournament orchestration is gone.
