@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-22<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -380,70 +380,6 @@
     kills the premise for this format at the lowest cost, and needs no new balance work.</p>
 
     <p class="files">docs/run-decisions.md, src/domain/odds.ts, src/domain/career.ts, src/domain/run.ts, src/domain/boons.ts, src/components/cupRun/BoostOffer.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">04</span>
-    <span class="title">Career depth D - in-run economy and node variety
-      <span class="sub">Attempted and ROLLED BACK 2026-08-22, except its effect ledger, which was kept. Form does not work in a seven-match tournament. The live work is item 29.</span>
-    </span>
-    <span class="tag">Career</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The ask</strong> (<code>docs/career-depth-spec.md</code> section D): give a run
-    an economy and a shape of its own. <b>Form</b>, an in-run currency earned from wins and
-    goal margins, and <b>node variety</b> so the gap between rounds is not always "pick 1 of 3
-    boosts".</p>
-
-    <p><strong>Built in full on 2026-08-22, played, and rolled back the same day - except
-    the effect ledger, which was kept.</strong> Gone: <code>domain/form.ts</code>,
-    <code>domain/nodes.ts</code>, the shop and event screens, the <code>runNodes</code> flag
-    and their checks. Kept: <code>domain/effects.ts</code>, because it changes nothing
-    observable, it fixed a real flaw (a boost REWROTE the players and nothing recorded what
-    had been applied), and it is what makes several item 29 ideas a caller change rather than
-    a redesign. <code>docs/run-nodes-plan.md</code> is the plan it was built from and stays as
-    the record.</p>
-
-    <p><strong>Why it failed, and this is the part worth keeping:</strong> <b>a currency needs
-    enough transactions to be worth reasoning about, and a World Cup has SEVEN matches</b>
-    (three group, four knockout). Earning Form in the semi-final is close to meaningless -
-    one stop is left to spend it at and no time to plan around it. That is a fact about the
-    FORMAT, not about the prices, so no repricing fixes it. Form would work in a 20-plus game
-    league. Do not reach for it again here without changing the format first.</p>
-
-    <p><strong>And the diagnosis underneath it was wrong.</strong> The item assumed the
-    problem was too few node KINDS. It is not: <b>all 19 boosts sit on one axis</b> - every
-    one is "+N to some subset of the XI" - so an offer of three reduces to arithmetic. Adding
-    a shop did not help, because a shop selling rating points is the same axis with a price
-    on it. That correction is what <b>item 29</b> exists to act on, and it is where the live
-    work went.</p>
-
-    <p><strong>Three smaller things learned, each of which cost a build to find:</strong></p>
-    <ul>
-      <li><b>Nothing here can sell INFORMATION.</b> A "Scouting Report" item sold "see the
-      full bracket" - which the accordion's chevron already does for free, and
-      <code>Settings.showFullDraw</code> already remembers. It was also broken as a direct
-      consequence: forcing the accordion open left its own Hide button inert, because a
-      purchase and a preference were fighting over one piece of state. The game shows the
-      player the bracket, the odds and every rating; there is no fog to lift.</li>
-      <li><b>The wallet was bigger than the plan assumed</b> - a measured median of 12 at the
-      shop stop against an estimated 7 to 9, because the group pays three matchdays with
-      margins and most of a run's Form is earned before the only shop opens. Measure the
-      faucet before pricing the sink.</li>
-      <li><b>Effects cannot be undone by subtraction.</b> <code>bump</code> clamps, so a +2 on
-      a 98 is really a +1 and taking 2 back off is wrong by one; and summing deltas before
-      clamping gives 97 where folding-and-clamping-each gives 96. That is why the ledger
-      replays from a base, and why it was the piece worth keeping.</li>
-    </ul>
-
-    <p class="next"><strong>Next step: none. This item is a record, not a queue.</strong> If
-    an in-run economy is ever wanted, it needs a format with more matches than a World Cup
-    has. The live successor is <b>item 29</b>.</p>
-
-    <p class="files">docs/run-nodes-plan.md, docs/run-decisions.md, docs/career-depth-spec.md, src/domain/effects.ts</p>
   </div>
 </details>
 
@@ -701,6 +637,32 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>04 Career depth D - in-run economy and node variety.</b>
+      <b>Built, played and rejected 2026-08-22.</b> Form (an in-run currency earned from
+      results) plus shop and event nodes between rounds. All of it was implemented, played,
+      and rolled back the same day; only its <b>effect ledger</b> survives, in
+      <code>src/domain/effects.ts</code>.
+      <br><b>Why it does not fit: a currency needs enough transactions to be worth reasoning
+      about, and a World Cup has SEVEN matches.</b> Earning Form in the semi-final is close to
+      meaningless - one stop is left to spend it at and no time to plan around it. That is a
+      fact about the FORMAT, not about the prices, so no repricing rescues it. Form would work
+      in a 20-plus game league. <b>Do not reopen this without changing the format first.</b>
+      <br><b>The diagnosis underneath was also wrong, and that correction is the real
+      inheritance.</b> The item assumed the problem was too few node KINDS. It is not: all 19
+      boosts sit on ONE AXIS - every one is "+N to some subset of the XI" - so an offer of
+      three reduces to arithmetic, and a shop selling rating points is that same axis with a
+      price on it. <b>Item 29</b> exists to act on that.
+      <br><b>Three things the build cost us to learn</b>, each of which would otherwise be
+      re-learned: <b>nothing here can sell INFORMATION</b> (an item sold "see the full
+      bracket", which the accordion's chevron already does for free - and it was broken as a
+      direct consequence, since a purchase and a preference fought over one piece of state);
+      <b>measure the faucet before pricing the sink</b> (the shop wallet measured a median of
+      12 against an estimated 7 to 9, because the group pays three matchdays with margins);
+      and <b>effects cannot be undone by subtraction</b>, because <code>bump</code> clamps, so
+      a +2 on a 98 is really a +1 - which is why the surviving ledger replays from a base
+      instead of inverting.
+      <br>Plan and full post-mortem: <code>docs/run-nodes-plan.md</code>. Successor:
+      <code>docs/run-decisions.md</code>.</li>
       <li><b>28 One run, one tournament: the draw and the bracket in a Cup Run.</b>
       <b>Closed 2026-08-22.</b> A run IS the tournament now - the group draw, a live table
       and a real 16-team bracket - and the second tournament orchestration is gone.
