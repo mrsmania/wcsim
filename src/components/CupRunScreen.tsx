@@ -55,6 +55,7 @@ import BoostOffer from './cupRun/BoostOffer';
 import CareerHub from './cupRun/CareerHub';
 import RunXiPanel from './cupRun/RunXiPanel';
 import RunEndPanel from './cupRun/RunEndPanel';
+import GroupCell from './cupRun/GroupCell';
 import { OUTCOME_LABEL, koWinHeading, type Reveal, type Reward } from './cupRun/types';
 
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
@@ -181,10 +182,17 @@ export default function CupRunScreen({
         .filter((st): st is number => typeof st === 'number'),
     [run?.history],
   );
+  // The group's own record, which its path cell opens (index 0). Written the moment the
+  // group is played, so it is there for every run that got past matchday three - including
+  // one that went out in the group, where there is no bracket for the cell to lead.
+  const groupRecord = useMemo(
+    () => (run?.history ?? []).find((h) => h.stage === 'group'),
+    [run?.history],
+  );
   const reviewRecord: RoundRecord | undefined =
     run && reviewIndex !== null
       ? reviewIndex === 0
-        ? (run.history ?? []).find((h) => h.stage === 'group')
+        ? groupRecord
         : (run.history ?? []).find((h) => h.stage === reviewIndex - 1)
       : undefined;
 
@@ -570,9 +578,9 @@ export default function CupRunScreen({
           {/* There was a progress ladder here (Group -> R16 -> ... -> Cup). It went with
               the second chrome: the group table and the bracket already say which round
               this is and how the earlier ones went. Its round-review side survived the
-              move - the bracket's own played cells open the same `RoundReview` below (see
-              `RunBracket`), so the only step with no way back into it is the GROUP, which
-              has no cell on the bracket. */}
+              move whole - the bracket's own played cells open the same `RoundReview`
+              below, and the GROUP leads that path as its own cell (`GroupCell`), so every
+              round the run has played has a way back into its review. */}
           {run.ascension > 0 && (
             <div className="mb-4 flex justify-center">
               <span className="rounded-full border border-amber/40 bg-amber/[0.12] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a6512]">
@@ -599,6 +607,22 @@ export default function CupRunScreen({
                 // the live playback is not persisted, so leaving the screen loses it.
                 reviewableRounds={reveal ? [] : reviewableRounds}
                 onOpenReview={(r) => setReviewIndex(r + 1)}
+                // The group leads the path. Index 0 is its review, which is the whole
+                // reason `reviewIndex === 0` exists.
+                groupRecord={groupRecord}
+                onOpenGroupReview={reveal ? undefined : () => setReviewIndex(0)}
+              />
+            </div>
+          )}
+
+          {/* A group EXIT has no bracket to lead, and the run ends there - so without this
+              the group's summary goes unreachable again the moment you navigate away from
+              the results screen and back. Same cell, mounted on its own. */}
+          {!run.bracket && groupRecord && reviewIndex === null && (
+            <div className="mb-4 rounded-md border border-line bg-panel p-4 shadow-hard">
+              <GroupCell
+                record={groupRecord}
+                onOpenReview={reveal ? undefined : () => setReviewIndex(0)}
               />
             </div>
           )}

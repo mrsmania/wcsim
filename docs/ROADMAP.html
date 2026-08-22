@@ -306,8 +306,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-21<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Updated:</strong> 2026-08-22<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -318,187 +318,6 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">28</span>
-    <span class="title">One run, one tournament: the draw and the bracket in a Cup Run
-      <span class="sub">Shipped, bar one deferred call. A run IS the tournament now - the draw, a live table, a real 16-team bracket - the second tournament orchestration is deleted, and a tie you played opens its round review. Only the group's own summary has no door, and whether to give it one is the owner's call, parked on purpose.</span>
-    </span>
-    <span class="tag">Career</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The ask (2026-08-21):</strong> One-off earns nothing that a career run at Base
-    Ascension does not, so it goes from the tabs navigation. But two things in it are worth
-    keeping: the <b>group draw animation</b> and the <b>knockout bracket</b>. Both should
-    happen inside a Cup Run - the draw when "Play group stage" is pressed, then the group
-    table filling in as the matchdays play, exactly as the World Cup screen does it.</p>
-
-    <p><b>Mocks:</b> <code>docs/redesign-2026/turf-flat/cuprun/</code> - six pages. The group
-    half is drawn as settled; the bracket half has four candidate homes, one page each, with
-    what each buys and costs.</p>
-
-    <p><b>Built 2026-08-21, option A, tabs chrome only.</b> Plus three follow-ups the same
-    day, on playing it: <b>Ascension moved to the build page</b> beside formation and style,
-    <b>"Start run" goes straight into the draw</b> (the pre-run screen had nothing left to
-    ask), and <b>the progress ladder is gone</b> - the group table and the tree were already
-    saying the same thing twice. The ladder's round-review goes with it in this chrome;
-    making the tree's own-path nodes open the review is the follow-up. One-off is gone (so
-    <code>startMode</code> is always career there, and <code>/group</code> and
-    <code>/knockout</code> are classic-only); the group opens with
-    <code>GroupDrawReveal</code> and a <code>StandingsTable</code> that fills in behind it,
-    matchday by matchday, with the other group fixture beside each result; and the knockouts
-    render the real <code>&lt;Bracket&gt;</code> full width with a "Your run" divider and
-    your tie under it. <code>RunState.bracket</code> and <code>.useStages</code> are both
-    optional, and <code>App</code> passes <code>stages={TABS}</code>, so the classic chrome
-    and any run already in flight are untouched. Six new assertions in
-    <code>npm run checks</code> (94 passing): the tree always completes, it records the
-    user's own tie rather than a re-simulation, the next opponent is read off it, a higher
-    Ascension fields a stronger draw, and the two <code>groupAsOf</code> properties.</p>
-
-    <p><b>Four facts from the code decide most of it.</b>
-    <code>prepareGroupStage</code> already simulates all three matchdays up front and returns
-    the whole <code>Group</code>, so a live reveal is a projection rather than new logic;
-    <code>GroupDrawReveal</code> and <code>StandingsTable</code> are already generic enough to
-    reuse unchanged; <code>&lt;Bracket&gt;</code> is a pure renderer over one
-    <code>BracketState</code> prop, so the view is free. The catch is that <b>a Cup Run has no
-    bracket at all</b> - the knockout draws one opponent per round via
-    <code>drawOpponent</code> - so the data is the work, not the picture. Building one is
-    cheap even so: <code>bracketSeedFromGroup</code> + <code>buildBracket</code> already exist
-    and already seed a 16-team field with the user at seed 0.</p>
-
-    <p><b>Recommendation: option A</b> - the knockout content area becomes the knockout
-    screen (the tree, a "Your run" divider, your tie played live under it), with the ladder
-    above it and the boost pick after. It is the shape <code>KnockoutScreen</code> already
-    has, it adds no new mechanism, and playing your tie <i>on</i> the tree is the half that
-    makes that screen worth keeping. Option B (the tree between rounds only) is the honest
-    fallback and upgrades into A without rework.</p>
-
-    <p><b>Two traps, both named in the mocks.</b> <code>buildBracket</code> fills its 14 open
-    seeds with <code>drawOpponent(faced, pool)</code> and passes <b>no slope</b>, so
-    Ascension's draw-steepening lever would silently stop working above Base: it needs one
-    optional parameter threaded through. And the group table cannot be recomputed matchday by
-    matchday the way the World Cup screen does it, because the Cup Run's group is already
-    played when the reveal starts - it needs a pure <code>groupAsOf(group, matchday)</code>
-    projection beside <code>standings</code>, which is assertable (the projection at matchday
-    3 must equal the group).</p>
-
-    <p><b>What it settles by deletion:</b> "should a one-off pay?", which the navigation audit
-    deliberately left open - there is no one-off. And it points at the bigger one: a Cup Run
-    with a real bracket, at Base with no boost taken, <i>is</i> a World Cup, which turns the
-    two tournament engines from a duplication nobody owns into something with an obvious end
-    state. <code>/group</code> and <code>/knockout</code> stay reachable in the classic chrome
-    meanwhile; nothing is deleted by this item.</p>
-
-    <p><b>Collapsed by default (2026-08-21).</b> The tree was too tall to sit above every
-    screen of a run even on a desktop, so <code>cupRun/RunBracket</code> is a "Your path"
-    accordion: your own tie in each round - opponent, score, which is next - with the full
-    16-team draw behind a chevron. On a phone the path is rows rather than five columns and
-    lists only the rounds reached plus a one-line "QF, SF, Final to come", since five rows of
-    "not reached" is most of a phone screen. Opening it swaps in the shipped
-    <code>&lt;Bracket&gt;</code>, which already has its own two-sided phone tree.</p>
-
-    <p><b>Bug, found and fixed 2026-08-21:</b> the kickoff effect started a run whenever
-    <code>/cup-run</code> was reached with none in progress, which is indistinguishable from
-    a reload, a Back navigation or a save that has not landed. Signed in it lost runs -
-    <code>remoteStore.finishRun</code> sets <code>run: null</code> because the server clears
-    <code>active_run</code> at run end, so a reload after a finished run silently drew a
-    fresh group. A guest never saw it (the local <code>finishRun</code> leaves the run in
-    storage), which is why it survived testing. The kickoff is now requested explicitly by
-    the build page (<code>nav/pendingRun.ts</code>, module state rather than
-    <code>location.state</code>, which survives a reload), and arriving without one falls
-    back to the pre-run card instead of starting anything.</p>
-
-    <p><b>The accordion persists (2026-08-21).</b> Open/closed was component state, so the
-    full draw re-collapsed every time you navigated back into the run - a control you had to
-    re-open rather than one you had set. It is now <code>Settings.showFullDraw</code>, a
-    persisted preference beside theme, difficulty and the squad pool: <code>App</code> owns it
-    and passes it down, <code>RunBracket</code> is controlled. It is deliberately NOT a
-    control in the settings sheet (the chevron is its control) and deliberately not on the run
-    (it is a viewing preference, not run data, so it should not reset every run). No migration:
-    the server stores settings as one jsonb blob, so a new field costs nothing, and an old save
-    reads it as <code>false</code>, which is the default anyway.</p>
-
-    <p><b>The tree opens the round review (2026-08-21).</b> The last of the two follow-ups.
-    A path cell for a round with a <code>RoundRecord</code> is a button, and a click sets
-    <code>reviewIndex</code> (round <i>r</i> -> index <i>r</i>+1), swapping the content column
-    for the same <code>RoundReview</code> the ladder's steps used to open: the tie's goal feed,
-    how it was decided, the boost taken after it. Reviewable is defined as <b>a history record
-    exists</b>, which is what stops a click stealing the live view: a record is written as
-    <code>koRound</code> advances, so the round on screen has none - except on an ended run,
-    where reviewing the last tie is exactly the point. Verified over 400 simulated runs (1,359
-    cells resolved to the right record, no live overlap, all 220 runs past the group able to
-    review their last tie). The set is emptied while a match reveals, as the ladder was
-    locked. <b>One piece is still missing:</b> the group has no cell on the tree, so its
-    review - finishing position, the three scorelines, the first boost - remains unreachable
-    in this chrome. Adding a leading Group cell to the path is the obvious fix and a visual
-    change to a shipped control, so it is left as a decision rather than assumed.</p>
-
-    <p><b>The convergence is done: one tournament (2026-08-21).</b> Both questions gating it
-    were answered no - there are no production users, so an orphaned saved World Cup is not
-    worth a line of compatibility code, and the <code>FEATURES.careerMode</code>-off
-    configuration is not worth keeping for forks - so the second orchestration was deleted.
-    The <b>engine was never duplicated</b> and is untouched: <code>domain/tournament</code>,
-    <code>bracket</code>, <code>knockout</code>, <code>match</code> and the shared
-    <code>GroupDrawReveal</code> / <code>StandingsTable</code> / <code>MatchdayCard</code> /
-    <code>Bracket</code> were always one copy used by both. What went, ~1,400 lines: the
-    <code>TournamentScreen</code> / <code>KnockoutScreen</code> / <code>TournamentSummary</code>
-    screens and <code>RunLadder</code>; the reducer's <code>group</code> and
-    <code>knockout</code> phases with their state, their four actions and the
-    <code>auto</code> playback field; the <code>/group</code> and <code>/knockout</code>
-    routes (they hit the catch-all and redirect to <code>/</code>); the
-    <code>careerMode</code> flag; the <code>buildMode</code> / <code>mode</code> /
-    <code>startMode</code> plumbing that told the two modes apart; the settings sheet's
-    Auto-play control; <code>useStickerAlbum</code>'s separate World-Cup banking path (and
-    with it the hook's <code>dispatch</code> argument); <code>RunState.useStages</code> and
-    the <code>stages</code> kickoff flag; and six orphaned shared atoms
-    (<code>PlaybackControls</code>, <code>NextGameButton</code>, <code>AUTO_PLAY_DELAY_MS</code>,
-    <code>EYEBROW</code>, <code>TABLE_HEAD</code>, <code>isGroupFinished</code>). Two knock-on
-    simplifications worth knowing: a knockout round now <b>throws</b> if it has no bracket
-    rather than falling back to a one-opponent draw, and <code>prepareKnockoutRound</code>
-    dropped its <code>pool</code> parameter because nothing is drawn after the group. It also
-    settles <b>one run at a time</b> by deletion - the only way two could be live was a World
-    Cup in the game state beside a Cup Run in <code>wcsim_run_v1</code>. Verified by the 94
-    characterization checks plus a browser click-through: cover to build to autofill to the
-    draw to a played group, then a seeded mid-run through the QF with both path cells
-    reviewable and no console errors.</p>
-
-    <p><b>The expanded bracket opens it too (2026-08-21).</b> The first cut wired only the
-    collapsed path cells, so the review vanished exactly when you opened the bracket to study
-    it - which is where you would look for it. <code>Bracket</code> now takes the same
-    <code>reviewableRounds</code> + <code>onOpenReview</code>, and the <b>game box</b> of a tie
-    you played is the button, in both the wide and the two-sided phone layout. One gesture
-    either way: your tie, collapsed or expanded. <b>Only your own ties are ever clickable</b>,
-    and that is data rather than taste - a <code>RoundRecord</code> is written per user tie,
-    while the other 14 teams' games resolve from their ratings and store a scoreline and
-    nothing else, so there is no feed to show. The test is <code>BracketGame.hasUser</code>,
-    not the game index: once you are knocked out the rest of the tree is simulated, so game 0
-    of a later round belongs to somebody else. The box keeps <code>.bkt-match</code> exactly
-    (the button rule only undoes the browser defaults) because the tree's connectors are
-    positioned off it. Verified in both layouts: 1 of 15 boxes clickable, the one you played,
-    opening the feed, with no console errors.</p>
-
-    <p class="next"><strong>Open, and DEFERRED by the owner (2026-08-21):</strong> the group's
-    own summary. Everything else in this item has shipped. The group has no box anywhere on the
-    bracket, so the review it would open is unreachable: <code>reviewIndex</code> is only ever
-    set to <i>r</i>+1 for a knockout round <i>r</i>, so the <code>reviewIndex === 0</code>
-    lookup in <code>CupRunScreen</code> and <code>RoundReview</code>'s whole
-    <code>stage === 'group'</code> branch (~33 lines: finishing position, the three matchday
-    scorelines, the first boost) are currently dead. It is a <b>wire-it-or-drop-it</b> call, not
-    a task: either a leading Group cell on the path row - which changes the row from five cells
-    plus the cup to six, and needs a decision about the phone layout, since that lists only the
-    rounds actually reached - or delete those two pieces. <b>Either way the group's RECORD stays
-    put</b>: <code>domain/challenges.ts</code> reads <code>groupResults</code> for the goals-for
-    aggregation and <code>groupPos</code> for two silverware entries, and the group-results
-    screen reads it for the banner. Do not "tidy up" the record while deciding the view. Note
-    also that the group's outcome IS visible while you are in the group - the banner, the final
-    table and the three matchday cards - so what is missing is only the retrospective view.
-    Nothing else blocks; this item closes on that one decision.</p>
-
-    <p class="files">docs/redesign-2026/turf-flat/cuprun/, src/domain/run.ts, src/domain/bracket.ts, src/domain/tournament.ts, src/components/CupRunScreen.tsx, src/components/Bracket.tsx, src/components/GroupDrawReveal.tsx, src/components/StandingsTable.tsx, src/App.tsx, scripts/checks.ts</p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -843,6 +662,68 @@
   <div class="body">
     <h3>August 2026</h3>
     <ul>
+      <li><b>28 One run, one tournament: the draw and the bracket in a Cup Run.</b>
+      <b>Closed 2026-08-22.</b> A run IS the tournament now - the group draw, a live table
+      and a real 16-team bracket - and the second tournament orchestration is gone.
+      <br><b>Built 2026-08-21, option A.</b> <code>GroupDrawReveal</code> opens the group and
+      a <code>StandingsTable</code> fills in behind it matchday by matchday; the knockouts
+      play out on the real <code>&lt;Bracket&gt;</code>. Two traps the mocks named were both
+      real: <code>buildBracket</code> passed <b>no draw slope</b>, so Ascension's
+      draw-steepening lever would have silently done nothing above Base (it takes the slope
+      as an optional argument now, and <code>npm run checks</code> measures the field); and
+      the group table could not be recomputed forward, because a Cup Run's group is already
+      played when the reveal starts - hence the pure <code>groupAsOf(group, matchday)</code>
+      projection, asserted to equal the group at matchday 3.
+      <br><b>Four follow-ups the same day, on playing it:</b> Ascension moved to the build
+      page beside formation and style; "Start run" goes straight into the draw; the progress
+      ladder went (the table and the tree already said which round this is and how the earlier
+      ones went); and the tree collapsed to a "Your path" accordion whose open/closed state is
+      a persisted PREFERENCE (<code>Settings.showFullDraw</code>), not component state - a run
+      spans many navigations, and re-collapsing on every return made the chevron something you
+      re-opened rather than something you had set.
+      <br><b>One bug, and it lost runs.</b> The kickoff effect started a run whenever
+      <code>/cup-run</code> was reached with none in progress - indistinguishable from a
+      reload, a Back navigation or a save that had not landed. Signed in,
+      <code>remoteStore.finishRun</code> sets <code>run: null</code> (the server clears
+      <code>active_run</code> at run end), so a reload after a finished run silently drew a
+      fresh group. A guest never saw it, which is why it survived testing. The kickoff is now
+      REQUESTED explicitly (<code>nav/pendingRun.ts</code>, module state rather than
+      <code>location.state</code>, which survives a reload and would have put the bug back).
+      <br><b>The convergence: one tournament.</b> Both gating questions were answered no -
+      there are no production users, so an orphaned saved World Cup is not worth a line of
+      compatibility code, and the <code>careerMode</code>-off configuration is not worth
+      keeping for forks - so ~1,400 lines went: <code>TournamentScreen</code>,
+      <code>KnockoutScreen</code>, <code>TournamentSummary</code>, <code>RunLadder</code>, the
+      reducer's group/knockout phases, the <code>/group</code> and <code>/knockout</code>
+      routes, the <code>careerMode</code> flag and the <code>buildMode</code>/<code>mode</code>/
+      <code>startMode</code> plumbing. The <b>engine was never duplicated</b> and is untouched.
+      It also settles <b>one run at a time</b> by deletion, and "should a one-off pay?" - there
+      is no one-off.
+      <br><b>The round review, in three passes, and the shape of the mistake is worth
+      keeping.</b> The ladder's steps were the only door into a past round's review, so when
+      the ladder went the review went with it. Pass one wired the collapsed path cells; pass
+      two had to come back for the <b>expanded</b> tree, because the review vanished exactly
+      when you opened the bracket to study it - which is where you would look for it. Pass
+      three (2026-08-22) is the GROUP, which had no box anywhere on the tree, because a
+      <code>BracketGame</code> is a knockout tie: <code>cupRun/GroupCell</code> leads the path
+      as its own cell, which is what finally made <code>reviewIndex === 0</code> and
+      <code>RoundReview</code>'s <code>stage === 'group'</code> branch live code rather than
+      dead. It sits <b>above</b> the path rather than becoming a sixth column (at
+      <code>sm</code> the five knockout cells already rely on truncation, and the group needs
+      no flag or scoreline), it is visible in <b>both</b> states so pass two's lesson is not
+      re-learned a third time, and it is <b>mounted standalone on a group exit</b>, where
+      there is no bracket to lead and the run ends in the group - without which the summary
+      went unreachable again the moment you left the results screen and came back.
+      <br><b>Only your own ties are ever clickable</b>, and that is data rather than taste: a
+      <code>RoundRecord</code> is written per user tie, while the other 14 teams' games resolve
+      from their ratings and store a scoreline and nothing else. The test is
+      <code>BracketGame.hasUser</code>, not the game index - once you are knocked out, game 0
+      of a later round belongs to somebody else. Reviewable means <b>a record exists</b>, which
+      is what stops a click stealing the live view.
+      <br><b>Verified:</b> 102 characterization checks, plus a driven click-through of both
+      outcomes - a group exit and a qualifier - opening the group review from the collapsed
+      path, the expanded tree and the ended-run screen, at desktop and 390px, with no console
+      errors.</li>
       <li><b>27 Navigation and click-path rework.</b> <b>Shipped 2026-08-21, and it is now the
       only navigation:</b> concept 2 (five tabs - Play, Career, Album, Records, Squads) went in
       behind a runtime switch on 2026-08-21, was compared against the old chrome for a day, and

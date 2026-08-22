@@ -1,6 +1,7 @@
 import { ChevronDown, Trophy } from 'lucide-react';
 import Bracket from '../Bracket';
 import Flag from '../Flag';
+import GroupCell from './GroupCell';
 import {
     bracketChampion,
     opponentOf,
@@ -8,6 +9,7 @@ import {
     type BracketState,
 } from '../../domain/bracket';
 import { KO_ROUNDS } from '../../domain/knockout';
+import type { RoundRecord } from '../../domain/run';
 import { USER_ID } from '../../domain/tournament';
 
 /**
@@ -28,6 +30,11 @@ import { USER_ID } from '../../domain/tournament';
  *
  * A played tie opens that round's review, collapsed (its path cell) or expanded (the
  * game box in the tree) - one gesture either way.
+ *
+ * The GROUP leads the path (`GroupCell`), above the collapsed row and above the expanded
+ * tree alike, because the tree has no box for it and so nothing else could open its
+ * review. It sits outside the five columns rather than becoming a sixth: at `sm` the row
+ * is already relying on truncation, and the group needs no flag or scoreline anyway.
  *
  * Open/closed is a persisted PREFERENCE (`Settings.showFullDraw`), not component state:
  * a run spans many navigations, and re-collapsing the draw on every return made the
@@ -174,6 +181,8 @@ export default function RunBracket({
     onSetOpen,
     reviewableRounds,
     onOpenReview,
+    groupRecord,
+    onOpenGroupReview,
 }: {
     bracket: BracketState;
     /** Whether the full 16-team bracket is showing (persisted, see the note above). */
@@ -183,6 +192,10 @@ export default function RunBracket({
      *  record lives on the run and the tree only knows the tie. */
     reviewableRounds?: number[];
     onOpenReview?: (round: number) => void;
+    /** The group's own record, which leads the path. Absent only on a run begun before
+     *  the group was recorded; the cell then simply does not render. */
+    groupRecord?: RoundRecord;
+    onOpenGroupReview?: () => void;
 }) {
     // Rounds the user has not been drawn into yet, and whether the cup has been decided:
     // both only matter to the phone layout, which shows what has happened rather than a
@@ -215,6 +228,15 @@ export default function RunBracket({
                     className={`shrink-0 text-pitch transition-transform ${open ? 'rotate-180' : ''}`}
                 />
             </button>
+
+            {/* The group leads the path, in BOTH states: the tree below has no box for
+                it, so this is the only door to its review, and hiding it behind the
+                chevron would shut that door exactly when the bracket is open. */}
+            {groupRecord && (
+                <div className="px-4 pb-3">
+                    <GroupCell record={groupRecord} onOpenReview={onOpenGroupReview} />
+                </div>
+            )}
 
             {/* Collapsed: your tie in each round. Five columns from `sm` up, a column of
                 rows below it. Hidden when the full tree is open, which contains it. */}

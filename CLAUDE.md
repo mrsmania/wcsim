@@ -797,16 +797,29 @@ deleted with the plain World Cup it used to gate). Design:
     A game box turned button keeps `.bkt-match` exactly (`button.bkt-match` in `index.css`
     only undoes the browser defaults and adds hover/focus), because the tree's `::after`
     connectors are positioned off that box - give it its own element and they drift.
-    **The GROUP has no box anywhere on the bracket**, so its review (finishing
-    position, the three scorelines, the first boost) is still unreachable - the one piece of
-    the ladder not restored, and **deliberately parked** (roadmap item 28): `reviewIndex` is
-    only ever set to `r + 1` for a knockout round, so the `reviewIndex === 0` lookup and
-    `RoundReview`'s `stage === 'group'` branch are dead code awaiting a wire-it-or-drop-it
-    decision. Do not delete the group's `RoundRecord` fields while that is open:
-    `domain/challenges.ts` reads `groupResults` and `groupPos`, and the group-results screen
-    reads the record for its banner. The group's outcome is still visible *while* you are in
-    the group (banner, final table, the three matchday cards); only the retrospective view is
-    missing.
+    **The GROUP leads the path** (`cupRun/GroupCell`, wired 2026-08-22, which closes item
+    28): the tree has no box for it - a `BracketGame` is a knockout tie - so its review
+    (finishing position, the three matchday scorelines, the first boost) had no door at all,
+    and `reviewIndex === 0` plus `RoundReview`'s whole `stage === 'group'` branch were dead.
+    The cell is `reviewIndex = 0`, and three things about where it sits are deliberate:
+    - **Above the path, not a sixth column.** At `sm` the five knockout cells already rely
+      on truncation, and a sixth would have squeezed them ~17% narrower for a cell that
+      needs no flag and no scoreline (the finishing position is what a group decides). It
+      also means the phone layout needed no decision: one row, always relevant, where five
+      rows of "not reached" were the thing that layout exists to avoid.
+    - **Visible in BOTH states**, collapsed and expanded, which is the whole reason it is
+      not inside the collapsed-only grid. Wiring only the collapsed cells is exactly the bug
+      the knockout ties had to come back for - the review vanished the moment you opened the
+      tree to study it.
+    - **Mounted standalone on a group EXIT**, where `run.bracket` is undefined and so there
+      is no `RunBracket` to lead. The run ENDS in the group there, so without it the summary
+      went unreachable again as soon as you navigated away from the results screen and back.
+      Same component, second mount point; the guard is `!run.bracket && groupRecord`.
+    Do not delete the group's `RoundRecord` fields: `domain/challenges.ts` reads
+    `groupResults` and `groupPos`, and the group-results screen reads the record for its
+    banner. Note the record is written when the reveal COMMITS (the boost pick, or the exit
+    screen's Continue), not when the third matchday lands, so the cell appears with the
+    committed run and never over a group still in flight.
   - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21):
     **Ascension is picked on the build page**, in `SetupPanel` beside
     formation and style (`App` holds the tier and mirrors it onto the career's
