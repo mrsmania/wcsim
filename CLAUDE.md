@@ -378,9 +378,12 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   fold) is gone, and so are the two launcher door cards and the two navigation cards that
   sat inside the build page's left column. In their place: five tabs - **Play, Career,
   Album, Records, Squads** - as a row that carries the masthead's ink rule from 700px up
-  and a fixed bottom bar below it, plus a route crumb as the second "where am I" signal.
-  Settings and account stay masthead buttons: they are sheets you adjust without leaving,
-  not places you go.
+  and a fixed bottom bar below it. Settings and account stay masthead buttons: they are
+  sheets you adjust without leaving, not places you go. A route crumb shipped alongside
+  the tabs as a second "where am I" signal (the active tab being the first) and was
+  **removed 2026-08-23**, `RouteCrumb` with it: it restated the tab and spent a line on a
+  right-aligned count ("0 of 11 picked", "272 squads") that the panel below it already
+  shows.
 - **Routes**, with the old ones kept as aliases so bookmarks and the run-end deep links
   keep working: `/play` (the one build route), `/career` (the hub, split off the live run -
   a shop and a step of play cannot be the same address), `/records` +
