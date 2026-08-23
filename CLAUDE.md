@@ -401,6 +401,15 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   boost taken is the same tournament, so One-off was a strictly dominated choice, and
   deleting it answers "should a one-off pay?" by deletion. The plain World Cup it led to
   was deleted with it later the same day, along with the `careerMode` flag.
+- **Every destination carries the same header**, an eyebrow + display title (`StageHeader`),
+  since the tab row alone does not name the page: `/career` gained one on 2026-08-23
+  ("Your career" / "Cup Run Career") and `/records` one for the destination rather than
+  for each half ("Your honours" / "Records"), sitting ABOVE the `SubTabs` the way `/squads`
+  puts its Display toggle under its header. `ChallengesScreen` and `CabinetScreen`
+  therefore take `heading={false}` on that route and keep their own header on the
+  `/challenges` + `/cabinet` aliases, where it carries the Back crumb. The album's own
+  "Back to game" crumb went at the same time: the tabs are the way out, so it was a second
+  answer to a question the bar already answers.
 - **The bar goes inert while a match reveals** (`nav/liveMatch.ts`), because the live
   playback is transient state that is deliberately not persisted - leaving the screen
   loses it. Published from `useMatchClock`, so it covers every live match; the tree's

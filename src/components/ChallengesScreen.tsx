@@ -24,12 +24,15 @@ const stateOf = (c: Challenge, done: Set<string>): Filter =>
 export default function ChallengesScreen({
   completed,
   onClose,
+  heading = true,
 }: {
   /** Ids the career has completed. */
   completed: string[];
   /** Back out of the screen. Omitted by the tabs navigation, where the Records
    *  sub-tabs are the way in and out and a "Back" crumb would be a second answer. */
   onClose?: () => void;
+  /** False under the Records tab, which puts one header above the sub-tabs instead. */
+  heading?: boolean;
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const done = useMemo(() => new Set(completed), [completed]);
@@ -59,11 +62,13 @@ export default function ChallengesScreen({
 
   return (
     <>
-      <StageHeader
-        eyebrow="Your honours"
-        title="Challenges"
-        crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
-      />
+      {heading && (
+        <StageHeader
+          eyebrow="Your honours"
+          title="Challenges"
+          crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
+        />
+      )}
 
       {/* Completion counter, deliberately the album's shape: same page, same reading. */}
       <section

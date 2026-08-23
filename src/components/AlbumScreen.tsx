@@ -22,7 +22,7 @@ import StickerCard, {
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
-import { StageCrumb, StageHeader } from './matchUi';
+import { StageHeader } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 interface Props {
@@ -33,7 +33,6 @@ interface Props {
      *  reset is not available (a signed-in player's collection is synced; deleting the
      *  account is the account-level reset), and the footer is then not rendered at all. */
     onReset?: () => void;
-    onClose: () => void;
 }
 
 // The album's display order (Monumental first), derived from TIER_META so there is
@@ -42,7 +41,7 @@ const TIER_ORDER = (Object.keys(TIER_META) as StickerTier[]).sort(
     (a, b) => TIER_META[a].order - TIER_META[b].order,
 );
 
-export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClose }: Props) {
+export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Props) {
     const [trade, setTrade] = useState<{ tier: StickerTier; options: Player[] } | null>(null);
     // A collected sticker enlarged to full size in a lightbox (click to open). Held as
     // an index into `collectedList` so the arrows can step through the collection.
@@ -89,11 +88,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset, onClo
 
     return (
         <div className="mx-auto max-w-[1000px]">
-            <StageHeader
-                eyebrow="Your collection"
-                title="The Sticker Album"
-                crumb={<StageCrumb dir="back" label="Back to game" onClick={onClose} />}
-            />
+            <StageHeader eyebrow="Your collection" title="The Sticker Album" />
 
             {/* Completion counter + duplicate pool */}
             <section className="grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard sm:grid-cols-[minmax(0,1fr)_210px]">

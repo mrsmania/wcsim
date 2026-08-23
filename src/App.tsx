@@ -61,6 +61,7 @@ const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
 const CabinetScreen = lazy(() => import('./components/CabinetScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
+import { StageHeader } from './components/matchUi';
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
@@ -887,19 +888,21 @@ export default function App({
                             allPlayers={poolPlayers}
                             onTrade={stickers.onTrade}
                             onReset={stickers.canResetAlbum ? stickers.onResetAlbum : undefined}
-                            // Return to wherever the album was opened from (cup-run,
-                            // career build, launcher, ...). `key === 'default'` means the
-                            // album was the first page loaded (deep link / refresh), so
-                            // there is no history to pop - fall back to the launcher.
-                            onClose={() => (location.key === 'default' ? navigate('/') : navigate(-1))}
                         />
                     ) : tabsRecords ? (
                         // The Records tab. Both are read-only honours over the same
                         // career, so they are segments of one destination rather than two
                         // tabs, which is what keeps the bar at five.
                         <>
+                            {/* One header for the destination, above the segmented
+                                control that picks which half of it you are reading -
+                                the shape `/squads` uses for its Display toggle. The two
+                                screens drop their own headers here (`heading={false}`),
+                                since a second title under the control that names the
+                                same thing is a title twice. */}
+                            <StageHeader eyebrow="Your honours" title="Records" />
                             <SubTabs
-                                className="mt-7 max-w-[320px]"
+                                className="mb-[18px] max-w-[320px]"
                                 items={[
                                     ...(FEATURES.challenges
                                         ? [
@@ -926,9 +929,10 @@ export default function App({
                                     career={careerPeek}
                                     album={stickers.album}
                                     allPlayers={poolPlayers}
+                                    heading={false}
                                 />
                             ) : (
-                                <ChallengesScreen completed={challengeIds} />
+                                <ChallengesScreen completed={challengeIds} heading={false} />
                             )}
                         </>
                     ) : isCabinet ? (

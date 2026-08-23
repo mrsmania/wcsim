@@ -43,6 +43,7 @@ import {
   PRIMARY_BTN,
   SpeedControl,
   StageCrumb,
+  StageHeader,
 } from './matchUi';
 import StandingsTable from './StandingsTable';
 import GroupDrawReveal from './GroupDrawReveal';
@@ -552,7 +553,12 @@ export default function CupRunScreen({
           </div>
         </div>
       )}
-      {view !== 'hub' && (
+      {view === 'hub' ? (
+        // The Career tab is a destination, so it gets the same eyebrow + title header
+        // every other one has. The run view keeps the back crumb instead: it is a step
+        // of play reached from the build, not a place you navigate to.
+        <StageHeader eyebrow="Your career" title="Cup Run Career" />
+      ) : (
         <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-7" />
       )}
 

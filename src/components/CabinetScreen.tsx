@@ -347,6 +347,7 @@ export default function CabinetScreen({
   album,
   allPlayers,
   onClose,
+  heading = true,
 }: {
   career: CareerState;
   album: AlbumState;
@@ -356,6 +357,8 @@ export default function CabinetScreen({
   /** Back out of the screen. Omitted by the tabs navigation, where the Records
    *  sub-tabs are the way in and out and a "Back" crumb would be a second answer. */
   onClose?: () => void;
+  /** False under the Records tab, which puts one header above the sub-tabs instead. */
+  heading?: boolean;
 }) {
   const v: CabinetView = useMemo(
     () => cabinetView(career, album, allPlayers),
@@ -367,11 +370,13 @@ export default function CabinetScreen({
 
   return (
     <>
-      <StageHeader
-        eyebrow="Career"
-        title="Trophy Cabinet"
-        crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
-      />
+      {heading && (
+        <StageHeader
+          eyebrow="Career"
+          title="Trophy Cabinet"
+          crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
+        />
+      )}
 
       <p className="mb-[18px] max-w-[72ch] text-[13px] text-muted">
         Everything this career has to show for itself. Cups and honours are permanent; the
