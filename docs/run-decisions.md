@@ -8,10 +8,15 @@ Written 2026-08-22, after roadmap item 04 was built, played and **rolled back in
 > player, Transfer demands at least +8, Catenaccio's description lost its tagline). The
 > catalogue is 23 cards.
 >
-> **Still open:** the MECHANISMS below (A to H). Every card that shipped is a card - dealt
-> in the usual 1-of-3 offer - so the *shape* of a stop has not changed yet. What changed is
-> that six of the cards you might be dealt are no longer on the rating axis, which is a
-> different fix for the same problem and a much cheaper one.
+> **CLOSED 2026-08-22, and this file is now a record.** The six cards shipped; the four
+> MECHANISM ideas below - A (wager the payout), B (choose your own path), D (commit before
+> the draw) and F (a squad of 14) - were **rejected by the owner**. Each would have changed
+> the shape of a stop rather than its contents, and none is wanted. Do not re-propose them
+> without a new reason.
+>
+> Three ideas outlived the item and moved to **`docs/boost-ideas.md`** (roadmap item 30),
+> which pursues the same goal entirely through cards: C (Sell the Star), E (Burn a Sticker)
+> and G (show the chemistry delta). H shipped as Ice Veins.
 
 **Note on what exists.** Item 04's **effect ledger was kept** when the rest of it was rolled
 back (`domain/effects.ts`): a run holds `roster` + `effects` and derives `xi`, so what a boost
@@ -67,7 +72,7 @@ power at all** - which means no balance risk against the boost bands, and no new
 
 ---
 
-## A. Wager the payout (recommended first) - NOT BUILT
+## A. Wager the payout (recommended first) - REJECTED
 
 **The idea.** After a round, offer a bet on the rest of the run.
 
@@ -93,7 +98,7 @@ none.
 multiplier without thought - two multipliers on the same number compound faster than they
 read.
 
-## B. Choose your own path - NOT BUILT
+## B. Choose your own path - REJECTED
 
 **The idea.** Instead of the bracket handing you an opponent, choose one of three - and the
 stronger the pick, the larger the run's reward multiplier.
@@ -108,7 +113,7 @@ rather than fixed, and keeping the tree honest afterwards - `advanceBracket` spl
 user's result in by index, so the invariant that **the user is game 0 of their round** has
 to survive.
 
-## C. Sell the star - NOT BUILT
+## C. Sell the star - moved to item 30
 
 **The idea.** "Your best player is sold. The other ten get +4."
 
@@ -121,7 +126,7 @@ decision rather than a gift.
 takes a roster change and a rating plan, so the whole card is a `BoonEffect` and a catalogue
 entry.
 
-## D. Commit before the draw - NOT BUILT
+## D. Commit before the draw - REJECTED
 
 **The idea.** Pick a tactic - attacking (+4 attack, -3 defence), balanced, defensive (the
 mirror) - **before** the next opponent is revealed.
@@ -135,7 +140,7 @@ today you take them knowing who you face.
 so "before the draw" means holding the reveal, not re-ordering the dice. The stored decision
 must not move, or reloading re-rolls your opponent after you have committed.
 
-## E. Burn a sticker - NOT BUILT
+## E. Burn a sticker - moved to item 30
 
 **The idea.** Give up a sticker you own, permanently, for a large boost this run.
 
@@ -146,7 +151,7 @@ currency can. It is the only idea here where the cost outlives the run.
 simply feel bad rather than tense. It also interacts with the owned-sticker price discount
 in the market. Worth prototyping small - one card, high cost - rather than as a node.
 
-## F. A squad, not an XI (the big one) - NOT BUILT
+## F. A squad, not an XI (the big one) - REJECTED
 
 **The idea.** Draft **14**, field 11 each round.
 
@@ -162,7 +167,7 @@ challenge catalogue's `shape` record and the sticker banking rule (which XI is b
 squad or the eleven who played?). It is a project, not a card. But every other idea here
 gets better if it lands.
 
-## G. Two axes moving opposite ways
+## G. Two axes moving opposite ways - moved to item 30
 
 **The idea.** Any option that moves **rating one way and chemistry the other**, with both
 deltas shown.
@@ -175,7 +180,7 @@ box score, before the choice.
 **Note.** Poach already does this by accident. Making the chemistry delta explicit in the
 card would turn an existing boost into an existing decision, at near-zero cost.
 
-## H. The shootout
+## H. The shootout - SHIPPED as Ice Veins
 
 Not a decision on its own, but the cleanest unused axis: `penTakersFrom` sorts takers by
 rating and `penProb` is linear in it. A card that helps **only in a shootout** does nothing

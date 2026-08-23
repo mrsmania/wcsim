@@ -321,90 +321,55 @@
 
 <details class="item">
   <summary>
-    <span class="num">29</span>
-    <span class="title">Decisions, not calculations
-      <span class="sub">All boosts sat on one axis, so an offer of three was arithmetic. <b>Six cards on new levers shipped 2026-08-22</b>; the bigger mechanisms are still open. <code>docs/run-decisions.md</code>.</span>
+    <span class="num">30</span>
+    <span class="title">A boost catalogue that is not "strength + X"
+      <span class="sub">25 card ideas across the levers nothing has ever touched - the opponent, the tree, how a tie is decided, goal minutes, who scores, chemistry, the album. <code>docs/boost-ideas.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>The ask (2026-08-22), from playing item 04:</strong> the run should ask the
-    player to DECIDE something, rather than to pick the largest of three benefits.</p>
+    <p><strong>The ask (2026-08-22):</strong> more boosts, and creative ones - cards that are
+    not <em>only</em> "+N to some subset of the XI". <code>docs/boost-ideas.md</code> is 25 of
+    them, grouped by which lever each pulls, with a build cost against each.</p>
 
-    <p><strong>The diagnosis is not "too few node kinds".</strong> It is that every one of the
-    19 boosts is "+N to some subset of the XI", so any offer reduces to working out which one
-    moves the attack and defence averages most. That is a calculation. Item 04 added node
-    kinds and did not fix it, because a shop selling rating points is the same axis with a
-    price on it.</p>
+    <p><strong>The lever list is the useful part of that document.</strong> It is short, and
+    most of it has never been touched: the <b>opponent's</b> two numbers (nothing), <b>how a
+    tie is decided</b> - regulation, extra time, penalties (nothing), <b>goal minutes</b>
+    (nothing, though <code>MatchEvent</code> has carried one all along), <b>who is credited
+    with a goal</b> (nothing), <b>the other 14 teams in the bracket</b> (nothing),
+    <b>chemistry</b> (nothing, and it is six named categories feeding the overall rating),
+    and <b>the sticker album</b> (nothing). Seventeen of the 23 shipped cards sit on the same
+    single axis; six do not, as of 2026-08-22.</p>
 
-    <p><strong>Form is answered NO for this format, and that is settled.</strong> A currency
-    needs enough transactions to be worth reasoning about and a World Cup has SEVEN matches;
-    earning Form in the semi-final is close to meaningless. <code>FEATURES.runNodes</code> is
-    off. The effect ledger and expiry stay on and load-bearing, and the node machinery stays
-    in the tree for a future kind that costs something other than a currency.</p>
+    <p><strong>The cheapest to build are also among the most novel</strong>, because
+    <code>MatchEvent</code> already carries a minute and a scorer that are decided
+    <em>after</em> the scoreline: <b>Fast Starters</b> (your first goal always lands before
+    20 minutes), <b>Talisman</b> (nominate who your goals are credited to) and <b>Smash and
+    Grab</b> (all your goals re-timed into the last 15) cost a catalogue entry each, move no
+    rating at all, and feed the cabinet's records and several existing challenges. Chemistry
+    is the other cheap surface: <b>Team Talk</b>, <b>Naturalised</b> and <b>Clique</b> all key
+    off numbers already computed and displayed.</p>
 
-    <p><strong>The test a new decision has to pass</strong>, from the write-up:
-    <b>incomparable options</b> (the moment two are both "+N", the bigger N wins and the
-    decision evaporates); <b>the right answer depends on the player's own situation</b>, so
-    two players facing the same card should correctly choose differently; and <b>it costs
-    something they already care about</b>, not a resource invented for the purpose. Plus one
-    hard-won constraint: <b>nothing can sell INFORMATION</b> - the game shows the player the
-    full bracket, the title odds and every rating, so there is no fog to lift. That is what
-    killed the Scouting Report, which charged for a thing the accordion's chevron already did
-    for free.</p>
+    <p><strong>Four notes carried forward</strong>, each of which cost a build to learn: the
+    balance table only measures attack and defence, so a card on any other lever reads 0.0
+    there and needs its own assertion rather than the rarity band; anything random must be
+    decided when the OFFER IS DEALT, not when the card is clicked, or reloading until you like
+    the result is optimal play; anything touching the opponent has to move the bracket with
+    it, the way Kind Draw does; and a card conditioned on something the player picks at BUILD
+    time is the Chemistry Catalyst trap and stays banned.</p>
 
-    <p><strong>Recommendation: option A, wager the payout.</strong> "Double or Nothing" (2x
-    XP and Prestige on a cup win, nothing otherwise) against "take half now, guaranteed". It
-    is the cheapest to build, has <b>no balance surface at all</b> - it touches no rating, no
-    roster and no chemistry, so the boost bands are untouched - and it turns on a number the
-    player is already looking at, since <code>domain/odds.ts</code> computes the title odds
-    and <code>RunXiPanel</code> displays them. One field on <code>RunState</code>, read by
-    <code>applyRunResult</code>, which is already the single place a run's reward is
-    computed.</p>
+    <p><strong>Three ideas came over from item 29</strong>, which this replaces: <b>Sell the
+    Star</b> (the first card whose value can be negative), <b>Burn a Sticker</b> (the only
+    cost that outlives the run), and showing the <b>chemistry delta</b> on any card that moves
+    rating and chemistry opposite ways - which is a UI change rather than a card.</p>
 
-    <p><strong>Then the two single cards that need no node machinery:</strong> <b>Sell the
-    star</b> (lose your best player, +4 to the other ten - the first boost whose value can be
-    negative, and which XI shape decides it), and <b>making chemistry deltas explicit</b>, since
-    chemistry is the one second axis the engine reads and no boost touches. Poach already
-    trades rating against chemistry by accident.</p>
+    <p class="next"><strong>Next step:</strong> build the four `cheap` minute-and-scorer cards
+    first. They are a catalogue entry each, they touch no rating so they cannot unbalance
+    anything, and they prove whether a card that changes the STORY of a match rather than its
+    result is worth having before anything expensive is attempted.</p>
 
-    <p><strong>The big one, when there is appetite:</strong> a <b>squad of 14 rather than an
-    XI</b>, fielding 11 each round. It makes every round a decision with no number to rank and
-    unlocks injuries, suspensions and matchup choices, which are impossible today. It is a
-    project, not a card - it touches the draft, the pitch, the persisted run, the challenge
-    catalogue's <code>shape</code> record and the sticker banking rule - but every other idea
-    gets better if it lands.</p>
-
-    <p><strong>Six of those cards SHIPPED on 2026-08-22</strong>, which is the cheap half of
-    this item done: <b>Ice Veins</b> (+8 for shootouts only - it moves no scoreline at all, and
-    the checks assert that), <b>Kind Draw</b> (re-draws the opponent and keeps the weaker;
-    fires ~53% of the time and softens by ~5 rating), <b>Second Wind</b> and <b>Sold Out
-    Stadium</b> (the first cards with a lifetime, which is what the restored effect ledger was
-    for), <b>The Coin Toss</b> (+8 or -4, derived rather than rolled so a reload cannot
-    re-flip it) and <b>Mortgage the Future</b> (+4 to the XI, and the run pays nothing at all
-    unless it wins the cup). Glass Cannon and Familiar Foes were removed, and Marquee Signing,
-    Transfer and Catenaccio retuned, in the same pass. <b>Known hole, left deliberately rather
-    than silently redesigned:</b> Sold Out Stadium is free if taken before the Final, because
-    there is no round after it to pay the debt.</p>
-
-    <p><strong>The mechanisms are what is left</strong>, and they are the bigger half. Ten
-    CARDS came over from item 04's content catalogue too</p>, and are
-    listed at the end of <code>docs/run-decisions.md</code>. The ideas above are mechanisms;
-    those are individual boosts, buildable today with no currency and no node machinery. The
-    pick of them is <b>Ice Veins</b> (+8 for penalty shootouts only - nothing in the existing
-    19 touches the shootout, and it does nothing in most ties and wins the rest), and the most
-    interesting is <b>Mortgage the Future</b> (+4 to the XI, but the run pays no Prestige
-    unless you win the cup), which is the only card whose cost lands on the career rather than
-    inside the run and so pairs directly with option A. The list also carries the one to
-    <b>never</b> build - Homecoming, which reads as draw-conditional but keys off nations the
-    player picks at build time, the same trap that killed Chemistry Catalyst.</p>
-
-    <p class="next"><strong>Next step:</strong> build A (wager the payout) on its own and play
-    it. The six cards that shipped widen what an offer can CONTAIN; A is the first thing that
-    changes the shape of the decision itself, and it still needs no new balance work.</p>
-
-    <p class="files">docs/run-decisions.md, src/domain/odds.ts, src/domain/career.ts, src/domain/run.ts, src/domain/boons.ts, src/components/cupRun/BoostOffer.tsx</p>
+    <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
   </div>
 </details>
 
@@ -688,6 +653,23 @@
       instead of inverting.
       <br>Plan and full post-mortem: <code>docs/run-nodes-plan.md</code>. Successor:
       <code>docs/run-decisions.md</code>.</li>
+      <li><b>29 Decisions, not calculations.</b> <b>Closed 2026-08-22</b>, half shipped and
+      half rejected.
+      <br><b>The diagnosis it existed for was right and is worth keeping:</b> the problem was
+      never too few node KINDS (that was item 04's mistake), it was that <b>every boost sat on
+      one axis</b> - "+N to some subset of the XI" - so an offer of three reduced to
+      arithmetic. A shop selling rating points is that same axis with a price on it, which is
+      why item 04 could not fix it.
+      <br><b>What shipped:</b> six cards on levers nothing had touched - Ice Veins (the
+      shootout), Kind Draw (the draw), Second Wind and Sold Out Stadium (time), The Coin Toss
+      (variance) and Mortgage the Future (the run's payout) - plus the removal of Glass Cannon
+      and Familiar Foes and three retunes.
+      <br><b>What was rejected by the owner:</b> the four MECHANISM ideas - wagering the
+      payout, choosing your own path, committing to a tactic before the draw, and a squad of
+      14 instead of an XI. Each would have changed the shape of a stop rather than its
+      contents, and none is wanted. Do not re-propose them without a new reason.
+      <br><b>Succeeded by item 30</b>, which is the same goal pursued entirely through cards:
+      25 more ideas in <code>docs/boost-ideas.md</code>, none of them only a rating bump.</li>
       <li><b>28 One run, one tournament: the draw and the bracket in a Cup Run.</b>
       <b>Closed 2026-08-22.</b> A run IS the tournament now - the group draw, a live table
       and a real 16-team bracket - and the second tournament orchestration is gone.
