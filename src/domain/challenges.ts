@@ -38,14 +38,19 @@ export type ChallengeTier = 'bronze' | 'silver' | 'gold';
 
 /** Prestige paid for completing one, by tier. Paid into the same wallet the perk shop
  *  spends from, so the numbers only mean anything against what that shop costs: every
- *  perk tier plus every locked boost is 2525 Prestige, and a run itself pays a median
- *  of 9. Sized 2026-08-19 by simulating 16 careers of 150 real Cup Runs (roadmap 01).
- *  At 2/5/12 the whole catalogue is worth 779, about a THIRD of the shop, and
- *  challenges come to roughly a sixth of the Prestige a long career earns: a genuine
- *  second faucet, with runs clearly the first. For scale, the original 10/30/75 guess
- *  was worth 4705, nearly twice the shop and 56% of all income, which is what kept the
- *  awards switched off; 3/8/20 was worth 1266, half the shop, and was the simulation's
- *  own suggestion before this was set deliberately lower.
+ *  perk tier plus every locked boost was 2525 Prestige when this was sized on
+ *  2026-08-19 (by simulating 16 careers of 150 real Cup Runs, roadmap 01), and a run
+ *  itself pays a median of 9. At 2/5/12 the whole catalogue was worth 779, about a THIRD
+ *  of the shop, and challenges came to roughly a sixth of the Prestige a long career
+ *  earns: a genuine second faucet, with runs clearly the first. For scale, the original
+ *  10/30/75 guess was worth 4705, nearly twice the shop and 56% of all income, which is
+ *  what kept the awards switched off; 3/8/20 was worth 1266, half the shop, and was the
+ *  simulation's own suggestion before this was set deliberately lower.
+ *  The shop has since grown to 3500 (more boosts to unlock, and a ninth transfer-budget
+ *  tier), which moves the catalogue to about a FIFTH of it. That drift is in the safe
+ *  direction - it makes runs a larger share of income, not a smaller one - so the awards
+ *  were left alone. Re-derive the figure rather than trusting this sentence; the property
+ *  to keep is that runs stay clearly the primary faucet.
  *  Note the awards buy but do not gate: challenge Prestige grants no XP, so the level
  *  requirements on the dearest perk tiers can still only be met by playing. */
 export const AWARD: Record<ChallengeTier, number> = { bronze: 2, silver: 5, gold: 12 };

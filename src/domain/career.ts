@@ -317,6 +317,11 @@ export const PERKS: Perk[] = [
       { level: 6, description: '$130 transfer budget.', cost: 220, levelReq: 18 },
       { level: 7, description: '$140 transfer budget.', cost: 300, levelReq: 24 },
       { level: 8, description: '$150 transfer budget.', cost: 400, levelReq: 32 },
+      // Tier 9 is the endgame rung: its level requirement sits above every other gate in
+      // the game (the Ascension ladder tops out at 30), so it is the last thing a career
+      // can still be working towards once everything else is bought. Priced on the
+      // ladder's own curve - the gaps run 20/40/40/40/60/80/100, so the next is ~130.
+      { level: 9, description: '$160 transfer budget.', cost: 520, levelReq: 40 },
     ],
   },
   {

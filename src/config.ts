@@ -138,6 +138,7 @@ export const STICKER_DISCOUNT = 0.25;
 
 /** Career-scaled transfer budget, indexed by the owned tier of the `transfer-budget`
  *  perk (0 = base). Every build reads its budget from here. Tunable ladder (rises
- *  $70 -> $150). Keep in sync with the
- *  `transfer-budget` perk tiers in domain/career.ts (one entry per tier + the base). */
-export const BUDGET_BY_TIER = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;
+ *  $70 -> $160). Keep in sync with the
+ *  `transfer-budget` perk tiers in domain/career.ts (one entry per tier + the base);
+ *  `npm run checks` fails while the two disagree. */
+export const BUDGET_BY_TIER = [70, 80, 90, 100, 110, 120, 130, 140, 150, 160] as const;

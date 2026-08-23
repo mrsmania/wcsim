@@ -1,7 +1,14 @@
 # Boost ideas that are not "strength + X"
 
 Roadmap item 30. **Round 7**, written 2026-08-23. Fourteen cards have shipped across six
-rounds; **139 ideas have been rejected**. This is the next 25.
+rounds and three were deleted; **164 ideas have been rejected**, round 7's 25 included.
+
+**The library is considered FULL** (2026-08-23). Round 7's 25 were read and none was
+taken, and the pool was pruned rather than grown: Set-Piece Drills, Squad Rotation and
+Counter Attack were deleted for failing one measurable test - *a card you pay Prestige to
+unlock must not be worse than one you already own for free*. That test is the useful thing
+this document ends with, and it is worth more than another 25 ideas. Apply it before adding
+anything.
 
 ## The method
 
@@ -21,16 +28,30 @@ only for that. It has worked twice, so round 7 does it again with four more.
 4. **The XI as a squad.** The sim reads two averages. The XI is eleven people with shirt
    numbers, nations, ages and clubs, and almost nothing reads any of it.
 
-## Shipped (37 cards)
+## Shipped (34 cards)
 
 golden-generation, marquee-signing, star-signing, veteran-core, attacking-masterclass,
-defensive-drills, transfer, poach, wildcard, keeper-coach, squad-rotation, set-piece-drills,
-catenaccio, counter-attack, underdog-spirit, galacticos, legends-reunion, prime-years,
+defensive-drills, transfer, poach, wildcard, keeper-coach,
+catenaccio, underdog-spirit, galacticos, legends-reunion, prime-years,
 in-form, old-guard, armband, away-days, man-marking, double-print, ice-veins, kind-draw,
 second-wind, sold-out-stadium, coin-toss, mortgage-future, full-backs, loan-deal,
 underdogs-purse, siege-mentality, **sponsorship**, **youth-development**, **all-or-nothing**.
 
-## Do not re-propose (139)
+## Deleted (3)
+
+**Set-Piece Drills** (15 Prestige, +2 to the outfield defenders): the same card as the free
+starter Defensive Drills minus the keeper, measuring 10 against 12. **Squad Rotation** (15,
++4 to the two weakest, measuring 8): beaten by the free starter Veteran Core at 9.
+**Counter Attack** (30, +8 forwards / -2 midfielders): measured **1.6 attack** against the
+free starter Attacking Masterclass's **2.0**, with a penalty on top - a rare that cost 30
+Prestige for less than nothing, because a budget XI's forwards are already near the rating
+ceiling so most of the +8 evaporated.
+
+Star Signing was looked at and KEPT: it is a junior Marquee Signing, but it is a free
+starter, and the rule is about paid cards being worse than free ones rather than about
+small cards.
+
+## Do not re-propose (164)
 
 - **Mechanisms (item 29, rejected):** wagering the payout, choosing your own path, committing
   to a tactic before the draw, a squad of 14.
@@ -58,6 +79,11 @@ underdogs-purse, siege-mentality, **sponsorship**, **youth-development**, **all-
   Golden Boot Race, Set Piece Threat, Keeper Up For Corners, Share the Goals, The Poacher,
   Own Goals, Settled Side, Club Football, International Break, Passport Office, Same
   Generation, Bad Blood, Appearance Money, Play Up a Level, Testimonial, Agent Fees.
+- **Round 7 (all 25):** Slow Starters, Must Not Lose, Group of Death, Easy Draw, Top of the
+  Group, Dead Rubber, The Away Goal, Park the Bus, End to End, Extra Time, Sudden Death,
+  Twelve Yards, Late Show, Host Nation, World Champions, The Class of '98, Time Zones, Retro
+  Kit, Debutants, Squad Numbers, The Spine, Captain's Nation, Odd One Out, Understrength,
+  Two Keepers.
 - **Never buildable:** anything selling INFORMATION, and anything conditioned on what the
   player picks at BUILD time.
 

@@ -1050,7 +1050,6 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // to cooperate: they are not free power.
   const EXEMPT = new Set([
     'catenaccio', // -2 attack
-    'counter-attack', // -2 midfield
     'underdog-spirit', // only against a stronger opponent
     'poach', // depends entirely on the opponent
     // --- item 29 cards. Each pays for its power somewhere this measurement cannot see:
@@ -1487,6 +1486,13 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   for (let i = 1; i < track.tiers.length; i++) {
     if (track.tiers[i].cost <= track.tiers[i - 1].cost) ok = false;
     if (track.tiers[i].levelReq < track.tiers[i - 1].levelReq) ok = false;
+  }
+  // The FIGURE the shop copy promises is the budget that tier actually hands out. Same
+  // seam the Extra Re-roll check guards below, and the same failure if it drifts: the
+  // dollars live in config.ts and the sentence lives here, so adding a tier to one and
+  // not the other reads as a shop that lies rather than as a broken build.
+  for (let i = 0; i < track.tiers.length; i++) {
+    if (!track.tiers[i].description.includes(`$${BUDGET_BY_TIER[i + 1]}`)) ok = false;
   }
   check('budget: career budget ladder is well-formed and matches its perk track', ok);
 }

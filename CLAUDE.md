@@ -898,7 +898,14 @@ deleted with the plain World Cup it used to gate). Design:
   the `CupRunScreen` hub. Separate storage from the game + album.
   **Two perks reach outside the run**, both read in `App`:
   `transfer-budget` -> `BUDGET_BY_TIER` -> the
-  market's budget, and `extra-reroll` -> `extraRerollsOf` -> `START_DRAFT`'s
+  market's budget (nine tiers, $70 to $160; tier 9 was added 2026-08-23 as the endgame
+  rung, gated at **level 40** - above every other gate in the game, the Ascension ladder
+  included - and priced at 520 on the track's own curve). `npm run checks` asserts the
+  ladder matches the perk track in length, that it rises, and that **the dollar figure the
+  shop copy promises is the budget that tier hands out**: the dollars live in `config.ts`
+  and the sentence in `career.ts`, so adding a tier to one and not the other would read as
+  a shop that lies. The other outward perk is
+  `extra-reroll` -> `extraRerollsOf` -> `START_DRAFT`'s
   `extraRerolls`, which sets `rerollsLeft` to `INITIAL_REROLLS` + the owned tier (so
   tier 1 is a 4th re-roll, tier 2 a 5th). The reducer knows nothing about the career,
   hence the number being passed in; `npm run checks` asserts the two stay in step,
@@ -931,7 +938,7 @@ deleted with the plain World Cup it used to gate). Design:
 
 ## Boosts: the catalogue, and the levers beyond the rating average
 
-37 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+34 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
 of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
 made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
 its first six cards shipped 2026-08-22.
@@ -1076,6 +1083,29 @@ same career write that remembers the Ascension tier, so a grant can only ever be
 once. It deals from **commons only**, alongside Scout Network's and for the same recorded
 reason.
 
+### Three cards DELETED (2026-08-23), and the test that picked them
+
+The pool reached 37 and stopped growing. What came out was chosen by one measurable
+rule rather than by taste: **a card you spend Prestige to unlock must not be worse than one
+you already own for free.** A card nobody should rationally take is a dead slot in every
+offer it appears in, which is the same reading that made Loan Deal a common rather than a
+rare.
+
+| Deleted | Cost | Beaten by | Why |
+| --- | --- | --- | --- |
+| **Set-Piece Drills** | 15 | Defensive Drills (free starter) | +2 to the outfield defenders against +2 to the defenders AND the keeper. The same card minus a player, measuring 10 against 12. |
+| **Squad Rotation** | 15 | Veteran Core (free starter) | +4 to the two weakest, measuring 8, against +3 to the three lowest measuring 9. Same idea, same rarity, and the free one is bigger. |
+| **Counter Attack** | 30 | Attacking Masterclass (free starter) | +8 forwards / -2 midfielders measures **1.6 attack**; a free common gives **2.0** with no penalty. A rare that costs 30 Prestige for less than nothing. |
+
+Counter Attack read as Catenaccio's mirror and was not one: Catenaccio measures 14 and
+genuinely reshapes the XI, while this measured 8 because a budget XI's forwards are already
+its highest-rated players, so most of the +8 hit the rating ceiling.
+
+**Kept deliberately: Star Signing** (+6 to your weakest), which looks like a junior Marquee
+Signing and is one. It is a free STARTER, so it costs nothing to own and it is the small
+early card a new career needs. The rule above is about PAID cards being worse than free
+ones, not about small cards.
+
 ### Catalogue changes made at the same time
 
 - **Removed: Glass Cannon and Familiar Foes.**
@@ -1146,7 +1176,10 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   against, clean sheets, boost rarities) and `completedIn(ctx)`, which returns the ids a
   finished run newly satisfies. `AWARD` is bronze 2, silver 5, gold 12, **sized by
   simulation** (2026-08-19, 16 careers x 150 real runs) against the anchor that decides
-  it: the perk shop plus every locked boost costs **2525 Prestige**, and a run pays a
+  it: the perk shop plus every locked boost cost **2525 Prestige** when it was sized (it
+  is **3500** now, so the catalogue is nearer a fifth of the shop than a third - drift in
+  the safe direction, since it makes runs a larger share of income; re-derive it rather
+  than trusting this figure), and a run pays a
   median of 9. At 2/5/12 the whole catalogue is worth 779, about a third of the shop, and
   challenges are ~1/6 of a long career's Prestige, so runs stay clearly the primary
   faucet. For scale: 10/30/75 (the first guess) was worth 4705, nearly twice the shop and

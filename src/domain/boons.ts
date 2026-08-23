@@ -342,20 +342,6 @@ export const BOONS: Boon[] = [
     effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'GK', 6) }],
   },
   {
-    id: 'squad-rotation',
-    name: 'Squad Rotation',
-    rarity: 'common',
-    description: '+4 to your two weakest players.',
-    effects: [{ kind: 'rating', plan: (xi) => planLowest(xi, 2, 4) }],
-  },
-  {
-    id: 'set-piece-drills',
-    name: 'Set-Piece Drills',
-    rarity: 'common',
-    description: '+2 to your outfield defenders.',
-    effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'DEF', 2) }],
-  },
-  {
     id: 'catenaccio',
     name: 'Catenaccio',
     rarity: 'rare',
@@ -364,21 +350,6 @@ export const BOONS: Boon[] = [
       {
         kind: 'rating',
         plan: (xi) => [...planWhere(xi, isDefender, 4), ...planWhere(xi, isAttacker, -2)],
-      },
-    ],
-  },
-  {
-    id: 'counter-attack',
-    name: 'Counter Attack',
-    rarity: 'rare',
-    description: '+8 to your forwards, -2 to your midfielders.',
-    effects: [
-      {
-        kind: 'rating',
-        plan: (xi) => [
-          ...planWhere(xi, (p) => catOf(p) === 'FWD', 8),
-          ...planWhere(xi, (p) => catOf(p) === 'MID', -2),
-        ],
       },
     ],
   },
