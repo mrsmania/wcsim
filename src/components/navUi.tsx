@@ -128,43 +128,6 @@ export function TabBottomBar({ items, locked }: { items: TabItem[]; locked?: boo
 }
 
 /**
- * The route crumb: the second "where am I" signal, since the active tab alone is one.
- * Borrowed from the rail concept, and the cheapest of the ten fixes - it also names
- * which of its four things the build page's left column currently is.
- */
-export function RouteCrumb({
-    parts,
-    state,
-    tone = 'pitch',
-}: {
-    /** Left to right, coarsest first. The last one is emphasised. */
-    parts: string[];
-    /** Right-hand status ("7 of 11 picked", "Live 78'"). */
-    state?: string;
-    tone?: 'pitch' | 'warm';
-}) {
-    return (
-        <div className="flex items-baseline gap-2 pt-[11px] font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-            {parts.map((p, i) => (
-                <span key={`${p}-${i}`} className="flex items-baseline gap-2">
-                    {i > 0 && <span className="text-line">/</span>}
-                    <span className={i === parts.length - 1 ? 'font-semibold text-ink' : ''}>{p}</span>
-                </span>
-            ))}
-            {state && (
-                <span
-                    className={`ml-auto tracking-[0.08em] ${
-                        tone === 'warm' ? 'text-amber-ink' : 'text-pitch'
-                    }`}
-                >
-                    {state}
-                </span>
-            )}
-        </div>
-    );
-}
-
-/**
  * A second-level segmented link row, for the one place this concept needs a second
  * level: Records holds Challenges and Cabinet, because both are read-only honours over
  * the same career and neither earns a tab of its own.

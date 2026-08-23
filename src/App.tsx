@@ -39,7 +39,7 @@ import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
 import { useLiveMatch } from './nav/liveMatch';
-import { RouteCrumb, SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
+import { SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
 import { requestRunStart } from './nav/pendingRun';
 import { onStoreError, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
@@ -765,50 +765,6 @@ export default function App({
         ] as (TabItem | false)[]
     ).filter(Boolean) as TabItem[];
 
-    // The route crumb: the second "where am I" signal, and the line that names which of
-    // its four things the build page's left column currently is.
-    const crumb: { parts: string[]; state?: string; tone?: 'pitch' | 'warm' } = isSquads
-          ? { parts: ['Squads'], state: `${SQUADS.length} squads` }
-          : isAlbum
-            ? {
-                  parts: ['Album'],
-                  state: albumSummary
-                      ? `${albumSummary.collected} of ${albumSummary.total}`
-                      : undefined,
-              }
-            : tabsRecords
-              ? { parts: ['Records', recordsCabinet ? 'Cabinet' : 'Challenges'] }
-              : isCareerHub
-                ? {
-                      parts: ['Career', 'Hub'],
-                      state: resumeCupRun ? 'A run is in progress' : undefined,
-                      tone: 'warm',
-                  }
-                : isCupRun
-                  ? {
-                        parts: ['Play', 'Cup Run'],
-                        state: liveMatch ? 'Live' : resumeCupRun?.round,
-                        tone: liveMatch ? 'warm' : 'pitch',
-                    }
-                  : isBuild
-                    ? {
-                          parts: [
-                              'Play',
-                              'Build',
-                              homeView === 'setup'
-                                  ? 'Set up'
-                                  : homeView === 'complete'
-                                    ? 'Ready'
-                                    : isBudgetBuild
-                                      ? 'Transfer market'
-                                      : 'Rolled squad',
-                          ],
-                          state: formation
-                              ? `${filledCount(formation, filled)} of ${formation.slots.length} picked`
-                              : undefined,
-                      }
-                    : { parts: ['Play', 'Home'] };
-
     // The cover's single Continue action: a live Cup Run, else a half-built XI. One
     // action because this navigation keeps one run at a time; "build a new XI" beside it
     // discards whichever of the two it is.
@@ -869,13 +825,12 @@ export default function App({
                     </div>
                 </header>
 
-                {/* The five destinations (roadmap item 27, concept 2): a row here, a fixed
-                    bottom bar on a phone, and the crumb as the second location signal. */}
+                {/* The five destinations (roadmap item 27, concept 2): a row here and a
+                    fixed bottom bar on a phone. */}
                 {tabs.length > 0 && (
                     <>
                         <TabRow items={tabs} locked={liveMatch} />
                         <TabBottomBar items={tabs} locked={liveMatch} />
-                        <RouteCrumb parts={crumb.parts} state={crumb.state} tone={crumb.tone} />
                     </>
                 )}
 
