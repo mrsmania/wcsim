@@ -1,111 +1,121 @@
 # Boost ideas that are not "strength + X"
 
-Roadmap item 30. **Round 3**, written 2026-08-22. Round 1 shipped 3 of 25; round 2 shipped 4
-of 25 (Prime Years, In Form, Old Guard, The Armband). This is the next 25.
+Roadmap item 30. **Round 4**, written 2026-08-22. Seven cards have shipped across three
+rounds; **71 ideas have been rejected**. This is the next 25.
 
-## The new seam round 2 opened
+## An honest note before the list
 
-**The Armband is the first card that asks a question**, and building it left behind
-machinery worth reusing: `Boon.choice` parks `RunState.pendingChoice` instead of committing
-the stop, and `resolveChoice` applies the card once the player answers. A reload lands back
-on the question.
+Four rounds in, the discard list is longer than the catalogue and the returns are visibly
+diminishing - the levers this engine exposes are a short list and most of them have now been
+proposed at least once. Round 4 deliberately goes at the two things earlier rounds never
+tried: **moving rating BETWEEN players rather than adding it**, and **multiplying rather than
+adding**. Both change the SHAPE of an XI rather than its total, which is a different question
+from every card in the pool.
 
-That unlocks a family nothing else could express: a card whose effect the *player* aims. The
-first five ideas below are all of that shape, and they are cheap now in a way they were not
-yesterday.
+If a round 5 is wanted, it would be better aimed at a named surface ("cards about the
+goalkeeper", "cards for a losing run") than at another open-ended 25.
 
-## Do not re-propose
+## Shipped (30 cards)
 
-Considered and rejected or discarded. Three rounds in, this list is the most useful part of
-the document.
+golden-generation, marquee-signing, star-signing, veteran-core, attacking-masterclass,
+defensive-drills, transfer, poach, wildcard, keeper-coach, squad-rotation, set-piece-drills,
+catenaccio, counter-attack, underdog-spirit, galacticos, legends-reunion, prime-years,
+in-form, old-guard, armband, away-days, man-marking, double-print, ice-veins, kind-draw,
+second-wind, sold-out-stadium, coin-toss, mortgage-future.
 
-- **Mechanisms (item 29, rejected by the owner):** wagering the payout, choosing your own
-  path through the bracket, committing to a tactic before the draw, a squad of 14.
-- **Round 1 (discarded):** Nervy Spot-Kicks, Rotation Forced, Seeded, Continental Draw, Upset
-  Special, Rematch, Bye, Straight to Penalties, Golden Goal, Replay, Fast Starters, Talisman,
-  Nerves of Steel, Smash and Grab, Team Talk, Naturalised, Clique, Sponsor Deal, Youth Policy,
-  Insurance, Legacy, Panini Deal, Sell the Star, Burn a Sticker.
-- **Round 2 (discarded):** The Number Ten, Club Connection, Compatriots, Golden Era, Open
-  Game, Attritional, Red Card, Home Crowd, Two Legs, Form Guide, Backs to the Wall, Group
-  Winners, Ever Present, Call Up a Legend, Swap Shop, Complete the Set, Collector's Run,
-  Title Defence, Unfinished Business, Step Up, Sweeper Keeper.
-- **Never buildable:** anything selling INFORMATION (the game shows everything), and anything
-  conditioned on what the player picks at BUILD time (the Chemistry Catalyst trap).
+## Do not re-propose (71)
 
-`cheap` = a catalogue entry, maybe a `RunModifier` case. `medium` = a new field something
-reads. `hard` = the sim or the draft changes shape.
+- **Mechanisms (item 29, rejected):** wagering the payout, choosing your own path, committing
+  to a tactic before the draw, a squad of 14.
+- **Round 1:** Nervy Spot-Kicks, Rotation Forced, Seeded, Continental Draw, Upset Special,
+  Rematch, Bye, Straight to Penalties, Golden Goal, Replay, Fast Starters, Talisman, Nerves of
+  Steel, Smash and Grab, Team Talk, Naturalised, Clique, Sponsor Deal, Youth Policy, Insurance,
+  Legacy, Panini Deal, Sell the Star, Burn a Sticker.
+- **Round 2:** The Number Ten, Club Connection, Compatriots, Golden Era, Open Game,
+  Attritional, Red Card, Home Crowd, Two Legs, Form Guide, Backs to the Wall, Group Winners,
+  Ever Present, Call Up a Legend, Swap Shop, Complete the Set, Collector's Run, Title Defence,
+  Unfinished Business, Step Up, Sweeper Keeper.
+- **Round 3:** Understudy, Specialist, Scapegoat, Mentor, Target Man, Momentum, Clean Sheet
+  Bonus, Snowball, Cup Fever, Deja Vu, Second Opinion, Wildcard Slot, Switch Formation, Total
+  Football, False Nine, The Veteran, The Debutant, Squad Number One, Journeymen, Continental
+  Rivals, Bogey Team, Class of Their Own, Physio, Fresh Start, Contract Rebel.
+- **Never buildable:** anything selling INFORMATION, and anything conditioned on what the
+  player picks at BUILD time.
 
 ---
 
-## Cards that ask a question (5)
+## Moving rating BETWEEN players (5)
 
-The seam The Armband opened. Each of these hands the player the aim rather than the number.
-
-| # | Card | What it does | Cost |
-| --- | --- | --- | --- |
-| 1 | **Understudy** | Name a player; he is replaced by the best player in the whole dataset who plays his position and is rated below him. A guaranteed upgrade you *aim*, rather than one the card picks. | cheap |
-| 2 | **Specialist** | Name a position; every player in your XI who can play it gets +6. Rewards knowing your own squad's secondary positions, which the draft already shows you. | cheap |
-| 3 | **Scapegoat** | Name a player; he leaves the XI and the other ten get +3. You choose who is expendable, which is a harder question than it sounds on a balanced side. | cheap |
-| 4 | **Mentor** | Name two players; the weaker rises halfway to the stronger. The only card where the size of the effect is entirely the player's doing. | medium |
-| 5 | **Target Man** | Name a player; +4 to him, and he is credited with far more of your goals. Aims the record books as well as the rating. | medium |
-
-## Conditional on how this round goes (4)
-
-Nothing in the pool is contingent on a result that has not happened yet.
+Every card ever proposed here ADDS rating. None has moved it from one player to another, and
+that is a different question entirely: it changes the shape of an XI at a fixed total, so its
+value depends only on the shape you already have.
 
 | # | Card | What it does | Cost |
 | --- | --- | --- | --- |
-| 6 | **Momentum** | Win this tie and the XI keeps +4 for the rest of the run. Nothing if you lose - but if you lose, there is no rest of the run. | medium |
-| 7 | **Clean Sheet Bonus** | Keep a clean sheet in this tie and your defence keeps +5 permanently. | medium |
-| 8 | **Snowball** | +1 for every round already survived, this round only. Weak in the Round of 16, strong in the Final - the opposite shape to everything in the pool. | cheap |
-| 9 | **Cup Fever** | +2 for every round still to come. Strong early, nothing in the Final. Snowball's mirror, and an offer holding both is a real fork. | cheap |
+| 1 | **Squad Harmony** | Every player becomes the XI's average rating. Transformative for a lopsided budget build, ruinous for a good one - and you can read which you are off your own team sheet. | cheap |
+| 2 | **Wage Bill** | Take 10 from your best player and give 5 each to your two worst. Net zero, but it moves the attack and defence averages differently depending on where those three play. | cheap |
+| 3 | **Meritocracy** | The gap between your best and worst widens: +6 to the top three, -6 to the bottom three. Squad Harmony's exact opposite. | cheap |
+| 4 | **The Spine** | +8 to your goalkeeper, your best centre-back, your best central midfielder and your best striker. The four positions a team is built through, and the first card to read the twelve positions rather than the three categories. | cheap |
+| 5 | **Full-Backs** | +12 to your left-back and right-back only. A tiny, precise card - worth a lot in a back four, nothing in a back three. | cheap |
 
-## The offer itself (3)
+## Multiplying rather than adding (4)
 
-The pool has never contained a card about the pool.
-
-| # | Card | What it does | Cost |
-| --- | --- | --- | --- |
-| 10 | **Deja Vu** | Take the same boost you took last round, again. Its value is entirely what you chose before. | medium |
-| 11 | **Second Opinion** | Skip this offer and take next round's instead, seeing it now. Trades a boost you have for a boost you might prefer. | medium |
-| 12 | **Wildcard Slot** | Every later offer contains at least one legendary. Changes what the rest of the run will look like rather than the XI. | medium |
-
-## Formation and shape (3)
-
-The XI has a formation and a style, and no card has ever touched either.
+Everything in the game is `+N`. Nothing scales. A percentage helps your best players most and
+a flat number helps your worst most, which is a genuinely different distribution.
 
 | # | Card | What it does | Cost |
 | --- | --- | --- | --- |
-| 13 | **Switch Formation** | Change formation mid-run; players re-slot into the new shape. Chemistry's "in position" count moves with it, so it is two decisions in one. | hard |
-| 14 | **Total Football** | Every player counts as in-position for chemistry, whatever slot he fills. | cheap |
-| 15 | **False Nine** | Your striker counts toward the defence average and your holding midfielder toward the attack. A deliberate distortion of the two numbers the sim reads, using players you already have. | medium |
+| 6 | **Percentages** | +8% to every rating. Worth more to a strong XI than a weak one - the first card that rewards having already built well. | cheap |
+| 7 | **Compound Interest** | +2 now, and +2 more at the start of every later round. Weak if taken late, enormous if taken after the group. | medium |
+| 8 | **Diminishing Returns** | +12 this round, +9 the next, then +6, then +3. Compound Interest's mirror: front-loaded rather than back-loaded. | medium |
+| 9 | **Halve the Gap** | If your opponent is rated above you, half the difference is added to your XI for that tie. Scales itself to the tie, so it is never wasted and never decisive. | medium |
 
-## The dataset's extremes (4)
+## Conditions on the SHAPE of your XI (5)
 
-| # | Card | What it does | Cost |
-| --- | --- | --- | --- |
-| 16 | **The Veteran** | +10 to the player from the oldest tournament in your XI. | cheap |
-| 17 | **The Debutant** | +10 to the player from the newest. The Veteran's mirror; which is worth more depends on a draft you did not aim. | cheap |
-| 18 | **Squad Number One** | +8 to whoever wears the lowest shirt number. Numbers are in the dataset, printed on every roster, and read by nothing. | cheap |
-| 19 | **Journeymen** | +1 for every DISTINCT squad represented in your XI, to everyone. The exact inverse of the chemistry bonus, so the two cards pull against each other. | cheap |
-
-## Who you are playing (3)
+Not on what you built at draft time (that is the banned trap) but on what the XI has become
+after several roster boosts - which nobody controls.
 
 | # | Card | What it does | Cost |
 | --- | --- | --- | --- |
-| 20 | **Continental Rivals** | +5 when your opponent is from another confederation, nothing when they are neighbours. Keyed on the draw, so nobody controls it. | cheap |
-| 21 | **Bogey Team** | +6 against a nation that has knocked you out before in this career. Needs the career to remember who beat it, which it does not yet. | hard |
-| 22 | **Class of Their Own** | +4 for every player in your XI older, by tournament year, than every player in theirs. Experience against youth, decided by two squads neither of you chose. | medium |
+| 10 | **Regulation** | +12, but only if no player in your XI is rated above 90. A card for a squad of honest professionals, and one the stars can never take. | cheap |
+| 11 | **Star Power** | +12, but only if at least three of your XI are above 90. Regulation's mirror; an offer holding both is a real fork. | cheap |
+| 12 | **Balanced Books** | +8 if your attack and defence ratings are within 3 of each other. Rewards a shape, and Catenaccio or Counter Attack will have broken it. | cheap |
+| 13 | **Even Spread** | +10 if no two players in your XI come from the same tournament. The exact inverse of the chemistry bonus, so the two pull against each other. | cheap |
+| 14 | **Thin Squad** | +15 to your five best players, and your six worst are unchanged for the rest of the run - no later card can touch them. A cost paid in future flexibility. | medium |
 
-## Undoing things (3)
+## The opponent's actual squad (4)
 
-Every card so far only adds. Nothing removes.
+Poach reads their players; nothing else does. Their squad is 22 to 26 real people and the
+game only ever looks at two averages.
 
 | # | Card | What it does | Cost |
 | --- | --- | --- | --- |
-| 23 | **Physio** | Remove one negative effect currently on your XI. Worthless unless you took a curse - and the pool now has several. | cheap |
-| 24 | **Fresh Start** | Clear every effect on the XI, good and bad, then +3 to everyone. A reset that is worth taking only when the run has gone wrong. | cheap |
-| 25 | **Contract Rebel** | Your worst player walks out. The XI plays with ten, and the ten get +5. Genuinely two-sided: a thin squad cannot afford it. | medium |
+| 15 | **Loan Deal** | Borrow their best player for this tie only. He plays for you, then goes back. The first temporary ROSTER change - the ledger handles temporary ratings but not temporary people. | medium |
+| 16 | **Poach the Keeper** | Take their goalkeeper specifically. Narrower than Poach and better against a side whose keeper is their best player. | cheap |
+| 17 | **Mirror Match** | Your attack is set equal to theirs, if theirs is higher. Never a downgrade, and worth exactly what the draw handed you. | medium |
+| 18 | **Ringer** | Swap your worst player for the worst player in THEIR squad. Usually a small upgrade, occasionally a disaster, and always funny. | cheap |
+
+## The run's own arithmetic (4)
+
+Facts the run has already produced and nothing reads.
+
+| # | Card | What it does | Cost |
+| --- | --- | --- | --- |
+| 19 | **Goal Difference** | +1 for every goal of your group-stage goal difference. A 9-0 group pays; a 3-2 one does not. | cheap |
+| 20 | **Clean Slate** | +3 for every match this run in which you conceded nothing. | cheap |
+| 21 | **Underdog's Purse** | +2 for every round in which you were the lower-rated side. Pays a run that has been surviving rather than dominating. | medium |
+| 22 | **Minutes in the Legs** | +1 per match played, to every player - so +4 by the semi-final. The simplest possible "the run itself made me stronger". | cheap |
+
+## Only when it matters (3)
+
+The shootout is one moment nothing but Ice Veins touches. Extra time is another, and nothing
+touches it at all.
+
+| # | Card | What it does | Cost |
+| --- | --- | --- | --- |
+| 23 | **Extra Time Specialists** | +10 to your XI, but only in extra time. Nothing in 80% of ties, decisive in the rest. | medium |
+| 24 | **Sudden Death** | If a shootout goes past five kicks, your takers convert far better. A card for the deepest moment in the game. | medium |
+| 25 | **Lucky Shirt** | +15 to one player, derived from the run rather than rolled (like The Coin Toss, so a reload cannot move it). Pure luck with no decision in it - which is exactly why it belongs in a pool of decisions, as the one card that is not one. | cheap |
 
 ---
 
