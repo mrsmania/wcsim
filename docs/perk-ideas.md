@@ -36,108 +36,171 @@ idea in the list.
    global, so there is no per-run decision anywhere in the career layer - which is exactly
    the thing that made the boost pool interesting.
 
----
-
-## The ten
-
-### 1. A third tier on every two-tier track
-
-The cheapest fix for problem 1, and the one that needs no new mechanism at all: the shop is
-data-driven off `PERKS`, so a tier appears by being added. Scout Network 3 (three commons),
-Extra Choice 3 (six boosts offered), Physio Table 3 (three re-rolls), Extra Re-roll 3 (a
-6th). **Deep Squad is the exception and must stay at +2** - the note in `career.ts` records
-that +3 to the whole XI, permanently, beat every legendary boost and never wore off.
-
-Cost: trivial. Risk: Extra Choice 3 makes a six-card offer, which starts to be a wall
-rather than a choice.
-
-### 2. Prestige Reset
-
-Spend a large sum to refund every perk you own and re-spend it. Answers problem 4 without
-touching any other system: nothing in the career layer can currently be undone, so a player
-who bought Transfer Budget tiers and then discovered they prefer the roll draft is stuck
-with them forever. Priced so it is a real decision (say 200), not a free re-plan.
-
-### 3. Perk loadout: own many, equip few
-
-The bigger version of the same idea. Perks become things you own permanently but **equip
-per run**, with a slot count that itself grows with level. Turns the shop from a checklist
-into a build, and makes the tenth perk as interesting as the first - because owning
-everything no longer means playing with everything.
-
-This is the largest change on the list and the one that most directly fixes problems 1 and
-4. It also makes every future perk safe to add: power creep stops mattering once you cannot
-run them all at once.
-
-### 4. Level actually paying something
-
-Problem 2, addressed directly: every level grants a small permanent something (say +1
-Prestige per run, or +$1 of market budget per two levels). Levels currently gate and
-nothing else, so a career that is over every gate it cares about has no reason to notice
-them. Careful: this is a compounding faucet, so it wants simulating the way `AWARD` was.
-
-### 5. Ascension Insurance
-
-A perk that lets a run at Ascension II or higher keep its reward multiplier after a group
-exit. The Ascension ladder is where a career's difficulty lives, and nothing in the shop
-interacts with it at all - which is odd, given it is the one part of the layer that makes
-runs harder on purpose.
-
-### 6. Album perks
-
-The album is a whole subsystem the shop cannot see. Three obvious tiers: **a bigger owned
--sticker discount** in the market (it is a flat `STICKER_DISCOUNT` of 25% today), **a
-cheaper trade** (`STICKER_TRADE_COST` is 10/20/50 duplicates), or **a second cup-win pick**
-(what Double Print does as a boost). All three already have a constant to move, so the
-implementation is a lookup rather than a mechanism.
-
-### 7. Challenge perks
-
-Same argument for the other subsystem: a perk that pays challenge awards at 1.5x, or that
-shows which challenges the run in progress is *close* to completing. The second is
-information rather than power, which the boost pool banned for good reasons - but a perk is
-bought once and known about, so it does not have the same problem a hidden card does.
-
-### 8. Draft perks (the build page)
-
-Only Extra Re-roll touches the build, and only the roll half of it. Candidates: **an extra
-collectible swap** (`INITIAL_SWAPS` is 2), **pick your formation after seeing the first
-squad**, or **one guaranteed collectible in the first rolled squad**. The build is half the
-game and the shop currently has one perk pointed at it.
-
-### 9. Rarity weighting
-
-A perk that shifts the offer's rarity weights (`RARITY_WEIGHT`, common 6 / rare 3 /
-legendary 1) rather than its size. Extra Choice widens the offer; nothing deepens it. This
-is a strictly different lever and a cheap one, and it gets better the more of the boost
-library you have unlocked - which is a nice interaction with the other Prestige sink.
-
-### 10. A capstone that costs more than everything else
-
-One very expensive endgame purchase (1000+) that does something a career can aim at for a
-long time: a seventh Ascension tier, a permanent extra boost slot, or the right to carry
-one boost between runs. Right now the most expensive thing in the game is a $160 transfer
-budget, and 3500 Prestige buys out every sink there is. A career past that has nothing left
-to want.
 
 ---
 
-## Notes for whoever builds these
+## Ten new perk tracks
 
-- **The shop is data-driven off `PERKS`**, so a new track or tier appears by being added
-  there. What needs wiring is only its EFFECT.
-- **A perk that reaches outside the run must be read in `App`**, like `transfer-budget` and
-  `extra-reroll` are: the reducer knows nothing about the career, which is why the numbers
-  are passed in.
-- **`npm run checks` asserts a track's copy matches its effect** - the Extra Re-roll
-  ordinal and, since 2026-08-23, the Transfer Budget dollar figure. Any new perk whose
-  description states a number should get the same assertion, because the number and the
-  sentence live in different files.
-- **A perk that pays Prestige or XP is a FAUCET**, and the challenge awards were sized by
-  simulating 16 careers of 150 runs before being switched on. Do the same rather than
-  guessing; the property to keep is that runs stay clearly the primary faucet.
-- **Deep Squad tier 3 is off-limits** for the reason already recorded: a permanent +3 to
-  the whole XI beat every legendary boost and never wore off.
-- **Level requirements are the one thing challenge Prestige cannot buy**, since challenge
-  awards grant no XP. That is deliberate and is what keeps the dearest tiers earned by
-  playing - do not add an XP faucet outside runs without deciding to give that up.
+Concrete tracks, with tiers, Prestige costs and level gates on the existing curves, so
+each could be pasted into `PERKS` and only its EFFECT needs wiring. Every one pulls a lever
+the six current perks do not.
+
+**The rule they are all written against:** a perk is PERMANENT and GLOBAL, so it is worth
+far more than a boost of the same size. That is why Deep Squad stops at +2 - a permanent +3
+to the whole XI beat every legendary boost and never wore off. Nothing below gives a flat
+rating to the whole XI for the whole run.
+
+### 1. Youth Academy
+
+*The build page's collectible supply.* Every rolled squad is guaranteed to contain at least
+N collectible players, so the roll draft can actually be played for the album rather than
+hoping.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | Every drawn squad holds at least 1 collectible. | 60 | 3 |
+| 2 | ...at least 2. | 140 | 9 |
+
+Seam: `rollSquad` in `domain/draft.ts`, re-rolling until the guarantee is met (with a bail
+-out, since a few squads have no 90+ player at all).
+
+### 2. Agent's Contacts
+
+*The swap counter.* `INITIAL_SWAPS` is 2 and has never moved; this is the Extra Re-roll perk
+for the other half of the draft, and it works in BOTH build methods where Extra Re-roll only
+works in one.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | A 3rd collectible swap each run. | 40 | 2 |
+| 2 | A 4th. | 95 | 6 |
+
+Seam: exactly Extra Re-roll's - the reducer takes the number on `START_DRAFT`, `App` reads
+the perk. A checks assertion on the copy's ordinal comes with it.
+
+### 3. Club Shop
+
+*The album paying back harder.* `STICKER_DISCOUNT` is a flat 25% off any player whose
+sticker you already own. Raising it makes a big album into a genuinely bigger XI, which is
+the collection's only current route into the game.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | 30% off players already in your album. | 55 | 4 |
+| 2 | 35% off. | 130 | 10 |
+
+Seam: `priceFor` / `pricerFor` in `domain/pricing.ts` already take the owned set; the
+constant becomes a parameter. Mind that **every** money path must use it (the market rows,
+the two sort comparators, the budget bar, `XiTable`'s total, `autoFillBudget`).
+
+### 4. Home Advantage
+
+*The group stage, which no perk and no boost touches.* +N to your XI in the three group
+matches only. Aimed exactly where runs die: the first boost is picked AFTER the group, so a
+weak XI never gets to use the boost pool at all.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | +2 to your XI in the group stage. | 50 | 2 |
+| 2 | +4 in the group stage. | 125 | 7 |
+
+Seam: a `RunEffect` with `expiresAfter` set - the ledger has supported windows since the
+boost work and this would be its first non-boost user.
+
+### 5. Cup Specialist
+
+*Home Advantage's mirror, and the one a strong career wants.* +N to your XI in the FINAL
+only. Small, late, and it does nothing at all in the four runs out of five that never get
+there.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | +4 to your XI in the final. | 65 | 5 |
+| 2 | +8 in the final. | 150 | 12 |
+
+Seam: the same ledger window, opened at `koRound` 3 rather than closed after the group.
+
+### 6. Penalty Coach
+
+*The shootout, permanently.* Ice Veins does this for one run as a card; this is the standing
+version, and deliberately smaller (+3 against +8) for exactly that reason.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | +3 to your five best penalty takers, shootouts only. | 45 | 3 |
+| 2 | +6. | 110 | 8 |
+
+Seam: `RunState.penBonus` already exists and is already kept off the ledger so it cannot
+reach a scoreline. `beginRun` sets it from the perk instead of only from a card.
+
+### 7. Analytics Department
+
+*The opponent, permanently.* -1 or -2 to every knockout opponent's overall. Tiny per tie and
+it compounds across four of them, which is the shape a perk should have where a card should
+not.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | -1 to every knockout opponent. | 70 | 4 |
+| 2 | -2. | 165 | 11 |
+
+Seam: `weakenOpponent` in `domain/run.ts` already does this and already moves the bracket
+with it. Applied in `decideKoRound` rather than by a card.
+
+### 8. Director of Football
+
+*The offer's RARITY, where Extra Choice only touches its size.* One card in every offer is
+guaranteed to be rare or better. `RARITY_WEIGHT` is common 6 / rare 3 / legendary 1, so a
+three-card offer is usually three commons.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | One card in each offer is rare or better. | 100 | 6 |
+| 2 | One card in each offer is legendary. | 200 | 14 |
+
+Seam: `offerBoons` in `domain/boons.ts`, drawing one card from a filtered pool first. It
+gets better the more of the library you have unlocked, which is a good interaction with the
+other Prestige sink.
+
+### 9. Contract Renewal
+
+*Continuity between runs, which nothing has.* The last boost you took in your previous run
+is applied at kickoff to the next one. Different every time, earned rather than chosen, and
+worth exactly what your last run's final decision was worth.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | Start each run with the last boost of your previous run. | 130 | 8 |
+
+One tier only, because "carry two" starts to be a second XI. Seam: `CareerStats` (a new
+field there survives a signed-in save; a new `CareerState` key does not - the trick
+`bonusStartBoosts` uses), read by `beginRun` like Scout Network's.
+
+### 10. Board Backing
+
+*The payout, which only Ascension scales.* +10% / +20% Prestige from every finished run.
+The shop's own income, and the only perk that pays for the rest of the shop.
+
+| Tier | Effect | Cost | Level |
+| --- | --- | --- | --- |
+| 1 | +10% Prestige from every run. | 90 | 5 |
+| 2 | +20%. | 210 | 13 |
+
+**This one needs simulating before it ships**, the way `AWARD` was: it is a compounding
+faucet, and the property to keep is that runs stay clearly the primary source of Prestige.
+Note it must NOT touch XP, or it would erode the one thing level gates are for. Seam: the
+payout block in `applyRunResult`, beside the four boost cards that already live there.
+
+---
+
+## What these ten cost, and what to build first
+
+All nineteen tiers come to **2030 Prestige**, which would take the shop from 2585 to
+**4615** and roughly double what a long career has to aim at. That is the point: the shop is
+currently buyable out. (It would also move the challenge-award anchor again, so re-derive
+that ratio rather than trusting the sentence in `domain/challenges.ts`.)
+
+If only three are built, build **Agent's Contacts** (cheapest, exact copy of an existing
+seam, and it fixes the build page having one perk), **Home Advantage** (aimed at where runs
+actually die, and it is the ledger's first non-boost user), and **Director of Football**
+(the only idea here that gets better as the other Prestige sink is filled).
