@@ -867,6 +867,36 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check("underdogs-purse: nothing without an upset, then +2 for each one (never for the group)", ok);
 }
 
+// Siege Mentality counts goals conceded across BOTH stages - a knockout record's
+// `oppGoals` and a group record's three matchday scorelines - and must never count a
+// shootout, which is excluded by construction (kicks live in `pens`, never in a score).
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
+  // Nothing conceded is a legal no-op, not a zero-delta entry.
+  let ok = (chooseBoon(base, 'siege-mentality').next.effects ?? []).every((e) => e.source !== 'siege-mentality');
+  const hist = [
+    // Two conceded in the group...
+    {
+      stage: 'group' as const, won: true, groupPos: 2,
+      groupResults: [
+        { code: 'BRA', name: 'Brazil', us: 1, them: 0 },
+        { code: 'ITA', name: 'Italy', us: 2, them: 2 },
+        { code: 'GER', name: 'Germany', us: 0, them: 0 },
+      ],
+    },
+    // ...one in a tie won on the night...
+    { stage: 0, won: true, userGoals: 2, oppGoals: 1 },
+    // ...and one in a tie that went to penalties, where the kicks are not goals.
+    { stage: 1, won: true, userGoals: 1, oppGoals: 1, decided: 'pens' as const,
+      pens: { kicks: [], home: 4, away: 3, homeWon: true } },
+  ];
+  const eff = (chooseBoon({ ...base, history: hist }, 'siege-mentality').next.effects ?? [])
+    .filter((e) => e.source === 'siege-mentality');
+  if (eff.length !== 1 || eff[0].delta !== 4 || eff[0].target.ids.length !== 11) ok = false;
+  check('siege-mentality: +1 a goal across both stages, and a shootout is not goals', ok);
+}
+
 // Double Print sets the cup-pick count and nothing else. The banking side of it lives in
 // the album hook, which is React and so out of this harness's reach; what is asserted here
 // is that the run carries the number for it to read.
@@ -978,6 +1008,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     // --- item 30, round 4.
     'loan-deal', // depends on the opponent, and hands him back a round later
     'underdogs-purse', // only for the rounds the draw made you the underdog
+    'siege-mentality', // pays for goals already conceded, which is a run gone badly
   ]);
 
   // Measure against what people actually field: a budget-built XI (~81), not a national
@@ -1045,6 +1076,10 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
           // the semi-final on upsets actually looks like, and enough for Underdog's Purse
           // to fire rather than read 0.0.
           underdogRounds: 2,
+          // Five conceded by the semi-final: three group matches and two knockout ties at
+          // the sim's own scoring rate. Without a figure here Siege Mentality reads 0.0
+          // and goes unbanded, which is the trap that caught two cards in round 2.
+          goalsConceded: 5,
         });
         att += side(after, isAttacker) - before.att;
         def += side(after, isDefender) - before.def;

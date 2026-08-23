@@ -323,7 +323,7 @@
   <summary>
     <span class="num">30</span>
     <span class="title">A boost catalogue that is not "strength + X"
-      <span class="sub">Boosts that are not just "+N to the XI". 33 cards shipped, 93 ideas rejected; round 5 goes at four named surfaces rather than another open-ended 25. <code>docs/boost-ideas.md</code>.</span>
+      <span class="sub">Boosts that are not just "+N to the XI". 34 cards shipped, 117 ideas rejected; round 6 goes at the rest of the tree, who scores, chemistry and the payout. <code>docs/boost-ideas.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -404,15 +404,30 @@
     (shirt numbers, oldest and newest tournaments), and <b>undoing</b> - every card in the pool
     so far only adds, and nothing removes.</p>
 
-    <p><strong>Round 5 takes the advice above and aims at four named surfaces</strong>
+    <p><strong>Round 5 took the advice above and aimed at four named surfaces</strong>
     rather than another open-ended 25: the goalkeeper (one of eleven, and only Keeper Coach
     has ever addressed him), a run that is LOSING (every card in the pool is priced for a run
     that is winning), the shape Loan Deal opened (temporary people, now that the machinery
     exists), and the stop itself (the offer, the re-roll, the moment of choosing).</p>
 
-    <p class="next"><strong>Next step:</strong> the owner picks from round 5. The temporary
-    -roster cards are now the cheapest of the lot, since Loan Deal built the machinery they
-    all need.</p>
+    <p><strong>Round 5: 1 of 25 built.</strong> <b>Siege Mentality</b> (+1 to the XI for every
+    goal conceded this run) is the first card that pays a run going badly, and the first that
+    reads a scoreline rather than a rating. Goals come off <code>run.history</code> in both
+    halves - a knockout record's <code>oppGoals</code>, a group record's three matchday
+    scorelines - and a shootout is excluded by construction, since kicks live in
+    <code>KoMatch.pens</code> and never in a scoreline. It is +1 a goal rather than +2
+    deliberately: at +2 a deliberately poor defence would have been worth farming.</p>
+
+    <p><strong>Round 6 keeps the named-surface method</strong> and takes four the catalogue
+    has never touched at all: <b>the rest of the tree</b> (fourteen other teams play every
+    round and no card has ever looked at them), <b>who scores</b> (<code>POSITION_WEIGHT</code>
+    decides the name beside a goal, and the cabinet now has a top-scorer board reading it),
+    <b>chemistry</b> (six categories and a capped bonus that nothing in the pool moves), and
+    <b>the payout</b> (Mortgage the Future is the only card whose cost lands on the career).</p>
+
+    <p class="next"><strong>Next step:</strong> the owner picks from round 6. The
+    temporary-roster cards from round 5 remain the cheapest unbuilt ideas, since Loan Deal
+    built the machinery they all need.</p>
 
     <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
   </div>

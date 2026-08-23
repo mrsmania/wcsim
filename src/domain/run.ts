@@ -931,7 +931,24 @@ function boonContext(run: RunState, chosenId?: string): BoonContext {
     careerTopScorerId: run.careerTopScorerId ?? null,
     chosenId: chosenId ?? null,
     underdogRounds: underdogRoundsOf(run),
+    goalsConceded: goalsConcededOf(run),
   };
+}
+
+/**
+ * Goals conceded so far this run (Siege Mentality), across the group and the knockouts.
+ *
+ * Both halves come off `run.history`, which is the only record that outlives the round
+ * that produced it: a knockout record carries `oppGoals`, a group record its three
+ * matchday scorelines. Shootout kicks are excluded the way they are everywhere else in
+ * this codebase - by construction rather than by a filter, since they live in
+ * `KoMatch.pens` and never in a scoreline.
+ */
+function goalsConcededOf(run: RunState): number {
+  return run.history.reduce(
+    (n, r) => n + (r.oppGoals ?? 0) + (r.groupResults ?? []).reduce((g, m) => g + m.them, 0),
+    0,
+  );
 }
 
 /** How many knockout ties so far the user went into as the lower-rated side

@@ -20,6 +20,9 @@ export interface BoonContext {
    *  Counted off the run's own history, so it is a fact the draw decided and nobody
    *  controls. 0 at the first stop, where no knockout tie has been played. */
   underdogRounds?: number;
+  /** Goals conceded so far this run, group matches included (Siege Mentality). Shootout
+   *  kicks are not goals and never reach it, on the rule the whole codebase keeps. */
+  goalsConceded?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -662,6 +665,30 @@ export const BOONS: Boon[] = [
         },
       },
       { kind: 'run', mod: { what: 'loan' } },
+    ],
+  },
+  {
+    id: 'siege-mentality',
+    name: 'Siege Mentality',
+    rarity: 'legendary',
+    description: '+1 to your XI for every goal you have conceded this run.',
+    // Reads the DAMAGE. Every card in the pool is taken at a stop, and you only reach a
+    // stop by going through, so the whole catalogue is priced for a run that is going
+    // well - this is the first one that pays a run that has been leaking. Self-correcting
+    // by construction: conceding a lot means the defence is poor, and this is what hands
+    // it back. Exempt from the bands, like Underdog's Purse: what it is worth is decided
+    // by matches already played rather than by anything on offer.
+    //
+    // A note for whoever tunes it: an XI could in principle be built with a deliberately
+    // terrible defence to farm this. It is not a real exploit - the XI has to survive the
+    // group first, the card has to actually be offered, and the points come back to the
+    // whole XI rather than to the line that gave them away - but at +2 a goal it would
+    // have been one, which is why it is +1.
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi, ctx) => (ctx.goalsConceded ? planAll(xi, ctx.goalsConceded) : []),
+      },
     ],
   },
   {

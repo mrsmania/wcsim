@@ -931,7 +931,7 @@ deleted with the plain World Cup it used to gate). Design:
 
 ## Boosts: the catalogue, and the levers beyond the rating average
 
-33 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+34 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
 of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
 made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
 its first six cards shipped 2026-08-22.
@@ -1036,6 +1036,18 @@ entirely.** `beginRun` kept `granted.roster` and `granted.effects` and threw `gr
 away, so a free Ice Veins at kickoff did nothing at all. The mods are collected and applied
 to the finished state now. The ones that need an opponent still correctly no-op there: there
 is nobody to weaken or re-draw before the group.
+
+### One more (2026-08-23): the damage
+
+| Card | Lever | The point |
+| --- | --- | --- |
+| **Siege Mentality** | goals CONCEDED | +1 to the XI for every goal conceded this run, group included. The first card that pays a run going badly: every card in the pool is taken at a stop and you only reach a stop by going through, so the whole catalogue is priced for a run that is winning. `goalsConcededOf` reads both halves off `run.history` (a knockout record's `oppGoals`, a group record's three matchday scorelines), and **a shootout is excluded by construction** - kicks live in `KoMatch.pens` and never in a scoreline, which is the rule the whole codebase keeps. Legendary and exempt, like Underdog's Purse: matches already played decide it. |
+
+**+1 a goal, not +2, and that is the balance point rather than a rounding.** An XI could in
+principle be built with a deliberately poor defence to farm it, which is the "condition the
+player controls at BUILD time" trap. It is not a real exploit at +1 - the XI still has to
+survive the group, the card still has to be offered, and the points come back to the whole
+XI rather than to the line that gave them away - but at +2 it would have been one.
 
 ### Catalogue changes made at the same time
 
