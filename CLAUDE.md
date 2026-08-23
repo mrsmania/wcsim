@@ -1565,8 +1565,12 @@ keep working.
 - Display copy: avoid jargon (we renamed "elo" -> "rating" in the UI). **No
   em-dashes** in any generated text (commit messages, docs, comments, UI) - use
   commas, parentheses, or hyphens.
-- Workflow: commit and push directly to `main` for this repo. Always `npm run build`
-  before committing. End commit messages with the `Co-Authored-By` trailer.
+- Workflow: commit and push directly to `main` for this repo. **This is the default with
+  no further input needed** (recorded 2026-08-23): do not open a feature branch and do not
+  raise a pull request unless asked for one in so many words. A branch is only a staging
+  area if a session was started on one - finish by fast-forwarding or rebasing onto `main`
+  and pushing there. Always `npm run build` before committing (and `npm run checks` after
+  touching `domain/`). End commit messages with the `Co-Authored-By` trailer.
 - **There are no production users yet** (recorded 2026-08-21, until further notice). So
   breaking a persisted shape, orphaning a saved game, or dropping a supported
   configuration is a free choice rather than a migration: decide it on the merits and do
