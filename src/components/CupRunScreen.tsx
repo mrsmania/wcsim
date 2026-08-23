@@ -291,8 +291,16 @@ export default function CupRunScreen({
     // not this one.
     onRunStart?.();
     const chosen = chosenAscension;
-    if (career.lastAscension !== chosen) {
-      const c = { ...career, lastAscension: chosen };
+    // Youth Development, taken in an earlier run, banked a starter boost for this one.
+    // It is SPENT here: the career is written back with the counter cleared in the same
+    // update that remembers the tier, so a grant can only ever be dealt once.
+    const owed = career.stats.bonusStartBoosts ?? 0;
+    if (career.lastAscension !== chosen || owed > 0) {
+      const c: CareerState = {
+        ...career,
+        lastAscension: chosen,
+        ...(owed > 0 ? { stats: { ...career.stats, bonusStartBoosts: 0 } } : {}),
+      };
       setCareer(c);
       void store.saveCareer(c);
     }
@@ -300,6 +308,7 @@ export default function CupRunScreen({
       shape: draftedShape ?? undefined,
       build: draftedBuild ?? undefined,
       careerTopScorerId: careerTopScorerId(career),
+      bonusStartBoosts: owed,
     });
     const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);

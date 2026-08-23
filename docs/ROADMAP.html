@@ -323,7 +323,7 @@
   <summary>
     <span class="num">30</span>
     <span class="title">A boost catalogue that is not "strength + X"
-      <span class="sub">Boosts that are not just "+N to the XI". 34 cards shipped, 117 ideas rejected; round 6 goes at the rest of the tree, who scores, chemistry and the payout. <code>docs/boost-ideas.md</code>.</span>
+      <span class="sub">Boosts that are not just "+N to the XI". 37 cards shipped, 139 ideas rejected; round 7 goes at the group stage, the match itself, the dataset as history, and the XI as a squad. <code>docs/boost-ideas.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -418,14 +418,38 @@
     <code>KoMatch.pens</code> and never in a scoreline. It is +1 a goal rather than +2
     deliberately: at +2 a deliberately poor defence would have been worth farming.</p>
 
-    <p><strong>Round 6 keeps the named-surface method</strong> and takes four the catalogue
-    has never touched at all: <b>the rest of the tree</b> (fourteen other teams play every
-    round and no card has ever looked at them), <b>who scores</b> (<code>POSITION_WEIGHT</code>
+    <p><strong>Round 6 kept the named-surface method</strong> and took four the catalogue
+    had never touched at all: <b>the rest of the tree</b> (fourteen other teams play every
+    round and no card had ever looked at them), <b>who scores</b> (<code>POSITION_WEIGHT</code>
     decides the name beside a goal, and the cabinet now has a top-scorer board reading it),
     <b>chemistry</b> (six categories and a capped bonus that nothing in the pool moves), and
-    <b>the payout</b> (Mortgage the Future is the only card whose cost lands on the career).</p>
+    <b>the payout</b> (Mortgage the Future was the only card whose cost landed on the career).</p>
 
-    <p class="next"><strong>Next step:</strong> the owner picks from round 6. The
+    <p><strong>Round 6: 3 of 25 built</strong>, all three from the payout. <b>Sponsorship</b>
+    doubles the XP and leaves the wallet alone, which makes it the only card that touches the
+    one thing Prestige cannot buy: the dearest perk tiers are level-gated and challenge awards
+    grant no XP, so playing is the only route through. <b>Youth Development</b> is its mirror -
+    it empties the wallet and banks a starter boost for the NEXT run. And <b>All or Nothing</b>
+    is Mortgage the Future with the failure narrowed to a single round: triple on a cup,
+    nothing at all on a lost final, and every other exit paying exactly what it would have.</p>
+
+    <p><strong>The four payout cards are now resolved in one place</strong> in
+    <code>applyRunResult</code>, because they compose: a "pays nothing" test, a multiplier,
+    and then the two opposite halves (one multiplies the XP, one empties the wallet). Youth
+    Development's grant rides on <code>CareerStats.bonusStartBoosts</code> rather than on
+    <code>CareerState</code> - the same trick the challenge counters and the run archive used,
+    since <code>save_career</code> merges <code>stats</code> as jsonb and silently drops
+    top-level keys it does not know. So it needed no SQL. It is spent in
+    <code>startAndPlayGroup</code>, cleared in the same career write that remembers the
+    Ascension tier, and dealt from commons only alongside Scout Network's.</p>
+
+    <p><strong>Round 7</strong> keeps the method and takes four more untouched surfaces: the
+    <b>group stage</b> (three matches, a table and a finishing position that no card reads),
+    the <b>match itself</b> (the scoreline, extra time, the shootout's own rules), the
+    <b>dataset as history</b> (nine tournaments, real nations, real years, and only Prime
+    Years has ever walked it), and the <b>XI as a squad</b> rather than as two averages.</p>
+
+    <p class="next"><strong>Next step:</strong> the owner picks from round 7. The
     temporary-roster cards from round 5 remain the cheapest unbuilt ideas, since Loan Deal
     built the machinery they all need.</p>
 

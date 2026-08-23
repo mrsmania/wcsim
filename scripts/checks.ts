@@ -72,6 +72,7 @@ import {
   offerBoons,
   availableBoons,
   lockableBoons,
+  boonById,
   BOON_UNLOCK_COST,
 } from '../src/domain/boons';
 import { xiOf, type RunEffect } from '../src/domain/effects';
@@ -897,6 +898,60 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check('siege-mentality: +1 a goal across both stages, and a shootout is not goals', ok);
 }
 
+// --- item 30, round 6: the three cards whose cost lands on the CAREER ---------
+
+// Sponsorship doubles the XP and leaves the wallet alone; Youth Development empties the
+// wallet and leaves the XP alone. Opposite halves of the same payout, so they are asserted
+// against each other and against a plain run.
+{
+  const base = bestEleven(SQUADS[0].players);
+  const plain: RunState = { ...beginRun(base), phase: 'ended', outcome: 'sf', score: 60 };
+  const p = applyRunResult(INITIAL_CAREER, plain);
+  const spo = applyRunResult(INITIAL_CAREER, { ...plain, xpMult: 2 });
+  const yth = applyRunResult(INITIAL_CAREER, { ...plain, youth: true });
+  let ok =
+    p.xpGained > 0 && p.prestigeGained > 0 &&
+    spo.xpGained === p.xpGained * 2 && spo.prestigeGained === p.prestigeGained &&
+    yth.xpGained === p.xpGained && yth.prestigeGained === 0;
+  // Youth banks the boost it bought, exactly one, on `stats` where a signed-in save keeps it.
+  if ((yth.career.stats.bonusStartBoosts ?? 0) !== 1) ok = false;
+  if ((p.career.stats.bonusStartBoosts ?? 0) !== 0) ok = false;
+  // And a grant, once spent, is dealt as a starter boost at kickoff.
+  const owed = beginRun(base, {}, [], 0, { bonusStartBoosts: 2 });
+  if (owed.activeBoons.length !== 2) ok = false;
+  // Commons only, for the reason Scout Network's are: a free legendary before kick-off
+  // outweighs every choice the run itself offers.
+  for (const id of owed.activeBoons) if (boonById(id)?.rarity !== 'common') ok = false;
+  check('sponsorship / youth-development: opposite halves of the payout, and the boost is banked', ok);
+}
+
+// All or Nothing is Mortgage the Future with the failure narrowed to one round: every exit
+// but the FINAL pays what it would have, a cup pays triple, and a lost final pays nothing
+// at all - not even the floor of 1 Prestige.
+{
+  const base = bestEleven(SQUADS[0].players);
+  const at = (outcome: RunOutcome, score: number, extra: Partial<RunState> = {}): RunState =>
+    ({ ...beginRun(base), phase: 'ended', outcome, score, ...extra });
+  const plainSf = applyRunResult(INITIAL_CAREER, at('sf', 60));
+  const aonSf = applyRunResult(INITIAL_CAREER, at('sf', 60, { allOrNothing: true }));
+  const plainCup = applyRunResult(INITIAL_CAREER, at('champion', 100));
+  const aonCup = applyRunResult(INITIAL_CAREER, at('champion', 100, { allOrNothing: true }));
+  const aonFinal = applyRunResult(INITIAL_CAREER, at('final', 80, { allOrNothing: true }));
+  const plainFinal = applyRunResult(INITIAL_CAREER, at('final', 80));
+  let ok =
+    // Untouched anywhere but the final and the cup.
+    aonSf.xpGained === plainSf.xpGained && aonSf.prestigeGained === plainSf.prestigeGained &&
+    // Tripled on the cup.
+    aonCup.xpGained === plainCup.xpGained * 3 &&
+    // Nothing at all on a lost final, where a plain run would still have paid.
+    aonFinal.xpGained === 0 && aonFinal.prestigeGained === 0 &&
+    plainFinal.prestigeGained > 0;
+  // Two bets both have to come in: Mortgage on a lost final still pays nothing.
+  const both = applyRunResult(INITIAL_CAREER, at('final', 80, { allOrNothing: true, mortgaged: true }));
+  if (both.xpGained !== 0 || both.prestigeGained !== 0) ok = false;
+  check('all-or-nothing: normal but for the last game, tripled on the cup, zero on a lost final', ok);
+}
+
 // Double Print sets the cup-pick count and nothing else. The banking side of it lives in
 // the album hook, which is React and so out of this harness's reach; what is asserted here
 // is that the run carries the number for it to read.
@@ -1009,6 +1064,11 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     'loan-deal', // depends on the opponent, and hands him back a round later
     'underdogs-purse', // only for the rounds the draw made you the underdog
     'siege-mentality', // pays for goals already conceded, which is a run gone badly
+    // --- item 30, round 6. All three pay outside the sim, so the table reads 0.0 and
+    // their assertions live below instead.
+    'sponsorship',
+    'youth-development',
+    'all-or-nothing',
   ]);
 
   // Measure against what people actually field: a budget-built XI (~81), not a national

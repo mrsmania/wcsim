@@ -45,6 +45,11 @@ export interface CareerStats {
   prestigeSpent: number;
   /** Distinct formations a cup has been won with (needs RunState.shape, slice B). */
   cupFormations: string[];
+  /** Starter boosts owed to the NEXT run by a Youth Development taken in an earlier one.
+   *  On `stats` rather than on `CareerState` for the reason the block below records: a
+   *  merged jsonb column survives a signed-in save, a new top-level key does not.
+   *  Optional, so a career saved before this loads with nothing owed. */
+  bonusStartBoosts?: number;
   // --- The run archive and the player records (roadmap item 06, option D).
   //
   // Both live on `stats` ON PURPOSE, and it is the whole reason they needed no SQL:
@@ -408,12 +413,25 @@ export function applyRunResult(
 ): RunReward {
   // Ascension scales the run's reward; a cup win raises the unlocked ceiling + best.
   const mult = ascensionAt(run.ascension).rewardMult;
+  // The four cards whose cost lands on the CAREER rather than inside the sim, resolved
+  // together because they compose and the order matters.
+  //
   // Mortgage the Future: the run took +4 to the XI against its own payout, so unless it
   // lifted the cup it pays NOTHING - not even the floor of 1 Prestige every other run
-  // gets. That floor is what makes the card bite; leave it out on purpose.
-  const mortgagedOut = run.mortgaged === true && run.outcome !== 'champion';
-  const xpGained = mortgagedOut ? 0 : Math.round(run.score * mult);
-  const prestigeGained = mortgagedOut ? 0 : Math.max(1, Math.round((run.score * mult) / 5));
+  // gets. That floor is what makes the card bite; leave it out on purpose. All or Nothing
+  // is the same shape with a narrower failure condition (only a lost FINAL) and a tripled
+  // reward. A run carrying both pays nothing if either says so, which is the strict
+  // reading of two bets that both have to come in.
+  const paidOut = run.outcome === 'champion';
+  const paysNothing =
+    (run.mortgaged === true && !paidOut) || (run.allOrNothing === true && run.outcome === 'final');
+  const payoutMult = run.allOrNothing === true && paidOut ? 3 : 1;
+  const earned = run.score * mult * payoutMult;
+  // Sponsorship multiplies the XP and leaves the wallet alone; Youth Development empties
+  // the wallet and leaves the XP alone. Deliberately opposite halves of the same payout.
+  const xpGained = paysNothing ? 0 : Math.round(earned * (run.xpMult ?? 1));
+  const prestigeGained =
+    paysNothing || run.youth === true ? 0 : Math.max(1, Math.round(earned / 5));
   const xp = career.xp + xpGained;
   const level = levelForXp(xp);
   const outcome = run.outcome;
@@ -450,6 +468,9 @@ export function applyRunResult(
       // Spending is the only thing here the run does not decide; buyPerkTier and
       // unlockBoon keep it, so it just rides along.
       prestigeSpent: career.stats.prestigeSpent,
+      // Youth Development: the boost this run bought for the next one. Banked here and
+      // spent by the next `beginRun`, which is what lets it outlive the run that took it.
+      bonusStartBoosts: (career.stats.bonusStartBoosts ?? 0) + (run.youth === true ? 1 : 0),
       cupFormations:
         wonCup && run.shape
           ? withValue(career.stats.cupFormations, run.shape.formation)

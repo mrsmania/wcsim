@@ -314,6 +314,13 @@ export interface RunState {
   penBonusTop?: number;
   /** The run pays no XP or Prestige unless it wins the cup (Mortgage the Future). */
   mortgaged?: boolean;
+  /** Multiplier on the run's XP payout only (Sponsorship). Absent = 1. */
+  xpMult?: number;
+  /** The run pays no Prestige, and the next run starts with an extra boost
+   *  (Youth Development). The grant itself is banked on the career. */
+  youth?: boolean;
+  /** Triple payout on a cup win, nothing at all on a lost final (All or Nothing). */
+  allOrNothing?: boolean;
   /** How many stickers a cup win may pick (Double Print). Absent = the usual one. */
   cupPicks?: number;
   /** A player borrowed from the next opponent for one round (Loan Deal), and the player
@@ -546,6 +553,10 @@ export interface Kickoff {
   /** The career's all-time top scorer (Old Guard). Passed in rather than looked up: this
    *  module never sees a `CareerState`, and the career cannot change mid-run anyway. */
   careerTopScorerId?: string;
+  /** Extra starter boosts owed by a previous run's Youth Development, dealt alongside
+   *  Scout Network's. The caller clears them from the career when the run begins, so a
+   *  grant is spent once. */
+  bonusStartBoosts?: number;
 }
 
 export function beginRun(
@@ -580,7 +591,9 @@ export function beginRun(
   // Scout Network perk: begin with N distinct team boosts already applied (N = tier).
   // Commons only - a free legendary before kick-off outweighed every boost choice the
   // run itself offers.
-  const scout = perkLevels['scout'] ?? 0;
+  // Scout Network's tier plus anything a previous run's Youth Development banked. Both
+  // deal from the same commons-only pool, for the same reason.
+  const scout = (perkLevels['scout'] ?? 0) + (kickoff.bonusStartBoosts ?? 0);
   // A starter boost's `run` modifiers, collected here and applied to the finished state
   // below. They used to be dropped on the floor: every common with a modifier rather than
   // a rating plan (Ice Veins is the live example) was a starter boost that did nothing.
@@ -829,6 +842,12 @@ function applyRunMods(
       next = weakenOpponent(next, mod.attack, mod.defense);
     } else if (mod.what === 'cupPicks') {
       next = { ...next, cupPicks: Math.max(next.cupPicks ?? 1, mod.n) };
+    } else if (mod.what === 'xpMult') {
+      next = { ...next, xpMult: (next.xpMult ?? 1) * mod.n };
+    } else if (mod.what === 'youth') {
+      next = { ...next, youth: true };
+    } else if (mod.what === 'allOrNothing') {
+      next = { ...next, allOrNothing: true };
     } else if (mod.what === 'loan') {
       // Records the swap the card's own roster effect just made, rather than performing
       // one: `untilRound` is the round about to be played, so the loan lasts exactly the

@@ -931,7 +931,7 @@ deleted with the plain World Cup it used to gate). Design:
 
 ## Boosts: the catalogue, and the levers beyond the rating average
 
-34 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+37 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
 of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
 made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
 its first six cards shipped 2026-08-22.
@@ -1048,6 +1048,33 @@ principle be built with a deliberately poor defence to farm it, which is the "co
 player controls at BUILD time" trap. It is not a real exploit at +1 - the XI still has to
 survive the group, the card still has to be offered, and the points come back to the whole
 XI rather than to the line that gave them away - but at +2 it would have been one.
+
+### Three more (2026-08-23): the payout
+
+Mortgage the Future used to be the only card whose cost landed on the CAREER rather than
+inside the sim. These are the other three levers that payout exposes, and all three read
+0.0 on the balance table by construction, so they carry their own assertions instead.
+
+| Card | Lever | The point |
+| --- | --- | --- |
+| **Sponsorship** | the LEVEL | Double XP, Prestige untouched. The only card that touches the one thing Prestige cannot buy: the dearest perk tiers are level-gated and challenge awards grant no XP, so playing is the only route through. It does nothing at all for the round in front of you, which is what makes it a decision. Common starter. |
+| **Youth Development** | the NEXT run | This run pays no Prestige; the next one starts with an extra boost. Banked as `CareerStats.bonusStartBoosts` and spent by the next `beginRun`. |
+| **All or Nothing** | the LAST GAME | Triple payout on a cup, nothing at all on a lost FINAL, and every other exit pays exactly what it would have. Mortgage the Future with the failure narrowed to one round. |
+
+**The four payout cards are resolved in one place** in `applyRunResult`, because they
+compose: `paysNothing` (Mortgage on any non-cup, All or Nothing on a lost final),
+`payoutMult` (3 on an All or Nothing cup), then `xpMult` and `youth` as the two opposite
+halves - one multiplies the XP and leaves the wallet alone, the other empties the wallet
+and leaves the XP alone. A run carrying both bets pays nothing if either says so.
+
+**`bonusStartBoosts` is on `CareerStats`, not `CareerState`**, which is the same trick the
+challenge counters and the run archive used: `save_career` persists `stats` as one merged
+jsonb column and silently drops top-level keys it does not know, so a new field there
+survives a signed-in save and a new field on `CareerState` would not. It needed no SQL.
+The grant is **spent in `CupRunScreen.startAndPlayGroup`**, which clears the counter in the
+same career write that remembers the Ascension tier, so a grant can only ever be dealt
+once. It deals from **commons only**, alongside Scout Network's and for the same recorded
+reason.
 
 ### Catalogue changes made at the same time
 

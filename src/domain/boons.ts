@@ -80,6 +80,12 @@ export type RunModifier =
   | { what: 'weakenOpponent'; attack: number; defense: number }
   /** How many stickers a cup win may pick, instead of the usual one. */
   | { what: 'cupPicks'; n: number }
+  /** Multiply the run's XP payout, leaving its Prestige alone. */
+  | { what: 'xpMult'; n: number }
+  /** The run pays no Prestige, and the NEXT run starts with an extra boost applied. */
+  | { what: 'youth' }
+  /** Triple the payout on a cup win; pay nothing at all if the FINAL is the round lost. */
+  | { what: 'allOrNothing' }
   /** The roster swap this card just made is a LOAN: the player who left comes back when
    *  the round advances. Carries no names of its own - it reads the swap the card's own
    *  roster effect performed, which is why Loan Deal declares both. */
@@ -708,6 +714,42 @@ export const BOONS: Boon[] = [
         plan: (xi, ctx) => (ctx.underdogRounds ? planAll(xi, 2 * ctx.underdogRounds) : []),
       },
     ],
+  },
+  {
+    id: 'sponsorship',
+    name: 'Sponsorship',
+    rarity: 'common',
+    starter: true,
+    description: 'Double the XP this run pays. Prestige is unchanged.',
+    // The only card that touches the LEVEL rather than the wallet, which matters because
+    // levels are the one thing Prestige cannot buy: the dearest perk tiers are gated on
+    // them and challenge awards grant no XP, so playing is the only way through. In
+    // exchange it does nothing whatsoever for the round in front of you, which is what
+    // makes taking it a real decision rather than a free pick.
+    effects: [{ kind: 'run', mod: { what: 'xpMult', n: 2 } }],
+  },
+  {
+    id: 'youth-development',
+    name: 'Youth Development',
+    rarity: 'rare',
+    description: 'This run pays no Prestige. Your next run starts with an extra boost.',
+    // Spends this run's wallet on the next run's kickoff. The extra boost is dealt the
+    // way Scout Network's are, from COMMONS only, for the reason that perk already
+    // records: a free legendary before kick-off outweighs every choice the run itself
+    // offers. Carried on the career (`CareerStats.bonusStartBoosts`) and spent by the
+    // next `beginRun`, so it survives the run that bought it.
+    effects: [{ kind: 'run', mod: { what: 'youth' } }],
+  },
+  {
+    id: 'all-or-nothing',
+    name: 'All or Nothing',
+    rarity: 'rare',
+    description: 'Triple the payout if you win the cup. Lose the FINAL and it pays nothing.',
+    // Mortgage the Future with the failure condition narrowed to one round and the reward
+    // raised to match: every exit but the final pays exactly what it would have, so the
+    // card is a bet on the last game rather than on the whole run. Taken at the last stop
+    // it is the sharpest decision in the pool - by then the final is the only round left.
+    effects: [{ kind: 'run', mod: { what: 'allOrNothing' } }],
   },
   {
     id: 'mortgage-future',
