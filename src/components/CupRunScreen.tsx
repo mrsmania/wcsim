@@ -99,7 +99,8 @@ export default function CupRunScreen({
   /** Bank the finished run's collectibles to the sticker album (App owns the album).
    *  Omitted when the sticker feature is off. Called once per run at its end, with the
    *  ids a roster boost brought in so they can be left out of the haul. */
-  onRunEnd?: (xi: Player[], wonCup: boolean, boostedIds: string[]) => void;
+  /** `cupPicks` is how many stickers a cup win may pick (Double Print grants two). */
+  onRunEnd?: (xi: Player[], wonCup: boolean, boostedIds: string[], cupPicks?: number) => void;
   /** A new run is starting, so anything still pending from the last one is stale. */
   onRunStart?: () => void;
   /** The finished run's stickers are still saving: the run-end actions wait, so the
@@ -220,7 +221,7 @@ export default function CupRunScreen({
   // persisted stickersApplied flag (so a refresh on the ended screen won't re-bank).
   useEffect(() => {
     if (!onRunEnd || !run || run.phase !== 'ended' || run.stickersApplied) return;
-    onRunEnd(run.xi, run.outcome === 'champion', run.boostedIds);
+    onRunEnd(run.xi, run.outcome === 'champion', run.boostedIds, run.cupPicks ?? 1);
     setRun({ ...run, stickersApplied: true });
   }, [run, onRunEnd]);
 

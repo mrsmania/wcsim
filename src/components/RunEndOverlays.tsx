@@ -33,7 +33,14 @@ export default function RunEndOverlays({
   return (
     <>
       {pendingReward && (
-        <CupRewardPicker album={album} allPlayers={allPlayers} onPick={pendingReward.onPick} />
+        <CupRewardPicker
+          album={album}
+          allPlayers={allPlayers}
+          onPick={pendingReward.onPick}
+          remaining={pendingReward.remaining}
+          total={pendingReward.total}
+          taken={pendingReward.taken}
+        />
       )}
       {newStickerIds && newStickerIds.length > 0 && (
         <RunEndStickerSummary

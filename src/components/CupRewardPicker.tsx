@@ -10,17 +10,34 @@ interface Props {
   album: AlbumState;
   allPlayers: Player[];
   onPick: (playerId: string) => void;
+  /** Which pick this is and how many the run earned (Double Print grants two). Both
+   *  default to one, which is every run that did not take that card. */
+  remaining?: number;
+  total?: number;
+  /** Already picked this run, so a second pick cannot repeat the first. */
+  taken?: string[];
 }
 
 /** Shown after a cup win (FR-3 / D-1): pick any one uncollected sticker from any
  *  tier. If everything is already collected, the pick becomes a duplicate. */
-export default function CupRewardPicker({ album, allPlayers, onPick }: Props) {
+export default function CupRewardPicker({
+  album,
+  allPlayers,
+  onPick,
+  remaining = 1,
+  total = 1,
+  taken = [],
+}: Props) {
   // The cup reward can pick any tier EXCEPT Monumental - the top tier is earned only
   // by drafting the player or trading, never as a free win reward.
   const pickable = collectiblePlayers(allPlayers).filter((p) => tierOf(p) !== 'monumental');
-  const uncollected = pickable.filter((p) => !album.collected.includes(p.id));
+  // Anything already taken on THIS win is out, or a second pick could repeat the first
+  // and the run would have banked a duplicate for a card that promised two stickers.
+  const uncollected = pickable.filter(
+    (p) => !album.collected.includes(p.id) && !taken.includes(p.id),
+  );
   const allDone = uncollected.length === 0;
-  const pool = (allDone ? pickable : uncollected)
+  const pool = (allDone ? pickable.filter((p) => !taken.includes(p.id)) : uncollected)
     .slice()
     .sort((a, b) => TIER_META[tierOf(a)!].order - TIER_META[tierOf(b)!].order || b.elo - a.elo);
 
@@ -32,6 +49,11 @@ export default function CupRewardPicker({ album, allPlayers, onPick }: Props) {
           <div className="font-display text-lg font-black leading-none">World Champions</div>
           <div className="mt-1 text-[12px] text-white/80">
             Pick any one {allDone ? '' : 'uncollected '}Legendary or Iconic sticker.
+            {total > 1 && (
+              <span className="ml-1 font-semibold text-amber">
+                Pick {total - remaining + 1} of {total}.
+              </span>
+            )}
           </div>
         </div>
       </div>

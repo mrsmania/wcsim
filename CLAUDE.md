@@ -931,7 +931,7 @@ deleted with the plain World Cup it used to gate). Design:
 
 ## Boosts: the catalogue, and the levers beyond the rating average
 
-23 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+26 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
 of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
 made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
 its first six cards shipped 2026-08-22.
@@ -965,6 +965,13 @@ its first six cards shipped 2026-08-22.
 | **Sold Out Stadium** | time | +6 now, -6 the round after. **Known hole: taken before the Final it is free**, because there is no round after. Left as-is deliberately rather than silently redesigned; the fix is either not offering it in the last round or moving the debt. |
 | **The Coin Toss** | variance | +8 or -4, **derived** from the XI and opponent via `coinFor`, never rolled. A pick-time `Math.random` would be re-rollable by reloading, and for a 12-point swing that is the whole card broken. ~48% heads over 200 draws. |
 | **Mortgage the Future** | the payout | +4 to the XI, and the run pays **no XP or Prestige at all** unless it wins the cup - not even the floor of 1 Prestige every other run gets, which is what makes it bite. The only card whose cost lands on the career rather than inside the run. |
+
+### Three more (2026-08-22, later the same day)
+
+| Card | Lever | The point |
+| --- | --- | --- |
+| **Away Days** / **Man-Marking** | the OPPONENT | -5 to their defence / -5 to their attack. A pair on purpose: which you want depends on whether this tie is one you expect to win by scoring or by holding out. Applied to the opponent OBJECT, not at simulation time, so the "next up" line, the bracket seed and the round record all show the numbers the tie is actually played on - a debuff the sim sees and the screen does not is a lie. "This tie only" comes free: `facedIds` means a team is played once. `overall` moves by the share of the XI touched (attack averages ~6 players, defence ~5), never by the raw delta. |
+| **Double Print** | the album | A cup win picks **two** stickers. `finish_run` takes one `cupPickId`, so the second rides along in `collectibleIds` - the path `remoteStore` already uses when the server refuses a duplicate pick. The server caps a run at **12** ids and rolls the whole bank back over it (the blocking unreachable screen for an account), so `useStickerAlbum` trims surplus picks under `BANK_CAP`. Eleven collectibles in one XI is out of reach, so that trim is a backstop, not a behaviour. The picker counts "Pick 1 of 2" and drops what was already taken, or a second pick could repeat the first. |
 
 ### Catalogue changes made at the same time
 

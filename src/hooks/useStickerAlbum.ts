@@ -17,6 +17,11 @@ import { isSignedIn, store } from '../state/store';
  *  dead one is only a brief pause. */
 const BANK_WAIT_MS = 4000;
 
+/** How many collectible ids `finish_run` accepts for one run (migration 0010). Exceeding it
+ *  raises, and the raise rolls the whole bank back - which for a signed-in player is the
+ *  blocking unreachable screen, so the client stays under it rather than finding out. */
+const BANK_CAP = 12;
+
 /** Collectible ids among these players, judged on their DATASET rating (`basePlayer`):
  *  Cup Run boosts hand out modified copies, and a boost must not turn an 89 into a
  *  Legendary sticker. It would also be rejected server-side, since the catalogue is
@@ -30,6 +35,13 @@ function collectibleIdsOf(players: Player[]): string[] {
  *  with the right once-per-run guard), so a single CupRewardPicker render serves both. */
 export interface PendingReward {
   onPick: (playerId: string) => void;
+  /** How many picks are still to be made. 1 normally; 2 with the Double Print boost, and
+   *  it counts down as they are taken so the picker can say which one this is. */
+  remaining: number;
+  /** How many the run is owed in total, so the picker can render "1 of 2". */
+  total: number;
+  /** Picked already on this win, so the picker cannot offer the same card twice. */
+  taken: string[];
 }
 
 export interface StickerAlbumApi {
@@ -46,7 +58,7 @@ export interface StickerAlbumApi {
   pendingReward: PendingReward | null;
   /** A Cup Run reported its end (CupRunScreen calls this once). `boostedIds` are the
    *  players a roster boost handed over, which earn nothing. */
-  onCupRunEnd: (xi: Player[], wonCup: boolean, boostedIds: string[]) => void;
+  onCupRunEnd: (xi: Player[], wonCup: boolean, boostedIds: string[], cupPicks?: number) => void;
   /** Spend duplicates on a chosen sticker (album trade). */
   onTrade: (tier: StickerTier, playerId: string) => void;
   /** A new run is starting: drop any summary still pending from the last one. */
@@ -103,7 +115,7 @@ export function useStickerAlbum(
   const [banking, setBanking] = useState(false);
   const bankTimerRef = useRef<number | null>(null);
   /** A finished Cup Run's collectibles awaiting the sticker apply. */
-  const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean } | null>(
+  const [cupRunSticker, setCupRunSticker] = useState<{ ids: string[]; wonCup: boolean; picks?: number } | null>(
     null,
   );
 
@@ -119,7 +131,7 @@ export function useStickerAlbum(
   // Either way a losing run still reports in - so the run is recorded, `runs_played`
   // stays honest and the server-side active run is cleared - it just carries nothing.
   const applyStickers = useCallback(
-    (collectibleIds: string[], wonCup: boolean, cupPickId: string | null) => {
+    (collectibleIds: string[], wonCup: boolean, cupPickIds: string[]) => {
       // In flight already: the run-end effect can re-fire on a re-render, so this ref
       // is what stops a second attempt overlapping the first.
       if (bankingRef.current) return;
@@ -143,9 +155,29 @@ export function useStickerAlbum(
       const gen = runGenRef.current;
       // The rule, enforced in one place so no caller can bypass it.
       const earned = wonCup || !FEATURES.stickersOnCupWinOnly ? collectibleIds : [];
+      // `finish_run` takes ONE cup pick, so a second (Double Print) rides along in the
+      // collectible list - which is what `remoteStore` already does when the server
+      // refuses a duplicate pick, so the path is proven.
+      //
+      // The server caps a run at BANK_CAP ids and rolls the whole bank back over it,
+      // which for a signed-in player is the blocking unreachable screen. Eleven
+      // collectibles in one XI is out of reach (the market cannot afford it and the
+      // rolled draft has too few re-rolls), so this trim is a backstop rather than a
+      // behaviour - but a silent refusal would be so much worse than a dropped extra
+      // pick that it is worth the four lines.
+      const [firstPick, ...extraPicks] = cupPickIds;
+      const room = Math.max(0, BANK_CAP - earned.length - (firstPick ? 1 : 0));
+      const withExtras = [...earned, ...extraPicks.slice(0, room)];
 
       void store
-        .finishRun({ runKey, collectibleIds: earned, wonCup, cupPickId, swapsUsed, outcome })
+        .finishRun({
+          runKey,
+          collectibleIds: withExtras,
+          wonCup,
+          cupPickId: firstPick ?? null,
+          swapsUsed,
+          outcome,
+        })
         .then(({ album: next, newly }) => {
           setAlbum(next);
           // Only show the haul if this is still the run the player is looking at.
@@ -168,7 +200,7 @@ export function useStickerAlbum(
 
   // A Cup Run reported its end (CupRunScreen calls this once). A loss banks
   // immediately; a cup win waits for the reward pick (pendingReward below).
-  const onCupRunEnd = useCallback((xi: Player[], wonCup: boolean, boostedIds: string[]) => {
+  const onCupRunEnd = useCallback((xi: Player[], wonCup: boolean, boostedIds: string[], cupPicks = 1) => {
     // A player a boost handed you is not one you drafted, so he earns no sticker.
     // Legends Reunion and Wildcard Legend deal straight out of the 93+ pool, which
     // made a boost the cheapest route into the album - cheaper than winning with the
@@ -177,11 +209,11 @@ export function useStickerAlbum(
     const gifted = new Set(boostedIds);
     const earnedBy = xi.filter((p) => !gifted.has(p.id));
     // Base ratings, not the boosted copies the run hands back (see `basePlayer`).
-    setCupRunSticker({ ids: collectibleIdsOf(earnedBy), wonCup });
+    setCupRunSticker({ ids: collectibleIdsOf(earnedBy), wonCup, picks: Math.max(1, cupPicks) });
   }, []);
   useEffect(() => {
     if (!enabled || !cupRunSticker || cupRunSticker.wonCup) return;
-    applyStickers(cupRunSticker.ids, false, null);
+    applyStickers(cupRunSticker.ids, false, []);
     setCupRunSticker(null);
   }, [enabled, cupRunSticker, applyStickers]);
 
@@ -216,15 +248,29 @@ export function useStickerAlbum(
   // A cup win's pending reward, which App renders as the CupRewardPicker. Clearing the
   // transient carrier is the once-per-run guard here (the run's own
   // RunState.stickersApplied already blocks a re-report).
+  // Picks taken so far on the pending cup reward. Held here rather than on the carrier so
+  // the picker can be re-rendered without losing them.
+  const [cupPicked, setCupPicked] = useState<string[]>([]);
   const pendingReward = useMemo<PendingReward | null>(() => {
     if (!enabled || !cupRunSticker?.wonCup) return null;
+    const total = cupRunSticker.picks ?? 1;
     return {
+      total,
+      remaining: total - cupPicked.length,
+      taken: cupPicked,
       onPick: (playerId) => {
-        applyStickers(cupRunSticker.ids, true, playerId);
+        const picks = [...cupPicked, playerId];
+        // Bank only once every pick the run earned has been made.
+        if (picks.length < total) {
+          setCupPicked(picks);
+          return;
+        }
+        applyStickers(cupRunSticker.ids, true, picks);
+        setCupPicked([]);
         setCupRunSticker(null);
       },
     };
-  }, [enabled, cupRunSticker, applyStickers]);
+  }, [enabled, cupRunSticker, cupPicked, applyStickers]);
 
   const summary = useMemo(
     () => (enabled ? albumStats(album, allPlayers) : null),
@@ -235,6 +281,7 @@ export function useStickerAlbum(
     runGenRef.current += 1;
     setNewStickerIds(null);
     setCupRunSticker(null);
+    setCupPicked([]);
   }, []);
 
   return {

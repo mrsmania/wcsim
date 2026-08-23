@@ -303,6 +303,8 @@ export interface RunState {
   penBonusTop?: number;
   /** The run pays no XP or Prestige unless it wins the cup (Mortgage the Future). */
   mortgaged?: boolean;
+  /** How many stickers a cup win may pick (Double Print). Absent = the usual one. */
+  cupPicks?: number;
   /** Whether this run's collectibles have been merged into the sticker album. Guards
    *  a once-per-run apply that survives a reload (mirrors the main game's flag). */
   stickersApplied: boolean;
@@ -781,9 +783,47 @@ function applyRunMods(run: RunState, mods: RunModifier[], pool: Squad[]): RunSta
       next = { ...next, mortgaged: true };
     } else if (mod.what === 'redrawOpponent') {
       next = redrawOpponent(next, pool);
+    } else if (mod.what === 'weakenOpponent') {
+      next = weakenOpponent(next, mod.attack, mod.defense);
+    } else if (mod.what === 'cupPicks') {
+      next = { ...next, cupPicks: Math.max(next.cupPicks ?? 1, mod.n) };
     }
   }
   return next;
+}
+
+/**
+ * Weaken the next opponent (Away Days, Man-Marking).
+ *
+ * Applied to the opponent OBJECT rather than at simulation time, for two reasons. The tie
+ * reads `run.nextOpponent.strength`, but so does everything the player looks at - the "next
+ * up" line, the bracket seed, the round record - and a debuff visible to the sim but not to
+ * the screen is a lie. And "for this tie only" comes out for free: `facedIds` means a team
+ * is played once, so weakening them cannot leak into a later round.
+ *
+ * `overall` is the average of the whole XI while `attack` and `defense` average roughly six
+ * and five players, so it moves by the share of the XI the change actually touched rather
+ * than by the raw delta.
+ */
+function weakenOpponent(run: RunState, attack: number, defense: number): RunState {
+  const opp = run.nextOpponent;
+  if (!opp || (attack === 0 && defense === 0)) return run;
+  const weakened: GroupTeam = {
+    ...opp,
+    strength: {
+      attack: opp.strength.attack + attack,
+      defense: opp.strength.defense + defense,
+      overall: opp.strength.overall + Math.round((attack * 6 + defense * 5) / 11),
+    },
+  };
+  return {
+    ...run,
+    nextOpponent: weakened,
+    // The tree shows the same team, so it has to show the same numbers.
+    ...(run.bracket
+      ? { bracket: { ...run.bracket, teams: { ...run.bracket.teams, [opp.id]: weakened } } }
+      : {}),
+  };
 }
 
 /**

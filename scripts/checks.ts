@@ -630,6 +630,60 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check(`kind-draw: never a stronger opponent, and the tree agrees (${redrawn}/${seen} redrawn)`, ok);
 }
 
+// Away Days and Man-Marking weaken the OPPONENT, and the pair has to stay a pair: one
+// touches their defence and one their attack, neither touches the user, and the tree shows
+// the same numbers the tie will be played on.
+{
+  let ok = true, seen = 0;
+  for (let i = 0; i < 40 && seen < 20; i++) {
+    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
+    let guard = 0;
+    while (run.phase !== 'ended' && guard++ < 12) {
+      if (run.phase === 'boon' && run.nextOpponent && run.bracket) {
+        seen++;
+        const before = run.nextOpponent.strength;
+        const beforeXi = run.xi.map((p) => p.elo).join(',');
+        for (const [id, dAtk, dDef] of [
+          ['away-days', 0, -5],
+          ['man-marking', -5, 0],
+        ] as const) {
+          const after = chooseBoon(run, id).next;
+          const st = after.nextOpponent!.strength;
+          if (st.attack !== before.attack + dAtk) ok = false;
+          if (st.defense !== before.defense + dDef) ok = false;
+          // Overall moves by the share of the XI actually touched, never by the raw delta
+          // and never not at all.
+          if (st.overall >= before.overall) ok = false;
+          if (st.overall < before.overall - 5) ok = false;
+          // The user is untouched: this is a card about them, not about you.
+          if (after.xi.map((p) => p.elo).join(',') !== beforeXi) ok = false;
+          // And what the tree shows is what the tie will be played on.
+          const shown = after.bracket!.teams[after.nextOpponent!.id];
+          if (!shown || shown.strength.attack !== st.attack || shown.strength.defense !== st.defense) ok = false;
+        }
+        run = chooseBoon(run, (run.offer ?? [])[0]?.id ?? '').next;
+      } else if (run.phase === 'match') run = playKnockoutRound(run);
+      else if (run.phase === 'boon') run = chooseBoon(run, (run.offer ?? [])[0]?.id ?? '').next;
+      else break;
+    }
+  }
+  check(`away-days / man-marking: weaken one of their lines, none of yours (${seen} ties)`, ok);
+}
+
+// Double Print sets the cup-pick count and nothing else. The banking side of it lives in
+// the album hook, which is React and so out of this harness's reach; what is asserted here
+// is that the run carries the number for it to read.
+{
+  const run = { ...beginRun(bestEleven(SQUADS[0].players)), phase: 'boon' as const, offer: [] };
+  const after = chooseBoon(run, 'double-print').next;
+  const ok =
+    after.cupPicks === 2 &&
+    (run.cupPicks ?? 1) === 1 &&
+    // It is a run lever, so it must leave the XI exactly alone.
+    after.xi.map((p) => p.elo).join(',') === run.xi.map((p) => p.elo).join(',');
+  check('double-print: two cup picks, and no rating touched', ok);
+}
+
 // Mortgage the Future: nothing at all unless the cup is won - not even the floor of 1
 // Prestige every other run gets, which is what makes the card bite.
 {

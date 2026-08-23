@@ -61,7 +61,11 @@ export type RunModifier =
   /** The run pays no XP or Prestige at all unless it wins the cup. */
   | { what: 'mortgage' }
   /** Draw an alternative next opponent and keep the weaker of the two. */
-  | { what: 'redrawOpponent' };
+  | { what: 'redrawOpponent' }
+  /** Weaken the next opponent's attack and/or defence. Negative numbers weaken. */
+  | { what: 'weakenOpponent'; attack: number; defense: number }
+  /** How many stickers a cup win may pick, instead of the usual one. */
+  | { what: 'cupPicks'; n: number };
 
 /** The two things a boon can actually do, split so the rating half can be recorded rather
  *  than baked in (see `domain/effects.ts`).
@@ -385,6 +389,36 @@ export const BOONS: Boon[] = [
   // nothing else, which is what made an offer of three a sum rather than a choice. These
   // six reach for the levers the sim has and the catalogue never used: the shootout, the
   // draw, the run's payout, and time itself.
+  {
+    id: 'away-days',
+    name: 'Away Days',
+    rarity: 'common',
+    starter: true,
+    description: "-5 to your next opponent's defence.",
+    // Weakening THEM is not the same card as strengthening you: it helps in exactly one
+    // tie, and it moves one of their two numbers rather than both of yours. Good when you
+    // need goals, useless when you need a clean sheet - the mirror of every card you own.
+    effects: [{ kind: 'run', mod: { what: 'weakenOpponent', attack: 0, defense: -5 } }],
+  },
+  {
+    id: 'man-marking',
+    name: 'Man-Marking',
+    rarity: 'common',
+    starter: true,
+    description: "-5 to your next opponent's attack.",
+    // Away Days' mirror, and the pair is the point: which of the two you want depends on
+    // whether this tie is one you expect to win by scoring or by holding out.
+    effects: [{ kind: 'run', mod: { what: 'weakenOpponent', attack: -5, defense: 0 } }],
+  },
+  {
+    id: 'double-print',
+    name: 'Double Print',
+    rarity: 'rare',
+    description: 'Win the cup and pick two stickers instead of one.',
+    // Reaches the sticker album, which no other card touches, and pays nothing at all
+    // unless the run is won - so it is a card you take when you already believe.
+    effects: [{ kind: 'run', mod: { what: 'cupPicks', n: 2 } }],
+  },
   {
     id: 'ice-veins',
     name: 'Ice Veins',

@@ -323,51 +323,52 @@
   <summary>
     <span class="num">30</span>
     <span class="title">A boost catalogue that is not "strength + X"
-      <span class="sub">25 card ideas across the levers nothing has ever touched - the opponent, the tree, how a tie is decided, goal minutes, who scores, chemistry, the album. <code>docs/boost-ideas.md</code>.</span>
+      <span class="sub">Boosts that are not just "+N to the XI". Round 1 shipped 3 of 25; round 2 is 25 more, off the dataset's own structure, the run's history and the career. <code>docs/boost-ideas.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
     <p><strong>The ask (2026-08-22):</strong> more boosts, and creative ones - cards that are
-    not <em>only</em> "+N to some subset of the XI". <code>docs/boost-ideas.md</code> is 25 of
+    not <em>only</em> "+N to some subset of the XI". <code>docs/boost-ideas.md</code> holds
     them, grouped by which lever each pulls, with a build cost against each.</p>
 
-    <p><strong>The lever list is the useful part of that document.</strong> It is short, and
-    most of it has never been touched: the <b>opponent's</b> two numbers (nothing), <b>how a
-    tie is decided</b> - regulation, extra time, penalties (nothing), <b>goal minutes</b>
-    (nothing, though <code>MatchEvent</code> has carried one all along), <b>who is credited
-    with a goal</b> (nothing), <b>the other 14 teams in the bracket</b> (nothing),
-    <b>chemistry</b> (nothing, and it is six named categories feeding the overall rating),
-    and <b>the sticker album</b> (nothing). Seventeen of the 23 shipped cards sit on the same
-    single axis; six do not, as of 2026-08-22.</p>
+    <p><strong>Round 1: 3 of 25 built, 22 discarded.</strong> <b>Away Days</b> (-5 to the next
+    opponent's defence) and <b>Man-Marking</b> (-5 to their attack) are a deliberate pair -
+    which you want depends on whether you expect to win this tie by scoring or by holding
+    out - and they are the first cards that touch the OPPONENT at all. <b>Double Print</b>
+    (a cup win picks two stickers) is the first that reaches the album. The other 22 are
+    listed in the document as discarded, so they do not come back.</p>
 
-    <p><strong>The cheapest to build are also among the most novel</strong>, because
-    <code>MatchEvent</code> already carries a minute and a scorer that are decided
-    <em>after</em> the scoreline: <b>Fast Starters</b> (your first goal always lands before
-    20 minutes), <b>Talisman</b> (nominate who your goals are credited to) and <b>Smash and
-    Grab</b> (all your goals re-timed into the last 15) cost a catalogue entry each, move no
-    rating at all, and feed the cabinet's records and several existing challenges. Chemistry
-    is the other cheap surface: <b>Team Talk</b>, <b>Naturalised</b> and <b>Clique</b> all key
-    off numbers already computed and displayed.</p>
+    <p><strong>Two implementation notes from those three, both of which generalise.</strong>
+    A debuff is applied to the opponent OBJECT rather than at simulation time, so the "next
+    up" line, the bracket seed and the round record all show the numbers the tie is actually
+    played on - a debuff the sim sees and the screen does not is a lie. And "this tie only"
+    came free, because <code>facedIds</code> means a team is played once. On the album side,
+    <code>finish_run</code> takes ONE cup pick, so the second rides along in
+    <code>collectibleIds</code> - the same path <code>remoteStore</code> already uses when the
+    server refuses a duplicate - and the client stays under the server's cap of 12 banked ids,
+    because exceeding it rolls the whole bank back and that is the blocking unreachable screen
+    for an account.</p>
 
-    <p><strong>Four notes carried forward</strong>, each of which cost a build to learn: the
-    balance table only measures attack and defence, so a card on any other lever reads 0.0
-    there and needs its own assertion rather than the rarity band; anything random must be
-    decided when the OFFER IS DEALT, not when the card is clicked, or reloading until you like
-    the result is optimal play; anything touching the opponent has to move the bracket with
-    it, the way Kind Draw does; and a card conditioned on something the player picks at BUILD
-    time is the Chemistry Catalyst trap and stays banned.</p>
+    <p><strong>Round 2 is 25 new ideas</strong>, from three surfaces round 1 never looked at.
+    <b>The dataset's own structure:</b> jersey numbers (read by nothing, though every roster
+    shows them), <code>personId</code> linking the same human across tournaments, real
+    squad-mates sharing a <code>squadId</code>, nations and eras. <b>The run's own history:</b>
+    <code>run.history</code> and <code>RunTally</code> are written every round and read only by
+    the review screens, so a card can key off what already happened - the goals you scored last
+    round, whether you conceded first, whether you topped your group. <b>The career reaching
+    back in:</b> the cabinet knows your all-time top scorer, the XI that won your last cup, and
+    the challenges you have not completed, and none of it has ever touched a run.</p>
 
-    <p><strong>Three ideas came over from item 29</strong>, which this replaces: <b>Sell the
-    Star</b> (the first card whose value can be negative), <b>Burn a Sticker</b> (the only
-    cost that outlives the run), and showing the <b>chemistry delta</b> on any card that moves
-    rating and chemistry opposite ways - which is a UI change rather than a card.</p>
+    <p><strong>One thing to budget for:</strong> #24 (The Armband, nominate a captain) is the
+    first card that would ask the player a question AT PICK TIME. The offer currently picks a
+    card and commits immediately, so that card needs UI that does not exist.</p>
 
-    <p class="next"><strong>Next step:</strong> build the four `cheap` minute-and-scorer cards
-    first. They are a catalogue entry each, they touch no rating so they cannot unbalance
-    anything, and they prove whether a card that changes the STORY of a match rather than its
-    result is worth having before anything expensive is attempted.</p>
+    <p class="next"><strong>Next step:</strong> the owner picks from round 2. The cheap ones
+    (#1 The Number Ten, #4 Compatriots, #5 Golden Era, #11 Form Guide, #13 Group Winners, #14
+    In Form) are a catalogue entry each and move no rating average, so none can unbalance
+    anything.</p>
 
     <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
   </div>
