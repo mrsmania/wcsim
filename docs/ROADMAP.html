@@ -323,7 +323,7 @@
   <summary>
     <span class="num">30</span>
     <span class="title">A boost catalogue that is not "strength + X"
-      <span class="sub">Boosts that are not just "+N to the XI". Round 1 shipped 3 of 25; round 2 is 25 more, off the dataset's own structure, the run's history and the career. <code>docs/boost-ideas.md</code>.</span>
+      <span class="sub">Boosts that are not just "+N to the XI". 7 shipped over two rounds; round 3 is 25 more, most of them off the new "a card can ask a question" seam. <code>docs/boost-ideas.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -333,42 +333,46 @@
     not <em>only</em> "+N to some subset of the XI". <code>docs/boost-ideas.md</code> holds
     them, grouped by which lever each pulls, with a build cost against each.</p>
 
-    <p><strong>Round 1: 3 of 25 built, 22 discarded.</strong> <b>Away Days</b> (-5 to the next
-    opponent's defence) and <b>Man-Marking</b> (-5 to their attack) are a deliberate pair -
-    which you want depends on whether you expect to win this tie by scoring or by holding
-    out - and they are the first cards that touch the OPPONENT at all. <b>Double Print</b>
-    (a cup win picks two stickers) is the first that reaches the album. The other 22 are
-    listed in the document as discarded, so they do not come back.</p>
+    <p><strong>Round 1: 3 of 25 built.</strong> <b>Away Days</b> (-5 to the next opponent's
+    defence) and <b>Man-Marking</b> (-5 to their attack) are a deliberate pair, and the first
+    cards to touch the OPPONENT at all. <b>Double Print</b> (a cup win picks two stickers) is
+    the first to reach the album.</p>
 
-    <p><strong>Two implementation notes from those three, both of which generalise.</strong>
-    A debuff is applied to the opponent OBJECT rather than at simulation time, so the "next
-    up" line, the bracket seed and the round record all show the numbers the tie is actually
-    played on - a debuff the sim sees and the screen does not is a lie. And "this tie only"
-    came free, because <code>facedIds</code> means a team is played once. On the album side,
-    <code>finish_run</code> takes ONE cup pick, so the second rides along in
-    <code>collectibleIds</code> - the same path <code>remoteStore</code> already uses when the
-    server refuses a duplicate - and the client stays under the server's cap of 12 banked ids,
-    because exceeding it rolls the whole bank back and that is the blocking unreachable screen
-    for an account.</p>
+    <p><strong>Round 2: 4 of 25 built</strong>, each on a different surface. <b>Prime Years</b>
+    turns every player into his own best tournament, walking <code>personId</code> - which
+    links the same human across cups and which nothing else had ever read. <b>In Form</b> (+12
+    to the leading scorer this run) reads the run's own tally. <b>Old Guard</b> brings the
+    career's all-time top scorer into the XI. And <b>The Armband</b> is the first card in the
+    game that <b>asks a question</b>: name your captain, +6 to him and +1 to the rest.</p>
 
-    <p><strong>Round 2 is 25 new ideas</strong>, from three surfaces round 1 never looked at.
-    <b>The dataset's own structure:</b> jersey numbers (read by nothing, though every roster
-    shows them), <code>personId</code> linking the same human across tournaments, real
-    squad-mates sharing a <code>squadId</code>, nations and eras. <b>The run's own history:</b>
-    <code>run.history</code> and <code>RunTally</code> are written every round and read only by
-    the review screens, so a card can key off what already happened - the goals you scored last
-    round, whether you conceded first, whether you topped your group. <b>The career reaching
-    back in:</b> the cabinet knows your all-time top scorer, the XI that won your last cup, and
-    the challenges you have not completed, and none of it has ever touched a run.</p>
+    <p><strong>Two things came out of round 2 that outlive its cards.</strong>
+    <b>A real exploit was closed:</b> <code>grantBoon</code> recorded only the FIRST incoming
+    player in <code>boostedIds</code>, which is all a one-for-one swap has - but Prime Years
+    swaps up to eleven, so ten upgraded players would have banked as stickers they were handed
+    rather than drafted, which is the exact hole that field exists to close. And <b>the
+    balance harness now hands every card a FIRING context</b>: without one, a conditional card
+    measures 0.0 and goes unbanded, which is precisely how an over-band card gets into the
+    pool. It caught two immediately - The Armband at 3.3 against a rare's 3.2, and Old Guard
+    at 4.8.</p>
 
-    <p><strong>One thing to budget for:</strong> #24 (The Armband, nominate a captain) is the
-    first card that would ask the player a question AT PICK TIME. The offer currently picks a
-    card and commits immediately, so that card needs UI that does not exist.</p>
+    <p><strong>The Armband also left a seam behind.</strong> <code>Boon.choice</code> parks
+    <code>RunState.pendingChoice</code> instead of committing the stop, and
+    <code>resolveChoice</code> applies the card once the player answers - so a reload lands
+    back on the question rather than losing the card. A whole family of cards is cheap now
+    that was not expressible yesterday: ones whose effect the player AIMS. The first five
+    ideas of round 3 are all of that shape.</p>
 
-    <p class="next"><strong>Next step:</strong> the owner picks from round 2. The cheap ones
-    (#1 The Number Ten, #4 Compatriots, #5 Golden Era, #11 Form Guide, #13 Group Winners, #14
-    In Form) are a catalogue entry each and move no rating average, so none can unbalance
-    anything.</p>
+    <p><strong>Round 3 is 25 new ideas</strong>, and the discard list is now the most useful
+    part of the document - 46 ideas have been considered and rejected across three rounds, and
+    they are all named so they do not come back. Beyond the question cards, round 3 goes at
+    results that have not happened yet (a card contingent on winning this tie), the offer
+    itself (a card about the pool), formation and shape (never touched), the dataset's extremes
+    (shirt numbers, oldest and newest tournaments), and <b>undoing</b> - every card in the pool
+    so far only adds, and nothing removes.</p>
+
+    <p class="next"><strong>Next step:</strong> the owner picks from round 3. The question
+    cards (#1 to #3) are the cheapest interesting ones, because the machinery they need was
+    built for The Armband and is sitting unused.</p>
 
     <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
   </div>

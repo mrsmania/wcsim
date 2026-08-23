@@ -931,7 +931,7 @@ deleted with the plain World Cup it used to gate). Design:
 
 ## Boosts: the catalogue, and the levers beyond the rating average
 
-26 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+30 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
 of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
 made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
 its first six cards shipped 2026-08-22.
@@ -972,6 +972,34 @@ its first six cards shipped 2026-08-22.
 | --- | --- | --- |
 | **Away Days** / **Man-Marking** | the OPPONENT | -5 to their defence / -5 to their attack. A pair on purpose: which you want depends on whether this tie is one you expect to win by scoring or by holding out. Applied to the opponent OBJECT, not at simulation time, so the "next up" line, the bracket seed and the round record all show the numbers the tie is actually played on - a debuff the sim sees and the screen does not is a lie. "This tie only" comes free: `facedIds` means a team is played once. `overall` moves by the share of the XI touched (attack averages ~6 players, defence ~5), never by the raw delta. |
 | **Double Print** | the album | A cup win picks **two** stickers. `finish_run` takes one `cupPickId`, so the second rides along in `collectibleIds` - the path `remoteStore` already uses when the server refuses a duplicate pick. The server caps a run at **12** ids and rolls the whole bank back over it (the blocking unreachable screen for an account), so `useStickerAlbum` trims surplus picks under `BANK_CAP`. Eleven collectibles in one XI is out of reach, so that trim is a backstop, not a behaviour. The picker counts "Pick 1 of 2" and drops what was already taken, or a second pick could repeat the first. |
+
+### Four more (2026-08-22): the dataset, the run, the career, and a question
+
+| Card | Lever | The point |
+| --- | --- | --- |
+| **Prime Years** | the dataset | Every player becomes his own best tournament, walking `personId` (which links the same human across cups and which nothing else reads). The SLOT is preserved (`{...best, positions: p.positions}`) or the formation and the chemistry "in position" count go wrong. |
+| **In Form** | the run's history | +12 to the leading scorer THIS RUN, read off `RunTally`. A legal no-op before the first goal. |
+| **Old Guard** | the career | The career's all-time top scorer joins. Snapshotted onto the run at kickoff (`Kickoff.careerTopScorerId`) because `domain/run.ts` never sees a `CareerState`. Legendary, like Wildcard Legend: adding one strong player is the same shape and size. |
+| **The Armband** | **the player** | Name a captain: +6 to him, +1 to the rest. **The first card that asks a question.** |
+
+**`boostedIds` had to become a list, and this was a real exploit.** `grantBoon` recorded only
+the FIRST incoming player, which is all a one-for-one swap has - but Prime Years swaps up to
+eleven, so ten upgraded (usually 90+) players would have banked as stickers. That is exactly
+the hole `boostedIds` exists to close. `Granted.incomingIds` now carries every arrival;
+`swappedIn`/`swappedOut` stay for the toast.
+
+**A card that asks a question does not commit the stop.** `Boon.choice: 'player'` makes
+`chooseBoon` park `RunState.pendingChoice` and leave the phase at `boon`; `resolveChoice`
+applies it. On the run rather than in the component, so a reload lands back on the question
+instead of losing the card. `CaptainPicker` replaces the offer while it is parked, and has
+no cancel on purpose: backing out would let a player price the card against every member of
+the XI and then take a different card, which is the offer re-rolled for free.
+
+**The balance harness now hands every card a FIRING context** (`topScorerId`,
+`careerTopScorerId`, `chosenId`). Without it a conditional card measures 0.0 and goes
+unbanded, which is exactly the way to smuggle an over-band card into the pool - and it
+immediately caught two: The Armband at 3.3 against a rare's 3.2 (now +6, not +8) and Old
+Guard at 4.8 (now legendary).
 
 ### Catalogue changes made at the same time
 

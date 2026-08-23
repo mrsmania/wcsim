@@ -342,6 +342,19 @@ export const PERKS: Perk[] = [
 export const perkById = (id: string): Perk | undefined => PERKS.find((p) => p.id === id);
 
 /** The owned tier of a perk (0 = not owned). */
+/** The career's all-time top scorer by goals, or undefined on a career that has never
+ *  scored. Ties break on the id so the answer is stable rather than dependent on key
+ *  order. Read by the Old Guard boost, which is snapshotted onto a run at kickoff. */
+export function careerTopScorerId(career: CareerState): string | undefined {
+  const players = career.stats.players ?? {};
+  let best: string | undefined;
+  for (const [id, rec] of Object.entries(players)) {
+    const bg = best ? (players[best]?.goals ?? 0) : 0;
+    if (rec.goals > bg || (rec.goals === bg && best !== undefined && id < best)) best = id;
+  }
+  return best && (players[best]?.goals ?? 0) > 0 ? best : undefined;
+}
+
 export const perkLevelOf = (career: CareerState, id: string): number => career.perkLevels[id] ?? 0;
 
 /** Extra squad re-rolls from the Extra Re-roll perk: the owned tier is the count, so

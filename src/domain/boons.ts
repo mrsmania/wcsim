@@ -6,9 +6,16 @@ import { bump } from './effects';
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
 export type Rarity = 'common' | 'rare' | 'legendary';
 
-/** Run context a boon may read (e.g. the upcoming opponent, for Poach). */
+/** Run context a boon may read. Everything here is resolved by `domain/run.ts` and handed
+ *  in, so the catalogue can key off the run without importing it. */
 export interface BoonContext {
   opponentSquadId: string | null;
+  /** Who has scored most for the XI so far THIS RUN (In Form). Null before any goal. */
+  topScorerId?: string | null;
+  /** The career's all-time top scorer, snapshotted at kickoff (Old Guard). */
+  careerTopScorerId?: string | null;
+  /** The player the user named, for a card that asks (The Armband). */
+  chosenId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +98,10 @@ export interface Boon {
   /** In the offer pool from the start (no Prestige unlock needed). Locked boons are
    *  bought into the pool via career Prestige (see `BOON_UNLOCK_COST` / `unlockBoon`). */
   starter?: boolean;
+  /** The card asks the player to name someone before it applies. Picking it does not
+   *  commit the stop: the run parks a `pendingChoice` and waits. The first card to do
+   *  this is The Armband; everything before it committed on the click. */
+  choice?: 'player';
   /** What the card does. A LIST, because a card can do two things at once - Mortgage the
    *  Future raises the XI and mortgages the payout, and Sold Out Stadium grants a bonus
    *  and a debt. Applied in order. */
@@ -120,6 +131,16 @@ function coinFor(xi: Player[], ctx: BoonContext): boolean {
     h = Math.imul(h, 16777619);
   }
   return ((h >>> 0) & 1) === 1;
+}
+
+/** Every player by id, and the best-rated version of each PERSON across all tournaments.
+ *  Built once: `ALL_PLAYERS` is ~6,270 rows and Prime Years would otherwise scan it eleven
+ *  times per pick. */
+const PLAYER_BY_ID = new Map(ALL_PLAYERS.map((p) => [p.id, p]));
+const BEST_BY_PERSON = new Map<string, Player>();
+for (const p of ALL_PLAYERS) {
+  const best = BEST_BY_PERSON.get(p.personId);
+  if (!best || p.elo > best.elo) BEST_BY_PERSON.set(p.personId, p);
 }
 
 /** The smallest upgrade Transfer will accept, in rating points. */
@@ -389,6 +410,90 @@ export const BOONS: Boon[] = [
   // nothing else, which is what made an offer of three a sum rather than a choice. These
   // six reach for the levers the sim has and the catalogue never used: the shootout, the
   // draw, the run's payout, and time itself.
+  {
+    id: 'prime-years',
+    name: 'Prime Years',
+    rarity: 'legendary',
+    description: 'Every player is replaced by his own best tournament.',
+    // Walks `personId`, which links the same human across tournaments and which nothing
+    // else has ever read. The XI keeps its identity and gets better, which feels quite
+    // different from being handed strangers - and the slot each player fills is preserved,
+    // so the formation and the chemistry "in position" count are untouched.
+    effects: [
+      {
+        kind: 'roster',
+        apply: (roster) =>
+          roster.map((p) => {
+            const best = BEST_BY_PERSON.get(p.personId);
+            return best && best.elo > p.elo ? { ...best, positions: p.positions } : p;
+          }),
+      },
+    ],
+  },
+  {
+    id: 'in-form',
+    name: 'In Form',
+    rarity: 'rare',
+    description: '+12 to your leading scorer this run.',
+    // Names a player the RUN chose rather than the draft: whoever has actually been
+    // scoring. Worth nothing before a goal is scored, which is only the first stop.
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi, ctx) =>
+          ctx.topScorerId && xi.some((p) => p.id === ctx.topScorerId)
+            ? [{ ids: [ctx.topScorerId], delta: 12 }]
+            : [],
+      },
+    ],
+  },
+  {
+    id: 'old-guard',
+    name: 'Old Guard',
+    // Legendary, like Wildcard Legend: adding one strong player to the XI is the same
+    // shape and the same size. It measured 4.8 as a rare.
+    rarity: 'legendary',
+    description: "Your career's all-time top scorer joins the XI.",
+    // The first card that reaches back into the CAREER. Different for every player, and
+    // better the longer they have played - progression that is earned rather than bought.
+    // Does nothing on a first run, which is the honest cost of that.
+    effects: [
+      {
+        kind: 'roster',
+        apply: (roster, ctx) => {
+          const id = ctx.careerTopScorerId;
+          if (!id) return roster;
+          const inP = PLAYER_BY_ID.get(id);
+          if (!inP || roster.some((p) => p.personId === inP.personId)) return roster;
+          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+          return swap(roster, out.id, { ...inP, positions: out.positions });
+        },
+      },
+    ],
+  },
+  {
+    id: 'armband',
+    name: 'The Armband',
+    rarity: 'rare',
+    // The first card that asks a question. Everything else in the pool decides for you.
+    choice: 'player',
+    description: 'Name your captain: +6 to him, +1 to everyone else.',
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi, ctx) => {
+          const captain = ctx.chosenId && xi.find((p) => p.id === ctx.chosenId);
+          if (!captain) return [];
+          return [
+            // +6, not +8: at +8 it measured 3.3 against a rare's band of 3.2. The card's
+            // point is the question it asks, not the size of the number.
+            { ids: [captain.id], delta: 6 },
+            { ids: xi.filter((p) => p.id !== captain.id).map((p) => p.id), delta: 1 },
+          ];
+        },
+      },
+    ],
+  },
   {
     id: 'away-days',
     name: 'Away Days',

@@ -85,6 +85,7 @@ import {
   prepareKnockoutRound,
   runTotals,
   chooseBoon,
+  resolveChoice,
   playKnockoutRound,
   type RunBuild,
   type RunOutcome,
@@ -630,6 +631,96 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check(`kind-draw: never a stronger opponent, and the tree agrees (${redrawn}/${seen} redrawn)`, ok);
 }
 
+// Prime Years walks `personId` to each player's best tournament. Two things matter beyond
+// "the XI got better": the slot each player fills has to survive (or the formation and the
+// chemistry "in position" count are wrong), and EVERY upgraded player has to land in
+// `boostedIds` - a card that swaps eleven and records one would let ten handed players bank
+// stickers they did not draft, which is the exact hole boostedIds exists to close.
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const run = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
+  const after = chooseBoon(run, 'prime-years').next;
+  let ok = after.roster!.length === 11;
+  // Never worse, and the same people throughout.
+  for (let i = 0; i < 11; i++) {
+    if (after.roster![i].elo < run.roster![i].elo) ok = false;
+    if (after.roster![i].personId !== run.roster![i].personId) ok = false;
+    // The slot's role is preserved, so a swapped-in version plays where the old one did.
+    if (after.roster![i].positions[0] !== run.roster![i].positions[0]) ok = false;
+  }
+  // No duplicate person, which is the invariant every roster card must keep.
+  if (new Set(after.roster!.map((p) => p.personId)).size !== 11) ok = false;
+  // Every arrival is tagged, not just the first.
+  const arrived = after.roster!.filter((p, i) => p.id !== run.roster![i].id).map((p) => p.id);
+  for (const id of arrived) if (!after.boostedIds.includes(id)) ok = false;
+  check(`prime-years: same people, best versions, slots kept, all ${arrived.length} tagged`, ok);
+}
+
+// In Form names whoever the RUN chose, and does nothing before a goal is scored.
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
+  // No goals yet: the card is a legal no-op rather than a throw or a random pick.
+  const cold = chooseBoon(base, 'in-form').next;
+  let ok = (cold.effects ?? []).filter((e) => e.source === 'in-form').length === 0;
+  // With goals, it lands on the leader and nobody else.
+  const scorer = xi[5];
+  const withGoals = { ...base, tally: { apps: {}, goals: { [scorer.id]: 3, [xi[2].id]: 1 } } };
+  const hot = chooseBoon(withGoals, 'in-form').next;
+  const eff = (hot.effects ?? []).filter((e) => e.source === 'in-form');
+  if (eff.length !== 1 || eff[0].delta !== 12) ok = false;
+  if (eff[0].target.ids.join(',') !== scorer.id) ok = false;
+  check('in-form: no-op before a goal, then exactly the leading scorer', ok);
+}
+
+// Old Guard reaches into the CAREER, and must do nothing on a career that has never scored.
+{
+  const xi = bestEleven(SQUADS[1].players);
+  const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
+  let ok = chooseBoon(base, 'old-guard').next.roster!.every((p, i) => p.id === base.roster![i].id);
+  // With a top scorer, he joins - once, without duplicating a person already there.
+  const legend = ALL_PLAYERS.find((p) => p.elo >= 93 && !xi.some((x) => x.personId === p.personId))!;
+  const withCareer = { ...base, careerTopScorerId: legend.id };
+  const after = chooseBoon(withCareer, 'old-guard').next;
+  if (!after.roster!.some((p) => p.personId === legend.personId)) ok = false;
+  if (new Set(after.roster!.map((p) => p.personId)).size !== 11) ok = false;
+  if (!after.boostedIds.includes(after.roster!.find((p) => p.personId === legend.personId)!.id)) ok = false;
+  // Already in the XI: no-op rather than a duplicate.
+  const dupe = { ...base, careerTopScorerId: xi[0].id };
+  if (chooseBoon(dupe, 'old-guard').next.roster!.length !== 11) ok = false;
+  check('old-guard: nothing on a fresh career, one arrival on an old one, never a duplicate', ok);
+}
+
+// The Armband is the first card that asks a question, so picking it must NOT commit the
+// stop. It parks on the run - which is what makes a reload land back on the question rather
+// than lose the card - and only the answer moves the run on.
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const run = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
+  const parked = chooseBoon(run, 'armband').next;
+  let ok =
+    parked.pendingChoice?.boonId === 'armband' &&
+    parked.phase === 'boon' &&
+    // Nothing applied yet.
+    (parked.effects ?? []).filter((e) => e.source === 'armband').length === 0;
+  // A player not in the XI is refused rather than half-applied.
+  if (resolveChoice(parked, 'not-a-player').next.pendingChoice === undefined) ok = false;
+  // The answer commits: +6 to the captain, +1 to the other ten, and the stop is left.
+  const captain = xi[7];
+  const done = resolveChoice(parked, captain.id).next;
+  const eff = (done.effects ?? []).filter((e) => e.source === 'armband');
+  if (done.phase !== 'match' || done.pendingChoice !== undefined) ok = false;
+  if (eff.length !== 2) ok = false;
+  else {
+    const big = eff.find((e) => e.delta === 6);
+    const rest = eff.find((e) => e.delta === 1);
+    if (!big || !rest) ok = false;
+    else if (big.target.ids.join(',') !== captain.id) ok = false;
+    else if (rest.target.ids.length !== 10 || rest.target.ids.includes(captain.id)) ok = false;
+  }
+  check('armband: parks the stop, refuses a stranger, then +6 the captain and +1 the rest', ok);
+}
+
 // Away Days and Man-Marking weaken the OPPONENT, and the pair has to stay a pair: one
 // touches their defence and one their attack, neither touches the user, and the tree shows
 // the same numbers the tie will be played on.
@@ -830,7 +921,18 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     for (const sample of samples) {
       const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
       for (let i = 0; i < N; i++) {
-        const after = applyBoon(sample, b, { opponentSquadId: SQUADS[3].id });
+        // A context every conditional card can actually fire on, or the ones that key off
+        // the run (In Form, Old Guard, The Armband) measure 0.0 and go unbanded - which
+        // would be exactly the way to smuggle an over-band card into the pool.
+        const after = applyBoon(sample, b, {
+          opponentSquadId: SQUADS[3].id,
+          topScorerId: sample[0].id,
+          // A career's top scorer is whoever you have fielded and scored with most, which
+          // for an established career is a strong player - so the 90+ shelf Wildcard Legend
+          // deals from, not the single best card in the dataset.
+          careerTopScorerId: ALL_PLAYERS.find((p) => p.elo >= 90)?.id ?? null,
+          chosenId: sample[0].id,
+        });
         att += side(after, isAttacker) - before.att;
         def += side(after, isDefender) - before.def;
         tot += totalElo(after) - totalElo(sample);

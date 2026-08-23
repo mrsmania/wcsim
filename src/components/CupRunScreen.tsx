@@ -8,12 +8,13 @@ import { KO_ROUNDS } from '../domain/knockout';
 import { ascensionAt, maxSelectableAscension } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
 import { groupAsOf, GROUP_MATCHDAYS, type GroupTeam } from '../domain/tournament';
-import { type Boon } from '../domain/boons';
+import { boonById, type Boon } from '../domain/boons';
 import {
   beginRun,
   prepareGroupStage,
   prepareKnockoutRound,
   chooseBoon,
+  resolveChoice,
   rerollOffer,
   chemistryOf,
   type RunState,
@@ -24,6 +25,7 @@ import {
 } from '../domain/run';
 import {
   applyRunResult,
+  careerTopScorerId,
   buyPerkTier,
   unlockBoon,
   levelProgress,
@@ -52,6 +54,7 @@ import GroupResultCard from './cupRun/GroupResultCard';
 import FinishedKoCard from './cupRun/FinishedKoCard';
 import RoundReview from './cupRun/RoundReview';
 import BoostOffer from './cupRun/BoostOffer';
+import CaptainPicker from './cupRun/CaptainPicker';
 import CareerHub from './cupRun/CareerHub';
 import RunXiPanel from './cupRun/RunXiPanel';
 import RunEndPanel from './cupRun/RunEndPanel';
@@ -296,6 +299,7 @@ export default function CupRunScreen({
     const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen, {
       shape: draftedShape ?? undefined,
       build: draftedBuild ?? undefined,
+      careerTopScorerId: careerTopScorerId(career),
     });
     const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);
@@ -426,12 +430,30 @@ export default function CupRunScreen({
   // pickers, which only differ in the source state and how they commit it.
   const applyBoost = (base: RunState, b: Boon, commit: (next: RunState) => void) => {
     const { next, swappedIn, swappedOut } = chooseBoon(base, b.id);
-    showToast(
-      swappedIn && swappedOut
-        ? `${b.name}: ${swappedIn.name} in for ${swappedOut.name}`
-        : `${b.name}: ${b.description}`,
-    );
+    // A card that asks a question has not done anything yet - it is parked waiting for the
+    // answer - so there is nothing to announce. Committing still matters: it moves the
+    // parked choice onto the run, which is what makes the picker survive a reload (and,
+    // from the group-results screen, what gets the player onto the run screen to answer).
+    if (!next.pendingChoice) {
+      showToast(
+        swappedIn && swappedOut
+          ? `${b.name}: ${swappedIn.name} in for ${swappedOut.name}`
+          : `${b.name}: ${b.description}`,
+      );
+    }
     commit(next);
+  };
+
+  // Answer a card that asked a question (The Armband). Only reachable while the run holds
+  // a `pendingChoice`, which is also what the picker renders from.
+  const answerChoice = (playerId: string) => {
+    if (!run?.pendingChoice) return;
+    const boon = boonById(run.pendingChoice.boonId);
+    const { next } = resolveChoice(run, playerId);
+    const named = run.xi.find((p) => p.id === playerId);
+    if (boon && named) showToast(`${boon.name}: ${named.name} takes the armband`);
+    setLastKoMatch(null);
+    setRun(next);
   };
 
   // The first boost is picked right on the group-results screen (before entering the
@@ -836,7 +858,18 @@ export default function CupRunScreen({
                     </div>
                   )}
 
-                  {run.phase === 'boon' && run.offer && (
+                  {/* A card that asked a question replaces the offer until it is answered
+                      (roadmap item 30). The run stays in the `boon` phase and holds the
+                      parked card, so a reload lands back here rather than losing it. */}
+                  {run.phase === 'boon' && run.pendingChoice && (
+                    <CaptainPicker
+                      boonId={run.pendingChoice.boonId}
+                      xi={run.xi}
+                      onChoose={answerChoice}
+                    />
+                  )}
+
+                  {run.phase === 'boon' && !run.pendingChoice && run.offer && (
                     <BoostOffer
                       offer={run.offer}
                       nextOpponent={run.nextOpponent}

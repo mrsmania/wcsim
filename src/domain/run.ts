@@ -76,8 +76,16 @@ export const START_ROUND = 0;
 interface Granted {
   roster: Player[];
   effects: RunEffect[];
+  /** The single in/out pair, for the toast that describes a swap in words. Only the FIRST
+   *  is kept, which is all a one-for-one card has. */
   swappedIn?: Player;
   swappedOut?: Player;
+  /** EVERY player the card brought in. Separate from `swappedIn` because a card can swap
+   *  more than one - Prime Years replaces up to eleven - and this is what feeds
+   *  `boostedIds`, which is what stops a boost being a cheap route into the sticker album.
+   *  Recording only the first would have let ten upgraded players bank stickers they were
+   *  handed rather than drafted. */
+  incomingIds: string[];
   /** Run-level levers the card pulled (see `RunModifier`), applied by the caller. */
   mods: RunModifier[];
 }
@@ -107,13 +115,16 @@ function grantBoon(
   let nextRoster = roster;
   let nextEffects = effects;
   const mods: RunModifier[] = [];
+  const incomingIds: string[] = [];
   let swappedIn: Player | undefined;
   let swappedOut: Player | undefined;
   for (const eff of boon.effects) {
     if (eff.kind === 'roster') {
       const before = nextRoster;
       nextRoster = eff.apply(before, ctx);
-      swappedIn = nextRoster.find((p) => !before.some((b) => b.id === p.id)) ?? swappedIn;
+      const arrivals = nextRoster.filter((p) => !before.some((b) => b.id === p.id));
+      incomingIds.push(...arrivals.map((p) => p.id));
+      swappedIn = arrivals[0] ?? swappedIn;
       swappedOut = before.find((p) => !nextRoster.some((b) => b.id === p.id)) ?? swappedOut;
     } else if (eff.kind === 'rating') {
       const plans = eff.plan(xiOf(nextRoster, nextEffects, atRound), ctx);
@@ -125,7 +136,7 @@ function grantBoon(
       mods.push(eff.mod);
     }
   }
-  return { roster: nextRoster, effects: nextEffects, swappedIn, swappedOut, mods };
+  return { roster: nextRoster, effects: nextEffects, swappedIn, swappedOut, incomingIds, mods };
 }
 
 /** Turn resolved plans into ledger entries. Empty plans (a conditional boon whose
@@ -305,6 +316,15 @@ export interface RunState {
   mortgaged?: boolean;
   /** How many stickers a cup win may pick (Double Print). Absent = the usual one. */
   cupPicks?: number;
+  /** The career's all-time top scorer at kickoff, for Old Guard. Snapshotted rather than
+   *  looked up live because `domain/run.ts` never sees a `CareerState` - the run is handed
+   *  the few career facts it needs and nothing else. */
+  careerTopScorerId?: string;
+  /** A card that asked a question and is waiting for the answer (The Armband). The stop
+   *  does NOT commit while this is set: the phase stays `boon` and the screen shows a
+   *  picker instead of the offer. On the run rather than in the component so a reload
+   *  resumes mid-question instead of losing the card. */
+  pendingChoice?: { boonId: string };
   /** Whether this run's collectibles have been merged into the sticker album. Guards
    *  a once-per-run apply that survives a reload (mirrors the main game's flag). */
   stickersApplied: boolean;
@@ -518,7 +538,9 @@ const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra
 export interface Kickoff {
   shape?: RunShape;
   build?: RunBuild;
-
+  /** The career's all-time top scorer (Old Guard). Passed in rather than looked up: this
+   *  module never sees a `CareerState`, and the career cannot change mid-run anyway. */
+  careerTopScorerId?: string;
 }
 
 export function beginRun(
@@ -560,7 +582,7 @@ export function beginRun(
       const granted = grantBoon(roster, effects, boon, { opponentSquadId: null }, START_ROUND);
       roster = granted.roster;
       effects = granted.effects;
-      if (granted.swappedIn) boostedIds.push(granted.swappedIn.id);
+      boostedIds.push(...granted.incomingIds);
       activeBoons.push(boon.id);
     }
   }
@@ -587,6 +609,7 @@ export function beginRun(
     stickersApplied: false,
     shape: kickoff.shape,
     build: kickoff.build,
+    careerTopScorerId: kickoff.careerTopScorerId,
     // Kickoff chemistry: of the XI that actually starts, so a Scout Network roster boost
     // is already in it. (Rating perks cannot move it - chemistry reads squads, nations,
     // eras and primary positions, never elo.)
@@ -868,15 +891,62 @@ function redrawOpponent(run: RunState, pool: Squad[]): RunState {
   };
 }
 
+/** Everything a card is allowed to know about the run, resolved here so the catalogue can
+ *  key off the run without importing it. */
+function boonContext(run: RunState, chosenId?: string): BoonContext {
+  return {
+    opponentSquadId: run.nextOpponent?.id ?? null,
+    topScorerId: topScorerOf(run),
+    careerTopScorerId: run.careerTopScorerId ?? null,
+    chosenId: chosenId ?? null,
+  };
+}
+
+/** Who has scored most for the XI so far this run, or null before the first goal. Ties
+ *  break on the id so the answer is stable across a replay rather than depending on
+ *  object order. */
+export function topScorerOf(run: RunState): string | null {
+  const goals = run.tally?.goals ?? {};
+  let best: string | null = null;
+  for (const [id, n] of Object.entries(goals)) {
+    const bn = best ? goals[best] : 0;
+    if (n > bn || (n === bn && best !== null && id < best)) best = id;
+  }
+  return best;
+}
+
+/**
+ * Answer a card that asked a question (The Armband), applying it with the named player.
+ *
+ * Split from `chooseBoon` rather than folded into it because the two are different moments:
+ * the card was already chosen, and this is the answer. Refuses silently if nothing is
+ * pending or the named player is not in the XI, so the caller can gate on the same facts.
+ */
+export function resolveChoice(run: RunState, playerId: string, pool: Squad[] = SQUADS): BoonChoice {
+  const pending = run.pendingChoice;
+  if (run.phase !== 'boon' || !pending) return { next: run };
+  const boon = boonById(pending.boonId);
+  if (!boon || !run.xi.some((p) => p.id === playerId)) return { next: run };
+  return commitBoon(run, boon, boonContext(run, playerId), pool);
+}
+
 export function chooseBoon(run: RunState, boonId: string, pool: Squad[] = SQUADS): BoonChoice {
   if (run.phase !== 'boon') return { next: run };
   const boon = boonById(boonId);
   if (!boon) return { next: run };
+  // A card that asks a question does not commit the stop. It parks on the run and waits
+  // for `resolveChoice`; the phase stays `boon`, so a reload resumes mid-question.
+  if (boon.choice) return { next: { ...run, pendingChoice: { boonId: boon.id }, offer: null } };
+  return commitBoon(run, boon, boonContext(run), pool);
+}
+
+/** Apply a boon and leave the stop. The shared tail of `chooseBoon` and `resolveChoice`. */
+function commitBoon(run: RunState, boon: Boon, ctx: BoonContext, pool: Squad[]): BoonChoice {
   const granted = grantBoon(
     run.roster ?? run.xi,
     run.effects ?? [],
     boon,
-    { opponentSquadId: run.nextOpponent?.id ?? null },
+    ctx,
     run.koRound,
   );
   // If the boon swapped the roster, tag the incoming player (an amber "Boost" mark).
@@ -893,8 +963,9 @@ export function chooseBoon(run: RunState, boonId: string, pool: Squad[] = SQUADS
       roster: granted.roster,
       effects: granted.effects,
       activeBoons: [...run.activeBoons, boon.id],
-      boostedIds: swappedIn ? [...run.boostedIds, swappedIn.id] : run.boostedIds,
+      boostedIds: [...run.boostedIds, ...granted.incomingIds],
       offer: null,
+      pendingChoice: undefined,
       phase: 'match',
       history,
     }),
