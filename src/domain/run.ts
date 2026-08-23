@@ -316,6 +316,11 @@ export interface RunState {
   mortgaged?: boolean;
   /** How many stickers a cup win may pick (Double Print). Absent = the usual one. */
   cupPicks?: number;
+  /** A player borrowed from the next opponent for one round (Loan Deal), and the player
+   *  he displaced, waiting to come back. The effect ledger handles temporary RATINGS and
+   *  has never handled temporary PEOPLE, so a loan is recorded here and undone by
+   *  `prepareKnockoutRound` when the round advances. Absent = nobody is on loan. */
+  loan?: { returning: Player; borrowedId: string; untilRound: number };
   /** The career's all-time top scorer at kickoff, for Old Guard. Snapshotted rather than
    *  looked up live because `domain/run.ts` never sees a `CareerState` - the run is handed
    *  the few career facts it needs and nothing else. */
@@ -576,6 +581,10 @@ export function beginRun(
   // Commons only - a free legendary before kick-off outweighed every boost choice the
   // run itself offers.
   const scout = perkLevels['scout'] ?? 0;
+  // A starter boost's `run` modifiers, collected here and applied to the finished state
+  // below. They used to be dropped on the floor: every common with a modifier rather than
+  // a rating plan (Ice Veins is the live example) was a starter boost that did nothing.
+  const startMods: RunModifier[] = [];
   if (scout > 0) {
     const commons = availableBoons(unlockedBoons).filter((b) => b.rarity === 'common');
     for (const boon of offerBoons(commons, scout)) {
@@ -583,10 +592,11 @@ export function beginRun(
       roster = granted.roster;
       effects = granted.effects;
       boostedIds.push(...granted.incomingIds);
+      startMods.push(...granted.mods);
       activeBoons.push(boon.id);
     }
   }
-  return {
+  const started: RunState = {
     xi: xiOf(roster, effects, START_ROUND),
     roster,
     effects,
@@ -615,6 +625,10 @@ export function beginRun(
     // eras and primary positions, never elo.)
     chemistry: chemistryOf(xiOf(roster, effects, START_ROUND)),
   };
+  // No pool argument to draw against and no opponent yet, so the only starter modifiers
+  // that can do anything here are the ones that touch the run itself (Ice Veins). The
+  // rest correctly no-op: there is nobody to weaken or re-draw before the group.
+  return startMods.length ? applyRunMods(started, startMods, []) : started;
 }
 
 /** Draw three opponents and play all three matchdays at once. The random half of the
@@ -797,7 +811,12 @@ export function rerollOffer(run: RunState): RunState {
  * that is NOT the attack or defence average, which is the whole point of the group: a card
  * built on one of these is incomparable to a "+N" card by construction.
  */
-function applyRunMods(run: RunState, mods: RunModifier[], pool: Squad[]): RunState {
+function applyRunMods(
+  run: RunState,
+  mods: RunModifier[],
+  pool: Squad[],
+  granted?: Pick<Granted, 'swappedIn' | 'swappedOut'>,
+): RunState {
   let next = run;
   for (const mod of mods) {
     if (mod.what === 'penBonus') {
@@ -810,6 +829,18 @@ function applyRunMods(run: RunState, mods: RunModifier[], pool: Squad[]): RunSta
       next = weakenOpponent(next, mod.attack, mod.defense);
     } else if (mod.what === 'cupPicks') {
       next = { ...next, cupPicks: Math.max(next.cupPicks ?? 1, mod.n) };
+    } else if (mod.what === 'loan') {
+      // Records the swap the card's own roster effect just made, rather than performing
+      // one: `untilRound` is the round about to be played, so the loan lasts exactly the
+      // tie it was taken for. A card whose swap did not fire (their best was no upgrade)
+      // has no pair here and records no loan.
+      const { swappedIn, swappedOut } = granted ?? {};
+      if (swappedIn && swappedOut) {
+        next = {
+          ...next,
+          loan: { returning: swappedOut, borrowedId: swappedIn.id, untilRound: next.koRound },
+        };
+      }
     }
   }
   return next;
@@ -899,7 +930,17 @@ function boonContext(run: RunState, chosenId?: string): BoonContext {
     topScorerId: topScorerOf(run),
     careerTopScorerId: run.careerTopScorerId ?? null,
     chosenId: chosenId ?? null,
+    underdogRounds: underdogRoundsOf(run),
   };
+}
+
+/** How many knockout ties so far the user went into as the lower-rated side
+ *  (Underdog's Purse). Only knockout records carry the two ratings - a group record
+ *  leaves them unset - so the group is excluded for free rather than by a filter. */
+function underdogRoundsOf(run: RunState): number {
+  return run.history.filter(
+    (r) => r.userRating !== undefined && r.oppRating !== undefined && r.userRating < r.oppRating,
+  ).length;
 }
 
 /** Who has scored most for the XI so far this run, or null before the first goal. Ties
@@ -956,19 +997,23 @@ function commitBoon(run: RunState, boon: Boon, ctx: BoonContext, pool: Squad[]):
   const last = run.history.length - 1;
   const history =
     last >= 0 ? run.history.map((r, i) => (i === last ? { ...r, boostId: boon.id } : r)) : run.history;
-  const withMods = applyRunMods(run, granted.mods, pool);
+  // The mods run over the MERGED state, not over `run`. They used to be applied first and
+  // then have `roster`/`effects` written over the top, which was fine while no modifier
+  // touched either - Loan Deal is the first that has to see the roster its own card just
+  // swapped, and under the old order its change would have been silently overwritten.
+  const merged: RunState = {
+    ...run,
+    roster: granted.roster,
+    effects: granted.effects,
+    activeBoons: [...run.activeBoons, boon.id],
+    boostedIds: [...run.boostedIds, ...granted.incomingIds],
+    offer: null,
+    pendingChoice: undefined,
+    phase: 'match',
+    history,
+  };
   return {
-    next: recomputeXi({
-      ...withMods,
-      roster: granted.roster,
-      effects: granted.effects,
-      activeBoons: [...run.activeBoons, boon.id],
-      boostedIds: [...run.boostedIds, ...granted.incomingIds],
-      offer: null,
-      pendingChoice: undefined,
-      phase: 'match',
-      history,
-    }),
+    next: recomputeXi(applyRunMods(merged, granted.mods, pool, granted)),
     swappedIn,
     swappedOut,
   };
@@ -1163,8 +1208,22 @@ export function prepareKnockoutRound(
     // only lands) once the round has actually advanced. This is the one transition that
     // moves the round on, so it is the only place it matters - and it is what Second Wind
     // and Sold Out Stadium need to work at all.
+    // The loan is up: the borrowed player goes back and the player he displaced returns.
+    // Done here, in the one transition that moves the round on, for the same reason
+    // `recomputeXi` is - and before it, so the recomputed XI is the one that comes next.
+    // Any effect frozen on the borrowed id simply stops finding him, which is the same
+    // harmless no-op an orphaned id has always been.
+    const back = run.loan && run.loan.untilRound <= round ? run.loan : null;
     next = recomputeXi({
       ...run,
+      ...(back
+        ? {
+            roster: (run.roster ?? run.xi).map((p) =>
+              p.id === back.borrowedId ? back.returning : p,
+            ),
+            loan: undefined,
+          }
+        : {}),
       phase: 'boon',
       koRound: round + 1,
       offer,

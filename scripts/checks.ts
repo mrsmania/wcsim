@@ -761,6 +761,112 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   check(`away-days / man-marking: weaken one of their lines, none of yours (${seen} ties)`, ok);
 }
 
+// --- item 30, round 4 ---------------------------------------------------------
+
+// Full-Backs is the first card that reads the twelve POSITIONS rather than the four
+// categories, so what is asserted is the selection: exactly the two full-backs, in every
+// formation the game offers (a back five is LB, three centre-backs, RB), and nobody else.
+{
+  let ok = true, hitCount = 0;
+  for (let i = 0; i < 20; i++) {
+    const xi = bestEleven(SQUADS[i].players);
+    const run = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
+    const after = chooseBoon(run, 'full-backs').next;
+    const eff = (after.effects ?? []).filter((e) => e.source === 'full-backs');
+    const fbs = run.roster!.filter((p) => p.positions[0] === 'LB' || p.positions[0] === 'RB');
+    hitCount += fbs.length;
+    // No full-back is an empty plan, which the ledger drops rather than storing as a
+    // zero. (An XI drafted in the game always has both, since every formation plays
+    // them; `bestEleven` picks on rating alone and so sometimes has neither.)
+    if (!fbs.length) { if (eff.length) ok = false; continue; }
+    if (eff.length !== 1 || eff[0].delta !== 8) { ok = false; continue; }
+    const hit = new Set(eff[0].target.ids);
+    for (const p of run.roster!) {
+      const isFb = p.positions[0] === 'LB' || p.positions[0] === 'RB';
+      if (isFb !== hit.has(p.id)) ok = false;
+    }
+  }
+  if (!hitCount) ok = false;
+  check(`full-backs: exactly the full-backs and nobody else (${hitCount} across 20 XIs)`, ok);
+}
+
+// Loan Deal is the first TEMPORARY roster change in the game, so the two halves that could
+// each break silently are asserted together: he arrives (and is tagged, so a borrowed
+// player banks no sticker), and he GOES BACK when the round advances, with the player he
+// displaced restored to his own slot. Plus the guard the card exists to carry: their best
+// is not always an upgrade, and swapping backwards for a round is worse than doing nothing.
+{
+  let ok = true, borrowed = 0, declined = 0, returned = 0;
+  for (let i = 0; i < 40 && borrowed < 12; i++) {
+    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
+    let guard = 0;
+    while (run.phase !== 'ended' && guard++ < 12) {
+      if (run.phase === 'boon' && run.nextOpponent) {
+        const before = run.roster!;
+        const after = chooseBoon(run, 'loan-deal').next;
+        const inP = after.roster!.find((p, j) => p.id !== before[j].id);
+        if (!inP) {
+          // Declined: nothing moved, and nothing was recorded to undo.
+          declined++;
+          if (after.loan !== undefined) ok = false;
+          if (after.roster!.some((p, j) => p.id !== before[j].id)) ok = false;
+        } else {
+          borrowed++;
+          const slot = before.findIndex((p) => p.id !== after.roster![before.indexOf(p)]?.id);
+          const out = before[slot];
+          // A real upgrade, in the outgoing player's own slot, and tagged as handed over.
+          if (inP.elo <= out.elo) ok = false;
+          if (inP.positions[0] !== out.positions[0]) ok = false;
+          if (!after.boostedIds.includes(inP.id)) ok = false;
+          if (new Set(after.roster!.map((p) => p.personId)).size !== 11) ok = false;
+          if (after.loan?.borrowedId !== inP.id || after.loan?.returning.id !== out.id) ok = false;
+          if (after.loan?.untilRound !== after.koRound) ok = false;
+          // He plays the tie, and then he goes home.
+          const played = playKnockoutRound(after);
+          if (played.phase !== 'ended') {
+            returned++;
+            if (played.loan !== undefined) ok = false;
+            if (played.roster!.some((p) => p.id === inP.id)) ok = false;
+            if (!played.roster!.some((p) => p.id === out.id)) ok = false;
+            // Restored to the same slot, so the formation is the one it was.
+            if (played.roster!.map((p) => p.positions[0]).join(',') !== before.map((p) => p.positions[0]).join(',')) ok = false;
+            // And the derived XI agrees with the roster it was recomputed from.
+            if (!played.xi.some((p) => p.id === out.id)) ok = false;
+          }
+        }
+        run = chooseBoon(run, (run.offer ?? [])[0]?.id ?? '').next;
+      } else if (run.phase === 'match') run = playKnockoutRound(run);
+      else break;
+    }
+  }
+  if (!borrowed || !returned) ok = false;
+  check(`loan-deal: borrowed ${borrowed}, declined ${declined}, all ${returned} handed back on time`, ok);
+}
+
+// Underdog's Purse reads the RUN's history, which nothing else does. Two things: the group
+// is excluded for free (a group record carries no ratings), and the count is the number of
+// ties the DRAW made you the weaker side in, never the number of rounds played.
+{
+  const xi = bestEleven(SQUADS[0].players);
+  const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
+  // Nothing yet: a legal no-op, like In Form before a goal.
+  let ok = (chooseBoon(base, 'underdogs-purse').next.effects ?? []).filter((e) => e.source === 'underdogs-purse').length === 0;
+  // A group record on its own is still nothing, ratings being what it does not carry.
+  const grouped = { ...base, history: [{ stage: 'group' as const, won: true, groupPos: 2 }] };
+  if ((chooseBoon(grouped, 'underdogs-purse').next.effects ?? []).some((e) => e.source === 'underdogs-purse')) ok = false;
+  // Two ties as the underdog and one as the favourite pays for the two.
+  const hist = [
+    { stage: 'group' as const, won: true, groupPos: 1 },
+    { stage: 0, won: true, userRating: 78, oppRating: 84 },
+    { stage: 1, won: true, userRating: 79, oppRating: 71 },
+    { stage: 2, won: true, userRating: 80, oppRating: 88 },
+  ];
+  const eff = (chooseBoon({ ...base, history: hist }, 'underdogs-purse').next.effects ?? [])
+    .filter((e) => e.source === 'underdogs-purse');
+  if (eff.length !== 1 || eff[0].delta !== 4 || eff[0].target.ids.length !== 11) ok = false;
+  check("underdogs-purse: nothing without an upset, then +2 for each one (never for the group)", ok);
+}
+
 // Double Print sets the cup-pick count and nothing else. The banking side of it lives in
 // the album hook, which is React and so out of this harness's reach; what is asserted here
 // is that the run carries the number for it to read.
@@ -869,6 +975,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     'sold-out-stadium', // gives every point back the round after
     'mortgage-future', // paid for out of the run's own XP and Prestige, not out of the sim
     'coin-toss', // half the time it is -4; the table averages the two faces
+    // --- item 30, round 4.
+    'loan-deal', // depends on the opponent, and hands him back a round later
+    'underdogs-purse', // only for the rounds the draw made you the underdog
   ]);
 
   // Measure against what people actually field: a budget-built XI (~81), not a national
@@ -932,6 +1041,10 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
           // deals from, not the single best card in the dataset.
           careerTopScorerId: ALL_PLAYERS.find((p) => p.elo >= 90)?.id ?? null,
           chosenId: sample[0].id,
+          // Two knockout ties gone in as the underdog: what a run that has survived to
+          // the semi-final on upsets actually looks like, and enough for Underdog's Purse
+          // to fire rather than read 0.0.
+          underdogRounds: 2,
         });
         att += side(after, isAttacker) - before.att;
         def += side(after, isDefender) - before.def;

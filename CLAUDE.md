@@ -931,7 +931,7 @@ deleted with the plain World Cup it used to gate). Design:
 
 ## Boosts: the catalogue, and the levers beyond the rating average
 
-30 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+33 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
 of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
 made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
 its first six cards shipped 2026-08-22.
@@ -1000,6 +1000,42 @@ the XI and then take a different card, which is the offer re-rolled for free.
 unbanded, which is exactly the way to smuggle an over-band card into the pool - and it
 immediately caught two: The Armband at 3.3 against a rare's 3.2 (now +6, not +8) and Old
 Guard at 4.8 (now legendary).
+
+### Three more (2026-08-23): a position, the run's history, and a temporary person
+
+| Card | Lever | The point |
+| --- | --- | --- |
+| **Full-Backs** | the POSITION | +8 to the left-back and the right-back. The first card that reads the twelve positions rather than the four categories. Every formation in the game plays both (a back five is LB, three centre-backs, RB), so it always finds its two players and needs no no-op branch. Banded on the measured figure, not on how narrow it looks: two of about five defenders means +N here spends 2N/5 of the defensive budget, so +8 measures 3.0 against a rare's 3.2. |
+| **Underdog's Purse** | the run's HISTORY | +2 to the XI for every round the user went in as the lower-rated side. `BoonContext.underdogRounds` is counted off `run.history`, and the **group is excluded for free**: only a knockout `RoundRecord` carries `userRating`/`oppRating`, so the filter never has to know about stages. Legendary and exempt, for the reason Underdog Spirit is: the draw decides it. |
+| **Loan Deal** | **a temporary PERSON** | Borrow the next opponent's best player for one round; he goes back when the round advances. See below - it is the one that needed machinery. |
+
+**Loan Deal is the first temporary ROSTER change.** The effect ledger has always handled
+temporary ratings (`lasts`, `startsIn`) and has never handled temporary people, so the run
+records the loan on **`RunState.loan`** (`{returning, borrowedId, untilRound}`) and
+`prepareKnockoutRound` undoes it in the one transition that moves the round on, just before
+`recomputeXi`. Four things about it:
+
+- **It is two effects, in order.** A `roster` effect picks and swaps exactly as Poach does,
+  so every existing rule comes free (no duplicated `personId`, the outgoing slot preserved,
+  the arrival tagged in `boostedIds` so a borrowed player banks no sticker). A `run` effect
+  then only RECORDS that the swap was a loan, reading the pair the first half produced.
+- **`commitBoon` had to be restructured.** `applyRunMods` used to run over the run as it
+  arrived and then have `roster`/`effects` written over the top, so a modifier that changed
+  the roster would have been silently overwritten. It now runs over the MERGED state, and
+  takes `granted` so the loan can read `swappedIn`/`swappedOut`.
+- **It is a COMMON STARTER and Poach is the rare**, which is a balance reading rather than a
+  taste: the table measures the two at 4.0 and 3.9, so at the same rarity this would have
+  been Poach with an expiry date - a strictly dominated card. As a common it is the cheap
+  version you have from run one, and Poach is what you unlock to keep him.
+- **It only fires on a real upgrade** (`inP.elo > out.elo`). Their best is not always better
+  than the player he would displace, and a boost that weakens the XI for a round and then has
+  to be undone is the worst of both halves.
+
+**A neighbouring bug went with it: Scout Network dropped a starter boost's `run` modifiers
+entirely.** `beginRun` kept `granted.roster` and `granted.effects` and threw `granted.mods`
+away, so a free Ice Veins at kickoff did nothing at all. The mods are collected and applied
+to the finished state now. The ones that need an opponent still correctly no-op there: there
+is nobody to weaken or re-draw before the group.
 
 ### Catalogue changes made at the same time
 

@@ -16,6 +16,10 @@ export interface BoonContext {
   careerTopScorerId?: string | null;
   /** The player the user named, for a card that asks (The Armband). */
   chosenId?: string | null;
+  /** How many rounds SO FAR the user went in as the lower-rated side (Underdog's Purse).
+   *  Counted off the run's own history, so it is a fact the draw decided and nobody
+   *  controls. 0 at the first stop, where no knockout tie has been played. */
+  underdogRounds?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,7 +76,11 @@ export type RunModifier =
   /** Weaken the next opponent's attack and/or defence. Negative numbers weaken. */
   | { what: 'weakenOpponent'; attack: number; defense: number }
   /** How many stickers a cup win may pick, instead of the usual one. */
-  | { what: 'cupPicks'; n: number };
+  | { what: 'cupPicks'; n: number }
+  /** The roster swap this card just made is a LOAN: the player who left comes back when
+   *  the round advances. Carries no names of its own - it reads the swap the card's own
+   *  roster effect performed, which is why Loan Deal declares both. */
+  | { what: 'loan' };
 
 /** The two things a boon can actually do, split so the rating half can be recorded rather
  *  than baked in (see `domain/effects.ts`).
@@ -592,6 +600,85 @@ export const BOONS: Boon[] = [
       {
         kind: 'rating',
         plan: (xi, ctx) => planAll(xi, coinFor(xi, ctx) ? 8 : -4),
+      },
+    ],
+  },
+  {
+    id: 'full-backs',
+    name: 'Full-Backs',
+    // Banded on the measured figure, not on how narrow it looks: two players is a fifth
+    // of a back four plus a keeper, so +N here spends 2N/5 of the defensive budget.
+    rarity: 'rare',
+    description: '+8 to your left-back and right-back.',
+    // The first card that reads the twelve POSITIONS rather than the four categories.
+    // Every formation in the game plays a left-back and a right-back (a back five is
+    // LB, three centre-backs, RB), so it always finds its two players and never needs a
+    // no-op branch - which also means it cannot be gamed by the shape you built.
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi) =>
+          planWhere(xi, (p) => primaryPosition(p) === 'LB' || primaryPosition(p) === 'RB', 8),
+      },
+    ],
+  },
+  {
+    id: 'loan-deal',
+    name: 'Loan Deal',
+    // COMMON, and a starter, precisely because Poach exists. Measured at 4.0 against
+    // Poach's 3.9 the two are the same swing, so at the same rarity this would have been
+    // Poach with an expiry date - strictly worse, and a card nobody would ever take. As a
+    // common starter it is instead the cheap version you have from run one, and Poach is
+    // the rare you unlock to keep him.
+    rarity: 'common',
+    starter: true,
+    description: "Borrow your next opponent's best player for this round. He then goes back.",
+    // Poach without keeping him. The first TEMPORARY roster change in the game: the
+    // effect ledger has always handled temporary ratings, and never temporary people, so
+    // the run records the loan (`RunState.loan`) and hands the departing player back when
+    // the round advances.
+    //
+    // Two effects, in this order and deliberately so. The roster half picks and swaps
+    // exactly as Poach does, so every existing rule comes free (no duplicated person, the
+    // outgoing slot preserved, the arrival tagged in `boostedIds` so a borrowed player
+    // banks no sticker). The run half only records that the swap was a loan, reading the
+    // pair the first half produced.
+    effects: [
+      {
+        kind: 'roster',
+        apply: (roster, ctx) => {
+          const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
+          if (!opp) return roster;
+          const used = new Set(roster.map((p) => p.personId));
+          const cands = opp.players.filter((p) => !used.has(p.personId));
+          if (!cands.length) return roster;
+          const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
+          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+          // Only if he is actually an upgrade. Their best is not always better than the
+          // player he would displace, and a "boost" that weakens the XI and then has to
+          // be undone a round later is the worst of both halves.
+          if (inP.elo <= out.elo) return roster;
+          return swap(roster, out.id, { ...inP, positions: out.positions });
+        },
+      },
+      { kind: 'run', mod: { what: 'loan' } },
+    ],
+  },
+  {
+    id: 'underdogs-purse',
+    name: "Underdog's Purse",
+    rarity: 'legendary',
+    description: '+2 to your XI for every round you went in as the lower-rated side.',
+    // Pays a run that has been SURVIVING rather than dominating, and it is the first card
+    // that reads the run's own history rather than its XI or its next opponent. Worth
+    // nothing at the first stop (no knockout tie has been played) and worth nothing at all
+    // to a run that was favourite every time, which is what makes it a gamble rather than
+    // a number. Exempt from the bands for the same reason Underdog Spirit is: the draw
+    // decides it, and the draw is the one thing nobody controls.
+    effects: [
+      {
+        kind: 'rating',
+        plan: (xi, ctx) => (ctx.underdogRounds ? planAll(xi, 2 * ctx.underdogRounds) : []),
       },
     ],
   },

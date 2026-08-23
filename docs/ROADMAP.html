@@ -323,7 +323,7 @@
   <summary>
     <span class="num">30</span>
     <span class="title">A boost catalogue that is not "strength + X"
-      <span class="sub">Boosts that are not just "+N to the XI". 30 cards shipped, 71 ideas rejected; round 4 goes at moving rating BETWEEN players and at multiplying rather than adding. <code>docs/boost-ideas.md</code>.</span>
+      <span class="sub">Boosts that are not just "+N to the XI". 33 cards shipped, 93 ideas rejected; round 5 goes at four named surfaces rather than another open-ended 25. <code>docs/boost-ideas.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -362,7 +362,27 @@
     that was not expressible yesterday: ones whose effect the player AIMS. The first five
     ideas of round 3 are all of that shape.</p>
 
-    <p><strong>Round 4 goes at the two things every earlier round missed:</strong> moving
+    <p><strong>Round 4: 3 of 25 built</strong>, and each opened something. <b>Full-Backs</b>
+    (+8 to your left-back and right-back) is the first card that reads the twelve POSITIONS
+    rather than the four categories; every formation in the game plays both, so it always
+    finds its two players. <b>Underdog's Purse</b> (+2 to the XI for every round you went in
+    as the lower-rated side) is the first that reads the run's own HISTORY - worth nothing at
+    the first stop, and worth nothing at all to a run that was favourite every time.</p>
+
+    <p><strong>And <b>Loan Deal</b> is the first temporary ROSTER change in the game.</strong>
+    The effect ledger has always handled temporary ratings and has never handled temporary
+    people, so the run records the loan (<code>RunState.loan</code>) and
+    <code>prepareKnockoutRound</code> hands the borrowed player back when the round advances.
+    Two things fell out of it. It is a <b>common starter</b> and Poach is the rare, because
+    the balance table measured the two at 4.0 and 3.9: at the same rarity this would have been
+    Poach with an expiry date, which is a strictly dominated card. And <code>commitBoon</code>
+    had to be restructured - a <code>RunModifier</code> used to run over the run as it was and
+    then have <code>roster</code>/<code>effects</code> written over the top, so the first
+    modifier that needed to see its own card's swap would have had its change silently
+    overwritten. A neighbouring bug went with it: <b>Scout Network dropped a starter boost's
+    run modifiers entirely</b>, so a free Ice Veins at kickoff did nothing at all.</p>
+
+    <p><strong>Round 4 went at the two things every earlier round missed:</strong> moving
     rating <b>between</b> players rather than adding it (Squad Harmony flattens the XI to its
     own average; Meritocracy widens the gap; Wage Bill moves 10 from the best to the two
     worst), and <b>multiplying</b> rather than adding (a percentage helps a strong XI most,
@@ -384,10 +404,15 @@
     (shirt numbers, oldest and newest tournaments), and <b>undoing</b> - every card in the pool
     so far only adds, and nothing removes.</p>
 
-    <p class="next"><strong>Next step:</strong> the owner picks from round 4, or names a
-    surface for a round 5. The redistribution cards (#1 to #5) are the cheapest and the most
-    different: they need no new machinery at all, and their value is decided entirely by the
-    shape of the XI in front of the player.</p>
+    <p><strong>Round 5 takes the advice above and aims at four named surfaces</strong>
+    rather than another open-ended 25: the goalkeeper (one of eleven, and only Keeper Coach
+    has ever addressed him), a run that is LOSING (every card in the pool is priced for a run
+    that is winning), the shape Loan Deal opened (temporary people, now that the machinery
+    exists), and the stop itself (the offer, the re-roll, the moment of choosing).</p>
+
+    <p class="next"><strong>Next step:</strong> the owner picks from round 5. The temporary
+    -roster cards are now the cheapest of the lot, since Loan Deal built the machinery they
+    all need.</p>
 
     <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
   </div>
