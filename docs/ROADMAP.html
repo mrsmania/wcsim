@@ -306,8 +306,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-22<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Updated:</strong> 2026-08-23<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -468,6 +468,74 @@
     they need.</p>
 
     <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">31</span>
+    <span class="title"><code>npm run checks</code> fails at random, about one run in four
+      <span class="sub">One career check plays a real run and takes whichever boost is offered first. Sponsorship doubles the XP a run pays, and the check asserts the XP equals the run's plain score, so it fails whenever that card comes up. Measured at 27.1% over 2000 runs. Found 2026-08-23.</span>
+    </span>
+    <span class="tag">Structure</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The problem in plain English.</strong> You run <code>npm run checks</code> and
+    it reports one failure. You change nothing and run it again, and it passes. The suite is
+    not testing anything differently the second time; it just played a different random run.
+    <b>This is worse than having no check at all</b>, because it teaches you to re-run until
+    the output is green, and once that is the habit a REAL failure reads as the usual flake
+    and gets waved through. The repo already knows this - the boon-power block seeds its
+    randomness for exactly this reason, and the note beside it says a randomly-failing
+    assertion is worse than none - so this is a rule the codebase set and then broke
+    somewhere else.</p>
+
+    <p><strong>Which check, and what it does.</strong>
+    <code>career: run rewards accrue and account correctly</code> (near the end of
+    <code>scripts/checks.ts</code>). It plays one whole Cup Run for real, with unseeded
+    <code>Math.random</code>, always taking the FIRST boost of each offer, and then asserts
+    that the career banked the run correctly: runs went up by one, the level matches the XP,
+    a cup shows up as a cup, <code>xpGained</code> equals <code>run.score</code>, and
+    <code>prestigeGained</code> is at least 1.</p>
+
+    <p><strong>Why it fails.</strong> Two of those assertions were written when every boost
+    only changed ratings, and the payout cards that shipped on 2026-08-23 broke both.
+    <b>Sponsorship</b> doubles the XP a run pays (<code>xpMult</code>), so
+    <code>xpGained</code> is twice <code>run.score</code> and the equality is simply wrong.
+    It is a free COMMON STARTER, so it sits in every fresh career's offer pool and lands in
+    the first slot often: <b>541 of 2000 runs, 27.1%</b>. Since the suite runs the block once,
+    that is the odds of a red run.</p>
+
+    <p><strong>The same trap is armed a second time, and today it happens to be unreachable.</strong>
+    <b>Mortgage the Future</b> and <b>All or Nothing</b> can pay nothing at all, and
+    <b>Youth Development</b> pays no Prestige, any of which breaks
+    <code>prestigeGained &gt;= 1</code>. None of them fired in 2000 runs - not because the
+    assertion is safe, but because all three are bought with Prestige and
+    <code>INITIAL_CAREER</code> has none, so they are not in this check's pool. Fix only the
+    XP line and the Prestige line stays a landmine for whoever makes one of them a starter.</p>
+
+    <p><strong>Two ways to fix it, and the second is better.</strong>
+    <b>(A) Seed the block</b>, as the boon-power table does. Cheap, and it makes the failure
+    deterministic - but it freezes ONE path through the payout rules and hides the rest.
+    <b>(B) Pin the boost this check takes</b> to a card with no payout modifier, so it goes
+    back to measuring the plain accounting it was written for, and then add a SEPARATE check
+    per payout card asserting its own figure: Sponsorship doubles the XP and leaves the wallet
+    alone, Mortgage pays zero unless the cup is won, All or Nothing triples a cup and zeroes a
+    lost final, Youth Development banks a boost for the next run instead of paying Prestige.
+    <b>That gap is the real finding here:</b> nothing in the suite currently asserts that any
+    of the four payout cards does what its description promises, which is why a card that
+    changes the payout could break a payout check without anyone noticing it was related.</p>
+
+    <p><strong>Not caused by the header and crumb work of the same day</strong> (that is UI
+    only, and the same check passes and fails on an unchanged tree), and not a reason to
+    distrust the other 120 checks - they were green on every run.</p>
+
+    <p class="next"><strong>Next step:</strong> option B. Pin the boost, then write the four
+    per-card payout assertions; re-run <code>npm run checks</code> a dozen times and confirm
+    it is green every time, since one green run proves nothing about a flake.</p>
+
+    <p class="files">scripts/checks.ts, src/domain/career.ts, src/domain/boons.ts</p>
   </div>
 </details>
 
