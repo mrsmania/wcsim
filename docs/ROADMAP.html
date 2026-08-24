@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-23<br>
-    <strong>Open:</strong> 5 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -318,6 +318,79 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">33</span>
+    <span class="title">1986 follow-ups: push the collectible seed, and verify the ratings
+      <span class="sub">Two loose ends from the 1986 drop. The seed is generated and committed but NOT on the account server yet - that needs a LAN or VPN. And 255 of the 529 rows carry an inferred position and a baseline rating rather than an authored one.</span>
+    </span>
+    <span class="tag">Content</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>1. Push the collectible seed to the account server.</strong> 1986 took the
+    album from 81 to 84, so <code>supabase/seed/collectibles.sql</code> was regenerated with
+    <code>npm run gen:collectibles</code> and is committed. The server still has the old 81:
+    <b>run <code>npm run push:collectibles</code></b> from the LAN or VPN (it needs
+    <code>dkr/.env</code> and cannot be reached from a cloud session). Until then a
+    signed-in player who drafts Maradona 1986, Platini 1986 or Lineker 1986 banks an id the
+    server's catalogue does not contain, and <code>finish_run</code> refuses the whole bank -
+    which for an account is the blocking unreachable screen, not a silent miss. Guests are
+    unaffected: collectibility is derived from <code>player.elo</code> in the client.
+    <br>The three new ids are <code>arg-1986-10</code>, <code>fra-1986-10</code> and
+    <code>eng-1986-10</code>. All three also need sticker art
+    (<code>art/stickers-src/&lt;id&gt;.png</code>, then
+    <code>python scripts/build-sticker-art.py</code>); until it exists
+    <code>StickerCard</code> falls back to text and a flag per missing file, which is
+    working-as-designed rather than broken.</p>
+
+    <p><strong>2. Verify the 1986 positions and ratings.</strong> The rosters are solid - the
+    shirt numbers and names are from a CC0 source that agrees with our own 1990 on 507 of
+    528 names and every one of their numbers. <b>What is not solid to the same degree is
+    everything the source does not carry</b>, and the split is worth knowing before spending
+    time on it:
+    <ul>
+      <li><b>274 of the 529 rows were authored from knowledge</b> - the twelve specific
+      positions and a rating for each, anchored to that player's existing rows where he
+      appears in another tournament (1990 Maradona 92 to 1986 Maradona 98, Lineker 89 to 90).
+      These are worth spot-checking but are not guesses.</li>
+      <li><b>94 rows reuse OUR positions verbatim</b>, because the player is already in the
+      dataset. Their 1986 rating is a flat two points below their next appearance, which is a
+      crude proxy for four years of age and form: <b>that rule is the most mechanical thing
+      in the block</b> and the obvious first thing to review. It is wrong in both directions -
+      a 24-year-old improving into 1990 should be further below, and anyone past his peak by
+      1990 should be ABOVE his later number.</li>
+      <li><b>255 rows are inferred</b>: a position from an ordered distribution within the
+      player's GK/DF/MF/FW category (which guarantees every squad has full-backs, a holder
+      and wide players, so no squad is unusable in the draft), and a rating that is the
+      squad's baseline plus a spread keyed to shirt number. Mostly the squads nobody has
+      written about: <b>Bulgaria, Algeria, Canada and Iraq carry 5 or 6 distinct ratings
+      between 22 players</b> and are where a pass would pay most.</li>
+    </ul>
+    <b>What to check first, in order:</b> the flat "minus two" rule on the 94 (cheapest fix,
+    widest effect); then whether any 1986 player deserves 90+ and is currently missing it,
+    since that is what changes the album rather than the balance - today only Maradona,
+    Platini and Lineker clear it, and Zico, Butragueño, Elkjær, Rummenigge, Matthäus, Careca,
+    Hugo Sánchez and Belanov all sit at 87 to 89, one point away; then the four thin squads.
+    <br><b>Re-run <code>npm run gen:collectibles</code> after any rating change that crosses
+    90, 93 or 97</b>, or <code>npm run checks</code> fails on the stale seed - which is the
+    mechanism working, not a problem.</p>
+
+    <p><strong>Why this is a follow-up rather than a defect.</strong> The dataset's own
+    convention is that ratings are a judgement call, and 1998 and 2002 were built the same
+    way (a blend of ability and how the tournament actually went). The difference with 1986
+    is only that a larger share of the squad has no surviving record to judge from, so the
+    inference is doing more of the work. Worth a pass; not worth blocking on.</p>
+
+    <p class="next"><strong>Next step:</strong> run <code>npm run push:collectibles</code>
+    next time you are on the LAN - that one is a blocker for signed-in players and takes a
+    minute. The rating pass can wait for whenever 1982 is done, so both tournaments get
+    reviewed together.</p>
+
+    <p class="files">supabase/seed/collectibles.sql, src/data/squads.ts, art/stickers-src/</p>
+  </div>
+</details>
 
 <details class="item">
   <summary>
@@ -373,6 +446,9 @@
     the same commit. <b>Expect this every tournament</b>, and check it before believing a
     dataset addition is done: <code>validateSquads</code> does not catch it, because two
     people with one name is indistinguishable from one person with two appearances.
+    <br><b>Two things 1986 left open are item 33:</b> the regenerated collectible seed is
+    committed but not yet pushed to the account server, and 255 of the 529 rows carry an
+    inferred position and a baseline rating rather than an authored one.
     <br><b>New collectibles: 3</b>, taking the album from 81 to 84 - Maradona 1986 at 98,
     which is a <b>Monumental</b> and the second-highest card in the game behind Messi 2022,
     plus Platini and Lineker at 90. All three wear number 10.</p>
