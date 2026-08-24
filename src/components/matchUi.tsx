@@ -56,7 +56,7 @@ export const ordinal = (n: number) =>
 export const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
 
 /** A scored/missed pip (green check / red cross) for one penalty. */
-export function PenPip({ scored }: { scored: boolean }) {
+function PenPip({ scored }: { scored: boolean }) {
   return (
     <span
       className={`grid h-[17px] w-[17px] shrink-0 place-items-center rounded-full ${

@@ -712,7 +712,7 @@ export const CHALLENGES: Challenge[] = [
     } },
 ];
 
-export const CHALLENGE_BY_ID = new Map(CHALLENGES.map((c) => [c.id, c]));
+const CHALLENGE_BY_ID = new Map(CHALLENGES.map((c) => [c.id, c]));
 export const challengeById = (id: string): Challenge | undefined => CHALLENGE_BY_ID.get(id);
 
 /** Every collectible player id in the dataset, for the album-completion challenges. */

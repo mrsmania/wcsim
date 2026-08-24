@@ -15,7 +15,7 @@ import type { AccountSnapshot, AlbumStats, FinishRunResult, Store } from './type
 // ---------------------------------------------------------------------------
 
 /** Thrown when a write is refused because another device got there first. */
-export class StaleVersionError extends Error {
+class StaleVersionError extends Error {
   constructor() {
     super('This account was updated on another device.');
     this.name = 'StaleVersionError';

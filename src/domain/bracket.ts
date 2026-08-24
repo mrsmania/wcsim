@@ -4,7 +4,7 @@ import type { Squad } from '../data/types';
 import { USER_ID, type GroupTeam } from './tournament';
 import { drawOpponent, KO_ROUNDS, resolveKoTie, type KoDecided } from './knockout';
 
-export const FIELD_SIZE = 16;
+const FIELD_SIZE = 16;
 
 export interface BracketResult {
   homeGoals: number;

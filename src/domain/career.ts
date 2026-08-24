@@ -349,7 +349,7 @@ export const PERKS: Perk[] = [
   },
 ];
 
-export const perkById = (id: string): Perk | undefined => PERKS.find((p) => p.id === id);
+const perkById = (id: string): Perk | undefined => PERKS.find((p) => p.id === id);
 
 /** The owned tier of a perk (0 = not owned). */
 /** The career's all-time top scorer by goals, or undefined on a career that has never

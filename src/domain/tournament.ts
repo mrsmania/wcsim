@@ -208,7 +208,7 @@ export function standings(group: GroupState): Standing[] {
 
 /** The teams that advance from the group: the top `QUALIFY_COUNT` of the table.
  *  The single source of the "top 2 advance" rule. */
-export function qualifiers(group: GroupState): GroupTeam[] {
+function qualifiers(group: GroupState): GroupTeam[] {
   return standings(group).slice(0, QUALIFY_COUNT).map((s) => s.team);
 }
 

@@ -22,7 +22,7 @@ import type { Filled } from './draft';
 export type ChemDimension = 'squad' | 'nation' | 'tournament' | 'continent' | 'era' | 'fit';
 
 /** Display name per category - reused verbatim in the rules tooltip and breakdown. */
-export const CHEM_NAME: Record<ChemDimension, string> = {
+const CHEM_NAME: Record<ChemDimension, string> = {
   squad: 'Same squad',
   nation: 'Same nation',
   tournament: 'Same tournament',

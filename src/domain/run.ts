@@ -38,7 +38,6 @@ import {
 } from './boons';
 import { xiOf, type RunEffect } from './effects';
 import {
-  bracketChampion,
   buildBracket,
   currentGame,
   opponentOf,
@@ -69,7 +68,7 @@ export type RunPhase = 'group' | 'boon' | 'match' | 'ended';
  * was kicked**. Any round number used to grant an effect has to be the one the run will
  * actually be read at.
  */
-export const START_ROUND = 0;
+const START_ROUND = 0;
 
 /** What granting one boon did: the new roster, the new ledger, and (for a roster boon)
  *  who came in and who went out, so the UI can describe the swap without re-diffing. */
@@ -107,10 +106,6 @@ function grantBoon(
   boon: Boon,
   ctx: BoonContext,
   atRound: number,
-  /** Optional expiry, threaded through to the ledger. No caller passes it yet - every
-   *  boost is permanent - but it is what the ledger exists for, so it stays wired rather
-   *  than being added back when the first temporary effect arrives. */
-  expiresAfter?: number,
 ): Granted {
   let nextRoster = roster;
   let nextEffects = effects;
@@ -130,7 +125,7 @@ function grantBoon(
       const plans = eff.plan(xiOf(nextRoster, nextEffects, atRound), ctx);
       nextEffects = [
         ...nextEffects,
-        ...effectsFrom(plans, boon.id, boon.name, atRound, expiresAfter),
+        ...effectsFrom(plans, boon.id, boon.name, atRound),
       ];
     } else {
       mods.push(eff.mod);
@@ -142,21 +137,21 @@ function grantBoon(
 /** Turn resolved plans into ledger entries. Empty plans (a conditional boon whose
  *  condition did not fire) contribute nothing, which is how "it did nothing this time"
  *  is represented - never a zero-delta entry. */
-export function effectsFrom(
+function effectsFrom(
   plans: RatingPlan[],
   source: string,
   label: string,
   atRound: number,
-  expiresAfter?: number,
 ): RunEffect[] {
   return plans
     .filter((pl) => pl.ids.length > 0 && pl.delta !== 0)
     .map((pl, i) => {
-      // A plan can carry its own window (Second Wind lasts one round; Sold Out Stadium's
-      // debt starts one round later and lasts one). The caller's `expiresAfter` is the
-      // fallback for plans that say nothing.
+      // A plan carries its own window: Second Wind lasts one round, Sold Out Stadium's
+      // debt starts one round later and lasts one. `lasts` is the ONLY way an effect
+      // expires - grantBoon used to take a caller-level `expiresAfter` as a fallback and
+      // no caller ever passed one, so a plan that says nothing is simply permanent.
       const from = atRound + (pl.startsIn ?? 0);
-      const until = pl.lasts !== undefined ? from + pl.lasts - 1 : expiresAfter;
+      const until = pl.lasts !== undefined ? from + pl.lasts - 1 : undefined;
       return {
         id: `${source}-${atRound}-${i}-${pl.delta}`,
         source,
@@ -1013,7 +1008,7 @@ function underdogRoundsOf(run: RunState): number {
 /** Who has scored most for the XI so far this run, or null before the first goal. Ties
  *  break on the id so the answer is stable across a replay rather than depending on
  *  object order. */
-export function topScorerOf(run: RunState): string | null {
+function topScorerOf(run: RunState): string | null {
   const goals = run.tally?.goals ?? {};
   let best: string | null = null;
   for (const [id, n] of Object.entries(goals)) {
@@ -1145,13 +1140,6 @@ function nextOpponentOf(b: BracketState): GroupTeam | null {
   const g = currentGame(b);
   if (!g) return null;
   return opponentOf(b, g) ?? null;
-}
-
-/** The champion of a run's bracket, whoever it turned out to be (the user, or the team
- *  that went on to win it after they went out). Null without a bracket, or before the
- *  final has been played. Exposed for the run's ended screen. */
-export function runChampion(run: RunState) {
-  return run.bracket ? bracketChampion(run.bracket) : null;
 }
 
 /**

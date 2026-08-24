@@ -14,9 +14,9 @@ export const FT_HOLD_MS = 700;
 /** Hold (ms) on the final scoreline before a knockout round records + advances. */
 export const KO_END_HOLD_MS = 1200;
 /** Delay (ms) after the final whistle before a shootout starts revealing. */
-export const SHOOTOUT_START_MS = 700;
+const SHOOTOUT_START_MS = 700;
 /** Hold (ms) after the last penalty before the knockout round records + advances. */
-export const SHOOTOUT_END_HOLD_MS = 1500;
+const SHOOTOUT_END_HOLD_MS = 1500;
 
 /** What a match reveal needs from its caller. Passed fresh each render; the hook
  *  reads it through a ref so only starting a new match restarts the timer. */

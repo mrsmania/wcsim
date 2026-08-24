@@ -59,7 +59,7 @@ export const bump = (p: Player, d: number): Player => ({
 
 /** Whether an effect is live on the given round. A window, open at both ends by
  *  default: most effects start when granted and never end. */
-export const effectActive = (e: RunEffect, atRound: number): boolean =>
+const effectActive = (e: RunEffect, atRound: number): boolean =>
   (e.appliesFrom === undefined || atRound >= e.appliesFrom) &&
   (e.expiresAfter === undefined || atRound <= e.expiresAfter);
 
@@ -81,7 +81,3 @@ export function xiOf(roster: Player[], effects: RunEffect[], atRound: number): P
   }
   return out;
 }
-
-/** Effects live on the given round, for the UI. */
-export const activeEffects = (effects: RunEffect[], atRound: number): RunEffect[] =>
-  effects.filter((e) => effectActive(e, atRound));

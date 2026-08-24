@@ -29,7 +29,7 @@ export const FAMILY_COLOR: Record<ChallengeFamily, string> = {
  *  catalogue is 130 entries and it could not afford three more hues on top of the
  *  twelve family accents. While awards are off the tier reads as difficulty, which is
  *  a scale rather than a category, so `TierPips` draws it as three filled slots. */
-export const TIER_NAME: Record<ChallengeTier, string> = {
+const TIER_NAME: Record<ChallengeTier, string> = {
   bronze: 'Bronze',
   silver: 'Silver',
   gold: 'Gold',
@@ -55,7 +55,7 @@ export function TierPips({ tier }: { tier: ChallengeTier }) {
 }
 
 /** The family dot, the one marker every challenge surface shares. */
-export function FamilyDot({ family }: { family: ChallengeFamily }) {
+function FamilyDot({ family }: { family: ChallengeFamily }) {
   return (
     <span
       className="mt-[5px] h-2.5 w-2.5 shrink-0 rounded-full"

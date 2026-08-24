@@ -89,7 +89,7 @@ export function primaryPosition(player: Player): Position {
 }
 
 /** Categories counted as attack in match strength. */
-export const ATTACK_CATS: PositionCategory[] = ['MID', 'FWD'];
+const ATTACK_CATS: PositionCategory[] = ['MID', 'FWD'];
 
 /** Categories counted as defense in match strength. */
 export const DEF_CATS: PositionCategory[] = ['GK', 'DEF'];
