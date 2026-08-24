@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-23<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -323,7 +323,7 @@
   <summary>
     <span class="num">30</span>
     <span class="title">A boost catalogue that is not "strength + X"
-      <span class="sub">CLOSED 2026-08-23. 34 cards ship; 164 ideas were rejected across seven rounds, and three shipped cards were deleted for being worse than a free starter. <code>docs/boost-ideas.md</code>.</span>
+      <span class="sub">CLOSED 2026-08-23. 32 cards ship; 164 ideas were rejected across seven rounds, and five shipped cards were deleted - three for being worse than a free starter, then Full-Backs and Ice Veins. <code>docs/boost-ideas.md</code>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -363,9 +363,10 @@
     ideas of round 3 are all of that shape.</p>
 
     <p><strong>Round 4: 3 of 25 built</strong>, and each opened something. <b>Full-Backs</b>
-    (+8 to your left-back and right-back) is the first card that reads the twelve POSITIONS
-    rather than the four categories; every formation in the game plays both, so it always
-    finds its two players. <b>Underdog's Purse</b> (+2 to the XI for every round you went in
+    (+8 to your left-back and right-back) was the first card that read the twelve POSITIONS
+    rather than the four categories. It shipped on the claim that every formation plays both,
+    so it always finds its two players; <b>that claim was false and the card was deleted
+    2026-08-23</b> - see the closing note below. <b>Underdog's Purse</b> (+2 to the XI for every round you went in
     as the lower-rated side) is the first that reads the run's own HISTORY - worth nothing at
     the first stop, and worth nothing at all to a run that was favourite every time.</p>
 
@@ -461,11 +462,35 @@
     ceiling and most of its +8 evaporated. Star Signing was examined and kept: it is a junior
     Marquee Signing, but it is free, and the rule is about paid cards.</p>
 
+    <p><strong>Two more deleted later the same day, bringing the pool to 32.</strong>
+    <b>Full-Backs</b> (a 30-Prestige rare) shipped on the claim that every formation plays a
+    left-back and a right-back. Measured 2026-08-23, that is false: all three styles of
+    <b>3-4-3</b> and <b>3-5-2</b> field three centre-backs with wide MIDfielders, so <b>6 of
+    the 24 formations have neither</b> and the card did nothing whatever in them - the same
+    dead-slot failure as the three above, arrived at from the other direction, and the reason
+    the false claim is now corrected everywhere it appeared. <b>Ice Veins</b> was removed by
+    decision rather than by a measurement: it was doing exactly what it said (+8 to the five
+    best penalty takers, shootouts only, and asserted as never touching a scoreline).
+    <br><b>Two consequences of losing Ice Veins, both worth knowing:</b> the shootout lever
+    itself is <b>kept</b> (<code>userGroupTeam</code> still takes its penalty bonus as
+    arguments separate from the chemistry and difficulty deltas, on the same reasoning that
+    keeps <code>RunEffect.expiresAfter</code>) and is now asserted on its own rather than
+    through a card, so deleting its last caller did not leave it untested. And it was a
+    STARTER, so a brand-new career's pool went from 11 cards to 10: with the widest offer
+    (Extra Choice tier 2) and Scout Network tier 2, the last stop of a run now draws five
+    from exactly five. It still fills, with <b>zero margin</b> - one more starter deleted, or
+    one more pool-consuming perk, and offers quietly get smaller. <code>npm run checks</code>
+    watches that figure.</p>
+
     <p class="next"><strong>Next step:</strong> none. The test above is what the item leaves
     behind - apply it before adding a card, not after. The unbuilt ideas are all recorded in
     <code>docs/boost-ideas.md</code> if the pool ever needs widening again; the
     temporary-roster ones from round 5 are the cheapest, since Loan Deal built the machinery
-    they need.</p>
+    they need. One loose end is NOT from the deletions and is recorded here so it is not
+    lost: <b>Sold Out Stadium is free if it is taken before the final</b>, because its debt
+    falls on "the round after" and there is not one. Left as it is deliberately rather than
+    silently redesigned; the fix is either not offering it in the last round or moving the
+    debt.</p>
 
     <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
   </div>
@@ -568,7 +593,7 @@
   <summary>
     <span class="num">32</span>
     <span class="title">Two boost decisions a thorough test turned up
-      <span class="sub">Two found 2026-08-23; the repeat-offer half is DONE the same day (an offer now excludes what the run holds). Still open: Full-Backs is a paid rare that does NOTHING in 6 of the 24 formations.</span>
+      <span class="sub">CLOSED 2026-08-23, both halves the same day. Offers now exclude what the run already holds, and Full-Backs - dead in 6 of the 24 formations - was deleted rather than retargeted.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -668,10 +693,20 @@
     card.</b> A real line-up is a formation filled through <code>placedPlayers</code>, from a
     varied squad, on a run that actually reached a stop.</p>
 
-    <p class="next"><strong>Next step:</strong> (2) is done. What is left is (1): decide
-    between widening Full-Backs to the two widest defenders, retargeting it to the flanks
-    (LB/RB, else the wing-backs a back three plays), or keeping it as a card that rewards a
-    back four - deliberately this time, rather than by an accident of a wrong comment.</p>
+    <p><strong>DONE 2026-08-23: Full-Backs was deleted</strong>, which was none of the three
+    options above. The card was only ever worth keeping if it could be made to fire
+    everywhere, and both ways of doing that cost something real: widening it to "the two
+    widest defenders" makes a card that says left-back and right-back mean something else, and
+    retargeting it to the flanks moves +8 onto MIDfielders, which lands in the attack average
+    and needs re-banding. A fourth option - leave it dead in a quarter of the shapes - is the
+    dead slot the item-30 rule exists to delete. So it went the way Set-Piece Drills, Squad
+    Rotation and Counter Attack went, and for the same reason. Ice Veins was deleted alongside
+    it by decision; the notes on what that cost (a starter out of a 10-card pool, and a
+    shootout lever with no caller) are in item 30.</p>
+
+    <p class="next"><strong>Next step:</strong> none, both halves are closed. The transferable
+    part is the sampling lesson above: when a card looks conditional, suspect the XI before
+    the card.</p>
 
     <p class="files">src/domain/boons.ts, src/domain/run.ts, scripts/checks.ts</p>
   </div>

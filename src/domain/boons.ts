@@ -513,19 +513,6 @@ export const BOONS: Boon[] = [
     effects: [{ kind: 'run', mod: { what: 'cupPicks', n: 2 } }],
   },
   {
-    id: 'ice-veins',
-    name: 'Ice Veins',
-    rarity: 'common',
-    starter: true,
-    description: '+8 to your five best penalty takers. Shootouts only.',
-    // The only card in the pool that does not move a scoreline. Penalty takers are
-    // already sorted by rating and conversion is already linear in it, so this is a real
-    // effect on a lever nothing else touches - it does nothing in most ties, and decides
-    // the ones that go the distance. Free against the rarity bands by construction: the
-    // attack and defence averages the balance harness measures are untouched.
-    effects: [{ kind: 'run', mod: { what: 'penBonus', n: 8, top: 5 } }],
-  },
-  {
     id: 'kind-draw',
     name: 'Kind Draw',
     rarity: 'rare',
@@ -580,32 +567,6 @@ export const BOONS: Boon[] = [
       {
         kind: 'rating',
         plan: (xi, ctx) => planAll(xi, coinFor(xi, ctx) ? 8 : -4),
-      },
-    ],
-  },
-  {
-    id: 'full-backs',
-    name: 'Full-Backs',
-    // Banded on the measured figure, not on how narrow it looks: two players is a fifth
-    // of a back four plus a keeper, so +N here spends 2N/5 of the defensive budget.
-    rarity: 'rare',
-    description: '+8 to your left-back and right-back.',
-    // The first card that reads the twelve POSITIONS rather than the four categories.
-    //
-    // This used to claim that every formation plays a left-back and a right-back, so the
-    // card always finds its two players. THAT IS FALSE, measured 2026-08-23: all three
-    // styles of 3-4-3 and 3-5-2 field three centre-backs and wide MIDfielders, so 6 of
-    // the 24 formations have neither and the card is a complete no-op in them. It is a
-    // paid rare, so in those shapes it is a dead slot in every offer it appears in, which
-    // is the thing the item-30 deletion rule exists to catch. Left as it is pending a
-    // decision (roadmap 32); `npm run checks` now asserts the honest relationship - it
-    // fires exactly when the XI plays a full-back - and prints how many shapes it is dead
-    // in, so the claim cannot quietly come back.
-    effects: [
-      {
-        kind: 'rating',
-        plan: (xi) =>
-          planWhere(xi, (p) => primaryPosition(p) === 'LB' || primaryPosition(p) === 'RB', 8),
       },
     ],
   },

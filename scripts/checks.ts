@@ -582,8 +582,12 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // Each of these is a claim the balance table above cannot check, because the table only
 // measures attack and defence. These are those claims.
 
-// Ice Veins lifts the SHOOTOUT and nothing else. If it ever touched `strength` it would
-// move scorelines, and it would be just another "+N" card wearing a different hat.
+// The shootout-only lever: `userGroupTeam` takes its penalty bonus as arguments SEPARATE
+// from the chemistry and difficulty deltas, precisely so it cannot reach `strength` and
+// move a scoreline. Ice Veins was the card built on it and was deleted 2026-08-23; the
+// seam is deliberately kept (a shootout card or perk is the obvious next user - see
+// `docs/perk-ideas.md`), so it is asserted on its own rather than through a card. Without
+// this the whole lever would be untested the moment its only caller went.
 {
   const xi = bestEleven(SQUADS[0].players);
   const plain = userGroupTeam(xi, 0, 0);
@@ -596,7 +600,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     const want = plain.penTakers[i].elo + (i < 5 ? 8 : 0);
     if (iced.penTakers[i].elo !== want) ok = false;
   }
-  check('ice-veins: lifts the shootout, and leaves strength and scorers untouched', ok);
+  check('run: a penalty bonus lifts the shootout and leaves strength and scorers alone', ok);
 }
 
 // Kind Draw keeps the weaker of two opponents, and - the part that could silently rot -
@@ -766,33 +770,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 }
 
 // --- item 30, round 4 ---------------------------------------------------------
-
-// Full-Backs is the first card that reads the twelve POSITIONS rather than the four
-// categories, so what is asserted is the selection: exactly the two full-backs, in every
-// formation the game offers (a back five is LB, three centre-backs, RB), and nobody else.
-{
-  let ok = true, hitCount = 0;
-  for (let i = 0; i < 20; i++) {
-    const xi = bestEleven(SQUADS[i].players);
-    const run = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
-    const after = chooseBoon(run, 'full-backs').next;
-    const eff = (after.effects ?? []).filter((e) => e.source === 'full-backs');
-    const fbs = run.roster!.filter((p) => p.positions[0] === 'LB' || p.positions[0] === 'RB');
-    hitCount += fbs.length;
-    // No full-back is an empty plan, which the ledger drops rather than storing as a
-    // zero. (An XI drafted in the game always has both, since every formation plays
-    // them; `bestEleven` picks on rating alone and so sometimes has neither.)
-    if (!fbs.length) { if (eff.length) ok = false; continue; }
-    if (eff.length !== 1 || eff[0].delta !== 8) { ok = false; continue; }
-    const hit = new Set(eff[0].target.ids);
-    for (const p of run.roster!) {
-      const isFb = p.positions[0] === 'LB' || p.positions[0] === 'RB';
-      if (isFb !== hit.has(p.id)) ok = false;
-    }
-  }
-  if (!hitCount) ok = false;
-  check(`full-backs: exactly the full-backs and nobody else (${hitCount} across 20 XIs)`, ok);
-}
+// (Full-Backs was the third card of this round and was deleted 2026-08-23: every 3-4-3
+// and 3-5-2 plays three centre-backs and wide midfielders, so it did nothing at all in 6
+// of the 24 formations - a dead slot in every offer, for a paid rare.)
 
 // Loan Deal is the first TEMPORARY roster change in the game, so the two halves that could
 // each break silently are asserted together: he arrives (and is tagged, so a borrowed
@@ -1202,15 +1182,16 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // Scout Network bug (a starter boost's `run` modifiers were dropped on the floor, so a
 // free Ice Veins at kickoff did nothing at all) would have passed it. This asserts the
 // weaker but broader property the table cannot: applied at a real boon stop, with a
-// context every conditional card can fire on, each of the 34 cards CHANGES SOMETHING.
+// context every conditional card can fire on, each card in the catalogue CHANGES
+// SOMETHING.
 //
 // Two things about the sample matter, and both were wrong in the first version of this:
 //
 //  - The XIs are FORMATION XIs put through `placedPlayers`, as every real line-up is,
 //    because placing a player promotes the slot's role onto `positions[0]` and the
 //    position cards read `positions[0]`. An XI straight from `bestEleven` is just the
-//    eleven highest-rated players in a squad - frequently with no keeper and no full-back
-//    at all - so measuring Keeper Coach or Full-Backs against one says nothing.
+//    eleven highest-rated players in a squad - frequently with no keeper at all - so
+//    measuring Keeper Coach against one says nothing.
 //  - The stops come from DIFFERENT squads and formations. Rebuilding the pool from the
 //    same squad each time measures one national side's luck, which made Prime Years read
 //    1-in-30 when the dataset says 78% of best XIs hold a player with a better tournament.
@@ -1286,31 +1267,6 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
         : 'none'),
   );
 
-  // Full-Backs reads two of the twelve POSITIONS rather than the four categories, and its
-  // own comment used to claim every formation plays a left-back and a right-back. It does
-  // not: all three styles of 3-4-3 and 3-5-2 field three centre-backs and wide MIDfielders,
-  // so 6 of the 24 formations have neither, and in those the card is a no-op. Asserted as
-  // the relationship rather than as the count of 18, so adding a formation does not fail
-  // the suite for no reason - and printed, because "how many shapes is this card dead in"
-  // is a balance fact somebody should see.
-  const flanked = formations.filter((f) => {
-    const roles = f.slots.map((sl) => sl.position);
-    return roles.includes('LB') || roles.includes('RB');
-  });
-  let fullBacksHonest = true;
-  for (const stop of stops) {
-    const hasFlank = stop.xi.some((p) => primaryPosition(p) === 'LB' || primaryPosition(p) === 'RB');
-    const did = fired(stop, chooseBoon(stop, 'full-backs').next, 'full-backs');
-    if (did !== hasFlank) fullBacksHonest = false;
-  }
-  console.log(
-    `  full-backs is dead in ${formations.length - flanked.length} of ${formations.length} formations ` +
-      `(every 3-4-3 and 3-5-2: three centre-backs, wide midfielders)`,
-  );
-  check(
-    'boons: Full-Backs fires exactly when the XI actually plays a full-back',
-    fullBacksHonest,
-  );
 }
 
 // --- Boons: offers are a fresh weighted draw at every stop -------------------
@@ -1422,11 +1378,15 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // The one risk the exclusion introduces: a THIN pool. The worst case a real career can
   // reach is a brand-new one - starters only, no unlocks - with both perks that consume
   // the pool at maximum: the widest offer (Extra Choice tier 2, five cards) and Scout
-  // Network tier 2, which holds two before the first stop. Measured over 300 such runs the
-  // smallest offer is still the full five and the smallest remaining pool is six, so there
-  // is real headroom rather than a coincidence. `offerBoons` would clamp rather than throw,
-  // which is exactly why this needs asserting: running short would silently narrow the
-  // choice instead of failing.
+  // Network tier 2, which holds two before the first stop. That is 10 starters against 2
+  // held at kickoff plus 4 stops, and the last offer draws 5 from exactly 5.
+  //
+  // So the margin is now ZERO, and it used to be one card: deleting Ice Veins on
+  // 2026-08-23 took a STARTER out of the pool. It still fills every offer, but anything
+  // that consumes one more - a third Scout tier, a wider offer, a starter deleted, a
+  // Youth Development boost banked into a starters-only career - shrinks it. `offerBoons`
+  // clamps rather than throws, so that would silently narrow the choice instead of
+  // failing, which is exactly what this catches.
   let thinnest = 99;
   for (let i = 0; i < 120; i++) {
     let run: RunState = prepareGroupStage(

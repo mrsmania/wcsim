@@ -28,16 +28,16 @@ only for that. It has worked twice, so round 7 does it again with four more.
 4. **The XI as a squad.** The sim reads two averages. The XI is eleven people with shirt
    numbers, nations, ages and clubs, and almost nothing reads any of it.
 
-## Shipped (34 cards)
+## Shipped (32 cards)
 
 golden-generation, marquee-signing, star-signing, veteran-core, attacking-masterclass,
 defensive-drills, transfer, poach, wildcard, keeper-coach,
 catenaccio, underdog-spirit, galacticos, legends-reunion, prime-years,
-in-form, old-guard, armband, away-days, man-marking, double-print, ice-veins, kind-draw,
-second-wind, sold-out-stadium, coin-toss, mortgage-future, full-backs, loan-deal,
+in-form, old-guard, armband, away-days, man-marking, double-print, kind-draw,
+second-wind, sold-out-stadium, coin-toss, mortgage-future, loan-deal,
 underdogs-purse, siege-mentality, **sponsorship**, **youth-development**, **all-or-nothing**.
 
-## Deleted (3)
+## Deleted (5)
 
 **Set-Piece Drills** (15 Prestige, +2 to the outfield defenders): the same card as the free
 starter Defensive Drills minus the keeper, measuring 10 against 12. **Squad Rotation** (15,
@@ -46,6 +46,15 @@ starter Defensive Drills minus the keeper, measuring 10 against 12. **Squad Rota
 free starter Attacking Masterclass's **2.0**, with a penalty on top - a rare that cost 30
 Prestige for less than nothing, because a budget XI's forwards are already near the rating
 ceiling so most of the +8 evaporated.
+
+**Full-Backs** (30, +8 to the left-back and right-back): shipped on the claim that every
+formation plays both, which is false - every 3-4-3 and 3-5-2 fields three centre-backs with
+wide midfielders, so 6 of the 24 formations have no full-back and the card did nothing at all
+in them. The same dead-slot failure as the three above, reached from the other direction.
+**Ice Veins** (free common starter, +8 to the five best penalty takers, shootouts only):
+removed by decision rather than by a measurement - it did exactly what it said. The shootout
+lever it used is kept and is now asserted on its own, and losing a starter took the
+brand-new-career offer pool from 11 cards to 10 (see CLAUDE.md on the margin).
 
 Star Signing was looked at and KEPT: it is a junior Marquee Signing, but it is a free
 starter, and the rule is about paid cards being worse than free ones rather than about

@@ -939,7 +939,7 @@ deleted with the plain World Cup it used to gate). Design:
   and the reward multiplier. Not to be confused with `domain/difficulty.ts`, the player's
   own casual/normal/hard **setting** (+3/0/-3 to the user's attack and defense, nothing
   else), which is orthogonal and applies in both modes.
-- **Prestige also unlocks boosts.** 11 of the 34 boons are `starter`s; the rest are bought
+- **Prestige also unlocks boosts.** 10 of the 32 boons are `starter`s; the rest are bought
   into the offer pool with Prestige (`BOON_UNLOCK_COST` common 15 / rare 30 / legendary 55,
   `unlockBoon`, the pool shown in `CareerHub`), and `availableBoons(unlockedBoons)` is what
   an offer draws from. So Prestige has two sinks, perk tiers and boost unlocks, and (once
@@ -957,17 +957,20 @@ deleted with the plain World Cup it used to gate). Design:
   Youth Development deal at kickoff are excluded as well - being offered a card you were
   already given is the same dead slot. A card parked in `pendingChoice` is not excluded
   until `resolveChoice` commits it. All three offer sites go through the helper, the
-  Physio Table reroll included, and `npm run checks` asserts every one of them. The pool
-  cannot run short: the thinnest a real career reaches is 11 starters with the widest offer
-  (Extra Choice tier 2) and Scout Network tier 2, measured at a smallest offer of 5 with 6
-  cards still spare.
+  Physio Table reroll included, and `npm run checks` asserts every one of them. **The pool
+  has no margin left**, which is worth knowing before deleting another starter: the thinnest
+  a real career reaches is **10** starters with the widest offer (Extra Choice tier 2) and
+  Scout Network tier 2, and the last stop of a run then draws 5 from exactly 5. It fills, with
+  zero to spare - it was one card until Ice Veins (a starter) was deleted on 2026-08-23.
+  `offerBoons` clamps rather than throws, so going short would quietly narrow the choice
+  instead of failing; `npm run checks` watches the figure.
 - Known gaps (prototype): the layer is deeper than it looks from `CareerState` alone, but
   Ascension's tuning is a first pass (`ASCENSIONS` is marked tunable, and the odds sim in
   `domain/odds.ts` is the tool for it), and level does nothing beyond gating.
 
 ## Boosts: the catalogue, and the levers beyond the rating average
 
-34 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
+32 cards in `domain/boons.ts`. The thing to know before adding one: **for a long time all
 of them sat on one axis** - every card was "+N to some subset of the XI" - which is what
 made an offer of three a sum rather than a choice. Roadmap item 29 is the correction, and
 its first six cards shipped 2026-08-22.
@@ -993,9 +996,18 @@ its first six cards shipped 2026-08-22.
 
 ### The six cards on new levers (2026-08-22)
 
+**Ice Veins (the shootout) was DELETED 2026-08-23** by decision, not for any measured fault -
+it did exactly what it said. **The lever it was built on is deliberately kept:**
+`userGroupTeam` still takes `penBonus`/`penBonusTop` as arguments SEPARATE from the chemistry
+and difficulty deltas, precisely because those reach `strength` and a shootout bonus must not
+(it cannot move a scoreline, only the shootout after one). Same reasoning as
+`RunEffect.expiresAfter`: the seam is the point, and a shootout card or perk is the obvious
+next user (`docs/perk-ideas.md`). It now has **no caller**, so `npm run checks` asserts it
+directly rather than through a card - otherwise deleting the last caller would have left the
+whole lever untested. It was also a STARTER: see the pool-margin note above.
+
 | Card | Lever | The point |
 | --- | --- | --- |
-| **Ice Veins** | the shootout | +8 to the top 5 penalty takers and **nothing else**. `userGroupTeam` takes `penBonus`/`penBonusTop` as arguments SEPARATE from the chemistry and difficulty deltas, precisely because those reach `strength` and this must not: it cannot move a scoreline, only the shootout after one. Free against the rarity bands by construction, and asserted as such. |
 | **Kind Draw** | the draw | Re-draws the next opponent and keeps the weaker. **The run and the TREE must move together** - `run.nextOpponent` is what the tie reads, but `prepareKnockoutRound` splices the result into the bracket by `opp.id`, so moving one and not the other would play a team the tree does not show. The substitution is the away seed of game 0 (the user is always home). Fires ~53% of the time, softening the opponent by ~5 rating. |
 | **Second Wind** | time | +4 to the XI for one round. Rare, not common: measured at 9.9 against a common's 2.0, because for the round it lasts it is worth twice a legendary. |
 | **Sold Out Stadium** | time | +6 now, -6 the round after. **Known hole: taken before the Final it is free**, because there is no round after. Left as-is deliberately rather than silently redesigned; the fix is either not offering it in the last round or moving the debt. |
@@ -1041,7 +1053,7 @@ Guard at 4.8 (now legendary).
 
 | Card | Lever | The point |
 | --- | --- | --- |
-| **Full-Backs** | the POSITION | +8 to the left-back and the right-back. The first card that reads the twelve positions rather than the four categories. **It used to say here that every formation plays both, so the card always finds its two players. That was wrong** (measured 2026-08-23): every 3-4-3 and 3-5-2 plays three centre-backs and wide midfielders, so **6 of the 24 formations have no full-back at all** and the card does nothing in them - a dead slot in every offer, for a paid rare. Undecided, see roadmap 32; the checks now assert that it fires exactly when the XI plays a full-back. Banded on the measured figure, not on how narrow it looks: two of about five defenders means +N here spends 2N/5 of the defensive budget, so +8 measures 3.0 against a rare's 3.2. |
+| **Full-Backs** | the POSITION | **DELETED 2026-08-23.** +8 to the left-back and the right-back, and the only card that ever read the twelve positions rather than the four categories. It shipped on the claim that every formation plays both, so it always finds its two players; **that was wrong** - every 3-4-3 and 3-5-2 plays three centre-backs and wide midfielders, so **6 of the 24 formations have no full-back at all** and the card did nothing in them: a dead slot in every offer, for a paid rare. Retargeting it was possible and cost something either way (widening it makes "left-back and right-back" mean something else; moving it to the flanks puts +8 on MIDfielders and needs re-banding), so it went the way the three dominated cards went. Roadmap 32. |
 | **Underdog's Purse** | the run's HISTORY | +2 to the XI for every round the user went in as the lower-rated side. `BoonContext.underdogRounds` is counted off `run.history`, and the **group is excluded for free**: only a knockout `RoundRecord` carries `userRating`/`oppRating`, so the filter never has to know about stages. Legendary and exempt, for the reason Underdog Spirit is: the draw decides it. |
 | **Loan Deal** | **a temporary PERSON** | Borrow the next opponent's best player for one round; he goes back when the round advances. See below - it is the one that needed machinery. |
 
@@ -1069,7 +1081,9 @@ records the loan on **`RunState.loan`** (`{returning, borrowedId, untilRound}`) 
 
 **A neighbouring bug went with it: Scout Network dropped a starter boost's `run` modifiers
 entirely.** `beginRun` kept `granted.roster` and `granted.effects` and threw `granted.mods`
-away, so a free Ice Veins at kickoff did nothing at all. The mods are collected and applied
+away, so a free Ice Veins at kickoff did nothing at all (that card is gone, but the bug was
+never about it - any common whose effect is a `run` modifier rather than a rating plan was
+silently free). The mods are collected and applied
 to the finished state now. The ones that need an opponent still correctly no-op there: there
 is nobody to weaken or re-draw before the group.
 
