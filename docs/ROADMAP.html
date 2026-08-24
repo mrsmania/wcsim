@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-23<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -561,6 +561,98 @@
     is worth mutating once to confirm it can actually fail.</p>
 
     <p class="files">scripts/checks.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">32</span>
+    <span class="title">Two boost decisions a thorough test turned up
+      <span class="sub">Full-Backs is a paid rare that does NOTHING in 6 of the 24 formations, and a card already taken stays in the offer pool - so it can be taken twice, which stacks (Sponsorship twice is 4x XP) or is wasted entirely (Mortgage twice does nothing). Both need a decision, not a fix. Found 2026-08-23.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Where this came from.</strong> The question was simply "do all the boosts
+    fire, and are they drawn at random across the knockout phase once purchased?". The
+    answer to both is <b>yes</b> - all 34 cards change something when applied, every stop
+    is a fresh rarity-weighted draw, every unlocked card is reachable, no card appears twice
+    inside one offer, the offer widens with Extra Choice and Scout Network deals its free
+    commons. All of that is asserted now. These two are what the testing found on the way,
+    and both are balance decisions rather than defects.</p>
+
+    <p><strong>1. Full-Backs is dead in a quarter of the formations.</strong> The card gives
+    +8 to the left-back and the right-back, and its own comment claimed every formation
+    plays both, "so it always finds its two players and never needs a no-op branch". <b>That
+    is false.</b> All three styles of <b>3-4-3</b> and <b>3-5-2</b> field three centre-backs
+    with wide MIDfielders, so <b>6 of 24 formations have no full-back at all</b> and the card
+    does literally nothing in them. It is a <b>paid rare</b> (30 Prestige), so for a player
+    who likes a back three it is a dead slot in every offer it ever appears in - exactly what
+    the item-30 deletion rule exists to catch ("a card you spend Prestige to unlock must not
+    be worse than one you already own for free"; a card that does nothing is worse than
+    anything).
+    <br><b>Three ways out, and none is obviously right:</b>
+    (a) <b>widen the target</b> to the two widest players in the defensive line, so a back
+    three's outside centre-backs qualify - keeps the card alive everywhere but blurs what it
+    says; (b) <b>retarget to the flanks</b> (LB/RB, else LM/RM as wing-backs) - true to the
+    football, but it moves +8 onto MIDfielders, which lands in the attack average and needs
+    re-banding; (c) <b>leave it</b> and accept that one card rewards a back four, which is a
+    legitimate build-shapes-matter choice as long as it is deliberate rather than an accident
+    of a wrong comment. The comment is corrected either way, and the checks now assert the
+    honest relationship (it fires exactly when the XI plays a full-back) and print how many
+    shapes it is dead in.</p>
+
+    <p><strong>2. A card already taken can be taken again.</strong> An offer is drawn from
+    "starters plus unlocked" with <b>no exclusion of what this run already holds</b>, so the
+    same card comes round again: measured at <b>3.7% of offer slots</b>, and a player picking
+    at random doubled up on <b>4.4% of stops</b>. Nothing documents this either way, which is
+    the reason it is here - the interactions split three ways and two of them are bad:
+    <ul>
+      <li><b>It stacks, sometimes multiplicatively.</b> Sponsorship twice is <code>xpMult</code>
+      2 then 4, so <b>4x XP</b>; Ice Veins twice is +16 to the penalty takers; Golden
+      Generation twice is +4/+4. A player who is offered Sponsorship twice should obviously
+      take it twice, which is a lever no card was priced against.</li>
+      <li><b>Or it is completely wasted.</b> Mortgage the Future, Youth Development, All or
+      Nothing and Double Print are idempotent (booleans, and a <code>Math.max</code>), so a
+      second copy does <em>nothing at all</em> - a dead pick at a stop that only comes round
+      four times in a run.</li>
+      <li><b>Or it is fine.</b> A second Poach or Wildcard Legend is another player, which
+      is a real choice and arguably the interesting case.</li>
+    </ul>
+    So "exclude what the run already holds" is the obvious fix and it would remove the third
+    case along with the first two. The alternative is to exclude only the cards that cannot
+    benefit (the idempotent ones) and price the stacking deliberately. Either way it should
+    be a decision written down, since today the behaviour is simply unstated.</p>
+
+    <p><strong>What the testing also corrected, and this is the transferable part.</strong>
+    Four of the five "findings" in the first pass were <b>bugs in the test, not in the game</b>,
+    and each came from a sample that was not what the game actually plays:
+    <ul>
+      <li>Rebuilding the run pool restarted the squad scan at <code>SQUADS[0]</code> every
+      time, so 30 attempts were 30 runs of ONE national side. Prime Years read 1-in-30; the
+      dataset says 78% of best XIs hold a player with a better tournament, and against varied
+      squads it measures 83%.</li>
+      <li>Sample XIs came from <code>bestEleven</code>, which is just the eleven highest-rated
+      players in a squad - <b>no formation, so frequently no keeper and no full-back</b>. That
+      is what made Keeper Coach and Full-Backs look conditional.</li>
+      <li>Even with a formation, the XI has to go through <code>placedPlayers</code>, because
+      placing a player <b>promotes the slot's role onto <code>positions[0]</code></b> and the
+      position cards read <code>positions[0]</code>.</li>
+      <li>A denominator counted runs that never reached a boon stop at all, and a stacking
+      probe applied its first card to a run that had gone out in the group, where
+      <code>chooseBoon</code> is a documented no-op - so every "once" figure was really zero.</li>
+    </ul>
+    The lesson worth keeping: <b>when a card looks conditional, suspect the XI before the
+    card.</b> A real line-up is a formation filled through <code>placedPlayers</code>, from a
+    varied squad, on a run that actually reached a stop.</p>
+
+    <p class="next"><strong>Next step:</strong> decide (1) between widening Full-Backs,
+    retargeting it to the flanks, or keeping it as a shape-rewards card; and (2) whether an
+    offer should exclude what the run already holds. Both are one-line changes once decided;
+    the checks that would catch a regression are already in.</p>
+
+    <p class="files">src/domain/boons.ts, src/domain/run.ts, scripts/checks.ts</p>
   </div>
 </details>
 

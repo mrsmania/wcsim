@@ -1195,6 +1195,196 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   }
 }
 
+// --- Boons: every card in the catalogue actually does something --------------
+// The boon-power table above measures RATING movement, so a card that moves no rating
+// reads 0.0 and is either exempt or simply prints a zero. That is a real blind spot: the
+// Scout Network bug (a starter boost's `run` modifiers were dropped on the floor, so a
+// free Ice Veins at kickoff did nothing at all) would have passed it. This asserts the
+// weaker but broader property the table cannot: applied at a real boon stop, with a
+// context every conditional card can fire on, each of the 34 cards CHANGES SOMETHING.
+//
+// Two things about the sample matter, and both were wrong in the first version of this:
+//
+//  - The XIs are FORMATION XIs put through `placedPlayers`, as every real line-up is,
+//    because placing a player promotes the slot's role onto `positions[0]` and the
+//    position cards read `positions[0]`. An XI straight from `bestEleven` is just the
+//    eleven highest-rated players in a squad - frequently with no keeper and no full-back
+//    at all - so measuring Keeper Coach or Full-Backs against one says nothing.
+//  - The stops come from DIFFERENT squads and formations. Rebuilding the pool from the
+//    same squad each time measures one national side's luck, which made Prime Years read
+//    1-in-30 when the dataset says 78% of best XIs hold a player with a better tournament.
+{
+  const STOPS = 30;
+  const formations = Object.values(FORMATIONS_DATA.byKey);
+  const stops: RunState[] = [];
+  for (let i = 0; stops.length < STOPS && i < 400; i++) {
+    const f = formations[i % formations.length];
+    const { filled } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
+    const xi = placedPlayers(f, filled);
+    if (xi.length !== 11) continue;
+    const g = prepareGroupStage(beginRun(xi, {}, [], 0));
+    if (!g || g.next.phase !== 'boon' || !g.next.offer) continue;
+    const r = g.next;
+    // Enrich so the cards keyed to the run's own history have something to read: a top
+    // scorer, a career top scorer, a knockout tie gone in as the underdog, goals conceded.
+    const scorer = r.xi[10];
+    stops.push({
+      ...r,
+      careerTopScorerId: ALL_PLAYERS.find(
+        (p) => p.elo >= 93 && !r.xi.some((q) => q.personId === p.personId),
+      )?.id,
+      tally: { ...(r.tally ?? emptyTally()), goals: { [scorer.id]: 3 } },
+      history: [
+        ...r.history,
+        { stage: 0, won: true, userGoals: 2, oppGoals: 2, userRating: 78, oppRating: 88 },
+      ],
+    });
+  }
+
+  // Every field a `RunModifier` can land in, so a new lever cannot be added without this
+  // noticing it (an unobserved field reads as "the card did nothing").
+  const MOD_FIELDS = [
+    'penBonus', 'penBonusTop', 'mortgaged', 'cupPicks', 'xpMult', 'youth', 'allOrNothing', 'loan',
+  ] as const;
+  const rosterIds = (r: RunState) => (r.roster ?? r.xi).map((p) => p.id).join(',');
+  const fired = (before: RunState, after: RunState, id: string): boolean => {
+    if ((after.effects ?? []).some((e) => e.source === id)) return true;
+    if (rosterIds(before) !== rosterIds(after)) return true;
+    if (before.xi.map((p) => p.elo).join(',') !== after.xi.map((p) => p.elo).join(',')) return true;
+    for (const f of MOD_FIELDS) {
+      if (JSON.stringify(before[f]) !== JSON.stringify(after[f])) return true;
+    }
+    const a = before.nextOpponent, b = after.nextOpponent;
+    if (a?.id !== b?.id) return true;
+    return JSON.stringify(a?.strength) !== JSON.stringify(b?.strength);
+  };
+
+  const rates = new Map<string, number>();
+  for (const boon of BOONS) {
+    let n = 0;
+    for (const stop of stops) {
+      let after = chooseBoon(stop, boon.id).next;
+      // A card that asks a question does not commit the stop; answer it (The Armband).
+      if (after.pendingChoice) after = resolveChoice(after, stop.xi[0].id).next;
+      if (fired(stop, after, boon.id)) n++;
+    }
+    rates.set(boon.id, n);
+  }
+  const never = BOONS.filter((b) => (rates.get(b.id) ?? 0) === 0).map((b) => b.id);
+  // Conditional cards fire on some stops and not others by design, so the assertion is
+  // "at least once", never "always". The false-red risk is the chance that every one of
+  // 30 independent stops missed: for the rarest firing card measured here (Kind Draw, a
+  // re-draw that has to come back weaker, ~40%) that is 0.6^30, about 2 in 10 million.
+  check(`boons: every one of the ${BOONS.length} cards changes something when applied`, never.length === 0);
+  if (never.length) console.log('    never fired: ' + never.join(', '));
+  const conditional = [...rates.entries()].filter(([, n]) => n < stops.length);
+  console.log(
+    `\n  boons firing conditionally (of ${stops.length} stops): ` +
+      (conditional.length
+        ? conditional.sort((a, b) => a[1] - b[1]).map(([id, n]) => `${id} ${n}`).join(', ')
+        : 'none'),
+  );
+
+  // Full-Backs reads two of the twelve POSITIONS rather than the four categories, and its
+  // own comment used to claim every formation plays a left-back and a right-back. It does
+  // not: all three styles of 3-4-3 and 3-5-2 field three centre-backs and wide MIDfielders,
+  // so 6 of the 24 formations have neither, and in those the card is a no-op. Asserted as
+  // the relationship rather than as the count of 18, so adding a formation does not fail
+  // the suite for no reason - and printed, because "how many shapes is this card dead in"
+  // is a balance fact somebody should see.
+  const flanked = formations.filter((f) => {
+    const roles = f.slots.map((sl) => sl.position);
+    return roles.includes('LB') || roles.includes('RB');
+  });
+  let fullBacksHonest = true;
+  for (const stop of stops) {
+    const hasFlank = stop.xi.some((p) => primaryPosition(p) === 'LB' || primaryPosition(p) === 'RB');
+    const did = fired(stop, chooseBoon(stop, 'full-backs').next, 'full-backs');
+    if (did !== hasFlank) fullBacksHonest = false;
+  }
+  console.log(
+    `  full-backs is dead in ${formations.length - flanked.length} of ${formations.length} formations ` +
+      `(every 3-4-3 and 3-5-2: three centre-backs, wide midfielders)`,
+  );
+  check(
+    'boons: Full-Backs fires exactly when the XI actually plays a full-back',
+    fullBacksHonest,
+  );
+}
+
+// --- Boons: offers are a fresh weighted draw at every stop -------------------
+// "Random across the knockout phase, and purchased cards join the pool" is the whole
+// contract of the offer, and nothing asserted any of it.
+{
+  const allIds = BOONS.map((b) => b.id);
+  const seen = new Map<string, number>();
+  let stops = 0, dupInOffer = 0, wrongSize = 0;
+  for (let i = 0; i < 300; i++) {
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, allIds, 0);
+    let run: RunState = prepareGroupStage(begun)!.next;
+    let guard = 0;
+    while (guard++ < 10) {
+      if (run.phase === 'boon' && run.offer) {
+        stops++;
+        if (run.offer.length !== 3) wrongSize++;
+        if (new Set(run.offer.map((b) => b.id)).size !== run.offer.length) dupInOffer++;
+        for (const b of run.offer) seen.set(b.id, (seen.get(b.id) ?? 0) + 1);
+        run = chooseBoon(run, run.offer[0].id).next;
+        continue;
+      }
+      if (run.phase === 'match') {
+        const k = prepareKnockoutRound(run);
+        if (!k) break;
+        run = k.next;
+        continue;
+      }
+      break;
+    }
+  }
+  // Every unlocked card is reachable. 300 runs reach a mean of ~600 stops (the floor is
+  // there to catch the loop doing nothing, and sits 9 standard deviations below that mean
+  // rather than beside it - the trap roadmap 31 was about). At 3 cards a stop that is
+  // ~1800 slots, where the rarest kind of card (a legendary, weight 1 of the pool's 114)
+  // is expected about 16 times, so zero appearances means unreachable rather than unlucky.
+  const unreachable = allIds.filter((id) => !seen.has(id));
+  check(
+    `boons: every unlocked card is reachable in an offer (${stops} stops)`,
+    stops > 400 && unreachable.length === 0,
+  );
+  if (unreachable.length) console.log('    never offered: ' + unreachable.join(', '));
+  check('boons: no card appears twice inside one offer', dupInOffer === 0);
+  check('boons: an offer is three cards without the Extra Choice perk', wrongSize === 0);
+  // Rarity weighting (common 6 / rare 3 / legendary 1) has to actually bite, per CARD:
+  // there are more commons than legendaries, so comparing totals would confirm the count
+  // rather than the weight.
+  const perCard = (r: string) => {
+    const cards = BOONS.filter((b) => b.rarity === r);
+    return cards.reduce((n, b) => n + (seen.get(b.id) ?? 0), 0) / cards.length;
+  };
+  check(
+    'boons: rarity weighting orders the draw, common > rare > legendary per card',
+    perCard('common') > perCard('rare') && perCard('rare') > perCard('legendary'),
+  );
+  // The Extra Choice perk widens the offer, one card per owned tier.
+  let widened = true;
+  for (const tier of [1, 2]) {
+    const g = prepareGroupStage(
+      beginRun(bestEleven(SQUADS[0].players), { 'extra-boon': tier }, allIds, 0),
+    )!;
+    if ((g.next.offer?.length ?? 0) !== 3 + tier) widened = false;
+  }
+  check('boons: the Extra Choice perk adds one offer card per owned tier', widened);
+  // Scout Network deals its free starting boosts, and only commons (a free legendary
+  // before kickoff outweighs every choice the run itself offers).
+  let scoutOk = true;
+  for (const tier of [0, 1, 2]) {
+    const r = beginRun(bestEleven(SQUADS[0].players), { scout: tier }, allIds, 0);
+    if (r.activeBoons.length !== tier) scoutOk = false;
+    if (r.activeBoons.some((id) => boonById(id)?.rarity !== 'common')) scoutOk = false;
+  }
+  check('boons: Scout Network deals one free common per owned tier', scoutOk);
+}
+
 // --- Boon availability + unlock economy ------------------------------------
 {
   let ok = true;

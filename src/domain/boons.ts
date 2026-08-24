@@ -591,9 +591,16 @@ export const BOONS: Boon[] = [
     rarity: 'rare',
     description: '+8 to your left-back and right-back.',
     // The first card that reads the twelve POSITIONS rather than the four categories.
-    // Every formation in the game plays a left-back and a right-back (a back five is
-    // LB, three centre-backs, RB), so it always finds its two players and never needs a
-    // no-op branch - which also means it cannot be gamed by the shape you built.
+    //
+    // This used to claim that every formation plays a left-back and a right-back, so the
+    // card always finds its two players. THAT IS FALSE, measured 2026-08-23: all three
+    // styles of 3-4-3 and 3-5-2 field three centre-backs and wide MIDfielders, so 6 of
+    // the 24 formations have neither and the card is a complete no-op in them. It is a
+    // paid rare, so in those shapes it is a dead slot in every offer it appears in, which
+    // is the thing the item-30 deletion rule exists to catch. Left as it is pending a
+    // decision (roadmap 32); `npm run checks` now asserts the honest relationship - it
+    // fires exactly when the XI plays a full-back - and prints how many shapes it is dead
+    // in, so the claim cannot quietly come back.
     effects: [
       {
         kind: 'rating',
