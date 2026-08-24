@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-23<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 5 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -318,6 +318,264 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">03</span>
+    <span class="title">More World Cups and collectibles
+      <span class="sub">Extend the dataset backwards from 1990: 1986, 1982, and earlier.</span>
+    </span>
+    <span class="tag">Content</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The dataset covers 1990 to 2022, all nine fully researched. Collectibles grow for
+    free, since collectibility is derived from rating via <code>STICKER_TIERS</code>.</p>
+    <ul>
+      <li>Method notes from the 1990-2002 round apply: identical name spellings across
+      tournaments for the same person (<code>personId</code> is the name slug), distinct
+      people must have distinct names, ratings are that-tournament strength on 60-99.</li>
+      <li>Field sizes shrink going back (24 teams in 1982 and 1986, 16 in 1970-1978), so
+      check the group draw and any "32 nations" assumptions first.</li>
+      <li>Period identities keep their own codes, as Soviet Union, Czechoslovakia and
+      Yugoslavia already do.</li>
+      <li><b>Remember the server:</b> after any rating change run
+      <code>npm run gen:collectibles</code> then <code>npm run push:collectibles</code>.
+      <code>npm run checks</code> fails while the seed is stale.</li>
+    </ul>
+    <p class="next"><strong>Next step:</strong> do 1986 end to end as the template for the
+    rest.</p>
+    <p class="files">src/data/squads.ts, scripts/gen-collectibles.ts</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">23</span>
+    <span class="title">Hygiene: dead code and refactorings
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Unblocked 2026-08-21: item 27 has shipped and its losing chrome is deleted.</span>
+    </span>
+    <span class="tag">Structure</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask (2026-08-20):</strong> review the whole codebase for dead code and
+    refactorings, and produce a todo list another team can implement. The <b>one rule</b> is that
+    the app that comes out plays exactly like the app that went in.</p>
+
+    <p><strong>The backlog is <code>docs/hygiene-audit.html</code></strong>, which is the
+    deliverable: 105 numbered items (H1-H105) in seven waves, each naming the files, the fix,
+    whether it is behaviour-preserving, effort and risk, plus twelve decisions that need an owner
+    and an explicit list of what not to touch, split since 2026-08-20 into what item 27 owns and
+    what nobody does. It was produced from six independent parallel
+    reviews of the tree (dead weight, DRY, SoC/layering, KISS/YAGNI, type model and naming,
+    tooling/SQL/assets), merged, with the load-bearing claims re-verified by hand.</p>
+
+    <p><strong>Unblocked 2026-08-21.</strong> This waited on item 27, which moved the same code:
+    <code>App.tsx</code>'s route branch, the mode fact derived twice, the reset target, the two
+    nav cards in the build page's left column, and the career hub splitting off the run screen.
+    That has now shipped <i>and</i> had its losing half deleted, which is what the block was
+    really waiting for - so those five are settled rather than pending, and several of them are
+    settled by deletion (<code>modeOfPath</code>, the footer nav and the two nav cards are gone;
+    there is one build route and one reset target). <b>Re-read the audit's off-limits section
+    before starting:</b> it was written against the old tree and its "item 27 owns these" list is
+    now history rather than a warning.</p>
+
+    <p><strong>It also carries what item 22 left behind.</strong> Item 22 was dropped on
+    2026-08-20 as framed around the wrong question, and its navigational half is item 27's now.
+    What it also held was a set of verified findings that are now nobody's: the two tournament
+    engines and their duplicated round shell, the <b>two chemistry definitions</b>
+    (<code>teamChemistry</code> scores by the slot each player fills, <code>chemistryOf</code> by
+    natural role, so the same XI gets two answers), the run-end sticker trigger order, the
+    difficulty-resets-the-album rule, and whether a non-career run pays anything at all. The
+    audit's off-limits section now lists these as <b>unowned</b> rather than as item 22's, because
+    none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
+    not forgotten.</p>
+
+    <p><strong>The waves</strong>, in execution order:</p>
+    <ol>
+      <li><b>Free deletions and truth fixes</b> (H1-H35). Genuinely dead exports and props,
+      complexity with nothing on the other side of the trade, repo weight, and eleven comments or
+      doc claims that are no longer true. No decisions, no behaviour change.</li>
+      <li><b>Name the constants, share the one-liners</b> (H36-H48). Highest payoff per minute:
+      each item removes a fact currently written down twice.</li>
+      <li><b>Design tokens and shared UI atoms</b> (H49-H54). The palette and caption constants
+      already exist in <code>index.css</code> and <code>matchUi.tsx</code> and are bypassed by
+      inline copies.</li>
+      <li><b>Put the logic where it belongs</b> (H55-H68). Pure computations that ended up in
+      leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
+      rules, budget spend computed three times, the kickoff records built in <code>App</code>.</li>
+      <li><b>The type model</b> (H69-H78). Chiefly <code>RoundRecord</code> as a real
+      discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
+      and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
+      <li><b>Structural extractions</b> (H79-H90). The risky ones, one per branch:
+      <code>App.tsx</code>'s 15 jobs into hooks and screens, and
+      <code>CupRunScreen</code> handing back the career's persistence.</li>
+      <li><b>Harness, CI and tooling</b> (H91-H105).</li>
+    </ol>
+
+    <p><strong>Two findings worth knowing before reading the rest.</strong> Both are in wave 7 and
+    both are the reason to start there rather than with the code:</p>
+    <ul>
+      <li><b><code>npm run checks</code> never runs in CI.</b> The workflow runs
+      <code>npm ci</code> and <code>npm run build</code>, nothing else, so the 59 invariants
+      <i>and</i> the collectible-seed staleness guard gate nothing automatically. Since there is no
+      unit-test runner, that harness plus the build is the whole safety net for this backlog, and
+      it currently depends on the author remembering.</li>
+      <li><b>The documented "serve it at another path" recipe silently produces a wrong
+      artifact.</b> <code>npm run build -- --base=/</code> appends the argument to the last command
+      in the <code>&amp;&amp;</code> chain, so it reaches <code>copy-404.mjs</code>, which ignores
+      unknown argv and exits 0. Verified empirically. The Docker option in the README is wrong for
+      the same reason.</li>
+    </ul>
+
+    <p><strong>What the audit did not find</strong>, recorded so the next pass can skip it: no dead
+    CSS (all 40 custom classes and 13 tokens used), no unused dependency, no dead
+    <code>config.ts</code> entry, no unreferenced module in <code>src/</code>, no unread component
+    prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
+    three directions, migrations and client in sync, and zero <code>any</code>.</p>
+
+    <p class="next"><strong>Next step:</strong> take wave 7's H91 first
+    (checks into CI, one line) so the gate is real, then waves 1 to 3 as one pass each. Waves 4 to
+    6 want the decisions in the audit's Decisions table answered first, in particular which
+    <code>FEATURES</code> flags retire. That table also holds <b>D12</b>, the four dead
+    <code>run_results</code> columns, merged in from item 21 on 2026-08-20: the table itself must
+    <em>not</em> be dropped (its unique <code>(user_id, run_key)</code> is what rejects a double
+    submit before a sticker moves, and <code>import_guest_progress</code> reads it to decide
+    whether an account is empty), only the four columns are dead weight, and reviving them would
+    cost a <code>finish_run_v3</code> and only ever cover runs from the change onward.</p>
+    <p class="files">docs/hygiene-audit.html, src/App.tsx, src/components/CupRunScreen.tsx, src/domain/, src/state/, scripts/checks.ts, .github/workflows/deploy.yml</p>
+  </div>
+</details>
+
+<div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">19</span>
+    <span class="title">Daily challenges
+      <span class="sub">Three rotating picks from the challenge catalogue, at a reward multiplier. Split out of item 01.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Split out of item 01 on 2026-08-18</strong>, which now ships an entirely
+    permanent catalogue. This is the rotating layer on top of it: a few challenges singled
+    out for a period, paying more than their base award, so there is a reason to build a
+    different XI today than yesterday and so challenges you skipped get re-offered.</p>
+    <p><strong>Blocked on item 01</strong>, not by choice but by construction: this rotates
+    through that catalogue and reuses its predicates, its awards and its
+    <code>CareerState</code> field. There is nothing to build here until the honours exist
+    and are worth completing.</p>
+    <p><strong>What it adds</strong> once they do: a period key, the chosen ids and a reward
+    multiplier on <code>CareerState</code>, picked deterministically from the period so every
+    device agrees without a server round trip. Plus the two surfaces item 01 deliberately
+    left out, which only work over a handful of targeted challenges: the build-page strip
+    ("Today: Rag Tag, United Nations, The Wall") so you can build toward them while picking,
+    and the chips under the run ladder, with a challenge marked <b>already failed</b> the
+    moment it becomes impossible (conceding kills The Wall right there) rather than left
+    looking winnable. The earlier comp of both is in the git history of
+    <code>docs/redesign-2026/turf-flat/challenges.html</code>.</p>
+    <p><strong>The questions to settle</strong>: daily or weekly (daily is a much faster
+    treadmill; weekly asks less of a player who plays twice a week);
+    whether a missed day is simply gone; whether the pick is filtered to what is actually
+    reachable for that career, since offering "Win at Ascension III" to a level-2 account is
+    noise; and whether a re-roll exists at all, which if it does should cost Prestige rather
+    than be free.</p>
+    <p class="next"><strong>Next step:</strong> nothing until item 01 ships. Then decide the
+    period and whether the pool is filtered by reachability, both of which change how it
+    feels far more than the multiplier does.</p>
+    <p class="files">docs/challenges-spec.html, src/domain/challenges.ts (from item 01), src/domain/career.ts, src/components/CupRunScreen.tsx</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">18</span>
+    <span class="title">Player versus player, for signed-in accounts
+      <span class="sub">Build a team from your career progress and play someone else's. Details to be defined.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Requested 2026-08-18, shape deliberately open. A signed-in player assembles a team
+    from what their career has actually earned, and plays it against another player's team.
+    The sim already decides matches from two XIs, so the match itself is the part that
+    exists; everything around it is the design work.</p>
+    <p><strong>What is already in place</strong>, and worth knowing before designing it:
+    accounts and the per-account store (album, career, settings, in-progress run) are live,
+    the match and shootout sim take two sides and are deterministic apart from their own
+    randomness, <code>simulateTitleOdds</code> can rate a matchup, and the sticker economy
+    is validated server-side because the browser talks to Postgres directly - the same
+    reasoning will apply to anything competitive.</p>
+    <p><strong>The questions to settle first</strong>, roughly in the order they bite:</p>
+    <ul>
+      <li><b>What is a "team based on career progress"?</b> The collected album only?
+      Career budget plus perks? A separate roster you maintain? This decides whether PvP is
+      a showcase of progress or a second economy.</li>
+      <li><b>Live or asynchronous?</b> Asynchronous (submit a team, it plays overnight or on
+      challenge) fits a self-hosted server and a small friend group far better than live
+      matchmaking, and needs no realtime service - which was deliberately trimmed from the
+      NAS stack.</li>
+      <li><b>Who validates the team?</b> A client-submitted XI is a claim; the server has to
+      check it against what that account actually owns, or the first thing anyone does is
+      submit eleven 99s. This is the same problem <code>finish_run</code> solved for
+      stickers and probably wants the same shape (a <code>security definer</code> function
+      that reads the account's own rows).</li>
+      <li><b>Fairness.</b> A three-year-old career against a new one is not a game. Tiers,
+      handicaps, or a budget-equalised format all work; pick one before building.</li>
+      <li><b>What is at stake?</b> Prestige, a ladder, a record, or nothing but bragging.
+      Anything transferable needs anti-cheat thinking; nothing transferable is much cheaper
+      to ship.</li>
+      <li><b>Guest story.</b> The project rule is guest-first (NFR-1): the whole game is
+      playable with no account. PvP is a legitimate account-only extra, which the
+      requirements already allow for ("may gate genuinely online extras"), but the entry
+      point must degrade cleanly when signed out.</li>
+    </ul>
+    <p class="next"><strong>Next step:</strong> settle the first two questions (what the
+    team is made of, and asynchronous versus live), since every other decision hangs off
+    them. Then a requirements doc in the shape of
+    <code>docs/cloud-sync-requirements.md</code> before any code.</p>
+    <p class="files">docs/cloud-sync-requirements.md (for the shape), src/domain/match.ts, supabase/migrations/, src/state/store/</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">05</span>
+    <span class="title">Career depth F - odds at each decision
+      <span class="sub">Show what a choice is worth, at the moment the choice is made.</span>
+    </span>
+    <span class="tag">Career</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>Surface the title odds at each boost choice, so a pick is informed rather than a
+    guess. The machinery already exists: <code>domain/odds.ts</code>
+    (<code>simulateTitleOdds</code>) Monte-Carlos an XI's cup-win percentage over many
+    simulated tournaments and already drives the Cup Run readout. What is missing is running
+    it per offered boost rather than once for the current XI, and showing the delta on the
+    card.</p>
+    <p><strong>Scoped down (2026-08-20):</strong> this item used to carry a second half, a
+    daily seeded run where everyone gets the same rolls and the same objective. That is
+    dropped. It was the only thing asking for a seedable RNG in
+    <code>domain/random.ts</code> (the sim calls <code>Math.random</code> directly in several
+    places), so that dependency goes with it and this item no longer touches the random
+    helpers at all.</p>
+    <p class="files">src/domain/odds.ts, src/components/cupRun/BoostOffer.tsx</p>
+  </div>
+</details>
+
+<details class="history">
+  <summary>Shipped &mdash; decision history &#9656;</summary>
+  <div class="detail">
+    <h3>Closed 2026-08-23</h3>
+    <p>Kept in full rather than condensed to a line each: these three are the reasoning
+    behind the current boost pool, the offer rule and the checks harness, and all of it was
+    decided in one day. They sat in <em>Next up</em> for a while after closing, which read
+    as open work; that is what moved them here.</p>
 
 <details class="item">
   <summary>
@@ -711,258 +969,8 @@
     <p class="files">src/domain/boons.ts, src/domain/run.ts, scripts/checks.ts</p>
   </div>
 </details>
-
-<details class="item">
-  <summary>
-    <span class="num">03</span>
-    <span class="title">More World Cups and collectibles
-      <span class="sub">Extend the dataset backwards from 1990: 1986, 1982, and earlier.</span>
-    </span>
-    <span class="tag">Content</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The dataset covers 1990 to 2022, all nine fully researched. Collectibles grow for
-    free, since collectibility is derived from rating via <code>STICKER_TIERS</code>.</p>
-    <ul>
-      <li>Method notes from the 1990-2002 round apply: identical name spellings across
-      tournaments for the same person (<code>personId</code> is the name slug), distinct
-      people must have distinct names, ratings are that-tournament strength on 60-99.</li>
-      <li>Field sizes shrink going back (24 teams in 1982 and 1986, 16 in 1970-1978), so
-      check the group draw and any "32 nations" assumptions first.</li>
-      <li>Period identities keep their own codes, as Soviet Union, Czechoslovakia and
-      Yugoslavia already do.</li>
-      <li><b>Remember the server:</b> after any rating change run
-      <code>npm run gen:collectibles</code> then <code>npm run push:collectibles</code>.
-      <code>npm run checks</code> fails while the seed is stale.</li>
-    </ul>
-    <p class="next"><strong>Next step:</strong> do 1986 end to end as the template for the
-    rest.</p>
-    <p class="files">src/data/squads.ts, scripts/gen-collectibles.ts</p>
   </div>
-</details>
 
-<details class="item">
-  <summary>
-    <span class="num">23</span>
-    <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Unblocked 2026-08-21: item 27 has shipped and its losing chrome is deleted.</span>
-    </span>
-    <span class="tag">Structure</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The ask (2026-08-20):</strong> review the whole codebase for dead code and
-    refactorings, and produce a todo list another team can implement. The <b>one rule</b> is that
-    the app that comes out plays exactly like the app that went in.</p>
-
-    <p><strong>The backlog is <code>docs/hygiene-audit.html</code></strong>, which is the
-    deliverable: 105 numbered items (H1-H105) in seven waves, each naming the files, the fix,
-    whether it is behaviour-preserving, effort and risk, plus twelve decisions that need an owner
-    and an explicit list of what not to touch, split since 2026-08-20 into what item 27 owns and
-    what nobody does. It was produced from six independent parallel
-    reviews of the tree (dead weight, DRY, SoC/layering, KISS/YAGNI, type model and naming,
-    tooling/SQL/assets), merged, with the load-bearing claims re-verified by hand.</p>
-
-    <p><strong>Unblocked 2026-08-21.</strong> This waited on item 27, which moved the same code:
-    <code>App.tsx</code>'s route branch, the mode fact derived twice, the reset target, the two
-    nav cards in the build page's left column, and the career hub splitting off the run screen.
-    That has now shipped <i>and</i> had its losing half deleted, which is what the block was
-    really waiting for - so those five are settled rather than pending, and several of them are
-    settled by deletion (<code>modeOfPath</code>, the footer nav and the two nav cards are gone;
-    there is one build route and one reset target). <b>Re-read the audit's off-limits section
-    before starting:</b> it was written against the old tree and its "item 27 owns these" list is
-    now history rather than a warning.</p>
-
-    <p><strong>It also carries what item 22 left behind.</strong> Item 22 was dropped on
-    2026-08-20 as framed around the wrong question, and its navigational half is item 27's now.
-    What it also held was a set of verified findings that are now nobody's: the two tournament
-    engines and their duplicated round shell, the <b>two chemistry definitions</b>
-    (<code>teamChemistry</code> scores by the slot each player fills, <code>chemistryOf</code> by
-    natural role, so the same XI gets two answers), the run-end sticker trigger order, the
-    difficulty-resets-the-album rule, and whether a non-career run pays anything at all. The
-    audit's off-limits section now lists these as <b>unowned</b> rather than as item 22's, because
-    none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
-    not forgotten.</p>
-
-    <p><strong>The waves</strong>, in execution order:</p>
-    <ol>
-      <li><b>Free deletions and truth fixes</b> (H1-H35). Genuinely dead exports and props,
-      complexity with nothing on the other side of the trade, repo weight, and eleven comments or
-      doc claims that are no longer true. No decisions, no behaviour change.</li>
-      <li><b>Name the constants, share the one-liners</b> (H36-H48). Highest payoff per minute:
-      each item removes a fact currently written down twice.</li>
-      <li><b>Design tokens and shared UI atoms</b> (H49-H54). The palette and caption constants
-      already exist in <code>index.css</code> and <code>matchUi.tsx</code> and are bypassed by
-      inline copies.</li>
-      <li><b>Put the logic where it belongs</b> (H55-H68). Pure computations that ended up in
-      leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
-      rules, budget spend computed three times, the kickoff records built in <code>App</code>.</li>
-      <li><b>The type model</b> (H69-H78). Chiefly <code>RoundRecord</code> as a real
-      discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
-      and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
-      <li><b>Structural extractions</b> (H79-H90). The risky ones, one per branch:
-      <code>App.tsx</code>'s 15 jobs into hooks and screens, and
-      <code>CupRunScreen</code> handing back the career's persistence.</li>
-      <li><b>Harness, CI and tooling</b> (H91-H105).</li>
-    </ol>
-
-    <p><strong>Two findings worth knowing before reading the rest.</strong> Both are in wave 7 and
-    both are the reason to start there rather than with the code:</p>
-    <ul>
-      <li><b><code>npm run checks</code> never runs in CI.</b> The workflow runs
-      <code>npm ci</code> and <code>npm run build</code>, nothing else, so the 59 invariants
-      <i>and</i> the collectible-seed staleness guard gate nothing automatically. Since there is no
-      unit-test runner, that harness plus the build is the whole safety net for this backlog, and
-      it currently depends on the author remembering.</li>
-      <li><b>The documented "serve it at another path" recipe silently produces a wrong
-      artifact.</b> <code>npm run build -- --base=/</code> appends the argument to the last command
-      in the <code>&amp;&amp;</code> chain, so it reaches <code>copy-404.mjs</code>, which ignores
-      unknown argv and exits 0. Verified empirically. The Docker option in the README is wrong for
-      the same reason.</li>
-    </ul>
-
-    <p><strong>What the audit did not find</strong>, recorded so the next pass can skip it: no dead
-    CSS (all 40 custom classes and 13 tokens used), no unused dependency, no dead
-    <code>config.ts</code> entry, no unreferenced module in <code>src/</code>, no unread component
-    prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
-    three directions, migrations and client in sync, and zero <code>any</code>.</p>
-
-    <p class="next"><strong>Next step:</strong> take wave 7's H91 first
-    (checks into CI, one line) so the gate is real, then waves 1 to 3 as one pass each. Waves 4 to
-    6 want the decisions in the audit's Decisions table answered first, in particular which
-    <code>FEATURES</code> flags retire. That table also holds <b>D12</b>, the four dead
-    <code>run_results</code> columns, merged in from item 21 on 2026-08-20: the table itself must
-    <em>not</em> be dropped (its unique <code>(user_id, run_key)</code> is what rejects a double
-    submit before a sticker moves, and <code>import_guest_progress</code> reads it to decide
-    whether an account is empty), only the four columns are dead weight, and reviving them would
-    cost a <code>finish_run_v3</code> and only ever cover runs from the change onward.</p>
-    <p class="files">docs/hygiene-audit.html, src/App.tsx, src/components/CupRunScreen.tsx, src/domain/, src/state/, scripts/checks.ts, .github/workflows/deploy.yml</p>
-  </div>
-</details>
-
-<div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">19</span>
-    <span class="title">Daily challenges
-      <span class="sub">Three rotating picks from the challenge catalogue, at a reward multiplier. Split out of item 01.</span>
-    </span>
-    <span class="tag">Career</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Split out of item 01 on 2026-08-18</strong>, which now ships an entirely
-    permanent catalogue. This is the rotating layer on top of it: a few challenges singled
-    out for a period, paying more than their base award, so there is a reason to build a
-    different XI today than yesterday and so challenges you skipped get re-offered.</p>
-    <p><strong>Blocked on item 01</strong>, not by choice but by construction: this rotates
-    through that catalogue and reuses its predicates, its awards and its
-    <code>CareerState</code> field. There is nothing to build here until the honours exist
-    and are worth completing.</p>
-    <p><strong>What it adds</strong> once they do: a period key, the chosen ids and a reward
-    multiplier on <code>CareerState</code>, picked deterministically from the period so every
-    device agrees without a server round trip. Plus the two surfaces item 01 deliberately
-    left out, which only work over a handful of targeted challenges: the build-page strip
-    ("Today: Rag Tag, United Nations, The Wall") so you can build toward them while picking,
-    and the chips under the run ladder, with a challenge marked <b>already failed</b> the
-    moment it becomes impossible (conceding kills The Wall right there) rather than left
-    looking winnable. The earlier comp of both is in the git history of
-    <code>docs/redesign-2026/turf-flat/challenges.html</code>.</p>
-    <p><strong>The questions to settle</strong>: daily or weekly (daily is a much faster
-    treadmill; weekly asks less of a player who plays twice a week);
-    whether a missed day is simply gone; whether the pick is filtered to what is actually
-    reachable for that career, since offering "Win at Ascension III" to a level-2 account is
-    noise; and whether a re-roll exists at all, which if it does should cost Prestige rather
-    than be free.</p>
-    <p class="next"><strong>Next step:</strong> nothing until item 01 ships. Then decide the
-    period and whether the pool is filtered by reachability, both of which change how it
-    feels far more than the multiplier does.</p>
-    <p class="files">docs/challenges-spec.html, src/domain/challenges.ts (from item 01), src/domain/career.ts, src/components/CupRunScreen.tsx</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">18</span>
-    <span class="title">Player versus player, for signed-in accounts
-      <span class="sub">Build a team from your career progress and play someone else's. Details to be defined.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Requested 2026-08-18, shape deliberately open. A signed-in player assembles a team
-    from what their career has actually earned, and plays it against another player's team.
-    The sim already decides matches from two XIs, so the match itself is the part that
-    exists; everything around it is the design work.</p>
-    <p><strong>What is already in place</strong>, and worth knowing before designing it:
-    accounts and the per-account store (album, career, settings, in-progress run) are live,
-    the match and shootout sim take two sides and are deterministic apart from their own
-    randomness, <code>simulateTitleOdds</code> can rate a matchup, and the sticker economy
-    is validated server-side because the browser talks to Postgres directly - the same
-    reasoning will apply to anything competitive.</p>
-    <p><strong>The questions to settle first</strong>, roughly in the order they bite:</p>
-    <ul>
-      <li><b>What is a "team based on career progress"?</b> The collected album only?
-      Career budget plus perks? A separate roster you maintain? This decides whether PvP is
-      a showcase of progress or a second economy.</li>
-      <li><b>Live or asynchronous?</b> Asynchronous (submit a team, it plays overnight or on
-      challenge) fits a self-hosted server and a small friend group far better than live
-      matchmaking, and needs no realtime service - which was deliberately trimmed from the
-      NAS stack.</li>
-      <li><b>Who validates the team?</b> A client-submitted XI is a claim; the server has to
-      check it against what that account actually owns, or the first thing anyone does is
-      submit eleven 99s. This is the same problem <code>finish_run</code> solved for
-      stickers and probably wants the same shape (a <code>security definer</code> function
-      that reads the account's own rows).</li>
-      <li><b>Fairness.</b> A three-year-old career against a new one is not a game. Tiers,
-      handicaps, or a budget-equalised format all work; pick one before building.</li>
-      <li><b>What is at stake?</b> Prestige, a ladder, a record, or nothing but bragging.
-      Anything transferable needs anti-cheat thinking; nothing transferable is much cheaper
-      to ship.</li>
-      <li><b>Guest story.</b> The project rule is guest-first (NFR-1): the whole game is
-      playable with no account. PvP is a legitimate account-only extra, which the
-      requirements already allow for ("may gate genuinely online extras"), but the entry
-      point must degrade cleanly when signed out.</li>
-    </ul>
-    <p class="next"><strong>Next step:</strong> settle the first two questions (what the
-    team is made of, and asynchronous versus live), since every other decision hangs off
-    them. Then a requirements doc in the shape of
-    <code>docs/cloud-sync-requirements.md</code> before any code.</p>
-    <p class="files">docs/cloud-sync-requirements.md (for the shape), src/domain/match.ts, supabase/migrations/, src/state/store/</p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">05</span>
-    <span class="title">Career depth F - odds at each decision
-      <span class="sub">Show what a choice is worth, at the moment the choice is made.</span>
-    </span>
-    <span class="tag">Career</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Surface the title odds at each boost choice, so a pick is informed rather than a
-    guess. The machinery already exists: <code>domain/odds.ts</code>
-    (<code>simulateTitleOdds</code>) Monte-Carlos an XI's cup-win percentage over many
-    simulated tournaments and already drives the Cup Run readout. What is missing is running
-    it per offered boost rather than once for the current XI, and showing the delta on the
-    card.</p>
-    <p><strong>Scoped down (2026-08-20):</strong> this item used to carry a second half, a
-    daily seeded run where everyone gets the same rolls and the same objective. That is
-    dropped. It was the only thing asking for a seedable RNG in
-    <code>domain/random.ts</code> (the sim calls <code>Math.random</code> directly in several
-    places), so that dependency goes with it and this item no longer touches the random
-    helpers at all.</p>
-    <p class="files">src/domain/odds.ts, src/components/cupRun/BoostOffer.tsx</p>
-  </div>
-</details>
-
-<details class="history">
-  <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="body">
     <h3>August 2026</h3>
     <ul>
