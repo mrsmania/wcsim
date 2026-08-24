@@ -51,6 +51,10 @@ const LINEUP: { n: number; name: string; x: number; y: number }[] = [
 const GRASS_BASE = '#1a7d45';
 const GRASS_STRIPE = '#1f8a4d';
 
+// The two CTAs below pair this with a literal `text-[#13211a]` rather than `text-ink`,
+// deliberately: they sit on `bg-amber` / `bg-white`, which are light in BOTH themes, so the
+// label needs the dark ink in both. `text-ink` is near-white in dark and would vanish.
+// Not the same case as the Prestige figures, which correctly use the `amber-ink` token.
 const CTA =
     'inline-flex items-center gap-2 rounded-lg px-[22px] py-[14px] font-display text-[14px] font-extrabold uppercase tracking-[0.04em] transition';
 

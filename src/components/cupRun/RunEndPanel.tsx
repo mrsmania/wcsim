@@ -30,7 +30,7 @@ export default function RunEndPanel({
           +{reward.xpGained} XP &middot;{' '}
           <span className="text-amber">+{reward.prestigeGained} Prestige</span>
           {reward.ascensionMult > 1 && (
-            <span className="ml-2 text-[#9a6512]">Ascension x{reward.ascensionMult}</span>
+            <span className="ml-2 text-amber-ink">Ascension x{reward.ascensionMult}</span>
           )}
           {reward.leveledUp && <span className="ml-2 font-bold text-pitch">Level up!</span>}
         </div>
