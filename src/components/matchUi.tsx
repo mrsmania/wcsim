@@ -363,76 +363,53 @@ export function LiveLine({ label }: { label: string }) {
   );
 }
 
-/** A result banner (deep-green for champions/wins, flat white otherwise) with the
- *  tifo corner arcs. `size` scales it: `lg` is the full end-of-run banner in the
- *  quick game (rounded-lg, big heading, top margin), `sm` is the compact in-run
- *  Cup Run banner (rounded-md + shadow). `onReset` renders the "Draft a new XI"
- *  action; `action` slots any other node below the body (both optional, so the
- *  Cup Run's action-less banners just omit them). */
+/** A result banner (deep-green for champions/wins, flat white otherwise) with the tifo
+ *  corner arcs. Compact by design: it is the in-run Cup Run banner.
+ *
+ *  It used to take `size` ('lg' | 'sm'), `onReset` and `action`. The 'lg' variant was the
+ *  full end-of-run banner in the quick game, which was deleted on 2026-08-21, and every
+ *  caller since has passed size="sm" with neither action - so five ternaries and two
+ *  branches rendered a variant that could not be reached. `noUnusedLocals` cannot see dead
+ *  props, which is why they outlived the screen that used them. */
 export function Banner({
   champion,
-  size = 'lg',
   eyebrow,
   heading,
   body,
-  onReset,
-  action,
 }: {
   champion: boolean;
-  size?: 'lg' | 'sm';
   eyebrow: string;
   heading: string;
   body?: string;
-  onReset?: () => void;
-  action?: ReactNode;
 }) {
-  const lg = size === 'lg';
   const arc = champion ? 'border-white/15' : 'border-line';
   return (
     <div
-      className={`relative overflow-hidden border text-center ${
-        lg ? 'mt-[30px] rounded-lg p-8' : 'rounded-md p-5 shadow-hard'
-      } ${champion ? 'border-pitch-dark bg-pitch-dark text-white' : 'border-line bg-panel'}`}
+      className={`relative overflow-hidden rounded-md border p-5 text-center shadow-hard ${
+        champion ? 'border-pitch-dark bg-pitch-dark text-white' : 'border-line bg-panel'
+      }`}
     >
       <span
-        className={`pointer-events-none absolute rounded-full border-2 ${arc} ${
-          lg ? '-bottom-[60px] -left-[60px] h-40 w-40' : '-bottom-10 -left-10 h-24 w-24'
-        }`}
+        className={`pointer-events-none absolute -bottom-10 -left-10 h-24 w-24 rounded-full border-2 ${arc}`}
       />
       <span
-        className={`pointer-events-none absolute rounded-full border-2 ${arc} ${
-          lg ? '-right-[60px] -top-[60px] h-40 w-40' : '-right-10 -top-10 h-24 w-24'
-        }`}
+        className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full border-2 ${arc}`}
       />
       <div
-        className={`relative font-mono font-semibold uppercase ${
-          lg ? 'text-[11px] tracking-[0.24em]' : 'text-[10px] tracking-[0.2em]'
-        } ${champion ? 'text-amber' : 'text-loss'}`}
+        className={`relative font-mono text-[10px] font-semibold uppercase tracking-[0.2em] ${
+          champion ? 'text-amber' : 'text-loss'
+        }`}
       >
         {eyebrow}
       </div>
-      <h3
-        className={`relative font-display font-black tracking-[-0.02em] ${
-          lg ? 'mt-2 text-[40px] leading-none max-sm:text-3xl' : 'mt-1 text-2xl max-sm:text-xl'
-        }`}
-      >
+      <h3 className="relative mt-1 font-display text-2xl font-black tracking-[-0.02em] max-sm:text-xl">
         {heading}
       </h3>
       {body && (
-        <p
-          className={`relative ${
-            lg ? 'mx-auto mb-[18px] mt-3 max-w-[420px] text-sm' : 'mt-1 text-[12.5px]'
-          } ${champion ? 'text-white/80' : 'text-muted'}`}
-        >
+        <p className={`relative mt-1 text-[12.5px] ${champion ? 'text-white/80' : 'text-muted'}`}>
           {body}
         </p>
       )}
-      {onReset && (
-        <button onClick={onReset} className={`relative ${PRIMARY_BTN}`}>
-          Draft a new XI <ArrowRight size={16} strokeWidth={2.5} />
-        </button>
-      )}
-      {action}
     </div>
   );
 }

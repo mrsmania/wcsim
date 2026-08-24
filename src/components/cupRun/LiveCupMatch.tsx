@@ -32,7 +32,6 @@ export default function LiveCupMatch({
 }) {
   const liveMax = maxMinute(decided);
   const { liveMinute, clockLabel, penShown } = useMatchClock({
-    active: true,
     speed,
     maxMinute: liveMax,
     endLabel: koEndLabel(decided),
@@ -42,7 +41,6 @@ export default function LiveCupMatch({
   });
   const view = liveMatchView({
     playing: true,
-    userSide: 'home',
     liveMinute,
     liveMax,
     clockLabel,
@@ -60,7 +58,6 @@ export default function LiveCupMatch({
       oppYear={opp.year}
       oppRating={opp.strength.overall}
       view={view}
-      userSide="home"
       playing
       clockLabel={clockLabel}
       penKicks={penKicks}

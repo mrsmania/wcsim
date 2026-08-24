@@ -1,5 +1,5 @@
 import { PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
-import { AWARD, AWARDS_ON, challengeById } from '../../domain/challenges';
+import { AWARDS_ON, challengeById } from '../../domain/challenges';
 import ChallengeRow from '../challengeUi';
 import type { Reward } from './types';
 
@@ -52,7 +52,7 @@ export default function RunEndPanel({
               const c = challengeById(id);
               return c ? (
                 <li key={id}>
-                  <ChallengeRow challenge={c} award={AWARD[c.tier]} />
+                  <ChallengeRow challenge={c} />
                 </li>
               ) : null;
             })}

@@ -67,7 +67,7 @@ function simulateFinish(
  */
 export function simulateTitleOdds(
   players: Player[],
-  sims = 1500,
+  sims: number,
   chemistryBonus = 0,
   atkDefDelta = 0,
   pool: Squad[] = SQUADS,

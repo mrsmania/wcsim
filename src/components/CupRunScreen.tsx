@@ -78,10 +78,10 @@ export default function CupRunScreen({
   pool,
   onRunEnd,
   onRunStart,
-  banking = false,
-  view = 'both',
-  buildTo = '/career-mode',
-  showFullDraw = false,
+  banking,
+  view,
+  buildTo,
+  showFullDraw,
   onSetShowFullDraw,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
@@ -109,21 +109,24 @@ export default function CupRunScreen({
   onRunStart?: () => void;
   /** The finished run's stickers are still saving: the run-end actions wait, so the
    *  haul is shown before the next run can begin. */
-  banking?: boolean;
-  /** Which half of this screen to render. `both` is the shipped behaviour: the career
-   *  hub and the live run share one route, with the hub collapsing to a strip mid-run.
-   *  The tabs navigation splits them (roadmap item 27, finding F4 - a shop and a step of
-   *  play cannot be the same address), so it mounts this screen twice: `hub` for the
+  banking: boolean;
+  /** Which half of this screen to render. The tabs navigation gives the career hub and
+   *  the live run separate routes (roadmap item 27, finding F4 - a shop and a step of
+   *  play cannot be the same address), so App mounts this screen twice: `hub` for the
    *  Career tab (hub only, always open) and `run` under Play (the run, no hub). The
    *  career state and the purchase handlers stay here either way, so the split is a
-   *  render branch rather than a state lift. */
-  view?: 'both' | 'hub' | 'run';
-  /** Where "back to the build" goes (the route differs between the two navigations). */
-  buildTo?: string;
+   *  render branch rather than a state lift.
+   *
+   *  There used to be a third value, `both`, for the era when one route served both, and
+   *  it was the DEFAULT and documented as "the shipped behaviour" long after no caller
+   *  could reach it. */
+  view: 'hub' | 'run';
+  /** Where "back to the build" goes. Always `/play`: there is one build route now. */
+  buildTo: string;
   /** The bracket accordion: whether the full 16-team bracket shows, and the setter.
    *  A persisted preference (App owns it) rather than component state, so consulting the
    *  draw once does not have to be redone on every navigation back into the run. */
-  showFullDraw?: boolean;
+  showFullDraw: boolean;
   onSetShowFullDraw?: (open: boolean) => void;
 }) {
   const diffDelta = userRatingDelta(difficulty);
@@ -564,7 +567,7 @@ export default function CupRunScreen({
 
       {/* Career hub - open above the content; a slim strip during an active run. Its own
           page in the tabs navigation, where the run is a separate route. */}
-      {view !== 'run' && hub}
+      {hubOnly && hub}
 
       {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
           picker) with the hub open below; one "Play group stage" both starts the run and
@@ -746,7 +749,6 @@ export default function CupRunScreen({
                             <div className="mt-6">
                               <Banner
                                 champion={advanced}
-                                size="sm"
                                 eyebrow={
                                   gr
                                     ? `Group stage · finished ${ordinal(gr.groupPos ?? 0)} of ${gr.groupSize}`
@@ -819,7 +821,6 @@ export default function CupRunScreen({
                 {run.phase === 'boon' && lastKoMatch && (
                   <Banner
                     champion
-                    size="sm"
                     eyebrow={lastKoMatch.roundName}
                     heading={koWinHeading(lastKoMatch.match)}
                     body={`Through to the ${KO_ROUNDS[run.koRound]}. Pick a boost below.`}
@@ -844,7 +845,6 @@ export default function CupRunScreen({
                 {run.phase === 'ended' && run.outcome && (
                   <Banner
                     champion={run.outcome === 'champion'}
-                    size="sm"
                     eyebrow={
                       run.outcome === 'champion'
                         ? 'Full time · the Final'

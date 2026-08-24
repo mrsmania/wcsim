@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES } from '../../config';
-import { AWARD, AWARDS_ON, challengeById, challengeProgress } from '../../domain/challenges';
+import { AWARDS_ON, challengeById, challengeProgress } from '../../domain/challenges';
 import ChallengeRow from '../challengeUi';
 import {
     PERKS,
@@ -211,7 +211,7 @@ export default function CareerHub({
                                 <ul className="mt-3 flex flex-col gap-2">
                                     {latest.map((c) => (
                                         <li key={c.id}>
-                                            <ChallengeRow challenge={c} award={AWARD[c.tier]} />
+                                            <ChallengeRow challenge={c} />
                                         </li>
                                     ))}
                                 </ul>

@@ -1,18 +1,17 @@
 import { useRef } from 'react';
 import type { MatchEvent } from '../domain/match';
+import { USER_SIDE } from './matchView';
 
 /** Chronological list of goal events for a match, or an empty-state line. The
- *  user's XI is always shown as the home side, so goals on `userSide` are tagged
- *  "You" (pitch green) and the rest carry the opponent's short code. */
+ *  user's XI is always the home side (see `USER_SIDE`), so goals on that side are
+ *  tagged "You" (pitch green) and the rest carry the opponent's short code. */
 export default function GoalList({
   events,
-  userSide,
   oppCode,
   live,
 }: {
   events: MatchEvent[];
   /** Which event side belongs to the user's XI. */
-  userSide: 'home' | 'away';
   /** Opponent's short/flag code, shown on opponent goals. */
   oppCode: string;
   /** True while the match is still being played (pre full-time). */
@@ -38,7 +37,7 @@ export default function GoalList({
   return (
     <ul className="flex flex-col gap-2">
       {events.map((e, i) => {
-        const isUser = e.side === userSide;
+        const isUser = e.side === USER_SIDE;
         return (
           <li
             key={i}

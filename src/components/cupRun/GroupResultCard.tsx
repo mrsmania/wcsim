@@ -20,13 +20,11 @@ export default function GroupResultCard({ m, i, userRating }: { m: UserMatch; i:
       oppRating={m.opp.strength.overall}
       view={liveMatchView({
         playing: false,
-        userSide: 'home',
         liveMinute: 90,
         liveMax: 90,
         clockLabel: '',
         finished: { userGoals: ug, oppGoals: og, status: 'Full time', statusDim: true, events: m.result.events },
       })}
-      userSide="home"
       playing={false}
       clockLabel=""
       collapsible

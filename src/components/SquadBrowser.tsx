@@ -374,9 +374,12 @@ interface Legend {
     apps: { year: number; elo: number }[];
 }
 
-/** The team's top `n` players of all time, ranked by their single best rating
+/** The team's best players of all time, ranked by their single best rating
  *  (not an average). Same human across tournaments (`personId`) is one entry. */
-function topLegends(team: TeamGroup, n = 10): Legend[] {
+/** The nation's ten best players by their single best rating across appearances. */
+const LEGENDS_SHOWN = 10;
+
+function topLegends(team: TeamGroup): Legend[] {
     const byPerson = new Map<string, Legend>();
     for (const sq of team.squads) {
         for (const p of sq.players) {
@@ -393,7 +396,7 @@ function topLegends(team: TeamGroup, n = 10): Legend[] {
     arr.sort(
         (a, b) => b.best - a.best || b.apps.length - a.apps.length || a.name.localeCompare(b.name),
     );
-    return arr.slice(0, n);
+    return arr.slice(0, LEGENDS_SHOWN);
 }
 
 /** A team's detail page: the World Cups it played (newest first, each opening that

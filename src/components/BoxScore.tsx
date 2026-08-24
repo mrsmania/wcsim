@@ -50,8 +50,6 @@ const CHEMISTRY_RULES = (
 interface Props {
     formation: Formation;
     filled: Filled;
-    /** Show the chemistry readout (user XI only; also gated by FEATURES.chemistry). */
-    showChemistry?: boolean;
 }
 
 function avgElo(players: Player[]): number {
@@ -80,14 +78,14 @@ function Cell({ label, value, ovr = false }: { label: string; value: number; ovr
 /** The right-column readout: a 4-cell ratings strip (Ovr/Att/Mid/Def) and, below
  *  it, the chemistry card (donut + effective overall + the per-category breakdown).
  *  Both render as siblings so the surrounding stack spaces them. */
-export default function BoxScore({ formation, filled, showChemistry = false }: Props) {
+export default function BoxScore({ formation, filled }: Props) {
     const placed = placedPlayers(formation, filled);
     const attack = avgElo(placed.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
     const midfield = avgElo(placed.filter((p) => categoryOf(p.positions[0]) === 'MID'));
     const defense = avgElo(placed.filter((p) => DEF_CATS.includes(categoryOf(p.positions[0]))));
     const overall = avgElo(placed);
 
-    const chem = FEATURES.chemistry && showChemistry ? teamChemistry(formation, filled) : null;
+    const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;
 
     return (

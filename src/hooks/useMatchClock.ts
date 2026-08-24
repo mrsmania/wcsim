@@ -21,8 +21,6 @@ const SHOOTOUT_END_HOLD_MS = 1500;
 /** What a match reveal needs from its caller. Passed fresh each render; the hook
  *  reads it through a ref so only starting a new match restarts the timer. */
 export interface MatchClockSpec {
-  /** True while a match is being revealed (drives the timer on/off). */
-  active: boolean;
   /** Current playback speed (read via a ref, so changing it never restarts). */
   speed: MatchSpeed;
   /** Last minute to count to (90, or 120 for a knockout that went to extra time). */
@@ -56,8 +54,9 @@ export interface MatchClockState {
  * only the ownership moved into one hook.
  *
  * `speed`, the callback, and the labels are read through a ref so changing them
- * does not restart the timer; the effect only re-runs when a new match starts
- * revealing (`active` flips or the reveal `id` changes), matching the originals.
+ * does not restart the timer. The timer effect runs once per mount: a new match starts
+ * revealing by mounting a fresh keyed LiveCupMatch, which is what the removed `active`
+ * flag was standing in for.
  */
 export function useMatchClock(spec: MatchClockSpec): MatchClockState {
   const [liveMinute, setLiveMinute] = useState(0);
@@ -67,15 +66,14 @@ export function useMatchClock(spec: MatchClockSpec): MatchClockState {
   const specRef = useRef(spec);
   specRef.current = spec;
 
-  const { active } = spec;
-
   // Publish "a match is revealing" for the tabs navigation, which goes inert while one
-  // runs (the playback is transient and is lost by leaving the screen). Its own effect
-  // so the timer logic below is untouched; a no-op with the classic navigation.
-  useEffect(() => (active ? holdLiveMatch() : undefined), [active]);
+  // runs (the playback is transient and is lost by leaving the screen). Its own effect so
+  // the timer logic below is untouched. Held for the hook's whole lifetime: a reveal is
+  // started and stopped by mounting and unmounting a keyed LiveCupMatch, which is why the
+  // `active` flag this used to take was always true.
+  useEffect(() => holdLiveMatch(), []);
 
   useEffect(() => {
-    if (!active) return;
     // Snapshot the reveal parameters at start; speed is re-read per tick so a
     // mid-match speed change still takes effect on the next tick.
     const start = specRef.current;
@@ -135,7 +133,10 @@ export function useMatchClock(spec: MatchClockSpec): MatchClockState {
         window.clearInterval(timer);
       }
     };
-  }, [active]);
+    // Mount-scoped: see the note on the hook. Deliberately not keyed on the spec, which
+    // is re-created every render and is read through `specRef` for exactly that reason.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return { liveMinute, clockLabel, penShown };
 }

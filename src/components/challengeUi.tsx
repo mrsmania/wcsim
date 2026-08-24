@@ -68,15 +68,7 @@ function FamilyDot({ family }: { family: ChallengeFamily }) {
 
 /** A compact one-line challenge: dot, name, what it asks, what it paid. Used by the
  *  run-end list and the career-hub card, so a completion reads the same in both. */
-export default function ChallengeRow({
-  challenge,
-  award,
-}: {
-  challenge: Challenge;
-  /** Prestige to show on the right (the tier award). Hidden entirely when challenges
-   *  do not pay - see FEATURES.challengeAwards. */
-  award: number;
-}) {
+export default function ChallengeRow({ challenge }: { challenge: Challenge }) {
   return (
     <div className="flex items-start gap-2.5">
       <FamilyDot family={challenge.family} />
@@ -87,7 +79,9 @@ export default function ChallengeRow({
         <span className="block text-[12px] leading-snug text-muted">{challenge.description}</span>
       </span>
       {AWARDS_ON && (
-        <span className="shrink-0 font-mono text-[12.5px] font-bold text-accent">+{award}</span>
+        <span className="shrink-0 font-mono text-[12.5px] font-bold text-accent">
+          +{AWARD[challenge.tier]}
+        </span>
       )}
     </div>
   );

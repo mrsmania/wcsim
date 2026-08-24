@@ -844,29 +844,14 @@ export default function App({
                 >
                     {isSquads ? (
                         <SquadBrowser />
-                    ) : isCareerHub ? (
-                        // The Career tab: the hub only, always open. Same component, so
-                        // the career state and the purchase handlers stay in one place.
+                    ) : isCareerHub || isCupRun ? (
+                        // The Career tab is the hub, `/cup-run` the live run. One arm: the
+                        // two used to be separate branches rendering the same component
+                        // with sixteen byte-identical props, differing only in `view`.
+                        // React reconciles them as one component at one child position, so
+                        // there was never even a remount difference between them.
                         <CupRunScreen
-                            view="hub"
-                            buildTo="/play"
-                            draftedXi={draftedXi}
-                            draftedShape={draftedShape}
-                            draftedBuild={draftedBuild}
-                            onReDraft={handleReset}
-                            speed={speed}
-                            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
-                            difficulty={settings.settings.difficulty}
-                            pool={poolSquads}
-                            showFullDraw={settings.settings.showFullDraw}
-                            onSetShowFullDraw={settings.setShowFullDraw}
-                            onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
-                            onRunStart={STICKERS ? stickers.onNewRun : undefined}
-                            banking={STICKERS ? stickers.banking : false}
-                        />
-                    ) : isCupRun ? (
-                        <CupRunScreen
-                            view="run"
+                            view={isCareerHub ? 'hub' : 'run'}
                             buildTo="/play"
                             draftedXi={draftedXi}
                             draftedShape={draftedShape}
@@ -1132,11 +1117,7 @@ export default function App({
                                             />
                                         </section>
                                         <section className="flex flex-col gap-[18px] [grid-area:stack]">
-                                            <BoxScore
-                                                formation={activeFormation}
-                                                filled={filled}
-                                                showChemistry
-                                            />
+                                            <BoxScore formation={activeFormation} filled={filled} />
                                             <XiTable
                                                 formation={activeFormation}
                                                 filled={filled}

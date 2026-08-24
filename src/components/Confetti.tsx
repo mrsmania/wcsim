@@ -40,7 +40,10 @@ function drawPiece(ctx: CanvasRenderingContext2D, p: Piece) {
  * then removes the canvas once they have all fallen. Pointer-events-none and a no-op
  * under prefers-reduced-motion.
  */
-export function confettiBurst(originX: number, originY: number, count = 80) {
+/** Pieces in one hover burst. A parameter until 2026-08-24, defaulted and never passed. */
+const BURST_PIECES = 80;
+
+export function confettiBurst(originX: number, originY: number) {
     if (typeof window === 'undefined') return;
     if (prefersReducedMotion()) return;
 
@@ -63,7 +66,7 @@ export function confettiBurst(originX: number, originY: number, count = 80) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const pieces: Piece[] = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < BURST_PIECES; i++) {
         // Fire outward in every direction (a full 360deg pop), then let gravity win.
         const angle = Math.random() * Math.PI * 2;
         const speed = 2 + Math.random() * 6;

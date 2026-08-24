@@ -20,11 +20,8 @@ interface Props {
   /** The derived score/status/feed view-model for this card. */
   view: MatchView;
   /** Which event side is the user's XI (home in the knockout, either in a group). */
-  userSide: 'home' | 'away';
   /** True while this card is the one being revealed (adds the pitch top border). */
   playing: boolean;
-  /** Force the pitch top border regardless of play state (the knockout final). */
-  highlight?: boolean;
   /** Live clock label used to build the foot-of-feed live line. */
   clockLabel: string;
   /** Penalty shootout to show under the feed (knockout ties only). */
@@ -53,9 +50,7 @@ export default function MatchdayCard({
   oppYear,
   oppRating,
   view,
-  userSide,
   playing,
-  highlight,
   clockLabel,
   penKicks,
   penShown,
@@ -101,7 +96,7 @@ export default function MatchdayCard({
       </div>
       <div
         className={`overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
-          playing || highlight ? 'border-t-[3px] border-t-pitch' : ''
+          playing ? 'border-t-[3px] border-t-pitch' : ''
         }`}
       >
         <FixtureHead
@@ -138,7 +133,6 @@ export default function MatchdayCard({
           >
             <GoalList
               events={events ?? []}
-              userSide={userSide}
               oppCode={oppCode}
               live={view.live}
             />

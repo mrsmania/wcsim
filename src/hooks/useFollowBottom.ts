@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 
+/** Gap (px) to leave below the latest content so it is not glued to the fold. */
+const MARGIN = 24;
+/** How far (px) the tail may sit below the fold before we treat the user as having
+ *  scrolled away (which pauses following until they return). */
+const THRESHOLD = 120;
+
 /** Options for {@link useFollowBottom}. */
 interface FollowBottomOpts {
-  /** Gap (px) to leave below the latest content so it is not glued to the fold. */
-  margin?: number;
-  /** How far (px) the tail may sit below the fold before we treat the user as
-   *  having scrolled away (which pauses following until they return). */
-  threshold?: number;
   /** When false, the observers stay attached but the hook never scrolls (and halts
    *  any in-flight ease), so the caller can own the scroll position - e.g. once a
    *  run ends and the screen scrolls the last match to the top itself instead of
@@ -54,16 +55,10 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
   tailRef: MutableRefObject<HTMLDivElement | null>;
   rootRef: (node: HTMLDivElement | null) => void;
 } {
-  const margin = opts?.margin ?? 24;
-  const threshold = opts?.threshold ?? 120;
   const active = opts?.active ?? true;
 
   const tailRef = useRef<HTMLDivElement | null>(null);
-  const marginRef = useRef(margin);
-  const thresholdRef = useRef(threshold);
   const activeRef = useRef(active);
-  marginRef.current = margin;
-  thresholdRef.current = threshold;
   activeRef.current = active;
 
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
@@ -154,7 +149,7 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
         lastDocBottom = docBottom;
         stuck = true;
         stopAnim();
-        const newDesired = window.scrollY + bottom - (window.innerHeight - marginRef.current);
+        const newDesired = window.scrollY + bottom - (window.innerHeight - MARGIN);
         if (newDesired > window.scrollY + 0.5) scrollDownTo(newDesired);
         return;
       }
@@ -165,7 +160,7 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
 
       // Put the tail `margin` above the fold. Down only: if it is already above
       // that line the content fits, desired <= scrollY, and we do nothing.
-      const desired = window.scrollY + bottom - (window.innerHeight - marginRef.current);
+      const desired = window.scrollY + bottom - (window.innerHeight - MARGIN);
       if (desired > window.scrollY + 0.5) scrollDownTo(desired);
     };
 
@@ -204,7 +199,7 @@ export function useFollowBottom(opts?: FollowBottomOpts): {
         return;
       }
       const belowFold = marker.getBoundingClientRect().bottom - window.innerHeight;
-      stuck = belowFold <= thresholdRef.current;
+      stuck = belowFold <= THRESHOLD;
     };
     window.addEventListener('scroll', onScroll, { passive: true });
 

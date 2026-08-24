@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../data/types';
-import { ALL_PLAYERS, basePlayer } from '../data/squads';
+import { basePlayer } from '../data/squads';
 import {
   albumStats,
   emptyAlbum,
@@ -45,8 +45,6 @@ export interface PendingReward {
 }
 
 export interface StickerAlbumApi {
-  /** Whether the album feature is on (FEATURES.stickerAlbum). */
-  enabled: boolean;
   /** The current collection (in memory, mirrored to its own localStorage key). */
   album: AlbumState;
   /** Completion counts for the header / album summary card (null when off). */
@@ -90,7 +88,7 @@ export interface StickerAlbumApi {
 export function useStickerAlbum(
   state: GameState,
   initialAlbum: AlbumState,
-  allPlayers: Player[] = ALL_PLAYERS,
+  allPlayers: Player[],
 ): StickerAlbumApi {
   const enabled = FEATURES.stickerAlbum;
   const { swapsLeft } = state;
@@ -285,7 +283,6 @@ export function useStickerAlbum(
   }, []);
 
   return {
-    enabled,
     album,
     summary,
     newStickerIds,

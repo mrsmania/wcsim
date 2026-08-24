@@ -2,14 +2,12 @@ import { FEATURES } from '../../config';
 import { clearGuestData, createLocalStore, hasGuestData } from './localStore';
 import type { AccountSnapshot, Store } from './types';
 
-export type {
-  AccountSnapshot,
-  AlbumStats,
-  FinishRunInput,
-  FinishRunResult,
-  Settings,
-  Store,
-} from './types';
+// Only what something outside this directory actually imports from the facade. The other
+// five names this used to re-export had no importer at all: both store implementations take
+// `Store`, `AlbumStats`, `FinishRunInput` and `FinishRunResult` from `./types` directly, and
+// `Settings` comes from `settingsStorage`, so re-exporting them here only suggested a public
+// surface that was not one.
+export type { AccountSnapshot } from './types';
 
 /**
  * The app's single persistence handle. Import this, never the per-key storage

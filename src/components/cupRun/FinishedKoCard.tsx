@@ -48,13 +48,11 @@ export default function FinishedKoCard({
       oppRating={oppRating ?? 0}
       view={liveMatchView({
         playing: false,
-        userSide: 'home',
         liveMinute: liveMax,
         liveMax,
         clockLabel: '',
         finished: { userGoals, oppGoals, status, statusDim, events },
       })}
-      userSide="home"
       playing={false}
       clockLabel=""
       penKicks={penKicks}

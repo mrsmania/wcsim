@@ -1,6 +1,11 @@
 import type { MatchEvent } from '../domain/match';
 import type { KoDecided } from '../domain/knockout';
 
+/** The side of a MatchEvent that belongs to the user's XI. Not a parameter: `createGroup`
+ *  schedules the user as home in every fixture and `prepareGroupStage` throws if they are
+ *  not, which is the same invariant the bracket relies on (game 0, home seed). */
+export const USER_SIDE = 'home' as const;
+
 /** The user-perspective score of a match card. */
 export interface MatchScore {
   user: number;
@@ -49,8 +54,6 @@ export interface FinishedResult {
 export interface LiveMatchInput {
   /** True when this card is the one currently being revealed by the clock. */
   playing: boolean;
-  /** Which event side is the user's XI (home in the knockout, either in a group). */
-  userSide: 'home' | 'away';
   /** Current revealed minute + last minute of this match (90, or 120 for a.e.t.). */
   liveMinute: number;
   liveMax: number;
@@ -70,11 +73,11 @@ export interface LiveMatchInput {
  * by the group and knockout screens.
  */
 export function liveMatchView(input: LiveMatchInput): MatchView {
-  const { playing, userSide, liveMinute, liveMax, clockLabel, playingEvents, finished } = input;
+  const { playing, liveMinute, liveMax, clockLabel, playingEvents, finished } = input;
 
   if (playing && playingEvents) {
     const shown = playingEvents.filter((e) => e.minute <= liveMinute);
-    const userGoals = shown.filter((e) => e.side === userSide).length;
+    const userGoals = shown.filter((e) => e.side === USER_SIDE).length;
     return {
       score: { user: userGoals, opp: shown.length - userGoals },
       status: clockLabel || undefined,
