@@ -353,7 +353,7 @@
   <summary>
     <span class="num">23</span>
     <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. Unblocked 2026-08-21: item 27 has shipped and its losing chrome is deleted.</span>
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items, and the first move is now repairing the checks harness, which fails at random.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -364,12 +364,36 @@
     the app that comes out plays exactly like the app that went in.</p>
 
     <p><strong>The backlog is <code>docs/hygiene-audit.html</code></strong>, which is the
-    deliverable: 105 numbered items (H1-H105) in seven waves, each naming the files, the fix,
-    whether it is behaviour-preserving, effort and risk, plus twelve decisions that need an owner
-    and an explicit list of what not to touch, split since 2026-08-20 into what item 27 owns and
-    what nobody does. It was produced from six independent parallel
-    reviews of the tree (dead weight, DRY, SoC/layering, KISS/YAGNI, type model and naming,
-    tooling/SQL/assets), merged, with the load-bearing claims re-verified by hand.</p>
+    deliverable: <b>158 numbered items (H1-H158)</b> in seven waves, each naming the files, the fix,
+    whether it is behaviour-preserving, effort and risk, plus <b>sixteen decisions</b> that need an
+    owner, an explicit list of what not to touch, and a section of measured negative results. It was
+    produced from six independent parallel reviews of the tree (dead weight, DRY, SoC/layering,
+    KISS/YAGNI, type model and naming, tooling/SQL/assets), merged, with the load-bearing claims
+    re-verified by hand.</p>
+
+    <p><strong>Re-audited 2026-08-24, and this is why it was worth redoing.</strong> The first pass
+    was written on 2026-08-20 against <code>5a22fca</code> and never executed. Fifty commits landed
+    in between (items 27, 28, 29, 31, 32), moving 5,262 lines and deleting 2,160 in
+    <code>src/</code>. Reconciled item by item, the old list came out: <b>73 stand, 24 shrunk, 7
+    void, 1 already done</b> by deletion - and a dozen published counts were wrong, several by a
+    lot (the harness is 2,846 lines in 46 blocks, not 1,275 in 26; one copy-pasted test loop appears
+    12 times, not 5; the CI gap covers 132 invariants, not 59). Two of the void items would now
+    <b>break the build</b> if executed as written, because code added since gave both "dead"
+    symbols a real consumer. The old numbering is preserved so existing references still resolve;
+    new findings start at H106.</p>
+
+    <p><strong>The gate itself turned out to be holed, which reorders the whole backlog.</strong>
+    <code>npm run checks</code> <b>fails at random again</b>, about one run in twelve (observed 2
+    failures in 11 consecutive runs on clean <code>main</code>): a check on the Extra Choice perk
+    plays a real group stage and then reads a boost offer that only exists if the user qualified, so
+    it reads 0 against an expected 4 or 5. Measured at 4.4% and 3.7% per tier over 2,000 runs each.
+    That is the third instance of the bug class <b>item 31</b> closed on 2026-08-23 with "0 failures
+    in 3000 runs". Worse, the <code>prime-years</code> check is <b>vacuous</b>: it samples a squad
+    that yields no upgrades (one of 60 of 272), so the loop asserting "every arrival is tagged" runs
+    zero times - proved by reintroducing the exact sticker exploit it exists to catch, after which
+    the suite still reported 132 passed, 0 failed. Two more checks can pass on zero observations.
+    So H91 (checks into CI) is no longer the first move: putting an 8%-flaky suite into CI trains
+    everyone to re-run it. Repair the gate first (H106-H108), then H91.</p>
 
     <p><strong>Unblocked 2026-08-21.</strong> This waited on item 27, which moved the same code:
     <code>App.tsx</code>'s route branch, the mode fact derived twice, the reset target, the two
