@@ -563,7 +563,10 @@ const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra
  * A card parked in `pendingChoice` is deliberately not excluded yet - it is not applied
  * until `resolveChoice` commits it, and the offer it came from is already gone.
  *
- * The pool cannot run dry in practice (11 starters against at most 4 stops), and
+ * The pool fills with zero to spare, not comfortably: 10 starters against the widest
+ * offer (Extra Choice tier 2) plus Scout Network tier 2 leaves the last stop of a run
+ * drawing 5 from exactly 5. It was one card until Ice Veins was deleted. So do not delete
+ * another starter without re-checking the figure the harness prints, and note that
  * `offerBoons` clamps its count to the pool size anyway, so a short pool shrinks the
  * offer rather than repeating or throwing.
  */

@@ -636,6 +636,11 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       else break;
     }
   }
+  // Sampled, so it has to have sampled something: with no tie observed every assertion above
+  // is skipped and this reads as a pass. The count is in the check NAME, and names only print
+  // on failure, so a run that quietly stopped reaching knockout stops would look identical to
+  // a healthy one.
+  if (!seen) ok = false;
   check(`kind-draw: never a stronger opponent, and the tree agrees (${redrawn}/${seen} redrawn)`, ok);
 }
 
@@ -644,8 +649,16 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // chemistry "in position" count are wrong), and EVERY upgraded player has to land in
 // `boostedIds` - a card that swaps eleven and records one would let ten handed players bank
 // stickers they did not draft, which is the exact hole boostedIds exists to close.
+// The sample squad is named, not indexed, and the arrival count is asserted. Both are
+// load-bearing: this check ran on SQUADS[0] and 66 of the 296 squads have no player whose
+// best tournament is a different one, so `arrived` came out empty and the tagging loop below
+// iterated ZERO times. It was vacuous for as long as SQUADS[0] happened to be such a squad -
+// proved by reintroducing the one-arrival bug, which the whole suite then failed to notice.
+// Adding 1986 moved Argentina into slot 0 and made it vacuous again, so an index is not a
+// fixture here; bra-1990 upgrades 6 of its 11 and is referred to by id.
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const sample = SQUADS.find((s) => s.id === 'bra-1990')!;
+  const xi = bestEleven(sample.players);
   const run = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
   const after = chooseBoon(run, 'prime-years').next;
   let ok = after.roster!.length === 11;
@@ -660,6 +673,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   if (new Set(after.roster!.map((p) => p.personId)).size !== 11) ok = false;
   // Every arrival is tagged, not just the first.
   const arrived = after.roster!.filter((p, i) => p.id !== run.roster![i].id).map((p) => p.id);
+  // No arrivals means the loop below proves nothing. Assert the sample actually exercises
+  // the card, or a dataset change silently turns this back into a green tick over nothing.
+  if (!arrived.length) ok = false;
   for (const id of arrived) if (!after.boostedIds.includes(id)) ok = false;
   check(`prime-years: same people, best versions, slots kept, all ${arrived.length} tagged`, ok);
 }
@@ -766,6 +782,8 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       else break;
     }
   }
+  // Same reasoning as kind-draw above: no tie observed means nothing was asserted.
+  if (!seen) ok = false;
   check(`away-days / man-marking: weaken one of their lines, none of yours (${seen} ties)`, ok);
 }
 
@@ -1324,7 +1342,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // Every unlocked card is reachable. 300 runs reach a mean of ~600 stops (the floor is
   // there to catch the loop doing nothing, and sits 9 standard deviations below that mean
   // rather than beside it - the trap roadmap 31 was about). At 3 cards a stop that is
-  // ~1800 slots, where the rarest kind of card (a legendary, weight 1 of the pool's 114)
+  // ~1800 slots, where the rarest kind of card (a legendary, weight 1 of the pool's 105)
   // is expected about 16 times, so zero appearances means unreachable rather than unlucky.
   const unreachable = allIds.filter((id) => !seen.has(id));
   check(
@@ -1337,7 +1355,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // A card the run already holds is never offered again - it would either stack (xpMult
   // compounds, so Sponsorship twice was 4x XP) or be a wasted pick (Mortgage, Youth
   // Development and All or Nothing are booleans; Double Print is a Math.max). Excluding
-  // them cannot starve the offer either: 11 starters against at most four stops.
+  // them cannot starve the offer either: 10 starters against at most four stops.
   check('boons: a card the run already holds is never offered again', heldOffered === 0);
   check('boons: excluding held cards never empties the offer', emptyOffer === 0);
   // Rarity weighting (common 6 / rare 3 / legendary 1) has to actually bite, per CARD:

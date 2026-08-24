@@ -26,6 +26,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The domain characterization harness (scripts/checks.ts). There is no unit-test
+      # runner in this project, so this plus `tsc` is the whole safety net, and until now
+      # it depended on the author remembering to run it. It needs no secrets and no
+      # network, and takes ~17s. Before the build deliberately: a domain regression
+      # should fail the job without also publishing the artifact.
+      #
+      # It also carries the collectible-seed staleness guard, which is what makes
+      # forgetting `npm run gen:collectibles` after a rating change impossible rather
+      # than merely discouraged.
+      - run: npm run checks
       - run: npm run build
         # Accounts config. Repository *variables*, not secrets: the anon key is
         # designed to ship inside the browser bundle, and row-level security is what
