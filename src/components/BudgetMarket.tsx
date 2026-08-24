@@ -326,7 +326,7 @@ export default function BudgetMarket({
                 aria-pressed={collectiblesOnly}
                 className={`inline-flex items-center gap-1 rounded-[5px] border px-2 py-1 font-mono text-[11px] font-semibold transition ${
                   collectiblesOnly
-                    ? 'border-amber bg-amber/10 text-[#9a6512]'
+                    ? 'border-amber bg-amber/10 text-amber-ink'
                     : 'border-line bg-panel text-muted hover:border-amber'
                 }`}
               >

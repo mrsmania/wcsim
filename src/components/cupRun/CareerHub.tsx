@@ -79,7 +79,7 @@ export default function CareerHub({
                                 Level {career.level}
                             </span>
                             {hubOpen ? (
-                                <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
+                                <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-amber-ink">
                                     {career.prestige} Prestige
                                 </span>
                             ) : (
@@ -121,7 +121,7 @@ export default function CareerHub({
                         <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent">
                             Level {career.level}
                         </span>
-                        <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#9a6512]">
+                        <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-amber-ink">
                             {career.prestige} Prestige
                         </span>
                     </div>

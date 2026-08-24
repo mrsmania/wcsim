@@ -621,7 +621,7 @@ export default function CupRunScreen({
               round the run has played has a way back into its review. */}
           {run.ascension > 0 && (
             <div className="mb-4 flex justify-center">
-              <span className="rounded-full border border-amber/40 bg-amber/[0.12] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a6512]">
+              <span className="rounded-full border border-amber/40 bg-amber/[0.12] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-amber-ink">
                 {ascensionAt(run.ascension).label} &middot; rewards x{ascensionAt(run.ascension).rewardMult}
               </span>
             </div>

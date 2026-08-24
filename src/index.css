@@ -38,7 +38,11 @@
        near-white in the dark theme, which would make the HIGHEST Ascension tier the
        lightest plinth and read the whole ramp backwards.
        `amber-ink` is amber as TEXT. The surface amber fails AA on paper, so every
-       Prestige figure was reaching for a literal #9a6512 (five sites before this). */
+       Prestige figure was reaching for a literal #9a6512. Five sites kept doing so after
+       the token landed, which was a real dark-theme bug rather than untidiness: the literal
+       is the LIGHT value, so on graphite they rendered dark brown on a dark panel. All nine
+       use the token now - never re-inline it. (ModeSelect's `text-[#13211a]` CTAs are a
+       different case and are correct; the comment there says why.) */
     --color-faint: #ecebe3;
     --color-cup-deep: #0a1b12;
     --color-amber-ink: #9a6512;
