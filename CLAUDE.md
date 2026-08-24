@@ -443,10 +443,39 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
 
 ## The dataset (`src/data/squads.ts`)
 
-- Tournaments: **all nine (1990-2022)** are full researched datasets. 1990 and 1994 are
-  24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for 1990/1994/1998,
-  23-man for 2002-2018, 26-man for 2022 (Iran 25). ~6,270 player rows total.
-  (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders.)
+- Tournaments: **all ten (1986-2022)** are full researched datasets. 1986, 1990 and 1994
+  are 24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for
+  1986/1990/1994/1998 (Morocco 1986 registered 23), 23-man for 2002-2018, 26-man for 2022
+  (Iran 25). ~6,800 player rows total.
+  (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders; 1986
+  was added 2026-08-23 as the first step of roadmap item 03.)
+- **1986 came from a different source, and that is worth knowing before adding 1982.**
+  The other nine were verified against the Wikipedia squad lists; this environment's egress
+  proxy blocks every such site, so 1986's rosters come from **`openfootball/world-cup`**
+  (`1986--mexico/squads.txt`, **CC0**, clonable through the session's git proxy even though
+  direct HTTPS is not). It was validated against our own independently-researched 1990:
+  **507 of 528 names match and every one of those carries the identical shirt number**; the
+  21 misses are spelling variants (Taffarel without "Cláudio", Bakero without "José María",
+  different Arabic transliterations). The same repo holds 1982 and earlier, so this route
+  serves the rest of item 03.
+  **What that source does NOT carry is authored by hand:** it gives only the four categories
+  (GK/DF/MF/FW), so the twelve specific positions are assigned - accurately for known
+  players, and as a balanced distribution (guaranteeing every squad has full-backs, a
+  holder and wide players) for the rest - and the ratings are a judgement call as always.
+  Ratings for the players with no surviving record are their squad's baseline with a
+  deterministic spread by shirt number, not a flat number: 22 identical ratings would make
+  a whole side one interchangeable block to the draft and the sim.
+- **Six name collisions came in with 1986 and one was already shipped.** A `personId` is
+  the name slug, so two different people sharing a display name silently merge into one
+  drafted-once identity. 1986 brought six (Brazil's 1986 Oscar / Júnior / Júlio César are
+  not the 2014 AM, the 2002 left-back or the keeper; Spain's Víctor is not Brazil's 2014
+  goalkeeper Victor; Mexico's Javier Hernández is Chicharito's **father**; Portugal's João
+  Pinto is João Domingos, not the 2002 João Manuel), each given an explicit personId
+  override like the two "Luis Marín". Finding them also turned up a **pre-existing** one:
+  **"Carlos Aguilera" was Uruguay's 1990 striker AND a different Spaniard in 1998** sharing
+  one id. Fixed at the same time (`carlos-aguilera-esp`). Three source spellings were also
+  respelled to ours so the same human stays one person: Vasyl Rats, Oleksandr Zavarov,
+  Paulo Silas.
   Historical nations keep their period identity: the 1990 champions (West Germany) are
   recorded as Germany on code `GER`;
   Soviet Union (`URS`), Czechoslovakia (`TCH`) and Yugoslavia (`YUG`) are their own

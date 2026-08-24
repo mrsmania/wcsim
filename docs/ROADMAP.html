@@ -323,7 +323,7 @@
   <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
-      <span class="sub">Extend the dataset backwards from 1990: 1986, 1982, and earlier.</span>
+      <span class="sub">Extend the dataset backwards: <b>1986 shipped 2026-08-23</b> (24 nations, 529 rows, 3 new collectibles). Next: 1982, then earlier.</span>
     </span>
     <span class="tag">Content</span>
     <span class="chev">&#9656;</span>
@@ -343,8 +343,44 @@
       <code>npm run gen:collectibles</code> then <code>npm run push:collectibles</code>.
       <code>npm run checks</code> fails while the seed is stale.</li>
     </ul>
-    <p class="next"><strong>Next step:</strong> do 1986 end to end as the template for the
-    rest.</p>
+    <p><strong>1986 shipped 2026-08-23, and the template it set is mostly about the
+    SOURCE.</strong> The nine existing tournaments were verified against Wikipedia's squad
+    lists; this environment's egress proxy blocks Wikipedia, worldfootball.net and
+    footballdatabase.eu alike, and WebSearch returns snippets rather than rosters. What does
+    work is <code>git clone</code> through the session's git proxy, so the rosters came from
+    <b><code>openfootball/world-cup</code></b> (<code>1986--mexico/squads.txt</code>,
+    <b>CC0</b>, so nothing to attribute). It carries 1982, 1978 and earlier too.
+    <br><b>It was validated rather than trusted:</b> against our own independently-researched
+    1990, <b>507 of 528 names match and every one of those carries the identical shirt
+    number</b>. The 21 misses are spelling variants, not disagreements. Two sources agreeing
+    on 507 shirt numbers is the provenance check.
+    <br><b>What the source does not carry has to be authored:</b> it has only GK/DF/MF/FW, so
+    the twelve specific positions are assigned by hand (accurately for known players, and as
+    a distribution that guarantees every squad has full-backs, a holder and wide players for
+    the rest), and the ratings are a judgement call as always - baseline-plus-spread for the
+    players with no surviving record, because 22 identical ratings would make a whole side
+    one interchangeable block.
+    <br><b>The costs beyond the rows:</b> three new nations needed flags and confederations
+    (HUN, IRQ, NIR - all three ship in <code>country-flag-icons</code>, Northern Ireland as
+    the home-nation GB-NIR), and the front page's "since 1990" copy moved to 1986. A 24-team
+    field needed nothing: 1990 and 1994 already prove it, so the warning above about "32
+    nations" assumptions did not bite.
+    <br><b>Six personId collisions came in with it and one was already shipped:</b> Brazil's
+    1986 Oscar, Júnior and Júlio César, Spain's Víctor, Mexico's Javier Hernández (Chicharito's
+    father) and Portugal's João Pinto all share a display name with a different, later person,
+    and each took an explicit override. Hunting them found <b>"Carlos Aguilera"</b> already
+    merging Uruguay's 1990 striker with a different Spaniard from 1998 - a live bug, fixed in
+    the same commit. <b>Expect this every tournament</b>, and check it before believing a
+    dataset addition is done: <code>validateSquads</code> does not catch it, because two
+    people with one name is indistinguishable from one person with two appearances.
+    <br><b>New collectibles: 3</b>, taking the album from 81 to 84 - Maradona 1986 at 98,
+    which is a <b>Monumental</b> and the second-highest card in the game behind Messi 2022,
+    plus Platini and Lineker at 90. All three wear number 10.</p>
+
+    <p class="next"><strong>Next step:</strong> 1982, the same way. The clone is already
+    proven, so it is the position and rating pass that costs the time. Re-run
+    <code>npm run gen:collectibles</code> and <code>npm run push:collectibles</code> after,
+    and check the name-collision list before calling it done.</p>
     <p class="files">src/data/squads.ts, scripts/gen-collectibles.ts</p>
   </div>
 </details>

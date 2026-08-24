@@ -17,6 +17,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   SCO: 'UEFA', NOR: 'UEFA', AUT: 'UEFA', BUL: 'UEFA', ROU: 'UEFA', // 1998 qualifiers
   TUR: 'UEFA', IRL: 'UEFA', // 2002 qualifiers
   TCH: 'UEFA', URS: 'UEFA', // 1990 (Czechoslovakia, Soviet Union)
+  HUN: 'UEFA', NIR: 'UEFA', // 1986
   // CONMEBOL
   BRA: 'CONMEBOL', ARG: 'CONMEBOL', URU: 'CONMEBOL', COL: 'CONMEBOL',
   ECU: 'CONMEBOL', CHI: 'CONMEBOL', PER: 'CONMEBOL', PAR: 'CONMEBOL',
@@ -31,6 +32,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   KSA: 'AFC', IRN: 'AFC', JPN: 'AFC', KOR: 'AFC', QAT: 'AFC', AUS: 'AFC', PRK: 'AFC',
   CHN: 'AFC', // 2002
   UAE: 'AFC', // 1990
+  IRQ: 'AFC', // 1986
   // OFC
   NZL: 'OFC',
 };

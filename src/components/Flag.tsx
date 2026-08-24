@@ -29,9 +29,12 @@ import GBSCT from 'country-flag-icons/react/3x2/GB-SCT';
 import GBWLS from 'country-flag-icons/react/3x2/GB-WLS';
 import GH from 'country-flag-icons/react/3x2/GH';
 import GR from 'country-flag-icons/react/3x2/GR';
+import GBNIR from 'country-flag-icons/react/3x2/GB-NIR';
 import HN from 'country-flag-icons/react/3x2/HN';
+import HU from 'country-flag-icons/react/3x2/HU';
 import HR from 'country-flag-icons/react/3x2/HR';
 import IE from 'country-flag-icons/react/3x2/IE';
+import IQ from 'country-flag-icons/react/3x2/IQ';
 import IR from 'country-flag-icons/react/3x2/IR';
 import IS from 'country-flag-icons/react/3x2/IS';
 import IT from 'country-flag-icons/react/3x2/IT';
@@ -89,6 +92,9 @@ const BY_FIFA: Record<string, typeof BR> = {
   // one (CZ); the USSR has no flag in country-flag-icons, so use Russia as the closest
   // successor (as YUG uses Serbia). West Germany reuses GER -> DE (same tricolour).
   TCH: CZ, URS: RU, UAE: AE,
+  // 1986 nations. Northern Ireland is not an ISO country but the package ships the
+  // home-nation flags (GB-NIR), as it does for England, Scotland and Wales.
+  HUN: HU, IRQ: IQ, NIR: GBNIR,
 };
 
 interface Props {

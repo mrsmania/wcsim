@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 81 (58 legendary / 18 iconic / 5 monumental)
--- checksum: 8d81d15037435996
+-- rows: 84 (60 legendary / 18 iconic / 6 monumental)
+-- checksum: af544e85507a7241
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -25,6 +25,7 @@ create temporary table collectibles_seed (
 insert into collectibles_seed
   (player_id, tier, elo, name, squad_id, nation_code, year)
 values
+  ('arg-1986-10', 'monumental', 98, 'Diego Maradona', 'arg-1986', 'ARG', 1986),
   ('arg-1990-10', 'legendary', 92, 'Diego Maradona', 'arg-1990', 'ARG', 1990),
   ('arg-1998-9', 'legendary', 91, 'Gabriel Batistuta', 'arg-1998', 'ARG', 1998),
   ('arg-2010-10', 'iconic', 93, 'Lionel Messi', 'arg-2010', 'ARG', 2010),
@@ -57,6 +58,7 @@ values
   ('cro-1998-9', 'legendary', 91, 'Davor Šuker', 'cro-1998', 'CRO', 1998),
   ('cro-2018-10', 'legendary', 92, 'Luka Modrić', 'cro-2018', 'CRO', 2018),
   ('cro-2022-10', 'legendary', 92, 'Luka Modrić', 'cro-2022', 'CRO', 2022),
+  ('eng-1986-10', 'legendary', 90, 'Gary Lineker', 'eng-1986', 'ENG', 1986),
   ('eng-2022-9', 'legendary', 91, 'Harry Kane', 'eng-2022', 'ENG', 2022),
   ('esp-2010-1', 'legendary', 90, 'Iker Casillas', 'esp-2010', 'ESP', 2010),
   ('esp-2010-6', 'iconic', 93, 'Andrés Iniesta', 'esp-2010', 'ESP', 2010),
@@ -68,6 +70,7 @@ values
   ('esp-2018-5', 'legendary', 90, 'Sergio Busquets', 'esp-2018', 'ESP', 2018),
   ('esp-2018-6', 'legendary', 91, 'Andrés Iniesta', 'esp-2018', 'ESP', 2018),
   ('esp-2022-16', 'legendary', 90, 'Rodri', 'esp-2022', 'ESP', 2022),
+  ('fra-1986-10', 'legendary', 90, 'Michel Platini', 'fra-1986', 'FRA', 1986),
   ('fra-1998-10', 'iconic', 95, 'Zinedine Zidane', 'fra-1998', 'FRA', 1998),
   ('fra-2002-10', 'legendary', 92, 'Zinedine Zidane', 'fra-2002', 'FRA', 2002),
   ('fra-2006-10', 'monumental', 97, 'Zinedine Zidane', 'fra-2006', 'FRA', 2006),

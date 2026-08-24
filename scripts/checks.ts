@@ -1134,7 +1134,15 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
           // A career's top scorer is whoever you have fielded and scored with most, which
           // for an established career is a strong player - so the 90+ shelf Wildcard Legend
           // deals from, not the single best card in the dataset.
-          careerTopScorerId: ALL_PLAYERS.find((p) => p.elo >= 90)?.id ?? null,
+          //
+          // Pinned to the BOTTOM of that shelf (a 90, lowest id first) rather than to
+          // `find(elo >= 90)`, which reads whichever 90+ player the dataset happens to
+          // list first and so silently followed the dataset's order: adding the 1986
+          // squads put Maradona's 98 at the front and Old Guard measured 5.1 against a
+          // legendary's 4.5 without the card changing at all.
+          careerTopScorerId:
+            ALL_PLAYERS.filter((p) => p.elo === 90)
+              .sort((x, y) => x.id.localeCompare(y.id))[0]?.id ?? null,
           chosenId: sample[0].id,
           // Two knockout ties gone in as the underdog: what a run that has survived to
           // the semi-final on upsets actually looks like, and enough for Underdog's Purse
@@ -1343,13 +1351,20 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     'boons: rarity weighting orders the draw, common > rare > legendary per card',
     perCard('common') > perCard('rare') && perCard('rare') > perCard('legendary'),
   );
-  // The Extra Choice perk widens the offer, one card per owned tier.
+  // The Extra Choice perk widens the offer, one card per owned tier. Scanning for a run
+  // that actually REACHES a boon stop rather than trusting SQUADS[0] to survive its
+  // group: the first squad in the dataset is not a fixture, and when the 1986 block
+  // moved Argentina into that slot this check went red on a group exit.
   let widened = true;
   for (const tier of [1, 2]) {
-    const g = prepareGroupStage(
-      beginRun(bestEleven(SQUADS[0].players), { 'extra-boon': tier }, allIds, 0),
-    )!;
-    if ((g.next.offer?.length ?? 0) !== 3 + tier) widened = false;
+    let sizes: number[] = [];
+    for (let i = 0; i < 60 && !sizes.length; i++) {
+      const g = prepareGroupStage(
+        beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { 'extra-boon': tier }, allIds, 0),
+      );
+      if (g?.next.phase === 'boon' && g.next.offer) sizes = [g.next.offer.length];
+    }
+    if (sizes[0] !== 3 + tier) widened = false;
   }
   check('boons: the Extra Choice perk adds one offer card per owned tier', widened);
   // Scout Network deals its free starting boosts, and only commons (a free legendary
