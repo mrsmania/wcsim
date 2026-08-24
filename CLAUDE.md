@@ -939,11 +939,28 @@ deleted with the plain World Cup it used to gate). Design:
   and the reward multiplier. Not to be confused with `domain/difficulty.ts`, the player's
   own casual/normal/hard **setting** (+3/0/-3 to the user's attack and defense, nothing
   else), which is orthogonal and applies in both modes.
-- **Prestige also unlocks boosts.** 6 of the 19 boons are `starter`s; the rest are bought
+- **Prestige also unlocks boosts.** 11 of the 34 boons are `starter`s; the rest are bought
   into the offer pool with Prestige (`BOON_UNLOCK_COST` common 15 / rare 30 / legendary 55,
   `unlockBoon`, the pool shown in `CareerHub`), and `availableBoons(unlockedBoons)` is what
   an offer draws from. So Prestige has two sinks, perk tiers and boost unlocks, and (once
   `FEATURES.challengeAwards` goes on) challenge awards would be its second faucet.
+- **An offer never contains a card the run already holds** (`offerPool` in `domain/run.ts`,
+  decided 2026-08-23, roadmap 32). Before it, a card came round again on 3.7% of offer
+  slots and landed one of three ways, two of them bad: it **stacked**, sometimes
+  multiplicatively, since `xpMult` compounds (Sponsorship twice was 4x XP, Ice Veins twice
+  +16 to the takers) which is a lever no card was priced against; or it did **nothing at
+  all**, since Mortgage the Future, Youth Development and All or Nothing are booleans and
+  Double Print is a `Math.max`, so a second copy was a wasted pick at a stop that comes
+  round four times in a whole run. The third way was legitimate (a second Poach is another
+  player) and goes too, knowingly: one rule beats three special cases. Read
+  **`activeBoons`**, which is everything APPLIED, so the free commons Scout Network and
+  Youth Development deal at kickoff are excluded as well - being offered a card you were
+  already given is the same dead slot. A card parked in `pendingChoice` is not excluded
+  until `resolveChoice` commits it. All three offer sites go through the helper, the
+  Physio Table reroll included, and `npm run checks` asserts every one of them. The pool
+  cannot run short: the thinnest a real career reaches is 11 starters with the widest offer
+  (Extra Choice tier 2) and Scout Network tier 2, measured at a smallest offer of 5 with 6
+  cards still spare.
 - Known gaps (prototype): the layer is deeper than it looks from `CareerState` alone, but
   Ascension's tuning is a first pass (`ASCENSIONS` is marked tunable, and the odds sim in
   `domain/odds.ts` is the tool for it), and level does nothing beyond gating.

@@ -86,6 +86,7 @@ import {
   playGroupStage,
   prepareGroupStage,
   prepareKnockoutRound,
+  rerollOffer,
   runTotals,
   chooseBoon,
   resolveChoice,
@@ -1318,7 +1319,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 {
   const allIds = BOONS.map((b) => b.id);
   const seen = new Map<string, number>();
-  let stops = 0, dupInOffer = 0, wrongSize = 0;
+  let stops = 0, dupInOffer = 0, wrongSize = 0, heldOffered = 0, emptyOffer = 0;
   for (let i = 0; i < 300; i++) {
     const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, allIds, 0);
     let run: RunState = prepareGroupStage(begun)!.next;
@@ -1327,8 +1328,23 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       if (run.phase === 'boon' && run.offer) {
         stops++;
         if (run.offer.length !== 3) wrongSize++;
+        if (!run.offer.length) emptyOffer++;
         if (new Set(run.offer.map((b) => b.id)).size !== run.offer.length) dupInOffer++;
-        for (const b of run.offer) seen.set(b.id, (seen.get(b.id) ?? 0) + 1);
+        // Nothing the run already holds may come round again (roadmap 32, decided
+        // 2026-08-23). The Physio Table reroll draws its own offer, so it is checked here
+        // too - at every stop that holds anything, which from the second stop on is all of
+        // them. (Gating this on `guard % 2` looked equivalent and was dead code: a stop is
+        // always followed by a match, so boon stops only ever land on odd iterations.)
+        const held = new Set(run.activeBoons);
+        if (held.size) {
+          const rerolled = rerollOffer({ ...run, rerollsLeft: 1 });
+          if (!(rerolled.offer ?? []).length) emptyOffer++;
+          for (const b of rerolled.offer ?? []) if (held.has(b.id)) heldOffered++;
+        }
+        for (const b of run.offer) {
+          if (held.has(b.id)) heldOffered++;
+          seen.set(b.id, (seen.get(b.id) ?? 0) + 1);
+        }
         run = chooseBoon(run, run.offer[0].id).next;
         continue;
       }
@@ -1354,6 +1370,12 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   if (unreachable.length) console.log('    never offered: ' + unreachable.join(', '));
   check('boons: no card appears twice inside one offer', dupInOffer === 0);
   check('boons: an offer is three cards without the Extra Choice perk', wrongSize === 0);
+  // A card the run already holds is never offered again - it would either stack (xpMult
+  // compounds, so Sponsorship twice was 4x XP) or be a wasted pick (Mortgage, Youth
+  // Development and All or Nothing are booleans; Double Print is a Math.max). Excluding
+  // them cannot starve the offer either: 11 starters against at most four stops.
+  check('boons: a card the run already holds is never offered again', heldOffered === 0);
+  check('boons: excluding held cards never empties the offer', emptyOffer === 0);
   // Rarity weighting (common 6 / rare 3 / legendary 1) has to actually bite, per CARD:
   // there are more commons than legendaries, so comparing totals would confirm the count
   // rather than the weight.
@@ -1383,6 +1405,53 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (r.activeBoons.some((id) => boonById(id)?.rarity !== 'common')) scoutOk = false;
   }
   check('boons: Scout Network deals one free common per owned tier', scoutOk);
+  // Its free cards are APPLIED, so they are held: being offered one you were already
+  // given is the same dead slot. This is why the exclusion reads `activeBoons` rather
+  // than the boosts picked at stops.
+  let scoutHeldOffered = 0;
+  for (let i = 0; i < 60; i++) {
+    const r = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { scout: 2 }, allIds, 0);
+    const held = new Set(r.activeBoons);
+    const g = prepareGroupStage(r);
+    for (const b of g?.next.offer ?? []) if (held.has(b.id)) scoutHeldOffered++;
+  }
+  check(
+    "boons: Scout Network's free cards are not offered again at the first stop",
+    scoutHeldOffered === 0,
+  );
+  // The one risk the exclusion introduces: a THIN pool. The worst case a real career can
+  // reach is a brand-new one - starters only, no unlocks - with both perks that consume
+  // the pool at maximum: the widest offer (Extra Choice tier 2, five cards) and Scout
+  // Network tier 2, which holds two before the first stop. Measured over 300 such runs the
+  // smallest offer is still the full five and the smallest remaining pool is six, so there
+  // is real headroom rather than a coincidence. `offerBoons` would clamp rather than throw,
+  // which is exactly why this needs asserting: running short would silently narrow the
+  // choice instead of failing.
+  let thinnest = 99;
+  for (let i = 0; i < 120; i++) {
+    let run: RunState = prepareGroupStage(
+      beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { 'extra-boon': 2, scout: 2 }, [], 0),
+    )!.next;
+    let guard = 0;
+    while (guard++ < 12) {
+      if (run.phase === 'boon' && run.offer) {
+        thinnest = Math.min(thinnest, run.offer.length);
+        run = chooseBoon(run, run.offer[0].id).next;
+        continue;
+      }
+      if (run.phase === 'match') {
+        const k = prepareKnockoutRound(run);
+        if (!k) break;
+        run = k.next;
+        continue;
+      }
+      break;
+    }
+  }
+  check(
+    `boons: the thinnest real pool still fills the widest offer (smallest seen ${thinnest} of 5)`,
+    thinnest === 5,
+  );
 }
 
 // --- Boon availability + unlock economy ------------------------------------

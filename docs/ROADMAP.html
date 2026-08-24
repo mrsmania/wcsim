@@ -568,7 +568,7 @@
   <summary>
     <span class="num">32</span>
     <span class="title">Two boost decisions a thorough test turned up
-      <span class="sub">Full-Backs is a paid rare that does NOTHING in 6 of the 24 formations, and a card already taken stays in the offer pool - so it can be taken twice, which stacks (Sponsorship twice is 4x XP) or is wasted entirely (Mortgage twice does nothing). Both need a decision, not a fix. Found 2026-08-23.</span>
+      <span class="sub">Two found 2026-08-23; the repeat-offer half is DONE the same day (an offer now excludes what the run holds). Still open: Full-Backs is a paid rare that does NOTHING in 6 of the 24 formations.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -622,8 +622,29 @@
     </ul>
     So "exclude what the run already holds" is the obvious fix and it would remove the third
     case along with the first two. The alternative is to exclude only the cards that cannot
-    benefit (the idempotent ones) and price the stacking deliberately. Either way it should
-    be a decision written down, since today the behaviour is simply unstated.</p>
+    benefit (the idempotent ones) and price the stacking deliberately.</p>
+
+    <p><strong>DONE 2026-08-23: the offer excludes what the run holds.</strong> One helper
+    (<code>offerPool</code> in <code>domain/run.ts</code>) behind all three offer sites, the
+    Physio Table reroll included. It reads <b><code>activeBoons</code></b>, which is
+    everything APPLIED rather than everything picked, so the free commons Scout Network and
+    Youth Development deal at kickoff are excluded too - being offered a card you were
+    already handed is the same dead slot. A card parked in <code>pendingChoice</code> is not
+    excluded until <code>resolveChoice</code> commits it, since until then it has not been
+    applied and its offer is already gone.
+    <br><b>The third case went knowingly:</b> a second Poach or Wildcard Legend was a real
+    choice, and one rule is worth more than three special cases carved around four
+    idempotent cards.
+    <br><b>Measured:</b> 0 repeats in 1164 stops, against 91 in 2445 offer slots before.
+    <b>And the risk the change introduces is a THIN pool</b>, which is now asserted rather
+    than assumed: the worst case a real career reaches is a brand-new one (starters only,
+    11 cards) with both pool-consuming perks maxed - the widest offer at Extra Choice tier 2
+    and Scout Network tier 2 holding two before the first stop. Over 300 such runs the
+    smallest offer is still the full five, with six cards spare.
+    <code>offerBoons</code> clamps rather than throws, so running short would have quietly
+    narrowed the choice instead of failing, which is exactly why it needed a check. Each of
+    the four new assertions was mutation-tested: removing the exclusion, and skipping it at
+    the reroll or at the knockout stop, each turns the suite red.</p>
 
     <p><strong>What the testing also corrected, and this is the transferable part.</strong>
     Four of the five "findings" in the first pass were <b>bugs in the test, not in the game</b>,
@@ -647,10 +668,10 @@
     card.</b> A real line-up is a formation filled through <code>placedPlayers</code>, from a
     varied squad, on a run that actually reached a stop.</p>
 
-    <p class="next"><strong>Next step:</strong> decide (1) between widening Full-Backs,
-    retargeting it to the flanks, or keeping it as a shape-rewards card; and (2) whether an
-    offer should exclude what the run already holds. Both are one-line changes once decided;
-    the checks that would catch a regression are already in.</p>
+    <p class="next"><strong>Next step:</strong> (2) is done. What is left is (1): decide
+    between widening Full-Backs to the two widest defenders, retargeting it to the flanks
+    (LB/RB, else the wing-backs a back three plays), or keeping it as a card that rewards a
+    back four - deliberately this time, rather than by an accident of a wrong comment.</p>
 
     <p class="files">src/domain/boons.ts, src/domain/run.ts, scripts/checks.ts</p>
   </div>

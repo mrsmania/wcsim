@@ -544,6 +544,34 @@ export function chemistryOf(xi: Player[]): number {
 /** Boon offer size (3), widened by the Extra Choice perk (+1 per owned tier). */
 const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra-boon'] ?? 0);
 
+/**
+ * What an offer may draw from: the unlocked pool MINUS whatever this run already holds.
+ *
+ * Without the exclusion a card came round again (measured at 3.7% of offer slots), and it
+ * landed one of three ways, two of them bad. It STACKED, sometimes multiplicatively -
+ * `xpMult` compounds, so Sponsorship twice was 4x XP, and Ice Veins twice was +16 to the
+ * penalty takers - which is a lever no card was ever priced against. Or it did NOTHING at
+ * all, because Mortgage the Future, Youth Development and All or Nothing are booleans and
+ * Double Print is a `Math.max`, so a second copy was a wasted pick at a stop that only
+ * comes round four times in a whole run. (The third way was fine: a second Poach is
+ * another player. That goes too, and knowingly - one rule beats three special cases.)
+ *
+ * `activeBoons` is the right list to read because it holds everything APPLIED, which
+ * includes the free commons Scout Network and Youth Development deal at kickoff: being
+ * offered a card you were already given is the same dead slot.
+ *
+ * A card parked in `pendingChoice` is deliberately not excluded yet - it is not applied
+ * until `resolveChoice` commits it, and the offer it came from is already gone.
+ *
+ * The pool cannot run dry in practice (11 starters against at most 4 stops), and
+ * `offerBoons` clamps its count to the pool size anyway, so a short pool shrinks the
+ * offer rather than repeating or throwing.
+ */
+const offerPool = (run: RunState): Boon[] => {
+  const held = new Set(run.activeBoons);
+  return availableBoons(run.unlockedBoons).filter((b) => !held.has(b.id));
+};
+
 /** What the build page knows at kickoff and the run cannot work out later. Optional
  *  in full: a caller with nothing to hand (the checks harness) begins a run that simply
  *  cannot complete the entries reading these. */
@@ -672,7 +700,7 @@ function decideGroupExit(
   drawSlopeBonus: number,
   pool: Squad[],
 ): GroupExit {
-  const offer = offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels));
+  const offer = offerBoons(offerPool(run), offerSize(run.perkLevels));
   // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
   // (the user, whoever qualified with them, and the whole group excluded), so the next
   // opponent is read off it instead of drawn on its own. Ascension's slope is passed in,
@@ -814,7 +842,7 @@ export function rerollOffer(run: RunState): RunState {
   if (run.phase !== 'boon' || !run.offer || (run.rerollsLeft ?? 0) <= 0) return run;
   return {
     ...run,
-    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+    offer: offerBoons(offerPool(run), offerSize(run.perkLevels)),
     rerollsLeft: (run.rerollsLeft ?? 0) - 1,
   };
 }
@@ -1152,7 +1180,7 @@ function decideKoRound(
   const fromBracket = bracket ? nextOpponentOf(bracket) : null;
   return {
     ...pending,
-    offer: offerBoons(availableBoons(run.unlockedBoons), offerSize(run.perkLevels)),
+    offer: offerBoons(offerPool(run), offerSize(run.perkLevels)),
     nextOpponent: fromBracket ?? drawOpponent(new Set(run.facedIds), pool, drawSlopeBonus),
   };
 }
