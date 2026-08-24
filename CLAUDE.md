@@ -10,17 +10,25 @@ in a browser and check it first if you are continuing the project. It replaced t
 items and drifted apart.
 
 **Cleanup work has its own list:** `docs/hygiene-audit.html` (roadmap item 23) is a
-wave-by-wave backlog of dead code and behaviour-preserving refactorings, H1 to H105, plus
-the decisions they need and an explicit list of what not to touch. It was **blocked on item
-27** (the navigation rework, which moved the same code) and is **unblocked as of 2026-08-21**:
-item 27 shipped and its losing chrome was deleted, so the five things the block named are
-settled, several of them by deletion. Read the audit's off-limits section critically now - it
-was written against the old tree, and its "item 27 owns these" list is history rather than a
-warning.
-Roadmap item 22 used to be the blocker and was dropped on 2026-08-20; the audit's off-limits
-section now splits what it owned into item 27's half and an explicitly unowned half. Note that it records several claims in this file
-as drifted (see its wave 1d); those corrections are backlog items, so do not be surprised
-to find them still wrong here.
+wave-by-wave backlog of dead code and behaviour-preserving refactorings, **H1 to H158**, plus
+the sixteen decisions they need, an explicit list of what not to touch, and a section of
+measured negative results. **Re-audited 2026-08-24** against `c4f1512`, by the same method
+(six independent parallel reviews, merged, load-bearing claims verified by hand). The first
+pass was written on 2026-08-20 and never executed, and fifty commits moved the tree under it:
+reconciled item by item, its 105 items came out 73 standing, 24 shrunk, 7 void and 1 already
+done, with a dozen counts materially wrong. **Two of the void items would break the build if
+executed as written.** The old numbering is preserved so references here still resolve; new
+findings start at H106. Its "item 27 owns these" list is gone - that item shipped and its
+losing chrome was deleted, so all five things it named are settled.
+
+**Two things in that audit to know before touching anything else.** `npm run checks` **fails
+at random again**, about one run in twelve, and it is the third instance of the class item 31
+closed on 2026-08-23; and the `prime-years` check is **vacuous**, proved by reintroducing the
+sticker exploit it exists to catch and still getting 132 passed / 0 failed. So the harness is
+a weaker gate than its score suggests, and repairing it (H106-H108) comes before H91 and
+before any code moves. The audit also records a number of claims in **this** file as drifted -
+six wrong figures and several deleted boosts and doors still described as live (H128-H131);
+those corrections are backlog items, so do not be surprised to find them still wrong here.
 
 ## What this is
 
