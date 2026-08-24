@@ -74,6 +74,8 @@ import {
   lockableBoons,
   boonById,
   BOON_UNLOCK_COST,
+  type Boon,
+  type RunModifier,
 } from '../src/domain/boons';
 import { xiOf, type RunEffect } from '../src/domain/effects';
 import {
@@ -941,14 +943,23 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let ok =
     // Untouched anywhere but the final and the cup.
     aonSf.xpGained === plainSf.xpGained && aonSf.prestigeGained === plainSf.prestigeGained &&
-    // Tripled on the cup.
+    // Tripled on the cup - the Prestige as well as the XP. The scores here are multiples
+    // of 5 so that tripling is exact on both sides of `round(earned / 5)`; on a score of
+    // 37 a tripled run pays 22 against 3 x 7 = 21 and this would be a rounding assertion.
     aonCup.xpGained === plainCup.xpGained * 3 &&
+    aonCup.prestigeGained === plainCup.prestigeGained * 3 &&
     // Nothing at all on a lost final, where a plain run would still have paid.
     aonFinal.xpGained === 0 && aonFinal.prestigeGained === 0 &&
     plainFinal.prestigeGained > 0;
   // Two bets both have to come in: Mortgage on a lost final still pays nothing.
   const both = applyRunResult(INITIAL_CAREER, at('final', 80, { allOrNothing: true, mortgaged: true }));
   if (both.xpGained !== 0 || both.prestigeGained !== 0) ok = false;
+  // And the payout cards COMPOSE with Sponsorship, which multiplies whatever is left:
+  // tripled and then doubled on a cup, still nothing on a lost final.
+  const aonCupSpo = applyRunResult(INITIAL_CAREER, at('champion', 100, { allOrNothing: true, xpMult: 2 }));
+  const aonFinalSpo = applyRunResult(INITIAL_CAREER, at('final', 80, { allOrNothing: true, xpMult: 2 }));
+  if (aonCupSpo.xpGained !== plainCup.xpGained * 3 * 2) ok = false;
+  if (aonFinalSpo.xpGained !== 0) ok = false;
   check('all-or-nothing: normal but for the last game, tripled on the cup, zero on a lost final', ok);
 }
 
@@ -974,14 +985,27 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const lost: RunState = { ...beginRun(base), phase: 'ended', outcome: 'sf', score: 60, mortgaged: true };
   const won: RunState = { ...beginRun(base), phase: 'ended', outcome: 'champion', score: 100, mortgaged: true };
   const lostPlain: RunState = { ...lost, mortgaged: undefined };
+  const wonPlain: RunState = { ...won, mortgaged: undefined };
   const a = applyRunResult(career, lost);
   const b = applyRunResult(career, won);
   const c = applyRunResult(career, lostPlain);
+  const d = applyRunResult(career, wonPlain);
   const ok =
     a.xpGained === 0 && a.prestigeGained === 0 &&
-    b.prestigeGained > 0 && b.xpGained > 0 &&
+    // A won run pays the FULL reward, not merely a positive one: the card's cost is the
+    // risk it took, and it must not quietly shave the run that came in.
+    b.xpGained === d.xpGained && b.prestigeGained === d.prestigeGained && b.xpGained > 0 &&
     c.prestigeGained > 0; // the same run unmortgaged still pays
-  check('mortgage-future: pays nothing unless the cup is won, floor included', ok);
+  // The floor itself, which this check has always claimed in its name and never asserted:
+  // the scores above are large enough that `round(earned / 5)` clears 1 on its own, so
+  // deleting the `Math.max(1, ...)` passed. A score of 1 is where the floor is the only
+  // thing paying, and where Mortgage taking it away is visible.
+  const tinyPlain = applyRunResult(career, { ...lostPlain, score: 1 });
+  const tinyMortgaged = applyRunResult(career, { ...lost, score: 1 });
+  check(
+    'mortgage-future: pays nothing unless the cup is won, floor included',
+    ok && tinyPlain.prestigeGained === 1 && tinyMortgaged.prestigeGained === 0,
+  );
 }
 
 // Second Wind and Sold Out Stadium are the first cards with a lifetime. The window is the
@@ -1415,7 +1439,13 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
     }
   }
-  check(`run/ko: ties replayed (${tiesChecked}) rather than re-rolled`, tiesChecked > 200);
+  // The bound is a guard against the loop silently exercising nothing, not a measurement:
+  // it only has to be clear of any working run. It used to be 200 and sat INSIDE the
+  // distribution - 120 runs replay a mean of 233 ties but 1 rep in 80 came in at or below
+  // 200, so the suite went red about once in eighty for no reason at all (roadmap 31, the
+  // second instance). 120 is one tie per run of the loop, half the mean, and 0 of 80
+  // measured reps came near it.
+  check(`run/ko: ties replayed (${tiesChecked}) rather than re-rolled`, tiesChecked > 120);
   check('run/ko: the decided round is recorded on the run it is revealed from', koRecorded);
   check(
     'run/ko: preparing again replays the same tie, tree, offer and next opponent',
@@ -1429,23 +1459,49 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 }
 
 // --- Career: run rewards + perk purchases account correctly -----------------
-{
+// The four PAYOUT cards rewrite what a run pays, so a check asserting the PLAIN payout
+// has to keep them out of the boosts its run takes. Blind `offer[0]` is what made this
+// one fail about one run in four (roadmap 31): Sponsorship doubles the XP and is a free
+// common starter, so it is in every fresh career's pool, while the assertion below says
+// the XP is the run's own score. Each of the four has its own check up under "item 30,
+// round 6" - this one is about the PLAIN payout, which is why it has to exclude them.
+const PAYOUT_MODS: RunModifier['what'][] = ['mortgage', 'xpMult', 'youth', 'allOrNothing'];
+const paysDifferently = (b: Boon) =>
+  b.effects.some((e) => e.kind === 'run' && PAYOUT_MODS.includes(e.mod.what));
+
+/** A run played to the end taking only boosts that leave the payout rules alone, so what
+ *  it pays is the plain reward. Prefers a card from the real offer and falls back to a
+ *  known-plain starter, which cannot go wrong even if every card offered pays
+ *  differently (asserted below, so the fallback cannot rot into a payout card either). */
+const PIN_BOON = 'veteran-core';
+const plainRun = (() => {
   let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
   let guard = 0;
   while (run.phase !== 'ended' && guard++ < 20) {
-    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
-    else if (run.phase === 'match') run = playKnockoutRound(run);
+    if (run.phase === 'boon' && run.offer) {
+      const plain = run.offer.find((b) => !paysDifferently(b)) ?? boonById(PIN_BOON)!;
+      run = chooseBoon(run, plain.id).next;
+    } else if (run.phase === 'match') run = playKnockoutRound(run);
     else break;
   }
-  const res = applyRunResult(INITIAL_CAREER, run);
-  let ok =
+  return run;
+})();
+
+{
+  const res = applyRunResult(INITIAL_CAREER, plainRun);
+  const ok =
     res.career.stats.runs === INITIAL_CAREER.stats.runs + 1 &&
-    res.xpGained === run.score &&
-    res.career.xp === INITIAL_CAREER.xp + run.score &&
+    res.xpGained === plainRun.score &&
+    res.career.xp === INITIAL_CAREER.xp + plainRun.score &&
     res.prestigeGained >= 1 &&
     res.career.level === levelForXp(res.career.xp) &&
-    (run.outcome === 'champion') === (res.career.stats.cups === INITIAL_CAREER.stats.cups + 1);
+    (plainRun.outcome === 'champion') ===
+      (res.career.stats.cups === INITIAL_CAREER.stats.cups + 1);
   check('career: run rewards accrue and account correctly', ok);
+  check(
+    'career: the boost the reward check pins to leaves the payout rules alone',
+    !paysDifferently(boonById(PIN_BOON)!),
+  );
 }
 
 // --- Career: tiered perks respect cost, level gate, and max tier -------------

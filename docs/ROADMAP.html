@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-23<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -475,7 +475,7 @@
   <summary>
     <span class="num">31</span>
     <span class="title"><code>npm run checks</code> fails at random, about one run in four
-      <span class="sub">One career check plays a real run and takes whichever boost is offered first. Sponsorship doubles the XP a run pays, and the check asserts the XP equals the run's plain score, so it fails whenever that card comes up. Measured at 27.1% over 2000 runs. Found 2026-08-23.</span>
+      <span class="sub">CLOSED 2026-08-23. Two independent flakes: the career reward check took whichever boost was offered first and Sponsorship doubles the XP (27.1% of runs), and the tie-replay guard's threshold of 200 sat inside its own distribution (1 rep in 80). Both fixed; 0 failures in 3000 runs and 10 consecutive green suites.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -515,27 +515,52 @@
     <code>INITIAL_CAREER</code> has none, so they are not in this check's pool. Fix only the
     XP line and the Prestige line stays a landmine for whoever makes one of them a starter.</p>
 
-    <p><strong>Two ways to fix it, and the second is better.</strong>
-    <b>(A) Seed the block</b>, as the boon-power table does. Cheap, and it makes the failure
-    deterministic - but it freezes ONE path through the payout rules and hides the rest.
-    <b>(B) Pin the boost this check takes</b> to a card with no payout modifier, so it goes
-    back to measuring the plain accounting it was written for, and then add a SEPARATE check
-    per payout card asserting its own figure: Sponsorship doubles the XP and leaves the wallet
-    alone, Mortgage pays zero unless the cup is won, All or Nothing triples a cup and zeroes a
-    lost final, Youth Development banks a boost for the next run instead of paying Prestige.
-    <b>That gap is the real finding here:</b> nothing in the suite currently asserts that any
-    of the four payout cards does what its description promises, which is why a card that
-    changes the payout could break a payout check without anyone noticing it was related.</p>
+    <p><strong>What was done.</strong> The check now takes the first offered boost that
+    carries no payout modifier, falling back to a known-plain starter, and a second check
+    asserts that the pinned fallback stays plain - so the pin cannot rot silently if that card
+    is ever given a payout effect. <b>Measured 0 failures in 3000 runs</b>, against 541 of
+    2000 before, and ten consecutive green suites.
+    <br><b>Seeding the block was the alternative and was rejected:</b> it makes the failure
+    deterministic but freezes ONE path through the payout rules, which is the opposite of what
+    a characterization suite is for. Pinning keeps the run real and only removes the cards
+    whose whole purpose is to change the number being asserted.</p>
+
+    <p><strong>One claim in the first draft of this item was wrong, and the correction is
+    worth keeping.</strong> It said nothing in the suite asserted what the four payout cards
+    do. <b>That was not true</b> - all four already had their own checks under "item 30,
+    round 6", written when the cards shipped, and they use the same synthesise-the-finish
+    technique this item would have reinvented. The draft was written without grepping for
+    them. So the fix here is one pin, not a new block of assertions, and the item is much
+    smaller than it looked.</p>
+
+    <p><strong>Three real gaps did turn up while proving the existing checks bite</strong>
+    (each found by mutating <code>domain/career.ts</code> and confirming a check went red;
+    each of these three stayed green, which is how they were found):
+    <b>All or Nothing's tripling was asserted on the XP only</b>, so computing Prestige off
+    the untripled score passed. <b>Nothing asserted the payout cards compose with
+    Sponsorship's multiplier</b> (tripled and then doubled on a cup). And <b>the 1-Prestige
+    floor was never asserted at all</b>, despite the Mortgage check claiming it in its own
+    name: every score it tested was large enough that <code>round(earned / 5)</code> cleared
+    1 on its own, so deleting <code>Math.max(1, ...)</code> passed. A score of 1 is the only
+    place the floor is the thing paying. All three are asserted now.</p>
+
+    <p><strong>The second flake, found the same way.</strong>
+    <code>run/ko: ties replayed</code> guarded that its loop had actually exercised ties, with
+    <code>tiesChecked &gt; 200</code>. Over 80 measured reps the loop replays a <b>mean of 233
+    ties, min 199</b>, so the threshold sat INSIDE its own distribution and the suite went red
+    about <b>1 run in 80</b> on a working tree. The bound was never a measurement, only a
+    guard against the loop silently doing nothing, so it is 120 now - one tie per run of the
+    loop, about half the mean, and no measured rep came near it.</p>
 
     <p><strong>Not caused by the header and crumb work of the same day</strong> (that is UI
-    only, and the same check passes and fails on an unchanged tree), and not a reason to
-    distrust the other 120 checks - they were green on every run.</p>
+    only, and the same check passed and failed on an unchanged tree), and not a reason to
+    distrust the rest of the suite - the other checks were green on every run.</p>
 
-    <p class="next"><strong>Next step:</strong> option B. Pin the boost, then write the four
-    per-card payout assertions; re-run <code>npm run checks</code> a dozen times and confirm
-    it is green every time, since one green run proves nothing about a flake.</p>
+    <p class="next"><strong>Next step:</strong> none. The lesson to carry: a threshold on a
+    random quantity belongs well clear of the distribution, not near its mean, and a new check
+    is worth mutating once to confirm it can actually fail.</p>
 
-    <p class="files">scripts/checks.ts, src/domain/career.ts, src/domain/boons.ts</p>
+    <p class="files">scripts/checks.ts</p>
   </div>
 </details>
 
