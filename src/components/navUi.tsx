@@ -14,6 +14,11 @@ import { LayoutGrid, List, Play, Swords, Trophy } from 'lucide-react';
  * thumb height below it. The row carries the masthead's 2px ink rule, so the tabs read
  * as part of the identity block rather than as a strip below it.
  *
+ * A tab is its label and nothing else. The row used to carry a mono sub-line per tab
+ * (level and Prestige, album completion, challenges earned, cups in the pool), which put
+ * four live counters into the chrome: the panel below each destination shows the same
+ * figures, and the navigation is for getting there.
+ *
  * `locked` goes inert while a match reveals (see `nav/liveMatch.ts`).
  *
  * Layering note: the phone bar sits at `z-20`, below every overlay - the group draw is
@@ -26,8 +31,6 @@ export type TabKey = 'play' | 'career' | 'album' | 'records' | 'squads';
 export interface TabItem {
     key: TabKey;
     label: string;
-    /** Optional mono sub-line: a live counter (34 / 81), or where the run is. */
-    sub?: string;
     to: string;
     active: boolean;
 }
@@ -45,8 +48,7 @@ export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }
     return (
         <nav
             aria-label="Main"
-            // items-stretch so the filled tab is as tall as the tallest label+counter
-            // pair: with items-end an active tab that has no counter reads as a stub.
+            // items-stretch so every tab is the same height as the filled one.
             className="hidden items-stretch gap-[2px] border-b-2 border-ink min-[700px]:flex"
         >
             {items.map((t) => {
@@ -69,15 +71,6 @@ export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }
                         <span className="block font-display text-[13.5px] font-extrabold uppercase tracking-[0.03em]">
                             {t.label}
                         </span>
-                        {t.sub && (
-                            <span
-                                className={`mt-[2px] block font-mono text-[9.5px] uppercase tracking-[0.08em] ${
-                                    t.active ? 'text-white/70' : 'text-dim'
-                                }`}
-                            >
-                                {t.sub}
-                            </span>
-                        )}
                     </Link>
                 );
             })}

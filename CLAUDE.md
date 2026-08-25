@@ -411,6 +411,13 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   **removed 2026-08-23**, `RouteCrumb` with it: it restated the tab and spent a line on a
   right-aligned count ("0 of 11 picked", "272 squads") that the panel below it already
   shows.
+- **A tab is its label and nothing else** (2026-08-25). The desktop row carried a mono
+  sub-line per tab - where the run is, "Lv 26 · 303", album completion, challenges earned,
+  cups in the pool - so the chrome restated four live counters at once, each of them
+  printed again on the screen the tab leads to. `TabItem.sub` and its rendering are gone,
+  and with them `albumSummary` in `App` and `resumeCupRun.round`; the phone bar never had
+  the sub-line. This is the same reading that removed the crumb's right-aligned count
+  above: navigation is for getting there, and the destination does the reporting.
 - **Routes:** `/play` (the one build route), `/career` (the hub, split off the live run -
   a shop and a step of play cannot be the same address), `/records` +
   `/records/cabinet` (the two honours screens as segments of one destination, which is
