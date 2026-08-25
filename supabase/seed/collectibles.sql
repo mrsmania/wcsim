@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 84 (60 legendary / 18 iconic / 6 monumental)
--- checksum: af544e85507a7241
+-- rows: 87 (63 legendary / 18 iconic / 6 monumental)
+-- checksum: cbb60d4d43f5a242
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -58,8 +58,10 @@ values
   ('cro-1998-9', 'legendary', 91, 'Davor Šuker', 'cro-1998', 'CRO', 1998),
   ('cro-2018-10', 'legendary', 92, 'Luka Modrić', 'cro-2018', 'CRO', 2018),
   ('cro-2022-10', 'legendary', 92, 'Luka Modrić', 'cro-2022', 'CRO', 2022),
+  ('den-1986-10', 'legendary', 90, 'Preben Elkjær Larsen', 'den-1986', 'DEN', 1986),
   ('eng-1986-10', 'legendary', 90, 'Gary Lineker', 'eng-1986', 'ENG', 1986),
   ('eng-2022-9', 'legendary', 91, 'Harry Kane', 'eng-2022', 'ENG', 2022),
+  ('esp-1986-9', 'legendary', 90, 'Emilio Butragueño', 'esp-1986', 'ESP', 1986),
   ('esp-2010-1', 'legendary', 90, 'Iker Casillas', 'esp-2010', 'ESP', 2010),
   ('esp-2010-6', 'iconic', 93, 'Andrés Iniesta', 'esp-2010', 'ESP', 2010),
   ('esp-2010-7', 'legendary', 91, 'David Villa', 'esp-2010', 'ESP', 2010),
@@ -107,6 +109,7 @@ values
   ('por-2014-7', 'legendary', 91, 'Cristiano Ronaldo', 'por-2014', 'POR', 2014),
   ('por-2018-7', 'iconic', 93, 'Cristiano Ronaldo', 'por-2018', 'POR', 2018),
   ('rou-1994-10', 'legendary', 90, 'Gheorghe Hagi', 'rou-1994', 'ROU', 1994),
+  ('urs-1986-19', 'legendary', 90, 'Ihor Belanov', 'urs-1986', 'URS', 1986),
   ('uru-2010-10', 'legendary', 91, 'Diego Forlán', 'uru-2010', 'URU', 2010),
   ('uru-2014-9', 'legendary', 90, 'Luis Suárez', 'uru-2014', 'URU', 2014);
 

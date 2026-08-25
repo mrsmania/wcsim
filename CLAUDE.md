@@ -459,26 +459,42 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
 
 - Tournaments: **all ten (1986-2022)** are full researched datasets. 1986, 1990 and 1994
   are 24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for
-  1986/1990/1994/1998 (Morocco 1986 registered 23), 23-man for 2002-2018, 26-man for 2022
-  (Iran 25). ~6,800 player rows total.
+  1986/1990/1994/1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25). **6,798 player rows**
+  across 296 squads.
   (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders; 1986
-  was added 2026-08-23 as the first step of roadmap item 03.)
-- **1986 came from a different source, and that is worth knowing before adding 1982.**
-  The other nine were verified against the Wikipedia squad lists; this environment's egress
-  proxy blocks every such site, so 1986's rosters come from **`openfootball/world-cup`**
-  (`1986--mexico/squads.txt`, **CC0**, clonable through the session's git proxy even though
-  direct HTTPS is not). It was validated against our own independently-researched 1990:
-  **507 of 528 names match and every one of those carries the identical shirt number**; the
-  21 misses are spelling variants (Taffarel without "Cláudio", Bakero without "José María",
-  different Arabic transliterations). The same repo holds 1982 and earlier, so this route
-  serves the rest of item 03.
-  **What that source does NOT carry is authored by hand:** it gives only the four categories
-  (GK/DF/MF/FW), so the twelve specific positions are assigned - accurately for known
-  players, and as a balanced distribution (guaranteeing every squad has full-backs, a
-  holder and wide players) for the rest - and the ratings are a judgement call as always.
-  Ratings for the players with no surviving record are their squad's baseline with a
-  deterministic spread by shirt number, not a flat number: 22 identical ratings would make
-  a whole side one interchangeable block to the draft and the sim.
+  was added 2026-08-23 as the first step of roadmap item 03, and its positions and ratings
+  were re-authored 2026-08-25 as roadmap item 33.)
+- **1986's sourcing is the template for 1982, and it changed on 2026-08-25.** The first
+  drop took the rosters from **`openfootball/world-cup`** (`1986--mexico/squads.txt`, **CC0**)
+  because the session that built it could not reach Wikipedia, and it inferred the twelve
+  specific positions and 255 of the ratings from a distribution rule. **Wikipedia and RSSSF
+  turned out to be reachable after all** - `curl` and the MediaWiki API both work from a
+  local session, whatever a cloud session's egress proxy blocks - so the whole tournament was
+  re-sourced under item 33 and nothing in it is inferred any more. **Try the fetch before
+  believing it is blocked.** What each source gives:
+  - **Wikipedia `1986 FIFA World Cup squads`** (raw wikitext through
+    `?action=raw`): names, shirt numbers, the GK/DF/MF/FW split, plus **caps and club at the
+    time**, which is the single best rating signal for a player nobody has written about.
+    It also settled a real error: **Morocco registered 22, not 23** (the openfootball list
+    carried a phantom 23rd, "Abderrazak Dinar", who appears in no other source), so the
+    dataset is **528 rows** and every 1986 squad is a plain 22.
+  - Each player's own article, fetched in batches of 40 through the **MediaWiki API**
+    (`prop=revisions&rvsection=0`), for the infobox `position` field - "Left-back",
+    "Defensive midfielder", "Sweeper" - which is what turns DF into one of the twelve.
+    527 of 528 had one.
+  - **RSSSF `tables/86full.html`** for every match line-up, printed as
+    `keeper - defence - midfield - attack`. That is what says which role a man **actually
+    filled in Mexico** (Brehme played left MIDFIELD, Júnior played left midfield with Branco
+    behind him, Gallego played centre-back for Spain, Zavarov played off Belanov), and it
+    separates starters from the bench for the ratings.
+  **The convention that came out of it:** `positions[0]` is the role he filled in Mexico
+  where he played, with his other real roles after it; a man who never got on the pitch
+  carries the role he was picked for. Ratings are a judgement call as always, anchored to
+  the same player's rows in other tournaments where he has them - but **not by a fixed
+  offset**. The first drop put everyone who also appears in 1990 at a flat "minus two",
+  which is wrong in both directions and produced its worst misses there: Cha Bum-kun (a
+  Bundesliga star at Leverkusen) at 67, Zavarov (Soviet Footballer of the Year 1986) at 74,
+  Madjer and Belloumi (two of the greatest African players ever) at 67.
 - **Six name collisions came in with 1986 and one was already shipped.** A `personId` is
   the name slug, so two different people sharing a display name silently merge into one
   drafted-once identity. 1986 brought six (Brazil's 1986 Oscar / Júnior / Júlio César are
@@ -616,9 +632,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 60 / 18 / 6 = **84** across the dataset; it was 53 before
-  the 1990-2002 squads were researched and 81 before 1986, so re-derive a count rather than
-  trusting one written down here - this figure has been wrong twice). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  **Monumental** 97-99 (currently 63 / 18 / 6 = **87** across the dataset; it was 53 before
+  the 1990-2002 squads were researched, 81 before 1986 and 84 before 1986's ratings were
+  re-authored, so re-derive a count rather than trusting one written down here - this figure
+  has been wrong three times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
   adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),

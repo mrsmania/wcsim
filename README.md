@@ -12,14 +12,15 @@ in-progress run follow you between devices (requirements in
 `docs/cloud-sync-requirements.md`, server setup in `docs/nas-setup.md`); with no server
 configured nothing account-related renders and the auth code is never loaded.
 
-> **All ten tournaments from 1986 to 2022 are researched full datasets** - about
-> 6,800 player rows. 1986, 1990 and 1994 are 24-nation fields, 1998 onward are 32; squad
-> sizes are 22-man for 1986-1998 (Morocco 1986 registered 23), 23-man for 2002-2018 and
+> **All ten tournaments from 1986 to 2022 are researched full datasets** - 6,798
+> player rows. 1986, 1990 and 1994 are 24-nation fields, 1998 onward are 32; squad
+> sizes are 22-man for 1986-1998, 23-man for 2002-2018 and
 > 26-man for 2022 (Iran registered 25), with shirt numbers and positions taken from the
 > tournament squad lists. Ratings are a holistic judgement of each player's strength **at the time of
 > that tournament** on a 60-99 scale - not current ability, and not a FIFA-game
-> number. For 1998 and 2002 the rating blends pre-tournament ability with how the
-> player actually performed there. Historical nations keep their period identity:
+> number. For 1986, 1998 and 2002 the rating blends pre-tournament ability with how the
+> player actually performed there; 1986's positions are additionally the roles each man
+> filled in Mexico, read off the tournament's match line-ups. Historical nations keep their period identity:
 > West Germany is recorded as Germany on `GER`, while the Soviet Union, Czechoslovakia
 > and Yugoslavia have their own codes. A player appearing in several tournaments shares
 > one identity, so they can only be drafted once - Luka Modrić spans 2006-2022.
