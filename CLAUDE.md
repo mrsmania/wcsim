@@ -1184,11 +1184,12 @@ deleted with the plain World Cup it used to gate). Design:
     screen's Continue), not when the third matchday lands, so the cell appears with the
     committed run and never over a group still in flight.
   - **No pre-run screen, and no ladder.** Three follow-up changes (2026-08-21):
-    **Ascension is picked on the build page**, in `SetupPanel` beside
-    formation and style (`App` holds the tier and mirrors it onto the career's
-    `lastAscension`, which is where the run already read its default from - so nothing new
-    reaches `beginRun`); **"Start run" goes straight into the draw**, which is the one to
-    read the note below about; and
+    **Ascension is picked on the build page** (`App` holds the tier and mirrors it onto
+    the career's `lastAscension`, which is where the run already read its default from - so
+    nothing new reaches `beginRun`). It went into `SetupPanel` beside formation and style,
+    and **moved again on 2026-08-25 to the LAST step before kickoff** - see the
+    `AscensionPicker` note under "UI gotchas"; **"Start run" goes straight into the draw**,
+    which is the one to read the note below about; and
     **`RunLadder` is gone**, because the group table and the bracket already say
     which round this is and how the earlier ones went. `RoundReview` stayed, though: the
     tree's own cells open it now (see above).
@@ -2069,6 +2070,27 @@ keep working.
   `index.css`), and the spinner is delayed 350ms so a fast load shows nothing at all.
   Under `prefers-reduced-motion` the delayed fade-in is replaced by plain `opacity: 1`
   - with the animation off, `both` would otherwise pin it at 0 and hide the screen.
+- **The Ascension picker belongs at the LAST step before kickoff, and it has moved twice**
+  (`components/AscensionPicker.tsx`, 2026-08-25). It was on a pre-run screen, that screen
+  went, and it landed on `SetupPanel` beside formation and style on the reasoning that all
+  three are decisions about the run being built. That reasoning is wrong in the way that
+  matters: formation and style SHAPE the XI so they must be chosen first, while the tier is
+  a judgement **about the XI you ended up with** - a squad that came out strong wants a
+  harder ladder and a bigger multiplier, a thin one does not. So one component now renders
+  at both doors into a group stage: `CompletePanel` (the norm) and `cupRun/PreRunPanel`
+  (the fallback you get by reaching `/cup-run` without a kickoff).
+  **Picking calls `rememberAscension`, never `startRunCareer`.** The latter also SPENDS a
+  Youth Development grant - it clears `bonusStartBoosts` and returns what it owes - so
+  wiring a picker to it binned the grant, silently, on a control you can touch as often as
+  you like before any run exists. `npm run checks` asserts the split.
+- **Nested interactive elements: `PlayerBadge` owns its own gesture** (`onActivate` /
+  `activateLabel`), rather than `Pitch` wrapping the badge in a `<button>`. It has to,
+  because the remove "x" is a button too and a `<button>` inside a `<button>` is invalid
+  HTML - React warned on every render of the build page, and the inner control is undefined
+  behaviour for keyboard and assistive technology. The badge body and the "x" are now
+  siblings under one `relative` root, so `Pitch`'s three placed-player branches are plain
+  positioned `<div>`s. The "x" anchors to the badge COLUMN rather than to the name label it
+  used to sit inside, so it no longer slides with the length of the name.
 - `Tooltip.tsx` portals its bubble to `document.body` with `fixed` positioning (so
   it escapes `overflow` clipping), flips above/below by available space, and
   dismisses on scroll/resize. Hover-only by design.

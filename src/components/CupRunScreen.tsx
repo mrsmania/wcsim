@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Player, Squad } from '../data/types';
 import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
@@ -137,6 +138,9 @@ export default function CupRunScreen({
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const CHALLENGES_ON = FEATURES.challenges;
+  // The ended screen's Career action leaves for `/career`; everything else on this screen
+  // that navigates does it with a `Link`.
+  const navigate = useNavigate();
   const [reward, setReward] = useState<Reward | null>(null);
   // The run in flight and the reveal playing over it, with their two writes
   // (hooks/useCupRun). Seeded from the boot snapshot, which already drops a reveal with
@@ -278,17 +282,30 @@ export default function CupRunScreen({
   // "Start run" lands here and the draw opens immediately: with the Ascension picked on
   // the build page there is nothing left for a pre-run screen to ask, so it is gone.
   //
-  // It fires only when the navigation ASKED for a kickoff (`requestRunStart`, consumed
-  // once). The first version inferred it from "no run in progress", which is the same
-  // shape as a reload, a Back navigation, a bookmark or a save that has not landed - and
-  // each of those then drew a fresh group over the run that was there. Module state, not
-  // router state: `location.state` survives a reload, which would put the bug straight
-  // back. The ref is still needed because `startAndPlayGroup` sets the run asynchronously.
-  const autoStarted = useRef(false);
+  // It fires only when the navigation ASKED for a kickoff (`requestRunStart`). The first
+  // version inferred it from "no run in progress", which is the same shape as a reload, a
+  // Back navigation, a bookmark or a save that has not landed - and each of those then
+  // drew a fresh group over the run that was there. Module state, not router state:
+  // `location.state` survives a reload, which would put the bug straight back.
+  //
+  // **The request is read-and-cleared FIRST, before any test that can bail out.** An
+  // unconsumed request is not spent, it is PARKED, and leaving one parked is a bug that
+  // starts a cup on its own: pressing Start Run with a FINISHED run still in storage used
+  // to skip this effect at `run` and land back on that run's ended screen (Start Run
+  // looking broken), with the request still set - and the next thing to clear the run,
+  // the ended screen's own Career button, then found a kickoff waiting and drew a fresh
+  // group under `/cup-run`, one click after the cup was won. A request describes the
+  // navigation that carried it and must never outlive it.
+  //
+  // What it does with one: a run still in FLIGHT is never clobbered, and an ENDED one is
+  // replaced, because that is a finished story rather than something to carry on with -
+  // `state/resume.ts` tells the front page's Continue exactly the same thing. The
+  // `autoStarted` ref this used to carry goes with the reorder: the request is spent on
+  // the first pass, so a second pass has nothing left to act on.
   useEffect(() => {
-    if (view === 'hub' || run || !draftedXi || autoStarted.current) return;
+    if (view === 'hub') return;
     if (!consumeRunStart()) return;
-    autoStarted.current = true;
+    if (!draftedXi || (run && run.phase !== 'ended')) return;
     startAndPlayGroup();
     // startAndPlayGroup closes over state that is settled by the time this can fire; it is
     // deliberately not a dependency, or picking an Ascension would restart the run.
@@ -617,10 +634,17 @@ export default function CupRunScreen({
                       onReroll={(next) => setRun(rerollOffer(next))}
                       onReDraft={onReDraft}
                       onReplay={startAndPlayGroup}
+                      // Career is a DESTINATION, and this button predates the chrome
+                      // that made it one: it cleared the run in place, back when
+                      // `/cup-run` with no run WAS the hub. It is not any more, so
+                      // clearing alone dropped the player onto the pre-run card for a
+                      // fresh cup - which is the opposite of what the button says. Clear
+                      // the finished run, then actually go to the career.
                       onCareer={() => {
                         setRun(null);
                         setReward(null);
                         setLastKoMatch(null);
+                        navigate('/career');
                       }}
                     />
                   )}

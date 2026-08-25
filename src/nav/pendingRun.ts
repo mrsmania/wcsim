@@ -20,7 +20,14 @@ export function requestRunStart(): void {
   requested = true;
 }
 
-/** Read-and-clear: true at most once per request. */
+/** Read-and-clear: true at most once per request.
+ *
+ *  **Call this on ARRIVAL, before any test that can bail out.** A request describes the
+ *  navigation that carried it, so the screen it lands on has to spend it whether or not
+ *  it can act on it - a request that is skipped rather than read is not cancelled, it is
+ *  parked, and it fires at whatever unrelated moment satisfies the caller's other
+ *  conditions next. That is precisely how a cup once kicked off one click after the last
+ *  one was won (see the effect in `CupRunScreen`). */
 export function consumeRunStart(): boolean {
   const was = requested;
   requested = false;
