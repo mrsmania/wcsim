@@ -2481,9 +2481,9 @@ $10                    83                  1415                    0
       <li><b>11 Boost-swapped players no longer earn stickers.</b> Done 2026-08-18.
       <code>CupRunScreen</code> passes <code>RunState.boostedIds</code> with the run-end
       report and <code>useStickerAlbum</code> subtracts them, so the rule sits beside the
-      cup-win-only rule rather than at a call site. It mattered because Legends Reunion and
-      Wildcard Legend deal straight out of the 93+ pool: a boost was a cheaper route into the
-      album than winning with the XI you built. The edge case went the obvious way - only the
+      cup-win-only rule rather than at a call site. It mattered because Legends Reunion deals
+      straight out of the 93+ pool and Wildcard Legend out of 90+: a boost was a cheaper route
+      into the album than winning with the XI you built. The edge case went the obvious way - only the
       incoming player is excluded, so the rest of the XI still earns, and a player an earlier
       boost swapped <i>out</i> is irrelevant since he is not in the final XI. Verified by
       seeding a finished run holding two Monumentals, one drafted (Ronaldo 98) and one tagged

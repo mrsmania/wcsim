@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { MatchSpeed } from '../domain/clock';
 import type { PenKick } from '../domain/match';
+import type { ResultKind } from './matchView';
 import { FEATURES } from '../config';
 import Flag from './Flag';
 
@@ -372,7 +373,7 @@ export function StageHeader({
 }
 
 /** Win / loss / draw or "live"/"up next" tag shown beside a matchday/round label. */
-export function ResultTag({ kind, label }: { kind: 'w' | 'l' | 'd' | 'next'; label: string }) {
+export function ResultTag({ kind, label }: { kind: ResultKind; label: string }) {
   if (kind === 'next') {
     return (
       <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber">

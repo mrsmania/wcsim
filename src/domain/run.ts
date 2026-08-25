@@ -19,7 +19,7 @@ import {
   type GroupTeam,
   GROUP_OPPONENTS,
 } from './tournament';
-import type { MatchEvent, MatchResult, ShootoutResult } from './match';
+import type { MatchEvent, MatchResult, MatchSide, ShootoutResult } from './match';
 import {
   drawOpponent,
   resolveKoTie,
@@ -525,7 +525,7 @@ export function addMatches(
   tally: RunTally,
   xi: Player[],
   matches: { events: MatchEvent[] }[],
-  userSide: 'home' | 'away' = 'home',
+  userSide: MatchSide = 'home',
 ): RunTally {
   if (!matches.length) return tally;
   const apps = { ...tally.apps };

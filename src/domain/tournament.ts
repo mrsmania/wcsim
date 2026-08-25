@@ -7,6 +7,7 @@ import {
   type MatchResult,
   type Side,
   type Strength,
+  type PenTaker,
 } from './match';
 import { shuffled } from './random';
 
@@ -42,7 +43,7 @@ export interface GroupTeam extends Side {
   year?: number;
   isUser: boolean;
   /** Penalty takers, best first (used by the knockout shootout). */
-  penTakers: { name: string; elo: number }[];
+  penTakers: PenTaker[];
 }
 
 /** Ranked penalty takers (best elo first).
@@ -55,7 +56,7 @@ function penTakersFrom(
   players: Player[],
   bonus = 0,
   top = 0,
-): { name: string; elo: number }[] {
+): PenTaker[] {
   return [...players]
     .sort((a, b) => b.elo - a.elo)
     .map((p, i) => ({ name: p.name, elo: i < top ? p.elo + bonus : p.elo }));

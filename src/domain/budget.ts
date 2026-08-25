@@ -67,11 +67,14 @@ export function autoFillBudget(
   order.forEach((s, i) => {
     const reserve = (order.length - 1 - i) * MIN_PRICE;
     const cap = left - reserve;
-    const pool = (BY_POSITION[s.position] ?? []).filter(
+    // `affordable`, not `pool`: this shadowed the `pool` PARAMETER, so the two meanings of
+    // the word - the whole dataset to draw from, and the handful of players who fit this
+    // slot at this money - looked identical inside the loop (hygiene H24).
+    const affordable = (BY_POSITION[s.position] ?? []).filter(
       (p) => !usedIds.has(p.personId) && price(p) <= cap,
     );
-    if (pool.length === 0) return;
-    const topK = pool.slice(0, Math.min(PICK_POOL, pool.length));
+    if (affordable.length === 0) return;
+    const topK = affordable.slice(0, Math.min(PICK_POOL, affordable.length));
     const chosen = pick(topK);
     next[s.id] = chosen;
     usedIds.add(chosen.personId);

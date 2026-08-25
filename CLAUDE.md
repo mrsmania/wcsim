@@ -1313,7 +1313,7 @@ deleted with the plain World Cup it used to gate). Design:
 - **Stickers.** At a run's end the final XI's collectibles are banked to the album, guarded
   once-per-run by `RunState.stickersApplied`. **Players a roster boost handed over earn
   nothing** (`RunState.boostedIds` is passed to `onCupRunEnd`, which subtracts them): Legends
-  Reunion and Wildcard Legend deal from the 93+ pool, so otherwise a boost was a cheaper route
+  Reunion deals from the 93+ pool and Wildcard Legend from 90+, so otherwise a boost was a cheaper route
   into the album than winning with the XI you built. `CupRunScreen` reports the end via
   `onRunEnd`; `App` applies them (a loss banks immediately; a cup win shows `CupRewardPicker`
   first), then the shared `RunEndStickerSummary` shows any new cards. Reload-safe via the flag.
@@ -2198,6 +2198,16 @@ keep working.
   `index.css` sets `overflow-anchor: none` on `html`: the browser's scroll anchoring
   otherwise nudges scrollY when result cards mount and stalled the follow (worst on
   short mobile screens).
+
+## Deliberately unreferenced assets under `public/`
+
+`public/jerseys/` (27 MB), `public/formations/`, `public/formations.csv` and
+`public/img/image.png` ship in every build and **nothing in `src/` references them.** That
+is a decision, not an oversight: CR-D3 in `docs/code-review-2026-07-round2.md`, resolved by
+the owner as keep-as-is - the deploy weight is accepted and the assets stay where they are.
+Recorded here because a tree-shaking or bundle-size pass finds them, concludes they are
+dead, and deletes them, which is what this note exists to stop. Do not re-litigate it; the
+one file `public/img/` holds that IS referenced is `swiss.svg`, in the footer.
 
 ## Hosting
 

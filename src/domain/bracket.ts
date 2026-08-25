@@ -1,4 +1,4 @@
-import type { MatchEvent, PenKick } from './match';
+import type { MatchEvent, ShootoutResult } from './match';
 import { SQUADS } from '../data/squads';
 import type { Squad } from '../data/types';
 import { USER_ID, type GroupTeam } from './tournament';
@@ -10,7 +10,11 @@ export interface BracketResult {
   homeGoals: number;
   awayGoals: number;
   decided: KoDecided;
-  pens?: { home: number; away: number; kicks: PenKick[] };
+  /** The shootout, when there was one. `ShootoutResult` rather than a hand-written subset
+   *  of it: a whole one is assigned here, and re-declaring three of its four fields meant
+   *  the tree could not read `homeWon` even though every value in it carries one, and a
+   *  field added to a shootout would silently not reach the bracket (hygiene H23). */
+  pens?: ShootoutResult;
   events: MatchEvent[];
   winnerId: string;
 }

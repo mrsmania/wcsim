@@ -6,6 +6,11 @@ import type { KoDecided } from '../domain/knockout';
  *  not, which is the same invariant the bracket relies on (game 0, home seed). */
 export const USER_SIDE = 'home' as const;
 
+/** How a finished (or upcoming) result reads. Declared once: this and `ResultTag`'s own
+ *  parameter were the same four values written out twice, with a comment admitting the
+ *  coupling rather than removing it (hygiene H43). */
+export type ResultKind = 'w' | 'l' | 'd' | 'next';
+
 /** The user-perspective score of a match card. */
 export interface MatchScore {
   user: number;
@@ -15,7 +20,7 @@ export interface MatchScore {
 /** A tag shown beside a matchday/round label, described as data so the caller
  *  renders the shared `ResultTag`. `kind` maps straight onto `ResultTag.kind`. */
 export interface MatchTag {
-  kind: 'w' | 'l' | 'd' | 'next';
+  kind: ResultKind;
   label: string;
 }
 

@@ -49,8 +49,11 @@ export interface FinishRunInput {
   cupPickId: string | null;
   /** Collectible swaps used this run, capped at INITIAL_SWAPS. */
   swapsUsed: number;
-  /** How the run ended, for the run history: 'champion' | 'out' | 'group'. */
-  outcome: string;
+  /** How the run ended, for the server's run history. The producer
+   *  (`useStickerAlbum.applyStickers`) emits exactly these two, so the type says so rather
+   *  than `string`: this was documented as three values, none of which was `'run-end'`,
+   *  which is one of the two actually sent (hygiene H34). */
+  outcome: 'champion' | 'run-end';
 }
 
 // `localStore.finishRun` deliberately reads only three of these six. `runKey`, `swapsUsed`

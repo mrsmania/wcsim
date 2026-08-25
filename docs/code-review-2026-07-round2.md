@@ -599,11 +599,13 @@ not re-litigate in future reviews.
 
 ### CR-D4 [x] esbuild is only a transitive dependency. Resolved: declare it
 
-`npm run checks` invokes the `esbuild` binary directly, but esbuild is only
-present as vite's transitive dependency. Remaining action (S): add esbuild to
-devDependencies, pinned to the major vite currently ships (0.25.x), so the
-checks script survives a vite internals change. Verify: `npm install` clean,
-`npm run checks` passes.
+`npm run checks` invokes the `esbuild` binary directly, but esbuild was only
+present as vite's transitive dependency.
+
+**DONE.** `package.json` declares `esbuild: ^0.25.0` in `devDependencies`, so the
+checks script no longer depends on a vite internal staying where it is. The action
+above stayed in the body of a resolved decision long after it had been carried out,
+which is how it kept being re-read as outstanding (hygiene H35).
 
 ---
 

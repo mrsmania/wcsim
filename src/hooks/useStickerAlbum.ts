@@ -203,10 +203,12 @@ export function useStickerAlbum(
   // immediately; a cup win waits for the reward pick (pendingReward below).
   const onCupRunEnd = useCallback((xi: Player[], wonCup: boolean, boostedIds: string[], cupPicks = 1) => {
     // A player a boost handed you is not one you drafted, so he earns no sticker.
-    // Legends Reunion and Wildcard Legend deal straight out of the 93+ pool, which
-    // made a boost the cheapest route into the album - cheaper than winning with the
-    // XI you actually built. The rest of the XI still counts, including a player an
-    // earlier boost swapped OUT and left in `boostedIds`, since he is not in it.
+    // Legends Reunion deals straight out of the 93+ pool and Wildcard Legend out of 90+,
+    // which made a boost the cheapest route into the album - cheaper than winning with
+    // the XI you actually built. (Both thresholds are the sticker TIER floors, so they
+    // move with `STICKER_TIERS` rather than being numbers of their own.) The rest of the
+    // XI still counts, including a player an earlier boost swapped OUT and left in
+    // `boostedIds`, since he is not in it.
     const gifted = new Set(boostedIds);
     const earnedBy = xi.filter((p) => !gifted.has(p.id));
     // Base ratings, not the boosted copies the run hands back (see `basePlayer`).

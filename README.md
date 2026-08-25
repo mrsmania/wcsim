@@ -48,7 +48,7 @@ npm run dev        # http://localhost:5173 (bumps to 5174 if the port is busy)
 npm run build      # type-check + production build into dist/
 npm run preview    # serve the production build locally
 npm run typecheck
-npm run checks     # the domain characterization harness (132 invariants); also runs in CI
+npm run checks     # the domain characterization harness; also runs in CI
 ```
 
 ## Project layout

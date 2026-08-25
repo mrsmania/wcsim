@@ -467,16 +467,16 @@ export default function App({
         [],
     );
 
-    // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
-    // mid-flight, described in one line for the Continue button (`state/resume.ts`).
+    // A Cup Run that is mid-flight, described in one line for the Continue button
+    // (`state/resume.ts`). The one `store.peek()` left, and `useCupRun` records why: the
+    // run stays owned by the run screen, because the account path needs it written back by
+    // a CHILD's effect.
     //
-    // The one `store.peek()` left, and `useCupRun` records why: the run stays owned by the
-    // run screen because the account path needs it written back by a CHILD's effect.
-    const resumeCupRun = useMemo(
-        () => cupRunResume(store.peek().run),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [isLauncher, path],
-    );
+    // A plain read, not a memo keyed on the path (hygiene H14). `peek()` is a synchronous
+    // in-memory field read, so the memo cached nothing and its key was a lie about the
+    // dependency - and it was strictly WORSE than reading: a memo keyed on the path serves
+    // a stale run for any change that does not navigate.
+    const resumeCupRun = cupRunResume(store.peek().run);
 
     // Launcher-only read: an XI left mid-build, so coming back to the site is not a
     // dead end. Only when there is nothing further along to resume.

@@ -473,13 +473,16 @@ export default function Pitch({
                 {fit > 0 &&
                     circles.map((slot, k) => {
                         const player = filled[slot.id] ?? null;
-                        const matches =
-                            !!selectedPlayer &&
-                            !player &&
-                            selectedPlayer.positions.includes(slot.position);
-                        const target: 'none' | 'primary' | 'secondary' = !matches
+                        // Keyed on `selectedPlayer` rather than on the derived boolean:
+                        // a boolean discards the narrowing, which is what made the
+                        // assertion below look necessary (hygiene H21).
+                        const eligible =
+                            selectedPlayer && !player && selectedPlayer.positions.includes(slot.position)
+                                ? selectedPlayer
+                                : null;
+                        const target: 'none' | 'primary' | 'secondary' = !eligible
                             ? 'none'
-                            : selectedPlayer!.positions[0] === slot.position
+                            : eligible.positions[0] === slot.position
                               ? 'primary'
                               : 'secondary';
                         // A filled slot a selected COLLECTIBLE is eligible for = a swap

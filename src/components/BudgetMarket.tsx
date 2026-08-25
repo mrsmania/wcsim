@@ -260,12 +260,15 @@ export default function BudgetMarket({
         </div>
       </div>
 
-      {position ? (
+      {targetSlot ? (
         <div className="p-3">
           {/* Buying + view toggle */}
           <div className="flex items-center justify-between gap-2 px-1">
             <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-              Buying: <b className="text-ink">{targetSlot!.label}</b> ({position})
+              {/* The guard above tests `targetSlot`, not the `position` derived from it -
+                  a derived value discards the narrowing and left this asserting what the
+                  guard had already proved (hygiene H21). */}
+              Buying: <b className="text-ink">{targetSlot.label}</b> ({targetSlot.position})
             </span>
             <div className="flex overflow-hidden rounded-[5px] border border-line">
               {(

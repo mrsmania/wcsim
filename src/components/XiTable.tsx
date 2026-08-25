@@ -88,7 +88,9 @@ export default function XiTable({
                             className={`flex min-w-0 items-center gap-1.5 text-[13.5px] ${player ? 'font-semibold' : 'text-muted'}`}
                         >
                             <span className="truncate">{player ? lastName(player.name) : '–'}</span>
-                            {tier && <CollectibleStar tier={tier} owned={!!ownedStickerIds?.has(player!.id)} />}
+                            {player && tier && (
+                                <CollectibleStar tier={tier} owned={!!ownedStickerIds?.has(player.id)} />
+                            )}
                         </span>
                         <span className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
                             {sq ? (

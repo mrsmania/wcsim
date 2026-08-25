@@ -10,7 +10,7 @@ export interface Strength {
 
 export interface MatchEvent {
   minute: number;
-  side: 'home' | 'away';
+  side: MatchSide;
   scorer: string;
 }
 
@@ -32,6 +32,17 @@ export interface ScorerWeight {
  *  `GroupTeam` is persisted (the game state, the active run, and a run's drawn
  *  `nextOpponent`), so a match in flight when this shipped keeps its old pool. */
 export type ScorerPool = readonly (ScorerWeight | string)[];
+
+/** Which side of a match, everywhere. Written out nine times across five files, so a
+ *  reader had to check each one was the same two values in the same order (hygiene H43). */
+export type MatchSide = 'home' | 'away';
+
+/** A penalty taker: the two fields a shootout reads, and nothing else. Declared three
+ *  times before this. */
+export interface PenTaker {
+  name: string;
+  elo: number;
+}
 
 /** A participant in a single match. */
 export interface Side {
@@ -236,7 +247,7 @@ function simulatePeriod(
   const awayGoals = poisson(expectedGoals(away.strength.attack, home.strength.defense) * lambdaScale);
 
   const events: MatchEvent[] = [];
-  const addGoals = (n: number, side: 'home' | 'away', scorers: ScorerPool) => {
+  const addGoals = (n: number, side: MatchSide, scorers: ScorerPool) => {
     for (let i = 0; i < n; i++) {
       events.push({
         minute: minuteBase + Math.floor(Math.random() * minuteSpan),
@@ -270,7 +281,7 @@ export function simulateExtraTime(home: Side, away: Side): MatchResult {
 
 /** A single penalty kick in a shootout. */
 export interface PenKick {
-  side: 'home' | 'away';
+  side: MatchSide;
   taker: string;
   scored: boolean;
 }
@@ -284,7 +295,7 @@ export interface ShootoutResult {
 
 /** A shootout participant: penalty takers, best first. */
 export interface ShootoutTeam {
-  penTakers: { name: string; elo: number }[];
+  penTakers: PenTaker[];
 }
 
 // Penalty conversion curve: a baseline rate at the reference rating, tilted by
@@ -312,7 +323,7 @@ export function simulateShootout(home: ShootoutTeam, away: ShootoutTeam): Shooto
   let h = 0;
   let a = 0;
 
-  const kick = (side: 'home' | 'away') => {
+  const kick = (side: MatchSide) => {
     const takers = side === 'home' ? home.penTakers : away.penTakers;
     const taken = kicks.filter((k) => k.side === side).length;
     const taker = takers.length ? takers[taken % takers.length] : { name: 'Unknown', elo: 75 };
@@ -347,7 +358,7 @@ export function simulateShootout(home: ShootoutTeam, away: ShootoutTeam): Shooto
     // for the winner) rather than always favouring home, so `kicks` still
     // reconstructs the reported score.
     if (h === a) {
-      const winner: 'home' | 'away' = Math.random() < 0.5 ? 'home' : 'away';
+      const winner: MatchSide = Math.random() < 0.5 ? 'home' : 'away';
       const takers = winner === 'home' ? home.penTakers : away.penTakers;
       if (winner === 'home') h++;
       else a++;
