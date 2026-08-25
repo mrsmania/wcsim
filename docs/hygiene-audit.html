@@ -244,6 +244,15 @@
   <a href="#D14">D14</a> (the four alias routes and the dead arms behind two),
   <a href="#D6">D6</a> (the blocked-challenge UI) and <a href="#D1">D1</a> in part
   (<code>challengeAwards</code> hard-wired on and deleted, which also settles H98).</p>
+  <p><b>Wave 2 begun:</b> H36 (<code>pick</code>, 9 domain sites), H39
+  (<code>PRICE_BASE</code>), H57 (<code>xiSpend</code>, the spend computed three ways), H136
+  (<code>PERK_TIERS_TOTAL</code>, <code>YEARS</code>, the two re-roll predicates, and
+  <code>selectedAscension</code>) and H138 (the three unasserted shop sentences). Two new
+  checks, 132 -> 134, both mutation-tested. Also <b>D1's other half is answered</b>:
+  <code>stickersOnCupWinOnly</code> is now ON - only a cup win banks - and the flag STAYS,
+  because unlike <code>challengeAwards</code> it is safely reversible and the owner may want
+  to revert after playing. Measured before flipping: a run wins the cup 10% of the time, so
+  win-only banks about a tenth of the collectibles any-run did.</p>
   <p><b><a href="#H106">H106</a> needed no work.</b> The flaky Extra Choice check was fixed
   independently by the 1986 commit, which hit the same group-qualification issue and now
   scans for a run that actually reaches a boon stop. The diagnosis in the callout above was
@@ -254,21 +263,26 @@
   rate on the neighbouring check roughly doubled (9.3% and 8.5% per tier, ~17% per suite).
   The fix therefore selects its squad <b>by id</b>, not by index - which is
   <a href="#H96">H96</a>'s point, demonstrated live.</p>
-  <p><b>The dataset changed mid-audit</b> (roadmap 03's first step landed on <code>main</code>
-  while these reviews were running), so every count below that touches it has been
-  re-measured: <b>296 squads, 6,799 players, 84 collectibles (60 legendary / 18 iconic / 6
-  monumental)</b>. 272 / 6,270 / 81 was correct at <code>c4f1512</code> and is not any more.
+  <p><b>The dataset changed mid-audit, twice</b> (roadmap 03's first step and then item 33's
+  re-rating of the whole of 1986 landed on <code>main</code> while this was being executed),
+  so every count that touches it has been re-measured: <b>296 squads, 6,798 players, 87
+  collectibles (63 legendary / 18 iconic / 6 monumental)</b>. 272 / 6,270 / 81 was correct at
+  <code>c4f1512</code>; 296 / 6,799 / 84 was correct for a few hours in between. Treat any
+  dataset figure in this document as a measurement with a date on it, not a fact.
   The catalogue (130 in 12 families, worth 779), the boost pool (32 cards, 10 starters, 22
   lockable) and the shop (3,470) are unchanged.</p>
   <p><b>New, and not in the numbered list below:</b> <a href="#H99">H99</a> is no longer
-  hypothetical. Adding 1986 created three collectibles with no art -
-  <code>arg-1986-10</code> (Maradona, <b>Monumental</b>), <code>fra-1986-10</code> (Platini)
-  and <code>eng-1986-10</code> (Lineker) - so the album currently ships three text-fallback
-  cards, one of them in the rarest tier. Measured 84 collectibles against 81 shipped
-  <code>.webp</code> and 81 sources. This is exactly the invariant H99 asks the harness to
-  guard, it broke within a day of the audit, and nothing noticed. Note
-  <code>art/stickers-archive/</code> holds <code>ar1986_maradona.png</code>, which is a point
-  in favour of the <a href="#D9">D9</a> decision to keep it.</p>
+  hypothetical, and it is getting worse rather than staying still. Adding 1986 created three
+  collectibles with no art; re-rating 1986 took it to <b>six</b>, measured as 87 collectibles
+  against 81 shipped <code>.webp</code> and 81 sources: <code>arg-1986-10</code> (Maradona,
+  <b>Monumental</b> - the rarest tier), <code>fra-1986-10</code> (Platini),
+  <code>esp-1986-9</code> (Butragueno), <code>eng-1986-10</code> (Lineker),
+  <code>den-1986-10</code> (Elkjaer) and <code>urs-1986-19</code> (Belanov). So the album
+  ships six text-fallback cards. This is exactly the invariant H99 asks the harness to guard;
+  it broke within a day of the audit naming it, doubled a day later, and nothing noticed
+  either time - which is the argument for the check rather than for a one-off art commit.
+  Note <code>art/stickers-archive/</code> holds <code>ar1986_maradona.png</code>, a point in
+  favour of the <a href="#D9">D9</a> decision to keep it.</p>
 </div>
 
 <h2 id="rules">Ground rules for the implementing team</h2>
