@@ -7,10 +7,10 @@ import type { RoundRecord, RunOutcome, RunState } from './run';
 import type { CareerState } from './career';
 import { MAX_ASCENSION } from './ascension';
 import { MAX_BONUS } from './chemistry';
-import { boonById, type Rarity } from './boons';
+import { boonById, RARITIES, type Rarity } from './boons';
 import { HIGH_ASCENSION, PERKS } from './career';
 import { collectiblePlayers, tierOf, type AlbumState } from './album';
-import type { KoDecided } from './knockout';
+import { KO_DECIDED, type KoDecided } from './knockout';
 
 // ---------------------------------------------------------------------------
 // Challenges - permanent honours over a finished Cup Run. Pure predicates: no
@@ -531,7 +531,7 @@ export const CHALLENGES: Challenge[] = [
     check: (v) => v.ko.some((r) => r.won && r.decided === 'aet') },
   { id: 'the-hard-way', name: 'The Hard Way', description: 'Win ties in normal time, extra time and on penalties in one run.',
     family: 'drama', tier: 'gold',
-    check: (v) => (['reg', 'aet', 'pens'] as KoDecided[])
+    check: (v) => KO_DECIDED
       .every((d) => v.ko.some((r) => r.won && r.decided === d)) },
   { id: 'comeback-kings', name: 'Comeback Kings', description: 'Qualify with a negative goal difference, then win the cup.',
     family: 'drama', tier: 'gold',
@@ -565,7 +565,7 @@ export const CHALLENGES: Challenge[] = [
     check: (v) => v.wonCup && v.rarities.filter((r) => r === 'legendary').length >= 3 },
   { id: 'full-spectrum', name: 'Full Spectrum', description: 'Take a common, a rare and a legendary boost in one run.',
     family: 'boosts', tier: 'bronze',
-    check: (v) => (['common', 'rare', 'legendary'] as Rarity[]).every((r) => v.rarities.includes(r)) },
+    check: (v) => RARITIES.every((r) => v.rarities.includes(r)) },
   { id: 'no-second-chances', name: 'No Second Chances', description: 'Win without using a boost re-roll, with the Physio Table owned.',
     family: 'boosts', tier: 'silver',
     check: (v) => { const t = v.run.perkLevels['physio'] ?? 0; return v.wonCup && t > 0 && (v.run.rerollsLeft ?? 0) >= t; } },

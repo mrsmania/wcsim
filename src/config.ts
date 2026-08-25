@@ -107,20 +107,25 @@ export const STICKER_TIERS = {
 /** The canonical tier union used across the codebase. */
 export type StickerTier = keyof typeof STICKER_TIERS;
 
-/** Tier RANK, best first: 0 = Monumental. Derived from the rating bands above, so the
- *  ordering follows the tiers rather than being a second list to keep in step.
+/** The tiers, best first. The single named home for "which order do tiers go in", which
+ *  four sites used to recover with `Object.keys(STICKER_TIERS) as StickerTier[]` - a cast
+ *  that compiles whatever the array actually holds (hygiene H150).
+ *
+ *  `satisfies` rather than a plain annotation, so the array keeps its literal element type
+ *  AND omitting a tier is a compile error here rather than a missing section on the album
+ *  screen. Keep the order: the console summaries `npm run checks` prints read in it. */
+export const STICKER_TIER_ORDER = ['monumental', 'iconic', 'legendary'] as const satisfies
+    readonly StickerTier[];
+
+/** A tier's rank, best first: 0 = Monumental. Derived from the order above rather than
+ *  being a second list, and a function rather than a Record so it needs no cast.
  *
  *  It lives here because it is a fact about tiers, not about how they look. The same
  *  ordering exists in `components/stickerTheme.ts` as `TIER_META[t].order`, which the
  *  album's LAYOUT reads - and the cup-reward rule was reading it too, from a component,
  *  to sort a domain pool (hygiene H142). A domain rule may read this; a screen laying
  *  cards out may read either. */
-export const TIER_RANK: Record<StickerTier, number> = (() => {
-    const byBest = (Object.keys(STICKER_TIERS) as StickerTier[]).sort(
-        (a, b) => STICKER_TIERS[b].min - STICKER_TIERS[a].min,
-    );
-    return Object.fromEntries(byBest.map((t, i) => [t, i])) as Record<StickerTier, number>;
-})();
+export const tierRank = (tier: StickerTier): number => STICKER_TIER_ORDER.indexOf(tier);
 
 /** Trade-in cost: how many duplicates (any tier/mix) buy one sticker of that tier
  *  (the player then picks from up to 3 uncollected options). First-guess values;

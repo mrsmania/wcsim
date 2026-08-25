@@ -1,5 +1,11 @@
 import type { Player, Position } from '../data/types';
-import { STICKER_TIERS, STICKER_TRADE_COST, TIER_RANK, type StickerTier } from '../config';
+import {
+    STICKER_TIERS,
+    STICKER_TIER_ORDER,
+    STICKER_TRADE_COST,
+    tierRank,
+    type StickerTier,
+} from '../config';
 import { shuffled } from './random';
 
 /**
@@ -25,7 +31,7 @@ export function emptyAlbum(): AlbumState {
  *  single source of collectibility (FR-1): change `STICKER_TIERS` and everything
  *  downstream (markers, album grid, totals) follows. */
 export function tierOf(player: Player): StickerTier | null {
-    for (const tier of Object.keys(STICKER_TIERS) as StickerTier[]) {
+    for (const tier of STICKER_TIER_ORDER) {
         const { min, max } = STICKER_TIERS[tier];
         if (player.elo >= min && player.elo <= max) return tier;
     }
@@ -110,7 +116,7 @@ export function collectiblePlayers(allPlayers: Player[]): Player[] {
  *  caller was otherwise re-deriving the tier it had just proved.
  *  (`AlbumScreen` still hand-rolls its own copy; folding it in is hygiene item H45.) */
 export function collectiblesByTier(allPlayers: Player[]): Record<StickerTier, Player[]> {
-    const groups = { monumental: [], iconic: [], legendary: [] } as Record<StickerTier, Player[]>;
+    const groups: Record<StickerTier, Player[]> = { monumental: [], iconic: [], legendary: [] };
     for (const p of allPlayers) {
         const tier = tierOf(p);
         if (tier) groups[tier].push(p);
@@ -148,7 +154,7 @@ export function cupRewardPool(
     const pool = uncollected.length ? uncollected : pickable.filter((p) => !taken.includes(p.id));
     return pool
         .slice()
-        .sort((a, b) => TIER_RANK[tierOf(a)!] - TIER_RANK[tierOf(b)!] || b.elo - a.elo);
+        .sort((a, b) => tierRank(tierOf(a)!) - tierRank(tierOf(b)!) || b.elo - a.elo);
 }
 
 /** Add one copy of a player id to an album (immutably): first copy -> collected,
@@ -256,11 +262,11 @@ export interface AlbumStatsView {
 /** Completion counts for the header and per-tier display. Pure; called on render. */
 export function albumStats(album: AlbumState, allPlayers: Player[]): AlbumStatsView {
     const collectedSet = new Set(album.collected);
-    const byTier = {
+    const byTier: Record<StickerTier, { total: number; collected: number }> = {
         legendary: { total: 0, collected: 0 },
         iconic: { total: 0, collected: 0 },
         monumental: { total: 0, collected: 0 },
-    } as Record<StickerTier, { total: number; collected: number }>;
+    };
     let total = 0;
     let collected = 0;
     for (const p of allPlayers) {

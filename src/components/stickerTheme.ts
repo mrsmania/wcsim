@@ -20,26 +20,26 @@ import type { StickerTier } from '../config';
  *  `order` sorts the album Monumental-first (spec 5.4). */
 export const TIER_META: Record<
   StickerTier,
-  { name: string; accent: string; strip: string; stripText: string; order: number }
+  { name: string; accent: string; strip: string; stripText: string }
 > = {
   monumental: {
     name: 'Monumental',
     accent: '#c99a3a',
     strip: 'linear-gradient(135deg,#f0cf8a,#c99a3a)',
     stripText: '#3a2a06',
-    order: 0,
   },
-  iconic: { name: 'Iconic', accent: '#e4922b', strip: '#e4922b', stripText: '#ffffff', order: 1 },
-  legendary: { name: 'Legendary', accent: '#15924c', strip: '#15924c', stripText: '#ffffff', order: 2 },
+  iconic: { name: 'Iconic', accent: '#e4922b', strip: '#e4922b', stripText: '#ffffff' },
+  legendary: { name: 'Legendary', accent: '#15924c', strip: '#15924c', stripText: '#ffffff' },
 };
 
-/** The tiers Monumental-first, which is the order the album lays its sections out in
- *  and the order the reward picker offers them. Derived from `order` rather than typed
- *  out, so the ramp is declared once - AlbumScreen used to derive this itself, which is
- *  what made it reach into StickerCard for TIER_META in the first place. */
-export const TIER_ORDER = (Object.keys(TIER_META) as StickerTier[]).sort(
-  (a, b) => TIER_META[a].order - TIER_META[b].order,
-);
+/** The tiers Monumental-first, which is the order the album lays its sections out in and
+ *  the order the reward picker offers them.
+ *
+ *  Re-exported from `config`, which is where the one named ordering lives. It used to be
+ *  derived HERE by sorting `Object.keys(TIER_META)` on a per-tier `order` field, so the
+ *  codebase carried two undeclared orderings of the same three tiers and a cast to recover
+ *  the key type (hygiene H150). `TIER_META` no longer has an `order`. */
+export { STICKER_TIER_ORDER as TIER_ORDER } from '../config';
 
 /** The gold-foil ramp of the top tier (Monumental), reused wherever a "best/complete"
  *  gold treatment is needed (album-complete banner, the won ladder cup node). Single

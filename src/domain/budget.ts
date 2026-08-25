@@ -26,7 +26,9 @@ const UPGRADE_GUARD = 300;
 export function playersByPosition(players: Player[]): Partial<Record<Position, Player[]>> {
   const m: Partial<Record<Position, Player[]>> = {};
   for (const p of players) for (const pos of p.positions) (m[pos] ??= []).push(p);
-  for (const pos of Object.keys(m) as Position[]) m[pos]!.sort((a, b) => b.elo - a.elo);
+  // Object.values, not keys: the keys need a cast back to Position and then a non-null
+  // assertion to index with, and the values are already the arrays being sorted.
+  for (const list of Object.values(m)) list.sort((a, b) => b.elo - a.elo);
   return m;
 }
 

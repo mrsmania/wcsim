@@ -64,7 +64,7 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
   return (
     <div>
       <FinishedKoCard
-        roundName={KO_ROUNDS[record.stage as number]}
+        roundName={KO_ROUNDS[record.stage]}
         oppName={record.oppName ?? ''}
         oppCode={record.oppCode ?? ''}
         oppYear={record.oppYear}

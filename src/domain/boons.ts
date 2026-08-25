@@ -6,8 +6,12 @@ import { pick } from './random';
 import { bestEleven } from './tournament';
 import { STICKER_TIERS } from '../config';
 
-/** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
-export type Rarity = 'common' | 'rare' | 'legendary';
+/** Rarity ramp, mirrored on the sticker tiers for a consistent look. Cheapest first, which
+ *  is the order the boost library lists them in. The union is derived from the array for the
+ *  reason `KO_DECIDED` is: a challenge predicate restated the three members with a cast, so a
+ *  fourth rarity would have left it checking three (hygiene H151). */
+export const RARITIES = ['common', 'rare', 'legendary'] as const;
+export type Rarity = (typeof RARITIES)[number];
 
 /** Run context a boon may read. Everything here is resolved by `domain/run.ts` and handed
  *  in, so the catalogue can key off the run without importing it. */

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Player } from '../data/types';
 import { tierOf } from '../domain/album';
-import { TIER_META } from './stickerTheme';
+import { tierRank } from '../config';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
 import { PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
@@ -23,7 +23,7 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
     return newPlayerIds
       .map((id) => byId.get(id))
       .filter((p): p is Player => !!p && tierOf(p) !== null)
-      .sort((a, b) => TIER_META[tierOf(a)!].order - TIER_META[tierOf(b)!].order || b.elo - a.elo);
+      .sort((a, b) => tierRank(tierOf(a)!) - tierRank(tierOf(b)!) || b.elo - a.elo);
   }, [newPlayerIds, allPlayers]);
 
   return (

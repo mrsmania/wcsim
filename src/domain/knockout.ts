@@ -13,8 +13,12 @@ import { squadGroupTeam, squadOverall, type GroupTeam } from './tournament';
 /** Knockout rounds the user must win, in order, to be crowned champion. */
 export const KO_ROUNDS = ['Round of 16', 'Quarter-final', 'Semi-final', 'Final'] as const;
 
-/** How a tie was settled. */
-export type KoDecided = 'reg' | 'aet' | 'pens';
+/** Every way a tie can be settled, and the union DERIVED from it - not written twice.
+ *  `domain/challenges.ts` used to restate the three members inside a predicate with a cast
+ *  to make it compile, so adding a fourth would have left that predicate silently checking
+ *  three (hygiene H151). The strings are persisted, so their spelling is fixed. */
+export const KO_DECIDED = ['reg', 'aet', 'pens'] as const;
+export type KoDecided = (typeof KO_DECIDED)[number];
 
 /** How far a tournament run ended: eliminated in the group, knocked out in a
  *  given knockout round, or crowned champion. */

@@ -684,40 +684,27 @@ export default function App({
     // carry (where the run is, level and Prestige, album completion, challenges earned,
     // cups in the pool) is gone: every one of those figures is on the screen the tab
     // leads to, so the chrome was restating four counters at once.
-    const tabs: TabItem[] = (
-        [
-              {
-                  key: 'play' as const,
-                  label: 'Play',
-                  to: playTo,
-                  active: isPlayTab,
-              },
-              {
-                  key: 'career' as const,
-                  label: 'Career',
-                  to: '/career',
-                  active: isCareerHub,
-              },
-              STICKERS && {
-                  key: 'album' as const,
-                  label: 'Album',
-                  to: '/album',
-                  active: isAlbum,
-              },
-              (FEATURES.challenges || FEATURES.trophyCabinet) && {
-                  key: 'records' as const,
-                  label: 'Records',
-                  to: FEATURES.challenges ? '/records' : '/records/cabinet',
-                  active: tabsRecords,
-              },
-              squadsEnabled && {
-                  key: 'squads' as const,
-                  label: 'Squads',
-                  to: '/squads/by-world-cup',
-                  active: isSquads,
-              },
-        ] as (TabItem | false)[]
-    ).filter(Boolean) as TabItem[];
+    // Annotated as (TabItem | false)[] rather than cast to it, so a mistyped `to` or a
+    // missing `label` is an error at the literal instead of at the cast; the predicate in
+    // the filter is what removes the `false` arm, so neither end needs an assertion.
+    const tabEntries: (TabItem | false)[] = [
+        { key: 'play', label: 'Play', to: playTo, active: isPlayTab },
+        { key: 'career', label: 'Career', to: '/career', active: isCareerHub },
+        STICKERS && { key: 'album', label: 'Album', to: '/album', active: isAlbum },
+        (FEATURES.challenges || FEATURES.trophyCabinet) && {
+            key: 'records',
+            label: 'Records',
+            to: FEATURES.challenges ? '/records' : '/records/cabinet',
+            active: tabsRecords,
+        },
+        squadsEnabled && {
+            key: 'squads',
+            label: 'Squads',
+            to: '/squads/by-world-cup',
+            active: isSquads,
+        },
+    ];
+    const tabs: TabItem[] = tabEntries.filter((t): t is TabItem => t !== false);
 
     // The cover's single Continue action: a live Cup Run, else a half-built XI. One
     // action because this navigation keeps one run at a time; "build a new XI" beside it
