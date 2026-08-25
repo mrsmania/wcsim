@@ -51,19 +51,41 @@ export interface FinishedResult {
 /** Inputs to {@link liveMatchView}. Either the match is playing (with a live
  *  result whose events reveal minute by minute) or it is finished (normalised to
  *  the user's perspective) or it is neither (pending). */
-export interface LiveMatchInput {
-  /** True when this card is the one currently being revealed by the clock. */
-  playing: boolean;
+/** A match still being revealed by the clock. */
+interface PlayingInput {
+  playing: true;
+  /** The events of the match being revealed. */
+  playingEvents: MatchEvent[];
+  finished?: undefined;
+}
+
+/** A settled match, normalised to the user's perspective. */
+interface SettledInput {
+  playing: false;
+  finished: FinishedResult;
+  playingEvents?: undefined;
+}
+
+/** A fixture with no result yet - the pending "v". */
+interface PendingInput {
+  playing: false;
+  finished?: undefined;
+  playingEvents?: undefined;
+}
+
+/** Clock readings, which every case carries. */
+interface ClockInput {
   /** Current revealed minute + last minute of this match (90, or 120 for a.e.t.). */
   liveMinute: number;
   liveMax: number;
   /** Clock label from the running clock (empty until the first tick). */
   clockLabel: string;
-  /** The events of the match being revealed (only read while `playing`). */
-  playingEvents?: MatchEvent[];
-  /** The settled result, normalised to the user's perspective (read when idle). */
-  finished?: FinishedResult;
 }
+
+/** Inputs to {@link liveMatchView}. Three states, and the union says so: the doc used to
+ *  spell them out in prose while modelling them as a boolean plus two optionals, so a
+ *  settled card passed four fields it could not use (hygiene H148). */
+export type LiveMatchInput = ClockInput & (PlayingInput | SettledInput | PendingInput);
 
 /**
  * Build the live match view-model. While playing, goals are filtered to the events
@@ -75,7 +97,7 @@ export interface LiveMatchInput {
 export function liveMatchView(input: LiveMatchInput): MatchView {
   const { playing, liveMinute, liveMax, clockLabel, playingEvents, finished } = input;
 
-  if (playing && playingEvents) {
+  if (playing) {
     const shown = playingEvents.filter((e) => e.minute <= liveMinute);
     const userGoals = shown.filter((e) => e.side === USER_SIDE).length;
     return {

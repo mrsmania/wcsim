@@ -130,7 +130,14 @@ export default function BudgetMarket({
   // What things cost for THIS album: a player whose sticker is already collected is
   // discounted (STICKER_DISCOUNT). One pricer, used by the rows, the totals, the sorts
   // and the auto-fill spender, so every number on the panel agrees.
-  const price = pricerFor(ownedStickerIds);
+  //
+  // Memoized so it can be a real dependency of the results memo below. It used to be
+  // rebuilt every render, which meant the results memo could not depend on it and instead
+  // suppressed the lint on a hand-maintained list - so the price SORT closed over one
+  // album while the row prices read another. Latent rather than broken (banking only
+  // happens at run end), but it is one album change away from the sort and the prices
+  // disagreeing (hygiene H78).
+  const price = useMemo(() => pricerFor(ownedStickerIds), [ownedStickerIds]);
 
   const slots = formation.slots;
   const placed = placedPlayers(formation, filled);
@@ -139,9 +146,8 @@ export default function BudgetMarket({
   const remaining = budget - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
 
-  // Deliberately omits `candidates` (derived from the two deps above it) and `price`
-  // (a fresh closure every render, over an unchanged album). Both suppressions predate
-  // the extraction and are carried across as they were.
+  // `candidates` is still omitted deliberately: it is derived from the two deps in front
+  // of it and is a fresh array every render. `price` is a real dependency now.
   const results = useMemo(
     () =>
       position
@@ -156,7 +162,7 @@ export default function BudgetMarket({
           })
         : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [position, byPosition, query, sort, filterYear, filterRegion, collectiblesOnly],
+    [position, byPosition, query, sort, filterYear, filterRegion, collectiblesOnly, price],
   );
 
   // Fill every empty slot and spend most of the budget, differently each time (the

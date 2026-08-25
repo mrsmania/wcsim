@@ -283,20 +283,34 @@ export interface RunShape {
  *  which moves the owned-sticker discount and therefore what the XI "cost". Everything
  *  past `method` is per-method, so a rolled XI carries no prices and a bought one no
  *  re-roll count. */
-export interface RunBuild {
-  method: 'roll' | 'budget';
-  /** Budget builds: the budget in force, what was spent against it, and the dearest
-   *  single player - all at the discounted prices actually charged. */
-  budget?: number;
-  spent?: number;
-  dearest?: number;
-  /** Budget builds: how many of the XI were already in the album, and so discounted. */
-  discounted?: number;
-  /** Roll builds: squad re-rolls used (starting allowance minus what was left). */
-  rerollsUsed?: number;
-  /** Collectible swaps used (both methods start with INITIAL_SWAPS). */
-  swapsUsed?: number;
+/** Collectible swaps used, which both build methods start with `INITIAL_SWAPS` of. */
+interface RunBuildBase {
+  swapsUsed: number;
 }
+
+/** A bought XI: the budget in force, what was spent against it, and the dearest single
+ *  player - all at the discounted prices actually charged. */
+export interface BudgetBuild extends RunBuildBase {
+  method: 'budget';
+  budget: number;
+  spent: number;
+  dearest: number;
+  /** How many of the XI were already in the album, and so discounted. */
+  discounted: number;
+}
+
+/** A rolled XI: squad re-rolls used (the starting allowance minus what was left). */
+export interface RollBuild extends RunBuildBase {
+  method: 'roll';
+  rerollsUsed: number;
+}
+
+/** How the XI was assembled. A real union on `method`, which its own doc already described
+ *  in prose - "everything past `method` is per-method" - while modelling it as one interface
+ *  with six optionals (hygiene H148). The producer already branched, so the cost was all on
+ *  the consumer: a three-clause hand-rolled discriminant where one would do, two needless
+ *  `??`, and a third representation of the same fact as `RunView.rolled`. */
+export type RunBuild = BudgetBuild | RollBuild;
 
 /** Build the kickoff shape record from the board. Null unless every slot is filled - a
  *  half-built XI has no shape to record.
@@ -579,7 +593,8 @@ export interface KoMatch {
  * `bracket`), the boost offer that follows, and the next opponent. Otherwise the same
  * reload re-rolls the offer that the Physio Table perk charges Prestige to re-roll.
  */
-export interface KoPending {
+/** Everything a pending knockout round carries whichever way the tie went. */
+interface KoPendingBase {
   /** The `koRound` this belongs to, so a stale one can never be replayed into another
    *  round. Committing the round drops it, so this is belt and braces. */
   round: number;
@@ -588,11 +603,25 @@ export interface KoPending {
   /** The tree with the whole round played into it (the user's result spliced in, the
    *  other ties resolved). Absent on a run without a bracket. */
   bracket?: BracketState;
-  /** The boost offer waiting after this tie, and the opponent of the round after it.
-   *  Both absent when the tie ends the run (a loss, or the final). */
-  offer?: Boon[];
-  nextOpponent?: GroupTeam;
 }
+
+/**
+ * A knockout round decided in advance and held on the run, so a reload cannot re-roll it.
+ *
+ * The offer and the next opponent are a PAIR: both are there when the tie was survived and
+ * neither is when it ended the run (a loss, or the final). That was two independent
+ * optionals documented as having to agree, which the consumer paid for with a runtime throw
+ * standing in for a type (hygiene H148).
+ *
+ * An INTERSECTION with a union of the pair, rather than nesting them under one key: nesting
+ * would change the stored shape, and a run saved before the change would then re-decide its
+ * round on resume - which is the exact bug this field exists to prevent.
+ */
+export type KoPending = KoPendingBase &
+  (
+    | { offer: Boon[]; nextOpponent: GroupTeam }
+    | { offer?: undefined; nextOpponent?: undefined }
+  );
 
 /**
  * What surviving the group decided, beyond the group itself: the knockout tree it seeds,
@@ -1383,12 +1412,13 @@ export function prepareKnockoutRound(
       tally,
     };
   } else {
-    // Both were decided when the round started, so they are read rather than drawn.
-    const nextOpp = decided.nextOpponent;
-    const offer = decided.offer;
-    if (!nextOpp || !offer) {
+    // Both were decided when the round started, so they are read rather than drawn. One
+    // test, because the two are a union member rather than two independent optionals: this
+    // used to be a runtime throw standing in for a type (hygiene H148).
+    if (!decided.offer) {
       throw new Error('prepareKnockoutRound: a survived tie must carry its offer + next opponent');
     }
+    const { offer, nextOpponent: nextOpp } = decided;
     // `recomputeXi` AFTER the increment, never before: `koRound` is what `xiOf` tests an
     // effect's window against, so a temporary effect only wears off (and a deferred one
     // only lands) once the round has actually advanced. This is the one transition that

@@ -212,13 +212,15 @@ export function viewOf(ctx: ChallengeCtx): RunView {
     return player ? [{ role: s.role, player }] : [];
   });
   const build = run.build;
+  // One clause, not three: `RunBuild` is a union on `method` now, so proving it is a budget
+  // build proves every figure is there (hygiene H148).
   const buy: BuySummary | undefined =
-    build?.method === 'budget' && build.budget != null && build.spent != null
+    build?.method === 'budget'
       ? {
           budget: build.budget,
           spent: build.spent,
-          dearest: build.dearest ?? 0,
-          discounted: build.discounted ?? 0,
+          dearest: build.dearest,
+          discounted: build.discounted,
         }
       : undefined;
   const boosted = new Set(run.boostedIds);
@@ -253,7 +255,7 @@ export function viewOf(ctx: ChallengeCtx): RunView {
     placed,
     buy,
     rolled: build?.method === 'roll',
-    rerollsUsed: build?.rerollsUsed,
+    rerollsUsed: build?.method === 'roll' ? build.rerollsUsed : undefined,
     swapsUsed: build?.swapsUsed,
   };
 }

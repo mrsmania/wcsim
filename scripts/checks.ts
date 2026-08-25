@@ -98,6 +98,7 @@ import {
   playKnockoutRound,
   type RunBuild,
   isRoundRecord,
+  type BudgetBuild,
   type GroupRecord,
   type KoRecord,
   type RunOutcome,
@@ -2736,7 +2737,9 @@ const KNOWN_MISSING_ART = new Set([
     !ids(won({ shape: upFront })).includes('midfield-general');
 
   // The build record. Prices are the discounted ones actually charged at kickoff.
-  const buy = (over: Partial<RunBuild>): RunBuild => ({
+  // `Partial<BudgetBuild>` rather than `Partial<RunBuild>`: the union means a partial of it
+  // could widen `method`, which would make the literal describe neither variant.
+  const buy = (over: Partial<Omit<BudgetBuild, 'method'>> = {}): BudgetBuild => ({
     method: 'budget', budget: 110, spent: 110, dearest: 20, discounted: 0, swapsUsed: 0, ...over,
   });
   const marketOk =
