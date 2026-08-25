@@ -1,23 +1,10 @@
 {
-  "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-    "jsx": "react-jsx",
-
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-
-    "types": ["node"]
-  },
-  "include": ["src", "vite.config.ts", "scripts"]
+  // A project reference split, so the browser bundle and the Node scripts get different
+  // globals (hygiene H105). Before this, `"types": ["node"]` applied to the whole program,
+  // which put `process`, `Buffer` and `__dirname` in scope inside `src/` - verified: a
+  // probe reading `process.env` in a component type-checked clean and would have been
+  // undefined at runtime. Nothing abuses it today, so this is a guard rail rather than a
+  // fix; `npm run typecheck` is `tsc -b` now and builds both halves.
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

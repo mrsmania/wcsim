@@ -1,0 +1,41 @@
+{
+  // The browser bundle. `types` is an EXPLICIT list, which is the whole point: omitting it
+  // does not exclude Node - TypeScript auto-includes every package under
+  // `node_modules/@types`, so `@types/node` was in scope for `src/` either way. Naming
+  // only what the browser has makes a `process.env.X` typo in a component an error here
+  // rather than `undefined` at runtime (hygiene H105).
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    // ES2022, not ES2020, and this is a correction rather than a widening: `domain/`
+    // already uses `Array.prototype.at` in four places, which is ES2022 - it only compiled
+    // because omitting `types` auto-included `@types/node`, whose declarations brought the
+    // newer lib in through the back door. Naming `types` explicitly (below) removed that
+    // accident and surfaced it, which is what the split was for. The shipped bundle has
+    // always contained those calls and works: `.at` is in every browser Vite targets.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    // The codebase already writes `import type` consistently, so this is a near-zero diff
+    // and keeps it that way: a type-only import that is not marked as one becomes an error.
+    "verbatimModuleSyntax": true,
+
+    // `vite/client` is what declares `import.meta.env`, which the app reads for BASE_URL.
+    "types": ["vite/client"],
+
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
+  },
+  "include": ["src"]
+}

@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && node scripts/copy-404.mjs",
+    "build": "tsc -b && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b",
     "checks": "esbuild scripts/checks.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "album:fill": "esbuild scripts/album-fill.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "gen:collectibles": "esbuild scripts/gen-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module -",
