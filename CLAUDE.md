@@ -222,6 +222,7 @@ npm run push:collectibles  # send that seed to the account server (needs dkr/.en
                            #   while curl reaches the host - see docs/nas-setup.md)
 npm run push:sql -- <file.sql>   # apply a migration / run a query on that server (same
                            #   credentials and route; -- --dry-run shows without sending)
+npm run gen:players        # regenerate docs/players.html, the standalone player index
 npm run album:fill         # print a console snippet that fills the album (guest only;
                            #   -- --leave=N / --dupes=N / --clear)
 python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/stickers/*.webp
@@ -819,6 +820,41 @@ the in-progress reducer state is untouched while browsing, so Back returns to it
   expose the numbers.
 - Entirely behind **`FEATURES.squadBrowser`**; with it `false` the tab and the whole view
   disappear and the game is unchanged.
+
+## The player index (`docs/players.html`) - outside the app
+
+A single generated page holding **every player of every squad of every tournament** in one
+sortable, filterable table. It is deliberately **not part of the app**: no route, no flag,
+nothing in `src/` imports it and it imports nothing - `docs/` is not under `public/`, so
+`npm run build` never sees it. Open the file straight off disk. `/squads` stays the
+in-app, read-only browser; this is the whole dataset at once, for looking things up.
+
+- **Generated, never hand-edited.** `npm run gen:players` bakes the dataset in:
+  `scripts/gen-players-page.ts` supplies the data and the flags,
+  `scripts/players-page.template.html` holds the markup, CSS and behaviour, and the two
+  meet at the `__DATA__` / `__FLAG_CSS__` placeholders. **Re-run it after any change to
+  `squads.ts` or `STICKER_TIERS`**, the same way `gen:collectibles` has to be re-run -
+  nothing fails while it is stale, because it is not in the build.
+- **Shows** jersey number, name, country, year, main position, additional positions,
+  rating and collectible (yes, with the tier's colour, or no). **Filters** for main
+  position, additional position, position (either), country and collectible are all
+  multi-select; rating is a two-handle range; the search box matches the name only,
+  diacritic-insensitively. Every column sorts, rating descending by default.
+- **A player who appears in more than one tournament carries an `x N` mark**, and hovering
+  any one of his rows shows all of them (year, nation, main role, rating) with the row you
+  are on picked out - plus every other row of the same man currently on screen. That is
+  the one thing the table cannot show in a row, since a row is one appearance.
+- **It stays fast by never holding the dataset as objects.** The 8,028 rows decode into
+  flat typed arrays (person, nation, year, number, position combo, rating, tier), so a
+  filter is an integer scan and the name query is answered once per PERSON and read per
+  row. The body is virtualised at a fixed row height, so only the visible window plus a
+  small overscan is ever in the DOM. Measured in Chromium: a scroll frame repaints in
+  ~1 ms, a full re-filter and re-sort of all 8,028 rows in ~5 ms.
+- **Two copies to keep in step by hand**, both deliberate and both cheap: the turf-flat
+  colour tokens (copied out of `src/index.css`, light and dark) and the row/eyebrow/card
+  styling, since the page ships no Tailwind. The FIFA-code-to-flag mapping is **not** a
+  copy - the generator parses it out of `src/components/Flag.tsx` and inlines the SVGs as
+  data URIs, so the page cannot drift from the game's own flags.
 
 ## Sticker album (flagged)
 

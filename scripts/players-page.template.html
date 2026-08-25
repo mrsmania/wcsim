@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Player index &middot; World Cup Simulator</title>
+<!--
+  GENERATED FILE - do not edit by hand.
+  Source: src/data/squads.ts, via scripts/gen-players-page.ts + scripts/players-page.template.html.
+  Regenerate with `npm run gen:players`.
+
+  A standalone reference sheet over the whole dataset: every player of every squad of
+  every tournament in one sortable, filterable table. It is NOT part of the app - open
+  the file in a browser straight off disk. Nothing here imports from src/, and nothing
+  in src/ imports this; the dataset is baked in at generation time.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* Turf-flat tokens, copied from src/index.css. Keep them in step by hand: this page
+   ships no Tailwind and no build step beyond the generator. */
+:root {
+  --ground: #f4f2ec; --panel: #ffffff; --chalk: #e8f0e8; --ink: #13211a;
+  --muted: #5c6a60; --line: #d4ded5; --pitch: #15924c; --pitch-dark: #0e5c34;
+  --accent: #0e5c34; --amber: #e4922b; --dim: #636c65; --hair: #e3e8e2;
+  --faint: #ecebe3; --amber-ink: #9a6512;
+  --shadow-hard: 6px 6px 0 var(--pitch-dark);
+  --sans: 'Schibsted Grotesk', system-ui, sans-serif;
+  --mono: 'Spline Sans Mono', ui-monospace, monospace;
+  --display: 'Archivo', system-ui, sans-serif;
+  --row-h: 34px;
+}
+:root[data-theme='dark'] {
+  --ground: #131417; --panel: #1c1e22; --chalk: #26282e; --ink: #eceef1;
+  --muted: #a4a9b0; --line: #33363d; --pitch: #22a35d; --pitch-dark: #17492f;
+  --accent: #34c06f; --amber: #eea23a; --dim: #848b92; --hair: #2a2d33;
+  --faint: #191b1f; --amber-ink: #eea23a;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--sans); font-size: 14px; -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+
+/* ---- masthead ---------------------------------------------------------- */
+.mast { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 2px solid var(--ink); background: var(--panel); }
+.tile { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 6px; background: var(--pitch-dark); color: var(--amber); }
+.word { font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; font-size: 17px; line-height: 1; text-transform: uppercase; }
+.tag { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); margin-top: 4px; }
+.mast .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  border-radius: 5px; padding: 7px 11px;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  transition: border-color .12s, color .12s;
+}
+.btn:hover { border-color: var(--pitch); color: var(--pitch); }
+.btn[aria-pressed='true'] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+
+/* ---- page -------------------------------------------------------------- */
+main { max-width: 1400px; margin: 0 auto; padding: 0 20px 40px; }
+.head { display: flex; align-items: center; gap: 16px; margin: 26px 0 18px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; margin: 3px 0 0; }
+.rule { position: relative; flex: 1; height: 0; border-top: 2px solid var(--line); }
+.rule::before { content: ''; position: absolute; top: -5px; left: 0; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--line); background: var(--panel); }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-hard); }
+.mono-cap { font-family: var(--mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+
+/* ---- filters ----------------------------------------------------------- */
+.filters { padding: 14px 16px; margin-bottom: 22px; }
+.frow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > .mono-cap { padding-left: 1px; }
+
+.search { position: relative; }
+.search input {
+  width: 260px; max-width: 100%; padding: 8px 30px 8px 30px;
+  border: 1px solid var(--line); border-radius: 5px; background: var(--panel); outline: none;
+  font-size: 13.5px;
+}
+.search input:focus { border-color: var(--pitch); }
+.search svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.search .clr { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; background: none; cursor: pointer; color: var(--muted); padding: 4px; line-height: 0; border-radius: 4px; }
+.search .clr:hover { color: var(--ink); }
+
+/* multi-select */
+.ms { position: relative; }
+.ms > button {
+  display: inline-flex; align-items: center; gap: 8px; min-width: 148px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 5px; background: var(--panel);
+  padding: 8px 10px; font-size: 13px; text-align: left;
+}
+.ms > button:hover { border-color: var(--pitch); }
+.ms > button[aria-expanded='true'] { border-color: var(--pitch); }
+.ms .val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms .val.any { color: var(--muted); }
+.ms .cnt { font-family: var(--mono); font-size: 10.5px; font-weight: 700; color: var(--panel); background: var(--pitch); border-radius: 999px; padding: 1px 6px; }
+.ms .chev { color: var(--muted); line-height: 0; }
+.pop {
+  position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; min-width: 100%;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 14px 34px rgba(0,0,0,.14);
+  padding: 6px; display: none;
+}
+.pop.open { display: block; }
+.pop .psearch { width: 100%; padding: 6px 8px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); outline: none; font-size: 13px; }
+.pop .psearch:focus { border-color: var(--pitch); }
+.pop .list { max-height: 304px; overflow: auto; }
+.opt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 7px; border: 0; background: none; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap; text-align: left; }
+.opt:hover, .opt:focus-visible { background: var(--chalk); outline: none; }
+.opt .box { width: 14px; height: 14px; border: 1.5px solid var(--line); border-radius: 3px; display: grid; place-items: center; flex: none; color: var(--panel); }
+.opt.on .box { background: var(--pitch); border-color: var(--pitch); }
+.opt .n { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); padding-left: 10px; }
+.pop .pfoot { display: flex; justify-content: space-between; border-top: 1px solid var(--hair); margin-top: 6px; padding-top: 6px; }
+.pop .pfoot button { border: 0; background: none; cursor: pointer; font-family: var(--mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 3px 5px; border-radius: 4px; }
+.pop .pfoot button:hover { color: var(--pitch); }
+
+/* dual-handle rating slider */
+.rng { position: relative; width: 210px; height: 30px; display: flex; align-items: center; }
+.rng .track { position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: var(--line); }
+.rng .fill { position: absolute; height: 4px; border-radius: 2px; background: var(--pitch); }
+.rng input {
+  position: absolute; left: 0; width: 100%; margin: 0; height: 30px;
+  background: none; pointer-events: none; -webkit-appearance: none; appearance: none;
+}
+.rng input:focus { outline: none; }
+.rng input::-webkit-slider-thumb {
+  -webkit-appearance: none; pointer-events: auto; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--panel); border: 2px solid var(--pitch); cursor: grab; box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.rng input::-moz-range-thumb {
+  pointer-events: auto; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--panel); border: 2px solid var(--pitch); cursor: grab;
+}
+.rng input:focus-visible::-webkit-slider-thumb { border-color: var(--amber); }
+.rng input:focus-visible::-moz-range-thumb { border-color: var(--amber); }
+.rlab { font-family: var(--mono); font-size: 12px; font-weight: 600; min-width: 62px; }
+.rlab b { color: var(--pitch); }
+
+.fspacer { flex: 1; }
+.count { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.count b { color: var(--ink); font-weight: 700; }
+
+/* ---- table ------------------------------------------------------------- */
+.table { overflow: hidden; }
+.scroller { overflow: auto; max-height: calc(100vh - 150px); overscroll-behavior: contain; }
+.grid { min-width: 900px; }
+.cols {
+  display: grid;
+  grid-template-columns: 44px minmax(170px, 1.7fr) minmax(140px, 1.1fr) 58px 58px minmax(96px, 0.9fr) 72px 92px;
+  align-items: center; gap: 10px; padding: 0 14px;
+}
+.thead { position: sticky; top: 0; z-index: 3; background: var(--panel); border-bottom: 2px solid var(--ink); height: 38px; }
+.th {
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 0; background: none; padding: 2px 0;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+}
+.th:hover { color: var(--pitch); }
+.th.on { color: var(--ink); }
+.th .ar { opacity: 0; line-height: 0; }
+.th.on .ar { opacity: 1; color: var(--pitch); }
+.th.r { justify-content: flex-end; }
+.tbody { position: relative; }
+
+.row {
+  position: absolute; left: 0; right: 0; height: var(--row-h);
+  border-bottom: 1px solid var(--hair); font-size: 13px;
+}
+.row:hover { background: var(--chalk); }
+.row.kin { background: color-mix(in srgb, var(--amber) 12%, transparent); }
+.num { font-family: var(--mono); font-size: 11.5px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.nm { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nm span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.dup {
+  flex: none; font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--amber-ink); border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent);
+  border-radius: 999px; padding: 1px 5px; cursor: help;
+}
+.ctry { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.ctry span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl { flex: none; width: 21px; height: 14px; border-radius: 2px; background-size: cover; background-position: center; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.yr, .pos { font-family: var(--mono); font-size: 11.5px; }
+.yr { color: var(--muted); font-variant-numeric: tabular-nums; }
+.pos { font-weight: 600; }
+.alt { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rat { font-family: var(--mono); font-size: 13.5px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.col { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: var(--mono); font-size: 11.5px; }
+.col.no { color: var(--dim); }
+.star { flex: none; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.star svg { width: 9px; height: 9px; }
+.acc { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+
+.empty { padding: 46px 16px; text-align: center; color: var(--muted); }
+.empty b { display: block; color: var(--ink); font-family: var(--display); font-size: 17px; margin-bottom: 6px; }
+
+/* ---- appearance tooltip ------------------------------------------------ */
+.tip {
+  position: fixed; z-index: 90; display: none; pointer-events: none;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 16px 40px rgba(0,0,0,.2);
+  padding: 9px 11px; min-width: 236px;
+}
+.tip.show { display: block; }
+.tip .th2 { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 7px; }
+.tip .th2 b { color: var(--ink); font-family: var(--sans); font-size: 13px; letter-spacing: 0; text-transform: none; display: block; margin-bottom: 2px; }
+.tip .ap { display: grid; grid-template-columns: 40px 21px 1fr auto auto; align-items: center; gap: 8px; padding: 3px 0; font-size: 12.5px; }
+.tip .ap + .ap { border-top: 1px solid var(--hair); }
+.tip .ap.self { color: var(--pitch); font-weight: 600; }
+.tip .ap .y { font-family: var(--mono); font-size: 11.5px; }
+.tip .ap .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tip .ap .p { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.tip .ap.self .p { color: var(--pitch); }
+.tip .ap .e { font-family: var(--mono); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.foot { display: block; margin-top: 14px; font-family: var(--mono); font-size: 10.5px; color: var(--dim); letter-spacing: 0.02em; }
+
+@media (max-width: 720px) {
+  main { padding: 0 12px 30px; }
+  .search input { width: 100%; }
+  .scroller { max-height: calc(100vh - 120px); }
+}
+
+/* Nation flags, inlined from country-flag-icons at generation time. */
+__FLAG_CSS__
+</style>
+</head>
+<body>
+<header class="mast">
+  <span class="tile" aria-hidden="true">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+  </span>
+  <span>
+    <span class="word">World Cup Simulator</span>
+    <span class="tag">Player index</span>
+  </span>
+  <span class="right">
+    <button class="btn" id="theme" type="button" title="Light / dark">Dark</button>
+  </span>
+</header>
+
+<main>
+  <div class="head">
+    <div>
+      <div class="eyebrow">Squads database</div>
+      <h1>Every player</h1>
+    </div>
+    <div class="rule"></div>
+  </div>
+
+  <section class="card filters">
+    <div class="frow">
+      <div class="field">
+        <span class="mono-cap">Search</span>
+        <div class="search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+          <input id="q" type="search" placeholder="Player name" autocomplete="off" spellcheck="false" />
+          <button class="clr" id="qclr" type="button" title="Clear" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="field"><span class="mono-cap">Main position</span><div class="ms" id="f-main"></div></div>
+      <div class="field"><span class="mono-cap">Additional position</span><div class="ms" id="f-add"></div></div>
+      <div class="field"><span class="mono-cap">Position (any)</span><div class="ms" id="f-any"></div></div>
+      <div class="field"><span class="mono-cap">Country</span><div class="ms" id="f-nat"></div></div>
+      <div class="field"><span class="mono-cap">Collectible</span><div class="ms" id="f-col"></div></div>
+
+      <div class="field">
+        <span class="mono-cap">Rating</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="rng">
+            <div class="track"></div><div class="fill" id="rfill"></div>
+            <input id="rmin" type="range" aria-label="Minimum rating" />
+            <input id="rmax" type="range" aria-label="Maximum rating" />
+          </div>
+          <span class="rlab"><b id="rminl"></b> &ndash; <b id="rmaxl"></b></span>
+        </div>
+      </div>
+
+      <span class="fspacer"></span>
+      <div class="field" style="align-items:flex-end">
+        <span class="count" id="count"></span>
+        <button class="btn" id="reset" type="button">Clear filters</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card table">
+    <div class="scroller" id="scroller">
+      <div class="grid">
+        <div class="cols thead" id="thead"></div>
+        <div class="tbody" id="tbody"></div>
+      </div>
+      <div class="empty" id="empty" hidden><b>No players match</b>Widen the rating range or clear a filter.</div>
+    </div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</main>
+
+<div class="tip" id="tip"></div>
+
+<script>
+"use strict";
+const DATA = __DATA__;
+
+/* ---------------------------------------------------------------------------
+   Columns, decoded once into flat typed arrays. Every filter and sort reads
+   these, never the objects: 8k rows x 8 columns is a few hundred KB of ints, so
+   a full filter+sort pass is well under a frame and nothing has to be memoised.
+--------------------------------------------------------------------------- */
+const N = DATA.rows.length / 7;
+const cPerson = new Int32Array(N), cNation = new Int16Array(N), cYear = new Uint8Array(N);
+const cNum = new Uint8Array(N), cCombo = new Int16Array(N), cElo = new Uint8Array(N), cTier = new Uint8Array(N);
+for (let i = 0, r = 0; i < N; i++, r += 7) {
+  cPerson[i] = DATA.rows[r]; cNation[i] = DATA.rows[r + 1]; cYear[i] = DATA.rows[r + 2];
+  cNum[i] = DATA.rows[r + 3]; cCombo[i] = DATA.rows[r + 4]; cElo[i] = DATA.rows[r + 5]; cTier[i] = DATA.rows[r + 6];
+}
+
+const POS = DATA.pos;
+const YEARS = DATA.years;
+const NATIONS = DATA.nations;            // [code, nation]
+const TIERS = DATA.tiers;                // ['', 'legendary', 'iconic', 'monumental']
+const TIER_NAME = ['', 'Legendary', 'Iconic', 'Monumental'];
+const TIER_ACCENT = ['', '#15924c', '#e4922b', '#c99a3a'];
+
+// Position combos: the main role, the mask of every role, the mask of the extras.
+const comboMain = new Uint8Array(DATA.combos.length);
+const comboAll = new Int32Array(DATA.combos.length);
+const comboAdd = new Int32Array(DATA.combos.length);
+const comboAltHtml = new Array(DATA.combos.length);
+DATA.combos.forEach((c, i) => {
+  comboMain[i] = c[0];
+  let all = 0; for (const p of c) all |= 1 << p;
+  comboAll[i] = all; comboAdd[i] = all & ~(1 << c[0]);
+  comboAltHtml[i] = c.length > 1 ? c.slice(1).map((p) => POS[p]).join(' &middot; ') : '&ndash;';
+});
+
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const personHtml = DATA.persons.map(esc);
+const personKey = DATA.persons.map((s) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''),
+);
+const natHtml = NATIONS.map((n) => esc(n[1]));
+
+/* Every appearance of each person, oldest first. This is what the hover card
+   reads, and what puts the "x N" mark on a row: a person with one row has none. */
+const apps = new Array(DATA.persons.length);
+for (let i = 0; i < N; i++) (apps[cPerson[i]] || (apps[cPerson[i]] = [])).push(i);
+for (const a of apps) if (a && a.length > 1) a.sort((x, y) => cYear[x] - cYear[y]);
+
+/* ---------------------------------------------------------------------------
+   Filter state
+--------------------------------------------------------------------------- */
+const state = {
+  q: '',
+  main: new Set(), add: new Set(), any: new Set(),   // position indices
+  nat: new Set(),                                    // nation indices
+  col: new Set(),                                    // 1 = collectible, 0 = not
+  lo: DATA.eloMin, hi: DATA.eloMax,
+  sort: 6, dir: -1,                                  // rating, descending
+};
+
+let view = new Int32Array(N);                        // the filtered + sorted row ids
+let viewLen = 0;
+
+function maskOf(set) { let m = 0; for (const p of set) m |= 1 << p; return m; }
+
+function applyFilters() {
+  const mMain = maskOf(state.main), mAdd = maskOf(state.add), mAny = maskOf(state.any);
+  const natOn = state.nat.size > 0, colOn = state.col.size > 0 && state.col.size < 2;
+  const wantCol = state.col.has(1);
+  const lo = state.lo, hi = state.hi;
+
+  // The name query is answered per PERSON (about 5k) and then read per row.
+  let nameOk = null;
+  const q = state.q;
+  if (q) {
+    nameOk = new Uint8Array(personKey.length);
+    for (let p = 0; p < personKey.length; p++) if (personKey[p].includes(q)) nameOk[p] = 1;
+  }
+
+  let n = 0;
+  for (let i = 0; i < N; i++) {
+    const e = cElo[i];
+    if (e < lo || e > hi) continue;
+    const c = cCombo[i];
+    if (mMain && !((1 << comboMain[c]) & mMain)) continue;
+    if (mAdd && !(comboAdd[c] & mAdd)) continue;
+    if (mAny && !(comboAll[c] & mAny)) continue;
+    if (natOn && !state.nat.has(cNation[i])) continue;
+    if (colOn && (cTier[i] > 0) !== wantCol) continue;
+    if (nameOk && !nameOk[cPerson[i]]) continue;
+    view[n++] = i;
+  }
+  viewLen = n;
+  sortView();
+}
+
+/* Sort keys by column. Ties fall through to name, then year, then nation, so the
+   order is total and a re-sort never shuffles equal rows about. */
+const KEY = [
+  (i) => cNum[i],
+  (i) => 0,                                   // name: compared as a string below
+  (i) => cNation[i],
+  (i) => cYear[i],
+  (i) => comboMain[cCombo[i]],
+  (i) => { const a = comboAdd[cCombo[i]]; return a ? 31 - Math.clz32(a & -a) : 99; },
+  (i) => cElo[i],
+  (i) => cTier[i],
+];
+
+function sortView() {
+  const d = state.dir, s = state.sort;
+  const sub = view.subarray(0, viewLen);
+  const arr = Array.prototype.slice.call(sub);
+  let cmp;
+  if (s === 1) {
+    cmp = (a, b) => d * (personKey[cPerson[a]] < personKey[cPerson[b]] ? -1 : personKey[cPerson[a]] > personKey[cPerson[b]] ? 1 : 0)
+      || cYear[a] - cYear[b] || cNation[a] - cNation[b];
+  } else if (s === 2) {
+    cmp = (a, b) => d * (NATIONS[cNation[a]][1] < NATIONS[cNation[b]][1] ? -1 : NATIONS[cNation[a]][1] > NATIONS[cNation[b]][1] ? 1 : 0)
+      || cYear[a] - cYear[b] || cElo[b] - cElo[a];
+  } else if (s === 4 || s === 5) {
+    // Positions sort in pitch order (GK -> ST), which is the order POS is in.
+    const k = KEY[s];
+    cmp = (a, b) => d * (k(a) - k(b)) || cElo[b] - cElo[a];
+  } else {
+    const k = KEY[s];
+    cmp = (a, b) => d * (k(a) - k(b)) || cElo[b] - cElo[a] || (personKey[cPerson[a]] < personKey[cPerson[b]] ? -1 : 1);
+  }
+  arr.sort(cmp);
+  for (let i = 0; i < arr.length; i++) sub[i] = arr[i];
+}
+
+/* ---------------------------------------------------------------------------
+   Virtualised body. Only the visible window is in the DOM (plus a small
+   overscan), so 8,028 rows cost the same as 40.
+--------------------------------------------------------------------------- */
+const ROW_H = 34, OVERSCAN = 8;
+const scroller = document.getElementById('scroller');
+const tbody = document.getElementById('tbody');
+const emptyEl = document.getElementById('empty');
+let winFrom = -1, winTo = -1;
+/* The two layout numbers paint() needs, measured once and on resize. Reading them
+   inside paint() would force a synchronous layout on every scroll frame, right
+   after the mutation that invalidated it - the one expensive thing in the loop. */
+let headH = 0, viewH = 0;
+function measure() { headH = thead.offsetHeight; viewH = scroller.clientHeight; }
+
+function rowHtml(i, top) {
+  const c = cCombo[i], t = cTier[i], nat = cNation[i], p = cPerson[i];
+  const list = apps[p];
+  const dup = list.length > 1 ? '<span class="dup">&times;' + list.length + '</span>' : '';
+  const accent = t ? '<span class="acc" style="background:' + TIER_ACCENT[t] + '"></span>' : '';
+  const col = t
+    ? '<span class="col" title="' + TIER_NAME[t] + '"><span class="star" style="background:' + TIER_ACCENT[t] + '">'
+      + '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></span>Yes</span>'
+    : '<span class="col no">No</span>';
+  return '<div class="row cols" data-i="' + i + '" data-p="' + p + '" style="top:' + top + 'px">'
+    + accent
+    + '<span class="num">' + cNum[i] + '</span>'
+    + '<span class="nm"><span class="t">' + personHtml[p] + '</span>' + dup + '</span>'
+    + '<span class="ctry"><span class="fl f' + NATIONS[nat][0] + '"></span><span class="t">' + natHtml[nat] + '</span></span>'
+    + '<span class="yr">' + YEARS[cYear[i]] + '</span>'
+    + '<span class="pos">' + POS[comboMain[c]] + '</span>'
+    + '<span class="alt">' + comboAltHtml[c] + '</span>'
+    + '<span class="rat">' + cElo[i] + '</span>'
+    + col
+    + '</div>';
+}
+
+function paint(force) {
+  const top = Math.max(0, scroller.scrollTop - headH);
+  const from = Math.max(0, Math.floor(top / ROW_H) - OVERSCAN);
+  const to = Math.min(viewLen, Math.ceil((top + viewH) / ROW_H) + OVERSCAN);
+  if (!force && from === winFrom && to === winTo) return;
+  winFrom = from; winTo = to;
+  let html = '';
+  for (let k = from; k < to; k++) html += rowHtml(view[k], k * ROW_H);
+  tbody.innerHTML = html;
+  if (hoverPerson >= 0) markKin(hoverPerson);
+}
+
+function render() {
+  applyFilters();
+  tbody.style.height = viewLen * ROW_H + 'px';
+  emptyEl.hidden = viewLen > 0;
+  scroller.scrollTop = 0;
+  winFrom = winTo = -1;
+  paint(true);
+  const n = viewLen.toLocaleString('en-GB');
+  document.getElementById('count').innerHTML = '<b>' + n + '</b> of ' + N.toLocaleString('en-GB') + ' players';
+}
+
+let queued = false;
+scroller.addEventListener('scroll', () => {
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => { queued = false; paint(false); });
+}, { passive: true });
+window.addEventListener('resize', () => { measure(); paint(true); });
+
+/* ---------------------------------------------------------------------------
+   Hover: every appearance of the same person, from any one of them.
+--------------------------------------------------------------------------- */
+const tip = document.getElementById('tip');
+let hoverPerson = -1;
+
+function markKin(p) {
+  for (const el of tbody.children) el.classList.toggle('kin', +el.dataset.p === p && p >= 0);
+}
+
+function tipHtml(p, self) {
+  const list = apps[p];
+  let h = '<div class="th2"><b>' + personHtml[p] + '</b>' + list.length + ' appearances</div>';
+  for (const i of list) {
+    const c = cCombo[i], t = cTier[i];
+    h += '<div class="ap' + (i === self ? ' self' : '') + '">'
+      + '<span class="y">' + YEARS[cYear[i]] + '</span>'
+      + '<span class="fl f' + NATIONS[cNation[i]][0] + '"></span>'
+      + '<span class="n">' + natHtml[cNation[i]] + '</span>'
+      + '<span class="p">' + POS[comboMain[c]] + '</span>'
+      + '<span class="e"' + (t ? ' style="color:' + TIER_ACCENT[t] + '"' : '') + '>' + cElo[i] + '</span>'
+      + '</div>';
+  }
+  return h;
+}
+
+let tipRow = null;
+function showTip(row) {
+  if (row === tipRow && tip.classList.contains('show')) return;
+  tipRow = row;
+  const i = +row.dataset.i, p = +row.dataset.p;
+  if (apps[p].length < 2) return hideTip();
+  if (p !== hoverPerson) { hoverPerson = p; markKin(p); }
+  tip.innerHTML = tipHtml(p, i);
+  tip.classList.add('show');
+  const r = row.getBoundingClientRect(), b = tip.getBoundingClientRect();
+  let left = Math.min(r.left + 40, window.innerWidth - b.width - 12);
+  let top = r.bottom + 6;
+  if (top + b.height > window.innerHeight - 8) top = Math.max(8, r.top - b.height - 6);
+  tip.style.left = Math.max(8, left) + 'px';
+  tip.style.top = top + 'px';
+}
+
+function hideTip() {
+  tipRow = null;
+  tip.classList.remove('show');
+  if (hoverPerson >= 0) { hoverPerson = -1; markKin(-1); }
+}
+
+tbody.addEventListener('mouseover', (e) => {
+  const row = e.target.closest('.row');
+  if (row) showTip(row); else hideTip();
+});
+tbody.addEventListener('mouseleave', hideTip);
+scroller.addEventListener('scroll', hideTip, { passive: true });
+// Touch: a tap on a row opens the same card, a tap anywhere else closes it.
+tbody.addEventListener('click', (e) => {
+  const row = e.target.closest('.row');
+  if (row) showTip(row);
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.row')) hideTip(); });
+
+/* ---------------------------------------------------------------------------
+   Header: click to sort.
+--------------------------------------------------------------------------- */
+const COLS = [
+  ['#', 'r', 1], ['Name', '', 1], ['Country', '', 1], ['Year', '', -1],
+  ['Main', '', 1], ['Also', '', 1], ['Rating', 'r', -1], ['Collectible', 'r', -1],
+];
+const thead = document.getElementById('thead');
+thead.innerHTML = COLS.map(([label, cls], i) =>
+  '<span' + (cls ? ' style="text-align:right"' : '') + '><button class="th ' + cls + '" data-c="' + i + '" type="button">'
+  + label + '<span class="ar">&#9660;</span></button></span>').join('');
+
+function paintHead() {
+  for (const b of thead.querySelectorAll('.th')) {
+    const on = +b.dataset.c === state.sort;
+    b.classList.toggle('on', on);
+    b.querySelector('.ar').innerHTML = state.dir < 0 ? '&#9660;' : '&#9650;';
+  }
+}
+thead.addEventListener('click', (e) => {
+  const b = e.target.closest('.th');
+  if (!b) return;
+  const c = +b.dataset.c;
+  if (state.sort === c) state.dir = -state.dir;
+  else { state.sort = c; state.dir = COLS[c][2]; }
+  paintHead();
+  render();
+});
+
+/* ---------------------------------------------------------------------------
+   Multi-select filters
+--------------------------------------------------------------------------- */
+function multiSelect(host, opts, set, label, searchable) {
+  // opts: [{ value, label, html, count }]
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.innerHTML = '<span class="val"></span><span class="chev">'
+    + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span>';
+  const pop = document.createElement('div');
+  pop.className = 'pop';
+  const search = searchable
+    ? '<input class="psearch" type="search" placeholder="Filter ' + label.toLowerCase() + '" autocomplete="off" />'
+    : '';
+  pop.innerHTML = search + '<div class="list"></div>'
+    + '<div class="pfoot"><button type="button" data-a="all">Select all</button><button type="button" data-a="none">Clear</button></div>';
+  host.append(btn, pop);
+  const list = pop.querySelector('.list');
+
+  // A real <button>, not a <label>: the list is keyboard reachable that way.
+  const optHtml = (o) => '<button type="button" class="opt' + (set.has(o.value) ? ' on' : '') + '" data-v="' + o.value + '" aria-pressed="' + set.has(o.value) + '">'
+    + '<span class="box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>'
+    + '<span>' + o.html + '</span>'
+    + (o.count == null ? '' : '<span class="n">' + o.count + '</span>')
+    + '</button>';
+
+  let shown = opts;
+  const drawList = () => { list.innerHTML = shown.map(optHtml).join(''); };
+  const drawBtn = () => {
+    const v = btn.querySelector('.val');
+    if (set.size === 0) { v.className = 'val any'; v.textContent = 'Any'; }
+    else if (set.size === 1) {
+      v.className = 'val';
+      v.innerHTML = opts.find((o) => o.value === [...set][0]).html;
+    } else { v.className = 'val'; v.textContent = set.size + ' selected'; }
+    const old = btn.querySelector('.cnt');
+    if (old) old.remove();
+    if (set.size > 1) {
+      const c = document.createElement('span');
+      c.className = 'cnt'; c.textContent = set.size;
+      btn.insertBefore(c, btn.querySelector('.chev'));
+    }
+  };
+
+  const close = () => { pop.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = pop.classList.contains('open');
+    document.querySelectorAll('.pop.open').forEach((p) => {
+      p.classList.remove('open');
+      p.parentElement.querySelector('button').setAttribute('aria-expanded', 'false');
+    });
+    if (!open) {
+      pop.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+      const s = pop.querySelector('.psearch');
+      if (s) s.focus();
+    }
+  });
+  pop.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const opt = e.target.closest('.opt');
+    if (opt) {
+      e.preventDefault();
+      const v = +opt.dataset.v;
+      if (set.has(v)) set.delete(v); else set.add(v);
+      opt.classList.toggle('on', set.has(v));
+      opt.setAttribute('aria-pressed', String(set.has(v)));
+      drawBtn(); render();
+      return;
+    }
+    const act = e.target.closest('[data-a]');
+    if (act) {
+      set.clear();
+      if (act.dataset.a === 'all') for (const o of shown) set.add(o.value);
+      drawList(); drawBtn(); render();
+    }
+  });
+  if (searchable) {
+    pop.querySelector('.psearch').addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      shown = q ? opts.filter((o) => o.key.includes(q)) : opts;
+      drawList();
+    });
+  }
+  document.addEventListener('click', close);
+  host.addEventListener('keydown', (e) => { if (e.key === 'Escape') { close(); btn.focus(); } });
+
+  drawList(); drawBtn();
+  return { refresh() { shown = opts; const s = pop.querySelector('.psearch'); if (s) s.value = ''; drawList(); drawBtn(); } };
+}
+
+// Counts per option, so a dropdown says how much of the dataset it holds.
+const posMainCount = new Array(POS.length).fill(0);
+const posAddCount = new Array(POS.length).fill(0);
+const posAnyCount = new Array(POS.length).fill(0);
+const natCount = new Array(NATIONS.length).fill(0);
+for (let i = 0; i < N; i++) {
+  const c = cCombo[i];
+  posMainCount[comboMain[c]]++;
+  natCount[cNation[i]]++;
+  for (const p of DATA.combos[c]) posAnyCount[p]++;
+  for (const p of DATA.combos[c].slice(1)) posAddCount[p]++;
+}
+
+const posOpts = (counts) => POS.map((p, i) => ({ value: i, label: p, html: p, key: p.toLowerCase(), count: counts[i] }));
+const controls = [
+  multiSelect(document.getElementById('f-main'), posOpts(posMainCount), state.main, 'positions', false),
+  multiSelect(document.getElementById('f-add'), posOpts(posAddCount), state.add, 'positions', false),
+  multiSelect(document.getElementById('f-any'), posOpts(posAnyCount), state.any, 'positions', false),
+  multiSelect(
+    document.getElementById('f-nat'),
+    NATIONS.map((n, i) => ({
+      value: i,
+      label: n[1],
+      html: '<span class="fl f' + n[0] + '" style="display:inline-block;vertical-align:-2px;margin-right:6px"></span>' + esc(n[1]),
+      key: n[1].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') + ' ' + n[0].toLowerCase(),
+      count: natCount[i],
+    })),
+    state.nat, 'countries', true,
+  ),
+  multiSelect(
+    document.getElementById('f-col'),
+    [{ value: 1, label: 'Yes', html: 'Yes', key: 'yes', count: DATA.collectibles },
+     { value: 0, label: 'No', html: 'No', key: 'no', count: N - DATA.collectibles }],
+    state.col, 'collectible', false,
+  ),
+];
+
+/* ---------------------------------------------------------------------------
+   Search + rating slider
+--------------------------------------------------------------------------- */
+const qEl = document.getElementById('q'), qClr = document.getElementById('qclr');
+let qTimer = 0;
+qEl.addEventListener('input', () => {
+  qClr.hidden = qEl.value === '';
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => {
+    state.q = qEl.value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    render();
+  }, 90);
+});
+qClr.addEventListener('click', () => { qEl.value = ''; qClr.hidden = true; state.q = ''; render(); qEl.focus(); });
+
+const rmin = document.getElementById('rmin'), rmax = document.getElementById('rmax');
+const rfill = document.getElementById('rfill');
+const rminl = document.getElementById('rminl'), rmaxl = document.getElementById('rmaxl');
+for (const el of [rmin, rmax]) { el.min = DATA.eloMin; el.max = DATA.eloMax; el.step = 1; }
+rmin.value = DATA.eloMin; rmax.value = DATA.eloMax;
+
+function paintRange() {
+  const span = DATA.eloMax - DATA.eloMin;
+  const a = (state.lo - DATA.eloMin) / span, b = (state.hi - DATA.eloMin) / span;
+  rfill.style.left = a * 100 + '%';
+  rfill.style.width = (b - a) * 100 + '%';
+  rminl.textContent = state.lo; rmaxl.textContent = state.hi;
+}
+function onRange() {
+  let lo = +rmin.value, hi = +rmax.value;
+  if (lo > hi) { if (document.activeElement === rmin) hi = lo; else lo = hi; rmin.value = lo; rmax.value = hi; }
+  state.lo = lo; state.hi = hi;
+  paintRange();
+  render();
+}
+rmin.addEventListener('input', onRange);
+rmax.addEventListener('input', onRange);
+
+document.getElementById('reset').addEventListener('click', () => {
+  state.q = ''; qEl.value = ''; qClr.hidden = true;
+  state.main.clear(); state.add.clear(); state.any.clear(); state.nat.clear(); state.col.clear();
+  state.lo = DATA.eloMin; state.hi = DATA.eloMax;
+  rmin.value = DATA.eloMin; rmax.value = DATA.eloMax;
+  for (const c of controls) c.refresh();
+  paintRange();
+  render();
+});
+
+/* ---------------------------------------------------------------------------
+   Theme (mirrors the app: a data-theme attribute, remembered per browser)
+--------------------------------------------------------------------------- */
+const themeBtn = document.getElementById('theme');
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  themeBtn.textContent = t === 'dark' ? 'Light' : 'Dark';
+  try { localStorage.setItem('wcsim_players_theme', t); } catch (e) { /* private mode */ }
+}
+let saved = null;
+try { saved = localStorage.getItem('wcsim_players_theme'); } catch (e) { /* private mode */ }
+setTheme(saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+
+document.getElementById('foot').textContent = DATA.footer;
+
+paintHead();
+paintRange();
+measure();
+render();
+// Web fonts land after the first paint and can change the header's height.
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); paint(true); });
+</script>
+</body>
+</html>
