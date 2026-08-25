@@ -6,7 +6,7 @@ import type { Player } from '../data/types';
 import { FEATURES } from '../config';
 import { collectiblePlayers, tierOf } from '../domain/album';
 import { SQUAD_BY_ID } from '../data/squads';
-import { stickerArtSrc, TIER_META } from './StickerCard';
+import { stickerArtSrc, TIER_META } from './stickerTheme';
 
 /** The front page (route `/`): a marketing hero that sells the fantasy, then a 3-beat
  *  "how it works" and a "chase the legends" showcase.

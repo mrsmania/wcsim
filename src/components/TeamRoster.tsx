@@ -10,7 +10,7 @@ import { squadOverall } from '../domain/tournament';
 import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
-import { TIER_META } from './StickerCard';
+import { TIER_META } from './stickerTheme';
 import { CARD, MONO_CAP } from './matchUi';
 
 const CATEGORY_LABEL: Record<PositionCategory, string> = {

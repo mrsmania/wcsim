@@ -2,41 +2,7 @@ import type { Player } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES, type StickerTier } from '../config';
 import Flag from './Flag';
-
-/** Tier identity for the sticker cards. These accents are the sticker rarity ramp
- *  (green -> amber -> gold foil), deliberately fixed rather than theme-swapped.
- *  `order` sorts the album Monumental-first (spec 5.4). */
-export const TIER_META: Record<
-  StickerTier,
-  { name: string; accent: string; strip: string; stripText: string; order: number }
-> = {
-  monumental: {
-    name: 'Monumental',
-    accent: '#c99a3a',
-    strip: 'linear-gradient(135deg,#f0cf8a,#c99a3a)',
-    stripText: '#3a2a06',
-    order: 0,
-  },
-  iconic: { name: 'Iconic', accent: '#e4922b', strip: '#e4922b', stripText: '#ffffff', order: 1 },
-  legendary: { name: 'Legendary', accent: '#15924c', strip: '#15924c', stripText: '#ffffff', order: 2 },
-};
-
-/** The gold-foil ramp of the top tier (Monumental), reused wherever a "best/complete"
- *  gold treatment is needed (album-complete banner, the won ladder cup node). Single
- *  source of the three values so they never drift apart. */
-export const GOLD_ACCENT = TIER_META.monumental.accent;
-export const GOLD_FOIL = TIER_META.monumental.strip;
-export const GOLD_INK = TIER_META.monumental.stripText;
-
-/** Card art, as shipped: small WebP built from the originals in `art/stickers-src/`
- *  by `scripts/build-sticker-art.py`. WebP only, deliberately - it is universally
- *  supported now, and a browser that cannot decode it falls back to the flag-and-name
- *  card via the img's onError, same as a missing file.
- *
- *  Base-path aware, so it resolves under '/' in dev and '/wcsim/' on Pages. **Every**
- *  sticker image goes through this: the album detail modal and the home-page legends
- *  each had their own copy of the path, and both broke when the extension changed. */
-export const stickerArtSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.webp`;
+import { stickerArtSrc, TIER_META } from './stickerTheme';
 
 interface Props {
   player: Player;

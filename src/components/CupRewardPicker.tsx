@@ -2,7 +2,7 @@ import { Trophy } from 'lucide-react';
 import type { Player } from '../data/types';
 import type { AlbumState } from '../domain/album';
 import { collectiblePlayers, tierOf } from '../domain/album';
-import { TIER_META } from './StickerCard';
+import { TIER_META } from './stickerTheme';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
 

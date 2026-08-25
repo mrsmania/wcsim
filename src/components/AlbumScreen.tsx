@@ -11,13 +11,15 @@ import {
     tradeOptions,
     type AlbumState,
 } from '../domain/album';
-import StickerCard, {
+import StickerCard from './StickerCard';
+import {
     GOLD_ACCENT,
     GOLD_FOIL,
     GOLD_INK,
     stickerArtSrc,
     TIER_META,
-} from './StickerCard';
+    TIER_ORDER,
+} from './stickerTheme';
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
@@ -34,11 +36,6 @@ interface Props {
     onReset?: () => void;
 }
 
-// The album's display order (Monumental first), derived from TIER_META so there is
-// one source of tier ordering.
-const TIER_ORDER = (Object.keys(TIER_META) as StickerTier[]).sort(
-    (a, b) => TIER_META[a].order - TIER_META[b].order,
-);
 
 export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Props) {
     const [trade, setTrade] = useState<{ tier: StickerTier; options: Player[] } | null>(null);

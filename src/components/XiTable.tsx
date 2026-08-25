@@ -8,7 +8,7 @@ import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
-import { TIER_META } from './StickerCard';
+import { TIER_META } from './stickerTheme';
 import { CARD } from './matchUi';
 
 /** The placed XI as a line-up sheet: position, last name, flag + year, rating,

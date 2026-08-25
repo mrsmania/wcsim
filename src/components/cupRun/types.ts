@@ -1,7 +1,7 @@
 import type { Rarity } from '../../domain/boons';
 import type { RunOutcome, RunState, UserMatch, KoMatch } from '../../domain/run';
 import type { GroupState, GroupTeam } from '../../domain/tournament';
-import { TIER_META } from '../StickerCard';
+import { TIER_META } from '../stickerTheme';
 
 // The boon rarity ramp reuses the sticker tier accents (single source of the hexes;
 // the amber/pitch values also match --color-amber / --color-pitch from index.css).

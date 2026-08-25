@@ -1,6 +1,6 @@
 import type { Player } from '../data/types';
 import type { StickerTier } from '../config';
-import { TIER_META } from './StickerCard';
+import { TIER_META } from './stickerTheme';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
 import { SECONDARY_BTN } from './matchUi';

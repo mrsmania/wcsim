@@ -1,6 +1,6 @@
 import { Check, Star } from 'lucide-react';
 import type { StickerTier } from '../config';
-import { GOLD_INK, TIER_META } from './StickerCard';
+import { GOLD_INK, TIER_META } from './stickerTheme';
 
 /** A small tier-coloured disc marking a collectible player. Shared by the drawn-squad
  *  list, the transfer market, the line-up sheet, and the squad browser so the marker is

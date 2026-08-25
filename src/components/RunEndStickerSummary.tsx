@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Player } from '../data/types';
 import { tierOf } from '../domain/album';
-import { TIER_META } from './StickerCard';
+import { TIER_META } from './stickerTheme';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
 import { PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
