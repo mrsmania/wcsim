@@ -283,6 +283,19 @@ export function recordMatchday(group: GroupState, results: MatchdayResult[]): Gr
   return { ...group, fixtures, matchday: md + 1 };
 }
 
+/** A group split into the user's team and the three opponents, which is how the draw
+ *  reveal and anything else showing "you versus these" wants to read it. Null when the
+ *  group has no user or no opponents, which a well-formed group never does - the null is
+ *  there so a caller cannot end up rendering a draw with a missing side.
+ *
+ *  Derived inside `CupRunScreen` before (hygiene H147). `isUser` is the discriminator, and
+ *  `USER_ID` is deliberately not used here: the flag is what every other consumer tests. */
+export function splitGroup(group: GroupState): { user: GroupTeam; opponents: GroupTeam[] } | null {
+  const user = group.teams.find((t) => t.isUser);
+  const opponents = group.teams.filter((t) => !t.isUser);
+  return user && opponents.length ? { user, opponents } : null;
+}
+
 /** Play a freshly created group out in full: all three matchdays, in one pass.
  *
  *  One pass rather than matchday by matchday because the XI, its chemistry and the run's

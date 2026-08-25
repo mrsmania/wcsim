@@ -7,7 +7,7 @@ import { userRatingDelta, type Difficulty } from '../domain/difficulty';
 import { KO_ROUNDS } from '../domain/knockout';
 import { ascensionAt, selectedAscension } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
-import { groupAsOf, GROUP_MATCHDAYS, type GroupTeam } from '../domain/tournament';
+import { groupAsOf, GROUP_MATCHDAYS, splitGroup, type GroupTeam } from '../domain/tournament';
 import { boonById, type Boon } from '../domain/boons';
 import {
   beginRun,
@@ -21,7 +21,6 @@ import {
   type RunShape,
   type RunBuild,
   type KoMatch,
-  type RoundRecord,
 } from '../domain/run';
 import {
   applyRunResult,
@@ -37,6 +36,8 @@ import { consumeRunStart } from '../nav/pendingRun';
 import { basePlayer } from '../data/squads';
 import { FEATURES } from '../config';
 import { useFollowBottom } from '../hooks/useFollowBottom';
+import { useToast } from '../hooks/useToast';
+import { useRoundReview } from '../hooks/useRoundReview';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
 import {
   Banner,
@@ -146,8 +147,7 @@ export default function CupRunScreen({
   // matchdays must not start playing behind it.
   const [drawOpen, setDrawOpen] = useState(false);
   // A transient toast for what a boost just did (so the run log isn't needed).
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<number | undefined>(undefined);
+  const { toast, showToast } = useToast();
   // The boost-pick panel, scrolled into view when a run enters the boost phase.
   const boostRef = useRef<HTMLDivElement | null>(null);
   // The career hub starts collapsed to a slim strip (so the Play CTA is visible without
@@ -160,50 +160,10 @@ export default function CupRunScreen({
   // cannot start a run above the ceiling.
   const chosenAscension = selectedAscension(career);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), 4500);
-  };
-  useEffect(() => () => { if (toastTimer.current) window.clearTimeout(toastTimer.current); }, []);
-
-  // Ladder navigation: which round the content area is showing. null = the live/current
-  // round; a step index = reviewing that past round. `currentRoundIndex` is the live
-  // round's step (group = 0, KO round r = r+1). A review snaps back to live whenever the
-  // run advances to a new round.
-  const [reviewIndex, setReviewIndex] = useState<number | null>(null);
-  const currentRoundIndex = run
-    ? run.phase === 'group' || (run.phase === 'ended' && run.outcome === 'group')
-      ? 0
-      : run.koRound + 1
-    : 0;
-  useEffect(() => {
-    setReviewIndex(null);
-  }, [currentRoundIndex]);
-  // KO rounds the tree can open a review for: exactly those with a history record.
-  // A record is written when the round is played, and `koRound` advances in the same
-  // breath, so the live round never has one - except on an ended run, where the review
-  // of the last tie is worth having (the content column is the end panel by then).
-  const reviewableRounds = useMemo(
-    () =>
-      (run?.history ?? [])
-        .map((h) => h.stage)
-        .filter((st): st is number => typeof st === 'number'),
-    [run?.history],
-  );
-  // The group's own record, which its path cell opens (index 0). Written the moment the
-  // group is played, so it is there for every run that got past matchday three - including
-  // one that went out in the group, where there is no bracket for the cell to lead.
-  const groupRecord = useMemo(
-    () => (run?.history ?? []).find((h) => h.stage === 'group'),
-    [run?.history],
-  );
-  const reviewRecord: RoundRecord | undefined =
-    run && reviewIndex !== null
-      ? reviewIndex === 0
-        ? groupRecord
-        : (run.history ?? []).find((h) => h.stage === reviewIndex - 1)
-      : undefined;
+  // Which round the content column is showing, and which can be opened. 0 is the GROUP
+  // and knockout round r is r + 1; null means the live round.
+  const { reviewIndex, setReviewIndex, reviewableRounds, groupRecord, reviewRecord } =
+    useRoundReview(run);
 
   // Persist the in-progress run (or clear it once there is none), so a refresh
   // mid-run resumes exactly where it left off.
@@ -486,14 +446,7 @@ export default function CupRunScreen({
   };
 
   // The draw's two halves, read off the group the reveal is carrying.
-  const groupDraw =
-    reveal?.kind === 'group'
-      ? (() => {
-            const user = reveal.group.teams.find((t) => t.isUser);
-            const opponents = reveal.group.teams.filter((t) => !t.isUser);
-            return user && opponents.length ? { user, opponents } : null;
-        })()
-      : null;
+  const groupDraw = reveal?.kind === 'group' ? splitGroup(reveal.group) : null;
   // Matchdays fully revealed so far: while matchday N is playing, N-1 are complete, and
   // once the reveal is done all three are. This is what the table is projected to.
   const revealedMatchdays =
