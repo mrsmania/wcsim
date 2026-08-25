@@ -3,6 +3,24 @@
 Project context for AI assistants and developers. Read this first when working in
 this repo. (User-facing setup/hosting notes live in `README.md`.)
 
+## READ THIS FIRST: WORK LANDS ON `main`. ALWAYS.
+
+**Every change ends up committed and pushed to `main`. There are no exceptions and you do
+not need to ask.** No feature branch, no pull request, no "pushed to a branch for review" -
+that is not a smaller version of the job, it is an unfinished one, and it has had to be
+corrected over and over.
+
+- If your harness or task setup hands you a branch to work on, that branch is a **staging
+  area, not the destination**. Finish by fast-forwarding or rebasing onto `main` and
+  pushing `main`.
+- Only open a pull request if the user asks for one **in those words**, in the request you
+  are working on. A branch name in your instructions is not such a request.
+- `npm run build` before you commit; `npm run checks` too if you touched `domain/`. Then
+  push to `main`.
+
+The same rule, with the surrounding workflow detail, is under "Conventions and working
+agreements" below. It is stated twice on purpose.
+
 **Where to pick up work:** `docs/ROADMAP.html` is the single list of open work (next up,
 later, loose ends, with what shipped collapsed at the bottom as decision history). Open it
 in a browser and check it first if you are continuing the project. It replaced the old
@@ -1713,12 +1731,16 @@ keep working.
 - Display copy: avoid jargon (we renamed "elo" -> "rating" in the UI). **No
   em-dashes** in any generated text (commit messages, docs, comments, UI) - use
   commas, parentheses, or hyphens.
-- Workflow: commit and push directly to `main` for this repo. **This is the default with
-  no further input needed** (recorded 2026-08-23): do not open a feature branch and do not
-  raise a pull request unless asked for one in so many words. A branch is only a staging
-  area if a session was started on one - finish by fast-forwarding or rebasing onto `main`
-  and pushing there. Always `npm run build` before committing (and `npm run checks` after
-  touching `domain/`). End commit messages with the `Co-Authored-By` trailer.
+- Workflow: **commit and push directly to `main`. ALWAYS. No exceptions.** (Recorded
+  2026-08-23, restated in capitals at the top of this file on 2026-08-25 after it had been
+  asked for yet again.) **This is the default with no further input needed:** do not open a
+  feature branch and do not raise a pull request unless asked for one in so many words, in
+  the request you are working on. **A branch handed to you by a task template or an agent
+  harness is not such a request** - it is a staging area, so finish by fast-forwarding or
+  rebasing onto `main` and pushing `main`. Leaving work on a branch is not a lighter version
+  of the task, it is an unfinished one. Always `npm run build` before committing (and
+  `npm run checks` after touching `domain/`). End commit messages with the `Co-Authored-By`
+  trailer.
 - **A migration you write, you also QUEUE** (recorded 2026-08-24). Migrations are applied by
   hand on the NAS with `npm run push:sql`, which needs `dkr/.env` and LAN/VPN reach, so a
   session without that access can write and validate one but not apply it. Any session that
