@@ -17,6 +17,33 @@ import { CARD, Meter } from './matchUi';
 
 const MAX_RESULTS = 60;
 
+
+/** A market row's price: the struck-through full price when the album already holds this
+ *  sticker, then what it actually costs. The struck-through half was character-identical
+ *  between the grid and the list renderings; the wrapper's layout and the paid price's own
+ *  type genuinely differ between them, so both are props rather than levelled - the
+ *  grid/list split is a real design difference and is left alone. */
+function MarketPrice({
+  cost,
+  className,
+  priceClassName,
+}: {
+  cost: { discounted: boolean; full: number; price: number };
+  className: string;
+  priceClassName: string;
+}) {
+  return (
+    <span className={className}>
+      {/* Owned sticker: show what it would have cost, so the discount is visible rather
+          than just a smaller number. */}
+      {cost.discounted && (
+        <span className="text-[9.5px] font-normal text-muted line-through">${cost.full}</span>
+      )}
+      <span className={priceClassName}>${cost.price}</span>
+    </span>
+  );
+}
+
 /** Ways to order the market list. */
 type SortKey = 'rating' | 'value' | 'price' | 'newest' | 'name';
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -379,18 +406,11 @@ export default function BudgetMarket({
                     </span>
                     <div className="mt-0.5 flex items-baseline justify-between">
                       <span className="font-mono text-[14px] font-bold tabular-nums">{p.elo}</span>
-                      <span className="flex items-baseline gap-1 font-mono text-[11px] font-semibold tabular-nums">
-                        {/* Owned sticker: show what it would have cost, so the discount
-                            is visible rather than just a smaller number. */}
-                        {c.discounted && (
-                          <span className="text-[9.5px] font-normal text-muted line-through">
-                            ${c.full}
-                          </span>
-                        )}
-                        <span className={c.affordable ? 'text-pitch' : 'text-loss'}>
-                          ${c.price}
-                        </span>
-                      </span>
+                      <MarketPrice
+                        cost={c}
+                        className="flex items-baseline gap-1 font-mono text-[11px] font-semibold tabular-nums"
+                        priceClassName={c.affordable ? 'text-pitch' : 'text-loss'}
+                      />
                     </div>
                   </button>
                 );
@@ -425,18 +445,11 @@ export default function BudgetMarket({
                       <span className="w-6 text-right font-mono text-[13px] font-bold tabular-nums">
                         {p.elo}
                       </span>
-                      <span className="flex w-[52px] items-baseline justify-end gap-1 font-mono tabular-nums">
-                        {c.discounted && (
-                          <span className="text-[9.5px] font-normal text-muted line-through">
-                            ${c.full}
-                          </span>
-                        )}
-                        <span
-                          className={`text-[12px] font-semibold ${c.affordable ? 'text-ink' : 'text-loss'}`}
-                        >
-                          ${c.price}
-                        </span>
-                      </span>
+                      <MarketPrice
+                        cost={c}
+                        className="flex w-[52px] items-baseline justify-end gap-1 font-mono tabular-nums"
+                        priceClassName={`text-[12px] font-semibold ${c.affordable ? 'text-ink' : 'text-loss'}`}
+                      />
                     </button>
                   </li>
                 );

@@ -195,15 +195,20 @@ const swap = (xi: Player[], outId: string, inP: Player) =>
 // what the effect ledger stores is "these eleven players, +2" rather than a rule that
 // could pick different players later.
 
+/** The `n` players at one end of the rating order, by `d`. The two ends were written out
+ *  as separate functions differing only in the sort direction. */
+const planEnd = (xi: Player[], n: number, d: number, end: 'lowest' | 'highest'): RatingPlan[] => {
+  const dir = end === 'lowest' ? 1 : -1;
+  return [
+    { ids: [...xi].sort((a, b) => dir * (a.elo - b.elo)).slice(0, n).map((p) => p.id), delta: d },
+  ];
+};
+
 /** The `n` lowest-rated players, by `d`. */
-const planLowest = (xi: Player[], n: number, d: number): RatingPlan[] => [
-  { ids: [...xi].sort((a, b) => a.elo - b.elo).slice(0, n).map((p) => p.id), delta: d },
-];
+const planLowest = (xi: Player[], n: number, d: number) => planEnd(xi, n, d, 'lowest');
 
 /** The `n` highest-rated players, by `d`. */
-const planHighest = (xi: Player[], n: number, d: number): RatingPlan[] => [
-  { ids: [...xi].sort((a, b) => b.elo - a.elo).slice(0, n).map((p) => p.id), delta: d },
-];
+const planHighest = (xi: Player[], n: number, d: number) => planEnd(xi, n, d, 'highest');
 
 /** Everyone the predicate picks out, by `d`. An empty selection is a legal no-op plan. */
 const planWhere = (xi: Player[], pick: (p: Player) => boolean, d: number): RatingPlan[] => [

@@ -44,6 +44,7 @@ import { requestRunStart } from './nav/pendingRun';
 import { onStoreError, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
+import { SCRAMBLE_MS } from './hooks/motion';
 import SettingsModal from './components/SettingsModal';
 import AccountModal from './components/AccountModal';
 import SetupPanel from './components/SetupPanel';
@@ -243,7 +244,7 @@ export default function App({
             setDisplaySquad(SQUADS[idx]);
             elapsed += delay;
             delay = Math.min(delay * 1.13, 260);
-            if (elapsed < 1300) {
+            if (elapsed < SCRAMBLE_MS) {
                 timerRef.current = window.setTimeout(spin, delay);
             } else {
                 setDisplaySquad(target);

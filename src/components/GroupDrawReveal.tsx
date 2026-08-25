@@ -4,12 +4,10 @@ import type { GroupTeam } from '../domain/tournament';
 import { ArrowRight } from 'lucide-react';
 import Flag from './Flag';
 import { CARD, PAGE_EYEBROW, PRIMARY_BTN, RatingChip } from './matchUi';
-import { prefersReducedMotion } from '../hooks/motion';
+import { prefersReducedMotion, SCRAMBLE_MS } from '../hooks/motion';
 
 /** How often (ms) the drawn flags reshuffle while the draw scrambles. */
 const SCRAMBLE_STEP_MS = 90;
-/** How long (ms) the scramble runs before settling on the real opponents. */
-const SCRAMBLE_DURATION_MS = 1300;
 
 const ALL_CODES = [...new Set(SQUADS.map((s) => s.code))];
 const randomCode = () => ALL_CODES[Math.floor(Math.random() * ALL_CODES.length)];
@@ -43,7 +41,7 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
     let elapsed = 0;
     const id = window.setInterval(() => {
       elapsed += SCRAMBLE_STEP_MS;
-      if (elapsed >= SCRAMBLE_DURATION_MS) {
+      if (elapsed >= SCRAMBLE_MS) {
         window.clearInterval(id);
         setRevealCodes(opponents.map((o) => o.code));
         setSettled(true);
