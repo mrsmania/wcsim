@@ -1,42 +1,38 @@
 import { useMemo, useState } from 'react';
 import { Link, Navigate, useMatch, useNavigate } from 'react-router-dom';
-import { SQUADS, SQUAD_BY_ID, WORLD_CUP_YEARS } from '../data/squads';
+import { SQUAD_BY_ID } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
-import { normalizeSearch } from '../data/format';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { tierOf } from '../domain/album';
 import { squadOverall } from '../domain/tournament';
+import {
+    ARCHIVE_YEARS as YEARS,
+    fieldOf,
+    searchArchive,
+    teamGroups,
+    topLegends,
+    type TeamGroup,
+} from '../domain/archive';
 import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './stickerTheme';
 import { CARD, MONO_CAP, PAGE_EYEBROW } from './matchUi';
+import TeamRoster from './TeamRoster';
 
 /** The back control above a roster / a team's cup list. Rendered as a <button> in one
  *  case and a router <Link> in the other, so it is a class string rather than a
  *  component - it was the same string typed twice. */
 const BACK_BTN =
     'inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch';
-import TeamRoster from './TeamRoster';
 
-/** Distinct tournament years, newest first for the selector. */
-/** Newest first. `WORLD_CUP_YEARS` is the same derivation ascending, so reverse it
- *  rather than re-deriving: two copies of "which cups exist" can disagree. */
-const YEARS = [...WORLD_CUP_YEARS].reverse();
-
+/** How many search hits the page draws. The full count is printed beside them, so this
+ *  cap stays HERE and not inside `searchArchive` - see that function. */
 const MAX_RESULTS = 80;
 
 /** Route to a single squad's roster. Used as a real href so the row links can be
  *  middle-clicked / opened in a new tab (react-router applies the deploy basename). */
 const squadHref = (id: string) => `/squads/team/${id}`;
-
-/** A nation and every World Cup it appears in within this dataset. */
-interface TeamGroup {
-    code: string;
-    nation: string;
-    /** The nation's squads, newest tournament first. */
-    squads: Squad[];
-}
 
 type Mode = 'byCup' | 'byTeam';
 
@@ -65,50 +61,12 @@ export default function SquadBrowser() {
     const year = mCupYear ? Number(mCupYear.params.year) : YEARS[0];
     const mode: Mode = mTeamGrid || mTeamCups ? 'byTeam' : 'byCup';
 
-    // Nations for the chosen year, strongest first (then alphabetical). Ranked by the
-    // same computed rating the game uses (best-XI overall), not the stored field.
-    const nations = useMemo(
-        () =>
-            SQUADS.filter((s) => s.year === year).sort(
-                (a, b) => squadOverall(b) - squadOverall(a) || a.nation.localeCompare(b.nation),
-            ),
-        [year],
-    );
-
-    // Every nation with the World Cups it appears in, most participations first.
-    // "Participations" are occurrences in this dataset, not real-world history.
-    const teams = useMemo<TeamGroup[]>(() => {
-        const byCode = new Map<string, TeamGroup>();
-        for (const s of SQUADS) {
-            const e = byCode.get(s.code) ?? { code: s.code, nation: s.nation, squads: [] };
-            e.squads.push(s);
-            byCode.set(s.code, e);
-        }
-        const arr = [...byCode.values()];
-        for (const t of arr) t.squads.sort((a, b) => b.year - a.year);
-        arr.sort((a, b) => b.squads.length - a.squads.length || a.nation.localeCompare(b.nation));
-        return arr;
-    }, []);
+    const nations = useMemo(() => fieldOf(year), [year]);
+    const teams = useMemo<TeamGroup[]>(() => teamGroups(), []);
     const teamCode = (mTeamCups?.params.code ?? '').toLowerCase();
     const team = mTeamCups ? (teams.find((t) => t.code.toLowerCase() === teamCode) ?? null) : null;
 
-    // Cross-tournament search: any player whose name (or whose team's nation /
-    // code / year) matches, strongest first.
-    const results = useMemo(() => {
-        if (!searching) return [];
-        const nq = normalizeSearch(q);
-        const hits: { player: Player; squad: Squad }[] = [];
-        for (const squad of SQUADS) {
-            const teamHit =
-                normalizeSearch(squad.nation).includes(nq) ||
-                squad.code.toLowerCase().includes(nq) ||
-                String(squad.year).includes(q);
-            for (const player of squad.players) {
-                if (teamHit || normalizeSearch(player.name).includes(nq)) hits.push({ player, squad });
-            }
-        }
-        return hits.sort((a, b) => b.player.elo - a.player.elo);
-    }, [q, searching]);
+    const results = useMemo(() => (searching ? searchArchive(q) : []), [q, searching]);
 
     // Leaving a roster: step back in history when we came from within the app,
     // otherwise (a deep link) fall back to that squad's World Cup grid.
@@ -370,38 +328,6 @@ function CupTable({ squads }: { squads: Squad[] }) {
 /** One player's all-time standing for a team: their single best rating (the
  *  ranking key) plus every World Cup they appeared in with the rating they held
  *  then, newest first. */
-interface Legend {
-    personId: string;
-    name: string;
-    best: number;
-    apps: { year: number; elo: number }[];
-}
-
-/** The team's best players of all time, ranked by their single best rating
- *  (not an average). Same human across tournaments (`personId`) is one entry. */
-/** The nation's ten best players by their single best rating across appearances. */
-const LEGENDS_SHOWN = 10;
-
-function topLegends(team: TeamGroup): Legend[] {
-    const byPerson = new Map<string, Legend>();
-    for (const sq of team.squads) {
-        for (const p of sq.players) {
-            const e =
-                byPerson.get(p.personId) ??
-                ({ personId: p.personId, name: p.name, best: 0, apps: [] } as Legend);
-            e.apps.push({ year: sq.year, elo: p.elo });
-            e.best = Math.max(e.best, p.elo);
-            byPerson.set(p.personId, e);
-        }
-    }
-    const arr = [...byPerson.values()];
-    for (const l of arr) l.apps.sort((a, b) => b.year - a.year);
-    arr.sort(
-        (a, b) => b.best - a.best || b.apps.length - a.apps.length || a.name.localeCompare(b.name),
-    );
-    return arr.slice(0, LEGENDS_SHOWN);
-}
-
 /** A team's detail page: the World Cups it played (newest first, each opening that
  *  squad's roster), and its all-time legends. */
 function TeamCups({ team }: { team: TeamGroup }) {
