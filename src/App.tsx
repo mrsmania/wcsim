@@ -595,12 +595,10 @@ export default function App({
     const isCareerHub = path === '/career';
     const tabsRecords = path === '/records' || path === '/records/cabinet';
     const recordsCabinet = FEATURES.trophyCabinet && path === '/records/cabinet';
-    const albumSummary = stickers.summary;
 
     // The completed-challenge set. Same shape as careerPeek below: the career lives in
     // CupRunScreen, so it is re-read from the store whenever the route changes rather than
-    // lifted into App. Read on every route, because the Records tab shows the count as its
-    // sub-line.
+    // lifted into App.
     const challengeIds = useMemo(
         () => store.peek().career.completedChallenges,
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -683,7 +681,7 @@ export default function App({
         if (!r || r.phase === 'ended') return null;
         const round = r.phase === 'group' ? 'Group stage' : (KO_ROUNDS[r.koRound] ?? 'Knockouts');
         const opp = r.nextOpponent ? ` · vs ${r.nextOpponent.name} ${r.nextOpponent.year}` : '';
-        return { summary: round + opp, round };
+        return { summary: round + opp };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLauncher, path]);
 
@@ -712,52 +710,39 @@ export default function App({
     // otherwise the cover. The crest always returns to the cover.
     const playTo = resumeCupRun ? '/cup-run' : formation ? '/play' : '/';
     const isPlayTab = isLauncher || isBuild || isCupRun;
+    // A tab is a label and a destination. The per-tab sub-line each of these used to
+    // carry (where the run is, level and Prestige, album completion, challenges earned,
+    // cups in the pool) is gone: every one of those figures is on the screen the tab
+    // leads to, so the chrome was restating four counters at once.
     const tabs: TabItem[] = (
         [
               {
                   key: 'play' as const,
                   label: 'Play',
-                  // Route first, then the stored progress. The resume reads below are
-                  // refreshed on navigation only (`store.peek`, the existing pattern in
-                  // this file), so a run started without navigating would leave a stale
-                  // sub-line; where you are is always current.
-                  sub: isCupRun
-                      ? (resumeCupRun?.round ?? 'Cup Run')
-                      : resumeCupRun
-                        ? resumeCupRun.round
-                        : formation && homeView !== 'setup'
-                          ? `${filledCount(formation, filled)} of ${formation.slots.length}`
-                          : undefined,
                   to: playTo,
                   active: isPlayTab,
               },
               {
                   key: 'career' as const,
                   label: 'Career',
-                  sub: `Lv ${careerPeek.level} · ${careerPeek.prestige}`,
                   to: '/career',
                   active: isCareerHub,
               },
               STICKERS && {
                   key: 'album' as const,
                   label: 'Album',
-                  sub: albumSummary
-                      ? `${albumSummary.collected} / ${albumSummary.total}`
-                      : undefined,
                   to: '/album',
                   active: isAlbum,
               },
               (FEATURES.challenges || FEATURES.trophyCabinet) && {
                   key: 'records' as const,
                   label: 'Records',
-                  sub: FEATURES.challenges ? `${challengeIds.length} earned` : undefined,
                   to: FEATURES.challenges ? '/records' : '/records/cabinet',
                   active: tabsRecords,
               },
               squadsEnabled && {
                   key: 'squads' as const,
                   label: 'Squads',
-                  sub: `${settings.settings.poolYears.length} cups`,
                   to: '/squads/by-world-cup',
                   active: isSquads,
               },
