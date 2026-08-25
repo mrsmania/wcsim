@@ -16,6 +16,7 @@ import {
     GOLD_ACCENT,
     GOLD_FOIL,
     GOLD_INK,
+    onStickerArtError,
     stickerArtSrc,
     TIER_META,
     TIER_ORDER,
@@ -343,15 +344,18 @@ function StickerLightbox({
                     )}
                 </div>
                 {FEATURES.stickerImages && (
+                    // The whole sticker, uncropped: the grid card shows a
+                    // head-and-shoulders crop (`ART_VISIBLE_FRACTION`), and opening one is
+                    // how you see the rest of the picture. `object-contain` in a square box
+                    // letterboxes the 2:3 art rather than filling the width, which is what
+                    // keeps the lightbox short enough to sit on a laptop screen.
                     <img
                         key={player.id}
                         src={stickerArtSrc(player.id)}
                         alt=""
                         decoding="async"
                         className="mb-3 aspect-square w-full max-w-[440px] object-contain"
-                        onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                        }}
+                        onError={onStickerArtError}
                     />
                 )}
                 <Flag code={sq?.code ?? ''} className="h-6 w-9" />
