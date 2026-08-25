@@ -11,6 +11,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './StickerCard';
+import { MONO_CAP } from './matchUi';
 
 const CATEGORY_LABEL: Record<PositionCategory, string> = {
     GK: 'Goalkeepers',
@@ -51,7 +52,7 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
 
             {/* Column header */}
             <div
-                className={`${ROW} border-b border-line py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted`}
+                className={`${ROW} border-b border-line py-2 ${MONO_CAP}`}
             >
                 <span className="text-center">#</span>
                 <span>Name</span>

@@ -10,6 +10,7 @@ import {
   type ChallengeFamily,
 } from '../domain/challenges';
 import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
+import { MONO_CAP, PAGE_EYEBROW } from './matchUi';
 
 type Filter = 'all' | 'open' | 'done';
 
@@ -65,7 +66,7 @@ export default function ChallengesScreen({
         }`}
       >
         <div className="p-[22px]">
-          <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+          <div className={PAGE_EYEBROW}>
             Completed
           </div>
           <div className="mb-3 mt-1.5 font-display font-black leading-none tracking-[-0.02em]">
@@ -95,7 +96,7 @@ export default function ChallengesScreen({
         </div>
         {AWARDS_ON && (
           <div className="flex flex-col justify-center border-line bg-chalk p-[22px] max-sm:border-t sm:border-l">
-            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <div className={MONO_CAP}>
               Prestige earned
             </div>
             <div className="mt-1 font-mono text-[38px] font-bold leading-none">
@@ -117,7 +118,7 @@ export default function ChallengesScreen({
 
       {/* Filters */}
       <div className="mt-6 flex flex-wrap items-center gap-2 border-t-2 border-ink pt-4">
-        <span className="mr-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+        <span className={`mr-1 ${MONO_CAP}`}>
           Show
         </span>
         {FILTERS.map((f) => (

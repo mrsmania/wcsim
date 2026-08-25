@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { PenKick } from '../domain/match';
 import type { MatchView } from './matchView';
 import GoalList from './GoalList';
-import { FixtureHead, LiveLine, ShootoutFeed } from './matchUi';
+import { FixtureHead, LiveLine, MONO_CAP, ShootoutFeed } from './matchUi';
 
 interface Props {
   /** Round/matchday label ("Matchday 2", "Semi-final"). */
@@ -114,7 +114,7 @@ export default function MatchdayCard({
             type="button"
             onClick={() => setFeedOpen((v) => !v)}
             aria-expanded={feedOpen}
-            className="flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 py-[9px] font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted transition hover:text-pitch"
+            className={`flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 py-[9px] ${MONO_CAP} transition hover:text-pitch`}
           >
             Goals
             {feedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}

@@ -10,7 +10,7 @@ import {
 } from '../domain/tournament';
 import Flag from './Flag';
 import FixtureRow from './FixtureRow';
-import { ordinal, RatingChip } from './matchUi';
+import { MONO_CAP, ordinal, RatingChip } from './matchUi';
 
 /** Column layout shared by the header and body rows. Mobile shows only PL / GD /
  *  PTS after # + Team (5 columns); the desktop layout adds W / D / L / +/- for the
@@ -125,7 +125,7 @@ export default function StandingsTable({ group, groupFinished, advanced }: Props
       {/* All group results (every fixture, including Your XI), collapsible */}
       <button
         onClick={() => setShowResults((v) => !v)}
-        className="flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 py-[10px] font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted transition hover:text-pitch"
+        className={`flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 py-[10px] ${MONO_CAP} transition hover:text-pitch`}
       >
         All results
         {showResults ? <ChevronDown size={13} /> : <ChevronRight size={13} />}

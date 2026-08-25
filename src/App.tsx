@@ -61,7 +61,7 @@ const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
 const CabinetScreen = lazy(() => import('./components/CabinetScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
-import { StageHeader } from './components/matchUi';
+import { PAGE_EYEBROW, StageHeader } from './components/matchUi';
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
 
 /** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
@@ -913,7 +913,7 @@ export default function App({
                         <>
                             <div className="mb-5 mt-7 flex items-center gap-4">
                                 <div>
-                                    <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                                    <div className={PAGE_EYEBROW}>
                                         {home.eyebrow}
                                     </div>
                                     <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">

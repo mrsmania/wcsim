@@ -21,7 +21,7 @@ import StickerCard, {
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
-import { StageHeader } from './matchUi';
+import { MONO_CAP, PAGE_EYEBROW, StageHeader } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 interface Props {
@@ -87,7 +87,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
             {/* Completion counter + duplicate pool */}
             <section className="grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard sm:grid-cols-[minmax(0,1fr)_210px]">
                 <div className="p-[22px]">
-                    <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                    <div className={PAGE_EYEBROW}>
                         Collected
                     </div>
                     <div className="mb-3 mt-1.5 font-display font-black leading-none tracking-[-0.02em]">
@@ -119,7 +119,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                     </div>
                 </div>
                 <div className="border-t border-line bg-chalk p-[22px] sm:border-l sm:border-t-0">
-                    <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    <div className={MONO_CAP}>
                         Duplicates
                     </div>
                     <div className="mt-1 font-mono text-[38px] font-bold leading-none">{dupes}</div>

@@ -10,6 +10,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './StickerCard';
+import { MONO_CAP, PAGE_EYEBROW } from './matchUi';
 import TeamRoster from './TeamRoster';
 
 /** Distinct tournament years, newest first for the selector. */
@@ -134,7 +135,7 @@ export default function SquadBrowser() {
             {/* Section header (matches the game screens' eyebrow + title) */}
             <div className="mb-5 mt-7 flex items-center gap-4">
                 <div>
-                    <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+                    <div className={PAGE_EYEBROW}>
                         Squads database
                     </div>
                     <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
@@ -442,7 +443,7 @@ function TeamCups({ team }: { team: TeamGroup }) {
                     <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
                         Best players
                     </span>
-                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    <span className={MONO_CAP}>
                         Best
                     </span>
                 </div>

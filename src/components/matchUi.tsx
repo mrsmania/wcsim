@@ -49,6 +49,14 @@ export const DANGER_BTN =
 /** Muted mono caption used inside cards. */
 export const MONO_CAP = 'font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted';
 
+/** The green mono eyebrow that sits above a page's display title. Wider tracking and a
+ *  point larger than MONO_CAP, because it labels the whole screen rather than a card.
+ *  StageHeader renders it; the handful of screens that lay out their own header (the
+ *  front page, the squad browser, the album, the challenge ledger, the group draw) use
+ *  this directly. */
+export const PAGE_EYEBROW =
+  'font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch';
+
 export const ordinal = (n: number) =>
   n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`;
 
@@ -255,9 +263,7 @@ export function StageHeader({
     <div ref={headingRef} className="mb-[18px] mt-[30px] flex flex-wrap items-end justify-between gap-4">
       <div>
         {crumb}
-        <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
-          {eyebrow}
-        </div>
+        <div className={PAGE_EYEBROW}>{eyebrow}</div>
         <h2 className="mt-0.5 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
           {title}
         </h2>

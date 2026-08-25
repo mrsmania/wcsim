@@ -3,7 +3,7 @@ import { SQUADS } from '../data/squads';
 import type { GroupTeam } from '../domain/tournament';
 import { ArrowRight } from 'lucide-react';
 import Flag from './Flag';
-import { PRIMARY_BTN, RatingChip } from './matchUi';
+import { PAGE_EYEBROW, PRIMARY_BTN, RatingChip } from './matchUi';
 import { prefersReducedMotion } from '../hooks/motion';
 
 /** How often (ms) the drawn flags reshuffle while the draw scrambles. */
@@ -76,7 +76,7 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
     >
       <div className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-md border border-line bg-panel p-5 shadow-hard sm:p-6">
         <div className="mb-4">
-          <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch">
+          <div className={PAGE_EYEBROW}>
             Group draw
           </div>
           <h2 className="mt-0.5 font-display text-2xl font-extrabold leading-none tracking-[-0.02em]">

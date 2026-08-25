@@ -11,6 +11,7 @@ import {
     type CareerState,
 } from '../../domain/career';
 import { BOONS, BOON_UNLOCK_COST, type Rarity } from '../../domain/boons';
+import { MONO_CAP } from '../matchUi';
 
 /** Rarity dot colour in the boost library (reuses the palette tokens). */
 const RARITY_DOT: Record<Rarity, string> = {
@@ -181,7 +182,7 @@ export default function CareerHub({
                     {FEATURES.challenges && (
                         <div className="border-t border-line p-4">
                             <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                                <span className={MONO_CAP}>
                                     Challenges
                                 </span>
                                 <span className="font-mono text-[12px] font-bold">
@@ -226,7 +227,7 @@ export default function CareerHub({
 
                     {/* Perk shop */}
                     <div className="border-t border-line p-4">
-                        <div className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                        <div className={`mb-2.5 ${MONO_CAP}`}>
                             Perks (spend Prestige - applies to future runs)
                         </div>
                         <div className="grid gap-2.5 sm:grid-cols-2">
@@ -310,7 +311,7 @@ export default function CareerHub({
 
                     {/* Boost library: unlock more boosts into every future run's offer pool. */}
                     <div className="border-t border-line p-4">
-                        <div className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                        <div className={`mb-2.5 ${MONO_CAP}`}>
                             Boost library (spend Prestige - adds to future runs' offers)
                         </div>
                         <div className="grid gap-2.5 sm:grid-cols-2">
