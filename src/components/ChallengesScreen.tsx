@@ -11,7 +11,6 @@ import {
   type ChallengeFamily,
 } from '../domain/challenges';
 import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
-import { StageCrumb, StageHeader } from './matchUi';
 
 type Filter = 'all' | 'open' | 'done' | 'blocked';
 
@@ -23,16 +22,9 @@ const stateOf = (c: Challenge, done: Set<string>): Filter =>
  *  challenge grouped by family. Read-only - a challenge is completed by playing. */
 export default function ChallengesScreen({
   completed,
-  onClose,
-  heading = true,
 }: {
   /** Ids the career has completed. */
   completed: string[];
-  /** Back out of the screen. Omitted by the tabs navigation, where the Records
-   *  sub-tabs are the way in and out and a "Back" crumb would be a second answer. */
-  onClose?: () => void;
-  /** False under the Records tab, which puts one header above the sub-tabs instead. */
-  heading?: boolean;
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const done = useMemo(() => new Set(completed), [completed]);
@@ -60,16 +52,12 @@ export default function ChallengesScreen({
       : []),
   ];
 
+  // No header of its own: the only route that reaches this screen is `/records`, which
+  // puts one StageHeader above its sub-tabs. It used to render its own when mounted on the
+  // `/challenges` alias - but that arm was unreachable, so `heading` was only ever passed
+  // false and the alias is now gone.
   return (
     <>
-      {heading && (
-        <StageHeader
-          eyebrow="Your honours"
-          title="Challenges"
-          crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
-        />
-      )}
-
       {/* Completion counter, deliberately the album's shape: same page, same reading. */}
       <section
         className={`grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard ${

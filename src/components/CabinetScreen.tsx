@@ -18,7 +18,6 @@ import type { BadgeRow } from '../domain/badges';
 import type { RunOutcome } from '../domain/run';
 import { TierPips } from './challengeUi';
 import Flag from './Flag';
-import { StageCrumb, StageHeader } from './matchUi';
 import { SQUAD_BY_ID } from '../data/squads';
 
 /** A cup's plinth by the tier it was won at: ONE hue getting deeper, plus the numeral.
@@ -346,19 +345,12 @@ export default function CabinetScreen({
   career,
   album,
   allPlayers,
-  onClose,
-  heading = true,
 }: {
   career: CareerState;
   album: AlbumState;
   /** The pool's players, so album completion tracks the year filter like the album
    *  screen's does. */
   allPlayers: Player[];
-  /** Back out of the screen. Omitted by the tabs navigation, where the Records
-   *  sub-tabs are the way in and out and a "Back" crumb would be a second answer. */
-  onClose?: () => void;
-  /** False under the Records tab, which puts one header above the sub-tabs instead. */
-  heading?: boolean;
 }) {
   const v: CabinetView = useMemo(
     () => cabinetView(career, album, allPlayers),
@@ -368,16 +360,11 @@ export default function CabinetScreen({
   const r = v.records;
   const bestTier = h.bestCupAscension === null ? null : v.ladder[h.bestCupAscension];
 
+  // No header of its own: `/records/cabinet` is the only route here and it puts one
+  // StageHeader above its sub-tabs. See the note in ChallengesScreen - the `/cabinet`
+  // alias that would have wanted its own was unreachable, and is now deleted.
   return (
     <>
-      {heading && (
-        <StageHeader
-          eyebrow="Career"
-          title="Trophy Cabinet"
-          crumb={onClose ? <StageCrumb dir="back" label="Back" onClick={onClose} /> : undefined}
-        />
-      )}
-
       <p className="mb-[18px] max-w-[72ch] text-[13px] text-muted">
         Everything this career has to show for itself. Cups and honours are permanent; the
         counters are read live from the career, so they change as you play.
@@ -555,7 +542,7 @@ export default function CabinetScreen({
         <BlockHead
           title="Honours"
           count={`${v.honours.completed} / ${v.honours.total}`}
-          link={{ to: '/challenges', label: 'All challenges' }}
+          link={{ to: '/records', label: 'All challenges' }}
         />
         <div className="p-3.5">
           <Bar have={v.honours.completed} need={v.honours.total} />

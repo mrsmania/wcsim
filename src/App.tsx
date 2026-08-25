@@ -578,31 +578,29 @@ export default function App({
     const squadsEnabled = FEATURES.squadBrowser;
     const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
     const isAlbum = STICKERS && path === '/album';
-    const isChallenges = FEATURES.challenges && path === '/challenges';
-    const isCabinet = FEATURES.trophyCabinet && path === '/cabinet';
     const isCupRun = path === '/cup-run';
     const isLauncher = path === '/';
-    // `/play` is the build route; `/quick-run` and `/career-mode` are kept as aliases so
-    // old links, bookmarks and anything a player saved before the navigation rework still
-    // land somewhere sensible.
-    const isBuild = path === '/play' || path === '/quick-run' || path === '/career-mode';
+    const isBuild = path === '/play';
     // `/career` is the hub, split off the live run (finding F4); `/records` holds the two
-    // honours screens as segments, with `/challenges` and `/cabinet` as aliases.
+    // honours screens as segments.
+    //
+    // The legacy aliases went on 2026-08-24: `/challenges` and `/cabinet` for the two
+    // honours screens, and `/quick-run` + `/career-mode` for the build. They existed to
+    // protect bookmarks made before the navigation rework, and the app has never been
+    // live, so there are none. They now hit the catch-all redirect, exactly as `/group`
+    // and `/knockout` already do. The two honours aliases were also a latent bug: this
+    // block tested `tabsRecords` FIRST, and its definition already matched both of them,
+    // so their own render arms were unreachable and the standalone header + Back crumb
+    // they were documented as carrying never rendered.
     const isCareerHub = path === '/career';
-    const tabsRecords =
-        path === '/records' ||
-        path === '/records/cabinet' ||
-        (FEATURES.challenges && path === '/challenges') ||
-        (FEATURES.trophyCabinet && path === '/cabinet');
-    const recordsCabinet =
-        FEATURES.trophyCabinet && (path === '/records/cabinet' || path === '/cabinet');
+    const tabsRecords = path === '/records' || path === '/records/cabinet';
+    const recordsCabinet = FEATURES.trophyCabinet && path === '/records/cabinet';
     const albumSummary = stickers.summary;
 
     // The completed-challenge set. Same shape as careerPeek below: the career lives in
     // CupRunScreen, so it is re-read from the store whenever the route changes rather than
     // lifted into App. Read on every route, because the Records tab shows the count as its
-    // sub-line - and because the catalogue is reached at `/records`, where `isChallenges`
-    // is false.
+    // sub-line.
     const challengeIds = useMemo(
         () => store.peek().career.completedChallenges,
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -914,32 +912,11 @@ export default function App({
                                     career={careerPeek}
                                     album={stickers.album}
                                     allPlayers={poolPlayers}
-                                    heading={false}
                                 />
                             ) : (
-                                <ChallengesScreen completed={challengeIds} heading={false} />
+                                <ChallengesScreen completed={challengeIds} />
                             )}
                         </>
-                    ) : isCabinet ? (
-                        // Career + album, both read live. The cabinet records nothing of
-                        // its own; `domain/cabinet.ts` derives every figure on it.
-                        <CabinetScreen
-                            career={careerPeek}
-                            album={stickers.album}
-                            allPlayers={poolPlayers}
-                            onClose={() =>
-                                location.key === 'default' ? navigate('/') : navigate(-1)
-                            }
-                        />
-                    ) : isChallenges ? (
-                        <ChallengesScreen
-                            completed={challengeIds}
-                            // Back to wherever it was opened from (the Cup Run hub,
-                            // usually); a deep link has no history to pop.
-                            onClose={() =>
-                                location.key === 'default' ? navigate('/') : navigate(-1)
-                            }
-                        />
                     ) : isLauncher ? (
                         <ModeSelect
                             continueAction={continueAction}

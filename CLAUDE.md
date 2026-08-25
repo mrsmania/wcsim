@@ -257,11 +257,10 @@ from playback.
 **Routing & persistence.** The URL is the source of truth for *which screen*; the
 reducer stays the source of truth for *the build*. `App` branches on
 `location.pathname`: `/` (the front page), `/play` (the build page =
-setup/draft/complete, sub-view derived from `formation` + `isComplete`, not `phase`;
-`/quick-run` and `/career-mode` are kept as aliases), `/cup-run`, `/career`, `/album`,
-`/records` + `/records/cabinet` (with `/challenges` and `/cabinet` as aliases), and
+setup/draft/complete, sub-view derived from `formation` + `isComplete`, not `phase`),
+`/cup-run`, `/career`, `/album`, `/records` + `/records/cabinet`, and
 `/squads/*`. Anything else hits a catch-all `<Navigate to="/">`, which is what the
-deleted `/group` and `/knockout` now do. Navigation happens via `useNavigate` in the tab
+deleted `/group`, `/knockout` and the four legacy aliases now do. Navigation happens via `useNavigate` in the tab
 bar and the transition handlers (`handleReset`), which never rebuild existing state, so
 Back/Forward move between screens without losing progress. The whole `GameState` is
 mirrored to storage and restored on load, so a refresh mid-build resumes it (transient
@@ -392,13 +391,21 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   **removed 2026-08-23**, `RouteCrumb` with it: it restated the tab and spent a line on a
   right-aligned count ("0 of 11 picked", "272 squads") that the panel below it already
   shows.
-- **Routes**, with the old ones kept as aliases so bookmarks and the run-end deep links
-  keep working: `/play` (the one build route), `/career` (the hub, split off the live run -
+- **Routes:** `/play` (the one build route), `/career` (the hub, split off the live run -
   a shop and a step of play cannot be the same address), `/records` +
   `/records/cabinet` (the two honours screens as segments of one destination, which is
-  what keeps the bar at five). `/quick-run`, `/career-mode`, `/challenges` and `/cabinet`
-  still resolve. `/group` and `/knockout` are **gone** (see "There is one way to play"
-  above); they hit the catch-all and redirect to `/`.
+  what keeps the bar at five). `/group` and `/knockout` are **gone** (see "There is one way
+  to play" above); they hit the catch-all and redirect to `/`.
+- **The four legacy aliases went on 2026-08-24** (hygiene D14): `/quick-run` and
+  `/career-mode` for the build, `/challenges` and `/cabinet` for the two honours screens.
+  They existed to protect bookmarks made before the navigation rework, and the app has
+  never been live, so there were none to protect. They now hit the catch-all like `/group`.
+  The two honours aliases were also carrying a latent bug: `App`'s route branch tested
+  `tabsRecords` FIRST and its definition already matched both aliases, so their own render
+  arms were unreachable - which meant the standalone header and Back crumb this file used
+  to say they carried had in fact never rendered. `ChallengesScreen` and `CabinetScreen`
+  therefore have no `heading` or `onClose` prop any more: `/records` puts one
+  `StageHeader` above its `SubTabs` and that is the only way in.
 - **The mode doors go, the front page stays.** `/` is still `ModeSelect` - the hero
   tactics board, the three beats and the "Chase the legends" showcase are what sell the
   game - but the two door cards went, and the three resume buttons collapsed into one
@@ -414,8 +421,8 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   ("Your career" / "Cup Run Career") and `/records` one for the destination rather than
   for each half ("Your honours" / "Records"), sitting ABOVE the `SubTabs` the way `/squads`
   puts its Display toggle under its header. `ChallengesScreen` and `CabinetScreen`
-  therefore take `heading={false}` on that route and keep their own header on the
-  `/challenges` + `/cabinet` aliases, where it carries the Back crumb. The album's own
+  therefore render no header of their own at all - the `heading` and `onClose` props they
+  used to take for the deleted aliases are gone (see the alias note above). The album's own
   "Back to game" crumb went at the same time: the tabs are the way out, so it was a second
   answer to a question the bar already answers.
 - **The bar goes inert while a match reveals** (`nav/liveMatch.ts`), because the live

@@ -105,7 +105,7 @@ export default function CareerHub({
                     </button>
                     {FEATURES.trophyCabinet && (
                         <Link
-                            to="/cabinet"
+                            to="/records/cabinet"
                             className="flex shrink-0 items-center border-l border-line px-3 font-display text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-accent transition hover:bg-chalk"
                         >
                             Cabinet
@@ -193,7 +193,7 @@ export default function CareerHub({
                                     </span>
                                 )}
                                 <Link
-                                    to="/challenges"
+                                    to="/records"
                                     className="ml-auto font-display text-[11.5px] font-extrabold uppercase tracking-[0.06em] text-accent transition hover:underline"
                                 >
                                     All challenges &rarr;
