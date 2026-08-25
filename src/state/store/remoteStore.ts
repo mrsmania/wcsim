@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { emptyAlbum, type AlbumState } from '../../domain/album';
-import { INITIAL_CAREER, levelForXp, type CareerState } from '../../domain/career';
+import { hydrateCareer, INITIAL_CAREER, type CareerState } from '../../domain/career';
 import { normalizeSettings, toStored } from '../settingsStorage';
+import { createSnapshotCache } from './cache';
 import type { AccountSnapshot, AlbumStats, FinishRunResult, Store } from './types';
 
 // ---------------------------------------------------------------------------
@@ -82,6 +83,12 @@ interface CareerRow {
   stats: Partial<CareerState['stats']> | null;
 }
 
+/** The `album_stats` columns, once. The list appeared at both read paths (boot and the
+ *  pre-0010 fallback bank) and had to agree with `albumStatsFromRow` below - so a new
+ *  counter meant editing three places, two of which are strings the compiler cannot
+ *  check (hygiene H89). */
+const ALBUM_STATS_COLUMNS = 'runs_played, stickers_earned, trades_completed';
+
 /** The `album_stats` row as the app holds it. Written out three times before, once per
  *  read path (boot, the one-trip bank, the fallback bank). */
 function albumStatsFromRow(
@@ -94,21 +101,21 @@ function albumStatsFromRow(
   };
 }
 
+/** The account row, case-converted. That conversion is ALL this does now: the field
+ *  list, the derived level and the stats merge live in `hydrateCareer`, which the guest
+ *  loader goes through too (hygiene H89). */
 function careerFromRow(row: CareerRow | null): CareerState {
   if (!row) return INITIAL_CAREER;
-  return {
-    version: 2,
+  return hydrateCareer({
     xp: row.xp,
-    // Derived, never stored (the same rule the local store follows).
-    level: levelForXp(row.xp),
     prestige: row.prestige,
-    perkLevels: row.perk_levels ?? {},
-    unlockedBoons: row.unlocked_boons ?? [],
+    perkLevels: row.perk_levels,
+    unlockedBoons: row.unlocked_boons,
     ascension: row.ascension,
-    lastAscension: row.last_ascension ?? undefined,
-    completedChallenges: row.completed_challenges ?? [],
-    stats: { ...INITIAL_CAREER.stats, ...(row.stats ?? {}) },
-  };
+    lastAscension: row.last_ascension,
+    completedChallenges: row.completed_challenges,
+    stats: row.stats,
+  });
 }
 
 /** The jsonb payload `save_career` takes. camelCase BY CONTRACT with that function, which
@@ -141,21 +148,13 @@ function careerToRow(c: CareerState): CareerPayload {
 }
 
 export function createRemoteStore(client: SupabaseClient, userId: string): Store {
-  let cache: AccountSnapshot | null = null;
+  const { peek, set, patch } = createSnapshotCache();
   let version = 0;
   /** Whether this server has migration 0010's one-trip bank. Assumed yes, and turned
    *  off for the session the first time it answers "no such function" - the client is
    *  deployed by pushing to main and the migration is applied by hand on the NAS, so the
    *  two are never in lockstep and neither order may break banking. */
   let hasFinishRunV2 = true;
-
-  const peek = (): AccountSnapshot => {
-    if (!cache) throw new Error('store.peek() before store.load()');
-    return cache;
-  };
-  const patch = (next: Partial<AccountSnapshot>): void => {
-    cache = { ...peek(), ...next };
-  };
 
   /** Turn a Supabase error into ours, keeping what the caller might branch on: a stale
    *  version becomes `StaleVersionError` so the write path can re-read and retry, and
@@ -242,7 +241,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
         readAlbum(),
         client
           .from('album_stats')
-          .select('runs_played, stickers_earned, trades_completed')
+          .select(ALBUM_STATS_COLUMNS)
           .eq('user_id', userId)
           .maybeSingle(),
         client.from('career').select('*').eq('user_id', userId).maybeSingle(),
@@ -255,7 +254,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       if (firstError) throw new Error(firstError.message);
 
       version = profile.data?.state_version ?? 0;
-      cache = {
+      const snapshot: AccountSnapshot = {
         game: (game.data?.data as AccountSnapshot['game']) ?? null,
         album,
         albumStats: albumStatsFromRow(stats.data),
@@ -269,7 +268,8 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
         // current match, exactly as it does for a guest.
         reveal: null,
       };
-      return cache;
+      set(snapshot);
+      return snapshot;
     },
 
     peek,
@@ -319,7 +319,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
           readAlbum(),
           client
             .from('album_stats')
-            .select('runs_played, stickers_earned, trades_completed')
+            .select(ALBUM_STATS_COLUMNS)
             .eq('user_id', userId)
             .maybeSingle(),
         ]);
@@ -425,7 +425,9 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       // The caller deletes the local copy only after this returns (FR-16a ordering).
       // No version check on this one, so it goes through the plain path.
       await rpcPlain('import_guest_progress', { p_payload: payload });
-      cache = null;
+      // Straight back to `load`, which overwrites the snapshot wholesale: the account
+      // now holds what the guest had, and re-reading it is the only way to be sure the
+      // cache says the same as the server.
       await this.load();
     },
   };

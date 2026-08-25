@@ -166,6 +166,60 @@ export const INITIAL_CAREER: CareerState = {
   },
 };
 
+/** A career as it arrives from OUTSIDE - a localStorage blob or an account row - with
+ *  every field optional and of unknown type. Both loaders reduce to this. */
+export interface PartialCareer {
+  xp?: unknown;
+  prestige?: unknown;
+  perkLevels?: unknown;
+  unlockedBoons?: unknown;
+  ascension?: unknown;
+  lastAscension?: unknown;
+  completedChallenges?: unknown;
+  stats?: Partial<CareerStats> | null;
+}
+
+/** Build a `CareerState` from untrusted partial data: the ONE place that knows the
+ *  career's field list (hygiene H89).
+ *
+ *  It existed twice - once in `careerStorage` for a stored blob and once in
+ *  `remoteStore` for an account row - as two lists that had to be extended together
+ *  for every new career field, with nothing to say so. What is left at each call site
+ *  is the thing that genuinely differs: the guest side's v1-to-v2 perk migration, and
+ *  the account side's snake_case-to-camelCase conversion.
+ *
+ *  `level` is DERIVED, never read: it is a function of XP, so a stored one could
+ *  disagree with the XP beside it. `stats` merges over the initial counters, which is
+ *  what lets a new counter appear without a migration on either side. And
+ *  `completedChallenges` tolerates being absent entirely, because a server that has
+ *  not had migration 0011 applied has no such column - challenge progress then simply
+ *  does not persist for that account, and nothing else is affected. */
+export function hydrateCareer(p: PartialCareer): CareerState {
+  const xp = typeof p.xp === 'number' ? p.xp : 0;
+  const perkLevels: Record<string, number> = {};
+  if (p.perkLevels && typeof p.perkLevels === 'object') {
+    for (const [k, v] of Object.entries(p.perkLevels)) {
+      if (typeof v === 'number' && v > 0) perkLevels[k] = v;
+    }
+  }
+  return {
+    version: 2,
+    xp,
+    level: levelForXp(xp),
+    prestige: typeof p.prestige === 'number' ? p.prestige : 0,
+    perkLevels,
+    unlockedBoons: Array.isArray(p.unlockedBoons)
+      ? p.unlockedBoons.filter((id): id is string => typeof id === 'string')
+      : [],
+    ascension: typeof p.ascension === 'number' ? p.ascension : 0,
+    lastAscension: typeof p.lastAscension === 'number' ? p.lastAscension : undefined,
+    completedChallenges: Array.isArray(p.completedChallenges)
+      ? p.completedChallenges.filter((id): id is string => typeof id === 'string')
+      : [],
+    stats: { ...INITIAL_CAREER.stats, ...(p.stats ?? {}) },
+  };
+}
+
 /** Flat XP per level. Tuned so the level gates on perks/Ascension actually bite:
  *  XP is round(score x mult) and Prestige is that / 5, so XP = 5 x Prestige earned;
  *  at 200/level, reaching level L needs ~ (L-1) x 40 Prestige EARNED, which tracks

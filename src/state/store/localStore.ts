@@ -21,6 +21,7 @@ import {
 } from '../runStorage';
 import { loadSettings, saveSettings } from '../settingsStorage';
 import { hasAnyKey, removeKeys } from '../storage/kv';
+import { createSnapshotCache } from './cache';
 import { applyRunStickers, executeTrade, pendingNewStickers } from '../../domain/album';
 import type { AlbumStats } from '../albumStorage';
 import type { AccountSnapshot, Store } from './types';
@@ -66,25 +67,12 @@ export function clearGuestData(): void {
 }
 
 export function createLocalStore(): Store {
-  let cache: AccountSnapshot | null = null;
-
-  const peek = (): AccountSnapshot => {
-    if (!cache) {
-      throw new Error('store.peek() before store.load(): load once at boot (see main.tsx)');
-    }
-    return cache;
-  };
-
-  /** Replace the cache with a patched copy (never mutated in place, so a holder of
-   *  an earlier snapshot keeps the values it was given). */
-  const patch = (next: Partial<AccountSnapshot>): void => {
-    cache = { ...peek(), ...next };
-  };
+  const { peek, set, patch } = createSnapshotCache();
 
   return {
     async load() {
       const run = loadRun();
-      cache = {
+      const snapshot: AccountSnapshot = {
         game: loadGame(),
         album: loadAlbum(),
         albumStats: loadStats(),
@@ -94,7 +82,8 @@ export function createLocalStore(): Store {
         // A reveal only means anything with a run in hand, so a stale one is dropped.
         reveal: run ? loadReveal() : null,
       };
-      return cache;
+      set(snapshot);
+      return snapshot;
     },
 
     peek,
