@@ -219,6 +219,35 @@ function koRec(stage: number, over: Partial<Omit<KoRecord, 'stage'>> = {}): KoRe
   };
 }
 
+// --- Seeding: a named, bounded construct -------------------------------------
+// Several checks are existence or band claims over random trials, and an assertion that
+// fails at random is worse than no assertion. The seeding was an inline monkeypatch inside
+// one block, so every other random check stayed unseeded by default rather than by
+// decision (hygiene H95).
+//
+// `Math.random` is replaced for the duration of `fn` and restored in a `finally`, so a
+// throw inside cannot leak a fake generator into the rest of the suite - which would make
+// every later check deterministic and quietly stop testing anything.
+
+/** Run `fn` with `Math.random` replaced by a seeded generator. */
+function withSeed<T>(seed: number, fn: () => T): T {
+  const realRandom = Math.random;
+  let prng = seed | 0;
+  Math.random = () => {
+    // mulberry32: small, fast, good enough to stand in for Math.random here.
+    prng = (prng + 0x6d2b79f5) | 0;
+    let t = prng;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  try {
+    return fn();
+  } finally {
+    Math.random = realRandom;
+  }
+}
+
 // --- Run fixtures: one XI, one run, one walk ---------------------------------
 // The harness had 42 copies of "the best XI of some squad", 43 `beginRun` calls and
 // fifteen near-identical "walk this run to the end" loops, each re-deciding the same
@@ -489,76 +518,85 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
 }
 
 // --- Budget auto-fill: within budget, no duplicate person, fills every slot ---
+// SEEDED. Two of the claims below are existence claims over random trials rather than
+// bounded properties - "every slot fills" and "some discounted XI comes in under list
+// price" - so a budget or price-curve tweak could make either fail intermittently, which
+// is exactly the failure mode the boon table was seeded to avoid (hygiene H95). The
+// invariants beside them (never overspend, never a duplicate person) hold for every input
+// and would be just as true unseeded; seeding the whole block keeps the sample one thing
+// rather than two.
 {
-  const formations = Object.values(FORMATIONS_DATA.byKey);
-  let withinBudget = true;
-  let noDupes = true;
-  let fillsAll = true;
-  let usedMatches = true;
-  // The formation and spend that broke each one, so a failure over 3,000 XIs names the
-  // case rather than only the property (hygiene H93).
-  const worst: Record<string, string> = {};
-  for (let i = 0; i < 3000; i++) {
-    const f = formations[i % formations.length];
-    const { filled, usedPersonIds } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
-    const placed = f.slots.map((s) => filled[s.id]).filter((p): p is NonNullable<typeof p> => !!p);
-    const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
-    const where = `${f.name}/${f.style}`;
-    if (spent > BUDGET_DRAFT) {
-      withinBudget = false;
-      worst.budget ??= `${where} spent ${spent} of ${BUDGET_DRAFT}`;
+  withSeed(0x51ed270b, () => {
+    const formations = Object.values(FORMATIONS_DATA.byKey);
+    let withinBudget = true;
+    let noDupes = true;
+    let fillsAll = true;
+    let usedMatches = true;
+    // The formation and spend that broke each one, so a failure over 3,000 XIs names the
+    // case rather than only the property (hygiene H93).
+    const worst: Record<string, string> = {};
+    for (let i = 0; i < 3000; i++) {
+      const f = formations[i % formations.length];
+      const { filled, usedPersonIds } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
+      const placed = f.slots.map((s) => filled[s.id]).filter((p): p is NonNullable<typeof p> => !!p);
+      const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
+      const where = `${f.name}/${f.style}`;
+      if (spent > BUDGET_DRAFT) {
+        withinBudget = false;
+        worst.budget ??= `${where} spent ${spent} of ${BUDGET_DRAFT}`;
+      }
+      if (new Set(placed.map((p) => p.personId)).size !== placed.length) {
+        noDupes = false;
+        worst.dupes ??= where;
+      }
+      // Every position in the dataset is fillable within the budget, so a fresh XI fills.
+      if (placed.length !== f.slots.length) {
+        fillsAll = false;
+        worst.fill ??= `${where} filled ${placed.length} of ${f.slots.length}`;
+      }
+      const usedFromPlaced = new Set(placed.map((p) => p.personId));
+      if (
+        usedPersonIds.length !== usedFromPlaced.size ||
+        !usedPersonIds.every((id) => usedFromPlaced.has(id))
+      ) {
+        usedMatches = false; // reported personIds match the players actually placed
+        worst.used ??= `${where} reported ${usedPersonIds.length} for ${usedFromPlaced.size} placed`;
+      }
     }
-    if (new Set(placed.map((p) => p.personId)).size !== placed.length) {
-      noDupes = false;
-      worst.dupes ??= where;
-    }
-    // Every position in the dataset is fillable within the budget, so a fresh XI fills.
-    if (placed.length !== f.slots.length) {
-      fillsAll = false;
-      worst.fill ??= `${where} filled ${placed.length} of ${f.slots.length}`;
-    }
-    const usedFromPlaced = new Set(placed.map((p) => p.personId));
-    if (
-      usedPersonIds.length !== usedFromPlaced.size ||
-      !usedPersonIds.every((id) => usedFromPlaced.has(id))
-    ) {
-      usedMatches = false; // reported personIds match the players actually placed
-      worst.used ??= `${where} reported ${usedPersonIds.length} for ${usedFromPlaced.size} placed`;
-    }
-  }
-  check('budget: auto-fill never exceeds the budget', () => withinBudget, () => worst.budget ?? '');
-  check('budget: auto-fill never uses a personId twice', () => noDupes, () => worst.dupes ?? '');
-  check(
-    'budget: auto-fill fills every slot when the budget allows',
-    () => fillsAll,
-    () => worst.fill ?? '',
-  );
-  check(
-    'budget: auto-fill reports exactly the placed personIds',
-    () => usedMatches,
-    () => worst.used ?? '',
-  );
+    check('budget: auto-fill never exceeds the budget', () => withinBudget, () => worst.budget ?? '');
+    check('budget: auto-fill never uses a personId twice', () => noDupes, () => worst.dupes ?? '');
+    check(
+      'budget: auto-fill fills every slot when the budget allows',
+      () => fillsAll,
+      () => worst.fill ?? '',
+    );
+    check(
+      'budget: auto-fill reports exactly the placed personIds',
+      () => usedMatches,
+      () => worst.used ?? '',
+    );
 
-  // The same, spending DISCOUNTED prices: the reserve and upgrade passes both read the
-  // pricer, so an album has to leave the budget invariant intact rather than overshoot.
-  const owned = new Set(ALL_PLAYERS.filter((p) => tierOf(p)).map((p) => p.id));
-  const price = pricerFor(owned);
-  let discountedWithin = true;
-  let discountedFills = true;
-  let cheaperSomewhere = false;
-  for (let i = 0; i < 3000; i++) {
-    const f = formations[i % formations.length];
-    const { filled } = autoFillBudget(f.slots, {}, BUDGET_DRAFT, ALL_PLAYERS, price);
-    const placed = f.slots.map((s) => filled[s.id]).filter((p): p is NonNullable<typeof p> => !!p);
-    const spent = placed.reduce((t, p) => t + price(p), 0);
-    if (spent > BUDGET_DRAFT) discountedWithin = false;
-    if (placed.length !== f.slots.length) discountedFills = false;
-    // With every collectible owned, some XI should come in under its undiscounted cost.
-    if (placed.reduce((t, p) => t + priceOf(p.elo), 0) > spent) cheaperSomewhere = true;
-  }
-  check('budget: auto-fill respects the budget when prices are discounted', () => discountedWithin);
-  check('budget: auto-fill still fills every slot when prices are discounted', () => discountedFills);
-  check('budget: a discounted XI can cost less than its list price', () => cheaperSomewhere);
+    // The same, spending DISCOUNTED prices: the reserve and upgrade passes both read the
+    // pricer, so an album has to leave the budget invariant intact rather than overshoot.
+    const owned = new Set(ALL_PLAYERS.filter((p) => tierOf(p)).map((p) => p.id));
+    const price = pricerFor(owned);
+    let discountedWithin = true;
+    let discountedFills = true;
+    let cheaperSomewhere = false;
+    for (let i = 0; i < 3000; i++) {
+      const f = formations[i % formations.length];
+      const { filled } = autoFillBudget(f.slots, {}, BUDGET_DRAFT, ALL_PLAYERS, price);
+      const placed = f.slots.map((s) => filled[s.id]).filter((p): p is NonNullable<typeof p> => !!p);
+      const spent = placed.reduce((t, p) => t + price(p), 0);
+      if (spent > BUDGET_DRAFT) discountedWithin = false;
+      if (placed.length !== f.slots.length) discountedFills = false;
+      // With every collectible owned, some XI should come in under its undiscounted cost.
+      if (placed.reduce((t, p) => t + priceOf(p.elo), 0) > spent) cheaperSomewhere = true;
+    }
+    check('budget: auto-fill respects the budget when prices are discounted', () => discountedWithin);
+    check('budget: auto-fill still fills every slot when prices are discounted', () => discountedFills);
+    check('budget: a discounted XI can cost less than its list price', () => cheaperSomewhere);
+  });
 }
 
 // --- The transfer market: the price ceiling, and the two dropdowns that narrow each other ---
@@ -850,21 +888,52 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
 }
 
 // --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------
+// The distinctness claim used to apply each boon ONCE, against one XI and one opponent,
+// unseeded - so a roster boon that duplicates a `personId` only on some draws was caught
+// roughly one run in N (hygiene H95). It is a loop now: 200 applications per card, the XI
+// and the opponent both varying, which is what makes "never duplicates a person" a
+// property rather than a spot check. Seeded, so the sample is the same every run.
 {
-  const xi = xiFor();
   let ok = true;
-  for (const b of BOONS) {
-    const after = applyBoon(xi, b, { opponentSquadId: SQUADS[1].id });
-    if (after.length !== xi.length) ok = false; // roster boons swap, never grow/shrink
-    if (new Set(after.map((p) => p.personId)).size !== after.length) ok = false; // no dupes
-  }
-  const pool = availableBoons([]);
-  const offer = offerBoons(pool, 3);
-  if (offer.length !== 3 || new Set(offer.map((b) => b.id)).size !== 3) ok = false;
-  // Offers only ever contain boons from the given pool, and n clamps to the pool size.
-  if (offer.some((b) => !pool.some((p) => p.id === b.id))) ok = false;
-  if (offerBoons(pool, pool.length + 5).length !== pool.length) ok = false;
-  check('boons: every boon keeps 11 distinct players; offers are distinct + in pool', () => ok);
+  let bad = '';
+  withSeed(0x2545f491, () => {
+    for (let i = 0; i < 200; i++) {
+      const xi = xiFor(i * 13);
+      const opponentSquadId = SQUADS[(i * 7) % SQUADS.length]!.id;
+      for (const b of BOONS) {
+        const after = applyBoon(xi, b, { opponentSquadId });
+        // Roster boons swap, never grow or shrink the XI.
+        if (after.length !== xi.length) {
+          ok = false;
+          bad ||= `${b.id} returned ${after.length} players (round ${i})`;
+        }
+        if (new Set(after.map((p) => p.personId)).size !== after.length) {
+          ok = false;
+          bad ||= `${b.id} duplicated a person (round ${i}, vs ${opponentSquadId})`;
+        }
+      }
+    }
+    const pool = availableBoons([]);
+    const offer = offerBoons(pool, 3);
+    if (offer.length !== 3 || new Set(offer.map((b) => b.id)).size !== 3) {
+      ok = false;
+      bad ||= 'an offer of three was not three distinct cards';
+    }
+    // Offers only ever contain boons from the given pool, and n clamps to the pool size.
+    if (offer.some((b) => !pool.some((p) => p.id === b.id))) {
+      ok = false;
+      bad ||= 'an offer held a card from outside the pool';
+    }
+    if (offerBoons(pool, pool.length + 5).length !== pool.length) {
+      ok = false;
+      bad ||= 'asking for more cards than the pool holds did not clamp';
+    }
+  });
+  check(
+    `boons: every boon keeps 11 distinct players over 200 XIs; offers are distinct + in pool`,
+    () => ok,
+    () => bad,
+  );
 }
 
 // --- The effect ledger: the XI is roster + effects, and stays that way -----
@@ -1467,17 +1536,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
   // SEEDED - fixed inputs, one reproducible answer, and a printed table that can be
   // compared between runs. Restored immediately after, in a finally.
   const SAMPLES = 12;
-  const realRandom = Math.random;
-  let prng = 0x9e3779b9;
-  Math.random = () => {
-    // mulberry32: small, fast, good enough to stand in for Math.random here.
-    prng = (prng + 0x6d2b79f5) | 0;
-    let t = prng;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  try {
+  withSeed(0x9e3779b9, () => {
   const sampleFormation = Object.values(FORMATIONS_DATA.byKey)[0];
   const samples = Array.from({ length: SAMPLES }, () => {
     const { filled } = autoFillBudget(sampleFormation.slots, {}, BUDGET_DRAFT);
@@ -1559,9 +1618,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
     'boons: every boon sits inside its rarity band (or pays for exceeding it)',
     () => overBand.length === 0,
   );
-  } finally {
-    Math.random = realRandom;
-  }
+  });
 }
 
 // --- Boons: every card in the catalogue actually does something --------------
@@ -1647,6 +1704,13 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
   // re-draw that has to come back weaker, ~40%) that is 0.6^30, about 2 in 10 million.
   check(`boons: every one of the ${BOONS.length} cards changes something when applied`, () => never.length === 0);
   if (never.length) console.log('    never fired: ' + never.join(', '));
+  // The one deliberately UNSEEDED sample left in the file, and so the one line of output
+  // that moves between runs. Seeding it would make the whole output byte-comparable, which
+  // is the verification method this backlog leans on - but it would also freeze which 30
+  // stops the claim is judged against, so a card that fires on 29 stops in 30 and misses
+  // this seed's would read as never firing and stay wrong. The re-roll is the point; the
+  // false-red maths is two lines up. If you are diffing harness output, this is the line
+  // to ignore (hygiene H95).
   const conditional = [...rates.entries()].filter(([, n]) => n < stops.length);
   console.log(
     `\n  boons firing conditionally (of ${stops.length} stops): ` +
