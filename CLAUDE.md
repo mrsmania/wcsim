@@ -21,6 +21,30 @@ corrected over and over.
 The same rule, with the surrounding workflow detail, is under "Conventions and working
 agreements" below. It is stated twice on purpose.
 
+## ALSO READ THIS FIRST: HOW TO TALK TO THE HUMAN
+
+**This codebase is ~99% written and maintained by agents. The human behind it is not
+interested in the code.** They own the product decisions; they do not review diffs. So:
+
+- **Write every reply, summary and status in plain English, about the GAME.** No file
+  names, no symbol names, no class strings, no hashes, no line counts, no framework talk.
+  "The album screen's progress bar and the five others like it are now one thing" - not the
+  identifiers involved.
+- **If nothing needs deciding or answering, keep it to a couple of lines.** "Wave 3 done and
+  pushed. Nothing needed from you." is a complete report. Length is not diligence.
+- **When something DOES need a decision, that is the whole message**: what the choice is and
+  what changes for the player either way, stated so it can be answered without opening a
+  file. If two readings of a request would produce different work, ask - briefly.
+- **The technical record goes in the repo, not in chat.** Commit messages carry the
+  reasoning, `docs/hygiene-audit.html` and `docs/ROADMAP.html` carry the state, and this
+  file carries the conventions. Write the detail there, at whatever length it deserves, and
+  refer to it. Anything an agent will need later belongs in a file; anything only the human
+  reads belongs in one short paragraph.
+- **Report honestly and plainly.** If something failed, was skipped, or is blocked, say so
+  in a sentence. Plain English is not a licence to round "mostly working" up to "done".
+
+This applies to every session on this project, local or cloud, from now on.
+
 **Where to pick up work:** `docs/ROADMAP.html` is the single list of open work (next up,
 later, loose ends, with what shipped collapsed at the bottom as decision history). Open it
 in a browser and check it first if you are continuing the project. It replaced the old
