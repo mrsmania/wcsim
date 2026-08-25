@@ -50,7 +50,7 @@ import {
   recordRound,
   userGameInRound,
 } from '../src/domain/bracket';
-import { sideOf, KO_ROUNDS } from '../src/domain/knockout';
+import { KO_ROUNDS } from '../src/domain/knockout';
 import {
   AWARD,
   AWARDS_ON,
@@ -162,7 +162,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let goals = 0;
   let eventsOk = true;
   for (let i = 0; i < N; i++) {
-    const r = simulateMatch(sideOf(t), sideOf(t)); // same team both sides = no edge
+    const r = simulateMatch(t, t); // same team both sides = no edge (GroupTeam IS a Side)
     goals += r.homeGoals + r.awayGoals;
     const home = r.events.filter((e) => e.side === 'home').length;
     const away = r.events.filter((e) => e.side === 'away').length;

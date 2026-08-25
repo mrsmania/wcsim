@@ -4,11 +4,16 @@ import { clearGuestData, createLocalStore, hasGuestData } from './localStore';
 import type { AccountSnapshot, Store } from './types';
 
 // Only what something outside this directory actually imports from the facade. The other
-// five names this used to re-export had no importer at all: both store implementations take
-// `Store`, `AlbumStats`, `FinishRunInput` and `FinishRunResult` from `./types` directly, and
-// `Settings` comes from `settingsStorage`, so re-exporting them here only suggested a public
-// surface that was not one.
+// four names this used to re-export had no importer at all: both store implementations take
+// `Store`, `AlbumStats`, `FinishRunInput` and `FinishRunResult` from `./types` directly, so
+// re-exporting them here only suggested a public surface that was not one.
+//
+// `Settings` and `Theme` ARE part of that surface, though, and are re-exported for it:
+// `saveSettings` takes a `Settings`, so it is the seam's own vocabulary, and `useSettings`
+// was reaching past the seam into `settingsStorage` to get them - the one thing the seam's
+// docstring below tells callers never to do (hygiene H63).
 export type { AccountSnapshot } from './types';
+export type { Settings, Theme } from '../settingsStorage';
 
 /**
  * The app's single persistence handle. Import this, never the per-key storage

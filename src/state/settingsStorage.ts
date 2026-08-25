@@ -3,7 +3,6 @@ import type { Difficulty } from '../domain/difficulty';
 
 /** Light (default) or dark theme. */
 export type Theme = 'light' | 'dark';
-export type { Difficulty };
 
 /** User preferences. Persisted under their own key, separate from the game / album /
  *  career / run, so resetting any of those never touches these. */

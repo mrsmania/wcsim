@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Difficulty, Settings, Theme } from '../state/settingsStorage';
-import { store } from '../state/store';
+import type { Difficulty } from '../domain/difficulty';
+import { store, type Settings, type Theme } from '../state/store';
 
 export interface SettingsApi {
     settings: Settings;

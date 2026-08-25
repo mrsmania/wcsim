@@ -5,7 +5,7 @@ import {
   simulateMatch,
   xiStrength,
   type MatchResult,
-  type ScorerPool,
+  type Side,
   type Strength,
 } from './match';
 import { shuffled } from './random';
@@ -29,14 +29,18 @@ const DRAW_POINTS = 1;
 /** Players in an XI. */
 export const XI_SIZE = 11;
 
-export interface GroupTeam {
+/** A team in the group, which IS a `Side` the match sim can take plus the identity the
+ *  screens need. Declared as an extension rather than repeating `strength` and `scorers`:
+ *  it already satisfied `Side` structurally, so the relationship existed and nothing said
+ *  so - which is why one caller projected it through a helper and another open-coded the
+ *  same projection inline. Both are gone; a GroupTeam can be passed straight to
+ *  `simulateMatch` (hygiene H67). */
+export interface GroupTeam extends Side {
   id: string;
   name: string;
   code: string;
   year?: number;
   isUser: boolean;
-  strength: Strength;
-  scorers: ScorerPool;
   /** Penalty takers, best first (used by the knockout shootout). */
   penTakers: { name: string; elo: number }[];
 }
@@ -290,8 +294,8 @@ export function simulateMatchday(group: GroupState, md: number): MatchdayResult[
       homeId: f.homeId,
       awayId: f.awayId,
       result: simulateMatch(
-        { strength: home.strength, scorers: home.scorers },
-        { strength: away.strength, scorers: away.scorers },
+        home,
+        away,
       ),
     };
   });

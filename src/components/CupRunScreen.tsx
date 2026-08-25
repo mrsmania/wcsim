@@ -238,26 +238,14 @@ export default function CupRunScreen({
   const chosenAsc = chosenAscension;
   const activeXi = run?.xi ?? draftedXi ?? null;
   const activeAsc = run?.ascension ?? chosenAsc;
-  const previewRun: RunState | null =
-    !run && draftedXi
-      ? {
-          xi: draftedXi,
-          phase: 'group',
-          koRound: 0,
-          facedIds: [],
-          activeBoons: [],
-          perkLevels: career.perkLevels,
-          unlockedBoons: career.unlockedBoons,
-          ascension: chosenAsc,
-          offer: null,
-          nextOpponent: null,
-          score: 0,
-          outcome: null,
-          history: [],
-          boostedIds: [],
-          stickersApplied: false,
-        }
-      : null;
+  // Whether to show the pre-run card. This used to be a hand-written 17-field RunState
+  // literal, asserted purely so the card below could render - and the only things that ever
+  // read it were a truthiness gate and `.xi`, which is `draftedXi` unchanged. So every
+  // required field added to RunState forced an edit here for a value nothing looked at, and
+  // because `roster` / `effects` are optional for legacy reasons it type-checked while
+  // describing a run the effect ledger could not evaluate. Provably the same condition: the
+  // literal was non-null exactly when `!run && draftedXi` (hygiene H124).
+  const showPreRun = !run && !!draftedXi;
 
   const chem = useMemo(() => (activeXi ? chemistryOf(activeXi) : 0), [activeXi]);
   const odds = useMemo(
@@ -575,11 +563,11 @@ export default function CupRunScreen({
           This is the FALLBACK rather than the norm: a kickoff goes straight into the draw,
           so it shows only when you arrive without one and with no run to resume. It keeps
           the button, so nothing is a dead end. */}
-      {!hubOnly && previewRun && (
+      {!hubOnly && showPreRun && draftedXi && (
         <>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
             <RunXiPanel
-              xi={previewRun.xi}
+              xi={draftedXi}
               score={0}
               activeBoons={[]}
               boostedIds={boostedIds}

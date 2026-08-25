@@ -1306,6 +1306,28 @@ export function prepareKnockoutRound(
   return { next, current, match, opp, roundName };
 }
 
+/** The live-reveal state: which match(es) are being played out before the run commits to
+ *  `next`. Transient (not persisted for an account, mirrored to its own key for a guest) -
+ *  a refresh mid-reveal drops back to the pre-play run, which just replays. The group
+ *  carries its final table + a `done` flag so the standings show after the three matches,
+ *  before committing.
+ *
+ *  It lives here rather than beside its renderer because it is a plain-data view-model over
+ *  domain types only, and the persistence seam reads it: two storage modules used to import
+ *  it from `components/cupRun/types.ts`, each with a comment apologising for the direction.
+ *  The comment was the tell. `components/cupRun/types.ts` re-exports it, so no component
+ *  import changed. */
+export type Reveal =
+  | {
+      kind: 'group';
+      next: RunState;
+      matches: UserMatch[];
+      group: GroupState;
+      index: number;
+      done: boolean;
+    }
+  | { kind: 'ko'; next: RunState; match: KoMatch; opp: GroupTeam; roundName: string };
+
 /** Commit the pending knockout tie without revealing it (used by the checks harness). */
 export const playKnockoutRound = (run: RunState): RunState =>
   prepareKnockoutRound(run)?.next ?? run;

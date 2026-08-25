@@ -7,7 +7,6 @@ import {
   simulateShootout,
   type MatchEvent,
   type ShootoutResult,
-  type Side,
 } from './match';
 import { squadGroupTeam, squadOverall, type GroupTeam } from './tournament';
 
@@ -24,9 +23,6 @@ export type Finish = 'group' | 'r16' | 'qf' | 'sf' | 'final' | 'champion';
 /** The Finish for losing in knockout round i (0 = Round of 16 ... 3 = the final). */
 export const LOST_IN: Finish[] = ['r16', 'qf', 'sf', 'final'];
 
-/** Project a team onto the match sim's Side shape. */
-export const sideOf = (t: GroupTeam): Side => ({ strength: t.strength, scorers: t.scorers });
-
 /** A knockout tie resolved to a definite winner. */
 export interface KoTieResult {
   homeGoals: number;
@@ -42,8 +38,9 @@ export interface KoTieResult {
  *  then a shootout if still level. The single reg -> ET -> shootout resolver,
  *  shared by the Quick Play bracket and the Cup Run. */
 export function resolveKoTie(home: GroupTeam, away: GroupTeam): KoTieResult {
-  const h = sideOf(home);
-  const a = sideOf(away);
+  // `GroupTeam extends Side`, so a team is already what the sim takes (hygiene H67).
+  const h = home;
+  const a = away;
 
   const reg = simulateMatch(h, a);
   let homeGoals = reg.homeGoals;

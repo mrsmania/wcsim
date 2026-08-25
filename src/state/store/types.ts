@@ -1,13 +1,10 @@
 import type { GameState } from '../gameReducer';
 import type { AlbumState } from '../../domain/album';
 import type { CareerState } from '../../domain/career';
-import type { RunState } from '../../domain/run';
+import type { Reveal, RunState } from '../../domain/run';
 import type { AlbumStats } from '../albumStorage';
 import type { Settings } from '../settingsStorage';
 import type { StickerTier } from '../../config';
-// Type-only (erased at build) so the store keeps no runtime dependency on the
-// component layer; `Reveal` is a plain-data view-model over domain types.
-import type { Reveal } from '../../components/cupRun/types';
 
 // ---------------------------------------------------------------------------
 // The persistence seam. Everything the app persists goes through one `Store`,

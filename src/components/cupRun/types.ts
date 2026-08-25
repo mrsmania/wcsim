@@ -1,6 +1,5 @@
 import type { Rarity } from '../../domain/boons';
-import type { RunOutcome, RunState, UserMatch, KoMatch } from '../../domain/run';
-import type { GroupState, GroupTeam } from '../../domain/tournament';
+import type { RunOutcome, KoMatch } from '../../domain/run';
 import { TIER_META } from '../stickerTheme';
 
 // The boon rarity ramp reuses the sticker tier accents (single source of the hexes;
@@ -33,13 +32,10 @@ export interface Reward {
   challengePrestige: number;
 }
 
-/** The live-reveal state: which match(es) are being played out before the run
- *  commits to `next`. Transient (not persisted) - a refresh mid-reveal drops back
- *  to the pre-play run, which just replays. The group carries its final table +
- *  a `done` flag so the standings show after the three matches, before committing. */
-export type Reveal =
-  | { kind: 'group'; next: RunState; matches: UserMatch[]; group: GroupState; index: number; done: boolean }
-  | { kind: 'ko'; next: RunState; match: KoMatch; opp: GroupTeam; roundName: string };
+/** Re-exported so the components that render a reveal keep importing it from here. It is
+ *  DEFINED in `domain/run.ts`: it is a view-model over domain types and the persistence
+ *  seam reads it, so the presentation layer is the wrong place to own it (hygiene H55). */
+export type { Reveal } from '../../domain/run';
 
 /** The win result headline for a finished knockout tie. */
 export function koWinHeading(m: KoMatch): string {

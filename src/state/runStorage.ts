@@ -1,7 +1,4 @@
-import type { RunState } from '../domain/run';
-// Type-only (erased at build) so this storage module keeps no runtime dependency on
-// the component layer; `Reveal` is a plain-data view-model over domain types.
-import type { Reveal } from '../components/cupRun/types';
+import type { Reveal, RunState } from '../domain/run';
 
 /** localStorage key for an in-progress Cup Run. Separate from the game, album, and
  *  career keys, so it survives a game reset and can be cleared on its own when a run
