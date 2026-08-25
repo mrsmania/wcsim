@@ -244,15 +244,26 @@
   <a href="#D14">D14</a> (the four alias routes and the dead arms behind two),
   <a href="#D6">D6</a> (the blocked-challenge UI) and <a href="#D1">D1</a> in part
   (<code>challengeAwards</code> hard-wired on and deleted, which also settles H98).</p>
-  <p><b>Wave 2 begun:</b> H36 (<code>pick</code>, 9 domain sites), H39
-  (<code>PRICE_BASE</code>), H57 (<code>xiSpend</code>, the spend computed three ways), H136
-  (<code>PERK_TIERS_TOTAL</code>, <code>YEARS</code>, the two re-roll predicates, and
-  <code>selectedAscension</code>) and H138 (the three unasserted shop sentences). Two new
-  checks, 132 -> 134, both mutation-tested. Also <b>D1's other half is answered</b>:
-  <code>stickersOnCupWinOnly</code> is now ON - only a cup win banks - and the flag STAYS,
-  because unlike <code>challengeAwards</code> it is safely reversible and the owner may want
-  to revert after playing. Measured before flipping: a run wins the cup 10% of the time, so
-  win-only banks about a tenth of the collectibles any-run did.</p>
+  <p><b>Wave 2 is DONE:</b> H36 (<code>pick</code>, 9 domain sites), H37, H38, H39
+  (<code>PRICE_BASE</code>), H40's clamp half, H41, H42, H44, H45, H48, H57
+  (<code>xiSpend</code>, the spend computed three ways), H132 (the chemistry thresholds, which
+  CLAUDE.md makes a rule and nothing enforced), H136 (<code>PERK_TIERS_TOTAL</code>,
+  <code>YEARS</code>, the re-roll predicates, <code>selectedAscension</code>) and H138. What
+  is left of wave 2 belongs to wave 3 by subject: H43's stringly-typed unions are wave 5's
+  type work, H46 and H47 are local UI atoms, and H49-H54 are the token and atom items.</p>
+  <p><b><a href="#H99">H99 pulled forward</a> from wave 7 and DONE</b>, because it stopped
+  being hypothetical: six collectibles ship with no artwork today. An orphan file is a hard
+  failure and a missing one is too, except for a recorded <code>KNOWN_MISSING_ART</code> set
+  of six that have no source image anywhere - and that allowance is itself checked, so an id
+  that gains art or stops being collectible FAILS as stale. It shrinks as artwork arrives and
+  it says so. Mutation-tested all three ways. 135 checks now.</p>
+  <p><b>D1's other half went both ways in one day, and is OFF.</b>
+  <code>stickersOnCupWinOnly</code> was turned on - only a cup win banks - and turned back off
+  a few hours later on the measurement: a run wins the cup 10% of the time, so against 87
+  collectibles win-only is not a slow album but an unfillable one. The flag stays (three
+  sites, safely reversible, unlike <code>challengeAwards</code>), and the intent is to switch
+  it back once the album has a second income - written up as <b>roadmap item 34</b>, an album
+  shop.</p>
   <p><b><a href="#H106">H106</a> needed no work.</b> The flaky Extra Choice check was fixed
   independently by the 1986 commit, which hit the same group-qualification issue and now
   scans for a run that actually reaches a boon stop. The diagnosis in the callout above was
@@ -377,19 +388,19 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
 
 <table>
   <tr><th>ID</th><th class="vd">Verdict</th><th>Correction against the tree at c4f1512</th></tr>
-  <tr><td class="id">H36</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The duplication grew: <b>13 sites across 8 files</b>, 9 of them in <code>domain/</code>. But there is no existing <code>pick</code> to export (see H31), so this is "write the helper", not "move it".</td></tr>
-  <tr><td class="id">H37</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Largely paid: <code>maxMinute(decided)</code> now exists at <code>matchUi.tsx:56</code> with two users. Left: 2 files with bare full-time literals, <code>REG_MINUTES</code>/<code>ET_MINUTES</code> still unexported, the best-of-five <code>5</code> three times, and <code>clock.ts</code>'s bare half boundaries.</td></tr>
-  <tr><td class="id">H38</td><td class="vd"><span class="tag v-stands">stands</span></td><td>League points bare at <code>tournament.ts:189-198</code>; "3 group opponents" literal in two files; and the top-11 logic re-implemented inline at <code>boons.ts:369</code> beside the exported <code>bestEleven</code>.</td></tr>
-  <tr><td class="id">H39</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>BudgetMarket.tsx:36</code> hard-codes <code>58</code>, which is <code>BASE</code>, private in <code>pricing.ts:17</code>. Tuning the price curve would silently leave the Value sort measuring against the old floor.</td></tr>
-  <tr><td class="id">H40</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The clamp half is mostly resolved by the effect ledger - one real clamp (<code>bump</code>) plus one harness hardcode. The "average elo five ways" half stands whole, at five sites.</td></tr>
-  <tr><td class="id">H41</td><td class="vd"><span class="tag v-stands">stands</span></td><td>90 and 93 each encoded twice (description and predicate) in <code>boons.ts</code>, which imports no <code>config</code>, while <code>STICKER_TIERS</code> lives there.</td></tr>
-  <tr><td class="id">H42</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All three: <code>max: 200</code> against <code>ELO_MAX = 99</code>; <code>guard++ &lt; 8</code> under a comment saying 4; the 1080px breakpoint in both <code>matchMedia</code> and a Tailwind class.</td></tr>
+  <tr><td class="id">H36</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The duplication grew: <b>13 sites across 8 files</b>, 9 of them in <code>domain/</code>. But there is no existing <code>pick</code> to export (see H31), so this is "write the helper", not "move it".</td></tr>
+  <tr><td class="id">H37</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Largely paid: <code>maxMinute(decided)</code> now exists at <code>matchUi.tsx:56</code> with two users. Left: 2 files with bare full-time literals, <code>REG_MINUTES</code>/<code>ET_MINUTES</code> still unexported, the best-of-five <code>5</code> three times, and <code>clock.ts</code>'s bare half boundaries.</td></tr>
+  <tr><td class="id">H38</td><td class="vd"><span class="tag v-done">DONE</span></td><td>League points bare at <code>tournament.ts:189-198</code>; "3 group opponents" literal in two files; and the top-11 logic re-implemented inline at <code>boons.ts:369</code> beside the exported <code>bestEleven</code>.</td></tr>
+  <tr><td class="id">H39</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>BudgetMarket.tsx:36</code> hard-codes <code>58</code>, which is <code>BASE</code>, private in <code>pricing.ts:17</code>. Tuning the price curve would silently leave the Value sort measuring against the old floor.</td></tr>
+  <tr><td class="id">H40</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The clamp half is mostly resolved by the effect ledger - one real clamp (<code>bump</code>) plus one harness hardcode. The "average elo five ways" half stands whole, at five sites.</td></tr>
+  <tr><td class="id">H41</td><td class="vd"><span class="tag v-done">DONE</span></td><td>90 and 93 each encoded twice (description and predicate) in <code>boons.ts</code>, which imports no <code>config</code>, while <code>STICKER_TIERS</code> lives there.</td></tr>
+  <tr><td class="id">H42</td><td class="vd"><span class="tag v-done">DONE</span></td><td>All three: <code>max: 200</code> against <code>ELO_MAX = 99</code>; <code>guard++ &lt; 8</code> under a comment saying 4; the 1080px breakpoint in both <code>matchMedia</code> and a Tailwind class.</td></tr>
   <tr><td class="id">H43</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Five of six unions stand (<code>'home'|'away'</code> at 9 sites in 5 files is the biggest). <code>'quick'|'career'</code> is gone with the modes, so <code>PlayMode</code> has nothing to name.</td></tr>
-  <tr><td class="id">H44</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Half done: <code>byFamily</code> now exists and the cabinet uses it, but <code>ChallengesScreen.tsx:163-164</code> still recomputes it (2 filters &times; 24 passes over 130 entries per render). Counts corrected: <code>Object.keys...as</code> 3 not 4; the GK-DEF-MID-FWD comparator 2 not 4.</td></tr>
-  <tr><td class="id">H45</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The proposed helper <b>shipped</b> (<code>collectiblesByTier</code>, and its own docstring names this item as the leftover). What remains: <code>AlbumScreen.tsx:56-62</code> still hand-rolls a byte-identical copy, and <code>tierOf(...)!</code> is at 8 sites in 4 files.</td></tr>
+  <tr><td class="id">H44</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Half done: <code>byFamily</code> now exists and the cabinet uses it, but <code>ChallengesScreen.tsx:163-164</code> still recomputes it (2 filters &times; 24 passes over 130 entries per render). Counts corrected: <code>Object.keys...as</code> 3 not 4; the GK-DEF-MID-FWD comparator 2 not 4.</td></tr>
+  <tr><td class="id">H45</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The proposed helper <b>shipped</b> (<code>collectiblesByTier</code>, and its own docstring names this item as the leftover). What remains: <code>AlbumScreen.tsx:56-62</code> still hand-rolls a byte-identical copy, and <code>tierOf(...)!</code> is at 8 sites in 4 files.</td></tr>
   <tr><td class="id">H46</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>All four sub-parts still real, under new names (<code>bumpLowest</code>/<code>bumpHighest</code> are now <code>planLowest</code>/<code>planHighest</code>). <b>Its cross-reference is wrong:</b> "(fixed by H15)" no longer holds, because H15 is void and that branch is live.</td></tr>
   <tr><td class="id">H47</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The two blocks have <b>diverged</b> since the audit - only the 5-line struck-through span is still identical. A shared <code>&lt;MarketPrice&gt;</code> now needs props for the wrapper and the price span.</td></tr>
-  <tr><td class="id">H48</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>ALL_SWAPS = 2</code> mirrors <code>INITIAL_SWAPS</code>; the pair <i>is</i> asserted, indirectly, by the <code>swap-meet</code> challenge check.</td></tr>
+  <tr><td class="id">H48</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>ALL_SWAPS = 2</code> mirrors <code>INITIAL_SWAPS</code>; the pair <i>is</i> asserted, indirectly, by the <code>swap-meet</code> challenge check.</td></tr>
 </table>
 
 <h3><span class="w">Wave 3</span> &mdash; design tokens and shared UI atoms (H49-H54)</h3>
@@ -410,7 +421,7 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
   <tr><th>ID</th><th class="vd">Verdict</th><th>Correction against the tree at c4f1512</th></tr>
   <tr><td class="id">H55</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>Reveal</code> still lives in the component layer and is imported type-only by two storage modules, both carrying an apologetic comment - the tell that the type is in the wrong place.</td></tr>
   <tr><td class="id">H56</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Three of four collapsed with the deleted screens: fixture normalisation is now 1 site (so <code>userFixture</code> has no second caller to justify it), the group-position derivation 2 not 4. <code>userGameView</code> is <b>done</b> (<code>userGameInRound</code> / <code>opponentOf</code> shipped). Only the 3-matchday loop duplication survives.</td></tr>
-  <tr><td class="id">H57</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Three independent spend expressions, two of them carrying comments about having to stay in step - which is the tell.</td></tr>
+  <tr><td class="id">H57</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Three independent spend expressions, two of them carrying comments about having to stay in step - which is the tell.</td></tr>
   <tr><td class="id">H58</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The swap-eligibility rule in three places; <code>canSwapInto</code> has exactly those three callers.</td></tr>
   <tr><td class="id">H59</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Sharpened: <code>Pitch.tsx</code> contains <b>zero</b> <code>useMemo</code>, so the 47-line Hungarian solver, the 11-slot <code>planMove</code> sweep and the per-badge <code>moveTargets</code> sweep all re-run on every render.</td></tr>
   <tr><td class="id">H60</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>draftedShape</code> / <code>draftedBuild</code> in <code>App.tsx</code>, including the re-roll allowance formula.</td></tr>
@@ -458,7 +469,7 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
   <tr><td class="id">H96</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Magic dataset indices re-measured at <b>30</b> sites (not 9). Four of six <code>PERKS</code> tracks are still never checked for tier well-formedness.</td></tr>
   <tr><td class="id">H97</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The harness still re-implements the core of <code>xiStrength</code> locally; <code>match.ts</code> exports no <code>groupAverages</code>.</td></tr>
   <tr><td class="id">H98</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Settled by <a href="#D1">D1</a>: the flag is gone, <code>AWARDS_ON</code> is a constant, and both assertions are unconditional.</td></tr>
-  <tr><td class="id">H99</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Re-measured perfectly clean, all four directions: <b>81 / 81 / 81</b>, zero orphan art, zero missing art, zero unbuilt sources. Still nothing guards it, and <code>build-sticker-art.py</code> never consults the dataset nor prunes a demoted player's file.</td></tr>
+  <tr><td class="id">H99</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Re-measured perfectly clean, all four directions: <b>81 / 81 / 81</b>, zero orphan art, zero missing art, zero unbuilt sources. Still nothing guards it, and <code>build-sticker-art.py</code> never consults the dataset nor prunes a demoted player's file.</td></tr>
   <tr><td class="id">H100</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All four sub-parts, with (d) half-addressed already (the byte count is printed; the <code>split(';')</code> over-count remains).</td></tr>
   <tr><td class="id">H101</td><td class="vd"><span class="tag v-stands">stands</span></td><td>No <code>engines</code> field (verified), no <code>.nvmrc</code>, against <code>node-version: 22</code> in CI and <code>node:22-alpine</code> in the Dockerfile. The missing trailing <code>-</code> is real, and <code>album:fill</code> having it is exactly why that script's <code>--</code> forwarding works while <code>build</code>'s does not.</td></tr>
   <tr><td class="id">H102</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Two metas only; the pre-paint theme script still hardcodes the settings key with no note of that coupling.</td></tr>
