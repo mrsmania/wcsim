@@ -1,7 +1,6 @@
 import { HelpCircle } from 'lucide-react';
-import type { Player } from '../data/types';
-import { categoryOf, DEF_CATS } from '../data/types';
 import type { Formation } from '../domain/formations';
+import { lineAverages } from '../domain/match';
 import { placedPlayers, type Filled } from '../domain/draft';
 import { CHEM_TIERS, ERA_SPAN_YEARS, FIT_MIN, MAX_BONUS, teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
@@ -60,11 +59,6 @@ interface Props {
     filled: Filled;
 }
 
-function avgElo(players: Player[]): number {
-    if (players.length === 0) return 0;
-    return Math.round(players.reduce((s, p) => s + p.elo, 0) / players.length);
-}
-
 /** One scoreboard cell in the ratings strip. The Ovr cell is the deep-green hero. */
 function Cell({ label, value, ovr = false }: { label: string; value: number; ovr?: boolean }) {
     return (
@@ -88,10 +82,10 @@ function Cell({ label, value, ovr = false }: { label: string; value: number; ovr
  *  Both render as siblings so the surrounding stack spaces them. */
 export default function BoxScore({ formation, filled }: Props) {
     const placed = placedPlayers(formation, filled);
-    const attack = avgElo(placed.filter((p) => categoryOf(p.positions[0]) === 'FWD'));
-    const midfield = avgElo(placed.filter((p) => categoryOf(p.positions[0]) === 'MID'));
-    const defense = avgElo(placed.filter((p) => DEF_CATS.includes(categoryOf(p.positions[0]))));
-    const overall = avgElo(placed);
+    // Not `xiStrength`: this Att is forwards only and an empty line reads 0, both on
+    // purpose. `lineAverages` sits beside xiStrength in domain/match.ts and its docstring
+    // says why the two differ (hygiene H144).
+    const { overall, attack, midfield, defense } = lineAverages(placed);
 
     const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;

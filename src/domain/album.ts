@@ -1,5 +1,5 @@
 import type { Player, Position } from '../data/types';
-import { STICKER_TIERS, STICKER_TRADE_COST, type StickerTier } from '../config';
+import { STICKER_TIERS, STICKER_TRADE_COST, TIER_RANK, type StickerTier } from '../config';
 import { shuffled } from './random';
 
 /**
@@ -79,6 +79,36 @@ export function collectiblesByTier(allPlayers: Player[]): Record<StickerTier, Pl
         list.sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
     }
     return groups;
+}
+
+/** What a cup win may pick from, best tier first then rating-desc (album spec FR-3 / D-1).
+ *  This is the rule that decides what the album can gain for winning, and it was living
+ *  inside the overlay that renders it (hygiene H142).
+ *
+ *  Three things about it, all load-bearing:
+ *   - **Monumental is excluded FIRST**, so the fallback pool below is Monumental-free too.
+ *     The top tier is earned by drafting the player or by trading, never as a free reward.
+ *   - `taken` is what this same win has already picked, so Double Print's second pick
+ *     cannot repeat its first and bank a duplicate for a card that promised two stickers.
+ *   - When nothing pickable is left uncollected the pool falls back to the WHOLE pickable
+ *     set, so the pick becomes a deliberate duplicate rather than an empty screen. That
+ *     fallback is the reason migration 0012 dropped the server's already-collected check:
+ *     the picker draws from the player's selected World Cups, so a finished 2022 pool
+ *     legally offers duplicates while uncollected 1990 cards still exist. Do not
+ *     reintroduce an exhaustion test on either side of the wire. */
+export function cupRewardPool(
+  album: AlbumState,
+  allPlayers: Player[],
+  taken: string[] = [],
+): Player[] {
+  const pickable = collectiblePlayers(allPlayers).filter((p) => tierOf(p) !== 'monumental');
+  const uncollected = pickable.filter(
+    (p) => !album.collected.includes(p.id) && !taken.includes(p.id),
+  );
+  const pool = uncollected.length ? uncollected : pickable.filter((p) => !taken.includes(p.id));
+  return pool
+    .slice()
+    .sort((a, b) => TIER_RANK[tierOf(a)!] - TIER_RANK[tierOf(b)!] || b.elo - a.elo);
 }
 
 /** Add one copy of a player id to an album (immutably): first copy -> collected,

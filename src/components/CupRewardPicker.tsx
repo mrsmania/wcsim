@@ -1,8 +1,7 @@
 import { Trophy } from 'lucide-react';
 import type { Player } from '../data/types';
 import type { AlbumState } from '../domain/album';
-import { collectiblePlayers, tierOf } from '../domain/album';
-import { TIER_META } from './stickerTheme';
+import { cupRewardPool, tierOf } from '../domain/album';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
 
@@ -28,18 +27,15 @@ export default function CupRewardPicker({
   total = 1,
   taken = [],
 }: Props) {
-  // The cup reward can pick any tier EXCEPT Monumental - the top tier is earned only
-  // by drafting the player or trading, never as a free win reward.
-  const pickable = collectiblePlayers(allPlayers).filter((p) => tierOf(p) !== 'monumental');
-  // Anything already taken on THIS win is out, or a second pick could repeat the first
-  // and the run would have banked a duplicate for a card that promised two stickers.
-  const uncollected = pickable.filter(
-    (p) => !album.collected.includes(p.id) && !taken.includes(p.id),
-  );
-  const allDone = uncollected.length === 0;
-  const pool = (allDone ? pickable.filter((p) => !taken.includes(p.id)) : uncollected)
-    .slice()
-    .sort((a, b) => TIER_META[tierOf(a)!].order - TIER_META[tierOf(b)!].order || b.elo - a.elo);
+  // The rule itself is `cupRewardPool` in domain/album.ts, which is where it belongs: it
+  // decides what the album can gain for a cup win. What is left here is the copy, which
+  // needs to know whether the pool is uncollected cards or a deliberate duplicate.
+  const pool = cupRewardPool(album, allPlayers, taken);
+  // "Nothing pickable is uncollected", which is exactly the condition that made
+  // `cupRewardPool` fall back to offering duplicates. Written against the pool it
+  // returned rather than recomputed from scratch, and equivalent in all three cases
+  // including an empty pool.
+  const allDone = !pool.some((p) => !album.collected.includes(p.id) && !taken.includes(p.id));
 
   return (
     <Overlay onClose={() => { /* not dismissible: a pick is required */ }} ariaLabel="Pick your prize">

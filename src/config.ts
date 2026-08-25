@@ -107,6 +107,21 @@ export const STICKER_TIERS = {
 /** The canonical tier union used across the codebase. */
 export type StickerTier = keyof typeof STICKER_TIERS;
 
+/** Tier RANK, best first: 0 = Monumental. Derived from the rating bands above, so the
+ *  ordering follows the tiers rather than being a second list to keep in step.
+ *
+ *  It lives here because it is a fact about tiers, not about how they look. The same
+ *  ordering exists in `components/stickerTheme.ts` as `TIER_META[t].order`, which the
+ *  album's LAYOUT reads - and the cup-reward rule was reading it too, from a component,
+ *  to sort a domain pool (hygiene H142). A domain rule may read this; a screen laying
+ *  cards out may read either. */
+export const TIER_RANK: Record<StickerTier, number> = (() => {
+    const byBest = (Object.keys(STICKER_TIERS) as StickerTier[]).sort(
+        (a, b) => STICKER_TIERS[b].min - STICKER_TIERS[a].min,
+    );
+    return Object.fromEntries(byBest.map((t, i) => [t, i])) as Record<StickerTier, number>;
+})();
+
 /** Trade-in cost: how many duplicates (any tier/mix) buy one sticker of that tier
  *  (the player then picks from up to 3 uncollected options). First-guess values;
  *  see `wcsim_album_stats_v1` telemetry to calibrate. */

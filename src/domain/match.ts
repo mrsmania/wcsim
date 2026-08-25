@@ -1,5 +1,5 @@
 import type { Player, Position } from '../data/types';
-import { isAttacker, isDefender, primaryPosition } from '../data/types';
+import { categoryOf, DEF_CATS, isAttacker, isDefender, primaryPosition } from '../data/types';
 import { pick } from './random';
 
 export interface Strength {
@@ -51,6 +51,40 @@ export function xiStrength(players: Player[]): Strength {
     attack: Math.round(attack.length ? avg(attack) : avg(all)),
     defense: Math.round(defense.length ? avg(defense) : avg(all)),
     overall: Math.round(avg(all)),
+  };
+}
+
+/**
+ * The build page's four rating cells (Ovr / Att / Mid / Def), which are NOT `xiStrength`
+ * and deliberately so. Two differences, both visible:
+ *
+ *  - `attack` here is FORWARDS ONLY, where xiStrength's is MID+FWD, because that is what
+ *    the sim reads. Handing the build page xiStrength instead would change the Att number
+ *    for every XI in the game.
+ *  - an empty line reads 0 here, which the screen renders as a dash. xiStrength falls back
+ *    to the overall, because a match cannot be simulated against nothing - a dash would be
+ *    a lie there and a number is a lie here.
+ *
+ * So there are two rating derivations on purpose. This one used to live inside BoxScore,
+ * with nothing next to xiStrength recording that the pair differed or why (hygiene H144).
+ * Whether the LABELS should say so is a separate question, recorded as audit decision D7.
+ *
+ * Keys off `positions[0]`, which `placedPlayers` promotes to the slot the player fills, so
+ * these are the lines as they are PLAYED.
+ */
+export function lineAverages(players: Player[]): {
+  overall: number;
+  attack: number;
+  midfield: number;
+  defense: number;
+} {
+  const mean = (xs: Player[]) => (xs.length ? Math.round(avg(xs.map((p) => p.elo))) : 0);
+  const cat = (p: Player) => categoryOf(primaryPosition(p));
+  return {
+    overall: mean(players),
+    attack: mean(players.filter((p) => cat(p) === 'FWD')),
+    midfield: mean(players.filter((p) => cat(p) === 'MID')),
+    defense: mean(players.filter((p) => DEF_CATS.includes(cat(p)))),
   };
 }
 
