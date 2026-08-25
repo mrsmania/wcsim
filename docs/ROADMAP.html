@@ -1032,18 +1032,22 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="item">
   <summary>
     <span class="num">36</span>
-    <span class="title">Transfer market: two filters, two layout fixes
-      <span class="sub">Asked for 2026-08-25. An "only what I can afford" tick-box, a country dropdown, the list row's year moved under the flag so names stop truncating, and the selected row's highlight, whose border is cropped left and right. The first one is a real bug: at the end of a build the market shows sixty rows and every one of them is disabled.</span>
+    <span class="title">Transfer market: the filter row, and two layout fixes
+      <span class="sub">Asked for 2026-08-25, and both open questions were answered the same day. An "only what I can afford" tick-box, a country dropdown, the cup and country dropdowns narrowing each other, the region filter deleted, the list row's year moved under the flag so names stop truncating, and the selected row's highlight, whose border is cropped left and right. The first one is a real bug: at the end of a build the market shows sixty rows and every one of them is disabled.</span>
     </span>
     <span class="tag">Build</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>The ask (2026-08-25),</strong> four things on the transfer market panel, in the
+    <p><strong>The ask (2026-08-25),</strong> six things on the transfer market panel, in the
     words they arrived in:</p>
     <ul>
       <li>a checkbox for displaying only players I can afford;</li>
       <li>a dropdown including all countries available in the current selection;</li>
+      <li>the dropdowns should narrow each other: <b>pick a cup and the country filter shows only
+      the countries that took part in it; pick a country and the cup filter shows only the years
+      that country was there</b>;</li>
+      <li><b>remove the region filter</b>;</li>
       <li>in list view, put the year beneath the flag and narrow the padding between columns, so
       the names have more space - most of them are truncated so you cannot tell who it is;</li>
       <li>the selected player gets a greenish background and a border, and that border is
@@ -1052,13 +1056,19 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       preference.</b></li>
     </ul>
 
+    <p><strong>Nothing here is still open.</strong> The first draft of this item left two
+    questions for an owner (does the region filter survive, and do the facets cross-filter) and
+    both were answered on the day: <b>region goes, and the two dropdowns narrow each other in
+    both directions.</b> So this is a build item, not a design item, and the notes below are
+    about the traps rather than the choices.</p>
+
     <p><strong>Where the code already is,</strong> and the split to keep: the sorts, the facet
     derivation and the whole filter pipeline live in <a class="dl" href="../src/domain/market.ts" target="_blank" rel="noopener"><code>domain/market.ts</code></a>
     (<code>marketResults</code>, <code>marketFacets</code>, <code>marketSortCmp</code>,
     <code>MAX_RESULTS</code>), pulled out of the component as hygiene H62. The panel keeps the
-    dropdowns, the words on them, the row markup and the memo wiring. So
-    filters one and two are a field on <code>MarketQuery</code> plus a control, and fixes three
-    and four are <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener"><code>BudgetMarket.tsx</code></a> alone.</p>
+    dropdowns, the words on them, the row markup and the memo wiring. So the filter work is
+    <code>MarketQuery</code> plus <code>marketFacets</code>' signature, and the two layout fixes
+    are <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener"><code>BudgetMarket.tsx</code></a> alone.</p>
 
     <div class="callout">
       <span class="ct">The affordable tick-box is not a convenience, it is a broken list</span>
@@ -1096,28 +1106,59 @@ $10                    83                  1415                    0
       row is disabled</b> (<code>used</code>, on <code>personId</code>) and this tick-box must not
       hide those, or a second toggle is being designed by accident. And it should <b>survive a
       position change</b> the way <code>collectiblesOnly</code> does, since affordability is not
-      position-specific while the year and region facets are (that reset effect is keyed on
+      position-specific while the cup and country facets are (that reset effect is keyed on
       <code>position</code>).</p></li>
 
-      <li><p><b>The country dropdown.</b> A third facet out of <code>marketFacets</code>, which
-      already walks the candidates for exactly this. Size it before designing it: a position draws
-      from <b>70 to 81 nations</b> (81 for GK, CB, CM, AM and ST; 70 for LW), so this is a long
-      native select, alphabetical by nation name. Key it on the <b>squad code</b> rather than the
-      nation string, so Soviet Union, Czechoslovakia, Yugoslavia and both German sides keep their
-      own entries.</p>
-      <p><b>The decision it forces:</b> the module currently promises the dropdowns "never offer
-      an option that would empty the list", and that promise is only true one facet at a time.
-      There are 352 squads across 13 years and 81 nations, so <b>two thirds of the year plus
-      country pairs are empty by construction</b> (1974 and Croatia, say), and a third facet makes
-      hitting one the normal case rather than the exception. Either cross-filter the facets so each
-      dropdown offers only what is live given the others, or accept the empty result and reword
-      that comment. Cross-filtering is the better answer and costs a re-derivation per filter
-      change.</p>
-      <p><b>Also decide whether "Any region" survives.</b> Country largely subsumes confederation,
-      and the filter row is about to hold four selects and two toggles in the narrowest column of
-      a three-column layout, so it will wrap to three lines. If they all stay, the row probably
-      belongs behind a disclosure; <code>CardDisclosure</code> in <code>matchUi.tsx</code> is the
-      shared atom for that.</p></li>
+      <li><p><b>The country dropdown.</b> A second facet out of <code>marketFacets</code>, which
+      already walks the candidates for exactly this. Size it before designing it: with no cup
+      picked a position draws from <b>70 to 81 nations</b> (81 for GK, CB, CM, AM and ST; 70 for
+      LW), so this is a long native select, alphabetical by nation name. Key it on the <b>squad
+      code</b> rather than the nation string, so Soviet Union, Czechoslovakia, Yugoslavia and both
+      German sides keep their own entries.</p></li>
+
+      <li><p><b>The two dropdowns narrow each other</b> (decided 2026-08-25). Each dropdown's
+      options are derived from the candidates that pass <em>every filter except its own</em>, which
+      is what makes both halves of the ask fall out of one rule: pick 1974 and the country list is
+      the 16 nations that were there, pick Wales and the cup list is 2022 alone. The field sizes
+      are the payoff, since the country list stops being a scroll of 81: <b>16 nations in 1974 and
+      1978, 24 from 1982 to 1994, 32 from 1998 on</b>.</p>
+      <p><b>It also closes the hole the first draft flagged.</b> The module promises the dropdowns
+      "never offer an option that would empty the list", and that promise was only true one facet
+      at a time - 352 squads across 13 years and 81 nations means two thirds of the year plus
+      country pairs are empty by construction. With both narrowing, an empty pair is
+      <b>unreachable through the UI in either order</b>, so the comment becomes true again rather
+      than needing a rewording.</p>
+      <p><b>Two traps, and the second is the common case.</b> First, decide which filters
+      participate: the recommendation is that <b>the cup and country dropdowns narrow each other
+      and nothing else narrows them</b> - the collectible and affordable toggles and the search box
+      should not, because affordability changes with every purchase and a country list that
+      reshuffles as money is spent is unpredictable in a way nobody asked for. Second, the cup
+      select is currently rendered only when its facet holds more than one option, and that guard
+      breaks under cross-filtering: <b>24 of the 81 nations played exactly one World Cup</b> (East
+      Germany, Haiti, Zaire, Kuwait, El Salvador, Iraq, UAE, Bolivia, Jamaica, Turkey, China,
+      Trinidad, Serbia and Montenegro, Angola, Czechia, Togo, Ukraine, Slovakia, North Korea,
+      Bosnia, Iceland, Panama, Qatar, Wales), so picking one collapses the cup facet to a single
+      year. Pick the cup <em>first</em> and then that country, and the guard hides a select that
+      still holds an active selection, which the player then cannot see or clear. The rule to write
+      down: <b>a facet's control is shown when it has more than one option OR a selection is
+      active on it.</b></p></li>
+
+      <li><p><b>The region filter goes</b> (decided 2026-08-25). Out of the panel, out of
+      <code>MarketQuery</code> (<code>filterRegion</code>), out of <code>marketFacets</code>'
+      return (<code>regions</code>), and the <code>Confederation</code> type import out of
+      <code>BudgetMarket.tsx</code>. <b><code>data/confederations.ts</code> stays and is not
+      dead:</b> <code>domain/chemistry.ts</code> reads it for the "Same continent" category,
+      <code>domain/challenges.ts</code> for <code>confedOf</code>, and
+      <code>domain/validateSquads.ts</code> asserts every squad code in the dataset is mapped
+      there. Only the market's use of it goes.</p>
+      <p><b>What is knowingly lost:</b> "every South American, across all thirteen cups" is a thing
+      six broad buckets could express and a country dropdown cannot. The judgement is that the
+      specific country is what anyone shopping actually wants, and that a filter with six options
+      was the wrong grain to spend a control on. The gain is the filter row: three selects and two
+      toggles instead of four and two, in the narrowest column of a three-column layout, which is
+      what keeps it off a third wrapped line and out of a disclosure
+      (<code>CardDisclosure</code> in <code>matchUi.tsx</code> was the fallback if it had
+      stayed).</p></li>
 
       <li><p><b>The list row.</b> The right-hand furniture is fixed at 122px of columns (flag 18,
       year 28, rating 24, price 52) plus 32px of <code>gap-2</code> and 16px of padding, so about
@@ -1150,16 +1191,19 @@ $10                    83                  1415                    0
     </ol>
 
     <p><strong>The gate.</strong> <code>domain/market.ts</code> has <b>no coverage in
-    <code>scripts/checks.ts</code> at all</b> today, and items one and two are domain changes, so
-    this is the moment to add some: that the affordable filter is applied before the cap (sixty
-    affordable rows, not the affordable subset of sixty), that a facet never offers an option
-    yielding zero rows once cross-filtering is in, and that the filters compose rather than
-    override each other. <code>npm run build</code> and <code>npm run checks</code> both, per the
-    working agreements.</p>
+    <code>scripts/checks.ts</code> at all</b> today, and items one to four are domain changes, so
+    this is the moment to add some. Four are cheap and each one guards a trap named above: the
+    affordable filter is applied before the cap (sixty affordable rows, not the affordable subset
+    of sixty); <b>every option a dropdown offers yields at least one row, in both orders</b> (pick
+    each cup then walk its countries, and pick each country then walk its cups), which is the
+    property cross-filtering exists to restore; a facet never drops an option that is currently
+    selected; and the filters compose rather than override each other. <code>npm run build</code>
+    and <code>npm run checks</code> both, per the working agreements.</p>
 
-    <p class="next"><strong>Next step:</strong> ship items one and four first. They are the two
-    that are actively wrong rather than merely missing, they touch one field and one class string
-    respectively, and the border fix needs no decision beyond the one already made.</p>
+    <p class="next"><strong>Next step:</strong> ship items one and six first. They are the two that
+    are actively wrong rather than merely missing, they touch one field and one class string
+    respectively, and neither needs a decision. Then two, three and four together, since they are
+    one pass over <code>marketFacets</code> and one filter row.</p>
     <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener">src/components/BudgetMarket.tsx</a>, <a class="dl" href="../src/domain/market.ts" target="_blank" rel="noopener">src/domain/market.ts</a>, <a class="dl" href="../src/domain/pricing.ts" target="_blank" rel="noopener">src/domain/pricing.ts</a>, <a class="dl" href="../src/data/confederations.ts" target="_blank" rel="noopener">src/data/confederations.ts</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a></p>
   </div>
 </details>
