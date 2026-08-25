@@ -307,7 +307,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-25<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 5 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -319,91 +319,6 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
-<details class="item">
-  <summary>
-    <span class="num">33</span>
-    <span class="title">1986 follow-ups: push the collectible seed, and verify the ratings
-      <span class="sub">The position and rating pass is <b>DONE (2026-08-25)</b>: 1986 was re-sourced from Wikipedia + RSSSF, nothing in it is inferred any more, and its spread now matches the other nine. <b>What is left is one command:</b> the regenerated collectible seed is committed but still not on the account server, which needs a LAN or VPN.</span>
-    </span>
-    <span class="tag">Content</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>1. Push the collectible seed to the account server. STILL OPEN, and it is
-    now three cards larger.</strong> 1986 originally took the album from 81 to 84; the rating
-    pass below took it to <b>87</b>, so <code>supabase/seed/collectibles.sql</code> was
-    regenerated with <code>npm run gen:collectibles</code> and is committed. The server still
-    has the old 81: <b>run <code>npm run push:collectibles</code></b> from the LAN or VPN (it
-    needs <code>dkr/.env</code>). Until then a signed-in player who drafts any of the six
-    banks an id the server's catalogue does not contain, and <code>finish_run</code> refuses
-    the whole bank - which for an account is the blocking unreachable screen, not a silent
-    miss. Guests are unaffected: collectibility is derived from <code>player.elo</code> in
-    the client.
-    <br>The six ids are <code>arg-1986-10</code> (Maradona, Monumental),
-    <code>fra-1986-10</code> (Platini), <code>eng-1986-10</code> (Lineker),
-    <code>esp-1986-9</code> (Butragueno), <code>den-1986-10</code> (Elkjaer) and
-    <code>urs-1986-19</code> (Belanov). All six also need sticker art
-    (<code>art/stickers-src/&lt;id&gt;.png</code>, then
-    <code>python scripts/build-sticker-art.py</code>); until it exists
-    <code>StickerCard</code> falls back to text and a flag per missing file, which is
-    working-as-designed rather than broken.</p>
-
-    <p><strong>2. Verify the 1986 positions and ratings. DONE 2026-08-25.</strong> The whole
-    tournament was re-sourced rather than spot-checked, because the premise the first drop
-    rested on turned out to be false: <b>Wikipedia and RSSSF are both reachable</b> with
-    plain <code>curl</code> and the MediaWiki API from a local session, whatever a cloud
-    session's egress proxy blocks. So there was no need to keep inferring anything.
-    <b>Try the fetch before believing it is blocked.</b> Three sources, each answering a
-    different question:</p>
-    <ul>
-      <li><b>Wikipedia's <code>1986 FIFA World Cup squads</code></b> (raw wikitext) for names,
-      shirt numbers, the GK/DF/MF/FW split and - the part that matters most for the squads
-      nobody has written about - <b>caps and club at the time</b>. It also caught a real
-      error: <b>Morocco registered 22, not 23</b>. The openfootball list carried a phantom
-      23rd, "Abderrazak Dinar", who appears in no other source (Wikipedia and planetworldcup
-      both list 22), so he is deleted and the dataset is <b>528 rows</b>, every 1986 squad a
-      plain 22.</li>
-      <li><b>Each player's own article</b>, fetched in batches of 40 through the MediaWiki
-      API, for the infobox <code>position</code> field - "Left-back", "Defensive midfielder",
-      "Sweeper". <b>527 of 528 had one</b> (only Canada's Pasquale De Luca did not).</li>
-      <li><b>RSSSF <code>tables/86full.html</code></b> for every match line-up, printed as
-      <code>keeper - defence - midfield - attack</code>. That is what says which role a man
-      <b>actually filled in Mexico</b> rather than what he is remembered as.</li>
-    </ul>
-    <p><b>What was wrong, and it was more than the flat "minus two" rule.</b> The rule itself
-    went (it is wrong in both directions - a 24-year-old improving into 1990 should be further
-    below, anyone past his peak should be above), but the worst misses were bigger than two
-    points and were about identity rather than arithmetic:</p>
-    <ul>
-      <li><b>Cha Bum-kun at 67.</b> A Bundesliga star at Bayer Leverkusen with 125 caps, and
-      one of the best Asian players ever. Now 83, which makes South Korea a real side.</li>
-      <li><b>Oleksandr Zavarov at 74</b>, below his own 1990 rating, in the year he was
-      <b>Soviet Footballer of the Year</b> and two years before Juventus signed him to replace
-      Platini. Now 84.</li>
-      <li><b>Rabah Madjer and Lakhdar Belloumi at 67.</b> The 1987 European Cup backheel and
-      the 1981 African Footballer of the Year. Now 81 and 80.</li>
-      <li><b>Positions that were simply somebody else's.</b> Poland's Dariusz Dziekanowski, a
-      striker, was a DM; Scotland's Frank McAvennie, a striker, was a CM; Portugal's Antonio
-      Oliveira, a sweeper, was a LW; Korea's Kim Yong-se, a striker, was a CB; Bulgaria's
-      Andrey Zhelyazkov, his club's all-time top scorer, was a DM.</li>
-    </ul>
-    <p><b>The spread now matches the other nine, which it did not before.</b> 1986 was the
-    weakest tournament in the game by a distance: mean 72.7 against 74.6-76.2 everywhere else,
-    median 72 against 75-77, a floor of 60 against 62-64, and a best-XI range of 63.8-83.5
-    against 1990's 69.0-86.2. It now reads <b>mean 75.1, median 74, floor 65, best XI
-    69.9 (Canada) to 84.3 (West Germany)</b>, and <b>six players at 90+</b> against 1990's
-    four and 1994's seven. The three that joined Maradona, Platini and Lineker are the
-    <b>1986 Ballon d'Or top three</b>: Belanov (who won it), Butragueno and Elkjaer.
-    <br>The four thin squads are gone too: Bulgaria, Algeria, Canada and Iraq carried 5 or 6
-    distinct ratings between 22 players and now carry 7 to 11, in line with the rest.</p>
-
-    <p class="next"><strong>Next step:</strong> run <code>npm run push:collectibles</code>
-    next time you are on the LAN or VPN - that is all that is left of this item, it is a
-    blocker for signed-in players, and it takes a minute. Then art for the six ids above.</p>
-
-    <p class="files">supabase/seed/collectibles.sql, src/data/squads.ts, art/stickers-src/</p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -868,6 +783,103 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-08-25</h3>
+    <p>Kept in full because the method is the deliverable: it is the source route the next
+    tournament should use, and the reason to distrust "that site is blocked".</p>
+
+<details class="item">
+  <summary>
+    <span class="num">33</span>
+    <span class="title">1986 follow-ups: push the collectible seed, and verify the ratings
+      <span class="sub">CLOSED 2026-08-25, both halves. 1986 was re-sourced from Wikipedia + RSSSF rather than spot-checked - nothing in it is inferred any more, and its spread now matches the other nine - and the 87-row collectible catalogue is on the account server.</span>
+    </span>
+    <span class="tag">Content</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>1. Push the collectible seed to the account server. DONE 2026-08-25, and it
+    went up three cards larger than planned.</strong> 1986 originally took the album from 81 to 84; the rating
+    pass below took it to <b>87</b>, so <code>supabase/seed/collectibles.sql</code> was
+    regenerated with <code>npm run gen:collectibles</code> and pushed with
+    <code>npm run push:collectibles</code>; the server answers <b>87 active, 0 retired</b>.
+    Before it, a signed-in player who drafted any of the six banked an id the server's
+    catalogue did not contain, <code>finish_run</code> refused the whole bank, and for an
+    account that is the blocking unreachable screen rather than a silent miss. Guests were
+    never affected: collectibility is derived from <code>player.elo</code> in the client.
+    <br><b>The gotcha that made it look like the NAS was down:</b> the push failed with
+    "could not reach the server - fetch failed" while <code>curl</code> to the same host
+    answered fine. The cause was TLS trust, not the network - <b>Node ships its own CA list
+    and does not read the Windows certificate store</b>, so the chain that curl accepts is
+    "unable to get local issuer certificate" to <code>fetch</code>. Run it as
+    <code>NODE_OPTIONS=--use-system-ca npm run push:collectibles</code> (Node 22.15+), which
+    is what <code>scripts/dkr-env.mjs</code> now says when it sees that error.
+    <br>The six ids are <code>arg-1986-10</code> (Maradona, Monumental),
+    <code>fra-1986-10</code> (Platini), <code>eng-1986-10</code> (Lineker),
+    <code>esp-1986-9</code> (Butragueno), <code>den-1986-10</code> (Elkjaer) and
+    <code>urs-1986-19</code> (Belanov). All six also need sticker art
+    (<code>art/stickers-src/&lt;id&gt;.png</code>, then
+    <code>python scripts/build-sticker-art.py</code>); until it exists
+    <code>StickerCard</code> falls back to text and a flag per missing file, which is
+    working-as-designed rather than broken.</p>
+
+    <p><strong>2. Verify the 1986 positions and ratings. DONE 2026-08-25.</strong> The whole
+    tournament was re-sourced rather than spot-checked, because the premise the first drop
+    rested on turned out to be false: <b>Wikipedia and RSSSF are both reachable</b> with
+    plain <code>curl</code> and the MediaWiki API from a local session, whatever a cloud
+    session's egress proxy blocks. So there was no need to keep inferring anything.
+    <b>Try the fetch before believing it is blocked.</b> Three sources, each answering a
+    different question:</p>
+    <ul>
+      <li><b>Wikipedia's <code>1986 FIFA World Cup squads</code></b> (raw wikitext) for names,
+      shirt numbers, the GK/DF/MF/FW split and - the part that matters most for the squads
+      nobody has written about - <b>caps and club at the time</b>. It also caught a real
+      error: <b>Morocco registered 22, not 23</b>. The openfootball list carried a phantom
+      23rd, "Abderrazak Dinar", who appears in no other source (Wikipedia and planetworldcup
+      both list 22), so he is deleted and the dataset is <b>528 rows</b>, every 1986 squad a
+      plain 22.</li>
+      <li><b>Each player's own article</b>, fetched in batches of 40 through the MediaWiki
+      API, for the infobox <code>position</code> field - "Left-back", "Defensive midfielder",
+      "Sweeper". <b>527 of 528 had one</b> (only Canada's Pasquale De Luca did not).</li>
+      <li><b>RSSSF <code>tables/86full.html</code></b> for every match line-up, printed as
+      <code>keeper - defence - midfield - attack</code>. That is what says which role a man
+      <b>actually filled in Mexico</b> rather than what he is remembered as.</li>
+    </ul>
+    <p><b>What was wrong, and it was more than the flat "minus two" rule.</b> The rule itself
+    went (it is wrong in both directions - a 24-year-old improving into 1990 should be further
+    below, anyone past his peak should be above), but the worst misses were bigger than two
+    points and were about identity rather than arithmetic:</p>
+    <ul>
+      <li><b>Cha Bum-kun at 67.</b> A Bundesliga star at Bayer Leverkusen with 125 caps, and
+      one of the best Asian players ever. Now 83, which makes South Korea a real side.</li>
+      <li><b>Oleksandr Zavarov at 74</b>, below his own 1990 rating, in the year he was
+      <b>Soviet Footballer of the Year</b> and two years before Juventus signed him to replace
+      Platini. Now 84.</li>
+      <li><b>Rabah Madjer and Lakhdar Belloumi at 67.</b> The 1987 European Cup backheel and
+      the 1981 African Footballer of the Year. Now 81 and 80.</li>
+      <li><b>Positions that were simply somebody else's.</b> Poland's Dariusz Dziekanowski, a
+      striker, was a DM; Scotland's Frank McAvennie, a striker, was a CM; Portugal's Antonio
+      Oliveira, a sweeper, was a LW; Korea's Kim Yong-se, a striker, was a CB; Bulgaria's
+      Andrey Zhelyazkov, his club's all-time top scorer, was a DM.</li>
+    </ul>
+    <p><b>The spread now matches the other nine, which it did not before.</b> 1986 was the
+    weakest tournament in the game by a distance: mean 72.7 against 74.6-76.2 everywhere else,
+    median 72 against 75-77, a floor of 60 against 62-64, and a best-XI range of 63.8-83.5
+    against 1990's 69.0-86.2. It now reads <b>mean 75.1, median 74, floor 65, best XI
+    69.9 (Canada) to 84.3 (West Germany)</b>, and <b>six players at 90+</b> against 1990's
+    four and 1994's seven. The three that joined Maradona, Platini and Lineker are the
+    <b>1986 Ballon d'Or top three</b>: Belanov (who won it), Butragueno and Elkjaer.
+    <br>The four thin squads are gone too: Bulgaria, Algeria, Canada and Iraq carried 5 or 6
+    distinct ratings between 22 players and now carry 7 to 11, in line with the rest.</p>
+
+    <p class="next"><strong>What is left, and it is not this item:</strong> sticker art for
+    the six 1986 ids. Until it exists <code>StickerCard</code> falls back to text and a flag
+    per missing file, which is working-as-designed. That belongs with the art for every other
+    uncovered card, not here.</p>
+
+    <p class="files">supabase/seed/collectibles.sql, src/data/squads.ts, art/stickers-src/</p>
+  </div>
+</details>
+
     <h3>Closed 2026-08-23</h3>
     <p>Kept in full rather than condensed to a line each: these three are the reasoning
     behind the current boost pool, the offer rule and the checks harness, and all of it was

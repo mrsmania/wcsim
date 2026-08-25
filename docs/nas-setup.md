@@ -305,6 +305,23 @@ The seed is idempotent, so re-running it after a dataset change is the whole upd
 procedure. Regenerate it with `npm run gen:collectibles` whenever ratings or
 `STICKER_TIERS` change; `npm run checks` fails while it is stale.
 
+**"could not reach the server - fetch failed" is not always the network.** It said that on
+2026-08-25 while `curl https://wcsim-api.mariosmania.ch/` from the same shell answered 401,
+which is the server being perfectly up. The cause was TLS trust: **Node ships its own CA
+list and does not read the Windows certificate store**, so a chain the OS (and curl) accepts
+comes back to `fetch` as *unable to get local issuer certificate*. The fix is one env var,
+on Node 22.15 or newer:
+
+```
+NODE_OPTIONS=--use-system-ca npm run push:collectibles
+NODE_OPTIONS=--use-system-ca npm run push:sql -- --query "select count(*) from profiles"
+```
+
+`scripts/dkr-env.mjs` recognises that error and prints the same line, so the message is on
+the failure rather than only here. Check `curl` before concluding the NAS is down. Do **not**
+reach for `NODE_TLS_REJECT_UNAUTHORIZED=0`: it disables verification for the whole process,
+including the request that carries the service-role key.
+
 **There is no invite step any more.** An `insert into allowed_emails` used to go here, one
 row per person, without which nobody could sign up. Migration `0005` opened signup and
 `drop table`d it, so that insert now fails with *relation "allowed_emails" does not exist*

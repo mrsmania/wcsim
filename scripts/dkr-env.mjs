@@ -51,9 +51,17 @@ export async function runSql({ api, key }, sql) {
     },
     body: JSON.stringify({ query: sql }),
   }).catch((err) => {
+    // A certificate the OS trusts is not one Node trusts: Node ships its own CA list and
+    // does not read the Windows store, so a host `curl` reaches fine can still fail here.
+    // Say so, because otherwise this reads as "the NAS is down" and sends you to the NAS.
+    const cause = err.cause?.message ?? '';
+    const tls = /certificate|self-signed|unable to (get|verify)/i.test(`${err.message} ${cause}`);
     throw new Error(
-      `could not reach the server - ${err.message}\n` +
-        '  Is the NAS up, and are you on a network that can reach it?',
+      `could not reach the server - ${err.message}${cause ? ` (${cause})` : ''}\n` +
+        (tls
+          ? '  That is TLS trust, not the network. Node does not read the OS certificate\n' +
+            '  store; retry with NODE_OPTIONS=--use-system-ca (Node 22.15+).'
+          : '  Is the NAS up, and are you on a network that can reach it?'),
     );
   });
 
