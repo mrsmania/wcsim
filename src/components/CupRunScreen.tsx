@@ -26,6 +26,7 @@ import {
 import {
   applyRunResult,
   careerTopScorerId,
+  startRunCareer,
   buyPerkTier,
   unlockBoon,
   levelProgress,
@@ -283,18 +284,14 @@ export default function CupRunScreen({
     // not this one.
     onRunStart?.();
     const chosen = chosenAscension;
-    // Youth Development, taken in an earlier run, banked a starter boost for this one.
-    // It is SPENT here: the career is written back with the counter cleared in the same
-    // update that remembers the tier, so a grant can only ever be dealt once.
-    const owed = career.stats.bonusStartBoosts ?? 0;
-    if (career.lastAscension !== chosen || owed > 0) {
-      const c: CareerState = {
-        ...career,
-        lastAscension: chosen,
-        ...(owed > 0 ? { stats: { ...career.stats, bonusStartBoosts: 0 } } : {}),
-      };
-      setCareer(c);
-      void store.saveCareer(c);
+    // Remember the tier and SPEND any Youth Development grant an earlier run banked. The
+    // "dealt exactly once" invariant lives in `startRunCareer` now, where the harness can
+    // see it; it returns the career unchanged by identity when there is nothing to write,
+    // which is what this save skips on.
+    const { career: nextCareer, owed } = startRunCareer(career, chosen);
+    if (nextCareer !== career) {
+      setCareer(nextCareer);
+      void store.saveCareer(nextCareer);
     }
     const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen, {
       shape: draftedShape ?? undefined,

@@ -4,6 +4,7 @@ import { boonById, BOON_UNLOCK_COST } from './boons';
 import { ascensionAt, MAX_ASCENSION } from './ascension';
 import { completedIn, prestigeFor } from './challenges';
 import type { AlbumState } from './album';
+import { BUDGET_BY_TIER } from '../config';
 
 // ---------------------------------------------------------------------------
 // Manager Career - the persistent meta-layer over Cup Runs. Pure model: XP/level,
@@ -303,8 +304,8 @@ export const PERKS: Perk[] = [
     ],
   },
   {
-    // Raises the transfer-market budget (BUDGET_BY_TIER, read in App).
-    // The tier -> dollars mapping lives in config.ts BUDGET_BY_TIER (base $70 at tier 0).
+    // Raises the transfer-market budget. The tier -> dollars mapping lives in
+    // config.ts BUDGET_BY_TIER (base $70 at tier 0); `budgetOf` below does the lookup.
     id: 'transfer-budget',
     name: 'Transfer Budget',
     tiers: [
@@ -372,6 +373,47 @@ export const perkLevelOf = (career: CareerState, id: string): number => career.p
 export function extraRerollsOf(career: CareerState): number {
   const tiers = perkById('extra-reroll')?.tiers.length ?? 0;
   return Math.min(perkLevelOf(career, 'extra-reroll'), tiers);
+}
+
+/** The transfer market's budget for this career: the base one, raised by the owned
+ *  `transfer-budget` tier. Exact twin of `extraRerollsOf` above, and it sat in `App`
+ *  instead - which is why `npm run checks` could assert that the dollar ladder rises and
+ *  the shop copy is honest, but not the lookup that actually hands the market its money
+ *  (hygiene H146). It was also called twice for the same career in one render, under a
+ *  comment promising the two could not drift.
+ *
+ *  The clamp is load-bearing: a saved career from a later build (or a hand-edited one)
+ *  could claim a tier past the end of the ladder, and indexing off the end would hand the
+ *  market `undefined` dollars. */
+export function budgetOf(career: CareerState): number {
+  const tier = Math.min(perkLevelOf(career, 'transfer-budget'), BUDGET_BY_TIER.length - 1);
+  return BUDGET_BY_TIER[Math.max(0, tier)];
+}
+
+/** Start a run: remember the Ascension tier, and SPEND any Youth Development grant a
+ *  previous run banked. Returns the career to save and how many bonus boosts are owed.
+ *
+ *  The "spent exactly once" invariant used to be enforced by the shape of an `if` inside
+ *  CupRunScreen, where the harness could not see it (hygiene H146). Three things it keeps:
+ *  `owed` is read BEFORE the counter is cleared; the write is skipped entirely when
+ *  neither the tier nor the grant changed (so an unchanged career is returned by
+ *  identity, and the caller can skip the save); and clearing the counter happens in the
+ *  same update that records the tier, so there is no window in which a grant could be
+ *  dealt twice. */
+export function startRunCareer(
+  career: CareerState,
+  tier: number,
+): { career: CareerState; owed: number } {
+  const owed = career.stats.bonusStartBoosts ?? 0;
+  if (career.lastAscension === tier && owed === 0) return { career, owed };
+  return {
+    career: {
+      ...career,
+      lastAscension: tier,
+      ...(owed > 0 ? { stats: { ...career.stats, bonusStartBoosts: 0 } } : {}),
+    },
+    owed,
+  };
 }
 
 /** The next unbought tier of a perk, or null if it is maxed / unknown. */

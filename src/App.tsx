@@ -30,12 +30,12 @@ import {
     type TeamStrength,
 } from './domain/draft';
 import { KO_ROUNDS } from './domain/knockout';
-import { extraRerollsOf, type CareerState } from './domain/career';
+import { budgetOf, extraRerollsOf } from './domain/career';
 import { maxSelectableAscension, selectedAscension } from './domain/ascension';
 import { priceFor, xiSpend } from './domain/pricing';
 import type { RunBuild, RunShape } from './domain/run';
 import { swapEligibleIds as swapEligibleIdsOf } from './domain/album';
-import { BUDGET_BY_TIER, FEATURES } from './config';
+import { FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
 import { useLiveMatch } from './nav/liveMatch';
 import { SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
@@ -71,11 +71,6 @@ const isStackedLayout = () =>
     typeof window !== 'undefined' && !window.matchMedia('(min-width: 1080px)').matches;
 
 type HomeView = 'setup' | 'draft' | 'complete';
-
-/** The transfer-market budget: the base one, raised by the owned `transfer-budget` perk
- *  tier. Every build is a career build, so there is no unscaled case. */
-const budgetOf = (career: CareerState): number =>
-    BUDGET_BY_TIER[Math.min(career.perkLevels['transfer-budget'] ?? 0, BUDGET_BY_TIER.length - 1)];
 
 /** Section eyebrow/title for the home screen, by sub-view. The home sub-view is
  *  derived from the drafted data (not `phase`), so navigating Back to home
@@ -645,7 +640,8 @@ export default function App({
             const prices = draftedXi.map((p) => priceFor(p, ownedStickerIds));
             return {
                 method: 'budget',
-                budget: budgetOf(careerPeek),
+                // The same figure the market charged against, not a second lookup.
+                budget,
                 spent: xiSpend(draftedXi, ownedStickerIds),
                 dearest: Math.max(...prices),
                 discounted: draftedXi.filter((p) => ownedStickerIds.has(p.id)).length,

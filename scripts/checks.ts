@@ -107,6 +107,7 @@ import {
   HISTORY_LIMIT,
   PLAYER_RECORD_LIMIT,
   boonUnlockState,
+  budgetOf,
   buyPerkTier,
   extraRerollsOf,
   perkLevelOf,
@@ -116,6 +117,7 @@ import {
   INITIAL_CAREER,
   levelForXp,
   PERKS,
+  startRunCareer,
   type CareerState,
 } from '../src/domain/career';
 import { simulateTitleOdds } from '../src/domain/odds';
@@ -1834,6 +1836,48 @@ const plainRun = (() => {
     }
   }
   check('career: the Extra Choice / Deep Squad / Scout Network copy matches the numbers', ok);
+}
+
+// --- Career: budgetOf and the Youth Development grant --------------------------------
+// Both used to live in a component or in App, where the harness could not reach them
+// (hygiene H146). `budgetOf` is what actually hands the transfer market its money - the
+// existing checks could assert that the dollar ladder rises and that the shop copy is
+// honest, but not the lookup in between. `startRunCareer` carries the "a banked boost is
+// dealt exactly once" invariant, which CLAUDE.md calls load-bearing and which used to be
+// enforced by the shape of an `if`.
+{
+  let ok = true;
+  // Every tier of the transfer-budget track maps to the ladder, in order.
+  const track = PERKS.find((p) => p.id === 'transfer-budget')!;
+  for (let tier = 0; tier <= track.tiers.length; tier++) {
+    const c: CareerState = { ...INITIAL_CAREER, perkLevels: { 'transfer-budget': tier } };
+    if (budgetOf(c) !== BUDGET_BY_TIER[Math.min(tier, BUDGET_BY_TIER.length - 1)]) ok = false;
+  }
+  // A career with no perks gets the base budget, and one claiming a tier past the end of
+  // the ladder is clamped rather than handed `undefined` dollars.
+  if (budgetOf(INITIAL_CAREER) !== BUDGET_BY_TIER[0]) ok = false;
+  const overflow: CareerState = { ...INITIAL_CAREER, perkLevels: { 'transfer-budget': 99 } };
+  if (budgetOf(overflow) !== BUDGET_BY_TIER[BUDGET_BY_TIER.length - 1]) ok = false;
+
+  // The grant: owed is read before the clear, the counter is emptied, and a second start
+  // is owed nothing. The write is skipped by IDENTITY when neither input changed.
+  const owing: CareerState = {
+    ...INITIAL_CAREER,
+    lastAscension: 0,
+    stats: { ...INITIAL_CAREER.stats, bonusStartBoosts: 2 },
+  };
+  const first = startRunCareer(owing, 0);
+  if (first.owed !== 2) ok = false;
+  if ((first.career.stats.bonusStartBoosts ?? 0) !== 0) ok = false;
+  const second = startRunCareer(first.career, 0);
+  if (second.owed !== 0 || second.career !== first.career) ok = false;
+  // Changing only the tier still writes, and does not invent a grant.
+  const tierOnly = startRunCareer(INITIAL_CAREER, 3);
+  if (tierOnly.owed !== 0 || tierOnly.career === INITIAL_CAREER) ok = false;
+  if (tierOnly.career.lastAscension !== 3) ok = false;
+  // Nothing to do at all: same career object back, so the caller can skip the save.
+  if (startRunCareer(tierOnly.career, 3).career !== tierOnly.career) ok = false;
+  check('career: budgetOf matches the ladder (clamped), and a banked boost is dealt once', ok);
 }
 
 // --- Career: the shop's advice agrees with what the shop will actually do -----------
