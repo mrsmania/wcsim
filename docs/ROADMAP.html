@@ -516,7 +516,7 @@
   <summary>
     <span class="num">23</span>
     <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 3 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 137 checks. Next up: wave 4.</span>
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 4 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 139 checks. Next up: wave 5, the type model.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -579,7 +579,7 @@
     none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
     not forgotten.</p>
 
-    <p><b>Executed 2026-08-24/25: the gate repair, waves 1 to 3, and all sixteen decisions.</b>
+    <p><b>Executed 2026-08-24/25: the gate repair, waves 1 to 4, and all sixteen decisions.</b>
     The gate came first, as the re-audit said it had to: the flake and the two checks that could
     pass on zero observations are fixed, <code>npm run checks</code> runs in CI before the build,
     and the suite is at <b>137</b> - three of the additions assert that a number and the sentence
@@ -590,8 +590,19 @@
     can be proved almost completely by the built stylesheet being byte-identical, which is cheap
     enough to do every time; taking a wave in the audit's own order matters, because it put the
     item that fails silently first; and two decisions had to be asked twice purely because they
-    were first put in terms of the code rather than in terms of what a player sees.
-    <b>Next up: wave 4.</b></p>
+    were first put in terms of the code rather than in terms of what a player sees.</p>
+
+    <p><b>Wave 4 (put the logic where it belongs) went the same day.</b> Twelve of the original
+    items plus all seven new ones, and it produced two new pure modules - the transfer market's
+    queries and the squad archive's - plus two hooks lifted out of the Cup Run screen. Two of its
+    items exist purely so the checks harness can reach a rule that was hiding in a component, and
+    both are now asserted: the perk shop's advice must agree with what buying actually does, and
+    the transfer market's budget lookup and the "a banked boost is dealt once" invariant are
+    finally testable. The byte-identical-stylesheet trick does not help in a wave that moves logic
+    rather than classes, so every extraction was compared against the expression it replaced over
+    the real dataset instead - tens of thousands of cases, counts recorded per commit.
+    <b>Next up: wave 5, the type model</b>, which contains the single change that deletes the most
+    noise in the codebase.</p>
 
     <p><strong>The waves</strong>, in execution order:</p>
     <ol>
@@ -603,7 +614,7 @@
       <li><b><s>Design tokens and shared UI atoms</s></b> (H49-H54, plus H19, H46, H47 and H132-H140). <b>DONE.</b> The palette and caption constants
       already exist in <a class="dl" href="../src/index.css" target="_blank" rel="noopener"><code>index.css</code></a> and <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/matchUi.tsx" target="_blank" rel="noopener"><code>matchUi.tsx</code></a> and are bypassed by
       inline copies.</li>
-      <li><b>Put the logic where it belongs</b> (H55-H68). Pure computations that ended up in
+      <li><b><s>Put the logic where it belongs</s></b> (H55-H68, plus H124 and H141-H147). <b>DONE.</b> Pure computations that ended up in
       leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
       rules, budget spend computed three times, the kickoff records built in <code>App</code>.</li>
       <li><b>The type model</b> (H69-H78). Chiefly <code>RoundRecord</code> as a real

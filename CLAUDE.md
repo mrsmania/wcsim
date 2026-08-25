@@ -63,16 +63,17 @@ executed as written.** The old numbering is preserved so references here still r
 findings start at H106. Its "item 27 owns these" list is gone - that item shipped and its
 losing chrome was deleted, so all five things it named are settled.
 
-**Waves 1 to 3 are done** (2026-08-24/25), and so are all sixteen decisions. What that
-means for anyone picking the backlog up at wave 4:
+**Waves 1 to 4 are done** (2026-08-24/25), and so are all sixteen decisions. What that
+means for anyone picking the backlog up at wave 5:
 
 - **The gate is repaired and it now runs in CI.** The audit opened on the finding that
   `npm run checks` failed at random about one run in twelve, and that the `prime-years`
   check was **vacuous** - proved by reintroducing the sticker exploit it exists to catch
   and still getting 132 passed / 0 failed. Both are fixed (H106-H109), `npm run checks`
-  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **137
-  checks**. Three of the new ones assert that a number and the sentence promising it agree
-  (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette).
+  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **139
+  checks**. Five of the new ones assert that a number and the sentence promising it agree
+  (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette, H65 the perk
+  shop's advice, H146 the market's budget lookup).
 - **The truth sweep landed**, so the wrong figures and the deleted boosts and doors this
   file used to describe as live are corrected (H128-H131, H154). Treat any dataset count
   here as a measurement with a date on it regardless: the dataset moved three times during
@@ -97,6 +98,16 @@ means for anyone picking the backlog up at wave 4:
   ramp (`TIER_META`, `TIER_ORDER`, the `GOLD_*` accents, `stickerArtSrc`) so nothing has to
   import `StickerCard` to get a hex; and `--color-grass` / `--color-grass-stripe` are the
   board's two greens.
+- **Logic now lives where it belongs, so look there before writing a derivation.** Wave 4
+  moved it: `domain/market.ts` (the transfer market's sorts, facets and filter pipeline),
+  `domain/archive.ts` (the squad browser's five dataset queries), `domain/formations.ts`
+  (`assignNearest`, the board's slot-to-slot matching), `domain/draft.ts` (`moveOptions`,
+  `homeViewOf`), `domain/album.ts` (`cupRewardPool`, `swapEligibleIds`, `swapTargetSlots`),
+  `domain/career.ts` (`budgetOf`, `startRunCareer`, `perkPurchaseState`, `boonUnlockState`),
+  `domain/match.ts` (`lineAverages`, which is NOT `xiStrength` - its docstring says why),
+  `domain/run.ts` (`runShapeOf`, `runBuildOf`, and `Reveal`), `domain/tournament.ts`
+  (`playWholeGroup`, `splitGroup`), `domain/clock.ts` (`maxMinute`), plus `hooks/useToast`
+  and `hooks/useRoundReview`.
 - **A token migration has a cheap and near-total proof, and it is worth using.** Tailwind
   emits utilities from the SET of classes it finds, not their order inside a `className`,
   so replacing an identical substring with a constant leaves `dist/assets/*.css`

@@ -233,7 +233,7 @@
 </div>
 
 <div class="callout">
-  <span class="ct">Progress &mdash; waves 1 to 3 executed 2026-08-24/25, and the tree moved under them</span>
+  <span class="ct">Progress &mdash; waves 1 to 4 executed 2026-08-24/25, and the tree moved under them</span>
   <p><b>Done and on <code>main</code>:</b> the gate repair (H107, H108, H109) and
   <a href="#H91">H91</a>, so <code>npm run checks</code> now runs in CI before the build;
   wave 1 in four commits - the dead domain code and 19 private exports (H1a: H10, H12, H116,
@@ -340,6 +340,43 @@
   replaces over every squad at every size (6,512 comparisons). The new H139 check was
   mutation-tested six ways, including a renamed rule - because a check that silently skips what
   it cannot find is the vacuous kind this backlog already had one of.</p>
+
+  <p><b>Wave 4 done 2026-08-25</b>, in eleven commits: H55, H56, H58, H59, H60, H62, H63,
+  H64, H65, H66, H67, H68 and H141-H147, plus <a href="#H124">H124</a> pulled in from wave 1's
+  range because it is what makes <a href="#H61">H61</a> unnecessary rather than smaller. Three
+  new domain modules came out of it - <code>market.ts</code> (the transfer market's queries),
+  <code>archive.ts</code> (the squad browser's five dataset queries) - and two new hooks,
+  <code>useToast</code> and <code>useRoundReview</code>. <b>139 checks now</b>, the two
+  additions being the ones H65 and H146 exist to make possible: the shop's advice is asserted
+  to agree with what the shop actually does, and <code>budgetOf</code> plus the Youth
+  Development grant are finally reachable by the harness at all.</p>
+
+  <p><b>How wave 4 was verified.</b> A byte-identical stylesheet is nearly worthless here -
+  this wave moves logic, not classes - so every extraction was instead <b>compared against the
+  expression it replaced</b>, over the real dataset, and each commit records the counts:
+  16,704 slot cases for the pitch's move options across all 24 formations, 25,920 for the swap
+  rule, 13,005 kickoff build records, 4,800 market queries (440 of them over the row cap, so
+  the slice's position is exercised), 1,600 rating-cell cases including partial XIs where the
+  empty-line behaviour lives, 6,512 for the boon plan helper, and 328 real run states for the
+  round-review derivations with 13 group exits among them. The two new assertions were
+  mutation-tested three ways each. Where a claim could not be settled that way it was measured
+  in a browser instead: the board's move labels, the shop's four button states, the three
+  archive routes and a started run.</p>
+
+  <p><b>Three items came out smaller than the re-audit found them, and one migration was
+  wrong.</b> H66 lost two of its three parts (the duplicated back-fallback went with wave 1's
+  alias deletion, and <code>isBracketAlive</code> was already void), H68 lost its larger half
+  with <code>KnockoutScreen</code>, and H56 was down to one duplication. More seriously:
+  <b>migration <code>0014</code> as written here would have broken every signed-in run end.</b>
+  <a href="#D12">D12</a> called four <code>run_results</code> columns dead; three were, and the
+  fourth (<code>xi</code>) is unread but still WRITTEN by the live <code>finish_run_v2</code> -
+  which D12's own row quotes while calling the column dead. Postgres does not check a plpgsql
+  body when a column is dropped, so the apply would have printed "done." and the failure would
+  have surfaced at the next banked run as a blocking unreachable screen. It was caught on apply
+  (roadmap item 35) by running the whole migration inside a begin/rollback against the real
+  server, and fixed by narrowing the function's insert in the same transaction. <b>The lesson
+  for the rest of this backlog: "nothing reads it" is not the same as "nothing writes it", and
+  a quoted piece of evidence deserves reading rather than citing.</b></p>
 </div>
 
 <h2 id="rules">Ground rules for the implementing team</h2>
@@ -465,20 +502,20 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
 
 <table>
   <tr><th>ID</th><th class="vd">Verdict</th><th>Correction against the tree at c4f1512</th></tr>
-  <tr><td class="id">H55</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>Reveal</code> still lives in the component layer and is imported type-only by two storage modules, both carrying an apologetic comment - the tell that the type is in the wrong place.</td></tr>
-  <tr><td class="id">H56</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Three of four collapsed with the deleted screens: fixture normalisation is now 1 site (so <code>userFixture</code> has no second caller to justify it), the group-position derivation 2 not 4. <code>userGameView</code> is <b>done</b> (<code>userGameInRound</code> / <code>opponentOf</code> shipped). Only the 3-matchday loop duplication survives.</td></tr>
+  <tr><td class="id">H55</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>Reveal</code> still lives in the component layer and is imported type-only by two storage modules, both carrying an apologetic comment - the tell that the type is in the wrong place.</td></tr>
+  <tr><td class="id">H56</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Three of four collapsed with the deleted screens: fixture normalisation is now 1 site (so <code>userFixture</code> has no second caller to justify it), the group-position derivation 2 not 4. <code>userGameView</code> is <b>done</b> (<code>userGameInRound</code> / <code>opponentOf</code> shipped). Only the 3-matchday loop duplication survives. <b>Done 2026-08-25</b> as <code>playWholeGroup</code>.</td></tr>
   <tr><td class="id">H57</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Three independent spend expressions, two of them carrying comments about having to stay in step - which is the tell.</td></tr>
-  <tr><td class="id">H58</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The swap-eligibility rule in three places; <code>canSwapInto</code> has exactly those three callers.</td></tr>
-  <tr><td class="id">H59</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Sharpened: <code>Pitch.tsx</code> contains <b>zero</b> <code>useMemo</code>, so the 47-line Hungarian solver, the 11-slot <code>planMove</code> sweep and the per-badge <code>moveTargets</code> sweep all re-run on every render.</td></tr>
-  <tr><td class="id">H60</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>draftedShape</code> / <code>draftedBuild</code> in <code>App.tsx</code>, including the re-roll allowance formula.</td></tr>
-  <tr><td class="id">H61</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The hand-written literal is still 15 fields - but <code>RunState</code> has grown to <b>36 fields, 21 optional</b>, so the rot risk is materially larger than when the item was written. Half its rationale is stale (<code>RunLadder</code> is gone); see <a href="#H124">H124</a> for the simpler fix.</td></tr>
-  <tr><td class="id">H62</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The market's whole query pipeline is still in the panel. Note its two dep arrays deliberately omit <code>candidates</code> and <code>price</code>; carry both suppressions across verbatim.</td></tr>
-  <tr><td class="id">H63</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>Theme</code> still not re-exported from the store index, so <code>useSettings</code> reaches past the seam for it.</td></tr>
-  <tr><td class="id">H64</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The three placement actions still end in the same three-step tail, and the asymmetry to preserve (buy does not clear <code>currentSquad</code>) is intact.</td></tr>
-  <tr><td class="id">H65</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The purchase rules exist twice, and the component's copy is the one the player sees. Preserve the four-way label precedence exactly, or a perk reads "Need 90" when it is really level-gated.</td></tr>
-  <tr><td class="id">H66</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td><code>isBracketAlive</code> is void (no such derivation; <code>bracket.outcome</code> is now read only inside the run). The other two stand, including the <code>navigate(-1)</code> fallback duplicated verbatim at <code>App.tsx:946</code> and <code>:955</code>.</td></tr>
-  <tr><td class="id">H67</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>GroupTeam</code> satisfies <code>Side</code> structurally with no declared relationship; the open-coded projection is now at <code>tournament.ts:281</code>.</td></tr>
-  <tr><td class="id">H68</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The larger half died with <code>KnockoutScreen</code>; <code>FinishedKoCard</code>'s three callers are all Cup Run now, so "move it up to components/" buys nothing. The two encodings of "how to word a win" stand.</td></tr>
+  <tr><td class="id">H58</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The swap-eligibility rule in three places; <code>canSwapInto</code> has exactly those three callers.</td></tr>
+  <tr><td class="id">H59</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Sharpened: <code>Pitch.tsx</code> contains <b>zero</b> <code>useMemo</code>, so the 47-line Hungarian solver, the 11-slot <code>planMove</code> sweep and the per-badge <code>moveTargets</code> sweep all re-run on every render.</td></tr>
+  <tr><td class="id">H60</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>draftedShape</code> / <code>draftedBuild</code> in <code>App.tsx</code>, including the re-roll allowance formula.</td></tr>
+  <tr><td class="id">H61</td><td class="vd"><span class="tag v-void">void</span></td><td>The hand-written literal is still 15 fields - but <code>RunState</code> has grown to <b>36 fields, 21 optional</b>, so the rot risk is materially larger than when the item was written. Half its rationale is stale (<code>RunLadder</code> is gone); see <a href="#H124">H124</a> for the simpler fix. <b>Withdrawn 2026-08-25:</b> <a href="#H124">H124</a> was done instead, and it deletes the literal outright rather than replacing it with a `previewRun` builder. Nothing read the synthetic run but a truthiness gate and its <code>xi</code>, so there was no state machine to preview.</td></tr>
+  <tr><td class="id">H62</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The market's whole query pipeline is still in the panel. Note its two dep arrays deliberately omit <code>candidates</code> and <code>price</code>; carry both suppressions across verbatim.</td></tr>
+  <tr><td class="id">H63</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>Theme</code> still not re-exported from the store index, so <code>useSettings</code> reaches past the seam for it. <b>Done 2026-08-25</b>, and the premise had drifted: the store index no longer re-exported <code>Settings</code> either. Both are re-exported now, because <code>saveSettings</code> takes one - they are the seam's own vocabulary.</td></tr>
+  <tr><td class="id">H64</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The three placement actions still end in the same three-step tail, and the asymmetry to preserve (buy does not clear <code>currentSquad</code>) is intact.</td></tr>
+  <tr><td class="id">H65</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The purchase rules exist twice, and the component's copy is the one the player sees. Preserve the four-way label precedence exactly, or a perk reads "Need 90" when it is really level-gated.</td></tr>
+  <tr><td class="id">H66</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>isBracketAlive</code> is void (no such derivation; <code>bracket.outcome</code> is now read only inside the run). The other two stand, including the <code>navigate(-1)</code> fallback duplicated verbatim at <code>App.tsx:946</code> and <code>:955</code>. <b>Shrunk again on execution:</b> the duplicated back-fallback went with wave 1's alias deletion, so only <code>homeViewOf</code> was left to do.</td></tr>
+  <tr><td class="id">H67</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>GroupTeam</code> satisfies <code>Side</code> structurally with no declared relationship; the open-coded projection is now at <code>tournament.ts:281</code>.</td></tr>
+  <tr><td class="id">H68</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The larger half died with <code>KnockoutScreen</code>; <code>FinishedKoCard</code>'s three callers are all Cup Run now, so "move it up to components/" buys nothing. The two encodings of "how to word a win" stand.</td></tr>
   <tr><td class="id">H69</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Count corrected 3 &rarr; <b>2</b> explicit type predicates. Nothing writes <code>null</code> into a <code>Filled</code>; removal is always <code>delete</code>. <code>noUncheckedIndexedAccess</code> is off, so <code>Partial&lt;&gt;</code> is the right target, not a bare <code>Record</code>.</td></tr>
   <tr><td class="id">H70</td><td class="vd"><span class="tag v-stands">stands</span></td><td><b>Still the biggest single win, and bigger than published.</b> Counts re-measured by hand: <code>RoundRecord</code> is <code>stage: 'group' | number</code> plus <b>14 optional fields</b> (10 knockout-only, 3 group-only, 1 shared), costing <b>37 unreachable <code>??</code> fallbacks</b> across its five consumers (plus 3 more in the components it is flattened into, so 40 in all), <b>2</b> load-bearing <code>as number</code> casts (not 1), <b>9</b> hand-rolled discriminant checks whose narrowing is discarded, and a <b>proxy discriminant</b> at <code>run.ts:1005</code> that tests two unrelated fields because the real one carries no information. <code>loadRun</code> still does not validate <code>history</code> per field, so the tolerant guard is still needed.</td></tr>
   <tr><td class="id">H71</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All six bridge symbols alive. Sharpened: <code>CsvPos</code> is a lowercase duplicate of <code>Position</code>, and the CSV it is named for <b>is not read anywhere</b> - the data is a hardcoded array. Slot ids derive from the uppercase label, so the persisted keys are untouched by the fix.</td></tr>
@@ -595,7 +632,7 @@ and <span class="tag p-ci">ci</span>.</p>
   <tr id="H123" class="new"><td class="id">H123</td><td class="pr"><span class="tag p-yag">yagni</span></td>
     <td><b><code>useMatchClock</code>'s <code>active</code> flag is dead machinery.</b> Its one caller (<code>LiveCupMatch.tsx:35</code>) passes the literal <code>true</code>; the reveal is started and stopped by mounting and unmounting a keyed component, never by flipping the flag. So <code>if (!active) return</code>, the <code>active ? holdLiveMatch() : undefined</code> ternary and the <code>[active]</code> dep array are all inert. Its doc still describes the two deleted screens that motivated it.</td>
     <td>Drop <code>active</code> from <code>MatchClockSpec</code>; both effects become <code>[]</code>-dep. Preserving because <code>active</code> is true from first render, so both already run once per mount.</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H124" class="new"><td class="id">H124</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H124" class="new"><td class="id">H124</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>A component asserts a 17-field domain state machine for a consumer that reads two things.</b> <code>CupRunScreen.tsx:238-257</code> builds a synthetic <code>RunState</code> literal (<code>previewRun</code>) so the pre-run card can render; only a truthiness gate and <code>previewRun.xi</code> (which is <code>draftedXi</code> unchanged) read it. Because <code>roster</code>/<code>effects</code> are optional for legacy reasons it type-checks while being a run the ledger could not evaluate - and every required field added to <code>RunState</code> forces an edit here for a value nothing reads. This is the cheaper half of H61.</td>
     <td><code>const showPreRun = !run &amp;&amp; !!draftedXi;</code> and pass <code>xi={draftedXi}</code>. Provably equivalent: <code>previewRun</code> is non-null exactly when <code>!run &amp;&amp; draftedXi</code>, and <code>draftedXi</code> is null or non-empty.</td><td class="er">S</td><td class="er">none</td></tr>
   <tr id="H125" class="new"><td class="id">H125</td><td class="pr"><span class="tag p-dead">dead</span></td>
@@ -670,25 +707,25 @@ reviewing four.</p>
 
 <table>
   <tr><th>ID</th><th class="pr">P</th><th>What and where</th><th>Fix</th><th class="er">Eff</th><th class="er">Risk</th></tr>
-  <tr id="H141" class="new"><td class="id">H141</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H141" class="new"><td class="id">H141</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>The move rule's presentation half lives in the pitch.</b> <code>Pitch.tsx:440-455</code> derives, per slot, whether the held player can move there and how many players the rearrangement shifts, by calling <code>planMove</code> per slot and diffing the result. It is the only place that knows a chain's length is measured by counting players whose slot changed - and <code>domain/draft.ts</code> owns <code>planMove</code>/<code>canMove</code>/<code>moveTargets</code> and stops one step short.</td>
     <td><code>moveOptions(formation, filled, fromSlotId): Map&lt;string, number&gt;</code> in <code>draft.ts</code>, with <code>moveTargets</code> re-expressed as its key set (they are already the same predicate). Preserve the shifted-count definition exactly, so a rotation of three still reads 3 and a trade 2, and keep the <code>movingSlotId</code> staleness guard. Do not fold in <code>movable</code> - the two branches never both run.</td><td class="er">S</td><td class="er">low</td></tr>
-  <tr id="H142" class="new"><td class="id">H142</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H142" class="new"><td class="id">H142</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>The cup-win reward rule is implemented in the overlay.</b> <code>CupRewardPicker.tsx:31-42</code> holds album spec FR-3/D-1: exclude Monumental, prefer uncollected, exclude what this win already took, and fall back to the whole pickable set so the pick becomes a deliberate duplicate. That is the policy migration <code>0012</code> was loosened for, and it decides what the album can gain.</td>
     <td><code>cupRewardPool(album, allPlayers, taken)</code> in <code>domain/album.ts</code>. Preserve the Monumental filter as the <i>first</i> step (so the fallback pool is also Monumental-free) and the exact sort. Note the tier ordering it sorts by comes from <code>TIER_META</code> in a component, so add <code>TIER_RANK</code> to <code>config.ts</code> or the extraction just moves a presentation constant into the domain.</td><td class="er">S</td><td class="er">low</td></tr>
-  <tr id="H143" class="new"><td class="id">H143</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H143" class="new"><td class="id">H143</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Five dataset queries live in the squad browser.</b> <code>SquadBrowser.tsx</code>: the distinct years, a year's field ranked by computed best-XI overall, the nation grouping with participation counts, the diacritic-insensitive cross-tournament search, and <code>topLegends</code> - a 19-line reduce over <code>personId</code>, the identity link almost nothing else reads.</td>
     <td>A new pure <code>domain/archive.ts</code>. Preserve every tie-break verbatim, the search's three team predicates (note the year one tests the <i>raw</i> query, not the normalised one), and the fact that the row count shown is computed <i>before</i> the 80-row slice - moving the slice into the query changes what the screen says. <b>Do not add a pool parameter:</b> this view deliberately reads the whole dataset, and a pool would silently start hiding tournaments.</td><td class="er">M</td><td class="er">low</td></tr>
-  <tr id="H144" class="new"><td class="id">H144</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H144" class="new"><td class="id">H144</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Two rating derivations, one in the domain and one in a leaf, differing on purpose with nothing recording it.</b> <code>BoxScore.tsx:57-88</code> computes Att as forwards only, where <code>xiStrength</code> computes it as MID+FWD because that is what the sim reads; they also differ on the empty case (0, rendered as a dash, vs a fallback to the overall). So the build page's second derivation exists only inside a component, next to the first one in <code>domain/match.ts</code>.</td>
     <td><code>lineAverages(players)</code> in <code>match.ts</code>, directly beneath <code>xiStrength</code>, with a comment saying why it is not that function. Reusing <code>xiStrength</code> here instead would change the Att cell for every XI and turn empty cells into numbers. The <i>labels</i> are a separate question - see <a href="#D7">D7</a>.</td><td class="er">S</td><td class="er">low</td></tr>
-  <tr id="H145" class="new"><td class="id">H145</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H145" class="new"><td class="id">H145</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Three smaller misplacements.</b> <code>maxMinute</code> (<code>matchUi.tsx:56</code>) is a rule about football in the shared presentational-atoms module, and it decides whether a 105th-minute goal is revealed - it belongs in <code>domain/clock.ts</code> or <code>knockout.ts</code>. <code>SettingsModal.tsx:81-87</code> derives cups/teams/players/collectibles for a candidate pool on <i>every render with no memo</i>, walking up to 6,270 players per year toggle. <code>App.tsx:173-181</code> runs the dev-only dataset validation as an effect in the composition root, where it remounts with App; <code>main.tsx</code> is where a once-at-startup check belongs.</td>
     <td>Move all three. Keep the <code>import.meta.env.DEV</code> guard on the validation (the module is imported by the harness, which runs in plain node) and both log shapes.</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H146" class="new"><td class="id">H146</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H146" class="new"><td class="id">H146</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Two career rules that <code>npm run checks</code> cannot see, because they live in a component or in App.</b> <code>CupRunScreen.tsx:298-307</code> reads, spends and writes back the Youth Development grant, with the "spent exactly once" invariant enforced by the shape of an <code>if</code> - a rule CLAUDE.md calls load-bearing. <code>App.tsx:77-78</code>'s <code>budgetOf</code> knows the perk id string and the <code>BUDGET_BY_TIER</code> clamp, which is why the harness can assert the ladder rises but not the lookup that actually hands the market its budget - and it is called twice for the same career in one render, under a comment promising the two cannot drift.</td>
     <td><code>startRunCareer(career, tier): {career, owed}</code> and <code>budgetOf(career)</code>, both in <code>domain/career.ts</code> (the latter beside <code>extraRerollsOf</code>, its exact twin). Then assert both. Preserve: <code>owed</code> read before the clear, the write skipped when neither changed, and the clamp that stops a save claiming tier 12 indexing off the end.</td><td class="er">S</td><td class="er">low</td></tr>
-  <tr id="H147" class="new"><td class="id">H147</td><td class="pr"><span class="tag p-soc">soc</span></td>
+  <tr id="H147" class="new"><td class="id">H147</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Three self-contained machines inside <code>CupRunScreen</code></b>, extractable without touching the risky part (H81): the toast with its own timer and unmount cleanup; the round-review navigation (<code>reviewIndex</code>, <code>currentRoundIndex</code>, the snap-back effect, <code>reviewableRounds</code>, <code>groupRecord</code>); and the group split off the reveal.</td>
     <td><code>useToast</code>, <code>useRoundReview</code>, and <code>splitGroup</code> in <code>domain/tournament.ts</code>. Preserve: the snap-back effect keyed on <code>[currentRoundIndex]</code> <b>only</b> (keying it on <code>run</code> cancels a review on every state write), the three-way <code>currentRoundIndex</code> including the group-exit case, <code>reviewableRounds</code> filtering for numeric stages, and the <code>reviewIndex = r + 1</code> offset with 0 reserved for the group.</td><td class="er">M</td><td class="er">low</td></tr>
 </table>
@@ -1070,10 +1107,13 @@ so the next audit does not re-derive them.</p>
   cheapest to get and gated eleven items, as predicted. The two that had to be asked twice were D5
   and D7, and the reason is recorded with them: both were first put in terms of the code rather than
   in terms of what a player sees, which is not a question anyone can answer.</li>
-  <li><b>Next: wave 4, then 5, then 6</b>, in that order and one item per commit. H70 before H81, per the
-  original sequencing, and H124 and H146 before H81 because both shrink the surface it has to move.
-  Wave 6 last, exercised by hand: those are the only items that can break the app in a way neither
-  gate will see.</li>
+  <li><b><s>Wave 4</s>, then 5, then 6</b>, in that order and one item per commit. <b>Wave 4 DONE
+  2026-08-25</b>, and both of its prerequisites for wave 6 came with it: <a href="#H124">H124</a> and
+  <a href="#H146">H146</a> are done, so H81 has less to move. H70 still goes before H81, per the
+  original sequencing, and so does <a href="#H124">H124</a>'s sibling H126 if it survives.
+  <b>Next: wave 5, the type model</b>, whose H70 is the single change that deletes the most noise in
+  the codebase. Wave 6 last, exercised by hand: those are the only items that can break the app in a
+  way neither gate will see.</li>
 </ol>
 
 <footer>
