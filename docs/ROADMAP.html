@@ -496,7 +496,7 @@
   <summary>
     <span class="num">23</span>
     <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items, and the first move is now repairing the checks harness, which fails at random.</span>
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 3 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 137 checks. Next up: wave 4.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -559,14 +559,28 @@
     none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
     not forgotten.</p>
 
+    <p><b>Executed 2026-08-24/25: the gate repair, waves 1 to 3, and all sixteen decisions.</b>
+    The gate came first, as the re-audit said it had to: the flake and the two checks that could
+    pass on zero observations are fixed, <code>npm run checks</code> runs in CI before the build,
+    and the suite is at <b>137</b> - three of the additions assert that a number and the sentence
+    promising it agree, which is the shape of bug this codebase keeps producing. Then wave 1 (the
+    free deletions plus the truth sweep), wave 2 (the constants), and wave 3 (the tokens and shared
+    atoms). Two of the decisions came out as SQL that this environment cannot apply, so they are
+    queued as item 35 rather than done. Three things worth carrying into wave 4: a token migration
+    can be proved almost completely by the built stylesheet being byte-identical, which is cheap
+    enough to do every time; taking a wave in the audit's own order matters, because it put the
+    item that fails silently first; and two decisions had to be asked twice purely because they
+    were first put in terms of the code rather than in terms of what a player sees.
+    <b>Next up: wave 4.</b></p>
+
     <p><strong>The waves</strong>, in execution order:</p>
     <ol>
-      <li><b>Free deletions and truth fixes</b> (H1-H35). Genuinely dead exports and props,
+      <li><b><s>Free deletions and truth fixes</s></b> (H1-H35). <b>DONE.</b> Genuinely dead exports and props,
       complexity with nothing on the other side of the trade, repo weight, and eleven comments or
       doc claims that are no longer true. No decisions, no behaviour change.</li>
-      <li><b>Name the constants, share the one-liners</b> (H36-H48). Highest payoff per minute:
+      <li><b><s>Name the constants, share the one-liners</s></b> (H36-H48). <b>DONE.</b> Highest payoff per minute:
       each item removes a fact currently written down twice.</li>
-      <li><b>Design tokens and shared UI atoms</b> (H49-H54). The palette and caption constants
+      <li><b><s>Design tokens and shared UI atoms</s></b> (H49-H54, plus H19, H46, H47 and H132-H140). <b>DONE.</b> The palette and caption constants
       already exist in <a class="dl" href="../src/index.css" target="_blank" rel="noopener"><code>index.css</code></a> and <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/matchUi.tsx" target="_blank" rel="noopener"><code>matchUi.tsx</code></a> and are bypassed by
       inline copies.</li>
       <li><b>Put the logic where it belongs</b> (H55-H68). Pure computations that ended up in
@@ -578,7 +592,7 @@
       <li><b>Structural extractions</b> (H79-H90). The risky ones, one per branch:
       <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s 15 jobs into hooks and screens, and
       <code>CupRunScreen</code> handing back the career's persistence.</li>
-      <li><b>Harness, CI and tooling</b> (H91-H105).</li>
+      <li><b>Harness, CI and tooling</b> (H91-H105). Partly done out of order, because the gate had to be repaired before anything could be trusted: H91, H99, H106-H110 have shipped.</li>
     </ol>
 
     <p><strong>Two findings worth knowing before reading the rest.</strong> Both are in wave 7 and

@@ -39,14 +39,37 @@ executed as written.** The old numbering is preserved so references here still r
 findings start at H106. Its "item 27 owns these" list is gone - that item shipped and its
 losing chrome was deleted, so all five things it named are settled.
 
-**Two things in that audit to know before touching anything else.** `npm run checks` **fails
-at random again**, about one run in twelve, and it is the third instance of the class item 31
-closed on 2026-08-23; and the `prime-years` check is **vacuous**, proved by reintroducing the
-sticker exploit it exists to catch and still getting 132 passed / 0 failed. So the harness is
-a weaker gate than its score suggests, and repairing it (H106-H108) comes before H91 and
-before any code moves. The audit also records a number of claims in **this** file as drifted -
-six wrong figures and several deleted boosts and doors still described as live (H128-H131);
-those corrections are backlog items, so do not be surprised to find them still wrong here.
+**Waves 1 to 3 are done** (2026-08-24/25), and so are all sixteen decisions. What that
+means for anyone picking the backlog up at wave 4:
+
+- **The gate is repaired and it now runs in CI.** The audit opened on the finding that
+  `npm run checks` failed at random about one run in twelve, and that the `prime-years`
+  check was **vacuous** - proved by reintroducing the sticker exploit it exists to catch
+  and still getting 132 passed / 0 failed. Both are fixed (H106-H109), `npm run checks`
+  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **137
+  checks**. Three of the new ones assert that a number and the sentence promising it agree
+  (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette).
+- **The truth sweep landed**, so the wrong figures and the deleted boosts and doors this
+  file used to describe as live are corrected (H128-H131, H154). Treat any dataset count
+  here as a measurement with a date on it regardless: the dataset moved three times during
+  the audit.
+- **Two migrations are written but NOT applied**: `0013` (narrow four `for all` policies to
+  `for select`) and `0014` (drop dead columns, revoke `export_account`). They need `dkr/.env`
+  and LAN reach, so they are queued as **roadmap item 35**. Do not assume the server matches
+  `supabase/migrations/`.
+- **Reach for the shared atoms before writing a class string.** Wave 3 gave names to the
+  things that were typed out over and over, and the point is lost if the next component
+  re-inlines them: `matchUi.tsx` has `CARD` / `CARD_SM` / `CARD_FLAT` (the flat card),
+  `MONO_CAP` and `PAGE_EYEBROW` (the two mono captions), `CHIP_ON` / `CHIP_OFF`, `Meter`,
+  `CardDisclosure`, `GROUP_OUTCOME`; `components/stickerTheme.ts` owns the sticker tier
+  ramp (`TIER_META`, `TIER_ORDER`, the `GOLD_*` accents, `stickerArtSrc`) so nothing has to
+  import `StickerCard` to get a hex; and `--color-grass` / `--color-grass-stripe` are the
+  board's two greens.
+- **A token migration has a cheap and near-total proof, and it is worth using.** Tailwind
+  emits utilities from the SET of classes it finds, not their order inside a `className`,
+  so replacing an identical substring with a constant leaves `dist/assets/*.css`
+  **byte-identical**. Build, hash, change, build, hash. Every wave-3 commit records the
+  hash it held; the two that could not claim it say exactly which rule moved and why.
 
 ## What this is
 

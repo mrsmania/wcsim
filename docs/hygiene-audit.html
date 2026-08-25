@@ -233,7 +233,7 @@
 </div>
 
 <div class="callout">
-  <span class="ct">Progress &mdash; wave 1 executed 2026-08-24, and the tree moved under it</span>
+  <span class="ct">Progress &mdash; waves 1 to 3 executed 2026-08-24/25, and the tree moved under them</span>
   <p><b>Done and on <code>main</code>:</b> the gate repair (H107, H108, H109) and
   <a href="#H91">H91</a>, so <code>npm run checks</code> now runs in CI before the build;
   wave 1 in four commits - the dead domain code and 19 private exports (H1a: H10, H12, H116,
@@ -294,6 +294,44 @@
   either time - which is the argument for the check rather than for a one-off art commit.
   Note <code>art/stickers-archive/</code> holds <code>ar1986_maradona.png</code>, a point in
   favour of the <a href="#D9">D9</a> decision to keep it.</p>
+
+  <p><b>Wave 2 done 2026-08-24:</b> H37, H38, H41, H42, H44, H45, H48, H132.
+  <b>The three server decisions</b> (<a href="#D10">D10</a>, <a href="#D12">D12</a>,
+  <a href="#D16">D16</a>) became migrations <code>0013</code> and <code>0014</code>, written
+  and parse-validated here but <b>not applied</b> - this session cannot reach the NAS - so they
+  are queued as <b>roadmap item 35</b>, which is now the standing home for any migration a
+  session writes but cannot apply. D12's requested sweep of the rest of the database found
+  exactly one more removal (<code>run_results_read</code>) and is recorded in 0014's header
+  along with what it deliberately leaves alone.</p>
+
+  <p><b>Wave 3 done 2026-08-25</b>, in nine commits: H49 (MONO_CAP's 9 re-typed copies, plus a
+  new <code>PAGE_EYEBROW</code> for the 0.2em page eyebrow), H50 (<code>CARD</code> /
+  <code>CARD_SM</code> / <code>CARD_FLAT</code> over 37 sites), H52
+  (<code>components/stickerTheme.ts</code>, so ten modules no longer import a component to get
+  a hex), H53 (the account-delete confirm joins <code>ConfirmAction</code>, which grew
+  <code>busyLabel</code>, a boxed layout and a ReactNode prompt), H133 (one
+  <code>Meter</code> for six progress bars), H137 (six of its seven atoms - the seventh is
+  H89 and stays in its own wave), H139 + H140 (the boot cover's trophy gets a dark value, and
+  all twelve of its palette literals plus the favicon are now asserted against their tokens),
+  H19, H46, H47, and <b>the half of H51 that had never been done</b> - the grass pair, which
+  this document had recorded as "moved to H136" and which H136 did not in fact cover.
+  <b>137 checks now.</b></p>
+
+  <p><b>How wave 3 was verified, since "behaviour-preserving" is the whole claim.</b> Tailwind
+  emits utilities from the SET of classes it finds, not their order in a className, so a
+  token migration that is genuinely output-preserving leaves the built stylesheet
+  <b>byte-identical</b> - and every commit in this wave says which hash. Where that was not
+  enough the check went further: H137 changed real DOM structure, so all eight tab
+  destinations were compared as full-page screenshots (identical); H51 moved a colour into a
+  <code>var()</code> inside an SVG presentation attribute, so that resolution was measured in
+  Chromium before being relied on; H133 replaced a 20px radius with <code>rounded-full</code>,
+  so the two were screenshotted at 5px and 9px tall (pixel-identical, as the CSS radius-scaling
+  rule predicts); H140 was confirmed by holding the boot cover up with the bundle blocked and
+  reading the computed stroke in both themes; H19's rewritten ternary was checked over all 24
+  input combinations; and H46's <code>planEnd</code> was checked against both functions it
+  replaces over every squad at every size (6,512 comparisons). The new H139 check was
+  mutation-tested six ways, including a renamed rule - because a check that silently skips what
+  it cannot find is the vacuous kind this backlog already had one of.</p>
 </div>
 
 <h2 id="rules">Ground rules for the implementing team</h2>
@@ -365,7 +403,7 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
   <tr><td class="id">H16</td><td class="vd"><span class="tag v-void">void</span></td><td><code>ascSel</code> and the clamping effect are gone; the Ascension picker moved to <code>SetupPanel</code> with item 28. One clamp-once derivation remains.</td></tr>
   <tr><td class="id">H17</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Six redundant <code>STICKERS</code> prop gates, now at <code>App.tsx:863-865</code> and <code>:881-883</code>. The two that do real work (the route gate, the overlay gate) are intact.</td></tr>
   <tr><td class="id">H18</td><td class="vd"><span class="tag v-void">void</span></td><td><code>KnockoutScreen.tsx</code> does not exist; <code>startPlay</code> = 0 hits.</td></tr>
-  <tr><td class="id">H19</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>Pitch.tsx:361/365/367</code>, the same class string in three arms of one ternary.</td></tr>
+  <tr><td class="id">H19</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>Pitch.tsx:361/365/367</code>, the same class string in three arms of one ternary. <b>Done 2026-08-25</b>: <code>SLOT_AMBER</code> / <code>SLOT_WHITE</code> / <code>SLOT_IDLE</code>. The arm ORDER had to stay and now carries a comment saying why - collapsing the two white arms into one condition changes what an open slot paints when a natural-position match is also the market's shop-here slot.</td></tr>
   <tr><td class="id">H20</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All three no-op casts present. <b>Added warning:</b> a newer sibling at <code>album.ts:73</code> (<code>collectiblesByTier</code>) <i>is</i> load-bearing - its empty arrays would infer <code>never[]</code>. Do not delete both on sight.</td></tr>
   <tr><td class="id">H21</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Three of four survive (<code>Pitch.tsx:523</code>, <code>XiTable.tsx:87</code>, <code>BudgetMarket.tsx:238</code>); the fourth went with <code>KnockoutScreen</code>.</td></tr>
   <tr><td class="id">H22</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>Confetti.tsx:18</code> <code>life?</code>, asserted at <code>:100</code> and <code>:102</code>. See <a href="#H133">H133</a> for the cleaner fix.</td></tr>
@@ -398,7 +436,7 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
   <tr><td class="id">H43</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Five of six unions stand (<code>'home'|'away'</code> at 9 sites in 5 files is the biggest). <code>'quick'|'career'</code> is gone with the modes, so <code>PlayMode</code> has nothing to name.</td></tr>
   <tr><td class="id">H44</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Half done: <code>byFamily</code> now exists and the cabinet uses it, but <code>ChallengesScreen.tsx:163-164</code> still recomputes it (2 filters &times; 24 passes over 130 entries per render). Counts corrected: <code>Object.keys...as</code> 3 not 4; the GK-DEF-MID-FWD comparator 2 not 4.</td></tr>
   <tr><td class="id">H45</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The proposed helper <b>shipped</b> (<code>collectiblesByTier</code>, and its own docstring names this item as the leftover). What remains: <code>AlbumScreen.tsx:56-62</code> still hand-rolls a byte-identical copy, and <code>tierOf(...)!</code> is at 8 sites in 4 files.</td></tr>
-  <tr><td class="id">H46</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>All four sub-parts still real, under new names (<code>bumpLowest</code>/<code>bumpHighest</code> are now <code>planLowest</code>/<code>planHighest</code>). <b>Its cross-reference is wrong:</b> "(fixed by H15)" no longer holds, because H15 is void and that branch is live.</td></tr>
+  <tr><td class="id">H46</td><td class="vd"><span class="tag v-done">DONE</span></td><td>All four sub-parts still real, under new names (<code>bumpLowest</code>/<code>bumpHighest</code> are now <code>planLowest</code>/<code>planHighest</code>). <b>Its cross-reference is wrong:</b> "(fixed by H15)" no longer holds, because H15 is void and that branch is live. <b>Done 2026-08-25</b>, and only two sub-parts turned out to need work: the re-roll predicates are already shared (with a comment saying why) and the CareerHub header went with <a href="#H137">H137</a>. What shipped is <code>planEnd</code> and a shared <code>SCRAMBLE_MS</code> - a constant and NOT the hook the fuller fix suggested, because the two scrambles share how long the beat lasts and nothing about how it is animated.</td></tr>
   <tr><td class="id">H47</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The two blocks have <b>diverged</b> since the audit - only the 5-line struck-through span is still identical. A shared <code>&lt;MarketPrice&gt;</code> now needs props for the wrapper and the price span.</td></tr>
   <tr><td class="id">H48</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>ALL_SWAPS = 2</code> mirrors <code>INITIAL_SWAPS</code>; the pair <i>is</i> asserted, indirectly, by the <code>swap-meet</code> challenge check.</td></tr>
 </table>
@@ -407,11 +445,11 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
 
 <table>
   <tr><th>ID</th><th class="vd">Verdict</th><th>Correction against the tree at c4f1512</th></tr>
-  <tr><td class="id">H49</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Two of the three constants no longer exist (<code>EYEBROW</code>, <code>TABLE_HEAD</code> = 0 hits, removed with the one-tournament deletion). <code>MONO_CAP</code> survives with <b>2</b> real users and its exact string re-typed at <b>10</b> sites in 8 files. The 0.2em page eyebrow is 5 inline copies plus <code>StageHeader</code>'s.</td></tr>
-  <tr><td class="id">H50</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Re-measured <b>upward</b>: the card idiom is 38 sites in 24 files, 31 of them with <code>shadow-hard</code>. No <code>CARD</code> constant exists.</td></tr>
-  <tr><td class="id">H51</td><td class="vd"><span class="tag v-done">done</span></td><td>The token half shipped (<code>--color-amber-ink</code> exists, 4 correct users). <b>FIXED 2026-08-24</b> (<a href="#D15">D15</a>): the 5 remaining literals were a live dark-theme contrast bug, not cosmetic debt, and all nine sites now use the token. The grass-greens half of this item moved to <a href="#H136">H136</a>.</td></tr>
-  <tr><td class="id">H52</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Grown: <code>TIER_META</code> is imported from <code>StickerCard</code> by <b>10</b> other modules, plus <code>GOLD_INK</code> and <code>stickerArtSrc</code>. No <code>stickerTheme.ts</code>.</td></tr>
-  <tr><td class="id">H53</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>ConfirmAction</code> now has <b>4</b> users, and still no <code>busyLabel</code>/disabled support. Second gap the old item missed: <code>prompt</code> is typed <code>string</code>, but AccountPanel's prompt is a <code>&lt;p&gt;</code> with a bolded email.</td></tr>
+  <tr><td class="id">H49</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Two of the three constants no longer exist (<code>EYEBROW</code>, <code>TABLE_HEAD</code> = 0 hits, removed with the one-tournament deletion). <code>MONO_CAP</code> survives with <b>2</b> real users and its exact string re-typed at <b>10</b> sites in 8 files. The 0.2em page eyebrow is 5 inline copies plus <code>StageHeader</code>'s.</td></tr>
+  <tr><td class="id">H50</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Re-measured <b>upward</b>: the card idiom is 38 sites in 24 files, 31 of them with <code>shadow-hard</code>. No <code>CARD</code> constant exists. <b>Done 2026-08-25</b> as <code>CARD</code> / <code>CARD_SM</code> / <code>CARD_FLAT</code>; the final count was 37 (31 + 2 + 4), and <b>one site keeps the literal on purpose</b> - <code>UnreachableScreen</code> has no imports at all so that <code>main.tsx</code> can render it before the app exists.</td></tr>
+  <tr><td class="id">H51</td><td class="vd"><span class="tag v-done">done</span></td><td>The token half shipped (<code>--color-amber-ink</code> exists, 4 correct users). <b>FIXED 2026-08-24</b> (<a href="#D15">D15</a>): the 5 remaining literals were a live dark-theme contrast bug, not cosmetic debt, and all nine sites now use the token. The grass-greens half of this item <b>was recorded as moved to <a href="#H136">H136</a> and was not in fact covered by it</b> - it was still two hand-copied hexes in <code>Pitch.tsx</code> and <code>ModeSelect.tsx</code> on 2026-08-25, and shipped that day as <code>--color-grass</code> / <code>--color-grass-stripe</code>. A cross-reference is not a fix.</td></tr>
+  <tr><td class="id">H52</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Grown: <code>TIER_META</code> is imported from <code>StickerCard</code> by <b>10</b> other modules, plus <code>GOLD_INK</code> and <code>stickerArtSrc</code>. No <code>stickerTheme.ts</code>. <b>Done 2026-08-25</b>, and <code>TIER_ORDER</code> came with it: AlbumScreen derived it from <code>TIER_META</code>, which is why it reached into the card in the first place.</td></tr>
+  <tr><td class="id">H53</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>ConfirmAction</code> now has <b>4</b> users, and still no <code>busyLabel</code>/disabled support. Second gap the old item missed: <code>prompt</code> is typed <code>string</code>, but AccountPanel's prompt is a <code>&lt;p&gt;</code> with a bolded email. <b>Done 2026-08-25</b>; a third gap turned up while doing it, and it is the one that would have been a regression - <code>busyLabel</code> also has to hand the caller ownership of when the confirm CLOSES, or the box collapses back to its trigger while an async delete is still in flight and can still fail.</td></tr>
   <tr><td class="id">H54</td><td class="vd"><span class="tag v-void">void</span></td><td>The duplication went with the two deleted screens. One instance remains and it is not the pattern described (no rAF, no offset). <code>useScrollToWhen</code> would have one caller.</td></tr>
 </table>
 
@@ -594,9 +632,9 @@ reviewing four.</p>
   <tr id="H132" class="new"><td class="id">H132</td><td class="pr"><span class="tag p-dry">dry</span></td>
     <td><b>Every chemistry threshold is written twice: once as data, once as the sentence the player reads.</b> <code>chemistry.ts:40-54</code> holds four tier tables plus <code>ERA_SPAN_YEARS</code>/<code>FIT_MIN</code>; <code>BoxScore.tsx:19-41</code> re-types all of it as prose ("2+ &rarr; +1, 4+ &rarr; +2, 7+ &rarr; +3, all 11 &rarr; +4"), and the six category names alongside, though <code>CHEM_NAME</code> exists. All six rows agree today - checked - and <code>MAX_BONUS</code> is correctly imported, so the thresholds are the half left behind. CLAUDE.md makes the agreement a <i>rule</i> ("keep it that way; transparency is the point") and nothing enforces it.</td>
     <td>Export the tables and render the tooltip rows from them, using <code>CHEM_NAME</code> for labels. Minimum acceptable: a <code>checks.ts</code> assertion that each tier's numbers appear in the tooltip string, in the shape the budget-copy check already uses.</td><td class="er">M</td><td class="er">low</td></tr>
-  <tr id="H133" class="new"><td class="id">H133</td><td class="pr"><span class="tag p-dry">dry</span></td>
+  <tr id="H133" class="new"><td class="id">H133</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Six implementations of one progress meter.</b> <code>CabinetScreen.tsx:124-133</code> has the only atom, and it is private to that file; <code>CareerHub.tsx:143</code> and <code>:202-206</code>, <code>ChallengesScreen.tsx:87-91</code>, <code>AlbumScreen.tsx:106</code> and <code>BudgetMarket.tsx:207</code> each rebuild it. Two spellings of the same fact as well (<code>rounded-full</code> and <code>rounded-[20px]</code> are identical at 5-9px tall).</td>
-    <td>Move <code>Bar</code> to <code>matchUi.tsx</code> as <code>Meter({pct, height, fill, track})</code>. Keep <code>border-hair</code> vs <code>border-line</code> and gradient vs solid as props so nothing moves visually - see the note in <a href="#D15">D15</a> if you would rather unify them.</td><td class="er">M</td><td class="er">low</td></tr>
+    <td><b>Done 2026-08-25</b> as <code>matchUi.Meter</code>, and <code>pct</code> stayed the caller's to compute: three of the six round it and three do not, and this atom is not the place to change quietly what any of them renders. It DID take over the clamp the budget bar hand-rolled. Move <code>Bar</code> to <code>matchUi.tsx</code> as <code>Meter({pct, height, fill, track})</code>. Keep <code>border-hair</code> vs <code>border-line</code> and gradient vs solid as props so nothing moves visually - see the note in <a href="#D15">D15</a> if you would rather unify them.</td><td class="er">M</td><td class="er">low</td></tr>
   <tr id="H134" class="new"><td class="id">H134</td><td class="pr"><span class="tag p-dry">dry</span></td>
     <td><b>"Goals for and against over a run" is derived three separate ways</b>, and one of them says so: <code>run.ts:414</code>'s docstring admits "<code>viewOf</code> in challenges.ts computes the same three numbers its own way (worth folding together, but that is a hygiene item, not this)". The three are <code>runTotals</code> (<code>run.ts:417-438</code>), <code>goalsConcededOf</code> (<code>:994-999</code>, Siege Mentality's input) and <code>viewOf</code>'s <code>matches</code> reduction (<code>challenges.ts:225-247</code>).</td>
     <td>Export <code>runMatches(run): RunMatch[]</code> from <code>run.ts</code> and have all three sum it. <b>Prove the three agree first</b> across the group/knockout split - the harness asserts them separately today, so this is a measured refactor, not a sweep.</td><td class="er">M</td><td class="er">low</td></tr>
@@ -606,18 +644,18 @@ reviewing four.</p>
   <tr id="H136" class="new"><td class="id">H136</td><td class="pr"><span class="tag p-dry">dry</span></td>
     <td><b>Nine small facts stated twice, each a one-line fix.</b> The Ascension-in-force rule ("remembered tier clamped to what is selectable") in <code>App.tsx:622-623</code> and <code>CupRunScreen.tsx:156-157</code> - if these diverge the build page offers a tier the run does not play; <code>PERK_TIERS_TOTAL</code> computed identically in <code>badges.ts:51</code> and <code>cabinet.ts:138</code>, where the latter already imports from the former; <code>SquadBrowser.tsx:16</code>'s <code>YEARS</code> against <code>WORLD_CUP_YEARS</code>, differing only in sort direction; the "another team"/"another cup" predicates written once to roll and once to decide whether the button is offered (<code>draft.ts:238/259</code>, <code>:252/263</code>) - drift there hands the user a live button that cannot roll; <code>tabsRecords</code> re-writing <code>isChallenges</code> and <code>isCabinet</code> verbatim two lines after they are defined; "the XI is complete" expressed three ways in <code>App.tsx</code> while it already imports <code>isComplete</code>; the two pitch greens in <code>ModeSelect.tsx:50-52</code> with a comment admitting "see Pitch.tsx"; <code>bracketChampionId</code> re-deriving the final game beside <code>bracketChampion</code>; and <code>slug</code> (<code>squads.ts:40</code>) being <code>normalizeSearch</code> plus two replaces, comment and all.</td>
     <td>Nine commits or one, but keep them mechanical. The <code>slug</code> one is the only with any risk - run <code>npm run checks</code> behind it, since <code>validateSquads</code> owns the <code>personId</code> dedup invariants.</td><td class="er">M</td><td class="er">low</td></tr>
-  <tr id="H137" class="new"><td class="id">H137</td><td class="pr"><span class="tag p-dry">dry</span></td>
-    <td><b>Seven duplicated local UI atoms</b>, each within or across two files: the CareerHub title/Level/Prestige trio written once per branch of <code>showToggle</code> (<code>:74-85</code> and <code>:116-126</code>, differing only by a hover class); the card-footer disclosure button in <code>MatchdayCard.tsx:118-127</code> and <code>StandingsTable.tsx:126-132</code> (differing by one padding value and the label); <code>SquadBrowser.tsx:212/220</code>'s back control as a <code>button</code> and a <code>Link</code> with an identical class string; the selected/unselected chip pair at three sites; <code>CabinetScreen</code>'s leaderboard column widths written twice under a comment saying they must agree; the group-outcome sentence in <code>StandingsTable.tsx:120</code> and <code>RoundReview.tsx:33</code>, including both copy strings; and the <code>album_stats</code> row mapping three times in <code>remoteStore</code> (= H89).</td>
+  <tr id="H137" class="new"><td class="id">H137</td><td class="pr"><span class="tag v-done">DONE</span></td>
+    <td><b>Seven duplicated local UI atoms</b>, each within or across two files: the CareerHub title/Level/Prestige trio written once per branch of <code>showToggle</code> (<code>:74-85</code> and <code>:116-126</code>, differing only by a hover class); the card-footer disclosure button in <code>MatchdayCard.tsx:118-127</code> and <code>StandingsTable.tsx:126-132</code> (differing by one padding value and the label); <code>SquadBrowser.tsx:212/220</code>'s back control as a <code>button</code> and a <code>Link</code> with an identical class string; the selected/unselected chip pair at three sites; <code>CabinetScreen</code>'s leaderboard column widths written twice under a comment saying they must agree; the group-outcome sentence in <code>StandingsTable.tsx:120</code> and <code>RoundReview.tsx:33</code>, including both copy strings; and the <code>album_stats</code> row mapping three times in <code>remoteStore</code> (= H89). <b>Six of the seven done 2026-08-25</b>; the seventh IS H89 and stays in its own wave rather than being smuggled in here. The cabinet's column widths were taken first as advised, and the width turned out to appear a third time - on the flag itself.</td>
     <td>Local extractions, mostly file-private. The cabinet's column widths are the one that silently mis-aligns a header over its numbers, so take that one first.</td><td class="er">M</td><td class="er">low</td></tr>
   <tr id="H138" class="new"><td class="id">H138</td><td class="pr"><span class="tag p-dry">dry</span></td>
     <td><b>Three shop sentences promise a number that nothing asserts.</b> The project already asserts two of these pairs (<code>checks.ts:1770</code> for the budget dollars, <code>:1788</code> for the re-roll ordinal) precisely because "a shop that lies" is the failure mode. Unasserted: Extra Choice's "4 / 5 team boosts offered each round" against <code>offerSize = 3 + tier</code> (<code>run.ts:545</code>, where the base <code>3</code> is also written again in the harness); Deep Squad's "+1 / +2 to your entire XI"; Scout Network's "Start each run with 1 / 2 common team boost(s)".</td>
     <td>Export <code>BASE_OFFER_SIZE = 3</code>, use it in both places, and extend the existing copy-agreement check to all three tracks.</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H139" class="new"><td class="id">H139</td><td class="pr"><span class="tag p-dry">dry</span></td>
+  <tr id="H139" class="new"><td class="id">H139</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Ten palette values are copied into <code>index.html</code> by necessity, and nothing checks them.</b> The boot cover must paint before the bundle arrives, so it cannot read <code>@theme</code> - CLAUDE.md says so and states the obligation ("keep them in step with <code>index.css</code>"). All ten agree today; verified. What is missing is enforcement, and a drift would show as a one-frame flash of the old palette. The comment listing which tokens are copied is also wrong in two ways (H34 sub-claim 8): it names <code>-muted</code>, which appears nowhere, and omits <code>-line</code> and <code>-pitch</code>, which are both there.</td>
-    <td>A <code>checks.ts</code> block that reads both files as text, parses the <code>@theme</code> and dark-theme token values, and asserts each boot literal equals its token. Both files are on disk at check time, and the harness already reads the SQL seed the same way.</td><td class="er">M</td><td class="er">none</td></tr>
-  <tr id="H140" class="new"><td class="id">H140</td><td class="pr"><span class="tag p-dry">dry</span></td>
+    <td><b>Done 2026-08-25</b>, and it is 12 literals plus the favicon's two escaped hexes. The token mapping is written out per rule rather than inferred, because the two spinner arcs deliberately do NOT use the same token in both themes. Mutation-tested six ways, one of them a renamed rule, since a check that silently skips what it cannot find is the vacuous kind. A <code>checks.ts</code> block that reads both files as text, parses the <code>@theme</code> and dark-theme token values, and asserts each boot literal equals its token. Both files are on disk at check time, and the harness already reads the SQL seed the same way.</td><td class="er">M</td><td class="er">none</td></tr>
+  <tr id="H140" class="new"><td class="id">H140</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>The boot cover's trophy is stroked with the light amber in both themes, and it cannot be overridden.</b> <code>index.html:141</code> sets <code>stroke="#e4922b"</code> as an SVG presentation attribute with no dark rule, while <code>--color-amber</code>'s dark value is <code>#eea23a</code>. Every other boot colour has both themes.</td>
-    <td>Move it to CSS: <code>.boottile svg { stroke: #e4922b }</code> plus a <code>html[data-theme='dark']</code> override, and drop the attribute. Changes one shade for one fading frame, in the direction the file's own comment already claims - flagged rather than assumed.</td><td class="er">S</td><td class="er">none</td></tr>
+    <td><b>Done 2026-08-25</b>, and it was a real bug rather than a shade: verified by holding the cover up with the bundle blocked and reading the computed stroke, which is now #e4922b in light and #eea23a in dark. Move it to CSS: a <code>.boottile svg</code> stroke rule plus a <code>html[data-theme='dark']</code> override, and drop the attribute. Changes one shade for one fading frame, in the direction the file's own comment already claims - flagged rather than assumed.</td><td class="er">S</td><td class="er">none</td></tr>
 </table>
 
 <h3><span class="w">Wave 4 new</span> &mdash; put the logic where it belongs (H141-H147)</h3>
@@ -702,7 +740,7 @@ appropriate. So what is left is modelling gaps, not looseness.</p>
 
 <p>Each of these is either not behaviour-preserving, or a matter of taste the audit should not
 settle by itself. The twelve from the first pass are carried forward with their status re-checked;
-four are new. Ordered by how much they unblock. <b>Six were answered on 2026-08-24 (D1 in part, D6, D9, D13, D14, D15) and are marked in place;</b> two are already applied (D15 fixed, D9 documented). D5 and D7 have been restated in plain terms with a recommendation, and await a call.</p>
+four are new. Ordered by how much they unblock. <b>All sixteen are now answered</b> and marked in place: six on 2026-08-24 (D1 in part, D6, D9, D13, D14, D15), then D5 and D7 once they were restated in terms of what a player sees rather than what the code does, then the three server ones (D10, D12, D16). D15 and D9 are applied; D10 and D12/D16 are written as migrations <code>0013</code> and <code>0014</code> and queued for someone who can reach the NAS (<b>roadmap item 35</b>).</p>
 
 <table>
   <tr class="dec"><th>ID</th><th>Question</th><th>Status at 2026-08-24</th></tr>
@@ -998,13 +1036,20 @@ so the next audit does not re-derive them.</p>
   truth sweeps</b> (H128-H131) as one editing pass each. H130's inverted-flag and
   <code>-1</code>-round comments are the two worth doing first, because both are comments a person
   would code against.</li>
-  <li><b>Waves 2 and 3: name the constants, share the atoms</b> (H36-H54 as corrected, plus
-  H132-H140). Highest payoff per minute; each item removes a fact written down twice. H132 and H138
-  are the two that add an assertion rather than only removing a duplicate.</li>
-  <li><b>Answer <a href="#D13">D13</a>, <a href="#D1">D1</a>, <a href="#D14">D14</a>,
-  <a href="#D5">D5</a>, <a href="#D6">D6</a>, <a href="#D7">D7</a></b> before wave 4. D13 alone
-  gates eleven items across three waves, so it is the cheapest answer to get.</li>
-  <li><b>Wave 4, then 5, then 6</b>, in that order and one item per commit. H70 before H81, per the
+  <li><b><s>Waves 2 and 3: name the constants, share the atoms</s></b> (H36-H54 as corrected,
+  plus H132-H140). <b>Both DONE</b> - wave 2 on 2026-08-24, wave 3 on 2026-08-25. Highest payoff
+  per minute, as expected; each item removed a fact written down twice, and the three that added an
+  assertion instead (H132, H138, H139) took the suite to 137. Two things worth carrying forward:
+  the byte-identical-stylesheet comparison is a cheap and near-total proof for any token
+  migration, and it is worth taking a wave's items in the order given, because the audit put the
+  one that fails SILENTLY (H137's cabinet columns) first for a reason.</li>
+  <li><b><s>Answer <a href="#D13">D13</a>, <a href="#D1">D1</a>, <a href="#D14">D14</a>,
+  <a href="#D5">D5</a>, <a href="#D6">D6</a>, <a href="#D7">D7</a> before wave 4.</s></b> All six
+  answered, and so are the three server ones - <b>all 16 decisions are now settled</b>. D13 was the
+  cheapest to get and gated eleven items, as predicted. The two that had to be asked twice were D5
+  and D7, and the reason is recorded with them: both were first put in terms of the code rather than
+  in terms of what a player sees, which is not a question anyone can answer.</li>
+  <li><b>Next: wave 4, then 5, then 6</b>, in that order and one item per commit. H70 before H81, per the
   original sequencing, and H124 and H146 before H81 because both shrink the surface it has to move.
   Wave 6 last, exercised by hand: those are the only items that can break the app in a way neither
   gate will see.</li>
