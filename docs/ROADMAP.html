@@ -306,7 +306,7 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-23<br>
+    <strong>Updated:</strong> 2026-08-25<br>
     <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
@@ -682,7 +682,10 @@
   <summary>
     <span class="num">05</span>
     <span class="title">Career depth F - odds at each decision
-      <span class="sub">Show what a choice is worth, at the moment the choice is made.</span>
+      <span class="sub">Show what a choice is worth, at the moment the choice is made.
+      MOCKED UP 2026-08-25, and the measurements changed the item: the literal version
+      (one cup-odds delta per card) misprices a third of the catalogue, so what is left to
+      build is a position-aware odds pass showing two figures.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
@@ -701,25 +704,144 @@
     places), so that dependency goes with it and this item no longer touches the random
     helpers at all.</p>
     <p><strong>Mocked up (2026-08-25):</strong>
-    <code>docs/redesign-2026/turf-flat/boost-odds-mock.html</code> draws three versions on one
-    real offer, with every figure measured against the shipped domain code rather than invented.
-    <b>The literal version does not work</b>, and that is the finding: run through
-    <code>applyBoon</code> + <code>simulateTitleOdds</code>, 11 of the 32 cards move the number
-    by less than 1.5 points (the shipped 600-sim readout's own noise is 0.9), Away Days reads
-    +0.4 because a whole-tournament sim replays a <em>random</em> tournament and has never heard
-    of the team you play next, Second Wind is priced as permanent, and Sold Out Stadium reads
-    <b>+21.3, the best number in the pool</b>, because its debt is a <code>startsIn</code> plan
-    that the measurement path skips. Measured properly, from the actual position, it is +0.8.</p>
-    <p>So the work is not a number on a card: it is a <b>position-aware</b> odds pass (this
-    bracket, this next opponent, the XI re-derived per round through <code>xiOf</code> so a
-    temporary card is temporary), and two figures rather than one, because the next tie and the
-    cup disagree and that disagreement is the whole information. The cheap half ships first: a
-    tie-odds figure is 20,000 sims in 17ms, needs no worker, and is what makes the
-    opponent-facing cards a decision at all. Three questions it raises are in the comp: whether
-    the readout spoils The Coin Toss (its result is derived, so an odds figure tells you heads
-    or tails before you pick), whether a solved offer stays interesting, and whether Sold Out
-    Stadium survives being priced.</p>
-    <p class="files">src/domain/odds.ts, src/components/cupRun/BoostOffer.tsx, docs/redesign-2026/turf-flat/boost-odds-mock.html</p>
+    <code>docs/redesign-2026/turf-flat/boost-odds-mock.html</code>, a self-contained comp in the
+    turf-flat set (open it in a browser; it also publishes as an Artifact, and the one published
+    from the session that wrote it is
+    <code>claude.ai/code/artifact/6bc5d048-585a-4e98-bd60-741db213390c</code>, private to the
+    owner). It draws <b>three versions on one real offer</b> - the first boost, through the
+    group, Brazil 2002 drawn in the Round of 16 - and <b>every percentage on it is measured
+    against the shipped domain code</b> rather than invented, by four throwaway probes over
+    <code>domain/odds.ts</code>, <code>domain/bracket.ts</code> and <code>domain/boons.ts</code>.
+    Re-derive them rather than trusting the figures below if the catalogue or the ratings
+    move.</p>
+
+    <div class="callout">
+      <span class="ct">The finding: build the item as written and it lies</span>
+      Run each offered card through <code>applyBoon</code> and then
+      <code>simulateTitleOdds</code>, which is exactly what this item asked for, and the number
+      on the card is wrong for a third of the catalogue. Not imprecise. Wrong, and wrong in both
+      directions at once.
+    </div>
+
+    <ul>
+      <li><b>11 of the 32 cards move it by under 1.5 points</b>, which is inside the noise of the
+      600-sim readout the app already ships (standard deviation 0.9). Keeper Coach, Star Signing,
+      Veteran Core, Away Days, All or Nothing, Youth Development, Sponsorship, Double Print, Old
+      Guard, Kind Draw, Man-Marking.</li>
+      <li><b>The next-tie cards read as nothing.</b> Away Days is +0.4 and Man-Marking is -0.1,
+      because <code>simulateTitleOdds</code> replays a <em>random</em> tournament and has never
+      heard of the team you actually play next. On the tie each was taken for they are worth
+      +10.7 and +10.2. The blind method cannot tell the pair apart at all, which is the one thing
+      the pair exists to make you choose between.</li>
+      <li><b>Temporary cards are priced as permanent.</b> Second Wind (+4 for one round) reads
+      +11.6 against a true +4.3, because <code>applyBoon</code> measures the round a card is
+      granted and the sim then plays five more rounds with it.</li>
+      <li><b>Sold Out Stadium reads +21.3, the best number in the pool</b>, because its debt
+      (-6 the round after) is a <code>startsIn</code> plan and <code>applyBoon</code> skips those
+      by design. Measured from the actual position it is <b>+0.8</b>. The screen would turn a
+      known design hole into its top recommendation.</li>
+      <li><b>Four cards pay outside the match sim entirely</b> and correctly read +0.0:
+      Sponsorship, Youth Development, All or Nothing, Double Print. A zero there is not "no
+      information", it is a wrong one.</li>
+      <li><b>It is not even cheap.</b> A baseline plus four cards at 600 sims is ~850ms of
+      blocked main thread, and 600 sims is the precision that cannot separate a real 1pp
+      from nothing.</li>
+    </ul>
+
+    <p><b>The same fault is already shipped elsewhere.</b> <code>CupRunScreen</code> computes
+    <code>simulateTitleOdds(activeXi, 600, ...)</code> with no reference to the run's position,
+    so the "Title" figure in the XI panel still includes a group stage you won two rounds ago and
+    never mentions who you are about to play. Whatever this item builds, that figure should read
+    from it.</p>
+
+    <p><strong>What the comp recommends instead.</strong> Not a number on a card: a
+    <b>position-aware</b> odds pass, showing <b>two figures</b> per card.</p>
+
+    <ol>
+      <li><b>Start from the run as it stands</b> - this bracket, this next opponent, the rounds
+      that are left - instead of restarting a tournament from a group already won. That alone
+      fixes the opponent cards.</li>
+      <li><b>Re-derive the XI per round through the effect ledger</b>, so a card that lasts one
+      round lasts one round. That fixes Second Wind and Sold Out Stadium.</li>
+      <li><b>Show the tie and the cup, not one of them.</b> They disagree, and the disagreement
+      is the information: Sold Out Stadium is +27 on the tie and level on the cup, which is what
+      the card says in words and has never said in numbers.</li>
+      <li><b>Whole points, and "level" inside the noise.</b> At 6,000 sims the standard error is
+      about 0.6pp, so a decimal invents precision and a fake +0 is worse than a word.</li>
+      <li><b>A label, not a zero, for cards the sim cannot price.</b> Three shapes cover the
+      catalogue: pays after the run, reaches the album, deliberately hidden.</li>
+    </ol>
+
+    <p>The measured table the comp is built on, at that stop (baseline: 30.5% to win the Round of
+    16, 6.3% to win the cup; 6,000 simulated brackets a row, 1.6s for the whole table):</p>
+
+<pre>card                  blind cup   this tie      aware cup
+Defensive Drills          +2.5   34.0%  +3.5        +3.4   agrees, as it should
+Golden Generation         +4.6   40.1%  +9.6        +6.4   blind method understates
+Away Days                 +0.4   41.2% +10.7        +2.5   no Brazil in a random draw
+Man-Marking               -0.1   40.7% +10.2        +2.6   indistinguishable, blind
+Second Wind              +11.6   48.3% +17.8        +4.3   "this round only" ignored
+Sold Out Stadium         +21.3   57.9% +27.4        +0.8   the debt is invisible
+Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless</pre>
+
+    <p><strong>Build order.</strong> The cheap half is worth shipping on its own, and the
+    expensive half needs no markup the cheap half did not already add.</p>
+
+    <ol>
+      <li><b>A tie-odds helper.</b> 20,000 simulated ties cost <b>17ms</b> (4,000 cost 3), so a
+      baseline plus four cards is ~20ms with a standard error under 0.4pp. No worker, no loading
+      state, no new sim path worth the name. This is the half that makes the opponent cards a
+      decision.</li>
+      <li><b>A position-aware entry point in <code>domain/odds.ts</code>.</b> Today
+      <code>simulateTitleOdds(players, sims, chem, delta, pool)</code> builds its own group and
+      its own bracket. It needs a sibling taking the run's <b>bracket</b> and a <b>per-round
+      XI</b>. The probe behind the comp is about 40 lines over <code>buildBracket</code> /
+      <code>playRound</code> / <code>recordRound</code>, all already exported. Budget ~190ms per
+      card at 6,000 sims, so it wants a web worker; <code>odds.ts</code>'s own doc comment
+      already says as much ("for a live UI readout prefer a web worker") and this is the caller
+      that finally needs one.</li>
+      <li><b>Feed it from <code>xiOf</code>, never <code>applyBoon</code>.</b> The ledger already
+      knows <code>appliesFrom</code> and <code>expiresAfter</code>, so asking it for round
+      <em>r</em> gives a card its real lifetime for free. <code>applyBoon</code> is the
+      measurement path for the balance harness and skips <code>startsIn</code> deliberately; it
+      is the wrong tool here, and using it is precisely how the mispricing above happens.</li>
+      <li><b>A field on the catalogue entry saying whether a card can be priced</b>
+      (<code>priced: 'sim' | 'payout' | 'album' | 'hidden'</code>), beside <code>rarity</code>.
+      One line per card, and it is what stops a payout card reading as worthless.</li>
+      <li><b><code>BoostOffer</code> takes an optional <code>odds</code> map</b> keyed by boon id,
+      so the component stays presentational and renders identically with the prop absent - which
+      is what the preference switches and what a slow first frame shows.</li>
+      <li><b>An "Odds on" preference</b>, persisted like <code>showFullDraw</code> (a run spans
+      many navigations, so component state would reset it constantly). Its control belongs on the
+      offer, not in the settings sheet.</li>
+    </ol>
+
+    <p><strong>Three decisions before code.</strong></p>
+    <ul>
+      <li><b>Does the readout spoil The Coin Toss?</b> Its result is <em>derived</em> from the XI
+      and the opponent, deliberately, so that reloading cannot re-roll it - which means an odds
+      figure would tell you heads or tails before you pick, and the card is nothing else. The
+      comp draws it as "not shown until taken". The alternative is to accept the spoiler and
+      retire the card.</li>
+      <li><b>Does a solved offer stay interesting?</b> Three cards with numbers on them is an
+      arithmetic problem, not a gamble. The preference is the hedge; the honest version of the
+      worry is that the strongest card becomes always obvious, which is an argument for shipping
+      the tie figure alone, since the two horizons at least disagree with each other.</li>
+      <li><b>Is Sold Out Stadium still shippable once the screen prices it?</b> Its known hole
+      (free if taken before the final) becomes visible the day this ships. Fix the card, or let
+      the number be the warning.</li>
+    </ul>
+
+    <p>Two smaller things the comp settled in passing: the offer drawn is <b>four cards</b>
+    (Extra Choice tier 2), and the strip adds about 34px to a card, which the phone column
+    absorbs because the offer is already one column below 540px. And the <b>Physio Table re-roll
+    re-runs every simulation</b>, which is another argument for keeping the tie figure
+    instant.</p>
+
+    <p class="next"><strong>Next step:</strong> answer the Coin Toss question, since it is the
+    only one that can delete a card, then build step 1 (the tie-odds helper) and ship it on its
+    own. Steps 2 and 3 are a second pass and can wait for a worker.</p>
+    <p class="files">src/domain/odds.ts, src/domain/effects.ts (xiOf), src/domain/boons.ts, src/components/cupRun/BoostOffer.tsx, src/components/CupRunScreen.tsx, docs/redesign-2026/turf-flat/boost-odds-mock.html</p>
   </div>
 </details>
 
@@ -1903,7 +2025,12 @@
   Conventions for whoever picks this up: <code>npm run build</code> before committing,
   <code>npm run checks</code> after touching <code>domain/</code>, gate experiments behind a
   <code>FEATURES</code> flag, no em-dashes in generated text, "rating" not "elo" and "boost"
-  not "boon" in anything user-facing, and commit straight to <code>main</code>. The full
+  not "boon" in anything user-facing, and commit straight to <code>main</code>.
+  <strong>Everything goes directly to <code>main</code>, from now on and without asking</strong>
+  (reaffirmed 2026-08-25, and already the standing rule in <code>CLAUDE.md</code> since
+  2026-08-23): no feature branch, no pull request, unless one is asked for in so many words. A
+  session that starts on a branch finishes by fast-forwarding onto <code>main</code> and pushing
+  there. The full
   picture is in <code>CLAUDE.md</code>; detailed specs in <code>docs/career-depth-spec.md</code>
   and <code>docs/roguelike-career-design.md</code>; the cleanup backlog in
   <code>docs/hygiene-audit.html</code>.
