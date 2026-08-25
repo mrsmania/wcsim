@@ -3,12 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Draft an XI of real World Cup players, one position at a time, then play a simulated group stage and knockout run and try to win the cup."
+    />
+    <!-- The browser chrome's colour, per theme. It matters more here than usual: the boot
+         cover below paints its own literal background before any CSS loads, so without
+         these the phone's address bar sat at its default while the page underneath was
+         already paper or near-black. Same literals as the boot screen, and `npm run
+         checks` holds them to --color-ground the same way (H102). -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f2ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131417" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><rect width='28' height='28' rx='6' fill='%230e5c34'/><g fill='none' stroke='%23e4922b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate(2 2)'><path d='M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978'/><path d='M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978'/><path d='M18 9h1.5a1 1 0 0 0 0-5H18'/><path d='M4 22h16'/><path d='M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z'/><path d='M6 9H4.5a1 1 0 0 1 0-5H6'/></g></svg>"
     />
     <script>
-      /* Apply the saved theme before paint to avoid a flash of the light theme. */
+      /* Apply the saved theme before paint to avoid a flash of the light theme.
+         The storage key is HARDCODED here and cannot be otherwise: this runs before any
+         module loads, so it cannot import `SETTINGS_KEY` from the module that owns it.
+         Bump that key and every dark-theme player gets a light flash on load, with no
+         compile error to say so - so bump it here too. `npm run checks` asserts the two
+         agree (H102), which is the only guard available. */
       (function () {
         try {
           var s = JSON.parse(localStorage.getItem('wcsim_settings_v1') || '{}');

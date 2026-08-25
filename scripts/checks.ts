@@ -2578,6 +2578,34 @@ const KNOWN_MISSING_ART = new Set([
       (wrong.length ? ` [${wrong.join('; ')}]` : ''),
     wrong.length === 0,
   );
+
+  // The browser chrome's colour is the same copy problem one layer out: two
+  // `theme-color` metas, one per scheme, and they have to be the page's own background
+  // or the phone's address bar sits at a different colour from the cover under it
+  // (hygiene H102).
+  const meta = (scheme: string): string | null => {
+    const m = html.match(
+      new RegExp(
+        '<meta[^>]*name="theme-color"[^>]*prefers-color-scheme:\\s*' +
+          scheme +
+          '[^>]*content="(#[0-9a-fA-F]{3,8})"',
+      ),
+    );
+    return m ? m[1].toLowerCase() : null;
+  };
+  check(
+    'boot: both theme-color metas match --color-ground for their scheme',
+    meta('light') === light['--color-ground'] && meta('dark') === dark['--color-ground'],
+  );
+
+  // The pre-paint theme script cannot IMPORT the settings key: it runs before any module
+  // loads. So it holds a literal, and bumping the key without bumping this one gives
+  // every dark-theme player a light flash on load with no compile error. This is the only
+  // guard there is (hygiene H102).
+  check(
+    "boot: the pre-paint theme script reads the settings module's own key",
+    html.includes(`localStorage.getItem('${SETTINGS_KEY}')`),
+  );
 }
 
 // --- Challenges: the catalogue is well-formed --------------------------------

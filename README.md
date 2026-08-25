@@ -140,14 +140,27 @@ matches the configured base.
 ### Another host or path (Synology, Docker, custom domain)
 
 Because the base is absolute, serving the app at a different path means rebuilding
-with a matching base, e.g. root: `npm run build -- --base=/` (or
-`--base=/my/path/`). Then either configure the server to serve `index.html` for
-unknown routes, or rely on the emitted `404.html`.
+with a matching base. Set `VITE_BASE`:
+
+```bash
+VITE_BASE=/ npm run build           # served at the domain root
+VITE_BASE=/my/path/ npm run build   # served under /my/path/
+```
+
+Then either configure the server to serve `index.html` for unknown routes, or rely
+on the emitted `404.html`.
+
+> Do **not** use `npm run build -- --base=/`. npm appends forwarded arguments to the
+> last command in the `&&` chain, so the flag reaches `copy-404.mjs` rather than Vite;
+> that script ignores unknown arguments and exits 0, so the build reports success and
+> still points every asset at `/wcsim/`. `VITE_BASE` is read in `vite.config.ts` and
+> works through the whole chain.
 
 1. **Web Station** (simplest): rebuild with the right base, copy `dist/` to a
    shared folder, and point a Web Station virtual host at it.
-2. **Container Manager (Docker)**: build the included image and run it (adjust the
-   Dockerfile's build `--base` and nginx SPA fallback for your path first).
+2. **Container Manager (Docker)**: build the included image and run it. The image
+   takes the base as a build argument, defaulting to `/` because nginx serves from
+   the root; adjust the nginx SPA fallback if you host under a sub-path.
 
    ```bash
    docker build -t wcsim .
