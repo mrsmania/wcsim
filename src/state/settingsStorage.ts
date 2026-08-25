@@ -1,5 +1,6 @@
 import { WORLD_CUP_YEARS } from '../data/squads';
 import type { Difficulty } from '../domain/difficulty';
+import { readJson, writeJson } from './storage/kv';
 
 /** Light (default) or dark theme. */
 export type Theme = 'light' | 'dark';
@@ -20,7 +21,7 @@ export interface Settings {
     showFullDraw: boolean;
 }
 
-const KEY = 'wcsim_settings_v1';
+export const SETTINGS_KEY = 'wcsim_settings_v1';
 
 /** The shape actually WRITTEN to storage, which is not `Settings`.
  *
@@ -101,19 +102,9 @@ export function toStored(s: Settings): StoredSettings {
 
 /** Load saved preferences (tolerant of an absent key or bad JSON). */
 export function loadSettings(): Settings {
-    try {
-        const raw = localStorage.getItem(KEY);
-        if (!raw) return DEFAULT_SETTINGS;
-        return normalizeSettings(JSON.parse(raw));
-    } catch {
-        return DEFAULT_SETTINGS;
-    }
+    return readJson(SETTINGS_KEY, normalizeSettings, DEFAULT_SETTINGS);
 }
 
 export function saveSettings(s: Settings): void {
-    try {
-        localStorage.setItem(KEY, JSON.stringify(toStored(s)));
-    } catch {
-        /* storage unavailable (private mode / quota); prefs just won't persist */
-    }
+    writeJson(SETTINGS_KEY, toStored(s));
 }

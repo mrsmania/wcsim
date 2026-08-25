@@ -17,6 +17,7 @@ import { validateSquads } from '../src/domain/validateSquads';
 import {
   DEFAULT_SETTINGS,
   normalizeSettings,
+  SETTINGS_KEY,
   toStored,
 } from '../src/state/settingsStorage';
 import {
@@ -133,6 +134,12 @@ import { tierOf } from '../src/domain/album';
 import { isPlayTab, isRecords, screenOf, type Screen } from '../src/state/routes';
 import { buildResume, cupRunResume } from '../src/state/resume';
 import { FEATURES } from '../src/config';
+// The storage keys, each from its owning module, plus the set built out of them.
+import { GAME_KEY } from '../src/state/persist';
+import { ALBUM_KEY, ALBUM_STATS_KEY } from '../src/state/albumStorage';
+import { CAREER_KEY } from '../src/state/careerStorage';
+import { REVEAL_KEY, RUN_KEY } from '../src/state/runStorage';
+import { GUEST_KEYS } from '../src/state/store/localStore';
 import {
   CATALOGUE_PATH,
   catalogueChecksum,
@@ -3410,6 +3417,28 @@ const KNOWN_MISSING_ART = new Set([
       buildResume(f, one, false)?.sub === '4-3-3 · 1 of 11 picked' &&
       buildResume(f, full, false)?.label === 'Your XI is ready' &&
       buildResume(f, full, false)?.sub === '4-3-3',
+  );
+}
+
+// --- Storage keys: the guest-import set is built from the owning modules -----
+// Every key used to be re-typed as a literal inside `GUEST_KEYS`, so bumping a version
+// in any storage module silently stopped that slice being imported into an account or
+// cleared afterwards, with no type error (hygiene H88). Now it is assembled from the
+// exports, and this asserts the set is what it should be: all six progress keys, no
+// duplicates, and never the settings key - preferences are not progress.
+{
+  const progress = [GAME_KEY, ALBUM_KEY, ALBUM_STATS_KEY, CAREER_KEY, RUN_KEY, REVEAL_KEY];
+  const all = [...progress, SETTINGS_KEY];
+  check(
+    'storage: the guest set is every progress key, once each, and never the settings key',
+    GUEST_KEYS.length === progress.length &&
+      progress.every((k) => GUEST_KEYS.includes(k)) &&
+      !GUEST_KEYS.includes(SETTINGS_KEY) &&
+      new Set(all).size === all.length &&
+      // One key uses colons and the rest underscores. It stays that way (renaming it
+      // would orphan saved games), so this pins the oddity rather than the pattern.
+      GAME_KEY === 'wcsim:game:v1' &&
+      all.filter((k) => k.startsWith('wcsim_')).length === all.length - 1,
   );
 }
 

@@ -1,15 +1,26 @@
-import { loadGame, saveGame } from '../persist';
-import { clearAlbum, loadAlbum, loadStats, saveAlbum, saveStats } from '../albumStorage';
-import { loadCareer, saveCareer } from '../careerStorage';
+import { GAME_KEY, loadGame, saveGame } from '../persist';
+import {
+  ALBUM_KEY,
+  ALBUM_STATS_KEY,
+  clearAlbum,
+  loadAlbum,
+  loadStats,
+  saveAlbum,
+  saveStats,
+} from '../albumStorage';
+import { CAREER_KEY, loadCareer, saveCareer } from '../careerStorage';
 import {
   clearReveal,
   clearRun,
   loadReveal,
   loadRun,
+  REVEAL_KEY,
+  RUN_KEY,
   saveReveal,
   saveRun,
 } from '../runStorage';
 import { loadSettings, saveSettings } from '../settingsStorage';
+import { hasAnyKey, removeKeys } from '../storage/kv';
 import { applyRunStickers, executeTrade, pendingNewStickers } from '../../domain/album';
 import type { AlbumStats } from '../albumStorage';
 import type { AccountSnapshot, Store } from './types';
@@ -22,25 +33,26 @@ import type { AccountSnapshot, Store } from './types';
 // clamping) is the same code it always was.
 // ---------------------------------------------------------------------------
 
-/** Guest keys, for the one-time move into an account (FR-16a). Listed here because
- *  this module is the only place that knows what "the guest's data" consists of. */
-const GUEST_KEYS = [
-  'wcsim:game:v1',
-  'wcsim_album_v1',
-  'wcsim_album_stats_v1',
-  'wcsim_career_v1',
-  'wcsim_run_v1',
-  'wcsim_run_reveal_v1',
+/** Guest keys, for the one-time move into an account (FR-16a). Listed here because this
+ *  module is the only place that knows what "the guest's data" consists of - but taken
+ *  from each owning module's own export rather than re-typed as literals (hygiene H88).
+ *  Re-typing them meant a version bump in any storage module silently stopped that
+ *  slice being imported or cleared, with no type error to say so.
+ *
+ *  `SETTINGS_KEY` is deliberately absent: preferences are not progress. */
+export const GUEST_KEYS: readonly string[] = [
+  GAME_KEY,
+  ALBUM_KEY,
+  ALBUM_STATS_KEY,
+  CAREER_KEY,
+  RUN_KEY,
+  REVEAL_KEY,
 ];
 
 /** Is there any guest progress on this device worth importing? Settings alone do not
  *  count: they are preferences, not progress. */
 export function hasGuestData(): boolean {
-  try {
-    return GUEST_KEYS.some((k) => localStorage.getItem(k) !== null);
-  } catch {
-    return false;
-  }
+  return hasAnyKey(GUEST_KEYS);
 }
 
 /**
@@ -50,11 +62,7 @@ export function hasGuestData(): boolean {
  * the account's own, and a later guest session may as well keep its preferences.
  */
 export function clearGuestData(): void {
-  try {
-    for (const k of GUEST_KEYS) localStorage.removeItem(k);
-  } catch {
-    /* storage unavailable; nothing to clear */
-  }
+  removeKeys(...GUEST_KEYS);
 }
 
 export function createLocalStore(): Store {
