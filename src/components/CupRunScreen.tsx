@@ -24,21 +24,18 @@ import {
   type KoMatch,
 } from '../domain/run';
 import {
-  applyRunResult,
   careerTopScorerId,
-  startRunCareer,
-  buyPerkTier,
-  unlockBoon,
   levelProgress,
   type CareerState,
+  type ChallengeInput,
+  type RunReward,
 } from '../domain/career';
-import { store } from '../state/store';
 import { consumeRunStart } from '../nav/pendingRun';
-import { basePlayer } from '../data/squads';
 import { FEATURES } from '../config';
 import { useFollowBottom } from '../hooks/useFollowBottom';
 import { useToast } from '../hooks/useToast';
 import { useRoundReview } from '../hooks/useRoundReview';
+import { useCupRun } from '../hooks/useCupRun';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
 import {
   Banner,
@@ -64,7 +61,7 @@ import CareerHub from './cupRun/CareerHub';
 import RunXiPanel from './cupRun/RunXiPanel';
 import RunEndPanel from './cupRun/RunEndPanel';
 import GroupCell from './cupRun/GroupCell';
-import { OUTCOME_LABEL, koWinHeading, type Reveal, type Reward } from './cupRun/types';
+import { OUTCOME_LABEL, koWinHeading, type Reward } from './cupRun/types';
 
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
@@ -87,6 +84,12 @@ export default function CupRunScreen({
   buildTo,
   showFullDraw,
   onSetShowFullDraw,
+  career,
+  buyPerk,
+  unlockBoost,
+  startRun,
+  bankRun,
+  challengeInput,
 }: {
   /** The XI drafted in the main game, or null if the XI is not complete yet. */
   draftedXi: Player[] | null;
@@ -132,15 +135,25 @@ export default function CupRunScreen({
    *  draw once does not have to be redone on every navigation back into the run. */
   showFullDraw: boolean;
   onSetShowFullDraw?: (open: boolean) => void;
+  /** The career and the four things that change it (hooks/useCareer, owned by App so the
+   *  build page prices the market off the same value this screen spends from). */
+  career: CareerState;
+  buyPerk: (perkId: string) => void;
+  unlockBoost: (boonId: string) => void;
+  startRun: (tier: number) => number;
+  bankRun: (run: RunState, challenges?: ChallengeInput, at?: number) => RunReward;
+  /** What the challenge predicates need beyond the run and the career: dataset ratings,
+   *  the album as it stands and the lifetime trade count. A function, not a value, so it
+   *  is read at run END and reflects a haul banked earlier in the same session. */
+  challengeInput: () => ChallengeInput;
 }) {
   const diffDelta = userRatingDelta(difficulty);
   const CHALLENGES_ON = FEATURES.challenges;
-  const [career, setCareer] = useState<CareerState>(() => store.peek().career);
-  const [run, setRun] = useState<RunState | null>(() => store.peek().run);
   const [reward, setReward] = useState<Reward | null>(null);
-  // Restore an in-flight reveal, so leaving mid-match resumes the current round rather
-  // than replaying it. The store already drops a reveal with no run behind it.
-  const [reveal, setReveal] = useState<Reveal | null>(() => store.peek().reveal);
+  // The run in flight and the reveal playing over it, with their two writes
+  // (hooks/useCupRun). Seeded from the boot snapshot, which already drops a reveal with
+  // no run behind it.
+  const { run, setRun, reveal, setReveal } = useCupRun();
   // The just-finished knockout tie, kept on screen through the following boost pick.
   const [lastKoMatch, setLastKoMatch] = useState<{ match: KoMatch; opp: GroupTeam; roundName: string } | null>(null);
   // The group draw, shown once per group before the matchdays reveal.
@@ -165,18 +178,6 @@ export default function CupRunScreen({
   // and knockout round r is r + 1; null means the live round.
   const { reviewIndex, setReviewIndex, reviewableRounds, groupRecord, reviewRecord } =
     useRoundReview(run);
-
-  // Persist the in-progress run (or clear it once there is none), so a refresh
-  // mid-run resumes exactly where it left off.
-  useEffect(() => {
-    void store.saveRun(run);
-  }, [run]);
-
-  // Persist the in-flight reveal alongside the run, so leaving mid-match resumes the
-  // current round instead of replaying it. Cleared when the reveal ends (setReveal(null)).
-  useEffect(() => {
-    void store.saveReveal(reveal);
-  }, [reveal]);
 
   // Collapse the hub whenever a run starts (so the match reveal is not buried); only fires
   // when the run presence flips, so a manual toggle sticks until then. Pre-run it keeps the
@@ -265,15 +266,8 @@ export default function CupRunScreen({
     // not this one.
     onRunStart?.();
     const chosen = chosenAscension;
-    // Remember the tier and SPEND any Youth Development grant an earlier run banked. The
-    // "dealt exactly once" invariant lives in `startRunCareer` now, where the harness can
-    // see it; it returns the career unchanged by identity when there is nothing to write,
-    // which is what this save skips on.
-    const { career: nextCareer, owed } = startRunCareer(career, chosen);
-    if (nextCareer !== career) {
-      setCareer(nextCareer);
-      void store.saveCareer(nextCareer);
-    }
+    // Remember the tier and SPEND any Youth Development grant an earlier run banked.
+    const owed = startRun(chosen);
     const begun = beginRun(draftedXi, {
       perkLevels: career.perkLevels,
       unlockedBoons: career.unlockedBoons,
@@ -321,30 +315,13 @@ export default function CupRunScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, run, draftedXi]);
 
-  /** What the challenge predicates need beyond the run and the career: dataset
-   *  ratings (the run's XI carries boost deltas), the album as it stands, and the
-   *  lifetime trade count. Read at run end rather than held in state, so it reflects
-   *  a haul banked earlier in the same session. */
-  const challengeInput = () => ({
-    base: basePlayer,
-    album: store.peek().album,
-    trades: store.peek().albumStats.tradesCompleted,
-  });
-
   // Step the run; award XP/Prestige exactly once when it ends.
   const advance = (next: RunState) => {
     if (next.phase === 'ended' && run && run.phase !== 'ended') {
       // The clock is passed in rather than read inside the domain, so `applyRunResult`
       // stays pure and the checks harness stays deterministic. It is the only thing the
       // run archive cannot work out for itself.
-      const r = applyRunResult(
-        career,
-        next,
-        CHALLENGES_ON ? challengeInput() : undefined,
-        Date.now(),
-      );
-      setCareer(r.career);
-      void store.saveCareer(r.career);
+      const r = bankRun(next, CHALLENGES_ON ? challengeInput() : undefined, Date.now());
       setReward({
         xpGained: r.xpGained,
         prestigeGained: r.prestigeGained,
@@ -459,18 +436,6 @@ export default function CupRunScreen({
     });
   };
 
-  const purchase = (perkId: string) => {
-    const c = buyPerkTier(career, perkId);
-    setCareer(c);
-    void store.saveCareer(c);
-  };
-
-  const unlockBoost = (boonId: string) => {
-    const c = unlockBoon(career, boonId);
-    setCareer(c);
-    void store.saveCareer(c);
-  };
-
   // The draw's two halves, read off the group the reveal is carrying.
   const groupDraw = reveal?.kind === 'group' ? splitGroup(reveal.group) : null;
   // Matchdays fully revealed so far: while matchday N is playing, N-1 are complete, and
@@ -493,7 +458,7 @@ export default function CupRunScreen({
       onToggleHub={() => setHubOpen((o) => !o)}
       showBody={hubOnly || showHubBody}
       showToggle={!hubOnly}
-      onPurchase={purchase}
+      onPurchase={buyPerk}
       onUnlockBoost={unlockBoost}
     />
   );

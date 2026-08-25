@@ -8,7 +8,7 @@ import {
     useState,
 } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { squadsInPool } from './data/squads';
+import { basePlayer, squadsInPool } from './data/squads';
 import type { Player, Position } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
@@ -40,6 +40,7 @@ import { useSquadRoll } from './hooks/useSquadRoll';
 import { useBudgetBuild } from './hooks/useBudgetBuild';
 import { useMovePlayer } from './hooks/useMovePlayer';
 import { useStackedScroll } from './hooks/useStackedScroll';
+import { useCareer } from './hooks/useCareer';
 import SettingsModal from './components/SettingsModal';
 import AccountModal from './components/AccountModal';
 import SetupPanel from './components/SetupPanel';
@@ -110,6 +111,11 @@ export default function App({
     );
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
     const stickers = useStickerAlbum(state.swapsLeft, snapshot.album, poolPlayers);
+    // The career, seeded from the boot snapshot like the album (hooks/useCareer). It used
+    // to be state inside the run screen, which is why two memos here re-read it from the
+    // store on every navigation with an eslint-disable each, just to price the market,
+    // offer the right Ascension tiers and colour the challenge ledger.
+    const { career, buyPerk, unlockBoost, startRun, bankRun } = useCareer(snapshot.career);
     // The Ascension tier for the next run, picked on the build page (roadmap item 28)
     // rather than on a pre-run screen that no longer exists in the tabs chrome. Held here
     // as UI state and mirrored onto the career's `lastAscension`, which is where the run
@@ -203,14 +209,13 @@ export default function App({
         if (!previewFormation) return;
         // A fresh draft means a fresh team, so drop any in-progress Cup Run.
         void store.saveRun(null);
-        // The Extra Re-roll perk tops up the base three. Read at the click (store.peek is
-        // synchronous), so buying the perk in the hub and coming straight back applies
-        // without a reload.
-        const extraRerolls = extraRerollsOf(store.peek().career);
+        // The Extra Re-roll perk tops up the base three. Read off the live career, so
+        // buying the perk in the hub and coming straight back applies without a reload.
+        const extraRerolls = extraRerollsOf(career);
         // Just enter the draft; the draw-next-squad effect rolls the first squad
         // from committed state (an open slot with no squad in hand).
         dispatch({ type: 'START_DRAFT', formation: previewFormation, extraRerolls });
-    }, [previewFormation]);
+    }, [previewFormation, career]);
 
     // Testing shortcut: auto-pick a full valid XI (within a strength band) and
     // jump straight to "complete".
@@ -390,42 +395,26 @@ export default function App({
     const tabsRecords = isRecords(screen);
     const recordsCabinet = screen === 'cabinet';
 
-    // The completed-challenge set. Same shape as careerPeek below: the career lives in
-    // CupRunScreen, so it is re-read from the store whenever the route changes rather than
-    // lifted into App.
-    const challengeIds = useMemo(
-        () => store.peek().career.completedChallenges,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [path],
-    );
-
-    // The career, re-read on every navigation (it lives in CupRunScreen otherwise), so
-    // buying a perk in the hub and coming straight back to build applies. Not gated on
-    // the build route the way the budget below is, because the kickoff build record is
-    // computed on `/cup-run` too, where the budget in force is still the career one.
-    const careerPeek = useMemo(
-        () => store.peek().career,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [path],
-    );
     // The Ascension picker's props for the build page: the tier in force and the highest
     // one currently selectable (unlocked AND level-gated).
-    const ascensionMax = maxSelectableAscension(careerPeek.ascension, careerPeek.level);
-    const ascensionTier = selectedAscension(careerPeek, ascension);
+    const ascensionMax = maxSelectableAscension(career.ascension, career.level);
+    const ascensionTier = selectedAscension(career, ascension);
+    // Picking a tier mirrors it onto the career, which is where the run reads its default
+    // from - so nothing new has to be threaded to `beginRun`. `startRun` is the same write
+    // the run itself makes at kickoff, and it no-ops when the tier has not moved.
     const pickAscension = useCallback(
         (tier: number) => {
             setAscension(tier);
-            const career = store.peek().career;
-            if (career.lastAscension !== tier) void store.saveCareer({ ...career, lastAscension: tier });
+            startRun(tier);
         },
-        [],
+        [startRun],
     );
 
     // Transfer-market budget, scaled by the owned `transfer-budget` perk tier. The build
     // record below reads the same figure, so what the market charged and what the run
     // recorded cannot drift. Named for the money, since `budget` is the market's
     // interaction machine now.
-    const marketBudget = budgetOf(careerPeek);
+    const marketBudget = budgetOf(career);
 
     // What the build page knows and the run cannot work out afterwards: the shape the XI
     // kicks off in, and how it was assembled. Both are handed to `beginRun` so the
@@ -454,14 +443,30 @@ export default function App({
               })
             : runBuildOf({
                   method: 'roll',
-                  allowance: INITIAL_REROLLS + extraRerollsOf(careerPeek),
+                  allowance: INITIAL_REROLLS + extraRerollsOf(career),
                   rerollsLeft,
                   swapsUsed,
               });
-    }, [draftedXi, build, marketBudget, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
+    }, [draftedXi, build, marketBudget, career, ownedStickerIds, rerollsLeft, swapsLeft]);
+
+    /** What the challenge predicates need beyond the run and the career: dataset ratings
+     *  (the run's XI carries boost deltas), the album as it stands, and the lifetime trade
+     *  count. A function, so it is read when a run ENDS and reflects a haul banked earlier
+     *  in the same session rather than whatever was in state at mount. */
+    const challengeInput = useCallback(
+        () => ({
+            base: basePlayer,
+            album: store.peek().album,
+            trades: store.peek().albumStats.tradesCompleted,
+        }),
+        [],
+    );
 
     // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
     // mid-flight, described in one line for the Continue button (`state/resume.ts`).
+    //
+    // The one `store.peek()` left, and `useCupRun` records why: the run stays owned by the
+    // run screen because the account path needs it written back by a CHILD's effect.
     const resumeCupRun = useMemo(
         () => cupRunResume(store.peek().run),
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -568,6 +573,12 @@ export default function App({
                             onRunEnd={STICKERS ? stickers.onCupRunEnd : undefined}
                             onRunStart={STICKERS ? stickers.onNewRun : undefined}
                             banking={STICKERS ? stickers.banking : false}
+                            career={career}
+                            buyPerk={buyPerk}
+                            unlockBoost={unlockBoost}
+                            startRun={startRun}
+                            bankRun={bankRun}
+                            challengeInput={challengeInput}
                         />
                     ) : isAlbum ? (
                         <AlbumScreen
@@ -613,12 +624,12 @@ export default function App({
                             />
                             {recordsCabinet ? (
                                 <CabinetScreen
-                                    career={careerPeek}
+                                    career={career}
                                     album={stickers.album}
                                     allPlayers={poolPlayers}
                                 />
                             ) : (
-                                <ChallengesScreen completed={challengeIds} />
+                                <ChallengesScreen completed={career.completedChallenges} />
                             )}
                         </>
                     ) : isLauncher ? (
