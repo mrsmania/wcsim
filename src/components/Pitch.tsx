@@ -478,7 +478,7 @@ export default function Pitch({
                   stripe is drawn a hair taller than its slot so consecutive stripes
                   overlap: that removes the sub-pixel seams (the page showing through)
                   the user would otherwise see between stripes. */}
-                <rect x={0} y={0} width={VBW} height={VBH} fill="#1a7d45" />
+                <rect x={0} y={0} width={VBW} height={VBH} fill="var(--color-grass)" />
                 {Array.from({ length: STRIPES }, (_, i) => (
                     <rect
                         key={i}
@@ -486,7 +486,7 @@ export default function Pitch({
                         y={d2((i / STRIPES) * VBH)}
                         width={VBW}
                         height={d2(VBH / STRIPES) + 1}
-                        fill={i % 2 === 0 ? '#1f8a4d' : '#1a7d45'}
+                        fill={i % 2 === 0 ? 'var(--color-grass-stripe)' : 'var(--color-grass)'}
                     />
                 ))}
                 <path

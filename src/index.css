@@ -46,6 +46,13 @@
     --color-faint: #ecebe3;
     --color-cup-deep: #0a1b12;
     --color-amber-ink: #9a6512;
+    /* The mowed-turf pair: the board's base green and its lighter stripe. Deliberately
+       NOT overridden in the dark theme - the pitch is a green board under either theme,
+       which is why these are not `pitch` / `pitch-dark` (those do flip). Two consumers
+       that had a hand-written copy each: Pitch.tsx's SVG rects and ModeSelect's hero,
+       the latter carrying a comment that it mirrored Pitch by hand. */
+    --color-grass: #1a7d45;
+    --color-grass-stripe: #1f8a4d;
     --shadow-soft: 0 1px 2px rgba(19, 33, 26, 0.05), 0 12px 30px rgba(19, 33, 26, 0.07);
     /* Tifo-style hard drop shadow for cards: solid colour, zero blur, offset. */
     --shadow-hard: 6px 6px 0 var(--color-pitch-dark);

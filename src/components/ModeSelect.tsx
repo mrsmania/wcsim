@@ -47,9 +47,11 @@ const LINEUP: { n: number; name: string; x: number; y: number }[] = [
     { n: 10, name: 'Messi', x: 80, y: 29 },
 ];
 
-// The game's exact pitch greens (see Pitch.tsx): a green board in both themes.
-const GRASS_BASE = '#1a7d45';
-const GRASS_STRIPE = '#1f8a4d';
+// The game's exact pitch greens - the same two tokens Pitch.tsx's board is drawn with,
+// which is what these used to be hand-copied from. Not theme-swapped: a green board in
+// both themes (see the tokens' comment in index.css).
+const GRASS_BASE = 'var(--color-grass)';
+const GRASS_STRIPE = 'var(--color-grass-stripe)';
 
 // The two CTAs below pair this with a literal `text-[#13211a]` rather than `text-ink`,
 // deliberately: they sit on `bg-amber` / `bg-white`, which are light in BOTH themes, so the
