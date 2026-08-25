@@ -58,6 +58,46 @@ export function canSwapInto(
         : !usedPersonIds.has(incoming.personId);
 }
 
+/** The filled slots a held collectible could swap into, given who is already used. The
+ *  per-slot half of the swap rule, derived on top of `canSwapInto` in the pitch before
+ *  (hygiene H58). Empty when there is no incoming player.
+ *
+ *  Slots, not a boolean: the board lights each eligible slot individually. */
+export function swapTargetSlots(
+    incoming: Player | null,
+    slots: { id: string; position: Position }[],
+    filled: Record<string, Player | null | undefined>,
+    usedPersonIds: Set<string>,
+): Set<string> {
+    const out = new Set<string>();
+    if (!incoming) return out;
+    for (const s of slots) {
+        const occupant = filled[s.id];
+        if (occupant && canSwapInto(incoming, occupant, s.position, usedPersonIds)) out.add(s.id);
+    }
+    return out;
+}
+
+/** Which of `candidates` can be swapped in at all: a collectible with at least one filled
+ *  slot it could take. The SET-level half of the same rule, derived in `App` before.
+ *
+ *  Note what stays the caller's business: whether any swaps remain, and where
+ *  `usedPersonIds` comes from. App reads it from reducer state and the board derives it
+ *  from `filled`, and the two are not interchangeable - passing the wrong one shifts the
+ *  rule rather than tidying it. */
+export function swapEligibleIds(
+    candidates: Player[],
+    slots: { id: string; position: Position }[],
+    filled: Record<string, Player | null | undefined>,
+    usedPersonIds: Set<string>,
+): Set<string> {
+    const ids = new Set<string>();
+    for (const p of candidates) {
+        if (swapTargetSlots(p, slots, filled, usedPersonIds).size > 0) ids.add(p.id);
+    }
+    return ids;
+}
+
 /** Every collectible player in a flat list (the caller passes the dataset in, so
  *  this module stays pure and free of a `data/squads` import). */
 export function collectiblePlayers(allPlayers: Player[]): Player[] {
@@ -97,18 +137,18 @@ export function collectiblesByTier(allPlayers: Player[]): Record<StickerTier, Pl
  *     legally offers duplicates while uncollected 1990 cards still exist. Do not
  *     reintroduce an exhaustion test on either side of the wire. */
 export function cupRewardPool(
-  album: AlbumState,
-  allPlayers: Player[],
-  taken: string[] = [],
+    album: AlbumState,
+    allPlayers: Player[],
+    taken: string[] = [],
 ): Player[] {
-  const pickable = collectiblePlayers(allPlayers).filter((p) => tierOf(p) !== 'monumental');
-  const uncollected = pickable.filter(
-    (p) => !album.collected.includes(p.id) && !taken.includes(p.id),
-  );
-  const pool = uncollected.length ? uncollected : pickable.filter((p) => !taken.includes(p.id));
-  return pool
-    .slice()
-    .sort((a, b) => TIER_RANK[tierOf(a)!] - TIER_RANK[tierOf(b)!] || b.elo - a.elo);
+    const pickable = collectiblePlayers(allPlayers).filter((p) => tierOf(p) !== 'monumental');
+    const uncollected = pickable.filter(
+        (p) => !album.collected.includes(p.id) && !taken.includes(p.id),
+    );
+    const pool = uncollected.length ? uncollected : pickable.filter((p) => !taken.includes(p.id));
+    return pool
+        .slice()
+        .sort((a, b) => TIER_RANK[tierOf(a)!] - TIER_RANK[tierOf(b)!] || b.elo - a.elo);
 }
 
 /** Add one copy of a player id to an album (immutably): first copy -> collected,

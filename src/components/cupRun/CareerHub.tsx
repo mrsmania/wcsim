@@ -7,11 +7,11 @@ import ChallengeRow from '../challengeUi';
 import {
     PERKS,
     FINISH_LABEL,
-    perkLevelOf,
-    nextPerkTier,
+    boonUnlockState,
+    perkPurchaseState,
     type CareerState,
 } from '../../domain/career';
-import { BOONS, BOON_UNLOCK_COST, type Rarity } from '../../domain/boons';
+import { BOONS, type Rarity } from '../../domain/boons';
 import { CARD, CARD_FLAT, Meter, METER_GRADIENT, MONO_CAP } from '../matchUi';
 
 /** Rarity dot colour in the boost library (reuses the palette tokens). */
@@ -252,11 +252,12 @@ export default function CareerHub({
                         </div>
                         <div className="grid gap-2.5 sm:grid-cols-2">
                             {PERKS.map((perk) => {
-                                const lvl = perkLevelOf(career, perk.id);
-                                const next = nextPerkTier(career, perk.id); // null => maxed
-                                const affordable = !!next && career.prestige >= next.cost;
-                                const levelOk = !!next && career.level >= next.levelReq;
-                                const canBuy = !!next && affordable && levelOk;
+                                // The rule and the label's precedence both come from the
+                                // domain now: the component picks only the words.
+                                const { owned: lvl, next, canBuy, reason } = perkPurchaseState(
+                                    career,
+                                    perk.id,
+                                );
                                 // What the player currently owns (the active effect), if any.
                                 const owned = lvl > 0 ? perk.tiers[lvl - 1] : null;
                                 return (
@@ -313,13 +314,13 @@ export default function CareerHub({
                                                       : 'cursor-not-allowed border border-line bg-panel text-muted/50',
                                             ].join(' ')}
                                         >
-                                            {!next
+                                            {reason === 'maxed'
                                                 ? 'Maxed'
-                                                : !levelOk
-                                                  ? `Reach level ${next.levelReq}`
-                                                  : !affordable
-                                                    ? `Need ${next.cost}`
-                                                    : lvl > 0
+                                                : reason === 'level'
+                                                  ? `Reach level ${next!.levelReq}`
+                                                  : reason === 'prestige'
+                                                    ? `Need ${next!.cost}`
+                                                    : reason === 'upgrade'
                                                       ? 'Upgrade'
                                                       : 'Unlock'}
                                         </button>
@@ -336,9 +337,7 @@ export default function CareerHub({
                         </div>
                         <div className="grid gap-2.5 sm:grid-cols-2">
                             {BOONS.map((b) => {
-                                const inPool = b.starter || career.unlockedBoons.includes(b.id);
-                                const cost = BOON_UNLOCK_COST[b.rarity];
-                                const affordable = career.prestige >= cost;
+                                const { cost, inPool, affordable } = boonUnlockState(career, b.id);
                                 return (
                                     <div
                                         key={b.id}

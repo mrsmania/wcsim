@@ -34,7 +34,7 @@ import { extraRerollsOf, type CareerState } from './domain/career';
 import { maxSelectableAscension, selectedAscension } from './domain/ascension';
 import { priceFor, xiSpend } from './domain/pricing';
 import type { RunBuild, RunShape } from './domain/run';
-import { canSwapInto } from './domain/album';
+import { swapEligibleIds as swapEligibleIdsOf } from './domain/album';
 import { BUDGET_BY_TIER, FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
 import { useLiveMatch } from './nav/liveMatch';
@@ -511,19 +511,18 @@ export default function App({
     // there's a filled slot they can take): a different-person slot when they're not
     // already in the XI, or their OWN slot as an upgrade (a different card of the same
     // person). Empty when the album is off / no swaps left, so gating is unchanged there.
-    const swapEligibleIds = useMemo<Set<string>>(() => {
-        const ids = new Set<string>();
-        if (!STICKERS || swapsLeft <= 0 || !activeFormation || !currentSquad) return ids;
-        const used = new Set(usedPersonIds);
-        for (const p of currentSquad.players) {
-            const ok = activeFormation.slots.some((s) => {
-                const occ = filled[s.id];
-                return !!occ && canSwapInto(p, occ, s.position, used);
-            });
-            if (ok) ids.add(p.id);
-        }
-        return ids;
-    }, [STICKERS, swapsLeft, activeFormation, currentSquad, filled, usedPersonIds]);
+    const swapEligibleIds = useMemo<Set<string>>(
+        () =>
+            !STICKERS || swapsLeft <= 0 || !activeFormation || !currentSquad
+                ? new Set<string>()
+                : swapEligibleIdsOf(
+                      currentSquad.players,
+                      activeFormation.slots,
+                      filled,
+                      new Set(usedPersonIds),
+                  ),
+        [STICKERS, swapsLeft, activeFormation, currentSquad, filled, usedPersonIds],
+    );
     const usedSet = useMemo(() => new Set(usedPersonIds), [usedPersonIds]);
     // Stickers already in the album, by PLAYER id: the marker in both player lists (and
     // the line-up sheet) uses it to say "you have this one" rather than only

@@ -106,14 +106,17 @@ import {
   applyRunResult,
   HISTORY_LIMIT,
   PLAYER_RECORD_LIMIT,
+  boonUnlockState,
   buyPerkTier,
   extraRerollsOf,
   perkLevelOf,
+  perkPurchaseState,
   unlockBoon,
   HIGH_ASCENSION,
   INITIAL_CAREER,
   levelForXp,
   PERKS,
+  type CareerState,
 } from '../src/domain/career';
 import { simulateTitleOdds } from '../src/domain/odds';
 // The reducer owns the base re-roll count; the perk below has to agree with it. It also
@@ -1831,6 +1834,56 @@ const plainRun = (() => {
     }
   }
   check('career: the Extra Choice / Deep Squad / Scout Network copy matches the numbers', ok);
+}
+
+// --- Career: the shop's advice agrees with what the shop will actually do -----------
+// `perkPurchaseState` and `boonUnlockState` exist so the button a player presses and the
+// function that refuses them are one rule (hygiene H65). That is only worth anything if
+// the two are asserted to agree, so: for a spread of careers, whenever the state says
+// `canBuy`, buying must change the career, and whenever it does not, buying must be a
+// no-op. The `reason` ordering is checked too, because a tier that is BOTH unaffordable
+// and level-gated has to say "reach level N" - telling a player to earn Prestige they
+// already have is the specific bug the precedence exists to avoid.
+{
+  let ok = true;
+  const careers: CareerState[] = [];
+  // A fresh career, a rich low-level one (level-gated but flush), a high-level poor one,
+  // and a maxed-out one.
+  const base = INITIAL_CAREER;
+  careers.push(base);
+  careers.push({ ...base, prestige: 99999 });
+  careers.push({ ...base, level: 99 });
+  careers.push({ ...base, level: 99, prestige: 99999 });
+  for (const c of careers) {
+    for (const perk of PERKS) {
+      const st = perkPurchaseState(c, perk.id);
+      const after = buyPerkTier(c, perk.id);
+      const changed = after !== c;
+      if (changed !== st.canBuy) ok = false;
+      // The label's precedence: level before price.
+      if (st.next && !st.levelOk && st.reason !== 'level') ok = false;
+      if (st.next && st.levelOk && !st.affordable && st.reason !== 'prestige') ok = false;
+      if (!st.next && st.reason !== 'maxed') ok = false;
+      // A maxed track has no next tier and cannot be bought.
+      if (!st.next && changed) ok = false;
+    }
+    for (const b of BOONS) {
+      const st = boonUnlockState(c, b.id);
+      const after = unlockBoon(c, b.id);
+      if ((after !== c) !== st.canBuy) ok = false;
+      if (b.starter && !st.inPool) ok = false;
+    }
+  }
+  // And the level gate really does bite: a flush level-1 career must be refused at least
+  // one tier for level alone, or this check is passing on nothing.
+  const flush = { ...base, prestige: 99999 };
+  const levelBlocked = PERKS.filter((p) => perkPurchaseState(flush, p.id).reason === 'level');
+  if (levelBlocked.length === 0) ok = false;
+  check(
+    `career: the shop state agrees with buyPerkTier / unlockBoon ` +
+      `(${levelBlocked.length} tracks level-gated for a flush level-1 career)`,
+    ok,
+  );
 }
 
 // --- Pricing + Ascension: the two derivations that had three and two copies -------

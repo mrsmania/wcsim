@@ -89,6 +89,37 @@ function currentPlayer(squad: Squad | null, playerId: string | null): Player | n
   return squad.players.find((p) => p.id === playerId) ?? null;
 }
 
+
+/** The tail every placement action shares: write the player into the slot, update the
+ *  used-person list, and recompute the phase from whether the XI is now complete. Three
+ *  cases below ended in the same three steps (hygiene H64).
+ *
+ *  `freeing` is the personId leaving the XI, which only a swap has. `clearDrawn` is the
+ *  one asymmetry, and it is a parameter rather than an accident: placing and swapping clear
+ *  the drawn squad and the held card so the draw effect rolls the next squad, while BUYING
+ *  does neither because the budget build has no drawn squad to clear.
+ *
+ *  Each case keeps its OWN guards. This is only the tail. */
+function place(
+  state: GameState,
+  formation: Formation,
+  slot: { id: string },
+  player: Player,
+  opts: { freeing?: string; clearDrawn: boolean },
+): GameState {
+  const filled: Filled = { ...state.filled, [slot.id]: player };
+  const kept = opts.freeing
+    ? state.usedPersonIds.filter((id) => id !== opts.freeing)
+    : state.usedPersonIds;
+  return {
+    ...state,
+    filled,
+    usedPersonIds: [...kept, player.personId],
+    ...(opts.clearDrawn ? { currentSquad: null, selectedPlayerId: null } : {}),
+    phase: isComplete(formation, filled) ? 'complete' : 'draft',
+  };
+}
+
 export function gameReducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'SET_FORMATION':
@@ -133,14 +164,8 @@ export function gameReducer(state: GameState, action: Action): GameState {
       const slot = formation?.slots.find((s) => s.id === action.slotId);
       if (!formation || !slot || !canPlace(player, slot, filled)) return state;
       if (state.usedPersonIds.includes(player.personId)) return state;
-      const nextFilled: Filled = { ...filled, [slot.id]: player };
-      const done = isComplete(formation, nextFilled);
-      return {
-        ...state,
-        filled: nextFilled,
-        usedPersonIds: [...state.usedPersonIds, player.personId],
-        phase: done ? 'complete' : 'draft',
-      };
+      // No `clearDrawn`: the budget build has no drawn squad or held card to clear.
+      return place(state, formation, slot, player, { clearDrawn: false });
     }
 
     case 'AUTOFILL':
@@ -176,16 +201,8 @@ export function gameReducer(state: GameState, action: Action): GameState {
       if (!formation || !player || !slot || !canPlace(player, slot, filled)) {
         return state; // invalid placement: ignore
       }
-      const nextFilled: Filled = { ...filled, [slot.id]: player };
-      const done = isComplete(formation, nextFilled);
-      return {
-        ...state,
-        filled: nextFilled,
-        usedPersonIds: [...state.usedPersonIds, player.personId],
-        currentSquad: null, // component draws the next squad unless complete
-        selectedPlayerId: null,
-        phase: done ? 'complete' : 'draft',
-      };
+      // Clears the drawn squad, so the draw effect rolls the next one unless complete.
+      return place(state, formation, slot, player, { clearDrawn: true });
     }
 
     case 'SWAP_PLAYER': {
@@ -214,19 +231,12 @@ export function gameReducer(state: GameState, action: Action): GameState {
       if (!formation || !player || !slot || !outgoing || !eligible) {
         return state; // invalid swap: ignore
       }
-      const nextFilled: Filled = { ...filled, [slot.id]: player };
-      const done = isComplete(formation, nextFilled);
       return {
-        ...state,
-        filled: nextFilled,
-        usedPersonIds: [
-          ...state.usedPersonIds.filter((id) => id !== outgoing.personId),
-          player.personId,
-        ],
+        ...place(state, formation, slot, player, {
+          freeing: outgoing.personId,
+          clearDrawn: true,
+        }),
         swapsLeft: state.swapsLeft - 1,
-        currentSquad: null,
-        selectedPlayerId: null,
-        phase: done ? 'complete' : 'draft',
       };
     }
 

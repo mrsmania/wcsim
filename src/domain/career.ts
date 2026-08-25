@@ -523,6 +523,57 @@ export function applyRunResult(
 
 /** Buy the next tier of a perk track. Refuses when maxed, under the tier's level
  *  requirement, or unaffordable (returns the career unchanged). */
+/** Why a perk tier can or cannot be bought right now - the rule `buyPerkTier` enforces,
+ *  exposed so the shop button and the refusal read from the same place. The component
+ *  re-derived all of this, which meant the sentence the PLAYER sees was a second
+ *  implementation of the rule (hygiene H65).
+ *
+ *  `reason` is ordered exactly as the button's label is, and that order matters: a tier you
+ *  cannot afford AND are under-levelled for must say "reach level N", not "need N Prestige",
+ *  or the shop sends the player off to earn Prestige they already have. */
+export function perkPurchaseState(
+  career: CareerState,
+  perkId: string,
+): {
+  owned: number;
+  next: PerkTier | null;
+  affordable: boolean;
+  levelOk: boolean;
+  canBuy: boolean;
+  reason: 'maxed' | 'level' | 'prestige' | 'upgrade' | 'unlock';
+} {
+  const owned = perkLevelOf(career, perkId);
+  const next = nextPerkTier(career, perkId);
+  const affordable = !!next && career.prestige >= next.cost;
+  const levelOk = !!next && career.level >= next.levelReq;
+  const canBuy = !!next && affordable && levelOk;
+  const reason = !next
+    ? 'maxed'
+    : !levelOk
+      ? 'level'
+      : !affordable
+        ? 'prestige'
+        : owned > 0
+          ? 'upgrade'
+          : 'unlock';
+  return { owned, next, affordable, levelOk, canBuy, reason };
+}
+
+/** The same for a boost unlock, which `unlockBoon` enforces. A starter or an
+ *  already-unlocked card is `inPool`, and only price stands between the rest and the
+ *  offer pool - there is no level gate on the boost library. */
+export function boonUnlockState(
+  career: CareerState,
+  boonId: string,
+): { cost: number; inPool: boolean; starter: boolean; affordable: boolean; canBuy: boolean } {
+  const boon = boonById(boonId);
+  const starter = !!boon?.starter;
+  const inPool = !boon || starter || career.unlockedBoons.includes(boonId);
+  const cost = boon ? BOON_UNLOCK_COST[boon.rarity] : 0;
+  const affordable = career.prestige >= cost;
+  return { cost, inPool, starter, affordable, canBuy: !inPool && affordable };
+}
+
 export function buyPerkTier(career: CareerState, perkId: string): CareerState {
   const tier = nextPerkTier(career, perkId);
   if (!tier || career.level < tier.levelReq || career.prestige < tier.cost) return career;

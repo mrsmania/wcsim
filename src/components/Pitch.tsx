@@ -3,7 +3,7 @@ import type { Player } from '../data/types';
 import { lastName } from '../data/format';
 import { assignNearest, type Formation, type Slot } from '../domain/formations';
 import { moveOptions, type Filled } from '../domain/draft';
-import { canSwapInto } from '../domain/album';
+import { swapTargetSlots } from '../domain/album';
 import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
@@ -372,10 +372,25 @@ export default function Pitch({
     // The personIds currently placed (drives the swap rule: a used collectible may
     // only swap into the slot where that person sits, as an upgrade; an unused one may
     // swap into any filled slot it fits).
-    const usedPersonIds = new Set(
-        Object.values(filled)
-            .filter((pl): pl is Player => !!pl)
-            .map((pl) => pl.personId),
+    // Memoized because the swap memo below depends on it: a fresh Set every render would
+    // change the dep array every render and the memo would never actually hold.
+    const usedPersonIds = useMemo(
+        () =>
+            new Set(
+                Object.values(filled)
+                    .filter((pl): pl is Player => !!pl)
+                    .map((pl) => pl.personId),
+            ),
+        [filled],
+    );
+
+    // The filled slots the held collectible could swap into. One pass, memoized, rather
+    // than the rule re-derived per badge inside the render (hygiene H58). `usedPersonIds`
+    // here is derived from `filled` - App's copy comes from reducer state, and the two are
+    // deliberately not interchangeable.
+    const swapTargets = useMemo(
+        () => swapTargetSlots(selectedPlayer, formation.slots, filled, usedPersonIds),
+        [selectedPlayer, formation, filled, usedPersonIds],
     );
 
     // Where the player being moved may go, and how many players each option actually
@@ -472,13 +487,9 @@ export default function Pitch({
                               : 'secondary';
                         // A filled slot a selected COLLECTIBLE is eligible for = a swap
                         // target (only collectibles can be swapped in). `onSwap` is
-                        // undefined when the album is off or no swaps remain. The
-                        // eligibility rule itself lives in domain/album (canSwapInto).
-                        const swapTarget =
-                            !!onSwap &&
-                            !!selectedPlayer &&
-                            !!player &&
-                            canSwapInto(selectedPlayer, player, slot.position, usedPersonIds);
+                        // undefined when the album is off or no swaps remain, which is
+                        // this component's own gating; the rule is `swapTargetSlots`.
+                        const swapTarget = !!onSwap && swapTargets.has(slot.id);
                         const qx = px((slot.x / 100) * 300);
                         const qy = py((slot.y / 100) * 400);
                         return (
