@@ -2,7 +2,6 @@ import type { Player } from '../data/types';
 import { runTotals, type RunOutcome, type RunState, type RunTally } from './run';
 import { boonById, BOON_UNLOCK_COST } from './boons';
 import { ascensionAt, MAX_ASCENSION } from './ascension';
-import { FEATURES } from '../config';
 import { completedIn, prestigeFor } from './challenges';
 import type { AlbumState } from './album';
 
@@ -490,9 +489,7 @@ export function applyRunResult(
   const challengesCompleted = ch
     ? completedIn({ run, career: banked, base: ch.base, album: ch.album, trades: ch.trades })
     : [];
-  // FEATURES.challengeAwards off: challenges still complete and are still recorded,
-  // they simply pay nothing (and nothing is shown paying).
-  const challengePrestige = FEATURES.challengeAwards ? prestigeFor(challengesCompleted) : 0;
+  const challengePrestige = prestigeFor(challengesCompleted);
   // The archive row, newest first and trimmed to the cap. Written after the challenges
   // are judged so it can carry how many this run completed.
   const totals = runTotals(run);

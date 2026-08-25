@@ -212,7 +212,7 @@ src/
                RouteCrumb, SubTabs)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
-               stickerImages, budgetDraft, challenges, challengeAwards,
+               stickerImages, budgetDraft, challenges,
                trophyCabinet;
                plus `accounts`, which is DERIVED from the build env, see below) +
                STICKER_TIERS / STICKER_TRADE_COST / STICKER_DISCOUNT +
@@ -986,8 +986,8 @@ deleted with the plain World Cup it used to gate). Design:
 - **Prestige also unlocks boosts.** 10 of the 32 boons are `starter`s; the rest are bought
   into the offer pool with Prestige (`BOON_UNLOCK_COST` common 15 / rare 30 / legendary 55,
   `unlockBoon`, the pool shown in `CareerHub`), and `availableBoons(unlockedBoons)` is what
-  an offer draws from. So Prestige has two sinks, perk tiers and boost unlocks, and (once
-  `FEATURES.challengeAwards` goes on) challenge awards would be its second faucet.
+  an offer draws from. So Prestige has two sinks, perk tiers and boost unlocks, and
+  challenge awards are its second faucet.
 - **An offer never contains a card the run already holds** (`offerPool` in `domain/run.ts`,
   decided 2026-08-23, roadmap 32). Before it, a card came round again on 3.7% of offer
   slots and landed one of three ways, two of them bad: it **stacked**, sometimes
@@ -1274,18 +1274,15 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   If the numbers ever move, keep the property that **awards buy but do not gate**:
   challenge Prestige grants no XP, so the level requirements on the dearest perk tiers can
   still only be met by playing.
-- **Awards are behind their own flag, `FEATURES.challengeAwards`, ON since 2026-08-19.**
-  One switch for both halves deliberately: with it false nothing is paid **and** no award is
-  shown anywhere (`AWARDS_ON` gates the catalogue rows, the hub card, the run-end list and
-  the counter's Prestige cell), because Prestige arriving from an invisible source is worse
-  than either. It was off until the numbers were tuned by simulation (see the `AWARD` note
-  above); the tier stays visible either way, as pips reading as difficulty. Two things to
-  keep in mind:
-  - **Flipping it on does not pay the backlog.** The wallet is only credited by
-    `applyRunResult` for the ids completed in that run, while `challengeProgress().prestige`
-    (the catalogue counter and the hub) is computed from every completion held, so the
-    display and the wallet disagree by exactly the arrears. It cost nothing when it went on,
-    because there was no real save to owe, but it would if the flag is ever cycled.
+- **Awards always pay. `FEATURES.challengeAwards` is GONE** (deleted 2026-08-24, hygiene
+  D1); `AWARDS_ON` in `domain/challenges.ts` is now a constant `true`, kept as a name
+  because it marks which UI exists only to show an award (the catalogue rows, the hub card,
+  the run-end list, the counter's Prestige cell). It was a flag from 2026-08-19, on from the
+  day the numbers were sized by simulation, and it went because **it could not safely be
+  thrown back**: the wallet is only credited by `applyRunResult` for the ids completed in
+  THAT run, while `challengeProgress().prestige` reads every completion held, so cycling it
+  would leave the display and the wallet disagreeing by exactly the arrears. A switch that
+  cannot be thrown is not a flag. One thing to keep:
   - **The `+N` on a row is green only when the entry is earned.** Painting all 130 accent
     puts the ledger straight back to a field of colour, which is the one thing that layout
     exists to avoid.
@@ -1298,10 +1295,14 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   backlog as one visible catch-up at the unlock (~240 Prestige over ~34 challenges at
   level 3), which loses nothing and makes the unlock a moment.
 - **All 130 are judged.** The plumbing wave (2026-08-19, section 8 of the spec) cleared the
-  27 that used to carry a `blocked` reason, so the catalogue screen's "not tracked yet"
-  filter and legend chip hide themselves. No SQL migration was needed: `CareerStats` is a
-  merged jsonb column and `RunState` a jsonb blob. `Challenge.blocked` stays in the model on
-  purpose - it costs nothing and the next batch of entries will want it. What the wave added:
+  27 that used to carry a `blocked` reason. No SQL migration was needed: `CareerStats` is a
+  merged jsonb column and `RunState` a jsonb blob. `Challenge.blocked` stays in the DOMAIN
+  model on purpose - it costs nothing and the next batch of entries will want it - but its
+  **UI is gone** (deleted 2026-08-24, hygiene D6): the "not tracked yet" filter variant, the
+  self-hiding chip, the self-hiding legend row and the lock rendering in
+  `ChallengeLedgerRow` were all unreachable while nothing sets the field, in a screen whose
+  whole premise is that 130 entries cannot each be painted. Re-add the UI with the entries
+  that need it. What the wave added:
   - **`RunState.shape`** - formation, style and the slot each player filled, recorded at
     kickoff because placing a player promotes the slot's role onto him (so the natural
     position cannot be recovered from the XI afterwards) and a roster boost changes the XI
@@ -1367,8 +1368,7 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
 - **Surfaces:** a Challenges block in the career hub (`CareerHub`: counter, Prestige
   earned, the three most recently completed, link to the catalogue), the **`/challenges`**
   route (`ChallengesScreen`, lazy-loaded: the album's completion counter, filters for
-  available / completed / not tracked yet - the third hides itself while nothing is blocked,
-  which is the case today - and every entry grouped by family), and the
+  available / completed, and every entry grouped by family), and the
   run-end panel listing what the run completed. Shared atoms live in
   `components/challengeUi.tsx` (family accents, `TierPips`, `ChallengeRow`,
   `ChallengeLedgerRow`).
@@ -1381,14 +1381,12 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   under its heading, never on an entry. **Tier is not a colour** - `TierPips` draws three
   monochrome slots, on the rows and in the counter's legend alike (`TIER_COLOR` is gone).
   **Earned is the only ink**: completed is full-strength with a green tick, everything else
-  is `text-dim`, and a blocked entry just fades further with a lock and its reason on hover,
-  never red. Two tokens came with it (`src/index.css`): `--color-dim`, which carries the name
+  is `text-dim`, never red. Two tokens came with it (`src/index.css`): `--color-dim`, which carries the name
   and description of most of the catalogue and is therefore held at AA on ground / panel /
   chalk, and `--color-hair`, the row rule, a step lighter than `--color-line`. The two
   columns are a **grid, not CSS columns**, because a grid row levels both cells' heights and
   so keeps the pair of hairlines in line when one description wraps and the other does not;
-  one column below 700px. When `FEATURES.challengeAwards` is on, the row shows its `+N` where
-  the card used to.
+  one column below 700px. The row shows its `+N` where the card used to.
 - **Accounts:** `completed_challenges` is one column on `career`, added by
   `supabase/migrations/0011_career_challenges.sql` (applied to the NAS 2026-08-19), which
   also teaches `save_career` and `import_guest_progress` to carry it.

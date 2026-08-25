@@ -1,4 +1,3 @@
-import { Lock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
   AWARD,
@@ -12,11 +11,17 @@ import {
 } from '../domain/challenges';
 import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
 
-type Filter = 'all' | 'open' | 'done' | 'blocked';
+type Filter = 'all' | 'open' | 'done';
 
-/** State of one entry, which is also what the filters pick between. */
-const stateOf = (c: Challenge, done: Set<string>): Filter =>
-  done.has(c.id) ? 'done' : c.blocked ? 'blocked' : 'open';
+/** State of one entry, which is also what the filters pick between.
+ *
+ *  There is no 'blocked' state here any more (hygiene D6). `Challenge.blocked` stays in the
+ *  DOMAIN model on purpose - it costs nothing and the next batch of entries will want it -
+ *  but no catalogue entry has set it since the plumbing wave judged all 130, so every
+ *  consumer branch was unreachable: a filter variant, a self-hiding chip, a self-hiding
+ *  legend row and the lock rendering in ChallengeLedgerRow. Re-add the UI with the entries
+ *  that need it, in a file whose whole premise is that 130 entries cannot each be painted. */
+const stateOf = (c: Challenge, done: Set<string>): Filter => (done.has(c.id) ? 'done' : 'open');
 
 /** The whole catalogue: a completion counter in the album's shape, filters, and every
  *  challenge grouped by family. Read-only - a challenge is completed by playing. */
@@ -41,15 +46,10 @@ export default function ChallengesScreen({
     return groups;
   }, [shown]);
 
-  // The third filter hides itself once every entry is judged (which is where the
-  // catalogue stands today); `Challenge.blocked` stays in the model for the next batch.
   const FILTERS: { key: Filter; label: string; n: number }[] = [
     { key: 'all', label: 'All', n: progress.total },
     { key: 'open', label: 'Available', n: progress.available },
     { key: 'done', label: 'Completed', n: progress.completed },
-    ...(progress.blocked > 0
-      ? [{ key: 'blocked' as Filter, label: 'Not tracked yet', n: progress.blocked }]
-      : []),
   ];
 
   // No header of its own: the only route that reaches this screen is `/records`, which
@@ -91,12 +91,6 @@ export default function ChallengesScreen({
                 </b>
               </span>
             ))}
-            {progress.blocked > 0 && (
-              <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
-                <Lock size={11} className="text-dim" aria-hidden="true" />
-                Not tracked yet <b className="font-bold text-ink">{progress.blocked}</b>
-              </span>
-            )}
           </div>
         </div>
         {AWARDS_ON && (

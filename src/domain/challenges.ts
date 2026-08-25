@@ -749,7 +749,7 @@ export function completedIn(ctx: ChallengeCtx): string[] {
     const career: CareerState = {
       ...view.career,
       completedChallenges: [...done],
-      prestige: view.career.prestige + (FEATURES.challengeAwards ? prestigeFor(gained) : 0),
+      prestige: view.career.prestige + prestigeFor(gained),
     };
     for (const c of CHALLENGES) {
       if (c.blocked || done.has(c.id)) continue;
@@ -774,9 +774,16 @@ export function completedIn(ctx: ChallengeCtx): string[] {
 export const prestigeFor = (ids: string[]): number =>
   ids.reduce((n, id) => { const c = challengeById(id); return n + (c ? AWARD[c.tier] : 0); }, 0);
 
-/** Whether a challenge pays, and therefore whether any award is shown. One switch for
- *  both, so Prestige never arrives from a source the player cannot see. */
-export const AWARDS_ON = FEATURES.challengeAwards;
+/** Whether a challenge pays, and therefore whether any award is shown - now always true.
+ *
+ *  It was `FEATURES.challengeAwards` until 2026-08-24 (hygiene D1). Challenges have paid
+ *  since 2026-08-19, once `AWARD` was sized by simulation to 2/5/12, and the switch could
+ *  not safely be thrown back: the wallet is only credited by `applyRunResult` for the ids
+ *  completed in THAT run, while the catalogue counter reads every completion held, so
+ *  cycling the flag would leave the two disagreeing by exactly the arrears. A switch that
+ *  cannot be thrown is not a flag. Kept as a named constant because it reads better at the
+ *  call sites than a bare `true`, and it marks which UI exists only to show an award. */
+export const AWARDS_ON = true;
 
 /** Catalogue progress, for the counter on the catalogue screen and the hub card. */
 export interface ChallengeProgress {

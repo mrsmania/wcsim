@@ -1,4 +1,4 @@
-import { Check, Lock } from 'lucide-react';
+import { Check } from 'lucide-react';
 import {
   AWARD,
   AWARDS_ON,
@@ -100,14 +100,9 @@ export function ChallengeLedgerRow({
   challenge: Challenge;
   done: boolean;
 }) {
-  const blocked = !!challenge.blocked && !done;
+  // No blocked state: see the note in ChallengesScreen (hygiene D6).
   return (
-    <div
-      className={`flex items-start gap-[11px] border-b border-hair px-0.5 py-2 ${
-        blocked ? 'opacity-[0.72]' : ''
-      }`}
-      title={blocked ? challenge.blocked : undefined}
-    >
+    <div className="flex items-start gap-[11px] border-b border-hair px-0.5 py-2">
       <span
         className={`mt-0.5 grid h-[15px] w-[15px] shrink-0 place-items-center ${
           done ? 'text-pitch' : 'text-dim'
@@ -116,8 +111,6 @@ export function ChallengeLedgerRow({
       >
         {done ? (
           <Check size={11} strokeWidth={3.2} />
-        ) : blocked ? (
-          <Lock size={10} strokeWidth={2.4} />
         ) : (
           <span className="h-[9px] w-[9px] rounded-full border-[1.5px] border-current opacity-45" />
         )}
@@ -132,7 +125,7 @@ export function ChallengeLedgerRow({
           {/* The mark is the visual state; this is the same fact for a screen reader,
               which cannot see that the name is a shade darker. */}
           <span className="sr-only">
-            {done ? ' - completed' : blocked ? ' - not tracked yet' : ' - not yet won'}
+            {done ? ' - completed' : ' - not yet won'}
           </span>
         </span>
         <span className={`block text-[12px] leading-[1.35] ${done ? 'text-muted' : 'text-dim'}`}>

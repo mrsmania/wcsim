@@ -68,22 +68,6 @@ export const FEATURES = {
      *  and the hub link and changes nothing else. Roadmap item 06; comp in
      *  docs/redesign-2026/turf-flat/trophy-cabinet.html. */
     trophyCabinet: true,
-    /** Whether a challenge PAYS Prestige. One switch for both halves, deliberately: with
-     *  it false nothing is paid AND no award is shown anywhere (the catalogue rows, the
-     *  hub card, the run-end list, the counter's Prestige cell), because Prestige arriving
-     *  from an invisible source is worse than either.
-     *  ON since 2026-08-19, once the numbers were sized by simulation: `AWARD` is 2/5/12
-     *  (see the note beside it in domain/challenges.ts), which puts the whole catalogue at
-     *  about a third of the perk shop and challenges at ~1/6 of a long career's Prestige,
-     *  so runs stay clearly the primary faucet. The first guess of 10/30/75 was worth
-     *  nearly twice the shop, which is what kept this off.
-     *  The tier (bronze/silver/gold) stays visible either way: it reads as difficulty.
-     *  NOTE if it is ever switched off and on again: flipping it does NOT pay the backlog.
-     *  The wallet is only credited by `applyRunResult` for the ids completed in that run,
-     *  while the catalogue counter and the hub read `challengeProgress().prestige`, which
-     *  is computed from every completion held - so the two would disagree by the arrears.
-     *  That cost nothing here because it went on before there was any real save to owe. */
-    challengeAwards: true,
     /** Optional accounts: sign in with an emailed 6-digit code so the album, career
      *  and challenges are the same on every device. Derived, not hand-set: it is on
      *  only when the build was given a server (VITE_SUPABASE_URL + _ANON_KEY). With
