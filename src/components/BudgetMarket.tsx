@@ -13,7 +13,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
-import { CARD } from './matchUi';
+import { CARD, Meter } from './matchUi';
 
 const MAX_RESULTS = 60;
 
@@ -205,12 +205,12 @@ export default function BudgetMarket({
             ${remaining} left &middot; {placed.length}/{slots.length}
           </span>
         </div>
-        <div className="mt-2 h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
-          <div
-            className={`h-full ${remaining < 0 ? 'bg-loss' : 'bg-pitch'}`}
-            style={{ width: `${Math.min(100, (spent / budget) * 100)}%` }}
-          />
-        </div>
+        <Meter
+          className="mt-2"
+          pct={(spent / budget) * 100}
+          height={8}
+          fill={remaining < 0 ? 'bg-loss' : 'bg-pitch'}
+        />
         <div className="mt-3 flex gap-2">
           {emptySlots.length > 0 && (
             <button

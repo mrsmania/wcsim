@@ -10,7 +10,7 @@ import {
   type ChallengeFamily,
 } from '../domain/challenges';
 import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
-import { CARD, MONO_CAP, PAGE_EYEBROW } from './matchUi';
+import { CARD, Meter, METER_GRADIENT, MONO_CAP, PAGE_EYEBROW } from './matchUi';
 
 type Filter = 'all' | 'open' | 'done';
 
@@ -73,12 +73,7 @@ export default function ChallengesScreen({
             <span className="text-[44px]">{progress.completed}</span>
             <span className="text-[18px] font-extrabold text-muted"> / {progress.total} honours</span>
           </div>
-          <div className="h-[9px] overflow-hidden rounded-[20px] border border-line bg-chalk">
-            <div
-              className="h-full bg-gradient-to-r from-pitch to-pitch-dark"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
+          <Meter pct={pct} height={9} fill={METER_GRADIENT} />
           {/* Tier reads as difficulty here too, so the legend carries the same pips the
               rows do rather than the three swatches it used to - the page is down to
               one hue per family and a tick, and this was the last of the old colour. */}

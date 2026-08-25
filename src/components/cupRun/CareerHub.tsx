@@ -11,7 +11,7 @@ import {
     type CareerState,
 } from '../../domain/career';
 import { BOONS, BOON_UNLOCK_COST, type Rarity } from '../../domain/boons';
-import { CARD, CARD_FLAT, MONO_CAP } from '../matchUi';
+import { CARD, CARD_FLAT, Meter, METER_GRADIENT, MONO_CAP } from '../matchUi';
 
 /** Rarity dot colour in the boost library (reuses the palette tokens). */
 const RARITY_DOT: Record<Rarity, string> = {
@@ -141,12 +141,7 @@ export default function CareerHub({
                             <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                                 Progress
                             </div>
-                            <div className="h-[8px] overflow-hidden rounded-full border border-line bg-chalk">
-                                <div
-                                    className="h-full bg-pitch"
-                                    style={{ width: `${(prog.into / prog.needed) * 100}%` }}
-                                />
-                            </div>
+                            <Meter pct={(prog.into / prog.needed) * 100} height={8} />
                             <div className="mt-1 font-mono text-[10px] text-muted">
                                 {prog.into} / {prog.needed} XP to level {career.level + 1}
                             </div>
@@ -200,14 +195,10 @@ export default function CareerHub({
                                     All challenges &rarr;
                                 </Link>
                             </div>
-                            <div className="h-[7px] overflow-hidden rounded-[20px] border border-line bg-chalk">
-                                <div
-                                    className="h-full bg-gradient-to-r from-pitch to-pitch-dark"
-                                    style={{
-                                        width: `${Math.round((challenges.completed / challenges.total) * 100)}%`,
-                                    }}
-                                />
-                            </div>
+                            <Meter
+                                pct={Math.round((challenges.completed / challenges.total) * 100)}
+                                fill={METER_GRADIENT}
+                            />
                             {latest.length > 0 ? (
                                 <ul className="mt-3 flex flex-col gap-2">
                                     {latest.map((c) => (

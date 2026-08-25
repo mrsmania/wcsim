@@ -19,7 +19,7 @@ import type { RunOutcome } from '../domain/run';
 import { TierPips } from './challengeUi';
 import Flag from './Flag';
 import { SQUAD_BY_ID } from '../data/squads';
-import { CARD_SM } from './matchUi';
+import { CARD_SM, Meter } from './matchUi';
 
 /** A cup's plinth by the tier it was won at: ONE hue getting deeper, plus the numeral.
  *  Tier is deliberately not a colour of its own - the challenge ledger settled that
@@ -120,17 +120,15 @@ function Rec({ k, v, dim }: { k: string; v: string; dim?: boolean }) {
   );
 }
 
-/** A completion bar. The album and the honours both read in this shape already. */
+/** A completion bar: the shared Meter in the have/need shape all four call sites on this
+ *  screen use, on hairline rules because everything around them is one. */
 function Bar({ have, need, thin }: { have: number; need: number; thin?: boolean }) {
-  const pct = need > 0 ? Math.round((have / need) * 100) : 0;
   return (
-    <div
-      className={`overflow-hidden rounded-[20px] border border-hair bg-chalk ${
-        thin ? 'h-[5px]' : 'h-[7px]'
-      }`}
-    >
-      <div className="h-full bg-pitch" style={{ width: `${pct}%` }} />
-    </div>
+    <Meter
+      pct={need > 0 ? Math.round((have / need) * 100) : 0}
+      height={thin ? 5 : 7}
+      track="border-hair"
+    />
   );
 }
 

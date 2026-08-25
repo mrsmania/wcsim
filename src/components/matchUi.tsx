@@ -70,6 +70,50 @@ export const MONO_CAP = 'font-mono text-[10px] font-semibold uppercase tracking-
 export const PAGE_EYEBROW =
   'font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch';
 
+/** A horizontal progress meter: a chalk track with a 1px rule and a filled bar.
+ *  Six copies of this existed - album completion, honours completion, the career's
+ *  XP bar, the challenge counter, the cabinet's four bars and the market's budget -
+ *  differing only in the four things that are props here.
+ *
+ *  `pct` is computed by the caller rather than from a have/need pair, because the
+ *  callers do not agree on rounding and this atom is not the place to change what any
+ *  of them renders. It IS clamped to 0-100, which is what the budget bar hand-rolled
+ *  (a market can be overspent) and which the others could never exceed anyway.
+ *
+ *  `rounded-full` for every height. The tree had two spellings of that one fact, the
+ *  other being an arbitrary 20px radius, and they render identically at 5-9px tall:
+ *  CSS scales a radius pair down to fit the shorter side, so both land on exactly
+ *  height/2. (Written out rather than quoted as a class, because Tailwind scans
+ *  comments as plain text and a quoted utility would keep the dead one in the bundle.) */
+export function Meter({
+  pct,
+  height = 7,
+  fill = 'bg-pitch',
+  track = 'border-line',
+  className = '',
+}: {
+  pct: number;
+  /** Track height in px. */
+  height?: number;
+  /** The filled bar's background utilities (a flat colour or the pitch gradient). */
+  fill?: string;
+  /** The track's border utility - `border-hair` where the surrounding rules are hairlines. */
+  track?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`overflow-hidden rounded-full border bg-chalk ${track} ${className}`}
+      style={{ height }}
+    >
+      <div className={`h-full ${fill}`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+    </div>
+  );
+}
+
+/** The pitch gradient fill, used by the two honours meters. */
+export const METER_GRADIENT = 'bg-gradient-to-r from-pitch to-pitch-dark';
+
 export const ordinal = (n: number) =>
   n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`;
 

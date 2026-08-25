@@ -23,7 +23,7 @@ import {
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
-import { CARD, MONO_CAP, PAGE_EYEBROW, StageHeader } from './matchUi';
+import { CARD, Meter, MONO_CAP, PAGE_EYEBROW, StageHeader } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 interface Props {
@@ -35,7 +35,6 @@ interface Props {
      *  account is the account-level reset), and the footer is then not rendered at all. */
     onReset?: () => void;
 }
-
 
 export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Props) {
     const [trade, setTrade] = useState<{ tier: StickerTier; options: Player[] } | null>(null);
@@ -94,9 +93,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                             / {stats.total}
                         </span>
                     </div>
-                    <div className="h-[9px] overflow-hidden rounded-full border border-line bg-chalk">
-                        <div className="h-full bg-pitch" style={{ width: `${pct}%` }} />
-                    </div>
+                    <Meter pct={pct} height={9} />
                     <div className="mt-3.5 flex flex-wrap gap-x-4 gap-y-2">
                         {TIER_ORDER.map((t) => (
                             <span
