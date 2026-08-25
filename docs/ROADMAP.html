@@ -530,7 +530,15 @@
     ratings. The route is proven twice now; 16-team fields start in 1978, so check the group
     draw and any "24 nations" assumption before starting. Re-run
     <code>npm run gen:collectibles</code> and <code>npm run push:collectibles</code> after,
-    and check the name-collision list before calling it done.</p>
+    and check the name-collision list before calling it done.
+    <br><b>Two source notes from the 1982 round, both verified:</b> RSSSF serves
+    <b>ISO-8859-1</b>, so decode it as latin-1 and unescape the HTML entities - reading it as
+    UTF-8 silently drops the appearance data for every accented name, and the failure is
+    invisible because a missed name just reads as "did not play". And
+    <code>openfootball/world-cup</code> carries a directory per tournament <b>back to
+    1930</b> plus <code>more/</code>, <code>rsssf/</code> and <code>wikipedia/</code>; a
+    <code>git clone</code> reaches it through the proxy that blocks direct
+    <code>raw.githubusercontent.com</code> fetches.</p>
     <p class="files"><a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a>, <a class="dl" href="../scripts/gen-collectibles.ts" target="_blank" rel="noopener">scripts/gen-collectibles.ts</a></p>
   </div>
 </details>
