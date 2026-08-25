@@ -27,6 +27,7 @@ import {
   scorerWeight,
   simulateMatch,
   simulateShootout,
+  type ShootoutResult,
 } from '../src/domain/match';
 import {
   bestEleven,
@@ -152,9 +153,39 @@ import {
 
 let passed = 0;
 const failures: string[] = [];
-function check(name: string, ok: boolean): void {
-  if (ok) passed++;
-  else failures.push(name);
+
+/** Assert one invariant.
+ *
+ *  `ok` is a THUNK, and that is the whole point (hygiene H93). It used to be a
+ *  pre-computed boolean, so an exception anywhere inside the expression - an
+ *  out-of-range index, one of the file's non-null assertions meeting a null - took the
+ *  whole harness down: you got a stack trace instead of a named failure, and every
+ *  later block silently never ran. Now the throw is caught, reported against the check
+ *  that caused it, and the rest of the suite still runs.
+ *
+ *  `detail` is a thunk too, evaluated only on failure, for the counterexample: a check
+ *  over 3,000 iterations used to report a name and nothing else. */
+function check(name: string, ok: () => boolean, detail?: () => string): void {
+  let result: boolean;
+  try {
+    result = ok();
+  } catch (err) {
+    failures.push(`${name}: THREW ${err instanceof Error ? err.message : String(err)}`);
+    return;
+  }
+  if (result) {
+    passed++;
+    return;
+  }
+  let extra = '';
+  if (detail) {
+    try {
+      extra = detail();
+    } catch (err) {
+      extra = `(detail threw: ${err instanceof Error ? err.message : String(err)})`;
+    }
+  }
+  failures.push(extra ? `${name} - ${extra}` : name);
 }
 
 // --- Round-record fixtures ---------------------------------------------------
@@ -262,24 +293,45 @@ function boonStops(squadIndex = 0, opts?: Parameters<typeof beginRun>[1], limit 
 }
 
 // --- Dataset integrity -----------------------------------------------------
-check('dataset: validateSquads reports no problems', validateSquads(SQUADS).length === 0);
-check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_ID[s.id] === s));
+check('dataset: validateSquads reports no problems', () => validateSquads(SQUADS).length === 0);
+check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQUAD_BY_ID[s.id] === s));
 
 // --- Penalty shootout: always a decisive, self-consistent result -----------
 {
   const a = squadGroupTeam(SQUADS[0]);
   const b = squadGroupTeam(SQUADS[1]);
   let ok = true;
+  // The shootout that broke it, kept for the failure message: over 20,000 trials the name
+  // of the check alone says nothing about which of the four properties went, or how
+  // (hygiene H93's second half).
+  let bad: { i: number; why: string; r: ShootoutResult } | null = null;
   for (let i = 0; i < 20000 && ok; i++) {
     const r = simulateShootout({ penTakers: a.penTakers }, { penTakers: b.penTakers });
     const homeScored = r.kicks.filter((k) => k.side === 'home' && k.scored).length;
     const awayScored = r.kicks.filter((k) => k.side === 'away' && k.scored).length;
-    if (r.home < 0 || r.away < 0) ok = false; // never a negative tally
-    if (r.home === r.away) ok = false; // always separates the sides
-    if (r.homeWon !== r.home > r.away) ok = false; // winner flag matches the tally
-    if (r.home !== homeScored || r.away !== awayScored) ok = false; // kicks reconstruct the score
+    const why =
+      r.home < 0 || r.away < 0
+        ? 'negative tally'
+        : r.home === r.away
+          ? 'did not separate the sides'
+          : r.homeWon !== r.home > r.away
+            ? 'winner flag disagrees with the tally'
+            : r.home !== homeScored || r.away !== awayScored
+              ? 'kicks do not reconstruct the score'
+              : '';
+    if (why) {
+      ok = false;
+      bad = { i, why, r };
+    }
   }
-  check('shootout: decisive, non-negative, and kicks reconstruct the score', ok);
+  check(
+    'shootout: decisive, non-negative, and kicks reconstruct the score',
+    () => ok,
+    () =>
+      bad
+        ? `trial ${bad.i}: ${bad.why} (${bad.r.home}-${bad.r.away}, homeWon ${bad.r.homeWon}, ${bad.r.kicks.length} kicks)`
+        : '',
+  );
 }
 
 // --- Match sim (G1 model): even teams score believable, reconstructable ----
@@ -298,9 +350,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const meanPerSide = goals / (2 * N);
   check(
     `match: even-team mean goals/side in [0.8, 2.2] (got ${meanPerSide.toFixed(2)})`,
-    meanPerSide > 0.8 && meanPerSide < 2.2,
+    () => meanPerSide > 0.8 && meanPerSide < 2.2,
   );
-  check('match: goal events reconstruct the scoreline', eventsOk);
+  check('match: goal events reconstruct the scoreline', () => eventsOk);
 }
 
 // --- Standings: internally consistent totals, correct ordering -------------
@@ -334,7 +386,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       if (!ordered) ok = false;
     }
   }
-  check('standings: totals are consistent and the table is correctly ordered', ok);
+  check('standings: totals are consistent and the table is correctly ordered', () => ok);
 }
 
 // --- Bracket: always crowns one champion; co-qualifier only in the final ---
@@ -359,8 +411,8 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (bracketChampionId(b) === null) completesOk = false; // a champion is always crowned
     if (b.rounds.length !== KO_ROUNDS.length) completesOk = false; // whole tree filled
   }
-  check('bracket: always completes with exactly one champion', completesOk);
-  check('bracket: the co-qualifier can only be met in the final', !metCoQualifierEarly);
+  check('bracket: always completes with exactly one champion', () => completesOk);
+  check('bracket: the co-qualifier can only be met in the final', () => !metCoQualifierEarly);
 }
 
 // --- Chemistry: bonus is the (capped) sum of its parts ----------------------
@@ -380,7 +432,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   }
   const empty = computeChemistry([]);
   if (empty.bonus !== 0 || empty.rawTotal !== 0) ok = false;
-  check('chemistry: bonus equals the category sum, capped at MAX_BONUS', ok);
+  check('chemistry: bonus equals the category sum, capped at MAX_BONUS', () => ok);
 }
 
 // --- Chemistry bonus reaches the sim (attack + defense, not just overall) ----
@@ -392,7 +444,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     boosted.attack === base.attack + 5 &&
     boosted.defense === base.defense + 5 &&
     boosted.overall === base.overall + 5;
-  check('chemistry: the bonus lifts attack + defense (so it affects the match sim)', reaches);
+  check('chemistry: the bonus lifts attack + defense (so it affects the match sim)', () => reaches);
 }
 
 // --- Budget draft pricing: monotonic, floored at 1 -------------------------
@@ -402,7 +454,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (priceOf(e) < 1) ok = false;
     if (e > 60 && priceOf(e) < priceOf(e - 1)) ok = false; // non-decreasing in rating
   }
-  check('pricing: price is >= 1 and never decreases with rating', ok);
+  check('pricing: price is >= 1 and never decreases with rating', () => ok);
 }
 
 // --- The owned-sticker discount --------------------------------------------
@@ -433,7 +485,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (priceFor(p, justHim) >= priceOf(p.elo)) ok = false; // he is discounted
     if (priceFor(other, justHim) !== priceOf(other.elo)) ok = false; // his other card is not
   }
-  check('pricing: the owned-sticker discount is bounded, floored, and per player id', ok);
+  check('pricing: the owned-sticker discount is bounded, floored, and per player id', () => ok);
 }
 
 // --- Budget auto-fill: within budget, no duplicate person, fills every slot ---
@@ -443,27 +495,49 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let noDupes = true;
   let fillsAll = true;
   let usedMatches = true;
+  // The formation and spend that broke each one, so a failure over 3,000 XIs names the
+  // case rather than only the property (hygiene H93).
+  const worst: Record<string, string> = {};
   for (let i = 0; i < 3000; i++) {
     const f = formations[i % formations.length];
     const { filled, usedPersonIds } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
     const placed = f.slots.map((s) => filled[s.id]).filter((p): p is NonNullable<typeof p> => !!p);
     const spent = placed.reduce((t, p) => t + priceOf(p.elo), 0);
-    if (spent > BUDGET_DRAFT) withinBudget = false; // never overspends
-    if (new Set(placed.map((p) => p.personId)).size !== placed.length) noDupes = false;
+    const where = `${f.name}/${f.style}`;
+    if (spent > BUDGET_DRAFT) {
+      withinBudget = false;
+      worst.budget ??= `${where} spent ${spent} of ${BUDGET_DRAFT}`;
+    }
+    if (new Set(placed.map((p) => p.personId)).size !== placed.length) {
+      noDupes = false;
+      worst.dupes ??= where;
+    }
     // Every position in the dataset is fillable within the budget, so a fresh XI fills.
-    if (placed.length !== f.slots.length) fillsAll = false;
+    if (placed.length !== f.slots.length) {
+      fillsAll = false;
+      worst.fill ??= `${where} filled ${placed.length} of ${f.slots.length}`;
+    }
     const usedFromPlaced = new Set(placed.map((p) => p.personId));
     if (
       usedPersonIds.length !== usedFromPlaced.size ||
       !usedPersonIds.every((id) => usedFromPlaced.has(id))
     ) {
       usedMatches = false; // reported personIds match the players actually placed
+      worst.used ??= `${where} reported ${usedPersonIds.length} for ${usedFromPlaced.size} placed`;
     }
   }
-  check('budget: auto-fill never exceeds the budget', withinBudget);
-  check('budget: auto-fill never uses a personId twice', noDupes);
-  check('budget: auto-fill fills every slot when the budget allows', fillsAll);
-  check('budget: auto-fill reports exactly the placed personIds', usedMatches);
+  check('budget: auto-fill never exceeds the budget', () => withinBudget, () => worst.budget ?? '');
+  check('budget: auto-fill never uses a personId twice', () => noDupes, () => worst.dupes ?? '');
+  check(
+    'budget: auto-fill fills every slot when the budget allows',
+    () => fillsAll,
+    () => worst.fill ?? '',
+  );
+  check(
+    'budget: auto-fill reports exactly the placed personIds',
+    () => usedMatches,
+    () => worst.used ?? '',
+  );
 
   // The same, spending DISCOUNTED prices: the reserve and upgrade passes both read the
   // pricer, so an album has to leave the budget invariant intact rather than overshoot.
@@ -482,9 +556,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     // With every collectible owned, some XI should come in under its undiscounted cost.
     if (placed.reduce((t, p) => t + priceOf(p.elo), 0) > spent) cheaperSomewhere = true;
   }
-  check('budget: auto-fill respects the budget when prices are discounted', discountedWithin);
-  check('budget: auto-fill still fills every slot when prices are discounted', discountedFills);
-  check('budget: a discounted XI can cost less than its list price', cheaperSomewhere);
+  check('budget: auto-fill respects the budget when prices are discounted', () => discountedWithin);
+  check('budget: auto-fill still fills every slot when prices are discounted', () => discountedFills);
+  check('budget: a discounted XI can cost less than its list price', () => cheaperSomewhere);
 }
 
 // --- The transfer market: the price ceiling, and the two dropdowns that narrow each other ---
@@ -525,10 +599,10 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       if (open.hiddenByPrice !== 0) ok = false;
       if (!open.rows.some((p) => price(p) <= ceiling)) anyPositionWasAllUnaffordable = true;
     }
-    check('market: the price ceiling filters before the 60-row cap, best-affordable first', ok);
+    check('market: the price ceiling filters before the 60-row cap, best-affordable first', () => ok);
     check(
       'market: without it, a rating-sorted screen at $10 holds nothing buyable',
-      anyPositionWasAllUnaffordable,
+      () => anyPositionWasAllUnaffordable,
     );
   }
 
@@ -572,13 +646,13 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
         }
       }
     }
-    check(`market: every option a dropdown offers yields rows, both orders (${pairs} pairs)`, ok);
+    check(`market: every option a dropdown offers yields rows, both orders (${pairs} pairs)`, () => ok);
     // The trap the render rule exists for is real and common: 24 of the 81 nations played
     // exactly one World Cup, so picking one collapses the cup facet to a single year.
     check(
       `market: picking a country can collapse the cup facet to one option ` +
         `(${collapsedYearFacet} of them)`,
-      collapsedYearFacet > 0,
+      () => collapsedYearFacet > 0,
     );
   }
 
@@ -634,7 +708,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     const byYear = marketResults({ ...anyQuery, candidates, query: '1990' });
     if (byYear.rows.length === 0) ok = false;
     if (byYear.rows.some((p) => SQUAD_BY_ID[p.squadId]?.year !== 1990)) ok = false;
-    check('market: the filters compose, and the search still reads name/nation/code/year', ok);
+    check('market: the filters compose, and the search still reads name/nation/code/year', () => ok);
   }
 }
 
@@ -657,7 +731,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // A player already in their slot role is returned untouched (same object).
   const inPos: Player = { ...player, positions: ['CB', 'DM'] };
   if (placedPlayers(f, { [cb.id]: inPos })[0] !== inPos) ok = false;
-  check('draft: placedPlayers promotes the slot role to the primary position', ok);
+  check('draft: placedPlayers promotes the slot role to the primary position', () => ok);
 }
 
 // --- Moving a placed player stays inside his position range ----------------
@@ -718,7 +792,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (seen.has(to) && seen.get(to) !== here) ok = false; // the range never shrinks
     seen.set(to, here);
   }
-  check('draft: a move stays within the position range, however often it is made', ok);
+  check('draft: a move stays within the position range, however often it is made', () => ok);
 }
 
 // --- Rotations: a legal cycle no pair can reach --------------------------------
@@ -772,7 +846,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   for (const from of frontOnly.slots) {
     if (moveTargets(frontOnly, stuck, from.id).size !== 0) ok = false;
   }
-  check('draft: a legal rotation of three is offered where no pair can trade', ok);
+  check('draft: a legal rotation of three is offered where no pair can trade', () => ok);
 }
 
 // --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------
@@ -790,7 +864,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // Offers only ever contain boons from the given pool, and n clamps to the pool size.
   if (offer.some((b) => !pool.some((p) => p.id === b.id))) ok = false;
   if (offerBoons(pool, pool.length + 5).length !== pool.length) ok = false;
-  check('boons: every boon keeps 11 distinct players; offers are distinct + in pool', ok);
+  check('boons: every boon keeps 11 distinct players; offers are distinct + in pool', () => ok);
 }
 
 // --- The effect ledger: the XI is roster + effects, and stays that way -----
@@ -835,7 +909,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   ];
   if (JSON.stringify(xiOf(xi, orphan, 0)) !== JSON.stringify(xi)) ok = false;
 
-  check('effects: xiOf is pure, clamps per step, expires, and tolerates orphan ids', ok);
+  check('effects: xiOf is pure, clamps per step, expires, and tolerates orphan ids', () => ok);
 }
 
 // --- The xi cache agrees with the ledger at every phase of a real run ------
@@ -859,7 +933,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       checked++;
     }
   }
-  check(`effects: run.xi always equals xiOf(roster, effects, koRound) (${checked} states)`, ok);
+  check(`effects: run.xi always equals xiOf(roster, effects, koRound) (${checked} states)`, () => ok);
 }
 
 // --- The item 29 cards: the levers that are not the rating averages -----------
@@ -884,7 +958,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     const want = plain.penTakers[i].elo + (i < 5 ? 8 : 0);
     if (iced.penTakers[i].elo !== want) ok = false;
   }
-  check('run: a penalty bonus lifts the shootout and leaves strength and scorers alone', ok);
+  check('run: a penalty bonus lifts the shootout and leaves strength and scorers alone', () => ok);
 }
 
 // Kind Draw keeps the weaker of two opponents, and - the part that could silently rot -
@@ -925,7 +999,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // on failure, so a run that quietly stopped reaching knockout stops would look identical to
   // a healthy one.
   if (!seen) ok = false;
-  check(`kind-draw: never a stronger opponent, and the tree agrees (${redrawn}/${seen} redrawn)`, ok);
+  check(`kind-draw: never a stronger opponent, and the tree agrees (${redrawn}/${seen} redrawn)`, () => ok);
 }
 
 // Prime Years walks `personId` to each player's best tournament. Two things matter beyond
@@ -961,7 +1035,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // the card, or a dataset change silently turns this back into a green tick over nothing.
   if (!arrived.length) ok = false;
   for (const id of arrived) if (!after.boostedIds.includes(id)) ok = false;
-  check(`prime-years: same people, best versions, slots kept, all ${arrived.length} tagged`, ok);
+  check(`prime-years: same people, best versions, slots kept, all ${arrived.length} tagged`, () => ok);
 }
 
 // In Form names whoever the RUN chose, and does nothing before a goal is scored.
@@ -978,7 +1052,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const eff = (hot.effects ?? []).filter((e) => e.source === 'in-form');
   if (eff.length !== 1 || eff[0].delta !== 12) ok = false;
   if (eff[0].target.ids.join(',') !== scorer.id) ok = false;
-  check('in-form: no-op before a goal, then exactly the leading scorer', ok);
+  check('in-form: no-op before a goal, then exactly the leading scorer', () => ok);
 }
 
 // Old Guard reaches into the CAREER, and must do nothing on a career that has never scored.
@@ -996,7 +1070,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // Already in the XI: no-op rather than a duplicate.
   const dupe = { ...base, careerTopScorerId: xi[0].id };
   if (chooseBoon(dupe, 'old-guard').next.roster!.length !== 11) ok = false;
-  check('old-guard: nothing on a fresh career, one arrival on an old one, never a duplicate', ok);
+  check('old-guard: nothing on a fresh career, one arrival on an old one, never a duplicate', () => ok);
 }
 
 // The Armband is the first card that asks a question, so picking it must NOT commit the
@@ -1026,7 +1100,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     else if (big.target.ids.join(',') !== captain.id) ok = false;
     else if (rest.target.ids.length !== 10 || rest.target.ids.includes(captain.id)) ok = false;
   }
-  check('armband: parks the stop, refuses a stranger, then +6 the captain and +1 the rest', ok);
+  check('armband: parks the stop, refuses a stranger, then +6 the captain and +1 the rest', () => ok);
 }
 
 // Away Days and Man-Marking weaken the OPPONENT, and the pair has to stay a pair: one
@@ -1068,7 +1142,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   }
   // Same reasoning as kind-draw above: no tie observed means nothing was asserted.
   if (!seen) ok = false;
-  check(`away-days / man-marking: weaken one of their lines, none of yours (${seen} ties)`, ok);
+  check(`away-days / man-marking: weaken one of their lines, none of yours (${seen} ties)`, () => ok);
 }
 
 // --- item 30, round 4 ---------------------------------------------------------
@@ -1126,7 +1200,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     }
   }
   if (!borrowed || !returned) ok = false;
-  check(`loan-deal: borrowed ${borrowed}, declined ${declined}, all ${returned} handed back on time`, ok);
+  check(`loan-deal: borrowed ${borrowed}, declined ${declined}, all ${returned} handed back on time`, () => ok);
 }
 
 // Underdog's Purse reads the RUN's history, which nothing else does. Two things: the group
@@ -1150,7 +1224,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const eff = (chooseBoon({ ...base, history: hist }, 'underdogs-purse').next.effects ?? [])
     .filter((e) => e.source === 'underdogs-purse');
   if (eff.length !== 1 || eff[0].delta !== 4 || eff[0].target.ids.length !== 11) ok = false;
-  check("underdogs-purse: nothing without an upset, then +2 for each one (never for the group)", ok);
+  check("underdogs-purse: nothing without an upset, then +2 for each one (never for the group)", () => ok);
 }
 
 // Siege Mentality counts goals conceded across BOTH stages - a knockout record's
@@ -1184,7 +1258,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const eff = (chooseBoon({ ...base, history: hist }, 'siege-mentality').next.effects ?? [])
     .filter((e) => e.source === 'siege-mentality');
   if (eff.length !== 1 || eff[0].delta !== 4 || eff[0].target.ids.length !== 11) ok = false;
-  check('siege-mentality: +1 a goal across both stages, and a shootout is not goals', ok);
+  check('siege-mentality: +1 a goal across both stages, and a shootout is not goals', () => ok);
 }
 
 // --- item 30, round 6: the three cards whose cost lands on the CAREER ---------
@@ -1211,7 +1285,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // Commons only, for the reason Scout Network's are: a free legendary before kick-off
   // outweighs every choice the run itself offers.
   for (const id of owed.activeBoons) if (boonById(id)?.rarity !== 'common') ok = false;
-  check('sponsorship / youth-development: opposite halves of the payout, and the boost is banked', ok);
+  check('sponsorship / youth-development: opposite halves of the payout, and the boost is banked', () => ok);
 }
 
 // All or Nothing is Mortgage the Future with the failure narrowed to one round: every exit
@@ -1247,7 +1321,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const aonFinalSpo = applyRunResult(INITIAL_CAREER, at('final', 80, { allOrNothing: true, xpMult: 2 }));
   if (aonCupSpo.xpGained !== plainCup.xpGained * 3 * 2) ok = false;
   if (aonFinalSpo.xpGained !== 0) ok = false;
-  check('all-or-nothing: normal but for the last game, tripled on the cup, zero on a lost final', ok);
+  check('all-or-nothing: normal but for the last game, tripled on the cup, zero on a lost final', () => ok);
 }
 
 // Double Print sets the cup-pick count and nothing else. The banking side of it lives in
@@ -1261,7 +1335,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     (run.cupPicks ?? 1) === 1 &&
     // It is a run lever, so it must leave the XI exactly alone.
     after.xi.map((p) => p.elo).join(',') === run.xi.map((p) => p.elo).join(',');
-  check('double-print: two cup picks, and no rating touched', ok);
+  check('double-print: two cup picks, and no rating touched', () => ok);
 }
 
 // Mortgage the Future: nothing at all unless the cup is won - not even the floor of 1
@@ -1291,7 +1365,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const tinyMortgaged = applyRunResult(career, { ...lost, score: 1 });
   check(
     'mortgage-future: pays nothing unless the cup is won, floor included',
-    ok && tinyPlain.prestigeGained === 1 && tinyMortgaged.prestigeGained === 0,
+    () => ok && tinyPlain.prestigeGained === 1 && tinyMortgaged.prestigeGained === 0,
   );
 }
 
@@ -1320,7 +1394,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const t2 = xiOf(so.roster!, so.effects!, 2).reduce((t, p) => t + p.elo, 0);
   const t3 = xiOf(so.roster!, so.effects!, 3).reduce((t, p) => t + p.elo, 0);
   if (!(t1 > base && t2 < base && t3 === base)) ok = false;
-  check('second-wind / sold-out-stadium: the window opens, closes, and the debt lands', ok);
+  check('second-wind / sold-out-stadium: the window opens, closes, and the debt lands', () => ok);
 }
 
 // The Coin Toss is DERIVED, not rolled: picking it twice from the same run gives the same
@@ -1342,7 +1416,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   }
   // Both faces have to actually turn up, or it is a constant with extra steps.
   if (heads === 0 || heads === total) ok = false;
-  check(`coin-toss: stable across replays, and both faces occur (${heads}/${total} heads)`, ok);
+  check(`coin-toss: stable across replays, and both faces occur (${heads}/${total} heads)`, () => ok);
 }
 
 // --- Boon power: what each one is actually worth, against its rarity band ---
@@ -1483,7 +1557,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   if (overBand.length) console.log('    over band: ' + overBand.join(', '));
   check(
     'boons: every boon sits inside its rarity band (or pays for exceeding it)',
-    overBand.length === 0,
+    () => overBand.length === 0,
   );
   } finally {
     Math.random = realRandom;
@@ -1571,7 +1645,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // "at least once", never "always". The false-red risk is the chance that every one of
   // 30 independent stops missed: for the rarest firing card measured here (Kind Draw, a
   // re-draw that has to come back weaker, ~40%) that is 0.6^30, about 2 in 10 million.
-  check(`boons: every one of the ${BOONS.length} cards changes something when applied`, never.length === 0);
+  check(`boons: every one of the ${BOONS.length} cards changes something when applied`, () => never.length === 0);
   if (never.length) console.log('    never fired: ' + never.join(', '));
   const conditional = [...rates.entries()].filter(([, n]) => n < stops.length);
   console.log(
@@ -1620,17 +1694,17 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const unreachable = allIds.filter((id) => !seen.has(id));
   check(
     `boons: every unlocked card is reachable in an offer (${stops} stops)`,
-    stops > 400 && unreachable.length === 0,
+    () => stops > 400 && unreachable.length === 0,
   );
   if (unreachable.length) console.log('    never offered: ' + unreachable.join(', '));
-  check('boons: no card appears twice inside one offer', dupInOffer === 0);
-  check('boons: an offer is three cards without the Extra Choice perk', wrongSize === 0);
+  check('boons: no card appears twice inside one offer', () => dupInOffer === 0);
+  check('boons: an offer is three cards without the Extra Choice perk', () => wrongSize === 0);
   // A card the run already holds is never offered again - it would either stack (xpMult
   // compounds, so Sponsorship twice was 4x XP) or be a wasted pick (Mortgage, Youth
   // Development and All or Nothing are booleans; Double Print is a Math.max). Excluding
   // them cannot starve the offer either: 10 starters against at most four stops.
-  check('boons: a card the run already holds is never offered again', heldOffered === 0);
-  check('boons: excluding held cards never empties the offer', emptyOffer === 0);
+  check('boons: a card the run already holds is never offered again', () => heldOffered === 0);
+  check('boons: excluding held cards never empties the offer', () => emptyOffer === 0);
   // Rarity weighting (common 6 / rare 3 / legendary 1) has to actually bite, per CARD:
   // there are more commons than legendaries, so comparing totals would confirm the count
   // rather than the weight.
@@ -1640,7 +1714,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   };
   check(
     'boons: rarity weighting orders the draw, common > rare > legendary per card',
-    perCard('common') > perCard('rare') && perCard('rare') > perCard('legendary'),
+    () => perCard('common') > perCard('rare') && perCard('rare') > perCard('legendary'),
   );
   // The Extra Choice perk widens the offer, one card per owned tier. Scanning for a run
   // that actually REACHES a boon stop rather than trusting SQUADS[0] to survive its
@@ -1657,7 +1731,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     }
     if (sizes[0] !== 3 + tier) widened = false;
   }
-  check('boons: the Extra Choice perk adds one offer card per owned tier', widened);
+  check('boons: the Extra Choice perk adds one offer card per owned tier', () => widened);
   // Scout Network deals its free starting boosts, and only commons (a free legendary
   // before kickoff outweighs every choice the run itself offers).
   let scoutOk = true;
@@ -1666,7 +1740,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (r.activeBoons.length !== tier) scoutOk = false;
     if (r.activeBoons.some((id) => boonById(id)?.rarity !== 'common')) scoutOk = false;
   }
-  check('boons: Scout Network deals one free common per owned tier', scoutOk);
+  check('boons: Scout Network deals one free common per owned tier', () => scoutOk);
   // Its free cards are APPLIED, so they are held: being offered one you were already
   // given is the same dead slot. This is why the exclusion reads `activeBoons` rather
   // than the boosts picked at stops.
@@ -1679,7 +1753,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   }
   check(
     "boons: Scout Network's free cards are not offered again at the first stop",
-    scoutHeldOffered === 0,
+    () => scoutHeldOffered === 0,
   );
   // The one risk the exclusion introduces: a THIN pool. The worst case a real career can
   // reach is a brand-new one - starters only, no unlocks - with both perks that consume
@@ -1716,7 +1790,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   }
   check(
     `boons: the thinnest real pool still fills the widest offer (smallest seen ${thinnest} of 5)`,
-    thinnest === 5,
+    () => thinnest === 5,
   );
 }
 
@@ -1754,7 +1828,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     else if (r === 'legendary') legendaries++;
   }
   if (!(commons > legendaries)) ok = false;
-  check('boons: availability, unlock economy, and rarity-weighted offers hold', ok);
+  check('boons: availability, unlock economy, and rarity-weighted offers hold', () => ok);
 }
 
 // --- Cup Run: always ends with a valid outcome, score, and 11 players -------
@@ -1774,7 +1848,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     if (r.phase !== 'ended' || !r.outcome) ok = false;
     else if (r.score !== EXPECT[r.outcome] || r.xi.length !== 11) ok = false;
   }
-  check('run: every Cup Run ends with a valid outcome, score, and 11 players', ok);
+  check('run: every Cup Run ends with a valid outcome, score, and 11 players', () => ok);
 }
 
 // --- Cup Run on a bracket (roadmap item 28) ---------------------------------
@@ -1828,9 +1902,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       ownTieMatches = false;
     }
   }
-  check('run/bracket: every run past the group crowns exactly one champion', completes);
-  check("run/bracket: the tree records the user's own tie, not a re-simulation", ownTieMatches);
-  check('run/bracket: the next opponent is read off the tree', oppFromBracket);
+  check('run/bracket: every run past the group crowns exactly one champion', () => completes);
+  check("run/bracket: the tree records the user's own tie, not a re-simulation", () => ownTieMatches);
+  check('run/bracket: the next opponent is read off the tree', () => oppFromBracket);
 
   // Ascension's slope has to reach buildBracket, or the high tiers field a Base-strength
   // draw and half of what the tier means does nothing. Measured over the whole field.
@@ -1854,7 +1928,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const top = fieldStrength(5);
   check(
     `run/bracket: a higher Ascension fields a stronger draw (Base ${base.toFixed(1)} < V ${top.toFixed(1)})`,
-    top > base + 0.5,
+    () => top > base + 0.5,
   );
 }
 
@@ -1883,8 +1957,8 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       pts = userPts;
     }
   }
-  check('groupAsOf: the projection at the final matchday is the group itself', identity);
-  check('groupAsOf: results and points only ever accumulate', monotonic);
+  check('groupAsOf: the projection at the final matchday is the group itself', () => identity);
+  check('groupAsOf: results and points only ever accumulate', () => monotonic);
 }
 
 // --- The drawn group survives on the run ------------------------------------
@@ -1911,9 +1985,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     // Advancing past the group leaves it behind: the round record carries the results.
     if (first.next.group !== undefined) committedDropsIt = false;
   }
-  check('run/group: the drawn group is recorded on the run it is revealed from', recorded);
-  check('run/group: preparing again replays the same group rather than drawing one', stable);
-  check('run/group: the state committed after the group no longer carries it', committedDropsIt);
+  check('run/group: the drawn group is recorded on the run it is revealed from', () => recorded);
+  check('run/group: preparing again replays the same group rather than drawing one', () => stable);
+  check('run/group: the state committed after the group no longer carries it', () => committedDropsIt);
 }
 
 // --- Nothing a round decides can be re-rolled by preparing it again ---------
@@ -1969,16 +2043,16 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // 200, so the suite went red about once in eighty for no reason at all (roadmap 31, the
   // second instance). 120 is one tie per run of the loop, half the mean, and 0 of 80
   // measured reps came near it.
-  check(`run/ko: ties replayed (${tiesChecked}) rather than re-rolled`, tiesChecked > 120);
-  check('run/ko: the decided round is recorded on the run it is revealed from', koRecorded);
+  check(`run/ko: ties replayed (${tiesChecked}) rather than re-rolled`, () => tiesChecked > 120);
+  check('run/ko: the decided round is recorded on the run it is revealed from', () => koRecorded);
   check(
     'run/ko: preparing again replays the same tie, tree, offer and next opponent',
-    koStable,
+    () => koStable,
   );
-  check('run/ko: the state committed after the tie no longer carries the decisions', koDropped);
+  check('run/ko: the state committed after the tie no longer carries the decisions', () => koDropped);
   check(
     'run/group: preparing again replays the same tree, first offer and R16 opponent',
-    groupExitStable,
+    () => groupExitStable,
   );
 }
 
@@ -2015,10 +2089,10 @@ const plainRun = (() => {
     res.career.level === levelForXp(res.career.xp) &&
     (plainRun.outcome === 'champion') ===
       (res.career.stats.cups === INITIAL_CAREER.stats.cups + 1);
-  check('career: run rewards accrue and account correctly', ok);
+  check('career: run rewards accrue and account correctly', () => ok);
   check(
     'career: the boost the reward check pins to leaves the payout rules alone',
-    !paysDifferently(boonById(PIN_BOON)!),
+    () => !paysDifferently(boonById(PIN_BOON)!),
   );
 }
 
@@ -2043,7 +2117,7 @@ const plainRun = (() => {
   let maxed = c2;
   for (let i = 0; i < 5; i++) maxed = buyPerkTier({ ...maxed, prestige: 9999, level: 99 }, perk.id);
   if (perkLevelOf(maxed, perk.id) !== perk.tiers.length) ok = false;
-  check('career: tiered perks respect cost, level gate, and max tier', ok);
+  check('career: tiered perks respect cost, level gate, and max tier', () => ok);
 }
 
 // --- Budget: career ladder is well-formed and matches the perk track ---------
@@ -2068,7 +2142,7 @@ const plainRun = (() => {
   for (let i = 0; i < track.tiers.length; i++) {
     if (!track.tiers[i].description.includes(`$${BUDGET_BY_TIER[i + 1]}`)) ok = false;
   }
-  check('budget: career budget ladder is well-formed and matches its perk track', ok);
+  check('budget: career budget ladder is well-formed and matches its perk track', () => ok);
 }
 
 // --- Career: the three OTHER perk tracks whose copy promises a number ---------
@@ -2091,7 +2165,7 @@ const plainRun = (() => {
       if (!track.tiers[tier - 1].description.includes(String(tier))) ok = false;
     }
   }
-  check('career: the Extra Choice / Deep Squad / Scout Network copy matches the numbers', ok);
+  check('career: the Extra Choice / Deep Squad / Scout Network copy matches the numbers', () => ok);
 }
 
 // --- History records: the union's guard accepts every real record and rejects junk ------
@@ -2148,7 +2222,7 @@ const plainRun = (() => {
   check(
     `run history: isRoundRecord accepts every real record ` +
       `(${groupSeen} group, ${koSeen} knockout, ${pensSeen} with a shootout) and rejects ${bad.length} malformed shapes`,
-    ok,
+    () => ok,
   );
 }
 
@@ -2191,7 +2265,7 @@ const plainRun = (() => {
   if (tierOnly.career.lastAscension !== 3) ok = false;
   // Nothing to do at all: same career object back, so the caller can skip the save.
   if (startRunCareer(tierOnly.career, 3).career !== tierOnly.career) ok = false;
-  check('career: budgetOf matches the ladder (clamped), and a banked boost is dealt once', ok);
+  check('career: budgetOf matches the ladder (clamped), and a banked boost is dealt once', () => ok);
 }
 
 // --- Career: picking an Ascension tier must NOT spend a start-boost grant ------------
@@ -2222,7 +2296,7 @@ const plainRun = (() => {
   const { lastAscension: _b, stats: _t, ...restAfter } = picked;
   if (JSON.stringify(restBefore) !== JSON.stringify(restAfter)) ok = false;
   if (rememberAscension(picked, 2) !== picked) ok = false;
-  check('career: picking an Ascension tier records it without spending a banked boost', ok);
+  check('career: picking an Ascension tier records it without spending a banked boost', () => ok);
 }
 
 // --- Career: the shop's advice agrees with what the shop will actually do -----------
@@ -2271,7 +2345,7 @@ const plainRun = (() => {
   check(
     `career: the shop state agrees with buyPerkTier / unlockBoon ` +
       `(${levelBlocked.length} tracks level-gated for a flush level-1 career)`,
-    ok,
+    () => ok,
   );
 }
 
@@ -2297,7 +2371,7 @@ const plainRun = (() => {
   if (selectedAscension({ ascension: 0, level: 1 }) !== 0) ok = false;
   // An explicit override is clamped the same way.
   if (selectedAscension(lowLevel, 5) !== maxSelectableAscension(5, 1)) ok = false;
-  check('pricing/ascension: xiSpend and selectedAscension are the single definitions', ok);
+  check('pricing/ascension: xiSpend and selectedAscension are the single definitions', () => ok);
 }
 
 // --- Career: the Extra Re-roll perk feeds the roll draft starting count ------
@@ -2323,7 +2397,7 @@ const plainRun = (() => {
     if (track.tiers[i].cost <= track.tiers[i - 1].cost) ok = false;
     if (track.tiers[i].levelReq < track.tiers[i - 1].levelReq) ok = false;
   }
-  check('career: Extra Re-roll perk matches the starting re-roll count', ok);
+  check('career: Extra Re-roll perk matches the starting re-roll count', () => ok);
 }
 
 // --- Ascension: reward scaling, unlock bookkeeping, selection gates ---------
@@ -2363,7 +2437,7 @@ const plainRun = (() => {
     r = playToEnd(r);
     if (r.phase !== 'ended' || !r.outcome || r.xi.length !== 11 || r.ascension !== t) ok = false;
   }
-  check('ascension: reward scaling, unlock bookkeeping, and selection gates hold', ok);
+  check('ascension: reward scaling, unlock bookkeeping, and selection gates hold', () => ok);
 }
 
 // --- Title odds: a valid probability distribution ---------------------------
@@ -2376,7 +2450,7 @@ const plainRun = (() => {
     o.advanced <= 1 &&
     o.champion <= o.finalist + 1e-9 &&
     o.finalist <= o.advanced + 1e-9;
-  check('odds: distribution sums to 1 and champion <= finalist <= advanced', ok);
+  check('odds: distribution sums to 1 and champion <= finalist <= advanced', () => ok);
 }
 
 // --- Collectible catalogue: the generated SQL seed matches the dataset ------
@@ -2398,7 +2472,7 @@ const plainRun = (() => {
   check(
     `collectibles: ${CATALOGUE_PATH} is in sync with the dataset ` +
       `(${rows.length} rows; run \`npm run gen:collectibles\` if this fails)`,
-    ok,
+    () => ok,
   );
 }
 
@@ -2480,7 +2554,7 @@ const KNOWN_MISSING_ART = new Set([
     `stickers: shipped art matches the collectible set ` +
       `(${collectible.length} collectible, ${shipped?.size ?? 0} shipped, ` +
       `${KNOWN_MISSING_ART.size} awaiting artwork)`,
-    ok,
+    () => ok,
   );
 }
 
@@ -2576,7 +2650,7 @@ const KNOWN_MISSING_ART = new Set([
   check(
     `boot: index.html's ${COPIES.length} palette literals + the favicon match their index.css tokens` +
       (wrong.length ? ` [${wrong.join('; ')}]` : ''),
-    wrong.length === 0,
+    () => wrong.length === 0,
   );
 
   // The browser chrome's colour is the same copy problem one layer out: two
@@ -2595,7 +2669,7 @@ const KNOWN_MISSING_ART = new Set([
   };
   check(
     'boot: both theme-color metas match --color-ground for their scheme',
-    meta('light') === light['--color-ground'] && meta('dark') === dark['--color-ground'],
+    () => meta('light') === light['--color-ground'] && meta('dark') === dark['--color-ground'],
   );
 
   // The pre-paint theme script cannot IMPORT the settings key: it runs before any module
@@ -2604,7 +2678,7 @@ const KNOWN_MISSING_ART = new Set([
   // guard there is (hygiene H102).
   check(
     "boot: the pre-paint theme script reads the settings module's own key",
-    html.includes(`localStorage.getItem('${SETTINGS_KEY}')`),
+    () => html.includes(`localStorage.getItem('${SETTINGS_KEY}')`),
   );
 }
 
@@ -2618,7 +2692,7 @@ const KNOWN_MISSING_ART = new Set([
     FAMILIES.every((f) => CHALLENGES.some((c) => c.family === f)) &&
     // House style: no em-dashes in player-facing copy.
     CHALLENGES.every((c) => !c.name.includes('\u2014') && !c.description.includes('\u2014'));
-  check('challenges: ids are unique and every entry is complete and in a real family', ok);
+  check('challenges: ids are unique and every entry is complete and in a real family', () => ok);
 }
 
 // --- Challenges: every predicate is total, pure, and read-only ---------------
@@ -2656,8 +2730,8 @@ const KNOWN_MISSING_ART = new Set([
     }
     if (JSON.stringify(run) !== before) readOnly = false;
   }
-  check('challenges: every predicate returns a boolean and never throws', total);
-  check('challenges: predicates are pure (same run, same answer, run untouched)', pure && readOnly);
+  check('challenges: every predicate returns a boolean and never throws', () => total);
+  check('challenges: predicates are pure (same run, same answer, run untouched)', () => pure && readOnly);
 }
 
 // --- Challenges: the three traps ---------------------------------------------
@@ -2708,9 +2782,9 @@ const KNOWN_MISSING_ART = new Set([
   });
   const wallOk = completedIn(ctx(shootoutRun)).includes('the-wall');
 
-  check('challenges: ratings are judged on the dataset player, not the boosted copy', ratingOk);
-  check('challenges: a roster boost cannot break a themed XI (identity ignores it)', identityOk);
-  check('challenges: a shootout is not a goal conceded (The Wall survives penalties)', wallOk);
+  check('challenges: ratings are judged on the dataset player, not the boosted copy', () => ratingOk);
+  check('challenges: a roster boost cannot break a themed XI (identity ignores it)', () => identityOk);
+  check('challenges: a shootout is not a goal conceded (The Wall survives penalties)', () => wallOk);
 }
 
 // --- Challenges: awarded once, paid into the career, counted to a fixed point --
@@ -2752,9 +2826,9 @@ const KNOWN_MISSING_ART = new Set([
     !first.challengesCompleted.some((id) => challengeById(id)?.blocked) &&
     progress.completed + progress.available + progress.blocked === progress.total &&
     progress.completed === first.career.completedChallenges.length;
-  check('challenges: paid once, added to the wallet, and never re-awarded', ok);
-  check('challenges: a completion counter ticks in the run that reaches it', hunterOk);
-  check('challenges: applyRunResult with no context completes nothing', applyRunResult(INITIAL_CAREER, run).challengesCompleted.length === 0);
+  check('challenges: paid once, added to the wallet, and never re-awarded', () => ok);
+  check('challenges: a completion counter ticks in the run that reaches it', () => hunterOk);
+  check('challenges: applyRunResult with no context completes nothing', () => applyRunResult(INITIAL_CAREER, run).challengesCompleted.length === 0);
 
   // No entry may be unreachable on a career that has simply played before. The
   // catalogue arrived years of runs after the career counters did, so anything keyed to
@@ -2767,7 +2841,7 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'challenges: a career that has played before is not locked out of First Blood',
-    veteran.challengesCompleted.includes('first-blood'),
+    () => veteran.challengesCompleted.includes('first-blood'),
   );
 }
 
@@ -2885,14 +2959,14 @@ const KNOWN_MISSING_ART = new Set([
     career = next;
   }
 
-  check('challenges: cup streaks complete on the run that reaches them', streakOk);
-  check('challenges: a losing run breaks the cup streak', brokenOk);
-  check('challenges: Nearly Man reads the run before this one', nearlyOk);
-  check('challenges: Straight Up needs a first cup at the tier and no lost final', straightOk);
-  check('challenges: the final / semi-final streaks count runs reached, not cups', streakShapeOk);
-  check('challenges: Ascension II+ runs and per-tier cups are counted', hardOk && ladderOk);
-  check('challenges: Prestige spent is counted by the perk shop and boon unlocks', spendOk);
-  check('challenges: no career counter ever goes backwards', monotone);
+  check('challenges: cup streaks complete on the run that reaches them', () => streakOk);
+  check('challenges: a losing run breaks the cup streak', () => brokenOk);
+  check('challenges: Nearly Man reads the run before this one', () => nearlyOk);
+  check('challenges: Straight Up needs a first cup at the tier and no lost final', () => straightOk);
+  check('challenges: the final / semi-final streaks count runs reached, not cups', () => streakShapeOk);
+  check('challenges: Ascension II+ runs and per-tier cups are counted', () => hardOk && ladderOk);
+  check('challenges: Prestige spent is counted by the perk shop and boon unlocks', () => spendOk);
+  check('challenges: no career counter ever goes backwards', () => monotone);
 }
 
 // --- Challenges: the kickoff record (shape, build, chemistry) ----------------
@@ -3033,14 +3107,14 @@ const KNOWN_MISSING_ART = new Set([
     // Kickoff chemistry is recorded by beginRun, not recomputed at the end.
     beginRun(xi).chemistry === chemistryOf(xi);
 
-  check('challenges: a run saved before the kickoff record completes none of it', legacyOk);
-  check('challenges: the formation and style are judged from the kickoff shape', shapeOk);
-  check('challenges: natural position comes from the dataset row, not the placed copy', positionOk);
-  check('challenges: the keeper and the best player are judged by the slot they filled', keeperOk && generalOk);
-  check('challenges: the budget figures are judged at the prices actually charged', marketOk);
-  check('challenges: a rolled build and a bought build never claim each other', rollOk);
-  check('challenges: Swap Meet tracks the reducer swap allowance', swapOk);
-  check('challenges: chemistry is judged at kickoff', chemOk);
+  check('challenges: a run saved before the kickoff record completes none of it', () => legacyOk);
+  check('challenges: the formation and style are judged from the kickoff shape', () => shapeOk);
+  check('challenges: natural position comes from the dataset row, not the placed copy', () => positionOk);
+  check('challenges: the keeper and the best player are judged by the slot they filled', () => keeperOk && generalOk);
+  check('challenges: the budget figures are judged at the prices actually charged', () => marketOk);
+  check('challenges: a rolled build and a bought build never claim each other', () => rollOk);
+  check('challenges: Swap Meet tracks the reducer swap allowance', () => swapOk);
+  check('challenges: chemistry is judged at kickoff', () => chemOk);
 }
 
 // --- Trophy cabinet + badges (item 06) -------------------------------------
@@ -3064,14 +3138,14 @@ const KNOWN_MISSING_ART = new Set([
 
   check(
     'cabinet: a fresh career has an empty shelf, a full ladder and no best tier',
-    empty.shelf.length === 0 &&
+    () => empty.shelf.length === 0 &&
       empty.ladder.length === ASCENSIONS.length &&
       empty.headline.bestCupAscension === null &&
       !empty.complete,
   );
   check(
     'cabinet: a save written before the career counters still renders',
-    staleView.shelf.length === 0 &&
+    () => staleView.shelf.length === 0 &&
       staleView.ladder.every((r) => r.cups === 0) &&
       staleView.formations.every((f) => !f.won),
   );
@@ -3112,8 +3186,8 @@ const KNOWN_MISSING_ART = new Set([
     }
     if (v.ladder[0].cups === 0) ladderOk = false; // Base was won first, above
   }
-  check('cabinet: the shelf is one trophy per cup, at the tier it was won at', shelfOk);
-  check('cabinet: selectable implies unlocked, and both are downward-closed', ladderOk);
+  check('cabinet: the shelf is one trophy per cup, at the tier it was won at', () => shelfOk);
+  check('cabinet: selectable implies unlocked, and both are downward-closed', () => ladderOk);
 
   // The record the counters do NOT keep. `cupStreak` resets on any lesser finish, so a
   // career that once won three in a row and then went out still has to report 3 - which
@@ -3125,7 +3199,7 @@ const KNOWN_MISSING_ART = new Set([
   };
   check(
     'cabinet: the best cup streak survives the counter being reset',
-    bestCupStreakOf(streaky) === 3 &&
+    () => bestCupStreakOf(streaky) === 3 &&
       bestCupStreakOf({ ...streaky, completedChallenges: ['back-to-back'] }) === 2 &&
       // Never below 1 once a cup exists, and never above the live counter.
       bestCupStreakOf({ ...streaky, completedChallenges: [] }) === 1 &&
@@ -3165,16 +3239,16 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'badges: earned is derived from the fraction, and nothing reads past complete',
-    consistent && BADGES.length > 0,
+    () => consistent && BADGES.length > 0,
   );
   check(
     'badges: a fresh career has earned none and a maxed one has earned every badge',
-    badgesEarned(emptyRows) === 0 && badgesEarned(fullRows) === fullRows.length,
+    () => badgesEarned(emptyRows) === 0 && badgesEarned(fullRows) === fullRows.length,
   );
   // Distinct ids, and no badge phrased as a single-run goal (that is a challenge).
   check(
     'badges: ids are unique',
-    new Set(BADGES.map((b) => b.id)).size === BADGES.length,
+    () => new Set(BADGES.map((b) => b.id)).size === BADGES.length,
   );
   // An over-claiming save (a perk tier that no longer exists) cannot read as more than
   // the tracks hold - the same clamp `extraRerollsOf` applies.
@@ -3185,13 +3259,13 @@ const KNOWN_MISSING_ART = new Set([
   const perkTotal = PERKS.reduce((n, pk) => n + pk.tiers.length, 0);
   check(
     'badges: an over-claiming save is clamped to the tiers that exist',
-    perkTiersOwned(overclaim) === perkTotal && perkTiersOwned(INITIAL_CAREER) === 0,
+    () => perkTiersOwned(overclaim) === perkTotal && perkTiersOwned(INITIAL_CAREER) === 0,
   );
   // The complete state means complete: honours, badges and album all full.
   const done = cabinetView(maxed, albumFull, ALL_PLAYERS);
   check(
     'cabinet: the complete state needs every honour, every badge and every sticker',
-    done.complete &&
+    () => done.complete &&
       !cabinetView(maxed, emptyAlbum(), ALL_PLAYERS).complete &&
       done.honours.completed === done.honours.total &&
       done.album.collected === done.album.total,
@@ -3212,7 +3286,7 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'challenges: byFamily reconciles with the catalogue and with the totals',
-    perFamilyOk && famTotal === prog.total && famDone === prog.completed,
+    () => perFamilyOk && famTotal === prog.total && famDone === prog.completed,
   );
 
   // The tier grouping partitions the collectibles exactly: every collectible in one
@@ -3228,7 +3302,7 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'album: collectiblesByTier partitions the collectibles, rating-desc',
-    flat.length === collectible.length &&
+    () => flat.length === collectible.length &&
       new Set(flat.map((p) => p.id)).size === collectible.length &&
       tieredOk &&
       sortedOk,
@@ -3259,7 +3333,7 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'tally: the group stage records three appearances each and only real scorers',
-    groupApps && groupGoals === groupScored && groupIdsKnown,
+    () => groupApps && groupGoals === groupScored && groupIdsKnown,
   );
 
   // Play the run out. Appearances must equal matches played at every step, which is the
@@ -3280,7 +3354,7 @@ const KNOWN_MISSING_ART = new Set([
     const maxApps = Math.max(...Object.values(run.tally?.apps ?? { x: 0 }));
     if (maxApps !== matches) appsTrackMatches = false;
   }
-  check('tally: appearances track the matches actually played', appsTrackMatches);
+  check('tally: appearances track the matches actually played', () => appsTrackMatches);
 
   // Shootout kicks are not goals. Find a run that went to penalties and assert its
   // scored-in-open-play total matches the tally, ignoring the shootout entirely.
@@ -3304,7 +3378,7 @@ const KNOWN_MISSING_ART = new Set([
   }
   check(
     'tally: a shootout adds kicks to the scoreline but no goals to a scorer',
-    pensSeen > 0 && penKicksSeen > 0 && pensOk,
+    () => pensSeen > 0 && penKicksSeen > 0 && pensOk,
   );
 
   // addMatches directly: an unknown scorer name is dropped rather than guessed, and the
@@ -3320,7 +3394,7 @@ const KNOWN_MISSING_ART = new Set([
   ]);
   check(
     'tally: unknown scorers are dropped and the opponent scores nothing',
-    t.goals[xi[0].id] === 1 &&
+    () => t.goals[xi[0].id] === 1 &&
       t.goals[xi[1].id] === undefined &&
       Object.values(t.goals).reduce((a, b) => a + b, 0) === 1 &&
       xi.every((p) => t.apps[p.id] === 1),
@@ -3340,7 +3414,7 @@ const KNOWN_MISSING_ART = new Set([
   const tot = runTotals(run);
   check(
     'archive: a banked run writes one dated row that agrees with the run',
-    banked.career.stats.history?.length === 1 &&
+    () => banked.career.stats.history?.length === 1 &&
       first?.at === 1000 &&
       first?.outcome === 'champion' &&
       first?.score === 140 &&
@@ -3358,14 +3432,14 @@ const KNOWN_MISSING_ART = new Set([
   const hist = career.stats.history ?? [];
   check(
     'archive: newest first, capped, and the cap drops the oldest',
-    hist.length === HISTORY_LIMIT &&
+    () => hist.length === HISTORY_LIMIT &&
       hist[0].score === 10 + HISTORY_LIMIT + 24 &&
       hist[0].at === HISTORY_LIMIT + 25 &&
       hist.every((h, i) => i === 0 || (hist[i - 1].at ?? 0) > (h.at ?? 0)),
   );
   check(
     'archive: a run banked with no clock carries no date rather than a fake one',
-    applyRunResult(INITIAL_CAREER, finished(10, 'group')).career.stats.history?.[0].at === undefined,
+    () => applyRunResult(INITIAL_CAREER, finished(10, 'group')).career.stats.history?.[0].at === undefined,
   );
 
   // Player records: additive across runs, one run counted per run, and a save from
@@ -3381,13 +3455,13 @@ const KNOWN_MISSING_ART = new Set([
   const appsInRun = run.tally?.apps[anyId] ?? 0;
   check(
     'records: appearances and goals add up across runs, and runs count once each',
-    !!anyId && rec[anyId].apps === appsInRun * 2 && rec[anyId].runs === 2,
+    () => !!anyId && rec[anyId].apps === appsInRun * 2 && rec[anyId].runs === 2,
   );
   const legacy: RunState = { ...run, tally: undefined };
   const legacyBank = applyRunResult(INITIAL_CAREER, legacy, undefined, 1).career;
   check(
     'records: a run persisted before the tally existed banks and records no players',
-    legacyBank.stats.players === undefined && legacyBank.stats.history?.length === 1,
+    () => legacyBank.stats.players === undefined && legacyBank.stats.history?.length === 1,
   );
 
   // The cap keeps this run's players even when it is already full of others.
@@ -3407,7 +3481,7 @@ const KNOWN_MISSING_ART = new Set([
   const kept = Object.keys(run.tally?.apps ?? {}).every((id) => !!capped[id]);
   check(
     'records: at the cap, the players of the run just banked are never the ones dropped',
-    Object.keys(capped).length === PLAYER_RECORD_LIMIT && kept,
+    () => Object.keys(capped).length === PLAYER_RECORD_LIMIT && kept,
   );
 
   // And the cabinet's two leaderboards read them in order, top ten only.
@@ -3421,7 +3495,7 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'cabinet: the leaderboards are ranked, capped at ten, and scorers all have a goal',
-    view.topUsed.length <= 10 &&
+    () => view.topUsed.length <= 10 &&
       view.topScorers.length <= 10 &&
       usedOrdered &&
       scorersOrdered &&
@@ -3445,13 +3519,13 @@ const KNOWN_MISSING_ART = new Set([
   const strictlyDescending = weights.every((w, i) => i === 0 || weights[i - 1] > w);
   check(
     'scorers: ST > winger > AM > wide mid > CM > DM > full-back > CB at equal rating',
-    strictlyDescending &&
+    () => strictlyDescending &&
       scorerWeight(at('LW', 80)) === scorerWeight(at('RW', 80)) &&
       scorerWeight(at('LB', 80)) === scorerWeight(at('RB', 80)),
   );
   check(
     'scorers: a keeper cannot score from open play, at any rating',
-    POSITION_WEIGHT.GK === 0 &&
+    () => POSITION_WEIGHT.GK === 0 &&
       scorerWeight(at('GK', 99)) === 0 &&
       scorerWeight(at('GK', 60)) === 0,
   );
@@ -3469,7 +3543,7 @@ const KNOWN_MISSING_ART = new Set([
   const bestDefender = Math.max(...DEFENDING.map((pos) => scorerWeight(at(pos, ELO_MAX))));
   check(
     'scorers: rating tilts within a line but never turns a defender into an attacker',
-    tilt.every((w, i) => i === 0 || w > tilt[i - 1]) && worstAttacker > bestDefender,
+    () => tilt.every((w, i) => i === 0 || w > tilt[i - 1]) && worstAttacker > bestDefender,
   );
 
   // 3. An XI with no eligible scorer at all (eleven keepers) still credits someone,
@@ -3478,7 +3552,7 @@ const KNOWN_MISSING_ART = new Set([
   const gkPool = scorerPool(keepers);
   check(
     'scorers: an XI that cannot score falls back to everyone equally likely',
-    gkPool.length === 11 &&
+    () => gkPool.length === 11 &&
       gkPool.every((s) => s.weight === 1) &&
       !!pickScorer(gkPool) &&
       pickScorer([]) === undefined,
@@ -3494,7 +3568,7 @@ const KNOWN_MISSING_ART = new Set([
   const ratio = striker / (40000 - striker);
   check(
     'scorers: a run persisted before the weights keeps its old string pool working',
-    ratio > 3.4 && ratio < 4.6,
+    () => ratio > 3.4 && ratio < 4.6,
   );
 
   // 5. End to end through the real sim: the per-player ordering holds, and no keeper
@@ -3536,7 +3610,7 @@ const KNOWN_MISSING_ART = new Set([
   const rate = (pos: Position) => (perPos.get(pos) ?? 0) / (countPos.get(pos) ?? 1) / goals;
   check(
     'scorers: over 6000 matches the measured order is ST > AM > CM > full-back > CB',
-    goals > 5000 &&
+    () => goals > 5000 &&
       unknown === 0 &&
       !perPos.has('GK') &&
       rate('ST') > rate('AM') &&
@@ -3576,7 +3650,7 @@ const KNOWN_MISSING_ART = new Set([
     roundTrip({ v: 2, poolYears: [1930] }).length === WORLD_CUP_YEARS.length;
   check(
     'settings: an all-tournaments pool survives a new tournament, a narrowing survives a round trip',
-    ok,
+    () => ok,
   );
 }
 
@@ -3613,13 +3687,13 @@ const KNOWN_MISSING_ART = new Set([
   const wrong = table.filter(([p, want]) => screenOf(p) !== want);
   check(
     `routes: all ${table.length} paths resolve to the screen they should`,
-    wrong.length === 0,
+    () => wrong.length === 0,
   );
   // The two groupings the tab bar is built from. Records is ONE destination in two
   // segments, which is what keeps the bar at five; Play covers cover, build and run.
   check(
     'routes: Records is one destination, Play covers the cover, the build and the run',
-    isRecords('records') &&
+    () => isRecords('records') &&
       isRecords('cabinet') &&
       !isRecords('career') &&
       isPlayTab('front') &&
@@ -3641,7 +3715,7 @@ const KNOWN_MISSING_ART = new Set([
   const full: Filled = Object.fromEntries(f.slots.map((s, i) => [s.id, ALL_PLAYERS[i]!]));
   check(
     'resume: only a live run is offered, and an ended one never is',
-    cupRunResume(null) === null &&
+    () => cupRunResume(null) === null &&
       cupRunResume(run({ phase: 'ended' })) === null &&
       cupRunResume(run({}))?.summary === 'Group stage' &&
       cupRunResume(run({ phase: 'match', koRound: 0 }))?.summary === KO_ROUNDS[0] &&
@@ -3649,7 +3723,7 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'resume: a half-built XI is offered, an empty board and a live run are not',
-    buildResume(null, {}, false) === null &&
+    () => buildResume(null, {}, false) === null &&
       buildResume(f, {}, false) === null &&
       buildResume(f, one, true) === null &&
       buildResume(f, one, false)?.label === 'Finish your XI' &&
@@ -3670,7 +3744,7 @@ const KNOWN_MISSING_ART = new Set([
   const all = [...progress, SETTINGS_KEY];
   check(
     'storage: the guest set is every progress key, once each, and never the settings key',
-    GUEST_KEYS.length === progress.length &&
+    () => GUEST_KEYS.length === progress.length &&
       progress.every((k) => GUEST_KEYS.includes(k)) &&
       !GUEST_KEYS.includes(SETTINGS_KEY) &&
       new Set(all).size === all.length &&
