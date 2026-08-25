@@ -9,7 +9,7 @@ import {
     type BracketState,
 } from '../../domain/bracket';
 import { KO_ROUNDS } from '../../domain/knockout';
-import type { RoundRecord } from '../../domain/run';
+import type { GroupRecord } from '../../domain/run';
 import { USER_ID } from '../../domain/tournament';
 import { CARD } from '../matchUi';
 
@@ -195,7 +195,7 @@ export default function RunBracket({
     onOpenReview?: (round: number) => void;
     /** The group's own record, which leads the path. Absent only on a run begun before
      *  the group was recorded; the cell then simply does not render. */
-    groupRecord?: RoundRecord;
+    groupRecord?: GroupRecord;
     onOpenGroupReview?: () => void;
 }) {
     // Rounds the user has not been drawn into yet, and whether the cup has been decided:

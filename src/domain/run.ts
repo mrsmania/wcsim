@@ -181,29 +181,90 @@ export type RunOutcome = Finish;
  *  Read by the tree's round reviews (`cupRun/RoundReview`, opened from the path cells and
  *  the bracket's game boxes), by `domain/challenges.ts`, and by the group-results banner.
  *  It said "for the progress ladder" until 2026-08-24; `RunLadder` was deleted 2026-08-21. */
-export interface RoundRecord {
-  stage: 'group' | number;
+/** What every round record carries, whichever stage it is. */
+interface RoundRecordBase {
   won: boolean;
-  /** Knockout: the opponent + scoreline. */
-  oppName?: string;
-  oppCode?: string;
-  oppYear?: number;
-  userGoals?: number;
-  oppGoals?: number;
-  decided?: KoDecided;
-  oppRating?: number;
-  userRating?: number;
-  /** Knockout: the settled tie's goal events + shootout, for a full review. */
-  events?: MatchEvent[];
-  pens?: ShootoutResult;
-  /** The boost picked right after this round's games (id, resolve via boonById);
+  /** The boost picked right after this round's games (id, resolve via `boonById`);
    *  unset on the final round and on a group-stage exit (no boost is chosen there). */
   boostId?: string;
-  /** Group: finishing position + table size. */
-  groupPos?: number;
-  groupSize?: number;
-  /** Group: the user's three matchday scorelines (user perspective). */
-  groupResults?: { code: string; name: string; us: number; them: number }[];
+}
+
+/** The group's record. Written when the group reveal COMMITS, so it exists for every run
+ *  that got past matchday three - including one that went out there. */
+export interface GroupRecord extends RoundRecordBase {
+  stage: 'group';
+  /** Finishing position and table size. */
+  groupPos: number;
+  groupSize: number;
+  /** The user's three matchday scorelines, from the user's perspective. */
+  groupResults: { code: string; name: string; us: number; them: number }[];
+}
+
+/** One knockout tie's record. `stage` is the round index (0 = Round of 16). */
+export interface KoRecord extends RoundRecordBase {
+  stage: number;
+  /** The opponent and the scoreline. */
+  oppName: string;
+  oppCode: string;
+  oppYear?: number;
+  userGoals: number;
+  oppGoals: number;
+  decided: KoDecided;
+  oppRating: number;
+  userRating: number;
+  /** The settled tie's goal events, for a full review. */
+  events: MatchEvent[];
+  /** The shootout, when there was one. Absent is meaningful: no shootout happened. */
+  pens?: ShootoutResult;
+}
+
+/**
+ * One round of a run, as recorded in `RunState.history`.
+ *
+ * A real discriminated union on `stage`, which it was pretending not to be: one interface
+ * with `stage: 'group' | number` and fourteen optional fields, ten of them knockout-only and
+ * three group-only (hygiene H70). Every stored record already carried exactly one variant's
+ * fields, so **the persisted shape does not change** - what changes is that the compiler now
+ * knows which fields a record has once `stage` has been tested, which deletes about forty
+ * unreachable `??` fallbacks, two `as number` casts, and the hand-rolled discriminant checks
+ * whose narrowing was thrown away on assignment.
+ *
+ * `oppYear` and `pens` stay optional because their absence is real: a squad may have no year
+ * recorded, and most ties are settled without a shootout.
+ *
+ * `runStorage` cannot validate history per field, so `isRoundRecord` below is the tolerant
+ * guard that keeps a hand-edited or truncated save from reaching a consumer that now trusts
+ * the narrowing.
+ */
+export type RoundRecord = GroupRecord | KoRecord;
+
+/** A tolerant shape guard for one stored history entry.
+ *
+ *  Deliberately checks only the discriminant and the fields a consumer indexes without a
+ *  fallback - it is a gate against a malformed save, not a schema validator. A record that
+ *  fails it is dropped, which loses one round of review rather than breaking the run. */
+export function isRoundRecord(v: unknown): v is RoundRecord {
+  if (!v || typeof v !== 'object') return false;
+  const r = v as Partial<GroupRecord> & Partial<KoRecord>;
+  if (typeof r.won !== 'boolean') return false;
+  if (r.stage === 'group') {
+    return (
+      typeof r.groupPos === 'number' &&
+      typeof r.groupSize === 'number' &&
+      Array.isArray(r.groupResults)
+    );
+  }
+  return (
+    typeof r.stage === 'number' &&
+    typeof r.oppName === 'string' &&
+    typeof r.oppCode === 'string' &&
+    typeof r.userGoals === 'number' &&
+    typeof r.oppGoals === 'number' &&
+    typeof r.decided === 'string' &&
+    typeof r.userRating === 'number' &&
+    typeof r.oppRating === 'number' &&
+    Array.isArray(r.events)
+  );
 }
 
 /** The shape the XI kicked off in. Recorded rather than derived: the run receives a
@@ -483,13 +544,13 @@ export function runTotals(run: RunState): {
   let roundsWon = 0;
   for (const r of run.history) {
     if (r.stage === 'group') {
-      for (const g of r.groupResults ?? []) {
+      for (const g of r.groupResults) {
         goalsFor += g.us;
         goalsAgainst += g.them;
       }
     } else {
-      goalsFor += r.userGoals ?? 0;
-      goalsAgainst += r.oppGoals ?? 0;
+      goalsFor += r.userGoals;
+      goalsAgainst += r.oppGoals;
       if (r.won) roundsWon++;
     }
   }
@@ -1058,18 +1119,21 @@ function boonContext(run: RunState, chosenId?: string): BoonContext {
  */
 function goalsConcededOf(run: RunState): number {
   return run.history.reduce(
-    (n, r) => n + (r.oppGoals ?? 0) + (r.groupResults ?? []).reduce((g, m) => g + m.them, 0),
+    (n, r) =>
+      n +
+      (r.stage === 'group'
+        ? r.groupResults.reduce((g, m) => g + m.them, 0)
+        : r.oppGoals),
     0,
   );
 }
 
 /** How many knockout ties so far the user went into as the lower-rated side
- *  (Underdog's Purse). Only knockout records carry the two ratings - a group record
- *  leaves them unset - so the group is excluded for free rather than by a filter. */
+ *  (Underdog's Purse). Only knockout records carry the two ratings, which is why the group
+ *  is excluded - it used to be excluded by testing both for `undefined`, and the union says
+ *  it directly now. */
 function underdogRoundsOf(run: RunState): number {
-  return run.history.filter(
-    (r) => r.userRating !== undefined && r.oppRating !== undefined && r.userRating < r.oppRating,
-  ).length;
+  return run.history.filter((r) => r.stage !== 'group' && r.userRating < r.oppRating).length;
 }
 
 /** Who has scored most for the XI so far this run, or null before the first goal. Ties

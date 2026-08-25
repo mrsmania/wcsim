@@ -30,7 +30,7 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
     return (
       <div className={`${CARD} p-5`}>
         <div className="mb-3 text-[14px] font-semibold">
-          Group stage, finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
+          Group stage, finished {ordinal(record.groupPos)} of {record.groupSize} ·{' '}
           <span className={record.won ? 'text-pitch' : 'text-loss'}>
             {record.won ? GROUP_OUTCOME.advanced : GROUP_OUTCOME.out}
           </span>
@@ -65,15 +65,15 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
     <div>
       <FinishedKoCard
         roundName={KO_ROUNDS[record.stage]}
-        oppName={record.oppName ?? ''}
-        oppCode={record.oppCode ?? ''}
+        oppName={record.oppName}
+        oppCode={record.oppCode}
         oppYear={record.oppYear}
         oppRating={record.oppRating}
-        userRating={record.userRating ?? 0}
-        userGoals={record.userGoals ?? 0}
-        oppGoals={record.oppGoals ?? 0}
-        decided={record.decided ?? 'reg'}
-        events={record.events ?? []}
+        userRating={record.userRating}
+        userGoals={record.userGoals}
+        oppGoals={record.oppGoals}
+        decided={record.decided}
+        events={record.events}
         pens={record.pens}
         userWon={record.won}
       />

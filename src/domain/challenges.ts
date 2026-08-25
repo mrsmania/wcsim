@@ -3,7 +3,7 @@ import { categoryOf, primaryPosition } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID, SQUADS } from '../data/squads';
 import { CONFEDERATION } from '../data/confederations';
 import { FEATURES, INITIAL_SWAPS } from '../config';
-import type { RoundRecord, RunOutcome, RunState } from './run';
+import type { GroupRecord, KoRecord, RunOutcome, RunState } from './run';
 import type { CareerState } from './career';
 import { MAX_ASCENSION } from './ascension';
 import { MAX_BONUS } from './chemistry';
@@ -142,8 +142,8 @@ export interface RunView extends ChallengeCtx {
   /** The final XI minus the players a roster boost handed over (trap 2). */
   own: Player[];
   /** Knockout rounds played, oldest first (Round of 16 = stage 0). */
-  ko: RoundRecord[];
-  group?: RoundRecord;
+  ko: KoRecord[];
+  group?: GroupRecord;
   /** Every match played: the three group games, then the knockout ties. */
   matches: RunMatch[];
   goalsFor: number;
@@ -194,12 +194,12 @@ function topCount<T>(ps: Player[], f: (p: Player) => T): number {
 const allOf = (ps: Player[], f: (p: Player) => boolean) => ps.length > 0 && ps.every(f);
 
 /** The user's goals in a finished knockout tie, by scorer. */
-function scorersOf(r: RoundRecord): string[] {
-  return (r.events ?? []).filter((e) => e.side === 'home').map((e) => e.scorer);
+function scorersOf(r: KoRecord): string[] {
+  return r.events.filter((e) => e.side === 'home').map((e) => e.scorer);
 }
 /** Minutes the user scored in, in a finished knockout tie. */
-function minutesOf(r: RoundRecord): number[] {
-  return (r.events ?? []).filter((e) => e.side === 'home').map((e) => e.minute);
+function minutesOf(r: KoRecord): number[] {
+  return r.events.filter((e) => e.side === 'home').map((e) => e.minute);
 }
 
 export function viewOf(ctx: ChallengeCtx): RunView {
@@ -223,14 +223,16 @@ export function viewOf(ctx: ChallengeCtx): RunView {
       : undefined;
   const boosted = new Set(run.boostedIds);
   const own = run.xi.filter((p) => !boosted.has(p.id)).map(ctx.base);
-  const ko = run.history.filter((r) => typeof r.stage === 'number');
-  const group = run.history.find((r) => r.stage === 'group');
+  // Narrowing predicates rather than a bare `typeof` filter, so the two halves come out
+  // as their own variants and every read below is a field the record actually has.
+  const ko = run.history.filter((r): r is KoRecord => r.stage !== 'group');
+  const group = run.history.find((r): r is GroupRecord => r.stage === 'group');
   const matches: RunMatch[] = [
     ...(group?.groupResults ?? []).map((g) => ({
       us: g.us, them: g.them, ko: false, won: g.us > g.them,
     })),
     ...ko.map((r) => ({
-      us: r.userGoals ?? 0, them: r.oppGoals ?? 0, ko: true, decided: r.decided, won: !!r.won,
+      us: r.userGoals, them: r.oppGoals, ko: true, decided: r.decided, won: r.won,
     })),
   ];
   const sum = (f: (m: RunMatch) => number) => matches.reduce((n, m) => n + f(m), 0);
@@ -288,9 +290,12 @@ const allPerksMaxed = (run: RunState) =>
   PERKS.every((perk) => (run.perkLevels[perk.id] ?? 0) >= perk.tiers.length);
 
 /** The tie the given boost was taken after, then the next one: "take X, then win". */
-function tieAfterBoost(v: RunView, boonId: string): RoundRecord | undefined {
+function tieAfterBoost(v: RunView, boonId: string): KoRecord | undefined {
   const at = v.run.history.findIndex((r) => r.boostId === boonId);
-  return at >= 0 ? v.run.history[at + 1] : undefined;
+  const next = at >= 0 ? v.run.history[at + 1] : undefined;
+  // The group is always history[0], so the round after any boost is a knockout tie. Said
+  // with a narrowing rather than assumed, so a future reordering cannot make this lie.
+  return next && next.stage !== 'group' ? next : undefined;
 }
 
 export const CHALLENGES: Challenge[] = [

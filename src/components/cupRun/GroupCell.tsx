@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react';
-import type { RoundRecord } from '../../domain/run';
+import type { GroupRecord } from '../../domain/run';
 import { ordinal } from '../matchUi';
 
 /**
@@ -25,7 +25,8 @@ export default function GroupCell({
   onOpenReview,
   className = '',
 }: {
-  record: RoundRecord;
+  /** The GROUP's record specifically - this cell only ever opens that one. */
+  record: GroupRecord;
   /** Open the group's review. Always available in practice (the record IS the group's
    *  outcome), but optional so a caller can lock it while a match is revealing. */
   onOpenReview?: () => void;
@@ -49,7 +50,7 @@ export default function GroupCell({
       </span>
       <Users size={13} strokeWidth={2.4} className="shrink-0 text-muted" />
       <span className="min-w-0 truncate text-[12.5px] font-semibold">
-        Finished {ordinal(record.groupPos ?? 0)} of {record.groupSize}
+        Finished {ordinal(record.groupPos)} of {record.groupSize}
       </span>
       <span
         className={`ml-auto shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.1em] ${

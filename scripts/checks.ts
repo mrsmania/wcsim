@@ -97,6 +97,9 @@ import {
   resolveChoice,
   playKnockoutRound,
   type RunBuild,
+  isRoundRecord,
+  type GroupRecord,
+  type KoRecord,
   type RunOutcome,
   type RunShape,
   type RunState,
@@ -137,6 +140,37 @@ const failures: string[] = [];
 function check(name: string, ok: boolean): void {
   if (ok) passed++;
   else failures.push(name);
+}
+
+// --- Round-record fixtures ---------------------------------------------------
+// `RoundRecord` is a discriminated union (hygiene H70), so a fixture has to be shaped like
+// a record a real run could actually write. These two fill in the fields a given check does
+// not care about, which is better than the old partial literals: those described records
+// that could never exist, so a check could pass against a shape the game never produces.
+function groupRec(over: Partial<GroupRecord> = {}): GroupRecord {
+  return {
+    stage: 'group',
+    won: true,
+    groupPos: 1,
+    groupSize: 4,
+    groupResults: [],
+    ...over,
+  };
+}
+function koRec(stage: number, over: Partial<Omit<KoRecord, 'stage'>> = {}): KoRecord {
+  return {
+    stage,
+    won: true,
+    oppName: 'Opponent',
+    oppCode: 'BRA',
+    userGoals: 1,
+    oppGoals: 0,
+    decided: 'reg',
+    userRating: 80,
+    oppRating: 80,
+    events: [],
+    ...over,
+  };
 }
 
 // --- Dataset integrity -----------------------------------------------------
@@ -864,14 +898,14 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // Nothing yet: a legal no-op, like In Form before a goal.
   let ok = (chooseBoon(base, 'underdogs-purse').next.effects ?? []).filter((e) => e.source === 'underdogs-purse').length === 0;
   // A group record on its own is still nothing, ratings being what it does not carry.
-  const grouped = { ...base, history: [{ stage: 'group' as const, won: true, groupPos: 2 }] };
+  const grouped = { ...base, history: [groupRec({ groupPos: 2 })] };
   if ((chooseBoon(grouped, 'underdogs-purse').next.effects ?? []).some((e) => e.source === 'underdogs-purse')) ok = false;
   // Two ties as the underdog and one as the favourite pays for the two.
   const hist = [
-    { stage: 'group' as const, won: true, groupPos: 1 },
-    { stage: 0, won: true, userRating: 78, oppRating: 84 },
-    { stage: 1, won: true, userRating: 79, oppRating: 71 },
-    { stage: 2, won: true, userRating: 80, oppRating: 88 },
+    groupRec(),
+    koRec(0, { userRating: 78, oppRating: 84 }),
+    koRec(1, { userRating: 79, oppRating: 71 }),
+    koRec(2, { userRating: 80, oppRating: 88 }),
   ];
   const eff = (chooseBoon({ ...base, history: hist }, 'underdogs-purse').next.effects ?? [])
     .filter((e) => e.source === 'underdogs-purse');
@@ -889,19 +923,23 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let ok = (chooseBoon(base, 'siege-mentality').next.effects ?? []).every((e) => e.source !== 'siege-mentality');
   const hist = [
     // Two conceded in the group...
-    {
-      stage: 'group' as const, won: true, groupPos: 2,
+    groupRec({
+      groupPos: 2,
       groupResults: [
         { code: 'BRA', name: 'Brazil', us: 1, them: 0 },
         { code: 'ITA', name: 'Italy', us: 2, them: 2 },
         { code: 'GER', name: 'Germany', us: 0, them: 0 },
       ],
-    },
+    }),
     // ...one in a tie won on the night...
-    { stage: 0, won: true, userGoals: 2, oppGoals: 1 },
+    koRec(0, { userGoals: 2, oppGoals: 1 }),
     // ...and one in a tie that went to penalties, where the kicks are not goals.
-    { stage: 1, won: true, userGoals: 1, oppGoals: 1, decided: 'pens' as const,
-      pens: { kicks: [], home: 4, away: 3, homeWon: true } },
+    koRec(1, {
+      userGoals: 1,
+      oppGoals: 1,
+      decided: 'pens',
+      pens: { kicks: [], home: 4, away: 3, homeWon: true },
+    }),
   ];
   const eff = (chooseBoon({ ...base, history: hist }, 'siege-mentality').next.effects ?? [])
     .filter((e) => e.source === 'siege-mentality');
@@ -1254,7 +1292,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
       tally: { ...(r.tally ?? emptyTally()), goals: { [scorer.id]: 3 } },
       history: [
         ...r.history,
-        { stage: 0, won: true, userGoals: 2, oppGoals: 2, userRating: 78, oppRating: 88 },
+        koRec(0, { userGoals: 2, oppGoals: 2, userRating: 78, oppRating: 88 }),
       ],
     });
   }
@@ -1555,13 +1593,17 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     }
     // The user's last tie, as the tree recorded it, must match the run's own history.
     const last = r.history[r.history.length - 1];
-    const game = typeof last?.stage === 'number' ? userGameInRound(b, last.stage) : undefined;
+    // The narrowing is kept in a variable rather than discarded on assignment, which is
+    // what the old `typeof last?.stage === 'number'` test did (hygiene H70).
+    const lastKo = last && last.stage !== 'group' ? last : undefined;
+    const game = lastKo ? userGameInRound(b, lastKo.stage) : undefined;
     const res = game?.result;
     if (
+      !lastKo ||
       !res ||
-      res.homeGoals !== last.userGoals ||
-      res.awayGoals !== last.oppGoals ||
-      (res.winnerId === USER_ID) !== !!last.won
+      res.homeGoals !== lastKo.userGoals ||
+      res.awayGoals !== lastKo.oppGoals ||
+      (res.winnerId === USER_ID) !== lastKo.won
     ) {
       ownTieMatches = false;
     }
@@ -1836,6 +1878,69 @@ const plainRun = (() => {
     }
   }
   check('career: the Extra Choice / Deep Squad / Scout Network copy matches the numbers', ok);
+}
+
+// --- History records: the union's guard accepts every real record and rejects junk ------
+// `RoundRecord` is a discriminated union (hygiene H70), so its consumers now read fields
+// without a `??` fallback - about forty of which were unreachable and are gone. That is only
+// safe if a malformed save cannot reach them, and `runStorage` cannot validate history per
+// field, so `isRoundRecord` is the gate. It has to be right in both directions.
+{
+  let ok = true;
+  // Every record a real run writes must pass. Walk runs to completion and check each one.
+  let groupSeen = 0;
+  let koSeen = 0;
+  let pensSeen = 0;
+  for (let i = 0; i < 40; i++) {
+    let r: RunState | null = playGroupStage(
+      beginRun(bestEleven(SQUADS[(i * 11) % SQUADS.length].players)),
+    );
+    let guard = 0;
+    while (r && r.phase !== 'ended' && guard++ < 20) {
+      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
+      else if (r.phase === 'match') r = playKnockoutRound(r);
+      else break;
+    }
+    for (const rec of r?.history ?? []) {
+      if (!isRoundRecord(rec)) ok = false;
+      // A round trip through JSON is what actually happens on a reload.
+      if (!isRoundRecord(JSON.parse(JSON.stringify(rec)))) ok = false;
+      if (rec.stage === 'group') groupSeen++;
+      else {
+        koSeen++;
+        if (rec.pens) pensSeen++;
+      }
+    }
+  }
+  // It must have seen both variants, and a shootout, or it is passing on too little.
+  if (groupSeen === 0 || koSeen === 0 || pensSeen === 0) ok = false;
+
+  // And junk must be rejected. Each of these is a record with exactly one thing wrong.
+  const bad: unknown[] = [
+    null,
+    'group',
+    {},
+    { stage: 'group' },
+    { stage: 'group', won: true }, // no position
+    { stage: 'group', won: true, groupPos: 1, groupSize: 4 }, // no results array
+    { ...groupRec(), groupResults: 'nope' },
+    { ...groupRec(), won: 'yes' },
+    { stage: 0 }, // a knockout record with nothing on it
+    { ...koRec(0), events: undefined },
+    { ...koRec(0), oppName: undefined },
+    { ...koRec(0), decided: 4 },
+    { ...koRec(0), userGoals: '2' },
+    { stage: null, won: true },
+  ];
+  for (const b of bad) if (isRoundRecord(b)) ok = false;
+  // The two well-formed ones must still pass, so the guard is not simply refusing everything.
+  if (!isRoundRecord(groupRec()) || !isRoundRecord(koRec(0))) ok = false;
+
+  check(
+    `run history: isRoundRecord accepts every real record ` +
+      `(${groupSeen} group, ${koSeen} knockout, ${pensSeen} with a shootout) and rejects ${bad.length} malformed shapes`,
+    ok,
+  );
 }
 
 // --- Career: budgetOf and the Youth Development grant --------------------------------
@@ -2321,14 +2426,14 @@ const KNOWN_MISSING_ART = new Set([
 
   // 3. A shootout is not goals conceded: 0-0 on penalties keeps a clean sheet.
   const shootoutRun = ended({
-    history: [0, 1, 2, 3].map((stage) => ({
-      stage,
-      won: true,
-      userGoals: 0,
-      oppGoals: 0,
-      decided: 'pens' as const,
-      pens: { kicks: [], home: 4, away: 3, homeWon: true },
-    })),
+    history: [0, 1, 2, 3].map((stage) =>
+      koRec(stage, {
+        userGoals: 0,
+        oppGoals: 0,
+        decided: 'pens',
+        pens: { kicks: [], home: 4, away: 3, homeWon: true },
+      }),
+    ),
   });
   const wallOk = completedIn(ctx(shootoutRun)).includes('the-wall');
 
@@ -2930,7 +3035,7 @@ const KNOWN_MISSING_ART = new Set([
       }
       r = playKnockoutRound(r);
     }
-    const shootouts = r.history.filter((h) => h.pens);
+    const shootouts = r.history.filter((h): h is KoRecord => h.stage !== 'group' && !!h.pens);
     if (!shootouts.length) continue;
     pensSeen++;
     const tallied = Object.values(r.tally?.goals ?? {}).reduce((a, b) => a + b, 0);

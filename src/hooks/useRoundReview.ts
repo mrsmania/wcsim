@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { RoundRecord, RunState } from '../domain/run';
+import type { GroupRecord, RoundRecord, RunState } from '../domain/run';
 
 /**
  * The Cup Run's round-review navigation: which round the content column is showing, which
@@ -19,7 +19,7 @@ export function useRoundReview(run: RunState | null): {
   /** Knockout rounds a review can be opened for: exactly those with a history record. */
   reviewableRounds: number[];
   /** The group's record, which the group cell opens. */
-  groupRecord: RoundRecord | undefined;
+  groupRecord: GroupRecord | undefined;
   /** The record for whatever is currently being reviewed. */
   reviewRecord: RoundRecord | undefined;
 } {
@@ -55,7 +55,7 @@ export function useRoundReview(run: RunState | null): {
   // matchday three - including one that went out in the group, where there is no bracket
   // for the cell to lead and the group cell is mounted on its own.
   const groupRecord = useMemo(
-    () => (run?.history ?? []).find((h) => h.stage === 'group'),
+    () => (run?.history ?? []).find((h): h is GroupRecord => h.stage === 'group'),
     [run?.history],
   );
 

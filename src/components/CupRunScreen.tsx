@@ -20,6 +20,7 @@ import {
   type RunState,
   type RunShape,
   type RunBuild,
+  type GroupRecord,
   type KoMatch,
 } from '../domain/run';
 import {
@@ -492,10 +493,11 @@ export default function CupRunScreen({
   // history so the ended screen still shows the opponent + scoreline - the live
   // `lastKoMatch` is cleared when a run ends. Null for a group-stage exit (no KO tie).
   const lastRecord = run && run.history.length ? run.history[run.history.length - 1] : undefined;
+  // The narrowing is kept, not discarded on assignment: the old `typeof stage === 'number'`
+  // test proved this was a knockout record and then threw the proof away, so every read
+  // below paid a `??` fallback that could not fire (hygiene H70).
   const endedKoRecord =
-    run?.phase === 'ended' && lastRecord && typeof lastRecord.stage === 'number' && lastRecord.events
-      ? lastRecord
-      : null;
+    run?.phase === 'ended' && lastRecord && lastRecord.stage !== 'group' ? lastRecord : null;
 
   return (
     <div ref={rootRef} className="mx-auto max-w-[1000px]">
@@ -697,7 +699,9 @@ export default function CupRunScreen({
                       })}
                       {reveal.done && (() => {
                         const advanced = reveal.next.phase !== 'ended';
-                        const gr = reveal.next.history.find((h) => h.stage === 'group');
+                        const gr = reveal.next.history.find(
+                          (h): h is GroupRecord => h.stage === 'group',
+                        );
                         return (
                           <>
                             <div className="mt-6">
@@ -705,7 +709,7 @@ export default function CupRunScreen({
                                 champion={advanced}
                                 eyebrow={
                                   gr
-                                    ? `Group stage · finished ${ordinal(gr.groupPos ?? 0)} of ${gr.groupSize}`
+                                    ? `Group stage · finished ${ordinal(gr.groupPos)} of ${gr.groupSize}`
                                     : 'Group stage'
                                 }
                                 heading={advanced ? 'Through to the knockouts' : 'Knocked out'}
@@ -782,16 +786,16 @@ export default function CupRunScreen({
                 )}
                 {run.phase === 'ended' && endedKoRecord && (
                   <FinishedKoCard
-                    roundName={KO_ROUNDS[endedKoRecord.stage as number]}
-                    oppName={endedKoRecord.oppName ?? ''}
-                    oppCode={endedKoRecord.oppCode ?? ''}
+                    roundName={KO_ROUNDS[endedKoRecord.stage]}
+                    oppName={endedKoRecord.oppName}
+                    oppCode={endedKoRecord.oppCode}
                     oppYear={endedKoRecord.oppYear}
                     oppRating={endedKoRecord.oppRating}
-                    userRating={endedKoRecord.userRating ?? 0}
-                    userGoals={endedKoRecord.userGoals ?? 0}
-                    oppGoals={endedKoRecord.oppGoals ?? 0}
+                    userRating={endedKoRecord.userRating}
+                    userGoals={endedKoRecord.userGoals}
+                    oppGoals={endedKoRecord.oppGoals}
                     decided={endedKoRecord.decided ?? 'reg'}
-                    events={endedKoRecord.events ?? []}
+                    events={endedKoRecord.events}
                     pens={endedKoRecord.pens}
                     userWon={endedKoRecord.won}
                   />
