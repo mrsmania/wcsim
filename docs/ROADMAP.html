@@ -700,7 +700,26 @@
     <code>domain/random.ts</code> (the sim calls <code>Math.random</code> directly in several
     places), so that dependency goes with it and this item no longer touches the random
     helpers at all.</p>
-    <p class="files">src/domain/odds.ts, src/components/cupRun/BoostOffer.tsx</p>
+    <p><strong>Mocked up (2026-08-25):</strong>
+    <code>docs/redesign-2026/turf-flat/boost-odds-mock.html</code> draws three versions on one
+    real offer, with every figure measured against the shipped domain code rather than invented.
+    <b>The literal version does not work</b>, and that is the finding: run through
+    <code>applyBoon</code> + <code>simulateTitleOdds</code>, 11 of the 32 cards move the number
+    by less than 1.5 points (the shipped 600-sim readout's own noise is 0.9), Away Days reads
+    +0.4 because a whole-tournament sim replays a <em>random</em> tournament and has never heard
+    of the team you play next, Second Wind is priced as permanent, and Sold Out Stadium reads
+    <b>+21.3, the best number in the pool</b>, because its debt is a <code>startsIn</code> plan
+    that the measurement path skips. Measured properly, from the actual position, it is +0.8.</p>
+    <p>So the work is not a number on a card: it is a <b>position-aware</b> odds pass (this
+    bracket, this next opponent, the XI re-derived per round through <code>xiOf</code> so a
+    temporary card is temporary), and two figures rather than one, because the next tie and the
+    cup disagree and that disagreement is the whole information. The cheap half ships first: a
+    tie-odds figure is 20,000 sims in 17ms, needs no worker, and is what makes the
+    opponent-facing cards a decision at all. Three questions it raises are in the comp: whether
+    the readout spoils The Coin Toss (its result is derived, so an odds figure tells you heads
+    or tails before you pick), whether a solved offer stays interesting, and whether Sold Out
+    Stadium survives being priced.</p>
+    <p class="files">src/domain/odds.ts, src/components/cupRun/BoostOffer.tsx, docs/redesign-2026/turf-flat/boost-odds-mock.html</p>
   </div>
 </details>
 
