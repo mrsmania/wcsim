@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { DANGER_BTN, SECONDARY_BTN } from './matchUi';
 
 /**
  * A destructive action with an inline confirm step, so a stray click never fires it.
  * Idle it renders a trigger button (styled by `triggerClassName`); clicked it swaps to
- * a prompt + a red confirm + a Cancel. Shared by Start over / Discard XI / Reset album.
+ * a prompt + a red confirm + a Cancel. Shared by Start over / Discard XI / Reset album /
+ * Delete my account.
+ *
+ * Two layouts, because the five callers genuinely want two. By default the prompt and
+ * both buttons sit in one row, which is what a footer control wants. Pass
+ * `confirmClassName` and the confirming state becomes a box instead - the prompt on its
+ * own line above the button row - which is what a multi-sentence warning needs.
  */
 export default function ConfirmAction({
   prompt,
@@ -14,9 +20,13 @@ export default function ConfirmAction({
   triggerClassName,
   rowClassName = 'flex flex-wrap items-center justify-center gap-2',
   promptClassName = 'text-xs font-semibold text-muted',
+  confirmClassName,
+  busy = false,
+  busyLabel,
 }: {
-  /** The question shown while confirming. */
-  prompt: string;
+  /** The question shown while confirming. A node, not a string: the account-delete
+   *  warning is three sentences with the email bolded inside it. */
+  prompt: ReactNode;
   /** The red confirm button's label. */
   confirmLabel: string;
   onConfirm: () => void;
@@ -29,25 +39,59 @@ export default function ConfirmAction({
   /** The prompt's className. Overridden where the row sits on a dark surface (the
    *  cover's grass hero), since the default muted grey is a paper-on-white colour. */
   promptClassName?: string;
+  /** Set to render the confirming state as a box with the prompt above the buttons,
+   *  rather than everything on one row. Its own className, so the caller picks the
+   *  surface (the account panel tints it red). */
+  confirmClassName?: string;
+  /** True while an async confirm is in flight: both buttons disable and the confirm
+   *  shows `busyLabel`. */
+  busy?: boolean;
+  /** The confirm button's label while `busy` (e.g. "Deleting..."). Supplying it also
+   *  hands the CALLER ownership of when the confirm closes: it stays open after
+   *  `onConfirm` rather than self-closing, because an action that is still running and
+   *  can still fail must not collapse back to its trigger. `busy` alone cannot carry
+   *  that, since it defaults to false and so cannot say whether it was passed. Every
+   *  synchronous caller omits both and keeps the old self-closing behaviour. */
+  busyLabel?: string;
 }) {
   const [confirm, setConfirm] = useState(false);
+  const managed = busyLabel !== undefined;
 
   if (confirm) {
-    return (
-      <div className={rowClassName}>
-        <span className={promptClassName}>{prompt}</span>
+    const buttons = (
+      <>
         <button
           onClick={() => {
             onConfirm();
-            setConfirm(false);
+            if (!managed) setConfirm(false);
           }}
-          className={DANGER_BTN}
+          disabled={busy}
+          className={`${DANGER_BTN} disabled:opacity-60`}
         >
-          {confirmLabel}
+          {busy ? busyLabel : confirmLabel}
         </button>
-        <button onClick={() => setConfirm(false)} className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}>
+        <button
+          onClick={() => setConfirm(false)}
+          disabled={busy}
+          className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
+        >
           Cancel
         </button>
+      </>
+    );
+
+    if (confirmClassName) {
+      return (
+        <div className={confirmClassName}>
+          <p className={promptClassName}>{prompt}</p>
+          <div className={rowClassName}>{buttons}</div>
+        </div>
+      );
+    }
+    return (
+      <div className={rowClassName}>
+        <span className={promptClassName}>{prompt}</span>
+        {buttons}
       </div>
     );
   }
