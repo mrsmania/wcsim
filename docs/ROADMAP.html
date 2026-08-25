@@ -210,6 +210,36 @@
     word-break: break-word;
   }
 
+  /* ── Links to the documents and files an item names ──
+     Every path that resolves to a real file is a link, so the roadmap can be read as
+     a hub: open it from disk and click through to the spec, the comp or the source.
+     They are RELATIVE to docs/, so they work over file:// with no server.
+     Two rules worth keeping. Every link opens in a new tab, because the roadmap holds
+     which items you have expanded and navigating away loses it. And .tsx / .sql point
+     at GitHub instead: a browser DOWNLOADS those from file:// rather than showing
+     them, and a link that fires a download is worse than no link. */
+  a { color: inherit; }
+  a.dl {
+    text-decoration: none;
+    border-bottom: 1px solid #cfc7b6;
+  }
+  a.dl:hover { border-bottom-color: var(--pitch); }
+  a.dl code { color: var(--pitch); background: #e7eee9; }
+  a.dl:hover code { background: #dbe7de; }
+  /* Inside a .files line there is no <code>, so the link carries the type itself. */
+  .files a.dl { color: var(--ink-mid); }
+  .files a.dl:hover { color: var(--pitch); }
+  /* Off to the network rather than to disk: marked, so a click is never a surprise. */
+  a.ext::after {
+    content: '\2197';
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 9px;
+    vertical-align: super;
+    margin-left: 1px;
+    color: var(--ink-faint);
+  }
+  a.dl:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
   .callout {
     background: var(--amber-tint);
     border-left: 3px solid var(--amber);
@@ -347,7 +377,7 @@
     <p><strong>1986 shipped 2026-08-23, and the template it set is mostly about the
     SOURCE - which was rewritten on 2026-08-25.</strong> The first drop believed this
     environment's egress proxy blocks Wikipedia, worldfootball.net and footballdatabase.eu
-    alike, so the rosters came from <b><code>openfootball/world-cup</code></b> through the
+    alike, so the rosters came from <b><a class="dl ext" href="https://github.com/openfootball/world-cup" target="_blank" rel="noopener"><code>openfootball/world-cup</code></a></b> through the
     git proxy (<code>1986--mexico/squads.txt</code>, <b>CC0</b>, so nothing to attribute),
     and everything that source does not carry - the twelve specific positions, and 255
     ratings - was inferred from a distribution rule.
@@ -392,7 +422,7 @@
     cross-check. That route is proven, so it is the rating pass that costs the time. Re-run
     <code>npm run gen:collectibles</code> and <code>npm run push:collectibles</code> after,
     and check the name-collision list before calling it done.</p>
-    <p class="files">src/data/squads.ts, scripts/gen-collectibles.ts</p>
+    <p class="files"><a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a>, <a class="dl" href="../scripts/gen-collectibles.ts" target="_blank" rel="noopener">scripts/gen-collectibles.ts</a></p>
   </div>
 </details>
 
@@ -410,7 +440,7 @@
     refactorings, and produce a todo list another team can implement. The <b>one rule</b> is that
     the app that comes out plays exactly like the app that went in.</p>
 
-    <p><strong>The backlog is <code>docs/hygiene-audit.html</code></strong>, which is the
+    <p><strong>The backlog is <a class="dl" href="hygiene-audit.html" target="_blank" rel="noopener"><code>docs/hygiene-audit.html</code></a></strong>, which is the
     deliverable: <b>158 numbered items (H1-H158)</b> in seven waves, each naming the files, the fix,
     whether it is behaviour-preserving, effort and risk, plus <b>sixteen decisions</b> that need an
     owner, an explicit list of what not to touch, and a section of measured negative results. It was
@@ -443,7 +473,7 @@
     everyone to re-run it. Repair the gate first (H106-H108), then H91.</p>
 
     <p><strong>Unblocked 2026-08-21.</strong> This waited on item 27, which moved the same code:
-    <code>App.tsx</code>'s route branch, the mode fact derived twice, the reset target, the two
+    <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s route branch, the mode fact derived twice, the reset target, the two
     nav cards in the build page's left column, and the career hub splitting off the run screen.
     That has now shipped <i>and</i> had its losing half deleted, which is what the block was
     really waiting for - so those five are settled rather than pending, and several of them are
@@ -471,7 +501,7 @@
       <li><b>Name the constants, share the one-liners</b> (H36-H48). Highest payoff per minute:
       each item removes a fact currently written down twice.</li>
       <li><b>Design tokens and shared UI atoms</b> (H49-H54). The palette and caption constants
-      already exist in <code>index.css</code> and <code>matchUi.tsx</code> and are bypassed by
+      already exist in <a class="dl" href="../src/index.css" target="_blank" rel="noopener"><code>index.css</code></a> and <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/matchUi.tsx" target="_blank" rel="noopener"><code>matchUi.tsx</code></a> and are bypassed by
       inline copies.</li>
       <li><b>Put the logic where it belongs</b> (H55-H68). Pure computations that ended up in
       leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
@@ -480,7 +510,7 @@
       discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
       and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
       <li><b>Structural extractions</b> (H79-H90). The risky ones, one per branch:
-      <code>App.tsx</code>'s 15 jobs into hooks and screens, and
+      <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s 15 jobs into hooks and screens, and
       <code>CupRunScreen</code> handing back the career's persistence.</li>
       <li><b>Harness, CI and tooling</b> (H91-H105).</li>
     </ol>
@@ -495,14 +525,14 @@
       it currently depends on the author remembering.</li>
       <li><b>The documented "serve it at another path" recipe silently produces a wrong
       artifact.</b> <code>npm run build -- --base=/</code> appends the argument to the last command
-      in the <code>&amp;&amp;</code> chain, so it reaches <code>copy-404.mjs</code>, which ignores
+      in the <code>&amp;&amp;</code> chain, so it reaches <a class="dl" href="../scripts/copy-404.mjs" target="_blank" rel="noopener"><code>copy-404.mjs</code></a>, which ignores
       unknown argv and exits 0. Verified empirically. The Docker option in the README is wrong for
       the same reason.</li>
     </ul>
 
     <p><strong>What the audit did not find</strong>, recorded so the next pass can skip it: no dead
     CSS (all 40 custom classes and 13 tokens used), no unused dependency, no dead
-    <code>config.ts</code> entry, no unreferenced module in <code>src/</code>, no unread component
+    <a class="dl" href="../src/config.ts" target="_blank" rel="noopener"><code>config.ts</code></a> entry, no unreferenced module in <code>src/</code>, no unread component
     prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
     three directions, migrations and client in sync, and zero <code>any</code>.</p>
 
@@ -515,7 +545,7 @@
     submit before a sticker moves, and <code>import_guest_progress</code> reads it to decide
     whether an account is empty), only the four columns are dead weight, and reviving them would
     cost a <code>finish_run_v3</code> and only ever cover runs from the change onward.</p>
-    <p class="files">docs/hygiene-audit.html, src/App.tsx, src/components/CupRunScreen.tsx, src/domain/, src/state/, scripts/checks.ts, .github/workflows/deploy.yml</p>
+    <p class="files"><a class="dl" href="hygiene-audit.html" target="_blank" rel="noopener">docs/hygiene-audit.html</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener">src/App.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/CupRunScreen.tsx" target="_blank" rel="noopener">src/components/CupRunScreen.tsx</a>, <a class="dl" href="../src/domain/" target="_blank" rel="noopener">src/domain/</a>, <a class="dl" href="../src/state/" target="_blank" rel="noopener">src/state/</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a>, <a class="dl" href="../.github/workflows/deploy.yml" target="_blank" rel="noopener">.github/workflows/deploy.yml</a></p>
   </div>
 </details>
 
@@ -547,7 +577,7 @@
     and the chips under the run ladder, with a challenge marked <b>already failed</b> the
     moment it becomes impossible (conceding kills The Wall right there) rather than left
     looking winnable. The earlier comp of both is in the git history of
-    <code>docs/redesign-2026/turf-flat/challenges.html</code>.</p>
+    <a class="dl" href="redesign-2026/turf-flat/challenges.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/challenges.html</code></a>.</p>
     <p><strong>The questions to settle</strong>: daily or weekly (daily is a much faster
     treadmill; weekly asks less of a player who plays twice a week);
     whether a missed day is simply gone; whether the pick is filtered to what is actually
@@ -557,7 +587,7 @@
     <p class="next"><strong>Next step:</strong> nothing until item 01 ships. Then decide the
     period and whether the pool is filtered by reachability, both of which change how it
     feels far more than the multiplier does.</p>
-    <p class="files">docs/challenges-spec.html, src/domain/challenges.ts (from item 01), src/domain/career.ts, src/components/CupRunScreen.tsx</p>
+    <p class="files"><a class="dl" href="challenges-spec.html" target="_blank" rel="noopener">docs/challenges-spec.html</a>, <a class="dl" href="../src/domain/challenges.ts" target="_blank" rel="noopener">src/domain/challenges.ts</a> (from item 01), <a class="dl" href="../src/domain/career.ts" target="_blank" rel="noopener">src/domain/career.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/CupRunScreen.tsx" target="_blank" rel="noopener">src/components/CupRunScreen.tsx</a></p>
   </div>
 </details>
 
@@ -608,8 +638,8 @@
     <p class="next"><strong>Next step:</strong> settle the first two questions (what the
     team is made of, and asynchronous versus live), since every other decision hangs off
     them. Then a requirements doc in the shape of
-    <code>docs/cloud-sync-requirements.md</code> before any code.</p>
-    <p class="files">docs/cloud-sync-requirements.md (for the shape), src/domain/match.ts, supabase/migrations/, src/state/store/</p>
+    <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a> before any code.</p>
+    <p class="files"><a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (for the shape), <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
 
@@ -627,7 +657,7 @@
   </summary>
   <div class="detail">
     <p>Surface the title odds at each boost choice, so a pick is informed rather than a
-    guess. The machinery already exists: <code>domain/odds.ts</code>
+    guess. The machinery already exists: <a class="dl" href="../src/domain/odds.ts" target="_blank" rel="noopener"><code>domain/odds.ts</code></a>
     (<code>simulateTitleOdds</code>) Monte-Carlos an XI's cup-win percentage over many
     simulated tournaments and already drives the Cup Run readout. What is missing is running
     it per offered boost rather than once for the current XI, and showing the delta on the
@@ -635,18 +665,18 @@
     <p><strong>Scoped down (2026-08-20):</strong> this item used to carry a second half, a
     daily seeded run where everyone gets the same rolls and the same objective. That is
     dropped. It was the only thing asking for a seedable RNG in
-    <code>domain/random.ts</code> (the sim calls <code>Math.random</code> directly in several
+    <a class="dl" href="../src/domain/random.ts" target="_blank" rel="noopener"><code>domain/random.ts</code></a> (the sim calls <code>Math.random</code> directly in several
     places), so that dependency goes with it and this item no longer touches the random
     helpers at all.</p>
     <p><strong>Mocked up (2026-08-25):</strong>
-    <code>docs/redesign-2026/turf-flat/boost-odds-mock.html</code>, a self-contained comp in the
+    <a class="dl" href="redesign-2026/turf-flat/boost-odds-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-odds-mock.html</code></a>, a self-contained comp in the
     turf-flat set (open it in a browser; it also publishes as an Artifact, and the one published
     from the session that wrote it is
-    <code>claude.ai/code/artifact/6bc5d048-585a-4e98-bd60-741db213390c</code>, private to the
+    <a class="dl ext" href="https://claude.ai/code/artifact/6bc5d048-585a-4e98-bd60-741db213390c" target="_blank" rel="noopener"><code>claude.ai/code/artifact/6bc5d048-585a-4e98-bd60-741db213390c</code></a>, private to the
     owner). It draws <b>three versions on one real offer</b> - the first boost, through the
     group, Brazil 2002 drawn in the Round of 16 - and <b>every percentage on it is measured
     against the shipped domain code</b> rather than invented, by four throwaway probes over
-    <code>domain/odds.ts</code>, <code>domain/bracket.ts</code> and <code>domain/boons.ts</code>.
+    <a class="dl" href="../src/domain/odds.ts" target="_blank" rel="noopener"><code>domain/odds.ts</code></a>, <a class="dl" href="../src/domain/bracket.ts" target="_blank" rel="noopener"><code>domain/bracket.ts</code></a> and <a class="dl" href="../src/domain/boons.ts" target="_blank" rel="noopener"><code>domain/boons.ts</code></a>.
     Re-derive them rather than trusting the figures below if the catalogue or the ratings
     move.</p>
 
@@ -727,12 +757,12 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       baseline plus four cards is ~20ms with a standard error under 0.4pp. No worker, no loading
       state, no new sim path worth the name. This is the half that makes the opponent cards a
       decision.</li>
-      <li><b>A position-aware entry point in <code>domain/odds.ts</code>.</b> Today
+      <li><b>A position-aware entry point in <a class="dl" href="../src/domain/odds.ts" target="_blank" rel="noopener"><code>domain/odds.ts</code></a>.</b> Today
       <code>simulateTitleOdds(players, sims, chem, delta, pool)</code> builds its own group and
       its own bracket. It needs a sibling taking the run's <b>bracket</b> and a <b>per-round
       XI</b>. The probe behind the comp is about 40 lines over <code>buildBracket</code> /
       <code>playRound</code> / <code>recordRound</code>, all already exported. Budget ~190ms per
-      card at 6,000 sims, so it wants a web worker; <code>odds.ts</code>'s own doc comment
+      card at 6,000 sims, so it wants a web worker; <a class="dl" href="../src/domain/odds.ts" target="_blank" rel="noopener"><code>odds.ts</code></a>'s own doc comment
       already says as much ("for a live UI readout prefer a web worker") and this is the caller
       that finally needs one.</li>
       <li><b>Feed it from <code>xiOf</code>, never <code>applyBoon</code>.</b> The ledger already
@@ -776,7 +806,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     <p class="next"><strong>Next step:</strong> answer the Coin Toss question, since it is the
     only one that can delete a card, then build step 1 (the tie-odds helper) and ship it on its
     own. Steps 2 and 3 are a second pass and can wait for a worker.</p>
-    <p class="files">src/domain/odds.ts, src/domain/effects.ts (xiOf), src/domain/boons.ts, src/components/cupRun/BoostOffer.tsx, src/components/CupRunScreen.tsx, docs/redesign-2026/turf-flat/boost-odds-mock.html</p>
+    <p class="files"><a class="dl" href="../src/domain/odds.ts" target="_blank" rel="noopener">src/domain/odds.ts</a>, <a class="dl" href="../src/domain/effects.ts" target="_blank" rel="noopener">src/domain/effects.ts</a> (xiOf), <a class="dl" href="../src/domain/boons.ts" target="_blank" rel="noopener">src/domain/boons.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/BoostOffer.tsx" target="_blank" rel="noopener">src/components/cupRun/BoostOffer.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/CupRunScreen.tsx" target="_blank" rel="noopener">src/components/CupRunScreen.tsx</a>, <a class="dl" href="redesign-2026/turf-flat/boost-odds-mock.html" target="_blank" rel="noopener">docs/redesign-2026/turf-flat/boost-odds-mock.html</a></p>
   </div>
 </details>
 
@@ -799,7 +829,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <div class="detail">
     <p><strong>1. Push the collectible seed to the account server. DONE 2026-08-25, and it
     went up three cards larger than planned.</strong> 1986 originally took the album from 81 to 84; the rating
-    pass below took it to <b>87</b>, so <code>supabase/seed/collectibles.sql</code> was
+    pass below took it to <b>87</b>, so <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/seed/collectibles.sql" target="_blank" rel="noopener"><code>supabase/seed/collectibles.sql</code></a> was
     regenerated with <code>npm run gen:collectibles</code> and pushed with
     <code>npm run push:collectibles</code>; the server answers <b>87 active, 0 retired</b>.
     Before it, a signed-in player who drafted any of the six banked an id the server's
@@ -812,7 +842,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     and does not read the Windows certificate store</b>, so the chain that curl accepts is
     "unable to get local issuer certificate" to <code>fetch</code>. Run it as
     <code>NODE_OPTIONS=--use-system-ca npm run push:collectibles</code> (Node 22.15+), which
-    is what <code>scripts/dkr-env.mjs</code> now says when it sees that error.
+    is what <a class="dl" href="../scripts/dkr-env.mjs" target="_blank" rel="noopener"><code>scripts/dkr-env.mjs</code></a> now says when it sees that error.
     <br>The six ids are <code>arg-1986-10</code> (Maradona, Monumental),
     <code>fra-1986-10</code> (Platini), <code>eng-1986-10</code> (Lineker),
     <code>esp-1986-9</code> (Butragueno), <code>den-1986-10</code> (Elkjaer) and
@@ -876,7 +906,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     per missing file, which is working-as-designed. That belongs with the art for every other
     uncovered card, not here.</p>
 
-    <p class="files">supabase/seed/collectibles.sql, src/data/squads.ts, art/stickers-src/</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/seed/collectibles.sql" target="_blank" rel="noopener">supabase/seed/collectibles.sql</a>, <a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a>, <a class="dl" href="../art/stickers-src/" target="_blank" rel="noopener">art/stickers-src/</a></p>
   </div>
 </details>
 
@@ -890,14 +920,14 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>
     <span class="num">30</span>
     <span class="title">A boost catalogue that is not "strength + X"
-      <span class="sub">CLOSED 2026-08-23. 32 cards ship; 164 ideas were rejected across seven rounds, and five shipped cards were deleted - three for being worse than a free starter, then Full-Backs and Ice Veins. <code>docs/boost-ideas.md</code>.</span>
+      <span class="sub">CLOSED 2026-08-23. 32 cards ship; 164 ideas were rejected across seven rounds, and five shipped cards were deleted - three for being worse than a free starter, then Full-Backs and Ice Veins. <a class="dl" href="boost-ideas.md" target="_blank" rel="noopener"><code>docs/boost-ideas.md</code></a>.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
     <p><strong>The ask (2026-08-22):</strong> more boosts, and creative ones - cards that are
-    not <em>only</em> "+N to some subset of the XI". <code>docs/boost-ideas.md</code> holds
+    not <em>only</em> "+N to some subset of the XI". <a class="dl" href="boost-ideas.md" target="_blank" rel="noopener"><code>docs/boost-ideas.md</code></a> holds
     them, grouped by which lever each pulls, with a build cost against each.</p>
 
     <p><strong>Round 1: 3 of 25 built.</strong> <b>Away Days</b> (-5 to the next opponent's
@@ -1051,7 +1081,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 
     <p class="next"><strong>Next step:</strong> none. The test above is what the item leaves
     behind - apply it before adding a card, not after. The unbuilt ideas are all recorded in
-    <code>docs/boost-ideas.md</code> if the pool ever needs widening again; the
+    <a class="dl" href="boost-ideas.md" target="_blank" rel="noopener"><code>docs/boost-ideas.md</code></a> if the pool ever needs widening again; the
     temporary-roster ones from round 5 are the cheapest, since Loan Deal built the machinery
     they need. One loose end is NOT from the deletions and is recorded here so it is not
     lost: <b>Sold Out Stadium is free if it is taken before the final</b>, because its debt
@@ -1059,7 +1089,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     silently redesigned; the fix is either not offering it in the last round or moving the
     debt.</p>
 
-    <p class="files">docs/boost-ideas.md, src/domain/boons.ts, src/domain/run.ts, src/domain/match.ts, src/domain/knockout.ts, src/domain/chemistry.ts, scripts/checks.ts</p>
+    <p class="files"><a class="dl" href="boost-ideas.md" target="_blank" rel="noopener">docs/boost-ideas.md</a>, <a class="dl" href="../src/domain/boons.ts" target="_blank" rel="noopener">src/domain/boons.ts</a>, <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/chemistry.ts" target="_blank" rel="noopener">src/domain/chemistry.ts</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a></p>
   </div>
 </details>
 
@@ -1085,7 +1115,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 
     <p><strong>Which check, and what it does.</strong>
     <code>career: run rewards accrue and account correctly</code> (near the end of
-    <code>scripts/checks.ts</code>). It plays one whole Cup Run for real, with unseeded
+    <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener"><code>scripts/checks.ts</code></a>). It plays one whole Cup Run for real, with unseeded
     <code>Math.random</code>, always taking the FIRST boost of each offer, and then asserts
     that the career banked the run correctly: runs went up by one, the level matches the XP,
     a cup shows up as a cup, <code>xpGained</code> equals <code>run.score</code>, and
@@ -1126,7 +1156,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     smaller than it looked.</p>
 
     <p><strong>Three real gaps did turn up while proving the existing checks bite</strong>
-    (each found by mutating <code>domain/career.ts</code> and confirming a check went red;
+    (each found by mutating <a class="dl" href="../src/domain/career.ts" target="_blank" rel="noopener"><code>domain/career.ts</code></a> and confirming a check went red;
     each of these three stayed green, which is how they were found):
     <b>All or Nothing's tripling was asserted on the XP only</b>, so computing Prestige off
     the untripled score passed. <b>Nothing asserted the payout cards compose with
@@ -1152,7 +1182,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     random quantity belongs well clear of the distribution, not near its mean, and a new check
     is worth mutating once to confirm it can actually fail.</p>
 
-    <p class="files">scripts/checks.ts</p>
+    <p class="files"><a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a></p>
   </div>
 </details>
 
@@ -1217,7 +1247,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     benefit (the idempotent ones) and price the stacking deliberately.</p>
 
     <p><strong>DONE 2026-08-23: the offer excludes what the run holds.</strong> One helper
-    (<code>offerPool</code> in <code>domain/run.ts</code>) behind all three offer sites, the
+    (<code>offerPool</code> in <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener"><code>domain/run.ts</code></a>) behind all three offer sites, the
     Physio Table reroll included. It reads <b><code>activeBoons</code></b>, which is
     everything APPLIED rather than everything picked, so the free commons Scout Network and
     Youth Development deal at kickoff are excluded too - being offered a card you were
@@ -1275,7 +1305,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     part is the sampling lesson above: when a card looks conditional, suspect the XI before
     the card.</p>
 
-    <p class="files">src/domain/boons.ts, src/domain/run.ts, scripts/checks.ts</p>
+    <p class="files"><a class="dl" href="../src/domain/boons.ts" target="_blank" rel="noopener">src/domain/boons.ts</a>, <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a></p>
   </div>
 </details>
   </div>
@@ -1287,7 +1317,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <b>Built, played and rejected 2026-08-22.</b> Form (an in-run currency earned from
       results) plus shop and event nodes between rounds. All of it was implemented, played,
       and rolled back the same day; only its <b>effect ledger</b> survives, in
-      <code>src/domain/effects.ts</code>.
+      <a class="dl" href="../src/domain/effects.ts" target="_blank" rel="noopener"><code>src/domain/effects.ts</code></a>.
       <br><b>Why it does not fit: a currency needs enough transactions to be worth reasoning
       about, and a World Cup has SEVEN matches.</b> Earning Form in the semi-final is close to
       meaningless - one stop is left to spend it at and no time to plan around it. That is a
@@ -1307,8 +1337,8 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       and <b>effects cannot be undone by subtraction</b>, because <code>bump</code> clamps, so
       a +2 on a 98 is really a +1 - which is why the surviving ledger replays from a base
       instead of inverting.
-      <br>Plan and full post-mortem: <code>docs/run-nodes-plan.md</code>. Successor:
-      <code>docs/run-decisions.md</code>.</li>
+      <br>Plan and full post-mortem: <a class="dl" href="run-nodes-plan.md" target="_blank" rel="noopener"><code>docs/run-nodes-plan.md</code></a>. Successor:
+      <a class="dl" href="run-decisions.md" target="_blank" rel="noopener"><code>docs/run-decisions.md</code></a>.</li>
       <li><b>29 Decisions, not calculations.</b> <b>Closed 2026-08-22</b>, half shipped and
       half rejected.
       <br><b>The diagnosis it existed for was right and is worth keeping:</b> the problem was
@@ -1325,7 +1355,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       14 instead of an XI. Each would have changed the shape of a stop rather than its
       contents, and none is wanted. Do not re-propose them without a new reason.
       <br><b>Succeeded by item 30</b>, which is the same goal pursued entirely through cards:
-      25 more ideas in <code>docs/boost-ideas.md</code>, none of them only a rating bump.</li>
+      25 more ideas in <a class="dl" href="boost-ideas.md" target="_blank" rel="noopener"><code>docs/boost-ideas.md</code></a>, none of them only a rating bump.</li>
       <li><b>28 One run, one tournament: the draw and the bracket in a Cup Run.</b>
       <b>Closed 2026-08-22.</b> A run IS the tournament now - the group draw, a live table
       and a real 16-team bracket - and the second tournament orchestration is gone.
@@ -1351,7 +1381,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <code>remoteStore.finishRun</code> sets <code>run: null</code> (the server clears
       <code>active_run</code> at run end), so a reload after a finished run silently drew a
       fresh group. A guest never saw it, which is why it survived testing. The kickoff is now
-      REQUESTED explicitly (<code>nav/pendingRun.ts</code>, module state rather than
+      REQUESTED explicitly (<a class="dl" href="../src/nav/pendingRun.ts" target="_blank" rel="noopener"><code>nav/pendingRun.ts</code></a>, module state rather than
       <code>location.state</code>, which survives a reload and would have put the bug back).
       <br><b>The convergence: one tournament.</b> Both gating questions were answered no -
       there are no production users, so an orphaned saved World Cup is not worth a line of
@@ -1413,9 +1443,9 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       beats and the "Chase the legends" showcase are what sell the game - so <code>/</code> is
       still <code>ModeSelect</code>, with one Continue action where three resume buttons used to
       be.
-      <br><b>The comps are still worth reading</b> (<code>docs/redesign-2026/turf-flat/</code>):
-      <code>nav-options.html</code> is the ten findings and the five concepts side by side, and
-      <code>nav2/</code> is the winner drawn at full scale over ten screens.</li>
+      <br><b>The comps are still worth reading</b> (<a class="dl" href="redesign-2026/turf-flat/" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/</code></a>):
+      <a class="dl" href="redesign-2026/turf-flat/nav-options.html" target="_blank" rel="noopener"><code>nav-options.html</code></a> is the ten findings and the five concepts side by side, and
+      <a class="dl" href="redesign-2026/turf-flat/nav2/" target="_blank" rel="noopener"><code>nav2/</code></a> is the winner drawn at full scale over ten screens.</li>
       <li><b>24 Signed in, resetting the album (or changing difficulty) blocked the app.</b>
       Fixed 2026-08-20 as <b>option A of the three</b> the item laid out - the stopgap it
       recommended - plus both of the fixes it said to make whichever option won. The rule question
@@ -1490,7 +1520,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <code>delete_account</code> hard-deletes <code>auth.users</code> and the cascade nulled its
       audit rows - so the four were never deletion leftovers.
       <br><b>That is a real latent bug, and it is now written down</b> in
-      <code>docs/nas-setup.md</code> rather than fixed here, since the reset cleared this
+      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a> rather than fixed here, since the reset cleared this
       instance. The trigger fires <code>after insert on auth.users</code> only, and nothing
       back-fills at sign-in, so an auth user with no profile row cannot write anything: every
       per-user table is <code>references profiles (id)</code>, so each save is a foreign-key
@@ -1501,7 +1531,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       listed <b>three</b> tables that must survive a wipe; <code>allowed_emails</code> is not one,
       because <b>0005 dropped it</b> when it opened signup, and it is genuinely absent from the
       server. The wrong entry survived because the confirmation select never checked it. And
-      <code>docs/nas-setup.md</code> still told a new operator to
+      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a> still told a new operator to
       <code>insert into allowed_emails</code> "or nothing can sign up", a step that now fails with
       <i>relation does not exist</i>. The design docs keep their <code>allowed_emails</code>
       references on purpose: they record the design as decided, not the schema as it stands.
@@ -1534,13 +1564,13 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       item had worked out: a read-only <code>/cabinet</code> screen, lazy-loaded like
       <code>/challenges</code>, behind <code>FEATURES.trophyCabinet</code> and reached from
       a link in the Cup Run hub. Comp:
-      <code>docs/redesign-2026/turf-flat/trophy-cabinet.html</code>.
+      <a class="dl" href="redesign-2026/turf-flat/trophy-cabinet.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/trophy-cabinet.html</code></a>.
       <br><b>It records nothing.</b> The whole point of the item was that the career layer
       already stored far more than it showed, and the audit for item 23 confirmed how
-      starkly: the ten challenge counters were read by <code>domain/challenges.ts</code>
+      starkly: the ten challenge counters were read by <a class="dl" href="../src/domain/challenges.ts" target="_blank" rel="noopener"><code>domain/challenges.ts</code></a>
       and nothing else, <code>bestCupAscension</code> only by the checks harness, and
       <code>bestScore</code> by nothing at all. So this is a readout -
-      <code>domain/cabinet.ts</code> <code>cabinetView(career, album, allPlayers)</code>
+      <a class="dl" href="../src/domain/cabinet.ts" target="_blank" rel="noopener"><code>domain/cabinet.ts</code></a> <code>cabinetView(career, album, allPlayers)</code>
       derives every figure on the page, and there is no new state, no migration, and no
       difference between a guest and an account.
       <br>Blocks: a headline strip, the shelf (one trophy per cup), the Ascension ladder
@@ -1549,7 +1579,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       cup has been won with, an honours summary linking to the full ledger, badges, album
       completion with the Monumental strip, and run history <b>as an empty state</b>.
       <br><b>Option C came with it</b>, because the screen has a badge block:
-      <code>domain/badges.ts</code>, nine pure predicates over the career and album.
+      <a class="dl" href="../src/domain/badges.ts" target="_blank" rel="noopener"><code>domain/badges.ts</code></a>, nine pure predicates over the career and album.
       Derived not stored, so an existing career lights them up retroactively; unpaid, so
       challenges stay the only Prestige faucet; and thresholds only, never an exact
       lifetime count. A badge defines just its <code>progress</code> and "earned" is
@@ -1597,7 +1627,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <li><b>01 Challenges.</b> Done 2026-08-19. Permanent honours over a finished Cup
       Run: <b>130 one-off goals in 12 families</b>, each worth Prestige, giving the career
       layer something to aim at besides "earn Prestige, buy perks". Planned in
-      <code>docs/challenges-spec.html</code>; <code>domain/challenges.ts</code> holds the
+      <a class="dl" href="challenges-spec.html" target="_blank" rel="noopener"><code>docs/challenges-spec.html</code></a>; <a class="dl" href="../src/domain/challenges.ts" target="_blank" rel="noopener"><code>domain/challenges.ts</code></a> holds the
       model, the catalogue, <code>viewOf</code> and <code>completedIn</code>, with the seam
       in <code>applyRunResult</code> and the whole of the state in
       <code>CareerState.completedChallenges</code>. Surfaces: the <code>/challenges</code>
@@ -1611,7 +1641,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       recorded at kickoff, all optional so an older run still finishes) and ten
       <code>CareerStats</code> counters for the streaks, updated <i>before</i> the catalogue
       is judged so a run completes what it just satisfied. Thirteen checks cover it.
-      <br><b>Four traps, each a real bug here once</b>, written up in CLAUDE.md: ratings are
+      <br><b>Four traps, each a real bug here once</b>, written up in <a class="dl" href="../CLAUDE.md" target="_blank" rel="noopener"><code>CLAUDE.md</code></a>: ratings are
       judged on the dataset player and not the boosted copy; the final XI is not the XI you
       built (<code>boostedIds</code>); shootout goals are not goals conceded; and never key
       an entry to an exact lifetime count - First Blood was <code>stats.cups === 1</code>
@@ -1656,7 +1686,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       the same route <code>0010</code> used. <b>One change to the file before sending it:</b>
       it was the only migration in the repo without a <code>begin;</code> /
       <code>commit;</code> wrapper, which every other one has and which
-      <code>push-sql.mjs</code>'s own header claims of all of them. Three statements (the
+      <a class="dl" href="../scripts/push-sql.mjs" target="_blank" rel="noopener"><code>push-sql.mjs</code></a>'s own header claims of all of them. Three statements (the
       column and the two function replacements) would otherwise have been able to land
       partially, leaving the column added and a function still on its old body. Wrapped, so
       the file now matches the convention it documents.
@@ -1898,11 +1928,11 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       re-rolls left in both the panel and the state, and Quick Run with tier 2 owned still
       shows 3. The counter also stops saying "1 re-rolls left".</li>
       <li><b>09 Blank white page while the app loads.</b> Done 2026-08-18.
-      <code>index.html</code> now paints the ground colour and, after 350ms, a trophy tile,
-      wordmark and spinner - all inline, since <code>index.css</code> only arrives with the
+      <a class="dl" href="../index.html" target="_blank" rel="noopener"><code>index.html</code></a> now paints the ground colour and, after 350ms, a trophy tile,
+      wordmark and spinner - all inline, since <a class="dl" href="../src/index.css" target="_blank" rel="noopener"><code>index.css</code></a> only arrives with the
       bundle and a signed-in first render also waits on a round trip to the account server.
       The cover sits outside <code>#root</code> so React cannot own it;
-      <code>main.tsx</code> stamps <code>data-booted</code> on <code>&lt;html&gt;</code>
+      <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/main.tsx" target="_blank" rel="noopener"><code>main.tsx</code></a> stamps <code>data-booted</code> on <code>&lt;html&gt;</code>
       after the first render, on every path including the unreachable-server screen, and
       inline CSS fades it out. The 350ms delay means a fast load shows no spinner at all,
       only the cream background instead of white. Verified by driving headless Chrome over
@@ -1980,7 +2010,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       presentation only, since the build itself is shared by both modes.</li>
       <li><b>Loose end: album-fill helper was stale.</b> Closed 2026-08-17 by deleting the
       idea of a hand-copied snippet: <code>npm run album:fill</code>
-      (<code>scripts/album-fill.ts</code>) prints one generated from the dataset, so it
+      (<a class="dl" href="../scripts/album-fill.ts" target="_blank" rel="noopener"><code>scripts/album-fill.ts</code></a>) prints one generated from the dataset, so it
       cannot drift again (it was 13 ids short). <code>-- --leave=N</code> holds back the
       rarest cards, <code>--dupes=N</code> seeds a duplicate pool for testing trades, and
       <code>--clear</code> wipes it. Guest only, and the snippet says so.</li>
@@ -1992,7 +2022,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <code>/storage/v1/</code> and <code>/functions/v1/</code> stop existing instead of
       merely 503-ing. Checked locally: compose resolves to exactly the intended services, and all 15
       remaining routes point at a cluster that still exists. The apply / verify / rollback
-      recipe is in <code>docs/nas-setup.md</code> ("Trimming a stack that is already
+      recipe is in <a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a> ("Trimming a stack that is already
       running"), including the one-minute mitigation of just stopping the four
       containers. Installing it on the NAS needs LAN access and is tracked as open item
       07.</li>
@@ -2008,9 +2038,9 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <li><b>Accounts.</b> Sign in with an emailed 6-digit code; album, career, settings and
       the in-progress run live on a self-hosted Supabase on the NAS, so they are the same on
       every device. Guest play never contacts the server. Requirements
-      <code>docs/cloud-sync-requirements.md</code>, design
-      <code>docs/cloud-sync-design.md</code>, server setup <code>docs/nas-setup.md</code>,
-      gotchas in CLAUDE.md &mdash; every one of those was a real bug found by playing, three
+      <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a>, design
+      <a class="dl" href="cloud-sync-design.md" target="_blank" rel="noopener"><code>docs/cloud-sync-design.md</code></a>, server setup <a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a>,
+      gotchas in <a class="dl" href="../CLAUDE.md" target="_blank" rel="noopener"><code>CLAUDE.md</code></a> &mdash; every one of those was a real bug found by playing, three
       of them only on a <i>second</i> run.</li>
       <li><b>Boost and perk rebalance.</b> 11 boosts to 19. A boost is worth what it moves
       the attack/defence averages, its budget is the sum of both, and
@@ -2021,7 +2051,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <li><b>Stickers earned by winning the cup</b>
       (<code>FEATURES.stickersOnCupWinOnly</code>). Any-run banking made the album a record
       of who you drafted rather than what you won. The flag switches the rule and its copy.</li>
-      <li><b>Sticker art pipeline.</b> Originals in <code>art/stickers-src/</code>
+      <li><b>Sticker art pipeline.</b> Originals in <a class="dl" href="../art/stickers-src/" target="_blank" rel="noopener"><code>art/stickers-src/</code></a>
       (undeployed); <code>python scripts/build-sticker-art.py</code> emits 400px WebP. The
       deploy went from 139 MB of images to 2.9 MB, and the album lazy-loads.</li>
     </ul>
@@ -2037,7 +2067,7 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       not their listed main position.</li>
       <li><b>Budget line-up detail.</b> Each player's cost and the total spent show in the
       line-up sheet.</li>
-      <li><b>Home launcher.</b> <code>ModeSelect.tsx</code> as the landing page: grass
+      <li><b>Home launcher.</b> <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/ModeSelect.tsx" target="_blank" rel="noopener"><code>ModeSelect.tsx</code></a> as the landing page: grass
       tactics-board hero, two CTAs with resume buttons, a three-beat "how it works", and the
       grayscale-to-colour legends showcase.</li>
       <li><b>Career depth G &mdash; Transfer Budget progression.</b> Career Mode's budget
@@ -2059,13 +2089,23 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <code>FEATURES</code> flag, no em-dashes in generated text, "rating" not "elo" and "boost"
   not "boon" in anything user-facing, and commit straight to <code>main</code>.
   <strong>Everything goes directly to <code>main</code>, from now on and without asking</strong>
-  (reaffirmed 2026-08-25, and already the standing rule in <code>CLAUDE.md</code> since
+  (reaffirmed 2026-08-25, and already the standing rule in <a class="dl" href="../CLAUDE.md" target="_blank" rel="noopener"><code>CLAUDE.md</code></a> since
   2026-08-23): no feature branch, no pull request, unless one is asked for in so many words. A
   session that starts on a branch finishes by fast-forwarding onto <code>main</code> and pushing
   there. The full
-  picture is in <code>CLAUDE.md</code>; detailed specs in <code>docs/career-depth-spec.md</code>
-  and <code>docs/roguelike-career-design.md</code>; the cleanup backlog in
-  <code>docs/hygiene-audit.html</code>.
+  picture is in <a class="dl" href="../CLAUDE.md" target="_blank" rel="noopener"><code>CLAUDE.md</code></a>; detailed specs in <a class="dl" href="career-depth-spec.md" target="_blank" rel="noopener"><code>docs/career-depth-spec.md</code></a>
+  and <a class="dl" href="roguelike-career-design.md" target="_blank" rel="noopener"><code>docs/roguelike-career-design.md</code></a>; the cleanup backlog in
+  <a class="dl" href="hygiene-audit.html" target="_blank" rel="noopener"><code>docs/hygiene-audit.html</code></a>.
+  <br><br>
+  <strong>Every file this page names is a link</strong> (2026-08-25), relative to
+  <a class="dl" href="./" target="_blank" rel="noopener"><code>docs/</code></a>, so opening the roadmap from disk is enough to click through to a spec, a
+  comp or the source. They open in a new tab on purpose: this page remembers which items you
+  have expanded, and navigating away loses it. Two paths are not local:
+  <code>.tsx</code> and <code>.sql</code> go to GitHub, because a browser DOWNLOADS those from
+  <code>file://</code> instead of showing them, and an arrow marks every link that leaves the
+  disk. A path stays plain text when nothing is there to open, which is the case for routes
+  (<code>/cup-run</code>), for identifiers that only look like paths
+  (<code>RunState.loan</code>), and for files that have since been deleted.
 </footer>
 
 <script>
