@@ -444,6 +444,20 @@ export function budgetOf(career: CareerState): number {
   return BUDGET_BY_TIER[Math.max(0, tier)];
 }
 
+/** Remember the Ascension tier the next run will start at, and NOTHING else.
+ *
+ *  Separate from `startRunCareer` on purpose, because the two happen at different moments
+ *  and only one of them may spend a grant. The tier is PICKED - and re-picked, freely,
+ *  before kickoff; a Youth Development grant may only be DEALT once, at kickoff, to a run
+ *  that exists. Wiring the picker to `startRunCareer` therefore binned the grant silently:
+ *  that function clears `bonusStartBoosts` and hands back what was owed, and a picker has
+ *  no run to hand it to, so it dropped the return value on the floor. Returned by identity
+ *  when the tier has not moved, so the caller can skip the save. */
+export function rememberAscension(career: CareerState, tier: number): CareerState {
+  if (career.lastAscension === tier) return career;
+  return { ...career, lastAscension: tier };
+}
+
 /** Start a run: remember the Ascension tier, and SPEND any Youth Development grant a
  *  previous run banked. Returns the career to save and how many bonus boosts are owed.
  *

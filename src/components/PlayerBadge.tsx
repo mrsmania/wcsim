@@ -1,6 +1,12 @@
 import { ArrowLeftRight, Move, RotateCw, X } from 'lucide-react';
 
-/** Small red "x" control shown on a placed badge to clear its slot (testing aid). */
+/** Small red "x" control shown on a placed badge to clear its slot (testing aid).
+ *
+ *  It is a SIBLING of the badge's own control, never a child of it: a `<button>` inside a
+ *  `<button>` is invalid HTML, and React said so on every render of the build page. It is
+ *  anchored to the badge column rather than to the name label it used to sit inside, so
+ *  for a short name it now sits a few pixels further right - a fixed corner rather than
+ *  one that slides with the length of the name. */
 function RemoveButton({ name, onRemove }: { name: string; onRemove: () => void }) {
     return (
         <button
@@ -31,6 +37,14 @@ interface Props {
     /** This player is the one being moved: lifted out of the line-up until a
      *  destination is picked (or the move is cancelled). */
     moving?: boolean;
+    /** The badge's own gesture - pick this player up, swap into his slot, take his spot.
+     *  When set the badge body becomes a real `<button>`; when not, it is inert markup.
+     *  It lives here rather than on a wrapper in `Pitch` so that the remove "x" can be its
+     *  sibling instead of its descendant (see `RemoveButton`). */
+    onActivate?: () => void;
+    /** What that gesture is, for assistive technology. Required in practice whenever
+     *  `onActivate` is set, since the badge's visible text is only the surname. */
+    activateLabel?: string;
 }
 
 /** Minimal pitch token: a circle with the jersey number (a face can replace it
@@ -43,9 +57,11 @@ export default function PlayerBadge({
     swap = false,
     rotate = false,
     moving = false,
+    onActivate,
+    activateLabel,
 }: Props) {
-    return (
-        <div className="flex w-20 flex-col items-center">
+    const body = (
+        <>
             <span
                 className={`relative grid h-12 w-12 place-items-center rounded-full border-2 border-white bg-pitch-dark font-mono text-[15px] font-extrabold text-white shadow-[0_3px_8px_rgba(0,0,0,0.25),inset_0_0_0_1px_rgba(255,255,255,0.35)] ${
                     swap ? 'ring-[3px] ring-amber' : ''
@@ -67,10 +83,27 @@ export default function PlayerBadge({
                     </span>
                 )}
             </span>
-            <div className="relative mt-1.5 max-w-22 rounded-md bg-panel px-2 py-0.5 text-center shadow-soft">
+            <div className="mt-1.5 max-w-22 rounded-md bg-panel px-2 py-0.5 text-center shadow-soft">
                 <div className="truncate text-[13px] font-extrabold leading-tight">{name}</div>
-                {onRemove && <RemoveButton name={name} onRemove={onRemove} />}
             </div>
+        </>
+    );
+
+    return (
+        <div className="relative flex w-20 flex-col items-center">
+            {onActivate ? (
+                <button
+                    type="button"
+                    onClick={onActivate}
+                    aria-label={activateLabel}
+                    className="flex w-full flex-col items-center"
+                >
+                    {body}
+                </button>
+            ) : (
+                <div className="flex w-full flex-col items-center">{body}</div>
+            )}
+            {onRemove && <RemoveButton name={name} onRemove={onRemove} />}
         </div>
     );
 }

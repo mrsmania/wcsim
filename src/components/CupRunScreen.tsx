@@ -3,7 +3,7 @@ import type { Player, Squad } from '../data/types';
 import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
 import { userRatingDelta, type Difficulty } from '../domain/difficulty';
-import { ascensionAt, selectedAscension } from '../domain/ascension';
+import { ascensionAt, maxSelectableAscension, selectedAscension } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
 import type { GroupTeam } from '../domain/tournament';
 import { boonById, type Boon } from '../domain/boons';
@@ -72,6 +72,7 @@ export default function CupRunScreen({
   buyPerk,
   unlockBoost,
   startRun,
+  rememberAscension,
   bankRun,
   challengeInput,
 }: {
@@ -125,6 +126,9 @@ export default function CupRunScreen({
   buyPerk: (perkId: string) => void;
   unlockBoost: (boonId: string) => void;
   startRun: (tier: number) => number;
+  /** Remember the Ascension tier WITHOUT spending a start-boost grant: what the pre-run
+   *  card's picker calls. `startRun` deals the grant and is the kickoff's alone. */
+  rememberAscension: (tier: number) => void;
   bankRun: (run: RunState, challenges?: ChallengeInput, at?: number) => RunReward;
   /** What the challenge predicates need beyond the run and the career: dataset ratings,
    *  the album as it stands and the lifetime trade count. A function, not a value, so it
@@ -478,6 +482,11 @@ export default function CupRunScreen({
           str={str}
           onPlay={startAndPlayGroup}
           buildTo={buildTo}
+          ascension={{
+            tier: chosenAscension,
+            max: maxSelectableAscension(career.ascension, career.level),
+            onSelect: rememberAscension,
+          }}
         />
       )}
 

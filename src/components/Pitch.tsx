@@ -200,14 +200,15 @@ function OverlayMarker({
         // held, and a move can only start with empty hands.
         if (swapTarget && onSwap) {
             return (
-                <button
-                    className="absolute flex flex-col items-center"
-                    style={style}
-                    onClick={() => onSwap(slot.id)}
-                    aria-label={`Swap in for ${lastName(player.name)}`}
-                >
-                    <PlayerBadge name={lastName(player.name)} number={player.number} swap />
-                </button>
+                <div className="absolute flex flex-col items-center" style={style}>
+                    <PlayerBadge
+                        name={lastName(player.name)}
+                        number={player.number}
+                        swap
+                        onActivate={() => onSwap(slot.id)}
+                        activateLabel={`Swap in for ${lastName(player.name)}`}
+                    />
+                </div>
             );
         }
         // Move mode: taking this slot either trades the two players straight over, or
@@ -216,23 +217,20 @@ function OverlayMarker({
         if (moveRole === 'destination' && onMove) {
             const rotates = shifts > 2;
             return (
-                <button
-                    className="absolute flex flex-col items-center"
-                    style={style}
-                    onClick={() => onMove(slot.id)}
-                    aria-label={
-                        rotates
-                            ? `Take ${lastName(player.name)}'s spot, rotating ${shifts} players`
-                            : `Trade places with ${lastName(player.name)}`
-                    }
-                >
+                <div className="absolute flex flex-col items-center" style={style}>
                     <PlayerBadge
                         name={lastName(player.name)}
                         number={player.number}
                         swap
                         rotate={rotates}
+                        onActivate={() => onMove(slot.id)}
+                        activateLabel={
+                            rotates
+                                ? `Take ${lastName(player.name)}'s spot, rotating ${shifts} players`
+                                : `Trade places with ${lastName(player.name)}`
+                        }
                     />
-                </button>
+                </div>
             );
         }
         // Tapping a placed player picks him up; tapping him again puts him back. A
@@ -252,25 +250,24 @@ function OverlayMarker({
                 </div>
             );
         }
+        // The wrapper is a plain div and the gesture lives ON the badge: the remove "x" is
+        // a button too, and nesting one inside the other is invalid HTML (React warned on
+        // every render of the build page). PlayerBadge makes them siblings.
         return (
-            <button
-                type="button"
-                className="absolute flex flex-col items-center"
-                style={style}
-                onClick={() => onStartMove(slot.id)}
-                aria-label={
-                    moveRole === 'mover'
-                        ? `Stop moving ${lastName(player.name)}`
-                        : `Move ${lastName(player.name)}`
-                }
-            >
+            <div className="absolute flex flex-col items-center" style={style}>
                 <PlayerBadge
                     name={lastName(player.name)}
                     number={player.number}
                     onRemove={onRemove}
                     moving={moveRole === 'mover'}
+                    onActivate={() => onStartMove(slot.id)}
+                    activateLabel={
+                        moveRole === 'mover'
+                            ? `Stop moving ${lastName(player.name)}`
+                            : `Move ${lastName(player.name)}`
+                    }
                 />
-            </button>
+            </div>
         );
     }
 

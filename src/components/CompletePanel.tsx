@@ -5,6 +5,7 @@ import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
 import { CARD, PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
 import ConfirmAction from './ConfirmAction';
+import AscensionPicker from './AscensionPicker';
 
 interface Props {
     formation: Formation;
@@ -15,6 +16,10 @@ interface Props {
      *  destinations that has been one since the second tournament was deleted.) */
     onStartRun: () => void;
     onReset: () => void;
+    /** The run's difficulty ladder, chosen HERE rather than on the setup panel: the tier
+     *  worth taking depends on the XI you ended up with, and this is the last screen
+     *  before kickoff (see `AscensionPicker`). */
+    ascension: { tier: number; max: number; onSelect: (tier: number) => void };
 }
 
 const CTA = `flex w-full items-center justify-center gap-2 px-4 py-3 text-[13px] ${PRIMARY_BTN_BASE}`;
@@ -25,6 +30,7 @@ export default function CompletePanel({
     style,
     onStartRun,
     onReset,
+    ascension,
 }: Props) {
     const base = teamRating(formation, filled);
     const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
@@ -57,6 +63,16 @@ export default function CompletePanel({
                         </>
                     )}
                 </div>
+            </div>
+
+            {/* Ascension sits between the squad summary and the CTA, so the tier is
+                picked with the finished XI's rating and chemistry still on screen. */}
+            <div className="border-b border-line p-[18px]">
+                <AscensionPicker
+                    tier={ascension.tier}
+                    max={ascension.max}
+                    onSelect={ascension.onSelect}
+                />
             </div>
 
             <div className="p-[18px]">

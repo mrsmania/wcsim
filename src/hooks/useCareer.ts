@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import {
     applyRunResult,
     buyPerkTier,
+    rememberAscension,
     startRunCareer,
     unlockBoon,
     type CareerState,
@@ -33,6 +34,10 @@ export interface Career {
      *  can see it; it returns the career unchanged by identity when there is nothing to
      *  write, which is what the save below skips on. */
     startRun: (tier: number) => number;
+    /** Remember the tier the next run will start at, WITHOUT spending a start-boost
+     *  grant. This is what the Ascension picker calls: it is picked and re-picked freely
+     *  before kickoff, and only the kickoff itself may deal a grant. */
+    rememberAscension: (tier: number) => void;
     /** Bank a finished run: XP, Prestige, the counters and the challenges it completed.
      *  Judged against the career AFTER the run's own reward lands, so "win 10 cups"
      *  counts the cup just won. */
@@ -66,6 +71,14 @@ export function useCareer(seed: CareerState): Career {
         [career, write],
     );
 
+    const remember = useCallback(
+        (tier: number) => {
+            const next = rememberAscension(career, tier);
+            if (next !== career) write(next);
+        },
+        [career, write],
+    );
+
     const bankRun = useCallback(
         (run: RunState, challenges?: ChallengeInput, at?: number) => {
             const reward = applyRunResult(career, run, challenges, at);
@@ -75,5 +88,5 @@ export function useCareer(seed: CareerState): Career {
         [career, write],
     );
 
-    return { career, buyPerk, unlockBoost, startRun, bankRun };
+    return { career, buyPerk, unlockBoost, startRun, rememberAscension: remember, bankRun };
 }

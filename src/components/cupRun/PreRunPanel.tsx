@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Player } from '../../data/types';
 import { CARD, PRIMARY_BTN } from '../matchUi';
 import RunXiPanel from './RunXiPanel';
+import AscensionPicker from '../AscensionPicker';
 
 /** What `/cup-run` shows when there is no run: the drafted XI with a kickoff button, or
  *  a pointer back to the build if there is no XI either (hygiene H85).
@@ -15,6 +16,7 @@ export default function PreRunPanel({
   str,
   onPlay,
   buildTo,
+  ascension,
 }: {
   /** The drafted XI, or null when the build is not finished. */
   xi: Player[] | null;
@@ -24,6 +26,9 @@ export default function PreRunPanel({
   /** Commit the run at the chosen Ascension and reveal the group, in one step. */
   onPlay: () => void;
   buildTo: string;
+  /** The difficulty ladder. This is the other door into the same group stage, so the tier
+   *  has to be changeable here as well as on the complete panel. */
+  ascension: { tier: number; max: number; onSelect: (tier: number) => void };
 }) {
   if (!xi) {
     return (
@@ -42,7 +47,12 @@ export default function PreRunPanel({
       <RunXiPanel xi={xi} score={0} activeBoons={[]} boostedIds={new Set()} odds={odds} str={str} />
       <section className="flex min-w-0 flex-col gap-4">
         <div className={`${CARD} p-5`}>
-          <div className="mt-4 text-center">
+          <AscensionPicker
+            tier={ascension.tier}
+            max={ascension.max}
+            onSelect={ascension.onSelect}
+          />
+          <div className="mt-4 border-t border-line pt-4 text-center">
             <p className="mb-4 text-[13.5px] text-muted">
               Pick a team boost between rounds; every run earns XP and Prestige. Finish top two in
               the group to reach the knockouts.

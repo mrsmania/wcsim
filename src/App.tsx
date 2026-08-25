@@ -114,7 +114,8 @@ export default function App({
     // to be state inside the run screen, which is why two memos here re-read it from the
     // store on every navigation with an eslint-disable each, just to price the market,
     // offer the right Ascension tiers and colour the challenge ledger.
-    const { career, buyPerk, unlockBoost, startRun, bankRun } = useCareer(snapshot.career);
+    const { career, buyPerk, unlockBoost, startRun, rememberAscension, bankRun } =
+        useCareer(snapshot.career);
     // The Ascension tier for the next run, picked on the build page (roadmap item 28)
     // rather than on a pre-run screen that no longer exists in the tabs chrome. Held here
     // as UI state and mirrored onto the career's `lastAscension`, which is where the run
@@ -395,19 +396,23 @@ export default function App({
     const tabsRecords = isRecords(screen);
     const recordsCabinet = screen === 'cabinet';
 
-    // The Ascension picker's props for the build page: the tier in force and the highest
-    // one currently selectable (unlocked AND level-gated).
+    // The Ascension picker's props for the complete panel: the tier in force and the
+    // highest one currently selectable (unlocked AND level-gated).
     const ascensionMax = maxSelectableAscension(career.ascension, career.level);
     const ascensionTier = selectedAscension(career, ascension);
     // Picking a tier mirrors it onto the career, which is where the run reads its default
-    // from - so nothing new has to be threaded to `beginRun`. `startRun` is the same write
-    // the run itself makes at kickoff, and it no-ops when the tier has not moved.
+    // from - so nothing new has to be threaded to `beginRun`.
+    //
+    // `rememberAscension`, NOT `startRun`: the latter also spends a Youth Development
+    // grant and hands back what it owes, so wiring a picker to it binned the grant on the
+    // floor - and the picker is a control you can touch as often as you like before any
+    // run exists to be dealt to.
     const pickAscension = useCallback(
         (tier: number) => {
             setAscension(tier);
-            startRun(tier);
+            rememberAscension(tier);
         },
-        [startRun],
+        [rememberAscension],
     );
 
     // Transfer-market budget, scaled by the owned `transfer-budget` perk tier. The build
@@ -577,6 +582,7 @@ export default function App({
                             buyPerk={buyPerk}
                             unlockBoost={unlockBoost}
                             startRun={startRun}
+                            rememberAscension={rememberAscension}
                             bankRun={bankRun}
                             challengeInput={challengeInput}
                         />
@@ -667,11 +673,6 @@ export default function App({
                                             onBudgetDraft={
                                                 FEATURES.budgetDraft ? handleBudget : undefined
                                             }
-                                            ascension={{
-                                                tier: ascensionTier,
-                                                max: ascensionMax,
-                                                onSelect: pickAscension,
-                                            }}
                                         />
                                     )}
                                     {homeView === 'draft' &&
@@ -728,6 +729,11 @@ export default function App({
                                                 navigate('/cup-run');
                                             }}
                                             onReset={handleReset}
+                                            ascension={{
+                                                tier: ascensionTier,
+                                                max: ascensionMax,
+                                                onSelect: pickAscension,
+                                            }}
                                         />
                                     )}
                                 </>
