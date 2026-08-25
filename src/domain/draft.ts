@@ -1,5 +1,6 @@
 import type { Player, Position, Squad } from '../data/types';
 import type { Formation, Slot } from './formations';
+import { pick } from './random';
 
 /** Map of slotId -> placed player (or null/absent if still open). */
 export type Filled = Record<string, Player | null>;
@@ -192,9 +193,9 @@ export function randomXI(
       pickPool = [...eligible].sort((a, b) => Math.abs(a.elo - mid) - Math.abs(b.elo - mid)).slice(0, 5);
     }
     if (pickPool.length === 0) continue;
-    const pick = pickPool[Math.floor(Math.random() * pickPool.length)];
-    used.add(pick.personId);
-    filled[slot.id] = pick;
+    const chosen = pick(pickPool);
+    used.add(chosen.personId);
+    filled[slot.id] = chosen;
   }
   return { filled, usedPersonIds: [...used] };
 }
@@ -214,7 +215,7 @@ function pickFrom(pool: Squad[], open: Set<Position>, used: Set<string>): Squad 
   if (pool.length === 0) return null;
   const actionable = pool.filter((s) => squadHasSelectable(s, open, used));
   const arr = actionable.length ? actionable : pool;
-  return arr[Math.floor(Math.random() * arr.length)];
+  return pick(arr);
 }
 
 /** Auto draw / "Another roll": any squad except the current one. */
@@ -227,38 +228,36 @@ export function rollAny(
   return pickFrom(squads.filter((s) => s.id !== excludeId), open, used);
 }
 
+// The two re-roll predicates, defined once each. They were written out twice - once to
+// roll and once to decide whether the button is offered - and a drift between the pair
+// hands the player a live button that cannot roll anything.
 /** "Another team": a different nation from the same tournament year. */
+const sameYear = (current: Squad) => (s: Squad) => s.year === current.year && s.id !== current.id;
+/** "Another cup": the same nation at a different World Cup. */
+const sameNation = (current: Squad) => (s: Squad) => s.code === current.code && s.id !== current.id;
+
 export function rollAnotherTeam(
   squads: Squad[],
   current: Squad,
   open: Set<Position>,
   used: Set<string>,
 ): Squad | null {
-  return pickFrom(
-    squads.filter((s) => s.year === current.year && s.id !== current.id),
-    open,
-    used,
-  );
+  return pickFrom(squads.filter(sameYear(current)), open, used);
 }
 
-/** "Another cup": the same nation at a different World Cup. */
 export function rollAnotherCup(
   squads: Squad[],
   current: Squad,
   open: Set<Position>,
   used: Set<string>,
 ): Squad | null {
-  return pickFrom(
-    squads.filter((s) => s.code === current.code && s.id !== current.id),
-    open,
-    used,
-  );
+  return pickFrom(squads.filter(sameNation(current)), open, used);
 }
 
 export function hasAnotherTeam(squads: Squad[], current: Squad): boolean {
-  return squads.some((s) => s.year === current.year && s.id !== current.id);
+  return squads.some(sameYear(current));
 }
 
 export function hasAnotherCup(squads: Squad[], current: Squad): boolean {
-  return squads.some((s) => s.code === current.code && s.id !== current.id);
+  return squads.some(sameNation(current));
 }

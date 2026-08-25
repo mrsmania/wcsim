@@ -5,7 +5,7 @@ import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
 import { userRatingDelta, type Difficulty } from '../domain/difficulty';
 import { KO_ROUNDS } from '../domain/knockout';
-import { ascensionAt, maxSelectableAscension } from '../domain/ascension';
+import { ascensionAt, selectedAscension } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
 import { groupAsOf, GROUP_MATCHDAYS, type GroupTeam } from '../domain/tournament';
 import { boonById, type Boon } from '../domain/boons';
@@ -156,8 +156,7 @@ export default function CupRunScreen({
   // the career's `lastAscension`; read here and clamped to what is currently selectable, so
   // a stale saved tier (a career that lost a level gate, or a save from another device)
   // cannot start a run above the ceiling.
-  const maxAsc = maxSelectableAscension(career.ascension, career.level);
-  const chosenAscension = Math.min(career.lastAscension ?? maxAsc, maxAsc);
+  const chosenAscension = selectedAscension(career);
 
   const showToast = (msg: string) => {
     setToast(msg);

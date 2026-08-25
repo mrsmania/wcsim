@@ -1,9 +1,9 @@
-import { categoryOf, CATEGORY_ORDER } from '../data/types';
+import { categoryOf, CATEGORY_ORDER, type Player } from '../data/types';
 import { lastName } from '../data/format';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
 import { tierOf } from '../domain/album';
-import { priceFor } from '../domain/pricing';
+import { priceFor, xiSpend } from '../domain/pricing';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES } from '../config';
 import Flag from './Flag';
@@ -38,10 +38,13 @@ export default function XiTable({
     const placedSlots = ordered.filter((s) => filled[s.id]);
     const placed = placedSlots.length;
     const isBudget = budget != null;
-    // Prices match the market: a player whose sticker is already collected is
-    // discounted, so the total spent here agrees with the budget bar over there.
+    // One definition of "the spend", shared with the market's budget bar and the run's
+    // build record, so the three cannot disagree about what this XI cost.
     const spent = isBudget
-        ? placedSlots.reduce((t, s) => t + priceFor(filled[s.id]!, ownedStickerIds), 0)
+        ? xiSpend(
+              placedSlots.map((s) => filled[s.id]).filter((p): p is Player => !!p),
+              ownedStickerIds,
+          )
         : 0;
     const cols = isBudget
         ? 'grid-cols-[30px_1fr_auto_auto_auto]'

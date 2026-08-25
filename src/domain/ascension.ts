@@ -86,3 +86,21 @@ export function maxSelectableAscension(unlocked: number, level: number): number 
     }
     return max;
 }
+
+/**
+ * The tier a run will actually be played at: the remembered choice (or an explicit
+ * override from the picker), clamped to what is currently selectable.
+ *
+ * One definition, because the build page's picker and the screen that starts the run both
+ * need it and they were computing it separately. If those two ever disagreed the build page
+ * would offer a tier the run does not play - so the clamp is the interesting half, not the
+ * default: a stale saved tier (a career that lost a level gate, or a save from another
+ * device) cannot start a run above the ceiling.
+ */
+export function selectedAscension(
+    career: { ascension: number; level: number; lastAscension?: number },
+    override?: number | null,
+): number {
+    const max = maxSelectableAscension(career.ascension, career.level);
+    return Math.min(override ?? career.lastAscension ?? max, max);
+}

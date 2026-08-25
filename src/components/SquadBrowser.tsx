@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, Navigate, useMatch, useNavigate } from 'react-router-dom';
-import { SQUADS, SQUAD_BY_ID } from '../data/squads';
+import { SQUADS, SQUAD_BY_ID, WORLD_CUP_YEARS } from '../data/squads';
 import { primaryPosition, type Player, type Squad } from '../data/types';
 import { normalizeSearch } from '../data/format';
 import { ArrowLeft, Search, X } from 'lucide-react';
@@ -13,7 +13,9 @@ import { TIER_META } from './StickerCard';
 import TeamRoster from './TeamRoster';
 
 /** Distinct tournament years, newest first for the selector. */
-const YEARS = [...new Set(SQUADS.map((s) => s.year))].sort((a, b) => b - a);
+/** Newest first. `WORLD_CUP_YEARS` is the same derivation ascending, so reverse it
+ *  rather than re-deriving: two copies of "which cups exist" can disagree. */
+const YEARS = [...WORLD_CUP_YEARS].reverse();
 
 const MAX_RESULTS = 80;
 

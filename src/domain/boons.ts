@@ -2,6 +2,7 @@ import type { Player } from '../data/types';
 import { categoryOf, isAttacker, isDefender, primaryPosition } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
 import { bump } from './effects';
+import { pick } from './random';
 
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
 export type Rarity = 'common' | 'rare' | 'legendary';
@@ -205,7 +206,7 @@ function replaceWeakest(xi: Player[], n: number, pool: Player[]): Player[] {
     const used = new Set(out.map((p) => p.personId));
     const cands = pool.filter((p) => !used.has(p.personId));
     if (!cands.length) break;
-    const inP = cands[Math.floor(Math.random() * cands.length)];
+    const inP = pick(cands);
     const target = weakestOfCat(out, catOf(inP)) ?? weakest(out);
     out = swap(out, target.id, inP);
   }
@@ -286,7 +287,7 @@ export const BOONS: Boon[] = [
             (p) => catOf(p) === cat && p.elo >= out.elo + TRANSFER_MIN_GAIN && !used.has(p.personId),
           );
           if (!cands.length) return roster;
-          return swap(roster, out.id, cands[Math.floor(Math.random() * cands.length)]);
+          return swap(roster, out.id, pick(cands));
         },
       },
     ],
@@ -324,7 +325,7 @@ export const BOONS: Boon[] = [
           const used = new Set(roster.map((p) => p.personId));
           const legends = ALL_PLAYERS.filter((p) => p.elo >= 90 && !used.has(p.personId));
           if (!legends.length) return roster;
-          const inP = legends[Math.floor(Math.random() * legends.length)];
+          const inP = pick(legends);
           const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
           return swap(roster, out.id, inP);
         },

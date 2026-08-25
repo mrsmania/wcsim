@@ -1,10 +1,9 @@
 import type { Player } from '../data/types';
 import { albumStats, collectiblesByTier, type AlbumState, type AlbumStatsView } from './album';
 import { ASCENSIONS, maxSelectableAscension } from './ascension';
-import { badgeRows, badgesEarned, perkTiersOwned, type BadgeRow } from './badges';
+import { PERK_TIERS_TOTAL, badgeRows, badgesEarned, perkTiersOwned, type BadgeRow } from './badges';
 import {
   HISTORY_LIMIT,
-  PERKS,
   PLAYER_RECORD_LIMIT,
   levelProgress,
   type CareerState,
@@ -135,7 +134,6 @@ export const LEADERBOARD_ROWS = 10;
 /** The tier whose full list the cabinet shows (the shortest, so it fits one row). */
 const STRIP_TIER: StickerTier = 'monumental';
 
-const PERK_TIERS_TOTAL = PERKS.reduce((n, p) => n + p.tiers.length, 0);
 
 /** The best cup streak this career ever managed. See `CabinetRecords.bestCupStreak`. */
 export function bestCupStreakOf(career: CareerState): number {

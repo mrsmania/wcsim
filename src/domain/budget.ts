@@ -12,7 +12,7 @@ import { ALL_PLAYERS } from '../data/squads';
 import type { Slot } from './formations';
 import type { Filled } from './draft';
 import { pricerFor, type Pricer } from './pricing';
-import { shuffled } from './random';
+import { pick, shuffled } from './random';
 
 /** Cheapest possible price for any player, reserved per still-empty slot so a random
  *  auto-fill never strands a slot it can no longer afford. */
@@ -70,10 +70,10 @@ export function autoFillBudget(
     );
     if (pool.length === 0) return;
     const topK = pool.slice(0, Math.min(PICK_POOL, pool.length));
-    const pick = topK[Math.floor(Math.random() * topK.length)];
-    next[s.id] = pick;
-    usedIds.add(pick.personId);
-    left -= price(pick);
+    const chosen = pick(topK);
+    next[s.id] = chosen;
+    usedIds.add(chosen.personId);
+    left -= price(chosen);
     autoIds.push(s.id);
   });
 
@@ -89,7 +89,7 @@ export function autoFillBudget(
       );
       if (options.length === 0) continue;
       const topK = options.slice(0, Math.min(PICK_POOL, options.length));
-      const up = topK[Math.floor(Math.random() * topK.length)];
+      const up = pick(topK);
       usedIds.delete(cur.personId);
       usedIds.add(up.personId);
       next[slotId] = up;

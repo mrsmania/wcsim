@@ -61,7 +61,7 @@ import { collectiblePlayers, collectiblesByTier, emptyAlbum } from '../src/domai
 import { BADGES, badgeRows, badgesEarned, perkTiersOwned } from '../src/domain/badges';
 import { bestCupStreakOf, cabinetView } from '../src/domain/cabinet';
 import { computeChemistry, MAX_BONUS, type Placement } from '../src/domain/chemistry';
-import { priceFor, priceOf, pricerFor } from '../src/domain/pricing';
+import { PRICE_BASE, priceFor, priceOf, pricerFor, xiSpend } from '../src/domain/pricing';
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA, getFormation, type Style } from '../src/domain/formations';
 import { canMove, moveTargets, placedPlayers, planMove, type Filled } from '../src/domain/draft';
@@ -95,6 +95,7 @@ import {
   type RunOutcome,
   type RunShape,
   type RunState,
+  BASE_OFFER_SIZE,
 } from '../src/domain/run';
 import {
   applyRunResult,
@@ -113,7 +114,7 @@ import { simulateTitleOdds } from '../src/domain/odds';
 // The reducer owns the base re-roll count; the perk below has to agree with it. It also
 // owns the swap allowance, which the Swap Meet challenge has to agree with.
 import { INITIAL_REROLLS, INITIAL_SWAPS } from '../src/state/gameReducer';
-import { ASCENSIONS, ascensionAt, maxSelectableAscension } from '../src/domain/ascension';
+import { ASCENSIONS, ascensionAt, maxSelectableAscension, selectedAscension } from '../src/domain/ascension';
 import { tierOf } from '../src/domain/album';
 import {
   CATALOGUE_PATH,
@@ -1803,6 +1804,54 @@ const plainRun = (() => {
     if (!track.tiers[i].description.includes(`$${BUDGET_BY_TIER[i + 1]}`)) ok = false;
   }
   check('budget: career budget ladder is well-formed and matches its perk track', ok);
+}
+
+// --- Career: the three OTHER perk tracks whose copy promises a number ---------
+// The budget and re-roll checks above guard their sentences against the arithmetic. These
+// three did not, for no reason other than nobody having written it: Extra Choice promises
+// "4 / 5 team boosts offered each round" against BASE_OFFER_SIZE + tier, and Deep Squad and
+// Scout Network promise a delta and a count that ARE the tier. Same failure mode as the two
+// that were guarded - a shop that lies rather than a broken build.
+{
+  let ok = true;
+  const boonTrack = PERKS.find((p) => p.id === 'extra-boon')!;
+  for (let tier = 1; tier <= boonTrack.tiers.length; tier++) {
+    if (!boonTrack.tiers[tier - 1].description.includes(String(BASE_OFFER_SIZE + tier))) ok = false;
+  }
+  // Deep Squad's "+1 / +2 to your entire XI" and Scout Network's "1 / 2 common team
+  // boost(s)": in both the number in the sentence is the tier itself.
+  for (const id of ['deep-squad', 'scout']) {
+    const track = PERKS.find((p) => p.id === id)!;
+    for (let tier = 1; tier <= track.tiers.length; tier++) {
+      if (!track.tiers[tier - 1].description.includes(String(tier))) ok = false;
+    }
+  }
+  check('career: the Extra Choice / Deep Squad / Scout Network copy matches the numbers', ok);
+}
+
+// --- Pricing + Ascension: the two derivations that had three and two copies -------
+{
+  let ok = true;
+  // xiSpend is what the market's budget bar, the line-up sheet's total and the run's build
+  // record all now read, so it has to agree with summing priceFor by hand - which is what
+  // those three were each doing separately.
+  const xi = bestEleven(SQUADS.find((s) => s.id === 'bra-1990')!.players);
+  const byHand = xi.reduce((n, p) => n + priceFor(p, null), 0);
+  if (xiSpend(xi, null) !== byHand) ok = false;
+  // The owned-sticker discount reaches it: owning every card makes the same XI cheaper.
+  const owned = new Set(xi.map((p) => p.id));
+  if (!(xiSpend(xi, owned) < byHand)) ok = false;
+  // The market's "value" sort measures rating above PRICE_BASE, which must be the same
+  // floor the curve uses: priceOf(PRICE_BASE) is the minimum price, not something above it.
+  if (priceOf(PRICE_BASE) !== 1) ok = false;
+  // selectedAscension is the tier a run is actually played at, and the CLAMP is the point:
+  // a stale saved tier cannot start a run above the ceiling.
+  const lowLevel = { ascension: 5, level: 1, lastAscension: 5 };
+  if (selectedAscension(lowLevel) !== maxSelectableAscension(5, 1)) ok = false;
+  if (selectedAscension({ ascension: 0, level: 1 }) !== 0) ok = false;
+  // An explicit override is clamped the same way.
+  if (selectedAscension(lowLevel, 5) !== maxSelectableAscension(5, 1)) ok = false;
+  check('pricing/ascension: xiSpend and selectedAscension are the single definitions', ok);
 }
 
 // --- Career: the Extra Re-roll perk feeds the roll draft starting count ------

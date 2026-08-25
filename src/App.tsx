@@ -31,8 +31,8 @@ import {
 } from './domain/draft';
 import { KO_ROUNDS } from './domain/knockout';
 import { extraRerollsOf, type CareerState } from './domain/career';
-import { maxSelectableAscension } from './domain/ascension';
-import { priceFor } from './domain/pricing';
+import { maxSelectableAscension, selectedAscension } from './domain/ascension';
+import { priceFor, xiSpend } from './domain/pricing';
 import type { RunBuild, RunShape } from './domain/run';
 import { canSwapInto } from './domain/album';
 import { validateSquads } from './domain/validateSquads';
@@ -619,7 +619,7 @@ export default function App({
     // The Ascension picker's props for the build page: the tier in force and the highest
     // one currently selectable (unlocked AND level-gated).
     const ascensionMax = maxSelectableAscension(careerPeek.ascension, careerPeek.level);
-    const ascensionTier = Math.min(ascension ?? careerPeek.lastAscension ?? ascensionMax, ascensionMax);
+    const ascensionTier = selectedAscension(careerPeek, ascension);
     const pickAscension = useCallback(
         (tier: number) => {
             setAscension(tier);
@@ -661,7 +661,7 @@ export default function App({
             return {
                 method: 'budget',
                 budget: budgetOf(careerPeek),
-                spent: prices.reduce((n, c) => n + c, 0),
+                spent: xiSpend(draftedXi, ownedStickerIds),
                 dearest: Math.max(...prices),
                 discounted: draftedXi.filter((p) => ownedStickerIds.has(p.id)).length,
                 swapsUsed,

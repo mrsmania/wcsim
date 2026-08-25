@@ -13,17 +13,20 @@
 import type { Player } from '../data/types';
 import { STICKER_DISCOUNT } from '../config';
 
-/** Tuning constants for the price curve `round((elo - BASE)^2 / DIVISOR)`, min 1. */
-const BASE = 58;
+/** Tuning constants for the price curve `round((elo - PRICE_BASE)^2 / DIVISOR)`, min 1.
+ *  `PRICE_BASE` is exported because the market's "value" sort measures rating gained per
+ *  dollar and needs the same floor: it hard-coded 58, so tuning the curve here would have
+ *  left that sort ranking against a floor the prices no longer used. */
+export const PRICE_BASE = 58;
 const DIVISOR = 64;
 
 /**
  * Price of a player by rating (elo). Convex: ~78 -> 6, ~82 -> 9, 90 -> 16, 96 -> 23,
  * 99 -> 26, so a handful of stars eats most of the budget (BUDGET_DRAFT in config.ts)
- * and forces trade-offs. Tune BASE/DIVISOR to shift how tight it is. Never below 1.
+ * and forces trade-offs. Tune PRICE_BASE/DIVISOR to shift how tight it is. Never below 1.
  */
 export function priceOf(elo: number): number {
-  return Math.max(1, Math.round((elo - BASE) ** 2 / DIVISOR));
+  return Math.max(1, Math.round((elo - PRICE_BASE) ** 2 / DIVISOR));
 }
 
 /**
@@ -51,4 +54,15 @@ export type Pricer = (player: Player) => number;
 /** Build a `Pricer` for a given collection. With no set it is the plain curve. */
 export function pricerFor(owned?: Set<string> | null): Pricer {
   return (player) => priceFor(player, owned);
+}
+
+/**
+ * What an XI cost. One definition, because "the spend" was computed three separate ways -
+ * in the market's budget bar, in the line-up sheet's total, and in the run's build record -
+ * and two of those carried comments about having to stay in step with the others, which is
+ * the tell. They must agree: the record is what the challenge catalogue judges a budget
+ * build by, so a drift there would mean the run remembers a price the market never charged.
+ */
+export function xiSpend(players: Player[], owned?: Set<string> | null): number {
+  return players.reduce((total, p) => total + priceFor(p, owned), 0);
 }

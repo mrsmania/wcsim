@@ -48,7 +48,7 @@ export interface Badge {
 }
 
 /** Total purchasable perk tiers across every track (Fully Kitted's target). */
-const PERK_TIERS_TOTAL = PERKS.reduce((n, p) => n + p.tiers.length, 0);
+export const PERK_TIERS_TOTAL = PERKS.reduce((n, p) => n + p.tiers.length, 0);
 /** Perk tiers this career owns, clamped per track so an old save claiming a higher
  *  tier than exists cannot read as more than complete. */
 export const perkTiersOwned = (c: CareerState): number =>

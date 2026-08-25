@@ -541,7 +541,14 @@ export function chemistryOf(xi: Player[]): number {
 }
 
 /** Boon offer size (3), widened by the Extra Choice perk (+1 per owned tier). */
-const offerSize = (perkLevels: Record<string, number>) => 3 + (perkLevels['extra-boon'] ?? 0);
+/** Cards in an offer without the Extra Choice perk. Exported so the harness can assert the
+ *  shop copy against it: "4 / 5 team boosts offered each round" is a sentence in career.ts
+ *  and this is the arithmetic, so adding a tier to one and not the other reads as a shop
+ *  that lies. Same seam the transfer-budget and extra-reroll checks already guard. */
+export const BASE_OFFER_SIZE = 3;
+
+const offerSize = (perkLevels: Record<string, number>) =>
+  BASE_OFFER_SIZE + (perkLevels['extra-boon'] ?? 0);
 
 /**
  * What an offer may draw from: the unlocked pool MINUS whatever this run already holds.

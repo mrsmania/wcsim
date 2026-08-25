@@ -6,7 +6,7 @@ import { SQUAD_BY_ID } from '../data/squads';
 import { CONFEDERATION, type Confederation } from '../data/confederations';
 import type { Formation, Slot } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
-import { priceOf, pricerFor } from '../domain/pricing';
+import { PRICE_BASE, priceOf, pricerFor, xiSpend } from '../domain/pricing';
 import { autoFillBudget, playersByPosition } from '../domain/budget';
 import { tierOf } from '../domain/album';
 import { FEATURES } from '../config';
@@ -33,7 +33,7 @@ const yearOf = (p: Player) => SQUAD_BY_ID[p.squadId]?.year ?? 0;
  *  not paying and the cheapest-first list lies. */
 const sortCmp = (price: (p: Player) => number): Record<SortKey, (a: Player, b: Player) => number> => {
   /** Rating gained per dollar (value hunting): higher = a better bargain. */
-  const valuePerDollar = (p: Player) => (p.elo - 58) / price(p);
+  const valuePerDollar = (p: Player) => (p.elo - PRICE_BASE) / price(p);
   return {
     rating: (a, b) => b.elo - a.elo,
     value: (a, b) => valuePerDollar(b) - valuePerDollar(a) || b.elo - a.elo,
@@ -135,7 +135,7 @@ export default function BudgetMarket({
   const slots = formation.slots;
   const placed = placedPlayers(formation, filled);
   const used = new Set(placed.map((p) => p.personId));
-  const spent = placed.reduce((t, p) => t + price(p), 0);
+  const spent = xiSpend(placed, ownedStickerIds);
   const remaining = budget - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
 

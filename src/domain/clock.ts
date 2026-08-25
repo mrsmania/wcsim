@@ -1,3 +1,4 @@
+import { pick } from './random';
 /** Match simulation playback speed. */
 export type MatchSpeed = 'slow' | 'normal' | 'fast';
 
@@ -21,7 +22,7 @@ export interface ClockStep {
 // Stoppage minutes 0-7, peaking around 2-3, with 6-7 the least likely.
 const STOPPAGE_TABLE = [0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 6, 7];
 function stoppage(): number {
-  return STOPPAGE_TABLE[Math.floor(Math.random() * STOPPAGE_TABLE.length)];
+  return pick(STOPPAGE_TABLE);
 }
 
 /**

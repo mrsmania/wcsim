@@ -1,5 +1,6 @@
 import type { Player, Position } from '../data/types';
 import { isAttacker, isDefender, primaryPosition } from '../data/types';
+import { pick } from './random';
 
 export interface Strength {
   attack: number;
@@ -123,7 +124,7 @@ export function pickScorer(pool: ScorerPool): string | undefined {
   const nameOf = (s: ScorerWeight | string) => (typeof s === 'string' ? s : s.name);
   let total = 0;
   for (const s of pool) total += Math.max(0, weightOf(s));
-  if (total <= 0) return nameOf(pool[Math.floor(Math.random() * pool.length)]);
+  if (total <= 0) return nameOf(pick(pool));
   let roll = Math.random() * total;
   for (const s of pool) {
     roll -= Math.max(0, weightOf(s));
