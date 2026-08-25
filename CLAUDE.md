@@ -77,10 +77,17 @@ means for anyone picking the backlog up at wave 4:
   file used to describe as live are corrected (H128-H131, H154). Treat any dataset count
   here as a measurement with a date on it regardless: the dataset moved three times during
   the audit.
-- **Two migrations are written but NOT applied**: `0013` (narrow four `for all` policies to
-  `for select`) and `0014` (drop dead columns, revoke `export_account`). They need `dkr/.env`
-  and LAN reach, so they are queued as **roadmap item 35**. Do not assume the server matches
-  `supabase/migrations/`.
+- **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
+  `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
+  dropped `run_results_read`. The server now matches `supabase/migrations/` through 0014.
+  **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
+  the audit found four columns holding nothing and concluded all four were dead, but `xi` was
+  still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
+  body is not checked when a column is dropped, so the migration would have reported success
+  and broken run banking for every account at the next run end - which is the blocking
+  unreachable screen (D9). **"Nothing reads it" is not "nothing writes it": check both.**
+  0014 now replaces the function before dropping the column, in the same transaction. Still
+  do not assume the server matches `supabase/migrations/`; see roadmap item 35.
 - **Reach for the shared atoms before writing a class string.** Wave 3 gave names to the
   things that were typed out over and over, and the point is lost if the next component
   re-inlines them: `matchUi.tsx` has `CARD` / `CARD_SM` / `CARD_FLAT` (the flat card),
@@ -1838,6 +1845,19 @@ keep working.
   no network, and `pglast` (`pip install pglast`, then `pglast.parse_sql`) parses a file with
   the real Postgres grammar, so a syntax error never reaches the server. Validate the rollback
   block too - it is the thing someone reaches for under pressure.
+- **A migration you APPLY, you rehearse first, inside a transaction you roll back**
+  (recorded 2026-08-25, after 0014). Parse-checking proves the SQL is well formed and nothing
+  more. Send `begin;` + the migration body (minus its own `begin`/`commit`) + the checks that
+  should pass afterwards + `rollback;` as one file: the post-migration state gets exercised on
+  the real server against real data, and nothing is left behind. Put the results in a temp
+  table and `select` it at the end, since notices do not come back through `push:sql`. That is
+  what turned "this looks wrong" into a reproduced failure for 0014, and it is cheap.
+  Re-run the same probes after applying for real. Two habits that go with it:
+  **"nothing reads it" is not "nothing writes it"** - dropping a column needs BOTH searches,
+  and a plpgsql body is not checked when a column is dropped, so a stale `insert` inside a
+  function fails at the next call rather than at migration time; and when a migration restates
+  an existing function, take the body from the live server's `pg_get_functiondef`, diff it
+  against the repo's copy first, and change only the line you mean to.
 - **There are no production users yet** (recorded 2026-08-21, until further notice). So
   breaking a persisted shape, orphaning a saved game, or dropping a supported
   configuration is a free choice rather than a migration: decide it on the merits and do

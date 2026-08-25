@@ -353,7 +353,7 @@
   <summary>
     <span class="num">35</span>
     <span class="title">Apply pending SQL migrations to the NAS
-      <span class="sub">A standing task: migrations are written here but applied by hand, so this is the list of what is waiting, with the verification each one needs. Two waiting now (0013, 0014).</span>
+      <span class="sub">A standing task: migrations are written here but applied by hand, so this is the list of what is waiting, with the verification each one needs. <b>Nothing waiting: 0013 and 0014 were applied 2026-08-25</b>, the server matches the repo through 0014.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -381,7 +381,39 @@
       obvious if you look.</li>
     </ol>
 
-    <p><strong>Waiting now:</strong></p>
+    <p><strong>Waiting now: nothing.</strong> The two below were applied on 2026-08-25 and
+    verified against the live server; the server matches <code>supabase/migrations/</code>
+    through 0014. Leave this item open - it is the standing list, and the next migration
+    written goes here.</p>
+
+    <p><strong>0014 was WRONG and had to be corrected before it could be applied. Read this
+    before writing the next one</strong>, because the mistake is easy to repeat and it fails
+    silently. The audit found four <code>run_results</code> columns holding nothing but
+    zeroes and concluded all four were dead. Three were. The fourth, <code>xi</code>, is
+    still <b>written</b> on every banked run: the live <code>finish_run_v2</code> inserts the
+    literal <code>'[]'::jsonb</code> into it. Postgres does not check a plpgsql body when a
+    column is dropped, so the migration would have reported <code>done.</code> and the
+    breakage would have surfaced at the next run end as <i>column xi of relation run_results
+    does not exist</i> - and since a failed signed-in write is the blocking unreachable
+    screen (D9), <b>finishing a run would have become unplayable for every account</b>, with
+    no way out but a rollback. <b>"Nothing reads it" is not "nothing writes it": check
+    both.</b> 0014 now does a <code>create or replace</code> narrowing the insert
+    <i>before</i> dropping the column, in the same transaction; the body is 0012's verbatim
+    (diffed byte-for-byte against the live <code>pg_get_functiondef</code> first) and the
+    insert's column list is the only line that differs.</p>
+
+    <p><strong>How both were verified</strong>, since this is the pattern for the next one:
+    the whole migration was run inside a <code>begin; ... rollback;</code> on the real server
+    with the checks appended to it, so the post-migration state was exercised rather than
+    reasoned about, and nothing was left behind. That caught the <code>xi</code> break as a
+    genuine failure rather than a review opinion. After applying for real, the same probes
+    were re-run rolled back: reads still work on all four tables, all four
+    <code>save_*</code> RPCs still accept, a direct client-style write now lands on
+    <b>0 rows</b> (which is D10's whole point), <code>finish_run_v2</code> banks, the double
+    submit is still rejected with <code>23505</code>, and <code>export_account</code> is
+    refused. <code>npm run build</code> is clean and <code>npm run checks</code> is 137/137.</p>
+
+    <p><strong>Applied 2026-08-25:</strong></p>
     <ul>
       <li><code>0013_narrow_write_grants.sql</code> - hygiene <b>D10</b>. Narrows
       <code>career</code>, <code>settings</code>, <code>game_state</code> and
@@ -395,7 +427,8 @@
       zeroes since 0006 (the TABLE stays: its unique key is the double-submit guard),
       revokes the never-called <code>export_account()</code> grant, and drops
       <code>run_results_read</code>, whose stated purpose - the trophy cabinet - reads
-      <code>CareerStats</code> instead. Pure removals of unused surface; low risk.</li>
+      <code>CareerStats</code> instead. Ten columns became six. <b>No longer "pure removals,
+      low risk"</b>: it now also narrows <code>finish_run_v2</code>, for the reason above.</li>
     </ul>
 
     <p><strong>What the sweep behind 0014 deliberately left alone</strong>, so nobody

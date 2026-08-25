@@ -298,11 +298,19 @@
   <p><b>Wave 2 done 2026-08-24:</b> H37, H38, H41, H42, H44, H45, H48, H132.
   <b>The three server decisions</b> (<a href="#D10">D10</a>, <a href="#D12">D12</a>,
   <a href="#D16">D16</a>) became migrations <code>0013</code> and <code>0014</code>, written
-  and parse-validated here but <b>not applied</b> - this session cannot reach the NAS - so they
-  are queued as <b>roadmap item 35</b>, which is now the standing home for any migration a
+  and parse-validated here but not applied - that session could not reach the NAS - so they
+  were queued as <b>roadmap item 35</b>, which is now the standing home for any migration a
   session writes but cannot apply. D12's requested sweep of the rest of the database found
   exactly one more removal (<code>run_results_read</code>) and is recorded in 0014's header
-  along with what it deliberately leaves alone.</p>
+  along with what it deliberately leaves alone. <b>Both were applied 2026-08-25</b> - but
+  0014 was wrong and had to be corrected first, and the audit had the evidence in hand:
+  D12's own row below quotes the live insert as
+  <code>(user_id, run_key, outcome, won_cup, xi)</code> and still concluded all four columns
+  were dead. Three were. <code>xi</code> was unread but still <b>written</b>, so dropping it
+  would have broken run banking for every account at the next run end, silently, because
+  Postgres does not check a plpgsql body when a column is dropped. <b>The lesson for the next
+  sweep: "nothing reads it" and "nothing writes it" are two searches, and only one of them
+  was run.</b></p>
 
   <p><b>Wave 3 done 2026-08-25</b>, in nine commits: H49 (MONO_CAP's 9 re-typed copies, plus a
   new <code>PAGE_EYEBROW</code> for the 0.2em page eyebrow), H50 (<code>CARD</code> /
@@ -740,7 +748,7 @@ appropriate. So what is left is modelling gaps, not looseness.</p>
 
 <p>Each of these is either not behaviour-preserving, or a matter of taste the audit should not
 settle by itself. The twelve from the first pass are carried forward with their status re-checked;
-four are new. Ordered by how much they unblock. <b>All sixteen are now answered</b> and marked in place: six on 2026-08-24 (D1 in part, D6, D9, D13, D14, D15), then D5 and D7 once they were restated in terms of what a player sees rather than what the code does, then the three server ones (D10, D12, D16). D15 and D9 are applied; D10 and D12/D16 are written as migrations <code>0013</code> and <code>0014</code> and queued for someone who can reach the NAS (<b>roadmap item 35</b>).</p>
+four are new. Ordered by how much they unblock. <b>All sixteen are now answered</b> and marked in place: six on 2026-08-24 (D1 in part, D6, D9, D13, D14, D15), then D5 and D7 once they were restated in terms of what a player sees rather than what the code does, then the three server ones (D10, D12, D16). D15 and D9 are applied; D10 and D12/D16 shipped as migrations <code>0013</code> and <code>0014</code>, both <b>applied to the NAS 2026-08-25</b> (0014 after a correction - see the wave 2 note above and <b>roadmap item 35</b>).</p>
 
 <table>
   <tr class="dec"><th>ID</th><th>Question</th><th>Status at 2026-08-24</th></tr>
@@ -755,20 +763,33 @@ four are new. Ordered by how much they unblock. <b>All sixteen are now answered<
   <tr class="dec" id="D15"><td class="id">D15</td><td><b>New.</b> The dark-theme amber ink: fix the contrast now, or keep the sweep pixel-neutral?</td>
     <td><b>ANSWERED 2026-08-24: fix it. DONE</b> - all five literals now use <code>text-amber-ink</code> (nine sites total), verified in the built CSS resolving to <code>#9a6512</code> on paper and <code>#eea23a</code> on graphite. The token comment now records why re-inlining it is a bug, and <code>ModeSelect</code>'s two deliberate <code>text-[#13211a]</code> CTAs carry a comment saying why they are the opposite case. The meter-track half is still open. H51's five remaining <code>#9a6512</code> literals are not cosmetic debt - they hard-code the <b>light</b> value of <code>--color-amber-ink</code>, whose dark value is <code>#eea23a</code> for a recorded reason. So on the graphite theme the Prestige figure in the career hub (twice), the Ascension multiplier on the run-end panel, the Ascension pill and one market state render dark brown <code>#9a6512</code> on <code>bg-amber/[0.14]</code> over <code>bg-panel</code> <code>#1c1e22</code> - the exact contrast failure the token was added to prevent. Swapping in <code>text-amber-ink</code> is the right fix and is a <b>visible dark-theme change</b>, so it wants a decision rather than being folded into a cleanup. (Leave <code>ModeSelect</code>'s <code>text-[#13211a]</code> alone and comment it: those labels sit on <code>bg-amber</code>/<code>bg-white</code>, light in both themes, so a literal dark ink is correct there.) Same question in miniature for H133's meter track (<code>border-hair</code> in one place, <code>border-line</code> in five): share it with the colour as a prop, or pick one and move pixels on five screens.</td></tr>
   <tr class="dec" id="D10"><td class="id">D10</td><td>Narrow the RLS write grants?</td>
-    <td><b>ANSWERED 2026-08-24: narrow. Migration written, awaiting apply</b> -
-    <code>0013_narrow_write_grants.sql</code>, queued as roadmap item 35. Parse-checked with
-    the real Postgres grammar, rollback block included and parse-checked too. It is the
-    riskier of the two pending migrations, so it is its own file.</b> <code>0002_rls.sql:35-45</code> grants <code>for all</code> on <code>career</code>, <code>settings</code>, <code>game_state</code> and <code>active_run</code> - which is broader than the design doc specifies (select + update) <i>and</i> broader than the client uses. Re-verified exhaustively: every one of the client's nine table accesses is a <code>.select(...)</code>, and every write goes through a <code>security definer</code> RPC that bumps <code>state_version</code> (and, for the career, writes an audit row). So the write half of these four policies is dead weight for the app, and it is exactly what makes the version counter skippable: the anon key that ships in the bundle can <code>PATCH /rest/v1/career</code> directly, after which another device's next write sees no conflict. The file's own line 33 shows the reasoning was applied to <code>profiles</code> and not carried across. Note the implementation is <i>narrower</i> than the design in three other places, so the design doc is not the authority here. <b>Still needs verification against a live signed-in account</b> before applying - a mistake here is the blocking unreachable screen.</td></tr>
+    <td><b>ANSWERED 2026-08-24: narrow. APPLIED 2026-08-25</b> -
+    <code>0013_narrow_write_grants.sql</code>. Parse-checked with
+    the real Postgres grammar, rollback block included and parse-checked too. It was the
+    riskier of the two, so it is its own file. Verified live against the one signed-in
+    account, in a rolled-back transaction: all four tables still read, all four
+    <code>save_*</code> RPCs still accept, and a direct client-style
+    <code>update</code>/<code>delete</code> now lands on <b>0 rows</b> - which is the hole
+    this closes.</b> <code>0002_rls.sql:35-45</code> grants <code>for all</code> on <code>career</code>, <code>settings</code>, <code>game_state</code> and <code>active_run</code> - which is broader than the design doc specifies (select + update) <i>and</i> broader than the client uses. Re-verified exhaustively: every one of the client's nine table accesses is a <code>.select(...)</code>, and every write goes through a <code>security definer</code> RPC that bumps <code>state_version</code> (and, for the career, writes an audit row). So the write half of these four policies is dead weight for the app, and it is exactly what makes the version counter skippable: the anon key that ships in the bundle can <code>PATCH /rest/v1/career</code> directly, after which another device's next write sees no conflict. The file's own line 33 shows the reasoning was applied to <code>profiles</code> and not carried across. Note the implementation is <i>narrower</i> than the design in three other places, so the design doc is not the authority here. <b>Still needs verification against a live signed-in account</b> before applying - a mistake here is the blocking unreachable screen.</td></tr>
   <tr class="dec" id="D12"><td class="id">D12</td><td>The four dead <code>run_results</code> columns: drop or revive?</td>
-    <td><b>ANSWERED 2026-08-24: DROP. Migration written, awaiting apply</b> -
-    <code>0014_drop_dead_surface.sql</code> (with D16), queued as roadmap item 35. The owner
+    <td><b>ANSWERED 2026-08-24: DROP. APPLIED 2026-08-25, after a correction</b> -
+    <code>0014_drop_dead_surface.sql</code> (with D16). The owner
     also asked for a sweep for anything similar; what it found and what it deliberately left
     alone is recorded in that file's header and in item 35. The one further removal it turned
     up is <code>run_results_read</code>, a policy whose stated purpose (the trophy cabinet)
-    reads <code>CareerStats</code> instead.</b> Every live insert since <code>0006</code> - including <code>0012</code>, which landed after the first audit - writes only <code>(user_id, run_key, outcome, won_cup, xi)</code> with <code>xi</code> a literal <code>'[]'::jsonb</code>, so <code>ascension</code>, <code>score</code> and <code>rounds_won</code> sit at 0 forever and <code>xi</code> is always empty, for every run every account has banked. Nothing reads the table (no <code>.from('run_results')</code> anywhere), and two schema comments claim otherwise - one says this is "the reason leaderboards will not need a migration later". <b>The table itself must not be dropped:</b> its <code>unique (user_id, run_key)</code> rejects a double submit before a sticker moves, and <code>import_guest_progress</code> reads it to decide whether an account is empty. Revive costs a <code>finish_run_v3</code> (a new name, for the reason <code>0010</code> documents) and only ever covers runs from the change onward; drop makes the table honestly what it already is, the idempotency ledger. Either way, correct the two comments.</td></tr>
+    reads <code>CareerStats</code> instead.
+    <b>The correction, and this row is the evidence for it:</b> the sentence below correctly
+    quotes the live insert as <code>(user_id, run_key, outcome, won_cup, xi)</code>, then
+    calls all four columns dead. Only three are. <code>xi</code> is unread but still
+    <b>written</b> on every banked run, and Postgres does not check a plpgsql body when a
+    column is dropped - so the migration as first written would have reported success and
+    broken banking for every account at the next run end, which is the blocking unreachable
+    screen (D9). 0014 now narrows <code>finish_run_v2</code> in the same transaction, before
+    the drop. Ten columns became six.</b> Every live insert since <code>0006</code> - including <code>0012</code>, which landed after the first audit - writes only <code>(user_id, run_key, outcome, won_cup, xi)</code> with <code>xi</code> a literal <code>'[]'::jsonb</code>, so <code>ascension</code>, <code>score</code> and <code>rounds_won</code> sit at 0 forever and <code>xi</code> is always empty, for every run every account has banked. Nothing reads the table (no <code>.from('run_results')</code> anywhere), and two schema comments claim otherwise - one says this is "the reason leaderboards will not need a migration later". <b>The table itself must not be dropped:</b> its <code>unique (user_id, run_key)</code> rejects a double submit before a sticker moves, and <code>import_guest_progress</code> reads it to decide whether an account is empty. Revive costs a <code>finish_run_v3</code> (a new name, for the reason <code>0010</code> documents) and only ever covers runs from the change onward; drop makes the table honestly what it already is, the idempotency ledger. Either way, correct the two comments.</td></tr>
   <tr class="dec" id="D16"><td class="id">D16</td><td><b>New.</b> Should <code>export_account()</code> stay granted?</td>
-    <td><b>ANSWERED 2026-08-24: revoke the grant, keep the function.</b> In
-    <code>0014_drop_dead_surface.sql</code>, awaiting apply. The sweep confirmed it was the
+    <td><b>ANSWERED 2026-08-24: revoke the grant, keep the function. APPLIED 2026-08-25</b> in
+    <code>0014_drop_dead_surface.sql</code>; verified live, a call as
+    <code>authenticated</code> is now refused. The sweep confirmed it was the
     ONLY granted function without a caller. Detail: it is granted <code>execute</code> to <code>authenticated</code> and has <b>no caller anywhere</b> - and <code>0008</code> is precisely the migration whose purpose was to stop granting API surface nothing calls. The exposure is limited to self (it reads the caller's own rows), and the requirements record FR-25 as knowingly not built, with the function left server-side "if the data-rights case ever outweighs that". Same shape, lower stakes: <code>run_results_read</code>, <code>collectibles_read</code> and <code>economy_constants_read</code> are select policies for reads the client never performs. Either wire an "export my data" button or revoke it; keep the three policies only if a client read is planned.</td></tr>
   <tr class="dec" id="D5"><td class="id">D5</td><td>Keep the Hungarian solver in <code>Pitch</code>?</td>
     <td><b>Restated 2026-08-24 in plain terms, because the first framing was unclear.</b> What the player sees: when you change formation on the build page, the eleven badges slide from their old positions to their new ones, and something must decide which badge goes to which new slot. Today that is a 47-line optimal-assignment solver that minimises total travel; the alternative is ~8 lines of "each badge takes the nearest free slot", which occasionally pairs them differently so a badge travels further or crosses another. <b>Recommendation: keep the solver and just move it out of the component</b> - swapping it is a visible change for 39 saved lines, and H59/H141 already capture all the value. <b>Cost as measured:</b> <code>Pitch.tsx</code> contains <b>zero</b> <code>useMemo</code>, so the 47-line solver, an 11-slot <code>planMove</code> sweep and a per-badge <code>moveTargets</code> sweep all re-run on every render, and Pitch re-renders on every selection change. A greedy nearest-pair is ~8 lines but is <b>not</b> behaviour-preserving: it can pick a different (still short) assignment, so a badge occasionally takes a different path. If the 450ms slide was tuned deliberately, keep it - and either way H59/H141 still move it out of the component. Note the memoisation and the layering are separable; do the layering only if you want a pure no-op.</td></tr>
