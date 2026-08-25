@@ -23,6 +23,7 @@ begin;
 
 drop function if exists finish_run(text, text[], boolean, text, integer, text, integer, integer, integer, jsonb, integer, integer, integer);
 
+-- SUPERSEDED BY 0010 (via 0009). Do not copy this body; see README.md in this directory.
 create or replace function finish_run(
   p_run_key          text,
   p_collectible_ids  text[],
@@ -116,6 +117,7 @@ end;
 $$;
 
 -- Career: shape-validated, audited, no longer monotonic (see the note at the top).
+-- SUPERSEDED BY 0011. Do not copy this body; see README.md in this directory.
 create or replace function save_career(p_career jsonb, p_expected_version integer)
 returns integer
 language plpgsql

@@ -28,6 +28,7 @@
 
 begin;
 
+-- SUPERSEDED BY 0014. Do not copy this body; see README.md in this directory.
 create or replace function finish_run_v2(
   p_run_key          text,
   p_collectible_ids  text[],

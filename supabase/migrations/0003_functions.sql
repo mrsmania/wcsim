@@ -16,6 +16,12 @@ begin;
 -- Bump the concurrency counter, rejecting a write that carries a stale version
 -- (FR-11). `expected` null skips the check, for writes where last-one-wins is fine
 -- (settings). Returns the new version.
+--
+-- SUPERSEDED BY 0007. The `errcode = '40001'` below is a bug: PostgREST treats that
+-- SQLSTATE as retryable and retries a deterministically-failing transaction until the
+-- gateway times out, so a genuine other-device conflict looked like a hang. 0007 raises
+-- PT409 instead, which PostgREST answers as a 409. Do not copy this body; see
+-- README.md in this directory for where each function is currently defined.
 create or replace function bump_version(expected integer)
 returns integer
 language plpgsql
@@ -147,6 +153,7 @@ $$;
 -- rather than mirroring the whole perk table here, this enforces one rule: xp and
 -- prestige may never RISE outside finish_run (design §6, the Prestige invariant).
 -- Under-spending is possible and tolerated (D3); minting is not.
+-- SUPERSEDED BY 0011 (via 0006). Do not copy this body; see README.md in this directory.
 create or replace function save_career(p_career jsonb, p_expected_version integer)
 returns integer
 language plpgsql
@@ -215,6 +222,7 @@ $$;
 -- Validation (FR-19): every id must be an ACTIVE collectible; a cup pick only on a
 -- won cup, never Monumental, never already collected; swaps within the cap.
 -- Returns the ids that were newly collected (for the run-end summary).
+-- SUPERSEDED BY 0010 (via 0006 and 0009). Do not copy this body; see README.md here.
 create or replace function finish_run(
   p_run_key           text,
   p_collectible_ids   text[],
@@ -418,6 +426,7 @@ $$;
 -- if the account already holds anything, which is what makes it once-per-account and
 -- one-way. The client deletes its local copy only after this returns (FR-16a
 -- ordering), so a failure here leaves the only copy intact.
+-- SUPERSEDED BY 0011. Do not copy this body; see README.md in this directory.
 create or replace function import_guest_progress(p_payload jsonb)
 returns integer
 language plpgsql

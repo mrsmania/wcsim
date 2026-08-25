@@ -37,6 +37,7 @@ begin;
 
 -- The whole of 0009's finish_run, with the client's follow-up reads folded into the
 -- return value. Keep this and the wrapper below in step; the wrapper has no logic.
+-- SUPERSEDED BY 0014 (via 0012). Do not copy this body; see README.md in this directory.
 create or replace function finish_run_v2(
   p_run_key          text,
   p_collectible_ids  text[],

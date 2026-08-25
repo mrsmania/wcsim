@@ -3820,6 +3820,91 @@ const KNOWN_MISSING_ART = new Set([
   );
 }
 
+// --- Migrations: the index says where each function actually lives -----------
+// Migrations are append-only and applied by hand, so a function that has changed four
+// times exists four times on disk and only the last one is live. `finish_run`'s body is
+// written out in full in four of them (hygiene H103), which is why there is an index -
+// and an index that drifts is worse than none, so this asserts it.
+//
+// Two claims: the file `README.md` names as current is the LAST migration that defines
+// that function, and every earlier copy carries a forward pointer telling you not to
+// copy it.
+{
+  const dir = 'supabase/migrations';
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort();
+  /** function name -> the migration files that define it, in order. */
+  const defs = new Map<string, string[]>();
+  /** file -> the function names it defines whose body carries a SUPERSEDED pointer. */
+  const flagged = new Map<string, Set<string>>();
+  for (const f of files) {
+    const sql = readFileSync(`${dir}/${f}`, 'utf8');
+    const lines = sql.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const m = /^create or replace function ([a-z_]+)\s*\(/.exec(lines[i]!);
+      if (!m) continue;
+      const name = m[1]!;
+      defs.set(name, [...(defs.get(name) ?? []), f]);
+      // The pointer sits in the comment block immediately above the `create`.
+      let j = i - 1;
+      while (j >= 0 && lines[j]!.startsWith('--')) {
+        if (lines[j]!.includes('SUPERSEDED BY')) {
+          if (!flagged.has(f)) flagged.set(f, new Set());
+          flagged.get(f)!.add(name);
+          break;
+        }
+        j -= 1;
+      }
+    }
+  }
+
+  /** function name -> the migration that DROPPED it, if any. A dropped function's live
+   *  answer is that drop, not its last definition. */
+  const dropped = new Map<string, string>();
+  for (const f of files) {
+    for (const m of readFileSync(`${dir}/${f}`, 'utf8').matchAll(
+      /^drop function (?:if exists )?([a-z_]+)\s*\(/gm,
+    )) {
+      const name = m[1]!;
+      // A drop that is immediately followed by a re-create in the same file is a signature
+      // change, not a removal (0006 does this to `finish_run`).
+      if ((defs.get(name) ?? []).includes(f)) continue;
+      dropped.set(name, f);
+    }
+  }
+
+  const readme = readFileSync(`${dir}/README.md`, 'utf8');
+  const wrong: string[] = [];
+  for (const [name, where] of defs) {
+    const gone = dropped.get(name);
+    const live = (gone ?? where[where.length - 1]!).slice(0, 4);
+    // The row for this function, e.g. `| \`save_career(jsonb, integer)\` | **0011** | ... |`.
+    const row = readme
+      .split('\n')
+      .find((l) => l.startsWith('|') && new RegExp('\\| *`' + name + '\\(').test(l));
+    if (!row) {
+      wrong.push(`${name} is defined in ${where.join(', ')} and is not in the index`);
+      continue;
+    }
+    // The current-definition cell is the second column.
+    const cell = row.split('|')[2] ?? '';
+    if (!cell.includes(live)) wrong.push(`${name}: index says "${cell.trim()}", last defined in ${live}`);
+    // Every copy that is not the live one must say so - all of them, for a dropped
+    // function.
+    for (const f of gone ? where : where.slice(0, -1)) {
+      if (!flagged.get(f)?.has(name)) {
+        wrong.push(`${f} restates ${name} with no SUPERSEDED pointer`);
+      }
+    }
+  }
+  check(
+    `migrations: the index names the live definition of all ${defs.size} functions, and every superseded copy says so`,
+    () => wrong.length === 0,
+    () => wrong.join('; '),
+  );
+}
+
 // --- Summary ---------------------------------------------------------------
 console.log('WP0 characterization checks');
 console.log(`  passed: ${passed}`);

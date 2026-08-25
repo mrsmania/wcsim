@@ -13,6 +13,7 @@ begin;
 -- 1. Invite gate
 -- --------------------------------------------------------------------------
 
+-- DROPPED IN 0005 (signup was opened). SUPERSEDED BY 0005; see README.md here.
 create or replace function enforce_invite()
 returns trigger
 language plpgsql

@@ -19,6 +19,7 @@
 
 begin;
 
+-- SUPERSEDED BY 0010. Do not copy this body; see README.md in this directory.
 create or replace function finish_run(
   p_run_key          text,
   p_collectible_ids  text[],
