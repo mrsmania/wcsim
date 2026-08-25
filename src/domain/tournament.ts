@@ -142,7 +142,7 @@ export function squadOverall(squad: Squad): number {
 
 /** Pick `count` distinct random squads as opponents, from `pool` (the squad-pool
  *  setting; defaults to the whole dataset). */
-export function pickOpponents(count: number, pool: Squad[] = SQUADS): Squad[] {
+export function pickOpponents(count: number, pool: readonly Squad[] = SQUADS): Squad[] {
   return shuffled(pool).slice(0, count);
 }
 

@@ -25,7 +25,7 @@ export type KoDecided = (typeof KO_DECIDED)[number];
 export type Finish = 'group' | 'r16' | 'qf' | 'sf' | 'final' | 'champion';
 
 /** The Finish for losing in knockout round i (0 = Round of 16 ... 3 = the final). */
-export const LOST_IN: Finish[] = ['r16', 'qf', 'sf', 'final'];
+export const LOST_IN: readonly Finish[] = ['r16', 'qf', 'sf', 'final'];
 
 /** A knockout tie resolved to a definite winner. */
 export interface KoTieResult {
@@ -82,7 +82,7 @@ const overallOf = (id: string): number => OVERALL_BY_ID.get(id) ?? REFERENCE_RAT
  *  squads higher so better teams turn up more often deeper in the bracket. Drawn
  *  from `pool` (the squad-pool setting; defaults to the whole dataset). `slopeBonus`
  *  steepens the weighting toward stronger squads (Cup Run Ascension; 0 = base). */
-export function drawOpponent(faced: Set<string>, pool: Squad[] = SQUADS, slopeBonus = 0): GroupTeam {
+export function drawOpponent(faced: Set<string>, pool: readonly Squad[] = SQUADS, slopeBonus = 0): GroupTeam {
   const candidates = pool.filter((s) => !faced.has(s.id));
   const src = candidates.length ? candidates : pool;
   const slope = DRAW_WEIGHT_SLOPE + slopeBonus;

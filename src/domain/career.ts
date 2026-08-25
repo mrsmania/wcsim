@@ -273,7 +273,7 @@ export interface Perk {
   tiers: PerkTier[];
 }
 
-export const PERKS: Perk[] = [
+export const PERKS: readonly Perk[] = [
   {
     id: 'scout',
     name: 'Scout Network',

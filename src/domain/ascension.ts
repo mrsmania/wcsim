@@ -24,7 +24,7 @@ export interface Ascension {
 
 /** First-pass ladder (tunable with scripts/checks.ts + domain/odds.ts). Base is
  *  always available; each step raises the handicap, the reward, and the level gate. */
-export const ASCENSIONS: Ascension[] = [
+export const ASCENSIONS: readonly Ascension[] = [
     { tier: 0, label: 'Base', userDelta: 0, drawSlopeBonus: 0.0, rewardMult: 1.0, levelReq: 1 },
     {
         tier: 1,

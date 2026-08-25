@@ -12,7 +12,7 @@ export interface Settings {
     /** World Cup years the game draws from - the user's squad rolls, the transfer
      *  market, the opponents, and the sticker-album target. Defaults to every year
      *  in the dataset. Never empty (an empty selection falls back to all). */
-    poolYears: number[];
+    poolYears: readonly number[];
     /** Whether a Cup Run's bracket shows the full 16-team tree rather than just your
      *  own path (the accordion in `RunBracket`). Set by the control itself,
      *  not by the settings sheet: it is a viewing preference, and holding it here is
@@ -37,7 +37,7 @@ export interface StoredSettings {
     v: number;
     theme: Theme;
     difficulty: Difficulty;
-    poolYears: number[] | null;
+    poolYears: readonly number[] | null;
     showFullDraw: boolean;
 }
 

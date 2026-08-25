@@ -34,7 +34,7 @@ function simulateFinish(
   players: Player[],
   chemistryBonus: number,
   atkDefDelta: number,
-  pool: Squad[],
+  pool: readonly Squad[],
 ): Finish {
   const user = userGroupTeam(players, chemistryBonus, atkDefDelta);
   const group = playWholeGroup(createGroup(user, pickOpponents(GROUP_OPPONENTS, pool)));
@@ -68,7 +68,7 @@ export function simulateTitleOdds(
   sims: number,
   chemistryBonus = 0,
   atkDefDelta = 0,
-  pool: Squad[] = SQUADS,
+  pool: readonly Squad[] = SQUADS,
 ): TitleOdds {
   const counts: Record<Finish, number> = {
     group: 0,

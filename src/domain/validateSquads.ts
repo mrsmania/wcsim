@@ -15,7 +15,7 @@ function inRange(n: number): boolean {
 }
 
 /** Validate the squad dataset. Returns problem strings; [] means clean. */
-export function validateSquads(squads: Squad[]): string[] {
+export function validateSquads(squads: readonly Squad[]): string[] {
   const problems: string[] = [];
 
   // Unique Squad.id - duplicates would be silently dropped by Object.fromEntries.

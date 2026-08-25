@@ -237,7 +237,7 @@ function replaceWeakest(xi: Player[], n: number, pool: Player[]): Player[] {
   return out;
 }
 
-export const BOONS: Boon[] = [
+export const BOONS: readonly Boon[] = [
   {
     id: 'golden-generation',
     name: 'Golden Generation',

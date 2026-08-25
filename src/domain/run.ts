@@ -836,7 +836,7 @@ export function beginRun(
  *  three matchdays have to be played in one pass: the XI, its chemistry and the run's
  *  tally are settled together, which is why the live table is projected backwards
  *  (`groupAsOf`) rather than simulated forwards. */
-function drawAndPlayGroup(run: RunState, userDelta: number, pool: Squad[]): GroupState {
+function drawAndPlayGroup(run: RunState, userDelta: number, pool: readonly Squad[]): GroupState {
   const user = userGroupTeam(run.xi, chemistryOf(run.xi), userDelta, run.penBonus ?? 0, run.penBonusTop ?? 0);
   return playWholeGroup(createGroup(user, pickOpponents(GROUP_OPPONENTS, pool)));
 }
@@ -853,7 +853,7 @@ function decideGroupExit(
   run: RunState,
   group: GroupState,
   drawSlopeBonus: number,
-  pool: Squad[],
+  pool: readonly Squad[],
 ): GroupExit {
   const offer = offerBoons(offerPool(run), offerSize(run.perkLevels));
   // With a bracket, the field of 16 IS the draw: it is seeded from the finished group
@@ -876,7 +876,7 @@ function decideGroupExit(
 export function prepareGroupStage(
   run: RunState,
   atkDefDelta = 0,
-  pool: Squad[] = SQUADS,
+  pool: readonly Squad[] = SQUADS,
 ): PreparedGroup | null {
   if (run.phase !== 'group') return null;
   const asc = ascensionAt(run.ascension);
@@ -1010,7 +1010,7 @@ export function rerollOffer(run: RunState): RunState {
 function applyRunMods(
   run: RunState,
   mods: RunModifier[],
-  pool: Squad[],
+  pool: readonly Squad[],
   granted?: Pick<Granted, 'swappedIn' | 'swappedOut'>,
 ): RunState {
   let next = run;
@@ -1095,7 +1095,7 @@ function weakenOpponent(run: RunState, attack: number, defense: number): RunStat
  *
  * Worth nothing when the draw was already kind, which is what keeps the card honest.
  */
-function redrawOpponent(run: RunState, pool: Squad[]): RunState {
+function redrawOpponent(run: RunState, pool: readonly Squad[]): RunState {
   const current = run.nextOpponent;
   if (!current) return run;
   const asc = ascensionAt(run.ascension);
@@ -1185,7 +1185,7 @@ function topScorerOf(run: RunState): string | null {
  * the card was already chosen, and this is the answer. Refuses silently if nothing is
  * pending or the named player is not in the XI, so the caller can gate on the same facts.
  */
-export function resolveChoice(run: RunState, playerId: string, pool: Squad[] = SQUADS): BoonChoice {
+export function resolveChoice(run: RunState, playerId: string, pool: readonly Squad[] = SQUADS): BoonChoice {
   const pending = run.pendingChoice;
   if (run.phase !== 'boon' || !pending) return { next: run };
   const boon = boonById(pending.boonId);
@@ -1193,7 +1193,7 @@ export function resolveChoice(run: RunState, playerId: string, pool: Squad[] = S
   return commitBoon(run, boon, boonContext(run, playerId), pool);
 }
 
-export function chooseBoon(run: RunState, boonId: string, pool: Squad[] = SQUADS): BoonChoice {
+export function chooseBoon(run: RunState, boonId: string, pool: readonly Squad[] = SQUADS): BoonChoice {
   if (run.phase !== 'boon') return { next: run };
   const boon = boonById(boonId);
   if (!boon) return { next: run };
@@ -1204,7 +1204,7 @@ export function chooseBoon(run: RunState, boonId: string, pool: Squad[] = SQUADS
 }
 
 /** Apply a boon and leave the stop. The shared tail of `chooseBoon` and `resolveChoice`. */
-function commitBoon(run: RunState, boon: Boon, ctx: BoonContext, pool: Squad[]): BoonChoice {
+function commitBoon(run: RunState, boon: Boon, ctx: BoonContext, pool: readonly Squad[]): BoonChoice {
   const granted = grantBoon(
     run.roster ?? run.xi,
     run.effects ?? [],
@@ -1314,7 +1314,7 @@ function decideKoRound(
   opp: GroupTeam,
   round: number,
   drawSlopeBonus: number,
-  pool: Squad[],
+  pool: readonly Squad[],
 ): KoPending {
   const match = simulateKoTie(userTeam, opp);
   // With a bracket: the user's own tie is still the one simulated above (so the run's
@@ -1342,7 +1342,7 @@ function decideKoRound(
 export function prepareKnockoutRound(
   run: RunState,
   atkDefDelta = 0,
-  pool: Squad[] = SQUADS,
+  pool: readonly Squad[] = SQUADS,
 ): PreparedKnockout | null {
   if (run.phase !== 'match' || !run.nextOpponent) return null;
   const asc = ascensionAt(run.ascension);

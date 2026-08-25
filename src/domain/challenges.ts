@@ -71,7 +71,7 @@ export const FAMILY_NAME: Record<ChallengeFamily, string> = {
 };
 
 /** Display order of the families (the catalogue screen renders them in this order). */
-export const FAMILIES: ChallengeFamily[] = [
+export const FAMILIES: readonly ChallengeFamily[] = [
   'silverware', 'ascension', 'identity', 'rating', 'defence',
   'attack', 'drama', 'boosts', 'album', 'shape', 'market', 'career',
 ];
@@ -300,7 +300,7 @@ function tieAfterBoost(v: RunView, boonId: string): KoRecord | undefined {
   return next && next.stage !== 'group' ? next : undefined;
 }
 
-export const CHALLENGES: Challenge[] = [
+export const CHALLENGES: readonly Challenge[] = [
   // --- A. Silverware & progression ---------------------------------------
   { id: 'first-blood', name: 'First Blood', description: 'Win your first cup.',
     // Deliberately NOT `stats.cups === 1`. That counter has been running since career

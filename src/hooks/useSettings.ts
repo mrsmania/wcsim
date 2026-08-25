@@ -6,7 +6,7 @@ export interface SettingsApi {
     settings: Settings;
     setTheme: (t: Theme) => void;
     setDifficulty: (d: Difficulty) => void;
-    setPoolYears: (years: number[]) => void;
+    setPoolYears: (years: readonly number[]) => void;
     setShowFullDraw: (open: boolean) => void;
 }
 
@@ -33,7 +33,7 @@ export function useSettings(initial: Settings): SettingsApi {
         [],
     );
     const setPoolYears = useCallback(
-        (poolYears: number[]) => setSettings((s) => ({ ...s, poolYears })),
+        (poolYears: readonly number[]) => setSettings((s) => ({ ...s, poolYears })),
         [],
     );
     const setShowFullDraw = useCallback(

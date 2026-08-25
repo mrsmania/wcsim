@@ -68,7 +68,7 @@ export function buildBracket(
   user: GroupTeam,
   coQualifier: GroupTeam,
   excludeIds: string[],
-  pool: Squad[] = SQUADS,
+  pool: readonly Squad[] = SQUADS,
   drawSlopeBonus = 0,
 ): BracketState {
   const faced = new Set<string>([USER_ID, coQualifier.id, ...excludeIds]);

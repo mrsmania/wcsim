@@ -221,7 +221,7 @@ export const STRENGTH_BANDS: Record<TeamStrength, { min: number; max: number }> 
  */
 export function randomXI(
   formation: Formation,
-  squads: Squad[],
+  squads: readonly Squad[],
   band?: { min: number; max: number },
 ): { filled: Filled; usedPersonIds: string[] } {
   const pool = squads.flatMap((s) => s.players);
@@ -260,7 +260,7 @@ function squadHasSelectable(squad: Squad, open: Set<Position>, used: Set<string>
  * draftable player for the open slots (so the draft never dead-ends). Falls
  * back to the whole pool if none are actionable. Returns null for an empty pool.
  */
-function pickFrom(pool: Squad[], open: Set<Position>, used: Set<string>): Squad | null {
+function pickFrom(pool: readonly Squad[], open: Set<Position>, used: Set<string>): Squad | null {
   if (pool.length === 0) return null;
   const actionable = pool.filter((s) => squadHasSelectable(s, open, used));
   const arr = actionable.length ? actionable : pool;
@@ -269,7 +269,7 @@ function pickFrom(pool: Squad[], open: Set<Position>, used: Set<string>): Squad 
 
 /** Auto draw / "Another roll": any squad except the current one. */
 export function rollAny(
-  squads: Squad[],
+  squads: readonly Squad[],
   open: Set<Position>,
   used: Set<string>,
   excludeId: string | null,
@@ -286,7 +286,7 @@ const sameYear = (current: Squad) => (s: Squad) => s.year === current.year && s.
 const sameNation = (current: Squad) => (s: Squad) => s.code === current.code && s.id !== current.id;
 
 export function rollAnotherTeam(
-  squads: Squad[],
+  squads: readonly Squad[],
   current: Squad,
   open: Set<Position>,
   used: Set<string>,
@@ -295,7 +295,7 @@ export function rollAnotherTeam(
 }
 
 export function rollAnotherCup(
-  squads: Squad[],
+  squads: readonly Squad[],
   current: Squad,
   open: Set<Position>,
   used: Set<string>,
@@ -303,10 +303,10 @@ export function rollAnotherCup(
   return pickFrom(squads.filter(sameNation(current)), open, used);
 }
 
-export function hasAnotherTeam(squads: Squad[], current: Squad): boolean {
+export function hasAnotherTeam(squads: readonly Squad[], current: Squad): boolean {
   return squads.some(sameYear(current));
 }
 
-export function hasAnotherCup(squads: Squad[], current: Squad): boolean {
+export function hasAnotherCup(squads: readonly Squad[], current: Squad): boolean {
   return squads.some(sameNation(current));
 }

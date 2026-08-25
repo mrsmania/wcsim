@@ -69,7 +69,7 @@ function squad(code: string, nation: string, year: number, rows: Row[]): Squad {
     return { id, code, nation, year, players };
 }
 
-export const SQUADS: Squad[] = [
+export const SQUADS: readonly Squad[] = [
     // ===== 1974 FIFA World Cup (West Germany) - full 16-nation researched dataset,
     // 22-man squads throughout. Sourced the way 1978, 1982 and 1986 were: the Wikipedia
     // "1974 FIFA World Cup squads" list for names, shirt numbers, the GK/DF/MF/FW split
@@ -9006,14 +9006,14 @@ export const basePlayer = (p: Player): Player => PLAYER_BY_ID.get(p.id) ?? p;
 
 /** The distinct World Cup years present in the dataset, oldest first. Drives the
  *  squad-pool setting (which tournaments the game draws from). */
-export const WORLD_CUP_YEARS: number[] = [...new Set(SQUADS.map((s) => s.year))].sort(
+export const WORLD_CUP_YEARS: readonly number[] = [...new Set(SQUADS.map((s) => s.year))].sort(
     (a, b) => a - b,
 );
 
 /** The squads within a pool of World Cup `years` (the squad-pool setting). An empty
  *  or all-inclusive selection returns every squad (the shared SQUADS reference), so
  *  callers pay no filtering cost in the common case. */
-export function squadsInPool(years: readonly number[]): Squad[] {
+export function squadsInPool(years: readonly number[]): readonly Squad[] {
     if (!years.length || years.length >= WORLD_CUP_YEARS.length) return SQUADS;
     const set = new Set(years);
     return SQUADS.filter((s) => set.has(s.year));

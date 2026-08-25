@@ -76,7 +76,7 @@ export interface Squad {
 }
 
 /** Category ordering for sorting a squad list GK -> DEF -> MID -> FWD. */
-export const CATEGORY_ORDER: PositionCategory[] = ['GK', 'DEF', 'MID', 'FWD'];
+export const CATEGORY_ORDER: readonly PositionCategory[] = ['GK', 'DEF', 'MID', 'FWD'];
 
 /** A player's primary category (from its first listed position). */
 export function primaryCategory(player: Player): PositionCategory {
@@ -89,10 +89,10 @@ export function primaryPosition(player: Player): Position {
 }
 
 /** Categories counted as attack in match strength. */
-const ATTACK_CATS: PositionCategory[] = ['MID', 'FWD'];
+const ATTACK_CATS: readonly PositionCategory[] = ['MID', 'FWD'];
 
 /** Categories counted as defense in match strength. */
-export const DEF_CATS: PositionCategory[] = ['GK', 'DEF'];
+export const DEF_CATS: readonly PositionCategory[] = ['GK', 'DEF'];
 
 /** True when the player's natural role counts toward attack in match strength. */
 export function isAttacker(player: Player): boolean {

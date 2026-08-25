@@ -103,7 +103,7 @@ export default function CupRunScreen({
   /** Difficulty handicap applied to the user's matches + the odds readout. */
   difficulty: Difficulty;
   /** The squad pool (squad-pool setting): opponents + the odds sim draw from these. */
-  pool: Squad[];
+  pool: readonly Squad[];
   /** Bank the finished run's collectibles to the sticker album (App owns the album).
    *  Omitted when the sticker feature is off. Called once per run at its end, with the
    *  ids a roster boost brought in so they can be left out of the haul. */

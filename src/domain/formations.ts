@@ -1,7 +1,7 @@
 import type { Position } from '../data/types';
 
 export type Style = 'def' | 'bal' | 'off';
-export const STYLES: Style[] = ['def', 'bal', 'off'];
+export const STYLES: readonly Style[] = ['def', 'bal', 'off'];
 export const STYLE_LABEL: Record<Style, string> = {
     def: 'Defensive',
     bal: 'Balanced',
