@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import type { Player, Squad } from '../data/types';
 import { xiStrength } from '../domain/match';
 import { simulateTitleOdds } from '../domain/odds';
 import { userRatingDelta, type Difficulty } from '../domain/difficulty';
-import { KO_ROUNDS } from '../domain/knockout';
 import { ascensionAt, selectedAscension } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
-import { groupAsOf, GROUP_MATCHDAYS, splitGroup, type GroupTeam } from '../domain/tournament';
+import type { GroupTeam } from '../domain/tournament';
 import { boonById, type Boon } from '../domain/boons';
 import {
   beginRun,
@@ -20,7 +18,6 @@ import {
   type RunState,
   type RunShape,
   type RunBuild,
-  type GroupRecord,
   type KoMatch,
 } from '../domain/run';
 import {
@@ -37,31 +34,18 @@ import { useToast } from '../hooks/useToast';
 import { useRoundReview } from '../hooks/useRoundReview';
 import { useCupRun } from '../hooks/useCupRun';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
-import {
-  Banner,
-  CARD,
-  ordinal,
-  PRIMARY_BTN,
-  SpeedControl,
-  StageCrumb,
-  StageHeader,
-} from './matchUi';
-import StandingsTable from './StandingsTable';
-import GroupDrawReveal from './GroupDrawReveal';
+import { CARD, SpeedControl, StageCrumb, StageHeader } from './matchUi';
 import RunBracket from './cupRun/RunBracket';
 import Confetti from './Confetti';
-import Flag from './Flag';
 import LiveCupMatch from './cupRun/LiveCupMatch';
-import GroupResultCard from './cupRun/GroupResultCard';
-import FinishedKoCard from './cupRun/FinishedKoCard';
 import RoundReview from './cupRun/RoundReview';
-import BoostOffer from './cupRun/BoostOffer';
-import CaptainPicker from './cupRun/CaptainPicker';
 import CareerHub from './cupRun/CareerHub';
 import RunXiPanel from './cupRun/RunXiPanel';
-import RunEndPanel from './cupRun/RunEndPanel';
+import PreRunPanel from './cupRun/PreRunPanel';
+import GroupRevealPanel from './cupRun/GroupRevealPanel';
+import RunPhasePanel from './cupRun/RunPhasePanel';
 import GroupCell from './cupRun/GroupCell';
-import { OUTCOME_LABEL, koWinHeading, type Reward } from './cupRun/types';
+import type { Reward } from './cupRun/types';
 
 /** Prototype of the Cup Run + the Manager Career meta-layer. Runs feed XP
  *  and Prestige into a persisted career; perks bought with Prestige feed back into
@@ -217,14 +201,6 @@ export default function CupRunScreen({
   const chosenAsc = chosenAscension;
   const activeXi = run?.xi ?? draftedXi ?? null;
   const activeAsc = run?.ascension ?? chosenAsc;
-  // Whether to show the pre-run card. This used to be a hand-written 17-field RunState
-  // literal, asserted purely so the card below could render - and the only things that ever
-  // read it were a truthiness gate and `.xi`, which is `draftedXi` unchanged. So every
-  // required field added to RunState forced an edit here for a value nothing looked at, and
-  // because `roster` / `effects` are optional for legacy reasons it type-checked while
-  // describing a run the effect ledger could not evaluate. Provably the same condition: the
-  // literal was non-null exactly when `!run && draftedXi` (hygiene H124).
-  const showPreRun = !run && !!draftedXi;
 
   const chem = useMemo(() => (activeXi ? chemistryOf(activeXi) : 0), [activeXi]);
   const odds = useMemo(
@@ -436,13 +412,6 @@ export default function CupRunScreen({
     });
   };
 
-  // The draw's two halves, read off the group the reveal is carrying.
-  const groupDraw = reveal?.kind === 'group' ? splitGroup(reveal.group) : null;
-  // Matchdays fully revealed so far: while matchday N is playing, N-1 are complete, and
-  // once the reveal is done all three are. This is what the table is projected to.
-  const revealedMatchdays =
-    reveal?.kind === 'group' ? (reveal.done ? GROUP_MATCHDAYS : reveal.index) : 0;
-
   const prog = levelProgress(career.xp);
   const showHubBody = hubOpen;
   const boostedIds = new Set(run?.boostedIds ?? []);
@@ -499,48 +468,17 @@ export default function CupRunScreen({
           page in the tabs navigation, where the run is a separate route. */}
       {hubOnly && hub}
 
-      {/* Pre-run: land straight on the run layout (the ladder, the XI, the Ascension
-          picker) with the hub open below; one "Play group stage" both starts the run and
-          reveals the group. No separate "Start a Cup Run" step.
-          This is the FALLBACK rather than the norm: a kickoff goes straight into the draw,
-          so it shows only when you arrive without one and with no run to resume. It keeps
-          the button, so nothing is a dead end. */}
-      {!hubOnly && showPreRun && draftedXi && (
-        <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
-            <RunXiPanel
-              xi={draftedXi}
-              score={0}
-              activeBoons={[]}
-              boostedIds={boostedIds}
-              odds={odds}
-              str={str}
-            />
-            <section className="flex min-w-0 flex-col gap-4">
-              <div className={`${CARD} p-5`}>
-                <div className="mt-4 text-center">
-                  <p className="mb-4 text-[13.5px] text-muted">
-                    Pick a team boost between rounds; every run earns XP and Prestige. Finish top
-                    two in the group to reach the knockouts.
-                  </p>
-                  <button onClick={startAndPlayGroup} className={PRIMARY_BTN}>
-                    Play group stage
-                  </button>
-                </div>
-              </div>
-            </section>
-          </div>
-        </>
-      )}
-      {!hubOnly && !run && !draftedXi && (
-        <div className="rounded-md border border-dashed border-line bg-panel p-8 text-center shadow-hard">
-          <p className="mb-4 text-[13.5px] text-muted">
-            Draft your XI first, then bring it here for a Cup Run.
-          </p>
-          <Link to={buildTo} className={PRIMARY_BTN}>
-            Draft your XI
-          </Link>
-        </div>
+      {/* Pre-run: the drafted XI with one "Play group stage" button, or a pointer back
+          to the build when there is no XI (cupRun/PreRunPanel). Both are fallbacks: a
+          kickoff goes straight into the draw, so this is what arriving WITHOUT one gets. */}
+      {!hubOnly && !run && (
+        <PreRunPanel
+          xi={draftedXi}
+          odds={odds}
+          str={str}
+          onPlay={startAndPlayGroup}
+          buildTo={buildTo}
+        />
       )}
 
       {/* Active run */}
@@ -615,240 +553,59 @@ export default function CupRunScreen({
                 <RoundReview record={reviewRecord} onBack={() => setReviewIndex(null)} />
               ) : (
                 <>
-              {/* No speed control on the group screen: the group is one continuous
-                  reveal you sit through, and the table plus three cards below already
-                  fill it. It returns for the knockouts, where each round is its own
-                  screen and its own decision to start. */}
-              {run.phase !== 'ended' && run.phase !== 'group' && (
-                <div className="flex items-center justify-end gap-2">
-                  <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
-                </div>
-              )}
+                  {/* No speed control on the group screen: the group is one continuous
+                      reveal you sit through, and the table plus three cards below already
+                      fill it. It returns for the knockouts, where each round is its own
+                      screen and its own decision to start. */}
+                  {run.phase !== 'ended' && run.phase !== 'group' && (
+                    <div className="flex items-center justify-end gap-2">
+                      <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
+                    </div>
+                  )}
 
-              {reveal ? (
-                <div>
-                  {reveal.kind === 'group' ? (
-                    <>
-                      {/* The draw, once per group. Nothing behind it renders until it is
-                          dismissed: the table names the four teams, so leaving it up
-                          showed the opponents through the backdrop while the flags were
-                          still scrambling in front. */}
-                      {drawOpen && groupDraw && (
-                        <GroupDrawReveal
-                          userTeam={groupDraw.user}
-                          opponents={groupDraw.opponents}
-                          onContinue={() => setDrawOpen(false)}
+                  {reveal ? (
+                    <div>
+                      {reveal.kind === 'group' ? (
+                        <GroupRevealPanel
+                          reveal={reveal}
+                          drawOpen={drawOpen}
+                          onDismissDraw={() => setDrawOpen(false)}
+                          userRating={userRating}
+                          speed={speed}
+                          onMatchEnd={handleMatchEnd}
+                          onPickBoost={pickGroupBoost}
+                          onReroll={(next) => setReveal({ ...reveal, next: rerollOffer(next) })}
+                          onContinue={continueFromGroup}
+                        />
+                      ) : (
+                        <LiveCupMatch
+                          key="ko"
+                          label={reveal.roundName}
+                          opp={reveal.opp}
+                          userRating={userRating}
+                          events={reveal.match.events}
+                          decided={reveal.match.decided}
+                          pens={reveal.match.pens}
+                          speed={speed}
+                          onEnd={handleMatchEnd}
                         />
                       )}
-                      {/* The table as it stands: projected to the matchdays revealed so
-                          far, so it fills in as the group plays out. */}
-                      {!drawOpen && (
-                        <div className="mb-4">
-                          <StandingsTable
-                            group={groupAsOf(reveal.group, revealedMatchdays)}
-                            groupFinished={reveal.done}
-                            advanced={reveal.done && reveal.next.phase !== 'ended'}
-                          />
-                        </div>
-                      )}
-                      {!drawOpen && reveal.matches.map((m, i) => {
-                        if (i > reveal.index) return null;
-                        if (i === reveal.index && !reveal.done)
-                          return (
-                            <LiveCupMatch
-                              key={i}
-                              label={`Matchday ${i + 1}`}
-                              opp={m.opp}
-                              userRating={userRating}
-                              events={m.result.events}
-                              decided="reg"
-                              speed={speed}
-                              onEnd={handleMatchEnd}
-                            />
-                          );
-                        // The other group fixture used to sit under each card; the
-                        // table's own "All results" already lists every one of the six,
-                        // so it was the same scoreline printed twice.
-                        return <GroupResultCard key={i} m={m} i={i} userRating={userRating} />;
-                      })}
-                      {reveal.done && (() => {
-                        const advanced = reveal.next.phase !== 'ended';
-                        const gr = reveal.next.history.find(
-                          (h): h is GroupRecord => h.stage === 'group',
-                        );
-                        return (
-                          <>
-                            <div className="mt-6">
-                              <Banner
-                                champion={advanced}
-                                eyebrow={
-                                  gr
-                                    ? `Group stage · finished ${ordinal(gr.groupPos)} of ${gr.groupSize}`
-                                    : 'Group stage'
-                                }
-                                heading={advanced ? 'Through to the knockouts' : 'Knocked out'}
-                                body={advanced ? 'Pick your first boost, then into the Round of 16.' : undefined}
-                              />
-                            </div>
-                            {/* No final table here: the live one above IS the final table
-                                once the third matchday is in, and printing it again put
-                                the same eight rows on screen twice. */}
-                            {advanced && reveal.next.offer ? (
-                              <div className={`mt-4 ${CARD} p-5`}>
-                                <BoostOffer
-                                  offer={reveal.next.offer}
-                                  nextOpponent={reveal.next.nextOpponent}
-                                  roundName={KO_ROUNDS[0]}
-                                  onPick={pickGroupBoost}
-                                  rerollsLeft={reveal.next.rerollsLeft ?? 0}
-                                  onReroll={() =>
-                                    setReveal({ ...reveal, next: rerollOffer(reveal.next) })
-                                  }
-                                />
-                              </div>
-                            ) : (
-                              <div className="mt-4 flex justify-center">
-                                <button onClick={continueFromGroup} className={PRIMARY_BTN}>
-                                  Continue
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </>
+                      <div ref={tailRef} aria-hidden className="h-0" />
+                    </div>
                   ) : (
-                    <LiveCupMatch
-                      key="ko"
-                      label={reveal.roundName}
-                      opp={reveal.opp}
+                    <RunPhasePanel
+                      run={run}
+                      lastKoMatch={lastKoMatch}
+                      endedKoRecord={endedKoRecord}
                       userRating={userRating}
-                      events={reveal.match.events}
-                      decided={reveal.match.decided}
-                      pens={reveal.match.pens}
-                      speed={speed}
-                      onEnd={handleMatchEnd}
-                    />
-                  )}
-                  <div ref={tailRef} aria-hidden className="h-0" />
-                </div>
-              ) : (
-                <>
-                {run.phase === 'boon' && lastKoMatch && (
-                  <FinishedKoCard
-                    roundName={lastKoMatch.roundName}
-                    oppName={lastKoMatch.opp.name}
-                    oppCode={lastKoMatch.opp.code}
-                    oppYear={lastKoMatch.opp.year}
-                    oppRating={lastKoMatch.opp.strength.overall}
-                    userRating={userRating}
-                    userGoals={lastKoMatch.match.userGoals}
-                    oppGoals={lastKoMatch.match.oppGoals}
-                    decided={lastKoMatch.match.decided}
-                    events={lastKoMatch.match.events}
-                    pens={lastKoMatch.match.pens}
-                    userWon={lastKoMatch.match.userWon}
-                  />
-                )}
-                {run.phase === 'boon' && lastKoMatch && (
-                  <Banner
-                    champion
-                    eyebrow={lastKoMatch.roundName}
-                    heading={koWinHeading(lastKoMatch.match)}
-                    body={`Through to the ${KO_ROUNDS[run.koRound]}. Pick a boost below.`}
-                  />
-                )}
-                {run.phase === 'ended' && endedKoRecord && (
-                  <FinishedKoCard
-                    roundName={KO_ROUNDS[endedKoRecord.stage]}
-                    oppName={endedKoRecord.oppName}
-                    oppCode={endedKoRecord.oppCode}
-                    oppYear={endedKoRecord.oppYear}
-                    oppRating={endedKoRecord.oppRating}
-                    userRating={endedKoRecord.userRating}
-                    userGoals={endedKoRecord.userGoals}
-                    oppGoals={endedKoRecord.oppGoals}
-                    decided={endedKoRecord.decided ?? 'reg'}
-                    events={endedKoRecord.events}
-                    pens={endedKoRecord.pens}
-                    userWon={endedKoRecord.won}
-                  />
-                )}
-                {run.phase === 'ended' && run.outcome && (
-                  <Banner
-                    champion={run.outcome === 'champion'}
-                    eyebrow={
-                      run.outcome === 'champion'
-                        ? 'Full time · the Final'
-                        : `Knocked out · ${OUTCOME_LABEL[run.outcome]}`
-                    }
-                    heading={run.outcome === 'champion' ? 'World Cup Champions' : 'Knocked out'}
-                    body={
-                      run.outcome === 'champion'
-                        ? 'Your XI ran the tournament and lifted the cup.'
-                        : undefined
-                    }
-                  />
-                )}
-                <div
-                  ref={run.phase === 'boon' ? boostRef : undefined}
-                  className={`${CARD} p-5`}
-                >
-                  {run.phase === 'group' && (
-                    <div className="text-center">
-                      <p className="mb-4 text-[13.5px] text-muted">
-                        Play the group stage. Finish in the top two to reach the knockouts.
-                      </p>
-                      <button onClick={playGroup} className={PRIMARY_BTN}>
-                        Play group stage
-                      </button>
-                    </div>
-                  )}
-
-                  {/* A card that asked a question replaces the offer until it is answered
-                      (roadmap item 30). The run stays in the `boon` phase and holds the
-                      parked card, so a reload lands back here rather than losing it. */}
-                  {run.phase === 'boon' && run.pendingChoice && (
-                    <CaptainPicker
-                      boonId={run.pendingChoice.boonId}
-                      xi={run.xi}
-                      onChoose={answerChoice}
-                    />
-                  )}
-
-                  {run.phase === 'boon' && !run.pendingChoice && run.offer && (
-                    <BoostOffer
-                      offer={run.offer}
-                      nextOpponent={run.nextOpponent}
-                      roundName={KO_ROUNDS[run.koRound]}
-                      onPick={pickBoost}
-                      rerollsLeft={run.rerollsLeft ?? 0}
-                      onReroll={() => setRun(rerollOffer(run))}
-                    />
-                  )}
-
-                  {run.phase === 'match' && run.nextOpponent && (
-                    <div className="text-center">
-                      <p className="mb-1 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                        {KO_ROUNDS[run.koRound]}
-                      </p>
-                      <p className="mb-4 inline-flex items-center gap-2 text-[15px] font-semibold">
-                        You <Flag code={run.nextOpponent.code} className="h-3.5 w-5" /> vs{' '}
-                        {run.nextOpponent.name}
-                      </p>
-                      <div>
-                        <button onClick={playKo} className={PRIMARY_BTN}>
-                          Play {KO_ROUNDS[run.koRound]}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {run.phase === 'ended' && run.outcome && (
-                    <RunEndPanel
-                      score={run.score}
                       reward={reward}
                       banking={banking}
+                      boostRef={boostRef}
+                      onPlayGroup={playGroup}
+                      onPlayKo={playKo}
+                      onPickBoost={pickBoost}
+                      onAnswerChoice={answerChoice}
+                      onReroll={(next) => setRun(rerollOffer(next))}
                       onReDraft={onReDraft}
                       onReplay={startAndPlayGroup}
                       onCareer={() => {
@@ -858,11 +615,8 @@ export default function CupRunScreen({
                       }}
                     />
                   )}
-                </div>
                 </>
               )}
-              </>
-            )}
             </section>
           </div>
         </>
