@@ -261,7 +261,8 @@ npm run push:collectibles  # send that seed to the account server (needs dkr/.en
                            #   while curl reaches the host - see docs/nas-setup.md)
 npm run push:sql -- <file.sql>   # apply a migration / run a query on that server (same
                            #   credentials and route; -- --dry-run shows without sending)
-npm run gen:players        # regenerate docs/players.html, the standalone player index
+npm run gen:players        # regenerate BOTH standalone player pages (docs/players.html
+                           #   and docs/players-other-game.html)
 npm run album:fill         # print a console snippet that fills the album (guest only;
                            #   -- --leave=N / --dupes=N / --clear)
 python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/stickers/*.webp
@@ -895,17 +896,17 @@ nothing in `src/` imports it and it imports nothing - `docs/` is not under `publ
 `npm run build` never sees it. Open the file straight off disk. `/squads` stays the
 in-app, read-only browser; this is the whole dataset at once, for looking things up.
 
-- **Generated, never hand-edited.** `npm run gen:players` bakes the dataset in:
-  `scripts/gen-players-page.ts` supplies the data and the flags,
-  `scripts/players-page.template.html` holds the markup, CSS and behaviour, and the two
-  meet at the `__DATA__` / `__FLAG_CSS__` placeholders. **Re-run it after any change to
-  `squads.ts` or `STICKER_TIERS`**, the same way `gen:collectibles` has to be re-run -
-  nothing fails while it is stale, because it is not in the build.
+- **Generated, never hand-edited.** `npm run gen:players` bakes the data in:
+  `scripts/gen-players-page.ts` supplies the dataset, `scripts/players-page.ts` the
+  encoding and the flags, `scripts/players-page.template.html` the markup, CSS and
+  behaviour, and they meet at the `__DATA__` / `__FLAG_CSS__` placeholders. **Re-run it
+  after any change to `squads.ts` or `STICKER_TIERS`**, the same way `gen:collectibles`
+  has to be re-run - nothing fails while it is stale, because it is not in the build.
 - **Shows** jersey number, name, country, year, main position, additional positions,
   rating and collectible (yes, with the tier's colour, or no). **Filters** for main
-  position, additional position, position (either), country and collectible are all
-  multi-select; rating is a two-handle range; the search box matches the name only,
-  diacritic-insensitively. Every column sorts, rating descending by default.
+  position, additional position, position (either), country, World Cup and collectible
+  are all multi-select; rating is a two-handle range; the search box matches the name
+  only, diacritic-insensitively. Every column sorts, rating descending by default.
 - **A player who appears in more than one tournament carries an `x N` mark**, and hovering
   any one of his rows shows all of them (year, nation, main role, rating) with the row you
   are on picked out - plus every other row of the same man currently on screen. That is
@@ -921,6 +922,33 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   styling, since the page ships no Tailwind. The FIFA-code-to-flag mapping is **not** a
   copy - the generator parses it out of `src/components/Flag.tsx` and inlines the SVGs as
   data URIs, so the page cannot drift from the game's own flags.
+
+### The comparison page (`docs/players-other-game.html`)
+
+**The same page over ANOTHER game's ratings** (`docs/player-ratings-other-game.csv`,
+6,864 players, 302 squads, 56 nations, 1950 to 2026 including a predicted field), so the
+two files can be opened side by side and read off against each other. `gen:players`
+writes both; `scripts/gen-players-page-other.ts` is the CSV half.
+
+- **One template, two pages, and that is the point.** Everything the two differ by
+  travels in the data blob's `page` block - the wording, the column widths, whether a
+  player can hold more than one position, what the last column means. A second copy of
+  the template would drift, and two pages that drift cannot be compared.
+- **The other source's twelve position names map one-for-one onto ours**
+  ("Defensive midfielder" is DM, "Centre-forward" is ST), so the position column
+  compares directly. An unknown wording throws rather than being bucketed.
+- **It gives a player ONE position**, so that page has no "Also" column and no
+  additional / any-position filter - a control that could only ever say "any" is not
+  shown. Its last column is the source's own **Legend** flag where ours is Collectible.
+- **It has no player id**, which the "x N appearances" mark needs. Appearances are
+  matched by name **within a nation**, split wherever two are more than 24 years apart
+  (`MAX_CAREER`; the longest real span in the data is Buffon's 20). Name alone merged
+  147 pairs of different men - Gerd Muller's 1970 with Thomas Muller's 2014 among them,
+  read out as one seven-cup career. What it still cannot separate is two men of the same
+  name in the same era (England's several Wrights) or in one squad (Serbia named two
+  Mitrovic in 2022); the page's footer says so rather than implying the grouping is exact.
+- **Told apart at a glance** by an amber masthead tile and its own display title, since
+  the whole intent is two windows open at once.
 
 ## Sticker album (flagged)
 
