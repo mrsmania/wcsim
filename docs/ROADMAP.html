@@ -590,7 +590,7 @@
   <summary>
     <span class="num">23</span>
     <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 5 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 140 checks. Next up: wave 6, the structural extractions.</span>
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 6 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 150 checks. Next up: wave 7, the harness, CI and tooling items - partly shipped already.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -684,9 +684,30 @@
     versioning rule instead of four unstated ones. It also found that the test harness had been
     building run records the game cannot produce, so a check could pass against a shape that
     never occurs; those are proper builders now.
-    <b>Next up: wave 6, the structural extractions</b> - the big ones, and the only items in the
-    backlog that can break the game in a way neither the compiler nor the checks will catch, so
-    they get exercised by hand.</p>
+    <b>Wave 6 (the structural extractions) went the same day, in ten commits</b>, and it is the
+    wave that was exercised by hand from start to finish - it holds the only items that can break
+    the game in a way neither the compiler nor the checks would catch. The composition root went
+    from 1,129 lines to 849 and the run screen from 907 to 626, by moving out things that were
+    never composition: the roll draft's scramble and its "draw the next squad" policy, the transfer
+    market's held card, the move-a-player gesture, the mobile scroll dance, the route table, the
+    front page's two Continue offers, the masthead, the build page's layout, the career, and the
+    run screen's three big branches. Everything that talks to browser storage now does so in one
+    place, and every storage key is owned by one module instead of being re-typed in a second list
+    that could silently drift.
+    <b>It also fixed one real bug and declined one item.</b> The bug: un-tick the tournament a held
+    transfer-market card comes from and the market stopped offering him while the board stayed
+    highlighted - a tap would still have bought him. The declined item wanted five screens to read
+    the squad pool from storage instead of being handed it; that trades an explicit dependency for
+    an implicit one, against the item's own warning about silent staleness, so it is recorded as a
+    negative result with the reasoning.
+    <b>Three things to carry forward:</b> the career's state is owned in one place now but the RUN's
+    deliberately is not, because the account path depends on the run being saved by a child's effect
+    and moving it up would let a run bank twice on a reload; every browser check in this wave was
+    run against the previous build side by side, which is what turned "this looks the same" into
+    evidence; and Playwright's own locator API hangs on this app, so the checks drive the page
+    through plain DOM clicks instead.
+    <b>Next up: wave 7, the harness, CI and tooling items</b>, of which several already shipped out
+    of order because the gate had to be repaired first.</p>
 
     <p><strong>The waves</strong>, in execution order:</p>
     <ol>
@@ -704,7 +725,7 @@
       <li><b><s>The type model</s></b> (H69-H78, plus H148-H155). <b>DONE.</b> Chiefly <code>RoundRecord</code> as a real
       discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
       and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
-      <li><b>Structural extractions</b> (H79-H90). The risky ones, one per branch:
+      <li><b><s>Structural extractions</s></b> (H79-H90). <b>DONE.</b> The risky ones, one per commit:
       <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s 15 jobs into hooks and screens, and
       <code>CupRunScreen</code> handing back the career's persistence.</li>
       <li><b>Harness, CI and tooling</b> (H91-H105). Partly done out of order, because the gate had to be repaired before anything could be trusted: H91, H99, H106-H110 have shipped.</li>

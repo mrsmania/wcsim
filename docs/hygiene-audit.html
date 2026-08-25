@@ -233,7 +233,7 @@
 </div>
 
 <div class="callout">
-  <span class="ct">Progress &mdash; waves 1 to 5 executed 2026-08-24/25, and the tree moved under them</span>
+  <span class="ct">Progress &mdash; waves 1 to 6 executed 2026-08-24/25, and the tree moved under them</span>
   <p><b>Done and on <code>main</code>:</b> the gate repair (H107, H108, H109) and
   <a href="#H91">H91</a>, so <code>npm run checks</code> now runs in CI before the build;
   wave 1 in four commits - the dead domain code and 19 private exports (H1a: H10, H12, H116,
@@ -409,6 +409,30 @@
   (<code>: Squad[]</code> &rarr; <code>readonly Squad[]</code>) reaches into RETURN types and
   locally-built arrays, where <code>readonly</code> is wrong. H72 was done parameter by
   parameter after backing that out.</p>
+  <p><b>Wave 6 is DONE, 2026-08-25</b>, in ten commits, and it is the wave that had to be
+  exercised by hand rather than trusted to the gate. What went in: <a href="#H82">H82</a>
+  (<code>state/routes.ts</code>, <code>screenOf(path)</code>), <a href="#H83">H83</a>
+  (<code>state/resume.ts</code>), the last of <a href="#H157">H157</a>, <a href="#H87">H87</a>
+  (<code>state/storage/kv.ts</code>, nineteen swallowed <code>localStorage</code> blocks down to
+  four functions), <a href="#H88">H88</a> (every key exported by its owner, the guest set built from
+  them), <a href="#H89">H89</a> (<code>store/cache.ts</code>, <code>hydrateCareer</code>, the
+  <code>album_stats</code> column list), <a href="#H79">H79</a>
+  (<code>hooks/useSquadRoll</code>), <a href="#H80">H80</a> (<code>useBudgetBuild</code> +
+  <code>useMovePlayer</code> together), <a href="#H84">H84</a> (<code>Masthead</code>,
+  <code>BuildPage</code>, <code>useStackedScroll</code>, plus its accessibility half as its own
+  commit), <a href="#H81">H81</a> (<code>useCareer</code> in App, <code>useCupRun</code> in the
+  screen), <a href="#H85">H85</a> (the three run panels), <a href="#H86">H86</a> in part, and
+  <a href="#H158">H158</a> (the harness's fifteen run walks down to four).
+  <b>App.tsx went 1,129 lines to 849 and CupRunScreen 907 to 626</b>; the suite went 140 to 150.</p>
+  <p><b>Three things worth carrying forward from it.</b> (1) <b>The run state was deliberately NOT
+  lifted to App</b> in H81, and the reason is in <code>hooks/useCupRun</code>: the account path
+  depends on the run being written back by a CHILD's effect, so moving it up inverts the ordering
+  that stops a run being banked twice on a reload. One <code>store.peek()</code> stays in App as the
+  price. (2) <b>H86's first half was declined</b> - see the negative results below. (3) <b>Playwright
+  LOCATORS hang on this app</b> (their auto-waiting never settles); every browser check in this wave
+  went through <code>page.evaluate</code> and plain DOM clicks, and the tab bar's PLAY / CAREER /
+  ... buttons match almost any CTA regex, so a clicker has to skip them explicitly. Both cost an hour
+  to find twice.</p>
 </div>
 
 <h2 id="rules">Ground rules for the implementing team</h2>
@@ -558,17 +582,17 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
   <tr><td class="id">H76</td><td class="vd"><span class="tag v-done">DONE</span></td><td>All four sub-items. One count corrected: <code>localStore.finishRun</code> drops <b>3 of 6</b> input fields (<code>runKey</code>, <code>swapsUsed</code>, <code>outcome</code>), not 2.</td></tr>
   <tr><td class="id">H77</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Both signatures; the callers now pass <b>five</b> positional arguments each, and the harness has ~20 sites passing filler <code>{}, [], 0</code> to reach the last one.</td></tr>
   <tr><td class="id">H78</td><td class="vd"><span class="tag v-done">DONE</span></td><td>And the latent disagreement is live: <code>price</code> is rebuilt every render with no memo, while <code>results</code> calls <code>sortCmp(price)</code> with <code>ownedStickerIds</code> absent from its deps.</td></tr>
-  <tr><td class="id">H79</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Four refs, the unmount cleanup, the orphan recovery and the re-entry guard, all intact. The verbatim list in the old item is correct and complete; follow it exactly.</td></tr>
-  <tr><td class="id">H80</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Count corrected 6 &rarr; <b>7</b> budget handlers. Both preservation notes still apply verbatim: the cancel effect keyed on <code>[activeFormation, phase]</code>, and the held-player lookup against <code>ALL_PLAYERS</code>.</td></tr>
-  <tr><td class="id">H81</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Still the largest and riskiest item. Counts corrected: <b>5</b> <code>store.peek()</code> reads (not 4) and <b>3</b> keys written across 6 calls (not 4). <code>CupRunScreen</code> is still the only component importing the store.</td></tr>
-  <tr><td class="id">H82</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The <code>screenOf(path)</code> half stands: still 10 route booleans over a ~313-line ternary chain. The reset-target half is <b>void</b> - <code>handleReset</code> is unconditional now (though it still carries a stale dep and a self-contradicting comment: <a href="#H128">H128</a>). Inline <code>&lt;Navigate&gt;</code> guards: 3 &rarr; 1.</td></tr>
-  <tr><td class="id">H83</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Both resume derivations, with their user-facing copy, still in the composition root.</td></tr>
-  <tr><td class="id">H84</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Masthead (44 lines) and the build grid (~157) stand; <code>FooterNav</code> is <b>void</b> (deleted). The accessibility sub-point is now <i>easier</i> than written: <code>hooks/motion.ts</code> already exports <code>scrollIntoViewRespectingMotion</code> and <code>CupRunScreen</code> already uses it, so the five raw calls in <code>App.tsx</code> are a one-import swap, not new code.</td></tr>
-  <tr><td class="id">H85</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Diverged badly. The pre-run panel shrank to ~26 lines and <code>AscensionSelector</code> is gone from it; the "unlock-hint arithmetic" it names does not exist. What grew: the idle branch's <code>run.phase ===</code> conditions went 5 &rarr; <b>10</b>, and the specific defect - two identical conditions rendered consecutively - is still there at <code>:803</code> and <code>:819</code>.</td></tr>
-  <tr><td class="id">H86</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Count corrected 10 &rarr; <b>8</b> prop sites across 6 components; <code>SettingsModal</code> still recomputes the pool independently.</td></tr>
-  <tr><td class="id">H87</td><td class="vd"><span class="tag v-stands">stands</span></td><td>19 <code>try/catch</code> localStorage blocks across 6 modules; the write-and-swallow shape is <b>11</b> of them, not 9.</td></tr>
-  <tr><td class="id">H88</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Eight copies of the key strings in total (7 private declarations + <code>GUEST_KEYS</code>, plus two in the requirements doc). The colon-key note holds.</td></tr>
-  <tr><td class="id">H89</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>peek</code>/<code>patch</code> duplicated (<code>patch</code> character-identical); the <code>album_stats</code> row mapping appears <b>3</b> times in one file, its column list twice.</td></tr>
+  <tr><td class="id">H79</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: <code>hooks/useSquadRoll</code>, all four refs and both effects verbatim. Verified in the browser by counting rising edges of the reducer's own <code>rolling</code> flag: exactly one roll on entering the draft, on placing, on each of the three re-roll kinds, on recovering an interrupted scramble, and on freeing a slot from a complete XI - the last with the two testing flags temporarily on, since it is unreachable otherwise. Also checked against the dev server, where StrictMode double-invokes every effect. <i>Original finding:</i> Four refs, the unmount cleanup, the orphan recovery and the re-entry guard, all intact. The verbatim list in the old item is correct and complete; follow it exactly.</td></tr>
+  <tr><td class="id">H80</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25, both halves in one commit. Both preservation notes intact: the cancel effect is still keyed on the formation and the phase and never on the selection, and the held-player lookup kept its note (then H86 scoped it). The cross-cancellation is split on purpose - the market calls the move hook's <code>cancel</code>, and the composition root wires the other direction, because neither hook can own both. <i>Original finding:</i> Count corrected 6 &rarr; <b>7</b> budget handlers. Both preservation notes still apply verbatim: the cancel effect keyed on <code>[activeFormation, phase]</code>, and the held-player lookup against <code>ALL_PLAYERS</code>.</td></tr>
+  <tr><td class="id">H81</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25. <code>hooks/useCareer</code> in App (both eslint-disabled peek memos gone), <code>hooks/useCupRun</code> in the screen, which no longer imports the store. <b>The run was deliberately NOT lifted:</b> the account path needs it written back by a CHILD's effect, so lifting inverts the ordering that stops a double bank. Verified against the item's own list, including a cup win driven through the reward picker into the summary. <i>Original finding:</i> Still the largest and riskiest item. Counts corrected: <b>5</b> <code>store.peek()</code> reads (not 4) and <b>3</b> keys written across 6 calls (not 4). <code>CupRunScreen</code> is still the only component importing the store.</td></tr>
+  <tr><td class="id">H82</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: <code>state/routes.ts</code> with <code>screenOf(path)</code>, feature flags read inside it. Proved equivalent to the expression it replaced over 28 paths, including all six deleted routes and aliases, and now asserted by two checks. <i>Original finding:</i> The <code>screenOf(path)</code> half stands: still 10 route booleans over a ~313-line ternary chain. The reset-target half is <b>void</b> - <code>handleReset</code> is unconditional now (though it still carries a stale dep and a self-contradicting comment: <a href="#H128">H128</a>). Inline <code>&lt;Navigate&gt;</code> guards: 3 &rarr; 1.</td></tr>
+  <tr><td class="id">H83</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: <code>state/resume.ts</code>, <code>cupRunResume</code> and <code>buildResume</code>, with their copy and two checks. <i>Original finding:</i> Both resume derivations, with their user-facing copy, still in the composition root.</td></tr>
+  <tr><td class="id">H84</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: <code>Masthead</code>, <code>BuildPage</code> (the layout and the section-header copy; the panels stay in App, since which one shows and what it is fed is composition) and <code>hooks/useStackedScroll</code>. The accessibility half shipped separately, as asked. Verified by comparing the rendered DOM at three breakpoints across six states. <i>Original finding:</i> Masthead (44 lines) and the build grid (~157) stand; <code>FooterNav</code> is <b>void</b> (deleted). The accessibility sub-point is now <i>easier</i> than written: <code>hooks/motion.ts</code> already exports <code>scrollIntoViewRespectingMotion</code> and <code>CupRunScreen</code> already uses it, so the five raw calls in <code>App.tsx</code> are a one-import swap, not new code.</td></tr>
+  <tr><td class="id">H85</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: <code>PreRunPanel</code>, <code>GroupRevealPanel</code> (the IIFE became its body) and <code>RunPhasePanel</code>, where the two identical consecutive conditions became one. Verified by comparing tag-and-class skeletons in twelve run states against the pre-change build. <i>Original finding:</i> Diverged badly. The pre-run panel shrank to ~26 lines and <code>AscensionSelector</code> is gone from it; the "unlock-hint arithmetic" it names does not exist. What grew: the idle branch's <code>run.phase ===</code> conditions went 5 &rarr; <b>10</b>, and the specific defect - two identical conditions rendered consecutively - is still there at <code>:803</code> and <code>:819</code>.</td></tr>
+  <tr><td class="id">H86</td><td class="vd"><span class="tag v-done">DONE</span></td><td><b>Second half done, first half DECLINED</b> 2026-08-25. <code>hooks/usePool</code> owns the derivation and the settings sheet stops recomputing it; the market's held card is scoped to the pool and a card the pool drops is dropped - a real bug, reproduced in the browser. The subscription half was not taken: see the negative results. <i>Original finding:</i> Count corrected 10 &rarr; <b>8</b> prop sites across 6 components; <code>SettingsModal</code> still recomputes the pool independently.</td></tr>
+  <tr><td class="id">H87</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: <code>state/storage/kv.ts</code> with <code>readJson</code>, <code>writeJson</code>, <code>removeKeys</code> and <code>hasAnyKey</code> (the nineteenth block, the one that does not parse). Each module kept its own revive. Verified by exercising all six modules against a stubbed store - absent, empty, four kinds of junk, round trips, the v1 perk migration, a malformed history entry, and a store that throws on everything - and running the identical file against the pre-refactor tree. <i>Original finding:</i> 19 <code>try/catch</code> localStorage blocks across 6 modules; the write-and-swallow shape is <b>11</b> of them, not 9.</td></tr>
+  <tr><td class="id">H88</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: every key exported by its owner, <code>GUEST_KEYS</code> built from those exports, and a check pinning the set (including the colon-key oddity, which stays). <i>Original finding:</i> Eight copies of the key strings in total (7 private declarations + <code>GUEST_KEYS</code>, plus two in the requirements doc). The colon-key note holds.</td></tr>
+  <tr><td class="id">H89</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Done 2026-08-25: <code>store/cache.ts</code> <code>createSnapshotCache()</code>, <code>hydrateCareer</code> in <code>domain/career.ts</code>, and the <code>album_stats</code> column list once. Verified by running both old loader bodies against the new path over 17 inputs. One deliberate tightening: the guest side now drops non-string boost ids, matching the account side. <i>Original finding:</i> <code>peek</code>/<code>patch</code> duplicated (<code>patch</code> character-identical); the <code>album_stats</code> row mapping appears <b>3</b> times in one file, its column list twice.</td></tr>
   <tr><td class="id">H90</td><td class="vd"><span class="tag v-done">done</span></td><td>Done by deletion. The parallel World Cup carrier went with the mode: one loss-banking effect, one <code>pendingReward</code> branch, one guard. There is no branch priority order left to preserve.</td></tr>
 </table>
 
@@ -806,10 +830,10 @@ appropriate. So what is left is modelling gaps, not looseness.</p>
     <td><b>Two route arms render the same component with sixteen byte-identical props.</b> <code>App.tsx:847-884</code>: verified with <code>diff</code>, the two 16-line prop lists differ only in <code>view="hub"</code> vs <code>view="run"</code>. React reconciles them as the same component at the same child position, so there is not even a remount difference to preserve.</td>
     <td>One arm: <code>isCareerHub || isCupRun ? &lt;CupRunScreen view={isCareerHub ? 'hub' : 'run'} ... /&gt;</code>. Pairs naturally with H119.</td><td class="er">S</td><td class="er">none</td></tr>
   <tr id="H157" class="new"><td class="id">H157</td><td class="pr"><span class="tag p-kiss">kiss</span></td>
-    <td><b>Three flattenable expressions and one stale dependency in <code>App.tsx</code>.</b> The Play tab's <code>sub</code> (<code>:726-732</code>) nests a ternary whose two arms yield the same value when <code>resumeCupRun</code> is set. <code>onSwap</code> (<code>:1105-1111</code>) has two arms that are both <code>undefined</code>. <code>handleReset</code> (<code>:502-515</code>) lists <code>location.pathname</code> in its deps but no longer reads it, so it is a new function object on every navigation, propagating to four child components - and its five-line comment describes the deleted three-way branch and then contradicts itself in its last sentence (see H130). Two neighbours list a dep derived from another dep in the same array.</td>
+    <td><b>[DONE]</b> DONE 2026-08-25 across waves 5 and 6; what wave 6 had left was <code>onSwap</code>, whose two arms were both <code>undefined</code>. <b>Three flattenable expressions and one stale dependency in <code>App.tsx</code>.</b> The Play tab's <code>sub</code> (<code>:726-732</code>) nests a ternary whose two arms yield the same value when <code>resumeCupRun</code> is set. <code>onSwap</code> (<code>:1105-1111</code>) has two arms that are both <code>undefined</code>. <code>handleReset</code> (<code>:502-515</code>) lists <code>location.pathname</code> in its deps but no longer reads it, so it is a new function object on every navigation, propagating to four child components - and its five-line comment describes the deleted three-way branch and then contradicts itself in its last sentence (see H130). Two neighbours list a dep derived from another dep in the same array.</td>
     <td>Flatten the two expressions (I checked every input combination for both); drop the stale dep and cut the comment to its last sentence.</td><td class="er">S</td><td class="er">none</td></tr>
   <tr id="H158" class="new"><td class="id">H158</td><td class="pr"><span class="tag p-dry">dry</span></td>
-    <td><b>The harness's duplicated setup, re-measured and much larger than H94 said.</b> 42 <code>bestEleven(SQUADS[...])</code>, 42 <code>beginRun(</code>, <b>15</b> near-identical "walk this run to the end" loops each re-deciding the same three-way branch, and two different local helpers both named <code>ended</code> doing different things. Beyond size, two consequences: a new run phase must be added in fifteen places, and a walk that picks <code>offer[0]</code> can hit a <code>choice: 'player'</code> card, park on <code>pendingChoice</code> and spin to its guard limit without reaching <code>ended</code> - a per-site behaviour nobody chose.</td>
+    <td><b>[DONE]</b> DONE 2026-08-25: <code>xiFor</code>, <code>runFor</code>, <code>stepRun</code>, <code>playToEnd</code>, <code>boonStops</code>. 42 XI copies to 1, 43 <code>beginRun</code> to 22, fifteen walks to four, and the parked-question hazard handled once. The printed output is byte-identical before and after but for the one line the summary documents as unseeded. <b>The harness's duplicated setup, re-measured and much larger than H94 said.</b> 42 <code>bestEleven(SQUADS[...])</code>, 42 <code>beginRun(</code>, <b>15</b> near-identical "walk this run to the end" loops each re-deciding the same three-way branch, and two different local helpers both named <code>ended</code> doing different things. Beyond size, two consequences: a new run phase must be added in fifteen places, and a walk that picks <code>offer[0]</code> can hit a <code>choice: 'player'</code> card, park on <code>pendingChoice</code> and spin to its guard limit without reaching <code>ended</code> - a per-site behaviour nobody chose.</td>
     <td><code>playToEnd(run, pickIndex = 0)</code> handling <code>pendingChoice</code> once, and <code>boonStops(squadIndex, perks?)</code>. Verify by byte-comparing the printed boon-power table before and after, which is the regression test the file already relies on. Do this <i>after</i> H106-H108, so you are refactoring a harness you can trust.</td><td class="er">M</td><td class="er">low</td></tr>
 </table>
 
@@ -1030,6 +1054,16 @@ so the next audit does not re-derive them.</p>
 <p>Negative results, measured rather than sampled, so the next pass can skip them.</p>
 
 <ul>
+  <li><b>H86's first half: DECLINED, 2026-08-25.</b> Having the screens read the squad pool from
+  the store through a subscription, instead of receiving it as a prop, removes eight prop sites and
+  adds a notification mechanism the store does not have - in a codebase whose stated convention is
+  prop-drilling, and against the item's own warning that a missed subscription means a silently
+  stale pool. Trading an explicit dependency for an implicit one is not obviously the better side of
+  that trade, so it was not taken. <b>The second half WAS</b>, and it fixed a real bug:
+  <code>hooks/usePool</code> now owns the derivation, the market's held card resolves through it, and
+  un-ticking the tournament a held card comes from DROPS the card. Before, the market stopped listing
+  him while the board stayed highlighted and a tap would still have bought him. Reproduced in the
+  browser against both builds.</li>
   <li><b>The dataset numbers re-derive exactly:</b> 272 squads, 6,270 players, 81 collectibles =
   58 legendary / 18 iconic / 5 monumental, 130 challenges in 12 families with no duplicate ids
   (34 bronze / 63 silver / 33 gold), catalogue worth 779, 24 formation-and-style combinations from
@@ -1139,13 +1173,14 @@ so the next audit does not re-derive them.</p>
   cheapest to get and gated eleven items, as predicted. The two that had to be asked twice were D5
   and D7, and the reason is recorded with them: both were first put in terms of the code rather than
   in terms of what a player sees, which is not a question anyone can answer.</li>
-  <li><b><s>Wave 4, then 5</s>, then 6</b>, in that order and one item per commit. <b>Waves 4 and 5
-  DONE 2026-08-25</b>, and all three of wave 6's prerequisites came with them:
+  <li><b><s>Wave 4, then 5, then 6</s></b>, in that order and one item per commit. <b>Waves 4, 5 and
+  6 are all DONE 2026-08-25</b>, and all three of wave 6's prerequisites came with waves 4 and 5:
   <a href="#H124">H124</a>, <a href="#H146">H146</a> and <a href="#H70">H70</a> are done, so H81 has
   materially less to move and no longer has a 14-optional record to carry through the split.
-  <b>Next: wave 6, the structural extractions</b> - App's fifteen jobs and CupRunScreen handing the
-  career's persistence back. Last, and exercised by hand: those are the only items in this backlog
-  that can break the app in a way neither the compiler nor the checks harness will see.</li>
+  <b>Next: wave 7 (H91-H105), the harness, CI and tooling items</b>, of which H91, H99 and
+  H106-H110 are already in. Wave 6 was exercised by hand throughout, as planned: it is the only
+  part of this backlog that can break the app in a way neither the compiler nor the checks harness
+  sees, and every item of it was driven in a real browser against the pre-change build.</li>
 </ol>
 
 <footer>

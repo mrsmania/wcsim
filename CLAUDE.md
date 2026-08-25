@@ -63,14 +63,14 @@ executed as written.** The old numbering is preserved so references here still r
 findings start at H106. Its "item 27 owns these" list is gone - that item shipped and its
 losing chrome was deleted, so all five things it named are settled.
 
-**Waves 1 to 5 are done** (2026-08-24/25), and so are all sixteen decisions. What that
-means for anyone picking the backlog up at wave 6:
+**Waves 1 to 6 are done** (2026-08-24/25), and so are all sixteen decisions. What that
+means for anyone picking the backlog up at wave 7:
 
 - **The gate is repaired and it now runs in CI.** The audit opened on the finding that
   `npm run checks` failed at random about one run in twelve, and that the `prime-years`
   check was **vacuous** - proved by reintroducing the sticker exploit it exists to catch
   and still getting 132 passed / 0 failed. Both are fixed (H106-H109), `npm run checks`
-  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **141
+  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **150
   checks**. Five of the new ones assert that a number and the sentence promising it agree
   (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette, H65 the perk
   shop's advice, H146 the market's budget lookup), and one asserts a shape guard in both
@@ -125,6 +125,45 @@ means for anyone picking the backlog up at wave 6:
   so replacing an identical substring with a constant leaves `dist/assets/*.css`
   **byte-identical**. Build, hash, change, build, hash. Every wave-3 commit records the
   hash it held; the two that could not claim it say exactly which rule moved and why.
+- **App and the run screen are composition roots again, and the things that left them are
+  where to look first.** Wave 6 moved out everything that was never composition:
+  `hooks/useSquadRoll` (the scramble animation, the draw-next-squad policy and its four
+  refs - the subtlest code in the build), `hooks/useBudgetBuild` + `hooks/useMovePlayer`
+  (the market's held card and the move-a-player gesture, which cross-cancel), `hooks/useCareer`,
+  `hooks/useCupRun`, `hooks/useStackedScroll` (the mobile there-and-back), `hooks/usePool`,
+  `state/routes.ts` (`screenOf(path)`), `state/resume.ts`, `state/storage/kv.ts`,
+  `state/store/cache.ts`, `components/Masthead`, `components/BuildPage`, and
+  `components/cupRun/{PreRunPanel,GroupRevealPanel,RunPhasePanel}`. **App.tsx is 849 lines
+  and CupRunScreen 626**, from 1,129 and 907.
+- **The career is owned in ONE place; the RUN deliberately is not.** `useCareer` lives in
+  App, so the build page prices the transfer market off the same value the run screen
+  spends from. `useCupRun` stays inside the run screen, and the reason is in its header:
+  `remoteStore.finishRun` clears the server's active run and then re-saves whatever the
+  cache holds, which has to be the run already carrying `stickersApplied` - set in the same
+  effect that reports the run's end, relying on **a child's effect running before its
+  parent's**. Lifting that state inverts the ordering and the failure is a run banked twice
+  on a reload. The one `store.peek()` left in App reads the run for the front page's
+  Continue line, and that is the price.
+- **Everything that talks to `localStorage` goes through `state/storage/kv.ts`**
+  (`readJson` / `writeJson` / `removeKeys` / `hasAnyKey`), and **every storage key is
+  exported by the module that owns it**, with `GUEST_KEYS` built from those exports rather
+  than re-typed. A version bump used to break the guest-to-account import for that slice
+  with no type error. Each module keeps its own revive function - that is where the logic
+  is - and the revive runs inside the same `try` as the read and the parse.
+- **A career arriving from outside is built by `hydrateCareer`** (domain/career.ts), the one
+  place that knows the field list. The guest loader adds only its v1-to-v2 perk migration and
+  the account loader only its snake_case conversion. `level` is derived from XP, never read;
+  `stats` merges over the initial counters (which is what lets a new counter appear with no
+  migration); and `completedChallenges` tolerates being absent, because a server without
+  migration 0011 has no such column.
+- **Browser checks on this app: use `page.evaluate`, not Playwright locators.** Locator
+  auto-waiting never settles here and hangs the run; plain DOM clicks and reads work. Two
+  more traps that cost time twice: the tab bar's PLAY / CAREER / ALBUM / RECORDS / SQUADS
+  buttons match almost any CTA regex, so a clicker must skip them explicitly; and the static
+  test server has no SPA fallback, so reloading a deep path serves its own 404 page - go to
+  the base path and push the route instead. Every wave-6 item was verified by driving the
+  real app against the pre-change build served side by side; the scratch harnesses are
+  disposable, but that method is the one worth repeating.
 
 ## What this is
 
