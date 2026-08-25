@@ -1,5 +1,5 @@
 import type { Rarity } from '../../domain/boons';
-import type { RunOutcome, KoMatch } from '../../domain/run';
+import type { RunOutcome } from '../../domain/run';
 import { TIER_META } from '../stickerTheme';
 
 // The boon rarity ramp reuses the sticker tier accents (single source of the hexes;
@@ -37,9 +37,6 @@ export interface Reward {
  *  seam reads it, so the presentation layer is the wrong place to own it (hygiene H55). */
 export type { Reveal } from '../../domain/run';
 
-/** The win result headline for a finished knockout tie. */
-export function koWinHeading(m: KoMatch): string {
-  if (m.decided === 'pens') return 'Won on penalties';
-  if (m.decided === 'aet') return `Won ${m.userGoals}-${m.oppGoals} (a.e.t.)`;
-  return `Won ${m.userGoals}-${m.oppGoals}`;
-}
+/** Re-exported from `matchView`, which now holds it next to `koResultLabel` - the two
+ *  encode the same "how to word a win" fact (hygiene H68). */
+export { koWinHeading } from '../matchView';

@@ -16,9 +16,9 @@ import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
     canPlace,
     filledCount,
-    isComplete,
     hasAnotherCup,
     hasAnotherTeam,
+    homeViewOf,
     placedPlayers,
     positionsWithOpenSlot,
     randomXI,
@@ -192,11 +192,8 @@ export default function App({
     // Home sub-view derived from the data, not `phase`: no formation -> setup;
     // formation but incomplete -> draft; complete XI -> complete (even once the
     // tournament has started, so Back to home shows the locked XI).
-    const homeView: HomeView = !formation
-        ? 'setup'
-        : isComplete(formation, filled)
-          ? 'complete'
-          : 'draft';
+    // Keyed on the board, not on `phase` - see `homeViewOf`.
+    const homeView: HomeView = homeViewOf(formation, filled);
     const activeFormation = homeView === 'setup' ? previewFormation : formation;
 
     // Mobile: when a player is picked, scroll the pitch to the top (with a little

@@ -131,3 +131,16 @@ export function koResultLabel(won: boolean, decided: KoDecided): string {
   }
   return decided === 'pens' ? 'Lost on penalties' : 'Lost';
 }
+
+/** The same fact worded for a BANNER rather than a tag, so it carries the score:
+ *  "Won 2-1", "Won 2-1 (a.e.t.)", "Won on penalties".
+ *
+ *  Beside its sibling on purpose. The two were in different modules with different
+ *  wording for the same three cases, which is two places to change if "a.e.t." is ever
+ *  spelled differently (hygiene H68). They stay separate functions because the difference
+ *  is real - a tag has no room for a scoreline - but they are now one edit apart. */
+export function koWinHeading(m: { decided: KoDecided; userGoals: number; oppGoals: number }): string {
+  if (m.decided === 'pens') return 'Won on penalties';
+  if (m.decided === 'aet') return `Won ${m.userGoals}-${m.oppGoals} (a.e.t.)`;
+  return `Won ${m.userGoals}-${m.oppGoals}`;
+}

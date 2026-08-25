@@ -125,6 +125,21 @@ export function moveTargets(formation: Formation, filled: Filled, fromSlotId: st
   return new Set(moveOptions(formation, filled, fromSlotId).keys());
 }
 
+/** Which sub-view the build page shows: pick a formation, build the XI, or the XI is set.
+ *
+ *  Derived from the DATA rather than from the reducer's `phase`, and that split is
+ *  deliberate rather than an oversight: the effects key on `phase`, while this keys on what
+ *  is actually on the board, so navigating back to the build page mid-run still reads as
+ *  the locked XI instead of dropping back to "build your XI". It was derived inline in
+ *  `App` with nothing naming the split (hygiene H66). */
+export function homeViewOf(
+  formation: Formation | null,
+  filled: Filled,
+): 'setup' | 'draft' | 'complete' {
+  if (!formation) return 'setup';
+  return isComplete(formation, filled) ? 'complete' : 'draft';
+}
+
 /** Set of slot roles that still have at least one open slot. */
 export function positionsWithOpenSlot(formation: Formation, filled: Filled): Set<Position> {
   const open = new Set<Position>();

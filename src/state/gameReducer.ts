@@ -4,6 +4,12 @@ import { canPlace, isComplete, planMove, type Filled } from '../domain/draft';
 import { canSwapInto } from '../domain/album';
 import type { MatchSpeed } from '../domain/clock';
 
+/** Where the build has got to.
+ *
+ *  Read by the EFFECTS - the roll-scramble trigger, the auto-draw, the scroll dance - and
+ *  by the reducer's own guards. It is NOT what the build page's sub-view is derived from:
+ *  that comes from the board via `homeViewOf`, so returning to the build page mid-run
+ *  still reads as the locked XI. The split is deliberate; keep the two apart. */
 export type Phase = 'setup' | 'draft' | 'complete';
 
 /** How the XI is being assembled: rolling random squads ('roll') or hand-picking
