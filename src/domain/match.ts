@@ -1,5 +1,5 @@
 import type { Player, Position } from '../data/types';
-import { categoryOf, DEF_CATS, isAttacker, isDefender, primaryPosition } from '../data/types';
+import { isAttacker, isDefender, primaryPosition } from '../data/types';
 import { pick } from './random';
 
 export interface Strength {
@@ -55,36 +55,29 @@ export function xiStrength(players: Player[]): Strength {
 }
 
 /**
- * The build page's four rating cells (Ovr / Att / Mid / Def), which are NOT `xiStrength`
- * and deliberately so. Two differences, both visible:
+ * The build page's rating cells, which are `xiStrength`'s numbers measured on a PARTIAL
+ * XI. The split is deliberately the SAME - attack is MID+FWD, defence is GK+DEF - so the
+ * figure you build against is the figure the simulator reads (audit decision D7, answered
+ * 2026-08-25). It used to be forwards only under the same "Att" label, which meant one XI
+ * read Att 88 on the build page and Att 81 the moment its run started, with nothing having
+ * changed; the run screen's panel has always shown these groups, which is also why it has
+ * no Mid cell to match - the midfielders are inside Att.
  *
- *  - `attack` here is FORWARDS ONLY, where xiStrength's is MID+FWD, because that is what
- *    the sim reads. Handing the build page xiStrength instead would change the Att number
- *    for every XI in the game.
- *  - an empty line reads 0 here, which the screen renders as a dash. xiStrength falls back
- *    to the overall, because a match cannot be simulated against nothing - a dash would be
- *    a lie there and a number is a lie here.
- *
- * So there are two rating derivations on purpose. This one used to live inside BoxScore,
- * with nothing next to xiStrength recording that the pair differed or why (hygiene H144).
- * Whether the LABELS should say so is a separate question, recorded as audit decision D7.
+ * The one difference left, and the reason this is not just a call to `xiStrength`: a line
+ * with nobody in it reads 0 here, which the screen renders as a dash. `xiStrength` falls
+ * back to the overall, because a match cannot be simulated against nothing - and on a
+ * half-built XI that fallback would be a lie (three centre-backs and no attackers is not
+ * an attack of 78).
  *
  * Keys off `positions[0]`, which `placedPlayers` promotes to the slot the player fills, so
  * these are the lines as they are PLAYED.
  */
-export function lineAverages(players: Player[]): {
-  overall: number;
-  attack: number;
-  midfield: number;
-  defense: number;
-} {
+export function lineAverages(players: Player[]): Strength {
   const mean = (xs: Player[]) => (xs.length ? Math.round(avg(xs.map((p) => p.elo))) : 0);
-  const cat = (p: Player) => categoryOf(primaryPosition(p));
   return {
     overall: mean(players),
-    attack: mean(players.filter((p) => cat(p) === 'FWD')),
-    midfield: mean(players.filter((p) => cat(p) === 'MID')),
-    defense: mean(players.filter((p) => DEF_CATS.includes(cat(p)))),
+    attack: mean(players.filter(isAttacker)),
+    defense: mean(players.filter(isDefender)),
   };
 }
 

@@ -582,10 +582,12 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
 
 ## The dataset (`src/data/squads.ts`)
 
-- Tournaments: **all thirteen (1974-2022)** are full researched datasets. 1974 and 1978 are
-  16-nation fields; 1982, 1986, 1990 and 1994 are 24 nations; 1998-2022 are 32. Squad sizes:
-  22-man for 1974-1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25). **8,028 player
-  rows** across 352 squads. Two squads are short and both are real: **El Salvador brought
+- Tournaments: **all fourteen (1970-2022)** are full researched datasets. 1970, 1974 and
+  1978 are 16-nation fields; 1982, 1986, 1990 and 1994 are 24 nations; 1998-2022 are 32.
+  Squad sizes: 22-man for 1970-1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25).
+  **8,377 player rows** across 368 squads. Three squads are short and all three are real:
+  **Morocco brought 19 men to 1970** and **El Salvador 20 to 1982**, neither filling the
+  roster, and Iran registered 25 in 2022. Two squads are short and both are real: **El Salvador brought
   only 20 men to 1982** and never filled the roster, and Iran registered 25 in 2022.
   (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders; 1986
   was added 2026-08-23 as the first step of roadmap item 03, and its positions and ratings
@@ -693,6 +695,31 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   substring of "cesarcarpegiani", and the same class of error hit both Marinhos, Edu,
   Farias and Sven-Gunnar Larsson. Four agents caught it independently. **Treat any short
   mononym's `apps` line as unreliable in both directions.**
+- **1970 was added 2026-08-25 and the matcher hole above is now closed.** RSSSF prints
+  short forms of long names, never the reverse, so only `rsssf ⊂ player` is legitimate
+  containment; the other direction is refused outright. It immediately earned it by
+  **declining to choose between Jack and Bobby Charlton in the same squad**, which the old
+  version would have merged silently. The cost is real and accepted: it now misses genuine
+  starters (a dozen in 1970) and reports them as "none found", which the raters recover from
+  the printed line-ups. **An honest miss beats a false positive**, because a rater can read
+  a line-up but cannot un-see a wrong appearance count.
+  **1970 is the third drop running to need no calibration correction**: mean 74.9, median
+  75, floor 63, band 12.3%, best XI from El Salvador 67.5 to **Brazil 86.8** - the highest
+  pre-1990 side in the file and second only to Brazil 2002 (89.1).
+  **Pele 97 is the seventh Monumental card**, and both group A raters chose it independently
+  with the same reasoning, which is worth keeping: a rating is the player's STRENGTH at that
+  tournament, not the size of the load he carried, so "he had Jairzinho, Tostao and Gerson
+  beside him" argues against a 98, not against a 97.
+  **The era needs its own position note.** 1970 pre-dates modern position language - articles
+  say "inside forward", "wing half" or just "forward" - so each was mapped onto the twelve by
+  where the man actually lined up: inside forward is usually AM or ST, wing half DM or CM,
+  full-back LB or RB, libero CB. Expect the same for 1966 and earlier, more so.
+  **One override, and nothing but the article titles separates them:** Sweden's 1970 Jan
+  Olsson is born 1944 (a VfB Stuttgart midfielder who won **Guldbollen** for 1970 and
+  man-marked Riva); the 1974 Jan Olsson is born 1942, the man Cruyff turned. Two raters
+  reached that independently. Sweden's Claes Cronqvist looked like the same problem and is
+  not - one man, and the 1970 squad list's "DF" is the outlier against his own infobox and
+  the line-up, which both have him as a striker.
 - **Six name collisions came in with 1986 and one was already shipped.** A `personId` is
   the name slug, so two different people sharing a display name silently merge into one
   drafted-once identity. 1986 brought six (Brazil's 1986 Oscar / Júnior / Júlio César are
@@ -865,11 +892,11 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 75 / 19 / 6 = **100** across the dataset; it was 53 before
+  **Monumental** 97-99 (currently 78 / 20 / 7 = **105** across the dataset; it was 53 before
   the 1990-2002 squads were researched, 81 before 1986, 84 before 1986's ratings were
   re-authored, 87 before 1982, 92 before 1982's hand-tuning put Platini over 90, 93 before
-  1978 and 95 before 1974, so re-derive a count rather than trusting one written down here -
-  this figure has been wrong seven times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  1978, 95 before 1974 and 100 before 1970, so re-derive a count rather than trusting one
+  written down here - this figure has been wrong eight times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
   adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),
@@ -2047,11 +2074,22 @@ keep working.
   dismisses on scroll/resize. Hover-only by design.
 - `Flag.tsx` renders **only real flags** (no code-box fallback; returns `null` if a
   code is unmapped). The red "YOU" badge marks the user's own team in match screens.
-- `BoxScore` (right column) renders the **ratings strip** (Ovr = all, Att = FWD,
-  Mid = MID, Def = GK+DEF; Ovr is the deep-green hero cell) and, below it, the
+- `BoxScore` (right column) renders the **ratings strip** (Ovr = all, Att = MID+FWD,
+  Def = GK+DEF; Ovr is the deep-green hero cell) and, below it, the
   **chemistry card** (donut + effective overall + per-category breakdown chips).
   `XiTable` is the **line-up sheet** below them (pos / name / flag+year / rating,
   GK row on chalk).
+  **The strip's groups are the SIMULATOR's** (audit decision D7, answered 2026-08-25),
+  which is why there are three cells and not four. It used to have a **Mid** cell and an
+  **Att** that was forwards ONLY, while the Cup Run screen's identically-labelled Att has
+  always been midfielders + forwards, because that is what the sim reads: the same XI read
+  Att 88 on the build page and Att 81 the moment its run started, with nothing having
+  changed. Midfielders are inside Att now, on both screens, so there is no Mid cell to
+  add. `lineAverages` (domain/match.ts, beside `xiStrength`) still differs from
+  `xiStrength` in exactly ONE way and must keep doing so: **an empty line reads 0 here**,
+  which the screen shows as a dash, where `xiStrength` falls back to the overall - a
+  fallback that is right for a match (it cannot be simulated against nothing) and a lie on
+  a half-built XI.
 - **Team rating chips**: `RatingChip` (in `matchUi.tsx`) shows a team's rating as a
   small chip next to it (standings, fixtures, bracket seeds, summary recaps). It is
   hidden below the `sm` breakpoint (no hover on mobile, space is tight) and toggled

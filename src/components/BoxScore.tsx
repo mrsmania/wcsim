@@ -77,25 +77,25 @@ function Cell({ label, value, ovr = false }: { label: string; value: number; ovr
     );
 }
 
-/** The right-column readout: a 4-cell ratings strip (Ovr/Att/Mid/Def) and, below
- *  it, the chemistry card (donut + effective overall + the per-category breakdown).
- *  Both render as siblings so the surrounding stack spaces them. */
+/** The right-column readout: a 3-cell ratings strip (Ovr/Att/Def) and, below it, the
+ *  chemistry card (donut + effective overall + the per-category breakdown). Both render
+ *  as siblings so the surrounding stack spaces them. */
 export default function BoxScore({ formation, filled }: Props) {
     const placed = placedPlayers(formation, filled);
-    // Not `xiStrength`: this Att is forwards only and an empty line reads 0, both on
-    // purpose. `lineAverages` sits beside xiStrength in domain/match.ts and its docstring
-    // says why the two differ (hygiene H144).
-    const { overall, attack, midfield, defense } = lineAverages(placed);
+    // The simulator's own groups (Att is MID+FWD, Def is GK+DEF), so these are the
+    // numbers a run is played on - which is why there is no Mid cell to add: midfielders
+    // are inside Att. `lineAverages` differs from `xiStrength` in one way only, the empty
+    // line, and its docstring beside it says why (hygiene H144, audit decision D7).
+    const { overall, attack, defense } = lineAverages(placed);
 
     const chem = FEATURES.chemistry ? teamChemistry(formation, filled) : null;
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;
 
     return (
         <>
-            <div className="grid grid-cols-4 overflow-hidden rounded-md border border-line shadow-hard">
+            <div className="grid grid-cols-3 overflow-hidden rounded-md border border-line shadow-hard">
                 <Cell label="Ovr" value={overall} ovr />
                 <Cell label="Att" value={attack} />
-                <Cell label="Mid" value={midfield} />
                 <Cell label="Def" value={defense} />
             </div>
 
