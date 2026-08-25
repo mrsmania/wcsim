@@ -11,9 +11,14 @@
  * the knockout bracket, standings, chemistry) - not a UI or behaviour change.
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID, basePlayer } from '../src/data/squads';
+import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID, WORLD_CUP_YEARS, basePlayer } from '../src/data/squads';
 import { ELO_MAX, ELO_MIN, isAttacker, isDefender, primaryPosition, type Player, type Position } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
+import {
+  DEFAULT_SETTINGS,
+  normalizeSettings,
+  toStored,
+} from '../src/state/settingsStorage';
 import {
   POSITION_WEIGHT,
   pickScorer,
@@ -2969,6 +2974,40 @@ const KNOWN_MISSING_ART = new Set([
       rate('AM') > rate('CM') &&
       rate('CM') > rate('RB') &&
       rate('RB') > rate('CB'),
+  );
+}
+
+// --- Settings: "every tournament" has to survive a tournament being ADDED ----
+// This is the bug that made 1986 invisible for two days, and it was silent on every
+// surface at once. `useSettings` persists on mount, so every player has a saved
+// `poolYears`; the old shape recorded "all tournaments" as a LIST of the years that
+// existed at that moment, so adding 1986 turned every existing save into "all except
+// 1986" - no longer the album's target, and not in the rolls, the market or the
+// opponents either. Nothing said so, because a nine-year list is a perfectly valid
+// narrowing. `toStored` therefore writes null for "all", and a v1 save (which could not
+// tell the two apart) gets its pool back.
+{
+  const storedAll = toStored({ ...DEFAULT_SETTINGS, poolYears: WORLD_CUP_YEARS });
+  const storedNarrow = toStored({ ...DEFAULT_SETTINGS, poolYears: [1990, 2022] });
+  // A v1 save: no `v`, and a list that covered every year at the time of writing.
+  const v1 = { theme: 'light', difficulty: 'normal', poolYears: WORLD_CUP_YEARS.slice(1), showFullDraw: false };
+  const roundTrip = (s: unknown) => normalizeSettings(s).poolYears;
+  const ok =
+    // "All" must not be written as a list, or the next tournament reads as deselected.
+    storedAll.poolYears === null &&
+    roundTrip(storedAll).length === WORLD_CUP_YEARS.length &&
+    // A deliberate narrowing still survives a round trip untouched.
+    storedNarrow.poolYears?.join() === '1990,2022' &&
+    roundTrip(storedNarrow).join() === '1990,2022' &&
+    // A v1 save reopens rather than silently hiding whatever was added since.
+    roundTrip(v1).length === WORLD_CUP_YEARS.length &&
+    // Junk, an empty pool and years that left the dataset all fall back to everything.
+    roundTrip(null).length === WORLD_CUP_YEARS.length &&
+    roundTrip({ v: 2, poolYears: [] }).length === WORLD_CUP_YEARS.length &&
+    roundTrip({ v: 2, poolYears: [1930] }).length === WORLD_CUP_YEARS.length;
+  check(
+    'settings: an all-tournaments pool survives a new tournament, a narrowing survives a round trip',
+    ok,
   );
 }
 

@@ -375,6 +375,25 @@ target. Defaults to every year; it is **never empty** (an empty selection falls 
 all), and loading tolerates years that are not in the dataset. Keeping settings on their
 own key is deliberate: resetting the game, album, career or run never touches them.
 
+**"Every tournament" is stored as `null`, NEVER as a list of every current year**, and this
+was a real bug that hid a whole tournament. `useSettings` persists on mount, so every player
+has a saved `poolYears` whether or not they ever opened the sheet; the old shape wrote "all"
+as a literal list of the years that existed at that moment, so **adding 1986 turned every
+existing save into "all except 1986"** - and it was silent on every surface at once, because
+a nine-year list is a perfectly valid narrowing and `loadSettings` had nothing to check it
+against. It was reported as "the album is not up to date" (Maradona's placeholder missing
+from `/album`), but the rolls, the market and the opponents had lost 1986 too.
+So `settingsStorage` now owns the stored shape for **both** stores: `toStored` writes
+`poolYears: null` when the selection covers every year, `normalizeSettings` reads it back,
+and a `v` field marks the shape - a save without one (v1) **gets its whole pool back**,
+since it cannot say whether its list meant "these" or "all", and reopening a pool costs a
+tick-box while the other direction hides a tournament and never mentions it. Three call
+sites had to go through it, and the account path had **no** normalisation at all before
+(`remoteStore` cast the jsonb straight across): `loadSettings`/`saveSettings`,
+`remoteStore.load`/`saveSettings`, and `moveGuestProgressIn`, which posts the blob
+`import_guest_progress` inserts verbatim. `npm run checks` asserts the round trip, including
+that a deliberate narrowing still survives it.
+
 ## Navigation: five tabs
 
 Roadmap item 27, **shipped 2026-08-21 and now the only navigation.** It went in behind a

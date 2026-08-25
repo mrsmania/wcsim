@@ -1,4 +1,5 @@
 import { FEATURES } from '../../config';
+import { toStored } from '../settingsStorage';
 import { clearGuestData, createLocalStore, hasGuestData } from './localStore';
 import type { AccountSnapshot, Store } from './types';
 
@@ -91,8 +92,12 @@ export interface BootResult {
 async function moveGuestProgressIn(): Promise<AccountSnapshot | null> {
   if (!impl.importGuest) return null;
   try {
-    const { reveal: _reveal, ...payload } = await createLocalStore().load();
-    await impl.importGuest(payload);
+    // Settings go over in STORED form: `import_guest_progress` inserts
+    // `p_payload->'settings'` verbatim into the account's jsonb, so handing it the
+    // in-memory shape would write a blob the next load reads as a v1 save and widens
+    // back to every tournament. See `settingsStorage.toStored`.
+    const { reveal: _reveal, settings, ...rest } = await createLocalStore().load();
+    await impl.importGuest({ ...rest, settings: toStored(settings) });
     clearGuestData();
     return impl.peek();
   } catch (err) {

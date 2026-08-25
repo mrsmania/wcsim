@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { emptyAlbum, type AlbumState } from '../../domain/album';
 import { INITIAL_CAREER, levelForXp, type CareerState } from '../../domain/career';
-import { DEFAULT_SETTINGS } from '../settingsStorage';
+import { normalizeSettings, toStored } from '../settingsStorage';
 import type { AccountSnapshot, AlbumStats, FinishRunResult, Store } from './types';
 
 // ---------------------------------------------------------------------------
@@ -230,7 +230,10 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
           tradesCompleted: s?.trades_completed ?? 0,
         } satisfies AlbumStats,
         career: careerFromRow(career.data as CareerRow | null),
-        settings: (settings.data?.data as AccountSnapshot['settings']) ?? DEFAULT_SETTINGS,
+        // Through the same normaliser a guest's blob goes through, not cast straight
+        // across: the account row is jsonb the client wrote, so it carries the same
+        // stale-pool problem (and the same tolerance needs) as localStorage.
+        settings: normalizeSettings(settings.data?.data),
         run: (run.data?.data as AccountSnapshot['run']) ?? null,
         // Deliberately not stored server-side: a refresh mid-reveal replays the
         // current match, exactly as it does for a guest.
@@ -381,7 +384,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
 
     async saveSettings(settings) {
       patch({ settings });
-      await rpcPlain('save_settings', { p_data: settings });
+      await rpcPlain('save_settings', { p_data: toStored(settings) });
     },
 
     async saveRun(run) {
