@@ -82,6 +82,18 @@ interface CareerRow {
   stats: Partial<CareerState['stats']> | null;
 }
 
+/** The `album_stats` row as the app holds it. Written out three times before, once per
+ *  read path (boot, the one-trip bank, the fallback bank). */
+function albumStatsFromRow(
+  row: { runs_played: number; stickers_earned: number; trades_completed: number } | null | undefined,
+): AlbumStats {
+  return {
+    runsPlayed: row?.runs_played ?? 0,
+    stickersEarned: row?.stickers_earned ?? 0,
+    tradesCompleted: row?.trades_completed ?? 0,
+  };
+}
+
 function careerFromRow(row: CareerRow | null): CareerState {
   if (!row) return INITIAL_CAREER;
   return {
@@ -99,7 +111,23 @@ function careerFromRow(row: CareerRow | null): CareerState {
   };
 }
 
-function careerToRow(c: CareerState) {
+/** The jsonb payload `save_career` takes. camelCase BY CONTRACT with that function, which
+ *  is why it has its own name rather than being inferred: the reading side (`CareerRow`) is
+ *  typed, and this had nothing recording that the two are deliberately different shapes
+ *  (verified against migration 0011). A key the function does not know is silently dropped,
+ *  so a typo here loses data without failing (hygiene H76). */
+interface CareerPayload {
+  xp: number;
+  prestige: number;
+  perkLevels: Record<string, number>;
+  unlockedBoons: string[];
+  ascension: number;
+  lastAscension: number | null;
+  completedChallenges: string[];
+  stats: CareerState['stats'];
+}
+
+function careerToRow(c: CareerState): CareerPayload {
   return {
     xp: c.xp,
     prestige: c.prestige,
@@ -129,6 +157,17 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
     cache = { ...peek(), ...next };
   };
 
+  /** Turn a Supabase error into ours, keeping what the caller might branch on: a stale
+   *  version becomes `StaleVersionError` so the write path can re-read and retry, and
+   *  anything else keeps its `code`.
+   *
+   *  Four sites used to differ on this. `rpc` mapped both; `rpcPlain`, `readVersion` and
+   *  `readAlbum` threw a bare `Error(message)` and lost the code and the stale mapping - so
+   *  `moveGuestProgressIn`, which goes through `rpcPlain`, could not tell "the account
+   *  already holds something" from a dropped connection (hygiene H75). */
+  const wrapError = (error: { message: string; code?: string }): Error =>
+    isStale(error.message) ? new StaleVersionError() : new RpcError(error.message, error.code);
+
   /** Read the account's current version straight from the server. */
   const readVersion = async (): Promise<number> => {
     const { data, error } = await client
@@ -136,7 +175,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       .select('state_version')
       .eq('id', userId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw wrapError(error);
     return data?.state_version ?? 0;
   };
 
@@ -166,11 +205,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
     serialize(async () => {
       const call = async (v: unknown) => {
         const { data, error } = await client.rpc(name, { ...args, p_expected_version: v });
-        if (error) {
-          throw isStale(error.message)
-            ? new StaleVersionError()
-            : new RpcError(error.message, error.code);
-        }
+        if (error) throw wrapError(error);
         return data as T;
       };
       try {
@@ -186,7 +221,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
   const rpcPlain = <T>(name: string, args: Record<string, unknown>): Promise<T> =>
     serialize(async () => {
       const { data, error } = await client.rpc(name, args);
-      if (error) throw new Error(error.message);
+      if (error) throw wrapError(error);
       return data as T;
     });
 
@@ -195,7 +230,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       .from('album_stickers')
       .select('player_id, copies')
       .eq('user_id', userId);
-    if (error) throw new Error(error.message);
+    if (error) throw wrapError(error);
     return albumFromRows(data ?? []);
   };
 
@@ -220,15 +255,10 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       if (firstError) throw new Error(firstError.message);
 
       version = profile.data?.state_version ?? 0;
-      const s = stats.data;
       cache = {
         game: (game.data?.data as AccountSnapshot['game']) ?? null,
         album,
-        albumStats: {
-          runsPlayed: s?.runs_played ?? 0,
-          stickersEarned: s?.stickers_earned ?? 0,
-          tradesCompleted: s?.trades_completed ?? 0,
-        } satisfies AlbumStats,
+        albumStats: albumStatsFromRow(stats.data),
         career: careerFromRow(career.data as CareerRow | null),
         // Through the same normaliser a guest's blob goes through, not cast straight
         // across: the account row is jsonb the client wrote, so it carries the same
@@ -263,13 +293,13 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
             // fails as stale and the rpc retry re-reads it, rather than sending undefined.
             version = p.version ?? version;
             const album = albumFromRows(p.album ?? []);
+            // Keep the PREVIOUS counters when the payload omits them, the same way the
+            // version two lines up is kept and for the same reason - zeroing a cache the
+            // server did not speak to would make the next screen read as a fresh account
+            // (hygiene H76).
             patch({
               album,
-              albumStats: {
-                runsPlayed: p.stats?.runs_played ?? 0,
-                stickersEarned: p.stats?.stickers_earned ?? 0,
-                tradesCompleted: p.stats?.trades_completed ?? 0,
-              },
+              albumStats: p.stats ? albumStatsFromRow(p.stats) : peek().albumStats,
             });
             return { album, newly: p.newly ?? [] };
           } catch (err) {
@@ -293,14 +323,7 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
             .eq('user_id', userId)
             .maybeSingle(),
         ]);
-        patch({
-          album,
-          albumStats: {
-            runsPlayed: stats.data?.runs_played ?? 0,
-            stickersEarned: stats.data?.stickers_earned ?? 0,
-            tradesCompleted: stats.data?.trades_completed ?? 0,
-          },
-        });
+        patch({ album, albumStats: albumStatsFromRow(stats.data) });
         return { album, newly: newly ?? [] };
       };
 

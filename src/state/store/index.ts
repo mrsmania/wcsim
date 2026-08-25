@@ -35,7 +35,12 @@ let remote = false;
 type ErrorListener = (err: Error) => void;
 let onError: ErrorListener | null = null;
 
-export function onStoreError(listener: ErrorListener): () => void {
+/** Register the one handler for a failed account write. A single SLOT, not a subscription:
+ *  there is exactly one consumer (App, which puts up the unreachable screen), and the
+ *  disposer clears the slot unconditionally rather than only its own listener - which is
+ *  correct for one consumer and wrong for two. Named for what it does, since the old
+ *  `onStoreError` read like a subscription (hygiene H76). */
+export function setStoreErrorHandler(listener: ErrorListener): () => void {
   onError = listener;
   return () => {
     onError = null;

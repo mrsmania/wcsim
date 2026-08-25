@@ -53,6 +53,12 @@ export interface FinishRunInput {
   outcome: string;
 }
 
+// `localStore.finishRun` deliberately reads only three of these six. `runKey`, `swapsUsed`
+// and `outcome` exist for the SERVER: the key is what makes a double submit refusable, and
+// the other two are validated and recorded server-side. A guest has no second writer to
+// race and nothing to validate against, so ignoring them is correct rather than an
+// oversight - which is why it is written down (hygiene H76).
+
 export interface FinishRunResult {
   album: AlbumState;
   /** Ids that were NOT already collected, i.e. what the run-end summary shows. */

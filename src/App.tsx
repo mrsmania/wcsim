@@ -39,7 +39,7 @@ import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './sta
 import { useLiveMatch } from './nav/liveMatch';
 import { SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
 import { requestRunStart } from './nav/pendingRun';
-import { onStoreError, store, type AccountSnapshot } from './state/store';
+import { setStoreErrorHandler, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import { SCRAMBLE_MS } from './hooks/motion';
@@ -135,7 +135,7 @@ export default function App({
     // Accounts (gated): the blocking state for a failed save while signed in (D9),
     // a global overlay like the album's.
     const [storeError, setStoreError] = useState<Error | null>(null);
-    useEffect(() => onStoreError(setStoreError), []);
+    useEffect(() => setStoreErrorHandler(setStoreError), []);
     const timerRef = useRef<number | null>(null);
     const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);

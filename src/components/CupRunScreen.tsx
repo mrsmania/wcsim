@@ -229,7 +229,11 @@ export default function CupRunScreen({
   const odds = useMemo(
     () =>
       activeXi
-        ? simulateTitleOdds(activeXi, 600, chem, diffDelta + ascensionAt(activeAsc).userDelta, pool)
+        ? simulateTitleOdds(activeXi, 600, {
+            chemistryBonus: chem,
+            atkDefDelta: diffDelta + ascensionAt(activeAsc).userDelta,
+            pool,
+          })
             .champion
         : 0,
     [activeXi, activeAsc, chem, diffDelta, pool],
@@ -270,11 +274,16 @@ export default function CupRunScreen({
       setCareer(nextCareer);
       void store.saveCareer(nextCareer);
     }
-    const begun = beginRun(draftedXi, career.perkLevels, career.unlockedBoons, chosen, {
-      shape: draftedShape ?? undefined,
-      build: draftedBuild ?? undefined,
-      careerTopScorerId: careerTopScorerId(career),
-      bonusStartBoosts: owed,
+    const begun = beginRun(draftedXi, {
+      perkLevels: career.perkLevels,
+      unlockedBoons: career.unlockedBoons,
+      ascension: chosen,
+      kickoff: {
+        shape: draftedShape ?? undefined,
+        build: draftedBuild ?? undefined,
+        careerTopScorerId: careerTopScorerId(career),
+        bonusStartBoosts: owed,
+      },
     });
     const p = prepareGroupStage(begun, diffDelta, pool);
     setReward(null);

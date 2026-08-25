@@ -63,13 +63,22 @@ function simulateFinish(
  * `Math.random`; higher `sims` = steadier numbers. Cheap, but for a live UI readout
  * prefer a web worker (a few thousand sims is a brief burst of work).
  */
+/** What to simulate against, beyond the XI and the number of runs. */
+export interface TitleOddsOptions {
+  /** The XI's chemistry bonus, which reaches attack and defence alike. */
+  chemistryBonus?: number;
+  /** The user's own rating delta (the difficulty setting plus the Ascension handicap). */
+  atkDefDelta?: number;
+  /** The squad pool to draw opponents from. */
+  pool?: readonly Squad[];
+}
+
 export function simulateTitleOdds(
   players: Player[],
   sims: number,
-  chemistryBonus = 0,
-  atkDefDelta = 0,
-  pool: readonly Squad[] = SQUADS,
+  opts: TitleOddsOptions = {},
 ): TitleOdds {
+  const { chemistryBonus = 0, atkDefDelta = 0, pool = SQUADS } = opts;
   const counts: Record<Finish, number> = {
     group: 0,
     r16: 0,

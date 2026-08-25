@@ -746,13 +746,28 @@ export interface Kickoff {
   bonusStartBoosts?: number;
 }
 
-export function beginRun(
-  xi: Player[],
-  perkLevels: Record<string, number> = {},
-  unlockedBoons: string[] = [],
-  ascension = 0,
-  kickoff: Kickoff = {},
-): RunState {
+/** Everything a run starts with beyond the XI. An options object rather than four more
+ *  positional parameters: setting only the last one meant passing filler for the three in
+ *  front of it, which ~20 harness call sites did with `{}, [], 0` (hygiene H77). */
+export interface BeginRunOptions {
+  /** Owned perk tiers, which decide the free starting boosts and the offer size. */
+  perkLevels?: Record<string, number>;
+  /** Boosts unlocked with Prestige, which the offer pool draws from. */
+  unlockedBoons?: string[];
+  /** The Ascension tier this run is played at. */
+  ascension?: number;
+  /** What the build page knew and the run cannot recover later (shape, build, the career's
+   *  top scorer, a banked Youth Development grant). */
+  kickoff?: Kickoff;
+}
+
+export function beginRun(xi: Player[], opts: BeginRunOptions = {}): RunState {
+  const {
+    perkLevels = {},
+    unlockedBoons = [],
+    ascension = 0,
+    kickoff = {},
+  } = opts;
   // The roster is the drafted XI at dataset ratings; everything done to it goes in the
   // ledger, including the two perks that used to rewrite the players here.
   let roster = xi;

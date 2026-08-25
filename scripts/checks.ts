@@ -606,7 +606,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let ok = true;
   let checked = 0;
   for (let seed = 0; seed < 40; seed++) {
-    let run = beginRun(bestEleven(SQUADS[seed % SQUADS.length].players), { 'deep-squad': 2, scout: 1 }, lockableBoons().map((b) => b.id), 0);
+    let run = beginRun(bestEleven(SQUADS[seed % SQUADS.length].players), { perkLevels: { 'deep-squad': 2, scout: 1 }, unlockedBoons: lockableBoons().map((b) => b.id) });
     const agrees = (r: RunState) =>
       JSON.stringify(r.xi) === JSON.stringify(xiOf(r.roster ?? r.xi, r.effects ?? [], r.koRound));
     if (!agrees(run)) ok = false;
@@ -967,7 +967,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   if ((yth.career.stats.bonusStartBoosts ?? 0) !== 1) ok = false;
   if ((p.career.stats.bonusStartBoosts ?? 0) !== 0) ok = false;
   // And a grant, once spent, is dealt as a starter boost at kickoff.
-  const owed = beginRun(base, {}, [], 0, { bonusStartBoosts: 2 });
+  const owed = beginRun(base, { kickoff: { bonusStartBoosts: 2 } });
   if (owed.activeBoons.length !== 2) ok = false;
   // Commons only, for the reason Scout Network's are: a free legendary before kick-off
   // outweighs every choice the run itself offers.
@@ -1279,7 +1279,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     const { filled } = autoFillBudget(f.slots, {}, BUDGET_DRAFT);
     const xi = placedPlayers(f, filled);
     if (xi.length !== 11) continue;
-    const g = prepareGroupStage(beginRun(xi, {}, [], 0));
+    const g = prepareGroupStage(beginRun(xi));
     if (!g || g.next.phase !== 'boon' || !g.next.offer) continue;
     const r = g.next;
     // Enrich so the cards keyed to the run's own history have something to read: a top
@@ -1352,7 +1352,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const seen = new Map<string, number>();
   let stops = 0, dupInOffer = 0, wrongSize = 0, heldOffered = 0, emptyOffer = 0;
   for (let i = 0; i < 300; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, allIds, 0);
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { unlockedBoons: allIds });
     let run: RunState = prepareGroupStage(begun)!.next;
     let guard = 0;
     while (guard++ < 10) {
@@ -1427,7 +1427,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     let sizes: number[] = [];
     for (let i = 0; i < 60 && !sizes.length; i++) {
       const g = prepareGroupStage(
-        beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { 'extra-boon': tier }, allIds, 0),
+        beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { perkLevels: { 'extra-boon': tier }, unlockedBoons: allIds }),
       );
       if (g?.next.phase === 'boon' && g.next.offer) sizes = [g.next.offer.length];
     }
@@ -1438,7 +1438,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // before kickoff outweighs every choice the run itself offers).
   let scoutOk = true;
   for (const tier of [0, 1, 2]) {
-    const r = beginRun(bestEleven(SQUADS[0].players), { scout: tier }, allIds, 0);
+    const r = beginRun(bestEleven(SQUADS[0].players), { perkLevels: { scout: tier }, unlockedBoons: allIds });
     if (r.activeBoons.length !== tier) scoutOk = false;
     if (r.activeBoons.some((id) => boonById(id)?.rarity !== 'common')) scoutOk = false;
   }
@@ -1448,7 +1448,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // than the boosts picked at stops.
   let scoutHeldOffered = 0;
   for (let i = 0; i < 60; i++) {
-    const r = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { scout: 2 }, allIds, 0);
+    const r = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { perkLevels: { scout: 2 }, unlockedBoons: allIds });
     const held = new Set(r.activeBoons);
     const g = prepareGroupStage(r);
     for (const b of g?.next.offer ?? []) if (held.has(b.id)) scoutHeldOffered++;
@@ -1472,7 +1472,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let thinnest = 99;
   for (let i = 0; i < 120; i++) {
     let run: RunState = prepareGroupStage(
-      beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { 'extra-boon': 2, scout: 2 }, [], 0),
+      beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { perkLevels: { 'extra-boon': 2, scout: 2 } }),
     )!.next;
     let guard = 0;
     while (guard++ < 12) {
@@ -1569,7 +1569,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let oppFromBracket = true;
   for (let i = 0; i < 200 && completes && ownTieMatches && oppFromBracket; i++) {
     const squad = SQUADS[(i * 5) % SQUADS.length];
-    let r: RunState = beginRun(bestEleven(squad.players), {}, [], i % 6);
+    let r: RunState = beginRun(bestEleven(squad.players), { ascension: i % 6 });
     r = playGroupStage(r);
     let guard = 0;
     while (r.phase !== 'ended' && guard++ < 20) {
@@ -1619,7 +1619,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     let total = 0;
     let n = 0;
     for (let i = 0; i < 120; i++) {
-      let r: RunState = beginRun(bestEleven(SQUADS[(i * 3) % SQUADS.length].players), {}, [], tier);
+      let r: RunState = beginRun(bestEleven(SQUADS[(i * 3) % SQUADS.length].players), { ascension: tier });
       r = playGroupStage(r);
       const b = r.bracket;
       if (!b) continue;
@@ -1678,7 +1678,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let recorded = true;
   let committedDropsIt = true;
   for (let i = 0; i < 200 && stable && recorded && committedDropsIt; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0);
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players));
     const first = prepareGroupStage(begun)!;
     // The run held while the group reveals carries it; the run it was prepared from
     // did not.
@@ -1709,7 +1709,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let koDropped = true;
   let tiesChecked = 0;
   for (let i = 0; i < 120; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0);
+    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players));
     const g1 = prepareGroupStage(begun)!;
     // Surviving the group also decides the field of 16, the first offer and the R16
     // opponent; a second prepare must hand back exactly those.
@@ -2120,7 +2120,7 @@ const plainRun = (() => {
 
   // A full run at every tier terminates validly and carries its tier through.
   for (let t = 0; t < ASCENSIONS.length && ok; t++) {
-    let r = playGroupStage(beginRun(bestEleven(SQUADS[t % SQUADS.length].players), {}, [], t));
+    let r = playGroupStage(beginRun(bestEleven(SQUADS[t % SQUADS.length].players), { ascension: t }));
     let guard = 0;
     while (r.phase !== 'ended' && guard++ < 20) {
       if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
@@ -2521,7 +2521,7 @@ const KNOWN_MISSING_ART = new Set([
   const xi = bestEleven(SQUADS.find((s) => s.code === 'BRA')!.players);
   const input = { base: basePlayer, album: emptyAlbum(), trades: 0 };
   const finished = (outcome: RunOutcome, ascension = 0): RunState => ({
-    ...beginRun(xi, {}, [], ascension),
+    ...beginRun(xi, { ascension: ascension }),
     phase: 'ended',
     outcome,
     score: 100,
@@ -2829,7 +2829,7 @@ const KNOWN_MISSING_ART = new Set([
     career = { ...career, level: 99, ascension: a.tier };
     for (let i = 0; i < 2; i++) {
       const run: RunState = {
-        ...beginRun(bestEleven(SQUADS[0].players), career.perkLevels, career.unlockedBoons, a.tier),
+        ...beginRun(bestEleven(SQUADS[0].players), { perkLevels: career.perkLevels, unlockedBoons: career.unlockedBoons, ascension: a.tier }),
         phase: 'ended',
         outcome: 'champion',
         score: 140,
@@ -2986,7 +2986,7 @@ const KNOWN_MISSING_ART = new Set([
   // A whole run, played through the real prepare* path so the tally is built the way
   // the game builds it (not hand-set here).
   const xi = bestEleven(SQUADS[0].players);
-  let run: RunState = beginRun(xi, {}, [], 0);
+  let run: RunState = beginRun(xi);
   let guard = 0;
   const prepared = prepareGroupStage(run);
   run = prepared?.next ?? run;
@@ -3034,7 +3034,7 @@ const KNOWN_MISSING_ART = new Set([
   // run is only that the tally ignores the shootout.
   let penKicksSeen = 0;
   for (let i = 0; i < 400 && pensSeen < 12; i++) {
-    let r: RunState = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), {}, [], 0);
+    let r: RunState = beginRun(bestEleven(SQUADS[i % SQUADS.length].players));
     r = playGroupStage(r);
     let g = 0;
     while (r.phase !== 'ended' && g++ < 12) {
@@ -3080,7 +3080,7 @@ const KNOWN_MISSING_ART = new Set([
   // The archive: newest first, capped, and the counters it carries agree with the run.
   let career = INITIAL_CAREER;
   const ended = (score: number, outcome: RunOutcome): RunState => ({
-    ...beginRun(xi, {}, [], 0),
+    ...beginRun(xi),
     phase: 'ended',
     outcome,
     score,
