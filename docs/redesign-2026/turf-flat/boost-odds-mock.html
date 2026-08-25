@@ -1,0 +1,832 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Odds at Each Decision</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap">
+<script>
+/* Apply a saved theme before paint, same shared key as the other turf-flat comps.
+   Nothing is stamped until the reader picks one, so an untouched page keeps following
+   its host (prefers-color-scheme locally, the claude.ai theme in the Artifact). */
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+  /* ROADMAP ITEM 05 - "Career depth F: odds at each decision". Three ways to put a
+     title-odds figure on the boost cards, drawn on one real offer, plus the measurements
+     that decide between them.
+
+     Every percentage on this page is MEASURED, not invented: the tables at the bottom
+     name the probe that produced each one (an 81-rated budget XI, Base Ascension, the
+     post-group stop with Brazil 2002 drawn in the Round of 16). Nothing here is a
+     mock-up number dressed as data.
+
+     Self-contained on purpose, like challenges-quieter-mock.html: it opens standalone
+     in a browser AND publishes as an Artifact, hence the doctype, the own reset and the
+     theme button (the two hosts source the theme differently). Tokens are copied from
+     src/index.css so both themes match the app. */
+
+  /* ---- tokens: light (turf-flat "pitch") ------------------------------------ */
+  :root {
+    --paper: #f4f2ec; --panel: #ffffff; --chalk: #e8f0e8;
+    --ink: #13211a; --muted: #5c6a60; --line: #d4ded5;
+    --pitch: #15924c; --pitch-deep: #0e5c34; --accent: #0e5c34;
+    --amber: #e4922b; --amber-ink: #9a6512; --loss: #c8453c;
+    --faint: #ecebe3; --dim: #636c65; --hair: #e3e8e2;
+    --hard: 6px 6px 0 var(--pitch-deep); --hard-sm: 4px 4px 0 var(--pitch-deep);
+    --disp: "Archivo", system-ui, "Segoe UI", sans-serif;
+    --body: "Schibsted Grotesk", system-ui, "Segoe UI", sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
+  }
+  /* ---- tokens: dark (the app's graphite scheme) ----------------------------- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #131417; --panel: #1c1e22; --chalk: #26282e;
+      --ink: #eceef1; --muted: #a4a9b0; --line: #33363d;
+      --pitch: #22a35d; --pitch-deep: #17492f; --accent: #34c06f;
+      --amber: #eea23a; --amber-ink: #eab765; --loss: #e0665c;
+      --faint: #191b1f; --dim: #848b92; --hair: #2a2d33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #131417; --panel: #1c1e22; --chalk: #26282e;
+    --ink: #eceef1; --muted: #a4a9b0; --line: #33363d;
+    --pitch: #22a35d; --pitch-deep: #17492f; --accent: #34c06f;
+    --amber: #eea23a; --amber-ink: #eab765; --loss: #e0665c;
+    --faint: #191b1f; --dim: #848b92; --hair: #2a2d33;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--body); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, h4, h5, p, ol, ul, figure { margin: 0; }
+  ol, ul { padding: 0; list-style: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  svg { display: block; }
+  code { font-family: var(--mono); font-size: .9em; background: var(--faint);
+    border-radius: 3px; padding: 0 4px; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  .doc { max-width: 1060px; margin: 0 auto; padding: 30px clamp(16px, 4vw, 34px) 90px; }
+
+  /* ---- document chrome ----------------------------------------------------- */
+  .kicker { font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--disp); font-weight: 900; font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -.025em; line-height: 1.02; margin: 8px 0 0; text-wrap: balance; }
+  .lede { color: var(--muted); font-size: 15px; max-width: 68ch; margin: 13px 0 0; }
+  .lede + .lede { margin-top: 9px; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .doc-head { display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; }
+  .theme-btn { font-family: var(--disp); font-size: 10.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); border-radius: 5px; padding: 8px 13px;
+    margin-top: 4px; }
+  .theme-btn:hover { border-color: var(--pitch); color: var(--accent); }
+
+  /* ---- the diagnosis panel -------------------------------------------------- */
+  .diag { margin-top: 28px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel); box-shadow: var(--hard); padding: 20px 22px; }
+  .diag h2 { font-family: var(--disp); font-size: 15px; font-weight: 800; margin: 0 0 4px;
+    letter-spacing: -.01em; }
+  .diag > p { font-size: 13px; color: var(--muted); margin: 0 0 15px; max-width: 74ch; }
+  .diag ol { display: grid; gap: 13px;
+    grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); }
+  .diag li { font-size: 13px; color: var(--muted); }
+  .diag li .n { font-family: var(--mono); font-size: 19px; font-weight: 700;
+    color: var(--ink); display: block; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .diag li .n.bad { color: var(--loss); }
+  .diag li .n.warm { color: var(--amber-ink); }
+  .diag li b { color: var(--ink); font-weight: 700; }
+
+  /* ---- option blocks -------------------------------------------------------- */
+  .opt { margin-top: 48px; }
+  .opt-head { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap;
+    border-bottom: 2px solid var(--ink); padding-bottom: 9px; }
+  .opt-num { font-family: var(--mono); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .1em; color: #fff; background: var(--pitch-deep); border-radius: 999px;
+    padding: 3px 10px; }
+  .opt-num.pick { background: var(--amber); color: #2a1c05; }
+  .opt-name { font-family: var(--disp); font-weight: 800; font-size: 22px;
+    letter-spacing: -.02em; }
+  .opt-thesis { font-size: 13.5px; color: var(--muted); margin-left: auto; }
+  .verdict { font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase; border-radius: 3px; padding: 3px 7px; }
+  .verdict.no { color: var(--loss); border: 1px solid var(--loss); }
+  .verdict.half { color: var(--amber-ink); border: 1px solid var(--amber); }
+  .verdict.yes { color: #fff; background: var(--pitch); }
+  .opt-why { margin: 15px 0 0; display: grid; gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); }
+  .opt-why li { font-size: 13.5px; color: var(--muted); padding-left: 15px; position: relative; }
+  .opt-why li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px;
+    height: 6px; border-radius: 50%; background: var(--pitch); }
+  .opt-why li.cost::before { background: var(--loss); }
+  .opt-why li b { color: var(--ink); font-weight: 700; }
+
+  /* ---- the screen frame ----------------------------------------------------- */
+  .frame { margin-top: 17px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--paper); padding: 18px clamp(13px, 2.4vw, 22px) 24px; }
+  .frame-tag { font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--dim); margin-bottom: 13px; }
+  .crumb { display: flex; align-items: baseline; gap: 8px; font-family: var(--mono);
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    margin-bottom: 11px; }
+  .crumb b { color: var(--ink); font-weight: 600; }
+  .crumb .sep { color: var(--line); }
+  .crumb .state { margin-left: auto; color: var(--pitch); }
+  .banner { padding: 10px 14px; font-family: var(--disp); font-weight: 800; font-size: 13px;
+    color: #fff; background: var(--pitch); border-radius: 5px; margin-bottom: 15px; }
+
+  /* the offer header line, as shipped: "Pick a boost" + the next opponent */
+  .offer-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 10px; }
+  .seglbl { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--muted); }
+  .nextline { font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+    display: inline-flex; align-items: center; gap: 6px; }
+  .nextline b { color: var(--ink); }
+
+  /* ---- the boost cards ------------------------------------------------------ */
+  .offer { display: grid; gap: 11px; grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 900px) { .offer { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 540px) { .offer { grid-template-columns: 1fr; } }
+  .bcard { border: 1px solid var(--line); border-top: 3px solid var(--rare-c, var(--muted));
+    border-radius: 6px; background: var(--panel); box-shadow: var(--hard-sm);
+    padding: 11px 12px 12px; display: flex; flex-direction: column; gap: 6px;
+    text-align: left; width: 100%; }
+  .bcard:hover { border-color: var(--pitch); border-top-color: var(--rare-c, var(--muted)); }
+  .bcard.common { --rare-c: #4a7c8c; }
+  .bcard.rare { --rare-c: #a8762b; }
+  .bcard.legendary { --rare-c: #7a4bb5; }
+  .bcard .rar { font-family: var(--mono); font-size: 8.5px; font-weight: 700;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--rare-c); }
+  .bcard h5 { font-family: var(--disp); font-weight: 800; font-size: 14px; line-height: 1.15; }
+  .bcard p { font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+  .bcard .spacer { flex: 1; }
+
+  /* ---- the odds strip, in its three drawn shapes ---------------------------- */
+  /* Option 1: one figure, the cup. */
+  .odds1 { margin-top: 3px; border-top: 1px solid var(--hair); padding-top: 7px;
+    display: flex; align-items: baseline; gap: 7px; font-family: var(--mono);
+    font-variant-numeric: tabular-nums; }
+  .odds1 .k { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--dim); }
+  .odds1 .v { font-size: 15px; font-weight: 700; margin-left: auto; }
+  .odds1 .d { font-size: 11px; font-weight: 700; color: var(--pitch); }
+  .odds1 .d.zero { color: var(--dim); }
+
+  /* Option 2: one figure, this tie. */
+  .odds2 { margin-top: 3px; border-radius: 4px; background: var(--chalk); padding: 7px 9px;
+    display: flex; align-items: baseline; gap: 8px; font-family: var(--mono);
+    font-variant-numeric: tabular-nums; }
+  .odds2 .k { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--dim); }
+  .odds2 .v { font-size: 16px; font-weight: 700; margin-left: auto; line-height: 1; }
+  .odds2 .d { font-size: 11px; font-weight: 700; color: var(--pitch); }
+
+  /* Option 3: both, each with a bar. */
+  .odds3 { margin-top: 4px; border-top: 1px solid var(--hair); padding-top: 8px;
+    display: grid; gap: 7px; }
+  .orow { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px;
+    font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .orow .k { font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  .orow .bar { height: 7px; border-radius: 2px; background: var(--faint); position: relative;
+    overflow: hidden; }
+  /* the run as it stands, in grey; what the card adds, in pitch on top of it */
+  .orow .bar i { position: absolute; inset: 0 auto 0 0; background: var(--dim); opacity: .34; }
+  .orow .bar u { position: absolute; top: 0; bottom: 0; background: var(--pitch);
+    text-decoration: none; }
+  .orow .bar u.down { background: var(--loss); }
+  .orow .d { font-size: 11.5px; font-weight: 700; color: var(--pitch); min-width: 34px;
+    text-align: right; }
+  .orow .d.down { color: var(--loss); }
+  .orow .d.level { color: var(--dim); font-weight: 600; }
+  .orow.muted .k, .orow.muted .d { color: var(--dim); }
+  /* the non-number, for a card the sim cannot price */
+  .olabel { margin-top: 4px; border-top: 1px solid var(--hair); padding-top: 8px;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .04em; color: var(--dim);
+    display: flex; align-items: center; gap: 6px; }
+  .olabel svg { width: 12px; height: 12px; flex: 0 0 auto; }
+  /* the pending state, while the worker is still counting */
+  .opending { margin-top: 4px; border-top: 1px solid var(--hair); padding-top: 8px;
+    display: grid; gap: 7px; }
+  .opending .sk { height: 7px; border-radius: 2px; background: var(--faint); }
+
+  /* the baseline strip above the cards: where the run stands right now */
+  .basestrip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+    border: 1px dashed var(--line); border-radius: 5px; padding: 8px 12px; margin-bottom: 11px;
+    font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums; }
+  .basestrip b { font-size: 14px; color: var(--ink); font-weight: 700; }
+  .basestrip .lbl { font-size: 8.5px; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--dim); }
+  .basestrip .sw { margin-left: auto; display: inline-flex; align-items: center; gap: 7px;
+    font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; }
+  .sw .knob { width: 30px; height: 17px; border-radius: 999px; background: var(--pitch);
+    position: relative; }
+  .sw .knob::after { content: ""; position: absolute; top: 2px; right: 2px; width: 13px;
+    height: 13px; border-radius: 50%; background: #fff; }
+  .sw.off .knob { background: var(--line); }
+  .sw.off .knob::after { right: auto; left: 2px; }
+
+  /* ---- flags (schematic, as in the other comps) ----------------------------- */
+  .flag { width: 19px; height: 13px; border-radius: 2px; display: inline-block;
+    position: relative; overflow: hidden; vertical-align: middle; flex: 0 0 auto;
+    box-shadow: inset 0 0 0 1px rgba(19,33,26,.18); }
+  .f-bra { background: #1b9e3e; }
+  .f-bra::before { content: ""; position: absolute; inset: 0; margin: auto; width: 60%;
+    height: 60%; background: #ffd500; transform: rotate(45deg); }
+  .f-bra::after { content: ""; position: absolute; inset: 0; margin: auto; width: 22%;
+    height: 22%; border-radius: 50%; background: #2a3a8c; }
+
+  /* ---- tables --------------------------------------------------------------- */
+  .tbl-wrap { overflow-x: auto; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--hair); text-align: left;
+    vertical-align: top; }
+  thead th { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); background: var(--chalk);
+    border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td.k { font-family: var(--disp); font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+  td.n, th.n { text-align: right; font-family: var(--mono);
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .good { color: var(--pitch); font-weight: 600; }
+  .bad { color: var(--loss); font-weight: 600; }
+  .meh { color: var(--dim); }
+  tr.pick td { background: rgba(228, 146, 43, .1); }
+  caption { caption-side: bottom; text-align: left; font-size: 12px; color: var(--dim);
+    padding-top: 9px; }
+
+  /* ---- section headings + prose --------------------------------------------- */
+  h2.sec { font-family: var(--disp); font-weight: 800; font-size: 20px; letter-spacing: -.02em;
+    margin: 52px 0 0; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  h3.sub { font-family: var(--disp); font-weight: 800; font-size: 14px; margin: 24px 0 7px; }
+  p.body { font-size: 13.5px; color: var(--muted); margin-top: 10px; max-width: 76ch; }
+  p.body b { color: var(--ink); font-weight: 600; }
+  ul.tight { margin: 10px 0 0; display: grid; gap: 8px; }
+  ul.tight li { font-size: 13.5px; color: var(--muted); padding-left: 16px; position: relative; }
+  ul.tight li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px;
+    height: 6px; border-radius: 50%; background: var(--line); }
+  ul.tight li b { color: var(--ink); font-weight: 700; }
+  .note { margin-top: 14px; padding: 10px 13px; border-left: 3px solid var(--amber);
+    background: var(--faint); border-radius: 0 5px 5px 0; font-size: 13px; color: var(--muted); }
+  .note b { color: var(--ink); }
+  .note.green { border-left-color: var(--pitch); }
+
+  /* ---- phone frame ---------------------------------------------------------- */
+  .phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+    gap: 24px; justify-content: start; margin-top: 18px; }
+  .ph { width: 100%; max-width: 320px; border: 2px solid var(--ink); border-radius: 18px;
+    background: var(--paper); overflow: hidden; box-shadow: var(--hard); padding: 12px; }
+  .ph .offer { grid-template-columns: 1fr; }
+  .phcap { font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 9px; }
+
+  .foot { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); }
+</style>
+
+<div class="doc">
+
+  <header class="doc-head">
+    <div>
+      <p class="kicker">Roadmap 05 &middot; Career depth F</p>
+      <h1>Odds at each decision</h1>
+    </div>
+    <button class="theme-btn" id="theme">Theme</button>
+  </header>
+
+  <p class="lede">The item asks for one thing: <b>run <code>simulateTitleOdds</code> per offered
+  boost rather than once for the current XI, and show the delta on the card</b>, so a pick is
+  informed rather than a guess. This page draws that, and two alternatives, on one real offer.</p>
+
+  <p class="lede">It is worth drawing rather than just building, because the literal version
+  is measurably wrong on a third of the catalogue. Every figure below was measured against the
+  shipped domain code, at the stop the screens show: an 81-rated budget XI, Base Ascension,
+  through the group, Brazil 2002 drawn in the Round of 16.</p>
+
+  <section class="diag">
+    <h2>What a naive per-card delta prints</h2>
+    <p>All 32 boosts, run through <code>applyBoon</code> and <code>simulateTitleOdds</code> exactly
+    as the item describes, across three budget-built XIs.</p>
+    <ol>
+      <li><span class="n bad">11 of 32</span> move the cup figure by <b>less than 1.5 points</b>,
+      which is inside the noise of the 600-sim readout the app already ships (&plusmn;0.9pp).</li>
+      <li><span class="n bad">&plus;21.3pp</span> is what <b>Sold Out Stadium</b> reads, the best
+      number on any card in the pool. Its debt (&minus;6 the round after) is invisible to the
+      measurement path, which skips a <code>startsIn</code> plan.</li>
+      <li><span class="n warm">&plus;0.4pp</span> is what <b>Away Days</b> reads, because a
+      whole-tournament sim replays a <b>random</b> tournament. It does not know who you play next.
+      On the tie it was actually taken for, it is worth <b>&plus;10.7pp</b>.</li>
+      <li><span class="n">850ms</span> of blocked main thread for a baseline plus four cards at
+      600 sims - and 600 sims is the precision that cannot separate a real 1pp from
+      nothing.</li>
+    </ol>
+  </section>
+
+  <p class="lede" style="margin-top: 22px">Two of those four are fixed by the same change, and it
+  is not a UI change: <b>the odds have to start from the run as it stands</b> - this bracket,
+  this next opponent, the rounds that are left - instead of restarting the tournament from a
+  group you have already won. That also makes a temporary card temporary, which is what turns Sold
+  Out Stadium from the best card on the board into the honest one. Options 2 and 3 below assume it;
+  option 1 is the item as literally written.</p>
+
+  <!-- ============================ OPTION 1 ============================ -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">01</span>
+      <span class="opt-name">Cup delta on the card</span>
+      <span class="verdict no">Rejected</span>
+      <span class="opt-thesis">The item as written: one number, the title odds, per card.</span>
+    </div>
+
+    <div class="frame">
+      <p class="frame-tag">/cup-run &middot; the first boost, after the group</p>
+      <div class="crumb"><span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Group stage</span><span class="state">1st, 7 pts</span></div>
+      <div class="banner">Through to the knockouts</div>
+
+      <div class="offer-h">
+        <span class="seglbl">Pick a boost</span>
+        <span class="nextline">Next: <span class="flag f-bra"></span><b>Brazil</b> 2002 in the Round of 16</span>
+      </div>
+
+      <div class="offer">
+        <button class="bcard common">
+          <span class="rar">Common</span>
+          <h5>Defensive Drills</h5>
+          <p>+2 to your goalkeeper and defenders.</p>
+          <span class="spacer"></span>
+          <span class="odds1"><span class="k">Cup</span><span class="v">9.1%</span><span class="d">+2.5</span></span>
+        </button>
+        <button class="bcard common">
+          <span class="rar">Common</span>
+          <h5>Away Days</h5>
+          <p>-5 to your next opponent's defence.</p>
+          <span class="spacer"></span>
+          <span class="odds1"><span class="k">Cup</span><span class="v">7.0%</span><span class="d zero">+0.4</span></span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>Second Wind</h5>
+          <p>+4 to your entire XI, for this round only.</p>
+          <span class="spacer"></span>
+          <span class="odds1"><span class="k">Cup</span><span class="v">18.2%</span><span class="d">+11.6</span></span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>Sold Out Stadium</h5>
+          <p>+6 to your XI this round, then -6 in the round after it.</p>
+          <span class="spacer"></span>
+          <span class="odds1"><span class="k">Cup</span><span class="v">27.9%</span><span class="d">+21.3</span></span>
+        </button>
+      </div>
+    </div>
+
+    <ul class="opt-why">
+      <li><b>It reads beautifully and it is lying.</b> The card the screen most recommends,
+      by a distance, is the one that is worth <b>+0.8pp</b> once its debt is counted. The
+      screen has turned a known design hole into a recommendation.</li>
+      <li class="cost"><b>Away Days is greyed out at +0.4</b> next to a card offering +21.3.
+      Nobody takes it again, and the pair it belongs to (Away Days / Man-Marking) stops being
+      a decision.</li>
+      <li class="cost"><b>Second Wind is priced as if permanent</b> (+11.6 against its true
+      +4.3), because <code>applyBoon</code> measures the round it is granted and the sim then
+      plays five more with it.</li>
+      <li class="cost"><b>Four cards read +0.0.</b> Sponsorship, Youth Development, All or
+      Nothing and Double Print pay outside the match sim entirely. A zero is not "no
+      information", it is a wrong one.</li>
+    </ul>
+  </section>
+
+  <!-- ============================ OPTION 2 ============================ -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">02</span>
+      <span class="opt-name">This tie only</span>
+      <span class="verdict half">Half of it</span>
+      <span class="opt-thesis">Drop the cup. Price the match you are about to play.</span>
+    </div>
+
+    <div class="frame">
+      <p class="frame-tag">/cup-run &middot; the same offer, priced on the Round of 16</p>
+      <div class="basestrip">
+        <span class="lbl">As you stand</span>
+        <span><b>30.5%</b> to beat Brazil</span>
+        <span class="meh">|</span>
+        <span><b>6.3%</b> to lift the cup</span>
+      </div>
+
+      <div class="offer">
+        <button class="bcard common">
+          <span class="rar">Common</span>
+          <h5>Defensive Drills</h5>
+          <p>+2 to your goalkeeper and defenders.</p>
+          <span class="spacer"></span>
+          <span class="odds2"><span class="k">R16</span><span class="v">34%</span><span class="d">+3.5</span></span>
+        </button>
+        <button class="bcard common">
+          <span class="rar">Common</span>
+          <h5>Away Days</h5>
+          <p>-5 to your next opponent's defence.</p>
+          <span class="spacer"></span>
+          <span class="odds2"><span class="k">R16</span><span class="v">41%</span><span class="d">+10.7</span></span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>Second Wind</h5>
+          <p>+4 to your entire XI, for this round only.</p>
+          <span class="spacer"></span>
+          <span class="odds2"><span class="k">R16</span><span class="v">48%</span><span class="d">+17.8</span></span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>Sold Out Stadium</h5>
+          <p>+6 to your XI this round, then -6 in the round after it.</p>
+          <span class="spacer"></span>
+          <span class="odds2"><span class="k">R16</span><span class="v">58%</span><span class="d">+27.4</span></span>
+        </button>
+      </div>
+    </div>
+
+    <ul class="opt-why">
+      <li><b>It is nearly free and it is exact.</b> 20,000 simulated ties cost <b>17ms</b>;
+      four cards plus a baseline are a rounding error, with a standard error under
+      &plusmn;0.4pp. No worker, no spinner, no stale figure.</li>
+      <li><b>Every opponent card comes alive.</b> Away Days +10.7 and Man-Marking +10.2, next
+      to Defensive Drills' +3.5. That is the choice the pair was designed to be.</li>
+      <li class="cost"><b>Sold Out Stadium still wins the screen</b>, and here it deserves to
+      - on this tie. The debt lands in the quarter-final, where nothing on the card shows
+      it.</li>
+      <li class="cost"><b>It underprices everything permanent.</b> Golden Generation is a
+      legendary because it lasts all run; judged on one tie it is a slightly better common.</li>
+    </ul>
+  </section>
+
+  <!-- ============================ OPTION 3 ============================ -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num pick">03</span>
+      <span class="opt-name">Both, position-aware</span>
+      <span class="verdict yes">Recommended</span>
+      <span class="opt-thesis">Two horizons, because the catalogue lives in both.</span>
+    </div>
+
+    <div class="frame">
+      <p class="frame-tag">/cup-run &middot; recommended</p>
+      <div class="crumb"><span>Play</span><span class="sep">/</span><b>Cup Run</b><span class="sep">/</span><span>Group stage</span><span class="state">1st, 7 pts</span></div>
+      <div class="banner">Through to the knockouts</div>
+
+      <div class="basestrip">
+        <span class="lbl">As you stand</span>
+        <span><b>30.5%</b> to beat Brazil</span>
+        <span class="meh">|</span>
+        <span><b>6.3%</b> to lift the cup</span>
+        <span class="sw" id="sw"><span class="knob"></span> Odds on</span>
+      </div>
+
+      <div class="offer-h">
+        <span class="seglbl">Pick a boost</span>
+        <span class="nextline">Next: <span class="flag f-bra"></span><b>Brazil</b> 2002 in the Round of 16</span>
+      </div>
+
+      <div class="offer" id="rec-offer">
+        <button class="bcard common">
+          <span class="rar">Common</span>
+          <h5>Defensive Drills</h5>
+          <p>+2 to your goalkeeper and defenders.</p>
+          <span class="spacer"></span>
+          <span class="odds3">
+            <span class="orow"><span class="k">R16</span><span class="bar"><i style="width:50.8%"></i><u style="left:50.8%;width:5.8%"></u></span><span class="d">+4</span></span>
+            <span class="orow"><span class="k">Cup</span><span class="bar"><i style="width:10.5%"></i><u style="left:10.5%;width:5.7%"></u></span><span class="d">+3</span></span>
+          </span>
+        </button>
+        <button class="bcard common">
+          <span class="rar">Common</span>
+          <h5>Away Days</h5>
+          <p>-5 to your next opponent's defence.</p>
+          <span class="spacer"></span>
+          <span class="odds3">
+            <span class="orow"><span class="k">R16</span><span class="bar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="d">+11</span></span>
+            <span class="orow"><span class="k">Cup</span><span class="bar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="d">+3</span></span>
+          </span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>Second Wind</h5>
+          <p>+4 to your entire XI, for this round only.</p>
+          <span class="spacer"></span>
+          <span class="odds3">
+            <span class="orow"><span class="k">R16</span><span class="bar"><i style="width:50.8%"></i><u style="left:50.8%;width:29.7%"></u></span><span class="d">+18</span></span>
+            <span class="orow"><span class="k">Cup</span><span class="bar"><i style="width:10.5%"></i><u style="left:10.5%;width:7.2%"></u></span><span class="d">+4</span></span>
+          </span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>Sold Out Stadium</h5>
+          <p>+6 to your XI this round, then -6 in the round after it.</p>
+          <span class="spacer"></span>
+          <span class="odds3">
+            <span class="orow"><span class="k">R16</span><span class="bar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="d">+27</span></span>
+            <span class="orow"><span class="k">Cup</span><span class="bar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="d level">level</span></span>
+          </span>
+        </button>
+      </div>
+
+      <p class="seglbl" style="margin: 20px 0 9px">Three cards a number cannot price, and one still counting</p>
+      <div class="offer">
+        <button class="bcard common">
+          <span class="rar">Common</span>
+          <h5>Sponsorship</h5>
+          <p>Double the XP this run pays. Prestige is unchanged.</p>
+          <span class="spacer"></span>
+          <span class="olabel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Pays after the run
+          </span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>Double Print</h5>
+          <p>Win the cup and pick two stickers instead of one.</p>
+          <span class="spacer"></span>
+          <span class="olabel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Album, on a cup win
+          </span>
+        </button>
+        <button class="bcard rare">
+          <span class="rar">Rare</span>
+          <h5>The Coin Toss</h5>
+          <p>Heads +8 to your XI, tails -4. The coin is already in the air.</p>
+          <span class="spacer"></span>
+          <span class="olabel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>
+            Not shown until taken
+          </span>
+        </button>
+        <button class="bcard legendary">
+          <span class="rar">Legendary</span>
+          <h5>Golden Generation</h5>
+          <p>+2 rating to your entire XI.</p>
+          <span class="spacer"></span>
+          <span class="opending">
+            <span class="orow"><span class="k">R16</span><span class="sk"></span><span class="d meh">&middot;&middot;&middot;</span></span>
+            <span class="orow"><span class="k">Cup</span><span class="sk"></span><span class="d meh">&middot;&middot;&middot;</span></span>
+          </span>
+        </button>
+      </div>
+      <p class="body" style="margin-top: 11px">The fourth card is the loading state: the tie
+      figure lands in one frame, the cup figure a few hundred milliseconds later. Cards are
+      pickable throughout - the readout never gates the choice. <b>Both bars share one
+      scale</b> (0 to 60%), which is what lets the R16 row and the Cup row sit above each other
+      at all: two rows on two scales would be a chart that lies.</p>
+    </div>
+
+    <ul class="opt-why">
+      <li><b>The two horizons disagree, and that disagreement is the feature.</b> Sold Out
+      Stadium reads <b>+27 on the tie and level on the cup</b>: the card says so in words, and
+      now the screen says so in numbers.</li>
+      <li><b>Whole points, never decimals.</b> At 6,000 sims the standard error is around
+      &plusmn;0.6pp, so a decimal would be inventing precision. Anything inside &plusmn;1pp
+      prints <b>level</b> rather than a fake &plus;0.</li>
+      <li><b>A bar, not just a figure.</b> The grey run is where you stand, the green is what
+      the card adds. Four cards compare at a glance without reading eight numbers.</li>
+      <li><b>Cards outside the sim get a label, not a zero.</b> Three shapes cover the
+      catalogue: pays after the run, reaches the album, deliberately hidden.</li>
+      <li class="cost"><b>It costs a new sim path and a worker.</b> Roughly 190ms per card at
+      6,000 sims; five of those on the main thread is most of a second of jank at exactly the
+      moment the screen should feel responsive.</li>
+    </ul>
+
+    <div class="phones">
+      <figure class="ph">
+        <figcaption class="phcap">Phone &middot; one card per row</figcaption>
+        <div class="offer">
+          <button class="bcard common">
+            <span class="rar">Common</span>
+            <h5>Away Days</h5>
+            <p>-5 to your next opponent's defence.</p>
+            <span class="odds3">
+              <span class="orow"><span class="k">R16</span><span class="bar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="d">+11</span></span>
+              <span class="orow"><span class="k">Cup</span><span class="bar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="d">+3</span></span>
+            </span>
+          </button>
+          <button class="bcard rare">
+            <span class="rar">Rare</span>
+            <h5>Sold Out Stadium</h5>
+            <p>+6 to your XI this round, then -6 in the round after it.</p>
+            <span class="odds3">
+              <span class="orow"><span class="k">R16</span><span class="bar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="d">+27</span></span>
+              <span class="orow"><span class="k">Cup</span><span class="bar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="d level">level</span></span>
+            </span>
+          </button>
+        </div>
+      </figure>
+      <div>
+        <p class="phcap">Why it survives the narrow column</p>
+        <p class="body" style="margin-top: 0">The strip is two rows of 7px bar under text that
+        already wraps to three lines, so a card grows by about 34px. The offer is one column
+        below 540px in any case, and the figure it adds is the one thing on the card that does
+        not need reading twice.</p>
+        <div class="note green"><b>The switch stays.</b> "Odds on" in the strip above the
+        cards is a persisted preference, like <code>showFullDraw</code>. Some players want the
+        guess; and turning it off is also the answer for anyone who finds a solved offer less
+        interesting than an unsolved one.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ THE EVIDENCE ============================ -->
+  <h2 class="sec">The measurements</h2>
+
+  <p class="body">Two probes against the shipped domain code. The first is the item as written:
+  <code>applyBoon</code> then <code>simulateTitleOdds</code>, which replays a fresh random
+  tournament from the group. The second starts from the actual position - the built
+  bracket, Brazil 2002 in the Round of 16, the user's rating re-derived <b>each round</b> so a
+  card that lasts one round lasts one round.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Card</th>
+          <th class="n">Position-blind<br>cup delta</th>
+          <th class="n">This tie<br>(R16 win %)</th>
+          <th class="n">Position-aware<br>cup delta</th>
+          <th>What the difference is</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="k">Defensive Drills</td>
+          <td class="n">+2.5</td>
+          <td class="n">34.0% <span class="good">+3.5</span></td>
+          <td class="n good">+3.4</td>
+          <td>Permanent and unconditional: the two methods agree, as they should.</td>
+        </tr>
+        <tr>
+          <td class="k">Golden Generation</td>
+          <td class="n">+4.6</td>
+          <td class="n">40.1% <span class="good">+9.6</span></td>
+          <td class="n good">+6.4</td>
+          <td>Understated by the blind method, which averages it over tournaments this run will
+          never play.</td>
+        </tr>
+        <tr>
+          <td class="k">Away Days</td>
+          <td class="n bad">+0.4</td>
+          <td class="n">41.2% <span class="good">+10.7</span></td>
+          <td class="n good">+2.5</td>
+          <td>A random tournament has no Brazil 2002 in it. Six times understated on the cup,
+          and invisible on the tie it exists for.</td>
+        </tr>
+        <tr>
+          <td class="k">Man-Marking</td>
+          <td class="n bad">&minus;0.1</td>
+          <td class="n">40.7% <span class="good">+10.2</span></td>
+          <td class="n good">+2.6</td>
+          <td>Away Days' mirror, and the blind method cannot tell the two apart at all.</td>
+        </tr>
+        <tr>
+          <td class="k">Second Wind</td>
+          <td class="n bad">+11.6</td>
+          <td class="n">48.3% <span class="good">+17.8</span></td>
+          <td class="n good">+4.3</td>
+          <td>"For this round only" is not in the measurement path, so it is priced as five
+          rounds.</td>
+        </tr>
+        <tr class="pick">
+          <td class="k">Sold Out Stadium</td>
+          <td class="n bad">+21.3</td>
+          <td class="n">57.9% <span class="good">+27.4</span></td>
+          <td class="n meh">+0.8</td>
+          <td>The debt is a <code>startsIn</code> plan, which <code>applyBoon</code> skips
+          entirely. Best card on the board, worth nothing over a run.</td>
+        </tr>
+        <tr>
+          <td class="k">Sponsorship</td>
+          <td class="n meh">+0.2</td>
+          <td class="n meh">30.9% +0.4</td>
+          <td class="n meh">+0.0</td>
+          <td>Correct, and useless: it pays in XP after the run. Both zeros are noise.</td>
+        </tr>
+      </tbody>
+      <caption>Baseline: 30.5% to win the Round of 16, 6.3% to win the cup. 6,000 simulated
+      brackets per row (1.6s for the whole table); the position-blind column is 2,000 sims x 3
+      repeats over three budget XIs. Standard error about &plusmn;0.6pp.</caption>
+    </table>
+  </div>
+
+  <h3 class="sub">The whole catalogue, position-blind</h3>
+  <p class="body">Eleven of the 32 cards move the cup figure by less than 1.5 points:
+  <b>Keeper Coach, Star Signing, Veteran Core, Away Days, All or Nothing, Youth Development,
+  Sponsorship, Double Print, Old Guard, Kind Draw, Man-Marking</b>. Four of those genuinely pay
+  outside the sim; four are next-tie or next-draw levers the blind method cannot see; three are
+  small cards whose real delta is simply under the noise floor. Only the third group is a
+  presentation problem. The other eight are a measurement problem, and no amount of card design
+  fixes them.</p>
+
+  <div class="note"><b>The readout the app already ships has the same fault.</b>
+  <code>CupRunScreen</code> computes <code>simulateTitleOdds(activeXi, 600, ...)</code> with no
+  reference to the run's position, so the "Title" figure in the XI panel still includes a group
+  stage you won two rounds ago, and never mentions who you are about to play. Whatever this item
+  builds, that figure should read from the same place.</div>
+
+  <!-- ============================ COMPARISON ============================ -->
+  <h2 class="sec">Choosing between them</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>&nbsp;</th><th>01 Cup delta</th><th>02 This tie</th><th>03 Both</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="k">Prices opponent cards</td><td class="bad">No</td><td class="good">Yes</td><td class="good">Yes</td></tr>
+        <tr><td class="k">Prices temporary cards</td><td class="bad">No, inverts them</td><td class="good">Yes</td><td class="good">Yes</td></tr>
+        <tr><td class="k">Prices permanent cards</td><td class="good">Yes</td><td class="meh">Understates</td><td class="good">Yes</td></tr>
+        <tr><td class="k">Cards outside the sim</td><td class="bad">Prints +0.0</td><td class="bad">Prints +0.0</td><td class="good">Labelled</td></tr>
+        <tr><td class="k">Cost per offer</td><td>~850ms</td><td class="good">~20ms</td><td>~950ms, off-thread</td></tr>
+        <tr><td class="k">New domain code</td><td class="good">None</td><td class="meh">A tie-odds helper</td><td class="meh">A position-aware odds pass</td></tr>
+        <tr><td class="k">Needs a worker</td><td class="meh">Yes, to be honest</td><td class="good">No</td><td class="meh">Yes</td></tr>
+        <tr class="pick"><td class="k">Verdict</td><td class="bad">Rejected</td><td class="meh">Ship it first</td><td class="good">Ship it</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="body"><b>Option 2 is the cheap first half of option 3, not a rival to it.</b> The tie
+  figure needs no worker, no loading state and no new sim path worth the name, and it is the half
+  that fixes the opponent cards. Shipping it alone is a real improvement; adding the cup row
+  afterwards changes no markup that option 2 did not already need.</p>
+
+  <!-- ============================ BUILD ============================ -->
+  <h2 class="sec">What it would take</h2>
+
+  <ul class="tight">
+    <li><b><code>domain/odds.ts</code> gains a position-aware entry point.</b> Today
+    <code>simulateTitleOdds(players, sims, chem, delta, pool)</code> builds its own group and its
+    own bracket. It needs a sibling that takes the run's <b>bracket</b> and a
+    <b>per-round XI</b> instead: the probe behind this page is 40 lines over
+    <code>buildBracket</code> / <code>playRound</code> / <code>recordRound</code>, all of which
+    are already exported.</li>
+    <li><b>The per-round XI comes from the effect ledger, not from <code>applyBoon</code>.</b>
+    This is the whole reason the numbers here are right and the naive ones are not:
+    <code>xiOf(roster, effects, round)</code> already knows about <code>appliesFrom</code> and
+    <code>expiresAfter</code>, so asking it for round <var>r</var> gives a card its real
+    lifetime for free. <code>applyBoon</code> is the measurement path and skips
+    <code>startsIn</code> by design; it is the wrong tool here.</li>
+    <li><b>A boon declares whether it can be priced.</b> A field on the catalogue entry
+    (<code>priced: 'sim' | 'payout' | 'album' | 'hidden'</code>) decides between a number and a
+    label. It is one line per card, it lives beside <code>rarity</code>, and it is the thing that
+    stops a payout card reading as worthless.</li>
+    <li><b><code>BoostOffer</code> takes an optional <code>odds</code> map</b> keyed by boon id,
+    so the component stays presentational and the offer renders identically with the prop absent
+    - which is what the "Odds on" preference switches, and what a slow first frame shows.</li>
+    <li><b>A worker, or the cup row is a lie.</b> 190ms per card is fine off-thread and not fine
+    on it. <code>odds.ts</code>'s own doc comment already says so ("for a live UI readout prefer
+    a web worker"); this is the caller that finally needs it.</li>
+    <li><b>The Physio Table re-roll re-runs everything.</b> A fresh offer is three fresh
+    simulations. Worth knowing before wiring the button, and an argument for keeping the tie
+    figure instant.</li>
+  </ul>
+
+  <h3 class="sub">Three decisions this needs before code</h3>
+  <ul class="tight">
+    <li><b>Does the readout spoil The Coin Toss?</b> Its result is derived from the XI and the
+    opponent, deliberately, so that reloading cannot re-roll it - which means an odds figure
+    would tell you heads or tails before you pick, and the card is nothing else. Drawn here as
+    "not shown until taken". The alternative is to accept the spoiler and retire the card.</li>
+    <li><b>Does a solved offer stay interesting?</b> Three cards with numbers on them is an
+    arithmetic problem, not a gamble. The switch is the hedge, but the honest version of this
+    worry is that the strongest card is now always obvious - which is an argument for the
+    tie figure alone, since the two horizons at least disagree with each other.</li>
+    <li><b>Is Sold Out Stadium still shippable once the screen prices it?</b> Its known hole
+    (free if taken before the final) becomes visible the day this ships. Fix the card, or let the
+    number be the warning.</li>
+  </ul>
+
+  <p class="foot">Static comp for roadmap item 05. Sibling sets:
+  <code>cuprun/</code>, <code>nav2/</code>, <code>challenges-quieter-mock.html</code>.
+  Figures measured 2026-08-25 against <code>src/domain/</code> at <code>e02579b</code>.</p>
+</div>
+
+<script>
+  // Theme button: light <-> dark, shared key with the other turf-flat comps.
+  const root = document.documentElement;
+  document.getElementById('theme').addEventListener('click', () => {
+    const dark = getComputedStyle(document.body).backgroundColor === 'rgb(19, 20, 23)';
+    const next = dark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('turf-flat-theme', next); } catch (e) {}
+  });
+
+  // The "Odds on" switch, so the preference is a real thing on the page rather than a
+  // drawing of one: off hides every strip, which is exactly what the prop being absent does.
+  const sw = document.getElementById('sw');
+  sw.addEventListener('click', () => {
+    const off = sw.classList.toggle('off');
+    document.querySelectorAll('#rec-offer .odds3').forEach((el) => {
+      el.style.display = off ? 'none' : '';
+    });
+    sw.lastChild.textContent = off ? ' Odds off' : ' Odds on';
+  });
+</script>
