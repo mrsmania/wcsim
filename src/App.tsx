@@ -5,11 +5,9 @@ import {
     useEffect,
     useMemo,
     useReducer,
-    useRef,
     useState,
 } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Trophy, User } from 'lucide-react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { squadsInPool } from './data/squads';
 import type { Player, Position } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
@@ -41,6 +39,7 @@ import { useSettings } from './hooks/useSettings';
 import { useSquadRoll } from './hooks/useSquadRoll';
 import { useBudgetBuild } from './hooks/useBudgetBuild';
 import { useMovePlayer } from './hooks/useMovePlayer';
+import { useStackedScroll } from './hooks/useStackedScroll';
 import SettingsModal from './components/SettingsModal';
 import AccountModal from './components/AccountModal';
 import SetupPanel from './components/SetupPanel';
@@ -51,6 +50,8 @@ import ModeSelect from './components/ModeSelect';
 import Pitch from './components/Pitch';
 import BoxScore from './components/BoxScore';
 import XiTable from './components/XiTable';
+import Masthead from './components/Masthead';
+import BuildPage from './components/BuildPage';
 // Route-gated screens are code-split so the home/setup initial load stays small.
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
@@ -58,14 +59,8 @@ const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
 const CabinetScreen = lazy(() => import('./components/CabinetScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
-import { PAGE_EYEBROW, StageHeader } from './components/matchUi';
+import { StageHeader } from './components/matchUi';
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
-
-/** True on the stacked (single-column) layout, i.e. below Tailwind's lg breakpoint.
- *  On that layout the squad list and pitch are stacked vertically, so we auto-scroll
- *  between them; on the wide layout they sit side by side and no scrolling is needed. */
-const isStackedLayout = () =>
-    typeof window !== 'undefined' && !window.matchMedia('(min-width: 1080px)').matches;
 
 type HomeView = 'setup' | 'draft' | 'complete';
 
@@ -126,8 +121,9 @@ export default function App({
     // a global overlay like the album's.
     const [storeError, setStoreError] = useState<Error | null>(null);
     useEffect(() => setStoreErrorHandler(setStoreError), []);
-    const pitchRef = useRef<HTMLDivElement | null>(null);
-    const squadRef = useRef<HTMLElement | null>(null);
+    // The build page's mobile there-and-back: the two scroll anchors and the two calls
+    // that use them (hooks/useStackedScroll).
+    const { pitchRef, squadRef, scrollToPitch, scrollToPanel } = useStackedScroll();
 
     const {
         phase,
@@ -162,18 +158,6 @@ export default function App({
     // Keyed on the board, not on `phase` - see `homeViewOf`.
     const homeView: HomeView = homeViewOf(formation, filled);
     const activeFormation = homeView === 'setup' ? previewFormation : formation;
-
-    // The mobile scroll dance, in one place: picking a player scrolls to the board so a
-    // slot can be tapped, and placing him scrolls back to the panel it was picked from.
-    // Both are no-ops on the wide layout, where the two sit side by side.
-    const scrollToPitch = useCallback(() => {
-        if (!isStackedLayout()) return;
-        pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, []);
-    const scrollToPanel = useCallback(() => {
-        if (!isStackedLayout()) return;
-        squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, []);
 
     // Mobile: when a player is picked, scroll the pitch to the top (with a little
     // margin via scroll-mt) so the user can tap an open slot. Scrolling back up to
@@ -538,52 +522,11 @@ export default function App({
         <div className="min-h-full text-ink">
             {/* The extra bottom padding below 700px is the room the phone tab bar occupies. */}
             <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5 max-[699px]:pb-28">
-                {/* No bottom rule: the tab row below carries it, so the tabs read as part
-                    of the identity block rather than as a strip under it. */}
-                <header className="flex items-center gap-3 pb-3">
-                    <Link
-                        to="/"
-                        aria-label="World Cup Simulator - home"
-                        className="flex items-center gap-3 transition hover:opacity-90"
-                    >
-                        <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
-                            <Trophy size={21} strokeWidth={2} className="text-amber" />
-                        </span>
-                        <h1 className="font-display text-[23px] font-black uppercase leading-none tracking-[-0.02em]">
-                            World Cup <span className="text-pitch">Simulator</span>
-                        </h1>
-                    </Link>
-                    <span className="border-l border-line pl-3.5 text-[12.5px] text-muted max-sm:hidden">
-                        Draft a random XI. Win the cup.
-                    </span>
-                    <div className="ml-auto flex items-center gap-2.5">
-                        {/* Accounts (gated): its own button and its own dialog, rather
-                            than a section inside the settings sheet. Signed in it shows
-                            who you are. */}
-                        {FEATURES.accounts && (
-                            <button
-                                type="button"
-                                onClick={() => setAccountOpen(true)}
-                                title={accountEmail ?? 'Sign in to keep your album on every device'}
-                                className="flex h-[33px] shrink-0 items-center gap-1.5 rounded-[5px] border border-line bg-panel px-2.5 text-[12px] font-semibold text-muted transition hover:border-pitch hover:text-pitch"
-                            >
-                                <User size={15} strokeWidth={2.2} />
-                                <span className="max-sm:hidden">
-                                    {accountEmail ? accountEmail.split('@')[0] : 'Sign in'}
-                                </span>
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={() => setSettingsOpen(true)}
-                            aria-label="Settings"
-                            title="Settings"
-                            className="grid h-[33px] w-[33px] shrink-0 place-items-center rounded-[5px] border border-line bg-panel text-muted transition hover:border-pitch hover:text-pitch"
-                        >
-                            <SettingsIcon size={17} strokeWidth={2} />
-                        </button>
-                    </div>
-                </header>
+                <Masthead
+                    accountEmail={accountEmail}
+                    onOpenAccount={() => setAccountOpen(true)}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                />
 
                 {/* The five destinations (roadmap item 27, concept 2): a row here and a
                     fixed bottom bar on a phone. */}
@@ -686,35 +629,13 @@ export default function App({
                             allPlayers={poolPlayers}
                         />
                     ) : isBuild ? (
-                        <>
-                            <div className="mb-5 mt-7 flex items-center gap-4">
-                                <div>
-                                    <div className={PAGE_EYEBROW}>
-                                        {home.eyebrow}
-                                    </div>
-                                    <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
-                                        {home.title}
-                                    </h2>
-                                </div>
-                                <div className="relative h-0 flex-1 border-t-2 border-line">
-                                    <span className="absolute -top-[5px] left-0 h-2 w-2 rounded-full border-2 border-line bg-panel" />
-                                </div>
-                            </div>
-                            {/* One column below 760, two to 1080, three above; the source
-                                panel (setup / drawn squad / market / complete) is always
-                                FIRST on a phone, then the pitch, then the ratings.
-                                The tabs navigation briefly put the pitch first (item 27's
-                                decision D, on the reasoning that the thing you tap was
-                                sandwiched between the panel you pick from and the ratings
-                                you check). Reverted 2026-08-21: that problem was already
-                                solved by motion rather than by order - picking a player
-                                scrolls the pitch up, placing him scrolls the panel back -
-                                and pitch-first breaks the pairing, because scrolling "to
-                                the pitch" is a no-op when the pitch is already at the top
-                                and the return scroll then travels the wrong way. */}
-                            <div className="grid items-start gap-[22px] [grid-template-areas:'sum'_'board'_'stack'] [grid-template-columns:1fr] min-[760px]:[grid-template-areas:'sum_stack'_'board_board'] min-[760px]:[grid-template-columns:1fr_1fr] min-[1080px]:[grid-template-areas:'sum_board_stack'] min-[1080px]:[grid-template-columns:300px_minmax(0,1fr)_320px]">
-                                {/* Col 1: setup -> drawn squad -> complete */}
-                                <aside ref={squadRef} className="scroll-mt-6 [grid-area:sum]">
+                        <BuildPage
+                            eyebrow={home.eyebrow}
+                            title={home.title}
+                            panelRef={squadRef}
+                            boardRef={pitchRef}
+                            panel={
+                                <>
                                     {homeView === 'setup' && (
                                         <SetupPanel
                                             names={FORMATIONS_DATA.names}
@@ -725,8 +646,8 @@ export default function App({
                                             onSelectName={(name) =>
                                                 dispatch({ type: 'SET_FORMATION', name })
                                             }
-                                            onSelectStyle={(s) =>
-                                                dispatch({ type: 'SET_STYLE', style: s })
+                                            onSelectStyle={(st) =>
+                                                dispatch({ type: 'SET_STYLE', style: st })
                                             }
                                             onStart={handleStart}
                                             onRandomTeam={
@@ -798,77 +719,59 @@ export default function App({
                                             onReset={handleReset}
                                         />
                                     )}
-                                </aside>
-
-                                {/* Col 2: the pitch. Col 3: ratings + chemistry + line-up sheet
-              stacked, matching the turf-flat comp. On narrow widths the grid
-              areas restack to settings, pitch, then the stack. */}
-                                {activeFormation ? (
+                                </>
+                            }
+                            board={
+                                activeFormation && (
+                                    <Pitch
+                                        formation={activeFormation}
+                                        filled={filled}
+                                        selectedPlayer={
+                                            isBudgetBuild ? budget.heldPlayer : selectedPlayer
+                                        }
+                                        onPlace={isBudgetBuild ? budget.place : handlePlace}
+                                        onRemove={
+                                            isBudgetBuild
+                                                ? budget.remove
+                                                : FEATURES.removePlayers
+                                                  ? handleRemove
+                                                  : undefined
+                                        }
+                                        onSwap={
+                                            !isBudgetBuild && STICKERS && swapsLeft > 0
+                                                ? handleSwap
+                                                : undefined
+                                        }
+                                        onSelectSlot={isBudgetBuild ? budget.shop : undefined}
+                                        targetSlotId={
+                                            isBudgetBuild ? budget.targetSlot?.id : undefined
+                                        }
+                                        // Moving a placed player. Offered even with a card
+                                        // in hand: a slot the held card can swap into keeps
+                                        // the swap, and anywhere else the tap picks the
+                                        // placed player up instead, dropping the card.
+                                        onStartMove={
+                                            FEATURES.movePlayers ? handleStartMove : undefined
+                                        }
+                                        movingSlotId={move.movingSlotId}
+                                        onMove={FEATURES.movePlayers ? move.move : undefined}
+                                    />
+                                )
+                            }
+                            stack={
+                                activeFormation && (
                                     <>
-                                        <section
-                                            ref={pitchRef}
-                                            className="scroll-mt-6 [grid-area:board]"
-                                        >
-                                            <Pitch
-                                                formation={activeFormation}
-                                                filled={filled}
-                                                selectedPlayer={
-                                                    isBudgetBuild ? budget.heldPlayer : selectedPlayer
-                                                }
-                                                onPlace={
-                                                    isBudgetBuild ? budget.place : handlePlace
-                                                }
-                                                onRemove={
-                                                    isBudgetBuild
-                                                        ? budget.remove
-                                                        : FEATURES.removePlayers
-                                                          ? handleRemove
-                                                          : undefined
-                                                }
-                                                onSwap={
-                                                    !isBudgetBuild && STICKERS && swapsLeft > 0
-                                                        ? handleSwap
-                                                        : undefined
-                                                }
-                                                onSelectSlot={
-                                                    isBudgetBuild ? budget.shop : undefined
-                                                }
-                                                targetSlotId={
-                                                    isBudgetBuild ? budget.targetSlot?.id : undefined
-                                                }
-                                                // Moving a placed player. Offered even
-                                                // with a card in hand: a slot the held
-                                                // card can swap into keeps the swap, and
-                                                // anywhere else the tap picks the placed
-                                                // player up instead, dropping the card.
-                                                onStartMove={
-                                                    FEATURES.movePlayers
-                                                        ? handleStartMove
-                                                        : undefined
-                                                }
-                                                movingSlotId={move.movingSlotId}
-                                                onMove={
-                                                    FEATURES.movePlayers ? move.move : undefined
-                                                }
-                                            />
-                                        </section>
-                                        <section className="flex flex-col gap-[18px] [grid-area:stack]">
-                                            <BoxScore formation={activeFormation} filled={filled} />
-                                            <XiTable
-                                                formation={activeFormation}
-                                                filled={filled}
-                                                budget={isBudgetBuild ? marketBudget : undefined}
-                                                ownedStickerIds={ownedStickerIds}
-                                            />
-                                        </section>
+                                        <BoxScore formation={activeFormation} filled={filled} />
+                                        <XiTable
+                                            formation={activeFormation}
+                                            filled={filled}
+                                            budget={isBudgetBuild ? marketBudget : undefined}
+                                            ownedStickerIds={ownedStickerIds}
+                                        />
                                     </>
-                                ) : (
-                                    <div className="mx-auto flex aspect-[3/4] w-full max-w-[560px] items-center justify-center rounded-md border border-dashed border-line text-muted [grid-area:board]">
-                                        Loading formations…
-                                    </div>
-                                )}
-                            </div>
-                        </>
+                                )
+                            }
+                        />
                     ) : (
                         <Navigate to="/" replace />
                     )}
