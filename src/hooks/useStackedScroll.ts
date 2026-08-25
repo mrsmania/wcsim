@@ -1,4 +1,5 @@
 import { useCallback, useRef, type MutableRefObject } from 'react';
+import { scrollIntoViewRespectingMotion } from './motion';
 
 // The build page's mobile scroll dance, and the two refs it needs (hygiene H84). It is
 // the reason the placement handlers knew about the DOM at all.
@@ -8,6 +9,11 @@ import { useCallback, useRef, type MutableRefObject } from 'react';
 // one gesture because the panel sits ABOVE the board on a phone - which is why the build
 // page went back to panel-first after briefly trying pitch-first, where the return
 // scroll travels the wrong way (roadmap item 27, decision D, reverted).
+//
+// Both go through `scrollIntoViewRespectingMotion`, so a reduced-motion preference jumps
+// instead of animating. These were the last scrolls in the app that ignored it: five raw
+// `behavior: 'smooth'` calls, while every other scroll had honoured the preference since
+// the run screen started using the helper.
 
 /** True on the stacked (single-column) layout, i.e. below the three-column breakpoint.
  *  On that layout the source panel and the pitch are stacked vertically, so we scroll
@@ -30,12 +36,12 @@ export function useStackedScroll(): StackedScroll {
     const pitchRef = useRef<HTMLDivElement | null>(null);
     const squadRef = useRef<HTMLElement | null>(null);
     const scrollToPitch = useCallback(() => {
-        if (!isStackedLayout()) return;
-        pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!isStackedLayout() || !pitchRef.current) return;
+        scrollIntoViewRespectingMotion(pitchRef.current);
     }, []);
     const scrollToPanel = useCallback(() => {
-        if (!isStackedLayout()) return;
-        squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!isStackedLayout() || !squadRef.current) return;
+        scrollIntoViewRespectingMotion(squadRef.current);
     }, []);
     return { pitchRef, squadRef, scrollToPitch, scrollToPanel };
 }
