@@ -1,7 +1,7 @@
 import type { Player, Position, Squad } from '../data/types';
 import { CATEGORY_ORDER, primaryCategory } from '../data/types';
 import { formatPositions } from '../data/format';
-import { isSelectable } from '../domain/draft';
+import { isSelectable, type RerollKind } from '../domain/draft';
 import { tierOf } from '../domain/album';
 import { RotateCcw } from 'lucide-react';
 import Flag from './Flag';
@@ -10,8 +10,6 @@ import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
 import { FEATURES } from '../config';
 import { CARD } from './matchUi';
-
-export type RerollKind = 'team' | 'cup' | 'any';
 
 interface Props {
     squad: Squad | null;

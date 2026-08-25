@@ -277,6 +277,11 @@ export function rollAny(
   return pickFrom(squads.filter((s) => s.id !== excludeId), open, used);
 }
 
+/** Which re-roll the player asked for. It lives here, beside the three functions that
+ *  serve it, rather than in the panel that draws the buttons: the roll hook and the
+ *  panel both name it, and neither owns it. */
+export type RerollKind = 'team' | 'cup' | 'any';
+
 // The two re-roll predicates, defined once each. They were written out twice - once to
 // roll and once to decide whether the button is offered - and a drift between the pair
 // hands the player a live button that cannot roll anything.

@@ -10,8 +10,8 @@ import {
 } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Trophy, User } from 'lucide-react';
-import { ALL_PLAYERS, SQUADS, squadsInPool } from './data/squads';
-import type { Player, Position, Squad } from './data/types';
+import { ALL_PLAYERS, squadsInPool } from './data/squads';
+import type { Player, Position } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
     canPlace,
@@ -21,9 +21,6 @@ import {
     placedPlayers,
     positionsWithOpenSlot,
     randomXI,
-    rollAnotherCup,
-    rollAnotherTeam,
-    rollAny,
     STRENGTH_BANDS,
     type Filled,
     type TeamStrength,
@@ -42,11 +39,11 @@ import { requestRunStart } from './nav/pendingRun';
 import { setStoreErrorHandler, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
-import { SCRAMBLE_MS } from './hooks/motion';
+import { useSquadRoll } from './hooks/useSquadRoll';
 import SettingsModal from './components/SettingsModal';
 import AccountModal from './components/AccountModal';
 import SetupPanel from './components/SetupPanel';
-import SquadPanel, { type RerollKind } from './components/SquadPanel';
+import SquadPanel from './components/SquadPanel';
 import BudgetMarket from './components/BudgetMarket';
 import CompletePanel from './components/CompletePanel';
 import ModeSelect from './components/ModeSelect';
@@ -99,7 +96,6 @@ export default function App({
         initialState,
         () => snapshot.game ?? initialState,
     );
-    const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
     // Budget build (transient, not persisted): the market player currently held and
     // the empty slot being shopped for. Both drive the shared pitch in budget mode.
     const [heldId, setHeldId] = useState<string | null>(null);
@@ -136,31 +132,8 @@ export default function App({
     // a global overlay like the album's.
     const [storeError, setStoreError] = useState<Error | null>(null);
     useEffect(() => setStoreErrorHandler(setStoreError), []);
-    const timerRef = useRef<number | null>(null);
-    const animatingRef = useRef(false);
     const pitchRef = useRef<HTMLDivElement | null>(null);
     const squadRef = useRef<HTMLElement | null>(null);
-    // Re-entry guard for the draw-next-squad effect: once it fires a roll for the
-    // current committed state it stops until that roll settles (or a placement /
-    // removal changes the state), so one open slot never triggers two rolls.
-    const drawGuardRef = useRef(false);
-    // The id of the last squad that was in hand, so the next auto-draw can exclude
-    // it (never scramble straight back to the same squad). Cleared on reset.
-    const lastSquadIdRef = useRef<string | null>(null);
-
-    useEffect(
-        () => () => {
-            // Clear any in-flight scramble timer on unmount. Also reset the animation
-            // flag so a roll that was interrupted here (e.g. React StrictMode's dev
-            // remount clearing the timer while `rolling` is still true) is detected as
-            // orphaned by the draw-next-squad effect and restarted, rather than leaving
-            // the squad box stuck on "Drawing a squad...".
-            if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-            timerRef.current = null;
-            animatingRef.current = false;
-        },
-        [],
-    );
 
     const {
         phase,
@@ -205,69 +178,10 @@ export default function App({
         }
     }, [selectedPlayerId, phase]);
 
-    // Animate a scramble through random squads, then settle on `target`.
-    const runRoll = useCallback((target: Squad | null, isReroll: boolean) => {
-        if (!target || animatingRef.current) return;
-        animatingRef.current = true;
-        dispatch({ type: 'ROLL_START', isReroll });
-
-        let delay = 55;
-        let elapsed = 0;
-        let lastIdx = -1;
-        const spin = () => {
-            // Cycle to a *different* squad each tick so the scramble reads clearly.
-            let idx = Math.floor(Math.random() * SQUADS.length);
-            if (SQUADS.length > 1 && idx === lastIdx) idx = (idx + 1) % SQUADS.length;
-            lastIdx = idx;
-            setDisplaySquad(SQUADS[idx]);
-            elapsed += delay;
-            delay = Math.min(delay * 1.13, 260);
-            if (elapsed < SCRAMBLE_MS) {
-                timerRef.current = window.setTimeout(spin, delay);
-            } else {
-                setDisplaySquad(target);
-                dispatch({ type: 'ROLL_SETTLE', squad: target });
-                animatingRef.current = false;
-            }
-        };
-        spin();
-    }, []);
-
-    // Remember the squad currently in hand so the next auto-draw can exclude it.
-    // Cleared back at setup (a fresh run) so the very first roll excludes nothing.
-    useEffect(() => {
-        if (phase === 'setup') lastSquadIdRef.current = null;
-        else if (currentSquad) lastSquadIdRef.current = currentSquad.id;
-    }, [phase, currentSquad]);
-
-    // Draw the next squad from committed state. Whenever the draft has an open slot
-    // and no squad in hand (and nothing is rolling), roll one. This is the single
-    // owner of "draw the next squad": it subsumes the first roll on START_DRAFT,
-    // the roll after a placement (PLACE_PLAYER clears currentSquad), and the roll
-    // for a freed slot after REMOVE_PLAYER when the XI was complete. Rerolls stay
-    // explicit (they keep a squad in hand / set rolling, so this never interferes).
-    useEffect(() => {
-        // Roll build only: the budget build has no rolling (its slots are filled by
-        // buying), so it must never draw a squad.
-        const needSquad = phase === 'draft' && build === 'roll' && !!formation && !currentSquad;
-        // `rolling` is true but no animation is actually running: the in-flight
-        // scramble was interrupted (a reload/StrictMode remount cleared its timer).
-        // Recover by rolling again, otherwise the squad box stays on "Drawing...".
-        const orphaned = needSquad && rolling && !animatingRef.current;
-        const shouldDraw = (needSquad && !rolling) || orphaned;
-        if (!shouldDraw) {
-            // No draw pending (a squad is in hand, or a real roll is animating, or not
-            // in the draft): release the guard so the next open slot triggers one roll.
-            drawGuardRef.current = false;
-            return;
-        }
-        // Guard against double rolls, except when recovering an orphaned roll.
-        if (drawGuardRef.current && !orphaned) return;
-        drawGuardRef.current = true;
-        const open = positionsWithOpenSlot(formation, filled);
-        const used = new Set(usedPersonIds);
-        runRoll(rollAny(poolSquads, open, used, lastSquadIdRef.current), false);
-    }, [
+    // The roll draft: the scramble animation and the draw-next-squad policy, with their
+    // four refs and their two effects (hooks/useSquadRoll). It is the subtlest code the
+    // build has and none of it is composition, which is why it is not here any more.
+    const { displaySquad, reroll } = useSquadRoll({
         phase,
         build,
         formation,
@@ -275,9 +189,10 @@ export default function App({
         rolling,
         filled,
         usedPersonIds,
-        runRoll,
-        poolSquads,
-    ]);
+        rerollsLeft,
+        pool: poolSquads,
+        dispatch,
+    });
 
     const handleStart = useCallback(() => {
         if (!previewFormation) return;
@@ -461,22 +376,6 @@ export default function App({
         setBudgetTargetId(slotId);
         setHeldId(null);
     }, []);
-
-    const handleReroll = useCallback(
-        (kind: RerollKind) => {
-            if (!formation || !currentSquad || rolling || rerollsLeft <= 0) return;
-            const open = positionsWithOpenSlot(formation, filled);
-            const used = new Set(usedPersonIds);
-            const target =
-                kind === 'team'
-                    ? rollAnotherTeam(poolSquads, currentSquad, open, used)
-                    : kind === 'cup'
-                      ? rollAnotherCup(poolSquads, currentSquad, open, used)
-                      : rollAny(poolSquads, open, used, currentSquad.id);
-            runRoll(target, true);
-        },
-        [formation, currentSquad, filled, usedPersonIds, rerollsLeft, rolling, runRoll, poolSquads],
-    );
 
     const handleReset = useCallback(() => {
         // A reset is a brand-new team, so drop any in-progress Cup Run too - and any
@@ -941,7 +840,7 @@ export default function App({
                                                 swapsLeft={swapsLeft}
                                                 usedPersonIds={usedSet}
                                                 selectedPlayerId={selectedPlayerId}
-                                                onReroll={handleReroll}
+                                                onReroll={reroll}
                                                 onSelectPlayer={handleSelectPlayer}
                                                 ownedStickerIds={ownedStickerIds}
                                                 onReset={handleReset}
