@@ -1,7 +1,7 @@
 import { KO_ROUNDS } from '../../domain/knockout';
 import { boonById } from '../../domain/boons';
 import type { RoundRecord } from '../../domain/run';
-import { CARD, ordinal, StageCrumb } from '../matchUi';
+import { CARD, GROUP_OUTCOME, ordinal, StageCrumb } from '../matchUi';
 import Flag from '../Flag';
 import FinishedKoCard from './FinishedKoCard';
 import { RARITY_COLOR } from './types';
@@ -32,7 +32,7 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
         <div className="mb-3 text-[14px] font-semibold">
           Group stage, finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
           <span className={record.won ? 'text-pitch' : 'text-loss'}>
-            {record.won ? 'through to the knockouts' : 'eliminated'}
+            {record.won ? GROUP_OUTCOME.advanced : GROUP_OUTCOME.out}
           </span>
         </div>
         {record.groupResults && (

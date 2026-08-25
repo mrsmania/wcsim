@@ -11,6 +11,12 @@ import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './stickerTheme';
 import { CARD, MONO_CAP, PAGE_EYEBROW } from './matchUi';
+
+/** The back control above a roster / a team's cup list. Rendered as a <button> in one
+ *  case and a router <Link> in the other, so it is a class string rather than a
+ *  component - it was the same string typed twice. */
+const BACK_BTN =
+    'inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch';
 import TeamRoster from './TeamRoster';
 
 /** Distinct tournament years, newest first for the selector. */
@@ -210,18 +216,12 @@ export default function SquadBrowser() {
                             all tournaments
                         </span>
                     ) : selected ? (
-                        <button
-                            onClick={backFromRoster}
-                            className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
-                        >
+                        <button onClick={backFromRoster} className={BACK_BTN}>
                             <ArrowLeft size={14} strokeWidth={2.5} />
                             Back
                         </button>
                     ) : team ? (
-                        <Link
-                            to="/squads/by-team"
-                            className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch"
-                        >
+                        <Link to="/squads/by-team" className={BACK_BTN}>
                             <ArrowLeft size={14} strokeWidth={2.5} />
                             All teams
                         </Link>

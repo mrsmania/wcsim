@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { MatchSpeed } from '../domain/clock';
 import type { KoDecided } from '../domain/knockout';
 import { ET_MINUTES, REG_MINUTES, type PenKick } from '../domain/match';
@@ -113,6 +113,52 @@ export function Meter({
 
 /** The pitch gradient fill, used by the two honours meters. */
 export const METER_GRADIENT = 'bg-gradient-to-r from-pitch to-pitch-dark';
+
+/** A chip's two states: filled ink when it is the chosen one, outlined otherwise. The
+ *  exact pair was written out at three sites (the challenge ledger's filters, and both
+ *  of the build page's pickers). A caller with a third state - the Ascension picker's
+ *  locked tier - keeps that at the call site. */
+export const CHIP_ON = 'border-ink bg-ink text-ground';
+export const CHIP_OFF = 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch';
+
+/** A card's footer disclosure: a full-width chalk strip carrying a mono label and a
+ *  chevron, which opens a match's goal feed and a group's full results. Written out at
+ *  both sites before; `className` carries the one real difference between them, a pixel
+ *  of vertical padding, rather than quietly levelling it.
+ *
+ *  `type="button"` and `aria-expanded` come with it - the standings copy had neither. */
+export function CardDisclosure({
+  label,
+  open,
+  onToggle,
+  className = 'py-[9px]',
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className={`flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 ${className} ${MONO_CAP} transition hover:text-pitch`}
+    >
+      {label}
+      {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+    </button>
+  );
+}
+
+/** What surviving the group is called. Two surfaces say it - the live standings footer
+ *  and a run's group review - and each carried its own copy of both words, which is two
+ *  places for one wording to drift. The surrounding sentence stays per site: the footer
+ *  is a flat mono strip and the review a display line that colours the outcome. */
+export const GROUP_OUTCOME = {
+  advanced: 'through to the knockouts',
+  out: 'eliminated',
+} as const;
 
 export const ordinal = (n: number) =>
   n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`;

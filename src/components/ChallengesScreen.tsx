@@ -10,7 +10,15 @@ import {
   type ChallengeFamily,
 } from '../domain/challenges';
 import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
-import { CARD, Meter, METER_GRADIENT, MONO_CAP, PAGE_EYEBROW } from './matchUi';
+import {
+  CARD,
+  CHIP_OFF,
+  CHIP_ON,
+  Meter,
+  METER_GRADIENT,
+  MONO_CAP,
+  PAGE_EYEBROW,
+} from './matchUi';
 
 type Filter = 'all' | 'open' | 'done';
 
@@ -123,9 +131,7 @@ export default function ChallengesScreen({
             onClick={() => setFilter(f.key)}
             aria-pressed={filter === f.key}
             className={`rounded-full border px-3.5 py-1.5 font-display text-[11px] font-extrabold uppercase tracking-[0.05em] transition ${
-              filter === f.key
-                ? 'border-ink bg-ink text-ground'
-                : 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch'
+              filter === f.key ? CHIP_ON : CHIP_OFF
             }`}
           >
             {f.label}

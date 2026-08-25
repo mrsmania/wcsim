@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES } from '../../config';
@@ -22,6 +23,46 @@ const RARITY_DOT: Record<Rarity, string> = {
 
 /** Owned-tier numeral shown next to a perk name (tiers are small). */
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+
+/** The amber Prestige chip. */
+function PrestigeChip({ prestige }: { prestige: number }) {
+    return (
+        <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-amber-ink">
+            {prestige} Prestige
+        </span>
+    );
+}
+
+/** The hub header's title line: the name, the Level chip, then whatever the branch puts
+ *  third. It was written out once per branch of `showToggle`, and the ONLY difference was
+ *  that the toggle's Level chip reacts to the row's hover - which is `hoverable`. What
+ *  goes third is genuinely per branch (the toggle swaps the Prestige chip for a sentence
+ *  when collapsed), so it stays a child rather than becoming a fourth prop. */
+function HubTitle({
+    level,
+    hoverable,
+    children,
+}: {
+    level: number;
+    hoverable?: boolean;
+    children: ReactNode;
+}) {
+    return (
+        <>
+            <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
+                Cup Run Hub
+            </span>
+            <span
+                className={`rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent ${
+                    hoverable ? 'transition group-hover:bg-panel' : ''
+                }`}
+            >
+                Level {level}
+            </span>
+            {children}
+        </>
+    );
+}
 
 /** The career hub - a collapsible card. When `showToggle`, the whole header bar is the
  *  toggle button; `showBody` gates (and animates) the progress + perk-shop body, which
@@ -73,25 +114,19 @@ export default function CareerHub({
                         className="group flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-chalk"
                     >
                         <span className="flex flex-wrap items-center gap-2.5">
-                            <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
-                                Cup Run Hub
-                            </span>
-                            <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent transition group-hover:bg-panel">
-                                Level {career.level}
-                            </span>
-                            {hubOpen ? (
-                                <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-amber-ink">
-                                    {career.prestige} Prestige
-                                </span>
-                            ) : (
-                                <span className="text-[12.5px] text-muted">
-                                    &middot;{' '}
-                                    <b className="font-semibold text-accent">
-                                        {career.prestige} Prestige
-                                    </b>{' '}
-                                    to spend on perks
-                                </span>
-                            )}
+                            <HubTitle level={career.level} hoverable>
+                                {hubOpen ? (
+                                    <PrestigeChip prestige={career.prestige} />
+                                ) : (
+                                    <span className="text-[12.5px] text-muted">
+                                        &middot;{' '}
+                                        <b className="font-semibold text-accent">
+                                            {career.prestige} Prestige
+                                        </b>{' '}
+                                        to spend on perks
+                                    </span>
+                                )}
+                            </HubTitle>
                         </span>
                         <span className="inline-flex shrink-0 items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch">
                             {hubOpen ? 'Hide' : 'Open'}
@@ -116,15 +151,9 @@ export default function CareerHub({
             ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                     <div className="flex items-baseline gap-2.5">
-                        <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
-                            Cup Run Hub
-                        </span>
-                        <span className="rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent">
-                            Level {career.level}
-                        </span>
-                        <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-amber-ink">
-                            {career.prestige} Prestige
-                        </span>
+                        <HubTitle level={career.level}>
+                            <PrestigeChip prestige={career.prestige} />
+                        </HubTitle>
                     </div>
                 </div>
             )}

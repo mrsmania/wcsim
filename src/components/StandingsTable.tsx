@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   fixturesForMatchday,
   GROUP_MATCHDAYS,
@@ -10,7 +9,7 @@ import {
 } from '../domain/tournament';
 import Flag from './Flag';
 import FixtureRow from './FixtureRow';
-import { CARD, MONO_CAP, ordinal, RatingChip } from './matchUi';
+import { CARD, CardDisclosure, GROUP_OUTCOME, ordinal, RatingChip } from './matchUi';
 
 /** Column layout shared by the header and body rows. Mobile shows only PL / GD /
  *  PTS after # + Team (5 columns); the desktop layout adds W / D / L / +/- for the
@@ -118,18 +117,17 @@ export default function StandingsTable({ group, groupFinished, advanced }: Props
       {groupFinished && (
         <div className="border-t border-line bg-chalk px-4 py-[10px] text-center font-mono text-[11px] tracking-[0.04em] text-muted">
           Finished {ordinal(userPosition)} of {table.length} ·{' '}
-          {advanced ? 'through to the knockouts' : 'eliminated'}
+          {advanced ? GROUP_OUTCOME.advanced : GROUP_OUTCOME.out}
         </div>
       )}
 
       {/* All group results (every fixture, including Your XI), collapsible */}
-      <button
-        onClick={() => setShowResults((v) => !v)}
-        className={`flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 py-[10px] ${MONO_CAP} transition hover:text-pitch`}
-      >
-        All results
-        {showResults ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-      </button>
+      <CardDisclosure
+        label="All results"
+        open={showResults}
+        onToggle={() => setShowResults((v) => !v)}
+        className="py-[10px]"
+      />
       {showResults && (
         <div className="border-t border-line px-2 py-2">
           {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => (

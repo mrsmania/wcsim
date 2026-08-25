@@ -120,6 +120,22 @@ function Rec({ k, v, dim }: { k: string; v: string; dim?: boolean }) {
   );
 }
 
+/** The leaderboards' column geometry, read by BOTH the head and the rows. It was written
+ *  out twice under a comment saying the two had to agree, which is the one duplication on
+ *  this screen that fails silently: the cells are bare numerals, so a head drifting off
+ *  its column leaves them unlabelled rather than looking broken. `runs` carries its own
+ *  breakpoint for the same reason - hiding a cell in one of the two places and not the
+ *  other is the identical bug. `text-right` stays at the call site, because the head's
+ *  rank cell is an empty spacer and has none. */
+const LEADER_COL = {
+  rank: 'w-[15px] shrink-0',
+  flag: 'w-4 shrink-0',
+  name: 'min-w-0 flex-1',
+  goals: 'w-11 shrink-0 text-right',
+  apps: 'w-12 shrink-0 text-right',
+  runs: 'w-10 shrink-0 text-right max-[560px]:hidden',
+} as const;
+
 /** A completion bar: the shared Meter in the have/need shape all four call sites on this
  *  screen use, on hairline rules because everything around them is one. */
 function Bar({ have, need, thin }: { have: number; need: number; thin?: boolean }) {
@@ -246,15 +262,17 @@ function PlayerLeaderRow({
   const { apps, goals, runs } = row.record;
   return (
     <li className="flex items-baseline gap-2.5 border-b border-hair py-[7px] last:border-0">
-      <span className="w-[15px] shrink-0 text-right font-mono text-[10.5px] tabular-nums text-dim">
+      <span className={`${LEADER_COL.rank} text-right font-mono text-[10.5px] tabular-nums text-dim`}>
         {rank}
       </span>
       {squad ? (
-        <Flag code={squad.code} className="h-2.5 w-4 shrink-0 self-center" />
+        <Flag code={squad.code} className={`${LEADER_COL.flag} h-2.5 self-center`} />
       ) : (
-        <span className="w-4 shrink-0" />
+        <span className={LEADER_COL.flag} />
       )}
-      <span className="min-w-0 flex-1 truncate font-display text-[13px] font-bold tracking-[-0.005em]">
+      <span
+        className={`${LEADER_COL.name} truncate font-display text-[13px] font-bold tracking-[-0.005em]`}
+      >
         {row.player.name}
         <span className="ml-1.5 font-mono text-[10px] font-normal tabular-nums text-dim">
           {squad?.year}
@@ -262,39 +280,39 @@ function PlayerLeaderRow({
       </span>
       {/* Goals only on the board they rank (see `LeaderHead`). */}
       {metric === 'goals' && (
-        <span className="w-11 shrink-0 text-right font-mono text-[11px] font-bold tabular-nums text-ink">
+        <span className={`${LEADER_COL.goals} font-mono text-[11px] font-bold tabular-nums text-ink`}>
           {goals}
         </span>
       )}
       <span
-        className={`w-12 shrink-0 text-right font-mono text-[11px] tabular-nums ${
+        className={`${LEADER_COL.apps} font-mono text-[11px] tabular-nums ${
           metric === 'apps' ? 'font-bold text-ink' : 'text-muted'
         }`}
       >
         {apps}
       </span>
-      <span className="w-10 shrink-0 text-right font-mono text-[10.5px] tabular-nums text-dim max-[560px]:hidden">
+      <span className={`${LEADER_COL.runs} font-mono text-[10.5px] tabular-nums text-dim`}>
         {runs}
       </span>
     </li>
   );
 }
 
-/** The leaderboard's column heads. Same widths as `PlayerLeaderRow`, so the cells can
- *  be bare numbers instead of carrying a unit each ("96 mts" was the alternative). */
 /** The column heads of a leaderboard. Takes the board's metric because the two boards
  *  do not carry the same columns: goals are the point of Top scorers and beside the
  *  point on Most used, where they were a second number competing with the one the board
- *  is ranked by. */
+ *  is ranked by. Reads its widths from `LEADER_COL`, like the rows do: the cells are
+ *  bare numbers rather than carrying a unit each ("96 mts" was the alternative), so a
+ *  head that drifted off its column would leave the numbers unlabelled. */
 function LeaderHead({ metric }: { metric: 'apps' | 'goals' }) {
   return (
     <div className="flex items-baseline gap-2.5 border-b border-line pb-1.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.12em] text-muted">
-      <span className="w-[15px] shrink-0" />
-      <span className="w-4 shrink-0" />
-      <span className="min-w-0 flex-1">Player</span>
-      {metric === 'goals' && <span className="w-11 shrink-0 text-right">Goals</span>}
-      <span className="w-12 shrink-0 text-right">Matches</span>
-      <span className="w-10 shrink-0 text-right max-[560px]:hidden">Runs</span>
+      <span className={LEADER_COL.rank} />
+      <span className={LEADER_COL.flag} />
+      <span className={LEADER_COL.name}>Player</span>
+      {metric === 'goals' && <span className={LEADER_COL.goals}>Goals</span>}
+      <span className={LEADER_COL.apps}>Matches</span>
+      <span className={LEADER_COL.runs}>Runs</span>
     </div>
   );
 }

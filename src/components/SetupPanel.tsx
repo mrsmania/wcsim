@@ -3,7 +3,7 @@ import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/f
 import { ASCENSIONS, ascensionAt } from '../domain/ascension';
 import type { TeamStrength } from '../domain/draft';
 import { ChevronDown, Coins, Dices } from 'lucide-react';
-import { CARD, PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
+import { CARD, CHIP_OFF, CHIP_ON, PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'weak', label: 'Weak', hint: 'rating < 75' },
@@ -71,9 +71,7 @@ export default function SetupPanel({
                                 onClick={() => onSelectName(name)}
                                 className={[
                                     'whitespace-nowrap rounded-[4px] border px-px py-2.5 text-center font-mono text-[11.5px] font-semibold tracking-[-0.01em] transition',
-                                    active
-                                        ? 'border-ink bg-ink text-ground'
-                                        : 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch',
+                                    active ? CHIP_ON : CHIP_OFF,
                                 ].join(' ')}
                             >
                                 {name}
@@ -133,11 +131,7 @@ export default function SetupPanel({
                                 }
                                 className={[
                                     'rounded-[4px] border py-2.5 text-center font-mono text-[11.5px] font-semibold transition',
-                                    active
-                                        ? 'border-ink bg-ink text-ground'
-                                        : locked
-                                          ? 'border-line bg-panel text-line'
-                                          : 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch',
+                                    active ? CHIP_ON : locked ? 'border-line bg-panel text-line' : CHIP_OFF,
                                 ].join(' ')}
                             >
                                 {a.label.replace('Ascension ', '')}
