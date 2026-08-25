@@ -12,7 +12,7 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID, WORLD_CUP_YEARS, basePlayer } from '../src/data/squads';
-import { ELO_MAX, ELO_MIN, isAttacker, isDefender, primaryPosition, type Player, type Position } from '../src/data/types';
+import { ELO_MAX, ELO_MIN, primaryPosition, type Player, type Position } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
 import {
   DEFAULT_SETTINGS,
@@ -21,6 +21,7 @@ import {
   toStored,
 } from '../src/state/settingsStorage';
 import {
+  groupAverages,
   POSITION_WEIGHT,
   pickScorer,
   scorerPool,
@@ -1543,10 +1544,6 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
     const xi = Object.values(filled).filter((p): p is Player => !!p);
     return xi.length === 11 ? xi : xiFor();
   });
-  const side = (ps: Player[], isSide: (p: Player) => boolean) => {
-    const vals = ps.filter(isSide).map((p) => p.elo);
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-  };
   const totalElo = (ps: Player[]) => ps.reduce((s, p) => s + p.elo, 0);
 
   const sampleAvg = Math.round(
@@ -1562,7 +1559,10 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
     const N = 20;
     let att = 0, def = 0, tot = 0;
     for (const sample of samples) {
-      const before = { att: side(sample, isAttacker), def: side(sample, isDefender) };
+      // `groupAverages`, not a local copy: the whole table is a claim about the grouping
+      // the SIM uses, so re-implementing it here could keep passing against the old one.
+      const b0 = groupAverages(sample);
+      const before = { att: b0.attack, def: b0.defense };
       for (let i = 0; i < N; i++) {
         // A context every conditional card can actually fire on, or the ones that key off
         // the run (In Form, Old Guard, The Armband) measure 0.0 and go unbanded - which
@@ -1592,8 +1592,9 @@ check('dataset: SQUAD_BY_ID resolves every squad', () => SQUADS.every((s) => SQU
           // and goes unbanded, which is the trap that caught two cards in round 2.
           goalsConceded: 5,
         });
-        att += side(after, isAttacker) - before.att;
-        def += side(after, isDefender) - before.def;
+        const a0 = groupAverages(after);
+        att += a0.attack - before.att;
+        def += a0.defense - before.def;
         tot += totalElo(after) - totalElo(sample);
       }
     }

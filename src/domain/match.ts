@@ -42,15 +42,36 @@ export interface Side {
 
 const avg = (nums: number[]) => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0);
 
+/** The two group averages the sim reads, UNROUNDED and with no empty-line fallback.
+ *
+ *  This is `xiStrength`'s core, exported because the boon-power table needs to measure
+ *  movement in fractions of a point: rounding each side before subtracting turns a +0.4
+ *  into 0 or 1 depending on where the two happened to sit. It had a local copy in the
+ *  checks harness, which meant a change to the GROUPING here would leave the table
+ *  measuring the old one while still passing (hygiene H97).
+ *
+ *  An empty line reads 0, as it does in `lineAverages` and for the same reason - a
+ *  fallback to the overall would be a claim about a line that has nobody in it. The
+ *  callers that need the fallback (a match cannot be simulated against nothing) apply it
+ *  themselves, which is `xiStrength` below. */
+export function groupAverages(players: Player[]): { attack: number; defense: number } {
+  return {
+    attack: avg(players.filter(isAttacker).map((p) => p.elo)),
+    defense: avg(players.filter(isDefender).map((p) => p.elo)),
+  };
+}
+
 /** Strength of a set of players, split into attack (MID/FWD) and defense (GK/DEF). */
 export function xiStrength(players: Player[]): Strength {
   const all = players.map((p) => p.elo);
-  const attack = players.filter(isAttacker).map((p) => p.elo);
-  const defense = players.filter(isDefender).map((p) => p.elo);
+  const { attack, defense } = groupAverages(players);
+  const overall = avg(all);
   return {
-    attack: Math.round(attack.length ? avg(attack) : avg(all)),
-    defense: Math.round(defense.length ? avg(defense) : avg(all)),
-    overall: Math.round(avg(all)),
+    // An empty line falls back to the overall here: a match has to be simulated against
+    // something, and `groupAverages` deliberately does not make that choice.
+    attack: Math.round(attack || overall),
+    defense: Math.round(defense || overall),
+    overall: Math.round(overall),
   };
 }
 
