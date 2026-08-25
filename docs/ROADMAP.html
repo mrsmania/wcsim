@@ -349,6 +349,72 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
+<details class="item" open>
+  <summary>
+    <span class="num">35</span>
+    <span class="title">Apply pending SQL migrations to the NAS
+      <span class="sub">A standing task: migrations are written here but applied by hand, so this is the list of what is waiting, with the verification each one needs. Two waiting now (0013, 0014).</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Why this item exists (2026-08-24).</strong> The client ships by pushing to
+    <code>main</code>; migrations are applied by hand with <code>npm run push:sql</code>, which
+    needs <code>dkr/.env</code> and LAN or VPN reach to the NAS. A session without that access
+    can write and validate a migration but cannot apply it, so without a list somewhere the
+    pending ones go quiet. <b>Standing rule: any session that writes a migration adds it
+    here</b>, with what it does and how to check it worked, so the apply can be handed to an
+    agent that does have access.</p>
+
+    <p><strong>How to run one safely</strong>, in this order:</p>
+    <ol>
+      <li><code>npm run push:sql -- --dry-run &lt;file&gt;</code> first. It needs no
+      credentials and no network (fixed 2026-08-24, hygiene H110 - it used to demand
+      <code>dkr/.env</code> even for a dry run), so it is a free look at what would be sent.</li>
+      <li>Apply in <b>file order</b>, one file at a time, and run that file's own
+      verification steps before starting the next. Each migration's header carries them.</li>
+      <li>If a step fails, use the <b>ROLLBACK block in that file's header</b> rather than
+      improvising. Both blocks have been parse-checked.</li>
+      <li>Then <code>npm run checks</code> and a signed-in smoke test. A broken read policy
+      surfaces as the blocking "cannot reach the server" screen, not as a subtle bug, so it is
+      obvious if you look.</li>
+    </ol>
+
+    <p><strong>Waiting now:</strong></p>
+    <ul>
+      <li><code>0013_narrow_write_grants.sql</code> - hygiene <b>D10</b>. Narrows
+      <code>career</code>, <code>settings</code>, <code>game_state</code> and
+      <code>active_run</code> from <code>for all</code> to <code>for select</code>. The client
+      only ever reads them (verified: no insert/update/upsert/delete anywhere in the store),
+      and every write goes through a <code>security definer</code> RPC that bypasses RLS, so
+      nothing loses a capability. <b>This is the riskier of the two</b> - a mistake here blocks
+      a signed-in player - so it is its own file and can be rolled back alone.</li>
+      <li><code>0014_drop_dead_surface.sql</code> - hygiene <b>D12</b> + <b>D16</b> and one
+      stale policy. Drops the four <code>run_results</code> columns that have recorded only
+      zeroes since 0006 (the TABLE stays: its unique key is the double-submit guard),
+      revokes the never-called <code>export_account()</code> grant, and drops
+      <code>run_results_read</code>, whose stated purpose - the trophy cabinet - reads
+      <code>CareerStats</code> instead. Pure removals of unused surface; low risk.</li>
+    </ul>
+
+    <p><strong>What the sweep behind 0014 deliberately left alone</strong>, so nobody
+    re-derives it: <code>collectibles_read</code> and <code>economy_constants_read</code> (reads
+    the client does not perform, but on reference data that already ships in the public bundle,
+    so kept as plausible future surface); <code>collectibles.elo</code> /
+    <code>squad_id</code> / <code>nation_code</code> / <code>year</code> (written by the
+    generated seed, read by nothing, but populated and what makes the table legible by hand -
+    note the seed checksum covers only <code>playerId|tier|elo</code>, so the others can go
+    stale until someone regenerates); and <code>profiles.created_at</code> plus
+    <code>audit_log</code>, which are bookkeeping. All nine granted-and-called RPCs were
+    verified as genuinely called, every internal helper as still revoked by 0008, and
+    <code>enforce_invite</code> / the 13-arg <code>finish_run</code> / <code>allowed_emails</code>
+    as properly dropped - so <code>export_account</code> was the only granted function with no
+    caller.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0013_narrow_write_grants.sql" target="_blank" rel="noopener">supabase/migrations/0013_narrow_write_grants.sql</a>, <a class="dl" href="../supabase/migrations/0014_drop_dead_surface.sql" target="_blank" rel="noopener">supabase/migrations/0014_drop_dead_surface.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../scripts/push-sql.mjs" target="_blank" rel="noopener">scripts/push-sql.mjs</a></p>
+  </div>
+</details>
+
 
 <details class="item">
   <summary>

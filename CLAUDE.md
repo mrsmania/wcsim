@@ -1712,6 +1712,16 @@ keep working.
   area if a session was started on one - finish by fast-forwarding or rebasing onto `main`
   and pushing there. Always `npm run build` before committing (and `npm run checks` after
   touching `domain/`). End commit messages with the `Co-Authored-By` trailer.
+- **A migration you write, you also QUEUE** (recorded 2026-08-24). Migrations are applied by
+  hand on the NAS with `npm run push:sql`, which needs `dkr/.env` and LAN/VPN reach, so a
+  session without that access can write and validate one but not apply it. Any session that
+  adds a file to `supabase/migrations/` therefore also adds it to **roadmap item 35**, with
+  what it does, how to verify it worked, and a rollback block in the file's own header - so
+  the apply can be handed to an agent that does have access. Two things make that safe and
+  are worth doing every time: `npm run push:sql -- --dry-run <file>` needs no credentials and
+  no network, and `pglast` (`pip install pglast`, then `pglast.parse_sql`) parses a file with
+  the real Postgres grammar, so a syntax error never reaches the server. Validate the rollback
+  block too - it is the thing someone reaches for under pressure.
 - **There are no production users yet** (recorded 2026-08-21, until further notice). So
   breaking a persisted shape, orphaning a saved game, or dropping a supported
   configuration is a free choice rather than a migration: decide it on the merits and do

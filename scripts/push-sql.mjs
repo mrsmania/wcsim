@@ -43,15 +43,25 @@ if (inline) {
   }
 }
 
-const { api, key } = serverConfig();
 const label = inline ? 'inline query' : file;
 // A rough count, just so the summary says something about size; statements inside a
 // function body are not statements at this level, hence "roughly".
 const statements = sql.split(';').filter((s) => s.trim()).length;
 
+// Resolved AFTER the dry-run branch below. `serverConfig()` reads dkr/.env and exits 1 when
+// it is missing, so calling it first made --dry-run - the one mode that touches no network
+// and needs no credentials - the one mode you could not use without them. That is exactly
+// backwards for its main use: reading a migration before asking someone with NAS access to
+// apply it. (Hygiene H110.)
+let api = null;
+let key = null;
+if (!dryRun) {
+  ({ api, key } = serverConfig());
+}
+
 console.log(`push-sql: ${label}`);
 console.log(`  ${sql.length} bytes, roughly ${statements} statements`);
-console.log(`  to ${api}`);
+console.log(`  to ${api ?? 'not resolved (dry run)'}`);
 
 if (dryRun) {
   console.log('push-sql: --dry-run, nothing sent.');
