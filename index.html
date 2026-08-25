@@ -29,10 +29,13 @@
          for a signed-in player the first render also waits on one round trip to the
          account server, which is seconds on a bad connection. Colours are literal
          copies of the --color-ground / -ink / -pitch / -pitch-dark / -line / -amber tokens,
-         since the custom properties are not loaded yet either. Both themes, with one known
-         exception: the trophy's amber stroke is an SVG presentation attribute and so carries
-         the LIGHT value only (hygiene H140). Keep them in step with src/index.css if the
-         palette moves - nothing checks this, which is hygiene H139.
+         since the custom properties are not loaded yet either. Every one of them now
+         carries both themes: the trophy's amber was the last exception, an SVG
+         presentation attribute with no dark rule, and it is a CSS rule below (H140).
+
+         `npm run checks` asserts every literal here against the token it copies, so the
+         two files can no longer drift apart unnoticed (H139). Move a colour in
+         src/index.css and here, and the check says so if you miss one.
 
          The markup sits OUTSIDE #root, so React never owns it: main.tsx stamps
          data-booted on <html> after the first render and the rules below fade it out. */
@@ -70,6 +73,15 @@
       }
       html[data-theme='dark'] #boot .boottile {
         background: #17492f;
+      }
+      /* The trophy's amber. A CSS rule rather than the svg's own stroke attribute, so
+         that it can have a dark value like every other colour here - the attribute
+         could not be overridden and so shipped the light amber on graphite too. */
+      #boot .boottile svg {
+        stroke: #e4922b;
+      }
+      html[data-theme='dark'] #boot .boottile svg {
+        stroke: #eea23a;
       }
       #boot .bootmark {
         font-family: Archivo, 'Helvetica Neue', Arial, sans-serif;
@@ -140,7 +152,6 @@
             height="26"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#e4922b"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"

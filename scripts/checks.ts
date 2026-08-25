@@ -2023,6 +2023,102 @@ const KNOWN_MISSING_ART = new Set([
   );
 }
 
+// --- Boot cover: every hard-coded colour matches the token it copies ---------
+// index.html paints a cover before the bundle arrives, so it CANNOT read the @theme
+// custom properties - they ship with index.css. Its palette is therefore a hand-written
+// copy, and CLAUDE.md makes keeping the two in step an obligation while nothing enforced
+// it (hygiene H139). A drift shows as one frame of the old palette on every load, which
+// is exactly the kind of thing nobody notices and nobody can bisect.
+//
+// Both files are plain text on disk, so this reads them the way the collectibles check
+// reads the SQL seed. Each entry names the CSS rule to look in, the property, and the
+// token it is a copy of - written out rather than inferred, because the two spinner
+// arcs deliberately do NOT use the same token in the two themes (a deep pitch-dark on
+// a dark ring would be invisible, so dark uses plain `pitch`).
+{
+  const css = readFileSync('src/index.css', 'utf8');
+  const html = readFileSync('index.html', 'utf8');
+
+  /** Token values from one block of `src/index.css`. */
+  const tokensIn = (block: string): Record<string, string> => {
+    const out: Record<string, string> = {};
+    for (const m of block.matchAll(/(--color-[a-z-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/g)) {
+      out[m[1]] = m[2].toLowerCase();
+    }
+    return out;
+  };
+  const blockAfter = (marker: string): string | null => {
+    const at = css.indexOf(marker);
+    if (at === -1) return null;
+    const open = css.indexOf('{', at);
+    const close = css.indexOf('}', open);
+    return open === -1 || close === -1 ? null : css.slice(open + 1, close);
+  };
+  const lightBlock = blockAfter('@theme');
+  const darkBlock = blockAfter(":root[data-theme='dark']");
+  const light = lightBlock ? tokensIn(lightBlock) : {};
+  // A dark theme only OVERRIDES: anything it does not restate keeps its light value.
+  const dark = darkBlock ? { ...light, ...tokensIn(darkBlock) } : {};
+
+  /** The value of `prop` inside the first index.html rule whose selector contains `sel`. */
+  const bootValue = (sel: string, prop: string): string | null => {
+    const at = html.indexOf(sel);
+    if (at === -1) return null;
+    const open = html.indexOf('{', at);
+    const close = html.indexOf('}', open);
+    if (open === -1 || close === -1) return null;
+    // `[^;}]*?` so a shorthand works too: `border: 2px solid #d4ded5` is one of these.
+    const m = html
+      .slice(open + 1, close)
+      .match(new RegExp(prop + '\\s*:[^;}]*?(#[0-9a-fA-F]{3,8})'));
+    return m ? m[1].toLowerCase() : null;
+  };
+
+  // [selector, property, token, which theme's value it must equal]
+  const COPIES: [string, string, string, 'light' | 'dark'][] = [
+    ['html {', 'background', '--color-ground', 'light'],
+    ["html[data-theme='dark'] {", 'background', '--color-ground', 'dark'],
+    ['#boot .boottile {', 'background', '--color-pitch-dark', 'light'],
+    ["html[data-theme='dark'] #boot .boottile {", 'background', '--color-pitch-dark', 'dark'],
+    ['#boot .boottile svg {', 'stroke', '--color-amber', 'light'],
+    ["html[data-theme='dark'] #boot .boottile svg {", 'stroke', '--color-amber', 'dark'],
+    ['#boot .bootmark {', 'color', '--color-ink', 'light'],
+    ["html[data-theme='dark'] #boot .bootmark {", 'color', '--color-ink', 'dark'],
+    ['#boot .bootspin {', 'border', '--color-line', 'light'],
+    ['#boot .bootspin {', 'border-top-color', '--color-pitch-dark', 'light'],
+    ["html[data-theme='dark'] #boot .bootspin {", 'border-color', '--color-line', 'dark'],
+    // Not pitch-dark here, on purpose: see the note above.
+    ["html[data-theme='dark'] #boot .bootspin {", 'border-top-color', '--color-pitch', 'dark'],
+  ];
+
+  const wrong: string[] = [];
+  for (const [sel, prop, token, theme] of COPIES) {
+    const want = (theme === 'light' ? light : dark)[token];
+    const got = bootValue(sel, prop);
+    if (!want) wrong.push(`${token} not found in src/index.css (${theme})`);
+    else if (got !== want) wrong.push(`${sel} ${prop}: ${got ?? 'missing'} should be ${want}`);
+  }
+
+  // The favicon is a data: URI, so its two colours are URL-escaped and it has no theme -
+  // a browser tab icon cannot follow one. Both must still be the light values.
+  const favicon = html.slice(0, html.indexOf('</svg>'));
+  for (const [token, count] of [
+    ['--color-pitch-dark', 1],
+    ['--color-amber', 1],
+  ] as [string, number][]) {
+    const escaped = '%23' + light[token].slice(1);
+    if (favicon.split(escaped).length - 1 < count) {
+      wrong.push(`favicon: ${escaped} (${token}) not present`);
+    }
+  }
+
+  check(
+    `boot: index.html's ${COPIES.length} palette literals + the favicon match their index.css tokens` +
+      (wrong.length ? ` [${wrong.join('; ')}]` : ''),
+    wrong.length === 0,
+  );
+}
+
 // --- Challenges: the catalogue is well-formed --------------------------------
 {
   const ids = new Set(CHALLENGES.map((c) => c.id));
