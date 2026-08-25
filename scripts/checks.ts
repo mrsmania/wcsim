@@ -2659,7 +2659,7 @@ const KNOWN_MISSING_ART = new Set([
 
   /** A shape over a real formation, with every player in his natural position. */
   const shapeFor = (name: string, style: Style): RunShape => {
-    const f = getFormation(FORMATIONS_DATA, name, style)!;
+    const f = getFormation(name, style)!;
     const used = new Set<string>();
     return {
       formation: f.name,
@@ -3249,7 +3249,7 @@ const KNOWN_MISSING_ART = new Set([
 
   // 5. End to end through the real sim: the per-player ordering holds, and no keeper
   //    ever appears in a goal feed.
-  const f = getFormation(FORMATIONS_DATA, '4-2-3-1', 'off')!;
+  const f = getFormation('4-2-3-1', 'off')!;
   const used = new Set<string>();
   const filled: Filled = {};
   for (const slot of f.slots) {

@@ -40,17 +40,21 @@ export interface FormationsData {
 
 // CSV position columns. dm/cm/am are distinct central-midfield roles, each
 // rendering in its own band (dm deeper, am more advanced).
-type CsvPos = 'gk' | 'lb' | 'cb' | 'rb' | 'dm' | 'lm' | 'cm' | 'rm' | 'am' | 'lw' | 'rw' | 'st';
-const CSV_POS: CsvPos[] = ['gk', 'lb', 'cb', 'rb', 'dm', 'lm', 'cm', 'rm', 'am', 'lw', 'rw', 'st'];
+// This module used to run a whole lowercase parallel vocabulary - `CsvPos` plus `CSV_POS`
+// (a clone of `Position`), a 12-entry `CODE_TO_POS` bridge, `Member.pos` beside
+// `Member.matchPos`, `mem()`'s never-passed `label` parameter, and `RawStyle` plus
+// `STYLE_FROM_RAW` (a second name for `Style`) - for a CSV it no longer reads: the data is
+// the hardcoded array below, authored in uppercase. Everything keys on `Position` and
+// `Style` directly now, which also removes the cast in `countPositions` (hygiene H71).
+// The emitted `Slot.position` and `Slot.label` are unchanged.
 
 interface Member {
-    pos: CsvPos;
-    matchPos: Position;
+    pos: Position;
     label: string;
 }
 
-function mem(pos: CsvPos, matchPos: Position, label?: string): Member {
-    return { pos, matchPos, label: label ?? matchPos };
+function mem(pos: Position): Member {
+    return { pos, label: pos };
 }
 
 interface Band {
@@ -67,12 +71,12 @@ interface Band {
 // (a badge is taller than a 12-unit gap), with the striker pushed higher and the
 // keeper deeper.
 const BANDS: Band[] = [
-    { baseY: 22, members: [mem('lw', 'LW'), mem('st', 'ST'), mem('rw', 'RW')] },
-    { baseY: 36, members: [mem('am', 'AM')] },
-    { baseY: 49, members: [mem('lm', 'LM'), mem('cm', 'CM'), mem('rm', 'RM')] },
-    { baseY: 62, members: [mem('dm', 'DM')] },
-    { baseY: 76, members: [mem('lb', 'LB'), mem('cb', 'CB'), mem('rb', 'RB')] },
-    { baseY: 94, fixed: true, members: [mem('gk', 'GK')] },
+    { baseY: 22, members: [mem('LW'), mem('ST'), mem('RW')] },
+    { baseY: 36, members: [mem('AM')] },
+    { baseY: 49, members: [mem('LM'), mem('CM'), mem('RM')] },
+    { baseY: 62, members: [mem('DM')] },
+    { baseY: 76, members: [mem('LB'), mem('CB'), mem('RB')] },
+    { baseY: 94, fixed: true, members: [mem('GK')] },
 ];
 
 /** Vertical shift per style: defensive sits deeper (higher y), offensive higher up. */
@@ -91,31 +95,31 @@ const CENTER_GAP = 25; // spacing between adjacent players in a purely central l
 // (toward the opponent goal), positive = deeper. Staggers each line so it is
 // not dead straight (full-backs ahead of centre-backs, wingers behind the
 // striker, wide mids edging forward, etc.). EDIT to taste.
-const Y_NUDGE: Partial<Record<CsvPos, number>> = {
-    lb: -3,
-    rb: -3,
-    lm: -2,
-    rm: -2,
-    lw: 3,
-    rw: 3,
+const Y_NUDGE: Partial<Record<Position, number>> = {
+    LB: -3,
+    RB: -3,
+    LM: -2,
+    RM: -2,
+    LW: 3,
+    RW: 3,
 };
 // Gentle bow on central lines of three or more (the middle sits a touch deeper).
 const CENTER_ARC = 2;
 
 /** Which touchline a position belongs to (drives its x). */
-const SIDE: Record<CsvPos, 'L' | 'C' | 'R'> = {
-    gk: 'C',
-    lb: 'L',
-    cb: 'C',
-    rb: 'R',
-    dm: 'C',
-    lm: 'L',
-    cm: 'C',
-    rm: 'R',
-    am: 'C',
-    lw: 'L',
-    rw: 'R',
-    st: 'C',
+const SIDE: Record<Position, 'L' | 'C' | 'R'> = {
+    GK: 'C',
+    LB: 'L',
+    CB: 'C',
+    RB: 'R',
+    DM: 'C',
+    LM: 'L',
+    CM: 'C',
+    RM: 'R',
+    AM: 'C',
+    LW: 'L',
+    RW: 'R',
+    ST: 'C',
 };
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -159,7 +163,7 @@ function placeRow(entries: Member[], bandY: number): Slot[] {
         labelCount[m.label] = (labelCount[m.label] ?? 0) + 1;
         slots.push({
             id: `${m.label}${labelCount[m.label]}`,
-            position: m.matchPos,
+            position: m.pos,
             label: m.label,
             x: round1(x),
             y: round1(bandY + (Y_NUDGE[m.pos] ?? 0) + dy),
@@ -168,7 +172,11 @@ function placeRow(entries: Member[], bandY: number): Slot[] {
     return slots;
 }
 
-function buildFormation(name: string, style: Style, counts: Record<CsvPos, number>): Formation {
+function buildFormation(
+    name: string,
+    style: Style,
+    counts: Partial<Record<Position, number>>,
+): Formation {
     const slots: Slot[] = [];
     for (const band of BANDS) {
         // Expand each member by its count.
@@ -184,33 +192,18 @@ function buildFormation(name: string, style: Style, counts: Record<CsvPos, numbe
     return { name, style, slots };
 }
 
-// Map the role codes used in RAW_FORMATIONS to internal roles.
-const CODE_TO_POS: Record<string, CsvPos> = {
-    GK: 'gk',
-    LB: 'lb',
-    CB: 'cb',
-    RB: 'rb',
-    DM: 'dm',
-    LM: 'lm',
-    CM: 'cm',
-    RM: 'rm',
-    AM: 'am',
-    LW: 'lw',
-    RW: 'rw',
-    ST: 'st',
-};
-
-type RawStyle = 'defensive' | 'balanced' | 'offensive';
-const STYLE_FROM_RAW: Record<RawStyle, Style> = {
+/** The long style names `RAW_FORMATIONS` is authored with, mapped to `Style`. Kept because
+ *  the rows read better spelled out; it is a labelling of `Style`, not a second type. */
+const STYLE_FROM_RAW = {
     defensive: 'def',
     balanced: 'bal',
     offensive: 'off',
-};
+} as const satisfies Record<string, Style>;
 
 // Hardcoded formations (mirrors public/formations/formations_summary.csv). Each
 // row lists the 11 on-pitch roles; order is irrelevant since the layout is
 // derived from role counts. Add a row to add a formation/style.
-const RAW_FORMATIONS: [string, RawStyle, string[]][] = [
+const RAW_FORMATIONS: [string, keyof typeof STYLE_FROM_RAW, Position[]][] = [
     ['5-3-2', 'defensive', ['GK', 'LB', 'CB', 'CB', 'CB', 'RB', 'DM', 'CM', 'DM', 'ST', 'ST']],
     ['5-3-2', 'balanced', ['GK', 'LB', 'CB', 'CB', 'CB', 'RB', 'CM', 'DM', 'CM', 'ST', 'ST']],
     ['5-3-2', 'offensive', ['GK', 'LB', 'CB', 'CB', 'CB', 'RB', 'CM', 'AM', 'CM', 'ST', 'ST']],
@@ -237,12 +230,11 @@ const RAW_FORMATIONS: [string, RawStyle, string[]][] = [
     ['4-2-4', 'offensive', ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'AM', 'LW', 'ST', 'ST', 'RW']],
 ];
 
-function countPositions(codes: string[]): Record<CsvPos, number> {
-    const counts = Object.fromEntries(CSV_POS.map((p) => [p, 0])) as Record<CsvPos, number>;
-    for (const code of codes) {
-        const pos = CODE_TO_POS[code.toUpperCase()];
-        if (pos) counts[pos] += 1;
-    }
+/** How many of each role a formation's eleven codes call for. The codes ARE `Position`s, so
+ *  there is no lowercase bridge to cross and no cast to recover the key type. */
+function countPositions(codes: Position[]): Partial<Record<Position, number>> {
+    const counts: Partial<Record<Position, number>> = {};
+    for (const pos of codes) counts[pos] = (counts[pos] ?? 0) + 1;
     return counts;
 }
 
@@ -258,12 +250,13 @@ export const FORMATIONS_DATA: FormationsData = (() => {
     return data;
 })();
 
-export function getFormation(
-    data: FormationsData,
-    name: FormationName,
-    style: Style,
-): Formation | null {
-    return data.byKey[`${name}|${style}`] ?? null;
+/** One formation by name + style, or null if that pairing does not exist.
+ *
+ *  Reads `FORMATIONS_DATA` directly. It used to take the data as a parameter and all three
+ *  call sites passed this module's own singleton, so the parameter only ever had one value
+ *  (hygiene H71). */
+export function getFormation(name: FormationName, style: Style): Formation | null {
+    return FORMATIONS_DATA.byKey[`${name}|${style}`] ?? null;
 }
 
 // ---------------------------------------------------------------------------

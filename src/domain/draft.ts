@@ -2,8 +2,16 @@ import { ELO_MAX, type Player, type Position, type Squad } from '../data/types';
 import type { Formation, Slot } from './formations';
 import { pick } from './random';
 
-/** Map of slotId -> placed player (or null/absent if still open). */
-export type Filled = Record<string, Player | null>;
+/** Map of slotId -> the player placed there. An open slot is ABSENT, not null: removal is
+ *  a `delete` everywhere (the reducer and `planMove` both), and no site has ever assigned
+ *  null - so the old `Player | null` arm was dead and forced explicit type predicates that
+ *  existed only to re-narrow it away again (hygiene H69).
+ *
+ *  `Partial<Record<...>>` rather than a bare `Record`, because `noUncheckedIndexedAccess`
+ *  is off: with a bare Record `filled[id]` would be typed `Player` when after a delete it
+ *  is actually undefined, which is the same lie in the other direction. No nulls were ever
+ *  serialized, so saved games are unaffected. */
+export type Filled = Partial<Record<string, Player>>;
 
 // --- placement -------------------------------------------------------------
 

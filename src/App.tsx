@@ -186,7 +186,7 @@ export default function App({
     // During setup the pitch previews the selected formation/style; during the
     // draft it uses the locked formation stored in state.
     const previewFormation = useMemo(
-        () => getFormation(FORMATIONS_DATA, formationName, style),
+        () => getFormation(formationName, style),
         [formationName, style],
     );
     // Home sub-view derived from the data, not `phase`: no formation -> setup;

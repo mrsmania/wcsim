@@ -1,4 +1,4 @@
-import { categoryOf, CATEGORY_ORDER, type Player } from '../data/types';
+import { categoryOf, CATEGORY_ORDER } from '../data/types';
 import { lastName } from '../data/format';
 import type { Formation } from '../domain/formations';
 import type { Filled } from '../domain/draft';
@@ -43,7 +43,7 @@ export default function XiTable({
     // build record, so the three cannot disagree about what this XI cost.
     const spent = isBudget
         ? xiSpend(
-              placedSlots.map((s) => filled[s.id]).filter((p): p is Player => !!p),
+              placedSlots.map((s) => filled[s.id]).filter((p) => !!p),
               ownedStickerIds,
           )
         : 0;

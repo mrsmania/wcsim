@@ -378,7 +378,7 @@ export default function Pitch({
         () =>
             new Set(
                 Object.values(filled)
-                    .filter((pl): pl is Player => !!pl)
+                    .filter((pl) => !!pl)
                     .map((pl) => pl.personId),
             ),
         [filled],
