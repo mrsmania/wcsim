@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Trophy, User } from 'lucide-react';
-import { ALL_PLAYERS, squadsInPool } from './data/squads';
+import { squadsInPool } from './data/squads';
 import type { Player, Position } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
@@ -22,7 +22,6 @@ import {
     positionsWithOpenSlot,
     randomXI,
     STRENGTH_BANDS,
-    type Filled,
     type TeamStrength,
 } from './domain/draft';
 import { budgetOf, extraRerollsOf } from './domain/career';
@@ -40,6 +39,8 @@ import { setStoreErrorHandler, store, type AccountSnapshot } from './state/store
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
 import { useSquadRoll } from './hooks/useSquadRoll';
+import { useBudgetBuild } from './hooks/useBudgetBuild';
+import { useMovePlayer } from './hooks/useMovePlayer';
 import SettingsModal from './components/SettingsModal';
 import AccountModal from './components/AccountModal';
 import SetupPanel from './components/SetupPanel';
@@ -96,13 +97,6 @@ export default function App({
         initialState,
         () => snapshot.game ?? initialState,
     );
-    // Budget build (transient, not persisted): the market player currently held and
-    // the empty slot being shopped for. Both drive the shared pitch in budget mode.
-    const [heldId, setHeldId] = useState<string | null>(null);
-    const [budgetTargetId, setBudgetTargetId] = useState<string | null>(null);
-    // The placed player picked up to be moved to another of his roles (transient, and
-    // shared by both build methods since they share the pitch).
-    const [movingSlotId, setMovingSlotId] = useState<string | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -169,14 +163,24 @@ export default function App({
     const homeView: HomeView = homeViewOf(formation, filled);
     const activeFormation = homeView === 'setup' ? previewFormation : formation;
 
+    // The mobile scroll dance, in one place: picking a player scrolls to the board so a
+    // slot can be tapped, and placing him scrolls back to the panel it was picked from.
+    // Both are no-ops on the wide layout, where the two sit side by side.
+    const scrollToPitch = useCallback(() => {
+        if (!isStackedLayout()) return;
+        pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, []);
+    const scrollToPanel = useCallback(() => {
+        if (!isStackedLayout()) return;
+        squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, []);
+
     // Mobile: when a player is picked, scroll the pitch to the top (with a little
     // margin via scroll-mt) so the user can tap an open slot. Scrolling back up to
     // the squad after placing is done in handlePlace.
     useEffect(() => {
-        if (phase === 'draft' && selectedPlayerId && isStackedLayout()) {
-            pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }, [selectedPlayerId, phase]);
+        if (phase === 'draft' && selectedPlayerId) scrollToPitch();
+    }, [selectedPlayerId, phase, scrollToPitch]);
 
     // The roll draft: the scramble animation and the draw-next-squad policy, with their
     // four refs and their two effects (hooks/useSquadRoll). It is the subtlest code the
@@ -192,6 +196,23 @@ export default function App({
         rerollsLeft,
         pool: poolSquads,
         dispatch,
+    });
+
+    // The two transient interaction machines the shared pitch drives (hooks/useMovePlayer
+    // and hooks/useBudgetBuild). They cross-cancel: taking a card drops a move in
+    // progress, and picking a placed player up drops the card. The move hook is declared
+    // first so the market can call its `cancel`; the other direction is `handleStartMove`
+    // below, since neither hook can own both without knowing about the other.
+    const move = useMovePlayer({ activeFormation, phase, dispatch });
+    const budget = useBudgetBuild({
+        isBudgetBuild: build === 'budget',
+        formation,
+        activeFormation,
+        filled,
+        dispatch,
+        onTakeCard: move.cancel,
+        scrollToPitch,
+        scrollToPanel,
     });
 
     const handleStart = useCallback(() => {
@@ -233,55 +254,24 @@ export default function App({
     const handleBudget = useCallback(() => {
         if (!previewFormation) return;
         void store.saveRun(null);
-        setHeldId(null);
-        setBudgetTargetId(null);
-        dispatch({ type: 'START_BUDGET', formation: previewFormation });
-    }, [previewFormation]);
-
-    // Hold / release a market player (its eligible slots then pulse on the pitch).
-    // Taking a card in hand drops a move in progress: only one thing is being aimed
-    // at a time, and the last tap is what the user means.
-    // Mobile: holding a card scrolls the pitch up, exactly as picking a drawn player does.
-    // The roll draft gets that from the `selectedPlayerId` effect below; the market holds
-    // its card in local state, so it never fired there - the same gesture with half the
-    // help. `willHold` is computed here rather than inside the updater, because a scroll
-    // is a side effect and setState updaters can run twice.
-    const handleBudgetHold = useCallback(
-        (player: Player) => {
-            setMovingSlotId(null);
-            const willHold = heldId !== player.id;
-            setHeldId(willHold ? player.id : null);
-            if (willHold && isStackedLayout()) {
-                pitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        },
-        [heldId],
-    );
-
-    // Same rule for a drawn-squad card.
-    const handleSelectPlayer = useCallback((playerId: string) => {
-        setMovingSlotId(null);
-        dispatch({ type: 'SELECT_PLAYER', playerId });
-    }, []);
-
-    // Auto-fill: commit a full budget XI (the market computes it). AUTOFILL -> complete.
-    const handleBudgetAutoFill = useCallback(
-        (filledXi: Filled, usedPersonIds: string[]) => {
-            if (!formation) return;
-            setHeldId(null);
-            setBudgetTargetId(null);
-            dispatch({ type: 'AUTOFILL', formation, filled: filledXi, usedPersonIds });
-        },
-        [formation],
-    );
+        budget.enter(previewFormation);
+    }, [previewFormation, budget]);
 
     // Clear every bought player but stay in the budget build (re-enter it fresh).
     const handleBudgetClear = useCallback(() => {
-        if (!formation) return;
-        setHeldId(null);
-        setBudgetTargetId(null);
-        dispatch({ type: 'START_BUDGET', formation });
-    }, [formation]);
+        if (formation) budget.enter(formation);
+    }, [formation, budget]);
+
+    // Taking a drawn-squad card drops a move in progress: only one thing is being aimed
+    // at a time, and the last tap is what the user means. The market's own card does the
+    // same, from inside `useBudgetBuild`.
+    const handleSelectPlayer = useCallback(
+        (playerId: string) => {
+            move.cancel();
+            dispatch({ type: 'SELECT_PLAYER', playerId });
+        },
+        [move],
+    );
 
     const handlePlace = useCallback(
         (slotId: string) => {
@@ -297,22 +287,21 @@ export default function App({
             // Mobile: jump back up to the squad list (showing the next drawn squad); the
             // panel's scroll-mt keeps a little margin above it. Only for a placement
             // that actually landed.
-            if (willPlace && isStackedLayout()) {
-                squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            if (willPlace) scrollToPanel();
         },
-        [formation, currentSquad, selectedPlayerId, filled],
+        [formation, currentSquad, selectedPlayerId, filled, scrollToPanel],
     );
 
     // Swap the selected player into an already-filled slot (sticker album feature).
     // The reducer validates eligibility; the draw effect then rolls the next squad
     // for any still-open slot, exactly like a placement.
-    const handleSwap = useCallback((slotId: string) => {
-        dispatch({ type: 'SWAP_PLAYER', slotId });
-        if (isStackedLayout()) {
-            squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }, []);
+    const handleSwap = useCallback(
+        (slotId: string) => {
+            dispatch({ type: 'SWAP_PLAYER', slotId });
+            scrollToPanel();
+        },
+        [scrollToPanel],
+    );
 
     // Testing aid: remove a placed player. The XI drops back to 'draft'; if no
     // squad is in hand (we were "complete"), the draw-next-squad effect rolls one
@@ -321,61 +310,17 @@ export default function App({
         dispatch({ type: 'REMOVE_PLAYER', slotId });
     }, []);
 
-    // --- move a placed player within his position range -----------------------
-    // Pick a placed player up, or put him back down if he is the one already held.
-    // This is the other half of the rule above: it drops whatever card was selected in
-    // the squad list or the market, so the two gestures overwrite each other in both
-    // directions rather than one silently winning.
-    const handleStartMove = useCallback((slotId: string) => {
-        dispatch({ type: 'SELECT_PLAYER', playerId: null });
-        setHeldId(null);
-        setMovingSlotId((cur) => (cur === slotId ? null : slotId));
-    }, []);
-    // Drop him into the chosen slot. The reducer re-checks eligibility and ignores an
-    // invalid pair, so a stale click cannot corrupt the XI.
-    const handleMove = useCallback(
-        (toSlotId: string) => {
-            if (!movingSlotId) return;
-            dispatch({ type: 'MOVE_PLAYER', fromSlotId: movingSlotId, toSlotId });
-            setMovingSlotId(null);
-        },
-        [movingSlotId],
-    );
-    // A formation change (different slots) or leaving the build behind drops the move.
-    // Deliberately NOT keyed on the selection: handleStartMove clears it, so watching it
-    // here would have a move cancel itself the moment it began.
-    useEffect(() => {
-        setMovingSlotId(null);
-    }, [activeFormation, phase]);
-
-    // --- budget build: place / shop / remove on the shared pitch ---------------
-    // Buy the held market player into an eligible slot, then shop the next empty one.
-    const handleBudgetPlace = useCallback(
+    // Picking a placed player up is the other half of that rule, and the half neither
+    // hook can own: the move hook clears the reducer's selection, and the market's held
+    // card is dropped here, so the two gestures overwrite each other in both directions
+    // rather than one silently winning.
+    const handleStartMove = useCallback(
         (slotId: string) => {
-            const player = heldId ? ALL_PLAYERS.find((p) => p.id === heldId) : null;
-            if (!player || !formation) return;
-            dispatch({ type: 'BUY_PLAYER', slotId, player });
-            setHeldId(null);
-            const next = formation.slots.find((s) => s.id !== slotId && !filled[s.id]);
-            setBudgetTargetId(next ? next.id : null);
-            // Mobile: back up to the market for the next position, as a placement does.
-            if (isStackedLayout()) {
-                squadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            budget.dropHeld();
+            move.startMove(slotId);
         },
-        [heldId, formation, filled],
+        [budget, move],
     );
-    // Tap an empty slot with no eligible held player: shop that position instead.
-    const handleBudgetShop = useCallback((slotId: string) => {
-        setBudgetTargetId(slotId);
-        setHeldId(null);
-    }, []);
-    // Remove a bought player (drops back to building) and shop that slot again.
-    const handleBudgetRemove = useCallback((slotId: string) => {
-        dispatch({ type: 'REMOVE_PLAYER', slotId });
-        setBudgetTargetId(slotId);
-        setHeldId(null);
-    }, []);
 
     const handleReset = useCallback(() => {
         // A reset is a brand-new team, so drop any in-progress Cup Run too - and any
@@ -427,17 +372,7 @@ export default function App({
     const panelSquad = rolling ? displaySquad : currentSquad;
     const availableStyles = FORMATIONS_DATA.stylesByName[formationName] ?? STYLES;
 
-    // Budget build: the effective empty slot being shopped (falls back to the first
-    // open one) and the held market player - both drive the shared pitch.
     const isBudgetBuild = build === 'budget';
-    const budgetTargetSlot =
-        isBudgetBuild && activeFormation
-            ? (activeFormation.slots.find((s) => s.id === budgetTargetId && !filled[s.id]) ??
-              activeFormation.slots.find((s) => !filled[s.id]) ??
-              null)
-            : null;
-    const heldPlayer =
-        isBudgetBuild && heldId ? (ALL_PLAYERS.find((p) => p.id === heldId) ?? null) : null;
 
     // Page section header (eyebrow + heading), derived from the home sub-view.
     const home = homeCopy(homeView);
@@ -504,8 +439,9 @@ export default function App({
 
     // Transfer-market budget, scaled by the owned `transfer-budget` perk tier. The build
     // record below reads the same figure, so what the market charged and what the run
-    // recorded cannot drift.
-    const budget = budgetOf(careerPeek);
+    // recorded cannot drift. Named for the money, since `budget` is the market's
+    // interaction machine now.
+    const marketBudget = budgetOf(careerPeek);
 
     // What the build page knows and the run cannot work out afterwards: the shape the XI
     // kicks off in, and how it was assembled. Both are handed to `beginRun` so the
@@ -528,7 +464,7 @@ export default function App({
                   method: 'budget',
                   xi: draftedXi,
                   // The same figure the market charged against, not a second lookup.
-                  budget,
+                  budget: marketBudget,
                   ownedStickerIds,
                   swapsUsed,
               })
@@ -538,7 +474,7 @@ export default function App({
                   rerollsLeft,
                   swapsUsed,
               });
-    }, [draftedXi, build, budget, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
+    }, [draftedXi, build, marketBudget, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
 
     // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
     // mid-flight, described in one line for the Continue button (`state/resume.ts`).
@@ -812,12 +748,12 @@ export default function App({
                                             <BudgetMarket
                                                 formation={formation}
                                                 filled={filled}
-                                                budget={budget}
+                                                budget={marketBudget}
                                                 poolPlayers={poolPlayers}
-                                                targetSlot={budgetTargetSlot}
-                                                heldPlayer={heldPlayer}
-                                                onHold={handleBudgetHold}
-                                                onAutoFill={handleBudgetAutoFill}
+                                                targetSlot={budget.targetSlot}
+                                                heldPlayer={budget.heldPlayer}
+                                                onHold={budget.hold}
+                                                onAutoFill={budget.autoFill}
                                                 onClear={handleBudgetClear}
                                                 onStartOver={handleReset}
                                                 ownedStickerIds={ownedStickerIds}
@@ -877,14 +813,14 @@ export default function App({
                                                 formation={activeFormation}
                                                 filled={filled}
                                                 selectedPlayer={
-                                                    isBudgetBuild ? heldPlayer : selectedPlayer
+                                                    isBudgetBuild ? budget.heldPlayer : selectedPlayer
                                                 }
                                                 onPlace={
-                                                    isBudgetBuild ? handleBudgetPlace : handlePlace
+                                                    isBudgetBuild ? budget.place : handlePlace
                                                 }
                                                 onRemove={
                                                     isBudgetBuild
-                                                        ? handleBudgetRemove
+                                                        ? budget.remove
                                                         : FEATURES.removePlayers
                                                           ? handleRemove
                                                           : undefined
@@ -895,10 +831,10 @@ export default function App({
                                                         : undefined
                                                 }
                                                 onSelectSlot={
-                                                    isBudgetBuild ? handleBudgetShop : undefined
+                                                    isBudgetBuild ? budget.shop : undefined
                                                 }
                                                 targetSlotId={
-                                                    isBudgetBuild ? budgetTargetSlot?.id : undefined
+                                                    isBudgetBuild ? budget.targetSlot?.id : undefined
                                                 }
                                                 // Moving a placed player. Offered even
                                                 // with a card in hand: a slot the held
@@ -910,9 +846,9 @@ export default function App({
                                                         ? handleStartMove
                                                         : undefined
                                                 }
-                                                movingSlotId={movingSlotId}
+                                                movingSlotId={move.movingSlotId}
                                                 onMove={
-                                                    FEATURES.movePlayers ? handleMove : undefined
+                                                    FEATURES.movePlayers ? move.move : undefined
                                                 }
                                             />
                                         </section>
@@ -921,7 +857,7 @@ export default function App({
                                             <XiTable
                                                 formation={activeFormation}
                                                 filled={filled}
-                                                budget={isBudgetBuild ? budget : undefined}
+                                                budget={isBudgetBuild ? marketBudget : undefined}
                                                 ownedStickerIds={ownedStickerIds}
                                             />
                                         </section>
