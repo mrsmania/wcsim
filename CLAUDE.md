@@ -648,20 +648,23 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   tradesCompleted), **separate keys from the game** so a reset never wipes the album.
   `App` gets the album from the boot snapshot and holds it in `useStickerAlbum`
   (hooks/), which owns the banking rule and prop-drills the result (no context).
-- **Earning: `FEATURES.stickersOnCupWinOnly`, and it is ON since 2026-08-24.** **True
-  (shipped):** only a cup win banks, so the album records what you *won*. **False:** any
-  finished run banks the final XI, so it records who you *drafted*. The flag also switches
-  the copy that explains it (home page, draft call-out), so flipping it swaps which of those
-  two branches is live rather than leaving one dead.
-  **This is a reversal, and the numbers behind it are worth keeping.** It was added
-  2026-08-15, set back to `false` the same day, and shipped that way until 2026-08-24 - so
-  every run played before that date banked its XI. Measured over 400 simulated runs with a
-  $110 XI at Base Ascension: a run wins the cup **10%** of the time (30% exit in the group),
-  so win-only banks about **a tenth** of the collectibles any-run did. Two knock-ons, since
-  the album is not self-contained: the owned-sticker discount makes the transfer market
-  cheaper as the album grows (a mild loop working against itself), and duplicates are what
-  fund trades, so `TradeModal` sees far less use. The cup-win reward pick offsets part of
-  it. If the album ever feels too slow, those are the dials - or let a lost final bank too.
+- **Earning: `FEATURES.stickersOnCupWinOnly`, and it is OFF.** **False (shipped):** any
+  finished run banks the final XI, so the album records who you *drafted*. **True:** only a
+  cup win banks, so it records what you *won*. The flag also switches the copy that explains
+  it (home page, draft call-out), so flipping it swaps which of those two branches is live
+  rather than leaving one dead.
+  **It has been flipped both ways and the measurement is why it is off.** Added 2026-08-15
+  and set back the same day; turned ON on 2026-08-24 and turned OFF again a few hours later.
+  Over 400 simulated runs with a $110 XI at Base Ascension a run wins the cup **10%** of the
+  time (30% exit in the group), so win-only banks about **a tenth** of the collectibles
+  any-run does - and against 87 collectibles that will not fill an album. Two knock-ons make
+  it worse, since the album is not self-contained: the owned-sticker discount makes the
+  market cheaper as the album grows (so a slow album is a loop working against itself), and
+  duplicates are what fund trades, so `TradeModal` would see far less use.
+  **The intent is to switch it back**, because win-only is the better meaning - a shelf of
+  what you won beats a list of everyone you ever drafted. It needs a second income first,
+  which is **roadmap item 34** (an album shop: buy stickers with Prestige or a currency of
+  its own). Flip it when that ships, and re-measure rather than trusting the figures here.
   Stickers are never awarded mid-run either way.
   On a **cup win** `App` shows `CupRewardPicker` (pick any one uncollected Legendary or
   Iconic sticker - Monumental excluded, FR-3/D-1) and then banks the **final XI**'s

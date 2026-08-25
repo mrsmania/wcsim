@@ -10,7 +10,7 @@
  * This is a safety net for the risky domain math (match sim, penalty shootout,
  * the knockout bracket, standings, chemistry) - not a UI or behaviour change.
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { ALL_PLAYERS, SQUADS, SQUAD_BY_ID, basePlayer } from '../src/data/squads';
 import { ELO_MAX, ELO_MIN, isAttacker, isDefender, primaryPosition, type Player, type Position } from '../src/data/types';
 import { validateSquads } from '../src/domain/validateSquads';
@@ -1957,6 +1957,64 @@ const plainRun = (() => {
   check(
     `collectibles: ${CATALOGUE_PATH} is in sync with the dataset ` +
       `(${rows.length} rows; run \`npm run gen:collectibles\` if this fails)`,
+    ok,
+  );
+}
+
+// --- Sticker art: shipped webp files match the collectible set ---------------
+// Nothing guarded this, and it broke twice in two days while it was going unguarded: the
+// 1986 drop created three collectibles with no artwork, and re-rating 1986 took it to six.
+// Both times the album silently shipped text-fallback cards, one of them Maradona in the
+// Monumental tier. `build-sticker-art.py` never consults the dataset, so a rating change
+// that crosses a STICKER_TIERS boundary neither builds the new card nor prunes the old one.
+//
+// Two directions, and one deliberate allowance:
+//   - an ORPHAN webp (art for a player who is no longer collectible) is a hard failure;
+//     it is dead weight shipping on every deploy and it is always cheap to delete.
+//   - a MISSING webp (a collectible with no art) is a hard failure UNLESS the id is in
+//     KNOWN_MISSING_ART below. Those six have no source image anywhere, so the check
+//     cannot be made green by working harder - it is waiting on artwork.
+// The allowance is itself checked: a KNOWN_MISSING_ART id that has since gained art, or
+// that is no longer collectible, FAILS. So the list cannot quietly become permanent debt -
+// it shrinks as art arrives and it tells you to shrink it.
+const KNOWN_MISSING_ART = new Set([
+  'arg-1986-10', // Maradona (Monumental)
+  'fra-1986-10', // Platini
+  'esp-1986-9', // Butragueno
+  'eng-1986-10', // Lineker
+  'den-1986-10', // Elkjaer
+  'urs-1986-19', // Belanov
+]);
+{
+  const STICKER_DIR = 'public/stickers';
+  let shipped: Set<string> | null = null;
+  try {
+    shipped = new Set(
+      readdirSync(STICKER_DIR)
+        .filter((f) => f.endsWith('.webp'))
+        .map((f) => f.replace(/\.webp$/, '')),
+    );
+  } catch {
+    shipped = null;
+  }
+  const collectible = collectiblePlayers(ALL_PLAYERS);
+  const ids = new Set(collectible.map((p) => p.id));
+  const missing = shipped ? [...ids].filter((id) => !shipped!.has(id)) : [];
+  const orphans = shipped ? [...shipped].filter((id) => !ids.has(id)) : [];
+  const unexpected = missing.filter((id) => !KNOWN_MISSING_ART.has(id));
+  // The allowance must stay honest in both directions.
+  const staleAllowed = [...KNOWN_MISSING_ART].filter(
+    (id) => !ids.has(id) || (shipped ? shipped.has(id) : false),
+  );
+  const ok = shipped !== null && unexpected.length === 0 && orphans.length === 0 && staleAllowed.length === 0;
+  if (unexpected.length) console.log('    collectibles with no art: ' + unexpected.join(', '));
+  if (orphans.length) console.log('    art with no collectible: ' + orphans.join(', '));
+  if (staleAllowed.length)
+    console.log('    KNOWN_MISSING_ART is stale, drop these: ' + staleAllowed.join(', '));
+  check(
+    `stickers: shipped art matches the collectible set ` +
+      `(${collectible.length} collectible, ${shipped?.size ?? 0} shipped, ` +
+      `${KNOWN_MISSING_ART.size} awaiting artwork)`,
     ok,
   );
 }

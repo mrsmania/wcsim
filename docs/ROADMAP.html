@@ -553,6 +553,67 @@
 
 <details class="item">
   <summary>
+    <span class="num">34</span>
+    <span class="title">Album shop: a second way to earn stickers
+      <span class="sub">Buy stickers with Prestige or a currency of its own, so the album has an income that does not depend on a 10% event. What unblocks win-only earning.</span>
+    </span>
+    <span class="tag">Album</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The idea (2026-08-24):</strong> let the player <b>spend</b> on stickers -
+    Prestige, or a currency the album earns for itself - instead of only receiving them at the
+    end of a run. High level for now; the shape is not settled.</p>
+
+    <p><strong>Why it exists, which is the part worth keeping.</strong> It came out of trying
+    <code>FEATURES.stickersOnCupWinOnly</code> both ways on the same day.
+    <b>Win-only is the better meaning</b>: an album that records what you <em>won</em> is a
+    trophy shelf, where one that records everyone you ever <em>drafted</em> is a list. But it
+    is not playable on its own. Measured over 400 simulated runs with a $110 XI at Base
+    Ascension: a run wins the cup <b>10%</b> of the time and exits in the group 30%, so
+    win-only banks about <b>a tenth</b> of the collectibles any-run does. Against <b>87</b>
+    collectibles that is not a slow album, it is an unfillable one. So the flag is off, and
+    this item is what would let it go back on.</p>
+
+    <p><strong>The two knock-ons to design against</strong>, because the album is not
+    self-contained and both work against a slow album:</p>
+    <ul>
+      <li>The <b>owned-sticker discount</b> (<code>STICKER_DISCOUNT</code>, 25%) makes the
+      transfer market cheaper as the album grows. A slow album therefore means a weaker
+      economy, which lowers the cup-win rate, which slows the album further - a real feedback
+      loop, mild at 25% but pointing the wrong way.</li>
+      <li><b>Duplicates fund trades</b> (<code>STICKER_TRADE_COST</code>), and duplicates come
+      from banking. At a tenth the volume <code>TradeModal</code> becomes decorative, so
+      whatever a shop sells has to keep the trade economy alive too - or replace it.</li>
+    </ul>
+
+    <p><strong>The questions to settle:</strong> which currency (Prestige is already spoken
+    for by perk tiers and boost unlocks, and adding a third sink competes with both - a
+    currency of the album's own avoids that but is one more thing to explain); whether you buy
+    a NAMED sticker or a random one from a tier (named is a shop, random is a pack, and packs
+    interact with duplicates and trades in a way a shop does not); whether prices follow the
+    tier (Monumental dearer) or the player's rating; whether the cup-win reward pick survives
+    alongside it; and whether buying should be capped per run, so a shop cannot short-circuit
+    an album that is meant to take a while.</p>
+
+    <p><strong>Not to be confused with the transfer market</strong>, which spends a per-run
+    budget on players for one XI. This spends a persistent currency on stickers for the
+    collection. The only place they meet is the discount above.</p>
+
+    <p><strong>Prior art in the repo:</strong> <code>TradeModal</code> already spends
+    duplicates on a random sticker of a chosen tier, so the "pack" shape exists in miniature
+    and its costs are already tuned (<code>STICKER_TRADE_COST</code> in
+    <code>config.ts</code>). A shop is arguably that control with a second currency behind
+    it. Server side, the sticker economy goes through
+    <code>security definer</code> functions for a reason - the browser talks to Postgres
+    directly - so anything that mints stickers needs to be one of those, not a client write:
+    see <code>execute_trade</code> as the template.</p>
+    <p class="files">src/domain/album.ts, src/components/AlbumScreen.tsx, src/components/TradeModal.tsx, src/config.ts, src/domain/career.ts, supabase/migrations/</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
     <span class="num">19</span>
     <span class="title">Daily challenges
       <span class="sub">Three rotating picks from the challenge catalogue, at a reward multiplier. Split out of item 01.</span>

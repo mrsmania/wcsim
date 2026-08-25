@@ -41,14 +41,17 @@ export const FEATURES = {
      *  A losing run still reports in either way, so run history and telemetry are
      *  unaffected by the switch.
      *
-     *  ON since 2026-08-24, which is a reversal: it shipped `false` from 2026-08-15, so
-     *  every run played before that date banked its XI. The measurement behind the switch,
-     *  over 400 simulated runs with a $110 XI at Base Ascension: a run wins the cup 10% of
-     *  the time, so win-only banks about a TENTH of the collectibles any-run did. Two knock
-     *  ons to watch if the album now feels too slow, because neither is self-contained -
-     *  the owned-sticker discount (config STICKER_DISCOUNT) makes the market cheaper as the
-     *  album grows, and duplicates are what fund trades. The cup pick offsets some of it. */
-    stickersOnCupWinOnly: true,
+     *  BACK OFF since 2026-08-24, having been on for a few hours the same day. The reason
+     *  is the measurement, not taste: over 400 simulated runs with a $110 XI at Base
+     *  Ascension a run wins the cup only 10% of the time, so win-only banks about a TENTH of
+     *  the collectibles any-run does - and against 87 collectibles that is too steep to ever
+     *  fill the album. Win-only is the better MEANING (a shelf of what you won, not a list
+     *  of everyone you drafted); it just needs a second way to earn cards before it is
+     *  playable. That is roadmap item 34 (an album shop): spend Prestige or a currency of
+     *  its own on stickers, so the album has an income that does not depend on a 10% event.
+     *  Flip this back to `true` when that ships, and re-measure rather than trusting these
+     *  figures - the collectible count has moved three times already. */
+    stickersOnCupWinOnly: false,
     /** Use real sticker artwork instead of the text+flag placeholder. Drop
      *  <player.id>.png files into art/stickers-src/ and run
      *  `python scripts/build-sticker-art.py` to produce the shipped

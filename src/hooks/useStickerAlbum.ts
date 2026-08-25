@@ -123,9 +123,10 @@ export function useStickerAlbum(
   // (RunState.stickersApplied), so there is no flag to set here.
   //
   // **How stickers are earned is `FEATURES.stickersOnCupWinOnly`** (added 2026-08-15).
-  // It decides what the album MEANS, and it ships ON as of 2026-08-24: only a cup win
-  // banks, so the album records what you WON. Off is the any-run behaviour it shipped with
-  // until then - any finished run banks its XI, recording who you drafted.
+  // It decides what the album MEANS, and it ships OFF: any finished run banks its XI, so
+  // the album records who you DRAFTED. On, only a cup win banks and it records what you
+  // won - which is the better meaning and was tried on 2026-08-24, but a run wins the cup
+  // 10% of the time, so it needs the album shop (roadmap 34) to be earnable first.
   // Either way a losing run still reports in - so the run is recorded, `runs_played`
   // stays honest and the server-side active run is cleared - it just carries nothing.
   const applyStickers = useCallback(
