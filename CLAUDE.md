@@ -63,17 +63,18 @@ executed as written.** The old numbering is preserved so references here still r
 findings start at H106. Its "item 27 owns these" list is gone - that item shipped and its
 losing chrome was deleted, so all five things it named are settled.
 
-**Waves 1 to 4 are done** (2026-08-24/25), and so are all sixteen decisions. What that
-means for anyone picking the backlog up at wave 5:
+**Waves 1 to 5 are done** (2026-08-24/25), and so are all sixteen decisions. What that
+means for anyone picking the backlog up at wave 6:
 
 - **The gate is repaired and it now runs in CI.** The audit opened on the finding that
   `npm run checks` failed at random about one run in twelve, and that the `prime-years`
   check was **vacuous** - proved by reintroducing the sticker exploit it exists to catch
   and still getting 132 passed / 0 failed. Both are fixed (H106-H109), `npm run checks`
-  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **139
+  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **141
   checks**. Five of the new ones assert that a number and the sentence promising it agree
   (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette, H65 the perk
-  shop's advice, H146 the market's budget lookup).
+  shop's advice, H146 the market's budget lookup), and one asserts a shape guard in both
+  directions (H70/H73's `isRoundRecord`).
 - **The truth sweep landed**, so the wrong figures and the deleted boosts and doors this
   file used to describe as live are corrected (H128-H131, H154). Treat any dataset count
   here as a measurement with a date on it regardless: the dataset moved three times during
@@ -98,6 +99,17 @@ means for anyone picking the backlog up at wave 5:
   ramp (`TIER_META`, `TIER_ORDER`, the `GOLD_*` accents, `stickerArtSrc`) so nothing has to
   import `StickerCard` to get a hex; and `--color-grass` / `--color-grass-stripe` are the
   board's two greens.
+- **`RoundRecord` is a DISCRIMINATED UNION** (`GroupRecord | KoRecord` on `stage`), and so
+  are `RunBuild`, `KoPending` and `LiveMatchInput`. Test the discriminant and the compiler
+  gives you the fields; do not add a `??` fallback for one that the variant guarantees.
+  The persisted JSON did not change - each stored record always carried one variant's
+  fields - but `runStorage` cannot validate history per field, so `isRoundRecord` gates
+  every entry on load and DROPS a malformed one. That guard is what makes reading fields
+  bare safe: keep it if you add a variant.
+- **The game's catalogues are `readonly`** (`SQUADS`, `BOONS`, `CHALLENGES`, `PERKS`,
+  `ASCENSIONS`, `WORLD_CUP_YEARS`, ...) and `pool` / `poolYears` parameters take
+  `readonly` arrays throughout. If a new signature wants a mutable array, it almost
+  certainly wants a copy instead.
 - **Logic now lives where it belongs, so look there before writing a derivation.** Wave 4
   moved it: `domain/market.ts` (the transfer market's sorts, facets and filter pipeline),
   `domain/archive.ts` (the squad browser's five dataset queries), `domain/formations.ts`
@@ -1920,6 +1932,26 @@ keep working.
   function fails at the next call rather than at migration time; and when a migration restates
   an existing function, take the body from the live server's `pg_get_functiondef`, diff it
   against the repo's copy first, and change only the line you mean to.
+- **Persisted-shape versioning has one rule now** (recorded 2026-08-25, hygiene H74).
+  Five keys had four different disciplines and no stated policy, so the next schema change
+  would have invented a fifth. The rule:
+  - **The KEY NAME carries the version.** `wcsim_career_v1`, `wcsim_album_v1`,
+    `wcsim_settings_v1`, `wcsim_run_v1`. A breaking change gets a new key, which makes the
+    old data unreachable rather than misread - and since there are no production users
+    (below), that is a free choice rather than a migration.
+  - **A loader REBUILDS explicitly**, field by field, rather than casting what
+    `JSON.parse` returned. Every one does now: `loadRun` builds a fresh object,
+    `loadReveal` and each history entry go through a shape guard, `normalizeSettings`
+    clamps every field, `loadGame` checks the phase, `migratePerkLevels` validates each
+    value. A cast is the thing to avoid, because it makes a malformed save look typed.
+  - **No new in-band `version` field.** Two exist and stay: `AlbumState.version` is read
+    and checked, and `CareerState.version` is written in three places and read in NONE -
+    its migration is by shape-sniffing (`perkLevels` vs v1's `unlocked`), which is what
+    actually works, so the field is vestigial. Do not add a third; do not start reading
+    the second without also making something write it meaningfully.
+  - `Settings` and `GameState` rely on the key name plus a merge, which is the rule above
+    working as intended rather than a fourth approach.
+
 - **There are no production users yet** (recorded 2026-08-21, until further notice). So
   breaking a persisted shape, orphaning a saved game, or dropping a supported
   configuration is a free choice rather than a migration: decide it on the merits and do

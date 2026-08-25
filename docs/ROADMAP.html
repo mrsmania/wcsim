@@ -553,7 +553,7 @@
   <summary>
     <span class="num">23</span>
     <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 4 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 139 checks. Next up: wave 5, the type model.</span>
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 5 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 140 checks. Next up: wave 6, the structural extractions.</span>
     </span>
     <span class="tag">Structure</span>
     <span class="chev">&#9656;</span>
@@ -616,7 +616,7 @@
     none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
     not forgotten.</p>
 
-    <p><b>Executed 2026-08-24/25: the gate repair, waves 1 to 4, and all sixteen decisions.</b>
+    <p><b>Executed 2026-08-24/25: the gate repair, waves 1 to 5, and all sixteen decisions.</b>
     The gate came first, as the re-audit said it had to: the flake and the two checks that could
     pass on zero observations are fixed, <code>npm run checks</code> runs in CI before the build,
     and the suite is at <b>137</b> - three of the additions assert that a number and the sentence
@@ -638,8 +638,18 @@
     finally testable. The byte-identical-stylesheet trick does not help in a wave that moves logic
     rather than classes, so every extraction was compared against the expression it replaced over
     the real dataset instead - tens of thousands of cases, counts recorded per commit.
-    <b>Next up: wave 5, the type model</b>, which contains the single change that deletes the most
-    noise in the codebase.</p>
+    <b>Wave 5 (the type model) went the same day.</b> Its headline item made the run's round
+    records a real two-variant type instead of one shape with fourteen optional fields, which
+    surfaced 53 places reading a value they had not established was there - and deleted about
+    forty defensive fallbacks that could never fire. Three more types of the same kind followed.
+    The rest was making the game's fixed catalogues (the squads, the boost list, the challenge
+    catalogue, the perk shop) actually unmodifiable, and giving the saved-data format one stated
+    versioning rule instead of four unstated ones. It also found that the test harness had been
+    building run records the game cannot produce, so a check could pass against a shape that
+    never occurs; those are proper builders now.
+    <b>Next up: wave 6, the structural extractions</b> - the big ones, and the only items in the
+    backlog that can break the game in a way neither the compiler nor the checks will catch, so
+    they get exercised by hand.</p>
 
     <p><strong>The waves</strong>, in execution order:</p>
     <ol>
@@ -654,7 +664,7 @@
       <li><b><s>Put the logic where it belongs</s></b> (H55-H68, plus H124 and H141-H147). <b>DONE.</b> Pure computations that ended up in
       leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
       rules, budget spend computed three times, the kickoff records built in <code>App</code>.</li>
-      <li><b>The type model</b> (H69-H78). Chiefly <code>RoundRecord</code> as a real
+      <li><b><s>The type model</s></b> (H69-H78, plus H148-H155). <b>DONE.</b> Chiefly <code>RoundRecord</code> as a real
       discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
       and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
       <li><b>Structural extractions</b> (H79-H90). The risky ones, one per branch:

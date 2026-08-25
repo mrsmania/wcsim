@@ -233,7 +233,7 @@
 </div>
 
 <div class="callout">
-  <span class="ct">Progress &mdash; waves 1 to 4 executed 2026-08-24/25, and the tree moved under them</span>
+  <span class="ct">Progress &mdash; waves 1 to 5 executed 2026-08-24/25, and the tree moved under them</span>
   <p><b>Done and on <code>main</code>:</b> the gate repair (H107, H108, H109) and
   <a href="#H91">H91</a>, so <code>npm run checks</code> now runs in CI before the build;
   wave 1 in four commits - the dead domain code and 19 private exports (H1a: H10, H12, H116,
@@ -377,6 +377,38 @@
   server, and fixed by narrowing the function's insert in the same transaction. <b>The lesson
   for the rest of this backlog: "nothing reads it" is not the same as "nothing writes it", and
   a quoted piece of evidence deserves reading rather than citing.</b></p>
+
+  <p><b>Wave 5 done 2026-08-25</b>, in seven commits: H69 to H78 and H148-H155 (H154 was
+  already done by wave 1's truth sweep). <b>140 checks now.</b> The headline is
+  <a href="#H70">H70</a>, and it was as big as advertised: turning <code>RoundRecord</code>
+  into a real discriminated union produced <b>53 compile errors</b>, one per site reading a
+  field it had not proved was there, and removed about forty unreachable <code>??</code>
+  fallbacks, two <code>as number</code> casts and every hand-rolled discriminant whose
+  narrowing was discarded on assignment. <a href="#H148">H148</a> did the same to three more
+  (<code>RunBuild</code>, <code>KoPending</code>, <code>LiveMatchInput</code>) at a fraction
+  of the cost.</p>
+
+  <p><b>Two things wave 5 turned up that the audit had not.</b> First, <b>the harness's own
+  fixtures were describing records the game cannot produce</b> - a knockout record with no
+  events, a group record with no results - so a check could pass against a shape no run ever
+  writes. H70 caught two of those, and they are builder functions now. Second, <b>H70 makes
+  <a href="#H73">H73</a> load-bearing rather than tidy</b>: once consumers read fields
+  without a fallback, a malformed save must not reach them, so the tolerant guard is a
+  requirement and not a nicety. It is asserted in both directions and mutation-tested.</p>
+
+  <p><b>How wave 5 was verified.</b> The compiler is the main instrument here, so most of the
+  proofs are "this is now impossible": six illegal literals rejected for H148, eleven
+  catalogue mutations rejected for H72, an omitted or misspelled tier rejected for H150, a
+  fourth rarity producing four errors for H151. Where behaviour could move it was measured
+  instead: all 24 formations dumped with every slot's coordinates come out byte-identical for
+  H71, and H70 was driven end to end in a browser - a run played out, navigated away from and
+  back, then four malformed history entries injected into its stored state. The run still
+  renders, the junk is dropped on load, and the cleaned history is what gets written back.</p>
+
+  <p><b>One method note worth carrying forward:</b> a blanket regex over a type annotation
+  (<code>: Squad[]</code> &rarr; <code>readonly Squad[]</code>) reaches into RETURN types and
+  locally-built arrays, where <code>readonly</code> is wrong. H72 was done parameter by
+  parameter after backing that out.</p>
 </div>
 
 <h2 id="rules">Ground rules for the implementing team</h2>
@@ -516,16 +548,16 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
   <tr><td class="id">H66</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>isBracketAlive</code> is void (no such derivation; <code>bracket.outcome</code> is now read only inside the run). The other two stand, including the <code>navigate(-1)</code> fallback duplicated verbatim at <code>App.tsx:946</code> and <code>:955</code>. <b>Shrunk again on execution:</b> the duplicated back-fallback went with wave 1's alias deletion, so only <code>homeViewOf</code> was left to do.</td></tr>
   <tr><td class="id">H67</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>GroupTeam</code> satisfies <code>Side</code> structurally with no declared relationship; the open-coded projection is now at <code>tournament.ts:281</code>.</td></tr>
   <tr><td class="id">H68</td><td class="vd"><span class="tag v-done">DONE</span></td><td>The larger half died with <code>KnockoutScreen</code>; <code>FinishedKoCard</code>'s three callers are all Cup Run now, so "move it up to components/" buys nothing. The two encodings of "how to word a win" stand.</td></tr>
-  <tr><td class="id">H69</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Count corrected 3 &rarr; <b>2</b> explicit type predicates. Nothing writes <code>null</code> into a <code>Filled</code>; removal is always <code>delete</code>. <code>noUncheckedIndexedAccess</code> is off, so <code>Partial&lt;&gt;</code> is the right target, not a bare <code>Record</code>.</td></tr>
-  <tr><td class="id">H70</td><td class="vd"><span class="tag v-stands">stands</span></td><td><b>Still the biggest single win, and bigger than published.</b> Counts re-measured by hand: <code>RoundRecord</code> is <code>stage: 'group' | number</code> plus <b>14 optional fields</b> (10 knockout-only, 3 group-only, 1 shared), costing <b>37 unreachable <code>??</code> fallbacks</b> across its five consumers (plus 3 more in the components it is flattened into, so 40 in all), <b>2</b> load-bearing <code>as number</code> casts (not 1), <b>9</b> hand-rolled discriminant checks whose narrowing is discarded, and a <b>proxy discriminant</b> at <code>run.ts:1005</code> that tests two unrelated fields because the real one carries no information. <code>loadRun</code> still does not validate <code>history</code> per field, so the tolerant guard is still needed.</td></tr>
-  <tr><td class="id">H71</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All six bridge symbols alive. Sharpened: <code>CsvPos</code> is a lowercase duplicate of <code>Position</code>, and the CSV it is named for <b>is not read anywhere</b> - the data is a hardcoded array. Slot ids derive from the uppercase label, so the persisted keys are untouched by the fix.</td></tr>
-  <tr><td class="id">H72</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All twelve still mutable <code>T[]</code>; the "only two are <code>as const</code>" figure re-verifies exactly. No in-place mutation found.</td></tr>
-  <tr><td class="id">H73</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>loadReveal</code> is still a naked cast with <b>no</b> validation, on a discriminated union that decides which branch renders - and it is the only loader in <code>state/</code> that validates nothing. Every sibling checks something.</td></tr>
-  <tr><td class="id">H74</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Four disciplines, no policy. <code>CareerState.version</code> is written in three places and <b>read in none</b>; <code>AlbumState.version</code> is genuinely read. <code>RunState</code> has no version at all.</td></tr>
-  <tr><td class="id">H75</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>rpcPlain</code> still drops <code>error.code</code> and the <code>StaleVersionError</code> mapping its sibling applies; four sites.</td></tr>
-  <tr><td class="id">H76</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All four sub-items. One count corrected: <code>localStore.finishRun</code> drops <b>3 of 6</b> input fields (<code>runKey</code>, <code>swapsUsed</code>, <code>outcome</code>), not 2.</td></tr>
-  <tr><td class="id">H77</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Both signatures; the callers now pass <b>five</b> positional arguments each, and the harness has ~20 sites passing filler <code>{}, [], 0</code> to reach the last one.</td></tr>
-  <tr><td class="id">H78</td><td class="vd"><span class="tag v-stands">stands</span></td><td>And the latent disagreement is live: <code>price</code> is rebuilt every render with no memo, while <code>results</code> calls <code>sortCmp(price)</code> with <code>ownedStickerIds</code> absent from its deps.</td></tr>
+  <tr><td class="id">H69</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Count corrected 3 &rarr; <b>2</b> explicit type predicates. Nothing writes <code>null</code> into a <code>Filled</code>; removal is always <code>delete</code>. <code>noUncheckedIndexedAccess</code> is off, so <code>Partial&lt;&gt;</code> is the right target, not a bare <code>Record</code>.</td></tr>
+  <tr><td class="id">H70</td><td class="vd"><span class="tag v-done">DONE</span></td><td><b>Still the biggest single win, and bigger than published.</b> Counts re-measured by hand: <code>RoundRecord</code> is <code>stage: 'group' | number</code> plus <b>14 optional fields</b> (10 knockout-only, 3 group-only, 1 shared), costing <b>37 unreachable <code>??</code> fallbacks</b> across its five consumers (plus 3 more in the components it is flattened into, so 40 in all), <b>2</b> load-bearing <code>as number</code> casts (not 1), <b>9</b> hand-rolled discriminant checks whose narrowing is discarded, and a <b>proxy discriminant</b> at <code>run.ts:1005</code> that tests two unrelated fields because the real one carries no information. <code>loadRun</code> still does not validate <code>history</code> per field, so the tolerant guard is still needed. <b>Done 2026-08-25</b>: 53 compile errors, every one a real narrowing gap.</td></tr>
+  <tr><td class="id">H71</td><td class="vd"><span class="tag v-done">DONE</span></td><td>All six bridge symbols alive. Sharpened: <code>CsvPos</code> is a lowercase duplicate of <code>Position</code>, and the CSV it is named for <b>is not read anywhere</b> - the data is a hardcoded array. Slot ids derive from the uppercase label, so the persisted keys are untouched by the fix.</td></tr>
+  <tr><td class="id">H72</td><td class="vd"><span class="tag v-done">DONE</span></td><td>All twelve still mutable <code>T[]</code>; the "only two are <code>as const</code>" figure re-verifies exactly. No in-place mutation found.</td></tr>
+  <tr><td class="id">H73</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>loadReveal</code> is still a naked cast with <b>no</b> validation, on a discriminated union that decides which branch renders - and it is the only loader in <code>state/</code> that validates nothing. Every sibling checks something. <b>Done 2026-08-25</b>, and H70 promoted it from tidy to load-bearing.</td></tr>
+  <tr><td class="id">H74</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Four disciplines, no policy. <code>CareerState.version</code> is written in three places and <b>read in none</b>; <code>AlbumState.version</code> is genuinely read. <code>RunState</code> has no version at all. <b>Done 2026-08-25</b>: the policy is in CLAUDE.md - the key name carries the version, loaders rebuild explicitly, no new in-band version field.</td></tr>
+  <tr><td class="id">H75</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>rpcPlain</code> still drops <code>error.code</code> and the <code>StaleVersionError</code> mapping its sibling applies; four sites.</td></tr>
+  <tr><td class="id">H76</td><td class="vd"><span class="tag v-done">DONE</span></td><td>All four sub-items. One count corrected: <code>localStore.finishRun</code> drops <b>3 of 6</b> input fields (<code>runKey</code>, <code>swapsUsed</code>, <code>outcome</code>), not 2.</td></tr>
+  <tr><td class="id">H77</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Both signatures; the callers now pass <b>five</b> positional arguments each, and the harness has ~20 sites passing filler <code>{}, [], 0</code> to reach the last one.</td></tr>
+  <tr><td class="id">H78</td><td class="vd"><span class="tag v-done">DONE</span></td><td>And the latent disagreement is live: <code>price</code> is rebuilt every render with no memo, while <code>results</code> calls <code>sortCmp(price)</code> with <code>ownedStickerIds</code> absent from its deps.</td></tr>
   <tr><td class="id">H79</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Four refs, the unmount cleanup, the orphan recovery and the re-entry guard, all intact. The verbatim list in the old item is correct and complete; follow it exactly.</td></tr>
   <tr><td class="id">H80</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Count corrected 6 &rarr; <b>7</b> budget handlers. Both preservation notes still apply verbatim: the cancel effect keyed on <code>[activeFormation, phase]</code>, and the held-player lookup against <code>ALL_PLAYERS</code>.</td></tr>
   <tr><td class="id">H81</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Still the largest and riskiest item. Counts corrected: <b>5</b> <code>store.peek()</code> reads (not 4) and <b>3</b> keys written across 6 calls (not 4). <code>CupRunScreen</code> is still the only component importing the store.</td></tr>
@@ -740,28 +772,28 @@ appropriate. So what is left is modelling gaps, not looseness.</p>
 
 <table>
   <tr><th>ID</th><th class="pr">P</th><th>What and where</th><th>Fix</th><th class="er">Eff</th><th class="er">Risk</th></tr>
-  <tr id="H148" class="new"><td class="id">H148</td><td class="pr"><span class="tag p-type">type</span></td>
+  <tr id="H148" class="new"><td class="id">H148</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Three more fake unions in <code>RoundRecord</code>'s family</b>, all of the same shape and all cheaper than H70. <code>RunBuild</code> (<code>run.ts:225</code>) is <code>method: 'roll' | 'budget'</code> plus 6 optionals, and its own doc says so; the producer already branches, so the cost is a <b>three-clause</b> hand-rolled discriminant in <code>challenges.ts:216</code> where one would do, 2 needless <code>??</code>, and a <i>third</i> representation of the same fact as <code>RunView.rolled: boolean</code>. <code>KoPending</code> (<code>:462</code>) declares <code>offer?</code> and <code>nextOpponent?</code> documented "both absent when the tie ends the run" - two optionals that must agree, so the consumer pays with a <b>runtime throw standing in for a type</b> at <code>:1265-1269</code>. <code>LiveMatchInput</code> (<code>matchView.ts:49</code>) spells its union out in prose and models it as a boolean plus two optionals, so <code>FinishedKoCard</code> passes four dead fields.</td>
     <td>Three discriminated unions. <b>Prefer the intersection form for <code>KoPending</code></b> (<code>&amp; ({offer, nextOpponent} | {offer?: undefined, ...})</code>): nesting the pair under one key would change the stored shape and re-decide a round on resume, which is the exact bug the field exists to prevent.</td><td class="er">M</td><td class="er">low</td></tr>
-  <tr id="H149" class="new"><td class="id">H149</td><td class="pr"><span class="tag p-type">type</span></td>
+  <tr id="H149" class="new"><td class="id">H149</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>A function throws away the fact its callers need, and 7 assertions pay for it.</b> <code>collectiblePlayers</code> (<code>album.ts:63</code>) filters on <code>isCollectible</code>, which computes the tier internally and discards it, so all 7 call sites write <code>tierOf(p)!</code> - two of them twice inside one comparator, so the tier is recomputed 4&times; per comparison as well as asserted. <code>RunEndStickerSummary.tsx:25</code> even has a correct type predicate proving the fact and then discards it one line later.</td>
     <td>Return <code>{player, tier}[]</code>, or add <code>collectibleCards()</code> beside it. Note <code>collectiblesByTier</code> already carries the same information in another shape, so two of the seven callers should read that instead (which is H45's remaining half).</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H150" class="new"><td class="id">H150</td><td class="pr"><span class="tag p-type">type</span></td>
+  <tr id="H150" class="new"><td class="id">H150</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Thirteen removable assertions in three clusters.</b> (a) <code>Object.keys(STICKER_TIERS) as StickerTier[]</code> at <b>4</b> sites, all recovering the same fact, because the tier <i>order</i> has no named home - and <code>AlbumScreen</code> then re-sorts the result by <code>TIER_META[x].order</code>, so there are two undeclared orderings. (b) <code>App.tsx:717-767</code>'s conditional-array idiom pays <b>2</b> casts and <b>5</b> <code>as const</code> for a list of five tabs. (c) Two <code>as Record&lt;...&gt;</code> casts on object literals that only need a leading annotation - proof is in this repo, where <code>AlbumScreen.tsx:57</code> and <code>challenges.ts:794</code> write the identical shape annotated. Plus <code>RoundReview.tsx:67</code>'s <code>as number</code>, which I verified is <b>already unnecessary</b> today (TypeScript narrows after the early return), independent of H70.</td>
     <td>(a) <code>STICKER_TIER_ORDER</code> in <code>config.ts</code> with <code>satisfies</code>, so an omitted tier is a compile error; keep the existing order or the printed console summaries change. (b) annotate the array and use a type predicate in the filter. (c) leading annotations. Also <code>budget.ts:29</code>: <code>Object.values</code> instead of keys drops a cast and a <code>!</code>.</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H151" class="new"><td class="id">H151</td><td class="pr"><span class="tag p-type">type</span></td>
+  <tr id="H151" class="new"><td class="id">H151</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Two unions restated as literal arrays at the use site, with a cast to make it compile.</b> <code>challenges.ts:538</code> <code>(['reg','aet','pens'] as KoDecided[])</code> and <code>:572</code> <code>(['common','rare','legendary'] as Rarity[])</code>. So "every way a tie can be decided" and "every rarity" are written out again inside a challenge predicate, where adding a fourth member to either union silently leaves the predicate checking three. The codebase already does this correctly twice (<code>STYLES</code>, <code>LOST_IN</code>).</td>
     <td><code>KO_DECIDED</code> and <code>RARITIES</code> as <code>as const satisfies</code> arrays, with the unions <i>derived</i> from them, so a new member cannot be added to one without the other. The persisted strings are unchanged.</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H152" class="new"><td class="id">H152</td><td class="pr"><span class="tag p-type">type</span></td>
+  <tr id="H152" class="new"><td class="id">H152</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>A hook takes the whole reducer state to read one field.</b> <code>useStickerAlbum.ts:91</code> takes <code>state: GameState</code> and touches it exactly once, at <code>:96</code>, for <code>swapsLeft</code> - dragging a <code>GameState</code> import into the album hook and making its callback identity depend on every field of the game state.</td>
     <td><code>useStickerAlbum(swapsLeft: number, ...)</code>. Behaviour-identical (the dep array already depends only on <code>swapsUsed</code>). Same shape in <code>badgeRows(career, album)</code>, which restates <code>BadgeCtx</code>'s two members as parameters and then reassembles the object.</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H153" class="new"><td class="id">H153</td><td class="pr"><span class="tag p-type">type</span></td>
+  <tr id="H153" class="new"><td class="id">H153</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>One union under three export names and two field vocabularies.</b> The six-member outcome union is exported as <code>knockout.Finish</code>, re-exported by <code>odds.ts:16</code>, and aliased as <code>run.RunOutcome</code>; <code>CareerStats</code> then uses <b>both words in one interface</b> (<code>bestFinish</code> beside <code>lastOutcome</code>/<code>prevOutcome</code>, all three the same type), and the lookup tables are <code>FINISH_ORDER</code>/<code>FINISH_LABEL</code> in one file and <code>OUTCOME_LABEL</code> in another. Related: <code>BuildMethod</code> is a named type in <code>state/</code> and an inline literal union in <code>domain/</code> (which cannot import upward - so move the type, do not copy it), and <code>PerkTier.level</code> means a tier index while <code>PerkTier.levelReq</code> means a career level, adjacent fields on the type called <code>PerkTier</code>.</td>
     <td>Rename the <i>types and tables</i>, which is free, and <b>leave the persisted fields alone</b>: <code>bestFinish</code> and <code>perkLevels</code> are keys in <code>wcsim_career_v1</code> and in the server's merged <code>stats</code> jsonb, where an unknown key is silently dropped. <code>PerkTier.level</code> &rarr; <code>tier</code> is free (only its value is stored). Drop <code>odds.ts</code>'s redundant re-export.</td><td class="er">S</td><td class="er">none</td></tr>
   <tr id="H154" class="new"><td class="id">H154</td><td class="pr"><span class="tag p-type">type</span></td>
     <td><b>Two shop descriptions still say "(Career Mode)" to the player.</b> <code>career.ts:312</code> and <code>:336</code>, rendered as perk descriptions in <code>CareerHub</code>, name a mode that has not existed since 2026-08-21. These are the only two of H130's fifteen stale mentions that reach the screen. Checked before proposing: the harness asserts the dollar figure and the ordinal in those strings, not the parenthetical, so editing is safe.</td>
     <td>Delete the two parentheticals. <b>Two displayed strings change</b>, so it is flagged rather than assumed - the game plays identically but does not look identical.</td><td class="er">S</td><td class="er">none</td></tr>
-  <tr id="H155" class="new"><td class="id">H155</td><td class="pr"><span class="tag p-type">type</span></td>
+  <tr id="H155" class="new"><td class="id">H155</td><td class="pr"><span class="tag v-done">DONE</span></td>
     <td><b>Four narrowing losses and one <code>unknown</code> that need no assertion.</b> <code>Confetti.tsx:18</code>'s <code>life?</code> with two <code>!</code> - the burst and rain loops are separate arrays and the burst producer always sets it, so a local <code>BurstPiece extends Piece</code> removes both. <code>XiTable.tsx:44</code> (<code>filled[s.id]!</code>, because the filter narrows the <i>slot</i>, not the map) and <code>:87</code> (where <code>tier</code> truthy implies <code>player</code> truthy, invisibly). <code>SquadBrowser.tsx:385</code>'s <code>as Legend</code>, which is load-bearing as written but removable by hoisting the annotation - verified with <code>tsc</code>. <code>careerStorage.ts:9</code>'s <code>perkLevels?: unknown</code> forcing a cast at <code>:20</code>, when the runtime guard below is what actually validates.</td>
     <td>As described; all five are local and independently verifiable by the build.</td><td class="er">S</td><td class="er">none</td></tr>
 </table>
@@ -1107,13 +1139,13 @@ so the next audit does not re-derive them.</p>
   cheapest to get and gated eleven items, as predicted. The two that had to be asked twice were D5
   and D7, and the reason is recorded with them: both were first put in terms of the code rather than
   in terms of what a player sees, which is not a question anyone can answer.</li>
-  <li><b><s>Wave 4</s>, then 5, then 6</b>, in that order and one item per commit. <b>Wave 4 DONE
-  2026-08-25</b>, and both of its prerequisites for wave 6 came with it: <a href="#H124">H124</a> and
-  <a href="#H146">H146</a> are done, so H81 has less to move. H70 still goes before H81, per the
-  original sequencing, and so does <a href="#H124">H124</a>'s sibling H126 if it survives.
-  <b>Next: wave 5, the type model</b>, whose H70 is the single change that deletes the most noise in
-  the codebase. Wave 6 last, exercised by hand: those are the only items that can break the app in a
-  way neither gate will see.</li>
+  <li><b><s>Wave 4, then 5</s>, then 6</b>, in that order and one item per commit. <b>Waves 4 and 5
+  DONE 2026-08-25</b>, and all three of wave 6's prerequisites came with them:
+  <a href="#H124">H124</a>, <a href="#H146">H146</a> and <a href="#H70">H70</a> are done, so H81 has
+  materially less to move and no longer has a 14-optional record to carry through the split.
+  <b>Next: wave 6, the structural extractions</b> - App's fifteen jobs and CupRunScreen handing the
+  career's persistence back. Last, and exercised by hand: those are the only items in this backlog
+  that can break the app in a way neither the compiler nor the checks harness will see.</li>
 </ol>
 
 <footer>
