@@ -25,6 +25,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   // CONCACAF
   MEX: 'CONCACAF', USA: 'CONCACAF', CRC: 'CONCACAF', CAN: 'CONCACAF',
   HON: 'CONCACAF', PAN: 'CONCACAF', TRI: 'CONCACAF', JAM: 'CONCACAF',
+  SLV: 'CONCACAF', // 1982
   // CAF
   SEN: 'CAF', CMR: 'CAF', MAR: 'CAF', TUN: 'CAF', GHA: 'CAF', NGA: 'CAF',
   CIV: 'CAF', EGY: 'CAF', ALG: 'CAF', RSA: 'CAF', ANG: 'CAF', TOG: 'CAF',
@@ -33,6 +34,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   CHN: 'AFC', // 2002
   UAE: 'AFC', // 1990
   IRQ: 'AFC', // 1986
+  KUW: 'AFC', // 1982
   // OFC
   NZL: 'OFC',
 };

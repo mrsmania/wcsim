@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 87 (63 legendary / 18 iconic / 6 monumental)
--- checksum: cbb60d4d43f5a242
+-- rows: 92 (68 legendary / 18 iconic / 6 monumental)
+-- checksum: 4490bee5d65ba7ca
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -38,6 +38,7 @@ values
   ('bel-2018-7', 'iconic', 93, 'Kevin De Bruyne', 'bel-2018', 'BEL', 2018),
   ('bel-2022-1', 'iconic', 93, 'Thibaut Courtois', 'bel-2022', 'BEL', 2022),
   ('bel-2022-7', 'iconic', 94, 'Kevin De Bruyne', 'bel-2022', 'BEL', 2022),
+  ('bra-1982-10', 'legendary', 90, 'Zico', 'bra-1982', 'BRA', 1982),
   ('bra-1994-11', 'iconic', 96, 'Romário', 'bra-1994', 'BRA', 1994),
   ('bra-1994-7', 'legendary', 90, 'Bebeto', 'bra-1994', 'BRA', 1994),
   ('bra-1998-10', 'legendary', 90, 'Rivaldo', 'bra-1998', 'BRA', 1998),
@@ -72,6 +73,7 @@ values
   ('esp-2018-5', 'legendary', 90, 'Sergio Busquets', 'esp-2018', 'ESP', 2018),
   ('esp-2018-6', 'legendary', 91, 'Andrés Iniesta', 'esp-2018', 'ESP', 2018),
   ('esp-2022-16', 'legendary', 90, 'Rodri', 'esp-2022', 'ESP', 2022),
+  ('fra-1982-12', 'legendary', 90, 'Alain Giresse', 'fra-1982', 'FRA', 1982),
   ('fra-1986-10', 'legendary', 90, 'Michel Platini', 'fra-1986', 'FRA', 1986),
   ('fra-1998-10', 'iconic', 95, 'Zinedine Zidane', 'fra-1998', 'FRA', 1998),
   ('fra-2002-10', 'legendary', 92, 'Zinedine Zidane', 'fra-2002', 'FRA', 2002),
@@ -80,6 +82,7 @@ values
   ('fra-2018-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2018', 'FRA', 2018),
   ('fra-2022-10', 'monumental', 97, 'Kylian Mbappé', 'fra-2022', 'FRA', 2022),
   ('fra-2022-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2022', 'FRA', 2022),
+  ('ger-1982-11', 'legendary', 90, 'Karl-Heinz Rummenigge', 'ger-1982', 'GER', 1982),
   ('ger-1990-10', 'legendary', 92, 'Lothar Matthäus', 'ger-1990', 'GER', 1990),
   ('ger-2002-1', 'iconic', 96, 'Oliver Kahn', 'ger-2002', 'GER', 2002),
   ('ger-2002-13', 'legendary', 91, 'Michael Ballack', 'ger-2002', 'GER', 2002),
@@ -88,6 +91,7 @@ values
   ('ger-2014-16', 'legendary', 91, 'Philipp Lahm', 'ger-2014', 'GER', 2014),
   ('ger-2014-18', 'legendary', 90, 'Toni Kroos', 'ger-2014', 'GER', 2014),
   ('ger-2018-8', 'legendary', 92, 'Toni Kroos', 'ger-2018', 'GER', 2018),
+  ('ita-1982-20', 'legendary', 91, 'Paolo Rossi', 'ita-1982', 'ITA', 1982),
   ('ita-1990-2', 'legendary', 90, 'Franco Baresi', 'ita-1990', 'ITA', 1990),
   ('ita-1994-10', 'legendary', 92, 'Roberto Baggio', 'ita-1994', 'ITA', 1994),
   ('ita-1994-6', 'legendary', 90, 'Franco Baresi', 'ita-1994', 'ITA', 1994),
@@ -103,6 +107,7 @@ values
   ('ned-2010-10', 'legendary', 90, 'Wesley Sneijder', 'ned-2010', 'NED', 2010),
   ('ned-2014-11', 'legendary', 90, 'Arjen Robben', 'ned-2014', 'NED', 2014),
   ('ned-2022-4', 'legendary', 90, 'Virgil van Dijk', 'ned-2022', 'NED', 2022),
+  ('pol-1982-20', 'legendary', 90, 'Zbigniew Boniek', 'pol-1982', 'POL', 1982),
   ('pol-2018-9', 'legendary', 90, 'Robert Lewandowski', 'pol-2018', 'POL', 2018),
   ('pol-2022-9', 'legendary', 91, 'Robert Lewandowski', 'pol-2022', 'POL', 2022),
   ('por-2010-7', 'legendary', 90, 'Cristiano Ronaldo', 'por-2010', 'POR', 2010),

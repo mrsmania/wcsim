@@ -42,6 +42,7 @@ import JM from 'country-flag-icons/react/3x2/JM';
 import JP from 'country-flag-icons/react/3x2/JP';
 import KP from 'country-flag-icons/react/3x2/KP';
 import KR from 'country-flag-icons/react/3x2/KR';
+import KW from 'country-flag-icons/react/3x2/KW';
 import MA from 'country-flag-icons/react/3x2/MA';
 import MX from 'country-flag-icons/react/3x2/MX';
 import NG from 'country-flag-icons/react/3x2/NG';
@@ -60,6 +61,7 @@ import RU from 'country-flag-icons/react/3x2/RU';
 import SA from 'country-flag-icons/react/3x2/SA';
 import SE from 'country-flag-icons/react/3x2/SE';
 import SI from 'country-flag-icons/react/3x2/SI';
+import SV from 'country-flag-icons/react/3x2/SV';
 import SK from 'country-flag-icons/react/3x2/SK';
 import SN from 'country-flag-icons/react/3x2/SN';
 import TG from 'country-flag-icons/react/3x2/TG';
@@ -95,6 +97,8 @@ const BY_FIFA: Record<string, typeof BR> = {
   // 1986 nations. Northern Ireland is not an ISO country but the package ships the
   // home-nation flags (GB-NIR), as it does for England, Scotland and Wales.
   HUN: HU, IRQ: IQ, NIR: GBNIR,
+  // 1982 nations: El Salvador and Kuwait, the only two the field added.
+  SLV: SV, KUW: KW,
 };
 
 interface Props {

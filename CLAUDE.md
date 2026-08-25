@@ -526,13 +526,15 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
 
 ## The dataset (`src/data/squads.ts`)
 
-- Tournaments: **all ten (1986-2022)** are full researched datasets. 1986, 1990 and 1994
-  are 24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for
-  1986/1990/1994/1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25). **6,798 player rows**
-  across 296 squads.
+- Tournaments: **all eleven (1982-2022)** are full researched datasets. 1982, 1986, 1990
+  and 1994 are 24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for
+  1982-1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25). **7,324 player rows**
+  across 320 squads. Two squads are short and both are real: **El Salvador brought only 20
+  men to 1982** and never filled the roster, and Iran registered 25 in 2022.
   (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders; 1986
   was added 2026-08-23 as the first step of roadmap item 03, and its positions and ratings
-  were re-authored 2026-08-25 as roadmap item 33.)
+  were re-authored 2026-08-25 as roadmap item 33; **1982 was added 2026-08-25** by the same
+  route, which is now the documented method - see below.)
 - **1986's sourcing is the template for 1982, and it changed on 2026-08-25.** The first
   drop took the rosters from **`openfootball/world-cup`** (`1986--mexico/squads.txt`, **CC0**)
   because the session that built it could not reach Wikipedia, and it inferred the twelve
@@ -564,6 +566,32 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   which is wrong in both directions and produced its worst misses there: Cha Bum-kun (a
   Bundesliga star at Leverkusen) at 67, Zavarov (Soviet Footballer of the Year 1986) at 74,
   Madjer and Belloumi (two of the greatest African players ever) at 67.
+- **1982 was added 2026-08-25 by that same route, and the route is now the method for
+  1978 and earlier.** Same three sources in the same order (Wikipedia squad list ->
+  per-player infobox -> RSSSF `tables/82full.html` line-ups), same `positions[0]` rule,
+  same anchor discipline. **526 rows, not 528: El Salvador brought 20 men** and never
+  filled the roster (Wikipedia and planetworldcup agree, and the note is explicit). Only
+  two nations were new to the dataset, El Salvador (`SLV`) and Kuwait (`KUW`), both of
+  which needed a `country-flag-icons` entry and a confederation.
+  **What was done differently, and it is worth repeating:** the ratings were authored by
+  **six independent raters working in pairs** over three groups of eight squads, then
+  merged by **three reconcilers** who saw both proposals plus a line-by-line diff, and
+  finally checked by a **calibration reviewer** measuring the finished tournament against
+  the other ten. The pairs converged hard - **no single player's rating differed by five
+  or more anywhere in the tournament**, and every squad's best XI agreed within about a
+  point - which is the evidence that the numbers are a reading of the football rather than
+  one model's noise. Two raters also caught a real defect in the source data that I had
+  missed (RSSSF serves **ISO-8859-1**, and decoding it as UTF-8 silently dropped the
+  appearance data for every accented name), and three independently flagged the same
+  wrong-person anchors.
+  **The trap that is now guaranteed to recur:** an ANCHOR matched by name is often a
+  different human. 1982 needed six `personId` overrides (Brazil's Eder, Paulo Sergio and
+  Juninho; Spain's Juanito and Joaquin; Czechoslovakia's Jan Kozak, whose namesake in
+  2010 is his son), plus two rows that had to **reuse** an existing override because they
+  are the same man as a 1986 row that already carries one (Oscar, Junior), plus two
+  spellings unified with the dataset or the same human would have become two drafted-once
+  identities (Bezsonov, Blokhin). Run the collision and near-miss scans before believing a
+  tournament is done; `validateSquads` cannot see any of it.
 - **Six name collisions came in with 1986 and one was already shipped.** A `personId` is
   the name slug, so two different people sharing a display name silently merge into one
   drafted-once identity. 1986 brought six (Brazil's 1986 Oscar / Júnior / Júlio César are
@@ -701,10 +729,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 63 / 18 / 6 = **87** across the dataset; it was 53 before
-  the 1990-2002 squads were researched, 81 before 1986 and 84 before 1986's ratings were
-  re-authored, so re-derive a count rather than trusting one written down here - this figure
-  has been wrong three times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  **Monumental** 97-99 (currently 68 / 18 / 6 = **92** across the dataset; it was 53 before
+  the 1990-2002 squads were researched, 81 before 1986, 84 before 1986's ratings were
+  re-authored and 87 before 1982, so re-derive a count rather than trusting one written down
+  here - this figure has been wrong four times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
   adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),
@@ -762,8 +790,20 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   account-level reset. The `clearAlbum` throw is a **backstop**, not the gate; keep the gate
   in the hook, where one flag covers every caller.
   `StickerCard` shows real artwork when
-  `FEATURES.stickerImages` is on (default), with a per-missing-file text+flag fallback,
-  so partial art sets are fine; set the flag false to always use the placeholder.
+  `FEATURES.stickerImages` is on (default); set the flag false to always use the
+  placeholder card.
+  **A card with no artwork gets a silhouette, not a hole** (`STICKER_PLACEHOLDER_SRC`,
+  added 2026-08-25). The dataset can always run ahead of the art - a collectible appears
+  the moment a rating crosses a `STICKER_TIERS` boundary, and eleven currently have no
+  file - and before this each of those collapsed its image box, so the album grid grew
+  gaps and the cards around them reflowed. It is a **data URI rather than a component**,
+  so the three call sites (album grid, the lightbox hero, the home page's legends
+  showcase) each need one line and keep their own very different layouts; they share
+  `onStickerArtError`, which swaps the src once and sets a `data-fallback` flag so a
+  failure cannot loop. **The background is transparent on purpose**: the card's own
+  surface shows through, which is what lets one fixed silhouette work in both themes.
+  `npm run checks` still fails on a missing file unless its id is in
+  `KNOWN_MISSING_ART`, so the gap stays visible rather than being papered over.
   **Art pipeline:** originals (full-size PNG) live in **`art/stickers-src/`**, which is
   NOT under `public/` and so is never deployed; `python scripts/build-sticker-art.py`
   resizes them to 400px-wide WebP in `public/stickers/<player.id>.webp`, which is what

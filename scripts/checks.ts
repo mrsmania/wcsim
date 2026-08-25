@@ -1988,6 +1988,14 @@ const KNOWN_MISSING_ART = new Set([
   'eng-1986-10', // Lineker
   'den-1986-10', // Elkjaer
   'urs-1986-19', // Belanov
+  // 1982, added with that tournament. A card with no file is no longer a hole in the
+  // grid - `STICKER_PLACEHOLDER_SRC` draws a silhouette at the right size - but it is
+  // still a gap, which is why they are listed rather than waved through.
+  'ita-1982-20', // Rossi (the tournament's 91)
+  'bra-1982-10', // Zico
+  'ger-1982-11', // Rummenigge
+  'fra-1982-12', // Giresse
+  'pol-1982-20', // Boniek
 ]);
 {
   const STICKER_DIR = 'public/stickers';
