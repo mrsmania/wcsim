@@ -2202,6 +2202,12 @@ const KNOWN_MISSING_ART = new Set([
   // 1978, added with that tournament. Only two players in that field reach 90.
   'arg-1978-10', // Kempes (the tournament's 91)
   'ned-1978-12', // Rensenbrink
+  // 1974, added with that tournament. Cruyff is the first new ICONIC in a while.
+  'ned-1974-14', // Cruyff (Iconic, 95)
+  'ger-1974-5', // Beckenbauer
+  'ger-1974-13', // Gerd Muller
+  'ned-1974-13', // Neeskens
+  'pol-1974-12', // Deyna
 ]);
 {
   const STICKER_DIR = 'public/stickers';

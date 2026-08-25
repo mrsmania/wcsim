@@ -18,6 +18,7 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   TUR: 'UEFA', IRL: 'UEFA', // 2002 qualifiers
   TCH: 'UEFA', URS: 'UEFA', // 1990 (Czechoslovakia, Soviet Union)
   HUN: 'UEFA', NIR: 'UEFA', // 1986
+  GDR: 'UEFA', // 1974 (East Germany)
   // CONMEBOL
   BRA: 'CONMEBOL', ARG: 'CONMEBOL', URU: 'CONMEBOL', COL: 'CONMEBOL',
   ECU: 'CONMEBOL', CHI: 'CONMEBOL', PER: 'CONMEBOL', PAR: 'CONMEBOL',
@@ -26,9 +27,11 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   MEX: 'CONCACAF', USA: 'CONCACAF', CRC: 'CONCACAF', CAN: 'CONCACAF',
   HON: 'CONCACAF', PAN: 'CONCACAF', TRI: 'CONCACAF', JAM: 'CONCACAF',
   SLV: 'CONCACAF', // 1982
+  HAI: 'CONCACAF', // 1974
   // CAF
   SEN: 'CAF', CMR: 'CAF', MAR: 'CAF', TUN: 'CAF', GHA: 'CAF', NGA: 'CAF',
   CIV: 'CAF', EGY: 'CAF', ALG: 'CAF', RSA: 'CAF', ANG: 'CAF', TOG: 'CAF',
+  ZAI: 'CAF', // 1974 (Zaire)
   // AFC (Australia has competed in the AFC since 2006)
   KSA: 'AFC', IRN: 'AFC', JPN: 'AFC', KOR: 'AFC', QAT: 'AFC', AUS: 'AFC', PRK: 'AFC',
   CHN: 'AFC', // 2002

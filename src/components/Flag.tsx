@@ -9,6 +9,7 @@ import BG from 'country-flag-icons/react/3x2/BG';
 import BO from 'country-flag-icons/react/3x2/BO';
 import BR from 'country-flag-icons/react/3x2/BR';
 import CA from 'country-flag-icons/react/3x2/CA';
+import CD from 'country-flag-icons/react/3x2/CD';
 import CH from 'country-flag-icons/react/3x2/CH';
 import CI from 'country-flag-icons/react/3x2/CI';
 import CL from 'country-flag-icons/react/3x2/CL';
@@ -31,6 +32,7 @@ import GH from 'country-flag-icons/react/3x2/GH';
 import GR from 'country-flag-icons/react/3x2/GR';
 import GBNIR from 'country-flag-icons/react/3x2/GB-NIR';
 import HN from 'country-flag-icons/react/3x2/HN';
+import HT from 'country-flag-icons/react/3x2/HT';
 import HU from 'country-flag-icons/react/3x2/HU';
 import HR from 'country-flag-icons/react/3x2/HR';
 import IE from 'country-flag-icons/react/3x2/IE';
@@ -99,6 +101,11 @@ const BY_FIFA: Record<string, typeof BR> = {
   HUN: HU, IRQ: IQ, NIR: GBNIR,
   // 1982 nations: El Salvador and Kuwait, the only two the field added.
   SLV: SV, KUW: KW,
+  // 1974 nations. East Germany has no flag in the package, so it borrows its successor's
+  // exactly as YUG, TCH and URS already do - which does mean both German sides fly the
+  // same flag in 1974, and there is no better option that ships. Zaire likewise takes
+  // DR Congo's.
+  GDR: DE, ZAI: CD, HAI: HT,
 };
 
 interface Props {

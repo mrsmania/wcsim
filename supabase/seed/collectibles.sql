@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 95 (71 legendary / 18 iconic / 6 monumental)
--- checksum: bb50fab4cb517c9a
+-- rows: 100 (75 legendary / 19 iconic / 6 monumental)
+-- checksum: 2fc1fe2f68685772
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -84,6 +84,8 @@ values
   ('fra-2018-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2018', 'FRA', 2018),
   ('fra-2022-10', 'monumental', 97, 'Kylian Mbappé', 'fra-2022', 'FRA', 2022),
   ('fra-2022-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2022', 'FRA', 2022),
+  ('ger-1974-13', 'legendary', 90, 'Gerd Müller', 'ger-1974', 'GER', 1974),
+  ('ger-1974-5', 'legendary', 92, 'Franz Beckenbauer', 'ger-1974', 'GER', 1974),
   ('ger-1982-11', 'legendary', 90, 'Karl-Heinz Rummenigge', 'ger-1982', 'GER', 1982),
   ('ger-1990-10', 'legendary', 92, 'Lothar Matthäus', 'ger-1990', 'GER', 1990),
   ('ger-2002-1', 'iconic', 96, 'Oliver Kahn', 'ger-2002', 'GER', 2002),
@@ -104,12 +106,15 @@ values
   ('ita-2006-10', 'legendary', 90, 'Francesco Totti', 'ita-2006', 'ITA', 2006),
   ('ita-2006-21', 'legendary', 91, 'Andrea Pirlo', 'ita-2006', 'ITA', 2006),
   ('ita-2006-5', 'iconic', 96, 'Fabio Cannavaro', 'ita-2006', 'ITA', 2006),
+  ('ned-1974-13', 'legendary', 90, 'Johan Neeskens', 'ned-1974', 'NED', 1974),
+  ('ned-1974-14', 'iconic', 95, 'Johan Cruyff', 'ned-1974', 'NED', 1974),
   ('ned-1978-12', 'legendary', 90, 'Rob Rensenbrink', 'ned-1978', 'NED', 1978),
   ('ned-1990-9', 'legendary', 90, 'Marco van Basten', 'ned-1990', 'NED', 1990),
   ('ned-1998-8', 'legendary', 91, 'Dennis Bergkamp', 'ned-1998', 'NED', 1998),
   ('ned-2010-10', 'legendary', 90, 'Wesley Sneijder', 'ned-2010', 'NED', 2010),
   ('ned-2014-11', 'legendary', 90, 'Arjen Robben', 'ned-2014', 'NED', 2014),
   ('ned-2022-4', 'legendary', 90, 'Virgil van Dijk', 'ned-2022', 'NED', 2022),
+  ('pol-1974-12', 'legendary', 90, 'Kazimierz Deyna', 'pol-1974', 'POL', 1974),
   ('pol-1982-20', 'legendary', 90, 'Zbigniew Boniek', 'pol-1982', 'POL', 1982),
   ('pol-2018-9', 'legendary', 90, 'Robert Lewandowski', 'pol-2018', 'POL', 2018),
   ('pol-2022-9', 'legendary', 91, 'Robert Lewandowski', 'pol-2022', 'POL', 2022),

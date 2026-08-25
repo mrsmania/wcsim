@@ -353,7 +353,7 @@
   <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
-      <span class="sub">Extend the dataset backwards: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b> and <b>1978</b> both shipped 2026-08-25. Twelve tournaments, 7,676 rows, 336 squads. Next: 1974, then 1970 and earlier.</span>
+      <span class="sub">Extend the dataset backwards: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b> and <b>1974</b> all shipped 2026-08-25. Thirteen tournaments, 8,028 rows, 352 squads. Next: 1970, then 1966 and earlier.</span>
     </span>
     <span class="tag">Content</span>
     <span class="chev">&#9656;</span>
@@ -496,8 +496,45 @@
     starter RSSSF spells "Jendoumi". Treat the <code>apps</code> line as a hint and the
     printed line-ups as the authority.</p>
 
-    <p class="next"><strong>Next step:</strong> 1974, the same way, with the per-half band
-    figures above given to the raters at the start. Re-run
+    <p><strong>1974 shipped 2026-08-25, and it confirms the method is repeatable rather
+    than lucky.</strong> 16 nations, <b>352 rows</b>, four raters over two groups of eight,
+    two reconcilers, and - like 1978 - <b>no calibration correction afterwards</b>. The
+    reason is the same one number: both group A raters checked their own 81-84 band, found
+    it light (15.3% and 17.6%), and fixed it before finishing (21.6% and 20.5%). <b>That
+    self-check is the highest-value thing to hand a rater</b>, and two drops running have
+    now landed first time where 1986 and 1982 each needed a reviewer to find it afterwards.
+    <br><b>Three nations arrived and none has a flag in the package.</b> East Germany
+    (<code>GDR</code>) and Zaire (<code>ZAI</code>) borrow a successor's exactly as
+    <code>YUG</code>, <code>TCH</code> and <code>URS</code> already do; Haiti
+    (<code>HAI</code>) has its own. Both German sides therefore fly the same flag in 1974 -
+    there is no better option that ships.
+    <br><b>1974 has the highest ceiling of the pre-1986 drops, and it should.</b> Cruyff 95
+    is the first new <b>Iconic</b> card in a while, Beckenbauer 92 sits level with Matthaus
+    1990, and five players reach 90+. Cruyff was at the exact peak of a three-Ballon-d'Or
+    run and 1974 is the strongest field of the decade.
+    <br><b>Where it lands:</b> mean 75.1, median 75, floor 63, ceiling 95, best XI from
+    Zaire 68.0 to West Germany 85.4, and an 81-84 band of 13.6% against a family range of
+    10.1-16.4%. Every headline figure is inside the family.
+    <br><b>New collectibles: 5</b>, taking the album from 95 to <b>100</b>. Seed regenerated
+    and pushed the same day.
+    <br><b>One identity override</b>, and only because the article titles separate them:
+    Brazil's 1974 Renato is Renato Cunha Valle, a Flamengo <em>goalkeeper</em>, while the
+    1982 Renato is Carlos Renato Frederico, a Sao Paulo midfielder. Two raters independently
+    suspected Yugoslavia's Jurica Jerkovic was also two men; he is not - born 1950,
+    Yugoslavia 1970-1982, 43 caps - so the shared id is right and his lower 1982 number at
+    age 32 is the forward-pointing anchor working.
+    <br><b>The dossier tooling still has one hole, and it is worth knowing before 1970.</b>
+    Tightening the fuzzy surname fallback for this drop worked - it now refuses ambiguous
+    matches rather than inventing them. But the <b>exact-substring</b> branch still
+    mis-fires on short one-word names: Brazil's <code>Cesar</code> was handed
+    <code>Cesar Carpegiani</code>'s appearances because "cesar" is a substring of
+    "cesarcarpegiani", and the same error hit both Marinhos, Edu, Farias and Sven-Gunnar
+    Larsson. Four agents caught it independently. <b>Treat any short mononym's
+    <code>apps</code> line as unreliable in both directions and read the printed
+    line-ups.</b></p>
+
+    <p class="next"><strong>Next step:</strong> 1970, the same way, with the per-half band
+    figures given to the raters at the start. Re-run
     <code>npm run gen:collectibles</code> and <code>npm run push:collectibles</code> after,
     and check the name-collision list before calling it done.
     <br><b>Two source notes from the 1982 round, both verified:</b> RSSSF serves
