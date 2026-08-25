@@ -265,3 +265,77 @@ export function getFormation(
 ): Formation | null {
     return data.byKey[`${name}|${style}`] ?? null;
 }
+
+// ---------------------------------------------------------------------------
+// Slot-to-slot assignment. Pure geometry over `Slot`, used by the board to slide its
+// eleven circles to a new formation rather than having them appear and disappear.
+//
+// It lived in `Pitch.tsx` - 65 lines of min-cost matching inside the component that
+// renders the result, which is the clearest case of logic in a leaf in the codebase
+// (hygiene H59). Nothing here touches React, the DOM or a Player.
+// ---------------------------------------------------------------------------
+
+const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+
+/** Hungarian algorithm: min-cost perfect assignment for a square cost matrix.
+ *  Returns colForRow[i] = the column assigned to row i. */
+function hungarian(cost: number[][]): number[] {
+    const n = cost.length;
+    const u = new Array(n + 1).fill(0);
+    const v = new Array(n + 1).fill(0);
+    const p = new Array(n + 1).fill(0); // p[col] = row matched to col
+    const way = new Array(n + 1).fill(0);
+    for (let i = 1; i <= n; i++) {
+        p[0] = i;
+        let j0 = 0;
+        const minv = new Array(n + 1).fill(Infinity);
+        const used = new Array(n + 1).fill(false);
+        do {
+            used[j0] = true;
+            const i0 = p[j0];
+            let delta = Infinity;
+            let j1 = -1;
+            for (let j = 1; j <= n; j++) {
+                if (used[j]) continue;
+                const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+                if (cur < minv[j]) {
+                    minv[j] = cur;
+                    way[j] = j0;
+                }
+                if (minv[j] < delta) {
+                    delta = minv[j];
+                    j1 = j;
+                }
+            }
+            for (let j = 0; j <= n; j++) {
+                if (used[j]) {
+                    u[p[j]] += delta;
+                    v[j] -= delta;
+                } else {
+                    minv[j] -= delta;
+                }
+            }
+            j0 = j1;
+        } while (p[j0] !== 0);
+        do {
+            const j1 = way[j0];
+            p[j0] = p[j1];
+            j0 = j1;
+        } while (j0);
+    }
+    const colForRow = new Array(n).fill(0);
+    for (let j = 1; j <= n; j++) colForRow[p[j] - 1] = j - 1;
+    return colForRow;
+}
+
+/**
+ * Reassign each existing circle (prev[k]) to a slot in `next` so total movement
+ * is minimised (squared distance, which discourages long cross-pitch jumps), and
+ * the 11 circles persist and slide to their closest new positions rather than
+ * appearing/disappearing. Returns an array aligned to circle index k.
+ */
+export function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
+    const cost = prev.map((p) => next.map((q) => slotDist(p, q)));
+    const colForRow = hungarian(cost);
+    return prev.map((_, i) => next[colForRow[i]]);
+}

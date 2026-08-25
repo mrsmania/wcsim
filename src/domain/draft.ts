@@ -89,14 +89,40 @@ export function canMove(
   return planMove(formation, filled, fromSlotId, toSlotId) !== null;
 }
 
-/** Every slot the player in `fromSlotId` can move to: empty ones, straight trades, and
- *  any slot reachable by rotating a chain of team-mates round. */
-export function moveTargets(formation: Formation, filled: Filled, fromSlotId: string): Set<string> {
-  const out = new Set<string>();
+/** Every slot the player in `fromSlotId` can move to, and how many players each option
+ *  actually SHIFTS: 1 into an empty slot, 2 for a straight trade, 3 or more for a rotation.
+ *
+ *  The count is what keeps the badge honest - "trade places with X" would be a lie where
+ *  three men rotate round - and it was derived in `Pitch.tsx`, which meant the pitch was
+ *  the only place that knew a chain's length is measured by counting the players whose slot
+ *  changed. This module owned `planMove` and stopped one step short (hygiene H141).
+ *
+ *  A player who cannot move at all yields an empty map, which is what the badge tests to
+ *  decide whether to offer the gesture. */
+export function moveOptions(
+  formation: Formation,
+  filled: Filled,
+  fromSlotId: string,
+): Map<string, number> {
+  const out = new Map<string, number>();
   for (const s of formation.slots) {
-    if (canMove(formation, filled, fromSlotId, s.id)) out.add(s.id);
+    const plan = planMove(formation, filled, fromSlotId, s.id);
+    if (!plan) continue;
+    const shifted = new Set<string>();
+    for (const q of formation.slots) {
+      const before = filled[q.id];
+      if (before && before !== (plan[q.id] ?? null)) shifted.add(before.id);
+    }
+    out.set(s.id, shifted.size);
   }
   return out;
+}
+
+/** Every slot the player in `fromSlotId` can move to: empty ones, straight trades, and
+ *  any slot reachable by rotating a chain of team-mates round. The key set of
+ *  `moveOptions` - they are the same predicate, so it is expressed as one. */
+export function moveTargets(formation: Formation, filled: Filled, fromSlotId: string): Set<string> {
+  return new Set(moveOptions(formation, filled, fromSlotId).keys());
 }
 
 /** Set of slot roles that still have at least one open slot. */

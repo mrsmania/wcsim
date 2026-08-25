@@ -1,78 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/format';
-import type { Formation, Slot } from '../domain/formations';
-import { moveTargets, planMove, type Filled } from '../domain/draft';
+import { assignNearest, type Formation, type Slot } from '../domain/formations';
+import { moveOptions, type Filled } from '../domain/draft';
 import { canSwapInto } from '../domain/album';
 import PlayerBadge from './PlayerBadge';
 
 /** Number of alternating mowing stripes across the pitch. */
 const STRIPES = 11;
-
-const slotDist = (a: Slot, b: Slot) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
-
-/** Hungarian algorithm: min-cost perfect assignment for a square cost matrix.
- *  Returns colForRow[i] = the column assigned to row i. */
-function hungarian(cost: number[][]): number[] {
-    const n = cost.length;
-    const u = new Array(n + 1).fill(0);
-    const v = new Array(n + 1).fill(0);
-    const p = new Array(n + 1).fill(0); // p[col] = row matched to col
-    const way = new Array(n + 1).fill(0);
-    for (let i = 1; i <= n; i++) {
-        p[0] = i;
-        let j0 = 0;
-        const minv = new Array(n + 1).fill(Infinity);
-        const used = new Array(n + 1).fill(false);
-        do {
-            used[j0] = true;
-            const i0 = p[j0];
-            let delta = Infinity;
-            let j1 = -1;
-            for (let j = 1; j <= n; j++) {
-                if (used[j]) continue;
-                const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
-                if (cur < minv[j]) {
-                    minv[j] = cur;
-                    way[j] = j0;
-                }
-                if (minv[j] < delta) {
-                    delta = minv[j];
-                    j1 = j;
-                }
-            }
-            for (let j = 0; j <= n; j++) {
-                if (used[j]) {
-                    u[p[j]] += delta;
-                    v[j] -= delta;
-                } else {
-                    minv[j] -= delta;
-                }
-            }
-            j0 = j1;
-        } while (p[j0] !== 0);
-        do {
-            const j1 = way[j0];
-            p[j0] = p[j1];
-            j0 = j1;
-        } while (j0);
-    }
-    const colForRow = new Array(n).fill(0);
-    for (let j = 1; j <= n; j++) colForRow[p[j] - 1] = j - 1;
-    return colForRow;
-}
-
-/**
- * Reassign each existing circle (prev[k]) to a slot in `next` so total movement
- * is minimised (squared distance, which discourages long cross-pitch jumps), and
- * the 11 circles persist and slide to their closest new positions rather than
- * appearing/disappearing. Returns an array aligned to circle index k.
- */
-function assignNearest(prev: Slot[], next: Slot[]): Slot[] {
-    const cost = prev.map((p) => next.map((q) => slotDist(p, q)));
-    const colForRow = hungarian(cost);
-    return prev.map((_, i) => next[colForRow[i]]);
-}
 
 // Flat top-down drawing box. 480x640 maps the 300x400 authored markings at a
 // uniform 1.6x scale, so circles stay round; the SVG fits this box with "meet"
@@ -448,21 +383,23 @@ export default function Pitch({
     // lives in domain/draft; this only paints it, and the count keeps the label honest -
     // "trade places with" would be a lie where three men rotate.
     const moving = movingSlotId && filled[movingSlotId] ? movingSlotId : null;
-    const destinations = (() => {
-        if (!moving) return null;
-        const out = new Map<string, number>();
+    const destinations = useMemo(
+        () => (moving ? moveOptions(formation, filled, moving) : null),
+        [formation, filled, moving],
+    );
+
+    // Which placed players have anywhere to go, so their badge offers the gesture. This
+    // was a second full sweep PER BADGE inside the render below, so eleven of them ran on
+    // every render; it is one sweep, memoized, and it is skipped entirely while a move is
+    // in progress because every other badge is inert then anyway.
+    const movableSlots = useMemo(() => {
+        const out = new Set<string>();
+        if (moving || !onStartMove) return out;
         for (const s of formation.slots) {
-            const plan = planMove(formation, filled, moving, s.id);
-            if (!plan) continue;
-            const shifted = new Set<string>();
-            for (const q of formation.slots) {
-                const before = filled[q.id];
-                if (before && before !== (plan[q.id] ?? null)) shifted.add(before.id);
-            }
-            out.set(s.id, shifted.size);
+            if (filled[s.id] && moveOptions(formation, filled, s.id).size > 0) out.add(s.id);
         }
         return out;
-    })();
+    }, [formation, filled, moving, onStartMove]);
 
     const marks = markingsPath();
     const spots = [
@@ -553,12 +490,7 @@ export default function Pitch({
                                 swapTarget={swapTarget}
                                 isTarget={!player && slot.id === targetSlotId}
                                 shifts={destinations?.get(slot.id) ?? 0}
-                                movable={
-                                    !!player &&
-                                    !moving &&
-                                    !!onStartMove &&
-                                    moveTargets(formation, filled, slot.id).size > 0
-                                }
+                                movable={movableSlots.has(slot.id)}
                                 moveRole={
                                     !moving
                                         ? null
