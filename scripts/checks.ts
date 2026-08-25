@@ -1996,6 +1996,7 @@ const KNOWN_MISSING_ART = new Set([
   'ger-1982-11', // Rummenigge
   'fra-1982-12', // Giresse
   'pol-1982-20', // Boniek
+  'fra-1982-10', // Platini, once his 1982 rating crossed 90
 ]);
 {
   const STICKER_DIR = 'public/stickers';

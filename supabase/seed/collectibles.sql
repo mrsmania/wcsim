@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 92 (68 legendary / 18 iconic / 6 monumental)
--- checksum: 4490bee5d65ba7ca
+-- rows: 93 (69 legendary / 18 iconic / 6 monumental)
+-- checksum: 4f19b5daefed887f
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -73,7 +73,8 @@ values
   ('esp-2018-5', 'legendary', 90, 'Sergio Busquets', 'esp-2018', 'ESP', 2018),
   ('esp-2018-6', 'legendary', 91, 'Andrés Iniesta', 'esp-2018', 'ESP', 2018),
   ('esp-2022-16', 'legendary', 90, 'Rodri', 'esp-2022', 'ESP', 2022),
-  ('fra-1982-12', 'legendary', 90, 'Alain Giresse', 'fra-1982', 'FRA', 1982),
+  ('fra-1982-10', 'legendary', 91, 'Michel Platini', 'fra-1982', 'FRA', 1982),
+  ('fra-1982-12', 'legendary', 92, 'Alain Giresse', 'fra-1982', 'FRA', 1982),
   ('fra-1986-10', 'legendary', 90, 'Michel Platini', 'fra-1986', 'FRA', 1986),
   ('fra-1998-10', 'iconic', 95, 'Zinedine Zidane', 'fra-1998', 'FRA', 1998),
   ('fra-2002-10', 'legendary', 92, 'Zinedine Zidane', 'fra-2002', 'FRA', 2002),
