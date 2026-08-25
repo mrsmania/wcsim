@@ -39,8 +39,16 @@ export const FEATURES = {
      *            the album records who you *drafted*.
      *  Changes the rule and the copy that explains it (home page, draft call-out).
      *  A losing run still reports in either way, so run history and telemetry are
-     *  unaffected by the switch. */
-    stickersOnCupWinOnly: false,
+     *  unaffected by the switch.
+     *
+     *  ON since 2026-08-24, which is a reversal: it shipped `false` from 2026-08-15, so
+     *  every run played before that date banked its XI. The measurement behind the switch,
+     *  over 400 simulated runs with a $110 XI at Base Ascension: a run wins the cup 10% of
+     *  the time, so win-only banks about a TENTH of the collectibles any-run did. Two knock
+     *  ons to watch if the album now feels too slow, because neither is self-contained -
+     *  the owned-sticker discount (config STICKER_DISCOUNT) makes the market cheaper as the
+     *  album grows, and duplicates are what fund trades. The cup pick offsets some of it. */
+    stickersOnCupWinOnly: true,
     /** Use real sticker artwork instead of the text+flag placeholder. Drop
      *  <player.id>.png files into art/stickers-src/ and run
      *  `python scripts/build-sticker-art.py` to produce the shipped
