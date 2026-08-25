@@ -337,7 +337,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-25<br>
-    <strong>Open:</strong> 5 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -348,106 +348,6 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
-
-<details class="item" open>
-  <summary>
-    <span class="num">35</span>
-    <span class="title">Apply pending SQL migrations to the NAS
-      <span class="sub">A standing task: migrations are written here but applied by hand, so this is the list of what is waiting, with the verification each one needs. <b>Nothing waiting: 0013 and 0014 were applied 2026-08-25</b>, the server matches the repo through 0014.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Why this item exists (2026-08-24).</strong> The client ships by pushing to
-    <code>main</code>; migrations are applied by hand with <code>npm run push:sql</code>, which
-    needs <code>dkr/.env</code> and LAN or VPN reach to the NAS. A session without that access
-    can write and validate a migration but cannot apply it, so without a list somewhere the
-    pending ones go quiet. <b>Standing rule: any session that writes a migration adds it
-    here</b>, with what it does and how to check it worked, so the apply can be handed to an
-    agent that does have access.</p>
-
-    <p><strong>How to run one safely</strong>, in this order:</p>
-    <ol>
-      <li><code>npm run push:sql -- --dry-run &lt;file&gt;</code> first. It needs no
-      credentials and no network (fixed 2026-08-24, hygiene H110 - it used to demand
-      <code>dkr/.env</code> even for a dry run), so it is a free look at what would be sent.</li>
-      <li>Apply in <b>file order</b>, one file at a time, and run that file's own
-      verification steps before starting the next. Each migration's header carries them.</li>
-      <li>If a step fails, use the <b>ROLLBACK block in that file's header</b> rather than
-      improvising. Both blocks have been parse-checked.</li>
-      <li>Then <code>npm run checks</code> and a signed-in smoke test. A broken read policy
-      surfaces as the blocking "cannot reach the server" screen, not as a subtle bug, so it is
-      obvious if you look.</li>
-    </ol>
-
-    <p><strong>Waiting now: nothing.</strong> The two below were applied on 2026-08-25 and
-    verified against the live server; the server matches <code>supabase/migrations/</code>
-    through 0014. Leave this item open - it is the standing list, and the next migration
-    written goes here.</p>
-
-    <p><strong>0014 was WRONG and had to be corrected before it could be applied. Read this
-    before writing the next one</strong>, because the mistake is easy to repeat and it fails
-    silently. The audit found four <code>run_results</code> columns holding nothing but
-    zeroes and concluded all four were dead. Three were. The fourth, <code>xi</code>, is
-    still <b>written</b> on every banked run: the live <code>finish_run_v2</code> inserts the
-    literal <code>'[]'::jsonb</code> into it. Postgres does not check a plpgsql body when a
-    column is dropped, so the migration would have reported <code>done.</code> and the
-    breakage would have surfaced at the next run end as <i>column xi of relation run_results
-    does not exist</i> - and since a failed signed-in write is the blocking unreachable
-    screen (D9), <b>finishing a run would have become unplayable for every account</b>, with
-    no way out but a rollback. <b>"Nothing reads it" is not "nothing writes it": check
-    both.</b> 0014 now does a <code>create or replace</code> narrowing the insert
-    <i>before</i> dropping the column, in the same transaction; the body is 0012's verbatim
-    (diffed byte-for-byte against the live <code>pg_get_functiondef</code> first) and the
-    insert's column list is the only line that differs.</p>
-
-    <p><strong>How both were verified</strong>, since this is the pattern for the next one:
-    the whole migration was run inside a <code>begin; ... rollback;</code> on the real server
-    with the checks appended to it, so the post-migration state was exercised rather than
-    reasoned about, and nothing was left behind. That caught the <code>xi</code> break as a
-    genuine failure rather than a review opinion. After applying for real, the same probes
-    were re-run rolled back: reads still work on all four tables, all four
-    <code>save_*</code> RPCs still accept, a direct client-style write now lands on
-    <b>0 rows</b> (which is D10's whole point), <code>finish_run_v2</code> banks, the double
-    submit is still rejected with <code>23505</code>, and <code>export_account</code> is
-    refused. <code>npm run build</code> is clean and <code>npm run checks</code> is 137/137.</p>
-
-    <p><strong>Applied 2026-08-25:</strong></p>
-    <ul>
-      <li><code>0013_narrow_write_grants.sql</code> - hygiene <b>D10</b>. Narrows
-      <code>career</code>, <code>settings</code>, <code>game_state</code> and
-      <code>active_run</code> from <code>for all</code> to <code>for select</code>. The client
-      only ever reads them (verified: no insert/update/upsert/delete anywhere in the store),
-      and every write goes through a <code>security definer</code> RPC that bypasses RLS, so
-      nothing loses a capability. <b>This is the riskier of the two</b> - a mistake here blocks
-      a signed-in player - so it is its own file and can be rolled back alone.</li>
-      <li><code>0014_drop_dead_surface.sql</code> - hygiene <b>D12</b> + <b>D16</b> and one
-      stale policy. Drops the four <code>run_results</code> columns that have recorded only
-      zeroes since 0006 (the TABLE stays: its unique key is the double-submit guard),
-      revokes the never-called <code>export_account()</code> grant, and drops
-      <code>run_results_read</code>, whose stated purpose - the trophy cabinet - reads
-      <code>CareerStats</code> instead. Ten columns became six. <b>No longer "pure removals,
-      low risk"</b>: it now also narrows <code>finish_run_v2</code>, for the reason above.</li>
-    </ul>
-
-    <p><strong>What the sweep behind 0014 deliberately left alone</strong>, so nobody
-    re-derives it: <code>collectibles_read</code> and <code>economy_constants_read</code> (reads
-    the client does not perform, but on reference data that already ships in the public bundle,
-    so kept as plausible future surface); <code>collectibles.elo</code> /
-    <code>squad_id</code> / <code>nation_code</code> / <code>year</code> (written by the
-    generated seed, read by nothing, but populated and what makes the table legible by hand -
-    note the seed checksum covers only <code>playerId|tier|elo</code>, so the others can go
-    stale until someone regenerates); and <code>profiles.created_at</code> plus
-    <code>audit_log</code>, which are bookkeeping. All nine granted-and-called RPCs were
-    verified as genuinely called, every internal helper as still revoked by 0008, and
-    <code>enforce_invite</code> / the 13-arg <code>finish_run</code> / <code>allowed_emails</code>
-    as properly dropped - so <code>export_account</code> was the only granted function with no
-    caller.</p>
-    <p class="files"><a class="dl" href="../supabase/migrations/0013_narrow_write_grants.sql" target="_blank" rel="noopener">supabase/migrations/0013_narrow_write_grants.sql</a>, <a class="dl" href="../supabase/migrations/0014_drop_dead_surface.sql" target="_blank" rel="noopener">supabase/migrations/0014_drop_dead_surface.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../scripts/push-sql.mjs" target="_blank" rel="noopener">scripts/push-sql.mjs</a></p>
-  </div>
-</details>
-
 
 <details class="item">
   <summary>
@@ -1043,8 +943,10 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
     <h3>Closed 2026-08-25</h3>
-    <p>Kept in full because the method is the deliverable: it is the source route the next
-    tournament should use, and the reason to distrust "that site is blocked".</p>
+    <p>Both kept in full because in each case the method is the deliverable. <b>33</b> is the
+    source route the next tournament should use, and the reason to distrust "that site is
+    blocked". <b>35</b> is how to apply a migration you did not write and prove it worked, and
+    the one that nearly went in wrong is the worked example.</p>
 
 <details class="item">
   <summary>
@@ -1141,6 +1043,110 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     uncovered card, not here.</p>
 
     <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/seed/collectibles.sql" target="_blank" rel="noopener">supabase/seed/collectibles.sql</a>, <a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a>, <a class="dl" href="../art/stickers-src/" target="_blank" rel="noopener">art/stickers-src/</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">35</span>
+    <span class="title">Apply pending SQL migrations to the NAS
+      <span class="sub">CLOSED 2026-08-25, empty. Both queued migrations (0013, 0014) are applied and the server matches the repo through 0014. <b>0014 was wrong and was corrected before it went in</b> - it would have broken run banking for every account, silently. The standing rule survives the item: a migration you cannot apply gets its own new roadmap item.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Why this item exists (2026-08-24).</strong> The client ships by pushing to
+    <code>main</code>; migrations are applied by hand with <code>npm run push:sql</code>, which
+    needs <code>dkr/.env</code> and LAN or VPN reach to the NAS. A session without that access
+    can write and validate a migration but cannot apply it, so without a list somewhere the
+    pending ones go quiet. <b>Standing rule: any session that writes a migration adds it
+    here</b>, with what it does and how to check it worked, so the apply can be handed to an
+    agent that does have access.</p>
+
+    <p><strong>How to run one safely</strong>, in this order:</p>
+    <ol>
+      <li><code>npm run push:sql -- --dry-run &lt;file&gt;</code> first. It needs no
+      credentials and no network (fixed 2026-08-24, hygiene H110 - it used to demand
+      <code>dkr/.env</code> even for a dry run), so it is a free look at what would be sent.</li>
+      <li>Apply in <b>file order</b>, one file at a time, and run that file's own
+      verification steps before starting the next. Each migration's header carries them.</li>
+      <li>If a step fails, use the <b>ROLLBACK block in that file's header</b> rather than
+      improvising. Both blocks have been parse-checked.</li>
+      <li>Then <code>npm run checks</code> and a signed-in smoke test. A broken read policy
+      surfaces as the blocking "cannot reach the server" screen, not as a subtle bug, so it is
+      obvious if you look.</li>
+    </ol>
+
+    <p><strong>Why this closed rather than staying open as an empty list.</strong> It
+    was created as a standing home for migrations a session could not apply, and it
+    held two. Both are in, so it holds nothing, and an open item that says "nothing
+    waiting" reads as work in flight when it is not. <b>The rule it carried is not
+    cancelled by closing it:</b> a session that writes a migration it cannot apply
+    opens a NEW item for it, with what it does, how to verify it, and a rollback block
+    in the file's own header - which is exactly the handover a cloud agent without NAS
+    reach needs. This entry is the worked example of that handover going right.</p>
+    written goes here.</p>
+
+    <p><strong>0014 was WRONG and had to be corrected before it could be applied. Read this
+    before writing the next one</strong>, because the mistake is easy to repeat and it fails
+    silently. The audit found four <code>run_results</code> columns holding nothing but
+    zeroes and concluded all four were dead. Three were. The fourth, <code>xi</code>, is
+    still <b>written</b> on every banked run: the live <code>finish_run_v2</code> inserts the
+    literal <code>'[]'::jsonb</code> into it. Postgres does not check a plpgsql body when a
+    column is dropped, so the migration would have reported <code>done.</code> and the
+    breakage would have surfaced at the next run end as <i>column xi of relation run_results
+    does not exist</i> - and since a failed signed-in write is the blocking unreachable
+    screen (D9), <b>finishing a run would have become unplayable for every account</b>, with
+    no way out but a rollback. <b>"Nothing reads it" is not "nothing writes it": check
+    both.</b> 0014 now does a <code>create or replace</code> narrowing the insert
+    <i>before</i> dropping the column, in the same transaction; the body is 0012's verbatim
+    (diffed byte-for-byte against the live <code>pg_get_functiondef</code> first) and the
+    insert's column list is the only line that differs.</p>
+
+    <p><strong>How both were verified</strong>, since this is the pattern for the next one:
+    the whole migration was run inside a <code>begin; ... rollback;</code> on the real server
+    with the checks appended to it, so the post-migration state was exercised rather than
+    reasoned about, and nothing was left behind. That caught the <code>xi</code> break as a
+    genuine failure rather than a review opinion. After applying for real, the same probes
+    were re-run rolled back: reads still work on all four tables, all four
+    <code>save_*</code> RPCs still accept, a direct client-style write now lands on
+    <b>0 rows</b> (which is D10's whole point), <code>finish_run_v2</code> banks, the double
+    submit is still rejected with <code>23505</code>, and <code>export_account</code> is
+    refused. <code>npm run build</code> is clean and <code>npm run checks</code> is 137/137.</p>
+
+    <p><strong>Applied 2026-08-25:</strong></p>
+    <ul>
+      <li><code>0013_narrow_write_grants.sql</code> - hygiene <b>D10</b>. Narrows
+      <code>career</code>, <code>settings</code>, <code>game_state</code> and
+      <code>active_run</code> from <code>for all</code> to <code>for select</code>. The client
+      only ever reads them (verified: no insert/update/upsert/delete anywhere in the store),
+      and every write goes through a <code>security definer</code> RPC that bypasses RLS, so
+      nothing loses a capability. <b>This is the riskier of the two</b> - a mistake here blocks
+      a signed-in player - so it is its own file and can be rolled back alone.</li>
+      <li><code>0014_drop_dead_surface.sql</code> - hygiene <b>D12</b> + <b>D16</b> and one
+      stale policy. Drops the four <code>run_results</code> columns that have recorded only
+      zeroes since 0006 (the TABLE stays: its unique key is the double-submit guard),
+      revokes the never-called <code>export_account()</code> grant, and drops
+      <code>run_results_read</code>, whose stated purpose - the trophy cabinet - reads
+      <code>CareerStats</code> instead. Ten columns became six. <b>No longer "pure removals,
+      low risk"</b>: it now also narrows <code>finish_run_v2</code>, for the reason above.</li>
+    </ul>
+
+    <p><strong>What the sweep behind 0014 deliberately left alone</strong>, so nobody
+    re-derives it: <code>collectibles_read</code> and <code>economy_constants_read</code> (reads
+    the client does not perform, but on reference data that already ships in the public bundle,
+    so kept as plausible future surface); <code>collectibles.elo</code> /
+    <code>squad_id</code> / <code>nation_code</code> / <code>year</code> (written by the
+    generated seed, read by nothing, but populated and what makes the table legible by hand -
+    note the seed checksum covers only <code>playerId|tier|elo</code>, so the others can go
+    stale until someone regenerates); and <code>profiles.created_at</code> plus
+    <code>audit_log</code>, which are bookkeeping. All nine granted-and-called RPCs were
+    verified as genuinely called, every internal helper as still revoked by 0008, and
+    <code>enforce_invite</code> / the 13-arg <code>finish_run</code> / <code>allowed_emails</code>
+    as properly dropped - so <code>export_account</code> was the only granted function with no
+    caller.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0013_narrow_write_grants.sql" target="_blank" rel="noopener">supabase/migrations/0013_narrow_write_grants.sql</a>, <a class="dl" href="../supabase/migrations/0014_drop_dead_surface.sql" target="_blank" rel="noopener">supabase/migrations/0014_drop_dead_surface.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../scripts/push-sql.mjs" target="_blank" rel="noopener">scripts/push-sql.mjs</a></p>
   </div>
 </details>
 

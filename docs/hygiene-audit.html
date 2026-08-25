@@ -299,8 +299,8 @@
   <b>The three server decisions</b> (<a href="#D10">D10</a>, <a href="#D12">D12</a>,
   <a href="#D16">D16</a>) became migrations <code>0013</code> and <code>0014</code>, written
   and parse-validated here but not applied - that session could not reach the NAS - so they
-  were queued as <b>roadmap item 35</b>, which is now the standing home for any migration a
-  session writes but cannot apply. D12's requested sweep of the rest of the database found
+  were queued as <b>roadmap item 35</b> (applied 2026-08-25, and closed empty - a migration a
+  session cannot apply now gets its own new item). D12's requested sweep of the rest of the database found
   exactly one more removal (<code>run_results_read</code>) and is recorded in 0014's header
   along with what it deliberately leaves alone. <b>Both were applied 2026-08-25</b> - but
   0014 was wrong and had to be corrected first, and the audit had the evidence in hand:

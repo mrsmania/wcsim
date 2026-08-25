@@ -87,7 +87,8 @@ means for anyone picking the backlog up at wave 4:
   and broken run banking for every account at the next run end - which is the blocking
   unreachable screen (D9). **"Nothing reads it" is not "nothing writes it": check both.**
   0014 now replaces the function before dropping the column, in the same transaction. Still
-  do not assume the server matches `supabase/migrations/`; see roadmap item 35.
+  do not assume the server matches `supabase/migrations/`: check it, the way roadmap item 35
+  (closed, in the shipped history) records.
 - **Reach for the shared atoms before writing a class string.** Wave 3 gave names to the
   things that were typed out over and over, and the point is lost if the next component
   re-inlines them: `matchUi.tsx` has `CARD` / `CARD_SM` / `CARD_FLAT` (the flat card),
@@ -1837,10 +1838,14 @@ keep working.
   trailer.
 - **A migration you write, you also QUEUE** (recorded 2026-08-24). Migrations are applied by
   hand on the NAS with `npm run push:sql`, which needs `dkr/.env` and LAN/VPN reach, so a
-  session without that access can write and validate one but not apply it. Any session that
-  adds a file to `supabase/migrations/` therefore also adds it to **roadmap item 35**, with
-  what it does, how to verify it worked, and a rollback block in the file's own header - so
-  the apply can be handed to an agent that does have access. Two things make that safe and
+  session without that access can write and validate one but not apply it - a cloud agent
+  typically cannot. Any session that adds a file to `supabase/migrations/` and cannot apply it
+  therefore **opens a roadmap item for it**, with what it does, how to verify it worked, and a
+  rollback block in the file's own header - so the apply can be handed to an agent that does
+  have access. (The old standing item 35 held exactly two such migrations, 0013 and 0014; both
+  went in on 2026-08-25 and it was **closed empty**, because an open item reading "nothing
+  waiting" looks like work in flight. Open a NEW one rather than reopening it; its history
+  entry is the worked example of the handover.) Two things make that safe and
   are worth doing every time: `npm run push:sql -- --dry-run <file>` needs no credentials and
   no network, and `pglast` (`pip install pglast`, then `pglast.parse_sql`) parses a file with
   the real Postgres grammar, so a syntax error never reaches the server. Validate the rollback
