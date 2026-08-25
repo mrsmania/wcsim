@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutGrid, List as ListIcon, Search, Star } from 'lucide-react';
 import type { Player } from '../data/types';
-import { lastName, normalizeSearch } from '../data/format';
+import { lastName } from '../data/format';
 import { SQUAD_BY_ID } from '../data/squads';
-import { CONFEDERATION, type Confederation } from '../data/confederations';
+import type { Confederation } from '../data/confederations';
 import type { Formation, Slot } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
-import { PRICE_BASE, priceOf, pricerFor, xiSpend } from '../domain/pricing';
+import { priceOf, pricerFor, xiSpend } from '../domain/pricing';
+import { marketFacets, marketResults, type MarketSortKey } from '../domain/market';
 import { autoFillBudget, playersByPosition } from '../domain/budget';
 import { tierOf } from '../domain/album';
 import { FEATURES } from '../config';
@@ -14,8 +15,6 @@ import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
 import { CARD, Meter } from './matchUi';
-
-const MAX_RESULTS = 60;
 
 
 /** A market row's price: the struck-through full price when the album already holds this
@@ -44,32 +43,15 @@ function MarketPrice({
   );
 }
 
-/** Ways to order the market list. */
-type SortKey = 'rating' | 'value' | 'price' | 'newest' | 'name';
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+/** The market's sort options. The keys and their comparators live in domain/market; these
+ *  are the words for them. */
+const SORT_OPTIONS: { value: MarketSortKey; label: string }[] = [
   { value: 'rating', label: 'Rating' },
   { value: 'value', label: 'Value' },
   { value: 'price', label: 'Price' },
   { value: 'newest', label: 'Newest' },
   { value: 'name', label: 'A-Z' },
 ];
-
-const yearOf = (p: Player) => SQUAD_BY_ID[p.squadId]?.year ?? 0;
-
-/** The sort comparators, built around a price function: "value" and "price" have to see
- *  what the player will ACTUALLY be charged, or an owned sticker sorts by a price it is
- *  not paying and the cheapest-first list lies. */
-const sortCmp = (price: (p: Player) => number): Record<SortKey, (a: Player, b: Player) => number> => {
-  /** Rating gained per dollar (value hunting): higher = a better bargain. */
-  const valuePerDollar = (p: Player) => (p.elo - PRICE_BASE) / price(p);
-  return {
-    rating: (a, b) => b.elo - a.elo,
-    value: (a, b) => valuePerDollar(b) - valuePerDollar(a) || b.elo - a.elo,
-    price: (a, b) => price(a) - price(b) || b.elo - a.elo,
-    newest: (a, b) => yearOf(b) - yearOf(a) || b.elo - a.elo,
-    name: (a, b) => a.name.localeCompare(b.name),
-  };
-};
 
 const SELECT =
   'rounded-[5px] border border-line bg-panel py-1 pl-2 pr-1 font-mono text-[11px] font-semibold text-ink outline-none transition focus:border-pitch';
@@ -119,7 +101,7 @@ export default function BudgetMarket({
   ownedStickerIds,
 }: Props) {
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortKey>('rating');
+  const [sort, setSort] = useState<MarketSortKey>('rating');
   const [filterYear, setFilterYear] = useState<'all' | number>('all');
   const [filterRegion, setFilterRegion] = useState<'all' | Confederation>('all');
   const [collectiblesOnly, setCollectiblesOnly] = useState(false);
@@ -137,23 +119,13 @@ export default function BudgetMarket({
   const byPosition = useMemo(() => playersByPosition(poolPlayers), [poolPlayers]);
   const candidates = position ? (byPosition[position] ?? []) : [];
 
-  // The World Cups / confederations actually present among this position's
-  // candidates, so the filter dropdowns never offer an empty option.
-  const facets = useMemo(() => {
-    const years = new Set<number>();
-    const regions = new Set<Confederation>();
-    for (const p of candidates) {
-      const sq = SQUAD_BY_ID[p.squadId];
-      if (sq?.year) years.add(sq.year);
-      const r = sq ? CONFEDERATION[sq.code] : undefined;
-      if (r) regions.add(r);
-    }
-    return {
-      years: [...years].sort((a, b) => b - a),
-      regions: [...regions].sort(),
-    };
+  // The filter dropdowns' options. Keyed on [position, byPosition] rather than on
+  // `candidates`, which is derived from them and is a fresh array every render.
+  const facets = useMemo(
+    () => marketFacets(candidates),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [position, byPosition]);
+    [position, byPosition],
+  );
 
   // What things cost for THIS album: a player whose sticker is already collected is
   // discounted (STICKER_DISCOUNT). One pricer, used by the rows, the totals, the sorts
@@ -167,24 +139,25 @@ export default function BudgetMarket({
   const remaining = budget - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
 
-  const results = useMemo(() => {
-    if (!position) return [];
-    const q = normalizeSearch(query.trim());
-    const list = candidates.filter((p) => {
-      const sq = SQUAD_BY_ID[p.squadId];
-      if (filterYear !== 'all' && sq?.year !== filterYear) return false;
-      if (filterRegion !== 'all' && (sq ? CONFEDERATION[sq.code] : undefined) !== filterRegion)
-        return false;
-      if (collectiblesOnly && !tierOf(p)) return false;
-      if (q) {
-        const hay = `${normalizeSearch(p.name)} ${normalizeSearch(sq?.nation ?? '')} ${(sq?.code ?? '').toLowerCase()} ${sq?.year ?? ''}`;
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-    return [...list].sort(sortCmp(price)[sort]).slice(0, MAX_RESULTS);
+  // Deliberately omits `candidates` (derived from the two deps above it) and `price`
+  // (a fresh closure every render, over an unchanged album). Both suppressions predate
+  // the extraction and are carried across as they were.
+  const results = useMemo(
+    () =>
+      position
+        ? marketResults({
+            candidates,
+            query,
+            sort,
+            filterYear,
+            filterRegion,
+            collectiblesOnly,
+            price,
+          })
+        : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [position, byPosition, query, sort, filterYear, filterRegion, collectiblesOnly]);
+    [position, byPosition, query, sort, filterYear, filterRegion, collectiblesOnly],
+  );
 
   // Fill every empty slot and spend most of the budget, differently each time (the
   // randomized fill lives in domain/budget). Hands the result to App to commit.
@@ -307,7 +280,7 @@ export default function BudgetMarket({
             <select
               aria-label="Sort by"
               value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
+              onChange={(e) => setSort(e.target.value as MarketSortKey)}
               className={SELECT}
             >
               {SORT_OPTIONS.map((o) => (
