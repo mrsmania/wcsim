@@ -15,7 +15,6 @@ import type { Player, Position, Squad } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
     canPlace,
-    filledCount,
     hasAnotherCup,
     hasAnotherTeam,
     homeViewOf,
@@ -29,13 +28,14 @@ import {
     type Filled,
     type TeamStrength,
 } from './domain/draft';
-import { KO_ROUNDS } from './domain/knockout';
 import { budgetOf, extraRerollsOf } from './domain/career';
 import { maxSelectableAscension, selectedAscension } from './domain/ascension';
 import { runBuildOf, runShapeOf, type RunBuild, type RunShape } from './domain/run';
 import { swapEligibleIds as swapEligibleIdsOf } from './domain/album';
 import { FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
+import { isPlayTab, isRecords, screenOf } from './state/routes';
+import { buildResume, cupRunResume } from './state/resume';
 import { useLiveMatch } from './nav/liveMatch';
 import { SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
 import { requestRunStart } from './nav/pendingRun';
@@ -550,29 +550,27 @@ export default function App({
         return ps.length === formation.slots.length ? ps : null;
     }, [formation, filled]);
 
-    // Route -> which screen. `location.pathname` is basename-relative. `/` is the front
-    // page (the hero + the beats + one Continue), `/play` the build, `/cup-run` the run.
-    const path = location.pathname;
-    const squadsEnabled = FEATURES.squadBrowser;
-    const isSquads = squadsEnabled && (path === '/squads' || path.startsWith('/squads/'));
-    const isAlbum = STICKERS && path === '/album';
-    const isCupRun = path === '/cup-run';
-    const isLauncher = path === '/';
-    const isBuild = path === '/play';
-    // `/career` is the hub, split off the live run (finding F4); `/records` holds the two
-    // honours screens as segments.
+    // Route -> which screen, decided by `state/routes.ts` (feature flags included), so
+    // the contract is one pure function rather than ten booleans declared here and
+    // re-tested in the render chain below. `location.pathname` is basename-relative.
     //
     // The legacy aliases went on 2026-08-24: `/challenges` and `/cabinet` for the two
     // honours screens, and `/quick-run` + `/career-mode` for the build. They existed to
     // protect bookmarks made before the navigation rework, and the app has never been
     // live, so there are none. They now hit the catch-all redirect, exactly as `/group`
-    // and `/knockout` already do. The two honours aliases were also a latent bug: this
-    // block tested `tabsRecords` FIRST, and its definition already matched both of them,
-    // so their own render arms were unreachable and the standalone header + Back crumb
-    // they were documented as carrying never rendered.
-    const isCareerHub = path === '/career';
-    const tabsRecords = path === '/records' || path === '/records/cabinet';
-    const recordsCabinet = FEATURES.trophyCabinet && path === '/records/cabinet';
+    // and `/knockout` already do.
+    const path = location.pathname;
+    const screen = screenOf(path);
+    const isSquads = screen === 'squads';
+    const isAlbum = screen === 'album';
+    const isCupRun = screen === 'cup-run';
+    const isLauncher = screen === 'front';
+    const isBuild = screen === 'build';
+    // `/career` is the hub, split off the live run (finding F4); `/records` holds the two
+    // honours screens as segments of one destination.
+    const isCareerHub = screen === 'career';
+    const tabsRecords = isRecords(screen);
+    const recordsCabinet = screen === 'cabinet';
 
     // The completed-challenge set. Same shape as careerPeek below: the career lives in
     // CupRunScreen, so it is re-read from the store whenever the route changes rather than
@@ -644,33 +642,19 @@ export default function App({
     }, [draftedXi, build, budget, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
 
     // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
-    // mid-flight (not yet ended), with a short round summary for the resume button.
-    // Null when there is nothing to resume.
-    const resumeCupRun = useMemo(() => {
-        const r = store.peek().run;
-        if (!r || r.phase === 'ended') return null;
-        const round = r.phase === 'group' ? 'Group stage' : (KO_ROUNDS[r.koRound] ?? 'Knockouts');
-        const opp = r.nextOpponent ? ` · vs ${r.nextOpponent.name} ${r.nextOpponent.year}` : '';
-        return { summary: round + opp };
+    // mid-flight, described in one line for the Continue button (`state/resume.ts`).
+    const resumeCupRun = useMemo(
+        () => cupRunResume(store.peek().run),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLauncher, path]);
+        [isLauncher, path],
+    );
 
     // Launcher-only read: an XI left mid-build, so coming back to the site is not a
-    // dead end. Only when there is nothing further along to resume (an in-progress Cup
-    // Run already covers that, and implies a finished XI).
-    const resumeBuild = useMemo(() => {
-        if (!formation || resumeCupRun) return null;
-        const picked = filledCount(formation, filled);
-        if (picked === 0) return null;
-        const to = '/play';
-        return picked === formation.slots.length
-            ? { to, label: 'Your XI is ready', sub: formation.name }
-            : {
-                  to,
-                  label: 'Finish your XI',
-                  sub: `${formation.name} · ${picked} of ${formation.slots.length} picked`,
-              };
-    }, [isLauncher, formation, filled, resumeCupRun]);
+    // dead end. Only when there is nothing further along to resume.
+    const resumeBuild = useMemo(
+        () => buildResume(formation, filled, !!resumeCupRun),
+        [formation, filled, resumeCupRun],
+    );
 
     // ---------------------------------------------------------------- tabs chrome
     // A match reveal is transient state (deliberately not persisted), so the bar goes
@@ -679,7 +663,7 @@ export default function App({
     // Where the Play tab lands: the run if there is one, the build if one is half done,
     // otherwise the cover. The crest always returns to the cover.
     const playTo = resumeCupRun ? '/cup-run' : formation ? '/play' : '/';
-    const isPlayTab = isLauncher || isBuild || isCupRun;
+    const playTabActive = isPlayTab(screen);
     // A tab is a label and a destination. The per-tab sub-line each of these used to
     // carry (where the run is, level and Prestige, album completion, challenges earned,
     // cups in the pool) is gone: every one of those figures is on the screen the tab
@@ -688,7 +672,7 @@ export default function App({
     // missing `label` is an error at the literal instead of at the cast; the predicate in
     // the filter is what removes the `false` arm, so neither end needs an assertion.
     const tabEntries: (TabItem | false)[] = [
-        { key: 'play', label: 'Play', to: playTo, active: isPlayTab },
+        { key: 'play', label: 'Play', to: playTo, active: playTabActive },
         { key: 'career', label: 'Career', to: '/career', active: isCareerHub },
         STICKERS && { key: 'album', label: 'Album', to: '/album', active: isAlbum },
         (FEATURES.challenges || FEATURES.trophyCabinet) && {
@@ -697,7 +681,7 @@ export default function App({
             to: FEATURES.challenges ? '/records' : '/records/cabinet',
             active: tabsRecords,
         },
-        squadsEnabled && {
+        FEATURES.squadBrowser && {
             key: 'squads',
             label: 'Squads',
             to: '/squads/by-world-cup',
@@ -1007,11 +991,9 @@ export default function App({
                                                           : undefined
                                                 }
                                                 onSwap={
-                                                    isBudgetBuild
-                                                        ? undefined
-                                                        : STICKERS && swapsLeft > 0
-                                                          ? handleSwap
-                                                          : undefined
+                                                    !isBudgetBuild && STICKERS && swapsLeft > 0
+                                                        ? handleSwap
+                                                        : undefined
                                                 }
                                                 onSelectSlot={
                                                     isBudgetBuild ? handleBudgetShop : undefined

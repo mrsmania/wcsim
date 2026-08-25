@@ -129,6 +129,10 @@ import { simulateTitleOdds } from '../src/domain/odds';
 // owns the swap allowance, which the Swap Meet challenge has to agree with.
 import { ASCENSIONS, ascensionAt, maxSelectableAscension, selectedAscension } from '../src/domain/ascension';
 import { tierOf } from '../src/domain/album';
+// The route table and the front page's two Continue offers: pure, so assertable.
+import { isPlayTab, isRecords, screenOf, type Screen } from '../src/state/routes';
+import { buildResume, cupRunResume } from '../src/state/resume';
+import { FEATURES } from '../src/config';
 import {
   CATALOGUE_PATH,
   catalogueChecksum,
@@ -3327,6 +3331,85 @@ const KNOWN_MISSING_ART = new Set([
   check(
     'settings: an all-tournaments pool survives a new tournament, a narrowing survives a round trip',
     ok,
+  );
+}
+
+// --- Routes: the URL-to-screen table, and that everything else redirects -----
+// The point of `screenOf` being a pure function is that this table can be written down
+// (hygiene H82). Two entries here are the ones a later tidy-up would break: a deleted
+// alias must reach `unknown` (so it redirects rather than rendering something), and
+// `/records/cabinet` must fall back to the ledger rather than redirecting when the
+// cabinet flag is off.
+{
+  const table: [string, Screen][] = [
+    ['/', 'front'],
+    ['/play', 'build'],
+    ['/cup-run', 'cup-run'],
+    ['/career', 'career'],
+    ['/records', 'records'],
+    ['/records/cabinet', FEATURES.trophyCabinet ? 'cabinet' : 'records'],
+    ['/album', FEATURES.stickerAlbum ? 'album' : 'unknown'],
+    ['/squads', FEATURES.squadBrowser ? 'squads' : 'unknown'],
+    ['/squads/by-world-cup/1990', FEATURES.squadBrowser ? 'squads' : 'unknown'],
+    ['/squads/team/bra-2002', FEATURES.squadBrowser ? 'squads' : 'unknown'],
+    // Deleted routes and the four legacy aliases: all catch-all.
+    ['/group', 'unknown'],
+    ['/knockout', 'unknown'],
+    ['/challenges', 'unknown'],
+    ['/cabinet', 'unknown'],
+    ['/quick-run', 'unknown'],
+    ['/career-mode', 'unknown'],
+    ['/build', 'unknown'],
+    ['/squadsx', 'unknown'],
+    ['/play/', 'unknown'],
+    ['', 'unknown'],
+  ];
+  const wrong = table.filter(([p, want]) => screenOf(p) !== want);
+  check(
+    `routes: all ${table.length} paths resolve to the screen they should`,
+    wrong.length === 0,
+  );
+  // The two groupings the tab bar is built from. Records is ONE destination in two
+  // segments, which is what keeps the bar at five; Play covers cover, build and run.
+  check(
+    'routes: Records is one destination, Play covers the cover, the build and the run',
+    isRecords('records') &&
+      isRecords('cabinet') &&
+      !isRecords('career') &&
+      isPlayTab('front') &&
+      isPlayTab('build') &&
+      isPlayTab('cup-run') &&
+      !isPlayTab('album') &&
+      !isPlayTab('unknown'),
+  );
+}
+
+// --- The front page's two Continue offers -----------------------------------
+// A run that ENDED is a finished story, not something to carry on with, and a board
+// with nothing picked is just the build page. Both were inline ternaries in the
+// composition root before H83.
+{
+  const run = (over: Partial<RunState>) => ({ phase: 'group', koRound: 0, ...over }) as RunState;
+  const f = getFormation('4-3-3', 'bal')!;
+  const one: Filled = { [f.slots[0]!.id]: ALL_PLAYERS[0]! };
+  const full: Filled = Object.fromEntries(f.slots.map((s, i) => [s.id, ALL_PLAYERS[i]!]));
+  check(
+    'resume: only a live run is offered, and an ended one never is',
+    cupRunResume(null) === null &&
+      cupRunResume(run({ phase: 'ended' })) === null &&
+      cupRunResume(run({}))?.summary === 'Group stage' &&
+      cupRunResume(run({ phase: 'match', koRound: 0 }))?.summary === KO_ROUNDS[0] &&
+      cupRunResume(run({ phase: 'match', koRound: 99 }))?.summary === 'Knockouts',
+  );
+  check(
+    'resume: a half-built XI is offered, an empty board and a live run are not',
+    buildResume(null, {}, false) === null &&
+      buildResume(f, {}, false) === null &&
+      buildResume(f, one, true) === null &&
+      buildResume(f, one, false)?.label === 'Finish your XI' &&
+      buildResume(f, one, false)?.sub === '4-3-3 · 1 of 11 picked' &&
+      buildResume(f, full, false)?.label === 'Your XI is ready' &&
+      buildResume(f, full, false)?.sub === '4-3-3',
   );
 }
 
