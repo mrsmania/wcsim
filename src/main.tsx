@@ -5,7 +5,22 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import UnreachableScreen from './components/UnreachableScreen';
 import { bootStore, type BootResult } from './state/store';
+import { SQUADS } from './data/squads';
+import { validateSquads } from './domain/validateSquads';
 import './index.css';
+
+// Dev-time dataset integrity check, once at startup. It used to be an effect in App,
+// where it re-ran whenever App remounted; a once-per-boot check belongs at the boot
+// (hygiene H145). The DEV guard stays: the module is also imported by the checks
+// harness, which runs in plain node with no import.meta.env.
+if (import.meta.env.DEV) {
+  const problems = validateSquads(SQUADS);
+  if (problems.length === 0) {
+    console.info('validateSquads: 0 problems');
+  } else {
+    console.error(`validateSquads: ${problems.length} problem(s)`, problems);
+  }
+}
 
 // Read persisted state before the first render and hand it to App as a snapshot, so
 // the app still seeds its reducer / hooks synchronously. For a guest this resolves in

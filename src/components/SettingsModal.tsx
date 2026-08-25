@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Overlay from './Overlay';
 import { CARD_FLAT, SegControl, SpeedControl } from './matchUi';
 import type { MatchSpeed } from '../domain/clock';
@@ -77,13 +78,19 @@ export default function SettingsModal({
             : [...s.poolYears, y].sort((a, b) => a - b);
         if (next.length) setPoolYears(next);
     };
-    const pooled = squadsInPool(s.poolYears);
-    const poolCounts = {
-        cups: s.poolYears.length,
-        teams: pooled.length,
-        players: pooled.reduce((n, sq) => n + sq.players.length, 0),
-        collectibles: collectiblePlayers(pooled.flatMap((sq) => sq.players)).length,
-    };
+    // Memoized on the selection, because it is not cheap and it was being redone on every
+    // render of an open sheet: it walks every squad in the pool and every player in it, and
+    // `collectiblePlayers` walks them again. Ticking one year is the only thing that can
+    // change the answer (hygiene H145).
+    const poolCounts = useMemo(() => {
+        const pooled = squadsInPool(s.poolYears);
+        return {
+            cups: s.poolYears.length,
+            teams: pooled.length,
+            players: pooled.reduce((n, sq) => n + sq.players.length, 0),
+            collectibles: collectiblePlayers(pooled.flatMap((sq) => sq.players)).length,
+        };
+    }, [s.poolYears]);
 
     return (
         <Overlay onClose={onClose} ariaLabel="Settings">

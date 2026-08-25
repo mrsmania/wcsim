@@ -1,10 +1,10 @@
 import type { MatchEvent, ShootoutResult } from '../../domain/match';
 import type { KoDecided } from '../../domain/knockout';
-import type { MatchSpeed } from '../../domain/clock';
+import { maxMinute, type MatchSpeed } from '../../domain/clock';
 import type { GroupTeam } from '../../domain/tournament';
 import { useMatchClock, FT_HOLD_MS, KO_END_HOLD_MS } from '../../hooks/useMatchClock';
 import { koEndLabel, liveMatchView } from '../matchView';
-import { maxMinute, ResultTag } from '../matchUi';
+import { ResultTag } from '../matchUi';
 import MatchdayCard from '../MatchdayCard';
 
 /** One match revealed minute by minute with the shared clock + goal feed (the same

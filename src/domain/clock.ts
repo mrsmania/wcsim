@@ -1,4 +1,6 @@
 import { pick } from './random';
+import type { KoDecided } from './knockout';
+import { ET_MINUTES, REG_MINUTES } from './match';
 /** Match simulation playback speed. */
 export type MatchSpeed = 'slow' | 'normal' | 'fast';
 
@@ -8,6 +10,13 @@ export const STEP_MS: Record<MatchSpeed, number> = { slow: 90, normal: 45, fast:
 export const HALF_TIME_MS: Record<MatchSpeed, number> = { slow: 900, normal: 550, fast: 250 };
 /** Per-kick interval (ms) of a penalty shootout, by speed. */
 export const PEN_MS: Record<MatchSpeed, number> = { slow: 900, normal: 550, fast: 240 };
+
+/** The final minute of a knockout game, by how the tie was decided. A rule about football,
+ *  not about presentation: it is the number `buildMatchSteps` below is called with, so it
+ *  decides whether a 105th-minute goal is ever revealed. It lived in the shared
+ *  presentational-atoms module (hygiene H145). */
+export const maxMinute = (decided: KoDecided) =>
+  decided === 'reg' ? REG_MINUTES : REG_MINUTES + ET_MINUTES;
 
 /** One tick of the live match clock. */
 export interface ClockStep {

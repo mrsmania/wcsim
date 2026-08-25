@@ -35,7 +35,6 @@ import { maxSelectableAscension, selectedAscension } from './domain/ascension';
 import { priceFor, xiSpend } from './domain/pricing';
 import type { RunBuild, RunShape } from './domain/run';
 import { canSwapInto } from './domain/album';
-import { validateSquads } from './domain/validateSquads';
 import { BUDGET_BY_TIER, FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
 import { useLiveMatch } from './nav/liveMatch';
@@ -168,18 +167,6 @@ export default function App({
         },
         [],
     );
-
-    // Dev-time dataset integrity check: run the WP2 validator once on mount and
-    // report any problems (silent when clean).
-    useEffect(() => {
-        if (!import.meta.env.DEV) return;
-        const problems = validateSquads(SQUADS);
-        if (problems.length === 0) {
-            console.info('validateSquads: 0 problems');
-        } else {
-            console.error(`validateSquads: ${problems.length} problem(s)`, problems);
-        }
-    }, []);
 
     const {
         phase,

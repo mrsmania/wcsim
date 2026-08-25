@@ -1,7 +1,8 @@
 import type { MatchEvent, ShootoutResult } from '../../domain/match';
 import type { KoDecided } from '../../domain/knockout';
+import { maxMinute } from '../../domain/clock';
 import { koFinishedStatus, koResultLabel, liveMatchView } from '../matchView';
-import { maxMinute, ResultTag } from '../matchUi';
+import { ResultTag } from '../matchUi';
 import MatchdayCard from '../MatchdayCard';
 
 /** A finished knockout tie rendered as a settled card (goal feed + shootout). Built
