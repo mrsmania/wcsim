@@ -8,6 +8,7 @@ import { check, playToEnd, runFor, stepRun, xiFor } from './harness';
 import { SQUADS } from '../../src/data/squads';
 import { bracketChampion, opponentOf, userGameInRound } from '../../src/domain/bracket';
 import {
+  type RunMatch,
   type RunOutcome,
   type RunState,
   beginRun,
@@ -15,7 +16,13 @@ import {
   playGroupStage,
   prepareGroupStage,
   prepareKnockoutRound,
+  runMatches,
+  runTotals,
 } from '../../src/domain/run';
+import { basePlayer } from '../../src/data/squads';
+import { emptyAlbum } from '../../src/domain/album';
+import { INITIAL_CAREER } from '../../src/domain/career';
+import { viewOf } from '../../src/domain/challenges';
 import {
   GROUP_MATCHDAYS,
   USER_ID,
@@ -255,4 +262,97 @@ export function runChecks(): void {
     );
   }
 
+  // --- One reading of a run's matches, three consumers -------------------------
+  // "Goals for and against over a run" was derived three separate ways, and `runTotals`
+  // said so in its own docstring (hygiene H134): the career's run archive, Siege Mentality's
+  // input, and the challenge catalogue's `viewOf`. They agreed, which is why folding them
+  // into `runMatches` was safe - and why the proof has to live here rather than in the
+  // comparison between the three, which is tautological now that all three read it.
+  //
+  // So the harness keeps its own INDEPENDENT reading of `history`, written the way the three
+  // were written before the fold: a group record's three matchday scorelines, then each
+  // knockout record's pair of goals. If `runMatches` ever loses a stage - the failure this
+  // fold could plausibly cause, since the two halves read different fields of a
+  // discriminated union - this disagrees.
+  //
+  // The third consumer is reached through the card that uses it, since `goalsConcededOf` is
+  // private: Siege Mentality is +1 to the XI per goal conceded, so its delta IS the number.
+  {
+    let agree = true;
+    let sawGroupExit = false;
+    let sawCup = false;
+    let sawShootout = false;
+    let goals = 0;
+    for (let i = 0; i < 200 && agree; i++) {
+      const run = playToEnd(playGroupStage(runFor(i * 3)), (offer) => offer[i % offer.length]);
+      if (run.outcome === 'group') sawGroupExit = true;
+      if (run.outcome === 'champion') sawCup = true;
+      if (run.history.some((r) => r.stage !== 'group' && r.decided === 'pens')) sawShootout = true;
+
+      // The independent reading.
+      let wantFor = 0;
+      let wantAgainst = 0;
+      let wantWon = 0;
+      let wantCount = 0;
+      for (const r of run.history) {
+        if (r.stage === 'group') {
+          for (const g of r.groupResults) {
+            wantFor += g.us;
+            wantAgainst += g.them;
+            wantCount++;
+          }
+        } else {
+          wantFor += r.userGoals;
+          wantAgainst += r.oppGoals;
+          wantCount++;
+          if (r.won) wantWon++;
+        }
+      }
+      goals += wantFor;
+
+      const matches = runMatches(run);
+      const totals = runTotals(run);
+      const view = viewOf({
+        run,
+        base: basePlayer,
+        career: INITIAL_CAREER,
+        album: emptyAlbum(),
+        trades: 0,
+      });
+      // Siege Mentality applied to this finished run: the delta it grants is the goals
+      // conceded, and a shootout must never have contributed to it.
+      const siege = (chooseBoon({ ...run, phase: 'boon', offer: [] }, 'siege-mentality').next.effects ?? [])
+        .filter((e) => e.source === 'siege-mentality');
+      const conceded = siege.length ? siege[0].delta : 0;
+
+      const sum = (f: (m: RunMatch) => number) => matches.reduce((n, m) => n + f(m), 0);
+      if (
+        matches.length !== wantCount ||
+        sum((m) => m.us) !== wantFor ||
+        sum((m) => m.them) !== wantAgainst ||
+        matches.filter((m) => m.ko && m.won).length !== wantWon ||
+        // Every knockout entry carries how it was decided and no group entry does, which is
+        // what `viewOf`'s predicates read.
+        matches.some((m) => m.ko !== (m.decided !== undefined)) ||
+        // The three consumers.
+        totals.goalsFor !== wantFor ||
+        totals.goalsAgainst !== wantAgainst ||
+        totals.roundsWon !== wantWon ||
+        view.goalsFor !== wantFor ||
+        view.goalsAgainst !== wantAgainst ||
+        view.cleanSheets !== matches.filter((m) => m.them === 0).length ||
+        conceded !== wantAgainst
+      ) {
+        agree = false;
+      }
+    }
+    check(
+      "run: one reading of a run's matches feeds the archive, Siege Mentality and the catalogue",
+      () => agree && sawGroupExit && sawCup && sawShootout && goals > 0,
+      () =>
+        !agree
+          ? "runMatches disagrees with the harness's own reading of history"
+          : `vacuous sample: group exit ${sawGroupExit}, cup ${sawCup}, shootout ${sawShootout}, goals ${goals}`,
+    );
+  }
 }

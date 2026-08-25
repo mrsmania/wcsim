@@ -3,14 +3,14 @@ import { categoryOf, primaryPosition } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID, SQUADS } from '../data/squads';
 import { CONFEDERATION } from '../data/confederations';
 import { FEATURES, INITIAL_SWAPS } from '../config';
-import type { GroupRecord, KoRecord, RunOutcome, RunState } from './run';
+import { runMatches, type GroupRecord, type KoRecord, type RunMatch, type RunOutcome, type RunState } from './run';
 import type { CareerState } from './career';
 import { MAX_ASCENSION } from './ascension';
 import { MAX_BONUS } from './chemistry';
 import { boonById, RARITIES, type Rarity } from './boons';
 import { HIGH_ASCENSION, PERKS } from './career';
 import { collectiblePlayers, tierOf, type AlbumState } from './album';
-import { KO_DECIDED, type KoDecided } from './knockout';
+import { KO_DECIDED } from './knockout';
 
 // ---------------------------------------------------------------------------
 // Challenges - permanent honours over a finished Cup Run. Pure predicates: no
@@ -124,13 +124,9 @@ export interface BuySummary {
 }
 
 /** One match of the run from the user's perspective. `ko` false = a group match. */
-export interface RunMatch {
-  us: number;
-  them: number;
-  ko: boolean;
-  decided?: KoDecided;
-  won: boolean;
-}
+/** Re-exported so the catalogue's own consumers keep one import. The type lives in
+ *  `domain/run.ts` beside `runMatches`, which is the only thing that builds one. */
+export type { RunMatch };
 
 /** The context plus everything derived from it once, so the predicates stay one
  *  line each and nothing is recomputed 130 times. */
@@ -229,14 +225,7 @@ export function viewOf(ctx: ChallengeCtx): RunView {
   // as their own variants and every read below is a field the record actually has.
   const ko = run.history.filter((r): r is KoRecord => r.stage !== 'group');
   const group = run.history.find((r): r is GroupRecord => r.stage === 'group');
-  const matches: RunMatch[] = [
-    ...(group?.groupResults ?? []).map((g) => ({
-      us: g.us, them: g.them, ko: false, won: g.us > g.them,
-    })),
-    ...ko.map((r) => ({
-      us: r.userGoals, them: r.oppGoals, ko: true, decided: r.decided, won: r.won,
-    })),
-  ];
+  const matches = runMatches(run);
   const sum = (f: (m: RunMatch) => number) => matches.reduce((n, m) => n + f(m), 0);
   return {
     ...ctx,

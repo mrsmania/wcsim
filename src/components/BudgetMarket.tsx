@@ -124,7 +124,6 @@ export default function BudgetMarket({
   // selections are real deps, since each dropdown is narrowed by the other one.
   const facets = useMemo(
     () => marketFacets(candidates, { filterYear, filterCode }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [position, byPosition, filterYear, filterCode],
   );
 
@@ -167,7 +166,8 @@ export default function BudgetMarket({
             price,
           })
         : { rows: [], hiddenByPrice: 0 },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Same reasoning as `facets` above: keyed on [position, byPosition] rather than on
+    // the `candidates` they derive, which is a fresh array every render.
     [
       position,
       byPosition,

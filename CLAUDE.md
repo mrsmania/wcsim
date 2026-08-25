@@ -63,15 +63,16 @@ executed as written.** The old numbering is preserved so references here still r
 findings start at H106. Its "item 27 owns these" list is gone - that item shipped and its
 losing chrome was deleted, so all five things it named are settled.
 
-**Waves 1 to 6 are done** (2026-08-24/25), and so are all sixteen decisions. What that
-means for anyone picking the backlog up at wave 7:
+**ALL SEVEN WAVES ARE DONE** (2026-08-24/25), and so are all sixteen decisions. Item 23 is
+closed and sits in the roadmap's shipped history; the audit stays as the record of what was
+done and why. What that means for anyone working in this tree now:
 
 - **The gate is repaired and it now runs in CI.** The audit opened on the finding that
   `npm run checks` failed at random about one run in twelve, and that the `prime-years`
   check was **vacuous** - proved by reintroducing the sticker exploit it exists to catch
   and still getting 132 passed / 0 failed. Both are fixed (H106-H109), `npm run checks`
-  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **150
-  checks**. Five of the new ones assert that a number and the sentence promising it agree
+  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **177
+  checks**. Five of them assert that a number and the sentence promising it agree
   (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette, H65 the perk
   shop's advice, H146 the market's budget lookup), and one asserts a shape guard in both
   directions (H70/H73's `isRoundRecord`).
@@ -117,7 +118,9 @@ means for anyone picking the backlog up at wave 7:
   `homeViewOf`), `domain/album.ts` (`cupRewardPool`, `swapEligibleIds`, `swapTargetSlots`),
   `domain/career.ts` (`budgetOf`, `startRunCareer`, `perkPurchaseState`, `boonUnlockState`),
   `domain/match.ts` (`lineAverages`, which is NOT `xiStrength` - its docstring says why),
-  `domain/run.ts` (`runShapeOf`, `runBuildOf`, and `Reveal`), `domain/tournament.ts`
+  `domain/run.ts` (`runShapeOf`, `runBuildOf`, `Reveal`, and `runMatches` - the ONE reading
+  of a run's own history, which the career's archive, Siege Mentality and the challenge
+  catalogue all sum), `domain/tournament.ts`
   (`playWholeGroup`, `splitGroup`), `domain/clock.ts` (`maxMinute`), plus `hooks/useToast`
   and `hooks/useRoundReview`.
 - **A token migration has a cheap and near-total proof, and it is worth using.** Tailwind
@@ -164,6 +167,48 @@ means for anyone picking the backlog up at wave 7:
   the base path and push the route instead. Every wave-6 item was verified by driving the
   real app against the pre-change build served side by side; the scratch harnesses are
   disposable, but that method is the one worth repeating.
+- **The checks harness is a 76-line index over `scripts/checks/`** (one module per concern
+  plus `harness.ts`), not one file. Three conventions came with the split and each one used
+  to be an accident of file position: `check(name, ok, detail?)` takes **thunks** and
+  reports a throw against the check that caused it (before this, one exception aborted the
+  run and every later block silently never executed); seeding is `withSeed(seed, fn)`, a
+  lexical wrapper that restores the real generator in a `finally`, rather than a block that
+  had to stay contiguous; and the shared runs and dataset fixtures are named
+  (`FIXTURE.home` / `.away` / `.third`, pinned by **id**, as getters so a fixture that
+  leaves the dataset fails inside its concern instead of at import). `checks/meta.ts`
+  asserts the index names every module, because a module that is not wired in contributes
+  zero assertions and says nothing about it. Add a concern as a module, not a block.
+- **A new check needs a vacuity guard, and it is not optional.** The audit's first finding
+  was a check that had been guarding a known exploit and was guarding nothing, and two more
+  that could pass on zero observations. So: assert the sample is non-empty, and if the check
+  greps for something, fail when it finds nothing rather than passing. Every check added
+  during the audit carries one, and each was **mutation-tested** - break the thing it
+  guards, confirm it goes red, put it back.
+- **A check for a shared helper cannot be a comparison between the things now sharing it.**
+  When `runMatches` folded three readings of a run's history into one, comparing the three
+  afterwards became tautological. The harness keeps its own independent walk instead. Same
+  shape for any future DRY change: the proof has to sit outside the thing being shared.
+- **`tsconfig` is a solution file with two projects** (`tsconfig.app.json` for `src`,
+  `tsconfig.node.json` for the config and the scripts), and `npm run build` / `typecheck`
+  run `tsc -b`. The trap that made the first attempt a no-op: **an absent `"types"` field is
+  not empty, it auto-includes every `@types/*` in the tree**, so browser code still had
+  Node's globals. Naming the list then surfaced a real error it had been hiding -
+  `domain/challenges.ts` uses ES2022 `Array.prototype.at` against a declared ES2020 `lib`,
+  which only compiled because `@types/node` was supplying it.
+- **The base path is `VITE_BASE`**, read in `vite.config.ts`, defaulting to `/wcsim/` for a
+  build and `/` in dev. `npm run build -- --base=/` does NOT work and never did: the flag
+  lands on the last command in the `&&` chain, which ignores it and exits 0, so it produced
+  a wrong artifact cheerfully. The Docker image passes `ARG VITE_BASE=/` because nginx serves
+  from the root.
+- **`supabase/migrations/README.md` is the index of which migration holds each function's
+  live definition**, and `npm run checks` asserts it cannot drift. Migrations are
+  append-only and applied by hand, so a function that changed four times exists four times
+  on disk and only the last one is live; every superseded body carries a forward pointer.
+  Note a **dropped** function's live answer is the drop, not its last definition.
+- **The house rules are checked now, not just written down.** "No em-dashes" had been in
+  this file since the start and there were 19 of them in two design docs; one assertion
+  sweeps 194 source, script, SQL, markdown and root files. (The HTML docs are out of scope:
+  they use the `&mdash;` entity as a heading separator.)
 
 ## What this is
 
@@ -251,10 +296,11 @@ and the brutalist `tifo/` set (the hard-shadow idea came from there).
 ```bash
 npm install
 npm run dev        # Vite dev server (http://localhost:5173, bumps to 5174 if busy)
-npm run build      # tsc --noEmit && vite build -> dist/   (run this to verify changes)
-npm run typecheck  # tsc --noEmit
+npm run build      # tsc -b && vite build -> dist/   (run this to verify changes)
+npm run typecheck  # tsc -b   (both projects: src, and the config + scripts)
 npm run preview    # serve the production build
-npm run checks     # run domain characterization checks (scripts/checks.ts)
+npm run checks     # run the characterization checks (scripts/checks.ts + scripts/checks/)
+VITE_BASE=/ npm run build      # build for a host serving from the root, e.g. the Docker image
 npm run gen:collectibles   # regenerate supabase/seed/collectibles.sql from the dataset
 npm run push:collectibles  # send that seed to the account server (needs dkr/.env, LAN/VPN;
                            #   prefix NODE_OPTIONS=--use-system-ca if it says "fetch failed"
@@ -276,11 +322,16 @@ the two disagree. See "Accounts" below.
 
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
-harness at `scripts/checks.ts`, run via `npm run checks`: it exercises the sim,
-penalty shootout, knockout bracket, standings, and chemistry thousands of times and
-asserts invariants (a shootout always has a winner, a bracket always crowns one
-champion, standings totals reconcile, chemistry sums to its capped bonus, etc.),
-exiting non-zero on any violation. Run it after touching anything in `domain/`. For
+harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
+per concern in `scripts/checks/`, currently **177 checks**. It exercises the sim, penalty
+shootout, knockout bracket, standings, and chemistry thousands of times and asserts
+invariants (a shootout always has a winner, a bracket always crowns one champion,
+standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
+any violation. It also asserts things outside `domain/`: the generated collectible seed
+against the dataset, the boot cover's palette literals against their tokens, the migrations
+index, and the house no-em-dashes rule. Run it after touching anything in `domain/` or
+`scripts/`, and read the conventions note at the top of this file before adding a check -
+in particular that every new one needs a vacuity guard and is worth mutation-testing. For
 one-off logic probes you can still bundle a throwaway script with the bundled esbuild
 and run it in node, e.g.
 `npx esbuild --bundle --format=esm --platform=node tmp_x.ts | node --input-type=module`
@@ -354,7 +405,8 @@ src/
                trophyCabinet;
                plus `accounts`, which is DERIVED from the build env, see below) +
                STICKER_TIERS / STICKER_TRADE_COST / STICKER_DISCOUNT +
-               BUDGET_BY_TIER (BUDGET_DRAFT is checks-only now)
+               BUDGET_BY_TIER (BUDGET_DRAFT is checks-only now) + BANK_CAP (how many
+               stickers one run may bank; the server states it too, see below)
   App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
                branches its screen by the URL (react-router)
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
@@ -1437,7 +1489,7 @@ whole lever untested. It was also a STARTER: see the pool-margin note above.
 | Card | Lever | The point |
 | --- | --- | --- |
 | **Away Days** / **Man-Marking** | the OPPONENT | -5 to their defence / -5 to their attack. A pair on purpose: which you want depends on whether this tie is one you expect to win by scoring or by holding out. Applied to the opponent OBJECT, not at simulation time, so the "next up" line, the bracket seed and the round record all show the numbers the tie is actually played on - a debuff the sim sees and the screen does not is a lie. "This tie only" comes free: `facedIds` means a team is played once. `overall` moves by the share of the XI touched (attack averages ~6 players, defence ~5), never by the raw delta. |
-| **Double Print** | the album | A cup win picks **two** stickers. `finish_run` takes one `cupPickId`, so the second rides along in `collectibleIds` - the path `remoteStore` already uses when the server refuses a duplicate pick. The server caps a run at **12** ids and rolls the whole bank back over it (the blocking unreachable screen for an account), so `useStickerAlbum` trims surplus picks under `BANK_CAP`. Eleven collectibles in one XI is out of reach, so that trim is a backstop, not a behaviour. The picker counts "Pick 1 of 2" and drops what was already taken, or a second pick could repeat the first. |
+| **Double Print** | the album | A cup win picks **two** stickers. `finish_run` takes one `cupPickId`, so the second rides along in `collectibleIds` - the path `remoteStore` already uses when the server refuses a duplicate pick. The server caps a run at `BANK_CAP` ids and rolls the whole bank back over it (the blocking unreachable screen for an account), so `useStickerAlbum` trims surplus picks under it. That constant lives in `config.ts`, and it is the **one economy number the server states independently** rather than reading from the generated seed the way the trade costs and the swap cap do: `npm run checks` holds every copy of it in `supabase/migrations/` to the client's figure, and teaching `finish_run` to read it needs a migration that is queued as a roadmap item. Eleven collectibles in one XI is out of reach, so that trim is a backstop, not a behaviour. The picker counts "Pick 1 of 2" and drops what was already taken, or a second pick could repeat the first. |
 
 ### Four more (2026-08-22): the dataset, the run, the career, and a question
 

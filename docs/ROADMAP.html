@@ -351,6 +351,47 @@
 
 <details class="item">
   <summary>
+    <span class="num">37</span>
+    <span class="title">Migration: let the server read the bank cap instead of stating it
+      <span class="sub">QUEUED 2026-08-25. One migration, not yet written, that finishes the last economy constant the client and the server each state independently. Not urgent and not risky: the two agree today and a check now holds them together. It needs a session that can reach the NAS.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What this is.</strong> How many stickers one finished run may bank is a number
+    both sides of the network have to agree on. The client trims to it; the server refuses
+    anything over it, and that refusal throws the whole run's stickers away, which for a
+    signed-in player is the blocking "cannot reach the server" screen. So a disagreement
+    between the two costs someone a run they actually played.</p>
+
+    <p><strong>Why it is queued rather than done.</strong> The trade prices and the swap limit
+    already work the right way: they are written once on the client and sent to the server as
+    data, so they cannot drift. This one number never got that treatment - it is typed out on
+    the client and again inside the server's own code. Making it work like its neighbours means
+    changing the server, and the server is updated by hand from a machine on the home network,
+    which a cloud session cannot reach. Hence the handover, per the standing rule.</p>
+
+    <p><strong>What was done instead, so nothing is at risk in the meantime</strong>
+    (2026-08-25, hygiene H135). The number moved to the one file that holds the game's other
+    economy constants, and <code>npm run checks</code> now fails if the client's figure and
+    <b>any</b> copy of it on the server side disagree - including one a future change brings
+    with it. The check also fails if it can no longer find the server's copy at all, so it
+    cannot quietly stop looking. Both of those were tested by deliberately breaking them.</p>
+
+    <p><strong>For whoever picks this up.</strong> The work is: emit the number alongside the
+    trade prices and the swap limit in the generated seed, write a migration that has the
+    run-banking function read it from there with the current value as a fallback, then follow
+    the apply routine that item <b>35</b> in the shipped history documents (dry run first,
+    rehearse inside a transaction that rolls back, verify, then apply for real). Remove the
+    interim check's reason for existing only once the server genuinely reads the constant; until
+    then it is the only thing holding the two numbers together.</p>
+    <p class="files"><a class="dl" href="../src/config.ts" target="_blank" rel="noopener">src/config.ts</a>, <a class="dl" href="../scripts/gen-collectibles.ts" target="_blank" rel="noopener">scripts/gen-collectibles.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../scripts/checks/state.ts" target="_blank" rel="noopener">scripts/checks/state.ts</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
       <span class="sub">Extend the dataset backwards: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b>, <b>1974</b> and <b>1970</b> all shipped 2026-08-25. Fourteen tournaments, 8,377 rows, 368 squads. Next: 1966, then 1962 and earlier.</span>
@@ -586,184 +627,7 @@
   </div>
 </details>
 
-<details class="item">
-  <summary>
-    <span class="num">23</span>
-    <span class="title">Hygiene: dead code and refactorings
-      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. RE-AUDITED 2026-08-24: 158 items in seven waves. WAVES 1 TO 6 AND ALL SIXTEEN DECISIONS ARE DONE (2026-08-24/25); the gate is repaired and now runs in CI, at 150 checks. Next up: wave 7, the harness, CI and tooling items - partly shipped already.</span>
-    </span>
-    <span class="tag">Structure</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The ask (2026-08-20):</strong> review the whole codebase for dead code and
-    refactorings, and produce a todo list another team can implement. The <b>one rule</b> is that
-    the app that comes out plays exactly like the app that went in.</p>
 
-    <p><strong>The backlog is <a class="dl" href="hygiene-audit.html" target="_blank" rel="noopener"><code>docs/hygiene-audit.html</code></a></strong>, which is the
-    deliverable: <b>158 numbered items (H1-H158)</b> in seven waves, each naming the files, the fix,
-    whether it is behaviour-preserving, effort and risk, plus <b>sixteen decisions</b> that need an
-    owner, an explicit list of what not to touch, and a section of measured negative results. It was
-    produced from six independent parallel reviews of the tree (dead weight, DRY, SoC/layering,
-    KISS/YAGNI, type model and naming, tooling/SQL/assets), merged, with the load-bearing claims
-    re-verified by hand.</p>
-
-    <p><strong>Re-audited 2026-08-24, and this is why it was worth redoing.</strong> The first pass
-    was written on 2026-08-20 against <code>5a22fca</code> and never executed. Fifty commits landed
-    in between (items 27, 28, 29, 31, 32), moving 5,262 lines and deleting 2,160 in
-    <code>src/</code>. Reconciled item by item, the old list came out: <b>73 stand, 24 shrunk, 7
-    void, 1 already done</b> by deletion - and a dozen published counts were wrong, several by a
-    lot (the harness is 2,846 lines in 46 blocks, not 1,275 in 26; one copy-pasted test loop appears
-    12 times, not 5; the CI gap covers 132 invariants, not 59). Two of the void items would now
-    <b>break the build</b> if executed as written, because code added since gave both "dead"
-    symbols a real consumer. The old numbering is preserved so existing references still resolve;
-    new findings start at H106.</p>
-
-    <p><strong>The gate itself turned out to be holed, which reorders the whole backlog.</strong>
-    <code>npm run checks</code> <b>fails at random again</b>, about one run in twelve (observed 2
-    failures in 11 consecutive runs on clean <code>main</code>): a check on the Extra Choice perk
-    plays a real group stage and then reads a boost offer that only exists if the user qualified, so
-    it reads 0 against an expected 4 or 5. Measured at 4.4% and 3.7% per tier over 2,000 runs each.
-    That is the third instance of the bug class <b>item 31</b> closed on 2026-08-23 with "0 failures
-    in 3000 runs". Worse, the <code>prime-years</code> check is <b>vacuous</b>: it samples a squad
-    that yields no upgrades (one of 60 of 272), so the loop asserting "every arrival is tagged" runs
-    zero times - proved by reintroducing the exact sticker exploit it exists to catch, after which
-    the suite still reported 132 passed, 0 failed. Two more checks can pass on zero observations.
-    So H91 (checks into CI) is no longer the first move: putting an 8%-flaky suite into CI trains
-    everyone to re-run it. Repair the gate first (H106-H108), then H91.</p>
-
-    <p><strong>Unblocked 2026-08-21.</strong> This waited on item 27, which moved the same code:
-    <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s route branch, the mode fact derived twice, the reset target, the two
-    nav cards in the build page's left column, and the career hub splitting off the run screen.
-    That has now shipped <i>and</i> had its losing half deleted, which is what the block was
-    really waiting for - so those five are settled rather than pending, and several of them are
-    settled by deletion (<code>modeOfPath</code>, the footer nav and the two nav cards are gone;
-    there is one build route and one reset target). <b>Re-read the audit's off-limits section
-    before starting:</b> it was written against the old tree and its "item 27 owns these" list is
-    now history rather than a warning.</p>
-
-    <p><strong>It also carries what item 22 left behind.</strong> Item 22 was dropped on
-    2026-08-20 as framed around the wrong question, and its navigational half is item 27's now.
-    What it also held was a set of verified findings that are now nobody's: the two tournament
-    engines and their duplicated round shell, the <b>two chemistry definitions</b>
-    (<code>teamChemistry</code> scores by the slot each player fills, <code>chemistryOf</code> by
-    natural role, so the same XI gets two answers), the run-end sticker trigger order, the
-    difficulty-resets-the-album rule, and whether a non-career run pays anything at all. The
-    audit's off-limits section now lists these as <b>unowned</b> rather than as item 22's, because
-    none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
-    not forgotten.</p>
-
-    <p><b>Executed 2026-08-24/25: the gate repair, waves 1 to 5, and all sixteen decisions.</b>
-    The gate came first, as the re-audit said it had to: the flake and the two checks that could
-    pass on zero observations are fixed, <code>npm run checks</code> runs in CI before the build,
-    and the suite is at <b>137</b> - three of the additions assert that a number and the sentence
-    promising it agree, which is the shape of bug this codebase keeps producing. Then wave 1 (the
-    free deletions plus the truth sweep), wave 2 (the constants), and wave 3 (the tokens and shared
-    atoms). Two of the decisions came out as SQL that this environment cannot apply, so they are
-    queued as item 35 rather than done. Three things worth carrying into wave 4: a token migration
-    can be proved almost completely by the built stylesheet being byte-identical, which is cheap
-    enough to do every time; taking a wave in the audit's own order matters, because it put the
-    item that fails silently first; and two decisions had to be asked twice purely because they
-    were first put in terms of the code rather than in terms of what a player sees.</p>
-
-    <p><b>Wave 4 (put the logic where it belongs) went the same day.</b> Twelve of the original
-    items plus all seven new ones, and it produced two new pure modules - the transfer market's
-    queries and the squad archive's - plus two hooks lifted out of the Cup Run screen. Two of its
-    items exist purely so the checks harness can reach a rule that was hiding in a component, and
-    both are now asserted: the perk shop's advice must agree with what buying actually does, and
-    the transfer market's budget lookup and the "a banked boost is dealt once" invariant are
-    finally testable. The byte-identical-stylesheet trick does not help in a wave that moves logic
-    rather than classes, so every extraction was compared against the expression it replaced over
-    the real dataset instead - tens of thousands of cases, counts recorded per commit.
-    <b>Wave 5 (the type model) went the same day.</b> Its headline item made the run's round
-    records a real two-variant type instead of one shape with fourteen optional fields, which
-    surfaced 53 places reading a value they had not established was there - and deleted about
-    forty defensive fallbacks that could never fire. Three more types of the same kind followed.
-    The rest was making the game's fixed catalogues (the squads, the boost list, the challenge
-    catalogue, the perk shop) actually unmodifiable, and giving the saved-data format one stated
-    versioning rule instead of four unstated ones. It also found that the test harness had been
-    building run records the game cannot produce, so a check could pass against a shape that
-    never occurs; those are proper builders now.
-    <b>Wave 6 (the structural extractions) went the same day, in ten commits</b>, and it is the
-    wave that was exercised by hand from start to finish - it holds the only items that can break
-    the game in a way neither the compiler nor the checks would catch. The composition root went
-    from 1,129 lines to 849 and the run screen from 907 to 626, by moving out things that were
-    never composition: the roll draft's scramble and its "draw the next squad" policy, the transfer
-    market's held card, the move-a-player gesture, the mobile scroll dance, the route table, the
-    front page's two Continue offers, the masthead, the build page's layout, the career, and the
-    run screen's three big branches. Everything that talks to browser storage now does so in one
-    place, and every storage key is owned by one module instead of being re-typed in a second list
-    that could silently drift.
-    <b>It also fixed one real bug and declined one item.</b> The bug: un-tick the tournament a held
-    transfer-market card comes from and the market stopped offering him while the board stayed
-    highlighted - a tap would still have bought him. The declined item wanted five screens to read
-    the squad pool from storage instead of being handed it; that trades an explicit dependency for
-    an implicit one, against the item's own warning about silent staleness, so it is recorded as a
-    negative result with the reasoning.
-    <b>Three things to carry forward:</b> the career's state is owned in one place now but the RUN's
-    deliberately is not, because the account path depends on the run being saved by a child's effect
-    and moving it up would let a run bank twice on a reload; every browser check in this wave was
-    run against the previous build side by side, which is what turned "this looks the same" into
-    evidence; and Playwright's own locator API hangs on this app, so the checks drive the page
-    through plain DOM clicks instead.
-    <b>Next up: wave 7, the harness, CI and tooling items</b>, of which several already shipped out
-    of order because the gate had to be repaired first.</p>
-
-    <p><strong>The waves</strong>, in execution order:</p>
-    <ol>
-      <li><b><s>Free deletions and truth fixes</s></b> (H1-H35). <b>DONE.</b> Genuinely dead exports and props,
-      complexity with nothing on the other side of the trade, repo weight, and eleven comments or
-      doc claims that are no longer true. No decisions, no behaviour change.</li>
-      <li><b><s>Name the constants, share the one-liners</s></b> (H36-H48). <b>DONE.</b> Highest payoff per minute:
-      each item removes a fact currently written down twice.</li>
-      <li><b><s>Design tokens and shared UI atoms</s></b> (H49-H54, plus H19, H46, H47 and H132-H140). <b>DONE.</b> The palette and caption constants
-      already exist in <a class="dl" href="../src/index.css" target="_blank" rel="noopener"><code>index.css</code></a> and <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/matchUi.tsx" target="_blank" rel="noopener"><code>matchUi.tsx</code></a> and are bypassed by
-      inline copies.</li>
-      <li><b><s>Put the logic where it belongs</s></b> (H55-H68, plus H124 and H141-H147). <b>DONE.</b> Pure computations that ended up in
-      leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
-      rules, budget spend computed three times, the kickoff records built in <code>App</code>.</li>
-      <li><b><s>The type model</s></b> (H69-H78, plus H148-H155). <b>DONE.</b> Chiefly <code>RoundRecord</code> as a real
-      discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
-      and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
-      <li><b><s>Structural extractions</s></b> (H79-H90). <b>DONE.</b> The risky ones, one per commit:
-      <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s 15 jobs into hooks and screens, and
-      <code>CupRunScreen</code> handing back the career's persistence.</li>
-      <li><b>Harness, CI and tooling</b> (H91-H105). Partly done out of order, because the gate had to be repaired before anything could be trusted: H91, H99, H106-H110 have shipped.</li>
-    </ol>
-
-    <p><strong>Two findings worth knowing before reading the rest.</strong> Both are in wave 7 and
-    both are the reason to start there rather than with the code:</p>
-    <ul>
-      <li><b><code>npm run checks</code> never runs in CI.</b> The workflow runs
-      <code>npm ci</code> and <code>npm run build</code>, nothing else, so the 59 invariants
-      <i>and</i> the collectible-seed staleness guard gate nothing automatically. Since there is no
-      unit-test runner, that harness plus the build is the whole safety net for this backlog, and
-      it currently depends on the author remembering.</li>
-      <li><b>The documented "serve it at another path" recipe silently produces a wrong
-      artifact.</b> <code>npm run build -- --base=/</code> appends the argument to the last command
-      in the <code>&amp;&amp;</code> chain, so it reaches <a class="dl" href="../scripts/copy-404.mjs" target="_blank" rel="noopener"><code>copy-404.mjs</code></a>, which ignores
-      unknown argv and exits 0. Verified empirically. The Docker option in the README is wrong for
-      the same reason.</li>
-    </ul>
-
-    <p><strong>What the audit did not find</strong>, recorded so the next pass can skip it: no dead
-    CSS (all 40 custom classes and 13 tokens used), no unused dependency, no dead
-    <a class="dl" href="../src/config.ts" target="_blank" rel="noopener"><code>config.ts</code></a> entry, no unreferenced module in <code>src/</code>, no unread component
-    prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
-    three directions, migrations and client in sync, and zero <code>any</code>.</p>
-
-    <p class="next"><strong>Next step:</strong> take wave 7's H91 first
-    (checks into CI, one line) so the gate is real, then waves 1 to 3 as one pass each. Waves 4 to
-    6 want the decisions in the audit's Decisions table answered first, in particular which
-    <code>FEATURES</code> flags retire. That table also holds <b>D12</b>, the four dead
-    <code>run_results</code> columns, merged in from item 21 on 2026-08-20: the table itself must
-    <em>not</em> be dropped (its unique <code>(user_id, run_key)</code> is what rejects a double
-    submit before a sticker moves, and <code>import_guest_progress</code> reads it to decide
-    whether an account is empty), only the four columns are dead weight, and reviving them would
-    cost a <code>finish_run_v3</code> and only ever cover runs from the change onward.</p>
-    <p class="files"><a class="dl" href="hygiene-audit.html" target="_blank" rel="noopener">docs/hygiene-audit.html</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener">src/App.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/CupRunScreen.tsx" target="_blank" rel="noopener">src/components/CupRunScreen.tsx</a>, <a class="dl" href="../src/domain/" target="_blank" rel="noopener">src/domain/</a>, <a class="dl" href="../src/state/" target="_blank" rel="noopener">src/state/</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a>, <a class="dl" href="../.github/workflows/deploy.yml" target="_blank" rel="noopener">.github/workflows/deploy.yml</a></p>
-  </div>
-</details>
 
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
@@ -1091,12 +955,196 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
     <h3>Closed 2026-08-25</h3>
-    <p>All three kept in full because in each case the method is the deliverable. <b>33</b> is
+    <p>All four kept in full because in each case the method is the deliverable. <b>23</b> is the
+    hygiene backlog, closed complete: what a behaviour-preserving change has to prove before it can
+    be believed, wave by wave, and the gate that had to be repaired before any of it could be. <b>33</b> is
     the source route the next tournament should use, and the reason to distrust "that site is
     blocked". <b>35</b> is how to apply a migration you did not write and prove it worked, and
     the one that nearly went in wrong is the worked example. <b>36</b> is what a filter row
     costs once you measure it, plus two UI mechanisms that will recur: a ring inside a scroll
     container, and a facet that collapses under cross-filtering.</p>
+
+<details class="item">
+  <summary>
+    <span class="num">23</span>
+    <span class="title">Hygiene: dead code and refactorings
+      <span class="sub">A worked, wave-by-wave backlog against DRY, KISS, SoC and YAGNI. No change in functionality, just cleaner code. <b>CLOSED 2026-08-25: all seven waves executed, all sixteen decisions answered, and every one of the 158 items either done or recorded as void.</b> The gate was the first thing repaired and the last thing improved: it used to fail at random about one run in twelve and two of its checks could pass on nothing, and it now runs in CI at 177 checks.</span>
+    </span>
+    <span class="tag">Structure</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The ask (2026-08-20):</strong> review the whole codebase for dead code and
+    refactorings, and produce a todo list another team can implement. The <b>one rule</b> is that
+    the app that comes out plays exactly like the app that went in.</p>
+
+    <p><strong>The backlog is <a class="dl" href="hygiene-audit.html" target="_blank" rel="noopener"><code>docs/hygiene-audit.html</code></a></strong>, which is the
+    deliverable: <b>158 numbered items (H1-H158)</b> in seven waves, each naming the files, the fix,
+    whether it is behaviour-preserving, effort and risk, plus <b>sixteen decisions</b> that need an
+    owner, an explicit list of what not to touch, and a section of measured negative results. It was
+    produced from six independent parallel reviews of the tree (dead weight, DRY, SoC/layering,
+    KISS/YAGNI, type model and naming, tooling/SQL/assets), merged, with the load-bearing claims
+    re-verified by hand.</p>
+
+    <p><strong>Re-audited 2026-08-24, and this is why it was worth redoing.</strong> The first pass
+    was written on 2026-08-20 against <code>5a22fca</code> and never executed. Fifty commits landed
+    in between (items 27, 28, 29, 31, 32), moving 5,262 lines and deleting 2,160 in
+    <code>src/</code>. Reconciled item by item, the old list came out: <b>73 stand, 24 shrunk, 7
+    void, 1 already done</b> by deletion - and a dozen published counts were wrong, several by a
+    lot (the harness is 2,846 lines in 46 blocks, not 1,275 in 26; one copy-pasted test loop appears
+    12 times, not 5; the CI gap covers 132 invariants, not 59). Two of the void items would now
+    <b>break the build</b> if executed as written, because code added since gave both "dead"
+    symbols a real consumer. The old numbering is preserved so existing references still resolve;
+    new findings start at H106.</p>
+
+    <p><strong>The gate itself turned out to be holed, which reorders the whole backlog.</strong>
+    <code>npm run checks</code> <b>fails at random again</b>, about one run in twelve (observed 2
+    failures in 11 consecutive runs on clean <code>main</code>): a check on the Extra Choice perk
+    plays a real group stage and then reads a boost offer that only exists if the user qualified, so
+    it reads 0 against an expected 4 or 5. Measured at 4.4% and 3.7% per tier over 2,000 runs each.
+    That is the third instance of the bug class <b>item 31</b> closed on 2026-08-23 with "0 failures
+    in 3000 runs". Worse, the <code>prime-years</code> check is <b>vacuous</b>: it samples a squad
+    that yields no upgrades (one of 60 of 272), so the loop asserting "every arrival is tagged" runs
+    zero times - proved by reintroducing the exact sticker exploit it exists to catch, after which
+    the suite still reported 132 passed, 0 failed. Two more checks can pass on zero observations.
+    So H91 (checks into CI) is no longer the first move: putting an 8%-flaky suite into CI trains
+    everyone to re-run it. Repair the gate first (H106-H108), then H91.</p>
+
+    <p><strong>Unblocked 2026-08-21.</strong> This waited on item 27, which moved the same code:
+    <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s route branch, the mode fact derived twice, the reset target, the two
+    nav cards in the build page's left column, and the career hub splitting off the run screen.
+    That has now shipped <i>and</i> had its losing half deleted, which is what the block was
+    really waiting for - so those five are settled rather than pending, and several of them are
+    settled by deletion (<code>modeOfPath</code>, the footer nav and the two nav cards are gone;
+    there is one build route and one reset target). <b>Re-read the audit's off-limits section
+    before starting:</b> it was written against the old tree and its "item 27 owns these" list is
+    now history rather than a warning.</p>
+
+    <p><strong>It also carries what item 22 left behind.</strong> Item 22 was dropped on
+    2026-08-20 as framed around the wrong question, and its navigational half is item 27's now.
+    What it also held was a set of verified findings that are now nobody's: the two tournament
+    engines and their duplicated round shell, the <b>two chemistry definitions</b>
+    (<code>teamChemistry</code> scores by the slot each player fills, <code>chemistryOf</code> by
+    natural role, so the same XI gets two answers), the run-end sticker trigger order, the
+    difficulty-resets-the-album rule, and whether a non-career run pays anything at all. The
+    audit's off-limits section now lists these as <b>unowned</b> rather than as item 22's, because
+    none of them is behaviour-preserving and so none of them is this backlog's to settle. Parked,
+    not forgotten.</p>
+
+    <p><b>Executed 2026-08-24/25: the gate repair, waves 1 to 5, and all sixteen decisions.</b>
+    The gate came first, as the re-audit said it had to: the flake and the two checks that could
+    pass on zero observations are fixed, <code>npm run checks</code> runs in CI before the build,
+    and the suite is at <b>137</b> - three of the additions assert that a number and the sentence
+    promising it agree, which is the shape of bug this codebase keeps producing. Then wave 1 (the
+    free deletions plus the truth sweep), wave 2 (the constants), and wave 3 (the tokens and shared
+    atoms). Two of the decisions came out as SQL that this environment cannot apply, so they are
+    queued as item 35 rather than done. Three things worth carrying into wave 4: a token migration
+    can be proved almost completely by the built stylesheet being byte-identical, which is cheap
+    enough to do every time; taking a wave in the audit's own order matters, because it put the
+    item that fails silently first; and two decisions had to be asked twice purely because they
+    were first put in terms of the code rather than in terms of what a player sees.</p>
+
+    <p><b>Wave 4 (put the logic where it belongs) went the same day.</b> Twelve of the original
+    items plus all seven new ones, and it produced two new pure modules - the transfer market's
+    queries and the squad archive's - plus two hooks lifted out of the Cup Run screen. Two of its
+    items exist purely so the checks harness can reach a rule that was hiding in a component, and
+    both are now asserted: the perk shop's advice must agree with what buying actually does, and
+    the transfer market's budget lookup and the "a banked boost is dealt once" invariant are
+    finally testable. The byte-identical-stylesheet trick does not help in a wave that moves logic
+    rather than classes, so every extraction was compared against the expression it replaced over
+    the real dataset instead - tens of thousands of cases, counts recorded per commit.
+    <b>Wave 5 (the type model) went the same day.</b> Its headline item made the run's round
+    records a real two-variant type instead of one shape with fourteen optional fields, which
+    surfaced 53 places reading a value they had not established was there - and deleted about
+    forty defensive fallbacks that could never fire. Three more types of the same kind followed.
+    The rest was making the game's fixed catalogues (the squads, the boost list, the challenge
+    catalogue, the perk shop) actually unmodifiable, and giving the saved-data format one stated
+    versioning rule instead of four unstated ones. It also found that the test harness had been
+    building run records the game cannot produce, so a check could pass against a shape that
+    never occurs; those are proper builders now.
+    <b>Wave 6 (the structural extractions) went the same day, in ten commits</b>, and it is the
+    wave that was exercised by hand from start to finish - it holds the only items that can break
+    the game in a way neither the compiler nor the checks would catch. The composition root went
+    from 1,129 lines to 849 and the run screen from 907 to 626, by moving out things that were
+    never composition: the roll draft's scramble and its "draw the next squad" policy, the transfer
+    market's held card, the move-a-player gesture, the mobile scroll dance, the route table, the
+    front page's two Continue offers, the masthead, the build page's layout, the career, and the
+    run screen's three big branches. Everything that talks to browser storage now does so in one
+    place, and every storage key is owned by one module instead of being re-typed in a second list
+    that could silently drift.
+    <b>It also fixed one real bug and declined one item.</b> The bug: un-tick the tournament a held
+    transfer-market card comes from and the market stopped offering him while the board stayed
+    highlighted - a tap would still have bought him. The declined item wanted five screens to read
+    the squad pool from storage instead of being handed it; that trades an explicit dependency for
+    an implicit one, against the item's own warning about silent staleness, so it is recorded as a
+    negative result with the reasoning.
+    <b>Three things to carry forward:</b> the career's state is owned in one place now but the RUN's
+    deliberately is not, because the account path depends on the run being saved by a child's effect
+    and moving it up would let a run bank twice on a reload; every browser check in this wave was
+    run against the previous build side by side, which is what turned "this looks the same" into
+    evidence; and Playwright's own locator API hangs on this app, so the checks drive the page
+    through plain DOM clicks instead.
+    <b>Next up: wave 7, the harness, CI and tooling items</b>, of which several already shipped out
+    of order because the gate had to be repaired first.</p>
+
+    <p><strong>The waves</strong>, in execution order:</p>
+    <ol>
+      <li><b><s>Free deletions and truth fixes</s></b> (H1-H35). <b>DONE.</b> Genuinely dead exports and props,
+      complexity with nothing on the other side of the trade, repo weight, and eleven comments or
+      doc claims that are no longer true. No decisions, no behaviour change.</li>
+      <li><b><s>Name the constants, share the one-liners</s></b> (H36-H48). <b>DONE.</b> Highest payoff per minute:
+      each item removes a fact currently written down twice.</li>
+      <li><b><s>Design tokens and shared UI atoms</s></b> (H49-H54, plus H19, H46, H47 and H132-H140). <b>DONE.</b> The palette and caption constants
+      already exist in <a class="dl" href="../src/index.css" target="_blank" rel="noopener"><code>index.css</code></a> and <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/matchUi.tsx" target="_blank" rel="noopener"><code>matchUi.tsx</code></a> and are bypassed by
+      inline copies.</li>
+      <li><b><s>Put the logic where it belongs</s></b> (H55-H68, plus H124 and H141-H147). <b>DONE.</b> Pure computations that ended up in
+      leaves: a Hungarian solver and a move search in <code>Pitch</code>, the market's query
+      rules, budget spend computed three times, the kickoff records built in <code>App</code>.</li>
+      <li><b><s>The type model</s></b> (H69-H78, plus H148-H155). <b>DONE.</b> Chiefly <code>RoundRecord</code> as a real
+      discriminated union, which alone deletes 18 unreachable fallbacks and a load-bearing cast,
+      and <code>Filled</code>'s <code>| null</code> arm that nothing writes.</li>
+      <li><b><s>Structural extractions</s></b> (H79-H90). <b>DONE.</b> The risky ones, one per commit:
+      <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener"><code>App.tsx</code></a>'s 15 jobs into hooks and screens, and
+      <code>CupRunScreen</code> handing back the career's persistence.</li>
+      <li><b><s>Harness, CI and tooling</s></b> (H91-H105, plus H106-H115). <b>DONE.</b> Started out of order, because the gate had to be repaired before anything else could be trusted. It split in two: the process half (one build recipe shared by the README, the Docker image and nginx; four script papercuts; an index of which migration holds each function's live definition) and the harness half (the 3,900-line check file becomes an index over eighteen concern modules, the assertion helper catches and names a throw, the seeding and the named fixtures stop being conventions, and browser code stops having Node's globals in scope).</li>
+    </ol>
+
+    <p><strong>Two findings worth knowing before reading the rest.</strong> Both are in wave 7 and
+    both are the reason to start there rather than with the code:</p>
+    <ul>
+      <li><b><code>npm run checks</code> never runs in CI.</b> The workflow runs
+      <code>npm ci</code> and <code>npm run build</code>, nothing else, so the 59 invariants
+      <i>and</i> the collectible-seed staleness guard gate nothing automatically. Since there is no
+      unit-test runner, that harness plus the build is the whole safety net for this backlog, and
+      it currently depends on the author remembering.</li>
+      <li><b>The documented "serve it at another path" recipe silently produces a wrong
+      artifact.</b> <code>npm run build -- --base=/</code> appends the argument to the last command
+      in the <code>&amp;&amp;</code> chain, so it reaches <a class="dl" href="../scripts/copy-404.mjs" target="_blank" rel="noopener"><code>copy-404.mjs</code></a>, which ignores
+      unknown argv and exits 0. Verified empirically. The Docker option in the README is wrong for
+      the same reason.</li>
+    </ul>
+
+    <p><strong>What the audit did not find</strong>, recorded so the next pass can skip it: no dead
+    CSS (all 40 custom classes and 13 tokens used), no unused dependency, no dead
+    <a class="dl" href="../src/config.ts" target="_blank" rel="noopener"><code>config.ts</code></a> entry, no unreferenced module in <code>src/</code>, no unread component
+    prop, all 21 reducer actions dispatched, sticker art exactly in sync with the dataset in all
+    three directions, migrations and client in sync, and zero <code>any</code>.</p>
+
+    <p class="next"><strong>How it finished, and the one thing to copy into the next backlog.</strong>
+    Seven waves in two days, 177 checks from 132, and two real user-facing bugs found along the way
+    that the backlog was not looking for (the transfer market kept a held card the pool no longer
+    offered, and the build page's two scroll gestures ignored the reduced-motion preference). The
+    thing to copy: <b>a closing pass over every row still reading "stands"</b>. Ten of them were left
+    at the end, six already fixed by a later wave and never re-marked, and four genuinely skipped
+    because they read as an early wave's subject while being harder than their neighbours. A stale
+    row and an open row look identical, so the pass has to re-verify each against the tree rather
+    than trust the mark. What deliberately remains outside this item is the audit's own two lists:
+    the real defects under "Found here, but not hygiene", which change behaviour and so each want
+    their own entry, and the "Leave alone" section, which exists so nobody re-derives a decision as
+    a finding.</p>
+    <p class="files"><a class="dl" href="hygiene-audit.html" target="_blank" rel="noopener">docs/hygiene-audit.html</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener">src/App.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/CupRunScreen.tsx" target="_blank" rel="noopener">src/components/CupRunScreen.tsx</a>, <a class="dl" href="../src/domain/" target="_blank" rel="noopener">src/domain/</a>, <a class="dl" href="../src/state/" target="_blank" rel="noopener">src/state/</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a>, <a class="dl" href="../.github/workflows/deploy.yml" target="_blank" rel="noopener">.github/workflows/deploy.yml</a></p>
+  </div>
+</details>
 
 <details class="item">
   <summary>

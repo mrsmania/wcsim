@@ -8,7 +8,7 @@ import {
   type AlbumState,
   type AlbumStatsView,
 } from '../domain/album';
-import { FEATURES, type StickerTier } from '../config';
+import { BANK_CAP, FEATURES, type StickerTier } from '../config';
 import { INITIAL_SWAPS } from '../state/gameReducer';
 import { isSignedIn, store } from '../state/store';
 
@@ -17,10 +17,6 @@ import { isSignedIn, store } from '../state/store';
  *  dead one is only a brief pause. */
 const BANK_WAIT_MS = 4000;
 
-/** How many collectible ids `finish_run` accepts for one run (migration 0010). Exceeding it
- *  raises, and the raise rolls the whole bank back - which for a signed-in player is the
- *  blocking unreachable screen, so the client stays under it rather than finding out. */
-const BANK_CAP = 12;
 
 /** Collectible ids among these players, judged on their DATASET rating (`basePlayer`):
  *  Cup Run boosts hand out modified copies, and a boost must not turn an 89 into a

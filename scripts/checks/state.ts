@@ -6,7 +6,7 @@
 
 import { check } from './harness';
 import { readFileSync, readdirSync } from 'node:fs';
-import { FEATURES } from '../../src/config';
+import { BANK_CAP, FEATURES } from '../../src/config';
 import { ALL_PLAYERS, WORLD_CUP_YEARS } from '../../src/data/squads';
 import { type Filled } from '../../src/domain/draft';
 import { getFormation } from '../../src/domain/formations';
@@ -247,4 +247,33 @@ export function stateChecks(): void {
     );
   }
 
+  // --- The bank cap: the last economy constant stated twice ---------------------
+  // The trade costs and the swap cap reach the server through `economy_constants`, emitted
+  // from `config.ts` by `gen-collectibles`, so they cannot drift. The bank cap does not: the
+  // client trims to `BANK_CAP` and five migrations each carry a bare `> 12` (hygiene H135).
+  // They agree today, and going over it raises, which rolls the whole bank back - for a
+  // signed-in player that is the blocking unreachable screen, so silent drift here costs a
+  // run. Teaching `finish_run` to read the constant needs a migration and is queued; this
+  // holds every cap literal on disk to the client's number in the meantime, including one a
+  // future restatement of the function brings with it.
+  {
+    const dir = 'supabase/migrations';
+    const found: { file: string; n: number }[] = [];
+    for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) {
+      for (const m of readFileSync(`${dir}/${f}`, 'utf8').matchAll(
+        /array_length\(\s*[a-z_]+\s*,\s*1\s*\)\s*>\s*(\d+)/g,
+      )) {
+        found.push({ file: f, n: Number(m[1]) });
+      }
+    }
+    const wrong = found.filter((x) => x.n !== BANK_CAP);
+    check(
+      `economy: all ${found.length} server-side bank caps are config's BANK_CAP (${BANK_CAP})`,
+      () => found.length > 0 && wrong.length === 0,
+      () =>
+        found.length === 0
+          ? 'no cap literal found at all - the pattern moved, so this check is now vacuous'
+          : wrong.map((x) => `${x.file} caps at ${x.n}`).join('; '),
+    );
+  }
 }

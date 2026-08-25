@@ -135,7 +135,6 @@ export function useMatchClock(spec: MatchClockSpec): MatchClockState {
     };
     // Mount-scoped: see the note on the hook. Deliberately not keyed on the spec, which
     // is re-created every render and is read through `specRef` for exactly that reason.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { liveMinute, clockLabel, penShown };

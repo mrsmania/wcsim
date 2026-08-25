@@ -1,10 +1,10 @@
-# Sticker Album — Architecture Design
+# Sticker Album: Architecture Design
 
 **Status:** Shipped (behind `FEATURES.stickerAlbum`). Kept as the design record; where it
 and the code disagree, the code and `CLAUDE.md` win.
 **Source of truth:** `docs/sticker-album-spec.html`
 **Date:** 2026-06-29
-**Reconciled with codebase:** 2026-07-02 — tier counts re-verified against the current
+**Reconciled with codebase:** 2026-07-02. Tier counts re-verified against the current
 dataset (39 Legendary / 12 Iconic / 2 Monumental = 53 at the time, all elo >= 90; the
 1990-2002 research has since taken it to 58 / 18 / 5 = 81, so treat any count in this doc
 as a snapshot and re-derive from `STICKER_TIERS`); code
@@ -22,7 +22,7 @@ pages live at `docs/redesign-2026/turf-flat/sticker-album.html`.
 // src/state/albumStorage.ts (or src/data/types.ts for the type only)
 
 export interface AlbumState {
-  /** Schema version — increment when the shape changes to enable migrations. */
+  /** Schema version: increment when the shape changes to enable migrations. */
   version: 1;
   /** Player IDs that have been collected (one entry per unique player). */
   collected: string[];
@@ -69,7 +69,7 @@ export interface AlbumStats {
 A player is collectible if and only if their `elo` falls within any tier range defined in `STICKER_TIERS`:
 
 ```ts
-// Derived in domain/album.ts — see section 3
+// Derived in domain/album.ts, see section 3
 function isCollectible(player: Player): boolean {
   return tierOf(player) !== null;
 }

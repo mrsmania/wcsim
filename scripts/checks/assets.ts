@@ -241,4 +241,41 @@ export function assetsChecks(): void {
     );
   }
 
+  // --- The house "no em-dashes" rule, enforced rather than written down -------
+  // CLAUDE.md has said it since the project started and the audit found 19 of them in two
+  // design docs anyway (hygiene H115c). The rule is only worth having if something checks
+  // it, and a single character is the cheapest possible check. Scope is what H115 measured:
+  // the source, the scripts, the SQL, the markdown docs and the three files at the root.
+  // The HTML docs are deliberately out - they use the `&mdash;` entity as a heading
+  // separator, which is a typographic choice in a rendered document rather than prose.
+  {
+    const walk = (dir: string, out: string[] = []): string[] => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = `${dir}/${e.name}`;
+        if (e.isDirectory()) walk(p, out);
+        else out.push(p);
+      }
+      return out;
+    };
+    const files = [
+      ...walk('src'),
+      ...walk('scripts'),
+      ...walk('supabase'),
+      ...readdirSync('docs')
+        .filter((f) => f.endsWith('.md'))
+        .map((f) => `docs/${f}`),
+      'README.md',
+      'CLAUDE.md',
+      'index.html',
+    ];
+    // Built from its code point, not typed: a literal here would make this file the first
+    // thing the check finds.
+    const EM_DASH = String.fromCharCode(0x2014);
+    const guilty = files.filter((f) => readFileSync(f, 'utf8').includes(EM_DASH));
+    check(
+      `house style: no em-dashes in any of the ${files.length} source, script, SQL, doc and root files`,
+      () => guilty.length === 0,
+      () => guilty.join(', '),
+    );
+  }
 }

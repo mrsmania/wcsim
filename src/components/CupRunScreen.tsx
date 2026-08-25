@@ -309,7 +309,6 @@ export default function CupRunScreen({
     startAndPlayGroup();
     // startAndPlayGroup closes over state that is settled by the time this can fire; it is
     // deliberately not a dependency, or picking an Ascension would restart the run.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, run, draftedXi]);
 
   // Step the run; award XP/Prestige exactly once when it ends.

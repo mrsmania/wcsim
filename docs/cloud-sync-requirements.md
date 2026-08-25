@@ -1,4 +1,4 @@
-# Cloud Sync & Accounts — Requirements
+# Cloud Sync & Accounts: Requirements
 
 **Status:** Requirements **settled**, and **shipped** as of 2026-08-15 (sign-in, account-backed
 storage, automatic guest import, blocking unreachable state, account deletion). Build order and
@@ -34,7 +34,7 @@ Today the World Cup Simulator is 100% client-side: all progress lives in `localS
 telemetry, `wcsim_career_v1` career, `wcsim_run_v1` the active Cup Run) and it deploys as a
 static site to GitHub Pages. This enhancement adds an **optional account** whose progress
 lives in a **self-hosted Postgres** on the owner's Synology DS723+ NAS, so a collection
-survives a cleared browser and is the same on every device — **without ever forcing anyone
+survives a cleared browser and is the same on every device, **without ever forcing anyone
 to sign in** (NFR-1). Guest play stays exactly as it is today and never touches the server.
 
 ## 2. Locked decisions (from brainstorm)
@@ -112,7 +112,7 @@ on always-up hosting and only *logged-in* play depends on the NAS.
 - **FR-4** Email codes must **expire** after a short window, be **single-use**, and be **invalidated** on a successful login or when a newer code is issued for the same address.
 - **FR-5** Google sign-in yields a **verified email**, which is the account's identity key (D6). Should a provider ever return no verified email (the reason GitHub is out, D11), the app must ask for an email and verify it by OTP rather than creating an account with no identity key.
 - **FR-6** Both methods on the same verified email **resolve to one account** (D6). The signed-in email must be **visible in the UI**, so a user who has two addresses can at least see which account they are in.
-- **FR-7** Sessions **last 60 days** and persist across visits. Sign out must be available, and **"sign out everywhere" is in v1** — which rules out purely stateless tokens: revocation must actually revoke (server-side session records, or a per-user token version).
+- **FR-7** Sessions **last 60 days** and persist across visits. Sign out must be available, and **"sign out everywhere" is in v1**, which rules out purely stateless tokens: revocation must actually revoke (server-side session records, or a per-user token version).
 - **FR-8** The whole accounts feature must sit behind a **feature flag** and degrade cleanly: with the flag off the app behaves exactly like today's static build, and no account code runs.
 
 ### 4.2 Sync & storage
@@ -128,7 +128,7 @@ on always-up hosting and only *logged-in* play depends on the NAS.
 - **FR-16** The import is **one-way and once per account** (guest → account, D8). After it, the two worlds are independent: later guest play does not flow into the account, and account progress never flows back to local storage. If the account already has progress, no import is offered.
 - **FR-16a** The import is a **move, not a copy**: once the server write is **confirmed**, the device's guest data is **deleted**. Rationale: it prevents a stale twin of the account sitting in local storage, and it means an un-logged-in visit visibly starts from scratch, which is itself a signal that you are not signed in.
   - **Ordering is a hard requirement:** write to the server and confirm **first**, delete locally **second**. Never delete before a confirmed write, or a failed import destroys the only copy.
-  - **Keys cleared:** `wcsim:game:v1`, `wcsim_album_v1`, `wcsim_album_stats_v1`, `wcsim_career_v1`, `wcsim_run_v1`, `wcsim_run_reveal_v1`. Note this deliberately includes the **album** keys, which are otherwise kept separate precisely so a game reset never wipes the album (`clearAlbum()` in `state/albumStorage.ts`) — the import is the one case that clears them. Settings (`wcsim_settings_v1`) are **not** cleared: they are per account (NFR-10), so the account copy supersedes the local one rather than being migrated from it, and leaving the file lets a later guest session keep its own preferences.
+  - **Keys cleared:** `wcsim:game:v1`, `wcsim_album_v1`, `wcsim_album_stats_v1`, `wcsim_career_v1`, `wcsim_run_v1`, `wcsim_run_reveal_v1`. Note this deliberately includes the **album** keys, which are otherwise kept separate precisely so a game reset never wipes the album (`clearAlbum()` in `state/albumStorage.ts`); the import is the one case that clears them. Settings (`wcsim_settings_v1`) are **not** cleared: they are per account (NFR-10), so the account copy supersedes the local one rather than being migrated from it, and leaving the file lets a later guest session keep its own preferences.
   - **No guest data is ever deleted without an import.** If a login offers no import (the account already has progress, FR-16), the device's guest progress is left intact: it was never banked anywhere, so deleting it would destroy the only copy. In that case "continue as guest" (FR-12) resumes it as normal, and the signed-in/guest distinction is carried by a **visible UI affordance**, not by the absence of data.
 - **FR-17** There is at most **one active run** per account, held server-side. Two signed-in devices touching it are resolved by the version check in FR-11 (the stale device reloads), not by a merge.
 
@@ -151,10 +151,10 @@ on always-up hosting and only *logged-in* play depends on the NAS.
 - **NFR-1 Guest-first (highest priority).** The **core game is fully playable without an account**, and guest play never contacts the server: drafting, the full dataset, the album, career progression, and challenges. An account adds **continuity and safety** (the same album, career, and challenges on every device, plus off-device backup), and **may also gate features that are inherently online or social, such as leaderboards / highscores**. It must not gate core single-player gameplay, content, or progression. (This replaces the earlier "offline-first" framing: the app is a static SPA with no service worker, so with no connectivity it does not load at all, making "offline play" moot; what matters is that no one is ever forced to sign in.)
   - **Consequence of D9:** for a *signed-in* user the NAS **is** on the critical path (unreachable = blocked, with a guest escape hatch). Guests are unaffected, because the SPA is served from GitHub Pages, not the NAS (D4).
 - **NFR-2 Security.** OAuth handled via the provider (no passwords stored); OTP codes are short-lived, single-use, rate-limited, and lockout-protected against brute force; the API is **HTTPS-only and this is mandatory** (mixed content from the HTTPS SPA would be blocked outright, D10); secrets (OAuth client secret, SMTP credentials, DB credentials, the Supabase secret key) are server-side only and **never** in the bundle; the browser gets the anon/publishable key only, with **row-level security as the real boundary**; Studio is **LAN-only**, never exposed; sessions are revocable (FR-7).
-- **NFR-3 Cross-origin (mechanism decided).** The SPA (Pages) and API (NAS) are **different origins** (D4), and auth is a **bearer token in a header**, not a cookie — so third-party-cookie policy (Safari blocks `SameSite=None` cookies by default) is irrelevant, and the requirement reduces to a **CORS allowlist** on the gateway for the Pages origin plus localhost for dev. Token storage in the client is an XSS exposure, mitigated by the app rendering no user-supplied HTML.
+- **NFR-3 Cross-origin (mechanism decided).** The SPA (Pages) and API (NAS) are **different origins** (D4), and auth is a **bearer token in a header**, not a cookie, so third-party-cookie policy (Safari blocks `SameSite=None` cookies by default) is irrelevant, and the requirement reduces to a **CORS allowlist** on the gateway for the Pages origin plus localhost for dev. Token storage in the client is an XSS exposure, mitigated by the app rendering no user-supplied HTML.
 - **NFR-4 Privacy.** Store the **minimum**: identity (verified email + linked provider ids), the game data in D1, and audit/telemetry. A short privacy note is required before public launch; email addresses are treated as personal data.
 - **NFR-5 Performance.** Auth is not on the hot path of play. For a signed-in user, saves happen at a **small number of defined points** (once per knockout round, and at run end for album/career), not continuously, so a save round-trip must feel instant on a home LAN and be tolerable over the exposed WAN link. The DS723+ (32 GB RAM) is comfortably oversized for the expected load.
-- **NFR-6 Backups / durability — explicitly deferred, accepted risk.** The NAS Postgres is the **only** copy of account data (D8). **No backup is in scope for now** (decided 2026-08-11): a disk failure or a bad delete loses every account's album, including the owner's, permanently. Recorded so it is a known choice rather than an oversight. Cheapest future insurance, in order: keep **FR-25 (client-side export)** as the user-facing escape valve, then a scheduled `pg_dump` into a folder Hyper Backup already covers, then a restore test.
+- **NFR-6 Backups / durability, explicitly deferred, accepted risk.** The NAS Postgres is the **only** copy of account data (D8). **No backup is in scope for now** (decided 2026-08-11): a disk failure or a bad delete loses every account's album, including the owner's, permanently. Recorded so it is a known choice rather than an oversight. Cheapest future insurance, in order: keep **FR-25 (client-side export)** as the user-facing escape valve, then a scheduled `pg_dump` into a folder Hyper Backup already covers, then a restore test.
 - **NFR-7 Scalability.** Private phase: tens of users. Public phase: design should hold to low thousands of accounts on the single NAS without re-architecture; concurrency is low (a solo game).
 - **NFR-8 Observability / ops.** Basic health check, error logging, and the audit log (FR-21). The stack must be operable as containers on the NAS (DSM Container Manager) with straightforward start/stop/update and cert renewal. Under D10, self-hosted version bumps are a manual and occasionally hands-on step.
 - **NFR-9 Consistency with the app's conventions.** Keep gameplay/domain logic framework-free and unchanged; the storage layer wraps it. Ship behind a `FEATURES`-style flag; keep the static build path (and the GitHub Pages deploy) intact.
@@ -164,18 +164,18 @@ on always-up hosting and only *logged-in* play depends on the NAS.
 
 ## 6. User stories & acceptance criteria
 
-- **US-1 — Guest keeps playing.** As a visitor with no account, I can draft, play, and build my album with no server involved at all. *AC:* no login prompt blocks play; nothing regresses vs today; no network calls are made on a guest's behalf.
-- **US-2 — Back up my collection.** As a player, I can sign in (Google or email code) so my album lives off my browser. *AC:* on first login I am offered the one-time import of my guest progress (FR-15); after that, clearing the browser and logging back in restores the account collection.
-- **US-3 — Play on a second device.** As a signed-in player, my collection is the same everywhere. *AC:* a sticker earned on device A is present on device B on next load, because both read the one server-side collection.
-- **US-4 — Email code login.** As a player, I enter my email, receive a 6-digit code, and enter it to sign in. *AC:* a fresh code arrives each login; it expires and is single-use; wrong/expired codes are rejected with a clear message; repeated requests are rate-limited.
-- **US-5 — Linked identity.** As a player who used Google once, logging in later with an email code on the same address lands me in the **same** account. *AC:* one collection, not two; the signed-in email is visible so a mismatch is at least diagnosable.
-- **US-6 — Honest failure when the server is down.** As a signed-in player, if the NAS is unreachable I am told clearly and not allowed to play on into a void; I can retry, or continue as a guest. *AC:* a blocking retryable state appears (at load or mid-run); no account progress is invented locally; "continue as guest" gives separate local progress and leaves the account untouched.
-- **US-7 — Fair economy.** As a player, I can't gain stickers I didn't legitimately earn by poking the API. *AC:* invalid/duplicate/unaffordable earn/trade calls are rejected and audited.
-- **US-8 — My data is mine.** As a player, I can delete my account (and ideally export my collection). *AC:* deletion removes my personal data; export produces a portable copy.
+- **US-1, Guest keeps playing.** As a visitor with no account, I can draft, play, and build my album with no server involved at all. *AC:* no login prompt blocks play; nothing regresses vs today; no network calls are made on a guest's behalf.
+- **US-2, Back up my collection.** As a player, I can sign in (Google or email code) so my album lives off my browser. *AC:* on first login I am offered the one-time import of my guest progress (FR-15); after that, clearing the browser and logging back in restores the account collection.
+- **US-3, Play on a second device.** As a signed-in player, my collection is the same everywhere. *AC:* a sticker earned on device A is present on device B on next load, because both read the one server-side collection.
+- **US-4, Email code login.** As a player, I enter my email, receive a 6-digit code, and enter it to sign in. *AC:* a fresh code arrives each login; it expires and is single-use; wrong/expired codes are rejected with a clear message; repeated requests are rate-limited.
+- **US-5, Linked identity.** As a player who used Google once, logging in later with an email code on the same address lands me in the **same** account. *AC:* one collection, not two; the signed-in email is visible so a mismatch is at least diagnosable.
+- **US-6, Honest failure when the server is down.** As a signed-in player, if the NAS is unreachable I am told clearly and not allowed to play on into a void; I can retry, or continue as a guest. *AC:* a blocking retryable state appears (at load or mid-run); no account progress is invented locally; "continue as guest" gives separate local progress and leaves the account untouched.
+- **US-7, Fair economy.** As a player, I can't gain stickers I didn't legitimately earn by poking the API. *AC:* invalid/duplicate/unaffordable earn/trade calls are rejected and audited.
+- **US-8, My data is mine.** As a player, I can delete my account (and ideally export my collection). *AC:* deletion removes my personal data; export produces a portable copy.
 
 ---
 
-## 7. Open questions — none. All resolved 2026-08-11.
+## 7. Open questions: none. All resolved 2026-08-11.
 
 Kept with their answers so the reasoning is not re-litigated.
 

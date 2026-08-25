@@ -173,3 +173,16 @@ export const INITIAL_REROLLS = 3;
  *  number into the server's `economy_constants` table. A fact needed by the domain, the
  *  reducer and the server seed belongs in config, which all three already import. */
 export const INITIAL_SWAPS = 2;
+
+/** How many collectible ids the server's `finish_run` accepts for one run. Exceeding it
+ *  raises, and the raise rolls the whole bank back - which for a signed-in player is the
+ *  blocking unreachable screen, so the client trims to this rather than finding out.
+ *
+ *  Here rather than in the hook for the reason `INITIAL_SWAPS` is here: it is the last
+ *  economy constant the client and the server each stated independently, the client's copy
+ *  in a hook and the server's as a bare literal inside five migrations. They agree today
+ *  and a change to either side is silent (hygiene H135). `npm run checks` now holds every
+ *  cap literal in `supabase/migrations/` to this number, which closes the drift without a
+ *  migration. Teaching `finish_run` to read `economy_constants` instead, the way the trade
+ *  costs and the swap cap already do, needs one - it is queued as a roadmap item. */
+export const BANK_CAP = 12;

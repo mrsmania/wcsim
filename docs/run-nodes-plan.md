@@ -419,8 +419,9 @@ table that already exists.
 
 ## Standing constraints for whoever implements this
 
-- `npm run build` (tsc + vite) and `npm run checks` before every commit. 102 checks pass on
-  `7cb870c`; that number should only go up.
+- `npm run build` (tsc + vite) and `npm run checks` before every commit. The suite has to be
+  green, and its count should only go up. (A figure used to sit here; it went stale within
+  days, which is why the count lives in the harness's own summary and nowhere else.)
 - 2-space indent, match the surrounding file. No reformatting as a side effect.
 - **No em-dashes** in code, comments, commit messages or UI copy.
 - User-facing copy says **"boost"**, never "boon"; **"rating"**, never "elo". Pick a

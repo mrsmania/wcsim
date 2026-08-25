@@ -50,7 +50,10 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
       }
     }, SCRAMBLE_STEP_MS);
     return () => window.clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Mount-scoped: the scramble runs once for the draw it was opened on. `opponents` is
+    // deliberately not a dependency - the component is keyed by its caller and unmounted
+    // when the draw is dismissed, so a change to it would restart the animation rather
+    // than mean anything.
   }, []);
 
   // Lock background scroll while the draw is up: the page behind it is the group it

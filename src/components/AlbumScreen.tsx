@@ -302,7 +302,9 @@ function StickerLightbox({
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // Keyed on the two values `go` reads rather than on `go` itself, which is a fresh
+        // closure every render and would re-bind the listener on each one. `onIndex` is
+        // deliberately not a dependency for the same reason.
     }, [index, count]);
 
     // Touch swipe (mobile): a horizontal drag past the threshold steps prev/next.

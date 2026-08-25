@@ -545,9 +545,49 @@ export function addMatches(
   return { apps, goals };
 }
 
+/** One match a run played, from the user's side. The group's three matchdays and each
+ *  knockout tie normalise to the same four fields, which is what lets everything that asks
+ *  "how did this run go" read one list. */
+export interface RunMatch {
+  us: number;
+  them: number;
+  ko: boolean;
+  /** How a knockout tie was decided; absent for a group match. */
+  decided?: KoDecided;
+  won: boolean;
+}
+
+/**
+ * Every match a run played, group first, in the order they happened.
+ *
+ * The one reading of a run's own history, because there used to be three and `runTotals`
+ * admitted it in its own docstring (hygiene H134): the career's run archive, Siege
+ * Mentality's goals-conceded input, and the challenge catalogue's `viewOf`. Each walked
+ * `history` separately, and each had to know that a group record carries three scorelines
+ * while a knockout record carries one pair of goals - so three copies of the one thing in
+ * here that is easy to get half-right. `npm run checks` proved the three agreed before they
+ * were folded, and now asserts this list reproduces all of their numbers.
+ *
+ * Shootout kicks are excluded by construction rather than by a filter, as everywhere else:
+ * they live in `KoMatch.pens` and never in a scoreline.
+ */
+export function runMatches(run: RunState): RunMatch[] {
+  const out: RunMatch[] = [];
+  for (const r of run.history) {
+    if (r.stage !== 'group') continue;
+    for (const g of r.groupResults) {
+      out.push({ us: g.us, them: g.them, ko: false, won: g.us > g.them });
+    }
+  }
+  for (const r of run.history) {
+    if (r.stage === 'group') continue;
+    out.push({ us: r.userGoals, them: r.oppGoals, ko: true, decided: r.decided, won: r.won });
+  }
+  return out;
+}
+
 /** Goals for and against, and knockout ties won, read back off a run's own history.
- *  Used by the career's run archive; `viewOf` in challenges.ts computes the same three
- *  numbers its own way (worth folding together, but that is a hygiene item, not this). */
+ *  Used by the career's run archive. */
 export function runTotals(run: RunState): {
   goalsFor: number;
   goalsAgainst: number;
@@ -556,17 +596,10 @@ export function runTotals(run: RunState): {
   let goalsFor = 0;
   let goalsAgainst = 0;
   let roundsWon = 0;
-  for (const r of run.history) {
-    if (r.stage === 'group') {
-      for (const g of r.groupResults) {
-        goalsFor += g.us;
-        goalsAgainst += g.them;
-      }
-    } else {
-      goalsFor += r.userGoals;
-      goalsAgainst += r.oppGoals;
-      if (r.won) roundsWon++;
-    }
+  for (const m of runMatches(run)) {
+    goalsFor += m.us;
+    goalsAgainst += m.them;
+    if (m.ko && m.won) roundsWon++;
   }
   return { goalsFor, goalsAgainst, roundsWon };
 }
@@ -1154,22 +1187,11 @@ function boonContext(run: RunState, chosenId?: string): BoonContext {
 
 /**
  * Goals conceded so far this run (Siege Mentality), across the group and the knockouts.
- *
- * Both halves come off `run.history`, which is the only record that outlives the round
- * that produced it: a knockout record carries `oppGoals`, a group record its three
- * matchday scorelines. Shootout kicks are excluded the way they are everywhere else in
- * this codebase - by construction rather than by a filter, since they live in
- * `KoMatch.pens` and never in a scoreline.
+ * `runMatches` is the one place that knows how to read a run's own history; shootout kicks
+ * are excluded there by construction rather than by a filter.
  */
 function goalsConcededOf(run: RunState): number {
-  return run.history.reduce(
-    (n, r) =>
-      n +
-      (r.stage === 'group'
-        ? r.groupResults.reduce((g, m) => g + m.them, 0)
-        : r.oppGoals),
-    0,
-  );
+  return runMatches(run).reduce((n, m) => n + m.them, 0);
 }
 
 /** How many knockout ties so far the user went into as the lower-rated side
