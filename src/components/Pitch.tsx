@@ -195,6 +195,15 @@ interface Props {
     onMove?: (toSlotId: string) => void;
 }
 
+/** The three looks an OPEN slot can have. Amber is "this is his natural position",
+ *  white is every other invitation to tap (a move destination, a secondary position, the
+ *  market's next slot to shop), and idle is the dashed circle. The white one was written
+ *  out three times and the idle one twice, which made a six-arm ternary that said six
+ *  things and meant three. */
+const SLOT_AMBER = 'animate-slot-pulse-primary cursor-pointer border-amber bg-amber/90 text-ink';
+const SLOT_WHITE = 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink';
+const SLOT_IDLE = 'border-dashed border-white/55 bg-white/10 text-white';
+
 /** One placed player or open slot, rendered flat over the pitch at a position
  *  (a px offset over the fitted board) so it stays crisp and upright. */
 function OverlayMarker({
@@ -357,17 +366,18 @@ function OverlayMarker({
             <div
                 className={[
                     'grid h-12 w-12 place-items-center rounded-full border-2 text-lg font-semibold leading-none transition',
+                    // The order is load-bearing and is why this is not one condition per
+                    // look: a destination outranks a natural-position match, and a
+                    // natural-position match outranks the market's shop-here slot.
                     moveHere
-                        ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
+                        ? SLOT_WHITE
                         : target === 'primary'
-                        ? 'animate-slot-pulse-primary cursor-pointer border-amber bg-amber/90 text-ink'
-                        : target === 'secondary'
-                          ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
-                          : shopHere
-                            ? 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink'
+                          ? SLOT_AMBER
+                          : target === 'secondary' || shopHere
+                            ? SLOT_WHITE
                             : onSelectSlot
-                              ? 'cursor-pointer border-dashed border-white/55 bg-white/10 text-white hover:border-white'
-                              : 'border-dashed border-white/55 bg-white/10 text-white',
+                              ? `cursor-pointer ${SLOT_IDLE} hover:border-white`
+                              : SLOT_IDLE,
                 ].join(' ')}
             >
                 {moveHere || canPlace || shopHere ? '+' : null}
