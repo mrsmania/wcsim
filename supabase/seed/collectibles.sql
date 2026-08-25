@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 93 (69 legendary / 18 iconic / 6 monumental)
--- checksum: 4f19b5daefed887f
+-- rows: 95 (71 legendary / 18 iconic / 6 monumental)
+-- checksum: bb50fab4cb517c9a
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -25,6 +25,7 @@ create temporary table collectibles_seed (
 insert into collectibles_seed
   (player_id, tier, elo, name, squad_id, nation_code, year)
 values
+  ('arg-1978-10', 'legendary', 91, 'Mario Kempes', 'arg-1978', 'ARG', 1978),
   ('arg-1986-10', 'monumental', 98, 'Diego Maradona', 'arg-1986', 'ARG', 1986),
   ('arg-1990-10', 'legendary', 92, 'Diego Maradona', 'arg-1990', 'ARG', 1990),
   ('arg-1998-9', 'legendary', 91, 'Gabriel Batistuta', 'arg-1998', 'ARG', 1998),
@@ -103,6 +104,7 @@ values
   ('ita-2006-10', 'legendary', 90, 'Francesco Totti', 'ita-2006', 'ITA', 2006),
   ('ita-2006-21', 'legendary', 91, 'Andrea Pirlo', 'ita-2006', 'ITA', 2006),
   ('ita-2006-5', 'iconic', 96, 'Fabio Cannavaro', 'ita-2006', 'ITA', 2006),
+  ('ned-1978-12', 'legendary', 90, 'Rob Rensenbrink', 'ned-1978', 'NED', 1978),
   ('ned-1990-9', 'legendary', 90, 'Marco van Basten', 'ned-1990', 'NED', 1990),
   ('ned-1998-8', 'legendary', 91, 'Dennis Bergkamp', 'ned-1998', 'NED', 1998),
   ('ned-2010-10', 'legendary', 90, 'Wesley Sneijder', 'ned-2010', 'NED', 2010),

@@ -113,7 +113,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                         <span className="text-amber">Win the World Cup.</span>
                     </h2>
                     <p className="mt-4 max-w-[52ch] text-[clamp(15px,2.2vw,17px)] text-white/[0.82]">
-                        Spin real squads from every World Cup since 1982, pick your eleven one slot at
+                        Spin real squads from every World Cup since 1978, pick your eleven one slot at
                         a time, then run the gauntlet - group stage to final, live and minute by minute.
                     </p>
 

@@ -558,11 +558,11 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
 
 ## The dataset (`src/data/squads.ts`)
 
-- Tournaments: **all eleven (1982-2022)** are full researched datasets. 1982, 1986, 1990
-  and 1994 are 24-nation fields; 1998-2022 are 32 nations. Squad sizes: 22-man for
-  1982-1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25). **7,324 player rows**
-  across 320 squads. Two squads are short and both are real: **El Salvador brought only 20
-  men to 1982** and never filled the roster, and Iran registered 25 in 2022.
+- Tournaments: **all twelve (1978-2022)** are full researched datasets. 1978 is a
+  16-nation field; 1982, 1986, 1990 and 1994 are 24 nations; 1998-2022 are 32. Squad sizes:
+  22-man for 1978-1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25). **7,676 player
+  rows** across 336 squads. Two squads are short and both are real: **El Salvador brought
+  only 20 men to 1982** and never filled the roster, and Iran registered 25 in 2022.
   (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders; 1986
   was added 2026-08-23 as the first step of roadmap item 03, and its positions and ratings
   were re-authored 2026-08-25 as roadmap item 33; **1982 was added 2026-08-25** by the same
@@ -624,6 +624,29 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   spellings unified with the dataset or the same human would have become two drafted-once
   identities (Bezsonov, Blokhin). Run the collision and near-miss scans before believing a
   tournament is done; `validateSquads` cannot see any of it.
+- **1978 was added 2026-08-25 and is the drop where the method finally landed first time.**
+  Same three sources, same paired-rater / reconciler structure (four raters over two groups
+  of eight, two reconcilers), **352 rows across 16 nations**, no new countries and no new
+  confederations. It needed **no calibration correction afterwards**, which 1986 and 1982
+  both did, and the reason is one number: the raters were given the **81-84 band share**
+  as an explicit self-check up front rather than having a reviewer find it missing later.
+  It came out at 12.2% against a family range of 10.1-16.4%.
+  **The per-half figures are what to hand the next set of raters**, because a
+  whole-tournament band target is not something the weaker half can carry and one rater
+  correctly refused to inflate to reach it. Measured over five fields, splitting each by
+  best XI: the **strong half** runs 19-22% in the 81-84 band with a best-XI mean of
+  81.1-82.1, the **weak half** 2.3-7% with 73.8-76.5.
+  **Two things about 1978 specifically.** It is now the OLDEST tournament in the file, so
+  **every anchor points forward** - a later row is a decline number for anyone at his peak
+  here (Kempes, Passarella, Cubillas, Fillol, Dalglish) and a target for anyone young
+  (Platini at 22, Rossi at 21, Hugo Sanchez at 19). That inversion is the single most
+  likely systematic error and it is worth stating to raters in those words. And only
+  **two players reach 90** (Kempes 91, Rensenbrink 90), the fewest of any tournament,
+  which is right: 1978 had no all-time great at his peak and Cruyff refused to travel.
+  **`validateSquads` earned its place again**: Wikipedia spells 1978's Jorge Olguin without
+  the accent while our 1982 row has Olguín, so the same slug carried two display names. The
+  slug-collision scan lists that pair as "the same man, fine" and says nothing about the
+  spelling, so the harness is the only thing that catches it.
 - **Six name collisions came in with 1986 and one was already shipped.** A `personId` is
   the name slug, so two different people sharing a display name silently merge into one
   drafted-once identity. 1986 brought six (Brazil's 1986 Oscar / Júnior / Júlio César are
@@ -761,10 +784,11 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 68 / 18 / 6 = **92** across the dataset; it was 53 before
+  **Monumental** 97-99 (currently 71 / 18 / 6 = **95** across the dataset; it was 53 before
   the 1990-2002 squads were researched, 81 before 1986, 84 before 1986's ratings were
-  re-authored and 87 before 1982, so re-derive a count rather than trusting one written down
-  here - this figure has been wrong four times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  re-authored, 87 before 1982, 92 before 1982's hand-tuning put Platini over 90 and 93
+  before 1978, so re-derive a count rather than trusting one written down here - this figure
+  has been wrong six times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
   adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),

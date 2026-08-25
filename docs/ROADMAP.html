@@ -353,7 +353,7 @@
   <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
-      <span class="sub">Extend the dataset backwards: <b>1986 shipped 2026-08-23</b> and was re-sourced 2026-08-25; <b>1982 shipped 2026-08-25</b> (24 nations, 526 rows, 5 new collectibles). Eleven tournaments, 7,324 rows. Next: 1978, then earlier.</span>
+      <span class="sub">Extend the dataset backwards: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b> and <b>1978</b> both shipped 2026-08-25. Twelve tournaments, 7,676 rows, 336 squads. Next: 1974, then 1970 and earlier.</span>
     </span>
     <span class="tag">Content</span>
     <span class="chev">&#9656;</span>
@@ -461,11 +461,43 @@
     are the same man as a 1986 row that already carries one (Oscar, Junior). <b>Expect this
     every tournament.</b></p>
 
-    <p class="next"><strong>Next step:</strong> 1978, the same way 1982 was done:
-    Wikipedia squad list + per-player infoboxes + RSSSF line-ups, with openfootball as the
-    cross-check, and the paired-rater / reconciler / calibration-reviewer structure for the
-    ratings. The route is proven twice now; 16-team fields start in 1978, so check the group
-    draw and any "24 nations" assumption before starting. Re-run
+    <p><strong>1978 shipped 2026-08-25, and it is the first drop that needed no correction
+    afterwards.</strong> 16 nations, <b>352 rows</b>, no new countries and no new
+    confederations. Four raters over two groups of eight, two reconcilers, and - unlike 1982
+    - <b>no calibration reviewer was needed</b>, because the thing that reviewer had to
+    discover for 1982 was handed to the raters up front instead: <b>the 81-84 band share as
+    an explicit self-check</b>. It came out at <b>12.2%</b> against a family range of
+    10.1-16.4%, first time.
+    <br><b>Give the next set of raters the PER-HALF figures, not a whole-tournament one.</b>
+    Rater B1 correctly refused to inflate its weaker eight to reach a 10-14% band that its
+    half cannot honestly carry, and it was right. Measured over five fields split by best
+    XI: the <b>strong half</b> runs <b>19-22%</b> in the 81-84 band with a best-XI mean of
+    81.1-82.1; the <b>weak half</b> runs <b>2.3-7%</b> with 73.8-76.5.
+    <br><b>The anchor direction inverted for the first time</b>, and it is now the standing
+    trap for every earlier tournament: 1978 is the oldest data in the file, so a later row is
+    a DECLINE number for anyone at his peak here (Kempes, Passarella, Cubillas, Fillol,
+    Dalglish) and a TARGET for anyone young (Platini at 22 and 8 below his 1982 row, Rossi at
+    21, Hugo Sanchez at 19). State it to raters in those words.
+    <br><b>Where it lands:</b> mean 75.4, median 75, floor 65, ceiling 91, best XI from
+    Mexico 70.7 to Argentina 84.4. <b>Only two players reach 90</b> - Kempes 91 and
+    Rensenbrink 90, the fewest of any tournament - which is right rather than shy: 1978 had
+    no all-time great at his peak, and Cruyff refused to travel.
+    <br><b>New collectibles: 2</b>, taking the album from 93 to 95. Seed regenerated and
+    pushed the same day.
+    <br><b>Two identity notes.</b> Only two overrides were needed and both REUSE an existing
+    id, being the same men as later rows that already carry one (Brazil's Oscar, Spain's
+    Juanito). And <code>validateSquads</code> caught what the collision scan could not:
+    Wikipedia spells 1978's <b>Jorge Olguin</b> without the accent while our 1982 row has
+    Olguín, so one slug carried two display names. The scan lists that pair as "the same man,
+    fine" and says nothing about spelling - the harness is the only thing that sees it.
+    <br><b>My own dossier tooling produced false positives</b>, which three agents caught
+    independently: the fuzzy surname fallback matched Derek Johnstone to Willie Johnston and
+    gave three different Tunisians one keeper's appearance line, while separately MISSING a
+    starter RSSSF spells "Jendoumi". Treat the <code>apps</code> line as a hint and the
+    printed line-ups as the authority.</p>
+
+    <p class="next"><strong>Next step:</strong> 1974, the same way, with the per-half band
+    figures above given to the raters at the start. Re-run
     <code>npm run gen:collectibles</code> and <code>npm run push:collectibles</code> after,
     and check the name-collision list before calling it done.
     <br><b>Two source notes from the 1982 round, both verified:</b> RSSSF serves

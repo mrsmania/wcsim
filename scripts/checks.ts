@@ -2094,6 +2094,9 @@ const KNOWN_MISSING_ART = new Set([
   'fra-1982-12', // Giresse
   'pol-1982-20', // Boniek
   'fra-1982-10', // Platini, once his 1982 rating crossed 90
+  // 1978, added with that tournament. Only two players in that field reach 90.
+  'arg-1978-10', // Kempes (the tournament's 91)
+  'ned-1978-12', // Rensenbrink
 ]);
 {
   const STICKER_DIR = 'public/stickers';
