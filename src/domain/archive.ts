@@ -102,9 +102,10 @@ export function topLegends(team: TeamGroup, limit = LEGENDS_SHOWN): Legend[] {
   const byPerson = new Map<string, Legend>();
   for (const sq of team.squads) {
     for (const p of sq.players) {
-      const e =
-        byPerson.get(p.personId) ??
-        ({ personId: p.personId, name: p.name, best: 0, apps: [] } as Legend);
+      // Annotated rather than cast: the fallback literal is checked against `Legend` here,
+      // where a wrong field is an error, instead of being asserted into shape (H155).
+      const fresh: Legend = { personId: p.personId, name: p.name, best: 0, apps: [] };
+      const e = byPerson.get(p.personId) ?? fresh;
       e.apps.push({ year: sq.year, elo: p.elo });
       e.best = Math.max(e.best, p.elo);
       byPerson.set(p.personId, e);

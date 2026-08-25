@@ -8,7 +8,10 @@ const KEY = 'wcsim_career_v1';
  *  perk ids in `unlocked`. */
 type StoredCareer = Partial<CareerState> & {
   unlocked?: unknown;
-  perkLevels?: unknown;
+  /** `Record<string, unknown>` rather than `unknown`, so reading it needs no cast: the
+   *  runtime guard below is what actually validates the values, and it checks each one
+   *  (hygiene H155). A stored map with the wrong value types still parses to an object. */
+  perkLevels?: Record<string, unknown>;
   completedChallenges?: unknown[];
 };
 
@@ -17,7 +20,7 @@ type StoredCareer = Partial<CareerState> & {
 function migratePerkLevels(parsed: StoredCareer): Record<string, number> {
   const out: Record<string, number> = {};
   if (parsed.perkLevels && typeof parsed.perkLevels === 'object') {
-    for (const [k, v] of Object.entries(parsed.perkLevels as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(parsed.perkLevels)) {
       if (typeof v === 'number' && v > 0) out[k] = v;
     }
     return out;

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Player } from '../data/types';
-import { tierOf } from '../domain/album';
+import { collectibleCards, type CollectibleCard } from '../domain/album';
 import { tierRank } from '../config';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
@@ -18,12 +18,14 @@ interface Props {
 /** Post-run overlay (spec 5.7 / FR-8): shows the stickers just added, highlighted.
  *  The parent only renders this when `newPlayerIds` is non-empty. */
 export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose, onViewAlbum }: Props) {
+  // Cards rather than players, so the tier travels with each one instead of being
+  // recomputed and asserted at every use (hygiene H149).
   const cards = useMemo(() => {
-    const byId = new Map(allPlayers.map((p) => [p.id, p] as const));
+    const byId = new Map(collectibleCards(allPlayers).map((c) => [c.player.id, c]));
     return newPlayerIds
       .map((id) => byId.get(id))
-      .filter((p): p is Player => !!p && tierOf(p) !== null)
-      .sort((a, b) => tierRank(tierOf(a)!) - tierRank(tierOf(b)!) || b.elo - a.elo);
+      .filter((c): c is CollectibleCard => !!c)
+      .sort((a, b) => tierRank(a.tier) - tierRank(b.tier) || b.player.elo - a.player.elo);
   }, [newPlayerIds, allPlayers]);
 
   return (
@@ -41,8 +43,8 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
         added to your album this run.
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {cards.map((p) => (
-          <StickerCard key={p.id} player={p} tier={tierOf(p)!} collected isNew />
+        {cards.map((c) => (
+          <StickerCard key={c.player.id} player={c.player} tier={c.tier} collected isNew />
         ))}
       </div>
       <div className="mt-5 flex justify-end gap-2.5">

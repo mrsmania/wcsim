@@ -172,7 +172,7 @@ export function cabinetView(
   const wonFormations = new Set(career.stats.cupFormations ?? []);
   const honours = challengeProgress(career.completedChallenges);
   const stats = albumStats(album, allPlayers);
-  const badges = badgeRows(career, stats);
+  const badges = badgeRows({ career, album: stats });
   const collected = new Set(album.collected);
   const monumentals = collectiblesByTier(allPlayers)[STRIP_TIER].map((player) => ({
     player,

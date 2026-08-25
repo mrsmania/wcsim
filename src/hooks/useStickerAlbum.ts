@@ -9,7 +9,7 @@ import {
   type AlbumStatsView,
 } from '../domain/album';
 import { FEATURES, type StickerTier } from '../config';
-import { INITIAL_SWAPS, type GameState } from '../state/gameReducer';
+import { INITIAL_SWAPS } from '../state/gameReducer';
 import { isSignedIn, store } from '../state/store';
 
 /** How long starting a new run waits for the previous one's stickers to save. Long
@@ -86,12 +86,14 @@ export interface StickerAlbumApi {
  * a loss banks immediately (then the summary shows).
  */
 export function useStickerAlbum(
-  state: GameState,
+  /** Collectible swaps left this run. The whole `GameState` used to be passed for this one
+   *  field, which dragged a state import into the album hook and tied every callback's
+   *  identity to every field of the game state (hygiene H152). */
+  swapsLeft: number,
   initialAlbum: AlbumState,
   allPlayers: Player[],
 ): StickerAlbumApi {
   const enabled = FEATURES.stickerAlbum;
-  const { swapsLeft } = state;
   /** Collectible swaps spent this run, which the server validates against its cap. */
   const swapsUsed = INITIAL_SWAPS - swapsLeft;
 

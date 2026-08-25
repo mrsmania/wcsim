@@ -1,7 +1,7 @@
 import { Trophy } from 'lucide-react';
 import type { Player } from '../data/types';
 import type { AlbumState } from '../domain/album';
-import { cupRewardPool, tierOf } from '../domain/album';
+import { cupRewardPool } from '../domain/album';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
 
@@ -35,7 +35,9 @@ export default function CupRewardPicker({
   // `cupRewardPool` fall back to offering duplicates. Written against the pool it
   // returned rather than recomputed from scratch, and equivalent in all three cases
   // including an empty pool.
-  const allDone = !pool.some((p) => !album.collected.includes(p.id) && !taken.includes(p.id));
+  const allDone = !pool.some(
+    (c) => !album.collected.includes(c.player.id) && !taken.includes(c.player.id),
+  );
 
   return (
     <Overlay onClose={() => { /* not dismissible: a pick is required */ }} ariaLabel="Pick your prize">
@@ -54,11 +56,11 @@ export default function CupRewardPicker({
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {pool.map((p) => (
+        {pool.map(({ player: p, tier }) => (
           <StickerCard
             key={p.id}
             player={p}
-            tier={tierOf(p)!}
+            tier={tier}
             collected
             onPick={() => onPick(p.id)}
           />

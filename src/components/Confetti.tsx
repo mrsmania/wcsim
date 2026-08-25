@@ -14,8 +14,15 @@ interface Piece {
     vrot: number;
     color: string;
     round: boolean;
-    /** Remaining frames for a burst piece; omitted for rain (lives until off-screen). */
-    life?: number;
+}
+
+/** A burst piece, which counts down. The two loops keep SEPARATE arrays - the burst's
+ *  producer always sets `life`, the rain's never does and lives until it falls off-screen -
+ *  so this is a local extension rather than an optional field on `Piece`, which is what
+ *  forced two non-null assertions in the burst loop (hygiene H155). */
+interface BurstPiece extends Piece {
+    /** Remaining frames. */
+    life: number;
 }
 
 function drawPiece(ctx: CanvasRenderingContext2D, p: Piece) {
@@ -65,7 +72,7 @@ export function confettiBurst(originX: number, originY: number) {
     canvas.height = Math.floor(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const pieces: Piece[] = [];
+    const pieces: BurstPiece[] = [];
     for (let i = 0; i < BURST_PIECES; i++) {
         // Fire outward in every direction (a full 360deg pop), then let gravity win.
         const angle = Math.random() * Math.PI * 2;
@@ -100,9 +107,9 @@ export function confettiBurst(originX: number, originY: number) {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
             p.rot += p.vrot * dt;
-            p.life! -= dt;
+            p.life -= dt;
             drawPiece(ctx, p);
-            if (p.life! <= 0 || p.y > h + 40) pieces.splice(i, 1);
+            if (p.life <= 0 || p.y > h + 40) pieces.splice(i, 1);
         }
         if (pieces.length > 0) {
             raf = requestAnimationFrame(tick);

@@ -4,7 +4,7 @@ import { ArrowRight, CircleDashed, Swords, Trophy } from 'lucide-react';
 import ConfirmAction from './ConfirmAction';
 import type { Player } from '../data/types';
 import { FEATURES } from '../config';
-import { collectiblePlayers, tierOf } from '../domain/album';
+import { collectibleCards } from '../domain/album';
 import { SQUAD_BY_ID } from '../data/squads';
 import { onStickerArtError, stickerArtSrc, TIER_META } from './stickerTheme';
 
@@ -86,8 +86,10 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
     const legends = useMemo(() => {
         if (!FEATURES.stickerAlbum) return [];
-        return [...collectiblePlayers(allPlayers)]
-            .sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name))
+        return collectibleCards(allPlayers)
+            .sort(
+                (a, b) => b.player.elo - a.player.elo || a.player.name.localeCompare(b.player.name),
+            )
             .slice(0, 5);
     }, [allPlayers]);
 
@@ -242,8 +244,8 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
 
                     </div>
                     <div className="grid grid-cols-2 gap-3 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5">
-                        {legends.map((p) => {
-                            const meta = TIER_META[tierOf(p)!];
+                        {legends.map(({ player: p, tier }) => {
+                            const meta = TIER_META[tier];
                             const code = SQUAD_BY_ID[p.squadId]?.code ?? '';
                             return (
                                 <div

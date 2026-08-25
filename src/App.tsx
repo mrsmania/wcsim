@@ -124,7 +124,7 @@ export default function App({
         [settings.settings.poolYears],
     );
     const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
-    const stickers = useStickerAlbum(state, snapshot.album, poolPlayers);
+    const stickers = useStickerAlbum(state.swapsLeft, snapshot.album, poolPlayers);
     // The Ascension tier for the next run, picked on the build page (roadmap item 28)
     // rather than on a pre-run screen that no longer exists in the tabs chrome. Held here
     // as UI state and mirrored onto the career's `lastAscension`, which is where the run

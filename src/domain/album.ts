@@ -110,6 +110,27 @@ export function collectiblePlayers(allPlayers: Player[]): Player[] {
     return allPlayers.filter(isCollectible);
 }
 
+/** A collectible and its tier, together. `isCollectible` computes the tier and throws it
+ *  away, so every caller of `collectiblePlayers` wrote `tierOf(p)!` to get it back - and two
+ *  of them did it twice inside one comparator, recomputing the tier four times per
+ *  comparison as well as asserting it (hygiene H149). */
+export interface CollectibleCard {
+    player: Player;
+    tier: StickerTier;
+}
+
+/** Every collectible, carrying the tier that made it one. Prefer this over
+ *  `collectiblePlayers` wherever the tier is wanted: it cannot be null here, so nothing
+ *  needs asserting. */
+export function collectibleCards(allPlayers: Player[]): CollectibleCard[] {
+    const out: CollectibleCard[] = [];
+    for (const player of allPlayers) {
+        const tier = tierOf(player);
+        if (tier) out.push({ player, tier });
+    }
+    return out;
+}
+
 /** The collectibles grouped by tier, each sorted rating-desc then by name - the order
  *  the album grid and the cabinet's tier strips both read in. Here rather than in a
  *  component because "which tier is a player in" is already this module's job and every
@@ -141,20 +162,25 @@ export function collectiblesByTier(allPlayers: Player[]): Record<StickerTier, Pl
  *     fallback is the reason migration 0012 dropped the server's already-collected check:
  *     the picker draws from the player's selected World Cups, so a finished 2022 pool
  *     legally offers duplicates while uncollected 1990 cards still exist. Do not
- *     reintroduce an exhaustion test on either side of the wire. */
+ *     reintroduce an exhaustion test on either side of the wire.
+ *
+ *  Returns CARDS, not bare players: the picker renders each with its tier, and handing back
+ *  players made it recover the tier with an assertion (hygiene H149). */
 export function cupRewardPool(
     album: AlbumState,
     allPlayers: Player[],
     taken: string[] = [],
-): Player[] {
-    const pickable = collectiblePlayers(allPlayers).filter((p) => tierOf(p) !== 'monumental');
+): CollectibleCard[] {
+    const pickable = collectibleCards(allPlayers).filter((c) => c.tier !== 'monumental');
     const uncollected = pickable.filter(
-        (p) => !album.collected.includes(p.id) && !taken.includes(p.id),
+        (c) => !album.collected.includes(c.player.id) && !taken.includes(c.player.id),
     );
-    const pool = uncollected.length ? uncollected : pickable.filter((p) => !taken.includes(p.id));
+    const pool = uncollected.length
+        ? uncollected
+        : pickable.filter((c) => !taken.includes(c.player.id));
     return pool
         .slice()
-        .sort((a, b) => tierRank(tierOf(a)!) - tierRank(tierOf(b)!) || b.elo - a.elo);
+        .sort((a, b) => tierRank(a.tier) - tierRank(b.tier) || b.player.elo - a.player.elo);
 }
 
 /** Add one copy of a player id to an album (immutably): first copy -> collected,

@@ -2786,8 +2786,8 @@ const KNOWN_MISSING_ART = new Set([
       cupFormations: [...FORMATIONS_DATA.names],
     },
   };
-  const emptyRows = badgeRows(INITIAL_CAREER, { collected: 0, total: 81 });
-  const fullRows = badgeRows(maxed, { collected: 81, total: 81 });
+  const emptyRows = badgeRows({ career: INITIAL_CAREER, album: { collected: 0, total: 81 } });
+  const fullRows = badgeRows({ career: maxed, album: { collected: 81, total: 81 } });
   const consistent = [...emptyRows, ...fullRows].every(
     (r) => r.done === (r.have >= r.need) && r.have <= r.need && r.have >= 0,
   );

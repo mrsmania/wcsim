@@ -143,11 +143,7 @@ export interface BadgeRow {
   done: boolean;
 }
 
-export function badgeRows(
-  career: CareerState,
-  album: { collected: number; total: number },
-): BadgeRow[] {
-  const ctx: BadgeCtx = { career, album };
+export function badgeRows(ctx: BadgeCtx): BadgeRow[] {
   return BADGES.map((badge) => {
     const { have, need } = badge.progress(ctx);
     // A need of 0 (an empty pool, so nothing is collectible) reads as complete rather
