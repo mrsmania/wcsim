@@ -6,8 +6,8 @@
  * H104), and whose summary ran last only because it sat at the bottom of the file - now it
  * is a function the index calls after the rest, which is a rule rather than a coincidence.
  */
-import { SQUADS } from '../../src/data/squads';
-import { type Player } from '../../src/data/types';
+import { SQUADS, SQUAD_BY_ID } from '../../src/data/squads';
+import { type Player, type Squad } from '../../src/data/types';
 import { type Boon } from '../../src/domain/boons';
 import {
   type GroupRecord,
@@ -125,6 +125,40 @@ export function withSeed<T>(seed: number, fn: () => T): T {
 // to be taught to fifteen places, and a walk that always picks `offer[0]` can land on a
 // card that asks a QUESTION, park on `pendingChoice` and spin to its guard limit without
 // ever reaching `ended` - a per-site behaviour nobody chose.
+
+/** Named fixture squads, resolved by ID rather than by position in `SQUADS`.
+ *
+ *  Several checks used `SQUADS[0]`, `[1]` and `[3]` as fixtures, so adding a tournament -
+ *  which has happened five times during this backlog alone, and 1970 went in at the FRONT
+ *  of the list - silently changed what they measured, most visibly the printed boon-power
+ *  table (hygiene H96). Pinned to the squads those indices resolved to when this was
+ *  written, so nothing moved; from here a dataset reordering cannot move them either.
+ *
+ *  Two blocks already did this right with `find((s) => s.code === 'BRA')`; this is that,
+ *  named and shared. */
+function fixture(id: string): Squad {
+  const sq = SQUAD_BY_ID[id];
+  if (!sq) throw new Error(`fixture squad ${id} is not in the dataset`);
+  return sq;
+}
+/** Resolved on ACCESS, not at module load. A getter rather than a value so that a fixture
+ *  which has left the dataset throws inside the concern that reads it - where the index
+ *  catches it and reports that concern - instead of at import time, which would take the
+ *  whole suite down with a bare stack trace (the thing H93 and H104 exist to stop). */
+export const FIXTURE = {
+  /** The strongest side in the dataset's oldest tournament: a plausible "good team". */
+  get home(): Squad {
+    return fixture('bra-1970');
+  },
+  /** Its final opponent, for the checks that need two DIFFERENT sides. */
+  get away(): Squad {
+    return fixture('ita-1970');
+  },
+  /** A third, for a check that needs an opponent distinct from both. */
+  get third(): Squad {
+    return fixture('uru-1970');
+  },
+};
 
 /** The best XI of squad `i`, wrapping. `SQUADS[0]` is the default because most checks only
  *  need a plausible XI, not a particular one. */

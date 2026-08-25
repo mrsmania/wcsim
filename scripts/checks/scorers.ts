@@ -4,8 +4,8 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
-import { check } from './harness';
-import { ALL_PLAYERS, SQUADS } from '../../src/data/squads';
+import { FIXTURE, check } from './harness';
+import { ALL_PLAYERS } from '../../src/data/squads';
 import {
   ELO_MAX,
   ELO_MIN,
@@ -109,7 +109,7 @@ export function scorersChecks(): void {
     const xi = placedPlayers(f, filled);
     const byName = new Map(xi.map((p) => [p.name, p]));
     const user = userGroupTeam(xi);
-    const opp = squadGroupTeam(SQUADS[1]);
+    const opp = squadGroupTeam(FIXTURE.away);
     const perPos = new Map<Position, number>();
     const countPos = new Map<Position, number>();
     for (const p of xi) countPos.set(primaryPosition(p), (countPos.get(primaryPosition(p)) ?? 0) + 1);

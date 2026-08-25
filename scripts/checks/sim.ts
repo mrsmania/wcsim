@@ -4,7 +4,7 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
-import { check, xiFor } from './harness';
+import { FIXTURE, check, xiFor } from './harness';
 import { SQUADS } from '../../src/data/squads';
 import {
   bracketChampionId,
@@ -30,8 +30,8 @@ import {
 export function simChecks(): void {
   // --- Penalty shootout: always a decisive, self-consistent result -----------
   {
-    const a = squadGroupTeam(SQUADS[0]);
-    const b = squadGroupTeam(SQUADS[1]);
+    const a = squadGroupTeam(FIXTURE.home);
+    const b = squadGroupTeam(FIXTURE.away);
     let ok = true;
     // The shootout that broke it, kept for the failure message: over 20,000 trials the name
     // of the check alone says nothing about which of the four properties went, or how
@@ -68,7 +68,7 @@ export function simChecks(): void {
 
   // --- Match sim (G1 model): even teams score believable, reconstructable ----
   {
-    const t = squadGroupTeam(SQUADS[0]);
+    const t = squadGroupTeam(FIXTURE.home);
     const N = 20000;
     let goals = 0;
     let eventsOk = true;

@@ -41,6 +41,41 @@ import {
 import { bestEleven } from '../../src/domain/tournament';
 
 export function careerChecks(): void {
+  // --- Perk tracks: every one of the six is well-formed ------------------------
+  // The "each tier costs more and gates no lower" loop was written out for TWO tracks and
+  // the other four were never checked at all (hygiene H96). One loop over `PERKS` is fewer
+  // lines and three times the coverage - the point being that it might surface a real
+  // violation in a track nobody was looking at.
+  {
+    const wrong: string[] = [];
+    for (const track of PERKS) {
+      if (!track.tiers.length) wrong.push(`${track.id} has no tiers`);
+      for (let i = 0; i < track.tiers.length; i++) {
+        const t = track.tiers[i]!;
+        if (t.cost <= 0) wrong.push(`${track.id} tier ${i + 1} costs ${t.cost}`);
+        if (t.levelReq < 1) wrong.push(`${track.id} tier ${i + 1} gates at level ${t.levelReq}`);
+        if (!t.description.trim()) wrong.push(`${track.id} tier ${i + 1} has no description`);
+        if (i === 0) continue;
+        const prev = track.tiers[i - 1]!;
+        // A bigger ask than the last, in both currencies: Prestige strictly up, the level
+        // gate never down.
+        if (t.cost <= prev.cost) {
+          wrong.push(`${track.id} tier ${i + 1} costs ${t.cost}, tier ${i} costs ${prev.cost}`);
+        }
+        if (t.levelReq < prev.levelReq) {
+          wrong.push(
+            `${track.id} tier ${i + 1} gates at ${t.levelReq}, tier ${i} at ${prev.levelReq}`,
+          );
+        }
+      }
+    }
+    check(
+      `career: all ${PERKS.length} perk tracks are well-formed (${PERKS.reduce((n, p) => n + p.tiers.length, 0)} tiers)`,
+      () => wrong.length === 0,
+      () => wrong.join('; '),
+    );
+  }
+
   // --- Career: run rewards + perk purchases account correctly -----------------
   // The four PAYOUT cards rewrite what a run pays, so a check asserting the PLAIN payout
   // has to keep them out of the boosts its run takes. Blind `offer[0]` is what made this
@@ -115,11 +150,7 @@ export function careerChecks(): void {
     for (let i = 1; i < BUDGET_BY_TIER.length; i++) {
       if (BUDGET_BY_TIER[i] <= BUDGET_BY_TIER[i - 1]) ok = false;
     }
-    // Each perk tier is a bigger ask than the last (cost up, level gate non-decreasing).
-    for (let i = 1; i < track.tiers.length; i++) {
-      if (track.tiers[i].cost <= track.tiers[i - 1].cost) ok = false;
-      if (track.tiers[i].levelReq < track.tiers[i - 1].levelReq) ok = false;
-    }
+    // (Tier well-formedness is checked for every track, once, at the top of this file.)
     // The FIGURE the shop copy promises is the budget that tier actually hands out. Same
     // seam the Extra Re-roll check guards below, and the same failure if it drifts: the
     // dollars live in config.ts and the sentence lives here, so adding a tier to one and
@@ -377,11 +408,6 @@ export function careerChecks(): void {
     // A save claiming a tier that does not exist cannot mint re-rolls.
     const bogus = { ...INITIAL_CAREER, perkLevels: { 'extra-reroll': 99 } };
     if (extraRerollsOf(bogus) !== track.tiers.length) ok = false;
-    // Each tier is a bigger ask than the last.
-    for (let i = 1; i < track.tiers.length; i++) {
-      if (track.tiers[i].cost <= track.tiers[i - 1].cost) ok = false;
-      if (track.tiers[i].levelReq < track.tiers[i - 1].levelReq) ok = false;
-    }
     check('career: Extra Re-roll perk matches the starting re-roll count', () => ok);
   }
 

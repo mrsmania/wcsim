@@ -4,9 +4,9 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
-import { boonStops, check, koRec, runFor, withSeed, xiFor } from './harness';
+import { FIXTURE, boonStops, check, koRec, runFor, withSeed, xiFor } from './harness';
 import { BUDGET_DRAFT } from '../../src/config';
-import { ALL_PLAYERS, SQUADS } from '../../src/data/squads';
+import { ALL_PLAYERS } from '../../src/data/squads';
 import { type Player } from '../../src/data/types';
 import {
   BOONS,
@@ -113,7 +113,7 @@ export function boonsChecks(): void {
           // the run (In Form, Old Guard, The Armband) measure 0.0 and go unbanded - which
           // would be exactly the way to smuggle an over-band card into the pool.
           const after = applyBoon(sample, b, {
-            opponentSquadId: SQUADS[3].id,
+            opponentSquadId: FIXTURE.third.id,
             topScorerId: sample[0].id,
             // A career's top scorer is whoever you have fielded and scored with most, which
             // for an established career is a strong player - so the 90+ shelf Wildcard Legend
