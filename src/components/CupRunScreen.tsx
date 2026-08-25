@@ -193,6 +193,22 @@ export default function CupRunScreen({
     setRun({ ...run, stickersApplied: true });
   }, [run, onRunEnd]);
 
+  // The cup-win celebration is a MOMENT, not a property of the run. `run.outcome` stays
+  // 'champion' until a new run is started, and this one component serves both `/cup-run`
+  // and `/career`, so raining off the outcome alone fell again on every arrival at either
+  // route and on every reload of the ended screen. It is fired by the TRANSITION instead:
+  // the first outcome a mount sees was decided before it, and only a change to 'champion'
+  // after that is a cup being won on screen. Cleared when the next run starts.
+  const seenOutcome = useRef<RunState['outcome'] | undefined>(undefined);
+  const [celebrating, setCelebrating] = useState(false);
+  useEffect(() => {
+    const outcome = run?.outcome ?? null;
+    const before = seenOutcome.current;
+    seenOutcome.current = outcome;
+    if (before === undefined || before === outcome) return;
+    setCelebrating(outcome === 'champion');
+  }, [run?.outcome]);
+
   // The XI + Ascension to show: the live run, or - before it starts - a preview of the
   // drafted XI at the currently-chosen tier (B: the run only commits when "Play group
   // stage" is clicked, so the hub/ascension stay adjustable until then).
@@ -483,8 +499,8 @@ export default function CupRunScreen({
 
   return (
     <div ref={rootRef} className="mx-auto max-w-[1000px]">
-      {/* Cup-win celebration: rains once when the run ends as champion. */}
-      {run?.outcome === 'champion' && <Confetti />}
+      {/* Cup-win celebration: rains once, at the moment the final is won. */}
+      {celebrating && <Confetti />}
 
       {/* Boost toast: what the last pick did (roster swap names the players). */}
       {toast && (
