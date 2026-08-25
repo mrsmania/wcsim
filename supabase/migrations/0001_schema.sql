@@ -104,7 +104,7 @@ create table if not exists settings (
   data    jsonb not null
 );
 
--- The Quick Run GameState.
+-- The build's GameState (the reducer: formation, style, the placed XI).
 create table if not exists game_state (
   user_id    uuid primary key references profiles (id) on delete cascade,
   data       jsonb not null,

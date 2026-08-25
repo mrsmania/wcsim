@@ -210,7 +210,8 @@ button:not(:disabled) {
 }
 
 /* ============================================================================
-   KNOCKOUT BRACKET (KnockoutScreen). Layout + connectors only; seed text styling
+   KNOCKOUT BRACKET (Bracket.tsx, mounted by cupRun/RunBracket). Layout + connectors
+   only; seed text styling
    lives in the component via Tailwind utilities. Ported from the turf-flat comp
    (docs/redesign-2026/turf-flat/knockout-bracket.html), prefixed `bkt-` and
    mapped to the app's @theme tokens. Two layouts toggle at 900px:

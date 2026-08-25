@@ -28,9 +28,11 @@
          bundle, so until then the page would paint the browser's default white - and
          for a signed-in player the first render also waits on one round trip to the
          account server, which is seconds on a bad connection. Colours are literal
-         copies of the --color-ground / -ink / -pitch-dark / -amber / -muted tokens,
-         both themes, since the custom properties are not loaded yet either. Keep them
-         in step with src/index.css if the palette moves.
+         copies of the --color-ground / -ink / -pitch / -pitch-dark / -line / -amber tokens,
+         since the custom properties are not loaded yet either. Both themes, with one known
+         exception: the trophy's amber stroke is an SVG presentation attribute and so carries
+         the LIGHT value only (hygiene H140). Keep them in step with src/index.css if the
+         palette moves - nothing checks this, which is hygiene H139.
 
          The markup sits OUTSIDE #root, so React never owns it: main.tsx stamps
          data-booted on <html> after the first render and the rules below fade it out. */

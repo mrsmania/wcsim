@@ -11,7 +11,7 @@ export type Phase = 'setup' | 'draft' | 'complete';
  *  (`filled`) and the same pitch/ratings/line-up; only the left column differs. */
 export type BuildMethod = 'roll' | 'budget';
 
-/** Squad re-rolls a roll draft starts with. Career Mode can add to it: the Extra
+/** Squad re-rolls a roll draft starts with. The career can add to it: the Extra
  *  Re-roll perk's tier is passed in on START_DRAFT (see App), since the reducer knows
  *  nothing about the career. */
 export const INITIAL_REROLLS = 3;

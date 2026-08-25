@@ -208,8 +208,7 @@ src/
                screen, as are ChallengesScreen and CabinetScreen (the trophy cabinet);
                BudgetMarket is the budget build's left-column panel (shares
                the home page's Pitch + ratings/line-up, not a separate screen);
-               navUi.tsx holds the tabs navigation's atoms (TabRow, TabBottomBar,
-               RouteCrumb, SubTabs)
+               navUi.tsx holds the tabs navigation's atoms (TabRow, TabBottomBar, SubTabs)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
                stickerImages, budgetDraft, challenges,
@@ -546,9 +545,12 @@ is unchanged, and the renderer.
 - **A champion is always crowned**: if the user loses, `bracket.ts` simulates the
   remaining rounds (higher elo more likely to advance) so the tree still completes and
   the trophy is awarded.
-- **`Bracket.tsx`** takes an optional `reviewableRounds` + `onOpenReview` so a Cup Run can
-  make the user's own played tie a click target (see "Runs are tournaments" below); with
-  neither, every box is an inert `div`, which is what a plain read-only tree wants. It
+- **`Bracket.tsx`** takes `reviewableRounds` + `onOpenReview` so a Cup Run can
+  make the user's own played tie a click target (see "Runs are tournaments" below). Its one
+  caller (`cupRun/RunBracket`) always passes both; what makes a box an inert `div` is an
+  EMPTY `reviewableRounds`, which is how the tree goes inert while a match reveals. (The
+  props read as optional because the caller that omitted them was the deleted
+  `KnockoutScreen`, a plain read-only tree.) It
   renders the tree responsively: a wide left-to-right layout on
   desktop and a two-sided vertical tree (top-down + bottom-up, converging on the cup)
   on mobile so there is no horizontal scroll (toggled at max-width 900px; `bkt-`
@@ -583,8 +585,8 @@ is unchanged, and the renderer.
 
 ## Squad browser (flagged)
 
-A read-only reference view over the whole dataset, reached from the **Play / Squads**
-toggle in the masthead (which navigates to `/squads/*`). It is separate from the game:
+A read-only reference view over the whole dataset, reached from the **Squads tab**
+(`/squads/*`). It is separate from the game:
 the in-progress reducer state is untouched while browsing, so Back returns to it.
 
 - **`SquadBrowser.tsx`** derives its view from the URL (`useMatch` + `useNavigate`;
@@ -602,8 +604,8 @@ the in-progress reducer state is untouched while browsing, so Back returns to it
 - Ratings here are plain always-visible mono numbers, deliberately **not** `RatingChip`
   (which is `sm`-only and gated by `FEATURES.teamRatings`) - the point of this view is to
   expose the numbers.
-- Entirely behind **`FEATURES.squadBrowser`**; with it `false` the masthead toggle and
-  the whole view disappear and the game is unchanged.
+- Entirely behind **`FEATURES.squadBrowser`**; with it `false` the tab and the whole view
+  disappear and the game is unchanged.
 
 ## Sticker album (flagged)
 
@@ -614,9 +616,9 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 58 / 18 / 5 = **81** across the dataset; it was 53 before
-  the 1990-2002 squads were researched, so re-derive a count rather than trusting one
-  written down here). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  **Monumental** 97-99 (currently 60 / 18 / 6 = **84** across the dataset; it was 53 before
+  the 1990-2002 squads were researched and 81 before 1986, so re-derive a count rather than
+  trusting one written down here - this figure has been wrong twice). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
   adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),
@@ -645,8 +647,8 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `runs_played` telemetry stays honest and the server-side active run is cleared - it
   simply banks nothing. The rule is enforced in one place (`useStickerAlbum`'s
   `applyStickers`), so no caller can bypass it.
-- **Album screen** (`AlbumScreen.tsx`, route **`/album`**, reached from a home-screen
-  entry button): completion counter + duplicate pool, tier sections (Monumental,
+- **Album screen** (`AlbumScreen.tsx`, route **`/album`**, reached from the **Album
+  tab**): completion counter + duplicate pool, tier sections (Monumental,
   Iconic, Legendary) of `StickerCard`s (collected = flag+name+rating+tier; uncollected =
   silhouette with a `?`), a per-tier **Trade** action (`TradeModal`) when affordable,
   a 100% completion state, and a **"Reset album"** footer button (inline confirm ->
@@ -717,14 +719,15 @@ deleted with the plain World Cup it used to gate). Design:
 `docs/roguelike-career-design.md`.
 
 - **Cup Run** (`domain/run.ts`, route `/cup-run`, `CupRunScreen.tsx`): build your XI the
-  normal way, then pick the "Enter the Cup Run" CTA on `CompletePanel` (see "Play mode"
-  above). A "Cup Run career" card on the home **setup** sub-view (hidden once drafting) is
-  the door to the career hub (perks/trophies) before a run. The run is a state machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
+  normal way, then pick the **"Start Run"** CTA on `CompletePanel` (see "Play mode"
+  above). The career hub (perks/trophies) is the **Career tab**, `/career`; the "Cup Run
+  career" card that used to be its door went with the navigation rework. The run is a state
+  machine - `beginRun` -> `playGroupStage` -> `chooseBoon` ->
   `playKnockoutRound` -> ... -> ended (`champion` or knocked out) - reusing the real
   group/knockout sim (opponents drawn elo-weighted, excluding the group teams). Between
-  rounds you pick 1 of 3 **boons** (`domain/boons.ts`, 19 of them): rating tweaks (Golden
-  Generation, Glass Cannon, ...) and roster swaps (Transfer, Poach the next opponent,
-  Wildcard Legend).
+  rounds you pick 1 of 3 **boons** (`domain/boons.ts`, 32 of them): rating tweaks (Golden
+  Generation, Catenaccio, Second Wind, ...) and roster swaps (Transfer, Poach the next
+  opponent, Wildcard Legend).
   **Balance (reworked 2026-08-15).** A boon is worth what it moves the two numbers the
   sim reads: the AVERAGE of the attack group (MID/FWD) and of the defence group
   (GK/DEF). +6 to one attacker is +1 attack, not +6. Its budget is the SUM of both
@@ -736,12 +739,13 @@ deleted with the plain World Cup it used to gate). Design:
   one run in three, and a randomly-failing assertion is worse than none. The verdict is
   taken at the precision the bands are written in, 0.1, so a boon has to read 4.6 against
   4.5 to fail rather than losing on a third decimal). Boons that
-  give points back (Glass Cannon, Catenaccio, Counter Attack) or hang on the draw
-  (Familiar Foes, Underdog Spirit, Poach) are exempt and marked as such.
+  give points back (Catenaccio, Sold Out Stadium) or hang on the draw
+  (Underdog Spirit, Underdog's Purse, Poach, Kind Draw) are exempt and marked as such.
   **A condition the player controls at build time is not allowed:** the old Chemistry
   Catalyst ("+2 to your most-represented nation") was a legendary effect at common
   rarity, since a single-nation XI is trivial to buy in the transfer market and the
-  chemistry bonus already rewards cohesion. It is now Familiar Foes, keyed to the draw.
+  chemistry bonus already rewards cohesion. It became Familiar Foes, keyed to the draw,
+  which was itself removed on 2026-08-23.
   Mind the rating cap too: "+N to your best player" does nothing once they are at 99, so
   the check measures against a budget-built XI (~81), not a national side's best eleven.
   **UI term:** the code says `boon`/`Boon` but the user-facing copy calls them "boosts" (and
@@ -811,7 +815,7 @@ deleted with the plain World Cup it used to gate). Design:
     still `simulateKoTie` (so boosts, chemistry, the Ascension handicap and the difficulty
     setting all apply exactly as before) and its result is **spliced** into the tree by
     `advanceBracket`; the other ties resolve from their own ratings. `nextOpponent` stays
-    the single field every consumer reads - including Poach and Familiar Foes - it is just
+    the single field every consumer reads - including Poach and Kind Draw - it is just
     read off the tree now. Two invariants worth knowing: the user is always the **home**
     side of game 0 of their round (asserted, and `simulateKoTie` depends on it), and the
     bracket stores a snapshot of the user's team, so it is **refreshed each round** because
@@ -947,7 +951,7 @@ deleted with the plain World Cup it used to gate). Design:
   a run awards XP (-> levels, `XP_PER_LEVEL = 200`) and Prestige, spent in a perk shop of
   six tracks (Scout Network, Deep Squad, Extra Choice, Transfer Budget, Physio Table, Extra
   Re-roll) that feeds the next run. **Perks are tiered and level-gated**, not one-off buys:
-  each track has two steps except Transfer Budget's eight, every step costs Prestige and
+  each track has two steps except Transfer Budget's nine, every step costs Prestige and
   carries a `levelReq`, so a level is a gate rather than a decoration. The shop is
   data-driven off `PERKS`, so a new perk or tier appears by being added there; what needs
   wiring is only its effect. A trophy record (runs/cups/best) sits in
@@ -1233,15 +1237,20 @@ the shop/event nodes - was built, played and rolled back; see the item and
   once** is also wrong: a base 98 with +2 then -3 is **96** the old way and 97 if summed. The
   checks assert that literal 96, because "simplifying" `xiOf` to a sum is the obvious next
   refactor and it would change the game quietly.
-- **`RunEffect.expiresAfter` is wired but unused.** Every boost is permanent, so nothing sets
-  it. It stays because it is the whole reason the ledger beats the rewrite it replaced: a
-  temporary effect is expressible now and was not before, and the plumbing is complete and
-  tested, so the first one that wants to wear off is a caller change rather than a redesign.
+- **`RunEffect.expiresAfter` is what makes a temporary effect expressible**, and it is
+  live: **Second Wind** and **Sold Out Stadium** both set it, through `RatingPlan.lasts` /
+  `startsIn`, and `npm run checks` asserts the resulting windows. It was genuinely unused
+  when the ledger landed - every boost was permanent then - which is why this entry used to
+  say so, and it is the clearest case for the ledger having beaten the rewrite it replaced:
+  the first card that wanted to wear off was a caller change rather than a redesign. (What
+  WAS unused, a caller-level `expiresAfter` argument on `grantBoon`, was deleted 2026-08-24
+  as hygiene H120 - `lasts` is the only route now.)
 - `applyBoon()` in `boons.ts` is the MEASUREMENT path, reproducing the old behaviour for
   callers that want a resulting XI and have no run to record against. Only the balance
   harness uses it.
 - **The regression test already existed.** The **boon-power table** `npm run checks` prints
-  is byte-identical before and after the refactor, for all 19 boons - twice over now, since
+  is byte-identical before and after the refactor, for all the boons of the day (19 then,
+  32 now) - twice over, since
   it was verified again when the ledger was restored after the item 04 rollback.
 
 ## Challenges (flagged)
@@ -1264,7 +1273,7 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   finished run newly satisfies. `AWARD` is bronze 2, silver 5, gold 12, **sized by
   simulation** (2026-08-19, 16 careers x 150 real runs) against the anchor that decides
   it: the perk shop plus every locked boost cost **2525 Prestige** when it was sized (it
-  is **3500** now, so the catalogue is nearer a fifth of the shop than a third - drift in
+  is **3470** now, so the catalogue is nearer a fifth of the shop than a third - drift in
   the safe direction, since it makes runs a larger share of income; re-derive it rather
   than trusting this figure), and a run pays a
   median of 9. At 2/5/12 the whole catalogue is worth 779, about a third of the shop, and
@@ -1493,7 +1502,7 @@ A second way to build the XI, alongside the random roll. Spec:
   rating via **`domain/pricing.ts`** (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so
   the budget forces trade-offs). The budget is a `budget` prop (not a constant): it is the
   owned `transfer-budget` career perk's tier through `config.ts` `BUDGET_BY_TIER` ($70 base
-  -> $150), computed in `App` (reads `store.peek().career`, synchronously) and passed to
+  -> $160), computed in `App` (reads `store.peek().career`, synchronously) and passed to
   `BudgetMarket`. `BUDGET_DRAFT` ($110) is no longer read by any screen - every build is a
   career build - and is kept only as the mid-ladder figure `npm run checks` prices against.
 - **The owned-sticker discount.** A player whose sticker is already in the album costs

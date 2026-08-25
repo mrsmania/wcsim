@@ -308,7 +308,7 @@ export const PERKS: Perk[] = [
     id: 'transfer-budget',
     name: 'Transfer Budget',
     tiers: [
-      { level: 1, description: '$80 transfer budget (Career Mode).', cost: 20, levelReq: 2 },
+      { level: 1, description: '$80 transfer budget.', cost: 20, levelReq: 2 },
       { level: 2, description: '$90 transfer budget.', cost: 40, levelReq: 3 },
       { level: 3, description: '$100 transfer budget.', cost: 80, levelReq: 5 },
       { level: 4, description: '$110 transfer budget.', cost: 120, levelReq: 8 },
@@ -332,7 +332,7 @@ export const PERKS: Perk[] = [
     id: 'extra-reroll',
     name: 'Extra Re-roll',
     tiers: [
-      { level: 1, description: 'A 4th squad re-roll when you roll your XI (Career Mode).', cost: 30, levelReq: 1 },
+      { level: 1, description: 'A 4th squad re-roll when you roll your XI.', cost: 30, levelReq: 1 },
       { level: 2, description: 'A 5th squad re-roll when you roll your XI.', cost: 75, levelReq: 4 },
     ],
   },
@@ -368,8 +368,7 @@ export const perkLevelOf = (career: CareerState, id: string): number => career.p
 
 /** Extra squad re-rolls from the Extra Re-roll perk: the owned tier is the count, so
  *  the roll draft starts at `INITIAL_REROLLS` plus this. Clamped to the tiers that
- *  exist, so an old save claiming a higher level cannot hand out more. Career Mode
- *  only, like the transfer-budget perk - a Quick Run keeps the base three. */
+ *  exist, so an old save claiming a higher level cannot hand out more. */
 export function extraRerollsOf(career: CareerState): number {
   const tiers = perkById('extra-reroll')?.tiers.length ?? 0;
   return Math.min(perkLevelOf(career, 'extra-reroll'), tiers);

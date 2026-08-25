@@ -174,8 +174,12 @@ function recomputeXi(run: RunState): RunState {
  *  (career.ts and the checks harness key off RunOutcome). */
 export type RunOutcome = Finish;
 
-/** One completed round, for the progress ladder. `stage` is 'group' or a KO round
- *  index (0 = Round of 16). `won` = advanced (group) / won the tie (knockout). */
+/** One completed round. `stage` is 'group' or a KO round index (0 = Round of 16).
+ *  `won` = advanced (group) / won the tie (knockout).
+ *
+ *  Read by the tree's round reviews (`cupRun/RoundReview`, opened from the path cells and
+ *  the bracket's game boxes), by `domain/challenges.ts`, and by the group-results banner.
+ *  It said "for the progress ladder" until 2026-08-24; `RunLadder` was deleted 2026-08-21. */
 export interface RoundRecord {
   stage: 'group' | number;
   won: boolean;

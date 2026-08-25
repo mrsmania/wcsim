@@ -38,7 +38,7 @@ export interface BoonContext {
 //   legendary  4.5
 //
 // A boon may exceed its band when it pays for it: a trade-off that gives points back
-// (Glass Cannon, Catenaccio), or a condition nobody controls (the draw). Conditions
+// (Catenaccio, Sold Out Stadium), or a condition nobody controls (the draw). Conditions
 // the player controls AT BUILD TIME are off-limits - that is what made the old
 // Chemistry Catalyst a legendary in a common's clothing, since a single-nation XI is
 // trivial to buy in the transfer market.

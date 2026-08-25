@@ -62,7 +62,7 @@ export const FEATURES = {
     challenges: true,
     /** Trophy cabinet: a read-only /cabinet screen showing what a career has to show
      *  for itself - the cups it has won by Ascension tier, the records, the honours
-     *  summary, the derived badges (domain/badges.ts) and album completion. Career Mode
+     *  summary, the derived badges (domain/badges.ts) and album completion. The career layer
      *  only, like the rest of that layer, and entirely derived: it reads the career and
      *  the album and records nothing of its own, so switching it off removes the route
      *  and the hub link and changes nothing else. Roadmap item 06; comp in
@@ -116,7 +116,7 @@ export const BUDGET_DRAFT = 110;
 /** Budget draft: how much cheaper a player is when his sticker is already in your album
  *  (0.25 = 25% off, rounded, never below $1). The collection paying back into the game,
  *  so a big album buys a slightly stronger XI. Applies in BOTH modes: the album is global,
- *  shared by Quick Run, Career Mode and guests, so there is one price rule rather than a
+ *  shared by signed-in players and guests, so there is one price rule rather than a
  *  mode-dependent one. Set to 0 to switch the discount off entirely. */
 export const STICKER_DISCOUNT = 0.25;
 

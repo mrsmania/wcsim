@@ -12,8 +12,10 @@ import type { Reveal } from '../../components/cupRun/types';
 // ---------------------------------------------------------------------------
 // The persistence seam. Everything the app persists goes through one `Store`,
 // so where it is stored is a single decision instead of five import sites.
-// Today there is exactly one implementation (localStorage, unchanged); an
-// account-backed one lands behind it later. See docs/cloud-sync-design.md.
+// There are TWO implementations behind this one facade now: `localStore` (localStorage)
+// for a guest and `remoteStore` for an account, chosen by `bootStore`. This said "today
+// there is exactly one ... an account-backed one lands behind it later", which is the
+// promise the seam kept. See docs/cloud-sync-design.md.
 //
 // Why async: the local implementation resolves immediately, but the signatures
 // are promises so a remote implementation can slot in without touching call
@@ -61,7 +63,8 @@ export interface FinishRunResult {
 }
 
 export interface Store {
-  /** Read everything. Called once before the first render, and again to re-sync.
+  /** Read everything. Called once before the first render, by `bootStore` - nothing
+   *  re-syncs, and `store.load()` on the facade has no caller at all.
    *  Replaces whatever `peek` returns. */
   load(): Promise<AccountSnapshot>;
   /** The latest values held in memory, updated by every save. Synchronous, for the

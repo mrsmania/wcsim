@@ -10,9 +10,9 @@ interface Props {
     formation: Formation;
     filled: Filled;
     style: Style;
-    /** Which path this build is on (chosen up front on the launcher). Decides the
-     *  single "Start Run" destination and the surrounding copy. */
-    /** Start the run: a standard World Cup (quick) or the Cup Run screen (career). */
+    /** Start the run: go to the Cup Run screen. (Two orphaned doc comments sat here until
+     *  2026-08-24, describing a `mode` prop that no longer exists and a choice of two
+     *  destinations that has been one since the second tournament was deleted.) */
     onStartRun: () => void;
     onReset: () => void;
 }

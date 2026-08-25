@@ -6,7 +6,7 @@
 //
 // On top of the curve sits ONE discount: a player whose sticker is already in your
 // album is cheaper (STICKER_DISCOUNT), so the collection pays back into the game.
-// It applies in both modes - the album is global, shared by Quick Run, Career Mode
+// It applies for everyone - the album is global, shared by signed-in players
 // and guests alike, so there is a single price rule rather than a mode-dependent one.
 // ---------------------------------------------------------------------------
 

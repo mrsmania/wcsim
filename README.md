@@ -10,13 +10,13 @@ player data lives in fixed TypeScript objects under `src/data/`. Accounts are th
 optional exception - point the build at a Supabase server and your album, career and
 in-progress run follow you between devices (requirements in
 `docs/cloud-sync-requirements.md`, server setup in `docs/nas-setup.md`); with no server
-configured that whole layer is absent from the bundle.
+configured nothing account-related renders and the auth code is never loaded.
 
-> **All nine tournaments from 1990 to 2022 are researched full datasets** - about
-> 6,270 player rows. 1990 and 1994 are 24-nation fields, 1998 onward are 32; squad
-> sizes are 22-man for 1990-1998, 23-man for 2002-2018 and 26-man for 2022 (Iran
-> registered 25), with shirt numbers and positions taken from the tournament squad
-> lists. Ratings are a holistic judgement of each player's strength **at the time of
+> **All ten tournaments from 1986 to 2022 are researched full datasets** - about
+> 6,800 player rows. 1986, 1990 and 1994 are 24-nation fields, 1998 onward are 32; squad
+> sizes are 22-man for 1986-1998 (Morocco 1986 registered 23), 23-man for 2002-2018 and
+> 26-man for 2022 (Iran registered 25), with shirt numbers and positions taken from the
+> tournament squad lists. Ratings are a holistic judgement of each player's strength **at the time of
 > that tournament** on a 60-99 scale - not current ability, and not a FIFA-game
 > number. For 1998 and 2002 the rating blends pre-tournament ability with how the
 > player actually performed there. Historical nations keep their period identity:
@@ -33,7 +33,7 @@ configured that whole layer is absent from the bundle.
 - **Routing** via `react-router-dom` (clean paths); the whole game is mirrored to
   `localStorage`, so browser Back/Forward work and an in-progress run survives a refresh
 - **Navigation:** five tabs (Play / Career / Album / Records / Squads), a row on a
-  desktop and a bottom bar on a phone, with a route crumb under it
+  desktop and a bottom bar on a phone
 - **Design:** the flat "turf-flat" look (top-down tactics-board pitch, hard-shadow
   cards) with Archivo / Schibsted Grotesk / Spline Sans Mono web fonts. Tokens live
   in `src/index.css`; reference mockups in `docs/redesign-2026/turf-flat/`.
@@ -46,6 +46,7 @@ npm run dev        # http://localhost:5173 (bumps to 5174 if the port is busy)
 npm run build      # type-check + production build into dist/
 npm run preview    # serve the production build locally
 npm run typecheck
+npm run checks     # the domain characterization harness (132 invariants); also runs in CI
 ```
 
 ## Project layout
@@ -59,16 +60,18 @@ src/
                chemistry, odds, difficulty, validateSquads (dev-time dataset checks),
                plus the flagged layers: album (stickers), pricing + budget (transfer
                market), boons / run / career / ascension (Cup Run), challenges
-  state/       gameReducer.ts (phase machine: setup -> draft -> complete -> group ->
-               knockout) + store/ (one persistence seam, local or account-backed)
+  state/       gameReducer.ts (phase machine: setup -> draft -> complete; the tournament
+               itself lives in RunState, not the reducer)
+               + store/ (one persistence seam, local or account-backed)
                over persist.ts / albumStorage.ts / careerStorage.ts / runStorage.ts /
                settingsStorage.ts, and auth.ts for accounts
   hooks/       useMatchClock (match reveal), useFollowBottom (auto-scroll),
                useSettings (theme / difficulty / year pool), useStickerAlbum
   components/  SetupPanel, SquadPanel, Pitch (+ PlayerBadge), BoxScore (ratings +
-               chemistry), XiTable (line-up sheet), CompletePanel, the group screen
-               (TournamentScreen -> GroupDrawReveal modal / StandingsTable / MatchdayCard)
-               and KnockoutScreen (+ Bracket + Confetti), TournamentSummary, the squad
+               chemistry), XiTable (line-up sheet), CompletePanel, the run screen
+               (CupRunScreen + cupRun/*: GroupDrawReveal modal, StandingsTable,
+               MatchdayCard, RunBracket -> Bracket, RoundReview, RunEndPanel, Confetti),
+               the honours screens (ChallengesScreen, CabinetScreen), the squad
                browser (SquadBrowser + TeamRoster), and shared atoms (Flag, Tooltip,
                FixtureRow, GoalList) via matchUi/matchView + useMatchClock
   config.ts    FEATURES flags
@@ -108,11 +111,11 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Real URLs with working browser Back / Forward; the in-progress game persists across a refresh
 - [x] Transfer market: build the XI by buying within a budget instead of rolling squads, feature-flagged
 - [x] Sticker album: a persistent Panini-style collection of the elite players you draft, with duplicates and trades, feature-flagged
-- [x] Cup Run + career: a roguelike run (boosts between rounds, an Ascension difficulty ladder) over a persistent career of XP, levels, Prestige and tiered perks, feature-flagged
-- [x] Challenges: 130 permanent honours judged from a finished run, feature-flagged (their Prestige awards are on: bronze 2, silver 5, gold 12)
+- [x] Cup Run + career: a roguelike run (boosts between rounds, an Ascension difficulty ladder) over a persistent career of XP, levels, Prestige and tiered perks - the only way the game is played, so no longer behind a flag
+- [x] Challenges: 130 permanent honours judged from a finished run, feature-flagged (their Prestige awards always pay: bronze 2, silver 5, gold 12)
 - [x] Optional accounts: sign in with an emailed code and your album, career, settings and in-progress run live on a server instead of the browser (absent unless the build is given one)
 - [x] Settings: match speed, a casual/normal/hard difficulty, a light/dark theme, and which World Cups the game draws from
-- [x] Five-tab navigation (Play / Career / Album / Records / Squads): a row on a desktop, a bottom bar at thumb height on a phone, a route crumb for "where am I", and one build page
+- [x] Five-tab navigation (Play / Career / Album / Records / Squads): a row on a desktop, a bottom bar at thumb height on a phone, and one build page
 - [x] A Cup Run plays as a tournament: the group opens with the draw and a table that fills in as the matchdays play, and the knockouts run on a 16-team bracket, collapsed to your own path with the full draw one click away
 
 ## Hosting

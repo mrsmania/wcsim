@@ -37,7 +37,9 @@ export interface RunEffect {
   label: string;
   target: EffectTarget;
   delta: number;
-  /** The `koRound` this was granted on (the group grants at -1). */
+  /** The `koRound` this was granted on. The group grants at `START_ROUND`, which is 0.
+   *  Never -1: that was a real bug, not a cosmetic choice, and `domain/run.ts` spends six
+   *  lines on why - a boost with a duration expired before the first ball was kicked. */
   appliedAt: number;
   /** First `koRound` on which it applies. Absent = from the moment it was granted.
    *  Set by an effect that lands LATER than the card that caused it - a boost that

@@ -9,7 +9,7 @@
  * this is the same rule for the nav bar.
  *
  * A counter rather than a boolean, so two overlapping reveals (a screen unmounting while
- * another mounts) cannot leave the bar stuck. With the classic navigation nothing
+ * another mounts) cannot leave the bar stuck. Before the tabs shipped nothing
  * subscribes and this is a number no one reads.
  */
 import { useEffect, useState } from 'react';

@@ -505,14 +505,14 @@ export default function App({
         if (STICKERS) stickers.onNewRun();
         void store.saveRun(null);
         dispatch({ type: 'RESET' });
-        // Re-open setup in the path that matches where the reset came from: stay on a
-        // build route; a Cup Run -> the career build; a World Cup -> the quick build;
-        // anywhere else -> the launcher.
         // One build route, so a reset always lands there and finding F8 (three different
         // answers to "go back") answers itself.
         navigate('/play');
         // `stickers.onNewRun` is a stable callback, so this stays referentially quiet.
-    }, [navigate, location.pathname, STICKERS, stickers.onNewRun]);
+        // `location.pathname` is deliberately NOT a dependency: it was one while the
+        // destination was computed from it, and leaving it made this callback a new object
+        // on every navigation, which propagated to four child components.
+    }, [navigate, STICKERS, stickers.onNewRun]);
 
     const openPositions = useMemo<Set<Position>>(
         () =>
