@@ -188,6 +188,79 @@ function koRec(stage: number, over: Partial<Omit<KoRecord, 'stage'>> = {}): KoRe
   };
 }
 
+// --- Run fixtures: one XI, one run, one walk ---------------------------------
+// The harness had 42 copies of "the best XI of some squad", 43 `beginRun` calls and
+// fifteen near-identical "walk this run to the end" loops, each re-deciding the same
+// three-way branch (hygiene H158). Two consequences beyond the size: a new run phase had
+// to be taught to fifteen places, and a walk that always picks `offer[0]` can land on a
+// card that asks a QUESTION, park on `pendingChoice` and spin to its guard limit without
+// ever reaching `ended` - a per-site behaviour nobody chose.
+
+/** The best XI of squad `i`, wrapping. `SQUADS[0]` is the default because most checks only
+ *  need a plausible XI, not a particular one. */
+function xiFor(i = 0): Player[] {
+  return bestEleven(SQUADS[i % SQUADS.length]!.players);
+}
+
+/** A run begun from that XI. */
+function runFor(i = 0, opts?: Parameters<typeof beginRun>[1]): RunState {
+  return beginRun(xiFor(i), opts);
+}
+
+/** One step of a run, whatever it is waiting on: play the group, answer a card that asked
+ *  a question, take a boost, or play the knockout tie.
+ *
+ *  Returns the SAME object when there is nothing to do, so a caller can stop on identity
+ *  rather than on a guard. `pick` selects the boost - an index into the offer, or a
+ *  function for the sites that want a particular kind of card. */
+function stepRun(
+  run: RunState,
+  pick: number | ((offer: readonly Boon[]) => Boon | undefined) = 0,
+): RunState {
+  if (run.phase === 'group') return playGroupStage(run);
+  if (run.phase === 'match') return playKnockoutRound(run);
+  if (run.phase === 'boon') {
+    // A parked question first: the phase stays `boon` until it is answered, so picking
+    // another card here would just re-park the same one.
+    if (run.pendingChoice) return resolveChoice(run, run.xi[0]!.id).next;
+    const offer = run.offer ?? [];
+    if (!offer.length) return run;
+    const b = typeof pick === 'number' ? offer[pick] ?? offer[0]! : pick(offer);
+    return b ? chooseBoon(run, b.id).next : run;
+  }
+  return run;
+}
+
+/** Walk a run to its end. `limit` stays per-site: a few check NAMES print how many states
+ *  they visited, so a different bound would change the harness's own output. */
+function playToEnd(
+  run: RunState,
+  pick: number | ((offer: readonly Boon[]) => Boon | undefined) = 0,
+  limit = 20,
+): RunState {
+  let r = run;
+  for (let guard = 0; r.phase !== 'ended' && guard < limit; guard++) {
+    const next = stepRun(r, pick);
+    if (next === r) break;
+    r = next;
+  }
+  return r;
+}
+
+/** The run at each of its boost stops - the offers a real career is actually shown, with
+ *  the state behind them, so a caller can read `activeBoons` or re-roll the offer. */
+function boonStops(squadIndex = 0, opts?: Parameters<typeof beginRun>[1], limit = 12): RunState[] {
+  const stops: RunState[] = [];
+  let r = playGroupStage(runFor(squadIndex, opts));
+  for (let guard = 0; r.phase !== 'ended' && guard < limit; guard++) {
+    if (r.phase === 'boon' && r.offer?.length) stops.push(r);
+    const next = stepRun(r);
+    if (next === r) break;
+    r = next;
+  }
+  return stops;
+}
+
 // --- Dataset integrity -----------------------------------------------------
 check('dataset: validateSquads reports no problems', validateSquads(SQUADS).length === 0);
 check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_ID[s.id] === s));
@@ -234,7 +307,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 {
   let ok = true;
   for (let i = 0; i < 1000 && ok; i++) {
-    const user = userGroupTeam(bestEleven(SQUADS[i % SQUADS.length].players));
+    const user = userGroupTeam(xiFor(i));
     let group = createGroup(user, pickOpponents(3));
     for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
       group = recordMatchday(group, simulateMatchday(group, md));
@@ -269,7 +342,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let completesOk = true;
   let metCoQualifierEarly = false;
   for (let i = 0; i < 1000 && completesOk; i++) {
-    const user = userGroupTeam(bestEleven(SQUADS[i % SQUADS.length].players));
+    const user = userGroupTeam(xiFor(i));
     const coQualifier = squadGroupTeam(SQUADS[(i + 1) % SQUADS.length]);
     let b = buildBracket(user, coQualifier, [coQualifier.id]);
     let guard = 0;
@@ -312,7 +385,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 
 // --- Chemistry bonus reaches the sim (attack + defense, not just overall) ----
 {
-  const players = bestEleven(SQUADS[0].players);
+  const players = xiFor();
   const base = userGroupTeam(players, 0).strength;
   const boosted = userGroupTeam(players, 5).strength;
   const reaches =
@@ -704,7 +777,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 
 // --- Boons: keep a valid 11 (no duplicate person); offers are distinct ------
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   let ok = true;
   for (const b of BOONS) {
     const after = applyBoon(xi, b, { opponentSquadId: SQUADS[1].id });
@@ -725,7 +798,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // the refactor (it must not move); these are the properties the ledger itself has to
 // hold, each of which is a bug the old baked-in version could not even express.
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   const ids = xi.map((p) => p.id);
   let ok = true;
 
@@ -771,16 +844,17 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let ok = true;
   let checked = 0;
   for (let seed = 0; seed < 40; seed++) {
-    let run = beginRun(bestEleven(SQUADS[seed % SQUADS.length].players), { perkLevels: { 'deep-squad': 2, scout: 1 }, unlockedBoons: lockableBoons().map((b) => b.id) });
+    let run = runFor(seed, { perkLevels: { 'deep-squad': 2, scout: 1 }, unlockedBoons: lockableBoons().map((b) => b.id) });
     const agrees = (r: RunState) =>
       JSON.stringify(r.xi) === JSON.stringify(xiOf(r.roster ?? r.xi, r.effects ?? [], r.koRound));
     if (!agrees(run)) ok = false;
     checked++;
-    let guard = 0;
-    while (run.phase !== 'ended' && guard++ < 12) {
-      if (run.phase === 'group') run = playGroupStage(run);
-      else if (run.phase === 'boon') run = chooseBoon(run, (run.offer ?? [])[0]?.id ?? '').next;
-      else run = playKnockoutRound(run);
+    // Its own loop, because the assertion is per STATE rather than at the end; the step
+    // itself is the shared one.
+    for (let guard = 0; run.phase !== 'ended' && guard < 12; guard++) {
+      const next = stepRun(run);
+      if (next === run) break;
+      run = next;
       if (!agrees(run)) ok = false;
       checked++;
     }
@@ -799,7 +873,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // `docs/perk-ideas.md`), so it is asserted on its own rather than through a card. Without
 // this the whole lever would be untested the moment its only caller went.
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   const plain = userGroupTeam(xi, 0, 0);
   const iced = userGroupTeam(xi, 0, 0, 8, 5);
   let ok =
@@ -821,7 +895,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 {
   let ok = true, redrawn = 0, seen = 0;
   for (let i = 0; i < 60; i++) {
-    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
+    let run = playGroupStage(runFor(i));
     let guard = 0;
     while (run.phase !== 'ended' && guard++ < 12) {
       if (run.phase === 'boon') {
@@ -892,7 +966,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 
 // In Form names whoever the RUN chose, and does nothing before a goal is scored.
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
   // No goals yet: the card is a legal no-op rather than a throw or a random pick.
   const cold = chooseBoon(base, 'in-form').next;
@@ -909,7 +983,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 
 // Old Guard reaches into the CAREER, and must do nothing on a career that has never scored.
 {
-  const xi = bestEleven(SQUADS[1].players);
+  const xi = xiFor(1);
   const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
   let ok = chooseBoon(base, 'old-guard').next.roster!.every((p, i) => p.id === base.roster![i].id);
   // With a top scorer, he joins - once, without duplicating a person already there.
@@ -929,7 +1003,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // stop. It parks on the run - which is what makes a reload land back on the question rather
 // than lose the card - and only the answer moves the run on.
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   const run = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
   const parked = chooseBoon(run, 'armband').next;
   let ok =
@@ -961,7 +1035,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 {
   let ok = true, seen = 0;
   for (let i = 0; i < 40 && seen < 20; i++) {
-    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
+    let run = playGroupStage(runFor(i));
     let guard = 0;
     while (run.phase !== 'ended' && guard++ < 12) {
       if (run.phase === 'boon' && run.nextOpponent && run.bracket) {
@@ -1010,7 +1084,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 {
   let ok = true, borrowed = 0, declined = 0, returned = 0;
   for (let i = 0; i < 40 && borrowed < 12; i++) {
-    let run = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
+    let run = playGroupStage(runFor(i));
     let guard = 0;
     while (run.phase !== 'ended' && guard++ < 12) {
       if (run.phase === 'boon' && run.nextOpponent) {
@@ -1059,7 +1133,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // is excluded for free (a group record carries no ratings), and the count is the number of
 // ties the DRAW made you the weaker side in, never the number of rounds played.
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
   // Nothing yet: a legal no-op, like In Form before a goal.
   let ok = (chooseBoon(base, 'underdogs-purse').next.effects ?? []).filter((e) => e.source === 'underdogs-purse').length === 0;
@@ -1083,7 +1157,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // `oppGoals` and a group record's three matchday scorelines - and must never count a
 // shootout, which is excluded by construction (kicks live in `pens`, never in a score).
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   const base = { ...beginRun(xi), phase: 'boon' as const, offer: [] };
   // Nothing conceded is a legal no-op, not a zero-delta entry.
   let ok = (chooseBoon(base, 'siege-mentality').next.effects ?? []).every((e) => e.source !== 'siege-mentality');
@@ -1119,7 +1193,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // wallet and leaves the XP alone. Opposite halves of the same payout, so they are asserted
 // against each other and against a plain run.
 {
-  const base = bestEleven(SQUADS[0].players);
+  const base = xiFor();
   const plain: RunState = { ...beginRun(base), phase: 'ended', outcome: 'sf', score: 60 };
   const p = applyRunResult(INITIAL_CAREER, plain);
   const spo = applyRunResult(INITIAL_CAREER, { ...plain, xpMult: 2 });
@@ -1144,7 +1218,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // but the FINAL pays what it would have, a cup pays triple, and a lost final pays nothing
 // at all - not even the floor of 1 Prestige.
 {
-  const base = bestEleven(SQUADS[0].players);
+  const base = xiFor();
   const at = (outcome: RunOutcome, score: number, extra: Partial<RunState> = {}): RunState =>
     ({ ...beginRun(base), phase: 'ended', outcome, score, ...extra });
   const plainSf = applyRunResult(INITIAL_CAREER, at('sf', 60));
@@ -1180,7 +1254,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // the album hook, which is React and so out of this harness's reach; what is asserted here
 // is that the run carries the number for it to read.
 {
-  const run = { ...beginRun(bestEleven(SQUADS[0].players)), phase: 'boon' as const, offer: [] };
+  const run = { ...runFor(), phase: 'boon' as const, offer: [] };
   const after = chooseBoon(run, 'double-print').next;
   const ok =
     after.cupPicks === 2 &&
@@ -1194,7 +1268,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // Prestige every other run gets, which is what makes the card bite.
 {
   const career = INITIAL_CAREER;
-  const base = bestEleven(SQUADS[0].players);
+  const base = xiFor();
   const lost: RunState = { ...beginRun(base), phase: 'ended', outcome: 'sf', score: 60, mortgaged: true };
   const won: RunState = { ...beginRun(base), phase: 'ended', outcome: 'champion', score: 100, mortgaged: true };
   const lostPlain: RunState = { ...lost, mortgaged: undefined };
@@ -1224,7 +1298,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
 // Second Wind and Sold Out Stadium are the first cards with a lifetime. The window is the
 // price, so a window that does not close (or a debt that never lands) is the card broken.
 {
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   const run = { ...beginRun(xi), phase: 'boon' as const, offer: [], koRound: 1 };
   const sw = chooseBoon(run, 'second-wind').next;
   const swEff = (sw.effects ?? []).filter((e) => e.source === 'second-wind');
@@ -1256,7 +1330,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let ok = true;
   let heads = 0, total = 0;
   for (let i = 0; i < 40; i++) {
-    const xi = bestEleven(SQUADS[i % SQUADS.length].players);
+    const xi = xiFor(i);
     const run = { ...beginRun(xi), phase: 'boon' as const, offer: [], koRound: 1 };
     const a = chooseBoon(run, 'coin-toss').next;
     const b = chooseBoon(run, 'coin-toss').next;
@@ -1334,7 +1408,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const samples = Array.from({ length: SAMPLES }, () => {
     const { filled } = autoFillBudget(sampleFormation.slots, {}, BUDGET_DRAFT);
     const xi = Object.values(filled).filter((p): p is Player => !!p);
-    return xi.length === 11 ? xi : bestEleven(SQUADS[0].players);
+    return xi.length === 11 ? xi : xiFor();
   });
   const side = (ps: Player[], isSide: (p: Player) => boolean) => {
     const vals = ps.filter(isSide).map((p) => p.elo);
@@ -1517,40 +1591,25 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   const seen = new Map<string, number>();
   let stops = 0, dupInOffer = 0, wrongSize = 0, heldOffered = 0, emptyOffer = 0;
   for (let i = 0; i < 300; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { unlockedBoons: allIds });
-    let run: RunState = prepareGroupStage(begun)!.next;
-    let guard = 0;
-    while (guard++ < 10) {
-      if (run.phase === 'boon' && run.offer) {
-        stops++;
-        if (run.offer.length !== 3) wrongSize++;
-        if (!run.offer.length) emptyOffer++;
-        if (new Set(run.offer.map((b) => b.id)).size !== run.offer.length) dupInOffer++;
-        // Nothing the run already holds may come round again (roadmap 32, decided
-        // 2026-08-23). The Physio Table reroll draws its own offer, so it is checked here
-        // too - at every stop that holds anything, which from the second stop on is all of
-        // them. (Gating this on `guard % 2` looked equivalent and was dead code: a stop is
-        // always followed by a match, so boon stops only ever land on odd iterations.)
-        const held = new Set(run.activeBoons);
-        if (held.size) {
-          const rerolled = rerollOffer({ ...run, rerollsLeft: 1 });
-          if (!(rerolled.offer ?? []).length) emptyOffer++;
-          for (const b of rerolled.offer ?? []) if (held.has(b.id)) heldOffered++;
-        }
-        for (const b of run.offer) {
-          if (held.has(b.id)) heldOffered++;
-          seen.set(b.id, (seen.get(b.id) ?? 0) + 1);
-        }
-        run = chooseBoon(run, run.offer[0].id).next;
-        continue;
+    for (const run of boonStops(i, { unlockedBoons: allIds }, 10)) {
+      stops++;
+      const offer = run.offer!;
+      if (offer.length !== 3) wrongSize++;
+      if (new Set(offer.map((b) => b.id)).size !== offer.length) dupInOffer++;
+      // Nothing the run already holds may come round again (roadmap 32, decided
+      // 2026-08-23). The Physio Table reroll draws its own offer, so it is checked here
+      // too - at every stop that holds anything, which from the second stop on is all of
+      // them.
+      const held = new Set(run.activeBoons);
+      if (held.size) {
+        const rerolled = rerollOffer({ ...run, rerollsLeft: 1 });
+        if (!(rerolled.offer ?? []).length) emptyOffer++;
+        for (const b of rerolled.offer ?? []) if (held.has(b.id)) heldOffered++;
       }
-      if (run.phase === 'match') {
-        const k = prepareKnockoutRound(run);
-        if (!k) break;
-        run = k.next;
-        continue;
+      for (const b of offer) {
+        if (held.has(b.id)) heldOffered++;
+        seen.set(b.id, (seen.get(b.id) ?? 0) + 1);
       }
-      break;
     }
   }
   // Every unlocked card is reachable. 300 runs reach a mean of ~600 stops (the floor is
@@ -1592,7 +1651,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     let sizes: number[] = [];
     for (let i = 0; i < 60 && !sizes.length; i++) {
       const g = prepareGroupStage(
-        beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { perkLevels: { 'extra-boon': tier }, unlockedBoons: allIds }),
+        runFor(i, { perkLevels: { 'extra-boon': tier }, unlockedBoons: allIds }),
       );
       if (g?.next.phase === 'boon' && g.next.offer) sizes = [g.next.offer.length];
     }
@@ -1603,7 +1662,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // before kickoff outweighs every choice the run itself offers).
   let scoutOk = true;
   for (const tier of [0, 1, 2]) {
-    const r = beginRun(bestEleven(SQUADS[0].players), { perkLevels: { scout: tier }, unlockedBoons: allIds });
+    const r = runFor(0, { perkLevels: { scout: tier }, unlockedBoons: allIds });
     if (r.activeBoons.length !== tier) scoutOk = false;
     if (r.activeBoons.some((id) => boonById(id)?.rarity !== 'common')) scoutOk = false;
   }
@@ -1613,7 +1672,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   // than the boosts picked at stops.
   let scoutHeldOffered = 0;
   for (let i = 0; i < 60; i++) {
-    const r = beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { perkLevels: { scout: 2 }, unlockedBoons: allIds });
+    const r = runFor(i, { perkLevels: { scout: 2 }, unlockedBoons: allIds });
     const held = new Set(r.activeBoons);
     const g = prepareGroupStage(r);
     for (const b of g?.next.offer ?? []) if (held.has(b.id)) scoutHeldOffered++;
@@ -1637,7 +1696,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let thinnest = 99;
   for (let i = 0; i < 120; i++) {
     let run: RunState = prepareGroupStage(
-      beginRun(bestEleven(SQUADS[i % SQUADS.length].players), { perkLevels: { 'extra-boon': 2, scout: 2 } }),
+      runFor(i, { perkLevels: { 'extra-boon': 2, scout: 2 } }),
     )!.next;
     let guard = 0;
     while (guard++ < 12) {
@@ -1710,13 +1769,8 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   };
   let ok = true;
   for (let i = 0; i < 300 && ok; i++) {
-    let r = playGroupStage(beginRun(bestEleven(SQUADS[i % SQUADS.length].players)));
-    let guard = 0;
-    while (r.phase !== 'ended' && guard++ < 20) {
-      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
-      else if (r.phase === 'match') r = playKnockoutRound(r);
-      else break;
-    }
+    let r = playGroupStage(runFor(i));
+    r = playToEnd(r);
     if (r.phase !== 'ended' || !r.outcome) ok = false;
     else if (r.score !== EXPECT[r.outcome] || r.xi.length !== 11) ok = false;
   }
@@ -1736,16 +1790,16 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     const squad = SQUADS[(i * 5) % SQUADS.length];
     let r: RunState = beginRun(bestEleven(squad.players), { ascension: i % 6 });
     r = playGroupStage(r);
-    let guard = 0;
-    while (r.phase !== 'ended' && guard++ < 20) {
-      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
-      else if (r.phase === 'match') {
+    for (let guard = 0; r.phase !== 'ended' && guard < 20; guard++) {
+      if (r.phase === 'match') {
         // The opponent handed to the next tie must be the one the tree says it is.
         const g = r.bracket ? userGameInRound(r.bracket, r.koRound) : undefined;
         const treeOpp = g && r.bracket ? opponentOf(r.bracket, g) : undefined;
         if (r.bracket && treeOpp?.id !== r.nextOpponent?.id) oppFromBracket = false;
-        r = playKnockoutRound(r);
-      } else break;
+      }
+      const next = stepRun(r);
+      if (next === r) break;
+      r = next;
     }
     // A group exit never builds one; anything past the group must have a finished tree.
     if (r.outcome === 'group') {
@@ -1784,7 +1838,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
     let total = 0;
     let n = 0;
     for (let i = 0; i < 120; i++) {
-      let r: RunState = beginRun(bestEleven(SQUADS[(i * 3) % SQUADS.length].players), { ascension: tier });
+      let r: RunState = runFor(i * 3, { ascension: tier });
       r = playGroupStage(r);
       const b = r.bracket;
       if (!b) continue;
@@ -1809,7 +1863,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let identity = true;
   let monotonic = true;
   for (let i = 0; i < 200 && identity && monotonic; i++) {
-    const user = userGroupTeam(bestEleven(SQUADS[i % SQUADS.length].players), 0, 0);
+    const user = userGroupTeam(xiFor(i), 0, 0);
     let group = createGroup(user, pickOpponents(3, SQUADS));
     for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
       group = recordMatchday(group, simulateMatchday(group, md));
@@ -1843,7 +1897,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let recorded = true;
   let committedDropsIt = true;
   for (let i = 0; i < 200 && stable && recorded && committedDropsIt; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players));
+    const begun = runFor(i);
     const first = prepareGroupStage(begun)!;
     // The run held while the group reveals carries it; the run it was prepared from
     // did not.
@@ -1874,7 +1928,7 @@ check('dataset: SQUAD_BY_ID resolves every squad', SQUADS.every((s) => SQUAD_BY_
   let koDropped = true;
   let tiesChecked = 0;
   for (let i = 0; i < 120; i++) {
-    const begun = beginRun(bestEleven(SQUADS[i % SQUADS.length].players));
+    const begun = runFor(i);
     const g1 = prepareGroupStage(begun)!;
     // Surviving the group also decides the field of 16, the first offer and the R16
     // opponent; a second prepare must hand back exactly those.
@@ -1945,16 +1999,10 @@ const paysDifferently = (b: Boon) =>
  *  differently (asserted below, so the fallback cannot rot into a payout card either). */
 const PIN_BOON = 'veteran-core';
 const plainRun = (() => {
-  let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
-  let guard = 0;
-  while (run.phase !== 'ended' && guard++ < 20) {
-    if (run.phase === 'boon' && run.offer) {
-      const plain = run.offer.find((b) => !paysDifferently(b)) ?? boonById(PIN_BOON)!;
-      run = chooseBoon(run, plain.id).next;
-    } else if (run.phase === 'match') run = playKnockoutRound(run);
-    else break;
-  }
-  return run;
+  let run = playGroupStage(runFor());
+  // A payout card would change the very figures this run exists to measure, so every
+  // stop takes a plain one.
+  return playToEnd(run, (offer) => offer.find((b) => !paysDifferently(b)) ?? boonById(PIN_BOON)!);
 })();
 
 {
@@ -2059,14 +2107,9 @@ const plainRun = (() => {
   let pensSeen = 0;
   for (let i = 0; i < 40; i++) {
     let r: RunState | null = playGroupStage(
-      beginRun(bestEleven(SQUADS[(i * 11) % SQUADS.length].players)),
+      runFor(i * 11),
     );
-    let guard = 0;
-    while (r && r.phase !== 'ended' && guard++ < 20) {
-      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
-      else if (r.phase === 'match') r = playKnockoutRound(r);
-      else break;
-    }
+    if (r) r = playToEnd(r);
     for (const rec of r?.history ?? []) {
       if (!isRoundRecord(rec)) ok = false;
       // A round trip through JSON is what actually happens on a reload.
@@ -2298,7 +2341,7 @@ const plainRun = (() => {
   if (maxSelectableAscension(2, 5) !== 1) ok = false; // below tier-2 level req -> capped at 1
 
   // Reward scaling + cup unlock bookkeeping (build a full RunState, then override).
-  const base = beginRun(bestEleven(SQUADS[0].players));
+  const base = runFor();
   const champ = { ...base, score: 140, outcome: 'champion' as RunOutcome, ascension: 2 };
   const rc = applyRunResult(INITIAL_CAREER, champ);
   const m2 = ascensionAt(2).rewardMult;
@@ -2316,13 +2359,8 @@ const plainRun = (() => {
 
   // A full run at every tier terminates validly and carries its tier through.
   for (let t = 0; t < ASCENSIONS.length && ok; t++) {
-    let r = playGroupStage(beginRun(bestEleven(SQUADS[t % SQUADS.length].players), { ascension: t }));
-    let guard = 0;
-    while (r.phase !== 'ended' && guard++ < 20) {
-      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[0].id).next;
-      else if (r.phase === 'match') r = playKnockoutRound(r);
-      else break;
-    }
+    let r = playGroupStage(runFor(t, { ascension: t }));
+    r = playToEnd(r);
     if (r.phase !== 'ended' || !r.outcome || r.xi.length !== 11 || r.ascension !== t) ok = false;
   }
   check('ascension: reward scaling, unlock bookkeeping, and selection gates hold', ok);
@@ -2330,7 +2368,7 @@ const plainRun = (() => {
 
 // --- Title odds: a valid probability distribution ---------------------------
 {
-  const o = simulateTitleOdds(bestEleven(SQUADS[0].players), 300);
+  const o = simulateTitleOdds(xiFor(), 300);
   const distSum = Object.values(o.distribution).reduce((a, b) => a + b, 0);
   const ok =
     Math.abs(distSum - 1) < 1e-9 &&
@@ -2562,14 +2600,8 @@ const KNOWN_MISSING_ART = new Set([
 {
   const runs: RunState[] = [];
   for (let i = 0; i < 12; i++) {
-    let r = playGroupStage(beginRun(bestEleven(SQUADS[(i * 7) % SQUADS.length].players)));
-    let guard = 0;
-    while (r.phase !== 'ended' && guard++ < 20) {
-      if (r.phase === 'boon' && r.offer) r = chooseBoon(r, r.offer[i % r.offer.length].id).next;
-      else if (r.phase === 'match') r = playKnockoutRound(r);
-      else break;
-    }
-    runs.push(r);
+    // The pick rotates per run, so the sample is not twelve copies of the same choices.
+    runs.push(playToEnd(playGroupStage(runFor(i * 7)), (offer) => offer[i % offer.length]));
   }
   let total = true;
   let pure = true;
@@ -2605,7 +2637,9 @@ const KNOWN_MISSING_ART = new Set([
 {
   const brazil = SQUADS.find((s) => s.code === 'BRA')!;
   const xi = bestEleven(brazil.players);
-  const ended = (over: Partial<RunState>): RunState => ({
+  // A finished run to judge a challenge against. Named for what it builds: the file has
+  // a second helper of the same shape further down that builds something else (H158).
+  const wonCup = (over: Partial<RunState>): RunState => ({
     ...beginRun(xi),
     phase: 'ended',
     outcome: 'champion',
@@ -2623,18 +2657,18 @@ const KNOWN_MISSING_ART = new Set([
   // 1. Ratings are judged on the DATASET player, not the boosted copy in hand.
   const boostedXi = xi.map((p) => ({ ...p, elo: Math.min(99, p.elo + 8) }));
   const ratingOk =
-    !completedIn(ctx(ended({ xi }))).includes('galacticos') ===
-    !completedIn(ctx(ended({ xi: boostedXi }))).includes('galacticos');
+    !completedIn(ctx(wonCup({ xi }))).includes('galacticos') ===
+    !completedIn(ctx(wonCup({ xi: boostedXi }))).includes('galacticos');
 
   // 2. A roster boost must not break a themed run: the XI you PICKED is what counts.
   const foreign = SQUADS.find((s) => s.code === 'ITA')!.players[0];
-  const handedOver = ended({ xi: [...xi.slice(1), foreign], boostedIds: [foreign.id] });
+  const handedOver = wonCup({ xi: [...xi.slice(1), foreign], boostedIds: [foreign.id] });
   const identityOk =
     completedIn(ctx(handedOver)).includes('samba') &&
-    !completedIn(ctx(ended({ xi: [...xi.slice(1), foreign] }))).includes('samba');
+    !completedIn(ctx(wonCup({ xi: [...xi.slice(1), foreign] }))).includes('samba');
 
   // 3. A shootout is not goals conceded: 0-0 on penalties keeps a clean sheet.
-  const shootoutRun = ended({
+  const shootoutRun = wonCup({
     history: [0, 1, 2, 3].map((stage) =>
       koRec(stage, {
         userGoals: 0,
@@ -2653,13 +2687,7 @@ const KNOWN_MISSING_ART = new Set([
 
 // --- Challenges: awarded once, paid into the career, counted to a fixed point --
 {
-  let run = playGroupStage(beginRun(bestEleven(SQUADS[0].players)));
-  let guard = 0;
-  while (run.phase !== 'ended' && guard++ < 20) {
-    if (run.phase === 'boon' && run.offer) run = chooseBoon(run, run.offer[0].id).next;
-    else if (run.phase === 'match') run = playKnockoutRound(run);
-    else break;
-  }
+  const run = playToEnd(playGroupStage(runFor()));
   const input = { base: basePlayer, album: emptyAlbum(), trades: 0 };
   const first = applyRunResult(INITIAL_CAREER, run, input);
   const again = applyRunResult(first.career, run, input);
@@ -3031,7 +3059,7 @@ const KNOWN_MISSING_ART = new Set([
     career = { ...career, level: 99, ascension: a.tier };
     for (let i = 0; i < 2; i++) {
       const run: RunState = {
-        ...beginRun(bestEleven(SQUADS[0].players), { perkLevels: career.perkLevels, unlockedBoons: career.unlockedBoons, ascension: a.tier }),
+        ...runFor(0, { perkLevels: career.perkLevels, unlockedBoons: career.unlockedBoons, ascension: a.tier }),
         phase: 'ended',
         outcome: 'champion',
         score: 140,
@@ -3187,7 +3215,7 @@ const KNOWN_MISSING_ART = new Set([
 {
   // A whole run, played through the real prepare* path so the tally is built the way
   // the game builds it (not hand-set here).
-  const xi = bestEleven(SQUADS[0].players);
+  const xi = xiFor();
   let run: RunState = beginRun(xi);
   let guard = 0;
   const prepared = prepareGroupStage(run);
@@ -3236,16 +3264,7 @@ const KNOWN_MISSING_ART = new Set([
   // run is only that the tally ignores the shootout.
   let penKicksSeen = 0;
   for (let i = 0; i < 400 && pensSeen < 12; i++) {
-    let r: RunState = beginRun(bestEleven(SQUADS[i % SQUADS.length].players));
-    r = playGroupStage(r);
-    let g = 0;
-    while (r.phase !== 'ended' && g++ < 12) {
-      if (r.phase === 'boon' && r.offer?.length) {
-        r = chooseBoon(r, r.offer[0].id).next;
-        continue;
-      }
-      r = playKnockoutRound(r);
-    }
+    const r = playToEnd(playGroupStage(runFor(i)), 0, 12);
     const shootouts = r.history.filter((h): h is KoRecord => h.stage !== 'group' && !!h.pens);
     if (!shootouts.length) continue;
     pensSeen++;
@@ -3281,7 +3300,8 @@ const KNOWN_MISSING_ART = new Set([
 
   // The archive: newest first, capped, and the counters it carries agree with the run.
   let career = INITIAL_CAREER;
-  const ended = (score: number, outcome: RunOutcome): RunState => ({
+  // A finished run with a chosen score and finish, for the archive rows below.
+  const finished = (score: number, outcome: RunOutcome): RunState => ({
     ...beginRun(xi),
     phase: 'ended',
     outcome,
@@ -3305,7 +3325,7 @@ const KNOWN_MISSING_ART = new Set([
 
   career = INITIAL_CAREER;
   for (let i = 0; i < HISTORY_LIMIT + 25; i++) {
-    career = applyRunResult(career, ended(10 + i, 'group'), undefined, i + 1).career;
+    career = applyRunResult(career, finished(10 + i, 'group'), undefined, i + 1).career;
   }
   const hist = career.stats.history ?? [];
   check(
@@ -3317,7 +3337,7 @@ const KNOWN_MISSING_ART = new Set([
   );
   check(
     'archive: a run banked with no clock carries no date rather than a fake one',
-    applyRunResult(INITIAL_CAREER, ended(10, 'group')).career.stats.history?.[0].at === undefined,
+    applyRunResult(INITIAL_CAREER, finished(10, 'group')).career.stats.history?.[0].at === undefined,
   );
 
   // Player records: additive across runs, one run counted per run, and a save from
