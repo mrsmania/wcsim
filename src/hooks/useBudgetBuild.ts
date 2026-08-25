@@ -1,5 +1,4 @@
-import { useCallback, useState } from 'react';
-import { ALL_PLAYERS } from '../data/squads';
+import { useCallback, useEffect, useState } from 'react';
 import type { Player } from '../data/types';
 import type { Filled } from '../domain/draft';
 import type { Formation, Slot } from '../domain/formations';
@@ -18,12 +17,12 @@ import type { Action } from '../state/gameReducer';
 export interface BudgetBuild {
     /** The market player in hand, by id. */
     heldId: string | null;
-    /** That player, resolved. Null outside the budget build.
+    /** That player, resolved against the ACTIVE POOL - the same set the market lists.
      *
-     *  Resolved against ALL_PLAYERS rather than the active pool, which is what the
-     *  market itself lists. Harmless today - the id can only have come FROM the market -
-     *  and a real bug the moment an id is persisted or the pool changes mid-build. That
-     *  is hygiene H86, which also scopes it. */
+     *  It used to resolve against every player in the dataset, which was harmless only
+     *  because the id could not come from anywhere but the market. Narrowing the pool with
+     *  a card in hand left a card held that the market no longer offers, and the buy would
+     *  have gone through (hygiene H86). A miss now drops the card. */
     heldPlayer: Player | null;
     /** The empty slot being shopped for: the tapped one if it is still empty, else the
      *  first open slot. Null outside the budget build. */
@@ -51,6 +50,7 @@ export function useBudgetBuild({
     formation,
     activeFormation,
     filled,
+    pool,
     dispatch,
     onTakeCard,
     scrollToPitch,
@@ -63,6 +63,8 @@ export function useBudgetBuild({
      *  included, so the two are not always the same object). */
     activeFormation: Formation | null;
     filled: Filled;
+    /** The active pool by id: what the market offers, and so what may be held. */
+    pool: Map<string, Player>;
     dispatch: (action: Action) => void;
     /** Called when a card is taken, so a move in progress can be dropped. */
     onTakeCard: () => void;
@@ -113,7 +115,7 @@ export function useBudgetBuild({
 
     const place = useCallback(
         (slotId: string) => {
-            const player = heldId ? (ALL_PLAYERS.find((p) => p.id === heldId) ?? null) : null;
+            const player = heldId ? (pool.get(heldId) ?? null) : null;
             if (!player || !formation) return;
             dispatch({ type: 'BUY_PLAYER', slotId, player });
             setHeldId(null);
@@ -122,7 +124,7 @@ export function useBudgetBuild({
             // Mobile: back up to the market for the next position, as a placement does.
             scrollToPanel();
         },
-        [heldId, formation, filled, dispatch, scrollToPanel],
+        [heldId, formation, filled, pool, dispatch, scrollToPanel],
     );
 
     const shop = useCallback((slotId: string) => {
@@ -147,8 +149,14 @@ export function useBudgetBuild({
               activeFormation.slots.find((s) => !filled[s.id]) ??
               null)
             : null;
-    const heldPlayer =
-        isBudgetBuild && heldId ? (ALL_PLAYERS.find((p) => p.id === heldId) ?? null) : null;
+    const heldPlayer = isBudgetBuild && heldId ? (pool.get(heldId) ?? null) : null;
+
+    // The pool narrowed with a card in hand: drop the card. Deliberate, and the reason it
+    // is a drop rather than a keep is that the market no longer lists that player, so
+    // holding him leaves a highlighted board with nothing behind it.
+    useEffect(() => {
+        if (heldId && !pool.has(heldId)) setHeldId(null);
+    }, [heldId, pool]);
 
     return {
         heldId,

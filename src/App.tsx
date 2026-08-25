@@ -8,7 +8,7 @@ import {
     useState,
 } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { basePlayer, squadsInPool } from './data/squads';
+import { basePlayer } from './data/squads';
 import type { Player, Position } from './data/types';
 import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
 import {
@@ -41,6 +41,7 @@ import { useBudgetBuild } from './hooks/useBudgetBuild';
 import { useMovePlayer } from './hooks/useMovePlayer';
 import { useStackedScroll } from './hooks/useStackedScroll';
 import { useCareer } from './hooks/useCareer';
+import { usePool } from './hooks/usePool';
 import SettingsModal from './components/SettingsModal';
 import AccountModal from './components/AccountModal';
 import SetupPanel from './components/SetupPanel';
@@ -103,13 +104,11 @@ export default function App({
     const STICKERS = FEATURES.stickerAlbum;
     const settings = useSettings(snapshot.settings);
     // The active squad pool (squad-pool setting): the squads and players the game draws
-    // from - the user's rolls, the transfer market, the opponents, and the album target.
-    // Recomputed only when the setting changes.
-    const poolSquads = useMemo(
-        () => squadsInPool(settings.settings.poolYears),
-        [settings.settings.poolYears],
-    );
-    const poolPlayers = useMemo(() => poolSquads.flatMap((s) => s.players), [poolSquads]);
+    // from - the user's rolls, the transfer market, the opponents, the odds sim and the
+    // album's completion target. Derived once (hooks/usePool) and handed out.
+    const pool = usePool(settings.settings.poolYears);
+    const poolSquads = pool.squads;
+    const poolPlayers = pool.players;
     const stickers = useStickerAlbum(state.swapsLeft, snapshot.album, poolPlayers);
     // The career, seeded from the boot snapshot like the album (hooks/useCareer). It used
     // to be state inside the run screen, which is why two memos here re-read it from the
@@ -199,6 +198,7 @@ export default function App({
         formation,
         activeFormation,
         filled,
+        pool: pool.byId,
         dispatch,
         onTakeCard: move.cancel,
         scrollToPitch,
@@ -828,6 +828,7 @@ export default function App({
                 <SettingsModal
                     onClose={() => setSettingsOpen(false)}
                     settings={settings}
+                    pool={pool}
                     speed={speed}
                     onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
                 />

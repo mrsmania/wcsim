@@ -3,9 +3,10 @@ import Overlay from './Overlay';
 import { CARD_FLAT, SegControl, SpeedControl } from './matchUi';
 import type { MatchSpeed } from '../domain/clock';
 import type { Difficulty } from '../domain/difficulty';
-import { WORLD_CUP_YEARS, squadsInPool } from '../data/squads';
+import { WORLD_CUP_YEARS } from '../data/squads';
 import { collectiblePlayers } from '../domain/album';
 import type { SettingsApi } from '../hooks/useSettings';
+import type { Pool } from '../hooks/usePool';
 
 const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
 const GH = 'font-display text-[14px] font-extrabold';
@@ -53,11 +54,15 @@ function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; la
 export default function SettingsModal({
     onClose,
     settings,
+    pool,
     speed,
     onSetSpeed,
 }: {
     onClose: () => void;
     settings: SettingsApi;
+    /** The pool the rest of the app is playing with, so the counters below read the same
+     *  derivation rather than walking the dataset a second time (hygiene H86). */
+    pool: Pool;
     speed: MatchSpeed;
     onSetSpeed: (s: MatchSpeed) => void;
 }) {
@@ -78,19 +83,18 @@ export default function SettingsModal({
             : [...s.poolYears, y].sort((a, b) => a - b);
         if (next.length) setPoolYears(next);
     };
-    // Memoized on the selection, because it is not cheap and it was being redone on every
-    // render of an open sheet: it walks every squad in the pool and every player in it, and
-    // `collectiblePlayers` walks them again. Ticking one year is the only thing that can
-    // change the answer (hygiene H145).
-    const poolCounts = useMemo(() => {
-        const pooled = squadsInPool(s.poolYears);
-        return {
+    // Memoized because it is not cheap and it was being redone on every render of an open
+    // sheet: `collectiblePlayers` walks every player in the pool (hygiene H145). The pool
+    // itself is no longer re-derived here - it comes in already built.
+    const poolCounts = useMemo(
+        () => ({
             cups: s.poolYears.length,
-            teams: pooled.length,
-            players: pooled.reduce((n, sq) => n + sq.players.length, 0),
-            collectibles: collectiblePlayers(pooled.flatMap((sq) => sq.players)).length,
-        };
-    }, [s.poolYears]);
+            teams: pool.squads.length,
+            players: pool.players.length,
+            collectibles: collectiblePlayers(pool.players).length,
+        }),
+        [s.poolYears, pool],
+    );
 
     return (
         <Overlay onClose={onClose} ariaLabel="Settings">
