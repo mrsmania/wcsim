@@ -3,7 +3,7 @@
  *
  * `dkr/` is gitignored (it holds the database password, the JWT secret and the service
  * key, and this repo is public), so anything that talks to the server reads it from
- * there rather than carrying its own copy. Shared by `push-collectibles.mjs` and
+ * there rather than carrying its own copy. Shared by `push-collectibles.ts` and
  * `push-sql.mjs` so there is one place that knows where the keys live.
  */
 import { readFileSync } from 'node:fs';
@@ -66,12 +66,32 @@ export async function runSql({ api, key }, sql) {
   });
 
   const body = await res.text();
-  if (!res.ok || body.includes('"error"')) {
-    throw new Error(`the server refused it (HTTP ${res.status})\n  ${body.slice(0, 600)}`);
-  }
+  // Parse FIRST, then inspect. This used to test `body.includes('"error"')`, which reports
+  // a perfectly successful query as refused the moment a returned row happens to contain
+  // that literal - an audit_log payload, a column called "error", a migration comment
+  // (hygiene H100). PostgREST signals a real failure with a non-2xx status and an object
+  // carrying `message`/`code`, so that is what this looks at.
+  let parsed;
   try {
-    return JSON.parse(body);
+    parsed = JSON.parse(body);
   } catch {
+    // Not JSON at all. A non-2xx here is still a failure; anything else is a plain-text
+    // answer, which some endpoints give.
+    if (!res.ok) {
+      throw new Error(`the server refused it (HTTP ${res.status})\n  ${body.slice(0, 600)}`);
+    }
     return body;
   }
+  const failed =
+    !res.ok ||
+    (parsed !== null &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
+      typeof parsed.message === 'string' &&
+      (typeof parsed.code === 'string' || typeof parsed.hint === 'string' ||
+        typeof parsed.details === 'string'));
+  if (failed) {
+    throw new Error(`the server refused it (HTTP ${res.status})\n  ${body.slice(0, 600)}`);
+  }
+  return parsed;
 }

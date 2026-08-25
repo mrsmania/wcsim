@@ -14,7 +14,7 @@
     "gen:players": "npm run gen:players:game && npm run gen:players:other",
     "gen:players:game": "esbuild scripts/gen-players-page.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "gen:players:other": "esbuild scripts/gen-players-page-other.ts --bundle --format=esm --platform=node | node --input-type=module -",
-    "push:collectibles": "node scripts/push-collectibles.mjs",
+    "push:collectibles": "esbuild scripts/push-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "push:sql": "node scripts/push-sql.mjs"
   },
   "engines": {

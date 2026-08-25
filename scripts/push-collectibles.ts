@@ -19,17 +19,21 @@
  * Nothing is read from the network and nothing is written anywhere else.
  */
 import { readFileSync } from 'node:fs';
+// @ts-expect-error - a plain .mjs with no declarations; this file is bundled, not compiled
+// by tsc, and the two functions it needs are the ones push-sql.mjs uses too.
 import { runSql, serverConfig } from './dkr-env.mjs';
-
-/** Mirrors CATALOGUE_PATH in scripts/collectibles.ts (plain .mjs, so it cannot import
- *  the TypeScript one; the generator writes here, this reads there). */
-const CATALOGUE_PATH = 'supabase/seed/collectibles.sql';
+// Imported, not re-typed. This was a `.mjs` holding its own copy of the path with a note
+// saying it could not import the TypeScript one - honest, and still a drift risk: the
+// generator writes wherever `collectibles.ts` says, and this read wherever the copy said
+// (hygiene H100). It goes through the same esbuild pipe as the generator now, so there is
+// one definition.
+import { CATALOGUE_PATH } from './collectibles';
 
 // Credentials and the send itself are shared with push-sql.mjs, so there is one place
 // that knows where the keys live and how to talk to the server.
 const { api, key } = serverConfig();
 
-let sql;
+let sql: string;
 try {
   sql = readFileSync(CATALOGUE_PATH, 'utf8');
 } catch {
@@ -44,7 +48,7 @@ console.log(`  to ${api}`);
 try {
   await runSql({ api, key }, sql);
 } catch (err) {
-  console.error(`push-collectibles: ${err.message}`);
+  console.error(`push-collectibles: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 }
 

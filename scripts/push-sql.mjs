@@ -44,9 +44,60 @@ if (inline) {
 }
 
 const label = inline ? 'inline query' : file;
-// A rough count, just so the summary says something about size; statements inside a
-// function body are not statements at this level, hence "roughly".
-const statements = sql.split(';').filter((s) => s.trim()).length;
+/** Statements at the TOP level: semicolons outside a dollar-quoted body, a string, a
+ *  comment or brackets.
+ *
+ *  This used to be `sql.split(';').length`, which counts every semicolon inside every
+ *  plpgsql body - so a migration holding three functions announced itself as forty-odd
+ *  statements in the confirmation prompt you are meant to read before sending it to a
+ *  live server (hygiene H100). */
+function countStatements(text) {
+  let n = 0;
+  let i = 0;
+  let depth = 0;
+  while (i < text.length) {
+    const two = text.slice(i, i + 2);
+    if (two === '--') {
+      const nl = text.indexOf('\n', i);
+      i = nl === -1 ? text.length : nl + 1;
+      continue;
+    }
+    if (two === '/*') {
+      const end = text.indexOf('*/', i + 2);
+      i = end === -1 ? text.length : end + 2;
+      continue;
+    }
+    const c = text[i];
+    if (c === "'" || c === '"') {
+      // SQL escapes a quote by doubling it, so this walks to the first unpaired one.
+      i += 1;
+      while (i < text.length) {
+        if (text[i] === c) {
+          if (text[i + 1] === c) i += 2;
+          else break;
+        } else i += 1;
+      }
+      i += 1;
+      continue;
+    }
+    if (c === '$') {
+      // A dollar-quoted body: $$ ... $$ or $tag$ ... $tag$. Everything inside is opaque.
+      const m = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/.exec(text.slice(i));
+      if (m) {
+        const end = text.indexOf(m[0], i + m[0].length);
+        i = end === -1 ? text.length : end + m[0].length;
+        continue;
+      }
+    }
+    if (c === '(') depth += 1;
+    else if (c === ')') depth = Math.max(0, depth - 1);
+    else if (c === ';' && depth === 0) n += 1;
+    i += 1;
+  }
+  // A trailing statement with no final semicolon still counts.
+  return n + (/[^\s;]/.test(text.slice(text.lastIndexOf(';') + 1)) ? 1 : 0);
+}
+const statements = countStatements(sql);
 
 // Resolved AFTER the dry-run branch below. `serverConfig()` reads dkr/.env and exits 1 when
 // it is missing, so calling it first made --dry-run - the one mode that touches no network
@@ -60,7 +111,7 @@ if (!dryRun) {
 }
 
 console.log(`push-sql: ${label}`);
-console.log(`  ${sql.length} bytes, roughly ${statements} statements`);
+console.log(`  ${sql.length} bytes, ${statements} top-level statement${statements === 1 ? '' : 's'}`);
 console.log(`  to ${api ?? 'not resolved (dry run)'}`);
 
 if (dryRun) {

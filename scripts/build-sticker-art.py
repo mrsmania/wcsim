@@ -2,6 +2,7 @@
 Turn the sticker source art into the small WebP files the app actually ships.
 
     python scripts/build-sticker-art.py
+    python scripts/build-sticker-art.py --force   # re-encode everything
 
 Reads:   art/stickers-src/<player-id>.png   (the originals, versioned, not deployed)
 Writes:  public/stickers/<player-id>.webp   (what the browser downloads)
@@ -12,12 +13,16 @@ ever reach the screen. At 400x600 WebP the same image is about 40 KB, so the who
 set goes from ~102 MB to ~3 MB.
 
 Only the WebP files live under public/, so only they are deployed. Re-run this after
-adding or replacing any source image; it skips files whose output is already newer.
+adding or replacing any source image; it skips sources whose CONTENT it has already
+encoded, recorded as digests in art/stickers-src/.art-digests.json. Use --force after
+changing MAX_WIDTH or QUALITY, where the sources have not moved.
 
 Requires Pillow (pip install pillow). Deliberately a standalone script rather than a
 build step: the art changes rarely and the output is committed.
 """
 
+import hashlib
+import json
 import os
 import sys
 
@@ -43,6 +48,31 @@ sources = sorted(f for f in os.listdir(SRC_DIR) if f.lower().endswith((".png", "
 if not sources:
     sys.exit(f"build-sticker-art: no images in {SRC_DIR}")
 
+# --force re-encodes everything, for a quality or width change (where the sources have
+# not moved and so no digest has).
+FORCE = "--force" in sys.argv[1:]
+
+# Beside the SOURCES, not the outputs: OUT_DIR is under public/, so a sidecar there would
+# be deployed with the site for no reason.
+STAMP_PATH = os.path.join(SRC_DIR, ".art-digests.json")
+
+
+def _digest(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+try:
+    with open(STAMP_PATH, encoding="utf-8") as fh:
+        stamps = json.load(fh)
+    if not isinstance(stamps, dict):
+        stamps = {}
+except (OSError, ValueError):
+    stamps = {}
+
 written = skipped = 0
 src_bytes = out_bytes = 0
 
@@ -51,7 +81,12 @@ for name in sources:
     out = os.path.join(OUT_DIR, os.path.splitext(name)[0] + ".webp")
     src_bytes += os.path.getsize(src)
 
-    if os.path.exists(out) and os.path.getmtime(out) >= os.path.getmtime(src):
+    # Freshness by CONTENT, not by mtime. mtime said "already done" for a source that had
+    # been restored from a backup, checked out again, or rsync -t'd into place with its old
+    # timestamp - so replacing a piece of art could silently ship the previous one
+    # (hygiene H100). The digests live in a small sidecar next to the output.
+    digest = _digest(src)
+    if os.path.exists(out) and stamps.get(name) == digest and not FORCE:
         out_bytes += os.path.getsize(out)
         skipped += 1
         continue
@@ -62,7 +97,16 @@ for name in sources:
         im.save(out, "webp", quality=QUALITY, method=6)
 
     out_bytes += os.path.getsize(out)
+    stamps[name] = digest
     written += 1
+
+# Written once at the end, so an interrupted run simply re-encodes next time rather than
+# recording work it did not finish.
+try:
+    with open(STAMP_PATH, "w", encoding="utf-8") as fh:
+        json.dump(stamps, fh, indent=0, sort_keys=True)
+except OSError as err:
+    print(f"  (could not write {STAMP_PATH}: {err} - the next run will re-encode)")
 
 mb = lambda n: n / 1024 / 1024
 print(f"build-sticker-art: {written} written, {skipped} unchanged")

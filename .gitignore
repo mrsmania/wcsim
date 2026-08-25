@@ -19,6 +19,11 @@ dist
 # Playwright verification artifacts
 .playwright-mcp
 
+# build-sticker-art's freshness cache: source digests, so replacing a piece of art with an
+# older timestamp still re-encodes (H100). Purely local - a fresh clone re-encodes the set
+# once and produces byte-identical WebP, so there is nothing to share.
+art/stickers-src/.art-digests.json
+
 # Local scratch files
 tmp_*
 
