@@ -11,14 +11,11 @@ export type Phase = 'setup' | 'draft' | 'complete';
  *  (`filled`) and the same pitch/ratings/line-up; only the left column differs. */
 export type BuildMethod = 'roll' | 'budget';
 
-/** Squad re-rolls a roll draft starts with. The career can add to it: the Extra
- *  Re-roll perk's tier is passed in on START_DRAFT (see App), since the reducer knows
- *  nothing about the career. */
-export const INITIAL_REROLLS = 3;
-/** Player swaps allowed per game (sticker album feature). Only collectibles can be
- *  swapped in, and only this many times per run. Exported because the server-side
- *  economy validation mirrors it (scripts/gen-collectibles.ts). */
-export const INITIAL_SWAPS = 2;
+// The two draft allowances now live in config.ts, so `domain/` and the server seed can read
+// them without importing the state layer (the layering runs domain -> state). Imported and
+// re-exported here because this is where the reducer's own call sites expect them.
+import { INITIAL_REROLLS, INITIAL_SWAPS } from '../config';
+export { INITIAL_REROLLS, INITIAL_SWAPS };
 
 export interface GameState {
   phase: Phase;

@@ -2,6 +2,7 @@ import type { UserMatch } from '../../domain/run';
 import { liveMatchView, resultTag } from '../matchView';
 import { ResultTag } from '../matchUi';
 import MatchdayCard from '../MatchdayCard';
+import { REG_MINUTES } from '../../domain/match';
 
 /** A settled group match rendered as a finished card (used before the standings).
  *  Collapsed to its result: three of these stack up over a group and the goal feed is
@@ -20,8 +21,8 @@ export default function GroupResultCard({ m, i, userRating }: { m: UserMatch; i:
       oppRating={m.opp.strength.overall}
       view={liveMatchView({
         playing: false,
-        liveMinute: 90,
-        liveMax: 90,
+        liveMinute: REG_MINUTES,
+        liveMax: REG_MINUTES,
         clockLabel: '',
         finished: { userGoals: ug, oppGoals: og, status: 'Full time', statusDim: true, events: m.result.events },
       })}

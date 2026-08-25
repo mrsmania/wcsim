@@ -3,6 +3,8 @@ import { categoryOf, isAttacker, isDefender, primaryPosition } from '../data/typ
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
 import { bump } from './effects';
 import { pick } from './random';
+import { bestEleven } from './tournament';
+import { STICKER_TIERS } from '../config';
 
 /** Rarity ramp, mirrored on the sticker tiers for a consistent look. */
 export type Rarity = 'common' | 'rare' | 'legendary';
@@ -154,6 +156,19 @@ function coinFor(xi: Player[], ctx: BoonContext): boolean {
 /** Every player by id, and the best-rated version of each PERSON across all tournaments.
  *  Built once: `ALL_PLAYERS` is ~6,270 rows and Prime Years would otherwise scan it eleven
  *  times per pick. */
+/**
+ * The rating floors the two "add a big name" cards draw from, and the words they use.
+ *
+ * These ARE the sticker tiers: "legend" is the Legendary floor and "icon" the Iconic one,
+ * which is why the copy says 90+ and 93+. Each number used to be written twice per card -
+ * once in the description a player reads and once in the predicate - so a retune could have
+ * left the sentence promising a shelf the filter no longer used. Deriving both from
+ * STICKER_TIERS also means retuning the tiers moves the cards with them, which is the
+ * intent: the cards are named after the tiers.
+ */
+const LEGEND_MIN = STICKER_TIERS.legendary.min;
+const ICON_MIN = STICKER_TIERS.iconic.min;
+
 const PLAYER_BY_ID = new Map(ALL_PLAYERS.map((p) => [p.id, p]));
 const BEST_BY_PERSON = new Map<string, Player>();
 for (const p of ALL_PLAYERS) {
@@ -317,13 +332,15 @@ export const BOONS: Boon[] = [
     id: 'wildcard',
     name: 'Wildcard Legend',
     rarity: 'legendary',
-    description: 'Add a random 90+ legend to your XI.',
+    description: `Add a random ${LEGEND_MIN}+ legend to your XI.`,
     effects: [
       {
         kind: 'roster',
         apply: (roster) => {
           const used = new Set(roster.map((p) => p.personId));
-          const legends = ALL_PLAYERS.filter((p) => p.elo >= 90 && !used.has(p.personId));
+          const legends = ALL_PLAYERS.filter(
+            (p) => p.elo >= LEGEND_MIN && !used.has(p.personId),
+          );
           if (!legends.length) return roster;
           const inP = pick(legends);
           const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
@@ -367,7 +384,7 @@ export const BOONS: Boon[] = [
         plan: (xi, ctx) => {
           const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
           if (!opp) return [];
-          const oppBest = [...opp.players].sort((a, b) => b.elo - a.elo).slice(0, 11);
+          const oppBest = bestEleven(opp.players);
           const mean = (ps: Player[]) => ps.reduce((s, p) => s + p.elo, 0) / (ps.length || 1);
           return mean(oppBest) > mean(xi) ? planAll(xi, 3) : [];
         },
@@ -385,13 +402,14 @@ export const BOONS: Boon[] = [
     id: 'legends-reunion',
     name: "Legends' Reunion",
     rarity: 'legendary',
-    // One swap, but from a rarer shelf than Wildcard's 90+, so the two are distinct
+    // One swap, but from a rarer shelf than Wildcard's Legendary floor, so the two are distinct
     // without stacking to twice a Golden Generation (which two 90+ swaps measured at).
-    description: 'Your weakest player is replaced by a 93+ icon.',
+    description: `Your weakest player is replaced by a ${ICON_MIN}+ icon.`,
     effects: [
       {
         kind: 'roster',
-        apply: (roster) => replaceWeakest(roster, 1, ALL_PLAYERS.filter((p) => p.elo >= 93)),
+        apply: (roster) =>
+          replaceWeakest(roster, 1, ALL_PLAYERS.filter((p) => p.elo >= ICON_MIN)),
       },
     ],
   },

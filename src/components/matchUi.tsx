@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 import type { MatchSpeed } from '../domain/clock';
 import type { KoDecided } from '../domain/knockout';
-import type { PenKick } from '../domain/match';
+import { ET_MINUTES, REG_MINUTES, type PenKick } from '../domain/match';
 import { FEATURES } from '../config';
 import Flag from './Flag';
 
@@ -53,7 +53,8 @@ export const ordinal = (n: number) =>
   n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`;
 
 /** Final minute of a knockout game by how it was decided (regulation vs extra time). */
-export const maxMinute = (decided: KoDecided) => (decided === 'reg' ? 90 : 120);
+export const maxMinute = (decided: KoDecided) =>
+  decided === 'reg' ? REG_MINUTES : REG_MINUTES + ET_MINUTES;
 
 /** A scored/missed pip (green check / red cross) for one penalty. */
 function PenPip({ scored }: { scored: boolean }) {

@@ -15,8 +15,7 @@
 import { writeFileSync } from 'node:fs';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../src/data/squads';
 import { tierOf } from '../src/domain/album';
-import { STICKER_TIERS, STICKER_TRADE_COST, type StickerTier } from '../src/config';
-import { INITIAL_SWAPS } from '../src/state/gameReducer';
+import { INITIAL_SWAPS, STICKER_TIERS, STICKER_TRADE_COST, type StickerTier } from '../src/config';
 import {
   CATALOGUE_PATH,
   catalogueChecksum,

@@ -3,13 +3,20 @@ import type { Player } from '../data/types';
 import { categoryOf, DEF_CATS } from '../data/types';
 import type { Formation } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
-import { teamChemistry, MAX_BONUS } from '../domain/chemistry';
+import { CHEM_TIERS, ERA_SPAN_YEARS, FIT_MIN, MAX_BONUS, teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
 import { MONO_CAP } from './matchUi';
 
 /** Full rules shown when hovering the chemistry "?" help icon. Category names and
  *  point tiers match exactly what the breakdown below shows. */
+/** The numbers in one tooltip row, read from the scorer's own tier table so the explanation
+ *  cannot drift from the rule. "all 11" rather than "11+" for a full XI, which is what the
+ *  hand-written copy said. */
+const tierText = (key: keyof typeof CHEM_TIERS) =>
+    CHEM_TIERS[key]
+        .map(([size, points]) => `${size === 11 ? 'all 11' : `${size}+`} \u2192 +${points}`)
+        .join(', ');
 const CHEMISTRY_RULES = (
     <div className="space-y-1.5">
         <div className="font-bold">
@@ -18,25 +25,26 @@ const CHEMISTRY_RULES = (
         <ul className="space-y-1">
             <li>
                 <span className="font-semibold">Same squad</span> - real teammates (same nation
-                &amp; year): 2+ &rarr; +1, 4+ &rarr; +2, 7+ &rarr; +3, all 11 &rarr; +4
+                &amp; year): {tierText('squad')}
             </li>
             <li>
-                <span className="font-semibold">Same nation</span> - across any years: 3+ &rarr; +1,
-                5+ &rarr; +2, 8+ &rarr; +3
+                <span className="font-semibold">Same nation</span> - across any years:{' '}
+                {tierText('nation')}
             </li>
             <li>
-                <span className="font-semibold">Same tournament</span> - one World Cup: 3+ &rarr; +1,
-                5+ &rarr; +2, 8+ &rarr; +3
+                <span className="font-semibold">Same tournament</span> - one World Cup:{' '}
+                {tierText('tournament')}
             </li>
             <li>
-                <span className="font-semibold">Same continent</span> - one confederation: 6+ &rarr;
-                +1, 9+ &rarr; +2
+                <span className="font-semibold">Same continent</span> - one confederation:{' '}
+                {tierText('continent')}
             </li>
             <li>
-                <span className="font-semibold">Same era</span> - all within 4 years: +1
+                <span className="font-semibold">Same era</span> - all within {ERA_SPAN_YEARS}{' '}
+                years: +1
             </li>
             <li>
-                <span className="font-semibold">In position</span> - 10+ in their natural
+                <span className="font-semibold">In position</span> - {FIT_MIN}+ in their natural
                 (underlined) role: +1
             </li>
         </ul>

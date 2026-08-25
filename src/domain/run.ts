@@ -17,6 +17,7 @@ import {
   USER_ID,
   type GroupState,
   type GroupTeam,
+  GROUP_OPPONENTS,
 } from './tournament';
 import type { MatchEvent, MatchResult, ShootoutResult } from './match';
 import {
@@ -688,7 +689,7 @@ export function beginRun(
  *  (`groupAsOf`) rather than simulated forwards. */
 function drawAndPlayGroup(run: RunState, userDelta: number, pool: Squad[]): GroupState {
   const user = userGroupTeam(run.xi, chemistryOf(run.xi), userDelta, run.penBonus ?? 0, run.penBonusTop ?? 0);
-  let group = createGroup(user, pickOpponents(3, pool));
+  let group = createGroup(user, pickOpponents(GROUP_OPPONENTS, pool));
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
   }

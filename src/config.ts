@@ -137,3 +137,19 @@ export const STICKER_DISCOUNT = 0.25;
  *  `transfer-budget` perk tiers in domain/career.ts (one entry per tier + the base);
  *  `npm run checks` fails while the two disagree. */
 export const BUDGET_BY_TIER = [70, 80, 90, 100, 110, 120, 130, 140, 150, 160] as const;
+
+/** Squad re-rolls a roll draft starts with. The career can add to it: the Extra Re-roll
+ *  perk's tier is passed in on START_DRAFT (see App), since the reducer knows nothing
+ *  about the career. */
+export const INITIAL_REROLLS = 3;
+
+/** Player swaps allowed per run (sticker album feature). Only collectibles can be swapped
+ *  in, and only this many times.
+ *
+ *  Both live HERE rather than in state/gameReducer, which is where they were, because three
+ *  other places need them and the layering runs domain -> state, not back:
+ *  `domain/challenges.ts` kept its own `ALL_SWAPS = 2` mirror with a comment saying the
+ *  harness asserts the two stay in step, and `scripts/gen-collectibles.ts` emits this
+ *  number into the server's `economy_constants` table. A fact needed by the domain, the
+ *  reducer and the server seed belongs in config, which all three already import. */
+export const INITIAL_SWAPS = 2;

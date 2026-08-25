@@ -45,13 +45,29 @@ const TOURNAMENT_TIERS: [size: number, points: number][] = [[8, 3], [5, 2], [3, 
 /** Same-continent (confederation) cluster sizes -> points. */
 const CONTINENT_TIERS: [size: number, points: number][] = [[9, 2], [6, 1]];
 /** "Same era": max span (in tournament years) between the earliest and latest squad. */
-const ERA_SPAN_YEARS = 4;
+export const ERA_SPAN_YEARS = 4;
 /** Points awarded when a squad set falls within ERA_SPAN_YEARS. */
 const ERA_POINTS = 1;
 /** Minimum players standing in their natural role to earn the "In position" point. */
-const FIT_MIN = 10;
+export const FIT_MIN = 10;
 /** Points awarded when at least FIT_MIN players are in their natural role. */
 const FIT_POINTS = 1;
+
+/**
+ * The four cluster tables, ASCENDING, for the rules tooltip to render its numbers from.
+ *
+ * CLAUDE.md makes "the tooltip and the scorer agree" a rule ("transparency is the point"),
+ * and until 2026-08-24 nothing enforced it: every threshold was typed out a second time as
+ * prose in BoxScore. They did agree, which is the only reason this is hygiene rather than a
+ * bug report. The tooltip keeps its per-row descriptions and takes only the NUMBERS from
+ * here, so a retune cannot leave the explanation behind.
+ */
+export const CHEM_TIERS: Record<'squad' | 'nation' | 'tournament' | 'continent', readonly (readonly [number, number])[]> = {
+  squad: [...SQUAD_TIERS].reverse(),
+  nation: [...NATION_TIERS].reverse(),
+  tournament: [...TOURNAMENT_TIERS].reverse(),
+  continent: [...CONTINENT_TIERS].reverse(),
+};
 
 /** Points for a cluster of the given size, from a size -> points tier table
  *  (largest qualifying tier wins; 0 if below every threshold). */

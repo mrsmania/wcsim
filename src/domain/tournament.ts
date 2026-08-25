@@ -17,6 +17,18 @@ export const USER_ID = 'user';
  *  Defined once so the "top 2 advance" rule lives in a single place. */
 export const QUALIFY_COUNT = 2;
 
+/** Opponents drawn into the user's group. Their count and GROUP_MATCHDAYS are the same
+ *  fact about a four-team group; both call sites wrote the 3 out by hand. */
+export const GROUP_OPPONENTS = 3;
+
+/** Points for a win, and for a draw. Named beside the other group rules rather than
+ *  appearing bare four times inside `standings`. */
+const WIN_POINTS = 3;
+const DRAW_POINTS = 1;
+
+/** Players in an XI. */
+export const XI_SIZE = 11;
+
 export interface GroupTeam {
   id: string;
   name: string;
@@ -102,7 +114,7 @@ export function userGroupTeam(
 
 /** The best 11 of a set of players by elo (used as a squad's match XI). */
 export function bestEleven(players: Player[]): Player[] {
-  return [...players].sort((a, b) => b.elo - a.elo).slice(0, 11);
+  return [...players].sort((a, b) => b.elo - a.elo).slice(0, XI_SIZE);
 }
 
 export function squadGroupTeam(squad: Squad): GroupTeam {
@@ -187,17 +199,17 @@ export function standings(group: GroupState): Standing[] {
     a.ga += f.result.homeGoals;
     if (f.result.homeGoals > f.result.awayGoals) {
       h.won++;
-      h.points += 3;
+      h.points += WIN_POINTS;
       a.lost++;
     } else if (f.result.homeGoals < f.result.awayGoals) {
       a.won++;
-      a.points += 3;
+      a.points += WIN_POINTS;
       h.lost++;
     } else {
       h.drawn++;
       a.drawn++;
-      h.points++;
-      a.points++;
+      h.points += DRAW_POINTS;
+      a.points += DRAW_POINTS;
     }
   }
   for (const s of table.values()) s.gd = s.gf - s.ga;

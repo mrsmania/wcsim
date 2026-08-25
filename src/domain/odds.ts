@@ -9,9 +9,10 @@ import {
   bracketSeedFromGroup,
   pickOpponents,
   GROUP_MATCHDAYS,
+  GROUP_OPPONENTS,
 } from './tournament';
 import { buildBracket, playRound, recordRound } from './bracket';
-import { LOST_IN, type Finish } from './knockout';
+import { KO_ROUNDS, LOST_IN, type Finish } from './knockout';
 
 export type { Finish };
 
@@ -38,7 +39,7 @@ function simulateFinish(
   pool: Squad[],
 ): Finish {
   const user = userGroupTeam(players, chemistryBonus, atkDefDelta);
-  let group = createGroup(user, pickOpponents(3, pool));
+  let group = createGroup(user, pickOpponents(GROUP_OPPONENTS, pool));
   for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
     group = recordMatchday(group, simulateMatchday(group, md));
   }
@@ -46,10 +47,12 @@ function simulateFinish(
 
   const { user: u, coQualifier, excludeIds } = bracketSeedFromGroup(group);
   let bracket = buildBracket(u, coQualifier, excludeIds, pool);
-  // Play round by round to a resolution (guard is a safety net; a 4-round bracket
-  // always resolves in <= 4 iterations).
+  // Play round by round to a resolution. The guard is a safety net on a loop whose bound is
+  // structural: a bracket of KO_ROUNDS rounds resolves in at most that many iterations, so
+  // anything past it means `playRound` stopped advancing. It read 8 against a comment saying
+  // 4 - correct but arbitrary, and it would not have moved if the bracket grew.
   let guard = 0;
-  while (bracket.outcome === 'alive' && guard++ < 8) {
+  while (bracket.outcome === 'alive' && guard++ < KO_ROUNDS.length) {
     bracket = recordRound(bracket, playRound(bracket));
   }
   if (bracket.outcome === 'champion') return 'champion';

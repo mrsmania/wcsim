@@ -142,8 +142,12 @@ export default function ChallengesScreen({
       {FAMILIES.map((family) => {
         const list = byFamily.get(family);
         if (!list?.length) return null;
-        const total = CHALLENGES.filter((c) => c.family === family).length;
-        const got = CHALLENGES.filter((c) => c.family === family && done.has(c.id)).length;
+        // `challengeProgress` already counted these in one pass, which is why `byFamily`
+        // exists (hygiene H44). Recomputing them here was two filters over the 130-entry
+        // catalogue per family, so 24 scans a render. Same numbers either way - both read
+        // CHALLENGES, so the header counts the catalogue rather than the filtered view,
+        // which is what makes "3 / 16" still say 16 under the Completed filter.
+        const { total, completed: got } = progress.byFamily[family];
         return (
           <section key={family} className="mt-[22px]">
             {/* The family accent is spent here and nowhere else: twelve rules on the

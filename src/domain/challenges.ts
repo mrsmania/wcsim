@@ -2,7 +2,7 @@ import type { Player, Position } from '../data/types';
 import { categoryOf, primaryPosition } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID, SQUADS } from '../data/squads';
 import { CONFEDERATION } from '../data/confederations';
-import { FEATURES } from '../config';
+import { FEATURES, INITIAL_SWAPS } from '../config';
 import type { RoundRecord, RunOutcome, RunState } from './run';
 import type { CareerState } from './career';
 import { MAX_ASCENSION } from './ascension';
@@ -268,10 +268,6 @@ export function viewOf(ctx: ChallengeCtx): RunView {
 // career, so all 130 are judged. `Challenge.blocked` stays in the model on purpose - it
 // costs nothing and the next batch of entries will want it.
 
-/** Collectible swaps a run starts with. Mirrors INITIAL_SWAPS in state/gameReducer,
- *  which the domain deliberately does not import (the layering runs the other way);
- *  `npm run checks` asserts the two stay in step. */
-const ALL_SWAPS = 2;
 
 /** Every Ascension tier, for "win at each of them". */
 const ASCENSION_TIERS = Array.from({ length: MAX_ASCENSION + 1 }, (_, tier) => tier);
@@ -643,7 +639,7 @@ export const CHALLENGES: Challenge[] = [
   { id: 'first-draw', name: 'First Draw', description: 'Win a rolled run without using a squad re-roll.',
     family: 'market', tier: 'gold', check: (v) => v.wonCup && v.rolled && v.rerollsUsed === 0 },
   { id: 'swap-meet', name: 'Swap Meet', description: 'Use both collectible swaps and win the cup.',
-    family: 'market', tier: 'silver', check: (v) => v.wonCup && (v.swapsUsed ?? 0) >= ALL_SWAPS },
+    family: 'market', tier: 'silver', check: (v) => v.wonCup && (v.swapsUsed ?? 0) >= INITIAL_SWAPS },
 
   // --- K. Shape & positions ------------------------------------------------
   // All of these read the KICKOFF shape (`v.placed`), not the final XI: a roster boost

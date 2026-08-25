@@ -1,4 +1,4 @@
-import type { Player, Position, Squad } from '../data/types';
+import { ELO_MAX, type Player, type Position, type Squad } from '../data/types';
 import type { Formation, Slot } from './formations';
 import { pick } from './random';
 
@@ -161,7 +161,7 @@ export const STRENGTH_BANDS: Record<TeamStrength, { min: number; max: number }> 
   weak: { min: 0, max: 75 },
   medium: { min: 75, max: 80 },
   strong: { min: 80, max: 88 },
-  'very-strong': { min: 88, max: 200 },
+  'very-strong': { min: 88, max: ELO_MAX },
 };
 
 /**

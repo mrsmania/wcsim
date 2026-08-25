@@ -65,7 +65,7 @@ import { PRICE_BASE, priceFor, priceOf, pricerFor, xiSpend } from '../src/domain
 import { autoFillBudget } from '../src/domain/budget';
 import { FORMATIONS_DATA, getFormation, type Style } from '../src/domain/formations';
 import { canMove, moveTargets, placedPlayers, planMove, type Filled } from '../src/domain/draft';
-import { BUDGET_DRAFT, BUDGET_BY_TIER, STICKER_DISCOUNT } from '../src/config';
+import { BUDGET_DRAFT, BUDGET_BY_TIER, INITIAL_REROLLS, INITIAL_SWAPS, STICKER_DISCOUNT } from '../src/config';
 import {
   BOONS,
   applyBoon,
@@ -113,7 +113,6 @@ import {
 import { simulateTitleOdds } from '../src/domain/odds';
 // The reducer owns the base re-roll count; the perk below has to agree with it. It also
 // owns the swap allowance, which the Swap Meet challenge has to agree with.
-import { INITIAL_REROLLS, INITIAL_SWAPS } from '../src/state/gameReducer';
 import { ASCENSIONS, ascensionAt, maxSelectableAscension, selectedAscension } from '../src/domain/ascension';
 import { tierOf } from '../src/domain/album';
 import {

@@ -6,8 +6,7 @@ import { FEATURES, STICKER_TRADE_COST, type StickerTier } from '../config';
 import {
     albumStats,
     canAffordTrade,
-    collectiblePlayers,
-    tierOf,
+    collectiblesByTier,
     totalDuplicates,
     tradeOptions,
     type AlbumState,
@@ -52,15 +51,10 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
     const pct = stats.total > 0 ? Math.round((stats.collected / stats.total) * 100) : 0;
     const complete = stats.total > 0 && stats.collected === stats.total;
 
-    // Collectibles grouped by tier, each sorted rating-desc then name.
-    const byTier = useMemo(() => {
-        const groups: Record<StickerTier, Player[]> = { monumental: [], iconic: [], legendary: [] };
-        for (const p of collectiblePlayers(allPlayers)) groups[tierOf(p)!].push(p);
-        for (const t of TIER_ORDER) {
-            groups[t].sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
-        }
-        return groups;
-    }, [allPlayers]);
+    // Collectibles grouped by tier, each sorted rating-desc then name. `domain/album.ts`
+    // owns this (its docstring named this screen as the last hand-rolled copy, hygiene H45);
+    // the two were byte-for-byte identical, comparator included.
+    const byTier = useMemo(() => collectiblesByTier(allPlayers), [allPlayers]);
 
     const collectedSet = useMemo(() => new Set(album.collected), [album.collected]);
 

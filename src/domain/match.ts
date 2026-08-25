@@ -167,8 +167,13 @@ function eventOrder(a: MatchEvent, b: MatchEvent): number {
   return a.minute - b.minute || (a.side === b.side ? 0 : a.side === 'home' ? -1 : 1);
 }
 
-const REG_MINUTES = 90;
-const ET_MINUTES = 30;
+/** Full time, and one period of extra time, in minutes. */
+export const REG_MINUTES = 90;
+export const ET_MINUTES = 30;
+/** Kicks each side takes before a shootout goes to sudden death. Named because the rule
+ *  appeared three times in one function - the two "can they still catch up" remainders and
+ *  the loop bound - and they have to be the same five. */
+const SHOOTOUT_ROUNDS = 5;
 
 /** Simulate one scoring period. `lambdaScale` scales the regulation goal rate
  *  (1 for a full match, 30/90 for extra time); goal minutes fall in
@@ -270,13 +275,13 @@ export function simulateShootout(home: ShootoutTeam, away: ShootoutTeam): Shooto
 
   // Decided once the trailing side can no longer catch up within the first five.
   const settled = () => {
-    const hRem = Math.max(0, 5 - kicks.filter((k) => k.side === 'home').length);
-    const aRem = Math.max(0, 5 - kicks.filter((k) => k.side === 'away').length);
+    const hRem = Math.max(0, SHOOTOUT_ROUNDS - kicks.filter((k) => k.side === 'home').length);
+    const aRem = Math.max(0, SHOOTOUT_ROUNDS - kicks.filter((k) => k.side === 'away').length);
     return h > a + aRem || a > h + hRem;
   };
 
   let decidedEarly = false;
-  for (let round = 0; round < 5 && !decidedEarly; round++) {
+  for (let round = 0; round < SHOOTOUT_ROUNDS && !decidedEarly; round++) {
     kick('home');
     if (settled()) { decidedEarly = true; break; }
     kick('away');
