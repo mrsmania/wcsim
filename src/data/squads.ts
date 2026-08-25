@@ -1827,7 +1827,7 @@ export const SQUADS: Squad[] = [
     ]),
 
     // ===== 1998 FIFA World Cup (France) - full 32-nation researched dataset. The
-    // first 14 teams below came from the source data (scripts/out); the remaining 18
+    // first 14 teams below came from scraped source data; the remaining 18
     // (from ESP onward) were researched from the Wikipedia squad lists. Ratings blend
     // pre-tournament ability with WC98 performance (see the file header). =====
     squad('BRA', 'Brazil', 1998, [

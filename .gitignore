@@ -1,8 +1,15 @@
 node_modules
 dist
-dist-ssr
 *.local
 .DS_Store
+
+# Vite env files. `*.local` above covers .env.local and nothing else, but Vite also reads
+# .env and .env.[mode] - and this repo is public. The two variables actually used here are
+# designed to ship in the bundle (see .github/workflows/deploy.yml), so this is a guard
+# against the next one, not a fix for a leak.
+.env
+.env.*
+!.env.example
 
 # Editor
 .vscode/*

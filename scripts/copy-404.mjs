@@ -6,8 +6,8 @@ import { copyFileSync, existsSync } from 'node:fs';
 const src = 'dist/index.html';
 const dest = 'dist/404.html';
 if (!existsSync(src)) {
-    console.error(`copy-404: ${src} not found (run after vite build)`);
-    process.exit(1);
+  console.error(`copy-404: ${src} not found (run after vite build)`);
+  process.exit(1);
 }
 copyFileSync(src, dest);
 console.log('copy-404: wrote dist/404.html');
