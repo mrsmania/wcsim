@@ -283,6 +283,20 @@ export function recordMatchday(group: GroupState, results: MatchdayResult[]): Gr
   return { ...group, fixtures, matchday: md + 1 };
 }
 
+/** Play a freshly created group out in full: all three matchdays, in one pass.
+ *
+ *  One pass rather than matchday by matchday because the XI, its chemistry and the run's
+ *  tally are settled together - which is why the live table is PROJECTED backwards with
+ *  `groupAsOf` rather than simulated forwards. Written out identically in `domain/run.ts`
+ *  and `domain/odds.ts` before (hygiene H56). */
+export function playWholeGroup(group: GroupState): GroupState {
+  let g = group;
+  for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
+    g = recordMatchday(g, simulateMatchday(g, md));
+  }
+  return g;
+}
+
 /** Simulate every fixture of matchday `md`, returning the results to record.
  *  The domain entry point for a group matchday: the screen animates these
  *  results via the clock rather than simulating them itself. */

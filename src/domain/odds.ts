@@ -3,12 +3,10 @@ import { SQUADS } from '../data/squads';
 import {
   userGroupTeam,
   createGroup,
-  simulateMatchday,
-  recordMatchday,
+  playWholeGroup,
   userAdvanced,
   bracketSeedFromGroup,
   pickOpponents,
-  GROUP_MATCHDAYS,
   GROUP_OPPONENTS,
 } from './tournament';
 import { buildBracket, playRound, recordRound } from './bracket';
@@ -39,10 +37,7 @@ function simulateFinish(
   pool: Squad[],
 ): Finish {
   const user = userGroupTeam(players, chemistryBonus, atkDefDelta);
-  let group = createGroup(user, pickOpponents(GROUP_OPPONENTS, pool));
-  for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
-    group = recordMatchday(group, simulateMatchday(group, md));
-  }
+  const group = playWholeGroup(createGroup(user, pickOpponents(GROUP_OPPONENTS, pool)));
   if (!userAdvanced(group)) return 'group';
 
   const { user: u, coQualifier, excludeIds } = bracketSeedFromGroup(group);

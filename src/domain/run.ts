@@ -1,14 +1,14 @@
 import type { Player, Position, Squad } from '../data/types';
 import { primaryPosition } from '../data/types';
 import type { FormationName, Style } from './formations';
+import { priceFor, xiSpend } from './pricing';
 import { SQUADS } from '../data/squads';
 import { FEATURES } from '../config';
 import { computeChemistry } from './chemistry';
 import {
   userGroupTeam,
   createGroup,
-  simulateMatchday,
-  recordMatchday,
+  playWholeGroup,
   userAdvanced,
   standings,
   pickOpponents,
@@ -235,6 +235,65 @@ export interface RunBuild {
   rerollsUsed?: number;
   /** Collectible swaps used (both methods start with INITIAL_SWAPS). */
   swapsUsed?: number;
+}
+
+/** Build the kickoff shape record from the board. Null unless every slot is filled - a
+ *  half-built XI has no shape to record.
+ *
+ *  Recorded at kickoff rather than derived at run end because placing a player PROMOTES
+ *  the slot's role onto him, so his natural position cannot be recovered from the XI
+ *  afterwards, and a roster boost changes the XI later anyway. It was assembled in `App`
+ *  (hygiene H60). */
+export function runShapeOf(
+  formation: { name: FormationName; style: Style; slots: { id: string; position: Position }[] },
+  filled: Record<string, Player | null | undefined>,
+): RunShape | null {
+  const slots = formation.slots.flatMap((s) => {
+    const player = filled[s.id];
+    return player ? [{ slotId: s.id, role: s.position, playerId: player.id }] : [];
+  });
+  return slots.length === formation.slots.length
+    ? { formation: formation.name, style: formation.style, slots }
+    : null;
+}
+
+/** Build the kickoff build record. The caller supplies the money and the counters, since
+ *  those come from the career and the reducer rather than from the XI.
+ *
+ *  `rerollsUsed` is derived as allowance-minus-remaining rather than remembered, which is
+ *  the plan's formula: buying the Extra Re-roll perk mid-draft does not top up the
+ *  re-rolls already granted, so a remembered count would read as one more used than there
+ *  was. It costs a reducer field to make exact and the window is narrow. */
+export function runBuildOf(
+  input:
+    | {
+        method: 'budget';
+        xi: Player[];
+        budget: number;
+        /** Stickers already in the album, which discount their player (config
+         *  STICKER_DISCOUNT). Passed through to `pricing`, so the spend recorded here is
+         *  the one place it is computed - hygiene H57 collapsed three copies of it. */
+        ownedStickerIds: Set<string> | null;
+        swapsUsed: number;
+      }
+    | { method: 'roll'; allowance: number; rerollsLeft: number; swapsUsed: number },
+): RunBuild {
+  if (input.method === 'roll') {
+    return {
+      method: 'roll',
+      rerollsUsed: Math.max(0, input.allowance - input.rerollsLeft),
+      swapsUsed: input.swapsUsed,
+    };
+  }
+  const owned = input.ownedStickerIds;
+  return {
+    method: 'budget',
+    budget: input.budget,
+    spent: xiSpend(input.xi, owned),
+    dearest: Math.max(...input.xi.map((p) => priceFor(p, owned))),
+    discounted: owned ? input.xi.filter((p) => owned.has(p.id)).length : 0,
+    swapsUsed: input.swapsUsed,
+  };
 }
 
 export interface RunState {
@@ -689,11 +748,7 @@ export function beginRun(
  *  (`groupAsOf`) rather than simulated forwards. */
 function drawAndPlayGroup(run: RunState, userDelta: number, pool: Squad[]): GroupState {
   const user = userGroupTeam(run.xi, chemistryOf(run.xi), userDelta, run.penBonus ?? 0, run.penBonusTop ?? 0);
-  let group = createGroup(user, pickOpponents(GROUP_OPPONENTS, pool));
-  for (let md = 1; md <= GROUP_MATCHDAYS; md++) {
-    group = recordMatchday(group, simulateMatchday(group, md));
-  }
-  return group;
+  return playWholeGroup(createGroup(user, pickOpponents(GROUP_OPPONENTS, pool)));
 }
 
 /** The squad ids of a group's three opponents. Read off the group rather than the draw

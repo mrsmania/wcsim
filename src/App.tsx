@@ -32,8 +32,7 @@ import {
 import { KO_ROUNDS } from './domain/knockout';
 import { budgetOf, extraRerollsOf } from './domain/career';
 import { maxSelectableAscension, selectedAscension } from './domain/ascension';
-import { priceFor, xiSpend } from './domain/pricing';
-import type { RunBuild, RunShape } from './domain/run';
+import { runBuildOf, runShapeOf, type RunBuild, type RunShape } from './domain/run';
 import { swapEligibleIds as swapEligibleIdsOf } from './domain/album';
 import { FEATURES } from './config';
 import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
@@ -620,41 +619,32 @@ export default function App({
     // Recorded at kickoff rather than derived at run end because placing a player
     // promotes the slot's role onto him, a roster boost changes the XI later, and the
     // album (and so the owned-sticker discount) keeps growing.
-    const draftedShape = useMemo<RunShape | null>(() => {
-        if (!formation || !draftedXi) return null;
-        const slots = formation.slots.flatMap((s) => {
-            const player = filled[s.id];
-            return player ? [{ slotId: s.id, role: s.position, playerId: player.id }] : [];
-        });
-        return slots.length === formation.slots.length
-            ? { formation: formation.name, style: formation.style, slots }
-            : null;
-    }, [formation, filled, draftedXi]);
+    const draftedShape = useMemo<RunShape | null>(
+        () => (formation && draftedXi ? runShapeOf(formation, filled) : null),
+        [formation, filled, draftedXi],
+    );
 
     // The build record. The career's budget is the one in force, and this is also read
     // from `/cup-run`, one navigation after the market closed.
     const draftedBuild = useMemo<RunBuild | null>(() => {
         if (!draftedXi) return null;
         const swapsUsed = INITIAL_SWAPS - swapsLeft;
-        if (build === 'budget') {
-            const prices = draftedXi.map((p) => priceFor(p, ownedStickerIds));
-            return {
-                method: 'budget',
-                // The same figure the market charged against, not a second lookup.
-                budget,
-                spent: xiSpend(draftedXi, ownedStickerIds),
-                dearest: Math.max(...prices),
-                discounted: draftedXi.filter((p) => ownedStickerIds.has(p.id)).length,
-                swapsUsed,
-            };
-        }
-        // The allowance is re-derived rather than remembered, so buying the Extra Re-roll
-        // perk in the middle of a draft (which does not top up the re-rolls already
-        // granted) would read as one more used than there was. It costs a reducer field
-        // to make exact and the window is narrow, so this follows the plan's formula.
-        const allowance = INITIAL_REROLLS + extraRerollsOf(careerPeek);
-        return { method: 'roll', rerollsUsed: Math.max(0, allowance - rerollsLeft), swapsUsed };
-    }, [draftedXi, build, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
+        return build === 'budget'
+            ? runBuildOf({
+                  method: 'budget',
+                  xi: draftedXi,
+                  // The same figure the market charged against, not a second lookup.
+                  budget,
+                  ownedStickerIds,
+                  swapsUsed,
+              })
+            : runBuildOf({
+                  method: 'roll',
+                  allowance: INITIAL_REROLLS + extraRerollsOf(careerPeek),
+                  rerollsLeft,
+                  swapsUsed,
+              });
+    }, [draftedXi, build, budget, careerPeek, ownedStickerIds, rerollsLeft, swapsLeft]);
 
     // Launcher-only read, refreshed whenever we land on `/`: a Cup Run that is
     // mid-flight (not yet ended), with a short round summary for the resume button.
