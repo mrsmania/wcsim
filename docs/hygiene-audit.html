@@ -198,9 +198,10 @@
   re-verifying the old backlog item by item. Overlaps were merged and the load-bearing claims
   re-verified by hand, including four mutation tests against the checks harness.</p>
   <p><b>The gate.</b> <code>npm run build</code> clean and <code>npm run checks</code> at
-  <b>132</b> invariants, both verified on <code>main</code> at 2026-08-24. There is no unit-test
-  runner, so those two plus reading the diff are the whole safety net. <b>Read the callout below
-  first: one of the two is currently unreliable.</b></p>
+  <b>132</b> invariants. There is no unit-test runner, so those two plus reading the diff are
+  the whole safety net - and as of 2026-08-24 <b>both run in CI</b> (H91), which they did not
+  when this audit was written. The stop block below records what was wrong with the harness
+  and what was done about it; read it before trusting a green suite from before that date.</p>
 </div>
 
 <div class="stop">
@@ -229,6 +230,45 @@
   historical bug it exists to catch - <code>grantBoon</code> recording only the first arrival, so
   ten handed 90+ players bank stickers they were given - and the suite still reported
   <b>132 passed, 0 failed</b>.</p>
+</div>
+
+<div class="callout">
+  <span class="ct">Progress &mdash; wave 1 executed 2026-08-24, and the tree moved under it</span>
+  <p><b>Done and on <code>main</code>:</b> the gate repair (H107, H108, H109) and
+  <a href="#H91">H91</a>, so <code>npm run checks</code> now runs in CI before the build;
+  wave 1 in four commits - the dead domain code and 19 private exports (H1a: H10, H12, H116,
+  H117, H120), the dead component props, defaults and variants (H2-H9, H118, H119, H121-H123,
+  H127, H156), the dead tracked files and two config gaps (H25-H30), and the truth sweep
+  (H128-H131, H154). Plus the decisions the owner answered: <a href="#D15">D15</a> (the
+  dark-theme amber contrast), <a href="#D9">D9</a> (the archive documented),
+  <a href="#D14">D14</a> (the four alias routes and the dead arms behind two),
+  <a href="#D6">D6</a> (the blocked-challenge UI) and <a href="#D1">D1</a> in part
+  (<code>challengeAwards</code> hard-wired on and deleted, which also settles H98).</p>
+  <p><b><a href="#H106">H106</a> needed no work.</b> The flaky Extra Choice check was fixed
+  independently by the 1986 commit, which hit the same group-qualification issue and now
+  scans for a run that actually reaches a boon stop. The diagnosis in the callout above was
+  confirmed by that commit's own message; the repair was somebody else's.</p>
+  <p><b>H107 got worse before it was fixed, and the reason matters for the whole backlog.</b>
+  Adding 1986 moved Argentina into <code>SQUADS[0]</code>, so the vacuous
+  <code>prime-years</code> sample went from one no-upgrade squad to another and the flake
+  rate on the neighbouring check roughly doubled (9.3% and 8.5% per tier, ~17% per suite).
+  The fix therefore selects its squad <b>by id</b>, not by index - which is
+  <a href="#H96">H96</a>'s point, demonstrated live.</p>
+  <p><b>The dataset changed mid-audit</b> (roadmap 03's first step landed on <code>main</code>
+  while these reviews were running), so every count below that touches it has been
+  re-measured: <b>296 squads, 6,799 players, 84 collectibles (60 legendary / 18 iconic / 6
+  monumental)</b>. 272 / 6,270 / 81 was correct at <code>c4f1512</code> and is not any more.
+  The catalogue (130 in 12 families, worth 779), the boost pool (32 cards, 10 starters, 22
+  lockable) and the shop (3,470) are unchanged.</p>
+  <p><b>New, and not in the numbered list below:</b> <a href="#H99">H99</a> is no longer
+  hypothetical. Adding 1986 created three collectibles with no art -
+  <code>arg-1986-10</code> (Maradona, <b>Monumental</b>), <code>fra-1986-10</code> (Platini)
+  and <code>eng-1986-10</code> (Lineker) - so the album currently ships three text-fallback
+  cards, one of them in the rarest tier. Measured 84 collectibles against 81 shipped
+  <code>.webp</code> and 81 sources. This is exactly the invariant H99 asks the harness to
+  guard, it broke within a day of the audit, and nothing noticed. Note
+  <code>art/stickers-archive/</code> holds <code>ar1986_maradona.png</code>, which is a point
+  in favour of the <a href="#D9">D9</a> decision to keep it.</p>
 </div>
 
 <h2 id="rules">Ground rules for the implementing team</h2>
@@ -283,17 +323,17 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
 <table>
   <tr><th>ID</th><th class="vd">Verdict</th><th>Correction against the tree at c4f1512</th></tr>
   <tr><td class="id">H1</td><td class="vd"><span class="tag v-void">void</span></td><td><b>Would break the build.</b> <code>isSignedIn</code> is no longer unreferenced: <code>useStickerAlbum.ts:230</code> reads it for <code>canResetAlbum</code>, the guest-only album reset. 3 hits, 2 of them real.</td></tr>
-  <tr><td class="id">H2</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>StickerAlbumApi.enabled</code> at <code>:49</code>, returned <code>:288</code>. <code>grep "stickers\.enabled"</code> = 0. The 10 internal uses of the local const stay.</td></tr>
-  <tr><td class="id">H3</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Now <b>one</b> call site, not three (<code>CupRunScreen.tsx:275</code>); the other two went with the deleted screens. Neither option is ever passed.</td></tr>
-  <tr><td class="id">H4</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>confettiBurst</code>'s <code>count</code>; one caller, <code>Bracket.tsx:195</code>, passes two args.</td></tr>
-  <tr><td class="id">H5</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>useStickerAlbum</code>'s <code>allPlayers = ALL_PLAYERS</code> at <code>:93</code>; the one caller passes <code>poolPlayers</code>, so the default is not just unused but would be the <i>wrong</i> pool.</td></tr>
-  <tr><td class="id">H6</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>BoxScore.showChemistry</code>, passed by JSX shorthand at <code>App.tsx:1138</code>.</td></tr>
-  <tr><td class="id">H7</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>ChallengeRow.award</code>; both callers pass exactly <code>AWARD[c.tier]</code>.</td></tr>
+  <tr><td class="id">H2</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>StickerAlbumApi.enabled</code> at <code>:49</code>, returned <code>:288</code>. <code>grep "stickers\.enabled"</code> = 0. The 10 internal uses of the local const stay.</td></tr>
+  <tr><td class="id">H3</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Now <b>one</b> call site, not three (<code>CupRunScreen.tsx:275</code>); the other two went with the deleted screens. Neither option is ever passed.</td></tr>
+  <tr><td class="id">H4</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>confettiBurst</code>'s <code>count</code>; one caller, <code>Bracket.tsx:195</code>, passes two args.</td></tr>
+  <tr><td class="id">H5</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>useStickerAlbum</code>'s <code>allPlayers = ALL_PLAYERS</code> at <code>:93</code>; the one caller passes <code>poolPlayers</code>, so the default is not just unused but would be the <i>wrong</i> pool.</td></tr>
+  <tr><td class="id">H6</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>BoxScore.showChemistry</code>, passed by JSX shorthand at <code>App.tsx:1138</code>.</td></tr>
+  <tr><td class="id">H7</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>ChallengeRow.award</code>; both callers pass exactly <code>AWARD[c.tier]</code>.</td></tr>
   <tr><td class="id">H8</td><td class="vd"><span class="tag v-void">void</span></td><td><code>PendingReward</code> is no longer a one-field wrapper: Double Print grew it to four fields (<code>onPick</code>, <code>remaining</code>, <code>total</code>, <code>taken</code>), all read by <code>RunEndOverlays.tsx:39-42</code>.</td></tr>
-  <tr><td class="id">H9</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Measured importers <i>from the index</i>: <code>AccountSnapshot</code> 1, <code>Settings</code> 0, <code>Store</code> 0, <code>AlbumStats</code> 0, <code>FinishRunResult</code> 0, <code>FinishRunInput</code> 0 anywhere.</td></tr>
-  <tr><td class="id">H10</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All twelve symbols re-verified module-private, none has gained an outside consumer. Refs drifted: <code>perkById</code> now <code>career.ts:352</code>, <code>CHALLENGE_BY_ID</code> <code>:715</code>, <code>qualifiers</code> <code>tournament.ts:211</code>, <code>PenPip</code> <code>matchUi.tsx:59</code>. <code>App.tsx:1223</code> compares <code>StaleVersionError</code> as a <i>string</i>, so it is still not an importer.</td></tr>
+  <tr><td class="id">H9</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Measured importers <i>from the index</i>: <code>AccountSnapshot</code> 1, <code>Settings</code> 0, <code>Store</code> 0, <code>AlbumStats</code> 0, <code>FinishRunResult</code> 0, <code>FinishRunInput</code> 0 anywhere.</td></tr>
+  <tr><td class="id">H10</td><td class="vd"><span class="tag v-done">DONE</span></td><td>All twelve symbols re-verified module-private, none has gained an outside consumer. Refs drifted: <code>perkById</code> now <code>career.ts:352</code>, <code>CHALLENGE_BY_ID</code> <code>:715</code>, <code>qualifiers</code> <code>tournament.ts:211</code>, <code>PenPip</code> <code>matchUi.tsx:59</code>. <code>App.tsx:1223</code> compares <code>StaleVersionError</code> as a <i>string</i>, so it is still not an importer.</td></tr>
   <tr><td class="id">H11</td><td class="vd"><span class="tag v-void">void</span></td><td><b>Would break the build.</b> <code>lockableBoons</code> is no longer harness-only: <code>domain/badges.ts:118</code> uses it for the Full Library badge, reached via <code>cabinet.ts</code> and <code>CabinetScreen</code>. (Its doc comment is still inaccurate - <code>CareerHub.tsx:317</code> filters <code>BOONS</code> inline - which is a truth fix, not a deletion.)</td></tr>
-  <tr><td class="id">H12</td><td class="vd"><span class="tag v-stands">stands</span></td><td>0 <code>.json</code> imports, 0 imports with a <code>.ts</code> suffix. Note <code>useDefineForClassFields</code> is inert rather than wrong: both classes use parameter properties.</td></tr>
+  <tr><td class="id">H12</td><td class="vd"><span class="tag v-done">DONE</span></td><td>0 <code>.json</code> imports, 0 imports with a <code>.ts</code> suffix. Note <code>useDefineForClassFields</code> is inert rather than wrong: both classes use parameter properties.</td></tr>
   <tr><td class="id">H13</td><td class="vd"><span class="tag v-stands">stands</span></td><td>19 <code>useCallback</code> in <code>App.tsx</code>, <b>0</b> <code>memo(</code> repo-wide. Exactly one identity is consumed (<code>runRoll</code>, in two dep arrays).</td></tr>
   <tr><td class="id">H14</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>Three <code>store.peek()</code> memos keyed on the path, not four, and <i>all three</i> carry the suppression (the old item said two of four). The fourth site it named, <code>resumeBuild</code>, reads no store at all, so the charge does not apply there.</td></tr>
   <tr><td class="id">H15</td><td class="vd"><span class="tag v-void">void</span></td><td>The "unreachable" else-branch is reachable: <code>showToggle={!hubOnly}</code> and <code>hubOnly</code> is the <code>/career</code> route, one of the two mounts. Deleting the branch would blank the career header.</td></tr>
@@ -306,12 +346,12 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
   <tr><td class="id">H22</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>Confetti.tsx:18</code> <code>life?</code>, asserted at <code>:100</code> and <code>:102</code>. See <a href="#H133">H133</a> for the cleaner fix.</td></tr>
   <tr><td class="id">H23</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>bracket.ts:13</code>'s inline <code>pens</code> subset against the whole <code>ShootoutResult</code> assigned at <code>:110</code>.</td></tr>
   <tr><td class="id">H24</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>ReturnType&lt;typeof catOf&gt;</code> at <code>boons.ts:171</code>; <code>budget.ts:68</code> still shadows its <code>pool</code> parameter.</td></tr>
-  <tr><td class="id">H25</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>public/formations/.claude/launch.json</code>, tracked, 207 bytes - and it <b>deploys</b>: it is present in <code>dist/formations/.claude/</code>. An editor config served on the public site.</td></tr>
-  <tr><td class="id">H26</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>public/jerseys/done/bra2006-rr - Copy.jpg</code>, 470,421 bytes, md5-identical to its sibling.</td></tr>
-  <tr><td class="id">H27</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Root <code>collectibles.csv</code>, 68 data rows against today's <b>81</b> collectibles, 0 code references. The arithmetic in the old item re-verifies exactly.</td></tr>
-  <tr><td class="id">H28</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>scripts/scrape_7a0.js</code> (743 lines) + <code>scripts/out/*.csv</code> (490 KB), no npm script, no importer. One prose mention at <code>squads.ts:1240</code>.</td></tr>
-  <tr><td class="id">H29</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>.gitignore</code> has <code>dist-ssr</code> (0 SSR refs) and covers only <code>*.local</code>, so a plain <code>.env</code> or <code>.env.production</code> is <b>not ignored</b> (verified with <code>git check-ignore</code>).</td></tr>
-  <tr><td class="id">H30</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>copy-404.mjs</code> is 4-space; the other 8 scripts are 2-space.</td></tr>
+  <tr><td class="id">H25</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>public/formations/.claude/launch.json</code>, tracked, 207 bytes - and it <b>deploys</b>: it is present in <code>dist/formations/.claude/</code>. An editor config served on the public site.</td></tr>
+  <tr><td class="id">H26</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>public/jerseys/done/bra2006-rr - Copy.jpg</code>, 470,421 bytes, md5-identical to its sibling.</td></tr>
+  <tr><td class="id">H27</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Root <code>collectibles.csv</code>, 68 data rows against today's <b>81</b> collectibles, 0 code references. The arithmetic in the old item re-verifies exactly.</td></tr>
+  <tr><td class="id">H28</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>scripts/scrape_7a0.js</code> (743 lines) + <code>scripts/out/*.csv</code> (490 KB), no npm script, no importer. One prose mention at <code>squads.ts:1240</code>.</td></tr>
+  <tr><td class="id">H29</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>.gitignore</code> has <code>dist-ssr</code> (0 SSR refs) and covers only <code>*.local</code>, so a plain <code>.env</code> or <code>.env.production</code> is <b>not ignored</b> (verified with <code>git check-ignore</code>).</td></tr>
+  <tr><td class="id">H30</td><td class="vd"><span class="tag v-done">DONE</span></td><td><code>copy-404.mjs</code> is 4-space; the other 8 scripts are 2-space.</td></tr>
   <tr><td class="id">H31</td><td class="vd"><span class="tag v-shrunk">shrunk</span></td><td>The doc claim stands (CLAUDE.md still lists <code>random.ts</code> as "shuffled + pick"; the file exports only <code>shuffled</code>). But <b>there is no private <code>pick</code> left to move</b> - the scorer-weight rework removed it - so the fix is now "write it", not "export it". This voids the deletion half of H36.</td></tr>
   <tr><td class="id">H32</td><td class="vd"><span class="tag v-stands">stands</span></td><td>And there is now a <b>third</b> site: the wrong "93+ pool" claim sits in CLAUDE.md, <code>useStickerAlbum.ts:205</code> <i>and</i> <code>docs/ROADMAP.html</code>. Wildcard Legend is <code>&gt;= 90</code>, Legends' Reunion <code>&gt;= 93</code>.</td></tr>
   <tr><td class="id">H33</td><td class="vd"><span class="tag v-stands">stands</span></td><td><code>useStickerAlbum.ts:128</code> states the <code>stickersOnCupWinOnly</code> polarity <b>backwards</b> ("On (the default)") against <code>config.ts:43</code> = <code>false</code>. The worst comment in the tree: it inverts a flag.</td></tr>
@@ -396,14 +436,14 @@ re-derives them. New findings from this pass start at <a href="#H106">H106</a>.<
 
 <table>
   <tr><th>ID</th><th class="vd">Verdict</th><th>Correction against the tree at c4f1512</th></tr>
-  <tr id="H91"><td class="id">H91</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Still the first code move, but <b>no longer the first move</b>: do <a href="#H106">H106</a> first or CI goes red at random. Counts corrected: <b>132</b> invariants (not 59), <b>16.9s</b> (not 14s). Mutation-tested: 3 of 4 seeded regressions are caught, including the two traps CLAUDE.md names.</td></tr>
+  <tr id="H91"><td class="id">H91</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Still the first code move, but <b>no longer the first move</b>: do <a href="#H106">H106</a> first or CI goes red at random. Counts corrected: <b>132</b> invariants (not 59), <b>16.9s</b> (not 14s). Mutation-tested: 3 of 4 seeded regressions are caught, including the two traps CLAUDE.md names.</td></tr>
   <tr><td class="id">H92</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Re-verified empirically. <code>npm run build -- --base=/</code> exits 0, prints a cheerful <code>copy-404: wrote dist/404.html</code>, and emits <code>src="/wcsim/assets/..."</code> regardless. <code>npx vite build --base=/</code> is what works.</td></tr>
   <tr><td class="id">H93</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Counts corrected sharply: <b>135</b> <code>check()</code> call sites and <b>~34</b> non-null assertions (not 3). Only 3 <code>try</code> blocks in 2,846 lines, so an exception anywhere else aborts the run and every later block silently never executes.</td></tr>
   <tr><td class="id">H94</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Much bigger than published: the play-to-ended loop is copy-pasted <b>12</b> times (not 5), run factories <b>8</b> (not 4), challenge-context builders <b>5</b> (not 3). The divergence widened too - guard bounds are now <code>&lt; 12</code> at six sites and <code>&lt; 20</code> at six others, on top of the <code>offer[0]</code> vs <code>offer[i % len]</code> split.</td></tr>
   <tr><td class="id">H95</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All three flakiness sites intact, and <a href="#H106">H106</a> shows the class is not theoretical. <code>withSeed</code> is still not extracted.</td></tr>
   <tr><td class="id">H96</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Magic dataset indices re-measured at <b>30</b> sites (not 9). Four of six <code>PERKS</code> tracks are still never checked for tier well-formedness.</td></tr>
   <tr><td class="id">H97</td><td class="vd"><span class="tag v-stands">stands</span></td><td>The harness still re-implements the core of <code>xiStrength</code> locally; <code>match.ts</code> exports no <code>groupAverages</code>.</td></tr>
-  <tr><td class="id">H98</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Both assertions still written to pass under either setting of <code>AWARDS_ON</code>, which is the whole objection.</td></tr>
+  <tr><td class="id">H98</td><td class="vd"><span class="tag v-done">DONE</span></td><td>Settled by <a href="#D1">D1</a>: the flag is gone, <code>AWARDS_ON</code> is a constant, and both assertions are unconditional.</td></tr>
   <tr><td class="id">H99</td><td class="vd"><span class="tag v-stands">stands</span></td><td>Re-measured perfectly clean, all four directions: <b>81 / 81 / 81</b>, zero orphan art, zero missing art, zero unbuilt sources. Still nothing guards it, and <code>build-sticker-art.py</code> never consults the dataset nor prunes a demoted player's file.</td></tr>
   <tr><td class="id">H100</td><td class="vd"><span class="tag v-stands">stands</span></td><td>All four sub-parts, with (d) half-addressed already (the byte count is printed; the <code>split(';')</code> over-count remains).</td></tr>
   <tr><td class="id">H101</td><td class="vd"><span class="tag v-stands">stands</span></td><td>No <code>engines</code> field (verified), no <code>.nvmrc</code>, against <code>node-version: 22</code> in CI and <code>node:22-alpine</code> in the Dockerfile. The missing trailing <code>-</code> is real, and <code>album:fill</code> having it is exactly why that script's <code>--</code> forwarding works while <code>build</code>'s does not.</td></tr>
