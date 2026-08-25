@@ -353,7 +353,7 @@
   <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
-      <span class="sub">Extend the dataset backwards: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b> and <b>1974</b> all shipped 2026-08-25. Thirteen tournaments, 8,028 rows, 352 squads. Next: 1970, then 1966 and earlier.</span>
+      <span class="sub">Extend the dataset backwards: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b>, <b>1974</b> and <b>1970</b> all shipped 2026-08-25. Fourteen tournaments, 8,377 rows, 368 squads. Next: 1966, then 1962 and earlier.</span>
     </span>
     <span class="tag">Content</span>
     <span class="chev">&#9656;</span>
@@ -533,8 +533,45 @@
     <code>apps</code> line as unreliable in both directions and read the printed
     line-ups.</b></p>
 
-    <p class="next"><strong>Next step:</strong> 1970, the same way, with the per-half band
-    figures given to the raters at the start. Re-run
+    <p><strong>1970 shipped 2026-08-25 and closes the matcher hole 1974 left open.</strong>
+    16 nations, <b>349 rows</b> - <b>Morocco brought only 19</b> and never filled the roster,
+    confirmed by two sources, which is the second short squad in three drops after El
+    Salvador's 20 in 1982. Four raters, two reconcilers, and <b>a third drop running with no
+    calibration correction</b>: mean 74.9, median 75, floor 63, band 12.3%, best XI from El
+    Salvador 67.5 to <b>Brazil 86.8</b>, the highest pre-1990 side in the file and second
+    only to Brazil 2002 (89.1).
+    <br><b>The matcher fix, and why the trade is the right way round.</b> RSSSF prints short
+    forms of long names, never the reverse, so only <code>rsssf &sub; player</code> is
+    legitimate containment and the other direction is now refused. It earned it immediately
+    by <b>declining to choose between Jack and Bobby Charlton in the same squad</b>. The cost
+    is real: it now misses genuine starters - about a dozen in 1970 - and reports them as
+    "none found". That is the correct failure. <b>A rater can read a line-up; it cannot
+    un-see a wrong appearance count.</b>
+    <br><b>Pele 97 is the dataset's seventh Monumental card</b>, and both group A raters
+    chose it independently with the same argument: a rating is the player's STRENGTH at that
+    tournament, not the size of the load he carried, so "he had Jairzinho, Tostao and Gerson
+    beside him" argues against a 98 rather than against a 97. Muller 93 is a new Iconic;
+    Jairzinho 91, Beckenbauer 90 and Bobby Moore 90 complete five at 90+.
+    <br><b>The era needs its own position note, and 1966 will need it more.</b> 1970
+    pre-dates modern position language: articles say "inside forward", "wing half" or just
+    "forward". Each was mapped onto the twelve by where the man actually lined up - inside
+    forward is usually AM or ST, a wing half DM or CM, a full-back LB or RB, a libero CB.
+    <br><b>One override, and nothing but the article titles separates them.</b> Sweden's
+    1970 Jan Olsson is born 1944 - a VfB Stuttgart midfielder who won <b>Guldbollen</b> for
+    1970 and man-marked Riva - while the 1974 Jan Olsson is born 1942, the man Cruyff
+    turned. Two raters reached that independently, and it explains the single largest rating
+    gap in the tournament: they were anchoring to different people. Sweden's Claes Cronqvist
+    looked like the same problem and is not - one man, and the squad list's "DF" is the
+    outlier against both his own infobox and the line-up.
+    <br><b>New collectibles: 5</b>, taking the album from 100 to <b>105</b>. Seed
+    regenerated and pushed the same day. <b>Israel</b> is the one new nation, on their only
+    World Cup appearance; they are recorded under UEFA, the same current-affiliation choice
+    Australia already gets.</p>
+
+    <p class="next"><strong>Next step:</strong> 1966, the same way, with the per-half band
+    figures given to the raters at the start. Expect the position-language problem to be
+    worse: 1966 is deeper into WM-formation vocabulary, so budget for more per-player
+    reading and fewer usable infobox fields. Re-run
     <code>npm run gen:collectibles</code> and <code>npm run push:collectibles</code> after,
     and check the name-collision list before calling it done.
     <br><b>Two source notes from the 1982 round, both verified:</b> RSSSF serves

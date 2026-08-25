@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 100 (75 legendary / 19 iconic / 6 monumental)
--- checksum: 2fc1fe2f68685772
+-- rows: 105 (78 legendary / 20 iconic / 7 monumental)
+-- checksum: 31b9dcd2038a67a0
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -39,6 +39,8 @@ values
   ('bel-2018-7', 'iconic', 93, 'Kevin De Bruyne', 'bel-2018', 'BEL', 2018),
   ('bel-2022-1', 'iconic', 93, 'Thibaut Courtois', 'bel-2022', 'BEL', 2022),
   ('bel-2022-7', 'iconic', 94, 'Kevin De Bruyne', 'bel-2022', 'BEL', 2022),
+  ('bra-1970-10', 'monumental', 97, 'Pelé', 'bra-1970', 'BRA', 1970),
+  ('bra-1970-7', 'legendary', 91, 'Jairzinho', 'bra-1970', 'BRA', 1970),
   ('bra-1982-10', 'legendary', 90, 'Zico', 'bra-1982', 'BRA', 1982),
   ('bra-1994-11', 'iconic', 96, 'Romário', 'bra-1994', 'BRA', 1994),
   ('bra-1994-7', 'legendary', 90, 'Bebeto', 'bra-1994', 'BRA', 1994),
@@ -61,6 +63,7 @@ values
   ('cro-2018-10', 'legendary', 92, 'Luka Modrić', 'cro-2018', 'CRO', 2018),
   ('cro-2022-10', 'legendary', 92, 'Luka Modrić', 'cro-2022', 'CRO', 2022),
   ('den-1986-10', 'legendary', 90, 'Preben Elkjær Larsen', 'den-1986', 'DEN', 1986),
+  ('eng-1970-6', 'legendary', 90, 'Bobby Moore', 'eng-1970', 'ENG', 1970),
   ('eng-1986-10', 'legendary', 90, 'Gary Lineker', 'eng-1986', 'ENG', 1986),
   ('eng-2022-9', 'legendary', 91, 'Harry Kane', 'eng-2022', 'ENG', 2022),
   ('esp-1986-9', 'legendary', 90, 'Emilio Butragueño', 'esp-1986', 'ESP', 1986),
@@ -84,6 +87,8 @@ values
   ('fra-2018-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2018', 'FRA', 2018),
   ('fra-2022-10', 'monumental', 97, 'Kylian Mbappé', 'fra-2022', 'FRA', 2022),
   ('fra-2022-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2022', 'FRA', 2022),
+  ('ger-1970-13', 'iconic', 93, 'Gerd Müller', 'ger-1970', 'GER', 1970),
+  ('ger-1970-4', 'legendary', 90, 'Franz Beckenbauer', 'ger-1970', 'GER', 1970),
   ('ger-1974-13', 'legendary', 90, 'Gerd Müller', 'ger-1974', 'GER', 1974),
   ('ger-1974-5', 'legendary', 92, 'Franz Beckenbauer', 'ger-1974', 'GER', 1974),
   ('ger-1982-11', 'legendary', 90, 'Karl-Heinz Rummenigge', 'ger-1982', 'GER', 1982),

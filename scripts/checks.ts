@@ -124,6 +124,7 @@ import {
   INITIAL_CAREER,
   levelForXp,
   PERKS,
+  rememberAscension,
   startRunCareer,
   type CareerState,
 } from '../src/domain/career';
@@ -2150,6 +2151,37 @@ const plainRun = (() => {
   check('career: budgetOf matches the ladder (clamped), and a banked boost is dealt once', ok);
 }
 
+// --- Career: picking an Ascension tier must NOT spend a start-boost grant ------------
+// The Ascension picker moved to the complete panel (roadmap 36 follow-up), and moving it
+// surfaced a live bug: it was wired to `startRunCareer`, which clears
+// `bonusStartBoosts` and RETURNS what it owes. A picker has no run to deal a grant to, so
+// it dropped the return value and the grant with it - and the picker is a control you can
+// touch as often as you like before any run exists.
+{
+  let ok = true;
+  const owing: CareerState = {
+    ...INITIAL_CAREER,
+    lastAscension: 0,
+    stats: { ...INITIAL_CAREER.stats, bonusStartBoosts: 2 },
+  };
+  // Picking records the tier and leaves the grant alone, however many times it is touched.
+  let picked = owing;
+  for (const tier of [3, 1, 5, 2]) picked = rememberAscension(picked, tier);
+  if (picked.lastAscension !== 2) ok = false;
+  if ((picked.stats.bonusStartBoosts ?? 0) !== 2) ok = false;
+  // The kickoff is still the one and only place it is dealt, and it is dealt in full.
+  const kicked = startRunCareer(picked, 2);
+  if (kicked.owed !== 2) ok = false;
+  if ((kicked.career.stats.bonusStartBoosts ?? 0) !== 0) ok = false;
+  // Nothing else on the career moves, and an unchanged tier comes back by identity so the
+  // caller can skip the save.
+  const { lastAscension: _a, stats: _s, ...restBefore } = owing;
+  const { lastAscension: _b, stats: _t, ...restAfter } = picked;
+  if (JSON.stringify(restBefore) !== JSON.stringify(restAfter)) ok = false;
+  if (rememberAscension(picked, 2) !== picked) ok = false;
+  check('career: picking an Ascension tier records it without spending a banked boost', ok);
+}
+
 // --- Career: the shop's advice agrees with what the shop will actually do -----------
 // `perkPurchaseState` and `boonUnlockState` exist so the button a player presses and the
 // function that refuses them are one rule (hygiene H65). That is only worth anything if
@@ -2373,6 +2405,12 @@ const KNOWN_MISSING_ART = new Set([
   'ger-1974-13', // Gerd Muller
   'ned-1974-13', // Neeskens
   'pol-1974-12', // Deyna
+  // 1970. Pele is the dataset's seventh MONUMENTAL card.
+  'bra-1970-10', // Pele (Monumental, 97)
+  'ger-1970-13', // Gerd Muller (Iconic, 93)
+  'bra-1970-7', // Jairzinho
+  'ger-1970-4', // Beckenbauer
+  'eng-1970-6', // Bobby Moore
 ]);
 {
   const STICKER_DIR = 'public/stickers';

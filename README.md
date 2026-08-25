@@ -12,14 +12,15 @@ in-progress run follow you between devices (requirements in
 `docs/cloud-sync-requirements.md`, server setup in `docs/nas-setup.md`); with no server
 configured nothing account-related renders and the auth code is never loaded.
 
-> **All thirteen tournaments from 1974 to 2022 are researched full datasets** - 8,028
-> player rows. 1974 and 1978 are 16-nation fields, 1982 to 1994 are 24, 1998 onward are 32;
-> squad sizes are 22-man for 1974-1998, 23-man for 2002-2018 and
-> 26-man for 2022 (Iran registered 25, and El Salvador brought only 20 to 1982), with
+> **All fourteen tournaments from 1970 to 2022 are researched full datasets** - 8,377
+> player rows. 1970 to 1978 are 16-nation fields, 1982 to 1994 are 24, 1998 onward are 32;
+> squad sizes are 22-man for 1970-1998, 23-man for 2002-2018 and
+> 26-man for 2022 (Iran registered 25; Morocco brought only 19 to 1970 and El Salvador 20
+> to 1982), with
 > shirt numbers and positions taken from the tournament squad lists. Ratings are a holistic judgement of each player's strength **at the time of
 > that tournament** on a 60-99 scale - not current ability, and not a FIFA-game
-> number. For 1974, 1978, 1982, 1986, 1998 and 2002 the rating blends pre-tournament ability
-> with how the player actually performed there; for 1974 to 1986 the positions are
+> number. For 1970 to 1986 and for 1998 and 2002 the rating blends pre-tournament ability
+> with how the player actually performed there; for 1970 to 1986 the positions are
 > additionally the roles each man filled at that tournament, read off its match line-ups. Historical nations keep their period identity:
 > West Germany is recorded as Germany on `GER`, while the Soviet Union, Czechoslovakia
 > and Yugoslavia have their own codes. A player appearing in several tournaments shares

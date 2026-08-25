@@ -19,6 +19,10 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   TCH: 'UEFA', URS: 'UEFA', // 1990 (Czechoslovakia, Soviet Union)
   HUN: 'UEFA', NIR: 'UEFA', // 1986
   GDR: 'UEFA', // 1974 (East Germany)
+  // Israel played 1970 through the AFC/OFC qualifying zone and was expelled from the AFC
+  // in 1974, but this table records CURRENT affiliation - the same choice Australia gets,
+  // which is listed under AFC despite qualifying for 1974 as an OFC member.
+  ISR: 'UEFA', // 1970
   // CONMEBOL
   BRA: 'CONMEBOL', ARG: 'CONMEBOL', URU: 'CONMEBOL', COL: 'CONMEBOL',
   ECU: 'CONMEBOL', CHI: 'CONMEBOL', PER: 'CONMEBOL', PAR: 'CONMEBOL',

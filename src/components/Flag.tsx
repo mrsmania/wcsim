@@ -37,6 +37,7 @@ import HU from 'country-flag-icons/react/3x2/HU';
 import HR from 'country-flag-icons/react/3x2/HR';
 import IE from 'country-flag-icons/react/3x2/IE';
 import IQ from 'country-flag-icons/react/3x2/IQ';
+import IL from 'country-flag-icons/react/3x2/IL';
 import IR from 'country-flag-icons/react/3x2/IR';
 import IS from 'country-flag-icons/react/3x2/IS';
 import IT from 'country-flag-icons/react/3x2/IT';
@@ -106,6 +107,8 @@ const BY_FIFA: Record<string, typeof BR> = {
   // same flag in 1974, and there is no better option that ships. Zaire likewise takes
   // DR Congo's.
   GDR: DE, ZAI: CD, HAI: HT,
+  // 1970's one new nation.
+  ISR: IL,
 };
 
 interface Props {
