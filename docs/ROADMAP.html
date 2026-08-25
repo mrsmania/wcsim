@@ -337,7 +337,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-25<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -1029,54 +1029,43 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   </div>
 </details>
 
+<details class="history">
+  <summary>Shipped &mdash; decision history &#9656;</summary>
+  <div class="detail">
+    <h3>Closed 2026-08-25</h3>
+    <p>All three kept in full because in each case the method is the deliverable. <b>33</b> is
+    the source route the next tournament should use, and the reason to distrust "that site is
+    blocked". <b>35</b> is how to apply a migration you did not write and prove it worked, and
+    the one that nearly went in wrong is the worked example. <b>36</b> is what a filter row
+    costs once you measure it, plus two UI mechanisms that will recur: a ring inside a scroll
+    container, and a facet that collapses under cross-filtering.</p>
+
 <details class="item">
   <summary>
     <span class="num">36</span>
     <span class="title">Transfer market: the filter row, and two layout fixes
-      <span class="sub">Asked for 2026-08-25, and both open questions were answered the same day. An "only what I can afford" tick-box, a country dropdown, the cup and country dropdowns narrowing each other, the region filter deleted, the list row's year moved under the flag so names stop truncating, and the selected row's highlight, whose border is cropped left and right. The first one is a real bug: at the end of a build the market shows sixty rows and every one of them is disabled.</span>
+      <span class="sub">Asked for, decided and <b>shipped 2026-08-25</b>. An "Affordable" tick-box, a country dropdown, the cup and country dropdowns narrowing each other, the region filter deleted, the list row's year moved under the flag, and the selected row's cropped border. The first one was a real bug, reproduced live: at the end of a build the market showed sixty rows and every one of them was disabled.</span>
     </span>
     <span class="tag">Build</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>The ask (2026-08-25),</strong> six things on the transfer market panel, in the
-    words they arrived in:</p>
-    <ul>
-      <li>a checkbox for displaying only players I can afford;</li>
-      <li>a dropdown including all countries available in the current selection;</li>
-      <li>the dropdowns should narrow each other: <b>pick a cup and the country filter shows only
-      the countries that took part in it; pick a country and the cup filter shows only the years
-      that country was there</b>;</li>
-      <li><b>remove the region filter</b>;</li>
-      <li>in list view, put the year beneath the flag and narrow the padding between columns, so
-      the names have more space - most of them are truncated so you cannot tell who it is;</li>
-      <li>the selected player gets a greenish background and a border, and that border is
-      <b>cropped left and right</b>. Either draw it in full or drop the left and right stroke and
-      let the background run the full width. <b>The full-width background is the stated
-      preference.</b></li>
-    </ul>
-
-    <p><strong>Nothing here is still open.</strong> The first draft of this item left two
-    questions for an owner (does the region filter survive, and do the facets cross-filter) and
-    both were answered on the day: <b>region goes, and the two dropdowns narrow each other in
-    both directions.</b> So this is a build item, not a design item, and the notes below are
-    about the traps rather than the choices.</p>
-
-    <p><strong>Where the code already is,</strong> and the split to keep: the sorts, the facet
-    derivation and the whole filter pipeline live in <a class="dl" href="../src/domain/market.ts" target="_blank" rel="noopener"><code>domain/market.ts</code></a>
-    (<code>marketResults</code>, <code>marketFacets</code>, <code>marketSortCmp</code>,
-    <code>MAX_RESULTS</code>), pulled out of the component as hygiene H62. The panel keeps the
-    dropdowns, the words on them, the row markup and the memo wiring. So the filter work is
-    <code>MarketQuery</code> plus <code>marketFacets</code>' signature, and the two layout fixes
-    are <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener"><code>BudgetMarket.tsx</code></a> alone.</p>
+    <p><strong>The ask (2026-08-25),</strong> in the words it arrived in: a checkbox for
+    displaying only players I can afford; a dropdown of all countries in the current selection;
+    the dropdowns should narrow each other (pick a cup and the country filter shows only the
+    countries that took part, pick a country and the cup filter shows only the years it was
+    there); remove the region filter; in list view put the year beneath the flag and narrow the
+    column padding, because most names are truncated past recognising; and the selected row's
+    border is cropped left and right, so either draw it in full or drop the side stroke and let
+    the background run the full width (<b>the stated preference</b>).</p>
 
     <div class="callout">
-      <span class="ct">The affordable tick-box is not a convenience, it is a broken list</span>
-      The market caps at <b>60 rows</b> (<code>MAX_RESULTS</code>) and sorts by rating by default,
-      so the rows on screen are always the <em>dearest</em> players. Prices run $1 to $26 against
-      a $110 budget for eleven slots, so single digits left is the ordinary endgame of a build. At
-      that point every visible row is unaffordable and therefore disabled, while a thousand
-      affordable players sit below the cut where no control can reach them.
+      <span class="ct">The affordable tick-box was not a convenience, it was a broken list</span>
+      The market caps at <b>60 rows</b> (<code>MAX_RESULTS</code>) and sorts by rating, so the
+      rows on screen are always the <em>dearest</em> players. Prices run $1 to $26 against a $70
+      to $160 budget for eleven slots, so single digits left is the ordinary endgame of a build.
+      At that point every visible row was unaffordable and therefore disabled, while a thousand
+      affordable players sat below the cut where no control could reach them.
     </div>
 
     <p>Measured over the full thirteen-tournament pool (undiscounted prices; the owned-sticker
@@ -1088,134 +1077,93 @@ $10                    83                  1415                    0
  $8                    81                  1311                    0
  $5                    76                   818                    0</pre>
 
-    <p>Same at every position: CB reads 0 of 60 with 1,738 affordable at $10, GK 0 of 60 with 954.
-    <b>And no combination of the shipped controls fixes it.</b> "Sort: Price" is the obvious escape
-    and it overshoots completely - cheapest-first fills all sixty rows with $1 players rated 66 and
-    67, when the answer wanted is the 83 the money actually buys. "The best I can afford" is the
-    one question the market exists to answer and currently cannot.</p>
+    <p>Same at every position: CB read 0 of 60 with 1,738 affordable at $10, GK 0 of 60 with 954.
+    <b>And no combination of the shipped controls fixed it.</b> "Sort: Price" was the obvious
+    escape and overshot completely - cheapest-first filled all sixty rows with $1 players rated 66
+    and 67, when the answer wanted was the 83 the money actually bought. <b>Reproduced in the
+    running app</b> before the fix: $1 left, 60 rows, 60 of them disabled; with the toggle on, 28
+    rows, none disabled, headed by the best $1 buys.</p>
 
+    <p><strong>What shipped.</strong></p>
     <ol>
-      <li><p><b>Affordable only.</b> A <code>maxPrice: number | null</code> on
-      <code>MarketQuery</code>, applied in <code>marketResults</code>'s filter so it lands
-      <em>before</em> the cap - that ordering is the whole value of the filter, and the module's
-      doc comment already explains why the cap goes last. The panel passes <code>remaining</code>
-      (<code>budget - spent</code>), so the list re-filters as the XI fills, which is correct and
-      worth knowing: rows will vanish under the player as they buy. Three details. <b>The empty
-      state needs its own words</b> ("nothing here you can afford" beats the existing "No ST
-      matches those filters", which blames the filters). <b>Already picked is a different reason a
-      row is disabled</b> (<code>used</code>, on <code>personId</code>) and this tick-box must not
-      hide those, or a second toggle is being designed by accident. And it should <b>survive a
-      position change</b> the way <code>collectiblesOnly</code> does, since affordability is not
-      position-specific while the cup and country facets are (that reset effect is keyed on
-      <code>position</code>).</p></li>
+      <li><b>Affordable only.</b> <code>maxPrice</code> on <code>MarketQuery</code>, applied in
+      the filter so it lands <em>before</em> the cap - the same reason the cap goes after the
+      sort. <code>marketResults</code> now returns <code>hiddenByPrice</code> beside the rows, so
+      the empty state says "No ST you can afford with $8 left." rather than blaming the filters
+      and sending the player off adjusting the wrong control. It survives a position change (like
+      the collectible toggle) and never hides an already-picked player, which is a different
+      reason for a row to be disabled.</li>
 
-      <li><p><b>The country dropdown.</b> A second facet out of <code>marketFacets</code>, which
-      already walks the candidates for exactly this. Size it before designing it: with no cup
-      picked a position draws from <b>70 to 81 nations</b> (81 for GK, CB, CM, AM and ST; 70 for
-      LW), so this is a long native select, alphabetical by nation name. Key it on the <b>squad
-      code</b> rather than the nation string, so Soviet Union, Czechoslovakia, Yugoslavia and both
-      German sides keep their own entries.</p></li>
+      <li><b>The country dropdown</b>, keyed on the squad <b>code</b> rather than the nation
+      string so Soviet Union, Czechoslovakia, Yugoslavia and both German sides keep their own
+      entries, and sorted by nation name.</li>
 
-      <li><p><b>The two dropdowns narrow each other</b> (decided 2026-08-25). Each dropdown's
-      options are derived from the candidates that pass <em>every filter except its own</em>, which
-      is what makes both halves of the ask fall out of one rule: pick 1974 and the country list is
-      the 16 nations that were there, pick Wales and the cup list is 2022 alone. The field sizes
-      are the payoff, since the country list stops being a scroll of 81: <b>16 nations in 1974 and
-      1978, 24 from 1982 to 1994, 32 from 1998 on</b>.</p>
-      <p><b>It also closes the hole the first draft flagged.</b> The module promises the dropdowns
-      "never offer an option that would empty the list", and that promise was only true one facet
-      at a time - 352 squads across 13 years and 81 nations means two thirds of the year plus
-      country pairs are empty by construction. With both narrowing, an empty pair is
-      <b>unreachable through the UI in either order</b>, so the comment becomes true again rather
-      than needing a rewording.</p>
-      <p><b>Two traps, and the second is the common case.</b> First, decide which filters
-      participate: the recommendation is that <b>the cup and country dropdowns narrow each other
-      and nothing else narrows them</b> - the collectible and affordable toggles and the search box
-      should not, because affordability changes with every purchase and a country list that
-      reshuffles as money is spent is unpredictable in a way nobody asked for. Second, the cup
-      select is currently rendered only when its facet holds more than one option, and that guard
-      breaks under cross-filtering: <b>24 of the 81 nations played exactly one World Cup</b> (East
-      Germany, Haiti, Zaire, Kuwait, El Salvador, Iraq, UAE, Bolivia, Jamaica, Turkey, China,
-      Trinidad, Serbia and Montenegro, Angola, Czechia, Togo, Ukraine, Slovakia, North Korea,
-      Bosnia, Iceland, Panama, Qatar, Wales), so picking one collapses the cup facet to a single
-      year. Pick the cup <em>first</em> and then that country, and the guard hides a select that
-      still holds an active selection, which the player then cannot see or clear. The rule to write
-      down: <b>a facet's control is shown when it has more than one option OR a selection is
-      active on it.</b></p></li>
+      <li><b>The two dropdowns narrow each other</b>, out of one rule: each dropdown's options
+      come from the candidates passing <em>every filter except its own</em>. Pick 1974 and the
+      country list is the 16 nations that were there (verified live: 71 options down to 17); pick
+      Wales and the cup list is 2022 alone. This restores the module's promise that a dropdown
+      never offers an option that would empty the list, which had only ever held one facet at a
+      time - with 352 squads over 13 years and 81 nations, two thirds of the year-plus-country
+      pairs are empty by construction. The search box and the two toggles are deliberately
+      excluded from the narrowing: what a run can afford changes with every purchase, and a
+      country list that reshuffled as money was spent would be unpredictable.</li>
 
-      <li><p><b>The region filter goes</b> (decided 2026-08-25). Out of the panel, out of
-      <code>MarketQuery</code> (<code>filterRegion</code>), out of <code>marketFacets</code>'
-      return (<code>regions</code>), and the <code>Confederation</code> type import out of
-      <code>BudgetMarket.tsx</code>. <b><code>data/confederations.ts</code> stays and is not
-      dead:</b> <code>domain/chemistry.ts</code> reads it for the "Same continent" category,
+      <li><b>The render guard that the narrowing forced.</b> A control is shown when it has more
+      than one option <b>OR</b> a selection is active on it. <b>24 of the 81 nations played
+      exactly one World Cup</b>, so picking one collapses the cup facet to a single year, and the
+      old "more than one option" test alone would have hidden a filter that was still switched on.
+      Verified both ways in the running app: country first, the cup dropdown disappears (nothing
+      to choose); cup first and then Wales, it stays with its selection visible and clearable.</li>
+
+      <li><b>The region filter is gone</b> - out of the panel, out of <code>MarketQuery</code>,
+      out of <code>marketFacets</code>. <code>data/confederations.ts</code> stays and is not dead:
+      <code>domain/chemistry.ts</code> reads it for "Same continent",
       <code>domain/challenges.ts</code> for <code>confedOf</code>, and
-      <code>domain/validateSquads.ts</code> asserts every squad code in the dataset is mapped
-      there. Only the market's use of it goes.</p>
-      <p><b>What is knowingly lost:</b> "every South American, across all thirteen cups" is a thing
-      six broad buckets could express and a country dropdown cannot. The judgement is that the
-      specific country is what anyone shopping actually wants, and that a filter with six options
-      was the wrong grain to spend a control on. The gain is the filter row: three selects and two
-      toggles instead of four and two, in the narrowest column of a three-column layout, which is
-      what keeps it off a third wrapped line and out of a disclosure
-      (<code>CardDisclosure</code> in <code>matchUi.tsx</code> was the fallback if it had
-      stayed).</p></li>
+      <code>domain/validateSquads.ts</code> asserts every squad code is mapped there. Knowingly
+      lost: "every South American across all thirteen cups", which a country dropdown cannot say.
+      Gained: a filter row of three selects and two toggles instead of four and two.</li>
 
-      <li><p><b>The list row.</b> The right-hand furniture is fixed at 122px of columns (flag 18,
-      year 28, rating 24, price 52) plus 32px of <code>gap-2</code> and 16px of padding, so about
-      170px is spoken for before the name gets anything. Moving the year <b>under the flag</b>
-      reclaims its 28px column and one 8px gap, and tightening <code>gap-2</code> to
-      <code>gap-1</code> gives back another 16px: roughly 50px, or six to seven more characters,
-      which is the difference between "Diego M..." and "Diego Maradona". The trade to accept
-      knowingly is <b>row height</b>: a stacked flag-over-year cell is taller than a 13px line, so
-      the row grows a few pixels and the <code>max-h-[52vh]</code> scroll box holds fewer of them.
-      The grid view already stacks flag and year on one line and truncates its names too, at half
-      the panel width; that is out of scope here, but it is the same cause, and the two renderings
-      are a deliberate design split (see <code>MarketPrice</code>'s comment) so do not level them
-      while fixing this.</p></li>
+      <li><b>The list row.</b> The year moved under the flag, into the flag's own 18px, and the
+      gaps went from 8px to 4px. Measured in the running app at a 259px row: the name gets
+      <b>93px to 137px</b>, and names truncated went from <b>19 of 60 to 0</b> (44 to 1 for rows
+      carrying a collectible star). The row grew about 2.5px, which is the trade.</li>
 
-      <li><p><b>The cropped selection border, and why it happens.</b> The selected row is
-      <code>bg-pitch/10 ring-1 ring-pitch</code>. A Tailwind ring is a <b>box-shadow drawn outside
-      the border box</b>, and the row is <code>w-full</code> inside a <code>&lt;ul&gt;</code> that
-      is <code>max-h-[52vh] overflow-y-auto</code>. Setting one axis to <code>auto</code> makes the
-      other compute to <code>auto</code> as well, and a box-shadow does not contribute to
-      scrollable overflow, so the left and right strokes are clipped at the padding box and cannot
-      even be scrolled to. Top and bottom survive because they sit inside the box vertically.
-      <b>Take the stated preference:</b> drop the ring and let the background run the full width.
-      One thing to watch once it goes - hover is <code>bg-pitch/5</code> against a selected
-      <code>bg-pitch/10</code>, and the ring is currently doing all the work of telling those two
-      apart, so the selected background has to get meaningfully stronger, or an inside-the-box
-      marker has to replace it (a left accent bar, as <code>XiTable</code> uses for sticker tiers,
-      or a top and bottom hairline). <b>The grid view has the identical bug</b>, masked: its cards
-      carry <code>border-pitch</code> as well, and a border is inside the border box, so the
-      clipped ring on the outer columns just reads as a slightly thinner edge.</p></li>
+      <li><b>The selected row is a full-width band.</b> See the mechanism below.</li>
     </ol>
 
-    <p><strong>The gate.</strong> <code>domain/market.ts</code> has <b>no coverage in
-    <code>scripts/checks.ts</code> at all</b> today, and items one to four are domain changes, so
-    this is the moment to add some. Four are cheap and each one guards a trap named above: the
-    affordable filter is applied before the cap (sixty affordable rows, not the affordable subset
-    of sixty); <b>every option a dropdown offers yields at least one row, in both orders</b> (pick
-    each cup then walk its countries, and pick each country then walk its cups), which is the
-    property cross-filtering exists to restore; a facet never drops an option that is currently
-    selected; and the filters compose rather than override each other. <code>npm run build</code>
-    and <code>npm run checks</code> both, per the working agreements.</p>
+    <div class="callout">
+      <span class="ct">A ring inside a scroll container is clipped, and cannot be scrolled to</span>
+      The selected row used <code>ring-1</code>, which is a <b>box-shadow drawn outside the border
+      box</b>, on a <code>w-full</code> row inside <code>overflow-y-auto</code>. Setting one axis
+      to <code>auto</code> makes the other compute to <code>auto</code>, and a box-shadow does not
+      contribute to scrollable overflow - so the left and right strokes were cut off at the
+      padding box with no way to reach them, which is exactly what the screenshot showed. Selected
+      is now <code>bg-pitch/20</code> plus <code>border-y border-pitch</code> (borders are inside
+      the box), with <code>border-transparent</code> on every other row so the height does not
+      jump. The grid view had the same bug, masked by its cards carrying a real border; its ring
+      is gone too. <b>Reach for a border, not a ring, on anything that scrolls.</b>
+    </div>
 
-    <p class="next"><strong>Next step:</strong> ship items one and six first. They are the two that
-    are actively wrong rather than merely missing, they touch one field and one class string
-    respectively, and neither needs a decision. Then two, three and four together, since they are
-    one pass over <code>marketFacets</code> and one filter row.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener">src/components/BudgetMarket.tsx</a>, <a class="dl" href="../src/domain/market.ts" target="_blank" rel="noopener">src/domain/market.ts</a>, <a class="dl" href="../src/domain/pricing.ts" target="_blank" rel="noopener">src/domain/pricing.ts</a>, <a class="dl" href="../src/data/confederations.ts" target="_blank" rel="noopener">src/data/confederations.ts</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a></p>
+    <p><strong>The gate: 145 checks to 150.</strong> <code>domain/market.ts</code> had no coverage
+    at all, and four of the five new checks guard a trap named above: the ceiling filters before
+    the cap and the best affordable player heads the list; without it, a rating-sorted screen at
+    $10 holds nothing buyable (the bug, asserted); every option a dropdown offers yields at least
+    one row, walked in both orders over three positions, and no facet ever drops the option
+    currently selected on it; picking a country really can collapse the cup facet to one option;
+    and the filters compose rather than override.</p>
+
+    <p><strong>One check had to be corrected before it was right, and the reason is worth
+    keeping.</strong> The first version asserted that searching "brazil" returns only Brazilians.
+    It fails, and the code is correct: <b>Alan Brazil played for Scotland in 1982</b>, and the
+    search reads the player name and the nation both, by design. The check now asserts exactly
+    that - some hits are Brazilian, at least one matches on the name, and every hit matches one or
+    the other. A check that had been written to pass would have frozen a bug in place. The
+    composition check was also reseeded off a real collectible so it cannot come out empty and
+    assert nothing, which is the vacuous-check failure mode item 23 found in the harness.</p>
+
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener">src/components/BudgetMarket.tsx</a>, <a class="dl" href="../src/domain/market.ts" target="_blank" rel="noopener">src/domain/market.ts</a>, <a class="dl" href="../scripts/checks.ts" target="_blank" rel="noopener">scripts/checks.ts</a></p>
   </div>
 </details>
-
-<details class="history">
-  <summary>Shipped &mdash; decision history &#9656;</summary>
-  <div class="detail">
-    <h3>Closed 2026-08-25</h3>
-    <p>Both kept in full because in each case the method is the deliverable. <b>33</b> is the
-    source route the next tournament should use, and the reason to distrust "that site is
-    blocked". <b>35</b> is how to apply a migration you did not write and prove it worked, and
-    the one that nearly went in wrong is the worked example.</p>
 
 <details class="item">
   <summary>

@@ -1736,8 +1736,8 @@ A second way to build the XI, alongside the random roll. Spec:
   old link redirects to `/`. `App` gates the roll-only "draw next squad" effect on `build === 'roll'`.)
 - **`BudgetMarket.tsx`** is the left-column panel (the player source, mirroring the drawn-squad
   panel): a budget bar + "Auto-fill & spend" + "Clear" + "Start over" on top, then the
-  rating-sorted, searchable list for the targeted position (all shown; unaffordable/used rows
-  disabled; collectible tier stars). You buy from all squads within a budget, each priced by
+  rating-sorted, searchable list for the targeted position (capped at `MAX_RESULTS` = 60;
+  unaffordable/used rows disabled; collectible tier stars). You buy from all squads within a budget, each priced by
   rating via **`domain/pricing.ts`** (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so
   the budget forces trade-offs). The budget is a `budget` prop (not a constant): it is the
   owned `transfer-budget` career perk's tier through `config.ts` `BUDGET_BY_TIER` ($70 base
@@ -1756,6 +1756,39 @@ A second way to build the XI, alongside the random roll. Spec:
   `autoFillBudget`, which takes the pricer as an argument because its per-slot reserve and
   upgrade passes must reserve against what will actually be charged. Keyed on **player
   id**, like the marker: owning Buffon 90 discounts that card, not Buffon 88.
+- **The filter row: cup, country, Affordable, Collectible** (roadmap 36, 2026-08-25). The
+  region/confederation filter was **deleted** here; `data/confederations.ts` is still live for
+  `domain/chemistry.ts` ("Same continent"), `domain/challenges.ts` and `domain/validateSquads.ts`,
+  so do not follow the market's dropdown out of the codebase. Three rules worth keeping:
+  - **The price ceiling is part of the FILTER, not a paint on the rows.** The list caps at 60 and
+    sorts by rating, so the rows on screen are always the dearest players; measured over the
+    thirteen-tournament pool, with $10 left **not one of the 60 visible strikers was buyable**
+    while 1,415 affordable ones sat below the cut, at every position (CB 0 of 60 with 1,738, GK 0
+    of 60 with 954). `maxPrice` on `MarketQuery` therefore filters BEFORE `.slice(MAX_RESULTS)`,
+    for the same reason the cap goes after the sort. `marketResults` returns `hiddenByPrice`
+    alongside the rows so the empty state can say "nothing you can afford" instead of blaming the
+    filters, which sends the player off adjusting the wrong control.
+  - **The two dropdowns narrow EACH OTHER, and nothing else narrows them.** `marketFacets` takes
+    the selection and derives each dropdown from the candidates passing *every filter except its
+    own*: pick 1974 and the country list is the 16 nations that were there, pick Wales and the cup
+    list is 2022 alone. That is what makes "a dropdown never offers an option that would empty the
+    list" true again - it held one facet at a time only, and with 352 squads over 13 years and 81
+    nations two thirds of the year-plus-country pairs are empty by construction. The search box and
+    the two toggles are deliberately excluded: what a run can afford changes with every purchase,
+    and a country list that reshuffled as money was spent would be unpredictable.
+  - **A control is shown when it has more than one option OR a selection is active on it.**
+    **24 of the 81 nations played exactly one World Cup**, so picking one collapses the cup facet
+    to a single year; the old `length > 1` guard alone would then hide a filter that is still
+    switched on, and the player could neither see nor clear it.
+- **A `ring` inside a scroll container is clipped on the cross axis, and it cannot be scrolled
+  to.** The market's selected row used `ring-1`, which is a **box-shadow drawn outside the border
+  box**, on a `w-full` row inside `overflow-y-auto`; setting one axis to `auto` makes the other
+  compute to `auto`, and a box-shadow does not contribute to scrollable overflow, so the left and
+  right strokes were simply cut off (the reported bug). Selected is now a **full-width band**:
+  `bg-pitch/20` plus `border-y border-pitch`, with `border-transparent` on every other row so the
+  height does not jump. The grid view had the same bug, masked by its cards carrying a real
+  border; its ring is gone too. **Reach for a border (inside the box), not a ring, on anything
+  that scrolls.**
 - **Position selection is on the pitch, both directions.** `Pitch` gained two optional props
   (`onSelectSlot` + `targetSlotId`, no-op in the roll draft): tap an empty slot to *shop* that
   position (the market filters to it), OR tap a market player to hold it (its eligible slots pulse

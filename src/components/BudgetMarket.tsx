@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LayoutGrid, List as ListIcon, Search, Star } from 'lucide-react';
+import { LayoutGrid, List as ListIcon, Search, Star, Wallet } from 'lucide-react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/format';
 import { SQUAD_BY_ID } from '../data/squads';
-import type { Confederation } from '../data/confederations';
 import type { Formation, Slot } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
 import { priceOf, pricerFor, xiSpend } from '../domain/pricing';
@@ -85,8 +84,8 @@ interface Props {
  *  "source", mirroring the drawn-squad panel of the roll draft). The pitch + the
  *  ratings/line-up columns are shared with the roll draft and owned by App; placing
  *  and removing happen on the pitch, so this panel only shops + holds players.
- *  Browsable: sort (rating/value/price/newest/A-Z), filter by World Cup / region /
- *  collectible, and a list or grid view. */
+ *  Browsable: sort (rating/value/price/newest/A-Z), filter by World Cup / country /
+ *  collectible / affordable, and a list or grid view. */
 export default function BudgetMarket({
   formation,
   filled,
@@ -103,16 +102,17 @@ export default function BudgetMarket({
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<MarketSortKey>('rating');
   const [filterYear, setFilterYear] = useState<'all' | number>('all');
-  const [filterRegion, setFilterRegion] = useState<'all' | Confederation>('all');
+  const [filterCode, setFilterCode] = useState<'all' | string>('all');
   const [collectiblesOnly, setCollectiblesOnly] = useState(false);
+  const [affordableOnly, setAffordableOnly] = useState(false);
   const [view, setView] = useState<'list' | 'grid'>('list');
   const position = targetSlot?.position;
 
-  // The year/region facets are position-specific, so reset them when the shopped
-  // position changes (sort / collectible / view are kept - they are not).
+  // The cup/country facets are position-specific, so reset them when the shopped position
+  // changes (sort / collectible / affordable / view are kept - they are not).
   useEffect(() => {
     setFilterYear('all');
-    setFilterRegion('all');
+    setFilterCode('all');
   }, [position]);
 
   // Players eligible for each position, highest-rated first, from the active pool.
@@ -120,11 +120,12 @@ export default function BudgetMarket({
   const candidates = position ? (byPosition[position] ?? []) : [];
 
   // The filter dropdowns' options. Keyed on [position, byPosition] rather than on
-  // `candidates`, which is derived from them and is a fresh array every render.
+  // `candidates`, which is derived from them and is a fresh array every render; the two
+  // selections are real deps, since each dropdown is narrowed by the other one.
   const facets = useMemo(
-    () => marketFacets(candidates),
+    () => marketFacets(candidates, { filterYear, filterCode }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [position, byPosition],
+    [position, byPosition, filterYear, filterCode],
   );
 
   // What things cost for THIS album: a player whose sticker is already collected is
@@ -146,9 +147,13 @@ export default function BudgetMarket({
   const remaining = budget - spent;
   const emptySlots = slots.filter((s) => !filled[s.id]);
 
+  // The price ceiling of the "Affordable" toggle. Null when it is off, so the results memo
+  // does not re-run on every purchase unless the toggle is actually on.
+  const maxPrice = affordableOnly ? remaining : null;
+
   // `candidates` is still omitted deliberately: it is derived from the two deps in front
   // of it and is a fresh array every render. `price` is a real dependency now.
-  const results = useMemo(
+  const { rows, hiddenByPrice } = useMemo(
     () =>
       position
         ? marketResults({
@@ -156,14 +161,32 @@ export default function BudgetMarket({
             query,
             sort,
             filterYear,
-            filterRegion,
+            filterCode,
             collectiblesOnly,
+            maxPrice,
             price,
           })
-        : [],
+        : { rows: [], hiddenByPrice: 0 },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [position, byPosition, query, sort, filterYear, filterRegion, collectiblesOnly, price],
+    [
+      position,
+      byPosition,
+      query,
+      sort,
+      filterYear,
+      filterCode,
+      collectiblesOnly,
+      maxPrice,
+      price,
+    ],
   );
+
+  // A dropdown is shown when there is a choice to make in it, OR when it holds an active
+  // selection: cross-filtering can collapse a facet to one option (24 of the 81 nations
+  // played exactly one World Cup), and hiding the control then would strand a filter the
+  // player can neither see nor clear.
+  const showYearFilter = facets.years.length > 1 || filterYear !== 'all';
+  const showCountryFilter = facets.countries.length > 1 || filterCode !== 'all';
 
   // Fill every empty slot and spend most of the budget, differently each time (the
   // randomized fill lives in domain/budget). Hands the result to App to commit.
@@ -295,7 +318,7 @@ export default function BudgetMarket({
                 </option>
               ))}
             </select>
-            {facets.years.length > 1 && (
+            {showYearFilter && (
               <select
                 aria-label="Filter by World Cup"
                 value={filterYear}
@@ -312,21 +335,33 @@ export default function BudgetMarket({
                 ))}
               </select>
             )}
-            {facets.regions.length > 1 && (
+            {showCountryFilter && (
               <select
-                aria-label="Filter by region"
-                value={filterRegion}
-                onChange={(e) => setFilterRegion(e.target.value as 'all' | Confederation)}
+                aria-label="Filter by country"
+                value={filterCode}
+                onChange={(e) => setFilterCode(e.target.value)}
                 className={SELECT}
               >
-                <option value="all">Any region</option>
-                {facets.regions.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                <option value="all">Any country</option>
+                {facets.countries.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.nation}
                   </option>
                 ))}
               </select>
             )}
+            <button
+              onClick={() => setAffordableOnly((v) => !v)}
+              aria-pressed={affordableOnly}
+              className={`inline-flex items-center gap-1 rounded-[5px] border px-2 py-1 font-mono text-[11px] font-semibold transition ${
+                affordableOnly
+                  ? 'border-pitch bg-pitch/10 text-pitch'
+                  : 'border-line bg-panel text-muted hover:border-pitch'
+              }`}
+            >
+              <Wallet size={11} strokeWidth={2.5} />
+              Affordable
+            </button>
             {FEATURES.stickerAlbum && (
               <button
                 onClick={() => setCollectiblesOnly((v) => !v)}
@@ -347,13 +382,18 @@ export default function BudgetMarket({
             {heldPlayer ? `Tap a highlighted slot to place ${lastName(heldPlayer.name)}.` : ''}
           </p>
 
-          {results.length === 0 ? (
+          {rows.length === 0 ? (
             <p className="px-2 py-6 text-center font-mono text-[12px] text-muted">
-              No {position} matches those filters.
+              {/* The price ceiling and the filters are different reasons for an empty list,
+                  and blaming the filters when the answer is "you are out of money" sends
+                  the player off adjusting the wrong control. */}
+              {hiddenByPrice > 0
+                ? `No ${position} you can afford with $${remaining} left.`
+                : `No ${position} matches those filters.`}
             </p>
           ) : view === 'grid' ? (
             <div className="grid max-h-[52vh] grid-cols-2 gap-1.5 overflow-y-auto">
-              {results.map((p) => {
+              {rows.map((p) => {
                 const c = cell(p);
                 return (
                   <button
@@ -362,8 +402,12 @@ export default function BudgetMarket({
                     disabled={!c.selectable}
                     className={[
                       'flex flex-col gap-1 rounded-md border p-2 text-left transition',
+                      // No ring: the grid scrolls too, so its outer columns clipped the
+                      // ring exactly as the list rows did. The border is inside the box
+                      // and was already carrying the state, so the ring only ever added
+                      // the artefact.
                       c.held
-                        ? 'border-pitch bg-pitch/10 ring-1 ring-pitch'
+                        ? 'border-pitch bg-pitch/15'
                         : c.selectable
                           ? 'border-line hover:border-pitch'
                           : 'cursor-not-allowed border-line opacity-45',
@@ -397,7 +441,7 @@ export default function BudgetMarket({
             </div>
           ) : (
             <ul className="max-h-[52vh] overflow-y-auto">
-              {results.map((p) => {
+              {rows.map((p) => {
                 const c = cell(p);
                 return (
                   <li key={p.id}>
@@ -405,21 +449,32 @@ export default function BudgetMarket({
                       onClick={() => c.selectable && onHold(p)}
                       disabled={!c.selectable}
                       className={[
-                        'flex w-full items-center gap-2 rounded-[5px] px-2 py-2 text-left transition',
+                        // Selected is a FULL-WIDTH band: no side stroke, and the top and
+                        // bottom rules are borders (inside the box) rather than a ring
+                        // (outside it). A ring is a box-shadow, the list scrolls, and a
+                        // box-shadow is not scrollable overflow - so its left and right
+                        // edges were clipped at the padding box with no way to reach them.
+                        // The transparent border on every other row keeps the height even.
+                        'flex w-full items-center gap-1 border-y px-2 py-1.5 text-left transition',
                         c.held
-                          ? 'bg-pitch/10 ring-1 ring-pitch'
+                          ? 'border-pitch bg-pitch/20'
                           : c.selectable
-                            ? 'hover:bg-pitch/5'
-                            : 'cursor-not-allowed opacity-45',
+                            ? 'border-transparent hover:bg-pitch/5'
+                            : 'cursor-not-allowed border-transparent opacity-45',
                       ].join(' ')}
                     >
                       <span className="flex min-w-0 flex-1 items-center gap-1.5">
                         <span className="truncate text-[13px] font-semibold">{p.name}</span>
                         {c.tier && <CollectibleStar tier={c.tier} owned={c.owned} />}
                       </span>
-                      {c.sq && <Flag code={c.sq.code} className="h-3 w-[18px]" />}
-                      <span className="w-7 text-right font-mono text-[10px] text-muted tabular-nums">
-                        {c.sq?.year}
+                      {/* Flag over year, in the flag's own 18px. The year used to hold a
+                          28px column of its own next to it, and the names needed it more:
+                          most of them were truncated past recognising. */}
+                      <span className="flex w-[18px] shrink-0 flex-col items-center gap-px">
+                        {c.sq && <Flag code={c.sq.code} className="h-3 w-[18px]" />}
+                        <span className="font-mono text-[8.5px] leading-none text-muted tabular-nums">
+                          {c.sq?.year}
+                        </span>
                       </span>
                       <span className="w-6 text-right font-mono text-[13px] font-bold tabular-nums">
                         {p.elo}
