@@ -8,6 +8,9 @@
 
 const PRIMARY =
   'rounded-md border border-pitch-dark bg-pitch px-4 py-2 text-[13px] font-bold uppercase tracking-[0.04em] text-white';
+// Not matchUi's CARD_FLAT, on purpose: this file has no imports at all (see above) so
+// that main.tsx can render it before the app exists, and matchUi would drag lucide,
+// react-router and Flag onto that path.
 const SECONDARY =
   'rounded-md border border-line bg-panel px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.04em]';
 

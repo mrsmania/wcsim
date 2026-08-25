@@ -9,6 +9,7 @@ import Tooltip from './Tooltip';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
 import { FEATURES } from '../config';
+import { CARD } from './matchUi';
 
 export type RerollKind = 'team' | 'cup' | 'any';
 
@@ -84,7 +85,7 @@ export default function SquadPanel({
 
     if (rolling) {
         return (
-            <div className="flex flex-col gap-4 rounded-md border border-line bg-panel p-3 shadow-hard">
+            <div className={`flex flex-col gap-4 ${CARD} p-3`}>
                 <Header squad={squad} scrambling />
                 <p className="px-1 text-sm font-semibold uppercase tracking-wide text-muted">
                     Drawing a squad…
@@ -96,7 +97,7 @@ export default function SquadPanel({
     const rerollDisabled = rerollsLeft <= 0;
 
     return (
-        <div className="flex flex-col gap-3 rounded-md border border-line bg-panel pt-3 shadow-hard">
+        <div className={`flex flex-col gap-3 ${CARD} pt-3`}>
             <Header squad={squad} scrambling={false} />
 
             {FEATURES.stickerAlbum &&

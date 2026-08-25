@@ -11,7 +11,7 @@ import {
     type CareerState,
 } from '../../domain/career';
 import { BOONS, BOON_UNLOCK_COST, type Rarity } from '../../domain/boons';
-import { MONO_CAP } from '../matchUi';
+import { CARD, CARD_FLAT, MONO_CAP } from '../matchUi';
 
 /** Rarity dot colour in the boost library (reuses the palette tokens). */
 const RARITY_DOT: Record<Rarity, string> = {
@@ -53,7 +53,7 @@ export default function CareerHub({
         .map(challengeById)
         .filter((c) => !!c);
     return (
-        <section className="mb-4 mt-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <section className={`mb-4 mt-1 overflow-hidden ${CARD}`}>
             {/* The header IS the collapse toggle. When `showToggle`, the whole bar is a
                 button (pointer + hover tint) so it plainly invites a click: collapsed it
                 shows a "Prestige to spend" hint and an "Open" chevron-in-a-ring; open it
@@ -242,7 +242,7 @@ export default function CareerHub({
                                 return (
                                     <div
                                         key={perk.id}
-                                        className="rounded-md border border-line bg-panel p-3"
+                                        className={`${CARD_FLAT} p-3`}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="font-display text-[13.5px] font-extrabold">
@@ -322,7 +322,7 @@ export default function CareerHub({
                                 return (
                                     <div
                                         key={b.id}
-                                        className="rounded-md border border-line bg-panel p-3"
+                                        className={`${CARD_FLAT} p-3`}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="flex items-center gap-1.5">

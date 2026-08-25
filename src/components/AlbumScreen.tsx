@@ -21,7 +21,7 @@ import StickerCard, {
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
-import { MONO_CAP, PAGE_EYEBROW, StageHeader } from './matchUi';
+import { CARD, MONO_CAP, PAGE_EYEBROW, StageHeader } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 interface Props {
@@ -85,7 +85,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
             <StageHeader eyebrow="Your collection" title="The Sticker Album" />
 
             {/* Completion counter + duplicate pool */}
-            <section className="grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard sm:grid-cols-[minmax(0,1fr)_210px]">
+            <section className={`grid grid-cols-1 overflow-hidden ${CARD} sm:grid-cols-[minmax(0,1fr)_210px]`}>
                 <div className="p-[22px]">
                     <div className={PAGE_EYEBROW}>
                         Collected

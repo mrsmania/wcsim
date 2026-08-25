@@ -39,6 +39,7 @@ import { useFollowBottom } from '../hooks/useFollowBottom';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
 import {
   Banner,
+  CARD,
   ordinal,
   PRIMARY_BTN,
   SpeedControl,
@@ -586,7 +587,7 @@ export default function CupRunScreen({
               str={str}
             />
             <section className="flex min-w-0 flex-col gap-4">
-              <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
+              <div className={`${CARD} p-5`}>
                 <div className="mt-4 text-center">
                   <p className="mb-4 text-[13.5px] text-muted">
                     Pick a team boost between rounds; every run earns XP and Prestige. Finish top
@@ -659,7 +660,7 @@ export default function CupRunScreen({
               the group's summary goes unreachable again the moment you navigate away from
               the results screen and back. Same cell, mounted on its own. */}
           {!run.bracket && groupRecord && reviewIndex === null && (
-            <div className="mb-4 rounded-md border border-line bg-panel p-4 shadow-hard">
+            <div className={`mb-4 ${CARD} p-4`}>
               <GroupCell
                 record={groupRecord}
                 onOpenReview={reveal ? undefined : () => setReviewIndex(0)}
@@ -761,7 +762,7 @@ export default function CupRunScreen({
                                 once the third matchday is in, and printing it again put
                                 the same eight rows on screen twice. */}
                             {advanced && reveal.next.offer ? (
-                              <div className="mt-4 rounded-md border border-line bg-panel p-5 shadow-hard">
+                              <div className={`mt-4 ${CARD} p-5`}>
                                 <BoostOffer
                                   offer={reveal.next.offer}
                                   nextOpponent={reveal.next.nextOpponent}
@@ -859,7 +860,7 @@ export default function CupRunScreen({
                 )}
                 <div
                   ref={run.phase === 'boon' ? boostRef : undefined}
-                  className="rounded-md border border-line bg-panel p-5 shadow-hard"
+                  className={`${CARD} p-5`}
                 >
                   {run.phase === 'group' && (
                     <div className="text-center">

@@ -19,6 +19,7 @@ import type { RunOutcome } from '../domain/run';
 import { TierPips } from './challengeUi';
 import Flag from './Flag';
 import { SQUAD_BY_ID } from '../data/squads';
+import { CARD_SM } from './matchUi';
 
 /** A cup's plinth by the tier it was won at: ONE hue getting deeper, plus the numeral.
  *  Tier is deliberately not a colour of its own - the challenge ledger settled that
@@ -303,7 +304,7 @@ function LeaderHead({ metric }: { metric: 'apps' | 'goals' }) {
 /** A card shell: the flat turf-flat card the rest of the app uses. */
 function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-md border border-line bg-panel shadow-hard-sm ${className}`}>
+    <section className={`${CARD_SM} ${className}`}>
       {children}
     </section>
   );
@@ -813,7 +814,7 @@ export default function CabinetScreen({
           )}
 
           {v.complete && (
-            <div className="rounded-md border border-line bg-panel p-[16px_15px] shadow-hard-sm">
+            <div className={`${CARD_SM} p-[16px_15px]`}>
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-accent">
                 Complete
               </span>

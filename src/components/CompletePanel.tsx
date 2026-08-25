@@ -3,7 +3,7 @@ import { STYLE_LABEL, type Formation, type Style } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
-import { PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
+import { CARD, PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 interface Props {
@@ -31,7 +31,7 @@ export default function CompletePanel({
     const total = formation.slots.length;
 
     return (
-        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <div className={`overflow-hidden ${CARD}`}>
             <div className="border-b border-line p-[18px]">
                 <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch">
                     Complete

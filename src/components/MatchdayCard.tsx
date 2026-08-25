@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { PenKick } from '../domain/match';
 import type { MatchView } from './matchView';
 import GoalList from './GoalList';
-import { FixtureHead, LiveLine, MONO_CAP, ShootoutFeed } from './matchUi';
+import { CARD, FixtureHead, LiveLine, MONO_CAP, ShootoutFeed } from './matchUi';
 
 interface Props {
   /** Round/matchday label ("Matchday 2", "Semi-final"). */
@@ -95,9 +95,9 @@ export default function MatchdayCard({
         {tag}
       </div>
       <div
-        className={`overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
-          playing ? 'border-t-[3px] border-t-pitch' : ''
-        }`}
+        className={`overflow-hidden ${CARD} ${
+ playing ? 'border-t-[3px] border-t-pitch' : ''
+ }`}
       >
         <FixtureHead
           oppName={oppName}

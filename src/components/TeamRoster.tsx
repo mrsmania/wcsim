@@ -11,7 +11,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './StickerCard';
-import { MONO_CAP } from './matchUi';
+import { CARD, MONO_CAP } from './matchUi';
 
 const CATEGORY_LABEL: Record<PositionCategory, string> = {
     GK: 'Goalkeepers',
@@ -36,7 +36,7 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
         : 0;
 
     return (
-        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <div className={`overflow-hidden ${CARD}`}>
             {/* Squad header */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-ink px-4 py-3.5">
                 <Flag code={squad.code} className="h-6 w-9" />

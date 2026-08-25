@@ -3,7 +3,7 @@ import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/f
 import { ASCENSIONS, ascensionAt } from '../domain/ascension';
 import type { TeamStrength } from '../domain/draft';
 import { ChevronDown, Coins, Dices } from 'lucide-react';
-import { PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
+import { CARD, PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'weak', label: 'Weak', hint: 'rating < 75' },
@@ -58,7 +58,7 @@ export default function SetupPanel({
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
-        <div className="rounded-md border border-line bg-panel shadow-hard">
+        <div className={CARD}>
             {/* Formation */}
             <div className="p-[18px]">
                 <p className={SEGLBL}>Formation</p>
@@ -181,7 +181,7 @@ export default function SetupPanel({
                                         className="fixed inset-0 z-10"
                                         onClick={() => setMenuOpen(false)}
                                     />
-                                    <div className="absolute right-0 z-20 mt-1.5 w-44 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+                                    <div className={`absolute right-0 z-20 mt-1.5 w-44 overflow-hidden ${CARD}`}>
                                         {STRENGTH_TIERS.map((t) => (
                                             <button
                                                 key={t.value}

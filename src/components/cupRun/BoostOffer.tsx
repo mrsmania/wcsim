@@ -2,7 +2,7 @@ import { Dices } from 'lucide-react';
 import type { Boon } from '../../domain/boons';
 import type { GroupTeam } from '../../domain/tournament';
 import Flag from '../Flag';
-import { SECONDARY_BTN } from '../matchUi';
+import { CARD_FLAT, SECONDARY_BTN } from '../matchUi';
 import { RARITY_COLOR } from './types';
 
 /** The three-boost picker (rarity-topped cards) plus the "Next: opponent" line. Shared
@@ -43,7 +43,7 @@ export default function BoostOffer({
           <button
             key={b.id}
             onClick={() => onPick(b)}
-            className="flex flex-col gap-1.5 rounded-md border border-line bg-panel p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch"
+            className={`flex flex-col gap-1.5 ${CARD_FLAT} p-3 text-left transition hover:-translate-y-0.5 hover:border-pitch`}
             style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
           >
             <span

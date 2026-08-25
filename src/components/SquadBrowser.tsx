@@ -10,7 +10,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './StickerCard';
-import { MONO_CAP, PAGE_EYEBROW } from './matchUi';
+import { CARD, MONO_CAP, PAGE_EYEBROW } from './matchUi';
 import TeamRoster from './TeamRoster';
 
 /** Distinct tournament years, newest first for the selector. */
@@ -262,7 +262,7 @@ export default function SquadBrowser() {
                         <Link
                             key={t.code}
                             to={`/squads/by-team/${t.code.toLowerCase()}`}
-                            className="flex flex-col gap-2.5 rounded-md border border-line bg-panel p-3.5 text-left shadow-hard transition hover:border-pitch"
+                            className={`flex flex-col gap-2.5 ${CARD} p-3.5 text-left transition hover:border-pitch`}
                         >
                             <Flag code={t.code} className="h-5 w-8" />
                             <div className="min-w-0">
@@ -340,7 +340,7 @@ function StatCells({ squad }: { squad: Squad }) {
  *  number of collectibles in that squad. Rows open the squad's roster. */
 function CupTable({ squads }: { squads: Squad[] }) {
     return (
-        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <div className={`overflow-hidden ${CARD}`}>
             <div
                 className={`${STAT_GRID} border-b-2 border-ink py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
             >
@@ -409,7 +409,7 @@ function TeamCups({ team }: { team: TeamGroup }) {
     return (
         <div className="flex flex-col gap-4">
             {/* World Cups played (same stat columns as the By World Cup table) */}
-            <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+            <div className={`overflow-hidden ${CARD}`}>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-ink px-4 py-3.5">
                     <Flag code={team.code} className="h-6 w-9" />
                     <span className="font-display text-lg font-extrabold uppercase leading-none tracking-[-0.01em]">
@@ -438,7 +438,7 @@ function TeamCups({ team }: { team: TeamGroup }) {
             </div>
 
             {/* All-time legends (ranked by single best rating) */}
-            <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+            <div className={`overflow-hidden ${CARD}`}>
                 <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3.5">
                     <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
                         Best players
@@ -496,7 +496,7 @@ function SearchResults({
     }
     const shown = results.slice(0, MAX_RESULTS);
     return (
-        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <div className={`overflow-hidden ${CARD}`}>
             {shown.map(({ player, squad }) => {
                 const tier = FEATURES.stickerAlbum ? tierOf(player) : null;
                 return (

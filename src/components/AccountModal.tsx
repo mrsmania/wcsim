@@ -1,6 +1,7 @@
 import Overlay from './Overlay';
 import AccountPanel from './AccountPanel';
 import { FEATURES } from '../config';
+import { CARD_FLAT } from './matchUi';
 
 /** Signing in, and managing the account once you are. Its own dialog, opened by the
  *  masthead's account button: it used to be the first group inside the settings sheet,
@@ -25,7 +26,7 @@ export default function AccountModal({
       <h2 className="mb-3 font-display text-[20px] font-extrabold uppercase tracking-[-0.01em]">
         {title}
       </h2>
-      <div className="rounded-md border border-line bg-panel px-5 py-4">
+      <div className={`${CARD_FLAT} px-5 py-4`}>
         <AccountPanel email={email} onSignedIn={onAccountChanged} onSignedOut={onAccountChanged} />
       </div>
     </Overlay>

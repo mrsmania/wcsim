@@ -10,7 +10,7 @@ import {
 } from '../domain/tournament';
 import Flag from './Flag';
 import FixtureRow from './FixtureRow';
-import { MONO_CAP, ordinal, RatingChip } from './matchUi';
+import { CARD, MONO_CAP, ordinal, RatingChip } from './matchUi';
 
 /** Column layout shared by the header and body rows. Mobile shows only PL / GD /
  *  PTS after # + Team (5 columns); the desktop layout adds W / D / L / +/- for the
@@ -50,7 +50,7 @@ export default function StandingsTable({ group, groupFinished, advanced }: Props
   const userPosition = table.findIndex((s) => s.team.isUser) + 1;
 
   return (
-    <div className="mt-1.5 overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+    <div className={`mt-1.5 overflow-hidden ${CARD}`}>
       <div className={`${ST_GRID} border-b-2 border-ink bg-chalk`}>
         <span className={ST_HEAD}>#</span>
         <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">

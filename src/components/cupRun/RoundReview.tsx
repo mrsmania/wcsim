@@ -1,7 +1,7 @@
 import { KO_ROUNDS } from '../../domain/knockout';
 import { boonById } from '../../domain/boons';
 import type { RoundRecord } from '../../domain/run';
-import { ordinal, StageCrumb } from '../matchUi';
+import { CARD, ordinal, StageCrumb } from '../matchUi';
 import Flag from '../Flag';
 import FinishedKoCard from './FinishedKoCard';
 import { RARITY_COLOR } from './types';
@@ -28,7 +28,7 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
 
   if (record.stage === 'group') {
     return (
-      <div className="rounded-md border border-line bg-panel p-5 shadow-hard">
+      <div className={`${CARD} p-5`}>
         <div className="mb-3 text-[14px] font-semibold">
           Group stage, finished {ordinal(record.groupPos ?? 0)} of {record.groupSize} ·{' '}
           <span className={record.won ? 'text-pitch' : 'text-loss'}>
@@ -77,7 +77,7 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
         pens={record.pens}
         userWon={record.won}
       />
-      <div className="mt-4 rounded-md border border-line bg-panel p-4 shadow-hard">
+      <div className={`mt-4 ${CARD} p-4`}>
         {boost ? boostLine : <div className="text-[12.5px] text-muted">No boost this round.</div>}
         {backBtn}
       </div>

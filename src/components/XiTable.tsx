@@ -9,6 +9,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './StickerCard';
+import { CARD } from './matchUi';
 
 /** The placed XI as a line-up sheet: position, last name, flag + year, rating,
  *  ordered back to front (GK, DEF, MID, FWD). Sits in the right column beside the
@@ -51,7 +52,7 @@ export default function XiTable({
         : 'grid-cols-[30px_1fr_auto_auto]';
 
     return (
-        <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+        <div className={`overflow-hidden ${CARD}`}>
             <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3 font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted">
                 <span>
                     Line-up{' '}

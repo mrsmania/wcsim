@@ -13,6 +13,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
+import { CARD } from './matchUi';
 
 const MAX_RESULTS = 60;
 
@@ -193,7 +194,7 @@ export default function BudgetMarket({
   };
 
   return (
-    <div className="overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+    <div className={`overflow-hidden ${CARD}`}>
       {/* Budget bar */}
       <div className="border-b border-line p-4">
         <div className="flex items-baseline justify-between font-mono text-[12px]">

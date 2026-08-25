@@ -10,7 +10,7 @@ import {
   type ChallengeFamily,
 } from '../domain/challenges';
 import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
-import { MONO_CAP, PAGE_EYEBROW } from './matchUi';
+import { CARD, MONO_CAP, PAGE_EYEBROW } from './matchUi';
 
 type Filter = 'all' | 'open' | 'done';
 
@@ -61,9 +61,9 @@ export default function ChallengesScreen({
     <>
       {/* Completion counter, deliberately the album's shape: same page, same reading. */}
       <section
-        className={`grid grid-cols-1 overflow-hidden rounded-md border border-line bg-panel shadow-hard ${
-          AWARDS_ON ? 'sm:grid-cols-[minmax(0,1fr)_210px]' : ''
-        }`}
+        className={`grid grid-cols-1 overflow-hidden ${CARD} ${
+ AWARDS_ON ? 'sm:grid-cols-[minmax(0,1fr)_210px]' : ''
+ }`}
       >
         <div className="p-[22px]">
           <div className={PAGE_EYEBROW}>

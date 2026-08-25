@@ -1,4 +1,4 @@
-import { PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
+import { CARD, PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
 import { AWARDS_ON, challengeById } from '../../domain/challenges';
 import ChallengeRow from '../challengeUi';
 import type { Reward } from './types';
@@ -36,7 +36,7 @@ export default function RunEndPanel({
         </div>
       )}
       {!!reward?.challenges.length && (
-        <div className="mx-auto mt-4 max-w-[420px] rounded-md border border-line bg-panel p-3 text-left shadow-hard">
+        <div className={`mx-auto mt-4 max-w-[420px] ${CARD} p-3 text-left`}>
           <div className="mb-2 flex items-baseline justify-between gap-3">
             <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-accent">
               Challenges completed

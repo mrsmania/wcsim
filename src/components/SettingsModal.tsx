@@ -1,5 +1,5 @@
 import Overlay from './Overlay';
-import { SegControl, SpeedControl } from './matchUi';
+import { CARD_FLAT, SegControl, SpeedControl } from './matchUi';
 import type { MatchSpeed } from '../domain/clock';
 import type { Difficulty } from '../domain/difficulty';
 import { WORLD_CUP_YEARS, squadsInPool } from '../data/squads';
@@ -90,7 +90,7 @@ export default function SettingsModal({
             <h2 className="mb-3 font-display text-[20px] font-extrabold uppercase tracking-[-0.01em]">
                 Settings
             </h2>
-            <div className="overflow-hidden rounded-md border border-line bg-panel">
+            <div className={`overflow-hidden ${CARD_FLAT}`}>
                 {/* Appearance */}
                 <div className={GROUP}>
                     <div className={GH}>Appearance</div>

@@ -6,7 +6,7 @@ import { placedPlayers, type Filled } from '../domain/draft';
 import { CHEM_TIERS, ERA_SPAN_YEARS, FIT_MIN, MAX_BONUS, teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
-import { MONO_CAP } from './matchUi';
+import { CARD, MONO_CAP } from './matchUi';
 
 /** Full rules shown when hovering the chemistry "?" help icon. Category names and
  *  point tiers match exactly what the breakdown below shows. */
@@ -106,7 +106,7 @@ export default function BoxScore({ formation, filled }: Props) {
             </div>
 
             {chem && (
-                <div className="rounded-md border border-line bg-panel p-4 shadow-hard">
+                <div className={`${CARD} p-4`}>
                     <div className="flex items-center gap-3.5">
                         <span
                             className="grid h-[58px] w-[58px] shrink-0 place-items-center rounded-full"

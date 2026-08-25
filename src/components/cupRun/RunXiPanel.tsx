@@ -4,6 +4,7 @@ import { boonById } from '../../domain/boons';
 import { FEATURES } from '../../config';
 import Flag from '../Flag';
 import { pct, RARITY_COLOR } from './types';
+import { CARD } from '../matchUi';
 
 /** The left column of an active run: the XI list, the ratings strip (Title odds +
  *  Ovr/Att/Def), and the active-boost chips, with roster-boost players tagged. */
@@ -23,7 +24,7 @@ export default function RunXiPanel({
   str: { attack: number; defense: number; overall: number };
 }) {
   return (
-    <section className="self-start overflow-hidden rounded-md border border-line bg-panel shadow-hard">
+    <section className={`self-start overflow-hidden ${CARD}`}>
       <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3">
         <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
           Your XI

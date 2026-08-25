@@ -44,6 +44,19 @@ export const SECONDARY_BTN =
 export const DANGER_BTN =
   'rounded-[5px] border border-loss bg-loss px-3 py-2 font-display text-[12px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:opacity-90';
 
+/** The turf-flat card: 6px corners, a 1px rule and the signature hard offset shadow.
+ *  Class strings rather than a `<Card>` component, deliberately: the call sites need
+ *  their own padding, and a third of them also need `overflow-hidden`, `self-start`,
+ *  a grid area, a ref or a hover state, which a wrapper would have to re-expose one
+ *  prop at a time. Padding stays at the call site for the same reason.
+ *
+ *  CARD_SM swaps in the 4px shadow, for cards stacked many-to-a-page (the cabinet's
+ *  sections); CARD_FLAT is the same card with no shadow at all, which is what the two
+ *  modal sheets and the panels nested inside another card use. */
+export const CARD_FLAT = 'rounded-md border border-line bg-panel';
+export const CARD = `${CARD_FLAT} shadow-hard`;
+export const CARD_SM = `${CARD_FLAT} shadow-hard-sm`;
+
 /** Shared caption class strings (the turf-flat mono labels). Each is the exact
  *  string that repeats across screens; reuse rather than re-typing the utilities. */
 /** Muted mono caption used inside cards. */

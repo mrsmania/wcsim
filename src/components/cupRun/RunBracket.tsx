@@ -11,6 +11,7 @@ import {
 import { KO_ROUNDS } from '../../domain/knockout';
 import type { RoundRecord } from '../../domain/run';
 import { USER_ID } from '../../domain/tournament';
+import { CARD } from '../matchUi';
 
 /**
  * The Cup Run's knockout bracket, collapsed to the user's own path with the full
@@ -206,7 +207,7 @@ export default function RunBracket({
     const decided = bracket.outcome !== 'alive';
 
     return (
-        <div className="rounded-md border border-line bg-panel shadow-hard">
+        <div className={CARD}>
             <button
                 type="button"
                 onClick={() => onSetOpen(!open)}
