@@ -736,51 +736,49 @@
   <summary>
     <span class="num">18</span>
     <span class="title">Player versus player, for signed-in accounts
-      <span class="sub">Build a team from your career progress and play someone else's. Details to be defined.</span>
+      <span class="sub">Rooms of 2, 4 or 8 signed-in players building a team on the spot and
+      playing a live knockout against each other. SHAPE SETTLED 2026-08-25: every one of the
+      six questions this item opened with is answered, and the plan is written.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>Requested 2026-08-18, shape deliberately open. A signed-in player assembles a team
-    from what their career has actually earned, and plays it against another player's team.
-    The sim already decides matches from two XIs, so the match itself is the part that
-    exists; everything around it is the design work.</p>
-    <p><strong>What is already in place</strong>, and worth knowing before designing it:
-    accounts and the per-account store (album, career, settings, in-progress run) are live,
-    the match and shootout sim take two sides and are deterministic apart from their own
-    randomness, <code>simulateTitleOdds</code> can rate a matchup, and the sticker economy
-    is validated server-side because the browser talks to Postgres directly - the same
-    reasoning will apply to anything competitive.</p>
-    <p><strong>The questions to settle first</strong>, roughly in the order they bite:</p>
-    <ul>
-      <li><b>What is a "team based on career progress"?</b> The collected album only?
-      Career budget plus perks? A separate roster you maintain? This decides whether PvP is
-      a showcase of progress or a second economy.</li>
-      <li><b>Live or asynchronous?</b> Asynchronous (submit a team, it plays overnight or on
-      challenge) fits a self-hosted server and a small friend group far better than live
-      matchmaking, and needs no realtime service - which was deliberately trimmed from the
-      NAS stack.</li>
-      <li><b>Who validates the team?</b> A client-submitted XI is a claim; the server has to
-      check it against what that account actually owns, or the first thing anyone does is
-      submit eleven 99s. This is the same problem <code>finish_run</code> solved for
-      stickers and probably wants the same shape (a <code>security definer</code> function
-      that reads the account's own rows).</li>
-      <li><b>Fairness.</b> A three-year-old career against a new one is not a game. Tiers,
-      handicaps, or a budget-equalised format all work; pick one before building.</li>
-      <li><b>What is at stake?</b> Prestige, a ladder, a record, or nothing but bragging.
-      Anything transferable needs anti-cheat thinking; nothing transferable is much cheaper
-      to ship.</li>
-      <li><b>Guest story.</b> The project rule is guest-first (NFR-1): the whole game is
-      playable with no account. PvP is a legitimate account-only extra, which the
-      requirements already allow for ("may gate genuinely online extras"), but the entry
-      point must degrade cleanly when signed out.</li>
-    </ul>
-    <p class="next"><strong>Next step:</strong> settle the first two questions (what the
-    team is made of, and asynchronous versus live), since every other decision hangs off
-    them. Then a requirements doc in the shape of
-    <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a> before any code.</p>
-    <p class="files"><a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (for the shape), <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
+    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25</strong>
+    by the owner, and written up as
+    <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener"><code>docs/pvp-plan.md</code></a>
+    (requirements in the shape of <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a>,
+    plus a ten-wave build order). <b>Read that before writing any code here</b>; what follows is
+    only the summary.</p>
+    <p><strong>What it is.</strong> Two to eight signed-in players, all present at once, play a
+    knockout tournament against teams they build on the spot. One creates a room and shares a
+    six-character code. <b>The host sets the room&#8217;s rules, and those rules are the feature</b>:
+    roll a squad or buy with a budget, how much money (a fixed $70 to $200, or each player&#8217;s
+    own career budget), which World Cups the players may come from, and <b>whether ratings are
+    visible at all</b> - the switch that makes a room about knowing the players rather than
+    reading a number. Everyone builds at once against a shared clock; an unfinished XI is
+    completed automatically when it runs out. Then 2 play a match, 4 play semi-finals and a
+    final, 8 play quarters, semis and a final, with the XI you built playing your whole run.</p>
+    <p><strong>The six questions, answered.</strong> The team is <b>either build method, host&#8217;s
+    choice</b>, never the album and never a separate roster. It is <b>live</b>, which means
+    Supabase Realtime comes back into the NAS stack after being trimmed out. <b>The server
+    validates and simulates</b>, via a small service that bundles the game&#8217;s own
+    <code>domain/</code> code rather than a second copy of the sim in SQL. Fairness is <b>the
+    host&#8217;s budget setting</b>, so a long career confers nothing by default. At stake:
+    <b>a win/loss record and nothing else</b>, with a ladder as the planned follow-up and the
+    server-authoritative result as the thing that makes one possible later. Guests get a
+    <b>sign-in invitation</b>, never a missing feature.</p>
+    <p><strong>What has to be added</strong>, and it is the honest cost of the item: the Realtime
+    container, a referee service on the NAS, a display name on accounts (an email is not
+    something to show strangers), six new tables with their own row-level security, and a
+    ratings-hidden mode that reaches every component in the build page that renders a number.
+    One accepted hole, decided rather than missed: in a budget room with ratings hidden,
+    <b>a player&#8217;s price still gives his rating away</b> to anyone who knows the curve.</p>
+    <p class="next"><strong>Next step:</strong> wave 0 of the plan - lift <code>simulateKoTie</code>
+    out of <code>domain/run.ts</code> into <code>domain/knockout.ts</code>, and add the three
+    validation rules (is this XI legal, what did it cost, was it dealt) to <code>domain/</code>
+    as pure checked functions. All of it is offline work that needs no server.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
 
