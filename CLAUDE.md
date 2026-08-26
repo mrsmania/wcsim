@@ -397,8 +397,12 @@ src/
                cabinet.ts    (cabinetView: the whole trophy-cabinet readout, derived
                               from CareerState + AlbumState; gated)
                random.ts     (shuffled + pick, the shared Math.random helpers)
-               pvp.ts        (the PvP room rules: validateXi, autoPick, pvpTeam. Wave 0 of
-                              roadmap item 18 - NOTHING IMPORTS IT YET, see below)
+               pvp.ts        (the PvP room rules: validateXi, autoPick, pvpTeam)
+               pvpRoom.ts    (the PvP room as a state machine, driven by the referee: no
+                              timers, deadlines are stored data + one sweeper)
+               pvpAuth.ts    (who the referee takes an instruction from)
+                              -- all three are waves 0 and 1 of roadmap item 18 and
+                              NOTHING IMPORTS THEM YET, see below
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
                fully built XI; a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER
@@ -2415,11 +2419,13 @@ keep working.
   otherwise nudges scrollY when result cards mount and stalled the follow (worst on
   short mobile screens).
 
-## `src/domain/pvp.ts` has no importer yet, and that is on purpose
+## The three `pvp*` domain modules have no importer yet, and that is on purpose
 
-Wave 0 of roadmap item 18 (player versus player) shipped 2026-08-26: the rules a room is
-judged by, as pure functions, with 23 checks in `scripts/checks/pvp.ts`. **Nothing in `src/`
-imports it**, because the screens and the server that will are waves 4 to 8. A tree-shaking
+Waves 0 and 1 of roadmap item 18 (player versus player) shipped 2026-08-26: `pvp.ts` (the
+rules a room is judged by), `pvpRoom.ts` (the room as a state machine the referee drives)
+and `pvpAuth.ts` (who the referee will act for), with 48 checks across
+`scripts/checks/pvp.ts` and `scripts/checks/pvpRoom.ts`. **Nothing in `src/` imports them**,
+because the screens and the server that will are waves 4 to 8. A tree-shaking
 or dead-code pass finds it, concludes it is unused and deletes it - which is what this note
 exists to stop, the same way the one below stops the same conclusion about `public/jerseys/`.
 It costs nothing shipped: Rollup tree-shakes an unimported module out of the bundle entirely.
@@ -2440,6 +2446,26 @@ rules in that module are load-bearing and each was mutation-tested:
   rather than defaulting one to zero, so it cannot be quietly reintroduced. Measured: the same
   eleven players with the full bonus beat themselves without it **73.2%** of the time, because
   it is added to attack and defence alike and those are the two numbers the sim reads.
+
+**Wave 1's three rules, each of which was a bug before it was a rule:**
+
+- **THE REFEREE HOLDS NO TIMERS.** A deadline is `openedAt` plus the room's clock length,
+  evaluated when a pick arrives and by one stateless sweeper. In-memory timers die with the
+  process, cannot be shared by two instances during a rolling restart, and put a room's
+  state somewhere a restart cannot recover. Everything takes `now` as an argument, which is
+  also what lets a twenty-second clock be tested in microseconds.
+- **An outage owes the REMAINDER, not the gap.** "Shift every window forward by the outage"
+  reads correct and is wrong: a 45-second restart on a 20-second clock leaves every window
+  still expired, so the first sweep auto-picks for every player in every drafting room
+  anyway. A window reopens with the time it had left. Restoring deadlines from the database
+  is enough to have "not lost anybody's clock" and still lose everybody's draft.
+- **A ROLL ROOM CAN STALL, and it is not exotic.** The auto-pick fills from the last squad
+  dealt, and **345 of the (squad, position) pairs in the dataset are empty** - most 1970s
+  squads list no wide midfielder at all - so the dealt squad routinely has nobody for the
+  slots still open. The sweeper guarantees progress, and whatever it reaches for is
+  **recorded as dealt**, or it builds an XI the referee itself then refuses. A check asserts
+  the property that keeps the last-resort path dormant (every cup can fill every position),
+  so a future tournament makes it go red rather than making the fallback silently live.
 
 Also settled by wave 0, because the plan had it wrong: **`resolveKoTie` was already exported
 and shared**, so there was nothing to lift out of `domain/run.ts`. What was actually missing

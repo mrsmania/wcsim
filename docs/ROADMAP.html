@@ -750,7 +750,8 @@
     <span class="title">Player versus player, for signed-in accounts
       <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
-      REVIEWED and revised: 42 decisions, nothing open. <b>WAVE 0 SHIPPED 2026-08-26.</b></span>
+      REVIEWED and revised: 42 decisions, nothing open. <b>WAVES 0 AND 1 SHIPPED
+      2026-08-26.</b></span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -829,9 +830,25 @@
     instead of the new <code>datasetPlayer</code> lets an invented player through at whatever
     rating the client claims. <b>Nothing imports it yet</b> - the screens and the server are
     waves 4 to 8 - so CLAUDE.md carries a note stopping a dead-code pass from deleting it.</p>
-    <p class="next"><strong>Next step:</strong> wave 1, the referee offline: the service
-    bundling that domain code, running a whole draft against simulated players with deadlines
-    as stored data plus a sweeper. Still no server needed.</p>
+    <p><strong>Wave 1 shipped 2026-08-26:</strong> the referee&#8217;s logic, offline.
+    <code>src/domain/pvpRoom.ts</code> is the room as a state machine with <b>no timers at
+    all</b> - a deadline is stored data, evaluated when a pick arrives and by one stateless
+    sweeper - so it is restart-correct by construction, and a twenty-second clock is tested in
+    microseconds by advancing a number. <code>src/domain/pvpAuth.ts</code> is the caller rule.
+    25 more checks; the suite is <b>237</b>.</p>
+    <p><strong>Three things the build changed or found.</strong> <b>P45 was written wrong</b>:
+    "shift every window forward by the outage" is not the rule, because a 45-second restart on
+    a 20-second clock leaves every window still expired and the first sweep auto-picks for
+    everybody regardless. What is owed is the REMAINDER. <b>A roll room can genuinely stall</b>:
+    the auto-pick fills from the last squad dealt, and 345 of the (squad, position) pairs in the
+    dataset are empty - most 1970s squads list no wide midfielder - so the dealt squad routinely
+    has nobody for the slots left, and the window reopens onto the same squad for ever. Mutation
+    testing found it; nothing in the design said it was there. And <b>whatever the fallback
+    reaches for must be recorded as dealt</b>, or it builds an XI the referee itself then
+    refuses.</p>
+    <p class="next"><strong>Next step:</strong> wave 2, the schema migration - written,
+    parse-checked with <code>pglast</code>, dry-run, a rollback block in its header, and a new
+    roadmap item opened for the apply, since a cloud session cannot reach the NAS.</p>
     <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
