@@ -498,15 +498,21 @@ function applyFilters() {
     for (let p = 0; p < D.personKey.length; p++) if (D.personKey[p].includes(q)) nameOk[p] = 1;
   }
 
+  const natLen = D.set.nations.length;
   const f = {
     main: new Array(POS.length).fill(0),
     add: new Array(POS.length).fill(0),
     any: new Array(POS.length).fill(0),
-    nat: new Array(D.set.nations.length).fill(0),
+    nat: new Array(natLen).fill(0),
+    /* A World Cup is counted in TEAMS, not players: "1970 - 16" is the field that
+       turned up, which is what the number is asked to say. The players are in the
+       option's hover text, and in the count line once it is picked. */
     year: new Array(D.set.years.length).fill(0),
+    yearPlayers: new Array(D.set.years.length).fill(0),
     col: [0, 0],
   };
   const combos = D.set.combos;
+  const seenTeam = new Uint8Array(D.set.years.length * natLen);
 
   let n = 0;
   for (let i = 0; i < N; i++) {
@@ -526,7 +532,12 @@ function applyFilters() {
       if (!bad || bad === BIT.add) for (let k = 1; k < combo.length; k++) f.add[combo[k]]++;
       if (!bad || bad === BIT.any) for (const p of combo) f.any[p]++;
       if (!bad || bad === BIT.nat) f.nat[D.nation[i]]++;
-      if (!bad || bad === BIT.year) f.year[D.year[i]]++;
+      if (!bad || bad === BIT.year) {
+        const y = D.year[i];
+        f.yearPlayers[y]++;
+        const seat = y * natLen + D.nation[i];
+        if (!seenTeam[seat]) { seenTeam[seat] = 1; f.year[y]++; }
+      }
       if (!bad || bad === BIT.col) f.col[D.tier[i] > 0 ? 1 : 0]++;
     }
     if (bad) continue;
@@ -813,7 +824,7 @@ function multiSelect(host, options, set, label, searchable, off) {
   const optHtml = (o) => '<button type="button" class="opt' + (set.has(o.value) ? ' on' : '') + '" data-v="' + opts.indexOf(o) + '" aria-pressed="' + set.has(o.value) + '">'
     + '<span class="box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>'
     + '<span>' + o.html + '</span>'
-    + (o.count == null ? '' : '<span class="n">' + o.count + '</span>')
+    + (o.count == null ? '' : '<span class="n"' + (o.title ? ' title="' + o.title + '"' : '') + '>' + o.count + '</span>')
     + '</button>';
 
   let shown = opts;
@@ -910,6 +921,7 @@ function multiSelect(host, options, set, label, searchable, off) {
    or when it is already ticked - otherwise selecting Wales and then 1970 would
    hide the Wales tick that is emptying the table, with no way to clear it. */
 const keep = (opts, set) => opts.filter((o) => o.count > 0 || set.has(o.value));
+const plural = (n, word) => n.toLocaleString('en-GB') + ' ' + word + (n === 1 ? '' : 's');
 const posOpts = (counts, set) =>
   keep(POS.map((p, i) => ({ value: i, html: p, key: fold(p), count: counts[i] })), set);
 const flagHtml = (code) => '<span class="fl f' + code + '" style="display:inline-block;vertical-align:-2px;margin-right:6px"></span>';
@@ -936,7 +948,9 @@ function fields() {
     {
       key: 'year', label: 'World Cup',
       opts: () => keep(D.set.years.map((y, i) => ({
-        value: y, html: String(y), key: String(y), count: facets.year[i],
+        value: y, html: String(y), key: String(y),
+        count: facets.year[i],
+        title: plural(facets.year[i], 'team') + ', ' + plural(facets.yearPlayers[i], 'player'),
       })), state.year),
     },
     {
