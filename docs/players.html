@@ -124,6 +124,7 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .opt .box { width: 14px; height: 14px; border: 1.5px solid var(--line); border-radius: 3px; display: grid; place-items: center; flex: none; color: var(--panel); }
 .opt.on .box { background: var(--pitch); border-color: var(--pitch); }
 .opt .n { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); padding-left: 10px; }
+.pop .pnone { padding: 8px 7px; font-size: 12.5px; color: var(--dim); white-space: nowrap; }
 .pop .pfoot { display: flex; justify-content: space-between; border-top: 1px solid var(--hair); margin-top: 6px; padding-top: 6px; }
 .pop .pfoot button { border: 0; background: none; cursor: pointer; font-family: var(--mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 3px 5px; border-radius: 4px; }
 .pop .pfoot button:hover { color: var(--pitch); }
@@ -502,21 +503,6 @@ function decode(index) {
   for (let i = 0; i < N; i++) (d.apps[d.person[i]] || (d.apps[d.person[i]] = [])).push(i);
   for (const a of d.apps) if (a && a.length > 1) a.sort((x, y) => d.year[x] - d.year[y]);
 
-  // Counts per option, so a dropdown says how much of the dataset it holds.
-  d.mainCount = new Array(POS.length).fill(0);
-  d.addCount = new Array(POS.length).fill(0);
-  d.anyCount = new Array(POS.length).fill(0);
-  d.natCount = new Array(S.nations.length).fill(0);
-  d.yearCount = new Array(S.years.length).fill(0);
-  for (let i = 0; i < N; i++) {
-    const c = d.combo[i];
-    d.mainCount[d.comboMain[c]]++;
-    d.natCount[d.nation[i]]++;
-    d.yearCount[d.year[i]]++;
-    for (const p of S.combos[c]) d.anyCount[p]++;
-    for (let k = 1; k < S.combos[c].length; k++) d.addCount[S.combos[c][k]]++;
-  }
-
   d.view = new Int32Array(N);
   CACHE[index] = d;
   return d;
@@ -552,6 +538,18 @@ let dropped = 0;                                     // values the switch could 
 
 function maskOf(set) { let m = 0; for (const p of set) m |= 1 << p; return m; }
 
+/* One bit per dropdown, so a row can record WHICH filters it fails.
+   A row counts towards a dropdown's option when it passes every filter except
+   that dropdown's own - which is what makes the dropdowns narrow each other:
+   pick 1970 and the country list is the sixteen nations that were there, pick
+   Wales and the World Cup list is 2022 alone.
+   The search box and the rating range are deliberately NOT part of this. What
+   you type and where you drag a handle would otherwise reshuffle every list
+   under your hand, and the market's facets in the app leave them out for the
+   same reason. */
+const BIT = { main: 1, add: 2, any: 4, nat: 8, year: 16, col: 32 };
+let facets = null;
+
 function applyFilters() {
   const mMain = maskOf(state.main);
   // A filter this dataset cannot answer keeps its selection and stops filtering.
@@ -581,20 +579,45 @@ function applyFilters() {
     for (let p = 0; p < D.personKey.length; p++) if (D.personKey[p].includes(q)) nameOk[p] = 1;
   }
 
+  const f = {
+    main: new Array(POS.length).fill(0),
+    add: new Array(POS.length).fill(0),
+    any: new Array(POS.length).fill(0),
+    nat: new Array(D.set.nations.length).fill(0),
+    year: new Array(D.set.years.length).fill(0),
+    col: [0, 0],
+  };
+  const combos = D.set.combos;
+
   let n = 0;
   for (let i = 0; i < N; i++) {
+    const c = D.combo[i];
+    let bad = 0;
+    if (mMain && !((1 << D.comboMain[c]) & mMain)) bad |= BIT.main;
+    if (mAdd && !(D.comboAdd[c] & mAdd)) bad |= BIT.add;
+    if (mAny && !(D.comboAll[c] & mAny)) bad |= BIT.any;
+    if (natOk && !natOk[D.nation[i]]) bad |= BIT.nat;
+    if (yearOk && !yearOk[D.year[i]]) bad |= BIT.year;
+    if (colOn && (D.tier[i] > 0) !== wantCol) bad |= BIT.col;
+
+    // Zero or exactly one failing filter: the row is worth counting somewhere.
+    if ((bad & (bad - 1)) === 0) {
+      const combo = combos[c];
+      if (!bad || bad === BIT.main) f.main[D.comboMain[c]]++;
+      if (!bad || bad === BIT.add) for (let k = 1; k < combo.length; k++) f.add[combo[k]]++;
+      if (!bad || bad === BIT.any) for (const p of combo) f.any[p]++;
+      if (!bad || bad === BIT.nat) f.nat[D.nation[i]]++;
+      if (!bad || bad === BIT.year) f.year[D.year[i]]++;
+      if (!bad || bad === BIT.col) f.col[D.tier[i] > 0 ? 1 : 0]++;
+    }
+    if (bad) continue;
+
     const e = D.elo[i];
     if (e < lo || e > hi) continue;
-    const c = D.combo[i];
-    if (mMain && !((1 << D.comboMain[c]) & mMain)) continue;
-    if (mAdd && !(D.comboAdd[c] & mAdd)) continue;
-    if (mAny && !(D.comboAll[c] & mAny)) continue;
-    if (natOk && !natOk[D.nation[i]]) continue;
-    if (yearOk && !yearOk[D.year[i]]) continue;
-    if (colOn && (D.tier[i] > 0) !== wantCol) continue;
     if (nameOk && !nameOk[D.person[i]]) continue;
     view[n++] = i;
   }
+  facets = f;
   viewLen = n;
   sortView();
 }
@@ -720,6 +743,8 @@ function render() {
   measure();
   winFrom = winTo = -1;
   paint(true);
+  // The dropdowns describe the query as it now stands, not the whole dataset.
+  for (let i = 0; i < controls.length; i++) controls[i].setOptions(FIELDS[i].opts());
   const n = viewLen.toLocaleString('en-GB');
   document.getElementById('count').innerHTML = '<b>' + n + '</b> of ' + D.N.toLocaleString('en-GB') + ' players'
     + (dropped ? ' <span class="gone">' + dropped + ' filter value' + (dropped > 1 ? 's' : '')
@@ -845,7 +870,8 @@ thead.addEventListener('click', (e) => {
 /* ---------------------------------------------------------------------------
    Multi-select filters
 --------------------------------------------------------------------------- */
-function multiSelect(host, opts, set, label, searchable, off) {
+function multiSelect(host, options, set, label, searchable, off) {
+  let opts = options;
   // opts: [{ value, html, key, count }]. A value is whatever the state holds - a
   // position index, a nation code, a year - so the option INDEX is what travels
   // through the DOM.
@@ -872,7 +898,11 @@ function multiSelect(host, opts, set, label, searchable, off) {
     + '</button>';
 
   let shown = opts;
-  const drawList = () => { list.innerHTML = shown.map(optHtml).join(''); };
+  const drawList = () => {
+    list.innerHTML = shown.length
+      ? shown.map(optHtml).join('')
+      : '<div class="pnone">Nothing left to narrow</div>';
+  };
   const drawBtn = () => {
     const v = btn.querySelector('.val');
     if (set.size === 0) { v.className = 'val any'; v.textContent = 'Any'; }
@@ -944,10 +974,25 @@ function multiSelect(host, opts, set, label, searchable, off) {
   }
 
   drawList(); drawBtn();
-  return { refresh() { shown = opts; const s = pop.querySelector('.psearch'); if (s) s.value = ''; drawList(); drawBtn(); } };
+  return {
+    /* New options, because another filter moved. The popover's own search text is
+       re-applied, so a list does not jump back to everything while it is open. */
+    setOptions(next) {
+      opts = next;
+      const box = pop.querySelector('.psearch');
+      const q = box ? fold(box.value.trim()) : '';
+      shown = q ? opts.filter((o) => o.key.includes(q)) : opts;
+      drawList(); drawBtn();
+    },
+    refresh() { shown = opts; const s = pop.querySelector('.psearch'); if (s) s.value = ''; drawList(); drawBtn(); } };
 }
 
-const posOpts = (counts) => POS.map((p, i) => ({ value: i, html: p, key: fold(p), count: counts[i] }));
+/* An option is offered when the rest of the query leaves it something to match,
+   or when it is already ticked - otherwise selecting Wales and then 1970 would
+   hide the Wales tick that is emptying the table, with no way to clear it. */
+const keep = (opts, set) => opts.filter((o) => o.count > 0 || set.has(o.value));
+const posOpts = (counts, set) =>
+  keep(POS.map((p, i) => ({ value: i, html: p, key: fold(p), count: counts[i] })), set);
 const flagHtml = (code) => '<span class="fl f' + code + '" style="display:inline-block;vertical-align:-2px;margin-right:6px"></span>';
 
 /* The same six filters in the same order for either dataset. The two extra
@@ -959,26 +1004,28 @@ const ONE_POSITION = '7a0 gives each player one position, so this filter has not
 
 function fields() {
   return [
-    { key: 'main', label: 'Main position', opts: () => posOpts(D.mainCount) },
-    { key: 'add', label: 'Additional position', off: P.alt ? '' : ONE_POSITION, opts: () => posOpts(D.addCount) },
-    { key: 'any', label: 'Position (any)', off: P.alt ? '' : ONE_POSITION, opts: () => posOpts(D.anyCount) },
+    { key: 'main', label: 'Main position', opts: () => posOpts(facets.main, state.main) },
+    { key: 'add', label: 'Additional position', off: P.alt ? '' : ONE_POSITION, opts: () => posOpts(facets.add, state.add) },
+    { key: 'any', label: 'Position (any)', off: P.alt ? '' : ONE_POSITION, opts: () => posOpts(facets.any, state.any) },
     {
       key: 'nat', label: 'Country', search: true,
-      opts: () => D.set.nations.map((n, i) => ({
+      opts: () => keep(D.set.nations.map((n, i) => ({
         value: n[0], html: flagHtml(n[0]) + esc(n[1]),
-        key: fold(n[1]) + ' ' + n[0].toLowerCase(), count: D.natCount[i],
-      })),
+        key: fold(n[1]) + ' ' + n[0].toLowerCase(), count: facets.nat[i],
+      })), state.nat),
     },
     {
       key: 'year', label: 'World Cup',
-      opts: () => D.set.years.map((y, i) => ({ value: y, html: String(y), key: String(y), count: D.yearCount[i] })),
+      opts: () => keep(D.set.years.map((y, i) => ({
+        value: y, html: String(y), key: String(y), count: facets.year[i],
+      })), state.year),
     },
     {
       key: 'col', label: P.colHeader,
-      opts: () => [
-        { value: 1, html: 'Yes', key: 'yes', count: D.set.collectibles },
-        { value: 0, html: 'No', key: 'no', count: D.N - D.set.collectibles },
-      ],
+      opts: () => keep([
+        { value: 1, html: 'Yes', key: 'yes', count: facets.col[1] },
+        { value: 0, html: 'No', key: 'no', count: facets.col[0] },
+      ], state.col),
     },
   ];
 }
@@ -1047,9 +1094,9 @@ document.getElementById('reset').addEventListener('click', () => {
   state.lo = D.set.eloMin; state.hi = D.set.eloMax;
   state.rangeSet = false;
   dropped = 0;
-  for (const c of controls) c.refresh();
+  for (const c of controls) c.refresh();   // and drop any text typed into a popover
   paintRange();
-  render();
+  render();                   // recounts the facets, which refreshes every list
 });
 
 /* ---------------------------------------------------------------------------
@@ -1101,10 +1148,11 @@ function load(index) {
   for (const b of seg.children) b.setAttribute('aria-pressed', String(+b.dataset.i === index));
 
   for (const el of [rmin, rmax]) { el.min = D.set.eloMin; el.max = D.set.eloMax; el.step = 1; }
+  controls = [];              // the old dataset's controls are about to be replaced
   buildHead();
-  buildFields();
   paintRange();
-  render();
+  render();                   // counts the facets the new controls are built from
+  buildFields();
 }
 
 if (DATA.sets.length > 1) {

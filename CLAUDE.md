@@ -963,6 +963,17 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
 - **It carries TWO datasets and a toggle** (top right of the page header): **WCS**, the
   game's own, and **7a0**, the other game's ratings. See the section below - that toggle
   is the reason there is no second file.
+- **The dropdowns narrow EACH OTHER**, the way the transfer market's facets do
+  (`marketFacets`, and the same reasoning): each one is counted over the rows that pass
+  every filter except its own, so picking 1970 leaves the sixteen nations that were
+  there, picking Wales leaves 2022 alone, and every option carries its live count
+  (Morocco 19, because that is the squad they brought). One pass over the dataset does
+  it: a row records WHICH filters it fails as a bitmask, and counts towards a dropdown
+  when it fails at most that dropdown's own. **The search box and the rating range are
+  deliberately left out** - what you type and where you drag a handle would otherwise
+  reshuffle every list under your hand. An option is dropped when it would empty the
+  table, **unless it is already ticked**, or a selection made before the query narrowed
+  could neither be seen nor cleared.
 - **A player who appears in more than one tournament carries an `x N` mark**, and hovering
   any one of his rows shows all of them (year, nation, main role, rating) with the row you
   are on picked out - plus every other row of the same man currently on screen. That is
