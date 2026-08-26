@@ -41,7 +41,6 @@ export interface RoomRow {
   host_id: string;
   size: number;
   method: 'roll' | 'budget';
-  budget_source: 'fixed' | 'career';
   budget: number;
   years: number[] | null;
   show_ratings: boolean;
@@ -325,14 +324,13 @@ export function dealWrites(room: PvpRoom): { userId: string; seq: number; squadI
  * forgets is then a check failure somewhere unrelated, which is exactly where you want a
  * silent bug to surface.
  *
- * `budgetSource` and the display names come in from outside because the room does not carry
- * them: the first is a host setting the RULES never read, and the second lives on
- * `profiles`, which the referee may read three columns of and write none of.
+ * The heartbeat and the display names come in from outside because the room does not carry
+ * them: the first belongs to the sweeper, and the second lives on `profiles`, which the
+ * referee may read three columns of and write none of.
  */
 export function rowsFromRoom(
   room: PvpRoom,
   extra: {
-    budgetSource: 'fixed' | 'career';
     sweptAt: number | null;
     displayNames: Record<string, string | null>;
   },
@@ -346,7 +344,6 @@ export function rowsFromRoom(
       host_id: room.hostId,
       size: room.size,
       method: room.rules.method,
-      budget_source: extra.budgetSource,
       budget: room.rules.budget,
       years: [...room.rules.years],
       show_ratings: room.showRatings,

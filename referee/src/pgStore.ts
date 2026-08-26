@@ -39,7 +39,7 @@ import type { CreateInput, Mutation, MutateContext, RoomStore } from './store';
 /** One round trip per table rather than one join: the room row is a single row and the
  *  other four are small lists, and a join would multiply them together and then have to be
  *  un-multiplied in JavaScript. */
-const SELECT_ROOM = `select id, code, visibility, host_id, size, method, budget_source,
+const SELECT_ROOM = `select id, code, visibility, host_id, size, method,
     budget, years, show_ratings, rerolls, pick_seconds, status, round, champion_id,
     started_at, swept_at
   from pvp_rooms where code = $1`;
@@ -192,14 +192,13 @@ export function pgStore(pool: Pool): RoomStore {
         );
         const res = await db.query<{ id: string }>(
           `insert into pvp_rooms
-             (code, visibility, host_id, size, method, budget_source, budget, years,
+             (code, visibility, host_id, size, method, budget, years,
               show_ratings, rerolls, pick_seconds, status, round, touched_at, swept_at)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'lobby',0, now(), now())
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'lobby',0, now(), now())
            returning id`,
           [
             input.code, input.visibility, input.hostId, input.size, input.method,
-            input.budgetSource, input.budget, input.years, input.showRatings,
-            input.rerolls, input.pickSeconds,
+            input.budget, input.years, input.showRatings, input.rerolls, input.pickSeconds,
           ],
         );
         const room = createRoom({

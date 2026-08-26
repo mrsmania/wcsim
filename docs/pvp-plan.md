@@ -9,7 +9,8 @@ room, the room gets its own build state, the referee holds no timers, and the bu
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
 (P48). **Status: waves 0 to 3 built** (2026-08-26), 0016 applied, **0017 and the deploy
-queued**. One decision has reopened - the career budget, P2 - and section 11 says why.
+queued**. The one decision wave 3 reopened, the career budget in P2, was settled on
+2026-08-27 by dropping the option.
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -40,8 +41,8 @@ watches the matches, and the room crowns a winner.
 Nothing is won except the result. Wins and losses go on your record and that is all. A ladder
 is the planned next step once enough people are playing.
 
-**Your career decides nothing here unless the host wants it to**, and **the sticker album, perks,
-Ascension, difficulty, boosts and chemistry are all switched off** inside a room. A versus match
+**Your career decides nothing here**, and **the sticker album, perks, Ascension, difficulty,
+boosts and chemistry are all switched off** inside a room. A versus match
 is eleven players against eleven players and nothing else.
 
 **It is built for a desktop or a laptop first** (P28). It is playable on a phone and it is not
@@ -61,12 +62,12 @@ in rather than a missing feature.
 | # | Decision | Choice |
 |---|----------|--------|
 | P1 | What the team is made of | **The host decides per room.** The roll draft or the budget market. Not the album, not a separate roster |
-| P2 | Budget source | **Host's choice**: a fixed room budget of $70 to $200, or each player's own career transfer budget. Fixed is the default. *Amended 2026-08-26: a career budget is **snapshotted onto the member row at host-start**, by the referee. Otherwise the referee needs read access to every player's `career` row, which contradicts section 7's "these tables touch nothing else", and a player could buy a Transfer Budget perk tier mid-draft and change the budget their own XI is validated against.* **The career half is OPEN as of wave 3** and the referee refuses it: snapshotting does not dodge the contradiction, because the snapshot still has to be read by the thing that holds no privilege to read it. See "Open, and it needs a decision" in section 11. Fixed rooms are unaffected* |
+| P2 | Budget source | **A fixed room budget of $70 to $200, chosen by the host. Nothing else.** *Settled 2026-08-27 by dropping the alternative. The host could originally price a room off each player's own career transfer budget, and wave 3 found that this contradicts P34 outright: the referee is forbidden any privilege on `career`, and snapshotting the figure at host-start does not dodge it, because the snapshot still has to be READ by the thing that may not read it. Two ways out existed (a narrow grant, or a `security definer` function the joining client calls on itself) and both were rejected in favour of deletion, because the option was already the weakest thing in the room settings on its own merits: measured at the optimum, $160 beats $70 **85.7%** of the time and $110 beats $70 **75.9%**, so a career-budget room is decided before a ball is kicked, and the plan was already suggesting confining it to private rooms where "we know each other's careers" is true. Deleting it answers the question the way the One-off run was answered: by deletion. It also makes P8 absolute rather than conditional, and it keeps the referee's blast radius exactly where P34 wants it. The `budget_source` column goes with it (migration 0017)* |
 | P3 | The owned-sticker discount | **Never applies in PvP.** The raw `priceOf` curve is the price |
 | P4 | Which World Cups | **A room-level pool set by the host.** Everyone in a room draws from the same cups |
 | P5 | Ratings visible | **A host switch, in ROLL rooms only.** A budget room always shows ratings, because a price is calculated straight from a rating. See P40 for what the switch can and cannot enforce |
 | P7 | Room sizes and format | **2, 4 or 8, and exactly full to start.** *Amended 2026-08-26: the host may **reduce** the size before the start (8 to 4, 4 to 2) so a room that will not fill can still be played. No byes are ever created* |
-| P8 | Career effect on fairness | **None by default.** P2 is the only door left open and the host holds it |
+| P8 | Career effect on fairness | **None at all.** *Absolute since 2026-08-27: P2 held the only door open, and that door is now closed. A room is the same room whoever walks into it* |
 | P9 | Stakes | **A win/loss record only.** A ladder is planned and this is built to accept one (see P36) |
 | P15 | You draft once per room | **Your XI plays the whole tournament.** Confirmed against a between-rounds swap window and a full redraft; both add a phase and make somebody wait |
 | P18 | Public and private rooms | **Both.** Public is listed; private is code-only. Both have a code |
@@ -142,7 +143,7 @@ in rather than a missing feature.
 | Visibility | Public (listed) or private (code only) | Public |
 | Size | 2, 4 or 8. Reducible before the start (P7) | 2 |
 | Draft method | Roll a squad, or buy with a budget | Buy with a budget |
-| Budget | A fixed $70 to $200 in $10 steps, or each player's own career budget | Fixed, $110 |
+| Budget | $70 to $200 in $10 steps, set by the host (P2) | $110 |
 | Cups | Any subset of the World Cups, never empty | All of them |
 | Pick clock | 20 or 30 seconds, set independently of the draft method | 20 seconds |
 | Show ratings | On or off. **Roll rooms only** (P5) | On |
@@ -154,12 +155,10 @@ pick.
 **What is absent from a room:** Ascension, difficulty, boosts, perks, swaps, the sticker album,
 **and chemistry** (P25). A versus match is the two numbers the simulator reads.
 
-**A career-budget room must show every member's own figure in the listing and the lobby**
-("your budget: $70; the largest in this room: $160"). Measured at the optimum, $160 beats $70
-**85.7%** of the time and $110 beats $70 **75.9%**. That is the host's door to open, but a
-joiner who cannot see what they are walking into will read a decided match as the mode being
-broken. Consider offering career budgets in **private** rooms only, where "we know each other's
-careers" is true.
+**Everyone in a room has the same money**, which is the whole of P2 now. The figures that
+settled it are worth keeping, because they are the argument against ever reopening it:
+measured at the optimum, $160 beats $70 **85.7%** of the time and $110 beats $70 **75.9%**.
+A room where the budgets differ is decided before a ball is kicked.
 
 **Two room settings interact in a way worth knowing.** In a **one-cup** room, "another cup"
 (the same nation at a different World Cup) has zero candidates for every player, so one of the
@@ -264,8 +263,9 @@ Memory and operational fragility are.
 
 ## 7. Data model
 
-- **`pvp_rooms`** - code, visibility, host, size, draft method, budget source and amount, cup
-  pool, ratings switch, re-rolls, pick clock, status, current round, timestamps.
+- **`pvp_rooms`** - code, visibility, host, size, draft method, budget, cup pool, ratings
+  switch, re-rolls, pick clock, status, current round, timestamps. (0016 also carried a
+  `budget_source`; 0017 drops it with P2's second option.)
 - **`pvp_members`** - who, display name, seat, **ready** (P48), **snapshotted budget** (P2),
   `last_seen` (P31), and the round they went out in. A seat is join order and a label, and
   **decides nothing**: the bracket is drawn at random after the draft (P47), which is what stops
@@ -389,10 +389,12 @@ it.
 
 ---
 
-## 11. One thing open, four to measure, and one accepted
+## 11. Nothing open. Four things to measure, and one accepted
 
-Every question this document raised was answered before building started. **Building wave 3
-opened exactly one** (the career budget, below), and found five things worth recording.
+Every question this document raised was answered before building started. Building wave 3
+opened exactly one - the career budget - and it was settled by deletion on 2026-08-27; it is
+kept below as the record of a decision rather than as a question. Wave 3 also found five
+things worth recording.
 
 ### Accepted, with the measurement: the mode is low-scoring at the top (P25, P26)
 
@@ -512,24 +514,29 @@ fix if this is ever worth closing.
   each client asks for its own view. That also makes P33's chief benefit structural rather
   than careful: there is no private data in the stream at all.
 
-### Open, and it needs a decision: the career budget (P2)
+### Settled by deletion: the career budget (P2), 2026-08-27
 
-**P2 offers a room whose budget is each player's own career transfer budget, and P34 forbids
-the referee any privilege on `career`.** Snapshotting at host-start does not resolve it -
-the snapshot still has to be read from somewhere, and the referee is the thing doing the
-reading. The referee therefore **refuses `budgetSource: 'career'`** today, with that message,
-and fixed-budget rooms are unaffected. Three ways out, in the order they appeal:
+Wave 3 opened one question and the owner closed it the same way item 28 closed the One-off
+run: **the option is gone.** A room's budget is a fixed figure the host picks, everybody in
+the room has the same money, and no part of a career reaches a room at all.
 
-1. **Drop it.** Plan section 3 already warns that a career-budget room is decided before a
-   ball is kicked ($160 beats $70 **85.7%** of the time) and suggests confining it to private
-   rooms. Deleting it costs one row of the options table and answers the question by
-   deletion, the way the One-off run was.
-2. **A narrow grant**: `select (user_id, perk_levels) on career` for `pvp_referee`, plus the
-   policy 0016 forgot. It is one more column family in the referee's reach, which is the
-   thing P34 exists to keep small, and the reach is read-only.
-3. **A `security definer` function** the joining client calls to snapshot its OWN budget onto
-   its own member row. The referee reads nothing new; the client cannot lie, because the
-   function derives the figure from the career rather than taking it as an argument.
+What made it a question: P2 let a host price a room off each player's own career transfer
+budget, and P34 forbids the referee any privilege on `career`. Snapshotting the figure at
+host-start does not dodge that, because the snapshot still has to be READ by the thing that
+may not read it. Two repairs existed - a narrow `select` grant on `career`, or a
+`security definer` function each joining client calls on itself - and both were rejected,
+because the option was the weakest thing in the room settings before any of this came up:
+$160 beats $70 **85.7%** of the time at the optimum, so the match was decided in the lobby.
+
+**What went with it**, so that nothing is left half-removed: the `budgetSource` field on the
+create request, the `budget_source` column (dropped by migration 0017 - 0016 is applied but
+holds no rooms, so it is free), and the paragraph in section 3 about showing every member's
+figure in the listing. P8 is now absolute rather than "none by default".
+
+**Reopening it means reopening P34**, and that is the sentence to read first if it is ever
+tempting: the referee is the only component in this design that takes un-RLS'd input from
+the internet, and the whole reason it can be trusted with that is the length of the list of
+things it cannot reach.
 
 ### What the rehearsal is for, stated once because it keeps paying
 

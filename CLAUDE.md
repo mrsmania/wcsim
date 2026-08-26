@@ -2564,10 +2564,12 @@ has the checklist. Deploy the referee BEFORE pushing a client that talks to it, 
   dataset, so a submitted rating cannot decide a price and submitted `positions` cannot
   decide eligibility.
 
-**One decision has reopened: the career budget (P2).** A room may take each player's own
-career transfer budget, and P34 forbids the referee any privilege on `career`; snapshotting
-does not dodge it, because the snapshot still has to be read. The referee refuses that
-option today. `docs/pvp-plan.md` section 11 lists the three ways out.
+**No part of a career reaches a room, and that is now absolute** (P2/P8, settled 2026-08-27).
+A host could originally price a room off each player's own career transfer budget; it
+contradicted P34 (the referee may not read a `career` row, and snapshotting the figure still
+means reading it) and it was the weakest setting in the room anyway, since $160 beats $70
+85.7% of the time. The option is deleted rather than repaired - do not add it back without
+reopening P34, which is what keeps the referee's blast radius small.
 
 **The plan is `docs/pvp-plan.md`** and it is the thing to read before touching this. Three
 rules in that module are load-bearing and each was mutation-tested:

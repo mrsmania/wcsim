@@ -1,13 +1,15 @@
 -- 0017_pvp_referee.sql
 --
--- Roadmap item 18 (player versus player), wave 3 of docs/pvp-plan.md: the three things the
--- referee cannot run without, and that 0016 does not provide. Written and QUEUED, not
+-- Roadmap item 18 (player versus player), wave 3 of docs/pvp-plan.md: the things the referee
+-- cannot run without and that 0016 does not provide, plus one column that a settled decision
+-- has made dead. Written and QUEUED, not
 -- applied (CLAUDE.md, 2026-08-24): the session that wrote it is a cloud session with no
 -- route to the NAS. See the roadmap item for the apply.
 --
 -- WHY THERE IS A SECOND PVP MIGRATION AT ALL. 0016 is the room's SHAPE and it is right; what
--- it is missing is three things that only appear once something actually drives a room, and
--- all three were found by building the referee rather than by re-reading the plan:
+-- it is missing is four things that only appear once something actually drives a room, and
+-- every one of them was found by building the referee rather than by re-reading the plan.
+-- The fifth is a deletion the owner decided:
 --
 -- 1. THE OPEN PICK WINDOW HAS NOWHERE TO LIVE. `pvp_picks` records picks that LANDED, with
 --    the ordinal and when the window opened - and the whole design turns on a deadline
@@ -34,6 +36,17 @@
 --    client write, and it is the right one here for a second reason: the uniqueness check
 --    and the insert have to be one statement or two players racing both succeed.
 --
+-- 4. THE REFEREE HOLDS A GRANT OVER ROWS IT CANNOT SEE. 0016 gives it
+--    `select (id, display_name, name_key) on profiles` and stops there - and `profiles` has
+--    row-level security on, whose only policy names `authenticated`. So every read came back
+--    empty, the referee concluded every account was nameless, and it refused every room for
+--    everybody. Found by rehearsing, not by reading; the rule it breaks is written down one
+--    screen above the omission in 0016's own header. The policy is at the foot of this file.
+--
+-- 5. AND ONE DELETION: `pvp_rooms.budget_source`. P2's second option - a room priced off each
+--    player's own career transfer budget - was dropped on 2026-08-27, so the column encodes a
+--    choice that no longer exists. See it below for why the option went.
+--
 -- THE NORMALISATION IS THE CLIENT'S, AND THIS FUNCTION DOES NOT REDO IT. `name_key` is
 -- computed by `src/domain/displayName.ts` (NFC, invisibles stripped, whitespace collapsed,
 -- folded) and passed in, because the codepoint rule needs Unicode script properties that
@@ -51,7 +64,7 @@
 -- HOW TO VERIFY AFTER APPLYING - do this, do not assume:
 --   1. `\d pvp_members` - `window_ordinal`, `window_opened_at` and `rerolls_used` exist,
 --      the first two null for every row and the third 0. `\d pvp_rooms` - `swept_at`
---      exists and is null.
+--      exists and is null, and `budget_source` is GONE.
 --   2. Signed in as an ordinary user in a browser session:
 --      `select set_display_name('Mario', 'mario');` returns 'Mario', and
 --      `select display_name, name_key from profiles where id = auth.uid();` shows both.
@@ -74,7 +87,8 @@
 --   8. Play a normal single-player run to the end, banking stickers. Nothing here touches
 --      that path and confirming it is untouched is the point of checking.
 --
--- REHEARSED 2026-08-26 on a local PostgreSQL 16 with a stand-in for the parts of the stack
+-- REHEARSED 2026-08-26, and again on 2026-08-27 after the budget_source deletion, on a local
+-- PostgreSQL 16 with a stand-in for the parts of the stack
 -- these two files reference (the two roles, `auth.uid()`, `profiles` as 0001 defines it):
 -- 0016 then 0017 apply clean, all eight steps above pass, the rollback block above runs and
 -- 0017 re-applies after it, and a whole room - create, join, ready, start, a pick, a draft
@@ -85,6 +99,8 @@
 --
 -- ROLLBACK (complete, in this order; nothing outside this file is altered):
 --   begin;
+--   alter table pvp_rooms add column if not exists budget_source text not null default 'fixed'
+--     check (budget_source in ('fixed', 'career'));
 --   drop policy if exists profiles_referee_read on profiles;
 --   drop function if exists set_display_name(text, text);
 --   alter table pvp_rooms   drop column if exists swept_at;
@@ -129,6 +145,22 @@ alter table pvp_members add constraint pvp_members_window_ck check (
 -- nothing to give back, which is correct: a room that has never been swept has never had a
 -- window opened by this process.
 alter table pvp_rooms add column if not exists swept_at timestamptz;
+
+-- --------------------------------------------------------------------------
+-- The budget source, which is no longer a question (reason 5)
+-- --------------------------------------------------------------------------
+
+-- P2 originally let a host price a room off each player's own career transfer budget, and
+-- **the option was dropped on 2026-08-27**. It contradicted P34 outright: the referee holds
+-- no privilege on `career`, and snapshotting the figure at host-start does not dodge that,
+-- because the snapshot still has to be READ by the thing that may not read it. It was also
+-- the weakest setting in the room on its own merits - measured at the optimum, $160 beats
+-- $70 85.7% of the time, so the match was decided in the lobby.
+--
+-- So the column goes rather than being left as a check constraint over a dead value. It is
+-- free to drop: 0016 is applied and holds no rooms, and there are no production users
+-- (CLAUDE.md, 2026-08-21), so this is a decision rather than a migration.
+alter table pvp_rooms drop column if exists budget_source;
 
 -- --------------------------------------------------------------------------
 -- Letting the referee actually read the three columns it was granted (reason 4)

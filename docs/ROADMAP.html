@@ -851,7 +851,7 @@
       REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED 2026-08-26</b>: the rules, the referee's
       logic, the tables (0016 applied) and now <b>the referee itself</b>. Its DEPLOY is
       queued as item 41. Next in this repo: wave 4, the room's own build state. One decision
-      has reopened - the career budget.</span>
+      is settled: no part of a career reaches a room.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -1006,13 +1006,19 @@
     missing policy, and a <code>set_display_name</code> function - because 0016 added the two
     name columns and their unique index and <b>nothing on either side could write them</b>.
     Written, parse-checked, rehearsed, rolled back and re-applied; queued as item 41.</p>
-    <p><strong>One decision has reopened: the career budget (P2).</strong> A room may take each
-    player&#8217;s own career transfer budget, and P34 forbids the referee any privilege on
-    <code>career</code>. Snapshotting at host-start does not dodge it - the snapshot still has
-    to be read by the thing that may not read it. The referee refuses that option today and
-    fixed-budget rooms are unaffected; the plan lists three ways out, the first of which is to
-    drop the option, since a career-budget room is decided before a ball is kicked ($160 beats
-    $70 <b>85.7%</b> of the time).</p>
+    <p><strong>The one decision wave 3 reopened is settled, by deletion (2026-08-27).</strong>
+    P2 let a host price a room off each player&#8217;s own career transfer budget, and P34
+    forbids the referee any privilege on <code>career</code> - and snapshotting the figure at
+    the start does not dodge that, because the snapshot still has to be READ by the thing that
+    may not read it. Two repairs existed and both were rejected: <b>the option is gone</b>.
+    Everyone in a room has the same money, chosen by the host. It was the weakest setting in
+    the room anyway - $160 beats $70 <b>85.7%</b> of the time at the optimum, so a
+    career-budget room was decided in the lobby - and deleting it answers the question the way
+    the One-off run was answered. P8 (&#8220;your career decides nothing here&#8221;) is now
+    absolute rather than &#8220;by default&#8221;, and the <code>budget_source</code> column
+    goes with it in 0017. Reopening it means reopening P34, which is the sentence to read
+    first: the referee can be trusted with un-RLS&#8217;d input from the internet precisely
+    because of the length of the list of things it cannot reach.</p>
     <p class="next"><strong>Next step:</strong> wave 4 - the room&#8217;s own build state
     (P29), the largest unestimated piece in the plan and a refactor rather than a feature: the
     app holds one game state and every path that starts a build clears the active run, so a

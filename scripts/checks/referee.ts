@@ -61,7 +61,6 @@ const SWEEP_MS = 1000;
 class MemStore implements RoomStore {
   rows = new Map<string, RoomRows>();
   swept = new Map<string, number | null>();
-  sources = new Map<string, 'fixed' | 'career'>();
   names: Record<string, string | null> = {};
   private nextId = 1;
 
@@ -80,7 +79,6 @@ class MemStore implements RoomStore {
       showRatings: input.showRatings,
       rerolls: input.rerolls,
     });
-    this.sources.set(input.code, input.budgetSource);
     this.put(room, now);
     return room;
   }
@@ -88,11 +86,7 @@ class MemStore implements RoomStore {
   private put(room: PvpRoom, sweptAt: number | null): void {
     this.rows.set(
       room.code,
-      rowsFromRoom(room, {
-        budgetSource: this.sources.get(room.code) ?? 'fixed',
-        sweptAt,
-        displayNames: this.names,
-      }),
+      rowsFromRoom(room, { sweptAt, displayNames: this.names }),
     );
     this.swept.set(room.code, sweptAt);
   }
@@ -460,12 +454,12 @@ export async function refereeChecks(): Promise<void> {
       { size: 2, method: 'budget', budget: 5000, pickSeconds: 20 },
       { size: 2, method: 'budget', budget: 110, pickSeconds: 20, rerolls: 9 },
       { size: 2, method: 'budget', budget: 110, pickSeconds: 20, years: [1911] },
-      { size: 2, method: 'budget', budget: 110, pickSeconds: 20, budgetSource: 'career' },
+      { size: 2, method: 'budget', budget: 60, pickSeconds: 20 },
     ];
     const answers: ApiResponse[] = [];
     for (const body of bad) answers.push(await post(deps, '/referee/v1/rooms', session('u1'), body));
     check(
-      'room: every setting outside what the plan allows is refused, career budgets included',
+      'room: every setting outside what plan section 3 allows is refused rather than clamped',
       () => answers.every((a) => a.status === 422 || a.status === 409),
       () => answers.map((a) => `${a.status} ${JSON.stringify(a.body)}`).join(' | '),
     );
@@ -716,7 +710,7 @@ export async function refereeChecks(): Promise<void> {
     }
     const room = (await store.read(code))!;
     const round = roomFromRows(
-      rowsFromRoom(room, { budgetSource: 'fixed', sweptAt: clock.now, displayNames: store.names }),
+      rowsFromRoom(room, { sweptAt: clock.now, displayNames: store.names }),
     );
     check(
       'rows: a room survives the round trip through the tables unchanged',

@@ -111,11 +111,11 @@ function readCreate(body: Record<string, unknown>, code: string, hostId: string)
   if (!(PICK_SECONDS as readonly number[]).includes(pickSeconds)) {
     return 'pickSeconds must be 20 or 30';
   }
-  const budgetSource = body.budgetSource === 'career' ? 'career' : 'fixed';
-  // P2 offers a career budget and P34 forbids the referee any privilege on `career`, so it
-  // has no way to read the figure it would snapshot. Refused rather than silently treated
-  // as fixed: see the plan's open point. Fixed rooms are unaffected.
-  if (budgetSource === 'career') return 'career budgets are not available yet';
+  // There is ONE kind of budget: a figure the host picks, the same for everybody in the
+  // room (P2, settled by deletion 2026-08-27). A room priced off each player's own career
+  // was the alternative, and it contradicted P34 - the referee may not read a `career` row,
+  // and snapshotting the figure still means reading it. It was also decided before a ball
+  // was kicked: $160 beats $70 85.7% of the time.
   const budget = method === 'budget' ? Number(body.budget) : 0;
   if (method === 'budget' && !(Number.isInteger(budget) && budget >= 70 && budget <= 200)) {
     return 'budget must be $70 to $200';
@@ -135,7 +135,6 @@ function readCreate(body: Record<string, unknown>, code: string, hostId: string)
     visibility,
     size,
     method,
-    budgetSource,
     budget,
     years,
     showRatings,

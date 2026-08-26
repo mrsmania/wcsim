@@ -36,7 +36,6 @@ export interface CreateInput {
   visibility: 'public' | 'private';
   size: number;
   method: 'roll' | 'budget';
-  budgetSource: 'fixed' | 'career';
   budget: number;
   years: number[];
   showRatings: boolean;
