@@ -57,11 +57,9 @@ ok()   { printf '   [ok] %s\n' "$*"; }
 warn() { printf '   [!!] %s\n' "$*"; }
 die()  { printf '\n\033[1m** %s\033[0m\n' "$*" >&2; exit 1; }
 
-# One multiplexed connection for the whole run, so you authenticate at most once.
-CTL="$HOME/.ssh/cm-wcsim-$$"
-SSH=(ssh -o ControlMaster=auto -o "ControlPath=$CTL" -o ControlPersist=120)
-cleanup() { ssh -o "ControlPath=$CTL" -O exit "$TARGET" >/dev/null 2>&1 || true; }
-trap cleanup EXIT
+# No connection multiplexing: DSM's sshd drops the control master ("read from master
+# failed"), and with key auth there is nothing to save anyway.
+SSH=(ssh -o BatchMode=yes -o ConnectTimeout=15)
 
 on() { "${SSH[@]}" "$TARGET" "$@"; }
 
@@ -167,7 +165,7 @@ stage_config() {
     local src="$1" dstdir="$2" name; name=$(basename "$src")
     local local_md5 remote_md5
     on "test -f '$dstdir/$name' && cp -p '$dstdir/$name' '$dstdir/$name.bak-$ts' || true"
-    scp -O -o "ControlPath=$CTL" "$src" "$TARGET:$dstdir/$name" >/dev/null
+    scp -O -o BatchMode=yes "$src" "$TARGET:$dstdir/$name" >/dev/null
     local_md5=$(md5sum "$src" | cut -d' ' -f1)
     remote_md5=$(on "md5sum '$dstdir/$name'" | cut -d' ' -f1)
     [ "$local_md5" = "$remote_md5" ] \
