@@ -1,8 +1,9 @@
 # Player versus Player: requirements and build plan
 
 **Roadmap item 18.** Written 2026-08-25, **revised 2026-08-26** (room visibility; the draft
-clock, which changed shape entirely - see the note on P12; and then the length of that clock
-becoming the host's to set). **Status: shape settled, nothing built.**
+clock, which changed shape entirely - see the note on P12; the length of that clock becoming
+the host's to set; and hiding the ratings being narrowed to roll rooms, which voided P14 and
+shrank two other things with it). **Status: shape settled, nothing built.**
 
 Every decision below was taken by the owner in the sessions that wrote this document; the
 item had been left deliberately open since 2026-08-18 and its six questions are now
@@ -26,10 +27,11 @@ lobby that anybody can browse and join, a private one is reachable only by the s
 its host shares with whoever they like, outside the game. Either way the host sets the
 room's rules, and those rules are the whole point of the feature: whether everyone **buys**
 a team from a budget or **rolls** random squads and picks from what they are dealt, how much
-money there is, which World Cups the players may come from, and whether anybody can see
-player ratings at all. That last one is the interesting switch. With ratings hidden you are
-picking on what you actually know about the players rather than reading a number off the
-card.
+money there is, which World Cups the players may come from, and, **in a roll room**, whether
+anybody can see player ratings at all. That last one is the interesting switch. With ratings
+hidden you are picking on what you actually know about the players rather than reading a
+number off the card. It is offered only where it works: in a buying room the price already
+tells you the rating, so hiding the number there would be theatre rather than a rule.
 
 **Drafting is timed, and it is fast: twenty or thirty seconds a pick, whichever the host
 chose.** You choose your formation and style in the lobby while the room fills, so the clock
@@ -68,7 +70,7 @@ a guest sees an invitation to sign in rather than a missing feature.
 | P2 | Budget source | **Host's choice**: a fixed room budget the host sets anywhere from $70 to $200, or each player's own career transfer budget. Fixed is the default, because it is the fair one |
 | P3 | The owned-sticker discount | **Never applies in PvP.** A collection must not make a team cheaper here. `priceFor` is bypassed for a room; the raw `priceOf` curve is the price |
 | P4 | Which World Cups | **A room-level pool set by the host**, the same idea as the `poolYears` setting but belonging to the room, not to the player. Everyone in a room draws from the same cups |
-| P5 | Ratings visible | **A host switch.** Off hides every rating number in the room's draft screens. See P14 for the one thing it cannot hide |
+| P5 | Ratings visible | **A host switch, offered in ROLL rooms only.** Off hides every rating number in the room's draft screens. In a budget room ratings are **always shown**, because a player's price is calculated straight from his rating, so the number is already on the screen either way. *Narrowed 2026-08-26; it used to be offered everywhere, with the leak accepted as P14* |
 | P6 | Live or asynchronous | **Live.** Everyone is present, the room moves through its phases together |
 | P7 | Room sizes and format | **2 (one match), 4 (semi-finals then a final), or 8 (quarter-finals, semi-finals, final).** Exactly full to start |
 | P8 | Career effect on fairness | **None by default.** Perks, level, Ascension and the album have no effect on a PvP match. P2 is the only door left open, and the host holds it |
@@ -77,7 +79,7 @@ a guest sees an invitation to sign in rather than a missing feature.
 | P11 | Who decides the score | **The server.** A submitted XI is validated and every match simulated server-side. The client never decides a result |
 | P12 | The draft clock | **A fixed number of seconds per pick, each player on their own clock.** When it expires the server places an eligible player at random into one of that player's empty slots and the next window begins. No forfeits, no waiting on anybody. *Revised 2026-08-26: this replaces a single shared build-phase countdown with an auto-complete at the end, which asked far less of the player and made a room's length unpredictable* |
 | P13 | Roll rooms | **Each player rolls their own squads**, as in the single-player game. The deals come from the server so they can be checked (see section 5) |
-| P14 | The price/rating leak | **Accepted.** In a budget room with ratings hidden, a player's price still reveals his rating to anyone who knows the pricing curve. Prices stay exact. Hiding the number still changes how the room plays for everyone else |
+| P14 | The price/rating leak | **VOID, 2026-08-26.** It was an accepted hole: a budget room with ratings hidden still showed a price calculated from the rating. P5 now refuses to offer the switch there at all, so the two can never co-occur and there is nothing left to leak. Kept as a numbered row because the reasoning is worth finding, and because voiding a decision is not the same as never having taken one |
 | P15 | You draft once per room | **Your XI plays the whole tournament.** No redrafting between rounds. It is how a tournament works, and it saves a great deal of waiting in an eight-player room. Reversible later if it plays badly |
 | P16 | Leaving after you have drafted | **Your team plays on without you.** The server has everything it needs, so a dropped connection cannot stall a room or rob your opponent of a match. Rejoining rejoins the room in progress |
 | P17 | Guests | **Account-only, and visibly so.** Permitted by NFR-1's "may gate genuinely online extras". The entry point shows a sign-in invitation when signed out; it never disappears and never blocks anything else |
@@ -99,7 +101,7 @@ a guest sees an invitation to sign in rather than a missing feature.
 | Pick clock | 20 or 30 seconds per pick, set independently of the draft method | 20 seconds |
 | Budget | A fixed room budget, $70 to $200 in $10 steps, or "each player's own career budget" | Fixed, $110 |
 | Cups | Any subset of the World Cups in the dataset, never empty | All of them |
-| Show ratings | On or off | On |
+| Show ratings | On or off. **Roll rooms only**; a budget room always shows them (P5) | On |
 | Re-rolls | 0 to 6, roll rooms only | 3 (`INITIAL_REROLLS`) |
 
 **The pick clock is two values and only two** (`PVP_PICK_SECONDS = [20, 30]`). Keeping it to
@@ -108,6 +110,14 @@ what a result means, so a lobby listing wants to say "fast" or "considered" at a
 a ladder later can compare like with like instead of sorting through arbitrary durations.
 Anything the host sets is enforced by the server (section 5) exactly as the constant would
 have been; the only difference is where the number comes from.
+
+**Thirty seconds is enough for the transfer market** (settled 2026-08-26). This was the one
+thing the plan had flagged for play rather than decided, on the worry that a search over
+8,377 players is a lot to do against a clock. It is not, because the market is never a search
+over 8,377 players: it is filtered to the slot being shopped for, narrowed further by the
+cup and country facets, and sorted by rating, so what is actually on screen is a short
+ranked list. The other half of the worry was a hidden-rating budget room, and P5 no longer
+allows one to exist.
 
 **What each player still chooses for themselves:** formation and style, in the lobby (P19),
 and of course who they pick. Nothing else.
@@ -297,13 +307,13 @@ than vanishing (P17).
   and does not fit; this wants its own small component rather than a special case in that
   one.
 
-**Hiding the ratings is the widest-reaching client change** and deserves its own wave. It is
-not one number in one place: it is the rating chips, the ratings strip, the line-up sheet's
-rating column, the market rows, the market's sort-by-rating and sort-by-value options, the
-chemistry card's effective overall, and the collectible tier stars (which are derived from
-rating and so leak it). The clean way is a single "ratings are hidden" value carried down
-the build tree, with a check that greps for any component that renders a rating and is not
-wired to it.
+**Hiding the ratings still deserves its own wave, but it got smaller** when P5 narrowed it to
+roll rooms: the transfer market, its rows and its sort-by-rating and sort-by-value options
+are all out of scope, and they were the fiddliest part. What is left is the rating chips, the
+ratings strip, the line-up sheet's rating column, the chemistry card's effective overall, and
+the collectible tier stars, which are derived from rating and so leak it. The clean way is
+still a single "ratings are hidden" value carried down the build tree, with a check that
+greps for any component that renders a rating and is not wired to it.
 
 **A new feature flag, `FEATURES.pvp`**, derived like `accounts`: it needs a configured
 server, and it can be switched off cleanly on its own. With it off, nothing renders and no
@@ -324,7 +334,7 @@ riskiest and least visible parts are proved before any screen is built on top of
 | 3 | **Realtime and the referee, deployed.** Compose changes, reverse proxy, display names on `profiles`, and **deadline recovery across a referee restart** | Two browsers see each other join a room, and killing the referee mid-draft does not lose anybody's clock |
 | 4 | **The lobby.** Create public or private, the pick-clock choice, the browsable list of open public rooms, join by code, live membership, formation and style, host start, leave | A public room can be found and joined by someone who was never sent a code, and its listing says which clock it runs |
 | 5 | **The draft.** The build page under room rules: room budget, room cup pool, no sticker discount, the room's pick clock, the progress strip, auto-pick on expiry, rejoining mid-draft | Two players draft a full XI, and one who does nothing at all still ends with eleven legal players |
-| 6 | **Hidden ratings** | The check greps every rating-rendering component and fails on one that is not wired to the switch |
+| 6 | **Hidden ratings**, in the roll draft only | The check greps every rating-rendering component reachable from a roll room and fails on one that is not wired to the switch, and asserts the switch is not even offered when the room buys |
 | 7 | **The round.** Pairing, simulation, the shared live reveal, extra time and penalties, advancing, crowning a winner | A room of 8 plays through to a winner |
 | 8 | **Records**, the Versus home screen, the signed-out state, and the entry point | A win appears on both players' records |
 | 9 | **Checks and documentation.** CLAUDE.md gets its section, the roadmap item is closed into the shipped history | `npm run checks` and `npm run build` clean |
@@ -349,14 +359,6 @@ later would be worthless.
 
 ## 11. Questions left open, none of them blocking
 
-- **The clock against the transfer market.** It suits the roll draft exactly: you are handed
-  a squad and you pick from it. The budget market is a search over more than eight thousand
-  players, and although it is always filtered to one position and sorted by rating, twenty
-  seconds is tight and with ratings hidden as well it is very tight indeed. **P20 puts the
-  answer in the host's hands rather than the designer's**, which is most of the worry gone,
-  but it does not settle whether even thirty seconds is enough for a hidden-rating budget
-  room. That is the thing to actually play. If thirty is still not enough, the next move is a
-  shortlist per slot rather than a third number on the dial.
 - **Whether the auto-pick should be random or good.** Random is the rule as decided, and it
   is the right default because it punishes running out of time. A "best affordable" fallback
   would be kinder and would make timing out much less costly, which is exactly the argument

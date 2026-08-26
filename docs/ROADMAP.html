@@ -714,9 +714,11 @@
     a lobby anyone can browse and join) or <b>private</b> (its six-character code shared outside
     the game). <b>The host sets the room&#8217;s rules, and those rules are the feature</b>: roll
     or budget, how much money (a fixed $70 to $200, or each player&#8217;s own career budget),
-    which World Cups are in the pool, <b>how long a pick gets</b>, and <b>whether ratings are
-    visible at all</b> - the switch that makes a room about knowing the players rather than
-    reading a number. Formation and style are chosen in the lobby; then 2 play a match, 4 play semi-finals and a final, 8 play quarters,
+    which World Cups are in the pool, <b>how long a pick gets</b>, and, <b>in a roll room,
+    whether ratings are visible at all</b> - the switch that makes a room about knowing the
+    players rather than reading a number, offered only where it works, since a buying
+    room&#8217;s prices are calculated from the ratings and give them away regardless.
+    Formation and style are chosen in the lobby; then 2 play a match, 4 play semi-finals and a final, 8 play quarters,
     semis and a final, with the XI you drafted playing your whole run.</p>
     <p><strong>The draft is the thing to understand.</strong> <b>Twenty or thirty seconds a
     pick, the host&#8217;s choice</b> and set independently of whether the room rolls or buys,
@@ -741,13 +743,16 @@
     container, a referee service that <b>holds per-player timers and recovers them across its own
     restart</b>, a display name on accounts (a public lobby cannot show strangers an email), six
     new tables whose row-level security has to hide one player&#8217;s picks from another until
-    the tie is played, and a ratings-hidden mode reaching every component in the build page that
-    renders a number. One accepted hole, decided rather than missed: in a budget room with ratings
-    hidden, <b>a player&#8217;s price still gives his rating away</b> to anyone who knows the curve.
-    One thing to play before trusting: <b>the clock against the transfer market</b>, which is a
-    search over 8,377 players and is tight even filtered to one position. The host&#8217;s choice
-    of thirty seconds is most of that worry gone; whether it is enough for a hidden-rating budget
-    room is the thing to actually play.</p>
+    the tie is played, and a ratings-hidden mode reaching every component the roll draft can
+    render a number in.</p>
+    <p><strong>Two worries the plan carried are now closed, both on 2026-08-26.</strong> The
+    accepted price/rating leak (a budget room with ratings hidden still showing prices calculated
+    from those ratings) is <b>void</b>: the switch is simply not offered where buying is, so the
+    two can never co-occur. And <b>thirty seconds is enough for the transfer market</b>, because
+    the market is never a search over 8,377 players - it is filtered to the slot being shopped
+    for, narrowed by the cup and country facets and sorted by rating, so what is on screen is a
+    short ranked list. Between them they shrink the ratings-hidden wave, which was the fiddliest
+    part of the client work.</p>
     <p class="next"><strong>Next step:</strong> wave 0 of the plan - lift <code>simulateKoTie</code>
     out of <code>domain/run.ts</code> into <code>domain/knockout.ts</code>, and add the four rules
     the referee needs (is this XI legal, what did it cost, was it dealt, and the auto-pick) to
