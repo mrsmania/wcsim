@@ -30,6 +30,7 @@ import { chemistryChecks } from './checks/chemistry';
 import { pricingChecks } from './checks/pricing';
 import { marketChecks } from './checks/market';
 import { draftChecks } from './checks/draft';
+import { buildChecks } from './checks/build';
 import { effectsChecks } from './checks/effects';
 import { cardsChecks } from './checks/cards';
 import { boonsChecks } from './checks/boons';
@@ -56,6 +57,7 @@ const CONCERNS: [string, () => void | Promise<void>][] = [
   ['pricing', pricingChecks],
   ['market', marketChecks],
   ['draft', draftChecks],
+  ['build', buildChecks],
   ['effects', effectsChecks],
   ['cards', cardsChecks],
   ['boons', boonsChecks],

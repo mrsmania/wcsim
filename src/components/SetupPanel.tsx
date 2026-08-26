@@ -21,8 +21,9 @@ interface Props {
     names: FormationName[];
     selectedName: FormationName;
     selectedStyle: Style;
-    /** Styles available for the selected formation. */
-    availableStyles: Style[];
+    /** Styles available for the selected formation. `readonly`, like every catalogue it
+     *  can be handed: `STYLES` is the fallback when a formation names none. */
+    availableStyles: readonly Style[];
     /** False until the selected formation/style resolves (App passes !!previewFormation). */
     ready: boolean;
     onSelectName: (name: FormationName) => void;

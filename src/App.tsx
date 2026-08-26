@@ -1,33 +1,12 @@
-import {
-    lazy,
-    Suspense,
-    useCallback,
-    useEffect,
-    useMemo,
-    useReducer,
-    useState,
-} from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { basePlayer } from './data/squads';
-import type { Player, Position } from './data/types';
-import { FORMATIONS_DATA, getFormation, STYLES } from './domain/formations';
-import {
-    canPlace,
-    hasAnotherCup,
-    hasAnotherTeam,
-    homeViewOf,
-    placedPlayers,
-    positionsWithOpenSlot,
-    randomXI,
-    STRENGTH_BANDS,
-    type TeamStrength,
-} from './domain/draft';
 import { budgetOf, extraRerollsOf } from './domain/career';
 import { maxSelectableAscension, selectedAscension } from './domain/ascension';
 import { runBuildOf, runShapeOf, type RunBuild, type RunShape } from './domain/run';
-import { swapEligibleIds as swapEligibleIdsOf } from './domain/album';
 import { FEATURES } from './config';
-import { gameReducer, initialState, INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
+import { INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
+import { soloBuildIo } from './state/buildIo';
 import { isPlayTab, isRecords, screenOf } from './state/routes';
 import { buildResume, cupRunResume } from './state/resume';
 import { useLiveMatch } from './nav/liveMatch';
@@ -36,24 +15,14 @@ import { requestRunStart } from './nav/pendingRun';
 import { setStoreErrorHandler, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
 import { useSettings } from './hooks/useSettings';
-import { useSquadRoll } from './hooks/useSquadRoll';
-import { useBudgetBuild } from './hooks/useBudgetBuild';
-import { useMovePlayer } from './hooks/useMovePlayer';
-import { useStackedScroll } from './hooks/useStackedScroll';
+import { useBuild } from './hooks/useBuild';
 import { useCareer } from './hooks/useCareer';
 import { usePool } from './hooks/usePool';
 import SettingsModal from './components/SettingsModal';
 import AccountModal from './components/AccountModal';
-import SetupPanel from './components/SetupPanel';
-import SquadPanel from './components/SquadPanel';
-import BudgetMarket from './components/BudgetMarket';
-import CompletePanel from './components/CompletePanel';
 import ModeSelect from './components/ModeSelect';
-import Pitch from './components/Pitch';
-import BoxScore from './components/BoxScore';
-import XiTable from './components/XiTable';
 import Masthead from './components/Masthead';
-import BuildPage from './components/BuildPage';
+import BuildSurface from './components/BuildSurface';
 // Route-gated screens are code-split so the home/setup initial load stays small.
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
@@ -64,22 +33,6 @@ import RunEndOverlays from './components/RunEndOverlays';
 import { StageHeader } from './components/matchUi';
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
 
-type HomeView = 'setup' | 'draft' | 'complete';
-
-/** Section eyebrow/title for the home screen, by sub-view. The home sub-view is
- *  derived from the drafted data (not `phase`), so navigating Back to home
- *  mid-tournament still reads as the locked XI. */
-function homeCopy(view: HomeView): { eyebrow: string; title: string } {
-    const eyebrow = view === 'complete' ? 'Confirmed line-up' : 'Team sheet';
-    const title =
-        view === 'setup'
-            ? 'Set your formation'
-            : view === 'draft'
-              ? 'Build your XI'
-              : 'Your XI is set';
-    return { eyebrow, title };
-}
-
 /** Persisted state, read once before the first render (main.tsx) so everything here
  *  can still seed synchronously. `accountEmail` is null for a guest. */
 export default function App({
@@ -89,18 +42,9 @@ export default function App({
     snapshot: AccountSnapshot;
     accountEmail: string | null;
 }) {
-    const [state, dispatch] = useReducer(
-        gameReducer,
-        initialState,
-        () => snapshot.game ?? initialState,
-    );
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Sticker album (gated). The whole lifecycle - collection state, run-end banking
-    // (standard game + Cup Run), the normalized cup-win reward pick, trades, and reset -
-    // lives in this hook, outside the reducer / game state and in its own localStorage
-    // key, so resetting a run never touches the collection (FR-7).
     const STICKERS = FEATURES.stickerAlbum;
     const settings = useSettings(snapshot.settings);
     // The active squad pool (squad-pool setting): the squads and players the game draws
@@ -109,13 +53,6 @@ export default function App({
     const pool = usePool(settings.settings.poolYears);
     const poolSquads = pool.squads;
     const poolPlayers = pool.players;
-    const stickers = useStickerAlbum(state.swapsLeft, snapshot.album, poolPlayers);
-    // The career, seeded from the boot snapshot like the album (hooks/useCareer). It used
-    // to be state inside the run screen, which is why two memos here re-read it from the
-    // store on every navigation with an eslint-disable each, just to price the market,
-    // offer the right Ascension tiers and colour the challenge ledger.
-    const { career, buyPerk, unlockBoost, startRun, rememberAscension, bankRun } =
-        useCareer(snapshot.career);
     // The Ascension tier for the next run, picked on the build page (roadmap item 28)
     // rather than on a pre-run screen that no longer exists in the tabs chrome. Held here
     // as UI state and mirrored onto the career's `lastAscension`, which is where the run
@@ -127,253 +64,55 @@ export default function App({
     // a global overlay like the album's.
     const [storeError, setStoreError] = useState<Error | null>(null);
     useEffect(() => setStoreErrorHandler(setStoreError), []);
-    // The build page's mobile there-and-back: the two scroll anchors and the two calls
-    // that use them (hooks/useStackedScroll).
-    const { pitchRef, squadRef, scrollToPitch, scrollToPanel } = useStackedScroll();
+    // The career, seeded from the boot snapshot like the album (hooks/useCareer). It used
+    // to be state inside the run screen, which is why two memos here re-read it from the
+    // store on every navigation with an eslint-disable each, just to price the market,
+    // offer the right Ascension tiers and colour the challenge ledger.
+    const { career, buyPerk, unlockBoost, startRun, rememberAscension, bankRun } =
+        useCareer(snapshot.career);
 
-    const {
-        phase,
-        formationName,
-        style,
-        build,
-        formation,
-        filled,
-        currentSquad,
-        selectedPlayerId,
-        usedPersonIds,
-        rerollsLeft,
-        rolling,
-        speed,
-        swapsLeft,
-    } = state;
-
-    // Persist the whole game so the clean-path routes survive a refresh.
-    useEffect(() => {
-        void store.saveGame(state);
-    }, [state]);
-
-    // During setup the pitch previews the selected formation/style; during the
-    // draft it uses the locked formation stored in state.
-    const previewFormation = useMemo(
-        () => getFormation(formationName, style),
-        [formationName, style],
-    );
-    // Home sub-view derived from the data, not `phase`: no formation -> setup;
-    // formation but incomplete -> draft; complete XI -> complete (even once the
-    // tournament has started, so Back to home shows the locked XI).
-    // Keyed on the board, not on `phase` - see `homeViewOf`.
-    const homeView: HomeView = homeViewOf(formation, filled);
-    const activeFormation = homeView === 'setup' ? previewFormation : formation;
-
-    // Mobile: when a player is picked, scroll the pitch to the top (with a little
-    // margin via scroll-mt) so the user can tap an open slot. Scrolling back up to
-    // the squad after placing is done in handlePlace.
-    useEffect(() => {
-        if (phase === 'draft' && selectedPlayerId) scrollToPitch();
-    }, [selectedPlayerId, phase, scrollToPitch]);
-
-    // The roll draft: the scramble animation and the draw-next-squad policy, with their
-    // four refs and their two effects (hooks/useSquadRoll). It is the subtlest code the
-    // build has and none of it is composition, which is why it is not here any more.
-    const { displaySquad, reroll } = useSquadRoll({
-        phase,
-        build,
-        formation,
-        currentSquad,
-        rolling,
-        filled,
-        usedPersonIds,
-        rerollsLeft,
-        pool: poolSquads,
-        dispatch,
-    });
-
-    // The two transient interaction machines the shared pitch drives (hooks/useMovePlayer
-    // and hooks/useBudgetBuild). They cross-cancel: taking a card drops a move in
-    // progress, and picking a placed player up drops the card. The move hook is declared
-    // first so the market can call its `cancel`; the other direction is `handleStartMove`
-    // below, since neither hook can own both without knowing about the other.
-    const move = useMovePlayer({ activeFormation, phase, dispatch });
-    const budget = useBudgetBuild({
-        isBudgetBuild: build === 'budget',
-        formation,
-        activeFormation,
-        filled,
-        pool: pool.byId,
-        dispatch,
-        onTakeCard: move.cancel,
-        scrollToPitch,
-        scrollToPanel,
-    });
-
-    const handleStart = useCallback(() => {
-        if (!previewFormation) return;
-        // A fresh draft means a fresh team, so drop any in-progress Cup Run.
-        void store.saveRun(null);
+    // THE BUILD (hooks/useBuild). The reducer, its two effects, the three interaction
+    // machines and the eleven handlers, as an instantiable unit rather than as this
+    // component's own body - which is what lets a versus room hold a SECOND one
+    // (pvp-plan P29). `soloBuildIo` is the app's own: mirrored to storage so a refresh
+    // resumes it, and starting a fresh XI drops the run that XI replaced. A room is
+    // handed `detachedBuildIo` instead and writes neither.
+    const build = useBuild({
+        initial: snapshot.game,
+        io: soloBuildIo,
+        pool,
         // The Extra Re-roll perk tops up the base three. Read off the live career, so
         // buying the perk in the hub and coming straight back applies without a reload.
-        const extraRerolls = extraRerollsOf(career);
-        // Just enter the draft; the draw-next-squad effect rolls the first squad
-        // from committed state (an open slot with no squad in hand).
-        dispatch({ type: 'START_DRAFT', formation: previewFormation, extraRerolls });
-    }, [previewFormation, career]);
+        extraRerolls: extraRerollsOf(career),
+    });
+    const { state } = build;
+    const { formation, filled, speed } = state;
+    const draftedXi = build.draftedXi;
+    // Sticker album (gated). The whole lifecycle - collection state, run-end banking, the
+    // normalized cup-win reward pick, trades, and reset - lives in this hook, outside the
+    // build and in its own localStorage key, so resetting a run never touches the
+    // collection (FR-7). It reads the build's remaining swaps and nothing else of it.
+    const stickers = useStickerAlbum(state.swapsLeft, snapshot.album, poolPlayers);
 
-    // Testing shortcut: auto-pick a full valid XI (within a strength band) and
-    // jump straight to "complete".
-    const handleRandomTeam = useCallback(
-        (tier: TeamStrength) => {
-            if (!previewFormation) return;
-            void store.saveRun(null);
-            const { filled, usedPersonIds } = randomXI(
-                previewFormation,
-                poolSquads,
-                STRENGTH_BANDS[tier],
-            );
-            dispatch({
-                type: 'AUTOFILL',
-                formation: previewFormation,
-                filled,
-                usedPersonIds,
-            });
-        },
-        [previewFormation, poolSquads],
-    );
-
-    // Budget build: enter it in place (no route change) - the left column swaps to
-    // the market, while the pitch + ratings/line-up stay put.
-    const handleBudget = useCallback(() => {
-        if (!previewFormation) return;
-        void store.saveRun(null);
-        budget.enter(previewFormation);
-    }, [previewFormation, budget]);
-
-    // Clear every bought player but stay in the budget build (re-enter it fresh).
-    const handleBudgetClear = useCallback(() => {
-        if (formation) budget.enter(formation);
-    }, [formation, budget]);
-
-    // Taking a drawn-squad card drops a move in progress: only one thing is being aimed
-    // at a time, and the last tap is what the user means. The market's own card does the
-    // same, from inside `useBudgetBuild`.
-    const handleSelectPlayer = useCallback(
-        (playerId: string) => {
-            move.cancel();
-            dispatch({ type: 'SELECT_PLAYER', playerId });
-        },
-        [move],
-    );
-
-    const handlePlace = useCallback(
-        (slotId: string) => {
-            // The reducer owns placement validation and ignores an invalid slot;
-            // dispatch unconditionally and let it be the single source of truth.
-            // The draw-next-squad effect rolls the next squad from committed state.
-            const slot = formation?.slots.find((s) => s.id === slotId);
-            const player = currentSquad?.players.find((p) => p.id === selectedPlayerId);
-            const willPlace = !!formation && !!slot && !!player && canPlace(player, slot, filled);
-
-            dispatch({ type: 'PLACE_PLAYER', slotId });
-
-            // Mobile: jump back up to the squad list (showing the next drawn squad); the
-            // panel's scroll-mt keeps a little margin above it. Only for a placement
-            // that actually landed.
-            if (willPlace) scrollToPanel();
-        },
-        [formation, currentSquad, selectedPlayerId, filled, scrollToPanel],
-    );
-
-    // Swap the selected player into an already-filled slot (sticker album feature).
-    // The reducer validates eligibility; the draw effect then rolls the next squad
-    // for any still-open slot, exactly like a placement.
-    const handleSwap = useCallback(
-        (slotId: string) => {
-            dispatch({ type: 'SWAP_PLAYER', slotId });
-            scrollToPanel();
-        },
-        [scrollToPanel],
-    );
-
-    // Testing aid: remove a placed player. The XI drops back to 'draft'; if no
-    // squad is in hand (we were "complete"), the draw-next-squad effect rolls one
-    // for the freed slot from committed state so a replacement can be drafted.
-    const handleRemove = useCallback((slotId: string) => {
-        dispatch({ type: 'REMOVE_PLAYER', slotId });
-    }, []);
-
-    // Picking a placed player up is the other half of that rule, and the half neither
-    // hook can own: the move hook clears the reducer's selection, and the market's held
-    // card is dropped here, so the two gestures overwrite each other in both directions
-    // rather than one silently winning.
-    const handleStartMove = useCallback(
-        (slotId: string) => {
-            budget.dropHeld();
-            move.startMove(slotId);
-        },
-        [budget, move],
-    );
-
+    // Start over, from anywhere that offers it. The build's own half (drop the board,
+    // drop the run it was built for) is `build.reset`; what is added here is the app's:
+    // a sticker summary still arriving for the run being abandoned, and where to land.
     const handleReset = useCallback(() => {
-        // A reset is a brand-new team, so drop any in-progress Cup Run too - and any
-        // sticker summary still arriving for the run being abandoned.
         if (STICKERS) stickers.onNewRun();
-        void store.saveRun(null);
-        dispatch({ type: 'RESET' });
+        build.reset();
         // One build route, so a reset always lands there and finding F8 (three different
         // answers to "go back") answers itself.
         navigate('/play');
-        // `stickers.onNewRun` is a stable callback, so this stays referentially quiet.
-        // `location.pathname` is deliberately NOT a dependency: it was one while the
-        // destination was computed from it, and leaving it made this callback a new object
-        // on every navigation, which propagated to four child components.
-    }, [navigate, STICKERS, stickers.onNewRun]);
+        // `stickers.onNewRun` and `build.reset` are both stable callbacks, so this stays
+        // referentially quiet. `location.pathname` is deliberately NOT a dependency: it
+        // was one while the destination was computed from it, and leaving it made this
+        // callback a new object on every navigation, which propagated to four children.
+    }, [navigate, STICKERS, stickers.onNewRun, build.reset]);
 
-    const openPositions = useMemo<Set<Position>>(
-        () =>
-            activeFormation ? positionsWithOpenSlot(activeFormation, filled) : new Set<Position>(),
-        [activeFormation, filled],
-    );
-    // Ids of drawn-squad players that can be swapped in (collectible + swaps remain +
-    // there's a filled slot they can take): a different-person slot when they're not
-    // already in the XI, or their OWN slot as an upgrade (a different card of the same
-    // person). Empty when the album is off / no swaps left, so gating is unchanged there.
-    const swapEligibleIds = useMemo<Set<string>>(
-        () =>
-            !STICKERS || swapsLeft <= 0 || !activeFormation || !currentSquad
-                ? new Set<string>()
-                : swapEligibleIdsOf(
-                      currentSquad.players,
-                      activeFormation.slots,
-                      filled,
-                      new Set(usedPersonIds),
-                  ),
-        [STICKERS, swapsLeft, activeFormation, currentSquad, filled, usedPersonIds],
-    );
-    const usedSet = useMemo(() => new Set(usedPersonIds), [usedPersonIds]);
-    // Stickers already in the album, by PLAYER id: the marker in both player lists (and
-    // the line-up sheet) uses it to say "you have this one" rather than only
-    // "collectible". Player id, not personId - a sticker is per version of a person, so
-    // Buffon 88 and Buffon 90 are separate cards. Empty when the album is off, which
-    // makes every marker read as unowned exactly as it did before.
     const ownedStickerIds = useMemo(
         () => new Set(STICKERS ? stickers.album.collected : []),
         [STICKERS, stickers.album],
     );
-    const selectedPlayer = currentSquad?.players.find((p) => p.id === selectedPlayerId) ?? null;
-    const panelSquad = rolling ? displaySquad : currentSquad;
-    const availableStyles = FORMATIONS_DATA.stylesByName[formationName] ?? STYLES;
-
-    const isBudgetBuild = build === 'budget';
-
-    // Page section header (eyebrow + heading), derived from the home sub-view.
-    const home = homeCopy(homeView);
-
-    // The completed XI (all slots filled) handed to a Cup Run; null until full.
-    const draftedXi = useMemo<Player[] | null>(() => {
-        if (!formation) return null;
-        const ps = placedPlayers(formation, filled);
-        return ps.length === formation.slots.length ? ps : null;
-    }, [formation, filled]);
-
     // Route -> which screen, decided by `state/routes.ts` (feature flags included), so
     // the contract is one pure function rather than ten booleans declared here and
     // re-tested in the render chain below. `location.pathname` is basename-relative.
@@ -417,8 +156,8 @@ export default function App({
 
     // Transfer-market budget, scaled by the owned `transfer-budget` perk tier. The build
     // record below reads the same figure, so what the market charged and what the run
-    // recorded cannot drift. Named for the money, since `budget` is the market's
-    // interaction machine now.
+    // recorded cannot drift. The build itself has no opinion about the money: it is told
+    // a figure, which is also how a room will hand it the host's.
     const marketBudget = budgetOf(career);
 
     // What the build page knows and the run cannot work out afterwards: the shape the XI
@@ -436,8 +175,8 @@ export default function App({
     // from `/cup-run`, one navigation after the market closed.
     const draftedBuild = useMemo<RunBuild | null>(() => {
         if (!draftedXi) return null;
-        const swapsUsed = INITIAL_SWAPS - swapsLeft;
-        return build === 'budget'
+        const swapsUsed = INITIAL_SWAPS - state.swapsLeft;
+        return state.build === 'budget'
             ? runBuildOf({
                   method: 'budget',
                   xi: draftedXi,
@@ -449,10 +188,10 @@ export default function App({
             : runBuildOf({
                   method: 'roll',
                   allowance: INITIAL_REROLLS + extraRerollsOf(career),
-                  rerollsLeft,
+                  rerollsLeft: state.rerollsLeft,
                   swapsUsed,
               });
-    }, [draftedXi, build, marketBudget, career, ownedStickerIds, rerollsLeft, swapsLeft]);
+    }, [draftedXi, state.build, state.rerollsLeft, state.swapsLeft, marketBudget, career, ownedStickerIds]);
 
     /** What the challenge predicates need beyond the run and the career: dataset ratings
      *  (the run's XI carries boost deltas), the album as it stands, and the lifetime trade
@@ -570,7 +309,7 @@ export default function App({
                             draftedBuild={draftedBuild}
                             onReDraft={handleReset}
                             speed={speed}
-                            onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                            onSetSpeed={build.setSpeed}
                             difficulty={settings.settings.difficulty}
                             pool={poolSquads}
                             showFullDraw={settings.settings.showFullDraw}
@@ -646,148 +385,23 @@ export default function App({
                             allPlayers={poolPlayers}
                         />
                     ) : isBuild ? (
-                        <BuildPage
-                            eyebrow={home.eyebrow}
-                            title={home.title}
-                            panelRef={squadRef}
-                            boardRef={pitchRef}
-                            panel={
-                                <>
-                                    {homeView === 'setup' && (
-                                        <SetupPanel
-                                            names={FORMATIONS_DATA.names}
-                                            selectedName={formationName}
-                                            selectedStyle={style}
-                                            availableStyles={availableStyles}
-                                            ready={!!previewFormation}
-                                            onSelectName={(name) =>
-                                                dispatch({ type: 'SET_FORMATION', name })
-                                            }
-                                            onSelectStyle={(st) =>
-                                                dispatch({ type: 'SET_STYLE', style: st })
-                                            }
-                                            onStart={handleStart}
-                                            onRandomTeam={
-                                                FEATURES.randomTeam ? handleRandomTeam : undefined
-                                            }
-                                            onBudgetDraft={
-                                                FEATURES.budgetDraft ? handleBudget : undefined
-                                            }
-                                        />
-                                    )}
-                                    {homeView === 'draft' &&
-                                        formation &&
-                                        (isBudgetBuild ? (
-                                            <BudgetMarket
-                                                formation={formation}
-                                                filled={filled}
-                                                budget={marketBudget}
-                                                poolPlayers={poolPlayers}
-                                                targetSlot={budget.targetSlot}
-                                                heldPlayer={budget.heldPlayer}
-                                                onHold={budget.hold}
-                                                onAutoFill={budget.autoFill}
-                                                onClear={handleBudgetClear}
-                                                onStartOver={handleReset}
-                                                ownedStickerIds={ownedStickerIds}
-                                            />
-                                        ) : (
-                                            <SquadPanel
-                                                squad={panelSquad}
-                                                rolling={rolling}
-                                                rerollsLeft={rerollsLeft}
-                                                canAnotherTeam={
-                                                    !!currentSquad &&
-                                                    hasAnotherTeam(poolSquads, currentSquad)
-                                                }
-                                                canAnotherCup={
-                                                    !!currentSquad &&
-                                                    hasAnotherCup(poolSquads, currentSquad)
-                                                }
-                                                openPositions={openPositions}
-                                                swapEligibleIds={swapEligibleIds}
-                                                swapsLeft={swapsLeft}
-                                                usedPersonIds={usedSet}
-                                                selectedPlayerId={selectedPlayerId}
-                                                onReroll={reroll}
-                                                onSelectPlayer={handleSelectPlayer}
-                                                ownedStickerIds={ownedStickerIds}
-                                                onReset={handleReset}
-                                            />
-                                        ))}
-                                    {homeView === 'complete' && formation && (
-                                        <CompletePanel
-                                            formation={formation}
-                                            filled={filled}
-                                            style={style}
-                                            onStartRun={() => {
-                                                // Tell the run screen this navigation is a
-                                                // kickoff, so it never has to infer that
-                                                // from "no run in progress" - which a
-                                                // reload also looks like.
-                                                requestRunStart();
-                                                navigate('/cup-run');
-                                            }}
-                                            onReset={handleReset}
-                                            ascension={{
-                                                tier: ascensionTier,
-                                                max: ascensionMax,
-                                                onSelect: pickAscension,
-                                            }}
-                                        />
-                                    )}
-                                </>
-                            }
-                            board={
-                                activeFormation && (
-                                    <Pitch
-                                        formation={activeFormation}
-                                        filled={filled}
-                                        selectedPlayer={
-                                            isBudgetBuild ? budget.heldPlayer : selectedPlayer
-                                        }
-                                        onPlace={isBudgetBuild ? budget.place : handlePlace}
-                                        onRemove={
-                                            isBudgetBuild
-                                                ? budget.remove
-                                                : FEATURES.removePlayers
-                                                  ? handleRemove
-                                                  : undefined
-                                        }
-                                        onSwap={
-                                            !isBudgetBuild && STICKERS && swapsLeft > 0
-                                                ? handleSwap
-                                                : undefined
-                                        }
-                                        onSelectSlot={isBudgetBuild ? budget.shop : undefined}
-                                        targetSlotId={
-                                            isBudgetBuild ? budget.targetSlot?.id : undefined
-                                        }
-                                        // Moving a placed player. Offered even with a card
-                                        // in hand: a slot the held card can swap into keeps
-                                        // the swap, and anywhere else the tap picks the
-                                        // placed player up instead, dropping the card.
-                                        onStartMove={
-                                            FEATURES.movePlayers ? handleStartMove : undefined
-                                        }
-                                        movingSlotId={move.movingSlotId}
-                                        onMove={FEATURES.movePlayers ? move.move : undefined}
-                                    />
-                                )
-                            }
-                            stack={
-                                activeFormation && (
-                                    <>
-                                        <BoxScore formation={activeFormation} filled={filled} />
-                                        <XiTable
-                                            formation={activeFormation}
-                                            filled={filled}
-                                            budget={isBudgetBuild ? marketBudget : undefined}
-                                            ownedStickerIds={ownedStickerIds}
-                                        />
-                                    </>
-                                )
-                            }
+                        <BuildSurface
+                            build={build}
+                            ownedStickerIds={ownedStickerIds}
+                            budget={marketBudget}
+                            ascension={{
+                                tier: ascensionTier,
+                                max: ascensionMax,
+                                onSelect: pickAscension,
+                            }}
+                            onStartRun={() => {
+                                // Tell the run screen this navigation is a kickoff, so it
+                                // never has to infer that from "no run in progress" -
+                                // which a reload also looks like.
+                                requestRunStart();
+                                navigate('/cup-run');
+                            }}
+                            onReset={handleReset}
                         />
                     ) : (
                         <Navigate to="/" replace />
@@ -836,7 +450,7 @@ export default function App({
                     settings={settings}
                     pool={pool}
                     speed={speed}
-                    onSetSpeed={(s) => dispatch({ type: 'SET_SPEED', speed: s })}
+                    onSetSpeed={build.setSpeed}
                 />
             )}
 

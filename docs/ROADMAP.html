@@ -884,10 +884,11 @@
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
       REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED AND DEPLOYED 2026-08-26</b>: the rules,
       the referee's logic, the tables, the referee itself, and now its deploy (item 41,
-      closed) - <b>the server half is live and verified</b>. <b>Next is WAVE 4, the room's
-      own build state</b>, which the plan calls the largest unestimated piece in it and a
-      refactor rather than a feature. One decision is settled: no part of a career reaches a
-      room.</span>
+      closed) - <b>the server half is live and verified</b>. <b>WAVE 4 SHIPPED
+      2026-08-27</b>: building an XI is an instantiable unit, so a room can hold its own
+      without touching your run or your half-built team. <b>Next is WAVE 5, the vertical
+      slice</b> - two people with a code playing a whole game. One decision is settled: no
+      part of a career reaches a room.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -1055,14 +1056,39 @@
     goes with it in 0017. Reopening it means reopening P34, which is the sentence to read
     first: the referee can be trusted with un-RLS&#8217;d input from the internet precisely
     because of the length of the list of things it cannot reach.</p>
-    <p class="next"><strong>Next step:</strong> wave 4 - the room&#8217;s own build state
-    (P29), the largest unestimated piece in the plan and a refactor rather than a feature: the
-    app holds one game state and every path that starts a build clears the active run, so a
-    room entering through the same door would silently delete a live Cup Run. It needs no NAS.
-    The deploy of what wave 3 built is <b>item 41</b>, and it should go first if the two are
-    ever in the same session, since the server is deployed by hand and the client by pushing to
-    <code>main</code>.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
+    <p><strong>Wave 4 shipped 2026-08-27: the build is an instantiable unit.</strong>
+    Building an XI used to BE the app&#8217;s main screen - the reducer, the roll
+    animation, the market&#8217;s held card, the move gesture and eleven handlers, all in
+    one 867-line file - so there could only ever be one of it. It is now a hook plus a
+    component that draw a build from whatever they are handed, and the app instantiates
+    one. <b>Nothing a player can see changed</b>; the stylesheet came out byte-identical,
+    which is the cheap proof that the screen moved rather than being rewritten.</p>
+    <p><strong>The point was never tidiness, it was two writes.</strong> A build mirrors
+    itself to storage on every single tap, and every path that starts a fresh XI drops
+    your active Cup Run. Those two are now handed IN, so a room is given a version that
+    writes nothing at all - and both halves were reproduced as real failures before being
+    fixed. Driving a second build with the app&#8217;s own writes, three picks in it
+    overwrote the solo team (one player at 4-3-3 became three at 3-5-2) and <b>deleted the
+    live Cup Run outright</b>. With the detached version the same taps left the solo build
+    byte-identical and the run untouched. Signed in, that first write is also a server
+    round trip per tap, where one failure raises the blocking unreachable screen full
+    screen with a pick clock running.</p>
+    <p><strong>Two things learned that shape wave 5.</strong> <b>A no-op cannot be told
+    from a mis-wire by testing it</b>: the detached writer writes nothing because it has
+    nothing to write to, so a copy-paste handing it the real store would pass every
+    behavioural check there is - the check that catches it reads the export line instead.
+    And <b>the build must not import the store, the router, the career or the album at
+    all</b>, since a detached writer can only intercept the two writes it was given; that
+    rule is asserted over both files, with the app itself as the vacuity guard. Four new
+    checks, all mutation-tested; the suite is <b>298</b>, from 293.</p>
+    <p class="next"><strong>Next step:</strong> wave 5, the vertical slice - a private
+    two-player budget room, code only, playable end to end: lobby, draft, tie, result. It
+    is the first wave a player can see, and the first that talks to the referee that has
+    been live since 2026-08-26. Deliberately left for it, rather than guessed at now: the
+    four build controls a room hides (auto-fill, Clear, Start over, the random-team
+    shortcut) are still unconditional, because a switch with no room behind it cannot be
+    tested.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a></p>
   </div>
 </details>
 

@@ -137,8 +137,9 @@ done and why. What that means for anyone working in this tree now:
   `hooks/useCupRun`, `hooks/useStackedScroll` (the mobile there-and-back), `hooks/usePool`,
   `state/routes.ts` (`screenOf(path)`), `state/resume.ts`, `state/storage/kv.ts`,
   `state/store/cache.ts`, `components/Masthead`, `components/BuildPage`, and
-  `components/cupRun/{PreRunPanel,GroupRevealPanel,RunPhasePanel}`. **App.tsx is 849 lines
-  and CupRunScreen 626**, from 1,129 and 907.
+  `components/cupRun/{PreRunPanel,GroupRevealPanel,RunPhasePanel}`. **App.tsx is 483 lines
+  and CupRunScreen 626**, from 1,129 and 907. The last 366 of App's went with wave 4 of
+  roadmap item 18 - see "The build is an instantiable unit" below.
 - **The career is owned in ONE place; the RUN deliberately is not.** `useCareer` lives in
   App, so the build page prices the transfer market off the same value the run screen
   spends from. `useCupRun` stays inside the run screen, and the reason is in its header:
@@ -415,8 +416,12 @@ src/
                and behind it the per-key modules store/ delegates to: persist.ts (the
                whole game <-> localStorage, so routes survive a refresh), albumStorage.ts
                (the sticker album <-> its own localStorage keys), careerStorage.ts
-               (the Cup Run career <-> wcsim_career_v1), runStorage.ts, settingsStorage.ts
-  hooks/       useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
+               (the Cup Run career <-> wcsim_career_v1), runStorage.ts, settingsStorage.ts;
+               buildIo.ts (the two writes a build makes, so a versus room can turn both
+               off - see "The build is an instantiable unit" below)
+  hooks/       useBuild.ts (THE BUILD: the reducer, its effects, the three interaction
+               machines and the handlers, as a unit that can be instantiated twice),
+               useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
                match-reveal clock, used by every live match), useSettings.ts
                (theme / difficulty / year pool, through the store), useStickerAlbum.ts
                (the album + the run-end banking rule, see below), motion.ts
@@ -432,6 +437,8 @@ src/
                screen, as are ChallengesScreen and CabinetScreen (the trophy cabinet);
                BudgetMarket is the budget build's left-column panel (shares
                the home page's Pitch + ratings/line-up, not a separate screen);
+               BuildSurface draws a build's three columns from a `Build` (BuildPage owns
+               the layout, BuildSurface the wiring);
                navUi.tsx holds the tabs navigation's atoms (TabRow, TabBottomBar, SubTabs)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
@@ -441,8 +448,9 @@ src/
                STICKER_TIERS / STICKER_TRADE_COST / STICKER_DISCOUNT +
                BUDGET_BY_TIER (BUDGET_DRAFT is checks-only now) + BANK_CAP (how many
                stickers one run may bank; the server states it too, see below)
-  App.tsx      owns the reducer, the roll animation, and responsive-scroll effects;
-               branches its screen by the URL (react-router)
+  App.tsx      composition only: it branches its screen by the URL (react-router), owns
+               the album / career / settings / pool, and instantiates ONE build. The
+               reducer, the roll animation and the scroll effects are useBuild's now
   main.tsx     entry (wraps App in React.StrictMode + BrowserRouter)
 ```
 
@@ -2531,10 +2539,52 @@ keep working.
   otherwise nudges scrollY when result cards mount and stalled the follow (worst on
   short mobile screens).
 
+## The build is an instantiable unit
+
+Wave 4 of roadmap item 18, 2026-08-27. **Building an XI is no longer the composition
+root's own body**: `hooks/useBuild.ts` holds the reducer, its two effects, the three
+interaction machines and the eleven handlers, `components/BuildSurface.tsx` draws the
+three columns from the result, and App instantiates ONE of them. It exists so a versus
+room can hold a SECOND one (pvp-plan P29), and the point is entirely about writes rather
+than about tidiness.
+
+- **The two writes are the seam** (`state/buildIo.ts`), and they are handed in. The app's
+  build gets `soloBuildIo` and behaves exactly as before; a room gets `detachedBuildIo`,
+  which writes nothing at all. **Both halves were a real, reproduced bug**, not a worry:
+  driving a second build through `soloBuildIo` in the real app overwrote the solo XI
+  (one player at 4-3-3 became three at 3-5-2) and **deleted the Cup Run key outright**,
+  because `START_DRAFT` calls `saveRun(null)`. Through `detachedBuildIo` the solo build's
+  stored state came back byte-identical and the run was untouched. And while signed in
+  that first write is a server round trip **per tap**, where one failure raises the
+  blocking unreachable screen (D9) full screen with a pick clock running.
+- **NOTHING IN THE BUILD MAY IMPORT THE STORE, THE ROUTER, THE CAREER OR THE ALBUM.**
+  `detachedBuildIo` intercepts the two writes it is given; it cannot intercept a
+  `store.saveX()` written straight into the hook, or a `useNavigate` that walks a player
+  out of a room mid-draft. `npm run checks` asserts the import rule over both files, with
+  the composition root as its vacuity guard - the same scan has to FIND all five of those
+  in `App.tsx`, or the check is not reading imports at all.
+- **Which argument each io is built with is a source check, deliberately.**
+  `createBuildIo(null)` writes nothing because there is nothing to write to, so no
+  behavioural test can tell a detached build from a mis-wired one: a copy-paste making the
+  export `createBuildIo(store)` passes every other assertion in the file. The check reads
+  the two export lines.
+- **The build is handed its money and its re-rolls, it does not look them up.** The app
+  passes the career's transfer budget and the Extra Re-roll tier; a room passes its host's
+  figures (P8: no part of a career reaches a room). `budgetOf` and `extraRerollsOf` are
+  still read in App, which is where the career lives.
+- **`dist/assets/*.css` is byte-identical across the change** (`4ead9e6e...`), which is the
+  cheap proof that the rendering MOVED rather than being rewritten - the same proof the
+  wave-3 token migration used.
+- What is NOT in the unit, on purpose: the album, the career, the run, routing and the
+  page's layout (`BuildPage` still owns the grid). Those are the app's, and a room has
+  none of them.
+
 ## The `pvp*` modules and `referee/` have no importer in the app yet, on purpose
 
-Waves 0 to 3 of roadmap item 18 (player versus player) shipped 2026-08-26. **Nothing in
-`src/` imports any of it**, because the screens are waves 4 to 8, and a tree-shaking or
+Waves 0 to 3 of roadmap item 18 (player versus player) shipped 2026-08-26, and **wave 4
+(the room's own build state) shipped 2026-08-27** - see the section above; it touched only
+the single-player build, so this still holds. **Nothing in
+`src/` imports any of it**, because the screens are waves 5 to 8, and a tree-shaking or
 dead-code pass therefore finds it, concludes it is unused and deletes it - which is what
 this note exists to stop, the same way the one below stops the same conclusion about
 `public/jerseys/`. It costs nothing shipped: Rollup tree-shakes an unimported module out of

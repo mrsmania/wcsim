@@ -8,9 +8,10 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: waves 0 to 3 built** (2026-08-26), 0016 applied, **0017 and the deploy
-queued**. The one decision wave 3 reopened, the career budget in P2, was settled on
-2026-08-27 by dropping the option.
+(P48). **Status: waves 0 to 4 built**; the server half is deployed (2026-08-26, roadmap item 41),
+0016 and 0017 applied, and **wave 4 - the room's own build state - landed 2026-08-27**. The
+one decision wave 3 reopened, the career budget in P2, was settled on 2026-08-27 by
+dropping the option. **Next is wave 5, the vertical slice.**
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -358,15 +359,16 @@ after most of the client work was done.
 | 1 | **DONE 2026-08-26** (`src/domain/pvpRoom.ts`, `src/domain/pvpAuth.ts`, `scripts/checks/pvpRoom.ts`, 25 checks). **The referee, offline.** Bundles the domain code, runs a whole draft against simulated players, deadlines as stored data plus a sweeper, auto-picks on expiry, returns a result | Over-budget, duplicated person, out-of-pool, undealt and **late** picks each refused, at both clock lengths; a request bearing the **anon key** is refused; a player who does nothing still ends with a legal XI |
 | 2 | **DONE AND APPLIED 2026-08-26** (`supabase/migrations/0016_pvp_rooms.sql`; roadmap item 39, closed). **The migration**, parse-checked, dry-run, rollback block, roadmap item opened for the apply | `push:sql -- --dry-run` clean; parsed with the real Postgres grammar, and the rollback block parsed too |
 | 3 | **DONE AND DEPLOYED 2026-08-26** (`referee/`, `src/domain/displayName.ts`, `src/domain/pvpVersion.ts`, `supabase/migrations/0017_pvp_referee.sql`, `scripts/checks/referee.ts`, 53 checks). The referee itself: the router, the Postgres store, the row mapping, the sweeper, the broadcast, the JWT, and **outage recovery**; plus the display-name rule and the version endpoint. The DEPLOY half - Realtime, the gateway route, the role's password, the migration - needs the NAS and is queued as its own roadmap item, exactly as 0016 was | Two browsers see each other, and the 45-second outage, are both asserted offline (the referee's real handlers over an in-memory store); the room lifecycle was also played through the real `pgStore` as the real `pvp_referee` role on a local PostgreSQL. The deployment is now proven too (roadmap item 41): the referee answers on the live gateway with a dataset hash matching the deployed client, refuses the anon key, and the WebSocket upgrade returns 101. Three things bit that this plan did not predict, and all three are written up in `docs/nas-setup.md`: the gateway's RBAC filter is a SECOND key gate and is default-deny, the `/referee/` prefix must not be rewritten because the referee matches full paths, and **container operations wipe the docker bridge firewall rules**, which takes the whole accounts stack down and is the finding that outlives this item |
-| 4 | **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Entering a room leaves a Cup Run and a half-built solo XI untouched, and no per-tap server write happens inside a room |
+| 4 | **DONE 2026-08-27** (`src/state/buildIo.ts`, `src/hooks/useBuild.ts`, `src/components/BuildSurface.tsx`, `scripts/checks/build.ts`, 4 checks). **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Proven both ways in the real app, driving a second build beside the first: through `detachedBuildIo` the solo build's stored state came back byte-identical and the Cup Run key survived; through `soloBuildIo` the same taps overwrote the solo XI and deleted the run |
 | 5 | **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Two people with a code play a whole game end to end |
 | 6 | **Roll rooms**, and the ratings switch inside them | The check proves the room's own screens hide every rating; the switch is not offered when the room buys |
 | 7 | **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination | A room of 8 plays to a winner; the draw differs across repeated rooms with the same seats; and the first player out sees every remaining match |
 | 8 | **Public visibility**: the lobby list, liveness, size reduction, records, reporting, the signed-out entry | A public room is found and joined by someone never sent a code |
 | 9 | **Checks and documentation.** CLAUDE.md gains its section; the roadmap item closes | `npm run checks` and `npm run build` clean |
 
-**Where the size really is.** Wave 4 is the largest unestimated piece in the whole plan and it
-is a refactor rather than a feature. Wave 3 needs NAS access and cannot be done by a cloud
+**Where the size really is.** Wave 4 was the largest unestimated piece in the whole plan and
+a refactor rather than a feature; it came out at four new files, 366 lines off the
+composition root, and no behaviour change at all. Wave 3 needs NAS access and cannot be done by a cloud
 session. The earlier claim that waves 4 to 8 were "ordinary client work on top of components
 that already exist" rested on "every piece of the page is reused", and that sentence does not
 survive: the state is a singleton, three of the panel's controls break the clock, and part of
@@ -513,6 +515,36 @@ fix if this is ever worth closing.
   would either leak the draft or need a message per member. It says "this room changed" and
   each client asks for its own view. That also makes P33's chief benefit structural rather
   than careful: there is no private data in the stream at all.
+
+### Found while building the build's own state (wave 4)
+
+- **THE BUG P29 DESCRIBES IS REAL, AND IT WAS REPRODUCED BEFORE IT WAS FIXED.** A second
+  build mounted beside the first and handed the app's own writes did exactly what the
+  decision predicted: three picks in the second one overwrote the solo XI (one player at
+  4-3-3 became three at 3-5-2) and **deleted the active-run key outright**, because
+  `START_DRAFT` calls `saveRun(null)`. Handed a detached io the same taps left the solo
+  build byte-identical and the run untouched. Running the failing version first is what
+  turns "the plan says so" into a done-when.
+- **The two writes are the whole of it, and that is worth knowing before wave 5.** The
+  build reaches outside itself in exactly two places - mirroring the whole state on every
+  tap, and dropping the run whenever a fresh XI starts. Everything else it does is its own
+  reducer and its own transient state, so a second instance needed no coordination, no
+  keying and no cleanup. The refactor was large because the file was large, not because
+  the coupling was deep.
+- **A no-op cannot be told from a mis-wire by testing it.** `createBuildIo(null)` writes
+  nothing because it has nothing to write to, so a copy-paste making the detached export
+  `createBuildIo(store)` passes every behavioural assertion there is. The check that
+  catches it reads the export line. The general shape: when the safe version of something
+  is the ABSENCE of a dependency, the test has to look at where the dependency comes from.
+- **The import rule is the part that has to survive wave 5.** A room's io intercepts the
+  two writes it is given and can intercept nothing else, so the build unit must not import
+  the store, the router, the career or the album at all. That is asserted over both files,
+  with the composition root as the vacuity guard - the same scan has to find all five of
+  those in `App.tsx` or it is not reading imports.
+- **What wave 5 still has to add, and wave 4 deliberately did not.** The P41 controls
+  (auto-fill, Clear, Start over, the random-team shortcut) are still unconditional in
+  `BuildSurface`, because a switch with no room behind it cannot be tested and would have
+  been speculation. Turning them off is a prop apiece when the room screen exists.
 
 ### Settled by deletion: the career budget (P2), 2026-08-27
 
