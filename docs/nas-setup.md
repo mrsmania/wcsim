@@ -586,6 +586,37 @@ until the last one.
 > - **Steps 3, 5 and 6 are untouched**, and the DSM WebSocket header in step 2 is a GUI
 >   action nobody without the console can do.
 >
+> **THERE IS A SCRIPT FOR THE MECHANICAL HALF: `scripts/deploy-referee.sh`.** Run it from
+> the repository root in Git Bash, on a machine that can reach the NAS, one stage at a
+> time - `--check` changes nothing anywhere, and prints what the rest would do:
+>
+> ```
+> bash scripts/deploy-referee.sh --check  user@192.168.1.115
+> bash scripts/deploy-referee.sh --build  user@192.168.1.115
+> bash scripts/deploy-referee.sh --config user@192.168.1.115
+> bash scripts/deploy-referee.sh --up     user@192.168.1.115
+> bash scripts/deploy-referee.sh --verify user@192.168.1.115
+> ```
+>
+> **The thing it exists to solve is where the image gets built.** The referee is the first
+> locally built image this stack has ever had - every other container pulls a published
+> one - and there is no repository checkout on the NAS. So `--build` streams `git archive
+> HEAD` up and builds there, which needs no Node or toolchain on the box because the
+> Dockerfile is multi-stage. If that account cannot reach the Docker socket (on Synology it
+> usually needs `administrators`), the source is already sitting in `/tmp` for Container
+> Manager to build from instead.
+>
+> It backs up every file it replaces, verifies each transfer by `md5sum`, never takes the
+> password as an argument, and refuses to restart anything if `docker compose config`
+> rejects the edited YAML. It does NOT run the `alter role` (it prints it for Studio), and
+> it cannot do the two GUI steps.
+>
+> **`--verify` compares the served `dataset` hash against what this checkout computes**,
+> which is the check that catches the failure nothing else will: a referee built from the
+> wrong commit is healthy, serving, and refusing every room with "Versus is updating". That
+> hash moved on 2026-08-26 when the 2026 World Cup was added, so an image built before that
+> is wrong.
+
 > **A note on the referee route, since it saves reading the Lua:** the apikey gate is
 > **opt-in by route name**, via the `PROTECTED_ROUTES` table in `lds.template.yaml`. So the
 > staged `referee` route is ungated simply by not being listed there, which is what the
