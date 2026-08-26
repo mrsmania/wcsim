@@ -13,7 +13,8 @@
     "gen:collectibles": "esbuild scripts/gen-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "gen:players": "esbuild scripts/gen-players-page.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "push:collectibles": "esbuild scripts/push-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module -",
-    "push:sql": "node scripts/push-sql.mjs"
+    "push:sql": "node scripts/push-sql.mjs",
+    "referee:build": "esbuild referee/src/main.ts --bundle --format=esm --platform=node --target=node22 --external:pg --outfile=dist/referee.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -29,10 +30,12 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "esbuild": "^0.25.0",
+    "pg": "^8.23.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2",
     "vite": "^6.3.5"

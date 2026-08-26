@@ -43,11 +43,12 @@ import { scorersChecks } from './checks/scorers';
 import { stateChecks } from './checks/state';
 import { pvpChecks } from './checks/pvp';
 import { pvpRoomChecks } from './checks/pvpRoom';
+import { refereeChecks } from './checks/referee';
 
 /** In the order the single file ran them, which is the order to keep: it is roughly
  *  data -> engine -> economy -> screens, so a broken dataset is reported before the
  *  forty things downstream of it. */
-const CONCERNS: [string, () => void][] = [
+const CONCERNS: [string, () => void | Promise<void>][] = [
   ['meta', metaChecks],
   ['dataset', datasetChecks],
   ['sim', simChecks],
@@ -68,16 +69,29 @@ const CONCERNS: [string, () => void][] = [
   ['state', stateChecks],
   ['pvp', pvpChecks],
   ['pvpRoom', pvpRoomChecks],
+  ['referee', refereeChecks],
 ];
 
 for (const [name, run] of CONCERNS) {
   // `check` reports a throw inside one assertion; this reports a throw between them - a
   // fixture that could not be built, an import-time surprise - against the concern rather
   // than as a bare stack trace that ends the run.
-  check(`${name}: the block ran to the end`, () => {
-    run();
-    return true;
-  });
+  //
+  // A concern may be ASYNC (`referee` is: it drives the referee's real handlers, which take
+  // a store that returns promises), so this awaits first and then asserts on the outcome,
+  // rather than calling inside the thunk. The guarantee is the same and the ordering is
+  // still strict, which matters for `summary()` below.
+  let thrown: unknown = null;
+  try {
+    await run();
+  } catch (err) {
+    thrown = err;
+  }
+  check(
+    `${name}: the block ran to the end`,
+    () => thrown === null,
+    () => String((thrown as Error)?.stack ?? thrown),
+  );
 }
 
 summary();

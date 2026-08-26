@@ -33,5 +33,9 @@
   // the scripts has to be able to see them. The guard rail is not exclusivity, it is that
   // the APP project also checks every one of those files WITHOUT Node's globals - so a
   // `process.env` in a component is an error there even though it passes here.
-  "include": ["vite.config.ts", "scripts", "src"]
+  // `referee` is here for the same reason `scripts` is: it runs in Node, it imports the
+  // domain and data modules (it bundles them rather than reimplementing the rules, plan
+  // P11), and it must be type-checked by `npm run build` or the container image is the
+  // first thing that finds out it does not compile.
+  "include": ["vite.config.ts", "scripts", "src", "referee"]
 }

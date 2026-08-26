@@ -42,9 +42,16 @@ jobs:
         # protects data (docs/cloud-sync-design.md §11). With these unset the build
         # simply has no server, FEATURES.accounts stays off, and the deployed site is
         # the guest-only game - which is also what a fork of this repo gets.
+        #
+        # VITE_REFEREE_URL is the versus server (docs/pvp-plan.md P46), a route on the
+        # same gateway. FEATURES.pvp derives from it AND the two above, so setting the
+        # account variables alone does not put a Versus tab on the site whose every call
+        # would fail. It is also not a secret: a call to it carries the player's own
+        # session token and the referee refuses the anon key by design.
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_REFEREE_URL: ${{ vars.VITE_REFEREE_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

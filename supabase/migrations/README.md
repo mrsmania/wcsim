@@ -40,6 +40,14 @@ mode, and it has happened.
 | `enforce_invite()` | dropped in **0005** | 0004 |
 | `pvp_is_member(bigint)` | 0016 | - |
 | `pvp_tie_played(bigint, uuid)` | 0016 | - |
+| `set_display_name(text, text)` | 0017 | - |
+
+`set_display_name` is the one client-callable function 0017 adds, and it exists because
+0016 added `profiles.display_name` and `profiles.name_key` and nothing on either side could
+write them: `profiles` has been select-only for the client since 0002, and the referee
+deliberately holds no write grant on it (P34). The NORMALISATION is the client's
+(`src/domain/displayName.ts`), and the function checks only what SQL can know on its own -
+that the key is present, within length, and unclaimed.
 
 The two `pvp_*` helpers are not part of the client surface and are not called by anything
 yet. They exist because a row-level-security policy on `pvp_rooms` that reads `pvp_members`,
@@ -57,7 +65,7 @@ header says to keep the pair in step, and it means it.
 
 | Thing | Defined in | Changed by |
 | --- | --- | --- |
-| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped) |
+| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped), 0016 (the seven `pvp_*` tables, and two columns on `profiles`), 0017 (the open pick window and the re-roll count on `pvp_members`, `swept_at` on `pvp_rooms`) |
 | Row-level security, enabled | 0002 | - |
 | Policies | 0002 | 0013 (four `for all` policies narrowed to `for select`), 0014 (`run_results_read` dropped) |
 | Function grants | 0008 | 0010 (`finish_run_v2`), 0014 (`export_account` revoked) |

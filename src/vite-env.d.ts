@@ -8,6 +8,12 @@
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
+  /** The referee's base URL, e.g. `https://HOST/referee`. Absent means FEATURES.pvp is off
+   *  and Versus does not exist in the build - which is what a fork gets, and what a
+   *  deployment that has the account server but not the referee gets, deliberately
+   *  (docs/pvp-plan.md P46). Not a secret either: every call to it carries the player's own
+   *  session token and the referee refuses anything else. */
+  readonly VITE_REFEREE_URL?: string;
 }
 
 interface ImportMeta {

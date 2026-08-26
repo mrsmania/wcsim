@@ -86,6 +86,14 @@ export const FEATURES = {
      *  made, and the app is the guest-only build it has always been.
      *  See docs/cloud-sync-requirements.md (NFR-1: guest-first). */
     accounts: !!(ENV.VITE_SUPABASE_URL && ENV.VITE_SUPABASE_ANON_KEY),
+    /** Player versus player: rooms of 2, 4 or 8 signed-in players drafting against a clock
+     *  and playing a live knockout. Derived from BOTH servers, not one (plan P46): a room
+     *  needs an account (it is account-only by decision P17) and it needs the referee,
+     *  which is deployed by hand and separately. Deriving it from the account server alone
+     *  would put a Versus tab on the deployed site the moment accounts were configured,
+     *  with every call in it failing - a half-finished deployment that looks like a broken
+     *  feature. Plan: docs/pvp-plan.md. */
+    pvp: !!(ENV.VITE_SUPABASE_URL && ENV.VITE_SUPABASE_ANON_KEY && ENV.VITE_REFEREE_URL),
 } as const;
 
 /** Where the account server lives, when there is one (FEATURES.accounts). The anon
@@ -93,6 +101,15 @@ export const FEATURES = {
 export const SUPABASE = {
     url: ENV.VITE_SUPABASE_URL ?? '',
     anonKey: ENV.VITE_SUPABASE_ANON_KEY ?? '',
+} as const;
+
+/** Where the referee lives, when there is one (FEATURES.pvp). A route on the same gateway
+ *  as the account server rather than a second hostname (P46), so there is one certificate
+ *  and one proxy rule - a second hostname adds a renewal path that can take Versus down on
+ *  its own. No key: the referee is called with the player's OWN session token, and the one
+ *  thing it will not accept is the anon key (P34, `domain/pvpAuth.ts`). */
+export const REFEREE = {
+    url: (ENV.VITE_REFEREE_URL ?? '').replace(/\/+$/, ''),
 } as const;
 
 /** Collectible sticker tiers, by player `elo` (inclusive on both ends). The single

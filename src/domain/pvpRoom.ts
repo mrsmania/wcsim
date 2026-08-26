@@ -72,6 +72,9 @@ const RESULT_HOLD_MS = 4000;
 const DEFAULT_FORMATION: FormationName = '4-3-3';
 const DEFAULT_STYLE: Style = 'bal';
 
+/** Re-rolls a roll room allows, when the host says nothing (plan section 3). */
+const DEFAULT_REROLLS = 3;
+
 /** Room sizes (plan P7). A host may reduce before the start, never increase. */
 export const ROOM_SIZES = [2, 4, 8] as const;
 export type RoomSize = (typeof ROOM_SIZES)[number];
@@ -94,8 +97,30 @@ export interface RoomMember {
    *  needs privileges on every player's career row, and a Transfer Budget perk bought
    *  mid-draft would change the budget an XI is validated against. */
   budget: number;
+  /** How many re-rolls this player has spent, against the room's allowance. A counter
+   *  rather than a derivation off `deals.length`: a deal that finds no squad pushes
+   *  nothing, so the two would drift apart exactly when a room is under stress. */
+  rerollsUsed: number;
   /** The round they went out in, absent while still in. */
   outIn?: number;
+}
+
+/** The four facts about a pick that are not "who is in which slot", recorded because the
+ *  room's own rules need three of them and `pvp_picks` stores all four (migration 0016).
+ *
+ *  It is kept BESIDE `xi` rather than folded into it, because a slot map is what P42 asks
+ *  for - moving two multi-position players changes both numbers the sim reads without
+ *  changing who is in the team - and a map of players cannot also carry when each arrived.
+ *  Wave 1 recorded none of it, which was invisible until something had to persist a room:
+ *  `pvp_picks.ordinal` is the idempotency key (P36) and `automatic` is one of the three
+ *  facts a ladder needs to discount a farmed win, and neither can be reconstructed after
+ *  the fact. */
+export interface PickRecord {
+  ordinal: number;
+  openedAt: number;
+  landedAt: number;
+  /** True when the clock made this pick rather than the player. */
+  automatic: boolean;
 }
 
 /** One player's open pick window. The deadline is `openedAt + pickSeconds * 1000`; it is
@@ -132,10 +157,18 @@ export interface PvpRoom {
   size: RoomSize;
   rules: RoomRules;
   pickSeconds: PickSeconds;
+  /** Whether ratings are shown, and how many re-rolls a roll room allows (plan section 3).
+   *  Deliberately NOT part of `RoomRules`: that type is what the rules read, and a
+   *  presentation switch must not be reachable from the code that decides whether an XI is
+   *  legal. They sit here, on the room, because the room is what has to be stored. */
+  showRatings: boolean;
+  rerolls: number;
   status: RoomStatus;
   members: RoomMember[];
   /** Each player's XI as a slot map (P42), which is what lets a move be expressed. */
   xi: Record<string, Filled>;
+  /** userId -> slotId -> how that slot came to be filled. See `PickRecord`. */
+  picks: Record<string, Record<string, PickRecord>>;
   /** Squads dealt to each roll-room player, oldest first. One at a time (P13): the whole
    *  sequence up front would let a player read every future squad off their own row. */
   deals: Record<string, string[]>;
@@ -232,6 +265,10 @@ export function createRoom(input: {
   rules: RoomRules;
   pickSeconds: PickSeconds;
   hostBudget: number;
+  /** Both optional and both defaulted to the values plan section 3 gives, so a caller that
+   *  does not care about presentation does not have to say so. */
+  showRatings?: boolean;
+  rerolls?: number;
 }): PvpRoom {
   return {
     id: input.id,
@@ -241,23 +278,30 @@ export function createRoom(input: {
     size: input.size,
     rules: input.rules,
     pickSeconds: input.pickSeconds,
+    showRatings: input.showRatings ?? true,
+    rerolls: input.rerolls ?? DEFAULT_REROLLS,
     status: 'lobby',
-    members: [
-      {
-        userId: input.hostId,
-        seat: 0,
-        name: input.hostName,
-        ready: false,
-        formationName: DEFAULT_FORMATION,
-        style: DEFAULT_STYLE,
-        budget: input.hostBudget,
-      },
-    ],
+    members: [newMember(input.hostId, 0, input.hostName, input.hostBudget)],
     xi: {},
+    picks: {},
     deals: {},
     windows: {},
     ties: [],
     round: 0,
+  };
+}
+
+/** One seated player, before anything has happened to them. */
+function newMember(userId: string, seat: number, name: string, budget: number): RoomMember {
+  return {
+    userId,
+    seat,
+    name,
+    ready: false,
+    formationName: DEFAULT_FORMATION,
+    style: DEFAULT_STYLE,
+    budget,
+    rerollsUsed: 0,
   };
 }
 
@@ -271,15 +315,7 @@ export function joinRoom(
   if (memberOf(room, member.userId)) return { room, outcome: 'already-in' };
   if (room.members.length >= room.size) return { room, outcome: 'full' };
   const next = clone(room);
-  next.members.push({
-    userId: member.userId,
-    seat: next.members.length,
-    name: member.name,
-    ready: false,
-    formationName: DEFAULT_FORMATION,
-    style: DEFAULT_STYLE,
-    budget: member.budget,
-  });
+  next.members.push(newMember(member.userId, next.members.length, member.name, member.budget));
   return { room: next, outcome: 'ok' };
 }
 
@@ -325,6 +361,7 @@ export function startRoom(room: PvpRoom, hostId: string, now: number): PvpRoom {
   next.startedAt = now;
   for (const m of next.members) {
     next.xi[m.userId] = {};
+    next.picks[m.userId] = {};
     if (next.rules.method === 'roll') next.deals[m.userId] = [];
     openWindow(next, m, now);
   }
@@ -385,22 +422,55 @@ export function submitPick(
 
   const next = clone(room);
   next.xi[userId] = candidate;
+  recordPick(next, userId, req.slotId, w, now, false);
   openWindow(next, memberOf(next, userId)!, now);
   return { room: next, outcome: 'ok' };
 }
 
-/** Re-roll a roll room's dealt squad. It does NOT restart the clock (plan section 4):
- *  otherwise re-rolling is a way to stall for ever, which is the exact thing the clock
- *  exists to prevent. */
+/** Note how a slot came to be filled. One place, so a pick made by the clock and a pick
+ *  made by a player are recorded identically apart from the flag that says which. */
+function recordPick(
+  room: PvpRoom,
+  userId: string,
+  slotId: string,
+  window: PickWindow,
+  now: number,
+  automatic: boolean,
+): void {
+  (room.picks[userId] ??= {})[slotId] = {
+    ordinal: window.ordinal,
+    openedAt: window.openedAt,
+    landedAt: now,
+    automatic,
+  };
+}
+
+/** Re-roll a roll room's dealt squad. Two rules, and the second one was missing until the
+ *  referee had to store the number:
+ *
+ *  - It does NOT restart the clock (plan section 4), or re-rolling is a way to stall for
+ *    ever, which is the exact thing the clock exists to prevent.
+ *  - It is CAPPED at the room's allowance (plan section 3, 0 to 6). The host chooses that
+ *    number and wave 1 never read it, so it was a lobby control that did nothing - and at
+ *    zero it promised a room where re-rolling was off and delivered one where it was free. */
 export function rerollDeal(room: PvpRoom, userId: string, now: number): PvpRoom {
   if (room.status !== 'drafting' || room.rules.method !== 'roll') return room;
   const m = memberOf(room, userId);
   const w = room.windows[userId];
   if (!m || !w) return room;
+  if (m.rerollsUsed >= room.rerolls) return room;
   if (now > deadlineOf(room, w) + PICK_GRACE_MS) return room;
   const next = clone(room);
-  dealNext(next, memberOf(next, userId)!);
+  const mm = memberOf(next, userId)!;
+  mm.rerollsUsed += 1;
+  dealNext(next, mm);
   return next;
+}
+
+/** Re-rolls this player has left. */
+export function rerollsLeft(room: PvpRoom, userId: string): number {
+  const m = memberOf(room, userId);
+  return m ? Math.max(0, room.rerolls - m.rerollsUsed) : 0;
 }
 
 // --- The sweeper -----------------------------------------------------------
@@ -497,7 +567,7 @@ function playRound(room: PvpRoom, now: number): void {
  * would produce an XI the referee itself then refuses. A room is never stuck, and never
  * holds an XI its own validator would reject.
  */
-function forceFillOne(room: PvpRoom, m: RoomMember): void {
+function forceFillOne(room: PvpRoom, m: RoomMember, window: PickWindow, now: number): void {
   const f = formationOf(m);
   const fill = (dealt: string[] | undefined, rules: RoomRules): boolean => {
     const made = autoPick(f, room.xi[m.userId] ?? {}, rules, {
@@ -506,6 +576,10 @@ function forceFillOne(room: PvpRoom, m: RoomMember): void {
     });
     if (!made) return false;
     (room.xi[m.userId] ??= {})[made.slotId] = made.player;
+    // Marked automatic, and that flag leaves the room: `pvp_matches.loser_auto_picks` is
+    // one of the three facts a ladder needs to tell a real win from a farmed one, and two
+    // accounts run by one person letting a side idle is the cheapest way to farm.
+    recordPick(room, m.userId, made.slotId, window, now, true);
     // Record the squad as dealt. In the ordinary path it already is and this is a no-op;
     // in the fallback below it is the whole point, because "was he dealt this player" is
     // one of the rules `validateXi` enforces, so filling from a squad the referee never
@@ -554,7 +628,7 @@ export function tickRoom(room: PvpRoom, now: number): PvpRoom {
       if (!w || now <= deadlineOf(room, w) + PICK_GRACE_MS) continue;
       const r = edit();
       const mm = memberOf(r, m.userId)!;
-      forceFillOne(r, mm);
+      forceFillOne(r, mm, w, now);
       openWindow(r, mm, now);
     }
 
@@ -629,6 +703,12 @@ function clone(room: PvpRoom): PvpRoom {
     ...room,
     members: room.members.map((m) => ({ ...m })),
     xi: Object.fromEntries(Object.entries(room.xi).map(([k, v]) => [k, { ...v }])),
+    picks: Object.fromEntries(
+      Object.entries(room.picks).map(([k, v]) => [
+        k,
+        Object.fromEntries(Object.entries(v).map(([s, r]) => [s, { ...r }])),
+      ]),
+    ),
     deals: Object.fromEntries(Object.entries(room.deals).map(([k, v]) => [k, [...v]])),
     windows: Object.fromEntries(
       Object.entries(room.windows).map(([k, v]) => [k, v ? { ...v } : undefined]),
