@@ -882,8 +882,17 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   has 25 men because Benzema withdrew before playing.
   **Two squads look short against Wikipedia and are NOT wrong** - Argentina and England
   1990 both list a footnoted mid-tournament replacement as a 23rd row.
-  One more to know: Saudi Arabia 2022's #26 is Riyadh Sharahili, a midfielder, but the
-  row's positions still read `['LB','CB']` from the man who was wrongly there before.
+  Saudi Arabia 2022's #26 kept the `['LB','CB']` of the man who had been wrongly in that
+  row; **fixed to `['DM','CM']`** on the same day, since en, es and fr wikipedia all put
+  Riyadh Sharahili in midfield and fr says defensive midfielder specifically. His 64 is
+  kept rather than re-derived: it was already the squad's floor, which is where a 26th man
+  with two caps who never played belongs either way.
+  **POSITIONS have NOT been swept the way names and numbers have.** The one line-level
+  disagreement left in that squad is the honest kind: Nawaf Al-Abed is `['ST','AM']` here
+  and MF on the squad list, and wikipedia contradicts itself about him (infobox
+  "Midfielder", lead "plays as a winger"), so he is left alone. A full sweep of
+  `positions[0]` against the GK/DF/MF/FW split of all fourteen articles is the obvious
+  next check and has not been run.
 - **Ratings** are a holistic judgement of each player's strength *at the time of
   that tournament* on the 60-99 scale (not current ability, not a FIFA-game number).
   For **1998 and 2002** the rating is a *blend* of pre-tournament ability and how the
