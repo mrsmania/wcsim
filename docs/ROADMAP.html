@@ -336,8 +336,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-25<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Updated:</strong> 2026-08-26<br>
+    <strong>Open:</strong> 5 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -348,47 +348,6 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">37</span>
-    <span class="title">Migration: let the server read the bank cap instead of stating it
-      <span class="sub">QUEUED 2026-08-25. One migration, not yet written, that finishes the last economy constant the client and the server each state independently. Not urgent and not risky: the two agree today and a check now holds them together. It needs a session that can reach the NAS.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What this is.</strong> How many stickers one finished run may bank is a number
-    both sides of the network have to agree on. The client trims to it; the server refuses
-    anything over it, and that refusal throws the whole run's stickers away, which for a
-    signed-in player is the blocking "cannot reach the server" screen. So a disagreement
-    between the two costs someone a run they actually played.</p>
-
-    <p><strong>Why it is queued rather than done.</strong> The trade prices and the swap limit
-    already work the right way: they are written once on the client and sent to the server as
-    data, so they cannot drift. This one number never got that treatment - it is typed out on
-    the client and again inside the server's own code. Making it work like its neighbours means
-    changing the server, and the server is updated by hand from a machine on the home network,
-    which a cloud session cannot reach. Hence the handover, per the standing rule.</p>
-
-    <p><strong>What was done instead, so nothing is at risk in the meantime</strong>
-    (2026-08-25, hygiene H135). The number moved to the one file that holds the game's other
-    economy constants, and <code>npm run checks</code> now fails if the client's figure and
-    <b>any</b> copy of it on the server side disagree - including one a future change brings
-    with it. The check also fails if it can no longer find the server's copy at all, so it
-    cannot quietly stop looking. Both of those were tested by deliberately breaking them.</p>
-
-    <p><strong>For whoever picks this up.</strong> The work is: emit the number alongside the
-    trade prices and the swap limit in the generated seed, write a migration that has the
-    run-banking function read it from there with the current value as a fallback, then follow
-    the apply routine that item <b>35</b> in the shipped history documents (dry run first,
-    rehearse inside a transaction that rolls back, verify, then apply for real). Remove the
-    interim check's reason for existing only once the server genuinely reads the constant; until
-    then it is the only thing holding the two numbers together.</p>
-    <p class="files"><a class="dl" href="../src/config.ts" target="_blank" rel="noopener">src/config.ts</a>, <a class="dl" href="../scripts/gen-collectibles.ts" target="_blank" rel="noopener">scripts/gen-collectibles.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../scripts/checks/state.ts" target="_blank" rel="noopener">scripts/checks/state.ts</a></p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -964,6 +923,58 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-08-26</h3>
+    <p><b>37</b> is the last economy number that both sides of the network stated on their own,
+    and it is now data the client sends. Kept for the apply routine rather than the change,
+    which is three lines: the rehearsal is what proved the server reads the row instead of
+    coalescing past it, and that distinction is invisible from the diff.</p>
+
+<details class="item">
+  <summary>
+    <span class="num">37</span>
+    <span class="title">Migration: the server reads the bank cap instead of stating it
+      <span class="sub">SHIPPED 2026-08-26, migration <b>0015</b> applied to the NAS. How many stickers one run may bank is now written once on the client and sent to the server with the trade prices and the swap limit, so the two cannot drift. Three lines of one function, a line in the generator, and a rehearsal that proved it.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What this was.</strong> How many stickers one finished run may bank is a number
+    both sides of the network have to agree on. The client trims to it; the server refuses
+    anything over it, and that refusal throws the whole run's stickers away, which for a
+    signed-in player is the blocking "cannot reach the server" screen. So a disagreement
+    between the two costs someone a run they actually played. The trade prices and the swap
+    limit already worked the right way, written once on the client and sent as data; this one
+    number was typed out on the client and again inside the server's own code.</p>
+
+    <p><strong>What shipped.</strong> The generator now emits the cap beside the trade prices
+    and the swap limit, and the run-banking function reads it from there with the current
+    value as a fallback. <b>Order does not matter, deliberately</b>: because the fallback is
+    the value in force, applying the migration before sending the new data behaves exactly as
+    before, and sending the data first is inert. Neither half is a flag day, which is what
+    makes this safe to do to a live server from a repo that deploys separately.</p>
+
+    <p><strong>The rehearsal is the part worth repeating.</strong> A <code>coalesce</code> that
+    falls back to the old number looks identical from the outside whether the server is reading
+    the row or ignoring it, so "it still works" proves nothing. Inside a transaction that rolled
+    back: set the cap to <b>3</b>, submit <b>4</b>, and the server refused it naming a cap of
+    three - that is the proof. Then submit 3 and it went through; delete the row and confirm the
+    fallback refuses 13 and accepts 12. A sixth probe re-checked something the change could have
+    quietly reverted, since the body is copied forward each time: a cup pick the album already
+    holds is still a legal duplicate. All six ran again after applying for real, and the account's
+    version counter, sticker count and run count were unchanged either way.</p>
+
+    <p><strong>What the checks hold now.</strong> The interim guard swept every historical copy of
+    the number in the migrations directory, which stops making sense once the live path reads
+    data: those old files are correct about what the server used to do. Three assertions replace
+    it - that the generated data carries the cap, that every fallback is the client's figure, and
+    that the newest migration's test reads the constant rather than re-inlining a number, which
+    is the regression this can actually suffer, since each change to that function copies the
+    whole body forward. All three were mutation-tested.</p>
+    <p class="files"><a class="dl" href="../src/config.ts" target="_blank" rel="noopener">src/config.ts</a>, <a class="dl" href="../scripts/gen-collectibles.ts" target="_blank" rel="noopener">scripts/gen-collectibles.ts</a>, <a class="dl" href="../supabase/migrations/0015_bank_cap_from_constants.sql" target="_blank" rel="noopener">supabase/migrations/0015_bank_cap_from_constants.sql</a>, <a class="dl" href="../scripts/checks/state.ts" target="_blank" rel="noopener">scripts/checks/state.ts</a></p>
+  </div>
+</details>
+
     <h3>Closed 2026-08-25</h3>
     <p>All four kept in full because in each case the method is the deliverable. <b>23</b> is the
     hygiene backlog, closed complete: what a behaviour-preserving change has to prove before it can

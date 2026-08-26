@@ -71,7 +71,7 @@ done and why. What that means for anyone working in this tree now:
   `npm run checks` failed at random about one run in twelve, and that the `prime-years`
   check was **vacuous** - proved by reintroducing the sticker exploit it exists to catch
   and still getting 132 passed / 0 failed. Both are fixed (H106-H109), `npm run checks`
-  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **177
+  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **179
   checks**. Five of them assert that a number and the sentence promising it agree
   (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette, H65 the perk
   shop's advice, H146 the market's budget lookup), and one asserts a shape guard in both
@@ -322,7 +322,7 @@ the two disagree. See "Accounts" below.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, currently **177 checks**. It exercises the sim, penalty
+per concern in `scripts/checks/`, currently **179 checks**. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -1539,7 +1539,7 @@ whole lever untested. It was also a STARTER: see the pool-margin note above.
 | Card | Lever | The point |
 | --- | --- | --- |
 | **Away Days** / **Man-Marking** | the OPPONENT | -5 to their defence / -5 to their attack. A pair on purpose: which you want depends on whether this tie is one you expect to win by scoring or by holding out. Applied to the opponent OBJECT, not at simulation time, so the "next up" line, the bracket seed and the round record all show the numbers the tie is actually played on - a debuff the sim sees and the screen does not is a lie. "This tie only" comes free: `facedIds` means a team is played once. `overall` moves by the share of the XI touched (attack averages ~6 players, defence ~5), never by the raw delta. |
-| **Double Print** | the album | A cup win picks **two** stickers. `finish_run` takes one `cupPickId`, so the second rides along in `collectibleIds` - the path `remoteStore` already uses when the server refuses a duplicate pick. The server caps a run at `BANK_CAP` ids and rolls the whole bank back over it (the blocking unreachable screen for an account), so `useStickerAlbum` trims surplus picks under it. That constant lives in `config.ts`, and it is the **one economy number the server states independently** rather than reading from the generated seed the way the trade costs and the swap cap do: `npm run checks` holds every copy of it in `supabase/migrations/` to the client's figure, and teaching `finish_run` to read it needs a migration that is queued as a roadmap item. Eleven collectibles in one XI is out of reach, so that trim is a backstop, not a behaviour. The picker counts "Pick 1 of 2" and drops what was already taken, or a second pick could repeat the first. |
+| **Double Print** | the album | A cup win picks **two** stickers. `finish_run` takes one `cupPickId`, so the second rides along in `collectibleIds` - the path `remoteStore` already uses when the server refuses a duplicate pick. The server caps a run at `BANK_CAP` ids and rolls the whole bank back over it (the blocking unreachable screen for an account), so `useStickerAlbum` trims surplus picks under it. That constant lives in `config.ts`, and **the server reads it rather than stating its own** (migration **0015**, roadmap item 37, applied 2026-08-26): the generated seed carries it into `economy_constants` beside the trade costs and the swap cap, and `finish_run_v2` coalesces it there with the client's figure as the fallback, so the order of "apply the migration" and "push the seed" does not matter. It was the LAST number each side stated on its own, and `npm run checks` now holds three things instead of one: that the seed sends it, that every fallback is the client's figure, and that the newest migration's cap test reads the constant rather than re-inlining a literal. Eleven collectibles in one XI is out of reach, so that trim is a backstop, not a behaviour. The picker counts "Pick 1 of 2" and drops what was already taken, or a second pick could repeat the first. |
 
 ### Four more (2026-08-22): the dataset, the run, the career, and a question
 

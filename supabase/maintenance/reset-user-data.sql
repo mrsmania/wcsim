@@ -39,8 +39,11 @@
 --                      id against it, so an empty table makes EVERY run bank nothing
 --                      and the album silently stops filling. If it is ever lost, run
 --                      `npm run push:collectibles` to restore it.
---   economy_constants  Trade costs and the swap cap, mirrored from src/config.ts by the
---                      same generator.
+--   economy_constants  Trade costs, the swap cap and the bank cap, mirrored from
+--                      src/config.ts by the same generator. Losing the bank cap row is
+--                      survivable (0015 coalesces to the client's figure) and losing a
+--                      trade cost is not, so restore the lot with
+--                      `npm run push:collectibles` either way.
 --
 -- `allowed_emails` was listed here as a third, and is not one: 0005 DROPPED the table when
 -- it opened signup, so there is nothing to protect. Confirmed absent on the server

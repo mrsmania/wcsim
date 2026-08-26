@@ -111,6 +111,8 @@ begin;
 -- 1a. Stop writing the column before dropping it, in the same transaction. This is 0012's
 -- body verbatim; the insert is the only line that differs, and a `create or replace` on an
 -- unchanged signature keeps 0008's grants.
+-- SUPERSEDED BY 0015 (the bank cap moved into economy_constants, three lines). Do not copy
+-- this body; see README.md in this directory.
 create or replace function finish_run_v2(
   p_run_key          text,
   p_collectible_ids  text[],

@@ -157,7 +157,8 @@ insert into economy_constants (key, value) values
   ('trade_cost_legendary', 10),
   ('trade_cost_iconic', 20),
   ('trade_cost_monumental', 50),
-  ('max_swaps_per_run', 2)
+  ('max_swaps_per_run', 2),
+  ('max_collectibles_per_run', 12)
 on conflict (key) do update set value = excluded.value;
 
 commit;

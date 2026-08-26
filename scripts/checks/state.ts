@@ -25,6 +25,7 @@ import {
   toStored,
 } from '../../src/state/settingsStorage';
 import { GUEST_KEYS } from '../../src/state/store/localStore';
+import { CATALOGUE_PATH } from '../collectibles';
 
 export function stateChecks(): void {
   // --- Settings: "every tournament" has to survive a tournament being ADDED ----
@@ -247,33 +248,76 @@ export function stateChecks(): void {
     );
   }
 
-  // --- The bank cap: the last economy constant stated twice ---------------------
-  // The trade costs and the swap cap reach the server through `economy_constants`, emitted
-  // from `config.ts` by `gen-collectibles`, so they cannot drift. The bank cap does not: the
-  // client trims to `BANK_CAP` and five migrations each carry a bare `> 12` (hygiene H135).
-  // They agree today, and going over it raises, which rolls the whole bank back - for a
-  // signed-in player that is the blocking unreachable screen, so silent drift here costs a
-  // run. Teaching `finish_run` to read the constant needs a migration and is queued; this
-  // holds every cap literal on disk to the client's number in the meantime, including one a
-  // future restatement of the function brings with it.
+  // --- The bank cap: data now, like every other economy constant ----------------
+  // How many collectible ids one finished run may bank used to be the one economy number
+  // the two sides each stated on their own: `BANK_CAP` here, and a bare `> 12` inside the
+  // body of `finish_run_v2`. Hygiene H135 held every literal in `supabase/migrations/` to
+  // the client's figure as an interim; migration 0015 is the real fix, so the function reads
+  // `economy_constants` and `gen-collectibles` emits the row, the way the trade costs and
+  // the swap cap always did. Going over the cap raises and the raise rolls the whole bank
+  // back, which for a signed-in player is the blocking unreachable screen, so what is left
+  // to guard is the three ways that can quietly come undone.
+  //
+  // The historical literals are NOT held to `BANK_CAP` any more, deliberately: 0003 to 0014
+  // are superseded history, and a future change to the cap would fail against six files that
+  // are correct about what the server used to do.
   {
     const dir = 'supabase/migrations';
-    const found: { file: string; n: number }[] = [];
+    const KEY = 'max_collectibles_per_run';
+
+    // 1. The client's figure reaches the server at all. Regenerating the seed is what fixes
+    //    a failure here, exactly as it is for the catalogue rows.
+    const seed = readFileSync(CATALOGUE_PATH, 'utf8');
+    const emitted = /\('max_collectibles_per_run',\s*(\d+)\)/.exec(seed);
+    check(
+      `economy: the generated seed sends the bank cap (${KEY} = ${BANK_CAP})`,
+      () => emitted !== null && Number(emitted[1]) === BANK_CAP,
+      () =>
+        emitted === null
+          ? `${CATALOGUE_PATH} does not emit ${KEY} at all - run \`npm run gen:collectibles\``
+          : `the seed sends ${emitted[1]}, config says ${BANK_CAP}`,
+    );
+
+    // 2. Every `coalesce` fallback is the current figure, which is what makes the order of
+    //    "apply the migration" and "push the seed" not matter.
+    const fallbacks: { file: string; n: number }[] = [];
+    // 3. ...and the cap test's operand, which must be the variable and not a number again.
+    const tests: { file: string; operand: string }[] = [];
     for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) {
-      for (const m of readFileSync(`${dir}/${f}`, 'utf8').matchAll(
-        /array_length\(\s*[a-z_]+\s*,\s*1\s*\)\s*>\s*(\d+)/g,
+      const sql = readFileSync(`${dir}/${f}`, 'utf8');
+      for (const m of sql.matchAll(
+        /coalesce\(\s*economy_constant\('max_collectibles_per_run'\)\s*,\s*(\d+)\s*\)/g,
       )) {
-        found.push({ file: f, n: Number(m[1]) });
+        fallbacks.push({ file: f, n: Number(m[1]) });
+      }
+      for (const m of sql.matchAll(/array_length\(\s*submitted\s*,\s*1\s*\)\s*>\s*([a-z_0-9]+)/g)) {
+        tests.push({ file: f, operand: m[1]! });
       }
     }
-    const wrong = found.filter((x) => x.n !== BANK_CAP);
+
+    const stale = fallbacks.filter((x) => x.n !== BANK_CAP);
     check(
-      `economy: all ${found.length} server-side bank caps are config's BANK_CAP (${BANK_CAP})`,
-      () => found.length > 0 && wrong.length === 0,
+      `economy: every server-side bank-cap fallback is config's BANK_CAP (${BANK_CAP})`,
+      () => fallbacks.length > 0 && stale.length === 0,
       () =>
-        found.length === 0
-          ? 'no cap literal found at all - the pattern moved, so this check is now vacuous'
-          : wrong.map((x) => `${x.file} caps at ${x.n}`).join('; '),
+        fallbacks.length === 0
+          ? `nothing in ${dir} coalesces economy_constant('${KEY}') - the server has stopped ` +
+            'reading the constant, so this check is now vacuous'
+          : stale.map((x) => `${x.file} falls back to ${x.n}`).join('; '),
+    );
+
+    // The live definition is the newest one, and this is the regression the interim check was
+    // really guarding: a restatement that copies an older body brings the literal back.
+    const live = tests.length > 0 ? tests[tests.length - 1]!.file : null;
+    const inlined = tests.filter((t) => t.file === live && /^[0-9]+$/.test(t.operand));
+    check(
+      'economy: the newest migration caps a bank by reading the constant, not a literal',
+      () => live !== null && inlined.length === 0,
+      () =>
+        live === null
+          ? `nothing in ${dir} tests array_length(submitted, 1) - the cap has moved, so this ` +
+            'check is now vacuous'
+          : `${live} caps at the literal ${inlined.map((t) => t.operand).join(', ')}`,
     );
   }
 }

@@ -178,11 +178,13 @@ export const INITIAL_SWAPS = 2;
  *  raises, and the raise rolls the whole bank back - which for a signed-in player is the
  *  blocking unreachable screen, so the client trims to this rather than finding out.
  *
- *  Here rather than in the hook for the reason `INITIAL_SWAPS` is here: it is the last
- *  economy constant the client and the server each stated independently, the client's copy
- *  in a hook and the server's as a bare literal inside five migrations. They agree today
- *  and a change to either side is silent (hygiene H135). `npm run checks` now holds every
- *  cap literal in `supabase/migrations/` to this number, which closes the drift without a
- *  migration. Teaching `finish_run` to read `economy_constants` instead, the way the trade
- *  costs and the swap cap already do, needs one - it is queued as a roadmap item. */
+ *  THE SERVER READS THIS NUMBER; it does not state its own (migration 0015, roadmap item
+ *  37). `gen-collectibles` emits it into `economy_constants` alongside the trade costs and
+ *  the swap cap, and `finish_run_v2` coalesces it there with this figure as the fallback,
+ *  so applying a migration before pushing the seed behaves exactly as today. It used to be
+ *  the one economy constant each side stated on its own - this one in a hook, the server's
+ *  as a bare literal in the function body - which is silent drift over a number whose
+ *  disagreement costs somebody a run they played (hygiene H135). `npm run checks` holds the
+ *  seed, the fallback and the shape of the test together; see scripts/checks/state.ts for
+ *  what each of the three assertions is for. */
 export const BANK_CAP = 12;

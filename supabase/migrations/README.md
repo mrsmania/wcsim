@@ -31,7 +31,7 @@ mode, and it has happened.
 | `save_settings(jsonb)` | 0003 | - |
 | `save_career(jsonb, integer)` | **0011** | 0003, 0006 |
 | `finish_run(...)` | **0010** | 0003, 0006, 0009 |
-| `finish_run_v2(...)` | **0014** | 0010, 0012 |
+| `finish_run_v2(...)` | **0015** | 0010, 0012, 0014 |
 | `execute_trade(text, text, integer)` | 0003 | - |
 | `import_guest_progress(jsonb)` | **0011** | 0003 |
 | `export_account()` | 0003 (execute revoked in 0014) | - |
@@ -59,6 +59,13 @@ header says to keep the pair in step, and it means it.
 The catalogue is not a migration: `npm run gen:collectibles` writes
 `../seed/collectibles.sql` from the TypeScript dataset and `npm run push:collectibles`
 sends it. `npm run checks` fails while the generated file and the dataset disagree.
+
+The same seed carries the **economy constants** (`economy_constants`): the three trade
+costs, the swap cap and - since 0015 - the bank cap. They are written once in
+`src/config.ts` and read back in SQL through `economy_constant(key)`, so neither side can
+state a number of its own. A new one is one line in the generator plus one `coalesce` in
+whichever function validates it, and the fallback in that `coalesce` is what makes the
+order of "apply the migration" and "push the seed" not matter.
 
 ## Two traps, both of which have already cost a day
 

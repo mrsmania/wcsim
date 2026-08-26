@@ -15,7 +15,13 @@
 import { writeFileSync } from 'node:fs';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../src/data/squads';
 import { tierOf } from '../src/domain/album';
-import { INITIAL_SWAPS, STICKER_TIERS, STICKER_TRADE_COST, type StickerTier } from '../src/config';
+import {
+  BANK_CAP,
+  INITIAL_SWAPS,
+  STICKER_TIERS,
+  STICKER_TRADE_COST,
+  type StickerTier,
+} from '../src/config';
 import {
   CATALOGUE_PATH,
   catalogueChecksum,
@@ -97,7 +103,8 @@ insert into economy_constants (key, value) values
   ('trade_cost_legendary', ${STICKER_TRADE_COST.legendary}),
   ('trade_cost_iconic', ${STICKER_TRADE_COST.iconic}),
   ('trade_cost_monumental', ${STICKER_TRADE_COST.monumental}),
-  ('max_swaps_per_run', ${INITIAL_SWAPS})
+  ('max_swaps_per_run', ${INITIAL_SWAPS}),
+  ('max_collectibles_per_run', ${BANK_CAP})
 on conflict (key) do update set value = excluded.value;
 
 commit;
