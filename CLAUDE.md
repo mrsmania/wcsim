@@ -928,10 +928,39 @@ display; opponents are real, intact squads with innate chemistry). Lives in
 
 - Six categories, each contributing a **small integer that sums to the bonus**
   (capped at `MAX_BONUS = 6`): **Same squad, Same nation, Same tournament, Same
-  continent, Same era, In position** (the last counts players in `positions[0]`).
-  Category names are identical in the rules tooltip and the breakdown, and the
-  per-category points add up to the displayed bonus (with an explicit "capped" note
+  continent, Same era, In position** (the last needs `FIT_MIN` = 10 of the XI standing in
+  their natural role). Category names are identical in the rules tooltip and the breakdown,
+  and the per-category points add up to the displayed bonus (with an explicit "capped" note
   when the raw total exceeds the cap) - keep it that way; transparency is the point.
+- **"In position" needs TWO different readings of a player, and confusing them was a real
+  bug** (roadmap 38, fixed 2026-08-26). The category compares where a man is STANDING
+  against what he IS, and a run's XI can only answer the first: `placedPlayers` promotes
+  the filled slot to `positions[0]`, so `primaryPosition(p)` on a run's copy is the slot
+  and the natural role has been overwritten. `chemistryOf` (domain/run.ts) read the run's
+  copy on both sides, which asked whether each player was standing where he was standing -
+  so **In position was 11 out of 11 for every XI that ever started a run**, and the run
+  scored a point higher than the build page had promised on 374 of 400 sampled XIs. It
+  resolves the player through **`basePlayer`** now, the same tool and the same reason as the
+  challenge catalogue and the sticker banking. `npm run checks` asserts the two paths agree
+  on the same XI, plus two vacuity guards: that the pre-fix reading would have disagreed on
+  the sample, and that the sample can actually FAIL the category (a check that the category
+  is earnable is worthless if nothing in the sample loses it).
+- **The fix was a balance change and is deliberately NOT compensated.** Chemistry reaches
+  attack and defence alike, so the lost point cost real runs: measured over 40 budget XIs at
+  $110, average chemistry went 2.52 -> 1.52, cup wins 6.1% -> 4.1%, out of the group 71.0%
+  -> 66.3%. It stands because `FIT_MIN` was tuned against the build page's (correct)
+  reading, so the post-fix number is the balance the game was designed for - runs had been
+  easier than intended - and because the category is genuinely earnable: an XI built by
+  shopping each slot's natural role hit 11/11 in 200 of 200 attempts, where a random
+  auto-fill averages 7.3 and earns it 6% of the time. Widening `FIT_MIN` to hand the point
+  back would just re-grant the free point. The levers for run difficulty are `ASCENSIONS`
+  and the difficulty setting.
+- **The transfer market shows no positions at all, which is now a gap** (roadmap 40).
+  `SquadPanel` underlines `positions[0]` and its tooltip says only placing a player there
+  earns positional chemistry; `BudgetMarket` prints name, flag, year, rating and price and
+  never references `positions`. Since the market filters by every position a player can
+  fill, all sixty visible rows are eligible and an unknown subset are naturally in the slot,
+  so the category is aimable in the roll draft and blind in the market.
 - Entirely behind **`FEATURES.chemistry`** in `src/config.ts`. With it `false`, the
   bonus is 0 and all chemistry UI (box, "?" rules, breakdown, the underlined primary
   position in the draft chip, the per-player flag/year in the box) disappears.

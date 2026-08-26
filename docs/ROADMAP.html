@@ -337,7 +337,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-26<br>
-    <strong>Open:</strong> 5 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -596,54 +596,58 @@
 
 <details class="item">
   <summary>
-    <span class="num">38</span>
-    <span class="title">The chemistry shown while you draft is not the chemistry the match uses
-      <span class="sub">The build page scores &#8220;in position&#8221; against a player&#8217;s
-      real role; a run scores it against the slot you played him in, which placement has already
-      written onto him, so the category is free once a run starts. Measured over 400 XIs they
-      disagree in <b>358</b>, always with the run exactly one higher. FOUND 2026-08-26.</span>
+    <span class="num">40</span>
+    <span class="title">The transfer market never says what position a player actually plays
+      <span class="sub">The roll draft underlines a player&#8217;s natural role and explains that
+      only placing him there earns positional chemistry. The market shows a name, a flag, a year,
+      a rating and a price - and no position at all. Since <b>38</b> made &#8220;In position&#8221;
+      earnable again, that is a point the market gives you no way to aim at. FOUND 2026-08-26.</span>
     </span>
     <span class="tag">Bug</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>Found 2026-08-26</strong> while reviewing the player-versus-player plan
-    (<a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, section
-    11), and it has nothing to do with that feature: it is a plain single-player defect.
-    <b>The number on the build page is not the number the simulator uses.</b></p>
-    <p><strong>What happens.</strong> Chemistry has six categories and the last is <b>In
-    position</b>, which is meant to reward fielding players in the role they actually played.
-    <code>teamChemistry</code> (the build page) scores it by comparing each player against the
-    slot he is standing in. <code>chemistryOf</code> (a run) scores it against
-    <code>primaryPosition(p)</code> - and <b>placement has already promoted the slot&#8217;s role
-    onto the player</b>, so that comparison is a player against himself and <b>In position is
-    always 11 out of 11 once a run starts</b>. The category stops being earnable and becomes a
-    constant.</p>
-    <p><strong>The docstring is where it hides.</strong> <code>chemistryOf</code> says every
-    player is &#8220;treated as in their natural role (a run tracks players, not slots)&#8221;.
-    That was the intent and the data does not support it any more: by then the natural role has
-    been overwritten. It is the same class of problem the challenge catalogue already solved, and
-    with the same tool - <code>basePlayer</code> in <code>src/data/squads.ts</code> is the one
-    copy of &#8220;the player as the dataset has him&#8221;, and exists precisely because
-    <code>run.xi</code> cannot be trusted to describe a player&#8217;s real attributes.</p>
-    <p><strong>Measured, not estimated:</strong> over 400 budget-built XIs at $110 the two
-    disagree in <b>358</b>, and the gap is always the same direction and the same size, the run
-    reading <b>exactly one higher</b>. It is small because the bonus is capped at 6, which is also
-    why it has gone unnoticed.</p>
-    <p><strong>Which one is right:</strong> the build page. The category exists to reward playing
-    people in position, and under the run&#8217;s reading it cannot be failed, so it rewards
-    nothing. The fix is for <code>chemistryOf</code> to resolve each player through
-    <code>basePlayer</code> before asking what his role is.</p>
-    <p><strong>It is a balance change, so do not slip it in quietly.</strong> Fixing it lowers
-    most XIs&#8217; chemistry by a point, and chemistry is added to attack and defence alike, so
-    every Cup Run gets slightly harder. Worth deciding whether to compensate elsewhere, and worth
-    a line in the commit either way. A check should assert the two paths agree on the same XI -
-    the bug is exactly the kind a later refactor would reintroduce, and nothing currently compares
-    them.</p>
-    <p class="next"><strong>Next step:</strong> small and self-contained. Fix
-    <code>chemistryOf</code>, add the agreement check, and decide whether the lost point is
-    compensated.</p>
-    <p class="files"><a class="dl" href="../src/domain/chemistry.ts" target="_blank" rel="noopener">src/domain/chemistry.ts</a>, <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a>, <a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a> (<code>basePlayer</code>), <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (where it was found)</p>
+    <p><strong>Found 2026-08-26</strong> while fixing <b>38</b>, and it is that fix&#8217;s only
+    loose end. Chemistry&#8217;s <b>In position</b> category rewards fielding players in the role
+    they really played. Until 38 it was free once a run started, so nothing hung on being able to
+    see a natural role. It is now a real target, and worth a point of attack <em>and</em> a point
+    of defence.</p>
+
+    <p><strong>The two build paths are not equal on this.</strong> <code>SquadPanel</code> - the
+    drawn squad in the roll draft - prints the whole position list with
+    <code>positions[0]</code> <b>underlined</b>, behind a tooltip that says in as many words:
+    &#8220;Underlined = natural position; only placing the player there earns positional
+    chemistry.&#8221; It is gated on <code>FEATURES.chemistry</code>, so it exists for exactly
+    this reason. <code>BudgetMarket</code> renders no position in either its list rows or its grid
+    cards; the file does not reference <code>positions</code> anywhere.</p>
+
+    <p><strong>Why that is worse than it sounds.</strong> The market filters to the slot being
+    shopped using <em>every</em> position a player can fill, not his primary - which is correct
+    for eligibility and is exactly what makes the display necessary. So the sixty rows on screen
+    are all legal for the slot and an unknown subset of them are naturally in it. Measured while
+    fixing 38: a budget XI auto-filled at random puts <b>7.3 of 11</b> players in their natural
+    role and earns the category <b>6%</b> of the time, while an XI built by shopping each
+    slot&#8217;s natural role scored <b>11/11 in 200 of 200</b> attempts. The whole gap between
+    those two numbers is information the market withholds.</p>
+
+    <p><strong>The constraint to design against is width, not doubt.</strong> Market names are
+    already truncated - the year was moved underneath the flag to give them 28px back, and that
+    is recorded as a deliberate trade. So this is not &#8220;add the position column&#8221;: the
+    useful signal is one bit, since every visible row is eligible anyway. A mark on the rows that
+    are naturally in the shopped slot, with one legend beside the existing
+    &#8220;Buying: <em>label</em> (<em>POS</em>)&#8221; line rather than sixty tooltips, would
+    carry it. Whether it should instead be a filter or a sort is the open question, and a filter
+    has a precedent right there: <b>36</b> settled that a control is shown when it has more than
+    one option or a selection is live on it.</p>
+
+    <p><strong>Do not answer it by widening the category.</strong> Lowering
+    <code>FIT_MIN</code> so the market earns the point by accident is the free point 38 just
+    removed, wearing a different hat.</p>
+
+    <p class="next"><strong>Next step:</strong> a product call on mark versus filter versus sort,
+    then a small change in one component. The roll draft&#8217;s wording and underline convention
+    already exist and should be reused verbatim rather than reinvented.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener">src/components/BudgetMarket.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/SquadPanel.tsx" target="_blank" rel="noopener">src/components/SquadPanel.tsx</a> (the convention to reuse), <a class="dl" href="../src/domain/chemistry.ts" target="_blank" rel="noopener">src/domain/chemistry.ts</a> (<code>FIT_MIN</code>)</p>
   </div>
 </details>
 
@@ -1107,10 +1111,95 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
     <h3>Closed 2026-08-26</h3>
+    <p><b>38</b> was a category that could not be failed. The number the build page promised and
+    the number the simulator used had been a point apart for as long as both existed, and the
+    reason it went unnoticed is that the bonus is capped: one free point out of six reads as
+    noise. It is a balance change, deliberately not compensated, and it left one loose end -
+    item <b>40</b>, the market showing no positions.</p>
     <p><b>37</b> is the last economy number that both sides of the network stated on their own,
     and it is now data the client sends. Kept for the apply routine rather than the change,
     which is three lines: the rehearsal is what proved the server reads the row instead of
     coalescing past it, and that distinction is invisible from the diff.</p>
+
+<details class="item">
+  <summary>
+    <span class="num">38</span>
+    <span class="title">The chemistry shown while you draft is not the chemistry the match uses
+      <span class="sub">SHIPPED 2026-08-26. <code>chemistryOf</code> resolves each player through
+      <code>basePlayer</code>, so &#8220;In position&#8221; is scored against the role he really
+      plays instead of against the slot he is standing in. It was <b>11 out of 11 for every XI
+      that ever started a run</b>. Three checks guard it, two of them vacuity guards.
+      <b>Not compensated</b>, and the reason is measured.</span>
+    </span>
+    <span class="tag">Bug</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Found 2026-08-26</strong> while reviewing the player-versus-player plan
+    (<a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, section
+    11), and it had nothing to do with that feature: a plain single-player defect.
+    <b>The number on the build page was not the number the simulator used.</b></p>
+    <p><strong>What happened.</strong> Chemistry has six categories and the last is <b>In
+    position</b>, which is meant to reward fielding players in the role they actually played.
+    <code>teamChemistry</code> (the build page) scores it by comparing each player against the
+    slot he is standing in. <code>chemistryOf</code> (a run) scored it against
+    <code>primaryPosition(p)</code> - and <b>placement has already promoted the slot&#8217;s role
+    onto the player</b>, so that comparison was a player against himself and <b>In position was
+    always 11 out of 11 once a run started</b>. The category was not a reward, it was a
+    constant.</p>
+    <p><strong>The docstring was where it hid.</strong> <code>chemistryOf</code> said every
+    player is &#8220;treated as in their natural role (a run tracks players, not slots)&#8221;.
+    That was the intent and the data stopped supporting it: by then the natural role has been
+    overwritten. The same class of problem the challenge catalogue already solved, and with the
+    same tool - <code>basePlayer</code> in <code>src/data/squads.ts</code> is the one copy of
+    &#8220;the player as the dataset has him&#8221;, and exists precisely because
+    <code>run.xi</code> cannot be trusted to describe a player&#8217;s real attributes. The new
+    docstring says which of the two readings is the slot and which is the man, because that is
+    the sentence whose absence let this sit.</p>
+
+    <p><strong>The fix is one call.</strong> <code>chemistryOf</code> now passes
+    <code>basePlayer(p)</code> as the player and keeps <code>primaryPosition(p)</code> as the
+    slot - the run&#8217;s own copy is the right source for <em>where he is standing</em> and the
+    wrong one for <em>what he is</em>. Roster boosts come out right for free: a swap preserves
+    the outgoing player&#8217;s <code>positions</code>, so the slot survives, and
+    <code>basePlayer</code> resolves the arriving id to his own natural role.</p>
+
+    <p><strong>Three checks, and two of them exist to stop the first going vacuous.</strong> The
+    agreement check walks 240 seeded budget-built XIs and asserts the build page and a run score
+    each one identically. That alone could pass on a sample where everyone happened to be in
+    position, so the same loop also reproduces the OLD reading and asserts it <em>would</em> have
+    disagreed, and asserts the sample actually fails the category. All three were
+    mutation-tested: reverting the fix reds the first (13/240 agreed), and setting
+    <code>FIT_MIN</code> to 0 - which makes the category free again by another route - reds the
+    other two. It is not a comparison between two things sharing one helper, the trap
+    <code>CLAUDE.md</code> names for a DRY check: the two paths build their placements from
+    different inputs and only one goes through <code>basePlayer</code>.</p>
+
+    <p><strong>The balance change, measured over 40 XIs at $110 and 600 tournaments each.</strong>
+    Average chemistry <b>2.52 to 1.52</b> (every single XI moved), cup wins <b>6.1% to 4.1%</b>,
+    out of the group <b>71.0% to 66.3%</b>. Chemistry reaches attack and defence alike, so one
+    point is worth more than it looks.</p>
+
+    <p><strong>NOT compensated, and this is the decision rather than an omission.</strong> Two
+    measurements settle it. First, <code>FIT_MIN</code> was tuned against the build page&#8217;s
+    reading, which is the correct one - so the post-fix number is the balance the game was
+    <em>designed</em> for, and runs have been easier than intended rather than the reverse.
+    Second, the category is fully earnable: an XI built by shopping for each slot&#8217;s natural
+    role hit <b>11/11 in 200 of 200</b> attempts. The random sample only earns it 6% of the time
+    because auto-fill is indifferent to natural role, which says something about auto-fill and
+    nothing about the threshold. Handing the point back under another name would re-grant exactly
+    the free point this removed. If runs should be kept at the old difficulty, the levers for
+    that are <code>ASCENSIONS</code> and the difficulty setting, which exist for it; chemistry is
+    not the place.</p>
+
+    <p class="next"><strong>What it exposed, now item 40:</strong> the category is earnable in the
+    roll draft, where the drawn-squad panel underlines the natural position and says why. The
+    <b>transfer market shows no position at all</b>, so in the build path this item&#8217;s own
+    measurement is based on, the player cannot see which of sixty eligible men is naturally in
+    the slot. The fix made that information matter; nothing puts it on screen.</p>
+    <p class="files"><a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a> (<code>chemistryOf</code>), <a class="dl" href="../src/domain/chemistry.ts" target="_blank" rel="noopener">src/domain/chemistry.ts</a>, <a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a> (<code>basePlayer</code>), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/checks/chemistry.ts" target="_blank" rel="noopener">scripts/checks/chemistry.ts</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (where it was found)</p>
+  </div>
+</details>
 
 <details class="item">
   <summary>

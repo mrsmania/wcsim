@@ -2,7 +2,7 @@ import type { Player, Position, Squad } from '../data/types';
 import { primaryPosition } from '../data/types';
 import type { FormationName, Style } from './formations';
 import { priceFor, xiSpend } from './pricing';
-import { SQUADS } from '../data/squads';
+import { SQUADS, basePlayer } from '../data/squads';
 import { FEATURES } from '../config';
 import { computeChemistry } from './chemistry';
 import {
@@ -715,12 +715,28 @@ const STAGE_SCORE: Record<RunOutcome, number> = {
   final: 95,
   champion: 140,
 };
-/** Team chemistry bonus for the current XI (0 when the feature is off). Recomputed
- *  live from the players so it stays correct after a roster boon changes the XI;
- *  every player is treated as in their natural role (a run tracks players, not slots). */
+/**
+ * Team chemistry bonus for the current XI (0 when the feature is off). Recomputed live
+ * from the players so it stays correct after a roster boon changes the XI.
+ *
+ * `primaryPosition(p)` is the SLOT, not the player's real role: `placedPlayers` promotes
+ * the slot he was placed in to the front of his `positions`, so a run's XI describes where
+ * everyone is standing and no longer describes what anyone is. The natural role therefore
+ * has to come back out of the dataset, through `basePlayer` - the same tool, and the same
+ * reason, as the challenge catalogue and the sticker banking.
+ *
+ * This was a bug until 2026-08-26 (roadmap 38): both sides of the comparison read the run's
+ * own copy, so it asked whether each player was standing where he was standing. "In
+ * position" was therefore 11 out of 11 for every XI that ever started a run - a category
+ * that cannot be failed rewards nothing - and the run read one point higher than the build
+ * page had promised on 374 of 400 sampled XIs. The build page was the correct one; a check
+ * now asserts the two agree.
+ */
 export function chemistryOf(xi: Player[]): number {
   if (!FEATURES.chemistry) return 0;
-  return computeChemistry(xi.map((p) => ({ player: p, slotPosition: primaryPosition(p) }))).bonus;
+  return computeChemistry(
+    xi.map((p) => ({ player: basePlayer(p), slotPosition: primaryPosition(p) })),
+  ).bonus;
 }
 
 /** Boon offer size (3), widened by the Extra Choice perk (+1 per owned tier). */
