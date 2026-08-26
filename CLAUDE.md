@@ -703,6 +703,15 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
 
 ## The dataset (`src/data/squads.ts`)
 
+**Adding a tournament has a written method: `docs/adding-a-world-cup.md`.** It is the
+distillation of the five drops below (1986 re-sourced, then 1982, 1978, 1974, 1970) and it
+exists because each of them rediscovered something the last one had already learned. It
+carries the three sources in order, the tooling traps (RSSSF serves latin-1; the name
+matcher's failure modes; the MediaWiki 429s), the three identity scans `validateSquads`
+cannot do, the paired-rater / reconciler structure, the per-half 81-84 band self-check that
+stopped three drops running from coming in light, the finishing checklist, and why **2026 is
+a different problem** from every backward drop. It ends with a ready-to-use prompt.
+
 - Tournaments: **all fourteen (1970-2022)** are full researched datasets. 1970, 1974 and
   1978 are 16-nation fields; 1982, 1986, 1990 and 1994 are 24 nations; 1998-2022 are 32.
   Squad sizes: 22-man for 1970-1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25).
