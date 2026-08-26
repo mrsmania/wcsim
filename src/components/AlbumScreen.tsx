@@ -78,7 +78,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
         setTrade({ tier, options: tradeOptions(album, tier, allPlayers) });
 
     return (
-        <div className="mx-auto max-w-[1000px]">
+        <div>
             <StageHeader eyebrow="Your collection" title="The Sticker Album" />
 
             {/* Completion counter + duplicate pool */}

@@ -463,7 +463,7 @@ export default function CupRunScreen({
     run?.phase === 'ended' && lastRecord && lastRecord.stage !== 'group' ? lastRecord : null;
 
   return (
-    <div ref={rootRef} className="mx-auto max-w-[1000px]">
+    <div ref={rootRef}>
       {/* Cup-win celebration: rains once, at the moment the final is won. */}
       {celebrating && <Confetti />}
 
