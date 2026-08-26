@@ -1057,6 +1057,22 @@ there is only one artifact to keep in step.
   Measured: **5,005 players matched**, 99.3% of the 7a0 rows whose squad WCS also has;
   889 are rated identically and WCS runs 0.61 lower on average. A row with no counterpart
   prints a dash and sorts last in both directions - an absent difference, not a small one.
+- **Its given names were filled in twice, and the second pass is the shape to repeat.**
+  The source publishes short display names (bare surnames, or a given name alone). The
+  first pass (2026-08-25) took full names from Wikipedia and left 488 rows single-token;
+  a second pass (2026-08-26) cut that to 421 using the two sources a cloud session can
+  actually reach - **this repo's own `squads.ts` for 1970 on, and openfootball/world-cup
+  (CC0, through GitHub) for 1950 to 1966** - since Wikipedia, RSSSF and every other
+  football site are blocked by the egress proxy here. The rule both directions: match
+  within ONE squad, take the name only when it is the single unclaimed candidate, and
+  never use the shirt number (the two sources number squads differently - 7a0's
+  "O. Berg" and WCS's Henning Berg are both #20 and are different men). What that
+  leaves is mostly genuine one-name players: for 275 of the short rows `squads.ts` uses
+  the same single name, and openfootball does for 81 of the pre-1970 ones.
+  **A rule that looks obvious and is wrong**, tried and rejected in that pass: "the file
+  spells this token out in another year, so copy it". Common given names collide across
+  eras - it wanted 1950's Ademir (Marques de Menezes) to become Ademir da Guia, 2002's
+  Raul (Gonzalez) to become Raul Albiol and 2022's Fred to become Fred Guedes.
 - **It has no player id**, which the "x N appearances" mark needs. Appearances are
   matched by name **within a nation**, split wherever two are more than 24 years apart
   (`MAX_CAREER`; the longest real span in the data is Buffon's 20). Name alone merged
