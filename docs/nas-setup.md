@@ -613,7 +613,14 @@ until the last one.
 >    blocking unreachable screen for every signed-in player of the SINGLE-PLAYER game. It
 >    is invisible from the gateway's side - envoy keeps serving on connections it already
 >    holds, so a casual check looks fine while new connections all fail.
->    **Re-run the Task Scheduler job after any container work, and check a real upstream
+>    **It is wiped by creating or removing ANY container**, which makes it a trap during
+>    exactly the work that provokes it: a throwaway `docker run --rm` used to CHECK whether
+>    the stack is healthy wipes the rules again as it exits, so the stack recovers for a few
+>    minutes and then fails, and it reads as a flapping network. Diagnose this with plain
+>    HTTPS calls, never with a throwaway container. Put the Task Scheduler job on a
+>    **5-minute schedule** as well as its triggers - it is a no-op when the rules are there,
+>    and it turns a silent outage lasting until somebody notices into one that heals itself.
+>    **Re-run the job after any container work, and check a real upstream
 >    call afterwards.** Not `/auth/v1/health` without a key, which returns 401 from the
 >    gateway itself and proves nothing; use `/auth/v1/settings` with the anon key and
 >    require a 200.

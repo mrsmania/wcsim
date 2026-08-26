@@ -627,11 +627,13 @@
   <summary>
     <span class="num">41</span>
     <span class="title">Deploy the referee, and apply migration 0017
-      <span class="sub"><b>DEPLOYED 2026-08-26.</b> Migration applied, referee built and
-      running on the NAS, Realtime back in the stack, and all three verification curls pass
-      including the one that matters. <b>Two steps left, both GUI-only: the DSM WebSocket
-      header and the <code>VITE_REFEREE_URL</code> repository variable.</b> Nothing a player
-      can see changes until that second one.</span>
+      <span class="sub"><b>SHIPPED 2026-08-26, all six steps.</b> Migration applied,
+      referee built and running on the NAS, Realtime back in the stack, WebSocket upgrade
+      confirmed at 101, and <code>VITE_REFEREE_URL</code> set and deployed - the built
+      bundle carries it, so <b>Versus is live for signed-in players</b>. The deploy also
+      turned up an operational fault that has nothing to do with versus: <b>container
+      operations wipe the docker bridge firewall rules</b>, which silently takes the whole
+      accounts stack down.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -689,6 +691,21 @@
     everything including the health check, which then makes envoy drop the endpoint; and
     <b>the docker bridge firewall rules are wiped by container operations</b>, not just by
     boots and firewall edits.</p>
+
+    <p><strong>THE FIREWALL FINDING IS THE ONE TO KEEP, and it got worse the closer it
+    was looked at.</strong> The rules are wiped by <b>creating or removing ANY container</b>,
+    not just by boots and firewall edits as this file used to say. That makes it a trap
+    during exactly the work that provokes it: every throwaway diagnostic container run to
+    check whether the stack was healthy wiped the rules again on exit, so the stack kept
+    coming back for a few minutes and then failing, and the debugging looked like a flapping
+    network. It took four rounds to see that the probe was the cause.</p>
+
+    <p><strong>Two things follow.</strong> Diagnose this class of fault with plain HTTPS
+    calls, never with <code>docker run --rm</code>. And <b>put the Task Scheduler job on a
+    5-minute schedule</b> as well as its triggers: it is a no-op when the rules are present,
+    so it costs nothing, and it turns a silent outage that lasts until somebody notices into
+    one that heals itself. The alternative is that a container restart at 3am leaves every
+    signed-in player staring at the blocking unreachable screen.</p>
 
     <p><strong>That third one took the live accounts stack down twice mid-deploy</strong>,
     and it is the finding worth carrying: <code>/auth/v1/</code> and <code>/rest/v1/</code>
