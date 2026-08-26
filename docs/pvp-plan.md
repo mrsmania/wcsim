@@ -1,8 +1,8 @@
 # Player versus Player: requirements and build plan
 
-**Roadmap item 18.** Written 2026-08-25, **revised 2026-08-26** (room visibility, and the
-draft clock, which changed shape entirely - see the note on P12). **Status: shape settled,
-nothing built.**
+**Roadmap item 18.** Written 2026-08-25, **revised 2026-08-26** (room visibility; the draft
+clock, which changed shape entirely - see the note on P12; and then the length of that clock
+becoming the host's to set). **Status: shape settled, nothing built.**
 
 Every decision below was taken by the owner in the sessions that wrote this document; the
 item had been left deliberately open since 2026-08-18 and its six questions are now
@@ -31,13 +31,13 @@ player ratings at all. That last one is the interesting switch. With ratings hid
 picking on what you actually know about the players rather than reading a number off the
 card.
 
-**Drafting is timed, and it is fast: twenty seconds a pick.** You choose your formation and
-style in the lobby while the room fills, so the clock only ever covers picking players. Then
-you have twenty seconds to place each of your eleven, on your own clock rather than the
-room's, so nobody is waiting on anybody else's deliberating. If the twenty seconds run out,
-a player is put into one of your empty slots at random and the draft moves on. That rule is
-what makes the whole thing work: a room can never stall, and a full draft is always over
-inside four minutes.
+**Drafting is timed, and it is fast: twenty or thirty seconds a pick, whichever the host
+chose.** You choose your formation and style in the lobby while the room fills, so the clock
+only ever covers picking players. Then you have that long to place each of your eleven, on
+your own clock rather than the room's, so nobody is waiting on anybody else's deliberating.
+If it runs out, a player is put into one of your empty slots at random and the draft moves
+on. That rule is what makes the whole thing work: a room can never stall, and a full draft
+is always over inside four minutes at twenty seconds, or five and a half at thirty.
 
 Then the tournament plays. With two people it is a single match. With four it is two
 semi-finals and a final. With eight it is quarter-finals, semi-finals and a final. You keep
@@ -75,14 +75,15 @@ a guest sees an invitation to sign in rather than a missing feature.
 | P9 | Stakes | **A win/loss record only.** Nothing transferable, nothing that reaches the career. A ladder is planned for later and this is built to accept one |
 | P10 | Live updates | **Add Supabase Realtime to the NAS stack.** It was deliberately trimmed out (design D10); it comes back for this |
 | P11 | Who decides the score | **The server.** A submitted XI is validated and every match simulated server-side. The client never decides a result |
-| P12 | The draft clock | **Twenty seconds per pick, each player on their own clock.** When it expires the server places an eligible player at random into one of that player's empty slots and the next twenty seconds begin. No forfeits, no waiting on anybody. *Revised 2026-08-26: this replaces a single shared build-phase countdown with an auto-complete at the end, which asked far less of the player and made a room's length unpredictable* |
+| P12 | The draft clock | **A fixed number of seconds per pick, each player on their own clock.** When it expires the server places an eligible player at random into one of that player's empty slots and the next window begins. No forfeits, no waiting on anybody. *Revised 2026-08-26: this replaces a single shared build-phase countdown with an auto-complete at the end, which asked far less of the player and made a room's length unpredictable* |
 | P13 | Roll rooms | **Each player rolls their own squads**, as in the single-player game. The deals come from the server so they can be checked (see section 5) |
 | P14 | The price/rating leak | **Accepted.** In a budget room with ratings hidden, a player's price still reveals his rating to anyone who knows the pricing curve. Prices stay exact. Hiding the number still changes how the room plays for everyone else |
 | P15 | You draft once per room | **Your XI plays the whole tournament.** No redrafting between rounds. It is how a tournament works, and it saves a great deal of waiting in an eight-player room. Reversible later if it plays badly |
 | P16 | Leaving after you have drafted | **Your team plays on without you.** The server has everything it needs, so a dropped connection cannot stall a room or rob your opponent of a match. Rejoining rejoins the room in progress |
 | P17 | Guests | **Account-only, and visibly so.** Permitted by NFR-1's "may gate genuinely online extras". The entry point shows a sign-in invitation when signed out; it never disappears and never blocks anything else |
 | P18 | Public and private rooms | **Both.** A **public** room is listed in a lobby any signed-in player can browse and join. A **private** room is reachable only by its code, which the host shares outside the game. Both have a code; only one is advertised |
-| P19 | Formation and style | **Chosen in the lobby, before the clock ever starts.** They shape all eleven picks, so rushing them would be the wrong decision to rush, and it keeps the twenty seconds meaning one thing only: pick a player |
+| P19 | Formation and style | **Chosen in the lobby, before the clock ever starts.** They shape all eleven picks, so rushing them would be the wrong decision to rush, and it keeps the pick clock meaning one thing only: pick a player |
+| P20 | How long a pick gets | **The host chooses twenty or thirty seconds**, and nothing else. Two values, not a slider: they are the difference between hurried and considered, and any third would only be somebody splitting hairs about a number nobody can feel. It is **independent of the draft method** (P1), so a roll room may be the slow one and a budget room the fast one if that is what the host wants |
 
 ---
 
@@ -95,15 +96,18 @@ a guest sees an invitation to sign in rather than a missing feature.
 | Visibility | Public (listed in the lobby) or private (code only) | Public |
 | Size | 2, 4 or 8 players | 2 |
 | Draft method | Roll a squad, or buy with a budget | Buy with a budget |
+| Pick clock | 20 or 30 seconds per pick, set independently of the draft method | 20 seconds |
 | Budget | A fixed room budget, $70 to $200 in $10 steps, or "each player's own career budget" | Fixed, $110 |
 | Cups | Any subset of the World Cups in the dataset, never empty | All of them |
 | Show ratings | On or off | On |
 | Re-rolls | 0 to 6, roll rooms only | 3 (`INITIAL_REROLLS`) |
 
-**The pick clock is not a host option.** Twenty seconds is a constant
-(`PVP_PICK_SECONDS = 20`), the same in every room, so that a result from one room means the
-same thing as a result from another. Making it a host option later is a one-line change if
-it is wanted, but it should not be one on day one.
+**The pick clock is two values and only two** (`PVP_PICK_SECONDS = [20, 30]`). Keeping it to
+a pair rather than a free number matters for a reason beyond taste: a room's clock is part of
+what a result means, so a lobby listing wants to say "fast" or "considered" at a glance, and
+a ladder later can compare like with like instead of sorting through arbitrary durations.
+Anything the host sets is enforced by the server (section 5) exactly as the constant would
+have been; the only difference is where the number comes from.
 
 **What each player still chooses for themselves:** formation and style, in the lobby (P19),
 and of course who they pick. Nothing else.
@@ -123,11 +127,12 @@ because it is a property of the XI you drafted and not of your career.
    joined only by entering its code. Everyone picks their **formation and style** here, at
    their leisure, and the room shows who is ready. The host starts it when it is full.
    Anyone may leave; the host leaving before the start closes the room.
-2. **The draft.** Each player gets twenty seconds to make each of their eleven picks, on
-   their own clock, starting when the host presses start and restarting the moment their
-   previous pick lands. A pick that does not arrive in time is made for them (see below).
-   You can see how far along everyone else is. The phase ends when the last player's
-   eleventh pick lands, which is at most three minutes and forty seconds after it began.
+2. **The draft.** Each player gets the room's clock, twenty or thirty seconds, to make each
+   of their eleven picks, on their own clock, starting when the host presses start and
+   restarting the moment their previous pick lands. A pick that does not arrive in time is
+   made for them (see below). You can see how far along everyone else is. The phase ends
+   when the last player's eleventh pick lands, which is at most three minutes forty in a
+   twenty-second room and five minutes thirty in a thirty-second one.
 3. **Round.** The server pairs the players, validates every XI, simulates each tie and
    publishes the results. Everyone watches, with the same live clock, goal feed and match
    card the single-player game uses. A tie that is level goes to extra time and then
@@ -137,7 +142,7 @@ because it is a property of the XI you drafted and not of your career.
 5. **Result.** The room shows its bracket and its winner, every player's record is updated,
    and the room is closed. There is no rematch button in the first version; make a new room.
 
-### What happens when twenty seconds run out
+### What happens when the pick clock runs out
 
 **A random eligible player goes into a random empty slot.** Specifically, and these details
 matter because getting any of them wrong produces an XI the server would then have to reject:
@@ -154,9 +159,9 @@ matter because getting any of them wrong produces an XI the server would then ha
   `rollAny` and its two siblings only ever deal a squad that can fill an open slot. That is
   an existing guarantee and the auto-pick depends on it; if the rolling rules are ever
   loosened, this needs a fallback.
-- **A re-roll does not restart the clock.** It happens inside the twenty seconds you already
-  have. Otherwise re-rolling would be a way to stall indefinitely, which is precisely the
-  thing the clock exists to prevent.
+- **A re-roll does not restart the clock.** It happens inside the window you already have.
+  Otherwise re-rolling would be a way to stall indefinitely, which is precisely the thing the
+  clock exists to prevent.
 
 ---
 
@@ -187,14 +192,18 @@ small server-side service, **"the referee"**, that bundles the existing `domain/
 code and does those jobs. Postgres stores rooms and results; the referee is the only thing
 allowed to write a result.
 
-**The clock belongs to the server too, and this is what the twenty-second rule costs.**
+**The clock belongs to the server too, and this is what the per-pick rule costs.**
 A countdown drawn in a browser is a countdown that browser can slow down, so the referee
-stamps when each player's pick window opened, refuses a pick that arrives after it closed
-(with a small grace for network latency), and makes the auto-pick itself when it expires.
-That turns the referee from something called on demand into something that **holds timers**:
-it needs a tick loop and a per-player deadline, and it must survive its own restart by
-recovering deadlines from the database rather than from memory. This is the single biggest
-consequence of the twenty-second decision and it should be built and proved first (wave 1).
+reads the room's own clock length, stamps when each player's pick window opened, refuses a
+pick that arrives after it closed (with a small grace for network latency), and makes the
+auto-pick itself when it expires. That turns the referee from something called on demand
+into something that **holds timers**: it needs a tick loop and a per-player deadline, and it
+must survive its own restart by recovering deadlines from the database rather than from
+memory. The host's twenty-or-thirty choice costs nothing extra here, since the deadline was
+always going to be a stored timestamp rather than a hard-coded one, but the referee must
+take the length from the ROOM and never from the client's request. This is the single
+biggest consequence of the per-pick decision and it should be built and proved first
+(wave 1).
 
 Two further practical consequences:
 
@@ -236,7 +245,8 @@ Nothing else in the stack changes, and no part of the single-player game changes
 New tables, all owned by the room and none of them touching career, album or run:
 
 - **`pvp_rooms`** - code, visibility, host, size, draft method, budget source and amount, the
-  cup pool, the ratings switch, re-rolls, status, current round, timestamps.
+  cup pool, the ratings switch, re-rolls, **the pick clock in seconds**, status, current
+  round, timestamps.
 - **`pvp_members`** - who is in a room, their display name, seat, formation and style, when
   they joined, which round they went out in.
 - **`pvp_deals`** - a roll room's per-player squad sequence, written by the referee.
@@ -278,9 +288,9 @@ than vanishing (P17).
   create-a-room action, a join-by-code field, and your record. Signed-out state.
 - **The room lobby** - the room's rules in plain words, who has joined, your formation and
   style picker, a share-the-code action, the host's Start button.
-- **The draft** - the existing build page under the room's rules, with **a twenty-second
-  clock as the loudest thing on the screen** and a strip showing how many picks everyone
-  else has made. Every piece of the page is reused: the pitch, the drawn-squad panel, the
+- **The draft** - the existing build page under the room's rules, with **the pick clock as
+  the loudest thing on the screen** and a strip showing how many picks everyone else has
+  made. Every piece of the page is reused: the pitch, the drawn-squad panel, the
   transfer market, the ratings strip, the line-up sheet.
 - **The round** - the live match card and goal feed, everyone's ties, then the bracket.
 - **The bracket** - a small 2/4/8 tree. The shipped `Bracket.tsx` models a 16-team knockout
@@ -309,11 +319,11 @@ riskiest and least visible parts are proved before any screen is built on top of
 | Wave | What | Done when |
 |---|---|---|
 | 0 | **Lift `simulateKoTie`** into `domain/knockout.ts` unchanged, and add as pure functions the rules the referee needs: is this XI legal, what did it cost, was it dealt, and **the auto-pick** (a random eligible player into a random empty slot, with the budget reserve) | `npm run checks` covers all of them, including that an illegal XI is refused for each reason and that a thousand auto-picks from a $1-per-slot corner never produce an unfillable XI |
-| 1 | **The referee, offline.** The service, bundling the domain code, with no server and no database: it runs a whole draft against simulated players, holds the twenty-second deadlines, auto-picks on expiry, and returns a result | Runs from the command line; checks assert an over-budget XI, a duplicated person, an out-of-pool player, an undealt player and a **late pick** are each refused, and that a player who does nothing at all still ends with a legal XI |
+| 1 | **The referee, offline.** The service, bundling the domain code, with no server and no database: it runs a whole draft against simulated players, holds the per-pick deadlines at the room's own length, auto-picks on expiry, and returns a result | Runs from the command line; checks assert an over-budget XI, a duplicated person, an out-of-pool player, an undealt player and a **late pick** are each refused, at both clock lengths, and that a player who does nothing at all still ends with a legal XI |
 | 2 | **The schema migration**, written, parse-checked with `pglast`, dry-run, rollback block in its header, and a roadmap item opened for the apply | The migration file exists and `npm run push:sql -- --dry-run` is clean |
 | 3 | **Realtime and the referee, deployed.** Compose changes, reverse proxy, display names on `profiles`, and **deadline recovery across a referee restart** | Two browsers see each other join a room, and killing the referee mid-draft does not lose anybody's clock |
-| 4 | **The lobby.** Create public or private, the browsable list of open public rooms, join by code, live membership, formation and style, host start, leave | A public room can be found and joined by someone who was never sent a code |
-| 5 | **The draft.** The build page under room rules: room budget, room cup pool, no sticker discount, the twenty-second clock, the progress strip, auto-pick on expiry, rejoining mid-draft | Two players draft a full XI, and one who does nothing at all still ends with eleven legal players |
+| 4 | **The lobby.** Create public or private, the pick-clock choice, the browsable list of open public rooms, join by code, live membership, formation and style, host start, leave | A public room can be found and joined by someone who was never sent a code, and its listing says which clock it runs |
+| 5 | **The draft.** The build page under room rules: room budget, room cup pool, no sticker discount, the room's pick clock, the progress strip, auto-pick on expiry, rejoining mid-draft | Two players draft a full XI, and one who does nothing at all still ends with eleven legal players |
 | 6 | **Hidden ratings** | The check greps every rating-rendering component and fails on one that is not wired to the switch |
 | 7 | **The round.** Pairing, simulation, the shared live reveal, extra time and penalties, advancing, crowning a winner | A room of 8 plays through to a winner |
 | 8 | **Records**, the Versus home screen, the signed-out state, and the entry point | A win appears on both players' records |
@@ -339,13 +349,14 @@ later would be worthless.
 
 ## 11. Questions left open, none of them blocking
 
-- **Twenty seconds against the transfer market.** The clock suits the roll draft exactly:
-  you are handed a squad and you pick from it. The budget market is a search over more than
-  eight thousand players, and although it is always filtered to one position and sorted by
-  rating, twenty seconds is tight, and with ratings hidden as well it is very tight indeed.
-  Nothing here is wrong, but it is the first thing to actually play, and the honest
-  possibilities are a longer clock for budget rooms or a smaller shortlist per slot. Do not
-  change it before playing it.
+- **The clock against the transfer market.** It suits the roll draft exactly: you are handed
+  a squad and you pick from it. The budget market is a search over more than eight thousand
+  players, and although it is always filtered to one position and sorted by rating, twenty
+  seconds is tight and with ratings hidden as well it is very tight indeed. **P20 puts the
+  answer in the host's hands rather than the designer's**, which is most of the worry gone,
+  but it does not settle whether even thirty seconds is enough for a hidden-rating budget
+  room. That is the thing to actually play. If thirty is still not enough, the next move is a
+  shortlist per slot rather than a third number on the dial.
 - **Whether the auto-pick should be random or good.** Random is the rule as decided, and it
   is the right default because it punishes running out of time. A "best affordable" fallback
   would be kinder and would make timing out much less costly, which is exactly the argument
