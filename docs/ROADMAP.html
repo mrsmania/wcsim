@@ -651,68 +651,7 @@
   </div>
 </details>
 
-<details class="item">
-  <summary>
-    <span class="num">39</span>
-    <span class="title">Apply migration 0016 (the PvP room tables) to the account server
-      <span class="sub">Written, parse-checked and dry-run 2026-08-26; <b>not applied</b>.
-      Needs LAN or VPN reach to the NAS and <code>dkr/.env</code>. Nothing a player can see
-      changes either way - the referee that uses these tables is wave 3.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The standing handover</strong> the house rule asks for (CLAUDE.md,
-    2026-08-24): a session that writes a migration and cannot apply it opens an item so the
-    apply can be handed to one that can. Item 35 was the worked example and was closed empty
-    once its two migrations went in; this is a new one rather than a reopening.</p>
-    <p><strong>What the file does.</strong>
-    <a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener"><code>supabase/migrations/0016_pvp_rooms.sql</code></a>
-    adds a display name to <code>profiles</code> (a room cannot show strangers an email),
-    seven <code>pvp_*</code> tables, their row-level security, <code>pvp_records</code> as a
-    <b>view</b> rather than a counter, and a <code>pvp_referee</code> role that owns those
-    tables and can reach nothing else. It touches no existing table except adding two nullable
-    columns, and <b>no existing function at all</b>. 55 top-level statements.</p>
-    <p><strong>Already done, so do not repeat it:</strong> parsed with the real Postgres
-    grammar via <code>pglast</code> (55 statements, and the dry-run counts the same 55
-    independently); the <b>rollback block was parsed too</b> and corrected as a result - it
-    was missing a <code>drop owned by</code>, without which <code>drop role</code> fails
-    because the role still holds a column grant on <code>profiles</code>.</p>
-    <p><strong>Two things to check BEFORE applying, in this order.</strong></p>
-    <ul>
-      <li><b><code>select version();</code></b> The file uses
-      <code>security_invoker</code> on its view, which needs <b>PostgreSQL 15 or newer</b>.
-      That option is load-bearing rather than tidy: without it the view reads
-      <code>pvp_matches</code> as its superuser owner and would hand every account's record
-      to anybody signed in, with row-level security silently bypassed by the thing reading
-      it. On 14 the file fails at that statement, which is the correct loud failure - do not
-      work around it by dropping the option.</li>
-      <li><b>Rehearse inside a transaction that gets rolled back</b>, which is the habit
-      recorded after 0014: send <code>begin;</code> plus the body minus its own
-      begin/commit, plus the verification queries, plus <code>rollback;</code> as one file.
-      Put results in a temp table and <code>select</code> it at the end, because notices do
-      not come back through <code>push:sql</code>.</li>
-    </ul>
-    <p><strong>After applying</strong>, run the seven numbered checks in the file's own
-    header. Two of them matter more than the rest: as an ordinary signed-in browser session,
-    <code>select * from pvp_rooms</code> must return nothing AND
-    <code>insert into pvp_rooms ...</code> must be refused (the first proves the policy is
-    not wide open, the second that there is no client write path); and play a normal
-    single-player run to the end, because confirming the untouched path is untouched is the
-    point of checking.</p>
-    <p><strong>One thing this migration deliberately leaves undone.</strong> The
-    <code>pvp_referee</code> role is created <code>nologin</code> with no password, because a
-    credential does not belong in version control. It can do nothing at all until wave 3
-    runs <code>alter role pvp_referee login password '...'</code> by hand. That is not a
-    defect to fix here.</p>
-    <p class="next"><strong>Next step:</strong> from a machine with LAN or VPN reach and
-    <code>dkr/.env</code>, do the version check, then the rehearsal, then the apply, then the
-    header's verification list. Prefix with <code>NODE_OPTIONS=--use-system-ca</code> if it
-    reports a certificate error while <code>curl</code> reaches the host.</p>
-    <p class="files"><a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener">supabase/migrations/0016_pvp_rooms.sql</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (section 7), <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../supabase/migrations/README.md" target="_blank" rel="noopener">supabase/migrations/README.md</a></p>
-  </div>
-</details>
+
 
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
@@ -1111,6 +1050,22 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
     <h3>Closed 2026-08-26</h3>
+    <p><b>39</b> is the migration apply, and the rehearsal is the whole story. Parse-checking
+    said the file was well formed; rehearsing it inside a transaction on the real server found
+    two things that reading never would. The first was ordinary: this repo applies migrations as
+    <code>postgres</code>, which on self-hosted Supabase is <b>not a superuser</b>, so it cannot
+    hand a table to a role it is not a member of - every <code>owner to</code> was refused. The
+    second was not ordinary: the obvious repair,
+    <code>grant pvp_referee to current_user</code>, <b>crashed the database</b>. The backend
+    died, the server went into recovery, and it came back within seconds with every row intact
+    and the transaction rolled back whole - which is exactly what a single-transaction migration
+    is supposed to do under the worst case, so the shape earned its keep. The design changed
+    rather than the statement being retried: the referee owns nothing and instead has seven
+    <code>for all</code> policies naming it, which is the more auditable half of the trade
+    anyway. Applied and verified 2026-08-26 - and the verification that mattered was not the
+    catalogue queries but inserting a public and a private room and reading them back as an
+    ordinary signed-in user, who saw the public one, could not see the private one, and was
+    refused an insert.</p>
     <p><b>38</b> was a category that could not be failed. The number the build page promised and
     the number the simulator used had been a point apart for as long as both existed, and the
     reason it went unnoticed is that the bonus is capped: one free point out of six reads as

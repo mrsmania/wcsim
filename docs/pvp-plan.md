@@ -355,7 +355,7 @@ after most of the client work was done.
 |---|---|---|
 | 0 | **DONE 2026-08-26** (`src/domain/pvp.ts`, `scripts/checks/pvp.ts`, 23 checks). **The rules, as pure functions.** Is this XI legal, what did it cost, was it dealt, the auto-pick, and a **two-sided `GroupTeam` builder** (`userGroupTeam` hard-codes `id: USER_ID`, `name: 'Your XI'`, `code: 'YOU'`, `isUser: true`, so it cannot describe two opponents in one tie). Call `resolveKoTie` directly: it is **already exported** and already returns a definite winner on every path, so the earlier plan's "lift `simulateKoTie`" was wrong and that item is gone | Checks refuse an illegal XI for each reason; a thousand auto-picks from a one-dollar-per-slot corner never strand a slot |
 | 1 | **DONE 2026-08-26** (`src/domain/pvpRoom.ts`, `src/domain/pvpAuth.ts`, `scripts/checks/pvpRoom.ts`, 25 checks). **The referee, offline.** Bundles the domain code, runs a whole draft against simulated players, deadlines as stored data plus a sweeper, auto-picks on expiry, returns a result | Over-budget, duplicated person, out-of-pool, undealt and **late** picks each refused, at both clock lengths; a request bearing the **anon key** is refused; a player who does nothing still ends with a legal XI |
-| 2 | **DONE 2026-08-26** (`supabase/migrations/0016_pvp_rooms.sql`, queued as roadmap item 39). **The migration**, parse-checked, dry-run, rollback block, roadmap item opened for the apply | `push:sql -- --dry-run` clean; parsed with the real Postgres grammar, and the rollback block parsed too |
+| 2 | **DONE AND APPLIED 2026-08-26** (`supabase/migrations/0016_pvp_rooms.sql`; roadmap item 39, closed). **The migration**, parse-checked, dry-run, rollback block, roadmap item opened for the apply | `push:sql -- --dry-run` clean; parsed with the real Postgres grammar, and the rollback block parsed too |
 | 3 | **Deployed.** Realtime Broadcast, the gateway route, unique names, the version endpoint, and **outage recovery** | Two browsers see each other; killing the referee for 45 seconds returns every open window with roughly the time it had left, and fires no auto-pick for a window that was open when it died |
 | 4 | **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Entering a room leaves a Cup Run and a half-built solo XI untouched, and no per-tap server write happens inside a room |
 | 5 | **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Two people with a code play a whole game end to end |
@@ -458,6 +458,34 @@ fix if this is ever worth closing.
 - **The house convention is `bigserial`, not `gen_random_uuid`.** Nothing in the existing
   migrations generates a uuid, so following the instinct would have added a pgcrypto
   dependency for no reason.
+- **THE REFEREE OWNS NOTHING, and the route to that was two dead ends.** Ownership was the
+  first design, because a table's owner bypasses its own row-level security, which is a neat
+  way to let the referee write what the client may only read. But migrations here are applied
+  as `postgres`, which on self-hosted Supabase is **not a superuser**, so it cannot hand a
+  table to a role it is not a member of: every `owner to` was refused. The obvious repair,
+  `grant pvp_referee to current_user`, **crashed the database** on PostgreSQL 17.6 - the
+  backend died, the server went into recovery, and it returned within seconds with every row
+  intact and the transaction rolled back whole. So the referee gets **seven `for all`
+  policies naming it** instead, one per table, which is the more auditable half of the trade:
+  what it may do is written down rather than implied by who owns a table. Do not put that
+  `grant` back to see whether it still happens.
+- **A grant and a policy answer different questions, and the referee needs both.** A grant
+  decides whether a role may issue the statement at all; a policy decides which rows it sees.
+  Row-level security denies by default, so grants alone leave the referee running an `update`
+  that matches nothing.
+
+### What the rehearsal is for, stated once because it keeps paying
+
+Parse-checking a migration proves it is well formed. **Rehearsing it inside a transaction on
+the real server is what finds the things reading cannot**, and on this one it found both a
+refused statement and a database crash before either could matter. The single-transaction
+shape is what made the crash survivable: nothing was left behind, and the check afterwards
+was not "did it work" but a row count on every table that already had data in it.
+
+The verification that mattered afterwards was not the catalogue queries either. It was
+inserting one public and one private room and reading them back **as an ordinary signed-in
+user**, who saw the public one, could not see the private one, and was refused an insert.
+A policy nobody has exercised is a policy nobody has checked.
 
 ### To measure once it is playable
 

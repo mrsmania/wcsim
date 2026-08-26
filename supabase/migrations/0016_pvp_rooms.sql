@@ -44,17 +44,26 @@
 --    newer.** If the server is on 14 the option is a syntax error, which is the loud
 --    failure and the right one; see the verification steps.
 --
--- WHAT THE REFEREE ROLE IS FOR. It OWNS the pvp tables, which is what lets it read and
--- write them past the policies below, and it has no privilege on `career`,
--- `album_stickers`, `settings`, `game_state`, `active_run`, `run_results` or `audit_log` at
--- all. It deliberately does NOT get `bypassrls`: that attribute is global, so it would hand
--- the referee every account's album and career - the exact opposite of the point. The
--- referee is the only component in this design that accepts un-RLS'd input from the
--- internet, so its blast radius is the thing to keep small.
+-- WHAT THE REFEREE ROLE IS FOR. It is the only thing allowed to WRITE these tables, and it
+-- can reach nothing else: no privilege at all on `career`, `album_stickers`, `settings`,
+-- `game_state`, `active_run`, `run_results` or `audit_log`, and read-only on three columns
+-- of `profiles`. The referee is the only component in this design that accepts un-RLS'd
+-- input from the internet, so its blast radius is the thing to keep small.
+--
+-- HOW it gets that write access is the part that changed, twice, and both dead ends are
+-- recorded at the role itself below rather than here. What it is NOT: it is not an owner of
+-- these tables, and it does not have `bypassrls`. That attribute is global, so it would hand
+-- the referee every account's album and career - the exact opposite of the point. It has
+-- seven `for all` policies naming it, one per table, which is the more auditable half of
+-- the trade: what the referee may do is written down where you can read it.
 --
 -- It is created NOLOGIN and with no password on purpose: a credential does not belong in
 -- version control. Wave 3 runs `alter role pvp_referee login password '...'` by hand on the
 -- NAS, and until it does this role can do nothing at all.
+--
+-- One consequence of ownership that the rehearsal found rather than the reading: this file
+-- runs as `postgres`, which here is not a superuser, so it must be made a MEMBER of
+-- `pvp_referee` before it can hand the tables over. See the `grant` below the role.
 --
 -- ONE RULE THIS FILE DOES NOT ENFORCE, and says so rather than pretending. Plan P39 is one
 -- active room per account. A unique index cannot express it (the "active" half lives in
@@ -69,8 +78,13 @@
 --   2. `select display_name, name_key from profiles limit 5;` - both columns exist and are
 --      null for every existing account. Nothing should have been backfilled.
 --   3. In a transaction, set two accounts' `name_key` to 'mario' and confirm the second is
---      refused by `profiles_name_key_uniq`. Roll it back.
---   4. `\dt pvp_*` then `\d pvp_rooms` - seven tables, and the owner is `pvp_referee`.
+--      refused by `profiles_name_key_uniq`. Roll it back. **Needs two accounts**; with one
+--      it cannot be done, so check the index is UNIQUE and partial instead and come back to
+--      this when there is a second.
+--   4. `\dt pvp_*` - seven tables. Then `select tablename, count(*) from pg_policies where
+--      tablename like 'pvp_%' group by 1;` - fourteen policies, two per table: one naming
+--      `authenticated` and one naming `pvp_referee`. Any table with one policy has lost the
+--      referee's write path or the client's read path, and which it is matters.
 --   5. As an ORDINARY signed-in user (a browser session, not psql): `select * from
 --      pvp_rooms` returns nothing, and `insert into pvp_rooms ...` is refused. Both matter:
 --      the first proves the policy is not wide open, the second that there is no write path.
@@ -112,6 +126,26 @@ begin
   end if;
 end
 $$;
+
+-- NO `grant pvp_referee to current_user` HERE, AND NO OWNERSHIP TRANSFER. Both were in an
+-- earlier draft and both are gone; the reasoning is worth keeping because the obvious fix
+-- is the one that broke.
+--
+-- The first draft made this role the OWNER of the pvp tables, because an owner bypasses its
+-- own tables' row-level security, which is a neat way to let the referee write them while
+-- the client can only read. Rehearsing it found that this file runs as `postgres`, which on
+-- self-hosted Supabase is NOT a superuser, so it cannot hand a table to a role it is not a
+-- member of: every `owner to` failed with "must be able to SET ROLE pvp_referee".
+--
+-- The obvious repair, `grant pvp_referee to current_user;`, **crashed the database** on
+-- PostgreSQL 17.6: the backend died mid-statement, the server went into recovery, and it
+-- came back a few seconds later with every row intact and this migration's transaction
+-- rolled back whole. Do not put that statement back to "see if it still happens".
+--
+-- So the referee is NOT an owner and needs no membership anywhere. It gets explicit
+-- privileges and its own row-level-security policies at the foot of this file, which is the
+-- more auditable half of the trade anyway: what the referee may do is written down as seven
+-- policies you can read, rather than implied by who owns a table.
 
 -- --------------------------------------------------------------------------
 -- A name a stranger can be shown
@@ -303,10 +337,14 @@ alter table pvp_picks        enable row level security;
 alter table pvp_matches      enable row level security;
 alter table pvp_name_reports enable row level security;
 
--- Everything below is SELECT-only for the client. Every write goes through the referee,
--- which owns these tables and therefore bypasses these policies - the same shape
--- `album_stickers` has had since 0002 and for the same reason: the anon key ships in the
--- browser bundle by design, so a writable policy is a way around the rules.
+-- Everything below is SELECT-only for the client, and every write goes through the referee,
+-- which has its own `for all` policy per table at the foot of this file. That is the same
+-- shape `album_stickers` has had since 0002 and for the same reason: the anon key ships in
+-- the browser bundle by design, so a client-writable policy is a way around the rules.
+--
+-- A policy naming a role applies only to that role, so the client policies here and the
+-- referee policies there do not interact: `authenticated` gets exactly what is written
+-- below, and `pvp_referee` exactly what is written at the end.
 
 -- Am I in this room? `security definer` avoids the recursion of a `pvp_rooms` policy that
 -- reads `pvp_members` whose own policy reads `pvp_rooms`.
@@ -438,24 +476,47 @@ grant insert on pvp_name_reports to authenticated;
 grant select on pvp_records to authenticated;
 
 -- The sequences behind the two `bigserial` columns. A client never inserts a room, so only
--- the referee needs them; stated rather than left to the image's blanket grants.
+-- the referee needs that one; stated rather than left to the image's blanket grants.
 revoke all on sequence pvp_rooms_id_seq from anon, authenticated;
 revoke all on sequence pvp_name_reports_id_seq from anon;
 grant usage on sequence pvp_name_reports_id_seq to authenticated;
 
--- The referee OWNS the pvp tables, which is what lets it read and write them past the
--- policies above, and it holds no privilege on career, album_stickers, settings,
--- game_state, active_run, run_results or audit_log. Deliberately NOT `bypassrls`, which is
--- global and would hand it every account's album.
-alter table pvp_rooms        owner to pvp_referee;
-alter table pvp_members      owner to pvp_referee;
-alter table pvp_lineups      owner to pvp_referee;
-alter table pvp_deals        owner to pvp_referee;
-alter table pvp_picks        owner to pvp_referee;
-alter table pvp_matches      owner to pvp_referee;
-alter table pvp_name_reports owner to pvp_referee;
+-- --------------------------------------------------------------------------
+-- The referee
+-- --------------------------------------------------------------------------
 
--- The referee reads a display name to put in a room, and nothing else on profiles.
+-- Table privileges, then a policy per table. BOTH are needed and they answer different
+-- questions: a grant decides whether the role may issue the statement at all, and a policy
+-- decides which rows it sees. Row-level security denies by default, so grants alone would
+-- leave the referee able to run an `update` that matches nothing.
+grant select, insert, update, delete on
+  pvp_rooms, pvp_members, pvp_lineups, pvp_deals, pvp_picks, pvp_matches, pvp_name_reports
+  to pvp_referee;
+grant usage on sequence pvp_rooms_id_seq, pvp_name_reports_id_seq to pvp_referee;
+
+create policy pvp_rooms_referee on pvp_rooms
+  for all to pvp_referee using (true) with check (true);
+create policy pvp_members_referee on pvp_members
+  for all to pvp_referee using (true) with check (true);
+create policy pvp_lineups_referee on pvp_lineups
+  for all to pvp_referee using (true) with check (true);
+create policy pvp_deals_referee on pvp_deals
+  for all to pvp_referee using (true) with check (true);
+create policy pvp_picks_referee on pvp_picks
+  for all to pvp_referee using (true) with check (true);
+create policy pvp_matches_referee on pvp_matches
+  for all to pvp_referee using (true) with check (true);
+create policy pvp_name_reports_referee on pvp_name_reports
+  for all to pvp_referee using (true) with check (true);
+
+-- Reading the room needs the two helpers, which are `security definer` and were revoked
+-- from public above.
+grant execute on function pvp_is_member(bigint) to pvp_referee;
+grant execute on function pvp_tie_played(bigint, uuid) to pvp_referee;
+
+-- The referee reads a display name to put in a room, and NOTHING else on profiles. No
+-- grant of any kind on career, album_stickers, settings, game_state, active_run,
+-- run_results or audit_log - that absence is the point of the role.
 grant usage on schema public to pvp_referee;
 grant select (id, display_name, name_key) on profiles to pvp_referee;
 

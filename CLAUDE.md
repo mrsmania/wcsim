@@ -82,7 +82,8 @@ done and why. What that means for anyone working in this tree now:
   the audit.
 - **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
   `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
-  dropped `run_results_read`. The server now matches `supabase/migrations/` through 0014.
+  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0016**
+  (0015 the bank cap, 0016 the PvP room tables, both applied 2026-08-26).
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
