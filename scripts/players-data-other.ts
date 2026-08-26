@@ -83,25 +83,21 @@ function parseCsv(text: string): Record<string, string>[] {
 }
 
 const page: PageConfig = {
-  tab: 'Other game',
-  docTitle: "Other game's ratings - player index",
-  tag: "Other game's ratings",
-  eyebrow: 'Comparison dataset',
-  // With the toggle thrown, the display title is what says which dataset is on
-  // screen - and which is which when the file is open in two windows.
-  title: "The other game's players",
+  tab: '7a0',
+  docTitle: '7a0 ratings - player index',
+  tag: '7a0 ratings',
+  // The eyebrow, the masthead tile and the pressed toggle are what say which
+  // dataset is on screen; everything else is deliberately identical, since the
+  // point is to read one against the other.
+  eyebrow: '7a0 ratings',
+  title: 'Every player',
   // Amber rather than the pitch green, so the two are told apart at a glance.
   tile: ['#9a6512', '#f4f2ec'],
   alt: false,
-  mainHeader: 'Pos',
-  mainFilter: 'Position',
-  altHeader: '',
+  diffHeader: 'vs WCS',
   colHeader: 'Legend',
   tierNames: ['', 'Legend'],
   tierAccents: ['', '#c99a3a'],
-  // The game's own grid minus the "Also" track, so throwing the toggle moves one
-  // column rather than reshuffling the table.
-  grid: '44px minmax(170px, 1.7fr) minmax(140px, 1.1fr) 58px 58px 72px 92px',
 };
 
 /**

@@ -28,7 +28,7 @@
   --ground: #f4f2ec; --panel: #ffffff; --chalk: #e8f0e8; --ink: #13211a;
   --muted: #5c6a60; --line: #d4ded5; --pitch: #15924c; --pitch-dark: #0e5c34;
   --accent: #0e5c34; --amber: #e4922b; --dim: #636c65; --hair: #e3e8e2;
-  --faint: #ecebe3; --amber-ink: #9a6512;
+  --faint: #ecebe3; --amber-ink: #9a6512; --loss: #c8453c;
   --shadow-hard: 6px 6px 0 var(--pitch-dark);
   --sans: 'Schibsted Grotesk', system-ui, sans-serif;
   --mono: 'Spline Sans Mono', ui-monospace, monospace;
@@ -39,7 +39,7 @@
   --ground: #131417; --panel: #1c1e22; --chalk: #26282e; --ink: #eceef1;
   --muted: #a4a9b0; --line: #33363d; --pitch: #22a35d; --pitch-dark: #17492f;
   --accent: #34c06f; --amber: #eea23a; --dim: #848b92; --hair: #2a2d33;
-  --faint: #191b1f; --amber-ink: #eea23a;
+  --faint: #191b1f; --amber-ink: #eea23a; --loss: #e86b5b;
 }
 
 * { box-sizing: border-box; }
@@ -128,6 +128,15 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .pop .pfoot button { border: 0; background: none; cursor: pointer; font-family: var(--mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 3px 5px; border-radius: 4px; }
 .pop .pfoot button:hover { color: var(--pitch); }
 
+/* A filter the active dataset cannot answer. It keeps whatever was selected, so
+   the query comes back intact on the way to the other one - it just does not
+   filter, and says so rather than disappearing. */
+.field.off > .mono-cap { color: var(--dim); }
+.ms.off > button { background: var(--faint); border-color: var(--hair); color: var(--dim); cursor: not-allowed; }
+.ms.off > button:hover { border-color: var(--hair); }
+.ms.off .val, .ms.off .val.any, .ms.off .chev { color: var(--dim); }
+.ms.off .cnt { background: var(--dim); }
+
 /* dual-handle rating slider */
 .rng { position: relative; width: 210px; height: 30px; display: flex; align-items: center; }
 .rng .track { position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: var(--line); }
@@ -159,8 +168,9 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .table { overflow: hidden; }
 .scroller { overflow: auto; max-height: calc(100vh - 150px); overscroll-behavior: contain; }
 .grid { min-width: 900px; }
-/* The column widths come from the data blob (the two pages differ by one
-   column), so header and rows can never disagree about them. */
+/* The column widths come from the data blob, and there is ONE set of them for
+   every dataset: the two are meant to be read against each other, so a column
+   that moved when the toggle was thrown would defeat the whole thing. */
 .cols {
   display: grid;
   grid-template-columns: var(--grid-cols);
@@ -200,6 +210,10 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .pos { font-weight: 600; }
 .alt { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rat { font-family: var(--mono); font-size: 13.5px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.dif { font-family: var(--mono); font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.dif.up { color: var(--pitch); }
+.dif.dn { color: var(--loss); }
+.dif.eq, .dif.no { color: var(--dim); }
 .col { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: var(--mono); font-size: 11.5px; }
 .col.no { color: var(--dim); }
 .star { flex: none; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
@@ -244,8 +258,8 @@ __FLAG_CSS__
 .seg button {
   display: flex; align-items: baseline; gap: 6px; cursor: pointer;
   border: 0; border-right: 1px solid var(--line); background: var(--panel); color: var(--muted);
-  padding: 7px 12px; font-family: var(--mono); font-size: 11.5px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.06em; transition: color .12s;
+  padding: 7px 12px; font-family: var(--mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.04em; transition: color .12s;
 }
 .seg button:last-child { border-right: 0; }
 .seg button:hover { color: var(--pitch); }
@@ -344,12 +358,14 @@ __FLAG_CSS__
 const DATA = __DATA__;
 
 /* ---------------------------------------------------------------------------
-   The file can carry more than one dataset - the game's own and another game's
-   ratings - and the toggle switches between them. Everything the two differ by
-   arrives in a set's `page` block: the wording, whether a player can hold more
-   than one position (so whether there is an "Also" column and the two extra
-   position filters), and what the last column means - a sticker tier here, the
-   source's own "legend" flag there.
+   The file can carry more than one dataset - WCS (the game's own) and 7a0
+   (another game's ratings) - and the toggle switches between them. THE UI IS THE
+   SAME FOR BOTH: the same columns at the same widths, the same filters in the
+   same order. Only three things change with the toggle, and each is a fact about
+   the data rather than a layout choice: the wording, what the last column means
+   (a sticker tier here, the source's own "legend" flag there), and whether the
+   two extra position filters can be answered at all - 7a0 gives a player one
+   position, so they grey out rather than vanishing.
 
    THE QUERY SURVIVES THE SWITCH, which is the whole point of having both in one
    file: the filters are held as VALUES (a nation code, a year, a position), not
@@ -373,6 +389,9 @@ function decode(index) {
     N,
     person: new Int32Array(N), nation: new Int16Array(N), year: new Uint8Array(N),
     num: new Uint8Array(N), combo: new Int16Array(N), elo: new Uint8Array(N), tier: new Uint8Array(N),
+    // What the OTHER dataset rates the same man at, as a difference. DIFF_NONE
+    // (127) is "he is not in it" - no real difference can reach it.
+    diff: Int8Array.from(S.diffs),
   };
   for (let i = 0, r = 0; i < N; i++, r += 7) {
     d.person[i] = S.rows[r]; d.nation[i] = S.rows[r + 1]; d.year[i] = S.rows[r + 2];
@@ -445,6 +464,7 @@ const state = {
 
 let D = null;                                        // the active decoded dataset
 let P = null;                                        // its page block
+let otherTab = '';                                   // what the other one is called
 let view = null;                                     // the filtered + sorted row ids
 let viewLen = 0;
 let dropped = 0;                                     // values the switch could not carry
@@ -452,7 +472,9 @@ let dropped = 0;                                     // values the switch could 
 function maskOf(set) { let m = 0; for (const p of set) m |= 1 << p; return m; }
 
 function applyFilters() {
-  const mMain = maskOf(state.main), mAdd = maskOf(state.add), mAny = maskOf(state.any);
+  const mMain = maskOf(state.main);
+  // A filter this dataset cannot answer keeps its selection and stops filtering.
+  const mAdd = P.alt ? maskOf(state.add) : 0, mAny = P.alt ? maskOf(state.any) : 0;
   const colOn = state.col.size === 1, wantCol = state.col.has(1);
   const lo = state.lo, hi = state.hi;
   const N = D.N;
@@ -507,6 +529,9 @@ const KEY = {
   col: (i) => D.tier[i],
 };
 
+/** No counterpart in the other dataset. Mirrors DIFF_NONE in the generator. */
+const NO_DIFF = 127;
+
 function sortView() {
   const d = state.dir, s = state.sort;
   const sub = view.subarray(0, viewLen);
@@ -519,6 +544,15 @@ function sortView() {
   } else if (s === 'nat') {
     cmp = (a, b) => d * (nations[D.nation[a]][1] < nations[D.nation[b]][1] ? -1 : nations[D.nation[a]][1] > nations[D.nation[b]][1] ? 1 : 0)
       || D.year[a] - D.year[b] || D.elo[b] - D.elo[a];
+  } else if (s === 'diff') {
+    // A player the other dataset has not got sorts last either way: he is not a
+    // small difference, he is an absent one.
+    cmp = (a, b) => {
+      const x = D.diff[a], y = D.diff[b];
+      if ((x === NO_DIFF) !== (y === NO_DIFF)) return x === NO_DIFF ? 1 : -1;
+      if (x === NO_DIFF) return D.elo[b] - D.elo[a];
+      return d * (x - y) || D.elo[b] - D.elo[a];
+    };
   } else if (s === 'main' || s === 'alt') {
     // Positions sort in pitch order (GK -> ST), which is the order POS is in.
     const k = KEY[s];
@@ -541,13 +575,26 @@ const tbody = document.getElementById('tbody');
 const thead = document.getElementById('thead');
 const emptyEl = document.getElementById('empty');
 let winFrom = -1, winTo = -1;
-/* The two layout numbers paint() needs, measured once and on resize. Reading them
-   inside paint() would force a synchronous layout on every scroll frame, right
-   after the mutation that invalidated it - the one expensive thing in the loop. */
+/* The two layout numbers paint() needs. Measured once per render and on resize,
+   never inside paint(): reading them there would force a synchronous layout on
+   every scroll frame, right after the mutation that invalidated it - the one
+   expensive thing in the loop.
+   It has to be measured AFTER the body's height is set, or a table that is short
+   at that moment (a narrow filter, mid-search) hands paint() a viewport of four
+   rows and the next full list draws with a hole under it. */
 let headH = 0, viewH = 0;
 function measure() { headH = thead.offsetHeight; viewH = scroller.clientHeight; }
 
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
+
+/** The "vs" cell: the gap to the other dataset's rating for the same man. */
+function diffHtml(i) {
+  const v = D.diff[i];
+  if (v === NO_DIFF) return '<span class="dif no" title="not in ' + otherTab + '">&ndash;</span>';
+  const cls = v > 0 ? 'up' : v < 0 ? 'dn' : 'eq';
+  const title = P.tab + ' ' + D.elo[i] + ' &middot; ' + otherTab + ' ' + (D.elo[i] - v);
+  return '<span class="dif ' + cls + '" title="' + title + '">' + (v > 0 ? '+' + v : v) + '</span>';
+}
 
 function rowHtml(i, top) {
   const c = D.combo[i], t = D.tier[i], nat = D.nation[i], p = D.person[i];
@@ -565,8 +612,9 @@ function rowHtml(i, top) {
     + '<span class="ctry"><span class="fl f' + D.set.nations[nat][0] + '"></span><span class="t">' + D.natHtml[nat] + '</span></span>'
     + '<span class="yr">' + D.set.years[D.year[i]] + '</span>'
     + '<span class="pos">' + POS[D.comboMain[c]] + '</span>'
-    + (P.alt ? '<span class="alt">' + D.comboAltHtml[c] + '</span>' : '')
+    + '<span class="alt">' + D.comboAltHtml[c] + '</span>'
     + '<span class="rat">' + D.elo[i] + '</span>'
+    + diffHtml(i)
     + col
     + '</div>';
 }
@@ -588,6 +636,7 @@ function render() {
   tbody.style.height = viewLen * ROW_H + 'px';
   emptyEl.hidden = viewLen > 0;
   scroller.scrollTop = 0;
+  measure();
   winFrom = winTo = -1;
   paint(true);
   const n = viewLen.toLocaleString('en-GB');
@@ -669,15 +718,19 @@ document.addEventListener('click', (e) => { if (!e.target.closest('.row')) hideT
 /* ---------------------------------------------------------------------------
    Header: click to sort. Rebuilt per dataset, since one of them has no "Also".
 --------------------------------------------------------------------------- */
+/** The same columns for either dataset, in the same order, at the same widths.
+ *  Only two labels change, and both name what the data is rather than how the
+ *  table is built: the other dataset, and what its last column marks. */
 function columns() {
   return [
     { id: 'num', label: '#', cls: 'r', dir: 1 },
     { id: 'name', label: 'Name', cls: '', dir: 1 },
     { id: 'nat', label: 'Country', cls: '', dir: 1 },
     { id: 'year', label: 'Year', cls: '', dir: -1 },
-    { id: 'main', label: P.mainHeader, cls: '', dir: 1 },
-    ...(P.alt ? [{ id: 'alt', label: P.altHeader, cls: '', dir: 1 }] : []),
+    { id: 'main', label: 'Main', cls: '', dir: 1 },
+    { id: 'alt', label: 'Also', cls: '', dir: 1 },
     { id: 'rating', label: 'Rating', cls: 'r', dir: -1 },
+    { id: 'diff', label: P.diffHeader, cls: 'r', dir: -1 },
     { id: 'col', label: P.colHeader, cls: 'r', dir: -1 },
   ];
 }
@@ -711,7 +764,7 @@ thead.addEventListener('click', (e) => {
 /* ---------------------------------------------------------------------------
    Multi-select filters
 --------------------------------------------------------------------------- */
-function multiSelect(host, opts, set, label, searchable) {
+function multiSelect(host, opts, set, label, searchable, off) {
   // opts: [{ value, html, key, count }]. A value is whatever the state holds - a
   // position index, a nation code, a year - so the option INDEX is what travels
   // through the DOM.
@@ -801,6 +854,14 @@ function multiSelect(host, opts, set, label, searchable) {
   document.addEventListener('click', close);
   host.addEventListener('keydown', (e) => { if (e.key === 'Escape') { close(); btn.focus(); } });
 
+  if (off) {
+    // Kept, greyed, and inert: the selection travels back to the dataset that can
+    // answer it (see `fields`).
+    host.classList.add('off');
+    btn.disabled = true;
+    btn.title = off;
+  }
+
   drawList(); drawBtn();
   return { refresh() { shown = opts; const s = pop.querySelector('.psearch'); if (s) s.value = ''; drawList(); drawBtn(); } };
 }
@@ -808,17 +869,18 @@ function multiSelect(host, opts, set, label, searchable) {
 const posOpts = (counts) => POS.map((p, i) => ({ value: i, html: p, key: fold(p), count: counts[i] }));
 const flagHtml = (code) => '<span class="fl f' + code + '" style="display:inline-block;vertical-align:-2px;margin-right:6px"></span>';
 
-/* Which filters the active dataset carries, in order. One that gives a player a
-   single position has nothing to put in the two extra position filters, so it
-   does not show them rather than showing a control that can only ever say
-   "any". */
+/* The same six filters in the same order for either dataset. The two extra
+   position filters are unanswerable on a dataset that gives a player a single
+   position, so there they are greyed out rather than removed - the row of
+   controls stays put, and a selection made on one dataset is still there when
+   you come back to it. */
+const ONE_POSITION = '7a0 gives each player one position, so this filter has nothing to narrow';
+
 function fields() {
   return [
-    { key: 'main', label: P.mainFilter, opts: () => posOpts(D.mainCount) },
-    ...(P.alt ? [
-      { key: 'add', label: 'Additional position', opts: () => posOpts(D.addCount) },
-      { key: 'any', label: 'Position (any)', opts: () => posOpts(D.anyCount) },
-    ] : []),
+    { key: 'main', label: 'Main position', opts: () => posOpts(D.mainCount) },
+    { key: 'add', label: 'Additional position', off: P.alt ? '' : ONE_POSITION, opts: () => posOpts(D.addCount) },
+    { key: 'any', label: 'Position (any)', off: P.alt ? '' : ONE_POSITION, opts: () => posOpts(D.anyCount) },
     {
       key: 'nat', label: 'Country', search: true,
       opts: () => D.set.nations.map((n, i) => ({
@@ -849,7 +911,7 @@ function buildFields() {
   msfields.innerHTML = '';
   controls = FIELDS.map((f) => {
     const field = document.createElement('div');
-    field.className = 'field';
+    field.className = f.off ? 'field off' : 'field';
     const cap = document.createElement('span');
     cap.className = 'mono-cap';
     cap.textContent = f.label;
@@ -858,10 +920,8 @@ function buildFields() {
     host.id = 'f-' + f.key;
     field.append(cap, host);
     msfields.append(field);
-    return multiSelect(host, f.opts(), state[f.key], f.label, !!f.search);
+    return multiSelect(host, f.opts(), state[f.key], f.label, !!f.search, f.off);
   });
-  // A filter the active dataset does not have must not keep filtering it.
-  for (const k of ['main', 'add', 'any']) if (!FIELDS.some((f) => f.key === k)) state[k].clear();
 }
 
 /* ---------------------------------------------------------------------------
@@ -951,7 +1011,7 @@ function load(index) {
   document.getElementById('eyebrow').textContent = P.eyebrow;
   document.getElementById('title').textContent = P.title;
   document.getElementById('foot').textContent = D.set.footer;
-  document.documentElement.style.setProperty('--grid-cols', P.grid);
+  otherTab = DATA.sets.length > 1 ? DATA.sets[(index + 1) % DATA.sets.length].page.tab : '';
   // The two datasets are meant to be told apart at a glance, here and in a second
   // window of the same file.
   const tile = document.getElementById('tile');
@@ -963,7 +1023,6 @@ function load(index) {
   buildHead();
   buildFields();
   paintRange();
-  measure();
   render();
 }
 
@@ -992,6 +1051,7 @@ try { saved = localStorage.getItem('wcsim_players_theme'); } catch (e) { /* priv
 setTheme(saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
 
+document.documentElement.style.setProperty('--grid-cols', DATA.grid);
 load(0);
 // Web fonts land after the first paint and can change the header's height.
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); paint(true); });

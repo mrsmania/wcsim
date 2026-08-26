@@ -955,13 +955,14 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   `squads.ts` or `STICKER_TIERS`**, the same way `gen:collectibles` has to be re-run -
   nothing fails while it is stale, because it is not in the build.
 - **Shows** jersey number, name, country, year, main position, additional positions,
-  rating and collectible (yes, with the tier's colour, or no). **Filters** for main
-  position, additional position, position (either), country, World Cup and collectible
-  are all multi-select; rating is a two-handle range; the search box matches the name
-  only, diacritic-insensitively. Every column sorts, rating descending by default.
-- **It carries TWO datasets and a toggle** (top right of the page header): the game's
-  own and the other game's ratings. See the section below - that toggle is the reason
-  there is no second file.
+  rating, **what the other game rates the same man at** (as a signed difference), and
+  collectible (yes, with the tier's colour, or no). **Filters** for main position,
+  additional position, position (either), country, World Cup and collectible are all
+  multi-select; rating is a two-handle range; the search box matches the name only,
+  diacritic-insensitively. Every column sorts, rating descending by default.
+- **It carries TWO datasets and a toggle** (top right of the page header): **WCS**, the
+  game's own, and **7a0**, the other game's ratings. See the section below - that toggle
+  is the reason there is no second file.
 - **A player who appears in more than one tournament carries an `x N` mark**, and hovering
   any one of his rows shows all of them (year, nation, main role, rating) with the row you
   are on picked out - plus every other row of the same man currently on screen. That is
@@ -978,7 +979,7 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   copy - the generator parses it out of `src/components/Flag.tsx` and inlines the SVGs as
   data URIs, so the page cannot drift from the game's own flags.
 
-### The second dataset, and the toggle (`Dataset: This game | Other game`)
+### The second dataset, and the toggle (`Dataset: WCS | 7a0`)
 
 The same page also carries **another game's ratings** (`docs/player-ratings-other-game.csv`,
 6,864 players, 302 squads, 56 nations, 1950 to 2026 including a predicted field), and a
@@ -1000,13 +1001,36 @@ there is only one artifact to keep in step.
 - **Each dataset is decoded once and kept**, so a toggle back is instant; a switch
   rebuilds the header, the filter controls, the title and the masthead tile from the
   incoming set's `page` block, and costs about 15 ms.
+- **The visible window is measured after the body's height is set**, inside `render`, not
+  when a dataset loads. Measuring it first read the height of whatever narrow result was
+  on screen (four rows, mid-search), and the next full list then drew fourteen rows with a
+  hole under them.
 - **The other source's twelve position names map one-for-one onto ours**
   ("Defensive midfielder" is DM, "Centre-forward" is ST), which is what lets a position
   filter mean the same thing on both sides of the toggle. An unknown wording throws
   rather than being bucketed.
-- **It gives a player ONE position**, so on that dataset there is no "Also" column and no
-  additional / any-position filter - a control that could only ever say "any" is not
-  shown. Its last column is the source's own **Legend** flag where ours is Collectible.
+- **THE UI IS THE SAME FOR BOTH**, which is the whole point of a toggle rather than two
+  pages: the same nine columns at the same widths (one `GRID` in `players-page.ts`, not
+  one per dataset), the same six filters in the same order. Only what a label NAMES
+  changes - the other dataset, and whether the last column marks a sticker tier or 7a0's
+  own **Legend** flag.
+- **7a0 gives a player ONE position**, so the additional / any-position filters cannot be
+  answered there. They are **greyed out, not removed**: the row of controls stays put, the
+  control says why on hover, the selection is KEPT (so it is still there when you go back
+  to WCS), and it simply stops filtering while it is inert. 7a0's "Also" column prints a
+  dash for every row for the same reason.
+- **The "vs" column is a real join, not a name lookup at read time.** `players-page-match.ts`
+  matches the two datasets player for player at generation time, keyed on (nation,
+  tournament, name) - never a name on its own, because a squad at one World Cup is a
+  closed pool of 22 to 26 men, which is what makes a fuzzy comparison safe. Three passes,
+  each **mutually unique** (this row's only candidate must have no other claimant): exact
+  folded name, then token subset ("Piazza" in "Wilson Piazza"), then an edit distance of 2
+  over the name or 1 over the surname, which is the transliteration pass
+  (Rivelino/Rivellino, Mihaylov/Mikhailov, Haaland/Haland). Mutual uniqueness is what stops
+  7a0's "Paulo Cesar Caju" and "Cesar Maluco" both landing on WCS's single "Cesar".
+  Measured: **5,005 players matched**, 99.3% of the 7a0 rows whose squad WCS also has;
+  889 are rated identically and WCS runs 0.61 lower on average. A row with no counterpart
+  prints a dash and sorts last in both directions - an absent difference, not a small one.
 - **It has no player id**, which the "x N appearances" mark needs. Appearances are
   matched by name **within a nation**, split wherever two are more than 24 years apart
   (`MAX_CAREER`; the longest real span in the data is Buffon's 20). Name alone merged

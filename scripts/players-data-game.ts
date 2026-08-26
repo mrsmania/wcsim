@@ -19,19 +19,16 @@ const TIERS = [...STICKER_TIER_ORDER].reverse();
 const TIER_INDEX = new Map(TIERS.map((t, i) => [t, i + 1] as const));
 
 const page: PageConfig = {
-  tab: 'This game',
+  tab: 'WCS',
   docTitle: 'Player index - World Cup Simulator',
   tag: 'Player index',
-  eyebrow: 'Squads database',
+  eyebrow: 'WCS ratings',
   title: 'Every player',
   alt: true,
-  mainHeader: 'Main',
-  mainFilter: 'Main position',
-  altHeader: 'Also',
+  diffHeader: 'vs 7a0',
   colHeader: 'Collectible',
   tierNames: ['', ...TIERS.map((t) => TIER_META[t].name)],
   tierAccents: ['', ...TIERS.map((t) => TIER_META[t].accent)],
-  grid: '44px minmax(170px, 1.7fr) minmax(140px, 1.1fr) 58px 58px minmax(96px, 0.9fr) 72px 92px',
 };
 
 /** The game's dataset, ready for the page. */

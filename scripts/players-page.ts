@@ -39,16 +39,13 @@ export interface PageConfig {
   /** Does a player hold more than one position? Drives the "Also" column and the two
    *  extra position filters - a dataset with one role per player shows neither. */
   alt: boolean;
-  mainHeader: string;
-  mainFilter: string;
-  altHeader: string;
+  /** The "vs" column's header: what the OTHER dataset is called. */
+  diffHeader: string;
   /** The last column: "Collectible" here, "Legend" in the other game's data. */
   colHeader: string;
   /** Index 0 is "none", so it is the empty string. */
   tierNames: string[];
   tierAccents: string[];
-  /** `grid-template-columns` for the header and every row. */
-  grid: string;
 }
 
 interface RawRow {
@@ -200,6 +197,9 @@ export function flagCss(codes: string[]): string {
 export interface SetBlob {
   page: PageConfig;
   footer: string;
+  /** Per row, the rating minus the other dataset's rating for the same man, or
+   *  `DIFF_NONE`. Filled in by `matchSets` once both datasets exist. */
+  diffs?: number[];
   combos: number[][];
   nations: [string, string][];
   years: number[];
@@ -210,14 +210,22 @@ export interface SetBlob {
   collectibles: number;
 }
 
-/** Fill the template in and write the page. The twelve positions sit at the top of
- *  the blob rather than inside each set: both datasets speak them, which is what
- *  lets a position filter survive the toggle. */
+/** The table's column widths. ONE grid for every dataset: the two are meant to be
+ *  read against each other, and a column that moved when the toggle was thrown
+ *  would defeat that. A dataset with one position per player prints a dash in the
+ *  "Also" column rather than dropping it. */
+const GRID =
+  '44px minmax(160px, 1.7fr) minmax(130px, 1.1fr) 54px 54px minmax(88px, 0.9fr) 66px 66px 92px';
+
+/** Fill the template in and write the page. The twelve positions and the grid sit
+ *  at the top of the blob rather than inside each set: both datasets speak the
+ *  same positions and draw the same table, which is what lets a filter, a sort and
+ *  a column survive the toggle. */
 export function writePage(out: string, sets: SetBlob[]): void {
   const codes = [...new Set(sets.flatMap((s) => s.nations.map(([code]) => code)))].sort();
   const html = readFileSync(TEMPLATE_PATH, 'utf8')
     .replace('__FLAG_CSS__', () => flagCss(codes))
-    .replace('__DATA__', () => JSON.stringify({ pos: POS, sets }));
+    .replace('__DATA__', () => JSON.stringify({ pos: POS, grid: GRID, sets }));
   writeFileSync(out, html);
   console.log(`${out}: ${(html.length / 1024).toFixed(0)} KB`);
 }
