@@ -307,8 +307,7 @@ npm run push:collectibles  # send that seed to the account server (needs dkr/.en
                            #   while curl reaches the host - see docs/nas-setup.md)
 npm run push:sql -- <file.sql>   # apply a migration / run a query on that server (same
                            #   credentials and route; -- --dry-run shows without sending)
-npm run gen:players        # regenerate BOTH standalone player pages (docs/players.html
-                           #   and docs/players-other-game.html)
+npm run gen:players        # regenerate docs/players.html (it carries both datasets)
 npm run album:fill         # print a console snippet that fills the album (guest only;
                            #   -- --leave=N / --dupes=N / --clear)
 python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/stickers/*.webp
@@ -949,16 +948,20 @@ nothing in `src/` imports it and it imports nothing - `docs/` is not under `publ
 in-app, read-only browser; this is the whole dataset at once, for looking things up.
 
 - **Generated, never hand-edited.** `npm run gen:players` bakes the data in:
-  `scripts/gen-players-page.ts` supplies the dataset, `scripts/players-page.ts` the
-  encoding and the flags, `scripts/players-page.template.html` the markup, CSS and
-  behaviour, and they meet at the `__DATA__` / `__FLAG_CSS__` placeholders. **Re-run it
-  after any change to `squads.ts` or `STICKER_TIERS`**, the same way `gen:collectibles`
-  has to be re-run - nothing fails while it is stale, because it is not in the build.
+  `scripts/players-data-game.ts` and `scripts/players-data-other.ts` supply the two
+  datasets, `scripts/players-page.ts` the encoding and the flags,
+  `scripts/players-page.template.html` the markup, CSS and behaviour, and they meet at
+  the `__DATA__` / `__FLAG_CSS__` placeholders. **Re-run it after any change to
+  `squads.ts` or `STICKER_TIERS`**, the same way `gen:collectibles` has to be re-run -
+  nothing fails while it is stale, because it is not in the build.
 - **Shows** jersey number, name, country, year, main position, additional positions,
   rating and collectible (yes, with the tier's colour, or no). **Filters** for main
   position, additional position, position (either), country, World Cup and collectible
   are all multi-select; rating is a two-handle range; the search box matches the name
   only, diacritic-insensitively. Every column sorts, rating descending by default.
+- **It carries TWO datasets and a toggle** (top right of the page header): the game's
+  own and the other game's ratings. See the section below - that toggle is the reason
+  there is no second file.
 - **A player who appears in more than one tournament carries an `x N` mark**, and hovering
   any one of his rows shows all of them (year, nation, main role, rating) with the row you
   are on picked out - plus every other row of the same man currently on screen. That is
@@ -975,21 +978,33 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   copy - the generator parses it out of `src/components/Flag.tsx` and inlines the SVGs as
   data URIs, so the page cannot drift from the game's own flags.
 
-### The comparison page (`docs/players-other-game.html`)
+### The second dataset, and the toggle (`Dataset: This game | Other game`)
 
-**The same page over ANOTHER game's ratings** (`docs/player-ratings-other-game.csv`,
-6,864 players, 302 squads, 56 nations, 1950 to 2026 including a predicted field), so the
-two files can be opened side by side and read off against each other. `gen:players`
-writes both; `scripts/gen-players-page-other.ts` is the CSV half.
+The same page also carries **another game's ratings** (`docs/player-ratings-other-game.csv`,
+6,864 players, 302 squads, 56 nations, 1950 to 2026 including a predicted field), and a
+toggle in the page header switches the whole table over to it. It shipped first as a
+second FILE (`docs/players-other-game.html`, deleted 2026-08-26); one file with a toggle
+replaced it, because two windows of one page do the side-by-side reading just as well and
+there is only one artifact to keep in step.
 
-- **One template, two pages, and that is the point.** Everything the two differ by
-  travels in the data blob's `page` block - the wording, the column widths, whether a
-  player can hold more than one position, what the last column means. A second copy of
-  the template would drift, and two pages that drift cannot be compared.
+- **THE QUERY SURVIVES THE SWITCH**, which is the whole point of both datasets living in
+  one page. The filter state is held as VALUES (a nation code, a year, a position index),
+  never as indices into one dataset's own tables, so flipping asks the other dataset the
+  same question: "Brazil, 1970" reads 22 players either way. A value the incoming set
+  does not hold (2026, or a nation it never lists) is dropped, and the count line says
+  how many. A sort on a column the other set has not got falls back to rating.
+- **An UNTOUCHED rating range opens to the incoming dataset's own scale**; only a range
+  the reader actually moved is carried and clamped. The two floors differ (62 here, 64
+  there), so clamping an untouched range quietly dropped 63 rows nobody had filtered out.
+  `state.rangeSet` is the distinction.
+- **Each dataset is decoded once and kept**, so a toggle back is instant; a switch
+  rebuilds the header, the filter controls, the title and the masthead tile from the
+  incoming set's `page` block, and costs about 15 ms.
 - **The other source's twelve position names map one-for-one onto ours**
-  ("Defensive midfielder" is DM, "Centre-forward" is ST), so the position column
-  compares directly. An unknown wording throws rather than being bucketed.
-- **It gives a player ONE position**, so that page has no "Also" column and no
+  ("Defensive midfielder" is DM, "Centre-forward" is ST), which is what lets a position
+  filter mean the same thing on both sides of the toggle. An unknown wording throws
+  rather than being bucketed.
+- **It gives a player ONE position**, so on that dataset there is no "Also" column and no
   additional / any-position filter - a control that could only ever say "any" is not
   shown. Its last column is the source's own **Legend** flag where ours is Collectible.
 - **It has no player id**, which the "x N appearances" mark needs. Appearances are
@@ -999,8 +1014,8 @@ writes both; `scripts/gen-players-page-other.ts` is the CSV half.
   read out as one seven-cup career. What it still cannot separate is two men of the same
   name in the same era (England's several Wrights) or in one squad (Serbia named two
   Mitrovic in 2022); the page's footer says so rather than implying the grouping is exact.
-- **Told apart at a glance** by an amber masthead tile and its own display title, since
-  the whole intent is two windows open at once.
+- **Told apart at a glance** by an amber masthead tile and its own display title, so a
+  second window flipped to it is never mistaken for the first.
 
 ## Sticker album (flagged)
 

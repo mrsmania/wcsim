@@ -1,14 +1,12 @@
 /**
- * Shared machinery behind the two standalone player pages:
+ * Shared machinery behind the standalone player index, `docs/players.html`.
  *
- *   docs/players.html             - the game's own dataset (gen-players-page.ts)
- *   docs/players-other-game.html  - the comparison CSV     (gen-players-page-other.ts)
- *
- * Both are the SAME page (`scripts/players-page.template.html`) over different data,
- * which is the point: they are meant to be open side by side. Everything the two
- * differ by - the wording, whether a player can hold more than one position, what
- * the last column means - travels in the `page` block of the data blob rather than
- * in a second copy of the template.
+ * The page carries BOTH datasets - the game's own (`players-data-game.ts`) and the
+ * other game's ratings (`players-data-other.ts`) - and a toggle switches between
+ * them, so the same table, the same filters and the same query can be pointed at
+ * either. Everything the two differ by travels in a set's `page` block rather than
+ * in a second copy of the template: the wording, whether a player can hold more
+ * than one position, what the last column means.
  *
  * Node-only (reads and writes files); nothing in `src/` imports this.
  */
@@ -24,8 +22,10 @@ export const POS = ['GK', 'LB', 'CB', 'RB', 'DM', 'LM', 'CM', 'RM', 'AM', 'LW', 
 export type Pos = (typeof POS)[number];
 const POS_INDEX = new Map<string, number>(POS.map((p, i) => [p, i]));
 
-/** What the template needs to know about the page it is drawing. */
+/** What the template needs to know about the dataset it is drawing. */
 export interface PageConfig {
+  /** The toggle's label for this dataset. */
+  tab: string;
   /** Browser tab. */
   docTitle: string;
   /** Masthead sub-line. */
@@ -33,7 +33,8 @@ export interface PageConfig {
   /** Section eyebrow + display title. */
   eyebrow: string;
   title: string;
-  /** `[background, glyph]` for the masthead tile, so two open windows differ at a glance. */
+  /** `[background, glyph]` for the masthead tile, so the two datasets - and two
+   *  windows of this file showing one each - differ at a glance. */
   tile?: [string, string];
   /** Does a player hold more than one position? Drives the "Also" column and the two
    *  extra position filters - a dataset with one role per player shows neither. */
@@ -134,7 +135,6 @@ export class Dataset {
     }
 
     return {
-      pos: POS,
       combos,
       nations,
       years,
@@ -196,14 +196,28 @@ export function flagCss(codes: string[]): string {
   return rules.join('\n');
 }
 
-/** Fill the template in and write the page. */
-export function writePage(
-  out: string,
-  data: Record<string, unknown> & { nations: [string, string][] },
-): void {
+/** One dataset as the page reads it. */
+export interface SetBlob {
+  page: PageConfig;
+  footer: string;
+  combos: number[][];
+  nations: [string, string][];
+  years: number[];
+  persons: string[];
+  rows: number[];
+  eloMin: number;
+  eloMax: number;
+  collectibles: number;
+}
+
+/** Fill the template in and write the page. The twelve positions sit at the top of
+ *  the blob rather than inside each set: both datasets speak them, which is what
+ *  lets a position filter survive the toggle. */
+export function writePage(out: string, sets: SetBlob[]): void {
+  const codes = [...new Set(sets.flatMap((s) => s.nations.map(([code]) => code)))].sort();
   const html = readFileSync(TEMPLATE_PATH, 'utf8')
-    .replace('__FLAG_CSS__', () => flagCss(data.nations.map(([code]) => code)))
-    .replace('__DATA__', () => JSON.stringify(data));
+    .replace('__FLAG_CSS__', () => flagCss(codes))
+    .replace('__DATA__', () => JSON.stringify({ pos: POS, sets }));
   writeFileSync(out, html);
   console.log(`${out}: ${(html.length / 1024).toFixed(0)} KB`);
 }

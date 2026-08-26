@@ -1,15 +1,13 @@
 /**
- * Generate `docs/players-other-game.html` - the SAME page as `docs/players.html`,
- * over the other game's ratings (`docs/player-ratings-other-game.csv`).
+ * The other game's ratings (`docs/player-ratings-other-game.csv`) as the second
+ * dataset of `docs/players.html`, behind the page's toggle.
  *
- *   npm run gen:players     # rewrites both pages
- *
- * The point is comparison: open the two files side by side and the columns, the
- * filters, the sorting and the hover card all behave identically, so a difference
- * on screen is a difference in the DATA. That is also why the twelve positions are
- * mapped onto the game's own vocabulary rather than left as the source's prose:
- * "Defensive midfielder" and DM are the same role, and a reader comparing two
- * windows should not have to translate.
+ * The point is comparison: the same table, the same filters and the same query,
+ * pointed at either dataset, so a difference on screen is a difference in the DATA.
+ * That is also why the twelve positions are mapped onto the game's own vocabulary
+ * rather than left as the source's prose: "Defensive midfielder" and DM are the
+ * same role, and a reader flipping between the two should not have to translate -
+ * nor should a position filter stop meaning anything when the toggle is thrown.
  *
  * Three things the other dataset does NOT have, and what the page does about each:
  *
@@ -26,10 +24,9 @@
  *   the same shape of fact (a flag on a row), so it takes the last column.
  */
 import { readFileSync } from 'node:fs';
-import { Dataset, today, writePage, type PageConfig } from './players-page';
+import { Dataset, today, type PageConfig, type SetBlob } from './players-page';
 
 const CSV_PATH = 'docs/player-ratings-other-game.csv';
-const OUT_PATH = 'docs/players-other-game.html';
 
 /** The longest a real World Cup career runs, in years: two appearances further apart
  *  than this are two different men of the same name. The record span in the dataset
@@ -86,14 +83,14 @@ function parseCsv(text: string): Record<string, string>[] {
 }
 
 const page: PageConfig = {
+  tab: 'Other game',
   docTitle: "Other game's ratings - player index",
   tag: "Other game's ratings",
   eyebrow: 'Comparison dataset',
-  // The one thing deliberately NOT identical to the other page: with two windows
-  // open, the display title is what says which is which.
+  // With the toggle thrown, the display title is what says which dataset is on
+  // screen - and which is which when the file is open in two windows.
   title: "The other game's players",
-  // Amber rather than the pitch green, so the two open windows are told apart at a
-  // glance - the pages are otherwise deliberately identical.
+  // Amber rather than the pitch green, so the two are told apart at a glance.
   tile: ['#9a6512', '#f4f2ec'],
   alt: false,
   mainHeader: 'Pos',
@@ -102,12 +99,10 @@ const page: PageConfig = {
   colHeader: 'Legend',
   tierNames: ['', 'Legend'],
   tierAccents: ['', '#c99a3a'],
-  // The game's own grid minus the "Also" track, so the shared columns keep the same
-  // proportions and the two pages read as one table split in two.
+  // The game's own grid minus the "Also" track, so throwing the toggle moves one
+  // column rather than reshuffling the table.
   grid: '44px minmax(170px, 1.7fr) minmax(140px, 1.1fr) 58px 58px 72px 92px',
 };
-
-const csv = parseCsv(readFileSync(CSV_PATH, 'utf8'));
 
 /**
  * Who is who, as far as the source allows. Every row of one name for one nation is
@@ -116,7 +111,7 @@ const csv = parseCsv(readFileSync(CSV_PATH, 'utf8'));
  * several Wrights), or in the same squad - Serbia named two Mitrovic and two
  * Milinkovic-Savic in 2022, Ireland two Kelly in 2002, Brazil two Danilo in 2026.
  */
-function identify(): (row: Record<string, string>) => string {
+function identify(csv: Record<string, string>[]): (row: Record<string, string>) => string {
   const years = new Map<string, number[]>();
   for (const r of csv) {
     const k = `${r.player_name}#${r.team_code}`;
@@ -141,45 +136,47 @@ function identify(): (row: Record<string, string>) => string {
   };
 }
 
-const personKeyOf = identify();
-const data = new Dataset();
+/** The other game's dataset, ready for the page. */
+export function otherSet(): SetBlob {
+  const csv = parseCsv(readFileSync(CSV_PATH, 'utf8'));
+  const personKeyOf = identify(csv);
+  const data = new Dataset();
 
-for (const r of csv) {
-  const position = POSITION[r.position];
-  if (!position) throw new Error(`unknown position "${r.position}" (${r.player_name}, ${r.year})`);
-  const year = Number(r.year);
-  data.add({
-    // See `identify()`: name + nation + career run. The name is taken AS WRITTEN,
-    // never folded - Yugoslavia 1954 played the brothers Z. Cajkovski and Z with a
-    // caron, whom folding the accents away would merge into one man.
-    personKey: personKeyOf(r),
-    name: r.player_name,
-    code: r.team_code.toUpperCase(),
-    nation: r.team_name,
-    year,
-    // 1950 and 1954 were played without shirt numbers; the page prints a dash.
-    number: Number(r.shirt_number) || 0,
-    positions: [position],
-    rating: Number(r.rating),
-    tier: r.legend === 'true' ? 1 : 0,
-  });
+  for (const r of csv) {
+    const position = POSITION[r.position];
+    if (!position) throw new Error(`unknown position "${r.position}" (${r.player_name}, ${r.year})`);
+    data.add({
+      // See `identify()`: name + nation + career run. The name is taken AS WRITTEN,
+      // never folded - Yugoslavia 1954 played the brothers Z. Cajkovski and Z with a
+      // caron, whom folding the accents away would merge into one man.
+      personKey: personKeyOf(r),
+      name: r.player_name,
+      code: r.team_code.toUpperCase(),
+      nation: r.team_name,
+      year: Number(r.year),
+      // 1950 and 1954 were played without shirt numbers; the page prints a dash.
+      number: Number(r.shirt_number) || 0,
+      positions: [position],
+      rating: Number(r.rating),
+      tier: r.legend === 'true' ? 1 : 0,
+    });
+  }
+
+  const { counts: c, ...encoded } = data.encode();
+  const source = new URL(csv[0].source_url).host;
+  console.log(
+    `  other game: ${c.players} players / ${c.people} names / ${c.squads} squads / ` +
+      `${c.nations} nations / ${c.years} tournaments / ${c.collectibles} legends`,
+  );
+  return {
+    ...encoded,
+    page,
+    footer:
+      `Generated from ${CSV_PATH} (${source}) on ${today()} - ${c.players.toLocaleString('en-GB')} players, ` +
+      `${c.squads} squads, ${c.nations} nations, ${c.years} tournaments (${encoded.years[0]} to ` +
+      `${encoded.years[encoded.years.length - 1]}), ${c.collectibles} legends. ` +
+      `The source carries no player id, so an "appearance" is matched by name within a nation, split ` +
+      `where two are over ${MAX_CAREER} years apart: two men of the same name in the same era still ` +
+      `read as one. Regenerate with \`npm run gen:players\`.`,
+  };
 }
-
-const encoded = data.encode();
-const c = encoded.counts;
-const source = new URL(csv[0].source_url).host;
-writePage(OUT_PATH, {
-  ...encoded,
-  page,
-  footer:
-    `Generated from ${CSV_PATH} (${source}) on ${today()} - ${c.players.toLocaleString('en-GB')} players, ` +
-    `${c.squads} squads, ${c.nations} nations, ${c.years} tournaments (${encoded.years[0]} to ` +
-    `${encoded.years[encoded.years.length - 1]}), ${c.collectibles} legends. ` +
-    `The source carries no player id, so an "appearance" is matched by name within a nation, split ` +
-    `where two are over ${MAX_CAREER} years apart: two men of the same name in the same era still read ` +
-    `as one. Regenerate with \`npm run gen:players\`.`,
-});
-console.log(
-  `  ${c.players} players / ${c.people} names / ${c.squads} squads / ${c.nations} nations / ` +
-    `${c.years} tournaments / ${c.collectibles} legends`,
-);

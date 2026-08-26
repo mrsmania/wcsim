@@ -1,80 +1,24 @@
 /**
  * Generate the standalone player index, `docs/players.html`.
  *
+ *   npm run gen:players
+ *
  * A one-pager OUTSIDE the app: every player of every squad of every tournament in
  * one sortable, filterable table, opened straight off disk. It is not routed, not
  * bundled and not deployed - `docs/` is not under `public/`, so `npm run build`
  * never sees it.
  *
- *   npm run gen:players     # rewrites this page AND the comparison one
+ * The file carries BOTH datasets and a toggle switches between them: the game's own
+ * (`players-data-game.ts`) and the other game's ratings (`players-data-other.ts`).
+ * One page, one query, two answers - which is what makes the two comparable, and
+ * why there is no second file to keep in step. Two windows of this file, one flipped
+ * to each dataset, is the side-by-side reading.
  *
- * The dataset is baked in at generation time, so the page has no imports and no
- * network dependency beyond the Google Fonts link. Re-run it after ANY change to
- * `squads.ts` or to `STICKER_TIERS` (the collectible column reads `tierOf`), the
- * same way `npm run gen:collectibles` has to be re-run.
- *
- * The markup, CSS and behaviour live in `scripts/players-page.template.html`, shared
- * with `gen-players-page-other.ts`; the encoding lives in `scripts/players-page.ts`.
- * This file only says what the game's own dataset puts in them.
+ * The markup, CSS and behaviour live in `scripts/players-page.template.html`; the
+ * encoding in `scripts/players-page.ts`. This file only says which datasets go in.
  */
-import { SQUADS } from '../src/data/squads';
-import { tierOf } from '../src/domain/album';
-import { STICKER_TIER_ORDER } from '../src/config';
-import { TIER_META } from '../src/components/stickerTheme';
-import { Dataset, today, writePage, type PageConfig } from './players-page';
+import { writePage } from './players-page';
+import { gameSet } from './players-data-game';
+import { otherSet } from './players-data-other';
 
-const OUT_PATH = 'docs/players.html';
-
-/** Weakest tier first, so a bigger number is a rarer card and the Collectible
- *  column sorts the way a reader expects. */
-const TIERS = [...STICKER_TIER_ORDER].reverse();
-const TIER_INDEX = new Map(TIERS.map((t, i) => [t, i + 1] as const));
-
-const page: PageConfig = {
-  docTitle: 'Player index - World Cup Simulator',
-  tag: 'Player index',
-  eyebrow: 'Squads database',
-  title: 'Every player',
-  alt: true,
-  mainHeader: 'Main',
-  mainFilter: 'Main position',
-  altHeader: 'Also',
-  colHeader: 'Collectible',
-  tierNames: ['', ...TIERS.map((t) => TIER_META[t].name)],
-  tierAccents: ['', ...TIERS.map((t) => TIER_META[t].accent)],
-  grid: '44px minmax(170px, 1.7fr) minmax(140px, 1.1fr) 58px 58px minmax(96px, 0.9fr) 72px 92px',
-};
-
-const data = new Dataset();
-const squads = [...SQUADS].sort((a, b) => a.year - b.year || a.code.localeCompare(b.code));
-for (const s of squads) {
-  for (const p of s.players) {
-    const tier = tierOf(p);
-    data.add({
-      personKey: p.personId,
-      name: p.name,
-      code: s.code,
-      nation: s.nation,
-      year: s.year,
-      number: p.number,
-      positions: p.positions,
-      rating: p.elo,
-      tier: tier ? TIER_INDEX.get(tier)! : 0,
-    });
-  }
-}
-
-const encoded = data.encode();
-const c = encoded.counts;
-writePage(OUT_PATH, {
-  ...encoded,
-  page,
-  footer:
-    `Generated from src/data/squads.ts on ${today()} - ${c.players.toLocaleString('en-GB')} players, ` +
-    `${c.people.toLocaleString('en-GB')} distinct people, ${c.squads} squads, ${c.nations} nations, ` +
-    `${c.years} tournaments, ${c.collectibles} collectibles. Regenerate with \`npm run gen:players\`.`,
-});
-console.log(
-  `  ${c.players} players / ${c.people} people / ${c.squads} squads / ${c.nations} nations / ` +
-    `${c.years} tournaments / ${c.collectibles} collectibles`,
-);
+writePage('docs/players.html', [gameSet(), otherSet()]);

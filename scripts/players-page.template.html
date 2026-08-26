@@ -153,6 +153,7 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .fspacer { flex: 1; }
 .count { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
 .count b { color: var(--ink); font-weight: 700; }
+.count .gone { color: var(--amber-ink); }
 
 /* ---- table ------------------------------------------------------------- */
 .table { overflow: hidden; }
@@ -237,6 +238,24 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 
 /* Nation flags, inlined from country-flag-icons at generation time. */
 __FLAG_CSS__
+
+/* ---- dataset toggle ---------------------------------------------------- */
+.seg { display: flex; overflow: hidden; border: 1px solid var(--line); border-radius: 5px; }
+.seg button {
+  display: flex; align-items: baseline; gap: 6px; cursor: pointer;
+  border: 0; border-right: 1px solid var(--line); background: var(--panel); color: var(--muted);
+  padding: 7px 12px; font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em; transition: color .12s;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { color: var(--pitch); }
+.seg button[aria-pressed='true'] { background: var(--ink); color: var(--ground); }
+.seg button .n { font-size: 10px; font-weight: 500; letter-spacing: 0.02em; opacity: .7; }
+.setlab { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 720px) {
+  .head { flex-wrap: wrap; }
+  .head .rule { order: 3; flex-basis: 100%; }
+}
 </style>
 </head>
 <body>
@@ -260,6 +279,11 @@ __FLAG_CSS__
       <h1 id="title"></h1>
     </div>
     <div class="rule"></div>
+    <!-- Only rendered when the file carries more than one dataset. -->
+    <div class="setlab" id="setlab" hidden>
+      <span class="mono-cap">Dataset</span>
+      <div class="seg" id="seg"></div>
+    </div>
   </div>
 
   <section class="card filters">
@@ -275,8 +299,9 @@ __FLAG_CSS__
         </div>
       </div>
 
-      <!-- The multi-selects are built from the data blob: the two pages do not
-           carry the same set (one dataset gives a player a single position). -->
+      <!-- The multi-selects are built from the active dataset: the two do not carry
+           the same set (one gives a player a single position), and their options are
+           the nations and tournaments that dataset actually holds. -->
       <span id="msfields" style="display:contents"></span>
 
       <div class="field">
@@ -318,99 +343,153 @@ __FLAG_CSS__
 "use strict";
 const DATA = __DATA__;
 
-/* Everything the two pages differ by lives in `page`: the wording, whether a
-   player can hold more than one position (so whether there is an "Also" column
-   and the two extra position filters), and what the last column means - a
-   sticker tier here, the source's own "legend" flag there. */
-const P = DATA.page;
-
 /* ---------------------------------------------------------------------------
-   Columns, decoded once into flat typed arrays. Every filter and sort reads
-   these, never objects: the whole dataset is a few hundred KB of ints, so a
-   full filter+sort pass is well under a frame and nothing has to be memoised.
+   The file can carry more than one dataset - the game's own and another game's
+   ratings - and the toggle switches between them. Everything the two differ by
+   arrives in a set's `page` block: the wording, whether a player can hold more
+   than one position (so whether there is an "Also" column and the two extra
+   position filters), and what the last column means - a sticker tier here, the
+   source's own "legend" flag there.
+
+   THE QUERY SURVIVES THE SWITCH, which is the whole point of having both in one
+   file: the filters are held as VALUES (a nation code, a year, a position), not
+   as indices into one dataset's tables, so flipping to the other dataset asks
+   the same question of it. A value the other one does not hold (2026, say, or a
+   nation it never lists) is dropped, and `#gone` says how many.
 --------------------------------------------------------------------------- */
-const N = DATA.rows.length / 7;
-const cPerson = new Int32Array(N), cNation = new Int16Array(N), cYear = new Uint8Array(N);
-const cNum = new Uint8Array(N), cCombo = new Int16Array(N), cElo = new Uint8Array(N), cTier = new Uint8Array(N);
-for (let i = 0, r = 0; i < N; i++, r += 7) {
-  cPerson[i] = DATA.rows[r]; cNation[i] = DATA.rows[r + 1]; cYear[i] = DATA.rows[r + 2];
-  cNum[i] = DATA.rows[r + 3]; cCombo[i] = DATA.rows[r + 4]; cElo[i] = DATA.rows[r + 5]; cTier[i] = DATA.rows[r + 6];
+const POS = DATA.pos;                      // the twelve, shared by both datasets
+
+/** Decoded columns per dataset, built on first use and kept, so a toggle back is
+ *  instant. Every filter and sort reads these flat typed arrays, never objects. */
+const CACHE = [];
+
+function decode(index) {
+  if (CACHE[index]) return CACHE[index];
+  const S = DATA.sets[index];
+  const N = S.rows.length / 7;
+  const d = {
+    set: S,
+    page: S.page,
+    N,
+    person: new Int32Array(N), nation: new Int16Array(N), year: new Uint8Array(N),
+    num: new Uint8Array(N), combo: new Int16Array(N), elo: new Uint8Array(N), tier: new Uint8Array(N),
+  };
+  for (let i = 0, r = 0; i < N; i++, r += 7) {
+    d.person[i] = S.rows[r]; d.nation[i] = S.rows[r + 1]; d.year[i] = S.rows[r + 2];
+    d.num[i] = S.rows[r + 3]; d.combo[i] = S.rows[r + 4]; d.elo[i] = S.rows[r + 5]; d.tier[i] = S.rows[r + 6];
+  }
+
+  // Position combos: the main role, the mask of every role, the mask of the extras.
+  const n = S.combos.length;
+  d.comboMain = new Uint8Array(n);
+  d.comboAll = new Int32Array(n);
+  d.comboAdd = new Int32Array(n);
+  d.comboAltHtml = new Array(n);
+  S.combos.forEach((c, i) => {
+    d.comboMain[i] = c[0];
+    let all = 0; for (const p of c) all |= 1 << p;
+    d.comboAll[i] = all; d.comboAdd[i] = all & ~(1 << c[0]);
+    d.comboAltHtml[i] = c.length > 1 ? c.slice(1).map((p) => POS[p]).join(' &middot; ') : '&ndash;';
+  });
+
+  d.personHtml = S.persons.map(esc);
+  d.personKey = S.persons.map(fold);
+  d.natHtml = S.nations.map((x) => esc(x[1]));
+
+  /* Every appearance of each person, oldest first. This is what the hover card
+     reads, and what puts the "x N" mark on a row: one row, no mark. */
+  d.apps = new Array(S.persons.length);
+  for (let i = 0; i < N; i++) (d.apps[d.person[i]] || (d.apps[d.person[i]] = [])).push(i);
+  for (const a of d.apps) if (a && a.length > 1) a.sort((x, y) => d.year[x] - d.year[y]);
+
+  // Counts per option, so a dropdown says how much of the dataset it holds.
+  d.mainCount = new Array(POS.length).fill(0);
+  d.addCount = new Array(POS.length).fill(0);
+  d.anyCount = new Array(POS.length).fill(0);
+  d.natCount = new Array(S.nations.length).fill(0);
+  d.yearCount = new Array(S.years.length).fill(0);
+  for (let i = 0; i < N; i++) {
+    const c = d.combo[i];
+    d.mainCount[d.comboMain[c]]++;
+    d.natCount[d.nation[i]]++;
+    d.yearCount[d.year[i]]++;
+    for (const p of S.combos[c]) d.anyCount[p]++;
+    for (let k = 1; k < S.combos[c].length; k++) d.addCount[S.combos[c][k]]++;
+  }
+
+  d.view = new Int32Array(N);
+  CACHE[index] = d;
+  return d;
 }
-
-const POS = DATA.pos;
-const YEARS = DATA.years;
-const NATIONS = DATA.nations;            // [code, nation]
-const TIER_NAME = P.tierNames;           // index 0 is "not one", so it is empty
-const TIER_ACCENT = P.tierAccents;
-
-// Position combos: the main role, the mask of every role, the mask of the extras.
-const comboMain = new Uint8Array(DATA.combos.length);
-const comboAll = new Int32Array(DATA.combos.length);
-const comboAdd = new Int32Array(DATA.combos.length);
-const comboAltHtml = new Array(DATA.combos.length);
-DATA.combos.forEach((c, i) => {
-  comboMain[i] = c[0];
-  let all = 0; for (const p of c) all |= 1 << p;
-  comboAll[i] = all; comboAdd[i] = all & ~(1 << c[0]);
-  comboAltHtml[i] = c.length > 1 ? c.slice(1).map((p) => POS[p]).join(' &middot; ') : '&ndash;';
-});
 
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-const personHtml = DATA.persons.map(esc);
-const personKey = DATA.persons.map(fold);
-const natHtml = NATIONS.map((n) => esc(n[1]));
-
-/* Every appearance of each person, oldest first. This is what the hover card
-   reads, and what puts the "x N" mark on a row: a person with one row has none. */
-const apps = new Array(DATA.persons.length);
-for (let i = 0; i < N; i++) (apps[cPerson[i]] || (apps[cPerson[i]] = [])).push(i);
-for (const a of apps) if (a && a.length > 1) a.sort((x, y) => cYear[x] - cYear[y]);
 
 /* ---------------------------------------------------------------------------
-   Filter state
+   Filter state. Held as VALUES so it survives a dataset switch (see above).
 --------------------------------------------------------------------------- */
 const state = {
   q: '',
-  main: new Set(), add: new Set(), any: new Set(),   // position indices
-  nat: new Set(),                                    // nation indices
-  year: new Set(),                                   // year indices
+  main: new Set(), add: new Set(), any: new Set(),   // position indices (shared vocabulary)
+  nat: new Set(),                                    // nation CODES
+  year: new Set(),                                   // years
   col: new Set(),                                    // 1 = collectible / legend, 0 = not
-  lo: DATA.eloMin, hi: DATA.eloMax,
+  lo: 0, hi: 0,
+  /* Whether the reader has actually moved the rating handles. An untouched range
+     opens to the incoming dataset's own scale on a switch rather than being
+     clamped to the outgoing one - the two do not share a floor (62 here, 64
+     there), and clamping quietly dropped 63 rows nobody had filtered out. */
+  rangeSet: false,
   sort: 'rating', dir: -1,
 };
 
-let view = new Int32Array(N);                        // the filtered + sorted row ids
+let D = null;                                        // the active decoded dataset
+let P = null;                                        // its page block
+let view = null;                                     // the filtered + sorted row ids
 let viewLen = 0;
+let dropped = 0;                                     // values the switch could not carry
 
 function maskOf(set) { let m = 0; for (const p of set) m |= 1 << p; return m; }
 
 function applyFilters() {
   const mMain = maskOf(state.main), mAdd = maskOf(state.add), mAny = maskOf(state.any);
-  const natOn = state.nat.size > 0, yearOn = state.year.size > 0;
   const colOn = state.col.size === 1, wantCol = state.col.has(1);
   const lo = state.lo, hi = state.hi;
+  const N = D.N;
+
+  // Nations and years are held by value, so they resolve to this dataset's own
+  // indices once per pass rather than per row.
+  let natOk = null;
+  if (state.nat.size) {
+    natOk = new Uint8Array(D.set.nations.length);
+    D.set.nations.forEach((x, i) => { if (state.nat.has(x[0])) natOk[i] = 1; });
+  }
+  let yearOk = null;
+  if (state.year.size) {
+    yearOk = new Uint8Array(D.set.years.length);
+    D.set.years.forEach((y, i) => { if (state.year.has(y)) yearOk[i] = 1; });
+  }
 
   // The name query is answered per PERSON and then read per row.
   let nameOk = null;
   const q = state.q;
   if (q) {
-    nameOk = new Uint8Array(personKey.length);
-    for (let p = 0; p < personKey.length; p++) if (personKey[p].includes(q)) nameOk[p] = 1;
+    nameOk = new Uint8Array(D.personKey.length);
+    for (let p = 0; p < D.personKey.length; p++) if (D.personKey[p].includes(q)) nameOk[p] = 1;
   }
 
   let n = 0;
   for (let i = 0; i < N; i++) {
-    const e = cElo[i];
+    const e = D.elo[i];
     if (e < lo || e > hi) continue;
-    const c = cCombo[i];
-    if (mMain && !((1 << comboMain[c]) & mMain)) continue;
-    if (mAdd && !(comboAdd[c] & mAdd)) continue;
-    if (mAny && !(comboAll[c] & mAny)) continue;
-    if (natOn && !state.nat.has(cNation[i])) continue;
-    if (yearOn && !state.year.has(cYear[i])) continue;
-    if (colOn && (cTier[i] > 0) !== wantCol) continue;
-    if (nameOk && !nameOk[cPerson[i]]) continue;
+    const c = D.combo[i];
+    if (mMain && !((1 << D.comboMain[c]) & mMain)) continue;
+    if (mAdd && !(D.comboAdd[c] & mAdd)) continue;
+    if (mAny && !(D.comboAll[c] & mAny)) continue;
+    if (natOk && !natOk[D.nation[i]]) continue;
+    if (yearOk && !yearOk[D.year[i]]) continue;
+    if (colOn && (D.tier[i] > 0) !== wantCol) continue;
+    if (nameOk && !nameOk[D.person[i]]) continue;
     view[n++] = i;
   }
   viewLen = n;
@@ -420,32 +499,33 @@ function applyFilters() {
 /* Sort keys by column id. Ties fall through to rating, then name, so the order
    is total and a re-sort never shuffles equal rows about. */
 const KEY = {
-  num: (i) => cNum[i],
-  year: (i) => cYear[i],
-  main: (i) => comboMain[cCombo[i]],
-  alt: (i) => { const a = comboAdd[cCombo[i]]; return a ? 31 - Math.clz32(a & -a) : 99; },
-  rating: (i) => cElo[i],
-  col: (i) => cTier[i],
+  num: (i) => D.num[i],
+  year: (i) => D.year[i],
+  main: (i) => D.comboMain[D.combo[i]],
+  alt: (i) => { const a = D.comboAdd[D.combo[i]]; return a ? 31 - Math.clz32(a & -a) : 99; },
+  rating: (i) => D.elo[i],
+  col: (i) => D.tier[i],
 };
 
 function sortView() {
   const d = state.dir, s = state.sort;
   const sub = view.subarray(0, viewLen);
   const arr = Array.prototype.slice.call(sub);
-  const byName = (a, b) => (personKey[cPerson[a]] < personKey[cPerson[b]] ? -1 : personKey[cPerson[a]] > personKey[cPerson[b]] ? 1 : 0);
+  const key = D.personKey, person = D.person, nations = D.set.nations;
+  const byName = (a, b) => (key[person[a]] < key[person[b]] ? -1 : key[person[a]] > key[person[b]] ? 1 : 0);
   let cmp;
   if (s === 'name') {
-    cmp = (a, b) => d * byName(a, b) || cYear[a] - cYear[b] || cNation[a] - cNation[b];
+    cmp = (a, b) => d * byName(a, b) || D.year[a] - D.year[b] || D.nation[a] - D.nation[b];
   } else if (s === 'nat') {
-    cmp = (a, b) => d * (NATIONS[cNation[a]][1] < NATIONS[cNation[b]][1] ? -1 : NATIONS[cNation[a]][1] > NATIONS[cNation[b]][1] ? 1 : 0)
-      || cYear[a] - cYear[b] || cElo[b] - cElo[a];
+    cmp = (a, b) => d * (nations[D.nation[a]][1] < nations[D.nation[b]][1] ? -1 : nations[D.nation[a]][1] > nations[D.nation[b]][1] ? 1 : 0)
+      || D.year[a] - D.year[b] || D.elo[b] - D.elo[a];
   } else if (s === 'main' || s === 'alt') {
     // Positions sort in pitch order (GK -> ST), which is the order POS is in.
     const k = KEY[s];
-    cmp = (a, b) => d * (k(a) - k(b)) || cElo[b] - cElo[a];
+    cmp = (a, b) => d * (k(a) - k(b)) || D.elo[b] - D.elo[a];
   } else {
     const k = KEY[s];
-    cmp = (a, b) => d * (k(a) - k(b)) || cElo[b] - cElo[a] || byName(a, b);
+    cmp = (a, b) => d * (k(a) - k(b)) || D.elo[b] - D.elo[a] || byName(a, b);
   }
   arr.sort(cmp);
   for (let i = 0; i < arr.length; i++) sub[i] = arr[i];
@@ -453,7 +533,7 @@ function sortView() {
 
 /* ---------------------------------------------------------------------------
    Virtualised body. Only the visible window is in the DOM (plus a small
-   overscan), so the whole dataset costs the same as 40 rows.
+   overscan), so a whole dataset costs the same as 40 rows.
 --------------------------------------------------------------------------- */
 const ROW_H = 34, OVERSCAN = 8;
 const scroller = document.getElementById('scroller');
@@ -470,23 +550,23 @@ function measure() { headH = thead.offsetHeight; viewH = scroller.clientHeight; 
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
 
 function rowHtml(i, top) {
-  const c = cCombo[i], t = cTier[i], nat = cNation[i], p = cPerson[i];
-  const list = apps[p];
+  const c = D.combo[i], t = D.tier[i], nat = D.nation[i], p = D.person[i];
+  const list = D.apps[p];
   const dup = list.length > 1 ? '<span class="dup">&times;' + list.length + '</span>' : '';
-  const accent = t ? '<span class="acc" style="background:' + TIER_ACCENT[t] + '"></span>' : '';
+  const accent = t ? '<span class="acc" style="background:' + P.tierAccents[t] + '"></span>' : '';
   const col = t
-    ? '<span class="col" title="' + TIER_NAME[t] + '"><span class="star" style="background:' + TIER_ACCENT[t] + '">'
+    ? '<span class="col" title="' + P.tierNames[t] + '"><span class="star" style="background:' + P.tierAccents[t] + '">'
       + STAR + '</span>Yes</span>'
     : '<span class="col no">No</span>';
   return '<div class="row cols" data-i="' + i + '" data-p="' + p + '" style="top:' + top + 'px">'
     + accent
-    + '<span class="num">' + (cNum[i] || '&ndash;') + '</span>'
-    + '<span class="nm"><span class="t">' + personHtml[p] + '</span>' + dup + '</span>'
-    + '<span class="ctry"><span class="fl f' + NATIONS[nat][0] + '"></span><span class="t">' + natHtml[nat] + '</span></span>'
-    + '<span class="yr">' + YEARS[cYear[i]] + '</span>'
-    + '<span class="pos">' + POS[comboMain[c]] + '</span>'
-    + (P.alt ? '<span class="alt">' + comboAltHtml[c] + '</span>' : '')
-    + '<span class="rat">' + cElo[i] + '</span>'
+    + '<span class="num">' + (D.num[i] || '&ndash;') + '</span>'
+    + '<span class="nm"><span class="t">' + D.personHtml[p] + '</span>' + dup + '</span>'
+    + '<span class="ctry"><span class="fl f' + D.set.nations[nat][0] + '"></span><span class="t">' + D.natHtml[nat] + '</span></span>'
+    + '<span class="yr">' + D.set.years[D.year[i]] + '</span>'
+    + '<span class="pos">' + POS[D.comboMain[c]] + '</span>'
+    + (P.alt ? '<span class="alt">' + D.comboAltHtml[c] + '</span>' : '')
+    + '<span class="rat">' + D.elo[i] + '</span>'
     + col
     + '</div>';
 }
@@ -511,7 +591,9 @@ function render() {
   winFrom = winTo = -1;
   paint(true);
   const n = viewLen.toLocaleString('en-GB');
-  document.getElementById('count').innerHTML = '<b>' + n + '</b> of ' + N.toLocaleString('en-GB') + ' players';
+  document.getElementById('count').innerHTML = '<b>' + n + '</b> of ' + D.N.toLocaleString('en-GB') + ' players'
+    + (dropped ? ' <span class="gone">' + dropped + ' filter value' + (dropped > 1 ? 's' : '')
+      + ' not in this dataset</span>' : '');
 }
 
 let queued = false;
@@ -533,16 +615,16 @@ function markKin(p) {
 }
 
 function tipHtml(p, self) {
-  const list = apps[p];
-  let h = '<div class="th2"><b>' + personHtml[p] + '</b>' + list.length + ' appearances</div>';
+  const list = D.apps[p];
+  let h = '<div class="th2"><b>' + D.personHtml[p] + '</b>' + list.length + ' appearances</div>';
   for (const i of list) {
-    const c = cCombo[i], t = cTier[i];
+    const c = D.combo[i], t = D.tier[i];
     h += '<div class="ap' + (i === self ? ' self' : '') + '">'
-      + '<span class="y">' + YEARS[cYear[i]] + '</span>'
-      + '<span class="fl f' + NATIONS[cNation[i]][0] + '"></span>'
-      + '<span class="n">' + natHtml[cNation[i]] + '</span>'
-      + '<span class="p">' + POS[comboMain[c]] + '</span>'
-      + '<span class="e"' + (t ? ' style="color:' + TIER_ACCENT[t] + '"' : '') + '>' + cElo[i] + '</span>'
+      + '<span class="y">' + D.set.years[D.year[i]] + '</span>'
+      + '<span class="fl f' + D.set.nations[D.nation[i]][0] + '"></span>'
+      + '<span class="n">' + D.natHtml[D.nation[i]] + '</span>'
+      + '<span class="p">' + POS[D.comboMain[c]] + '</span>'
+      + '<span class="e"' + (t ? ' style="color:' + P.tierAccents[t] + '"' : '') + '>' + D.elo[i] + '</span>'
       + '</div>';
   }
   return h;
@@ -553,7 +635,7 @@ function showTip(row) {
   if (row === tipRow && tip.classList.contains('show')) return;
   tipRow = row;
   const i = +row.dataset.i, p = +row.dataset.p;
-  if (apps[p].length < 2) return hideTip();
+  if (D.apps[p].length < 2) return hideTip();
   if (p !== hoverPerson) { hoverPerson = p; markKin(p); }
   tip.innerHTML = tipHtml(p, i);
   tip.classList.add('show');
@@ -585,21 +667,30 @@ tbody.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => { if (!e.target.closest('.row')) hideTip(); });
 
 /* ---------------------------------------------------------------------------
-   Header: click to sort.
+   Header: click to sort. Rebuilt per dataset, since one of them has no "Also".
 --------------------------------------------------------------------------- */
-const COLS = [
-  { id: 'num', label: '#', cls: 'r', dir: 1 },
-  { id: 'name', label: 'Name', cls: '', dir: 1 },
-  { id: 'nat', label: 'Country', cls: '', dir: 1 },
-  { id: 'year', label: 'Year', cls: '', dir: -1 },
-  { id: 'main', label: P.mainHeader, cls: '', dir: 1 },
-  ...(P.alt ? [{ id: 'alt', label: P.altHeader, cls: '', dir: 1 }] : []),
-  { id: 'rating', label: 'Rating', cls: 'r', dir: -1 },
-  { id: 'col', label: P.colHeader, cls: 'r', dir: -1 },
-];
-thead.innerHTML = COLS.map((c) =>
-  '<span' + (c.cls ? ' style="text-align:right"' : '') + '><button class="th ' + c.cls + '" data-c="' + c.id + '" type="button">'
-  + c.label + '<span class="ar">&#9660;</span></button></span>').join('');
+function columns() {
+  return [
+    { id: 'num', label: '#', cls: 'r', dir: 1 },
+    { id: 'name', label: 'Name', cls: '', dir: 1 },
+    { id: 'nat', label: 'Country', cls: '', dir: 1 },
+    { id: 'year', label: 'Year', cls: '', dir: -1 },
+    { id: 'main', label: P.mainHeader, cls: '', dir: 1 },
+    ...(P.alt ? [{ id: 'alt', label: P.altHeader, cls: '', dir: 1 }] : []),
+    { id: 'rating', label: 'Rating', cls: 'r', dir: -1 },
+    { id: 'col', label: P.colHeader, cls: 'r', dir: -1 },
+  ];
+}
+let COLS = [];
+
+function buildHead() {
+  COLS = columns();
+  if (!COLS.some((c) => c.id === state.sort)) { state.sort = 'rating'; state.dir = -1; }
+  thead.innerHTML = COLS.map((c) =>
+    '<span' + (c.cls ? ' style="text-align:right"' : '') + '><button class="th ' + c.cls + '" data-c="' + c.id + '" type="button">'
+    + c.label + '<span class="ar">&#9660;</span></button></span>').join('');
+  paintHead();
+}
 
 function paintHead() {
   for (const b of thead.querySelectorAll('.th')) {
@@ -621,7 +712,9 @@ thead.addEventListener('click', (e) => {
    Multi-select filters
 --------------------------------------------------------------------------- */
 function multiSelect(host, opts, set, label, searchable) {
-  // opts: [{ value, label, html, count }]
+  // opts: [{ value, html, key, count }]. A value is whatever the state holds - a
+  // position index, a nation code, a year - so the option INDEX is what travels
+  // through the DOM.
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.setAttribute('aria-expanded', 'false');
@@ -638,7 +731,7 @@ function multiSelect(host, opts, set, label, searchable) {
   const list = pop.querySelector('.list');
 
   // A real <button>, not a <label>: the list is keyboard reachable that way.
-  const optHtml = (o) => '<button type="button" class="opt' + (set.has(o.value) ? ' on' : '') + '" data-v="' + o.value + '" aria-pressed="' + set.has(o.value) + '">'
+  const optHtml = (o) => '<button type="button" class="opt' + (set.has(o.value) ? ' on' : '') + '" data-v="' + opts.indexOf(o) + '" aria-pressed="' + set.has(o.value) + '">'
     + '<span class="box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>'
     + '<span>' + o.html + '</span>'
     + (o.count == null ? '' : '<span class="n">' + o.count + '</span>')
@@ -650,8 +743,9 @@ function multiSelect(host, opts, set, label, searchable) {
     const v = btn.querySelector('.val');
     if (set.size === 0) { v.className = 'val any'; v.textContent = 'Any'; }
     else if (set.size === 1) {
+      const only = opts.find((o) => o.value === [...set][0]);
       v.className = 'val';
-      v.innerHTML = opts.find((o) => o.value === [...set][0]).html;
+      v.innerHTML = only ? only.html : '1 selected';
     } else { v.className = 'val'; v.textContent = set.size + ' selected'; }
     const old = btn.querySelector('.cnt');
     if (old) old.remove();
@@ -678,18 +772,20 @@ function multiSelect(host, opts, set, label, searchable) {
   });
   pop.addEventListener('click', (e) => {
     e.stopPropagation();
-    const opt = e.target.closest('.opt');
-    if (opt) {
+    const el = e.target.closest('.opt');
+    if (el) {
       e.preventDefault();
-      const v = +opt.dataset.v;
+      const v = opts[+el.dataset.v].value;
+      dropped = 0;
       if (set.has(v)) set.delete(v); else set.add(v);
-      opt.classList.toggle('on', set.has(v));
-      opt.setAttribute('aria-pressed', String(set.has(v)));
+      el.classList.toggle('on', set.has(v));
+      el.setAttribute('aria-pressed', String(set.has(v)));
       drawBtn(); render();
       return;
     }
     const act = e.target.closest('[data-a]');
     if (act) {
+      dropped = 0;
       set.clear();
       if (act.dataset.a === 'all') for (const o of shown) set.add(o.value);
       drawList(); drawBtn(); render();
@@ -709,67 +805,64 @@ function multiSelect(host, opts, set, label, searchable) {
   return { refresh() { shown = opts; const s = pop.querySelector('.psearch'); if (s) s.value = ''; drawList(); drawBtn(); } };
 }
 
-// Counts per option, so a dropdown says how much of the dataset it holds.
-const posMainCount = new Array(POS.length).fill(0);
-const posAddCount = new Array(POS.length).fill(0);
-const posAnyCount = new Array(POS.length).fill(0);
-const natCount = new Array(NATIONS.length).fill(0);
-const yearCount = new Array(YEARS.length).fill(0);
-for (let i = 0; i < N; i++) {
-  const c = cCombo[i];
-  posMainCount[comboMain[c]]++;
-  natCount[cNation[i]]++;
-  yearCount[cYear[i]]++;
-  for (const p of DATA.combos[c]) posAnyCount[p]++;
-  for (let k = 1; k < DATA.combos[c].length; k++) posAddCount[DATA.combos[c][k]]++;
-}
-
-const posOpts = (counts) => POS.map((p, i) => ({ value: i, label: p, html: p, key: fold(p), count: counts[i] }));
+const posOpts = (counts) => POS.map((p, i) => ({ value: i, html: p, key: fold(p), count: counts[i] }));
 const flagHtml = (code) => '<span class="fl f' + code + '" style="display:inline-block;vertical-align:-2px;margin-right:6px"></span>';
 
-/* Which filters this page carries, in order. A dataset that gives a player one
-   position has nothing to put in the two extra position filters, so it does not
-   show them rather than showing a control that can only ever say "any". */
-const FIELDS = [
-  { key: 'main', label: P.mainFilter, opts: () => posOpts(posMainCount) },
-  ...(P.alt ? [
-    { key: 'add', label: 'Additional position', opts: () => posOpts(posAddCount) },
-    { key: 'any', label: 'Position (any)', opts: () => posOpts(posAnyCount) },
-  ] : []),
-  {
-    key: 'nat', label: 'Country', search: true,
-    opts: () => NATIONS.map((n, i) => ({
-      value: i, label: n[1], html: flagHtml(n[0]) + esc(n[1]),
-      key: fold(n[1]) + ' ' + n[0].toLowerCase(), count: natCount[i],
-    })),
-  },
-  {
-    key: 'year', label: 'World Cup',
-    opts: () => YEARS.map((y, i) => ({ value: i, label: String(y), html: String(y), key: String(y), count: yearCount[i] })),
-  },
-  {
-    key: 'col', label: P.colHeader,
-    opts: () => [
-      { value: 1, label: 'Yes', html: 'Yes', key: 'yes', count: DATA.collectibles },
-      { value: 0, label: 'No', html: 'No', key: 'no', count: N - DATA.collectibles },
-    ],
-  },
-];
+/* Which filters the active dataset carries, in order. One that gives a player a
+   single position has nothing to put in the two extra position filters, so it
+   does not show them rather than showing a control that can only ever say
+   "any". */
+function fields() {
+  return [
+    { key: 'main', label: P.mainFilter, opts: () => posOpts(D.mainCount) },
+    ...(P.alt ? [
+      { key: 'add', label: 'Additional position', opts: () => posOpts(D.addCount) },
+      { key: 'any', label: 'Position (any)', opts: () => posOpts(D.anyCount) },
+    ] : []),
+    {
+      key: 'nat', label: 'Country', search: true,
+      opts: () => D.set.nations.map((n, i) => ({
+        value: n[0], html: flagHtml(n[0]) + esc(n[1]),
+        key: fold(n[1]) + ' ' + n[0].toLowerCase(), count: D.natCount[i],
+      })),
+    },
+    {
+      key: 'year', label: 'World Cup',
+      opts: () => D.set.years.map((y, i) => ({ value: y, html: String(y), key: String(y), count: D.yearCount[i] })),
+    },
+    {
+      key: 'col', label: P.colHeader,
+      opts: () => [
+        { value: 1, html: 'Yes', key: 'yes', count: D.set.collectibles },
+        { value: 0, html: 'No', key: 'no', count: D.N - D.set.collectibles },
+      ],
+    },
+  ];
+}
 
 const msfields = document.getElementById('msfields');
-const controls = FIELDS.map((f) => {
-  const field = document.createElement('div');
-  field.className = 'field';
-  const cap = document.createElement('span');
-  cap.className = 'mono-cap';
-  cap.textContent = f.label;
-  const host = document.createElement('div');
-  host.className = 'ms';
-  host.id = 'f-' + f.key;
-  field.append(cap, host);
-  msfields.append(field);
-  return multiSelect(host, f.opts(), state[f.key], f.label, !!f.search);
-});
+let FIELDS = [];
+let controls = [];
+
+function buildFields() {
+  FIELDS = fields();
+  msfields.innerHTML = '';
+  controls = FIELDS.map((f) => {
+    const field = document.createElement('div');
+    field.className = 'field';
+    const cap = document.createElement('span');
+    cap.className = 'mono-cap';
+    cap.textContent = f.label;
+    const host = document.createElement('div');
+    host.className = 'ms';
+    host.id = 'f-' + f.key;
+    field.append(cap, host);
+    msfields.append(field);
+    return multiSelect(host, f.opts(), state[f.key], f.label, !!f.search);
+  });
+  // A filter the active dataset does not have must not keep filtering it.
+  for (const k of ['main', 'add', 'any']) if (!FIELDS.some((f) => f.key === k)) state[k].clear();
+}
 
 /* ---------------------------------------------------------------------------
    Search + rating slider
@@ -779,27 +872,28 @@ let qTimer = 0;
 qEl.addEventListener('input', () => {
   qClr.hidden = qEl.value === '';
   clearTimeout(qTimer);
-  qTimer = setTimeout(() => { state.q = fold(qEl.value.trim()); render(); }, 90);
+  qTimer = setTimeout(() => { state.q = fold(qEl.value.trim()); dropped = 0; render(); }, 90);
 });
 qClr.addEventListener('click', () => { qEl.value = ''; qClr.hidden = true; state.q = ''; render(); qEl.focus(); });
 
 const rmin = document.getElementById('rmin'), rmax = document.getElementById('rmax');
 const rfill = document.getElementById('rfill');
 const rminl = document.getElementById('rminl'), rmaxl = document.getElementById('rmaxl');
-for (const el of [rmin, rmax]) { el.min = DATA.eloMin; el.max = DATA.eloMax; el.step = 1; }
-rmin.value = DATA.eloMin; rmax.value = DATA.eloMax;
 
 function paintRange() {
-  const span = DATA.eloMax - DATA.eloMin;
-  const a = (state.lo - DATA.eloMin) / span, b = (state.hi - DATA.eloMin) / span;
+  const span = D.set.eloMax - D.set.eloMin;
+  const a = (state.lo - D.set.eloMin) / span, b = (state.hi - D.set.eloMin) / span;
   rfill.style.left = a * 100 + '%';
   rfill.style.width = (b - a) * 100 + '%';
   rminl.textContent = state.lo; rmaxl.textContent = state.hi;
+  rmin.value = state.lo; rmax.value = state.hi;
 }
 function onRange() {
   let lo = +rmin.value, hi = +rmax.value;
-  if (lo > hi) { if (document.activeElement === rmin) hi = lo; else lo = hi; rmin.value = lo; rmax.value = hi; }
+  if (lo > hi) { if (document.activeElement === rmin) hi = lo; else lo = hi; }
   state.lo = lo; state.hi = hi;
+  state.rangeSet = lo > D.set.eloMin || hi < D.set.eloMax;
+  dropped = 0;
   paintRange();
   render();
 }
@@ -808,13 +902,81 @@ rmax.addEventListener('input', onRange);
 
 document.getElementById('reset').addEventListener('click', () => {
   state.q = ''; qEl.value = ''; qClr.hidden = true;
-  for (const f of FIELDS) state[f.key].clear();
-  state.lo = DATA.eloMin; state.hi = DATA.eloMax;
-  rmin.value = DATA.eloMin; rmax.value = DATA.eloMax;
+  for (const k of ['main', 'add', 'any', 'nat', 'year', 'col']) state[k].clear();
+  state.lo = D.set.eloMin; state.hi = D.set.eloMax;
+  state.rangeSet = false;
+  dropped = 0;
   for (const c of controls) c.refresh();
   paintRange();
   render();
 });
+
+/* ---------------------------------------------------------------------------
+   The dataset toggle
+--------------------------------------------------------------------------- */
+const seg = document.getElementById('seg');
+let active = -1;
+
+/** Carry the query across a switch: drop the values the incoming dataset does not
+ *  hold, and clamp the rating range to its own scale. */
+function pruneState(next) {
+  let gone = 0;
+  const codes = new Set(next.set.nations.map((n) => n[0]));
+  for (const c of [...state.nat]) if (!codes.has(c)) { state.nat.delete(c); gone++; }
+  const years = new Set(next.set.years);
+  for (const y of [...state.year]) if (!years.has(y)) { state.year.delete(y); gone++; }
+  // Positions need no translation: both datasets speak the same twelve, and a
+  // position the incoming one happens not to hold simply matches nothing, which
+  // is the truth rather than a dropped filter.
+  if (state.rangeSet) {
+    const lo = Math.max(state.lo, next.set.eloMin), hi = Math.min(state.hi, next.set.eloMax);
+    state.lo = Math.min(lo, hi); state.hi = Math.max(lo, hi);
+  } else {
+    state.lo = next.set.eloMin; state.hi = next.set.eloMax;
+  }
+  dropped = gone;
+}
+
+function load(index) {
+  if (index === active) return;
+  const next = decode(index);
+  const first = active < 0;
+  if (first) { state.lo = next.set.eloMin; state.hi = next.set.eloMax; }
+  else pruneState(next);
+  active = index;
+  D = next; P = next.page; view = next.view;
+
+  document.title = P.docTitle;
+  document.getElementById('tag').textContent = P.tag;
+  document.getElementById('eyebrow').textContent = P.eyebrow;
+  document.getElementById('title').textContent = P.title;
+  document.getElementById('foot').textContent = D.set.footer;
+  document.documentElement.style.setProperty('--grid-cols', P.grid);
+  // The two datasets are meant to be told apart at a glance, here and in a second
+  // window of the same file.
+  const tile = document.getElementById('tile');
+  tile.style.background = P.tile ? P.tile[0] : '';
+  tile.style.color = P.tile ? P.tile[1] : '';
+  for (const b of seg.children) b.setAttribute('aria-pressed', String(+b.dataset.i === index));
+
+  for (const el of [rmin, rmax]) { el.min = D.set.eloMin; el.max = D.set.eloMax; el.step = 1; }
+  buildHead();
+  buildFields();
+  paintRange();
+  measure();
+  render();
+}
+
+if (DATA.sets.length > 1) {
+  document.getElementById('setlab').hidden = false;
+  seg.innerHTML = DATA.sets.map((s, i) =>
+    '<button type="button" data-i="' + i + '" aria-pressed="false">' + esc(s.page.tab)
+    + '<span class="n">' + (s.rows.length / 7).toLocaleString('en-GB') + '</span></button>').join('');
+  seg.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) load(+b.dataset.i);
+  });
+}
 
 /* ---------------------------------------------------------------------------
    Theme (mirrors the app: a data-theme attribute, remembered per browser)
@@ -830,24 +992,7 @@ try { saved = localStorage.getItem('wcsim_players_theme'); } catch (e) { /* priv
 setTheme(saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
 
-document.title = P.docTitle;
-if (P.tile) {
-  // The two pages are meant to be open at once: a differently coloured mark is
-  // what tells the two windows apart at a glance.
-  const tile = document.getElementById('tile');
-  tile.style.background = P.tile[0];
-  tile.style.color = P.tile[1];
-}
-document.getElementById('tag').textContent = P.tag;
-document.getElementById('eyebrow').textContent = P.eyebrow;
-document.getElementById('title').textContent = P.title;
-document.getElementById('foot').textContent = DATA.footer;
-document.documentElement.style.setProperty('--grid-cols', P.grid);
-
-paintHead();
-paintRange();
-measure();
-render();
+load(0);
 // Web fonts land after the first paint and can change the header's height.
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); paint(true); });
 </script>
