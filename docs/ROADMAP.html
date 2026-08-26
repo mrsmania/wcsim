@@ -66,7 +66,6 @@
   }
   .meta strong { color: var(--ink); font-weight: 600; }
 
-
   /* ── Toolbar ── */
   .toolbar {
     display: flex;
@@ -337,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-26<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -592,8 +591,6 @@
   </div>
 </details>
 
-
-
 <details class="item">
   <summary>
     <span class="num">40</span>
@@ -651,7 +648,64 @@
   </div>
 </details>
 
-
+<details class="item">
+  <summary>
+    <span class="num">41</span>
+    <span class="title">Deploy the referee, and apply migration 0017
+      <span class="sub">The half of PvP wave 3 that needs the NAS: the migration, the
+      <code>pvp_referee</code> password, Realtime back in the stack for Broadcast, the
+      gateway route, and the container. Written and verified 2026-08-26 by a session with no
+      route to the box. <b>Nothing a player can see changes until the last step.</b></span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p>The house rule (CLAUDE.md, 2026-08-24): a migration you write and cannot apply, you
+    QUEUE. This is that item for wave 3 of item 18, and it is the worked example from item 39
+    repeated - which is the point of having done it that way once.</p>
+    <p><strong>The checklist is written out</strong>, step by step with the verification for
+    each, under &#8220;The referee (versus)&#8221; in
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>.
+    Six steps: apply <code>0017_pvp_referee.sql</code> and work its own eight verification
+    steps; <code>alter role pvp_referee login password</code>, because a credential does not
+    belong in a public repository and 0016 deliberately left the role unable to do anything;
+    put <b>Realtime</b> back into the compose file and the two envoy files, with the
+    WebSocket upgrade header on the DSM reverse proxy; build and run the referee container;
+    add one cluster and one route for <code>/referee/</code>; then set the repository
+    variable <code>VITE_REFEREE_URL</code> and push.</p>
+    <p><strong>Do it in that order, and the order is the safety.</strong> Every step before
+    the last is additive and invisible: <code>FEATURES.pvp</code> derives from that variable
+    as well as the account server, so until it is set the deployed game has no Versus at all.
+    The undo is unsetting it and redeploying; the containers can stay up.</p>
+    <p><strong>Three traps worth reading before starting.</strong> A missing <b>WebSocket
+    upgrade header</b> presents as &#8220;the lobby never updates&#8221;, with a clean 200 in
+    the logs - check it before suspecting the referee. Enable <b>Broadcast only</b>: change
+    capture needs a replication slot, and a slot nothing drains pins the write-ahead log
+    until the disk fills and Postgres refuses writes, which would hand every signed-in player
+    the blocking unreachable screen for the <i>single-player</i> game because of a versus
+    feature nobody was using. And the referee&#8217;s route must carry <b>no apikey
+    filter</b>: it verifies the player&#8217;s own session itself and refuses the anon key on
+    purpose, so a gate in front of it would be checking the one credential it exists to
+    reject.</p>
+    <p><strong>The one check to do by hand</strong> is that third curl in the runbook: the
+    anon key is a valid signature from the same secret and it ships in the browser bundle, so
+    a referee that only verifies signatures accepts it from anybody on the internet. It must
+    answer 401 with <code>not-authenticated</code>.</p>
+    <p><strong>What has already been proven, and what has not.</strong> 0016 and 0017 were
+    applied to a local PostgreSQL 16 with a stand-in for the parts of the stack they touch,
+    all eight verification steps passed, the rollback block ran and the file re-applied after
+    it, and a whole room - create, join, ready, start, a pick, a draft run out by the clock,
+    a tie, a champion - was played through the real referee connected as the real
+    <code>pvp_referee</code> role, with its inability to read <code>career</code>,
+    <code>album_stickers</code>, <code>settings</code>, <code>game_state</code>,
+    <code>active_run</code> and <code>run_results</code> confirmed as permission denials
+    rather than assumed. <b>Unproven is everything that is a deployment</b>: the NAS is on
+    PostgreSQL 17.6, and Realtime, the tenant, the upgrade header and the route have never
+    been exercised.</p>
+    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../supabase/migrations/0017_pvp_referee.sql" target="_blank" rel="noopener">supabase/migrations/0017_pvp_referee.sql</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
 
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
@@ -762,8 +816,10 @@
     <span class="title">Player versus player, for signed-in accounts
       <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
-      REVIEWED and revised: 42 decisions, nothing open. <b>WAVES 0 TO 2 SHIPPED
-      2026-08-26</b>, migration 0016 applied. Next: wave 3, which needs the NAS.</span>
+      REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED 2026-08-26</b>: the rules, the referee's
+      logic, the tables (0016 applied) and now <b>the referee itself</b>. Its DEPLOY is
+      queued as item 41. Next in this repo: wave 4, the room's own build state. One decision
+      has reopened - the career budget.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -878,14 +934,61 @@
     which on this server is not a superuser and cannot hand a table to a role it is not a
     member of, and the obvious repair crashed the database. It has seven <code>for all</code>
     policies naming it instead.</p>
-    <p class="next"><strong>Next step:</strong> wave 3 - deploy. Realtime back into the NAS
-    stack (Broadcast, not change capture), the referee behind a route on the existing gateway,
-    the version endpoint, and outage recovery. Plus one thing 0016 deliberately left undone:
-    the <code>pvp_referee</code> role is <code>nologin</code> with no password, because a
-    credential does not belong in version control, so wave 3 runs
-    <code>alter role pvp_referee login password '...'</code> by hand. This is the one wave
-    that needs the NAS and cannot be done by a cloud session.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
+    <p><strong>Wave 3 shipped 2026-08-26: the referee exists.</strong>
+    <code>referee/</code> is a plain node service in ten small files - the router, the
+    Postgres store, the row mapping, the sweeper, the broadcast, the JWT, the view, the
+    config, the entry point and the outage rule - that <b>bundles the game&#8217;s own domain
+    code rather than reimplementing any of it</b>. Every command loads a room, applies ONE
+    pure transition and saves it under a row lock, so no handler reaches in and edits a
+    field: if a rule is missing it belongs in the state machine, where it can be checked
+    without a server. A pick carries a player ID, never a player, so a submitted rating
+    cannot decide a price. Wave 3 also adds the two rules both sides need: the display-name
+    normalisation (P22) and the version handshake (P35). 53 new checks - the suite is
+    <b>293</b>, from 240 - and the whole referee is driven by them with no Postgres and no
+    socket, because the in-memory store they use keeps rooms AS ROWS, so the table mapping is
+    exercised by every check rather than by one round trip. Five mutations verified red.</p>
+    <p><strong>The rehearsal found a hole in wave 2, and it would have broken every
+    room.</strong> 0016 grants the referee three columns of <code>profiles</code> and adds no
+    POLICY - and <code>profiles</code> has row-level security on, with one policy naming
+    <code>authenticated</code>. So the referee could read no rows at all: every
+    <code>select display_name</code> came back empty, which it reads as &#8220;this account
+    has not chosen a name&#8221;, and it refuses to open or join a room. Every room, for
+    everybody. The rule it breaks is written down one screen above the omission, in 0016&#8217;s
+    own header. Reading did not find it; applying both files to a real PostgreSQL and playing
+    a whole room through the real referee as the real <code>pvp_referee</code> role did.</p>
+    <p><strong>And one bug that would have stopped the pick clock dead.</strong> P45 says give
+    back the time an outage ate, and the sweeper knows when it last swept, so the obvious shape
+    is to hand back the remainder every sweep. That freezes the elapsed time at its previous
+    value and freezes it there again next time: <b>no window ever expires</b>, the auto-pick
+    never fires, and a room with an absent player waits for ever - the exact stall the whole
+    no-timers design exists to prevent, reintroduced by the mechanism meant to be fair about
+    it. Recovery is unconditional at BOOT (which is what P45 actually says) and conditional
+    during a sweep. The check that matters is the ordinary case, because a room whose clock has
+    stopped looks perfectly healthy until somebody stops picking.</p>
+    <p><strong>Three things the state machine was not recording</strong>, none visible until
+    something had to persist a room: a pick&#8217;s ordinal, timing and automatic flag (so the
+    idempotency key and the ladder&#8217;s <code>loser_auto_picks</code> had nothing to write);
+    the host&#8217;s <b>re-roll allowance</b>, which nothing read, so a room set to zero
+    re-rolls offered unlimited ones; and the ratings switch, which had nowhere to sit.
+    <b>Migration 0017</b> carries the columns for the first, the referee&#8217;s heartbeat, the
+    missing policy, and a <code>set_display_name</code> function - because 0016 added the two
+    name columns and their unique index and <b>nothing on either side could write them</b>.
+    Written, parse-checked, rehearsed, rolled back and re-applied; queued as item 41.</p>
+    <p><strong>One decision has reopened: the career budget (P2).</strong> A room may take each
+    player&#8217;s own career transfer budget, and P34 forbids the referee any privilege on
+    <code>career</code>. Snapshotting at host-start does not dodge it - the snapshot still has
+    to be read by the thing that may not read it. The referee refuses that option today and
+    fixed-budget rooms are unaffected; the plan lists three ways out, the first of which is to
+    drop the option, since a career-budget room is decided before a ball is kicked ($160 beats
+    $70 <b>85.7%</b> of the time).</p>
+    <p class="next"><strong>Next step:</strong> wave 4 - the room&#8217;s own build state
+    (P29), the largest unestimated piece in the plan and a refactor rather than a feature: the
+    app holds one game state and every path that starts a build clears the active run, so a
+    room entering through the same door would silently delete a live Cup Run. It needs no NAS.
+    The deploy of what wave 3 built is <b>item 41</b>, and it should go first if the two are
+    ever in the same session, since the server is deployed by hand and the client by pushing to
+    <code>main</code>.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
 

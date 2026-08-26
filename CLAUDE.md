@@ -168,7 +168,7 @@ done and why. What that means for anyone working in this tree now:
   the base path and push the route instead. Every wave-6 item was verified by driving the
   real app against the pre-change build served side by side; the scratch harnesses are
   disposable, but that method is the one worth repeating.
-- **The checks harness is a 76-line index over `scripts/checks/`** (one module per concern
+- **The checks harness is a small index over `scripts/checks/`** (one module per concern
   plus `harness.ts`), not one file. Three conventions came with the split and each one used
   to be an accident of file position: `check(name, ok, detail?)` takes **thunks** and
   reports a throw against the check that caused it (before this, one exception aborted the
@@ -178,7 +178,8 @@ done and why. What that means for anyone working in this tree now:
   (`FIXTURE.home` / `.away` / `.third`, pinned by **id**, as getters so a fixture that
   leaves the dataset fails inside its concern instead of at import). `checks/meta.ts`
   asserts the index names every module, because a module that is not wired in contributes
-  zero assertions and says nothing about it. Add a concern as a module, not a block.
+  zero assertions and says nothing about it. Add a concern as a module, not a block. A
+  concern may be `async` and the index awaits it; `referee` is the one that is.
 - **A new check needs a vacuity guard, and it is not optional.** The audit's first finding
   was a check that had been guarding a known exploit and was guarding nothing, and two more
   that could pass on zero observations. So: assert the sample is non-empty, and if the check
@@ -347,14 +348,17 @@ the two disagree. See "Accounts" below.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, currently **179 checks**. It exercises the sim, penalty
+per concern in `scripts/checks/`, currently **293 checks**. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
 any violation. It also asserts things outside `domain/`: the generated collectible seed
 against the dataset, the boot cover's palette literals against their tokens, the migrations
-index, and the house no-em-dashes rule. Run it after touching anything in `domain/` or
-`scripts/`, and read the conventions note at the top of this file before adding a check -
+index, and the house no-em-dashes rule. **A concern may be async** (`referee` is: it drives
+the referee's real handlers, which take a store returning promises), so the index awaits
+each one and then asserts on the outcome. Run it after touching anything in `domain/`,
+`scripts/` or `referee/`, and read the conventions note at the top of this file before
+adding a check -
 in particular that every new one needs a vacuity guard and is worth mutation-testing. For
 one-off logic probes you can still bundle a throwaway script with the bundled esbuild
 and run it in node, e.g.
@@ -2458,16 +2462,48 @@ keep working.
   otherwise nudges scrollY when result cards mount and stalled the follow (worst on
   short mobile screens).
 
-## The three `pvp*` domain modules have no importer yet, and that is on purpose
+## The `pvp*` modules and `referee/` have no importer in the app yet, on purpose
 
-Waves 0 and 1 of roadmap item 18 (player versus player) shipped 2026-08-26: `pvp.ts` (the
-rules a room is judged by), `pvpRoom.ts` (the room as a state machine the referee drives)
-and `pvpAuth.ts` (who the referee will act for), with 48 checks across
-`scripts/checks/pvp.ts` and `scripts/checks/pvpRoom.ts`. **Nothing in `src/` imports them**,
-because the screens and the server that will are waves 4 to 8. A tree-shaking
-or dead-code pass finds it, concludes it is unused and deletes it - which is what this note
-exists to stop, the same way the one below stops the same conclusion about `public/jerseys/`.
-It costs nothing shipped: Rollup tree-shakes an unimported module out of the bundle entirely.
+Waves 0 to 3 of roadmap item 18 (player versus player) shipped 2026-08-26. **Nothing in
+`src/` imports any of it**, because the screens are waves 4 to 8, and a tree-shaking or
+dead-code pass therefore finds it, concludes it is unused and deletes it - which is what
+this note exists to stop, the same way the one below stops the same conclusion about
+`public/jerseys/`. It costs nothing shipped: Rollup tree-shakes an unimported module out of
+the bundle entirely, and `referee/` is not in the browser build at all.
+
+- **Waves 0 and 1**: `domain/pvp.ts` (the rules a room is judged by), `domain/pvpRoom.ts`
+  (the room as a state machine) and `domain/pvpAuth.ts` (who the referee will act for).
+- **Wave 3**: `referee/` (the service - see `referee/README.md`), plus the two rules both
+  sides need, `domain/displayName.ts` and `domain/pvpVersion.ts`. `FEATURES.pvp` is derived
+  from `VITE_REFEREE_URL` **as well as** the account server, so configuring accounts alone
+  cannot put a Versus tab on the site whose every call would fail.
+- **`referee/` is type-checked by `npm run build`** (it is in `tsconfig.node.json`, like
+  `scripts/`) and driven end to end by `npm run checks`, with no Postgres and no socket. Its
+  one runtime dependency, `pg`, is a devDependency of this repo and external to the bundle.
+
+**The deploy is roadmap item 41 and it has not happened**: the migration, the
+`pvp_referee` password, Realtime, the gateway route and the container. `docs/nas-setup.md`
+has the checklist. Deploy the referee BEFORE pushing a client that talks to it, always.
+
+**Three rules in the referee are load-bearing and each was a bug first:**
+
+- **P45's recovery is CONDITIONAL, and applying it on every sweep stops the pick clock
+  dead.** It sets `openedAt = now - (lastSeen - openedAt)`, so the elapsed time freezes at
+  its previous value and freezes there again next sweep: no window ever expires and a room
+  with an absent player waits for ever, which is the exact stall the no-timers design exists
+  to prevent. Unconditional at BOOT (what P45 actually says), conditional during a sweep.
+- **A grant is not a policy, and this bit twice.** 0016 states the rule for the seven pvp
+  tables and then grants the referee three columns of `profiles` with no policy - so under
+  row-level security it read nothing, concluded every account was nameless, and refused
+  every room. 0017 adds it. Found by rehearsing on a real Postgres, not by reading.
+- **A pick carries a player ID, never a player.** The referee resolves it in its own bundled
+  dataset, so a submitted rating cannot decide a price and submitted `positions` cannot
+  decide eligibility.
+
+**One decision has reopened: the career budget (P2).** A room may take each player's own
+career transfer budget, and P34 forbids the referee any privilege on `career`; snapshotting
+does not dodge it, because the snapshot still has to be read. The referee refuses that
+option today. `docs/pvp-plan.md` section 11 lists the three ways out.
 
 **The plan is `docs/pvp-plan.md`** and it is the thing to read before touching this. Three
 rules in that module are load-bearing and each was mutation-tested:

@@ -550,6 +550,125 @@ container → host traffic. Container → container never appears in the firewal
 which is why the console shows every `/rest/v1/*` read failing while the gateway itself
 answers instantly.
 
+## The referee (versus)
+
+Roadmap item 18, wave 3 of `docs/pvp-plan.md`. **Not applied.** This is the sit-at-the-box
+checklist for it, written by the session that built the referee and could not reach the NAS.
+Everything below is additive: nothing here touches the accounts stack the game already uses,
+and stopping at any step leaves the game exactly as it is, because `FEATURES.pvp` is off
+until the last one.
+
+**Do it in this order.** The client is deployed by pushing to `main` and the server is not,
+so the server goes first, always - the same rule migrations already follow.
+
+### 1. The migration, and the role's password
+
+```
+npm run push:sql -- --dry-run supabase/migrations/0017_pvp_referee.sql   # no credentials needed
+npm run push:sql -- supabase/migrations/0017_pvp_referee.sql
+```
+
+Then work the eight verification steps in that file's own header. They are written to be
+run, not read; step 7 in particular is the one this migration exists for.
+
+The `pvp_referee` role from 0016 is `nologin` with no password, because a credential does
+not belong in a public repository. Give it one, at the SQL editor:
+
+```
+alter role pvp_referee login password 'something long and random';
+```
+
+Nothing else in the stack uses that role, so rotating it later is one `alter role` and one
+container restart.
+
+### 2. Realtime, back into the stack
+
+The trim above removed it. Undo that removal **for Realtime only** - storage, imgproxy and
+the edge runtime stay out.
+
+1. `docker-compose.yml`: put the `realtime` service block back.
+2. `volumes/api/envoy/cds.yaml`: put the `realtime` cluster back.
+3. `volumes/api/envoy/lds.template.yaml`: put back `realtime-v1-api-protected` and
+   `realtime-v1-ws-protected`. The two `*-blocked` routes are a deliberate omission: they
+   exist to refuse the tenant-administration paths, and nothing here needs them.
+4. **WebSocket upgrade on the DSM reverse proxy**, which nothing in this stack has ever
+   needed before. Control Panel → Login Portal → Advanced → Reverse Proxy → the rule for
+   `HOST` → Custom Header → Create → WebSocket. **A missing upgrade header presents as "the
+   lobby never updates", with a clean 200 in the logs**, so check this before suspecting the
+   referee.
+5. Realtime needs a **tenant provisioned with the JWT secret**. Follow the Supabase
+   self-hosting notes for the image version you are running rather than a recipe copied
+   here, which would rot.
+
+Then `docker compose up -d` and `docker compose restart api-gw` (envoy reads its routes at
+startup, so an edited `lds.template.yaml` changes nothing until then).
+
+**Broadcast only** (P33). Do not enable `postgres_changes`: it needs a replication slot, and
+a slot nothing drains pins the write-ahead log until the disk fills and Postgres refuses
+writes - which would give **every signed-in player the blocking unreachable screen for the
+single-player game**, because of a versus feature nobody was using. Set
+`max_slot_wal_keep_size` regardless.
+
+### 3. The referee container
+
+Build from the repository root (the image reaches into `src/` - it bundles the game's own
+rules rather than reimplementing them):
+
+```
+docker build -f referee/Dockerfile -t wcsim-referee .
+```
+
+Add it to the same compose project, on the same network as `db` and `api-gw`, with the
+environment listed in `referee/README.md`. It needs no volume and no port published to the
+host: the gateway reaches it by service name.
+
+### 4. The gateway route
+
+One cluster and one route (P46: a route on the existing gateway, not a second hostname -
+another hostname is another certificate renewal that can take versus down on its own).
+
+1. `volumes/api/envoy/cds.yaml`: a `referee` cluster pointing at the container's port.
+2. `volumes/api/envoy/lds.template.yaml`: a route with prefix `/referee/` to that cluster,
+   **with no apikey filter**. The referee verifies the player's own session itself and
+   refuses the anon key on purpose, so an apikey gate in front of it would be checking the
+   one credential it exists to reject.
+3. `docker compose restart api-gw`.
+
+### 5. Verify, before pointing the client at it
+
+```
+curl -s https://HOST/referee/version                          # {"protocol":1,"dataset":"..."}
+curl -s -o /dev/null -w '%{http_code}\n' \
+  -X POST https://HOST/referee/v1/rooms                        # 401, no token
+curl -s -X POST -H "Authorization: Bearer ANON_KEY" \
+  https://HOST/referee/v1/rooms                                # 401 - and this is the one
+                                                               #   that matters
+```
+
+The third is the check worth doing by hand: the anon key is a **valid signature from the
+same secret** and it ships in the browser bundle, so a referee that only verifies signatures
+accepts it from anybody on the internet. The response's `detail` should say
+`not-authenticated`.
+
+The `dataset` hash must equal what the deployed client computes. It is
+`datasetHash()` in `src/domain/pvpVersion.ts`; the client compares them when the Versus
+screen mounts and shows "Versus is updating" rather than letting anybody into a room that
+will break halfway through a draft.
+
+### 6. Turn it on for the client
+
+Set the repository **variable** `VITE_REFEREE_URL` to `https://HOST/referee` and push (or
+re-run the deploy workflow). `FEATURES.pvp` derives from it and the two account variables
+together, so until this is set the deployed game has no Versus at all - which is what makes
+every step above safe to do in advance.
+
+### If it goes wrong
+
+- **Unset `VITE_REFEREE_URL` and redeploy.** Versus disappears from the client and nothing
+  else changes; the containers can stay up.
+- The full undo is the rollback block in `0017_pvp_referee.sql`, then 0016's, then stopping
+  the two containers and reverting the three envoy files.
+
 ## Afterwards
 
 - **Updates are manual.** Pull new images deliberately; self-hosted version bumps

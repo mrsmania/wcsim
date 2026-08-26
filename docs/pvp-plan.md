@@ -8,7 +8,8 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: settled, nothing built.**
+(P48). **Status: waves 0 to 3 built** (2026-08-26), 0016 applied, **0017 and the deploy
+queued**. One decision has reopened - the career budget, P2 - and section 11 says why.
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -60,7 +61,7 @@ in rather than a missing feature.
 | # | Decision | Choice |
 |---|----------|--------|
 | P1 | What the team is made of | **The host decides per room.** The roll draft or the budget market. Not the album, not a separate roster |
-| P2 | Budget source | **Host's choice**: a fixed room budget of $70 to $200, or each player's own career transfer budget. Fixed is the default. *Amended 2026-08-26: a career budget is **snapshotted onto the member row at host-start**, by the referee. Otherwise the referee needs read access to every player's `career` row, which contradicts section 7's "these tables touch nothing else", and a player could buy a Transfer Budget perk tier mid-draft and change the budget their own XI is validated against* |
+| P2 | Budget source | **Host's choice**: a fixed room budget of $70 to $200, or each player's own career transfer budget. Fixed is the default. *Amended 2026-08-26: a career budget is **snapshotted onto the member row at host-start**, by the referee. Otherwise the referee needs read access to every player's `career` row, which contradicts section 7's "these tables touch nothing else", and a player could buy a Transfer Budget perk tier mid-draft and change the budget their own XI is validated against.* **The career half is OPEN as of wave 3** and the referee refuses it: snapshotting does not dodge the contradiction, because the snapshot still has to be read by the thing that holds no privilege to read it. See "Open, and it needs a decision" in section 11. Fixed rooms are unaffected* |
 | P3 | The owned-sticker discount | **Never applies in PvP.** The raw `priceOf` curve is the price |
 | P4 | Which World Cups | **A room-level pool set by the host.** Everyone in a room draws from the same cups |
 | P5 | Ratings visible | **A host switch, in ROLL rooms only.** A budget room always shows ratings, because a price is calculated straight from a rating. See P40 for what the switch can and cannot enforce |
@@ -356,7 +357,7 @@ after most of the client work was done.
 | 0 | **DONE 2026-08-26** (`src/domain/pvp.ts`, `scripts/checks/pvp.ts`, 23 checks). **The rules, as pure functions.** Is this XI legal, what did it cost, was it dealt, the auto-pick, and a **two-sided `GroupTeam` builder** (`userGroupTeam` hard-codes `id: USER_ID`, `name: 'Your XI'`, `code: 'YOU'`, `isUser: true`, so it cannot describe two opponents in one tie). Call `resolveKoTie` directly: it is **already exported** and already returns a definite winner on every path, so the earlier plan's "lift `simulateKoTie`" was wrong and that item is gone | Checks refuse an illegal XI for each reason; a thousand auto-picks from a one-dollar-per-slot corner never strand a slot |
 | 1 | **DONE 2026-08-26** (`src/domain/pvpRoom.ts`, `src/domain/pvpAuth.ts`, `scripts/checks/pvpRoom.ts`, 25 checks). **The referee, offline.** Bundles the domain code, runs a whole draft against simulated players, deadlines as stored data plus a sweeper, auto-picks on expiry, returns a result | Over-budget, duplicated person, out-of-pool, undealt and **late** picks each refused, at both clock lengths; a request bearing the **anon key** is refused; a player who does nothing still ends with a legal XI |
 | 2 | **DONE AND APPLIED 2026-08-26** (`supabase/migrations/0016_pvp_rooms.sql`; roadmap item 39, closed). **The migration**, parse-checked, dry-run, rollback block, roadmap item opened for the apply | `push:sql -- --dry-run` clean; parsed with the real Postgres grammar, and the rollback block parsed too |
-| 3 | **Deployed.** Realtime Broadcast, the gateway route, unique names, the version endpoint, and **outage recovery** | Two browsers see each other; killing the referee for 45 seconds returns every open window with roughly the time it had left, and fires no auto-pick for a window that was open when it died |
+| 3 | **BUILT 2026-08-26, NOT DEPLOYED** (`referee/`, `src/domain/displayName.ts`, `src/domain/pvpVersion.ts`, `supabase/migrations/0017_pvp_referee.sql`, `scripts/checks/referee.ts`, 53 checks). The referee itself: the router, the Postgres store, the row mapping, the sweeper, the broadcast, the JWT, and **outage recovery**; plus the display-name rule and the version endpoint. The DEPLOY half - Realtime, the gateway route, the role's password, the migration - needs the NAS and is queued as its own roadmap item, exactly as 0016 was | Two browsers see each other, and the 45-second outage, are both asserted offline (the referee's real handlers over an in-memory store); the room lifecycle was also played through the real `pgStore` as the real `pvp_referee` role on a local PostgreSQL. What remains unproven is the deployment: WebSocket upgrade, the tenant, the route |
 | 4 | **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Entering a room leaves a Cup Run and a half-built solo XI untouched, and no per-tap server write happens inside a room |
 | 5 | **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Two people with a code play a whole game end to end |
 | 6 | **Roll rooms**, and the ratings switch inside them | The check proves the room's own screens hide every rating; the switch is not offered when the room buys |
@@ -388,9 +389,10 @@ it.
 
 ---
 
-## 11. Nothing is open. Four things to measure, and one thing accepted
+## 11. One thing open, four to measure, and one accepted
 
-Every question this document raised has been answered. What follows is not open questions.
+Every question this document raised was answered before building started. **Building wave 3
+opened exactly one** (the career budget, below), and found five things worth recording.
 
 ### Accepted, with the measurement: the mode is low-scoring at the top (P25, P26)
 
@@ -473,6 +475,61 @@ fix if this is ever worth closing.
   decides whether a role may issue the statement at all; a policy decides which rows it sees.
   Row-level security denies by default, so grants alone leave the referee running an `update`
   that matches nothing.
+
+### Found while building the referee (wave 3)
+
+- **P45 APPLIED ON EVERY SWEEP STOPS THE CLOCK DEAD.** The sweeper knows when it last swept,
+  so the obvious shape is "hand back the remainder since then, every sweep". Recovery sets
+  `openedAt = now - (lastSeen - openedAt)`, so the elapsed time freezes at whatever it was
+  at the previous sweep and freezes there again on the next one: **no window ever expires**,
+  the auto-pick never fires, and a room with an absent player waits for ever. That is the
+  exact stall the no-timers design exists to prevent, reintroduced by the mechanism meant to
+  be fair about it. Recovery is therefore unconditional at BOOT (which is what P45 actually
+  says) and conditional during a sweep, on a gap of four sweep intervals **and** at least ten
+  seconds. The floor is not belt and braces: without it a sweeper persistently slower than
+  its own interval hands time back on every pass and freezes the clock just the same.
+- **0016 GRANTS THE REFEREE THREE COLUMNS OF `profiles` AND NO POLICY**, and `profiles` has
+  row-level security on with one policy naming `authenticated`. So the referee could read no
+  rows at all: every `select display_name` came back empty, which it reads as "this account
+  has not chosen a name", so **every room was refused, for everybody**. The rule it breaks is
+  written down one screen above the omission, in 0016's own header ("a grant and a policy
+  answer different questions, and the referee needs both") - applied there to the seven pvp
+  tables and not to the one table it does not own. Found by rehearsing, not by reading.
+- **Three things the state machine was not recording**, none of them visible until something
+  had to persist a room: a pick's ordinal, timing and automatic flag (so `pvp_picks`'s
+  idempotency key and `pvp_matches.loser_auto_picks` had nothing to write); the host's
+  **re-roll allowance**, which nothing read, so a room set to zero re-rolls offered unlimited
+  ones; and the ratings switch, which had nowhere to sit. A lobby control that does nothing
+  is worse than no control.
+- **0016 has nowhere to put the OPEN pick window.** `pvp_picks` records picks that landed,
+  and the whole design turns on a deadline being stored data - so the one row that must
+  survive a restart is the one row there was no column for. It cannot be derived either: the
+  obvious derivation (the last pick's `landed_at`) is exactly the value recovery has to
+  rewrite, and rewriting it would be recording a lie about when a pick arrived.
+- **The broadcast carries no state, only a nudge.** What each player may see of a room
+  differs, and a broadcast goes to one channel for everybody, so a payload carrying the room
+  would either leak the draft or need a message per member. It says "this room changed" and
+  each client asks for its own view. That also makes P33's chief benefit structural rather
+  than careful: there is no private data in the stream at all.
+
+### Open, and it needs a decision: the career budget (P2)
+
+**P2 offers a room whose budget is each player's own career transfer budget, and P34 forbids
+the referee any privilege on `career`.** Snapshotting at host-start does not resolve it -
+the snapshot still has to be read from somewhere, and the referee is the thing doing the
+reading. The referee therefore **refuses `budgetSource: 'career'`** today, with that message,
+and fixed-budget rooms are unaffected. Three ways out, in the order they appeal:
+
+1. **Drop it.** Plan section 3 already warns that a career-budget room is decided before a
+   ball is kicked ($160 beats $70 **85.7%** of the time) and suggests confining it to private
+   rooms. Deleting it costs one row of the options table and answers the question by
+   deletion, the way the One-off run was.
+2. **A narrow grant**: `select (user_id, perk_levels) on career` for `pvp_referee`, plus the
+   policy 0016 forgot. It is one more column family in the referee's reach, which is the
+   thing P34 exists to keep small, and the reach is read-only.
+3. **A `security definer` function** the joining client calls to snapshot its OWN budget onto
+   its own member row. The referee reads nothing new; the client cannot lie, because the
+   function derives the figure from the career rather than taking it as an argument.
 
 ### What the rehearsal is for, stated once because it keeps paying
 
