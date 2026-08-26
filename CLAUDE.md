@@ -838,6 +838,30 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   codes. A player who continued for a successor nation (Prosinecki YUG->Croatia,
   Gorlukovich URS->Russia) shares one `personId` across both, so the cross-nation
   dedup check intentionally lists them.
+- **Every name and shirt number was checked against Wikipedia on 2026-08-26**, all
+  fourteen tournaments, 368 of 368 squads, 8,375 of 8,377 rows paired. **The shirt
+  numbers were wrong in 66 places and are fixed.** Every one was a permutation inside a
+  squad, and they clustered in the five tournaments whose numbers were never re-sourced
+  (2002, 2006, 2010, 2014, 2018); nothing from 1970-1998 or 2022 moved. Two independent
+  sources agree on all 66 and nothing anywhere backed us, so do not "restore" one: the
+  common cause was assuming the first-choice keeper wears 1, and he often does not
+  (Barthez 16, Subasic 23, Kingson 22, Julio Cesar 12, Keller 18).
+  **The names were mostly right.** 86 of 117 differences are house style and are
+  deliberate: we carry the fuller name where Wikipedia's squad list prints a short label
+  (Alfonso Perez for "Alfonso", the whole Iraq 1986 squad), or a spelling that is itself
+  the article with the other redirecting to it (Bezsonov, Mboma, Valery Karpin, Preki).
+  **A fuller correct name is not a wrong one**; only 33 were errors, four of them a
+  different human altogether.
+  **Three findings were left alone as squad MEMBERSHIP, not names, and are still open:**
+  Ivory Coast 2010 carries Bakari Kone and Abdoulaye Meite where the squad had Emmanuel
+  Kone and Kader Keita; Nigeria 1998 carries Ike Shorunmu for Willy Okpara; and South
+  Africa 1998 carries Andre Arendse, who withdrew injured before the tournament (his
+  replacement Paul Evans also withdrew, and Simon Gopane went). A fourth is a judgement
+  rather than an error: France 2022 has 25 men because Benzema withdrew before playing.
+  **Two squads look short against Wikipedia and are NOT wrong** - Argentina and England
+  1990 both list a footnoted mid-tournament replacement as a 23rd row.
+  One more to know: Saudi Arabia 2022's #26 is Riyadh Sharahili, a midfielder, but the
+  row's positions still read `['LB','CB']` from the man who was wrongly there before.
 - **Ratings** are a holistic judgement of each player's strength *at the time of
   that tournament* on the 60-99 scale (not current ability, not a FIFA-game number).
   For **1998 and 2002** the rating is a *blend* of pre-tournament ability and how the
