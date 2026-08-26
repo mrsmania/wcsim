@@ -1,0 +1,515 @@
+<title>Positions in the Market</title>
+<!--
+  TURF FLAT idea-mock: showing a player's POSITION in the transfer market.
+  Roadmap item 40, which came out of item 38 (chemistry's "In position" was a
+  category that could not be failed until 2026-08-26).
+
+  Everything here is drawn at the TRUE rendered width of the shipped panel,
+  measured in the running app at a 1280px viewport: panel 298px, row 259px,
+  name cell 137px (116px once a collectible star sits beside the name). The
+  ellipses in these panels are real, produced by the same font at the same size
+  in the same space, not drawn in. That is the whole point of the mock: the
+  question is width, so the options have to be compared at real width.
+
+  Player rows are real: the ten highest-rated players the market offers for a
+  LEFT WING slot, with their real ratings, prices and position lists.
+
+  Tokens copied from src/index.css (light + dark), as every mock in this folder
+  does. Not wired to real data; nothing here is imported by the app.
+-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap');
+
+:root{
+  --pitch-deep:#0E5C34; --pitch:#15924C; --chalk:#E8F0E8; --paper:#F4F2EC;
+  --ink:#13211A; --muted:#5C6A60; --line:#D4DED5; --amber:#E4922B; --loss:#C8453C;
+  --white:#ffffff; --wash:rgba(14,92,52,.05); --flag-edge:rgba(19,33,26,.18);
+  --dim:#7C8A80; --hair:#E2E9E3; --faint:#EFF3EF; --amber-ink:#8A5410;
+  --disp:'Archivo',system-ui,sans-serif;
+  --body:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+    --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+    --white:#16231D; --wash:rgba(47,180,106,.07); --flag-edge:rgba(232,242,234,.22);
+    --dim:#7E9488; --hair:#243530; --faint:#152220; --amber-ink:#F0A93E;
+  }
+}
+:root[data-theme="dark"]{
+  --pitch-deep:#0C4F2E; --pitch:#2FB46A; --chalk:#1B2C24; --paper:#0E1714;
+  --ink:#E8F2EA; --muted:#90A89A; --line:#2A3D33; --amber:#F0A93E; --loss:#E76C5C;
+  --white:#16231D; --wash:rgba(47,180,106,.07); --flag-edge:rgba(232,242,234,.22);
+  --dim:#7E9488; --hair:#243530; --faint:#152220; --amber-ink:#F0A93E;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--body); line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(180deg,var(--wash),transparent 260px);
+  background-repeat:no-repeat;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px}
+
+/* masthead */
+.mast{display:flex;align-items:center;gap:16px;padding:22px 0 14px;border-bottom:2px solid var(--ink)}
+.crest{width:34px;height:34px;flex:0 0 auto;border-radius:3px;
+  background:repeating-linear-gradient(90deg,var(--pitch-deep) 0 5px,var(--pitch) 5px 10px)}
+.mast h1{font-family:var(--disp);font-weight:900;font-size:21px;letter-spacing:-.02em;margin:0;
+  text-transform:uppercase;line-height:1}
+.mast h1 em{font-style:normal;color:var(--pitch)}
+.mast .tag{font-size:12.5px;color:var(--muted);border-left:1px solid var(--line);padding-left:12px}
+.mast .right{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);
+  letter-spacing:.1em;text-transform:uppercase;text-align:right;line-height:1.7}
+.mast .right b{color:var(--ink)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--pitch)}
+h2{font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:-.02em;margin:6px 0 0;
+  line-height:1.05;text-wrap:balance}
+h3{font-family:var(--disp);font-weight:800;font-size:16px;letter-spacing:-.01em;margin:0;line-height:1.2}
+.sec{margin:38px 0 0}
+.lead{color:var(--muted);font-size:14.5px;margin:10px 0 0;max-width:64ch}
+.lead b{color:var(--ink)}
+.lead code,code{font-family:var(--mono);font-size:.92em;background:var(--faint);
+  border:1px solid var(--hair);border-radius:3px;padding:.5px 4px}
+
+/* measured-numbers strip */
+.figs{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}
+.fig{background:var(--white);border:1px solid var(--line);border-radius:6px;
+  padding:11px 14px;min-width:132px;flex:0 1 auto}
+.fig .k{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim)}
+.fig .v{font-family:var(--mono);font-size:19px;font-weight:700;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.fig .v small{font-size:11px;font-weight:600;color:var(--muted)}
+.fig.hot .v{color:var(--loss)}
+.fig.good .v{color:var(--pitch)}
+
+/* cost ladder */
+table.cost{border-collapse:collapse;margin:18px 0 0;font-size:13.5px;width:100%;max-width:560px}
+table.cost th,table.cost td{text-align:left;padding:7px 12px 7px 0;border-bottom:1px solid var(--hair)}
+table.cost th{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);border-bottom-color:var(--line)}
+table.cost td{font-variant-numeric:tabular-nums}
+table.cost td.n{font-family:var(--mono);font-weight:700}
+table.cost tr.pick td{color:var(--pitch)}
+table.cost tr.pick td.n{color:var(--pitch)}
+table.cost td .bar{display:inline-block;height:6px;border-radius:20px;background:var(--loss);
+  vertical-align:middle;margin-left:8px}
+table.cost tr.zero td .bar{background:var(--pitch)}
+
+/* the option rail: panels at TRUE width, side by side */
+.rail{display:flex;gap:18px;align-items:flex-start;overflow-x:auto;padding:20px 2px 12px;
+  scrollbar-width:thin}
+.opt{flex:0 0 auto;width:298px}
+.opt > .hd{display:flex;align-items:baseline;gap:8px;margin:0 0 3px}
+.opt > .hd .tagn{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);border:1px solid var(--line);border-radius:3px;
+  padding:1px 5px}
+.opt.rec > .hd .tagn{color:#fff;background:var(--pitch);border-color:var(--pitch-deep)}
+.opt .why{font-size:12.5px;color:var(--muted);margin:6px 0 0;min-height:52px}
+.opt .why b{color:var(--ink)}
+.opt .cost{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;margin:8px 0 10px;color:var(--loss)}
+.opt.zero .cost{color:var(--pitch)}
+
+/* the market panel itself, at shipped dimensions */
+.panel{width:298px;background:var(--white);border:1px solid var(--line);border-radius:6px;
+  box-shadow:6px 6px 0 var(--pitch-deep);overflow:hidden}
+.panel .buying{border-bottom:1px solid var(--line);padding:9px 16px;
+  font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+.panel .buying b{color:var(--ink)}
+.panel .legend{border-bottom:1px solid var(--line);padding:6px 16px 7px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--dim);background:var(--faint)}
+.panel .legend u{text-decoration-color:var(--pitch);text-underline-offset:2px;color:var(--ink)}
+.panel .legend .pchip{color:var(--amber-ink);font-weight:700}
+.panel .chips{display:flex;gap:5px;flex-wrap:wrap;padding:9px 16px;border-bottom:1px solid var(--line)}
+.pchipf{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;
+  border:1px solid var(--line);background:var(--white);color:var(--muted);
+  border-radius:20px;padding:4px 9px;white-space:nowrap}
+.pchipf.on{border-color:var(--pitch);background:rgba(21,146,76,.1);color:var(--pitch)}
+
+/* rows: 259px wide button, 243px content, 4px gaps. Matches the shipped flex row. */
+ul.rows{list-style:none;margin:0;padding:0}
+ul.rows > li{padding:0 16px}
+/* border:0 first, then the two horizontal rules only. A <button> carries a UA
+   border on all four sides; leaving left and right in place stole 4px from the
+   name and made this panel 133px where the shipped one is 137. Tailwind's
+   preflight zeroes them in the app, so the mock has to do it too or every
+   truncation count below is measured against the wrong width. */
+.row{width:259px;display:flex;align-items:center;gap:4px;padding:6px 8px;
+  border:0;border-top:1px solid transparent;border-bottom:1px solid transparent;
+  background:none;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.row:hover{background:rgba(21,146,76,.05)}
+.row:focus-visible{outline:2px solid var(--pitch);outline-offset:-2px}
+.row .nc{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto}
+.row .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .st{flex:0 0 auto;width:15px;height:15px;border-radius:20px;display:grid;place-items:center;
+  font-size:9px;line-height:1;color:#fff}
+.st.mon{background:#8A5410}.st.ico{background:#B0862F}.st.leg{background:var(--amber)}
+.row .fl{flex:0 0 auto;width:18px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.row .fl i{display:block;width:18px;height:12px;border-radius:2px;
+  box-shadow:inset 0 0 0 1px var(--flag-edge)}
+.row .fl span{font-family:var(--mono);font-size:8.5px;line-height:1;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.row .rt{flex:0 0 auto;width:24px;text-align:right;font-family:var(--mono);font-size:13px;
+  font-weight:700;font-variant-numeric:tabular-nums}
+.row .pr{flex:0 0 auto;width:52px;text-align:right;font-family:var(--mono);font-size:12px;
+  font-weight:600;color:var(--pitch);font-variant-numeric:tabular-nums}
+
+/* the position mark, in its variants */
+.row .pos{flex:0 0 auto;font-family:var(--mono);font-size:9.5px;font-weight:600;
+  letter-spacing:.02em;color:var(--muted);white-space:nowrap}
+.row .pos u{text-decoration-color:var(--pitch);text-underline-offset:2px;
+  color:var(--ink);font-weight:700}
+.row .pos.wide{width:38px}
+.row .pos.one{width:24px;text-align:right}
+.row .pos.off{color:var(--amber-ink);font-weight:700}
+.row .nm.nat{text-decoration:underline;text-decoration-color:var(--pitch);
+  text-decoration-thickness:1.5px;text-underline-offset:2px}
+.row .rail3{flex:0 0 auto;width:3px;height:16px;border-radius:2px;background:transparent}
+.row .rail3.nat{background:var(--pitch)}
+
+/* callout */
+.note{border-left:3px solid var(--amber);background:var(--faint);padding:12px 16px;
+  margin:18px 0 0;font-size:13.5px;color:var(--muted);max-width:70ch;border-radius:0 4px 4px 0}
+.note b{color:var(--ink)}
+.note .mono{font-family:var(--mono);font-size:12px}
+
+/* verdict */
+.verdict{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--pitch);
+  border-radius:0 6px 6px 0;padding:18px 20px;margin:20px 0 0;max-width:74ch;
+  box-shadow:6px 6px 0 var(--pitch-deep)}
+.verdict h3{margin-bottom:8px}
+.verdict p{font-size:14px;color:var(--muted);margin:9px 0 0}
+.verdict p b{color:var(--ink)}
+.verdict ol{margin:12px 0 0;padding-left:20px;font-size:13.5px;color:var(--muted)}
+.verdict ol li{margin:6px 0}
+.verdict ol li b{color:var(--ink)}
+
+/* phone strip */
+.phonewrap{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin:20px 0 0}
+/* min(), so a real 375px phone reading this page does not get a sideways scroll from
+   the frame that is illustrating a 375px phone. The 305px row inside stays exactly
+   305px and is clipped by .scr's own overflow, which is the honest behaviour: the
+   frame narrows, the row it is demonstrating does not. */
+.phone{width:min(335px,100%);border:1px solid var(--line);border-radius:16px;background:var(--paper);
+  box-shadow:6px 6px 0 var(--pitch-deep);padding:8px;flex:0 1 auto;min-width:0}
+.phonewrap > div{min-width:0;max-width:100%}
+.phone .scr{border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--white)}
+.phone .notch{height:16px;display:grid;place-items:center}
+.phone .notch i{width:48px;height:4px;border-radius:20px;background:var(--line);display:block}
+.phone .row{width:305px}
+.phone .row .nc{flex:1 1 auto}
+.capt{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);margin:0 0 8px}
+
+.foot{margin:46px 0 0;padding-top:16px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.8}
+.foot b{color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <div class="crest"></div>
+    <h1>Mondial<em>ino</em></h1>
+    <div class="tag">Transfer market, position display</div>
+    <div class="right">
+      Roadmap <b>40</b><br>
+      Measured 2026-08-26
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="eyebrow">The question</div>
+    <h2>You are right that the space is gone.</h2>
+    <p class="lead">The market row is <b>259px</b> wide and four of its five columns are
+      fixed: the flag is 18, the rating 24, the price 52, and the gaps 12. The name gets
+      whatever is left, which is <b>137px</b>, or <b>116px</b> once a collectible star sits
+      beside it. One name in the sixty on screen is already clipped, and it is only clipped
+      by three pixels. So the honest starting point is that a position column does not fit
+      and something has to give.</p>
+
+    <div class="figs">
+      <div class="fig"><div class="k">Panel</div><div class="v">298<small>px</small></div></div>
+      <div class="fig"><div class="k">Row</div><div class="v">259<small>px</small></div></div>
+      <div class="fig"><div class="k">Fixed columns</div><div class="v">106<small>px</small></div></div>
+      <div class="fig"><div class="k">Left for the name</div><div class="v">137<small>px</small></div></div>
+      <div class="fig"><div class="k">With a star</div><div class="v">116<small>px</small></div></div>
+      <div class="fig good"><div class="k">Clipped today</div><div class="v">1<small>/60</small></div></div>
+    </div>
+
+    <table class="cost">
+      <tr><th>If a position column takes</th><th>Name drops to</th><th>Names clipped</th><th></th></tr>
+      <tr class="zero"><td>nothing</td><td class="n">137px</td><td class="n">1 / 60</td>
+        <td><i class="bar" style="width:4px"></i></td></tr>
+      <tr><td>20px (a bare code, tight)</td><td class="n">117px</td><td class="n">7 / 60</td>
+        <td><i class="bar" style="width:26px"></i></td></tr>
+      <tr class="pick"><td>24px (a bare code, comfortable)</td><td class="n">113px</td><td class="n">12 / 60</td>
+        <td><i class="bar" style="width:45px"></i></td></tr>
+      <tr><td>30px</td><td class="n">107px</td><td class="n">19 / 60</td>
+        <td><i class="bar" style="width:71px"></i></td></tr>
+      <tr><td>38px (the full list, as the roll draft shows it)</td><td class="n">99px</td><td class="n">24 / 60</td>
+        <td><i class="bar" style="width:86px"></i></td></tr>
+      <tr><td>46px (what the full list actually needs)</td><td class="n">91px</td><td class="n">33 / 60</td>
+        <td><i class="bar" style="width:97px"></i></td></tr>
+    </table>
+    <p class="lead" style="margin-top:14px"><b>38px is not even enough for the full list.</b>
+      Three positions set in the data font measure 46px, so option A below clips the thing it
+      exists to show as well as the name beside it. That is the strongest argument against
+      simply copying the roll draft into this panel.</p>
+
+    <div class="note">
+      <b>The desktop three-column layout is the only place this is tight.</b> On a phone the
+      market is the full width of the screen, the row is <span class="mono">305px</span> and the
+      name gets <span class="mono">183px</span>, so <b>nothing clips even with 38px added</b>.
+      Whatever is chosen, it is free on a phone and paid for on a desktop.
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="eyebrow">Why it is worth paying anything</div>
+    <h2>For a winger, the whole top of the list is out of position.</h2>
+    <p class="lead">The market filters by <b>every</b> position a player can fill, which is
+      correct: a striker who can play left wing should be buyable there. It also means all
+      sixty rows are eligible and an unknown subset are actually wingers. Of the 654 players
+      the market offers for a left-wing slot, <b>287</b> are naturally left wingers. Of the
+      ten dearest, <b>four</b> are. Maradona is an attacking midfielder, Cruyff a striker,
+      Iniesta a central midfielder, and buying any of them costs the chemistry point that
+      item 38 just made real. Nothing on the row says so.</p>
+    <p class="lead">It is not uniform, which is the argument for showing it rather than
+      explaining it once: for a centre-back slot <b>1,557 of 1,975</b> are natural, so the
+      mark would be near-silent there and loud exactly where the expensive mistakes are.</p>
+  </div>
+
+  <div class="sec">
+    <div class="eyebrow">Four ways it could look</div>
+    <h2>Every panel below is 298px, at the real font and size.</h2>
+    <p class="lead">The ellipses are real: they are the browser truncating the same names in
+      the space each option leaves. Rows are the ten dearest players the market offers for a
+      left-wing slot, with their real ratings and prices.</p>
+
+    <div class="rail">
+
+      <!-- NOW -->
+      <div class="opt zero">
+        <div class="hd"><span class="tagn">Now</span><h3>As shipped</h3></div>
+        <p class="why">No position anywhere. Every row is eligible and you cannot tell which
+          are wingers. <b>One name clipped.</b></p>
+        <div class="cost">Costs nothing, tells nothing</div>
+        <div class="panel">
+          <div class="buying">Buying: <b>LW</b> (Left wing)</div>
+          <ul class="rows">
+            <li><button class="row"><span class="nc"><span class="nm">Diego Maradona</span><span class="st mon">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(180deg,#74ACDF 33%,#fff 33% 66%,#74ACDF 66%)"></i><span>1986</span></span><span class="rt">98</span><span class="pr">$25</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Kylian Mbapp&eacute;</span><span class="st mon">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#002395 33%,#fff 33% 66%,#ED2939 66%)"></i><span>2022</span></span><span class="rt">97</span><span class="pr">$24</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Johan Cruyff</span><span class="st ico">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1974</span></span><span class="rt">95</span><span class="pr">$21</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rivaldo</span><span class="st ico">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Ronaldinho</span><span class="st ico">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Andr&eacute;s Iniesta</span><span class="st ico">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(180deg,#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%)"></i><span>2010</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Cristiano Ronaldo</span><span class="st ico">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#006600 40%,#FF0000 40%)"></i><span>2018</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Neymar</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2014</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Eden Hazard</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#000 33%,#FAE042 33% 66%,#ED2939 66%)"></i><span>2018</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rob Rensenbrink</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1978</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- A -->
+      <div class="opt">
+        <div class="hd"><span class="tagn">A</span><h3>Every position</h3></div>
+        <p class="why">What the roll draft does: the whole list, natural role underlined.
+          Most information, and <b>24 names clipped</b> out of 60, seven of the ten here.
+          It also <b>does not fit itself</b>: a three-position player needs 46px, so four of
+          these ten lose their last position too.</p>
+        <div class="cost">38px &middot; 24 of 60 clipped &middot; and still short</div>
+        <div class="panel">
+          <div class="buying">Buying: <b>LW</b> (Left wing)</div>
+          <div class="legend"><u>Underlined</u> is his natural position</div>
+          <ul class="rows">
+            <li><button class="row"><span class="nc"><span class="nm">Diego Maradona</span><span class="st mon">&#9733;</span></span><span class="pos wide"><u>AM</u>&#183;ST&#183;LW</span><span class="fl"><i style="background:linear-gradient(180deg,#74ACDF 33%,#fff 33% 66%,#74ACDF 66%)"></i><span>1986</span></span><span class="rt">98</span><span class="pr">$25</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Kylian Mbapp&eacute;</span><span class="st mon">&#9733;</span></span><span class="pos wide"><u>LW</u>&#183;ST</span><span class="fl"><i style="background:linear-gradient(90deg,#002395 33%,#fff 33% 66%,#ED2939 66%)"></i><span>2022</span></span><span class="rt">97</span><span class="pr">$24</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Johan Cruyff</span><span class="st ico">&#9733;</span></span><span class="pos wide"><u>ST</u>&#183;AM&#183;LW</span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1974</span></span><span class="rt">95</span><span class="pr">$21</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rivaldo</span><span class="st ico">&#9733;</span></span><span class="pos wide"><u>AM</u>&#183;LW</span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Ronaldinho</span><span class="st ico">&#9733;</span></span><span class="pos wide"><u>AM</u>&#183;LW&#183;RW</span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Andr&eacute;s Iniesta</span><span class="st ico">&#9733;</span></span><span class="pos wide"><u>CM</u>&#183;AM&#183;LW</span><span class="fl"><i style="background:linear-gradient(180deg,#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%)"></i><span>2010</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Cristiano Ronaldo</span><span class="st ico">&#9733;</span></span><span class="pos wide"><u>ST</u>&#183;LW</span><span class="fl"><i style="background:linear-gradient(90deg,#006600 40%,#FF0000 40%)"></i><span>2018</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Neymar</span><span class="st leg">&#9733;</span></span><span class="pos wide"><u>LW</u>&#183;ST</span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2014</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Eden Hazard</span><span class="st leg">&#9733;</span></span><span class="pos wide"><u>LW</u>&#183;AM</span><span class="fl"><i style="background:linear-gradient(90deg,#000 33%,#FAE042 33% 66%,#ED2939 66%)"></i><span>2018</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rob Rensenbrink</span><span class="st leg">&#9733;</span></span><span class="pos wide"><u>LW</u>&#183;ST</span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1978</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- B -->
+      <div class="opt">
+        <div class="hd"><span class="tagn">B</span><h3>Natural role only</h3></div>
+        <p class="why">Drop the other positions, since every visible row can already play the
+          slot. One 24px column, always filled. <b>12 names clipped.</b></p>
+        <div class="cost">24px &middot; 12 of 60 clipped</div>
+        <div class="panel">
+          <div class="buying">Buying: <b>LW</b> (Left wing)</div>
+          <div class="legend">Column is the position he really plays</div>
+          <ul class="rows">
+            <li><button class="row"><span class="nc"><span class="nm">Diego Maradona</span><span class="st mon">&#9733;</span></span><span class="pos one">AM</span><span class="fl"><i style="background:linear-gradient(180deg,#74ACDF 33%,#fff 33% 66%,#74ACDF 66%)"></i><span>1986</span></span><span class="rt">98</span><span class="pr">$25</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Kylian Mbapp&eacute;</span><span class="st mon">&#9733;</span></span><span class="pos one"><u>LW</u></span><span class="fl"><i style="background:linear-gradient(90deg,#002395 33%,#fff 33% 66%,#ED2939 66%)"></i><span>2022</span></span><span class="rt">97</span><span class="pr">$24</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Johan Cruyff</span><span class="st ico">&#9733;</span></span><span class="pos one">ST</span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1974</span></span><span class="rt">95</span><span class="pr">$21</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rivaldo</span><span class="st ico">&#9733;</span></span><span class="pos one">AM</span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Ronaldinho</span><span class="st ico">&#9733;</span></span><span class="pos one">AM</span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Andr&eacute;s Iniesta</span><span class="st ico">&#9733;</span></span><span class="pos one">CM</span><span class="fl"><i style="background:linear-gradient(180deg,#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%)"></i><span>2010</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Cristiano Ronaldo</span><span class="st ico">&#9733;</span></span><span class="pos one">ST</span><span class="fl"><i style="background:linear-gradient(90deg,#006600 40%,#FF0000 40%)"></i><span>2018</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Neymar</span><span class="st leg">&#9733;</span></span><span class="pos one"><u>LW</u></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2014</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Eden Hazard</span><span class="st leg">&#9733;</span></span><span class="pos one"><u>LW</u></span><span class="fl"><i style="background:linear-gradient(90deg,#000 33%,#FAE042 33% 66%,#ED2939 66%)"></i><span>2018</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rob Rensenbrink</span><span class="st leg">&#9733;</span></span><span class="pos one"><u>LW</u></span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1978</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- C: recommended -->
+      <div class="opt rec">
+        <div class="hd"><span class="tagn">C &middot; pick</span><h3>Only when it differs</h3></div>
+        <p class="why">A winger in a winger's slot gets his name underlined and no column, so
+          he keeps the full width. Anyone <b>out of position</b> spends 24px saying what he
+          really is. The clipping lands only on the rows worth reading.</p>
+        <div class="cost">0px natural &middot; 24px off-position</div>
+        <div class="panel">
+          <div class="buying">Buying: <b>LW</b> (Left wing)</div>
+          <div class="legend"><u>Underlined</u> plays here &middot; <span class="pchip">AM</span> plays there instead</div>
+          <ul class="rows">
+            <li><button class="row"><span class="nc"><span class="nm">Diego Maradona</span><span class="st mon">&#9733;</span></span><span class="pos one off">AM</span><span class="fl"><i style="background:linear-gradient(180deg,#74ACDF 33%,#fff 33% 66%,#74ACDF 66%)"></i><span>1986</span></span><span class="rt">98</span><span class="pr">$25</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm nat">Kylian Mbapp&eacute;</span><span class="st mon">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#002395 33%,#fff 33% 66%,#ED2939 66%)"></i><span>2022</span></span><span class="rt">97</span><span class="pr">$24</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Johan Cruyff</span><span class="st ico">&#9733;</span></span><span class="pos one off">ST</span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1974</span></span><span class="rt">95</span><span class="pr">$21</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rivaldo</span><span class="st ico">&#9733;</span></span><span class="pos one off">AM</span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Ronaldinho</span><span class="st ico">&#9733;</span></span><span class="pos one off">AM</span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2002</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Andr&eacute;s Iniesta</span><span class="st ico">&#9733;</span></span><span class="pos one off">CM</span><span class="fl"><i style="background:linear-gradient(180deg,#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%)"></i><span>2010</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Cristiano Ronaldo</span><span class="st ico">&#9733;</span></span><span class="pos one off">ST</span><span class="fl"><i style="background:linear-gradient(90deg,#006600 40%,#FF0000 40%)"></i><span>2018</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm nat">Neymar</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2014</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm nat">Eden Hazard</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#000 33%,#FAE042 33% 66%,#ED2939 66%)"></i><span>2018</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm nat">Rob Rensenbrink</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1978</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- D -->
+      <div class="opt zero">
+        <div class="hd"><span class="tagn">D</span><h3>A filter, no column</h3></div>
+        <p class="why">Leave the row exactly as it is and add a tick-box beside Affordable and
+          Collectible. Costs nothing and answers the question by <b>hiding</b> people rather
+          than telling you about them.</p>
+        <div class="cost">0px &middot; 1 of 60 clipped</div>
+        <div class="panel">
+          <div class="buying">Buying: <b>LW</b> (Left wing)</div>
+          <div class="chips">
+            <span class="pchipf">Any cup</span>
+            <span class="pchipf">Any country</span>
+            <span class="pchipf">Affordable</span>
+            <span class="pchipf on">Plays here &#10003;</span>
+          </div>
+          <ul class="rows">
+            <li><button class="row"><span class="nc"><span class="nm">Kylian Mbapp&eacute;</span><span class="st mon">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#002395 33%,#fff 33% 66%,#ED2939 66%)"></i><span>2022</span></span><span class="rt">97</span><span class="pr">$24</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Neymar</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2014</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Eden Hazard</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#000 33%,#FAE042 33% 66%,#ED2939 66%)"></i><span>2018</span></span><span class="rt">92</span><span class="pr">$18</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Cristiano Ronaldo</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#006600 40%,#FF0000 40%)"></i><span>2014</span></span><span class="rt">91</span><span class="pr">$17</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Neymar</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>2018</span></span><span class="rt">91</span><span class="pr">$17</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rob Rensenbrink</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1978</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Jairzinho</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>1970</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Rivellino</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(135deg,#009739 45%,#FEDD00 45% 70%,#012169 70%)"></i><span>1970</span></span><span class="rt">89</span><span class="pr">$15</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Robert Prosinecki</span></span><span class="fl"><i style="background:linear-gradient(180deg,#171796 33%,#fff 33% 66%,#C8102E 66%)"></i><span>1998</span></span><span class="rt">88</span><span class="pr">$14</span></button></li>
+            <li><button class="row"><span class="nc"><span class="nm">Ryan Giggs</span></span><span class="fl"><i style="background:linear-gradient(180deg,#fff 50%,#00AD36 50%)"></i><span>2022</span></span><span class="rt">87</span><span class="pr">$13</span></button></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="eyebrow">On a phone</div>
+    <h2>None of this costs anything on the narrow layout.</h2>
+    <p class="lead">Below 1080px the market stops being a column and takes the width of the
+      screen, which gives the name <b>183px</b> instead of 137. Option A, the one that clips
+      nine of ten rows on a desktop, clips none here. So the desktop three-column layout is
+      the only constraint in the whole question.</p>
+    <div class="phonewrap">
+      <div>
+        <p class="capt">375px &middot; option A, the full list</p>
+        <div class="phone">
+          <div class="notch"><i></i></div>
+          <div class="scr">
+            <div class="buying" style="padding:9px 12px">Buying: <b>LW</b> (Left wing)</div>
+            <ul class="rows">
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Diego Maradona</span><span class="st mon">&#9733;</span></span><span class="pos wide"><u>AM</u>&#183;ST&#183;LW</span><span class="fl"><i style="background:linear-gradient(180deg,#74ACDF 33%,#fff 33% 66%,#74ACDF 66%)"></i><span>1986</span></span><span class="rt">98</span><span class="pr">$25</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Kylian Mbapp&eacute;</span><span class="st mon">&#9733;</span></span><span class="pos wide"><u>LW</u>&#183;ST</span><span class="fl"><i style="background:linear-gradient(90deg,#002395 33%,#fff 33% 66%,#ED2939 66%)"></i><span>2022</span></span><span class="rt">97</span><span class="pr">$24</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Andr&eacute;s Iniesta</span><span class="st ico">&#9733;</span></span><span class="pos wide"><u>CM</u>&#183;AM&#183;LW</span><span class="fl"><i style="background:linear-gradient(180deg,#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%)"></i><span>2010</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Cristiano Ronaldo</span><span class="st ico">&#9733;</span></span><span class="pos wide"><u>ST</u>&#183;LW</span><span class="fl"><i style="background:linear-gradient(90deg,#006600 40%,#FF0000 40%)"></i><span>2018</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Rob Rensenbrink</span><span class="st leg">&#9733;</span></span><span class="pos wide"><u>LW</u>&#183;ST</span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1978</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="capt">375px &middot; option C, the pick</p>
+        <div class="phone">
+          <div class="notch"><i></i></div>
+          <div class="scr">
+            <div class="buying" style="padding:9px 12px">Buying: <b>LW</b> (Left wing)</div>
+            <ul class="rows">
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Diego Maradona</span><span class="st mon">&#9733;</span></span><span class="pos one off">AM</span><span class="fl"><i style="background:linear-gradient(180deg,#74ACDF 33%,#fff 33% 66%,#74ACDF 66%)"></i><span>1986</span></span><span class="rt">98</span><span class="pr">$25</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm nat">Kylian Mbapp&eacute;</span><span class="st mon">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(90deg,#002395 33%,#fff 33% 66%,#ED2939 66%)"></i><span>2022</span></span><span class="rt">97</span><span class="pr">$24</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Andr&eacute;s Iniesta</span><span class="st ico">&#9733;</span></span><span class="pos one off">CM</span><span class="fl"><i style="background:linear-gradient(180deg,#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%)"></i><span>2010</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm">Cristiano Ronaldo</span><span class="st ico">&#9733;</span></span><span class="pos one off">ST</span><span class="fl"><i style="background:linear-gradient(90deg,#006600 40%,#FF0000 40%)"></i><span>2018</span></span><span class="rt">93</span><span class="pr">$19</span></button></li>
+              <li style="padding:0 12px"><button class="row"><span class="nc"><span class="nm nat">Rob Rensenbrink</span><span class="st leg">&#9733;</span></span><span class="fl"><i style="background:linear-gradient(180deg,#AE1C28 33%,#fff 33% 66%,#21468B 66%)"></i><span>1978</span></span><span class="rt">90</span><span class="pr">$16</span></button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="eyebrow">The recommendation</div>
+    <h2>C, and it is cheaper than it looks.</h2>
+    <div class="verdict">
+      <h3>Spend the width only on the players who are out of position</h3>
+      <p>The market already filters by every position a player can fill, so <b>every row on
+        screen can legally play the slot</b>. Printing all three of Ronaldinho's positions
+        tells you two things you cannot use and one you can. The one you can use is whether
+        this man plays here or somewhere else, and that is a single word.</p>
+      <ol>
+        <li><b>A winger in a winger's slot shows nothing</b> and keeps his full 137px. His
+          name is underlined, which is the same signal the roll draft already uses.</li>
+        <li><b>Anyone out of position spends 24px</b> to say what he actually is, in the amber
+          that the app already uses for "look at this". Those are the rows where the
+          information changes a decision, so those are the rows that can afford an ellipsis.</li>
+        <li><b>It gets quieter as it gets less useful.</b> For a centre-back slot four rows in
+          five are natural, so four in five stay untouched. For a left wing it is the
+          opposite, which is exactly where the mistakes are expensive.</li>
+      </ol>
+      <p>The wording and the underline should be lifted verbatim from the drawn-squad panel
+        rather than reinvented, since that panel has been saying "only placing the player
+        there earns positional chemistry" all along. <b>Option D is worth having as well</b>:
+        it is a filter rather than a display, so it does not compete, and the market's own
+        rule already covers it, that a control appears when it has more than one option or a
+        selection live on it.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>Measured</b> in the running app, 2026-08-26: panel 298px, row 259px, name cell 137px
+    and 116px with a collectible star; 1 of 60 names clipped today, 7 at +20px, 12 at +24px,
+    19 at +30px, 24 at +38px and 33 at +46px, which is what the full position list really
+    needs. Phone: row 305px, name 183px, nothing clipped at any of them.<br>
+    <b>Rows</b> are the ten dearest players the market offers for a left-wing slot, at their
+    real ratings and prices. 287 of 654 eligible left wingers are natural left wingers;
+    1,557 of 1,975 eligible centre-backs are natural centre-backs.<br>
+    <b>Roadmap 40</b>, out of 38. Exploratory, not wired to data, and nothing in
+    <code>src/</code> imports it.
+  </div>
+
+</div>
