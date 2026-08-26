@@ -214,9 +214,13 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .alt { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rat { font-family: var(--mono); font-size: 13.5px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 .dif { font-family: var(--mono); font-size: 12.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
-.dif.up { color: var(--pitch); }
-.dif.dn { color: var(--loss); }
-.dif.eq, .dif.no { color: var(--dim); }
+.dif.no { color: var(--dim); }
+/* The bracket is the only coloured part: it is the signed number, so + is green
+   and - is red without anything having to be remembered. */
+.gap { font-size: 11px; font-weight: 500; }
+.gap.up { color: var(--pitch); }
+.gap.dn { color: var(--loss); }
+.gap.eq { color: var(--dim); }
 .col { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: var(--mono); font-size: 11.5px; }
 .col.no { color: var(--dim); }
 .star { flex: none; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
@@ -647,18 +651,22 @@ function measure() { headH = thead.offsetHeight; viewH = scroller.clientHeight; 
 
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
 
-/** The "vs" cell: what the OTHER dataset rates the same man at. The number is
- *  theirs; the colour is the comparison - green where this dataset is higher, red
- *  where it is lower - and the gap itself is in the hover text and in the
- *  Difference filter. */
+/** The "vs" cell: what the OTHER dataset rates the same man at, and by how much
+ *  that differs from this one. The bracket reads FROM this dataset TO the other -
+ *  "99 (+2)" is their 99 against our 97 - so the sign belongs to the number it is
+ *  printed beside, and the colour belongs to the bracket rather than to the whole
+ *  cell. `D.diff` stores the opposite sign (ours minus theirs), which is what the
+ *  Difference filter and the generator's join use; only the display flips it. */
 function diffHtml(i) {
   const v = D.diff[i];
   if (v === NO_DIFF) return '<span class="dif no" title="not in ' + otherTab + '">&ndash;</span>';
   const theirs = D.elo[i] - v;
-  const cls = v > 0 ? 'up' : v < 0 ? 'dn' : 'eq';
-  const gap = v > 0 ? '+' + v : v;
-  const title = P.tab + ' ' + D.elo[i] + ' &middot; ' + otherTab + ' ' + theirs + ' (' + gap + ')';
-  return '<span class="dif ' + cls + '" title="' + title + '">' + theirs + '</span>';
+  const gap = -v;
+  const cls = gap > 0 ? 'up' : gap < 0 ? 'dn' : 'eq';
+  const shown = '(' + (gap > 0 ? '+' + gap : gap) + ')';
+  const title = P.tab + ' ' + D.elo[i] + ' &middot; ' + otherTab + ' ' + theirs + ' ' + shown;
+  return '<span class="dif" title="' + title + '">' + theirs
+    + ' <span class="gap ' + cls + '">' + shown + '</span></span>';
 }
 
 function rowHtml(i, top) {

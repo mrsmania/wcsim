@@ -215,7 +215,7 @@ export interface SetBlob {
  *  would defeat that. A dataset with one position per player prints a dash in the
  *  "Also" column rather than dropping it. */
 const GRID =
-  '44px minmax(160px, 1.7fr) minmax(130px, 1.1fr) 54px 54px minmax(88px, 0.9fr) 66px 66px 92px';
+  '44px minmax(160px, 1.7fr) minmax(130px, 1.1fr) 54px 54px minmax(88px, 0.9fr) 66px 96px 92px';
 
 /** Fill the template in and write the page. The twelve positions and the grid sit
  *  at the top of the blob rather than inside each set: both datasets speak the

@@ -965,9 +965,9 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   `squads.ts` or `STICKER_TIERS`**, the same way `gen:collectibles` has to be re-run -
   nothing fails while it is stale, because it is not in the build.
 - **Shows** jersey number, name, country, year, main position, additional positions,
-  rating, **what the other game rates the same man at** (their number, coloured green
-  where this dataset is higher and red where it is lower, with the gap itself in the
-  hover text), and collectible (yes, with the tier's colour, or no). **Filters** for main position,
+  rating, **what the other game rates the same man at** (their number, with the gap in
+  brackets after it - "99 (+2)" is their 99 against our 97 - green where they are higher
+  and red where they are lower), and collectible (yes, with the tier's colour, or no). **Filters** for main position,
   additional position, position (either), country, World Cup and collectible are all
   multi-select; rating is a two-handle range; **"Difference to <the other game>" is a
   one-handle slider that keeps only the players the two disagree about by at least that
@@ -1057,10 +1057,14 @@ there is only one artifact to keep in step.
   7a0's "Paulo Cesar Caju" and "Cesar Maluco" both landing on WCS's single "Cesar".
   Measured: **5,017 players matched**, 99.5% of the 7a0 rows whose squad WCS also has;
   894 are rated identically and WCS runs 0.60 lower on average. The column prints the
-  OTHER dataset's rating rather than the gap, and sorts on that number; a row with no
-  counterpart prints a dash and sorts last in both directions, since an absent rating is
-  not a low one. The gap is what the **Difference** filter reads, and it is still computed
-  from the two ratings - to rank by disagreement, narrow with that slider.
+  OTHER dataset's rating with the gap in brackets after it, and **the bracket reads FROM
+  this dataset TO the other** ("99 (+2)" is their 99 against our 97), so the sign belongs
+  to the number it sits beside - which is why only the bracket is coloured and why
+  `D.diff`, stored as ours-minus-theirs for the join and the filter, is flipped at the
+  point of display. Sorting the column uses the rating, not the gap, since that is the
+  figure on screen; a row with no counterpart prints a dash and sorts last in both
+  directions, an absent rating being no kind of low one. The **Difference** filter still
+  reads the real gap - to rank by disagreement, narrow with that slider.
 - **The names were aligned in three passes, and the third is the one to repeat.** The
   source publishes short display names (bare surnames, or a given name alone). The first
   pass (2026-08-25) took full names from Wikipedia and left 488 rows single-token; a second
