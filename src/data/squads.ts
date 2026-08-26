@@ -9407,6 +9407,16 @@ export const ALL_PLAYERS: Player[] = SQUADS.flatMap((s) => s.players);
 const PLAYER_BY_ID = new Map(ALL_PLAYERS.map((p) => [p.id, p]));
 export const basePlayer = (p: Player): Player => PLAYER_BY_ID.get(p.id) ?? p;
 
+/** The dataset player with this id, or undefined when there is no such player.
+ *
+ *  `basePlayer` falls back to the object it was handed, which is right for its callers -
+ *  they hold a real player and want him unmodified. It is wrong for anything judging an
+ *  id that arrived from OUTSIDE the app, where "not in the dataset" is the answer being
+ *  looked for and a silent fallback would accept an invented player at whatever rating
+ *  and positions the caller supplied. A PvP room's referee validates a submitted XI over
+ *  the wire, so it asks this instead (domain/pvp.ts). */
+export const datasetPlayer = (id: string): Player | undefined => PLAYER_BY_ID.get(id);
+
 /** The distinct World Cup years present in the dataset, oldest first. Drives the
  *  squad-pool setting (which tournaments the game draws from). */
 export const WORLD_CUP_YEARS: readonly number[] = [...new Set(SQUADS.map((s) => s.year))].sort(

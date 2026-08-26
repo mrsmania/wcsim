@@ -41,6 +41,7 @@ import { challengesChecks } from './checks/challenges';
 import { cabinetChecks } from './checks/cabinet';
 import { scorersChecks } from './checks/scorers';
 import { stateChecks } from './checks/state';
+import { pvpChecks } from './checks/pvp';
 
 /** In the order the single file ran them, which is the order to keep: it is roughly
  *  data -> engine -> economy -> screens, so a broken dataset is reported before the
@@ -64,6 +65,7 @@ const CONCERNS: [string, () => void][] = [
   ['cabinet', cabinetChecks],
   ['scorers', scorersChecks],
   ['state', stateChecks],
+  ['pvp', pvpChecks],
 ];
 
 for (const [name, run] of CONCERNS) {

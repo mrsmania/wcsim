@@ -383,6 +383,8 @@ src/
                cabinet.ts    (cabinetView: the whole trophy-cabinet readout, derived
                               from CareerState + AlbumState; gated)
                random.ts     (shuffled + pick, the shared Math.random helpers)
+               pvp.ts        (the PvP room rules: validateXi, autoPick, pvpTeam. Wave 0 of
+                              roadmap item 18 - NOTHING IMPORTS IT YET, see below)
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
                fully built XI; a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER
@@ -2383,6 +2385,38 @@ keep working.
   `index.css` sets `overflow-anchor: none` on `html`: the browser's scroll anchoring
   otherwise nudges scrollY when result cards mount and stalled the follow (worst on
   short mobile screens).
+
+## `src/domain/pvp.ts` has no importer yet, and that is on purpose
+
+Wave 0 of roadmap item 18 (player versus player) shipped 2026-08-26: the rules a room is
+judged by, as pure functions, with 23 checks in `scripts/checks/pvp.ts`. **Nothing in `src/`
+imports it**, because the screens and the server that will are waves 4 to 8. A tree-shaking
+or dead-code pass finds it, concludes it is unused and deletes it - which is what this note
+exists to stop, the same way the one below stops the same conclusion about `public/jerseys/`.
+It costs nothing shipped: Rollup tree-shakes an unimported module out of the bundle entirely.
+
+**The plan is `docs/pvp-plan.md`** and it is the thing to read before touching this. Three
+rules in that module are load-bearing and each was mutation-tested:
+
+- **Nothing trusts the submitted player object.** A room is account-only and the client posts
+  an XI over the wire, so every player is resolved through `datasetPlayer` (added beside
+  `basePlayer` for this: it returns undefined for an unknown id, where `basePlayer`
+  deliberately falls back to the object it was handed). A submitted rating decides a price
+  and a submitted `positions` decides eligibility, and both arrive from a browser. Replacing
+  that one call with `basePlayer` turns the "invented player" check red.
+- **The budget auto-pick reserves a dollar per still-empty slot.** Without it, an XI that
+  cannot be finished is reachable: at a budget of $1 a slot, removing the reserve takes
+  1,000 auto-completed XIs from 1,000 legal to **0**.
+- **Chemistry is OFF in a room** (plan P25), and `pvpTeam` takes no chemistry argument at all
+  rather than defaulting one to zero, so it cannot be quietly reintroduced. Measured: the same
+  eleven players with the full bonus beat themselves without it **73.2%** of the time, because
+  it is added to attack and defence alike and those are the two numbers the sim reads.
+
+Also settled by wave 0, because the plan had it wrong: **`resolveKoTie` was already exported
+and shared**, so there was nothing to lift out of `domain/run.ts`. What was actually missing
+is a two-sided match side - `userGroupTeam` hard-codes `id: USER_ID`, `name: 'Your XI'`,
+`code: 'YOU'` and `isUser: true`, so it can describe the one side a single-player match has
+and cannot describe two opponents in one tie. That is `pvpTeam`.
 
 ## Deliberately unreferenced assets under `public/`
 

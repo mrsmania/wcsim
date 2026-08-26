@@ -750,7 +750,7 @@
     <span class="title">Player versus player, for signed-in accounts
       <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
-      REVIEWED and revised: 42 decisions, nothing open, a vertical-slice build order.</span>
+      REVIEWED and revised: 42 decisions, nothing open. <b>WAVE 0 SHIPPED 2026-08-26.</b></span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -819,9 +819,19 @@
     a host could start on somebody who had chosen nothing and the plan never said what they got.
     Ready is a signal rather than a lock - the host may start a full room regardless, and anyone
     not ready gets a default - so nobody can hold a room by wandering off.</p>
-    <p class="next"><strong>Next step:</strong> wave 0 - the rules as pure checked functions (is
-    this XI legal, what did it cost, was it dealt, the auto-pick) plus a two-sided team builder.
-    Offline work needing no server.</p>
+    <p><strong>Wave 0 shipped 2026-08-26:</strong> <code>src/domain/pvp.ts</code>, the rules a
+    room is judged by as pure functions, with <b>23 checks</b> in
+    <code>scripts/checks/pvp.ts</code> (the suite is 202, from 179). Is this XI legal, what did
+    it cost, was he dealt, what the clock does when it expires, and a two-sided match side.
+    <b>Every check was mutation-tested</b>, and two of the six mutations are worth recording:
+    dropping the budget auto-pick&#8217;s per-slot reserve takes 1,000 auto-completed XIs from
+    1,000 legal to <b>0</b>, and resolving a submitted player through <code>basePlayer</code>
+    instead of the new <code>datasetPlayer</code> lets an invented player through at whatever
+    rating the client claims. <b>Nothing imports it yet</b> - the screens and the server are
+    waves 4 to 8 - so CLAUDE.md carries a note stopping a dead-code pass from deleting it.</p>
+    <p class="next"><strong>Next step:</strong> wave 1, the referee offline: the service
+    bundling that domain code, running a whole draft against simulated players with deadlines
+    as stored data plus a sweeper. Still no server needed.</p>
     <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
