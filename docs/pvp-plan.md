@@ -6,7 +6,9 @@ draft clock; the clock length becoming the host's; hiding the ratings narrowed t
 fairness, server architecture, product and mobile), whose findings were verified by hand
 against the code and by measurement. That review changed real things: chemistry is off in a
 room, the room gets its own build state, the referee holds no timers, and the build order is
-now a vertical slice. **Status: settled, nothing built.**
+now a vertical slice. **Revised once more the same day**: a room of more than two waits for
+every draft and then draws the bracket at random (P47), and a player readies up in the lobby
+(P48). **Status: settled, nothing built.**
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -68,6 +70,7 @@ in rather than a missing feature.
 | P15 | You draft once per room | **Your XI plays the whole tournament.** Confirmed against a between-rounds swap window and a full redraft; both add a phase and make somebody wait |
 | P18 | Public and private rooms | **Both.** Public is listed; private is code-only. Both have a code |
 | P19 | Formation and style | **Chosen in the lobby, before the clock starts** |
+| P48 | Readying up | **You pick your formation and style, then press Ready**, and the lobby shows who has. The plan previously had no gate at all between choosing a shape and the host pressing Start, so a host could start on a player who had chosen nothing and the plan never said what that player got. **Ready is a signal, not a lock**: once the room is full the host may start whenever they like, and anyone not ready is given a default formation and style. Nobody can hold a room hostage by wandering off, and it needs no second clock. A player who readies may still change their shape until the start |
 | P25 | Chemistry | **OFF inside a room** (2026-08-26). Measured: the same eleven players with the full bonus beat themselves without it **73.2%** of the time, because `userGroupTeam` adds it to attack AND defence, both of which the sim reads. In the single-player game that is a nudge helping a patchwork XI close on an intact national side, which is what it exists for. In a room both sides are patchwork, so it stops being a nudge and becomes the game, and it is a pure knowledge check: eleven men from one squad reach the cap, while **400 naively auto-filled XIs never reached it once** (0 to 5, most often 1). A versus match is the two numbers the sim reads and nothing else |
 | P26 | The defence-stacking meta | **Accepted as skill, not designed against** (2026-08-26). See section 11 for the measurement and for exactly what is being accepted. No minimum spend per line, no formation restriction |
 | P27 | Can two players pick the same man? | **Yes. The room pool is shared, not exclusive.** It is the only version compatible with eleven independent clocks (P12): under exclusivity two players claim the same man in overlapping windows and somebody has to be told no, which makes a fast connection an advantage. Named here as a decision rather than left as an assumption, because exclusivity is the largest single lever available if the mode ever plays flat |
@@ -92,7 +95,8 @@ in rather than a missing feature.
 | P11 | Who decides the score | **The server.** Every XI validated and every match simulated server-side |
 | P16 | Leaving after you have drafted | **Your team plays on without you** |
 | P24 | What a knocked-out player sees | **They stay and watch the rest live**, then the final bracket, with a Leave that does not disturb the room |
-| P30 | What advances a round | **A server-stamped reveal window, not the clients.** A tie is simulated **as soon as both its players have eleven legal picks** rather than at a whole-phase barrier, and each result carries a "revealing from T, for D" stamp. Two things forced this. Playback is per-client and **not deterministic**: speed is a personal setting spanning 5x (`STEP_MS` 90/45/18 ms a minute) and `stoppage()` is rolled locally, so two people watching the same stored match see different added time and different lengths. And waiting for every client to report done means one closed laptop freezes the room forever, which is the stall P12 exists to prevent, reappearing in a phase nobody had checked. **The stoppage minutes come from the server with the result**, and the speed control is fixed inside a room, so section 1's "everyone watches the same match" is true rather than aspirational |
+| P30 | What advances a round | **A server-stamped reveal window, not the clients.** Each result carries a "revealing from T, for D" stamp and the round moves on when that window closes, whoever is watching. *Amended 2026-08-26 by P47: the earlier "simulate a tie the moment both its players are done" applies to a two-player room only, where it is the same thing.* Two things forced the server-stamped window. Playback is per-client and **not deterministic**: speed is a personal setting spanning 5x (`STEP_MS` 90/45/18 ms a minute) and `stoppage()` is rolled locally, so two people watching the same stored match see different added time and different lengths. And waiting for every client to report done means one closed laptop freezes the room forever, which is the stall P12 exists to prevent, reappearing in a phase nobody had checked. **The stoppage minutes come from the server with the result**, and the speed control is fixed inside a room, so section 1's "everyone watches the same match" is true rather than aspirational |
+| P47 | When the draw happens, in a room of more than two | **Every draft finishes first, then the whole bracket is drawn at random in one go** (2026-08-26). Two things come free and both are worth having: **nobody knows who they are facing while they draft**, so no one can build to counter a particular opponent and the draft is the same problem for everyone; and **the draw cannot be arranged**, where pairing by seat would let two people who share a private code agree who joins first and so place themselves on opposite sides of the tree. One draw sets the whole tree, so the semi-final and final paths are visible from the first whistle, which is what the bracket screen is for. **The accepted cost is a wait**: a decisive player in an eight-player room can finish in half the time of the slowest and then has nothing to do until the last pick lands, up to about four minutes on the fast clock and five and a half on the slow one. That wait is now the natural place to show the draw being made, rather than a progress strip |
 | P44 | Home and away | **Randomised per tie, and it is cosmetic.** Measured over 200,000 shootouts at three squad strengths: the home side wins **50.1%**. Home takes about a third of a kick more on average (it kicks first and the early-clinch test runs after its kick) and converts none of it. Recorded so that nobody later assumes there is an advantage to allocate |
 
 ### The server
@@ -165,14 +169,18 @@ three re-roll kinds is dead. Say so in the lobby rather than shipping a button t
 ## 4. The five phases of a room
 
 1. **Lobby.** The host creates the room and gets a six-character code. A public room appears in
-   the lobby list; a private one is joined only by code. Everyone picks formation and style
-   here. The host may reduce the size (P7) and starts when the room is full. The listing shows
-   liveness ("5 of 8, two joined in the last five minutes") so waiting is an informed choice,
-   and a waiting player may keep browsing the app with a room strip pinned in the chrome.
+   the lobby list; a private one is joined only by code. Each player picks their formation and
+   style and then presses **Ready** (P48); the lobby shows who has, and a shape can still be
+   changed until the start. The host may reduce the size (P7) and starts when the room is full,
+   ready or not. The listing shows liveness ("5 of 8, two joined in the last five minutes") so
+   waiting is an informed choice, and a waiting player may keep browsing the app with a room
+   strip pinned in the chrome.
 2. **The draft.** Each player gets the room's clock per pick, on their own clock, restarting
-   when their previous pick lands. A pick that does not arrive is made for them. The phase does
-   not end in a barrier: **a tie is simulated as soon as both its players have eleven legal
-   picks** (P30), so a decisive player is not left watching a progress strip for four minutes.
+   when their previous pick lands. A pick that does not arrive is made for them. **In a room of
+   more than two, the phase ends when the LAST player's eleventh pick lands, and the bracket is
+   then drawn at random** (P47). You can see how far along everyone else is, and the draw itself
+   is what the room watches when the waiting ends. A two-player room has one possible pairing,
+   so it simply plays as soon as both are done.
 3. **Round.** Each tie is validated, simulated and published with a reveal stamp. Everyone
    watches, with the same live clock, goal feed and match card the single-player game uses.
    Level ties go to extra time and then penalties. At the whistle, both XIs are shown side by
@@ -257,8 +265,10 @@ Memory and operational fragility are.
 
 - **`pvp_rooms`** - code, visibility, host, size, draft method, budget source and amount, cup
   pool, ratings switch, re-rolls, pick clock, status, current round, timestamps.
-- **`pvp_members`** - who, display name, seat, **snapshotted budget** (P2), `last_seen` (P31),
-  and the round they went out in. **Formation and style are NOT plainly readable here**: they
+- **`pvp_members`** - who, display name, seat, **ready** (P48), **snapshotted budget** (P2),
+  `last_seen` (P31), and the round they went out in. A seat is join order and a label, and
+  **decides nothing**: the bracket is drawn at random after the draft (P47), which is what stops
+  two people who share a code from arranging the tree between them. **Formation and style are NOT plainly readable here**: they
   are in the room before it starts, and P19 puts them there precisely because they shape all
   eleven picks, so a member row readable by a whole public lobby would let the last chooser
   counter everyone. Row-level security cannot hide two columns of a row you may read, so this
@@ -342,7 +352,7 @@ after most of the client work was done.
 | 4 | **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Entering a room leaves a Cup Run and a half-built solo XI untouched, and no per-tap server write happens inside a room |
 | 5 | **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Two people with a code play a whole game end to end |
 | 6 | **Roll rooms**, and the ratings switch inside them | The check proves the room's own screens hide every rating; the switch is not offered when the room buys |
-| 7 | **Four and eight player rooms**, the bracket, watching after elimination | A room of 8 plays to a winner and the first player out sees every remaining match |
+| 7 | **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination | A room of 8 plays to a winner; the draw differs across repeated rooms with the same seats; and the first player out sees every remaining match |
 | 8 | **Public visibility**: the lobby list, liveness, size reduction, records, reporting, the signed-out entry | A public room is found and joined by someone never sent a code |
 | 9 | **Checks and documentation.** CLAUDE.md gains its section; the roadmap item closes | `npm run checks` and `npm run build` clean |
 
@@ -420,6 +430,11 @@ fix if this is ever worth closing.
 - **How often does anybody time out, and does it decide matches?** (P12, P20, P21.) Frequent
   timeouts on the twenty-second clock would mean twenty is too fast, not that players are
   careless.
+- **Does the wait after drafting bite in an eight-player room?** (P47.) Finishing early and
+  then waiting several minutes for the slowest drafter is the accepted cost of a blind draft and
+  an unriggable draw. If it is worse than it reads on paper, the draw ceremony is the thing to
+  make more of, not the barrier to remove: removing it gives back the information advantage and
+  the arrangeable bracket that P47 exists to close.
 - **Does the public lobby fill?** (P18, P23, P28.) It is the half of the feature that depends on
   other people. Note the self-fulfilling risk: joining an eight-player room as the second person
   means waiting for six strangers with nothing to do, and the rational move is to leave, which
