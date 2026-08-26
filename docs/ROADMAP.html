@@ -696,15 +696,17 @@
     <span class="num">18</span>
     <span class="title">Player versus player, for signed-in accounts
       <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a
-      team against a per-pick clock and playing a live knockout. SHAPE SETTLED 2026-08-25,
-      the draft clock and room visibility added 2026-08-26. The plan is written.</span>
+      team against a per-pick clock and playing a live knockout. FULLY SETTLED 2026-08-26:
+      24 decisions, nothing open, and a ten-wave build order. Ready to start.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25 and
-    revised 2026-08-26</strong> by the owner, and written up as
+    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25,
+    revised and then closed out 2026-08-26</strong> by the owner - <b>all 24 decisions are
+    taken and section 11 of the plan is empty</b>, so a builder needs to ask nothing before
+    wave 0. Written up as
     <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener"><code>docs/pvp-plan.md</code></a>
     (requirements in the shape of <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a>,
     plus a ten-wave build order). <b>Read that before writing any code here</b>; what follows is
@@ -753,6 +755,18 @@
     for, narrowed by the cup and country facets and sorted by rating, so what is on screen is a
     short ranked list. Between them they shrink the ratings-hidden wave, which was the fiddliest
     part of the client work.</p>
+    <p><strong>The last five questions, answered 2026-08-26.</strong> A timed-out pick stays
+    <b>random</b> rather than best-affordable, because a good fallback would make running out
+    of time nearly free and in a budget room often the smarter play, which turns the clock into
+    a suggestion. Display names are <b>unique and reportable</b>, with no word filter: unique is
+    the part that cannot be retrofitted once duplicates exist, and a blocklist catches only the
+    lazy cases. An idler who joins and does nothing gets <b>no machinery at all</b> for now,
+    since the timeout means they cannot stall anybody. A knocked-out player <b>stays and watches
+    the rest live</b>, which costs nothing because they already receive everything the room
+    publishes. And you <b>draft once</b>, confirmed against both a between-rounds swap window
+    and a full redraft: an eight-player room only stays short because all eight draft at once,
+    exactly once. What replaces the open list is <b>three things to measure once it is
+    playable</b>, each naming the decision it would revisit.</p>
     <p class="next"><strong>Next step:</strong> wave 0 of the plan - lift <code>simulateKoTie</code>
     out of <code>domain/run.ts</code> into <code>domain/knockout.ts</code>, and add the four rules
     the referee needs (is this XI legal, what did it cost, was it dealt, and the auto-pick) to

@@ -3,7 +3,9 @@
 **Roadmap item 18.** Written 2026-08-25, **revised 2026-08-26** (room visibility; the draft
 clock, which changed shape entirely - see the note on P12; the length of that clock becoming
 the host's to set; and hiding the ratings being narrowed to roll rooms, which voided P14 and
-shrank two other things with it). **Status: shape settled, nothing built.**
+shrank two other things with it). **The last five open questions were answered the same day,
+so section 11 is empty and nothing here is waiting on a decision.**
+**Status: settled, nothing built.**
 
 Every decision below was taken by the owner in the sessions that wrote this document; the
 item had been left deliberately open since 2026-08-18 and its six questions are now
@@ -80,12 +82,16 @@ a guest sees an invitation to sign in rather than a missing feature.
 | P12 | The draft clock | **A fixed number of seconds per pick, each player on their own clock.** When it expires the server places an eligible player at random into one of that player's empty slots and the next window begins. No forfeits, no waiting on anybody. *Revised 2026-08-26: this replaces a single shared build-phase countdown with an auto-complete at the end, which asked far less of the player and made a room's length unpredictable* |
 | P13 | Roll rooms | **Each player rolls their own squads**, as in the single-player game. The deals come from the server so they can be checked (see section 5) |
 | P14 | The price/rating leak | **VOID, 2026-08-26.** It was an accepted hole: a budget room with ratings hidden still showed a price calculated from the rating. P5 now refuses to offer the switch there at all, so the two can never co-occur and there is nothing left to leak. Kept as a numbered row because the reasoning is worth finding, and because voiding a decision is not the same as never having taken one |
-| P15 | You draft once per room | **Your XI plays the whole tournament.** No redrafting between rounds. It is how a tournament works, and it saves a great deal of waiting in an eight-player room. Reversible later if it plays badly |
+| P15 | You draft once per room | **Your XI plays the whole tournament.** No redrafting between rounds. It is how a tournament works, and it saves a great deal of waiting in an eight-player room. *Confirmed 2026-08-26 against both alternatives, a few swaps between rounds and a full redraft each round. Both add a phase to the room and make somebody wait; an eight-player room only stays short because all eight draft at once, exactly once. It is still the cheapest thing here to change later if it plays thin, because it is a change to the room's phases and nothing else* |
 | P16 | Leaving after you have drafted | **Your team plays on without you.** The server has everything it needs, so a dropped connection cannot stall a room or rob your opponent of a match. Rejoining rejoins the room in progress |
 | P17 | Guests | **Account-only, and visibly so.** Permitted by NFR-1's "may gate genuinely online extras". The entry point shows a sign-in invitation when signed out; it never disappears and never blocks anything else |
 | P18 | Public and private rooms | **Both.** A **public** room is listed in a lobby any signed-in player can browse and join. A **private** room is reachable only by its code, which the host shares outside the game. Both have a code; only one is advertised |
 | P19 | Formation and style | **Chosen in the lobby, before the clock ever starts.** They shape all eleven picks, so rushing them would be the wrong decision to rush, and it keeps the pick clock meaning one thing only: pick a player |
 | P20 | How long a pick gets | **The host chooses twenty or thirty seconds**, and nothing else. Two values, not a slider: they are the difference between hurried and considered, and any third would only be somebody splitting hairs about a number nobody can feel. It is **independent of the draft method** (P1), so a roll room may be the slow one and a budget room the fast one if that is what the host wants |
+| P21 | Is the timeout pick random or good? | **Random, confirmed 2026-08-26.** A "best affordable" fallback was considered and refused for one reason: it would make timing out nearly free, and in a budget room it would often be the SMARTER play, which turns the clock from a rule into a suggestion. Random cannot be gamed, because nobody lets it run on purpose |
+| P22 | Display names | **Unique across accounts, and reportable.** Unique so a person is the same person from room to room, which a ladder will need and which cannot be retrofitted onto a namespace that has allowed duplicates. A report button on a name, landing in a table the owner reads and acts on by hand. **No word filter**: a blocklist catches the lazy cases, misses the creative ones, and costs a list to maintain forever |
+| P23 | Somebody who joins and then idles | **No machinery, for now.** The timeout picks their whole XI and the room plays on, so an idler cannot stall anybody; they are a worse game for their opponent, which is not a fault worth building counters and temporary bans against before it has happened once. Revisit with evidence, not in advance |
+| P24 | What a knocked-out player sees | **They stay and watch the rest live**, then the final bracket, with a Leave that does not disturb the room. It costs nothing to build, because they are already subscribed to everything the room publishes, and it is the reason to care who wins the thing you were in |
 
 ---
 
@@ -147,8 +153,9 @@ because it is a property of the XI you drafted and not of your career.
    publishes the results. Everyone watches, with the same live clock, goal feed and match
    card the single-player game uses. A tie that is level goes to extra time and then
    penalties, exactly as a Cup Run knockout does.
-4. **Next round, or the end.** Winners go through and their same XI plays again. Losers stay
-   in the room and watch. Repeat until one player is left.
+4. **Next round, or the end.** Winners go through and their same XI plays again. **Losers
+   stay in the room and watch the rest live** (P24), with a Leave that takes them out
+   without disturbing anybody. Repeat until one player is left.
 5. **Result.** The room shows its bracket and its winner, every player's record is updated,
    and the room is closed. There is no rematch button in the first version; make a new room.
 
@@ -242,9 +249,11 @@ changing behaviour. `npm run checks` covers it already through the Cup Run.
 - **The referee**, a small container that bundles `src/domain` and `src/data` with the
   esbuild already in the repo, verifies the caller's Supabase session, holds a privileged
   database connection, and runs the pick-clock tick loop.
-- **A display name on `profiles`.** An account currently has an email and nothing else, and
-  a public lobby cannot show email addresses to strangers. A name is asked for once, the
-  first time you enter PvP, defaulting to the part before the @.
+- **A display name on `profiles`, unique** (P22). An account currently has an email and
+  nothing else, and a public lobby cannot show email addresses to strangers. A name is asked
+  for once, the first time you enter PvP, defaulting to the part before the @ with a numeric
+  suffix if that is taken. Uniqueness is a database constraint from day one: it is the thing
+  that cannot be retrofitted once duplicates exist, and a ladder will need it.
 
 Nothing else in the stack changes, and no part of the single-player game changes.
 
@@ -268,6 +277,11 @@ New tables, all owned by the room and none of them touching career, album or run
   the shootout if there was one, the winner.
 - **`pvp_records`** - lifetime played, won, lost and rooms won, per account. The ladder,
   when it comes, sits beside this rather than replacing it.
+- **`pvp_name_reports`** - who reported whom, from which room, and when (P22). Write-only
+  from the client's point of view: a player may insert their own report and read nothing.
+  There is no moderation screen and no automatic action; the owner reads the table and
+  renames or removes an account by hand, which is the right amount of machinery for a game
+  this size.
 
 **Row-level security:**
 
@@ -331,12 +345,12 @@ riskiest and least visible parts are proved before any screen is built on top of
 | 0 | **Lift `simulateKoTie`** into `domain/knockout.ts` unchanged, and add as pure functions the rules the referee needs: is this XI legal, what did it cost, was it dealt, and **the auto-pick** (a random eligible player into a random empty slot, with the budget reserve) | `npm run checks` covers all of them, including that an illegal XI is refused for each reason and that a thousand auto-picks from a $1-per-slot corner never produce an unfillable XI |
 | 1 | **The referee, offline.** The service, bundling the domain code, with no server and no database: it runs a whole draft against simulated players, holds the per-pick deadlines at the room's own length, auto-picks on expiry, and returns a result | Runs from the command line; checks assert an over-budget XI, a duplicated person, an out-of-pool player, an undealt player and a **late pick** are each refused, at both clock lengths, and that a player who does nothing at all still ends with a legal XI |
 | 2 | **The schema migration**, written, parse-checked with `pglast`, dry-run, rollback block in its header, and a roadmap item opened for the apply | The migration file exists and `npm run push:sql -- --dry-run` is clean |
-| 3 | **Realtime and the referee, deployed.** Compose changes, reverse proxy, display names on `profiles`, and **deadline recovery across a referee restart** | Two browsers see each other join a room, and killing the referee mid-draft does not lose anybody's clock |
+| 3 | **Realtime and the referee, deployed.** Compose changes, reverse proxy, **unique** display names on `profiles`, and **deadline recovery across a referee restart** | Two browsers see each other join a room, a second account cannot take a name already in use, and killing the referee mid-draft does not lose anybody's clock |
 | 4 | **The lobby.** Create public or private, the pick-clock choice, the browsable list of open public rooms, join by code, live membership, formation and style, host start, leave | A public room can be found and joined by someone who was never sent a code, and its listing says which clock it runs |
 | 5 | **The draft.** The build page under room rules: room budget, room cup pool, no sticker discount, the room's pick clock, the progress strip, auto-pick on expiry, rejoining mid-draft | Two players draft a full XI, and one who does nothing at all still ends with eleven legal players |
 | 6 | **Hidden ratings**, in the roll draft only | The check greps every rating-rendering component reachable from a roll room and fails on one that is not wired to the switch, and asserts the switch is not even offered when the room buys |
-| 7 | **The round.** Pairing, simulation, the shared live reveal, extra time and penalties, advancing, crowning a winner | A room of 8 plays through to a winner |
-| 8 | **Records**, the Versus home screen, the signed-out state, and the entry point | A win appears on both players' records |
+| 7 | **The round.** Pairing, simulation, the shared live reveal, extra time and penalties, advancing, crowning a winner, and **a knocked-out player watching the rest** with a Leave that does not disturb the room | A room of 8 plays through to a winner, and the first player out sees every remaining match |
+| 8 | **Records**, the Versus home screen, the signed-out state, the entry point, and the **report-a-name** action | A win appears on both players' records, and a report lands in the table |
 | 9 | **Checks and documentation.** CLAUDE.md gets its section, the roadmap item is closed into the shipped history | `npm run checks` and `npm run build` clean |
 
 **Rough size.** Waves 0 to 2 are a day of careful work each, and wave 1 is now the heaviest
@@ -357,19 +371,28 @@ later would be worthless.
 
 ---
 
-## 11. Questions left open, none of them blocking
+## 11. Nothing is open
 
-- **Whether the auto-pick should be random or good.** Random is the rule as decided, and it
-  is the right default because it punishes running out of time. A "best affordable" fallback
-  would be kinder and would make timing out much less costly, which is exactly the argument
-  against it.
-- **Display names.** Whether they must be unique, and what happens about offensive ones. A
-  public lobby makes this land sooner than a private-only feature would.
-- **Rate limits** on room creation and joining, and whether a public room needs any guard
-  against being joined by somebody who then sits out the draft. The auto-pick means they
-  cannot stall it, so this is about quality of game rather than safety.
-- **What the loser sees while the rest of the room plays on.** Watching is the obvious
-  answer, and a "leave" that does not disturb the room is the safety valve.
-- **Whether P15 survives contact.** Drafting once and playing three rounds may feel thin in
-  an eight-player room. The alternative (a short redraft between rounds) is a change to the
-  room's phase machine and nothing else, which is why it is safe to defer.
+**Every question this document raised has been answered** (2026-08-26). There is nothing to
+settle before wave 0 and nothing a builder has to come back and ask about. What that leaves
+is not open questions but **three things to measure once it is playable**, each with the
+decision it would revisit named, so that a change is made against evidence rather than a
+first impression:
+
+- **Does drafting once feel thin over three rounds?** (P15.) Watch an eight-player room. If
+  it does, the fix is a short swap window between rounds, which is a change to the room's
+  phase machine and nothing else. Do not add it pre-emptively; the room only stays short
+  because all eight draft at once, exactly once.
+- **How often does anybody actually time out, and does it decide matches?** (P12, P20, P21.)
+  If timeouts are common on the twenty-second clock, the honest reading is that twenty is too
+  fast rather than that players are careless. If a timed-out pick regularly decides a tie,
+  P21's randomness is doing more work than intended.
+- **Does the public lobby fill?** (P18, P23.) It is the half of this feature that depends on
+  there being other people. If it stays empty, the private code is what the feature actually
+  is, and the lobby list, the name uniqueness and the report path are all sized for something
+  that never arrived. That is worth knowing before building a ladder on top of it.
+
+**One thing is deliberately deferred rather than decided:** rate limits on room creation and
+joining. The account layer already specifies abuse controls (cloud-sync D7), and PvP should
+reuse whatever exists there rather than invent a second set. If nothing exists when this is
+built, it is a wave-8 item and not a design question.
