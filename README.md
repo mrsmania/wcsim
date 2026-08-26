@@ -1,4 +1,4 @@
-# Mundialito
+# Mondialino
 
 A single-page game: draft a team of 11 World Cup players from roughly the last
 three decades (position by position, each from a randomly rolled national team),

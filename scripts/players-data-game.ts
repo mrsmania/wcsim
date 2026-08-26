@@ -20,7 +20,7 @@ const TIER_INDEX = new Map(TIERS.map((t, i) => [t, i + 1] as const));
 
 const page: PageConfig = {
   tab: 'WCS',
-  docTitle: 'Player index - Mundialito',
+  docTitle: 'Player index - Mondialino',
   tag: 'Player index',
   eyebrow: 'WCS ratings',
   title: 'Every player',
