@@ -254,21 +254,35 @@ stage_verify() {
   local got; got=$(curl -s --ssl-no-revoke --max-time 15 "$host/referee/version" || true)
   printf '   served:    %s\n' "${got:-<no answer>}"
   printf '   this repo: %s\n' "${want:-<could not compute>}"
-  if [ -n "$want" ] && [ -n "$got" ]; then
-    # By field, not by string: key order and spacing in the answer are not this script's
-    # business, the two hashes are.
-    local h_want h_got
-    h_want=$(printf '%s' "$want" | sed -n 's/.*"dataset":"\([^"]*\)".*/\1/p')
-    h_got=$(printf  '%s' "$got"  | sed -n 's/.*"dataset":"\([^"]*\)".*/\1/p')
-    if [ -n "$h_got" ] && [ "$h_want" = "$h_got" ]; then
-      ok "dataset $h_got matches - the image carries the same squads as the client"
-    else
-      warn "DATASET MISMATCH (repo $h_want vs served ${h_got:-none}).
-   The image was built from a different commit. Re-run --build, or every player gets
-   'Versus is updating' instead of a room. Note the dataset changed on 2026-08-26 when
-   the 2026 World Cup was added, so an image built before that WILL be wrong."
-    fi
-  fi
+  # Distinguish "the referee answered with the wrong hash" from "nothing answered at all".
+  # The first version of this reported DATASET MISMATCH for both, which sent the first real
+  # deploy off to rebuild a perfectly good image twice while the actual fault was routing.
+  local h_want h_got
+  h_want=$(printf '%s' "$want" | sed -n 's/.*"dataset":"\([^"]*\)".*/\1/p')
+  h_got=$(printf  '%s' "$got"  | sed -n 's/.*"dataset":"\([^"]*\)".*/\1/p')
+  case "$got" in
+    *'"dataset"'*)
+      if [ "$h_want" = "$h_got" ]; then
+        ok "dataset $h_got matches - the image carries the same squads as the client"
+      else
+        warn "DATASET MISMATCH (repo $h_want vs served $h_got). The image was built from a
+   different commit: re-run --build, or every player gets 'Versus is updating' instead of a
+   room. The hash moved on 2026-08-26 when the 2026 World Cup was added."
+      fi ;;
+    *'RBAC: access denied'*)
+      warn "THE GATEWAY REFUSED IT, the referee never saw it. Its RBAC filter is
+   ALLOW-with-policies, so a path matching no policy is denied. The referee route needs its
+   own RBACPerRoute allow_all - see the route in lds.template.yaml." ;;
+    *'upstream connect'*|*'no healthy upstream'*)
+      warn "THE GATEWAY COULD NOT REACH THE REFEREE. Nothing here says the image is wrong.
+   Check, in this order: (1) the docker bridge firewall rules - re-run the Task Scheduler
+   job, because CONTAINER OPERATIONS wipe them and the symptom is every service behind the
+   gateway answering 503, the live accounts stack included; (2) the container is healthy
+   ('docker compose ps'); (3) the cluster health check path is one the referee answers
+   WITHOUT a session, which means /referee/v1/health and not /version." ;;
+    '') warn "no answer at all from $host/referee/version" ;;
+    *)  warn "unexpected answer, neither a version nor a known gateway error" ;;
+  esac
 
   say "2. no token at all - must be 401"
   curl -s -o /dev/null -w '   HTTP %{http_code}\n' --ssl-no-revoke --max-time 15 \

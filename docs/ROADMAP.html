@@ -627,11 +627,11 @@
   <summary>
     <span class="num">41</span>
     <span class="title">Deploy the referee, and apply migration 0017
-      <span class="sub"><b>Migration 0017 is APPLIED and verified</b> (2026-08-26), and the
-      envoy and compose edits are staged in <code>dkr/</code>. What is LEFT needs a shell on
-      the box: the <code>pvp_referee</code> password, the Realtime tenant and the DSM
-      WebSocket header, the container build, and the repository variable.
-      <b>Nothing a player can see changes until that last step.</b></span>
+      <span class="sub"><b>DEPLOYED 2026-08-26.</b> Migration applied, referee built and
+      running on the NAS, Realtime back in the stack, and all three verification curls pass
+      including the one that matters. <b>Two steps left, both GUI-only: the DSM WebSocket
+      header and the <code>VITE_REFEREE_URL</code> repository variable.</b> Nothing a player
+      can see changes until that second one.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -672,6 +672,33 @@
       edits are purely additive. They have <b>never been parsed by a YAML reader or seen by
       envoy</b>, so they are a draft to read rather than a tested artifact.</li>
     </ul>
+
+    <p><strong>THE DEPLOY ITSELF, 2026-08-26.</strong> Done over ssh with
+    <code>scripts/deploy-referee.sh</code>: image built on the NAS from a streamed snapshot
+    of HEAD (no checkout there, no Docker on the laptop), role password generated and set
+    ON the box so it never left it, Realtime restored, gateway reloaded. The referee answers
+    <code>{"protocol":1,"dataset":"89ed74de"}</code>, matching what the client computes, and
+    refuses the anon key with <code>not-authenticated</code>.</p>
+
+    <p><strong>Three things bit that the runbook did not predict, and all three looked like
+    the referee being broken.</strong> They are written up in
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>:
+    the gateway's RBAC filter is a SECOND gate and it is default-deny, so the route needed
+    an explicit allow (<code>RBAC: access denied</code>); the <code>/referee/</code> prefix
+    must NOT be rewritten, because the referee matches full paths, and stripping it 401s
+    everything including the health check, which then makes envoy drop the endpoint; and
+    <b>the docker bridge firewall rules are wiped by container operations</b>, not just by
+    boots and firewall edits.</p>
+
+    <p><strong>That third one took the live accounts stack down twice mid-deploy</strong>,
+    and it is the finding worth carrying: <code>/auth/v1/</code> and <code>/rest/v1/</code>
+    both 503, which is the blocking unreachable screen for every signed-in player of the
+    single-player game, caused by a versus deployment nobody was using yet. It is invisible
+    from the outside because envoy keeps serving on connections it already holds. Re-run the
+    Task Scheduler job after any container work, and prove it with a real upstream call -
+    <code>/auth/v1/settings</code> with the anon key, expecting 200. A bare
+    <code>/auth/v1/health</code> answers 401 from the gateway itself and proves nothing,
+    which is exactly how it was missed for twenty minutes.</p>
 
     <p><strong>What is left, all of it needing a shell or the DSM console:</strong> set the
     <code>pvp_referee</code> password and <code>PVP_REFEREE_PASSWORD</code> together; carry

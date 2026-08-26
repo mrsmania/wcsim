@@ -586,6 +586,41 @@ until the last one.
 > - **Steps 3, 5 and 6 are untouched**, and the DSM WebSocket header in step 2 is a GUI
 >   action nobody without the console can do.
 >
+> **DEPLOYED 2026-08-26, and three things bit that this runbook did not predict.** All
+> three presented as the referee being broken and none of them was. In the order they
+> appeared:
+>
+> 1. **The gateway's RBAC filter is DEFAULT DENY, and step 4 above does not mention it.**
+>    "no apikey filter" describes the Lua filter, which is opt-IN by route name via
+>    `PROTECTED_ROUTES`. There is a SECOND gate: the global
+>    `envoy.filters.http.rbac` is `action: ALLOW` with policies naming `/auth/v1/`,
+>    `/rest/v1/`, `/realtime/v1/` and `/graphql/v1`, so a path matching no policy is
+>    refused outright. `/referee/` matched none. Symptom: **`RBAC: access denied`**, with
+>    the referee never seeing the request. The fix is a per-route `RBACPerRoute` allow_all,
+>    exactly as `/auth/v1/verify` and the OAuth callback already carry.
+> 2. **Do NOT rewrite the `/referee/` prefix.** Every other route here sets
+>    `prefix_rewrite`, so it is the natural thing to copy, and it is wrong: the referee's
+>    own router matches the FULL path (`/referee/version`, `/referee/v1/rooms/...`).
+>    Stripping the prefix makes every request miss the two unauthenticated routes, fall
+>    through to the session check and return **401** - which reads as a credential problem.
+>    It also fails the container's health check, so the container goes **unhealthy**, envoy
+>    drops its only endpoint, and the route then answers 503. Both health checks must ask
+>    for **`/referee/v1/health`**, which is the one path that answers without a session.
+> 3. **The docker bridge firewall rules are wiped by CONTAINER OPERATIONS, not only by
+>    boots and firewall edits.** This is the one that matters beyond versus. Creating and
+>    removing containers during the deploy wiped them twice, and each time **the whole
+>    accounts stack went down**: `/auth/v1/settings` and `/rest/v1/` both 503, which is the
+>    blocking unreachable screen for every signed-in player of the SINGLE-PLAYER game. It
+>    is invisible from the gateway's side - envoy keeps serving on connections it already
+>    holds, so a casual check looks fine while new connections all fail.
+>    **Re-run the Task Scheduler job after any container work, and check a real upstream
+>    call afterwards.** Not `/auth/v1/health` without a key, which returns 401 from the
+>    gateway itself and proves nothing; use `/auth/v1/settings` with the anon key and
+>    require a 200.
+>
+> The script's `--verify` now names which of the three it is looking at rather than
+> blaming the image, which it did on the first run and which cost two pointless rebuilds.
+
 > **THERE IS A SCRIPT FOR THE MECHANICAL HALF: `scripts/deploy-referee.sh`.** Run it from
 > the repository root in Git Bash, on a machine that can reach the NAS, one stage at a
 > time - `--check` changes nothing anywhere, and prints what the rest would do:
