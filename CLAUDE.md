@@ -868,12 +868,18 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   the article with the other redirecting to it (Bezsonov, Mboma, Valery Karpin, Preki).
   **A fuller correct name is not a wrong one**; only 33 were errors, four of them a
   different human altogether.
-  **Three findings were left alone as squad MEMBERSHIP, not names, and are still open:**
-  Ivory Coast 2010 carries Bakari Kone and Abdoulaye Meite where the squad had Emmanuel
-  Kone and Kader Keita; Nigeria 1998 carries Ike Shorunmu for Willy Okpara; and South
-  Africa 1998 carries Andre Arendse, who withdrew injured before the tournament (his
-  replacement Paul Evans also withdrew, and Simon Gopane went). A fourth is a judgement
-  rather than an error: France 2022 has 25 men because Benzema withdrew before playing.
+  **The three squad MEMBERSHIP findings it turned up are now all corrected** (2026-08-26),
+  each confirmed by en and es wikipedia independently and each rated off the 7a0 figure
+  where that dataset carries the man: Ivory Coast 2010 had Bakari Kone and Abdoulaye Meite
+  where the squad played Emmanuel Kone and Abdul Kader Keita; Nigeria 1998 had Ike
+  Shorunmu, who belongs to the 2002 squad, for Willy Okpara; and South Africa 1998 had
+  **Andre Arendse, who never went** - he was injured before the tournament, his
+  replacement Paul Evans was injured on arrival, and Simon Gopane was called up and sat on
+  the bench, so Gopane is the man in the file. **Gopane wears 22 on purpose**: wikipedia
+  prints him at 23 because it lists all three keepers of that one slot, and a 1998 squad
+  had 22 shirts, the footnote itself calling Arendse "#22". Do not "correct" it back.
+  A fourth finding is a judgement rather than an error and is left as it is: France 2022
+  has 25 men because Benzema withdrew before playing.
   **Two squads look short against Wikipedia and are NOT wrong** - Argentina and England
   1990 both list a footnoted mid-tournament replacement as a 23rd row.
   One more to know: Saudi Arabia 2022's #26 is Riyadh Sharahili, a midfielder, but the

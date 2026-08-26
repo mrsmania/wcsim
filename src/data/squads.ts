@@ -3894,7 +3894,7 @@ export const SQUADS: readonly Squad[] = [
     ]),
     squad('NGA', 'Nigeria', 1998, [
         [1, 'Peter Rufai', ['GK'], 80],
-        [12, 'Ike Shorunmu', ['GK'], 71],
+        [12, 'Willy Okpara', ['GK'], 70],
         [22, 'Abiodun Baruwa', ['GK'], 68],
         [6, 'Taribo West', ['CB'], 83],
         [3, 'Celestine Babayaro', ['LB', 'LM'], 80],
@@ -4212,7 +4212,7 @@ export const SQUADS: readonly Squad[] = [
     ]),
     squad('RSA', 'South Africa', 1998, [
         [1, 'Hans Vonk', ['GK'], 75],
-        [22, 'Andre Arendse', ['GK'], 72],
+        [22, 'Simon Gopane', ['GK'], 63],
         [16, 'Brian Baloyi', ['GK'], 65],
         [5, 'Mark Fish', ['CB'], 79],
         [19, 'Lucas Radebe', ['CB', 'DM'], 82],
