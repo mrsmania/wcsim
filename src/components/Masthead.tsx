@@ -21,14 +21,17 @@ export default function Masthead({
         <header className="flex items-center gap-3 pb-3">
             <Link
                 to="/"
-                aria-label="World Cup Simulator - home"
+                aria-label="Mundialito - home"
                 className="flex items-center gap-3 transition hover:opacity-90"
             >
                 <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[6px] bg-pitch-dark">
                     <Trophy size={21} strokeWidth={2} className="text-amber" />
                 </span>
+                {/* One word, still two-tone: the green falls on the diminutive, which is
+                    what the name turns on ("mundial" is the World Cup, "-ito" makes it the
+                    little one). Keeps the wordmark's signature without a second word. */}
                 <h1 className="font-display text-[23px] font-black uppercase leading-none tracking-[-0.02em]">
-                    World Cup <span className="text-pitch">Simulator</span>
+                    Mundial<span className="text-pitch">ito</span>
                 </h1>
             </Link>
             <span className="border-l border-line pl-3.5 text-[12.5px] text-muted max-sm:hidden">

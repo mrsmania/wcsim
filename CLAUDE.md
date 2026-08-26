@@ -212,11 +212,21 @@ done and why. What that means for anyone working in this tree now:
 
 ## What this is
 
-**World Cup Simulator** - a single-page game. You draft an XI of real World Cup
+**Mundialito** - a single-page game. You draft an XI of real World Cup
 players (one position at a time, each drawn from a randomly rolled national-team
 squad), then play a simulated group stage and knockout run, trying to win the cup.
 Pure client-side: no backend, no database. All player data is hardcoded in
 `src/data/squads.ts`.
+
+**It was called World Cup Simulator until 2026-08-26.** The rename is user-facing ONLY -
+the page title, the boot cover, the masthead wordmark, the sign-in email and the player
+index. Everything named `wcsim` internally is deliberately untouched and should stay that
+way unless there is a reason beyond tidiness: the repository and the GitHub Pages base
+path (`/wcsim/`, and changing it means rebuilding every deployed asset URL, see
+"Hosting"), the npm package name, the Docker image, and above all the **localStorage keys**
+(`wcsim_album_v1` and its four siblings) - renaming those orphans every save on the
+machine that holds them, including the author's own. The wordmark is one word in two tones
+(`Mundial` + a green `ito`); the tagline is unchanged.
 
 ## Tech stack
 
@@ -283,7 +293,7 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
   ratings+chemistry+line-up) using the comps' breakpoints (1 col < 760px, 2 col
   760-1080, 3 col >= 1080). A masthead (gold-trophy logo, the amber `lucide` `Trophy` on
   a pitch-dark tile matching the champion node, doubling as the favicon in `index.html` +
-  WORLD CUP SIMULATOR wordmark + tagline
+  MUNDIALITO wordmark + tagline
   + phase status stamp) and a phase-aware section header sit above it.
 
 The comps (`home`, `selected-xi`, `tournament`, `index` launcher) carry a live
