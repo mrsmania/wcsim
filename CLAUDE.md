@@ -969,7 +969,9 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   there, picking Wales leaves 2022 alone, and every option carries its live count
   (Morocco 19, because that is the squad they brought). One pass over the dataset does
   it: a row records WHICH filters it fails as a bitmask, and counts towards a dropdown
-  when it fails at most that dropdown's own. **The search box and the rating range are
+  when it fails at most that dropdown's own. **The World Cup dropdown counts TEAMS**,
+  not players (1970 is 16), since a tournament's size is its field; the player figure is
+  in the option's hover text. **The search box and the rating range are
   deliberately left out** - what you type and where you drag a handle would otherwise
   reshuffle every list under your hand. An option is dropped when it would empty the
   table, **unless it is already ticked**, or a selection made before the query narrowed
