@@ -32,16 +32,21 @@ export const CONFEDERATION: Record<string, Confederation | undefined> = {
   HON: 'CONCACAF', PAN: 'CONCACAF', TRI: 'CONCACAF', JAM: 'CONCACAF',
   SLV: 'CONCACAF', // 1982
   HAI: 'CONCACAF', // 1974
+  CUW: 'CONCACAF', // 2026 (Curacao)
   // CAF
   SEN: 'CAF', CMR: 'CAF', MAR: 'CAF', TUN: 'CAF', GHA: 'CAF', NGA: 'CAF',
   CIV: 'CAF', EGY: 'CAF', ALG: 'CAF', RSA: 'CAF', ANG: 'CAF', TOG: 'CAF',
   ZAI: 'CAF', // 1974 (Zaire)
+  // 2026. DR Congo is its own code beside Zaire, which is the same country under its
+  // period name - the same treatment YUG, TCH and URS get.
+  COD: 'CAF', CPV: 'CAF',
   // AFC (Australia has competed in the AFC since 2006)
   KSA: 'AFC', IRN: 'AFC', JPN: 'AFC', KOR: 'AFC', QAT: 'AFC', AUS: 'AFC', PRK: 'AFC',
   CHN: 'AFC', // 2002
   UAE: 'AFC', // 1990
   IRQ: 'AFC', // 1986
   KUW: 'AFC', // 1982
+  JOR: 'AFC', UZB: 'AFC', // 2026
   // OFC
   NZL: 'OFC',
 };

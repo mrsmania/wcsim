@@ -717,17 +717,18 @@ cannot do, the paired-rater / reconciler structure, the per-half 81-84 band self
 stopped three drops running from coming in light, the finishing checklist, and why **2026 is
 a different problem** from every backward drop. It ends with a ready-to-use prompt.
 
-- Tournaments: **all fourteen (1970-2022)** are full researched datasets. 1970, 1974 and
-  1978 are 16-nation fields; 1982, 1986, 1990 and 1994 are 24 nations; 1998-2022 are 32.
-  Squad sizes: 22-man for 1970-1998, 23-man for 2002-2018, 26-man for 2022 (Iran 25).
-  **8,377 player rows** across 368 squads. Three squads are short and all three are real:
+- Tournaments: **all fifteen (1970-2026)** are full researched datasets. 1970, 1974 and
+  1978 are 16-nation fields; 1982, 1986, 1990 and 1994 are 24 nations; 1998-2022 are 32;
+  **2026 is the first 48-nation field**. Squad sizes: 22-man for 1970-1998, 23-man for
+  2002-2018, 26-man for 2022 (Iran 25) and 2026 (every one of the 48 a full 26).
+  **9,625 player rows** across 416 squads. Three squads are short and all three are real:
   **Morocco brought 19 men to 1970** and **El Salvador 20 to 1982**, neither filling the
-  roster, and Iran registered 25 in 2022. Two squads are short and both are real: **El Salvador brought
-  only 20 men to 1982** and never filled the roster, and Iran registered 25 in 2022.
+  roster, and Iran registered 25 in 2022.
   (1990/1994/1998/2002 were researched in 2026, replacing the earlier placeholders; 1986
   was added 2026-08-23 as the first step of roadmap item 03, and its positions and ratings
   were re-authored 2026-08-25 as roadmap item 33; **1982 was added 2026-08-25** by the same
-  route, which is now the documented method - see below.)
+  route, which is now the documented method - see below; **2026 was added 2026-08-26**, the
+  first drop made FORWARDS - see its own note below.)
 - **1986's sourcing is the template for 1982, and it changed on 2026-08-25.** The first
   drop took the rosters from **`openfootball/world-cup`** (`1986--mexico/squads.txt`, **CC0**)
   because the session that built it could not reach Wikipedia, and it inferred the twelve
@@ -855,6 +856,65 @@ a different problem** from every backward drop. It ends with a ready-to-use prom
   reached that independently. Sweden's Claes Cronqvist looked like the same problem and is
   not - one man, and the 1970 squad list's "DF" is the outlier against his own infobox and
   the line-up, which both have him as a striker.
+- **2026 was added 2026-08-26, and it is the first drop made FORWARDS.** Spain won it,
+  beating Argentina 1-0 after extra time in the final and conceding **one goal in eight
+  matches**. **1,248 rows across 48 nations**, every squad a full 26 and half again the
+  size of any previous drop. Five nations were new (**Curacao, Cape Verde, Jordan, DR Congo,
+  Uzbekistan**) and all five have a real flag in `country-flag-icons`, so none had to borrow
+  a successor's. DR Congo is `COD`, its own code beside 1974's `ZAI`, the same period
+  identity treatment `YUG` and `SCG` get. **Nothing in the app needed changing for a
+  48-team field**: the checks read `WORLD_CUP_YEARS.length` and the game draws its own group
+  of four and its own 16-team bracket from the pool, so "32 nations" was never assumed.
+  - **The sources are different and BETTER than the backward route, and `docs/adding-a-world-cup.md`
+    section 1d is the record.** RSSSF has no line-ups for modern tournaments (`22full.html`
+    and `2026full.html` both 404). Wikipedia's twelve per-group and four per-round articles
+    instead carry **FIFA's own tactical line-ups** for all 104 matches, which print each
+    starter's specific role in almost exactly this game's vocabulary, plus substitutions,
+    cards and the Man of the Match. So `positions[0]` is the role he actually filled, from
+    the primary source rather than from a reading of it.
+  - **Name matching is EXACT here**, because both the squad list and the line-ups are
+    Wikipedia links: 104 matches joined to 1,248 rows with five misses, all resolved inside
+    one squad. The whole class of fuzzy-matcher bugs that dominates the backward drops does
+    not arise.
+  - **What replaces it is LABEL DRIFT, and there were nine.** A man the dataset already
+    holds can be labelled differently by the new squad list, so the slug misses, he becomes
+    a new person with no anchor, and the album gains a duplicate card. Fixed by respelling
+    the 2026 row to the existing label, never by an override: `Trézéguet` = `Mahmoud
+    Trézéguet`, `Cammy Devlin` = `Cameron Devlin`, `Kanaanizadegan` = `Kanaani`, `Abdul
+    Fatawu` = `Abdul Fatawu Issahaku`, `Abdul Rahman Baba` = `Baba Rahman`, `Mahdi` =
+    `Mehdi Torabi`, and Brazil's source disambiguates three Edersons and two Danilos where
+    the dataset carries plain `Ederson` and `Danilo` (the other two of each really are
+    different, younger men). **An edit-distance scan finds none of these** - the two labels
+    are not near-misses. The scan that does is exact surname within one nation.
+  - **Four MORE were caught only by `validateSquads` after splicing**, which is why the doc
+    now says to splice a draft in before believing anything: Wikipedia's 2026 squads article
+    accents `Ricardo Rodriguez`, `Théo Hernandez`, `Lucas Hernandez` and `Julián Alvarez`
+    differently from the articles the existing rows came from. One personId with two display
+    names is a hard failure, and the dataset's own consistency wins over Wikipedia's.
+  - **Five genuine collisions needed a personId override**, all different men: Uruguay's
+    Emiliano Martinez (not Argentina's keeper), Colombia's Luis Suarez (not Uruguay's
+    striker), South Africa's Teboho Mokoena (a different man from the 2002 one, who was five
+    years old then), Qatar's Ahmed Fathy (not Egypt's), and Panama's Jose Luis Rodriguez,
+    which was a **double** trap - left alone his slug both merged him with Uruguay's man and
+    split him from his own 2018 row as `Jose Luis Rodriguez Puma`.
+  - **Where it landed:** mean 74.5, median 74, p90 82, floor 61, 81-84 band 11.9%, ten rows
+    at 90+, best XI from Qatar 67.9 to Spain 87.1. The mean is the second-lowest in the file
+    and the floor the lowest, both of which are right: a 48-team field reaches down to sides
+    no 32-team field ever contained. Strong half 78.2 mean / 20.7% band, weak half 70.8 /
+    3.0%, and **no player outside the strong half reaches 90**, as in every other tournament.
+  - **The per-half band targets do not transfer to a 48-team field and three reconcilers
+    said so independently.** The weak half of 48 is weaker than the weak half of 32, and a
+    rater group holding ranks 4, 9, 16 and 21 has no elite side to supply an 85+ row. They
+    refused to inflate and were right. **The check that does transfer is the best-XI mean.**
+    Also: the "16-22 distinct ratings per squad" figure handed to the raters was **wrong** -
+    the shipped dataset runs 5 to 17 with a median of 12, and three raters measured it and
+    told me so.
+  - **Two numbers were set by the integrator against a reconciler's call**, both cross-group
+    facts no rater could see. Haaland 95 to 94: all sixteen rows at 95+ in fifteen
+    tournaments belong to a player who reached the FINAL, and the stated case for 95 was
+    that he carried a bigger load, which is the reasoning the Pele 97 note rejects. Rodri 92
+    to 93: at 92 the Golden Ball winner sat level with a round-of-16 exit on the same +2
+    anchor movement.
 - **Six name collisions came in with 1986 and one was already shipped.** A `personId` is
   the name slug, so two different people sharing a display name silently merge into one
   drafted-once identity. 1986 brought six (Brazil's 1986 Oscar / Júnior / Júlio César are
@@ -1222,11 +1282,15 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 78 / 20 / 7 = **105** across the dataset; it was 53 before
+  **Monumental** 97-99 (currently 83 / 24 / 8 = **115** across the dataset; it was 53 before
   the 1990-2002 squads were researched, 81 before 1986, 84 before 1986's ratings were
   re-authored, 87 before 1982, 92 before 1982's hand-tuning put Platini over 90, 93 before
-  1978, 95 before 1974 and 100 before 1970, so re-derive a count rather than trusting one
-  written down here - this figure has been wrong eight times). Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  1978, 95 before 1974, 100 before 1970 and 105 before 2026, so re-derive a count rather
+  than trusting one written down here - this figure has been wrong nine times).
+  **2026 added ten**, the most of any single drop: Mbappe 97 (the eighth Monumental, and
+  his second card at that rating), Haaland 94 and Messi 94, Lamine Yamal 93, Rodri 93,
+  Bellingham 92, Vinicius Junior 92, Hakimi 90, Dembele 90 and Courtois 90. Norway had
+  never produced a collectible before. Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
   adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),

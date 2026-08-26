@@ -17,6 +17,8 @@ import CM from 'country-flag-icons/react/3x2/CM';
 import CN from 'country-flag-icons/react/3x2/CN';
 import CO from 'country-flag-icons/react/3x2/CO';
 import CR from 'country-flag-icons/react/3x2/CR';
+import CV from 'country-flag-icons/react/3x2/CV';
+import CW from 'country-flag-icons/react/3x2/CW';
 import CZ from 'country-flag-icons/react/3x2/CZ';
 import DE from 'country-flag-icons/react/3x2/DE';
 import DK from 'country-flag-icons/react/3x2/DK';
@@ -42,6 +44,7 @@ import IR from 'country-flag-icons/react/3x2/IR';
 import IS from 'country-flag-icons/react/3x2/IS';
 import IT from 'country-flag-icons/react/3x2/IT';
 import JM from 'country-flag-icons/react/3x2/JM';
+import JO from 'country-flag-icons/react/3x2/JO';
 import JP from 'country-flag-icons/react/3x2/JP';
 import KP from 'country-flag-icons/react/3x2/KP';
 import KR from 'country-flag-icons/react/3x2/KR';
@@ -74,6 +77,7 @@ import TT from 'country-flag-icons/react/3x2/TT';
 import UA from 'country-flag-icons/react/3x2/UA';
 import US from 'country-flag-icons/react/3x2/US';
 import UY from 'country-flag-icons/react/3x2/UY';
+import UZ from 'country-flag-icons/react/3x2/UZ';
 import ZA from 'country-flag-icons/react/3x2/ZA';
 
 /** FIFA 3-letter code -> SVG flag component (country-flag-icons' own type). */
@@ -109,6 +113,11 @@ const BY_FIFA: Record<string, typeof BR> = {
   GDR: DE, ZAI: CD, HAI: HT,
   // 1970's one new nation.
   ISR: IL,
+  // 2026's five new nations - the first expanded, 48-team field. All five have a real
+  // flag in the package, so none of them has to borrow a successor's the way GDR, ZAI,
+  // YUG, TCH and URS do. DR Congo is its own code (COD) beside 1974's Zaire (ZAI),
+  // which already points at the same CD flag - a period identity, as YUG and SCG are.
+  CUW: CW, CPV: CV, JOR: JO, COD: CD, UZB: UZ,
 };
 
 interface Props {

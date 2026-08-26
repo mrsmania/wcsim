@@ -82,6 +82,19 @@ export function assetsChecks(): void {
     'bra-1970-7', // Jairzinho
     'ger-1970-4', // Beckenbauer
     'eng-1970-6', // Bobby Moore
+    // 2026, added with that tournament. Ten new cards, and the first MONUMENTAL since
+    // Pele: Mbappe's 97 matches his own 2022 row. Haaland is the first Norwegian
+    // collectible the dataset has ever had.
+    'fra-2026-10', // Mbappe (Monumental, 97 - Golden Boot)
+    'nor-2026-9', // Haaland (Iconic, 94)
+    'arg-2026-10', // Messi (Iconic, 94 - his fifth collectible card)
+    'esp-2026-19', // Lamine Yamal (Iconic, 93)
+    'esp-2026-16', // Rodri (Golden Ball)
+    'eng-2026-10', // Bellingham
+    'bra-2026-7', // Vinicius Junior
+    'mar-2026-2', // Hakimi
+    'fra-2026-7', // Dembele
+    'bel-2026-1', // Courtois
   ]);
   {
     const STICKER_DIR = 'public/stickers';

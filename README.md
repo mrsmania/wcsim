@@ -12,19 +12,23 @@ in-progress run follow you between devices (requirements in
 `docs/cloud-sync-requirements.md`, server setup in `docs/nas-setup.md`); with no server
 configured nothing account-related renders and the auth code is never loaded.
 
-> **All fourteen tournaments from 1970 to 2022 are researched full datasets** - 8,377
-> player rows. 1970 to 1978 are 16-nation fields, 1982 to 1994 are 24, 1998 onward are 32;
+> **All fifteen tournaments from 1970 to 2026 are researched full datasets** - 9,625
+> player rows across 416 squads. 1970 to 1978 are 16-nation fields, 1982 to 1994 are 24,
+> 1998 to 2022 are 32, and **2026 is the first 48-nation field**;
 > squad sizes are 22-man for 1970-1998, 23-man for 2002-2018 and
-> 26-man for 2022 (Iran registered 25; Morocco brought only 19 to 1970 and El Salvador 20
-> to 1982), with
+> 26-man for 2022 and 2026 (Iran registered 25 in 2022; Morocco brought only 19 to 1970 and
+> El Salvador 20 to 1982), with
 > shirt numbers and positions taken from the tournament squad lists. Ratings are a holistic judgement of each player's strength **at the time of
 > that tournament** on a 60-99 scale - not current ability, and not a FIFA-game
-> number. For 1970 to 1986 and for 1998 and 2002 the rating blends pre-tournament ability
-> with how the player actually performed there; for 1970 to 1986 the positions are
-> additionally the roles each man filled at that tournament, read off its match line-ups. Historical nations keep their period identity:
+> number. For 1970 to 1986 and for 1998, 2002 and 2026 the rating blends pre-tournament
+> ability with how the player actually performed there; for 1970 to 1986 and for 2026 the
+> positions are additionally the roles each man filled at that tournament, read off its
+> match line-ups - FIFA's own tactical line-ups in 2026's case, for all 104 games.
+> Historical nations keep their period identity:
 > West Germany is recorded as Germany on `GER`, while the Soviet Union, Czechoslovakia
 > and Yugoslavia have their own codes. A player appearing in several tournaments shares
-> one identity, so they can only be drafted once - Luka Modrić spans 2006-2022.
+> one identity, so they can only be drafted once - Messi, Cristiano Ronaldo and Guillermo
+> Ochoa each span six tournaments and twenty years, 2006 to 2026.
 > Edit `src/data/squads.ts` to refine any of it.
 
 ## Tech stack

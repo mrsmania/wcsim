@@ -352,14 +352,46 @@
   <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
-      <span class="sub">Extend the dataset backwards: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b>, <b>1974</b> and <b>1970</b> all shipped 2026-08-25. Fourteen tournaments, 8,377 rows, 368 squads. Next: 1966, then 1962 and earlier.</span>
+      <span class="sub">Extend the dataset: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b>, <b>1974</b> and <b>1970</b> all shipped 2026-08-25, and <b>2026</b> on 2026-08-26 as the first drop made forwards. Fifteen tournaments, 9,625 rows, 416 squads, 115 collectibles. Next: 1966, then 1962 and earlier.</span>
     </span>
     <span class="tag">Content</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>The dataset covers 1990 to 2022, all nine fully researched. Collectibles grow for
+    <p>The dataset covers 1970 to 2026, all fifteen fully researched. Collectibles grow for
     free, since collectibility is derived from rating via <code>STICKER_TIERS</code>.</p>
+
+    <p><strong>2026 shipped 2026-08-26 and it is the first drop made FORWARDS</strong>, which
+    changes the method more than any backward step did. Spain won the tournament, beating
+    Argentina 1-0 after extra time and conceding <b>one goal in eight matches</b>; Mbappe took
+    the Golden Boot, Rodri the Golden Ball, Unai Simon the Golden Glove. It is
+    <b>1,248 rows across 48 nations</b>, every squad a full 26 - half again the biggest
+    previous drop - and it brought five new nations, <b>Curacao, Cape Verde, Jordan, DR Congo
+    and Uzbekistan</b>, all five of which have a real flag so none had to borrow a successor's.
+    Nothing in the app needed changing for a 48-team field.
+    <br><b>The sources are better going forwards.</b> RSSSF has no line-ups for modern
+    tournaments, but Wikipedia's per-group and per-round articles carry <b>FIFA's own tactical
+    line-ups</b> for all 104 matches, so every position is the role the man actually filled,
+    taken from the primary source. Matching is exact rather than fuzzy, because both sources
+    are Wikipedia links.
+    <br><b>What replaces the matcher bugs is label drift, and there were nine</b> - a man the
+    dataset already holds, labelled differently by the new squad list, silently becoming a new
+    person with no anchor (Trezeguet, Cammy Devlin, Kanaanizadegan, two Ghanaians, Torabi, and
+    Brazil's three Edersons and two Danilos). An edit-distance scan finds none of them; an
+    exact-surname-within-one-nation scan finds them all. Four more were caught only by
+    <code>validateSquads</code> after splicing, where Wikipedia accents a name differently
+    from the article the existing row came from.
+    <br><b>Twelve raters over six groups of eight, plus six reconcilers</b>, and the
+    convergence was the tightest of any drop: mean gap 0.55 to 0.82 per group and
+    <b>not one player 5 or more apart</b> anywhere in 1,248 doubly-rated rows.
+    <br><b>Where it landed:</b> mean 74.5, median 74, floor 61, 81-84 band 11.9%, ten rows at
+    90+, best XI from Qatar 67.9 to Spain 87.1. The mean is the second-lowest in the file and
+    the floor the lowest, both correct for a field that reaches down further than 32 teams
+    ever did. <b>Ten new collectibles</b>, the most of any drop, taking the album from 105 to
+    <b>115</b>.
+    <br><b>The per-half band targets do not transfer to a 48-team field</b>, and three
+    reconcilers said so independently rather than inflating to hit them. The method doc now
+    says to hand raters the best-XI mean as the check that survives an eight-squad slice.</p>
     <ul>
       <li><b>The method is written down now: <code>docs/adding-a-world-cup.md</code></b>,
       which carries the three sources in order, the tooling traps that cost time on all five
