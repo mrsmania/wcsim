@@ -1,165 +1,140 @@
-# Finish the player names, and make both datasets agree
+# Aligning the player names across the two datasets
 
-**This file is a prompt.** Paste it whole into Claude Code on a machine where Wikipedia
-and RSSSF are reachable, or just say "read `docs/player-names-alignment.md` and do it".
-It was written from a cloud session on 2026-08-26 that could not reach any football
-source: this environment's egress proxy answers 403 for Wikipedia, RSSSF,
-worldfootball, planetworldcup and wikidata alike, so the work below is what is left
-after squeezing everything out of the two sources that ARE reachable from there (this
-repo's own `src/data/squads.ts`, and `openfootball/world-cup` through GitHub).
+**This job is DONE (2026-08-26).** The file was written as a prompt to be run on a machine
+that could reach Wikipedia and RSSSF, which the cloud session that wrote it could not; it is
+kept as the record of what was done, what it cost, and what is still open. The reusable
+parts - which source decides a name, and how a rename can break an identity - are summarised
+in `CLAUDE.md` under "The second dataset, and the toggle". Do not run this file as a prompt
+again.
 
-Every number in this file is a measurement taken on 2026-08-26 against the tree at that
-date. Re-derive them before trusting them.
+Every figure below was measured on 2026-08-26. Re-derive rather than trusting them.
 
 ---
 
-## What you are working on
+## What moved
 
-Two datasets, and one page that reads both:
-
-- **WCS** - `src/data/squads.ts`, the game's own: 8,377 players, 368 squads, 14
-  tournaments (1970-2022). This is live game data: `personId` is the name slug, so a
-  name is an identity, not a label. Read the rules below before touching it.
-- **7a0** - `docs/player-ratings-other-game.csv`, another game's ratings scraped from
-  7a0.com.br: 6,864 players, 302 squads, 20 tournaments (1950-2026, the last one a
-  predicted field). Reference data only; nothing in the app reads it.
-- `docs/players.html` shows both behind a toggle, joins them player for player
-  (`scripts/players-page-match.ts`) and prints the rating gap per row. Rebuild it with
-  `npm run gen:players`.
-
-## The three jobs
-
-**1. Finish 7a0's short names.** 420 rows still carry a single-token name. Most are
-genuine one-name players, but not all - the last pass found and fixed 68, including
-Japan 2010's "Nakamura" (Shunsuke, once Kengo was claimed by his own row). What is
-left, by tournament:
-
-| where | short rows | of which no WCS counterpart |
+| | before | after |
 | --- | --- | --- |
-| 1950-1966 | 101 | 101 |
-| 1970-2022 | 288 | 11 |
-| 2026 (predicted field) | 31 | 31 |
+| 7a0 rows with a single-token name | 421 | 417 |
+| rows in "X. Surname" form (either dataset) | 15 | 0 |
+| pairs matched by `players-page-match.ts` | 5,005 | 5,017 |
+| pairs whose names agree exactly | 4,889 | 5,016 |
+| pairs that disagree | 116 | **1** |
+| in-scope 7a0 rows with no counterpart | 35 | 23 |
+| squads with two rows of the same name | 1 | **0** |
 
-The 1950-1966 rows and the 2026 rows are the ones a reachable Wikipedia unlocks - no
-local source covers them. Of the 288 modern ones, 277 have a WCS counterpart, which
-already agrees with the short name for 275 of them, so treat those as aliases unless
-Wikipedia says otherwise.
+89 `player_name` cells changed in `docs/player-ratings-other-game.csv` and 80 names in
+`src/data/squads.ts`. Asserted after writing, by parsing both files before and after: in the
+CSV nothing but `player_name` moved, the row order held and all 6,864 ratings are byte
+identical; in the dataset all 8,377 rows kept their player id, shirt number, rating,
+positions, squad membership and order.
 
-**2. Reconcile the disagreements.** Of the 5,005 players both datasets carry, 4,889 are
-spelled identically and about 116 are not. That set is the interesting one, because some
-of them are not spellings at all but two different men:
+## The rule that settled it
 
-```
-1998 ARG   7a0 "Mauricio Pineda"       WCS "Rafael Pineda"
-1998 ARG   7a0 "Pablo Paz"             WCS "Fernando Paz"
-1998 CRO   7a0 "Petar Krpan"           WCS "Tomislav Krpan"
-1998 PAR   7a0 "Danilo Aceval"         WCS "Rubén Aceval"
-1994 COL   7a0 "Hermán Gaviria"        WCS "Hernán Gaviria"
-1986 BEL   7a0 "Leo Clijsters"         WCS "Lei Clijsters"
-1986 URS   7a0 "Pavlo Yakovenko"       WCS "Pavel Yakovenko"
-```
+**The Wikipedia squad list's DISPLAY name decides.** It is the only source that separates a
+genuine mononym from a bare surname: it renders "Leao", "Pele", "Zague" and "Bremer", and it
+renders "Juninho Paulista", "Harold Lozano" and "Rubén Ruiz Díaz". Two qualifications, both
+of which changed an answer here:
 
-Decide each against the squad list, and fix whichever side is wrong. **Do not assume
-WCS is right.** Half of this list is WCS being short or wrong; the other half is 7a0
-using a different transliteration.
+- **Piped beats unpiped.** `[[Article|Display]]` is an editorial statement of the common
+  name; a bare `[[Article]]` is only the article title. So Brazil 2018's `[[Alisson Becker]]`
+  did **not** make "Alisson" wrong - and the 2026 article, which pipes
+  `[[Alisson Becker|Alisson]]`, settles it. Same for Cameroon's Nouhou.
+- **Wikipedia is the tie-breaker, not an override.** The two datasets agreeing, and each
+  staying internally consistent across tournaments, comes first. Wikipedia contradicts itself
+  between years - Leo Clijsters (1986) against Lei Clijsters (1990), Émile Mbouh (1990)
+  against Emile M'Bouh (1994), Caju (1970) against Paulo Cézar (1974) - so following it row
+  by row would have split three men in two. Where it does, the canonical article title (the
+  one the others redirect to) breaks the tie.
 
-**3. Make the same man read the same in both.** WCS itself has 353 single-token names
-and 7 in "X. Surname" form (`H. Lozano`, `A. Estrada`, both 1998 Colombia). Where a
-player is a genuine mononym (Pele, Cafu, Rivellino, Dunga) both should keep it. Where
-one side has the full name and the other does not, the full name wins.
+## What a rename costs in `squads.ts`
+
+`personId` is the slug of the name, so a rename can **split** one man across tournaments or
+**merge** two different men. Both scans were run over every proposed rename before any was
+applied.
+
+- **Seven merges were the point.** Bremer, Sol Bamba, Roman Bürki, Freddie Ljungberg, Harold
+  Lozano, Jorge Luis Campos and Paulo Cézar Caju had each been recorded as two people,
+  because the dataset spelled the same man differently in two tournaments.
+- **One was a real collision.** Colombia's Carlos Sánchez and Uruguay's Carlos Sánchez are
+  different men who both played in 2018; the Uruguayan now carries `carlos-sanchez-uru`, the
+  way the two "Luis Marín" and `carlos-aguilera-esp` already do.
+- **Sixteen overrides went.** The `<surname>-<nation>-1998` ids existed only because a row
+  displayed a bare surname. With the full names in place, two of them
+  (`okafor-nga-1998`, `sarabia-par-1998`) were splitting a man from his own other appearance,
+  and the other fourteen asserted a namesake that does not exist.
+
+## Rules that must hold (each one is a bug that has happened)
+
+- **Match within ONE squad.** A name on its own is not evidence: name-only matching merged
+  147 pairs of different men, Gerd Muller's 1970 with Thomas Muller's 2014 among them.
+- **Mutual uniqueness.** Take a pair only when this row's sole candidate has no other
+  claimant. That is what stopped 7a0's "Paulo César Caju" and "César Maluco" from both
+  landing on WCS's single "César".
+- **Never disambiguate by shirt number.** 7a0's "Ø. Berg" (Ørjan) and WCS's Henning Berg are
+  both #20 in Norway 1994 and are different men. Numbers may confirm, never decide.
+- **Never substitute a legal name for an alias.** Zague stays Zague, Pelé stays Pelé.
+  94 of the 101 pre-1970 single-token rows were genuine one-name players and were left alone.
+- **"The file spells this token out in another year" is NOT evidence.** Tried and rejected in
+  the second pass: it wanted 1950's Ademir to become Ademir da Guia and 2022's Fred to become
+  Fred Guedes.
+- **Try the fetch before believing it is blocked.** The whole reason this file exists is that
+  a cloud session got 403 from every football source. From a local session Wikipedia's raw
+  wikitext, the MediaWiki API and RSSSF all answer.
+
+## What is still open, and why
+
+- **CIV 2010, "Emmanuel Koné" against "Bakari Koné"** - the one remaining disagreement, and
+  it is not a name. Wikipedia and 7a0 have Emmanuel Koné at #14; WCS has Bakari Koné, who is
+  a different man (and legitimately in WCS's 2006 squad). Ivory Coast 2010 also has WCS
+  carrying Abdoulaye Méïté where the official squad has Kader Keïta. That is **squad
+  membership**, which this job deliberately did not touch.
+- **MAR 2018 "Baaha"** - the only row that could not be settled. It sits at #15 in 7a0's
+  Morocco list, which is a provisional squad (it also carries Badr Benoun, and lacks Aït
+  Bennasser and En-Nesyri). No footballer of that name active in 2018 has an article on
+  English or French Wikipedia. Left as written rather than guessed.
+- **The 23 unmatched in-scope 7a0 rows are correct.** Each is a player 7a0 lists who was not
+  in the final squad: Higuita (Colombia 1994), Benzema (France 2022), Vestergaard (Denmark
+  2022), Astori (Italy 2014), Sergio Rico (Spain 2018) and so on. They now carry full names
+  and simply have no counterpart.
+- **Three 2026 rows trade one error for a smaller one.** Brazil's 2026 squad contains two
+  Édersons and two Danilos, which 7a0 recorded as identical names, so its
+  name-within-a-nation identity model read each pair as one man. They are now "Ederson
+  Moraes" / "Éderson Silva" and "Danilo Luiz" / "Danilo Santos", following the Wikipedia
+  squad list, which is what a real 2026 article now provides. The cost: Ederson Moraes and
+  Danilo Luiz also appear in 7a0's 2022 squad as plain "Ederson" and "Danilo", so each now
+  reads as two people rather than one. Merging two different men is the worse error of the
+  two, and the page's footer already says the grouping is not exact.
 
 ## Sources, in the order this repo uses them
 
 1. **Wikipedia `<YEAR> FIFA World Cup squads`**, raw wikitext:
    `https://en.wikipedia.org/w/index.php?title=1966_FIFA_World_Cup_squads&action=raw`.
-   Names, shirt numbers and the GK/DF/MF/FW split, per squad.
-2. **The player's own article**, in batches of 40 through the MediaWiki API
-   (`?action=query&prop=revisions&rvsection=0&titles=A|B|C&format=json`), for the
-   infobox `fullname` - which is what turns "Nakamura" into "Shunsuke Nakamura".
-3. **RSSSF** (`https://www.rsssf.org/tables/66full.html`) for line-ups when a squad list
-   is ambiguous. It serves **ISO-8859-1**: decode it as such or every accented name
-   loses its data.
-4. Already exhausted from here, but free to re-check: `openfootball/world-cup` on
-   GitHub (CC0, full squads 1930-2014, `<year>--<host>/squads.txt`).
+   Names, shirt numbers and the GK/DF/MF/FW split, per squad. All nineteen tournaments
+   1950 to 2026 parse from two templates: `{{nat fs player}}` and, for 2006 and 2014 only,
+   `{{National football squad player}}`.
+2. **The player's own article**, in batches through the MediaWiki API
+   (`?action=query&prop=revisions&rvsection=0&titles=A|B|C&format=json`), for the infobox
+   `fullname`, birth year and position. `&redirects=1` is what says which of two spellings
+   is canonical.
+3. **RSSSF** (`https://www.rsssf.org/tables/66full.html`) for line-ups when a squad list is
+   ambiguous. It serves **ISO-8859-1**: decode it as such or every accented name loses its
+   data.
+4. `openfootball/world-cup` on GitHub (CC0, full squads 1930-2014).
 
-## Rules that must hold
+Note that node's `fetch` fails here with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` unless it is
+given `NODE_OPTIONS=--use-system-ca`; `curl` needs `--ssl-no-revoke`.
 
-These are not style preferences. Each one is a bug that has already happened.
-
-- **Match within ONE squad.** A player is only ever identified against the same nation
-  at the same tournament - 22 to 26 men, a closed pool. A name on its own is not
-  evidence: name-only matching merged 147 pairs of different men, Gerd Muller's 1970
-  with Thomas Muller's 2014 among them.
-- **Mutual uniqueness.** Take a pair only when this row's sole candidate has no other
-  claimant, and drop a claimed player from the pool. That is what stops 7a0's "Paulo
-  Cesar Caju" and "Cesar Maluco" both landing on WCS's single "Cesar".
-- **Never disambiguate by shirt number.** The two datasets number squads differently:
-  7a0's "O. Berg" (Orjan) and WCS's Henning Berg are both #20 in Norway 1994, and they
-  are different men. Numbers may confirm, never decide.
-- **Never substitute a legal name for an alias.** "Junior" does not become "Leovegildo
-  Lins da Gama Junior", and Pele stays Pele. If a man is known by one name, one name is
-  the right answer in both datasets.
-- **"The file spells this name out in another year" is NOT evidence.** Tried and
-  rejected: it wanted 1950's Ademir (Marques de Menezes) to become Ademir da Guia,
-  2002's Raul (Gonzalez) to become Raul Albiol, 1986's Michel to become Michel Salgado
-  and 2022's Fred to become Fred Guedes. Only 8 of its 30 candidates were the same man.
-  Cross-year evidence needs the surname AND a short gap AND a check by hand.
-- **Watch surname-first sources.** openfootball gives Turkey 1954's "Akgun" as "Kacmaz
-  Akgun" while every other Turkish row in that squad is a given name. When a source's
-  order is in doubt, leave the row alone.
-- **Two men of the same name in one squad are real.** Serbia named two Mitrovic and two
-  Milinkovic-Savic in 2022, Ireland two Kelly in 2002, Brazil two Danilo in the
-  predicted 2026 squad. The last one is still in the file as two identical names, on
-  purpose.
-
-## Editing the CSV
-
-Only `player_name` may change. Every other cell, the row order and all 6,864 ratings
-stay byte for byte identical - assert it after writing, by parsing the old and new files
-and comparing every field but that one. The file has no quoted fields today; keep it
-that way.
-
-## Editing `src/data/squads.ts` - read this first
-
-A name there is an identity, not a label.
-
-- **`personId` is the slug of the name.** Renaming a player changes who he is: he may
-  merge with another person (drafted-once identity) or split from his own other
-  appearances. After any rename, re-run the collision and near-miss scans, and add an
-  explicit `personId` override (the 5th element of a `Row`) where two different men must
-  display the same name - the file already carries several.
-- **Same name, same spelling, across tournaments**, or the same man becomes two people.
-  `domain/validateSquads.ts` catches one slug with two display names; it is the only
-  thing that does.
-- **A name change reaches the server seed.** `supabase/seed/collectibles.sql` carries
-  the player's name, so a rename of anyone in the 90+ bands means
-  `npm run gen:collectibles` and then `npm run push:collectibles` (needs `dkr/.env` and
-  LAN/VPN). `npm run checks` fails while the seed is stale.
-- Do not touch ratings, positions, shirt numbers or squad membership in this job.
-
-## Verify, then commit
+## After a name change
 
 ```bash
-npm run checks        # 179 checks; also the seed-drift and house-rule guards
-npm run gen:players   # rebuilds docs/players.html from both datasets
+npm run gen:collectibles   # a 90+ player's name is carried in the server seed
+npm run push:collectibles  # needs dkr/.env and LAN/VPN
+npm run checks             # 179 checks, including the seed-drift guard
+npm run gen:players        # rebuilds docs/players.html from both datasets
 npm run build
 ```
 
-Report these, before and after:
-
-- 7a0 rows with a single-token name (was **420**)
-- pairs matched by `players-page-match.ts` (was **5,005** of 5,040 in-scope 7a0 rows)
-- pairs whose names now agree exactly (was **4,889**)
-- rows changed in the CSV, and the assertion that nothing but `player_name` moved
-- any squad where two rows ended up with the same name (only Brazil 2026's Danilo pair
-  is expected)
-
-Then commit and push to `main`, as this repo always does, with the sources and the
-rejected rules written into the message. No em-dashes anywhere.
-
-## Done when
-
-Every 7a0 row that is a bare surname or an initial has its given name, every genuine
-mononym is left alone and recorded as such, the ~116 disagreements are each decided
-against a squad list, and a player who appears in both datasets reads the same in both.
-Where a name could not be settled, say which rows and why, rather than guessing.
+This pass renamed exactly one collectible (Preben Elkjær Larsen to Preben Elkjær, 90), so
+the seed changed by one row and was regenerated and pushed. His player id is unchanged, so
+no album was affected.

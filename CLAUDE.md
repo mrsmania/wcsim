@@ -1054,25 +1054,45 @@ there is only one artifact to keep in step.
   over the name or 1 over the surname, which is the transliteration pass
   (Rivelino/Rivellino, Mihaylov/Mikhailov, Haaland/Haland). Mutual uniqueness is what stops
   7a0's "Paulo Cesar Caju" and "Cesar Maluco" both landing on WCS's single "Cesar".
-  Measured: **5,005 players matched**, 99.3% of the 7a0 rows whose squad WCS also has;
-  889 are rated identically and WCS runs 0.61 lower on average. A row with no counterpart
+  Measured: **5,017 players matched**, 99.5% of the 7a0 rows whose squad WCS also has;
+  894 are rated identically and WCS runs 0.60 lower on average. A row with no counterpart
   prints a dash and sorts last in both directions - an absent difference, not a small one.
-- **Its given names were filled in twice, and the second pass is the shape to repeat.**
-  The source publishes short display names (bare surnames, or a given name alone). The
-  first pass (2026-08-25) took full names from Wikipedia and left 488 rows single-token;
-  a second pass (2026-08-26) cut that to 421 using the two sources a cloud session can
-  actually reach - **this repo's own `squads.ts` for 1970 on, and openfootball/world-cup
-  (CC0, through GitHub) for 1950 to 1966** - since Wikipedia, RSSSF and every other
-  football site are blocked by the egress proxy here. The rule both directions: match
-  within ONE squad, take the name only when it is the single unclaimed candidate, and
-  never use the shirt number (the two sources number squads differently - 7a0's
-  "O. Berg" and WCS's Henning Berg are both #20 and are different men). What that
-  leaves is mostly genuine one-name players: for 275 of the short rows `squads.ts` uses
-  the same single name, and openfootball does for 81 of the pre-1970 ones.
-  **A rule that looks obvious and is wrong**, tried and rejected in that pass: "the file
-  spells this token out in another year, so copy it". Common given names collide across
+- **The names were aligned in three passes, and the third is the one to repeat.** The
+  source publishes short display names (bare surnames, or a given name alone). The first
+  pass (2026-08-25) took full names from Wikipedia and left 488 rows single-token; a second
+  (2026-08-26) cut that to 421 from `squads.ts` and openfootball alone, because that cloud
+  session's egress proxy answered 403 for every football site. **Try the fetch before
+  believing it is blocked**: from a local session Wikipedia and RSSSF both answer, which is
+  what the third pass (2026-08-26, `docs/player-names-alignment.md`) used to finish the job.
+  It took the **116 disagreements down to 1** and every "X. Surname" row in either dataset
+  down to none. The rule it settled on:
+  - **The Wikipedia squad list's DISPLAY name decides**, because it is the only source that
+    separates a genuine mononym from a bare surname: it renders "Leao", "Pele" and "Zague",
+    and it renders "Juninho Paulista" and "Harold Lozano". A **piped** `[[Article|Display]]`
+    is an editorial statement of the common name; an **unpiped** link is only the article
+    title, so it does not turn an agreed mononym into a full name (that is why Alisson and
+    Nouhou stayed, and the 2026 article piping `[[Alisson Becker|Alisson]]` confirms it).
+  - **Wikipedia is the tie-breaker, not an override.** The two datasets agreeing, and each
+    staying internally consistent across tournaments, comes first - Wikipedia contradicts
+    itself between years (Leo/Lei Clijsters, Emile Mbouh/M'Bouh, Caju/Paulo Cezar), so
+    following it row by row would have split men in two.
+  - Match within ONE squad; take the name only when it is the single unclaimed candidate;
+    and **never use the shirt number** (7a0's "O. Berg" is Orjan and WCS's Henning Berg is
+    a different man, both #20 in Norway 1994).
+  **A rule that looks obvious and is wrong**, tried and rejected in the second pass: "the
+  file spells this token out in another year, so copy it". Common given names collide across
   eras - it wanted 1950's Ademir (Marques de Menezes) to become Ademir da Guia, 2002's
   Raul (Gonzalez) to become Raul Albiol and 2022's Fred to become Fred Guedes.
+- **A rename in `squads.ts` is an identity change, and it cuts both ways.** `personId` is
+  the name slug, so a rename can **split** one man across tournaments or **merge** two. The
+  third pass ran both scans over every proposed rename before applying any: seven merges
+  were the point (Bremer, Sol Bamba, Roman Burki, Freddie Ljungberg, Harold Lozano, Jorge
+  Luis Campos and Paulo Cezar Caju had each been two people), one was a real collision -
+  Colombia's and Uruguay's **Carlos Sanchez**, two different men in the same 2018
+  tournament, now told apart by `carlos-sanchez-uru`. Sixteen `<surname>-<nation>-1998`
+  overrides existed only because a row displayed a bare surname; with the full names in
+  place two of them (`okafor-nga-1998`, `sarabia-par-1998`) were splitting a man from his
+  own other appearance, so all sixteen went.
 - **It has no player id**, which the "x N appearances" mark needs. Appearances are
   matched by name **within a nation**, split wherever two are more than 24 years apart
   (`MAX_CAREER`; the longest real span in the data is Buffon's 20). Name alone merged

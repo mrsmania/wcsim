@@ -62,7 +62,7 @@ values
   ('cro-1998-9', 'legendary', 91, 'Davor Šuker', 'cro-1998', 'CRO', 1998),
   ('cro-2018-10', 'legendary', 92, 'Luka Modrić', 'cro-2018', 'CRO', 2018),
   ('cro-2022-10', 'legendary', 92, 'Luka Modrić', 'cro-2022', 'CRO', 2022),
-  ('den-1986-10', 'legendary', 90, 'Preben Elkjær Larsen', 'den-1986', 'DEN', 1986),
+  ('den-1986-10', 'legendary', 90, 'Preben Elkjær', 'den-1986', 'DEN', 1986),
   ('eng-1970-6', 'legendary', 90, 'Bobby Moore', 'eng-1970', 'ENG', 1970),
   ('eng-1986-10', 'legendary', 90, 'Gary Lineker', 'eng-1986', 'ENG', 1986),
   ('eng-2022-9', 'legendary', 91, 'Harry Kane', 'eng-2022', 'ENG', 2022),

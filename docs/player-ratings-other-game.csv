@@ -110,7 +110,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1950,Brazil,mex,Mexico,75,2,Attack,,Carlos Septién,Left winger,74,false,https://7a0.com.br/en/copas/1950/mex
 1950,Brazil,par,Paraguay,74,0,Goalkeepers,,Pablo Centurión,Goalkeeper,75,false,https://7a0.com.br/en/copas/1950/par
 1950,Brazil,par,Paraguay,74,0,Goalkeepers,,Marcelino Vargas,Goalkeeper,72,false,https://7a0.com.br/en/copas/1950/par
-1950,Brazil,par,Paraguay,74,0,Defence,,A. González,Centre-back,73,false,https://7a0.com.br/en/copas/1950/par
+1950,Brazil,par,Paraguay,74,0,Defence,,Alberto González,Centre-back,73,false,https://7a0.com.br/en/copas/1950/par
 1950,Brazil,par,Paraguay,74,0,Defence,,Antonio Cabrera,Centre-back,76,false,https://7a0.com.br/en/copas/1950/par
 1950,Brazil,par,Paraguay,74,0,Defence,,Casiano Céspedes,Centre-back,74,false,https://7a0.com.br/en/copas/1950/par
 1950,Brazil,par,Paraguay,74,0,Defence,,Manuel Gavilán,Centre-back,76,false,https://7a0.com.br/en/copas/1950/par
@@ -152,7 +152,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1950,Brazil,esp,Spain,79,5,Attack,,Silvestre Igoa,Centre-forward,78,false,https://7a0.com.br/en/copas/1950/esp
 1950,Brazil,esp,Spain,79,5,Attack,,Telmo Zarra,Centre-forward,88,true,https://7a0.com.br/en/copas/1950/esp
 1950,Brazil,esp,Spain,79,5,Attack,,Agustín Gaínza,Left winger,84,true,https://7a0.com.br/en/copas/1950/esp
-1950,Brazil,swe,Sweden,77,4,Goalkeepers,,K. Svensson,Goalkeeper,82,true,https://7a0.com.br/en/copas/1950/swe
+1950,Brazil,swe,Sweden,77,4,Goalkeepers,,Kalle Svensson,Goalkeeper,82,true,https://7a0.com.br/en/copas/1950/swe
 1950,Brazil,swe,Sweden,77,4,Goalkeepers,,Torsten Lindberg,Goalkeeper,75,false,https://7a0.com.br/en/copas/1950/swe
 1950,Brazil,swe,Sweden,77,4,Goalkeepers,,Tore Svensson,Goalkeeper,70,false,https://7a0.com.br/en/copas/1950/swe
 1950,Brazil,swe,Sweden,77,4,Defence,,Gunnar Johansson,Centre-back,72,false,https://7a0.com.br/en/copas/1950/swe
@@ -221,7 +221,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1950,Brazil,uru,Uruguay,78,5,Defence,,William Martínez,Centre-back,74,false,https://7a0.com.br/en/copas/1950/uru
 1950,Brazil,uru,Uruguay,78,5,Defence,3,Eusebio Tejera,Left-back,80,false,https://7a0.com.br/en/copas/1950/uru
 1950,Brazil,uru,Uruguay,78,5,Midfield,5,Obdulio Varela,Defensive midfielder,88,true,https://7a0.com.br/en/copas/1950/uru
-1950,Brazil,uru,Uruguay,78,5,Midfield,,J. C. González,Defensive midfielder,77,false,https://7a0.com.br/en/copas/1950/uru
+1950,Brazil,uru,Uruguay,78,5,Midfield,,Juan Carlos González,Defensive midfielder,77,false,https://7a0.com.br/en/copas/1950/uru
 1950,Brazil,uru,Uruguay,78,5,Midfield,6,Víctor Rodríguez Andrade,Right midfielder,84,true,https://7a0.com.br/en/copas/1950/uru
 1950,Brazil,uru,Uruguay,78,5,Midfield,,Washington Ortuño,Midfielder,71,false,https://7a0.com.br/en/copas/1950/uru
 1950,Brazil,uru,Uruguay,78,5,Midfield,,Rodolfo Pini,Midfielder,73,false,https://7a0.com.br/en/copas/1950/uru
@@ -286,7 +286,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1954,Switzerland,bra,Brazil,78,5,Defence,5,Pinheiro,Centre-back,80,false,https://7a0.com.br/en/copas/1954/bra
 1954,Switzerland,bra,Brazil,78,5,Defence,12,Paulinho,Centre-back,73,false,https://7a0.com.br/en/copas/1954/bra
 1954,Switzerland,bra,Brazil,78,5,Defence,13,Alfredo,Centre-back,73,false,https://7a0.com.br/en/copas/1954/bra
-1954,Switzerland,bra,Brazil,78,5,Defence,15,Mauro,Centre-back,80,true,https://7a0.com.br/en/copas/1954/bra
+1954,Switzerland,bra,Brazil,78,5,Defence,15,Mauro Ramos,Centre-back,80,true,https://7a0.com.br/en/copas/1954/bra
 1954,Switzerland,bra,Brazil,78,5,Defence,3,Nílton Santos,Left-back,88,true,https://7a0.com.br/en/copas/1954/bra
 1954,Switzerland,bra,Brazil,78,5,Midfield,4,Brandãozinho,Defensive midfielder,78,false,https://7a0.com.br/en/copas/1954/bra
 1954,Switzerland,bra,Brazil,78,5,Midfield,6,Bauer,Defensive midfielder,80,false,https://7a0.com.br/en/copas/1954/bra
@@ -488,10 +488,10 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1954,Switzerland,tur,Turkey,74,3,Defence,20,Kadri Aytaç,Centre-back,74,false,https://7a0.com.br/en/copas/1954/tur
 1954,Switzerland,tur,Turkey,74,3,Defence,3,Basri Dirimlili,Left-back,80,false,https://7a0.com.br/en/copas/1954/tur
 1954,Switzerland,tur,Turkey,74,3,Defence,7,Rober Eryol,Left-back,73,false,https://7a0.com.br/en/copas/1954/tur
-1954,Switzerland,tur,Turkey,74,3,Defence,18,Ahmet,Left-back,68,false,https://7a0.com.br/en/copas/1954/tur
+1954,Switzerland,tur,Turkey,74,3,Defence,18,Ahmet Berman,Left-back,68,false,https://7a0.com.br/en/copas/1954/tur
 1954,Switzerland,tur,Turkey,74,3,Midfield,6,Çetin Zeybek,Midfielder,72,false,https://7a0.com.br/en/copas/1954/tur
 1954,Switzerland,tur,Turkey,74,3,Midfield,14,Ali Beratlıgil,Midfielder,69,false,https://7a0.com.br/en/copas/1954/tur
-1954,Switzerland,tur,Turkey,74,3,Midfield,17,Akgün,Midfielder,70,false,https://7a0.com.br/en/copas/1954/tur
+1954,Switzerland,tur,Turkey,74,3,Midfield,17,Akgün Kaçmaz,Midfielder,70,false,https://7a0.com.br/en/copas/1954/tur
 1954,Switzerland,tur,Turkey,74,3,Attack,21,Coşkun Taş,Right winger,77,false,https://7a0.com.br/en/copas/1954/tur
 1954,Switzerland,tur,Turkey,74,3,Attack,10,Feridun Buğeker,Centre-forward,65,false,https://7a0.com.br/en/copas/1954/tur
 1954,Switzerland,tur,Turkey,74,3,Attack,11,Burhan Sargun,Centre-forward,78,false,https://7a0.com.br/en/copas/1954/tur
@@ -826,7 +826,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1962,Chile,bra,Brazil,82,10,Goalkeepers,22,Carlos Castilho,Goalkeeper,78,false,https://7a0.com.br/en/copas/1962/bra
 1962,Chile,bra,Brazil,82,10,Defence,2,Djalma Santos,Right-back,89,true,https://7a0.com.br/en/copas/1962/bra
 1962,Chile,bra,Brazil,82,10,Defence,12,Jair Marinho,Right-back,74,false,https://7a0.com.br/en/copas/1962/bra
-1962,Chile,bra,Brazil,82,10,Defence,3,Mauro,Centre-back,82,true,https://7a0.com.br/en/copas/1962/bra
+1962,Chile,bra,Brazil,82,10,Defence,3,Mauro Ramos,Centre-back,82,true,https://7a0.com.br/en/copas/1962/bra
 1962,Chile,bra,Brazil,82,10,Defence,5,Zózimo,Centre-back,79,false,https://7a0.com.br/en/copas/1962/bra
 1962,Chile,bra,Brazil,82,10,Defence,13,Hilderaldo Bellini,Centre-back,82,true,https://7a0.com.br/en/copas/1962/bra
 1962,Chile,bra,Brazil,82,10,Defence,14,Jurandir,Centre-back,71,false,https://7a0.com.br/en/copas/1962/bra
@@ -1020,7 +1020,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1962,Chile,urs,Soviet Union,79,6,Attack,21,Galimzyan Khusainov,Left winger,76,false,https://7a0.com.br/en/copas/1962/urs
 1962,Chile,esp,Spain,82,5,Goalkeepers,1,José Araquistáin,Goalkeeper,80,false,https://7a0.com.br/en/copas/1962/esp
 1962,Chile,esp,Spain,82,5,Goalkeepers,2,Salvador Sadurní,Goalkeeper,78,false,https://7a0.com.br/en/copas/1962/esp
-1962,Chile,esp,Spain,82,5,Goalkeepers,3,Carmelo,Goalkeeper,79,false,https://7a0.com.br/en/copas/1962/esp
+1962,Chile,esp,Spain,82,5,Goalkeepers,3,Carmelo Cedrún,Goalkeeper,79,false,https://7a0.com.br/en/copas/1962/esp
 1962,Chile,esp,Spain,82,5,Defence,10,Sígfrid Gràcia,Right-back,77,false,https://7a0.com.br/en/copas/1962/esp
 1962,Chile,esp,Spain,82,5,Defence,11,Feliciano Rivilla,Right-back,79,false,https://7a0.com.br/en/copas/1962/esp
 1962,Chile,esp,Spain,82,5,Defence,7,Luis María Echeberría,Centre-back,73,false,https://7a0.com.br/en/copas/1962/esp
@@ -1102,7 +1102,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1966,England,bra,Brazil,79,8,Attack,17,Jairzinho,Right winger,82,true,https://7a0.com.br/en/copas/1966/bra
 1966,England,bra,Brazil,79,8,Attack,10,Pelé,Centre-forward,93,true,https://7a0.com.br/en/copas/1966/bra
 1966,England,bra,Brazil,79,8,Attack,18,Alcindo,Centre-forward,74,false,https://7a0.com.br/en/copas/1966/bra
-1966,England,bra,Brazil,79,8,Attack,19,Silva,Centre-forward,72,false,https://7a0.com.br/en/copas/1966/bra
+1966,England,bra,Brazil,79,8,Attack,19,Silva Batuta,Centre-forward,72,false,https://7a0.com.br/en/copas/1966/bra
 1966,England,bra,Brazil,79,8,Attack,20,Tostão,Centre-forward,80,true,https://7a0.com.br/en/copas/1966/bra
 1966,England,bra,Brazil,79,8,Attack,21,Paraná,Left winger,72,false,https://7a0.com.br/en/copas/1966/bra
 1966,England,bra,Brazil,79,8,Attack,22,Edu,Left winger,73,false,https://7a0.com.br/en/copas/1966/bra
@@ -1287,7 +1287,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1966,England,esp,Spain,80,5,Goalkeepers,13,Miguel Reina,Goalkeeper,73,false,https://7a0.com.br/en/copas/1966/esp
 1966,England,esp,Spain,80,5,Defence,14,Feliciano Rivilla,Right-back,80,false,https://7a0.com.br/en/copas/1966/esp
 1966,England,esp,Spain,80,5,Defence,2,Manuel Sanchís,Centre-back,76,false,https://7a0.com.br/en/copas/1966/esp
-1966,England,esp,Spain,80,5,Defence,3,Eladio,Centre-back,75,false,https://7a0.com.br/en/copas/1966/esp
+1966,England,esp,Spain,80,5,Defence,3,Eladio Silvestre,Centre-back,75,false,https://7a0.com.br/en/copas/1966/esp
 1966,England,esp,Spain,80,5,Defence,16,Ferran Olivella,Centre-back,80,false,https://7a0.com.br/en/copas/1966/esp
 1966,England,esp,Spain,80,5,Defence,17,Gallego,Centre-back,73,false,https://7a0.com.br/en/copas/1966/esp
 1966,England,esp,Spain,80,5,Defence,15,Severino Reija,Left-back,79,false,https://7a0.com.br/en/copas/1966/esp
@@ -1328,11 +1328,11 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1970,Mexico,bel,Belgium,73,2,Attack,19,Pierre Carteus,Left winger,69,false,https://7a0.com.br/en/copas/1970/bel
 1970,Mexico,bra,Brazil,80,4,Goalkeepers,1,Félix,Goalkeeper,76,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Goalkeepers,12,Ado,Goalkeeper,68,false,https://7a0.com.br/en/copas/1970/bra
-1970,Mexico,bra,Brazil,80,4,Goalkeepers,22,Émerson Leão,Goalkeeper,78,false,https://7a0.com.br/en/copas/1970/bra
+1970,Mexico,bra,Brazil,80,4,Goalkeepers,22,Leão,Goalkeeper,78,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Defence,4,Carlos Alberto,Right-back,90,true,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Defence,21,Zé Maria,Right-back,72,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Defence,2,Brito,Centre-back,80,false,https://7a0.com.br/en/copas/1970/bra
-1970,Mexico,bra,Brazil,80,4,Defence,3,Wilson Piazza,Centre-back,82,false,https://7a0.com.br/en/copas/1970/bra
+1970,Mexico,bra,Brazil,80,4,Defence,3,Piazza,Centre-back,82,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Defence,14,Baldocchi,Centre-back,68,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Defence,15,Fontana,Centre-back,69,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Defence,17,Joel Camargo,Centre-back,70,false,https://7a0.com.br/en/copas/1970/bra
@@ -1341,7 +1341,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1970,Mexico,bra,Brazil,80,4,Midfield,5,Clodoaldo,Defensive midfielder,86,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Midfield,8,Gérson,Midfielder,92,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Midfield,11,Rivellino,Left midfielder,92,true,https://7a0.com.br/en/copas/1970/bra
-1970,Mexico,bra,Brazil,80,4,Midfield,18,Paulo César Caju,Left midfielder,76,false,https://7a0.com.br/en/copas/1970/bra
+1970,Mexico,bra,Brazil,80,4,Midfield,18,Paulo Cézar Caju,Left midfielder,76,false,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Midfield,10,Pelé,Attacking midfielder,99,true,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Attack,7,Jairzinho,Right winger,95,true,https://7a0.com.br/en/copas/1970/bra
 1970,Mexico,bra,Brazil,80,4,Attack,9,Tostão,Centre-forward,87,false,https://7a0.com.br/en/copas/1970/bra
@@ -1546,26 +1546,26 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1974,West Germany,arg,Argentina,78,0,Attack,13,Mario Kempes,Centre-forward,83,false,https://7a0.com.br/en/copas/1974/arg
 1974,West Germany,arg,Argentina,78,0,Attack,15,Aldo Poy,Centre-forward,74,false,https://7a0.com.br/en/copas/1974/arg
 1974,West Germany,arg,Argentina,78,0,Attack,22,Héctor Yazalde,Centre-forward,81,false,https://7a0.com.br/en/copas/1974/arg
-1974,West Germany,bra,Brazil,80,2,Goalkeepers,1,Émerson Leão,Goalkeeper,84,false,https://7a0.com.br/en/copas/1974/bra
+1974,West Germany,bra,Brazil,80,2,Goalkeepers,1,Leão,Goalkeeper,84,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Goalkeepers,12,Renato,Goalkeeper,68,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Goalkeepers,22,Waldir Peres,Goalkeeper,74,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Defence,4,Zé Maria,Right-back,80,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Defence,14,Nelinho,Right-back,78,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Defence,2,Luís Pereira,Centre-back,87,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Defence,3,Marinho Peres,Centre-back,79,false,https://7a0.com.br/en/copas/1974/bra
-1974,West Germany,bra,Brazil,80,2,Defence,15,Alfredo Mostarda,Centre-back,72,false,https://7a0.com.br/en/copas/1974/bra
+1974,West Germany,bra,Brazil,80,2,Defence,15,Alfredo,Centre-back,72,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Defence,6,Marinho Chagas,Left-back,86,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Defence,16,Marco Antônio,Left-back,75,false,https://7a0.com.br/en/copas/1974/bra
-1974,West Germany,bra,Brazil,80,2,Midfield,5,Wilson Piazza,Defensive midfielder,82,false,https://7a0.com.br/en/copas/1974/bra
+1974,West Germany,bra,Brazil,80,2,Midfield,5,Piazza,Defensive midfielder,82,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Midfield,17,Carpegiani,Midfielder,76,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Midfield,18,Ademir da Guia,Midfielder,85,false,https://7a0.com.br/en/copas/1974/bra
-1974,West Germany,bra,Brazil,80,2,Midfield,11,Paulo César Caju,Left midfielder,82,false,https://7a0.com.br/en/copas/1974/bra
+1974,West Germany,bra,Brazil,80,2,Midfield,11,Paulo Cézar Caju,Left midfielder,82,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Midfield,8,Leivinha,Attacking midfielder,78,false,https://7a0.com.br/en/copas/1974/bra
-1974,West Germany,bra,Brazil,80,2,Midfield,10,Rivelino,Attacking midfielder,92,true,https://7a0.com.br/en/copas/1974/bra
+1974,West Germany,bra,Brazil,80,2,Midfield,10,Rivellino,Attacking midfielder,92,true,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Midfield,21,Dirceu,Attacking midfielder,80,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Attack,7,Jairzinho,Right winger,88,true,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Attack,13,Valdomiro,Right winger,75,false,https://7a0.com.br/en/copas/1974/bra
-1974,West Germany,bra,Brazil,80,2,Attack,9,César Maluco,Centre-forward,76,false,https://7a0.com.br/en/copas/1974/bra
+1974,West Germany,bra,Brazil,80,2,Attack,9,César,Centre-forward,76,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Attack,19,Mirandinha,Centre-forward,73,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,bra,Brazil,80,2,Attack,20,Edu,Left winger,80,false,https://7a0.com.br/en/copas/1974/bra
 1974,West Germany,chi,Chile,77,3,Goalkeepers,1,Leopoldo Vallejos,Goalkeeper,76,false,https://7a0.com.br/en/copas/1974/chi
@@ -1788,8 +1788,8 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1978,Argentina,aut,Austria,76,1,Attack,9,Hans Krankl,Centre-forward,89,true,https://7a0.com.br/en/copas/1978/aut
 1978,Argentina,aut,Austria,76,1,Attack,18,Walter Schachner,Centre-forward,76,false,https://7a0.com.br/en/copas/1978/aut
 1978,Argentina,aut,Austria,76,1,Attack,19,Hans Pirkner,Centre-forward,73,false,https://7a0.com.br/en/copas/1978/aut
-1978,Argentina,bra,Brazil,79,2,Goalkeepers,1,Émerson Leão,Goalkeeper,85,false,https://7a0.com.br/en/copas/1978/bra
-1978,Argentina,bra,Brazil,79,2,Goalkeepers,12,Carlos Gallo,Goalkeeper,70,false,https://7a0.com.br/en/copas/1978/bra
+1978,Argentina,bra,Brazil,79,2,Goalkeepers,1,Leão,Goalkeeper,85,false,https://7a0.com.br/en/copas/1978/bra
+1978,Argentina,bra,Brazil,79,2,Goalkeepers,12,Carlos,Goalkeeper,70,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Goalkeepers,22,Waldir Peres,Goalkeeper,74,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Defence,2,Toninho,Right-back,76,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Defence,13,Nelinho,Right-back,81,false,https://7a0.com.br/en/copas/1978/bra
@@ -1800,14 +1800,14 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1978,Argentina,bra,Brazil,79,2,Defence,15,Polozzi,Centre-back,71,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Defence,16,Rodrigues Neto,Left-back,76,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Midfield,5,Toninho Cerezo,Defensive midfielder,83,false,https://7a0.com.br/en/copas/1978/bra
-1978,Argentina,bra,Brazil,79,2,Midfield,17,João Batista,Defensive midfielder,77,false,https://7a0.com.br/en/copas/1978/bra
+1978,Argentina,bra,Brazil,79,2,Midfield,17,Batista,Defensive midfielder,77,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Midfield,21,Chicão,Midfielder,72,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Midfield,8,Zico,Attacking midfielder,89,true,https://7a0.com.br/en/copas/1978/bra
-1978,Argentina,bra,Brazil,79,2,Midfield,10,Rivelino,Attacking midfielder,86,true,https://7a0.com.br/en/copas/1978/bra
+1978,Argentina,bra,Brazil,79,2,Midfield,10,Rivellino,Attacking midfielder,86,true,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Midfield,11,Dirceu,Attacking midfielder,84,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Midfield,19,Jorge Mendonça,Attacking midfielder,74,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Attack,18,Gil,Right winger,75,false,https://7a0.com.br/en/copas/1978/bra
-1978,Argentina,bra,Brazil,79,2,Attack,9,José Reinaldo,Centre-forward,87,false,https://7a0.com.br/en/copas/1978/bra
+1978,Argentina,bra,Brazil,79,2,Attack,9,Reinaldo,Centre-forward,87,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Attack,20,Roberto Dinamite,Centre-forward,88,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,bra,Brazil,79,2,Attack,7,Zé Sérgio,Left winger,76,false,https://7a0.com.br/en/copas/1978/bra
 1978,Argentina,fra,France,76,2,Goalkeepers,1,Dominique Baratelli,Goalkeeper,74,false,https://7a0.com.br/en/copas/1978/fra
@@ -1859,11 +1859,11 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1978,Argentina,mex,Mexico,72,1,Defence,2,Manuel Nájera,Right-back,70,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Defence,12,Jesús Martínez,Right-back,68,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Defence,4,Eduardo Ramos,Centre-back,74,false,https://7a0.com.br/en/copas/1978/mex
-1978,Argentina,mex,Mexico,72,1,Defence,5,Arturo Vázquez,Centre-back,76,false,https://7a0.com.br/en/copas/1978/mex
+1978,Argentina,mex,Mexico,72,1,Defence,5,Arturo Vázquez Ayala,Centre-back,76,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Defence,13,Rigoberto Cisneros,Centre-back,69,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Defence,14,Carlos Gómez,Centre-back,69,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Defence,3,Alfredo Tena,Left-back,71,false,https://7a0.com.br/en/copas/1978/mex
-1978,Argentina,mex,Mexico,72,1,Defence,15,Ignacio Flores,Left-back,70,false,https://7a0.com.br/en/copas/1978/mex
+1978,Argentina,mex,Mexico,72,1,Defence,15,Ignacio Flores Ocaranza,Left-back,70,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Midfield,6,Guillermo Mendizábal,Defensive midfielder,70,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Midfield,16,Javier Cárdenas,Defensive midfielder,72,false,https://7a0.com.br/en/copas/1978/mex
 1978,Argentina,mex,Mexico,72,1,Midfield,18,Gerardo Lugo,Right midfielder,71,false,https://7a0.com.br/en/copas/1978/mex
@@ -2076,8 +2076,8 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1982,Spain,bel,Belgium,77,3,Attack,6,Franky Vercauteren,Left winger,80,false,https://7a0.com.br/en/copas/1982/bel
 1982,Spain,bra,Brazil,78,3,Goalkeepers,1,Waldir Peres,Goalkeeper,74,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Goalkeepers,12,Paulo Sérgio,Goalkeeper,68,false,https://7a0.com.br/en/copas/1982/bra
-1982,Spain,bra,Brazil,78,3,Goalkeepers,22,Carlos Gallo,Goalkeeper,68,false,https://7a0.com.br/en/copas/1982/bra
-1982,Spain,bra,Brazil,78,3,Defence,2,José Leandro,Right-back,87,false,https://7a0.com.br/en/copas/1982/bra
+1982,Spain,bra,Brazil,78,3,Goalkeepers,22,Carlos,Goalkeeper,68,false,https://7a0.com.br/en/copas/1982/bra
+1982,Spain,bra,Brazil,78,3,Defence,2,Leandro,Right-back,87,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Defence,13,Edevaldo,Right-back,70,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Defence,3,Oscar,Centre-back,80,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Defence,4,Luizinho,Centre-back,76,false,https://7a0.com.br/en/copas/1982/bra
@@ -2088,11 +2088,11 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1982,Spain,bra,Brazil,78,3,Midfield,5,Toninho Cerezo,Defensive midfielder,83,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Midfield,7,Paulo Isidoro,Defensive midfielder,74,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Midfield,15,Falcão,Defensive midfielder,94,true,https://7a0.com.br/en/copas/1982/bra
-1982,Spain,bra,Brazil,78,3,Midfield,18,João Batista,Defensive midfielder,73,false,https://7a0.com.br/en/copas/1982/bra
+1982,Spain,bra,Brazil,78,3,Midfield,18,Batista,Defensive midfielder,73,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Midfield,8,Sócrates,Midfielder,91,true,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Midfield,21,Dirceu,Left midfielder,74,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Midfield,10,Zico,Attacking midfielder,94,true,https://7a0.com.br/en/copas/1982/bra
-1982,Spain,bra,Brazil,78,3,Midfield,19,Carlos Renato,Attacking midfielder,70,false,https://7a0.com.br/en/copas/1982/bra
+1982,Spain,bra,Brazil,78,3,Midfield,19,Renato,Attacking midfielder,70,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Attack,9,Serginho,Centre-forward,74,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Attack,20,Roberto Dinamite,Centre-forward,89,false,https://7a0.com.br/en/copas/1982/bra
 1982,Spain,bra,Brazil,78,3,Attack,11,Éder,Left winger,83,false,https://7a0.com.br/en/copas/1982/bra
@@ -2301,7 +2301,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1986,Mexico,bel,Belgium,75,3,Defence,4,Michel De Wolf,Centre-back,72,false,https://7a0.com.br/en/copas/1986/bel
 1986,Mexico,bel,Belgium,75,3,Defence,5,Michel Renquin,Centre-back,73,false,https://7a0.com.br/en/copas/1986/bel
 1986,Mexico,bel,Belgium,75,3,Defence,13,Georges Grün,Centre-back,75,false,https://7a0.com.br/en/copas/1986/bel
-1986,Mexico,bel,Belgium,75,3,Defence,14,Leo Clijsters,Centre-back,74,false,https://7a0.com.br/en/copas/1986/bel
+1986,Mexico,bel,Belgium,75,3,Defence,14,Lei Clijsters,Centre-back,74,false,https://7a0.com.br/en/copas/1986/bel
 1986,Mexico,bel,Belgium,75,3,Defence,19,Hugo Broos,Centre-back,72,false,https://7a0.com.br/en/copas/1986/bel
 1986,Mexico,bel,Belgium,75,3,Defence,21,Stéphane Demol,Centre-back,73,false,https://7a0.com.br/en/copas/1986/bel
 1986,Mexico,bel,Belgium,75,3,Midfield,3,Franky Van Der Elst,Defensive midfielder,76,false,https://7a0.com.br/en/copas/1986/bel
@@ -2316,9 +2316,9 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1986,Mexico,bel,Belgium,75,3,Attack,9,Erwin Vandenbergh,Centre-forward,76,false,https://7a0.com.br/en/copas/1986/bel
 1986,Mexico,bel,Belgium,75,3,Attack,11,Jan Ceulemans,Centre-forward,84,true,https://7a0.com.br/en/copas/1986/bel
 1986,Mexico,bel,Belgium,75,3,Attack,16,Nico Claesen,Centre-forward,76,false,https://7a0.com.br/en/copas/1986/bel
-1986,Mexico,bra,Brazil,79,5,Goalkeepers,1,Carlos Gallo,Goalkeeper,74,false,https://7a0.com.br/en/copas/1986/bra
+1986,Mexico,bra,Brazil,79,5,Goalkeepers,1,Carlos,Goalkeeper,74,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Goalkeepers,12,Paulo Vítor,Goalkeeper,69,false,https://7a0.com.br/en/copas/1986/bra
-1986,Mexico,bra,Brazil,79,5,Goalkeepers,22,Émerson Leão,Goalkeeper,74,false,https://7a0.com.br/en/copas/1986/bra
+1986,Mexico,bra,Brazil,79,5,Goalkeepers,22,Leão,Goalkeeper,74,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Defence,2,Édson,Right-back,75,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Defence,13,Josimar,Right-back,80,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Defence,3,Oscar,Centre-back,80,false,https://7a0.com.br/en/copas/1986/bra
@@ -2335,7 +2335,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1986,Mexico,bra,Brazil,79,5,Midfield,20,Paulo Silas,Attacking midfielder,76,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Midfield,21,Valdo,Attacking midfielder,77,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Attack,7,Müller,Right winger,80,false,https://7a0.com.br/en/copas/1986/bra
-1986,Mexico,bra,Brazil,79,5,Attack,8,Walter Casagrande,Centre-forward,81,false,https://7a0.com.br/en/copas/1986/bra
+1986,Mexico,bra,Brazil,79,5,Attack,8,Casagrande,Centre-forward,81,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Attack,9,Careca,Centre-forward,87,true,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bra,Brazil,79,5,Attack,11,Edivaldo,Left winger,74,false,https://7a0.com.br/en/copas/1986/bra
 1986,Mexico,bul,Bulgaria,75,0,Goalkeepers,1,Borislav Mihaylov,Goalkeeper,80,false,https://7a0.com.br/en/copas/1986/bul
@@ -2385,7 +2385,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1986,Mexico,eng,England,79,2,Goalkeepers,1,Peter Shilton,Goalkeeper,89,true,https://7a0.com.br/en/copas/1986/eng
 1986,Mexico,eng,England,79,2,Goalkeepers,13,Chris Woods,Goalkeeper,74,false,https://7a0.com.br/en/copas/1986/eng
 1986,Mexico,eng,England,79,2,Goalkeepers,22,Gary Bailey,Goalkeeper,72,false,https://7a0.com.br/en/copas/1986/eng
-1986,Mexico,eng,England,79,2,Defence,2,Gary M. Stevens,Right-back,78,false,https://7a0.com.br/en/copas/1986/eng
+1986,Mexico,eng,England,79,2,Defence,2,Gary Stevens,Right-back,78,false,https://7a0.com.br/en/copas/1986/eng
 1986,Mexico,eng,England,79,2,Defence,12,Viv Anderson,Right-back,76,false,https://7a0.com.br/en/copas/1986/eng
 1986,Mexico,eng,England,79,2,Defence,15,Gary A. Stevens,Right-back,72,false,https://7a0.com.br/en/copas/1986/eng
 1986,Mexico,eng,England,79,2,Defence,5,Alvin Martin,Centre-back,74,false,https://7a0.com.br/en/copas/1986/eng
@@ -2590,7 +2590,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1986,Mexico,esp,Spain,78,2,Defence,3,José Antonio Camacho,Left-back,82,false,https://7a0.com.br/en/copas/1986/esp
 1986,Mexico,esp,Spain,78,2,Defence,6,Rafael Gordillo,Left-back,83,false,https://7a0.com.br/en/copas/1986/esp
 1986,Mexico,esp,Spain,78,2,Midfield,17,Francisco,Defensive midfielder,76,false,https://7a0.com.br/en/copas/1986/esp
-1986,Mexico,esp,Spain,78,2,Midfield,5,Víctor Muñoz,Midfielder,79,false,https://7a0.com.br/en/copas/1986/esp
+1986,Mexico,esp,Spain,78,2,Midfield,5,Víctor,Midfielder,79,false,https://7a0.com.br/en/copas/1986/esp
 1986,Mexico,esp,Spain,78,2,Midfield,12,Quique Setién,Midfielder,74,false,https://7a0.com.br/en/copas/1986/esp
 1986,Mexico,esp,Spain,78,2,Midfield,14,Ricardo Gallego,Midfielder,77,false,https://7a0.com.br/en/copas/1986/esp
 1986,Mexico,esp,Spain,78,2,Midfield,18,Ramón Calderé,Midfielder,77,false,https://7a0.com.br/en/copas/1986/esp
@@ -2691,7 +2691,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1990,Italy,cmr,Cameroon,74,2,Attack,18,Bonaventure Djonkep,Left winger,70,false,https://7a0.com.br/en/copas/1990/cmr
 1990,Italy,col,Colombia,76,2,Goalkeepers,1,René Higuita,Goalkeeper,84,true,https://7a0.com.br/en/copas/1990/col
 1990,Italy,col,Colombia,76,2,Goalkeepers,12,Eduardo Niño,Goalkeeper,71,false,https://7a0.com.br/en/copas/1990/col
-1990,Italy,col,Colombia,76,2,Defence,4,Luis Herrera,Right-back,76,false,https://7a0.com.br/en/copas/1990/col
+1990,Italy,col,Colombia,76,2,Defence,4,Luis Fernando Herrera,Right-back,76,false,https://7a0.com.br/en/copas/1990/col
 1990,Italy,col,Colombia,76,2,Defence,2,Andrés Escobar,Centre-back,81,false,https://7a0.com.br/en/copas/1990/col
 1990,Italy,col,Colombia,76,2,Defence,3,Gildardo Gómez,Centre-back,73,false,https://7a0.com.br/en/copas/1990/col
 1990,Italy,col,Colombia,76,2,Defence,6,José Ricardo Pérez,Centre-back,72,false,https://7a0.com.br/en/copas/1990/col
@@ -2754,7 +2754,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1990,Italy,egy,Egypt,75,0,Attack,9,Hossam Hassan,Centre-forward,79,false,https://7a0.com.br/en/copas/1990/egy
 1990,Italy,egy,Egypt,75,0,Attack,19,Adel Abdel Rahman,Centre-forward,73,false,https://7a0.com.br/en/copas/1990/egy
 1990,Italy,egy,Egypt,75,0,Attack,20,Ahmed El-Kass,Centre-forward,74,false,https://7a0.com.br/en/copas/1990/egy
-1990,Italy,egy,Egypt,75,0,Attack,10,Abdelhamid,Left winger,77,false,https://7a0.com.br/en/copas/1990/egy
+1990,Italy,egy,Egypt,75,0,Attack,10,Gamal Abdel-Hamid,Left winger,77,false,https://7a0.com.br/en/copas/1990/egy
 1990,Italy,eng,England,78,4,Goalkeepers,1,Peter Shilton,Goalkeeper,82,true,https://7a0.com.br/en/copas/1990/eng
 1990,Italy,eng,England,78,4,Goalkeepers,13,Chris Woods,Goalkeeper,72,false,https://7a0.com.br/en/copas/1990/eng
 1990,Italy,eng,England,78,4,Goalkeepers,22,Dave Beasant,Goalkeeper,68,false,https://7a0.com.br/en/copas/1990/eng
@@ -3048,7 +3048,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1994,United States,mex,Mexico,77,2,Defence,18,José Luis Salgado,Right-back,71,false,https://7a0.com.br/en/copas/1994/mex
 1994,United States,mex,Mexico,77,2,Defence,21,Raúl Gutiérrez,Right-back,74,false,https://7a0.com.br/en/copas/1994/mex
 1994,United States,mex,Mexico,77,2,Defence,2,Claudio Suárez,Centre-back,82,false,https://7a0.com.br/en/copas/1994/mex
-1994,United States,mex,Mexico,77,2,Defence,3,Juan Ramírez,Centre-back,76,false,https://7a0.com.br/en/copas/1994/mex
+1994,United States,mex,Mexico,77,2,Defence,3,Juan de Dios Ramírez,Centre-back,76,false,https://7a0.com.br/en/copas/1994/mex
 1994,United States,mex,Mexico,77,2,Midfield,4,Ignacio Ambríz,Defensive midfielder,78,false,https://7a0.com.br/en/copas/1994/mex
 1994,United States,mex,Mexico,77,2,Midfield,5,Ramón Ramírez,Defensive midfielder,82,false,https://7a0.com.br/en/copas/1994/mex
 1994,United States,mex,Mexico,77,2,Midfield,6,Marcelino Bernal,Defensive midfielder,76,false,https://7a0.com.br/en/copas/1994/mex
@@ -3115,16 +3115,16 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1994,United States,nor,Norway,77,1,Defence,3,Rune Bratseth,Centre-back,85,true,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Defence,4,Henning Berg,Centre-back,79,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Defence,18,Erland Johnsen,Centre-back,76,false,https://7a0.com.br/en/copas/1994/nor
-1994,United States,nor,Norway,77,1,Defence,19,T. Pedersen,Centre-back,74,false,https://7a0.com.br/en/copas/1994/nor
+1994,United States,nor,Norway,77,1,Defence,19,Tore Pedersen,Centre-back,74,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Defence,5,Stig Inge Bjørnebye,Left-back,79,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Defence,16,Roger Nilsen,Left-back,74,false,https://7a0.com.br/en/copas/1994/nor
-1994,United States,nor,Norway,77,1,Midfield,13,Alf-Inge Håland,Defensive midfielder,77,false,https://7a0.com.br/en/copas/1994/nor
+1994,United States,nor,Norway,77,1,Midfield,13,Alf-Inge Haaland,Defensive midfielder,77,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Midfield,8,Øyvind Leonhardsen,Right midfielder,80,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Midfield,21,Roar Strand,Right midfielder,74,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Midfield,6,Erik Mykland,Midfielder,79,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Midfield,9,Kjetil Rekdal,Midfielder,81,false,https://7a0.com.br/en/copas/1994/nor
-1994,United States,nor,Norway,77,1,Midfield,17,Ingebrigtsen,Midfielder,74,false,https://7a0.com.br/en/copas/1994/nor
-1994,United States,nor,Norway,77,1,Midfield,20,Ø. Berg,Midfielder,73,false,https://7a0.com.br/en/copas/1994/nor
+1994,United States,nor,Norway,77,1,Midfield,17,Kåre Ingebrigtsen,Midfielder,74,false,https://7a0.com.br/en/copas/1994/nor
+1994,United States,nor,Norway,77,1,Midfield,20,Ørjan Berg,Midfielder,73,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Midfield,7,Lars Bohinen,Attacking midfielder,80,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Attack,15,Jostein Flo,Right winger,78,false,https://7a0.com.br/en/copas/1994/nor
 1994,United States,nor,Norway,77,1,Attack,10,Jan Åge Fjørtoft,Centre-forward,80,false,https://7a0.com.br/en/copas/1994/nor
@@ -3238,7 +3238,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1998,France,bra,Brazil,80,4,Midfield,10,Rivaldo,Attacking midfielder,90,true,https://7a0.com.br/en/copas/1998/bra
 1998,France,bra,Brazil,80,4,Attack,9,Ronaldo,Centre-forward,95,true,https://7a0.com.br/en/copas/1998/bra
 1998,France,bra,Brazil,80,4,Attack,20,Bebeto,Centre-forward,80,false,https://7a0.com.br/en/copas/1998/bra
-1998,France,bra,Brazil,80,4,Attack,21,Edmilton,Centre-forward,79,false,https://7a0.com.br/en/copas/1998/bra
+1998,France,bra,Brazil,80,4,Attack,21,Edmundo,Centre-forward,79,false,https://7a0.com.br/en/copas/1998/bra
 1998,France,bra,Brazil,80,4,Attack,19,Denílson,Left winger,77,false,https://7a0.com.br/en/copas/1998/bra
 1998,France,chi,Chile,77,2,Goalkeepers,1,Nelson Tapia,Goalkeeper,77,false,https://7a0.com.br/en/copas/1998/chi
 1998,France,chi,Chile,77,2,Goalkeepers,12,Marcelo Ramírez,Goalkeeper,73,false,https://7a0.com.br/en/copas/1998/chi
@@ -3476,7 +3476,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 1998,France,nor,Norway,78,1,Midfield,6,Ståle Solbakken,Midfielder,77,false,https://7a0.com.br/en/copas/1998/nor
 1998,France,nor,Norway,78,1,Midfield,7,Erik Mykland,Midfielder,80,false,https://7a0.com.br/en/copas/1998/nor
 1998,France,nor,Norway,78,1,Midfield,10,Kjetil Rekdal,Midfielder,82,false,https://7a0.com.br/en/copas/1998/nor
-1998,France,nor,Norway,78,1,Midfield,11,Rudi,Left midfielder,76,false,https://7a0.com.br/en/copas/1998/nor
+1998,France,nor,Norway,78,1,Midfield,11,Petter Rudi,Left midfielder,76,false,https://7a0.com.br/en/copas/1998/nor
 1998,France,nor,Norway,78,1,Attack,16,Jostein Flo,Right winger,75,false,https://7a0.com.br/en/copas/1998/nor
 1998,France,nor,Norway,78,1,Attack,9,Tore André Flo,Centre-forward,85,false,https://7a0.com.br/en/copas/1998/nor
 1998,France,nor,Norway,78,1,Attack,17,Håvard Flo,Centre-forward,76,false,https://7a0.com.br/en/copas/1998/nor
@@ -3571,7 +3571,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2002,South Korea/Japan,arg,Argentina,82,3,Attack,9,Gabriel Batistuta,Centre-forward,93,true,https://7a0.com.br/en/copas/2002/arg
 2002,South Korea/Japan,arg,Argentina,82,3,Attack,19,Hernán Crespo,Centre-forward,88,false,https://7a0.com.br/en/copas/2002/arg
 2002,South Korea/Japan,arg,Argentina,82,3,Attack,21,Claudio Caniggia,Centre-forward,85,false,https://7a0.com.br/en/copas/2002/arg
-2002,South Korea/Japan,bra,Brazil,81,6,Goalkeepers,1,Marcão,Goalkeeper,88,false,https://7a0.com.br/en/copas/2002/bra
+2002,South Korea/Japan,bra,Brazil,81,6,Goalkeepers,1,Marcos,Goalkeeper,88,false,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Goalkeepers,12,Dida,Goalkeeper,80,false,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Goalkeepers,22,Rogério Ceni,Goalkeeper,75,false,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Defence,2,Cafu,Right-back,89,true,https://7a0.com.br/en/copas/2002/bra
@@ -3584,7 +3584,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2002,South Korea/Japan,bra,Brazil,81,6,Defence,16,Júnior,Left-back,76,false,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Midfield,7,Ricardinho,Defensive midfielder,75,false,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Midfield,8,Gilberto Silva,Defensive midfielder,85,false,https://7a0.com.br/en/copas/2002/bra
-2002,South Korea/Japan,bra,Brazil,81,6,Midfield,15,José Kléberson,Defensive midfielder,76,false,https://7a0.com.br/en/copas/2002/bra
+2002,South Korea/Japan,bra,Brazil,81,6,Midfield,15,Kléberson,Defensive midfielder,76,false,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Midfield,18,Vampeta,Defensive midfielder,74,false,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Midfield,10,Rivaldo,Attacking midfielder,92,true,https://7a0.com.br/en/copas/2002/bra
 2002,South Korea/Japan,bra,Brazil,81,6,Midfield,11,Ronaldinho,Attacking midfielder,90,true,https://7a0.com.br/en/copas/2002/bra
@@ -3611,7 +3611,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2002,South Korea/Japan,cmr,Cameroon,74,2,Midfield,19,Eric Djemba-Djemba,Midfielder,74,false,https://7a0.com.br/en/copas/2002/cmr
 2002,South Korea/Japan,cmr,Cameroon,74,2,Midfield,20,Salomon Olembé,Left midfielder,74,false,https://7a0.com.br/en/copas/2002/cmr
 2002,South Korea/Japan,cmr,Cameroon,74,2,Midfield,14,Joël Epalle,Attacking midfielder,69,false,https://7a0.com.br/en/copas/2002/cmr
-2002,South Korea/Japan,cmr,Cameroon,74,2,Midfield,23,Daniel Ngom Kome,Attacking midfielder,67,false,https://7a0.com.br/en/copas/2002/cmr
+2002,South Korea/Japan,cmr,Cameroon,74,2,Midfield,23,Daniel N'Gom Kome,Attacking midfielder,67,false,https://7a0.com.br/en/copas/2002/cmr
 2002,South Korea/Japan,cmr,Cameroon,74,2,Attack,9,Samuel Eto'o,Centre-forward,83,true,https://7a0.com.br/en/copas/2002/cmr
 2002,South Korea/Japan,cmr,Cameroon,74,2,Attack,10,Patrick Mboma,Centre-forward,83,false,https://7a0.com.br/en/copas/2002/cmr
 2002,South Korea/Japan,cmr,Cameroon,74,2,Attack,18,Patrick Suffo,Centre-forward,72,false,https://7a0.com.br/en/copas/2002/cmr
@@ -3822,7 +3822,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2002,South Korea/Japan,nga,Nigeria,77,3,Attack,23,Femi Opabunmi,Left winger,72,false,https://7a0.com.br/en/copas/2002/nga
 2002,South Korea/Japan,por,Portugal,78,2,Goalkeepers,1,Vítor Baía,Goalkeeper,80,false,https://7a0.com.br/en/copas/2002/por
 2002,South Korea/Japan,por,Portugal,78,2,Goalkeepers,15,Nélson Pereira,Goalkeeper,73,false,https://7a0.com.br/en/copas/2002/por
-2002,South Korea/Japan,por,Portugal,78,2,Goalkeepers,16,Ricardo Pereira,Goalkeeper,76,false,https://7a0.com.br/en/copas/2002/por
+2002,South Korea/Japan,por,Portugal,78,2,Goalkeepers,16,Ricardo,Goalkeeper,76,false,https://7a0.com.br/en/copas/2002/por
 2002,South Korea/Japan,por,Portugal,78,2,Defence,3,Abel Xavier,Right-back,78,false,https://7a0.com.br/en/copas/2002/por
 2002,South Korea/Japan,por,Portugal,78,2,Defence,18,Nuno Frechaut,Right-back,73,false,https://7a0.com.br/en/copas/2002/por
 2002,South Korea/Japan,por,Portugal,78,2,Defence,2,Jorge Costa,Centre-back,81,false,https://7a0.com.br/en/copas/2002/por
@@ -4350,7 +4350,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2010,South Africa,arg,Argentina,81,2,Goalkeepers,21,Mariano Andújar,Goalkeeper,76,false,https://7a0.com.br/en/copas/2010/arg
 2010,South Africa,arg,Argentina,81,2,Goalkeepers,22,Sergio Romero,Goalkeeper,82,false,https://7a0.com.br/en/copas/2010/arg
 2010,South Africa,arg,Argentina,81,2,Defence,12,Ariel Garcé,Right-back,72,false,https://7a0.com.br/en/copas/2010/arg
-2010,South Africa,arg,Argentina,81,2,Defence,17,Jonás Bravo,Right-back,77,false,https://7a0.com.br/en/copas/2010/arg
+2010,South Africa,arg,Argentina,81,2,Defence,17,Jonás Gutiérrez,Right-back,77,false,https://7a0.com.br/en/copas/2010/arg
 2010,South Africa,arg,Argentina,81,2,Defence,2,Martín Demichelis,Centre-back,82,false,https://7a0.com.br/en/copas/2010/arg
 2010,South Africa,arg,Argentina,81,2,Defence,4,Nicolás Burdisso,Centre-back,78,false,https://7a0.com.br/en/copas/2010/arg
 2010,South Africa,arg,Argentina,81,2,Defence,13,Walter Samuel,Centre-back,81,false,https://7a0.com.br/en/copas/2010/arg
@@ -4384,7 +4384,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2010,South Africa,bra,Brazil,82,2,Midfield,17,Josué,Defensive midfielder,78,false,https://7a0.com.br/en/copas/2010/bra
 2010,South Africa,bra,Brazil,82,2,Midfield,10,Kaká,Midfielder,91,true,https://7a0.com.br/en/copas/2010/bra
 2010,South Africa,bra,Brazil,82,2,Midfield,18,Ramires,Midfielder,81,false,https://7a0.com.br/en/copas/2010/bra
-2010,South Africa,bra,Brazil,82,2,Midfield,20,José Kléberson,Midfielder,75,false,https://7a0.com.br/en/copas/2010/bra
+2010,South Africa,bra,Brazil,82,2,Midfield,20,Kléberson,Midfielder,75,false,https://7a0.com.br/en/copas/2010/bra
 2010,South Africa,bra,Brazil,82,2,Midfield,7,Elano,Attacking midfielder,85,false,https://7a0.com.br/en/copas/2010/bra
 2010,South Africa,bra,Brazil,82,2,Attack,9,Luís Fabiano,Centre-forward,85,false,https://7a0.com.br/en/copas/2010/bra
 2010,South Africa,bra,Brazil,82,2,Attack,11,Robinho,Centre-forward,86,false,https://7a0.com.br/en/copas/2010/bra
@@ -4782,7 +4782,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2014,Brazil,alg,Algeria,77,0,Goalkeepers,1,Cédric Si Mohamed,Goalkeeper,73,false,https://7a0.com.br/en/copas/2014/alg
 2014,Brazil,alg,Algeria,77,0,Goalkeepers,16,Mohamed Lamine Zemmamouche,Goalkeeper,73,false,https://7a0.com.br/en/copas/2014/alg
 2014,Brazil,alg,Algeria,77,0,Goalkeepers,23,Raïs M'Bolhi,Goalkeeper,80,false,https://7a0.com.br/en/copas/2014/alg
-2014,Brazil,alg,Algeria,77,0,Defence,17,Liassine Cadamuro,Right-back,73,false,https://7a0.com.br/en/copas/2014/alg
+2014,Brazil,alg,Algeria,77,0,Defence,17,Liassine Cadamuro-Bentaïba,Right-back,73,false,https://7a0.com.br/en/copas/2014/alg
 2014,Brazil,alg,Algeria,77,0,Defence,2,Madjid Bougherra,Centre-back,78,false,https://7a0.com.br/en/copas/2014/alg
 2014,Brazil,alg,Algeria,77,0,Defence,4,Essaïd Belkalem,Centre-back,74,false,https://7a0.com.br/en/copas/2014/alg
 2014,Brazil,alg,Algeria,77,0,Defence,5,Rafik Halliche,Centre-back,76,false,https://7a0.com.br/en/copas/2014/alg
@@ -4912,7 +4912,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2014,Brazil,col,Colombia,78,1,Midfield,10,James Rodríguez,Attacking midfielder,93,true,https://7a0.com.br/en/copas/2014/col
 2014,Brazil,col,Colombia,78,1,Midfield,20,Juan Fernando Quintero,Attacking midfielder,77,false,https://7a0.com.br/en/copas/2014/col
 2014,Brazil,col,Colombia,78,1,Attack,11,Juan Cuadrado,Right winger,84,false,https://7a0.com.br/en/copas/2014/col
-2014,Brazil,col,Colombia,78,1,Attack,9,Teo,Centre-forward,80,false,https://7a0.com.br/en/copas/2014/col
+2014,Brazil,col,Colombia,78,1,Attack,9,Teófilo Gutiérrez,Centre-forward,80,false,https://7a0.com.br/en/copas/2014/col
 2014,Brazil,col,Colombia,78,1,Attack,17,Carlos Bacca,Centre-forward,80,false,https://7a0.com.br/en/copas/2014/col
 2014,Brazil,col,Colombia,78,1,Attack,19,Adrián Ramos,Centre-forward,77,false,https://7a0.com.br/en/copas/2014/col
 2014,Brazil,col,Colombia,78,1,Attack,21,Jackson Martínez,Centre-forward,82,false,https://7a0.com.br/en/copas/2014/col
@@ -4996,7 +4996,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2014,Brazil,gha,Ghana,77,2,Defence,21,John Boye,Centre-back,76,false,https://7a0.com.br/en/copas/2014/gha
 2014,Brazil,gha,Ghana,77,2,Midfield,5,Michael Essien,Defensive midfielder,82,true,https://7a0.com.br/en/copas/2014/gha
 2014,Brazil,gha,Ghana,77,2,Midfield,6,Afriyie Acquah,Defensive midfielder,74,false,https://7a0.com.br/en/copas/2014/gha
-2014,Brazil,gha,Ghana,77,2,Midfield,8,Emmanuel Badu,Defensive midfielder,77,false,https://7a0.com.br/en/copas/2014/gha
+2014,Brazil,gha,Ghana,77,2,Midfield,8,Emmanuel Agyemang-Badu,Defensive midfielder,77,false,https://7a0.com.br/en/copas/2014/gha
 2014,Brazil,gha,Ghana,77,2,Midfield,17,Mohammed Rabiu,Defensive midfielder,73,false,https://7a0.com.br/en/copas/2014/gha
 2014,Brazil,gha,Ghana,77,2,Midfield,22,Mubarak Wakaso,Defensive midfielder,78,false,https://7a0.com.br/en/copas/2014/gha
 2014,Brazil,gha,Ghana,77,2,Midfield,9,Kevin-Prince Boateng,Midfielder,84,false,https://7a0.com.br/en/copas/2014/gha
@@ -5037,7 +5037,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2014,Brazil,ita,Italy,79,0,Defence,4,Matteo Darmian,Right-back,76,false,https://7a0.com.br/en/copas/2014/ita
 2014,Brazil,ita,Italy,79,0,Defence,7,Ignazio Abate,Right-back,77,false,https://7a0.com.br/en/copas/2014/ita
 2014,Brazil,ita,Italy,79,0,Defence,3,Giorgio Chiellini,Centre-back,85,false,https://7a0.com.br/en/copas/2014/ita
-2014,Brazil,ita,Italy,79,0,Defence,13,Astori,Centre-back,75,false,https://7a0.com.br/en/copas/2014/ita
+2014,Brazil,ita,Italy,79,0,Defence,13,Davide Astori,Centre-back,75,false,https://7a0.com.br/en/copas/2014/ita
 2014,Brazil,ita,Italy,79,0,Defence,15,Andrea Barzagli,Centre-back,82,false,https://7a0.com.br/en/copas/2014/ita
 2014,Brazil,ita,Italy,79,0,Defence,19,Leonardo Bonucci,Centre-back,82,false,https://7a0.com.br/en/copas/2014/ita
 2014,Brazil,ita,Italy,79,0,Defence,20,Gabriel Paletta,Centre-back,74,false,https://7a0.com.br/en/copas/2014/ita
@@ -5076,7 +5076,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2014,Brazil,civ,Ivory Coast,77,1,Attack,6,Mathis Bolly,Left winger,72,false,https://7a0.com.br/en/copas/2014/civ
 2014,Brazil,civ,Ivory Coast,77,1,Attack,8,Salomon Kalou,Left winger,80,false,https://7a0.com.br/en/copas/2014/civ
 2014,Brazil,civ,Ivory Coast,77,1,Attack,15,Max Gradel,Left winger,78,false,https://7a0.com.br/en/copas/2014/civ
-2014,Brazil,mex,Mexico,79,1,Goalkeepers,1,Jesús Corona,Goalkeeper,78,false,https://7a0.com.br/en/copas/2014/mex
+2014,Brazil,mex,Mexico,79,1,Goalkeepers,1,José de Jesús Corona,Goalkeeper,78,false,https://7a0.com.br/en/copas/2014/mex
 2014,Brazil,mex,Mexico,79,1,Goalkeepers,12,Alfredo Talavera,Goalkeeper,76,false,https://7a0.com.br/en/copas/2014/mex
 2014,Brazil,mex,Mexico,79,1,Goalkeepers,13,Guillermo Ochoa,Goalkeeper,84,false,https://7a0.com.br/en/copas/2014/mex
 2014,Brazil,mex,Mexico,79,1,Defence,7,Miguel Layun,Right-back,79,false,https://7a0.com.br/en/copas/2014/mex
@@ -5465,13 +5465,13 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2018,Russia,jpn,Japan,77,0,Goalkeepers,1,Eiji Kawashima,Goalkeeper,76,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Goalkeepers,12,Masaaki Higashiguchi,Goalkeeper,73,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Goalkeepers,23,Kosuke Nakamura,Goalkeeper,71,false,https://7a0.com.br/en/copas/2018/jpn
-2018,Russia,jpn,Japan,77,0,Defence,19,Hiroki Sakai H.,Right-back,79,false,https://7a0.com.br/en/copas/2018/jpn
+2018,Russia,jpn,Japan,77,0,Defence,19,Hiroki Sakai,Right-back,79,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Defence,2,Naomichi Ueda,Centre-back,72,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Defence,3,Gen Shoji,Centre-back,78,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Defence,20,Tomoaki Makino,Centre-back,73,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Defence,22,Maya Yoshida,Centre-back,81,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Defence,5,Yūto Nagatomo,Left-back,81,false,https://7a0.com.br/en/copas/2018/jpn
-2018,Russia,jpn,Japan,77,0,Defence,21,Gōtoku Sakai G.,Left-back,75,false,https://7a0.com.br/en/copas/2018/jpn
+2018,Russia,jpn,Japan,77,0,Defence,21,Gōtoku Sakai,Left-back,75,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Midfield,6,Wataru Endō,Defensive midfielder,73,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Midfield,7,Gaku Shibasaki,Defensive midfielder,79,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Midfield,16,Hotaru Yamaguchi,Defensive midfielder,76,false,https://7a0.com.br/en/copas/2018/jpn
@@ -5485,7 +5485,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2018,Russia,jpn,Japan,77,0,Attack,15,Yuya Osako,Centre-forward,79,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Attack,11,Takashi Usami,Left winger,74,false,https://7a0.com.br/en/copas/2018/jpn
 2018,Russia,jpn,Japan,77,0,Attack,14,Takashi Inui,Left winger,80,false,https://7a0.com.br/en/copas/2018/jpn
-2018,Russia,mar,Morocco,77,2,Goalkeepers,1,Yassine Bono,Goalkeeper,80,false,https://7a0.com.br/en/copas/2018/mar
+2018,Russia,mar,Morocco,77,2,Goalkeepers,1,Yassine Bounou,Goalkeeper,80,false,https://7a0.com.br/en/copas/2018/mar
 2018,Russia,mar,Morocco,77,2,Goalkeepers,12,Ahmed Reda Tagnaouti,Goalkeeper,70,false,https://7a0.com.br/en/copas/2018/mar
 2018,Russia,mar,Morocco,77,2,Goalkeepers,21,Munir Mohamedi,Goalkeeper,74,false,https://7a0.com.br/en/copas/2018/mar
 2018,Russia,mar,Morocco,77,2,Defence,2,Achraf Hakimi,Right-back,83,false,https://7a0.com.br/en/copas/2018/mar
@@ -5609,11 +5609,11 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2018,Russia,sen,Senegal,78,1,Defence,6,Salif Sané,Centre-back,79,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Defence,2,Adama Mbengué,Left-back,75,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Defence,12,Youssouf Sabaly,Left-back,78,false,https://7a0.com.br/en/copas/2018/sen
-2018,Russia,sen,Senegal,78,1,Midfield,5,Idrissa Gana Gueye,Defensive midfielder,81,false,https://7a0.com.br/en/copas/2018/sen
+2018,Russia,sen,Senegal,78,1,Midfield,5,Idrissa Gueye,Defensive midfielder,81,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Midfield,8,Cheikhou Kouyaté,Defensive midfielder,80,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Midfield,11,Cheikh N'Doye,Defensive midfielder,76,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Midfield,13,Alfred N'Diaye,Defensive midfielder,77,false,https://7a0.com.br/en/copas/2018/sen
-2018,Russia,sen,Senegal,78,1,Midfield,17,Badou N'Diaye,Midfielder,79,false,https://7a0.com.br/en/copas/2018/sen
+2018,Russia,sen,Senegal,78,1,Midfield,17,Badou Ndiaye,Midfielder,79,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Attack,18,Ismaïla Sarr,Right winger,78,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Attack,7,Moussa Sow,Centre-forward,76,false,https://7a0.com.br/en/copas/2018/sen
 2018,Russia,sen,Senegal,78,1,Attack,9,Mame Biram Diouf,Centre-forward,78,false,https://7a0.com.br/en/copas/2018/sen
@@ -5647,7 +5647,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2018,Russia,kor,South Korea,74,0,Attack,18,Moon Seon-min,Left winger,70,false,https://7a0.com.br/en/copas/2018/kor
 2018,Russia,esp,Spain,84,2,Goalkeepers,1,David De Gea,Goalkeeper,85,false,https://7a0.com.br/en/copas/2018/esp
 2018,Russia,esp,Spain,84,2,Goalkeepers,13,Kepa Arrizabalaga,Goalkeeper,76,false,https://7a0.com.br/en/copas/2018/esp
-2018,Russia,esp,Spain,84,2,Goalkeepers,23,S. Rico,Goalkeeper,74,false,https://7a0.com.br/en/copas/2018/esp
+2018,Russia,esp,Spain,84,2,Goalkeepers,23,Sergio Rico,Goalkeeper,74,false,https://7a0.com.br/en/copas/2018/esp
 2018,Russia,esp,Spain,84,2,Defence,2,Dani Carvajal,Right-back,85,false,https://7a0.com.br/en/copas/2018/esp
 2018,Russia,esp,Spain,84,2,Defence,14,César Azpilicueta,Right-back,83,false,https://7a0.com.br/en/copas/2018/esp
 2018,Russia,esp,Spain,84,2,Defence,3,Gerard Piqué,Centre-back,88,false,https://7a0.com.br/en/copas/2018/esp
@@ -5718,7 +5718,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2018,Russia,uru,Uruguay,78,3,Goalkeepers,23,Martín Silva,Goalkeeper,74,false,https://7a0.com.br/en/copas/2018/uru
 2018,Russia,uru,Uruguay,78,3,Defence,4,Guillermo Varela,Right-back,75,false,https://7a0.com.br/en/copas/2018/uru
 2018,Russia,uru,Uruguay,78,3,Defence,16,Maxi Pereira,Right-back,77,false,https://7a0.com.br/en/copas/2018/uru
-2018,Russia,uru,Uruguay,78,3,Defence,2,José Giménez,Centre-back,82,false,https://7a0.com.br/en/copas/2018/uru
+2018,Russia,uru,Uruguay,78,3,Defence,2,José María Giménez,Centre-back,82,false,https://7a0.com.br/en/copas/2018/uru
 2018,Russia,uru,Uruguay,78,3,Defence,3,Diego Godín,Centre-back,86,true,https://7a0.com.br/en/copas/2018/uru
 2018,Russia,uru,Uruguay,78,3,Defence,19,Sebastián Coates,Centre-back,76,false,https://7a0.com.br/en/copas/2018/uru
 2018,Russia,uru,Uruguay,78,3,Defence,22,Martín Cáceres,Centre-back,78,false,https://7a0.com.br/en/copas/2018/uru
@@ -5822,14 +5822,14 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,bra,Brazil,81,1,Defence,3,Thiago Silva,Centre-back,85,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Defence,4,Marquinhos,Centre-back,86,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Defence,14,Éder Militão,Centre-back,85,false,https://7a0.com.br/en/copas/2022/bra
-2022,Qatar,bra,Brazil,81,1,Defence,24,Gleison Bremer,Centre-back,79,false,https://7a0.com.br/en/copas/2022/bra
+2022,Qatar,bra,Brazil,81,1,Defence,24,Bremer,Centre-back,79,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Defence,6,Alex Sandro,Left-back,78,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Defence,16,Alex Telles,Left-back,75,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Midfield,5,Casemiro,Defensive midfielder,87,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Midfield,8,Fred,Defensive midfielder,77,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Midfield,15,Fabinho,Defensive midfielder,81,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Midfield,17,Bruno Guimarães,Defensive midfielder,81,false,https://7a0.com.br/en/copas/2022/bra
-2022,Qatar,bra,Brazil,81,1,Midfield,22,Evertom R.,Defensive midfielder,74,false,https://7a0.com.br/en/copas/2022/bra
+2022,Qatar,bra,Brazil,81,1,Midfield,22,Éverton Ribeiro,Defensive midfielder,74,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Midfield,7,Lucas Paquetá,Attacking midfielder,81,false,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Midfield,10,Neymar,Attacking midfielder,91,true,https://7a0.com.br/en/copas/2022/bra
 2022,Qatar,bra,Brazil,81,1,Attack,11,Raphinha,Right winger,82,false,https://7a0.com.br/en/copas/2022/bra
@@ -5852,7 +5852,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,cmr,Cameroon,74,0,Defence,3,Nouhou,Left-back,73,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Midfield,6,Gaël Ondoua,Defensive midfielder,72,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Midfield,8,André-Frank Zambo Anguissa,Defensive midfielder,81,false,https://7a0.com.br/en/copas/2022/cmr
-2022,Qatar,cmr,Cameroon,74,0,Midfield,17,Samuel Oum Gouet,Defensive midfielder,72,false,https://7a0.com.br/en/copas/2022/cmr
+2022,Qatar,cmr,Cameroon,74,0,Midfield,17,Samuel Gouet,Defensive midfielder,72,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Midfield,18,Martin Hongla,Defensive midfielder,73,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Midfield,7,Olivier Ntcham,Midfielder,73,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Midfield,15,Pierre Kunde,Midfielder,74,false,https://7a0.com.br/en/copas/2022/cmr
@@ -5861,7 +5861,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,cmr,Cameroon,74,0,Attack,24,Moumi Ngamaleu,Right winger,72,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Attack,9,Eric Maxim Choupo-Moting,Centre-forward,79,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Attack,10,Vincent Aboubakar,Centre-forward,78,false,https://7a0.com.br/en/copas/2022/cmr
-2022,Qatar,cmr,Cameroon,74,0,Attack,13,Ganago,Centre-forward,71,false,https://7a0.com.br/en/copas/2022/cmr
+2022,Qatar,cmr,Cameroon,74,0,Attack,13,Ignatius Ganago,Centre-forward,71,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Attack,25,Jean-Pierre Nsame,Centre-forward,72,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Attack,11,Christian Bassogog,Left winger,73,false,https://7a0.com.br/en/copas/2022/cmr
 2022,Qatar,cmr,Cameroon,74,0,Attack,12,Karl Toko Ekambi,Left winger,76,false,https://7a0.com.br/en/copas/2022/cmr
@@ -5918,7 +5918,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,den,Denmark,76,0,Defence,18,Daniel Wass,Right-back,74,false,https://7a0.com.br/en/copas/2022/den
 2022,Qatar,den,Denmark,76,0,Defence,26,Alexander Bah,Right-back,74,false,https://7a0.com.br/en/copas/2022/den
 2022,Qatar,den,Denmark,76,0,Defence,2,Joachim Andersen,Centre-back,78,false,https://7a0.com.br/en/copas/2022/den
-2022,Qatar,den,Denmark,76,0,Defence,3,Vestergaard,Centre-back,75,false,https://7a0.com.br/en/copas/2022/den
+2022,Qatar,den,Denmark,76,0,Defence,3,Jannik Vestergaard,Centre-back,75,false,https://7a0.com.br/en/copas/2022/den
 2022,Qatar,den,Denmark,76,0,Defence,4,Simon Kjær,Centre-back,80,false,https://7a0.com.br/en/copas/2022/den
 2022,Qatar,den,Denmark,76,0,Defence,6,Andreas Christensen,Centre-back,81,false,https://7a0.com.br/en/copas/2022/den
 2022,Qatar,den,Denmark,76,0,Defence,24,Victor Nelsson,Centre-back,74,false,https://7a0.com.br/en/copas/2022/den
@@ -6054,7 +6054,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,gha,Ghana,74,0,Defence,14,Gideon Mensah,Left-back,72,false,https://7a0.com.br/en/copas/2022/gha
 2022,Qatar,gha,Ghana,74,0,Defence,17,Baba Rahman,Left-back,72,false,https://7a0.com.br/en/copas/2022/gha
 2022,Qatar,gha,Ghana,74,0,Midfield,5,Thomas Partey,Defensive midfielder,84,false,https://7a0.com.br/en/copas/2022/gha
-2022,Qatar,gha,Ghana,74,0,Midfield,15,I. Baba,Defensive midfielder,71,false,https://7a0.com.br/en/copas/2022/gha
+2022,Qatar,gha,Ghana,74,0,Midfield,15,Iddrisu Baba,Defensive midfielder,71,false,https://7a0.com.br/en/copas/2022/gha
 2022,Qatar,gha,Ghana,74,0,Midfield,21,Salis Abdul Samed,Defensive midfielder,73,false,https://7a0.com.br/en/copas/2022/gha
 2022,Qatar,gha,Ghana,74,0,Midfield,8,Daniel-Kofi Kyereh,Attacking midfielder,73,false,https://7a0.com.br/en/copas/2022/gha
 2022,Qatar,gha,Ghana,74,0,Midfield,10,André Ayew,Attacking midfielder,77,false,https://7a0.com.br/en/copas/2022/gha
@@ -6070,7 +6070,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,jpn,Japan,75,0,Goalkeepers,12,Shūichi Gonda,Goalkeeper,73,false,https://7a0.com.br/en/copas/2022/jpn
 2022,Qatar,jpn,Japan,75,0,Goalkeepers,23,Daniel Schmidt,Goalkeeper,70,false,https://7a0.com.br/en/copas/2022/jpn
 2022,Qatar,jpn,Japan,75,0,Defence,2,Miki Yamane,Right-back,73,false,https://7a0.com.br/en/copas/2022/jpn
-2022,Qatar,jpn,Japan,75,0,Defence,19,Hiroki Sakai H.,Right-back,74,false,https://7a0.com.br/en/copas/2022/jpn
+2022,Qatar,jpn,Japan,75,0,Defence,19,Hiroki Sakai,Right-back,74,false,https://7a0.com.br/en/copas/2022/jpn
 2022,Qatar,jpn,Japan,75,0,Defence,3,Shōgo Taniguchi,Centre-back,73,false,https://7a0.com.br/en/copas/2022/jpn
 2022,Qatar,jpn,Japan,75,0,Defence,4,Kō Itakura,Centre-back,77,false,https://7a0.com.br/en/copas/2022/jpn
 2022,Qatar,jpn,Japan,75,0,Defence,16,Takehiro Tomiyasu,Centre-back,81,false,https://7a0.com.br/en/copas/2022/jpn
@@ -6092,7 +6092,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,jpn,Japan,75,0,Attack,25,Daizen Maeda,Centre-forward,74,false,https://7a0.com.br/en/copas/2022/jpn
 2022,Qatar,jpn,Japan,75,0,Attack,9,Kaoru Mitoma,Left winger,83,false,https://7a0.com.br/en/copas/2022/jpn
 2022,Qatar,jpn,Japan,75,0,Attack,24,Yūki Sōma,Left winger,69,false,https://7a0.com.br/en/copas/2022/jpn
-2022,Qatar,mar,Morocco,75,1,Goalkeepers,1,Yassine Bono,Goalkeeper,87,false,https://7a0.com.br/en/copas/2022/mar
+2022,Qatar,mar,Morocco,75,1,Goalkeepers,1,Yassine Bounou,Goalkeeper,87,false,https://7a0.com.br/en/copas/2022/mar
 2022,Qatar,mar,Morocco,75,1,Goalkeepers,12,Munir Mohamedi,Goalkeeper,70,false,https://7a0.com.br/en/copas/2022/mar
 2022,Qatar,mar,Morocco,75,1,Goalkeepers,22,Ahmed Reda Tagnaouti,Goalkeeper,69,false,https://7a0.com.br/en/copas/2022/mar
 2022,Qatar,mar,Morocco,75,1,Defence,2,Achraf Hakimi,Right-back,88,true,https://7a0.com.br/en/copas/2022/mar
@@ -6202,7 +6202,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,sen,Senegal,79,1,Defence,22,Abdou Diallo,Centre-back,80,false,https://7a0.com.br/en/copas/2022/sen
 2022,Qatar,sen,Senegal,79,1,Defence,12,Fodé Ballo-Touré,Left-back,75,false,https://7a0.com.br/en/copas/2022/sen
 2022,Qatar,sen,Senegal,79,1,Defence,14,Ismail Jakobs,Left-back,77,false,https://7a0.com.br/en/copas/2022/sen
-2022,Qatar,sen,Senegal,79,1,Midfield,5,Idrissa Gana Gueye,Defensive midfielder,86,false,https://7a0.com.br/en/copas/2022/sen
+2022,Qatar,sen,Senegal,79,1,Midfield,5,Idrissa Gueye,Defensive midfielder,86,false,https://7a0.com.br/en/copas/2022/sen
 2022,Qatar,sen,Senegal,79,1,Midfield,6,Nampalys Mendy,Defensive midfielder,77,false,https://7a0.com.br/en/copas/2022/sen
 2022,Qatar,sen,Senegal,79,1,Midfield,8,Cheikhou Kouyaté,Defensive midfielder,78,false,https://7a0.com.br/en/copas/2022/sen
 2022,Qatar,sen,Senegal,79,1,Midfield,26,Pape Gueye,Defensive midfielder,74,false,https://7a0.com.br/en/copas/2022/sen
@@ -6297,7 +6297,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,uru,Uruguay,78,3,Goalkeepers,23,Sergio Rochet,Goalkeeper,78,false,https://7a0.com.br/en/copas/2022/uru
 2022,Qatar,uru,Uruguay,78,3,Defence,13,Guillermo Varela,Right-back,76,false,https://7a0.com.br/en/copas/2022/uru
 2022,Qatar,uru,Uruguay,78,3,Defence,26,José Luis Rodríguez,Right-back,72,false,https://7a0.com.br/en/copas/2022/uru
-2022,Qatar,uru,Uruguay,78,3,Defence,2,José Giménez,Centre-back,83,false,https://7a0.com.br/en/copas/2022/uru
+2022,Qatar,uru,Uruguay,78,3,Defence,2,José María Giménez,Centre-back,83,false,https://7a0.com.br/en/copas/2022/uru
 2022,Qatar,uru,Uruguay,78,3,Defence,3,Diego Godín,Centre-back,79,true,https://7a0.com.br/en/copas/2022/uru
 2022,Qatar,uru,Uruguay,78,3,Defence,4,Ronald Araújo,Centre-back,84,false,https://7a0.com.br/en/copas/2022/uru
 2022,Qatar,uru,Uruguay,78,3,Defence,19,Sebastián Coates,Centre-back,78,false,https://7a0.com.br/en/copas/2022/uru
@@ -6328,7 +6328,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2022,Qatar,wal,Wales,73,0,Defence,5,Chris Mepham,Centre-back,73,false,https://7a0.com.br/en/copas/2022/wal
 2022,Qatar,wal,Wales,73,0,Defence,6,Joe Rodon,Centre-back,75,false,https://7a0.com.br/en/copas/2022/wal
 2022,Qatar,wal,Wales,73,0,Defence,24,Tom Lockyer,Centre-back,72,false,https://7a0.com.br/en/copas/2022/wal
-2022,Qatar,wal,Wales,73,0,Defence,17,Norrington-Davies,Left-back,71,false,https://7a0.com.br/en/copas/2022/wal
+2022,Qatar,wal,Wales,73,0,Defence,17,Rhys Norrington-Davies,Left-back,71,false,https://7a0.com.br/en/copas/2022/wal
 2022,Qatar,wal,Wales,73,0,Midfield,7,Joe Allen,Defensive midfielder,76,false,https://7a0.com.br/en/copas/2022/wal
 2022,Qatar,wal,Wales,73,0,Midfield,15,Ethan Ampadu,Defensive midfielder,75,false,https://7a0.com.br/en/copas/2022/wal
 2022,Qatar,wal,Wales,73,0,Midfield,16,Joe Morrell,Defensive midfielder,71,false,https://7a0.com.br/en/copas/2022/wal
@@ -6397,20 +6397,20 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2026,Canada/Mexico/United States,bel,Belgium,77,1,Attack,26,Matias Fernandez-Pardo,Left winger,68,false,https://7a0.com.br/en/copas/2026/bel
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Goalkeepers,1,Alisson,Goalkeeper,89,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Goalkeepers,12,Weverton,Goalkeeper,73,false,https://7a0.com.br/en/copas/2026/bra
-2026,Canada/Mexico/United States,bra,Brazil,81,1,Goalkeepers,23,Ederson,Goalkeeper,82,false,https://7a0.com.br/en/copas/2026/bra
-2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,13,Danilo,Right-back,79,false,https://7a0.com.br/en/copas/2026/bra
-2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,3,Gabriel,Centre-back,90,false,https://7a0.com.br/en/copas/2026/bra
+2026,Canada/Mexico/United States,bra,Brazil,81,1,Goalkeepers,23,Ederson Moraes,Goalkeeper,82,false,https://7a0.com.br/en/copas/2026/bra
+2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,13,Danilo Luiz,Right-back,79,false,https://7a0.com.br/en/copas/2026/bra
+2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,3,Gabriel Magalhães,Centre-back,90,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,4,Marquinhos,Centre-back,87,false,https://7a0.com.br/en/copas/2026/bra
-2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,14,Gleison Bremer,Centre-back,84,false,https://7a0.com.br/en/copas/2026/bra
+2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,14,Bremer,Centre-back,84,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,15,Léo Pereira,Centre-back,77,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,24,Roger Ibañez,Centre-back,77,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,6,Alex Sandro,Left-back,78,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Defence,16,Douglas Santos,Left-back,78,false,https://7a0.com.br/en/copas/2026/bra
-2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,2,Éderson,Defensive midfielder,77,false,https://7a0.com.br/en/copas/2026/bra
+2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,2,Éderson Silva,Defensive midfielder,77,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,5,Casemiro,Defensive midfielder,84,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,8,Bruno Guimarães,Defensive midfielder,87,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,17,Fabinho,Defensive midfielder,79,false,https://7a0.com.br/en/copas/2026/bra
-2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,18,Danilo,Defensive midfielder,78,false,https://7a0.com.br/en/copas/2026/bra
+2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,18,Danilo Santos,Defensive midfielder,78,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,10,Neymar,Attacking midfielder,82,true,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Midfield,20,Lucas Paquetá,Attacking midfielder,82,false,https://7a0.com.br/en/copas/2026/bra
 2026,Canada/Mexico/United States,bra,Brazil,81,1,Attack,11,Raphinha,Right winger,85,false,https://7a0.com.br/en/copas/2026/bra
@@ -6460,7 +6460,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Defence,2,Stopira,Left-back,70,false,https://7a0.com.br/en/copas/2026/cpv
 2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Midfield,6,Kevin Pina,Defensive midfielder,70,false,https://7a0.com.br/en/copas/2026/cpv
 2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Midfield,8,João Paulo,Midfielder,69,false,https://7a0.com.br/en/copas/2026/cpv
-2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Midfield,10,Jamiro,Midfielder,74,false,https://7a0.com.br/en/copas/2026/cpv
+2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Midfield,10,Jamiro Monteiro,Midfielder,74,false,https://7a0.com.br/en/copas/2026/cpv
 2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Midfield,14,Deroy Duarte,Midfielder,72,false,https://7a0.com.br/en/copas/2026/cpv
 2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Midfield,15,Laros Duarte,Midfielder,68,false,https://7a0.com.br/en/copas/2026/cpv
 2026,Canada/Mexico/United States,cpv,Cape Verde,71,1,Midfield,16,Yannick Semedo,Midfielder,68,false,https://7a0.com.br/en/copas/2026/cpv
@@ -6495,7 +6495,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,11,Jhon Arias,Right winger,81,false,https://7a0.com.br/en/copas/2026/col
 2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,26,Andrés Gómez,Right winger,73,false,https://7a0.com.br/en/copas/2026/col
 2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,9,Jhon Córdoba,Centre-forward,77,false,https://7a0.com.br/en/copas/2026/col
-2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,19,Cucho,Centre-forward,76,false,https://7a0.com.br/en/copas/2026/col
+2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,19,Cucho Hernández,Centre-forward,76,false,https://7a0.com.br/en/copas/2026/col
 2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,25,Luis Suárez,Centre-forward,76,false,https://7a0.com.br/en/copas/2026/col
 2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,7,Luis Díaz,Left winger,86,false,https://7a0.com.br/en/copas/2026/col
 2026,Canada/Mexico/United States,col,Colombia,77,0,Attack,21,Jaminton Campaz,Left winger,73,false,https://7a0.com.br/en/copas/2026/col
@@ -6655,7 +6655,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2026,Canada/Mexico/United States,mex,Mexico,75,0,Attack,22,Guillermo Martínez,Centre-forward,71,false,https://7a0.com.br/en/copas/2026/mex
 2026,Canada/Mexico/United States,mex,Mexico,75,0,Attack,10,Alexis Vega,Left winger,75,false,https://7a0.com.br/en/copas/2026/mex
 2026,Canada/Mexico/United States,mex,Mexico,75,0,Attack,21,César Huerta,Left winger,74,false,https://7a0.com.br/en/copas/2026/mex
-2026,Canada/Mexico/United States,mar,Morocco,78,0,Goalkeepers,1,Yassine Bono,Goalkeeper,89,false,https://7a0.com.br/en/copas/2026/mar
+2026,Canada/Mexico/United States,mar,Morocco,78,0,Goalkeepers,1,Yassine Bounou,Goalkeeper,89,false,https://7a0.com.br/en/copas/2026/mar
 2026,Canada/Mexico/United States,mar,Morocco,78,0,Goalkeepers,12,Munir Mohamedi,Goalkeeper,74,false,https://7a0.com.br/en/copas/2026/mar
 2026,Canada/Mexico/United States,mar,Morocco,78,0,Goalkeepers,22,Ahmed Reda Tagnaouti,Goalkeeper,73,false,https://7a0.com.br/en/copas/2026/mar
 2026,Canada/Mexico/United States,mar,Morocco,78,0,Defence,2,Achraf Hakimi,Right-back,89,false,https://7a0.com.br/en/copas/2026/mar
@@ -6708,12 +6708,12 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2026,Canada/Mexico/United States,ned,Netherlands,80,1,Attack,17,Noa Lang,Left winger,77,false,https://7a0.com.br/en/copas/2026/ned
 2026,Canada/Mexico/United States,ned,Netherlands,80,1,Attack,24,Crysencio Summerville,Left winger,80,false,https://7a0.com.br/en/copas/2026/ned
 2026,Canada/Mexico/United States,nor,Norway,79,2,Goalkeepers,1,Ørjan Nyland,Goalkeeper,78,false,https://7a0.com.br/en/copas/2026/nor
-2026,Canada/Mexico/United States,nor,Norway,79,2,Goalkeepers,12,Klaesson,Goalkeeper,74,false,https://7a0.com.br/en/copas/2026/nor
+2026,Canada/Mexico/United States,nor,Norway,79,2,Goalkeepers,12,Kristoffer Klaesson,Goalkeeper,74,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Goalkeepers,23,Egil Selvik,Goalkeeper,73,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,2,Julian Ryerson,Right-back,80,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,21,Marcus Holmgren Pedersen,Right-back,76,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,3,Kristoffer Ajer,Centre-back,81,false,https://7a0.com.br/en/copas/2026/nor
-2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,4,Hanche-Olsen,Centre-back,78,false,https://7a0.com.br/en/copas/2026/nor
+2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,4,Andreas Hanche-Olsen,Centre-back,78,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,5,Leo Østigård,Centre-back,80,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,15,Torbjørn Heggem,Centre-back,77,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Defence,18,Fredrik André Bjørkan,Left-back,76,false,https://7a0.com.br/en/copas/2026/nor
@@ -6725,15 +6725,15 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2026,Canada/Mexico/United States,nor,Norway,79,2,Midfield,17,Kristian Thorstvedt,Midfielder,78,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Midfield,24,Jens Petter Hauge,Left midfielder,77,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Midfield,10,Martin Ødegaard,Attacking midfielder,89,true,https://7a0.com.br/en/copas/2026/nor
-2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,19,O. Solbakken,Right winger,74,false,https://7a0.com.br/en/copas/2026/nor
+2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,19,Ola Solbakken,Right winger,74,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,25,Oscar Bobb,Right winger,82,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,9,Erling Haaland,Centre-forward,93,true,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,11,Alexander Sørloth,Centre-forward,83,false,https://7a0.com.br/en/copas/2026/nor
-2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,13,Botheim,Centre-forward,74,false,https://7a0.com.br/en/copas/2026/nor
+2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,13,Erik Botheim,Centre-forward,74,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,22,Jørgen Strand Larsen,Centre-forward,80,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,7,Antonio Nusa,Left winger,84,false,https://7a0.com.br/en/copas/2026/nor
 2026,Canada/Mexico/United States,nor,Norway,79,2,Attack,26,Andreas Schjelderup,Left winger,78,false,https://7a0.com.br/en/copas/2026/nor
-2026,Canada/Mexico/United States,par,Paraguay,74,0,Goalkeepers,1,Gatito,Goalkeeper,74,false,https://7a0.com.br/en/copas/2026/par
+2026,Canada/Mexico/United States,par,Paraguay,74,0,Goalkeepers,1,Gatito Fernández,Goalkeeper,74,false,https://7a0.com.br/en/copas/2026/par
 2026,Canada/Mexico/United States,par,Paraguay,74,0,Goalkeepers,12,Orlando Gill,Goalkeeper,75,false,https://7a0.com.br/en/copas/2026/par
 2026,Canada/Mexico/United States,par,Paraguay,74,0,Goalkeepers,22,Gastón Olivera,Goalkeeper,71,false,https://7a0.com.br/en/copas/2026/par
 2026,Canada/Mexico/United States,par,Paraguay,74,0,Defence,2,Gustavo Velázquez,Centre-back,74,false,https://7a0.com.br/en/copas/2026/par
@@ -6800,7 +6800,7 @@ year,host,team_code,team_name,team_rating,team_legends,squad_section,shirt_numbe
 2026,Canada/Mexico/United States,esp,Spain,83,2,Midfield,9,Gavi,Defensive midfielder,83,false,https://7a0.com.br/en/copas/2026/esp
 2026,Canada/Mexico/United States,esp,Spain,83,2,Midfield,16,Rodri,Defensive midfielder,93,true,https://7a0.com.br/en/copas/2026/esp
 2026,Canada/Mexico/United States,esp,Spain,83,2,Midfield,18,Martín Zubimendi,Defensive midfielder,84,false,https://7a0.com.br/en/copas/2026/esp
-2026,Canada/Mexico/United States,esp,Spain,83,2,Midfield,8,Fabián,Midfielder,90,false,https://7a0.com.br/en/copas/2026/esp
+2026,Canada/Mexico/United States,esp,Spain,83,2,Midfield,8,Fabián Ruiz,Midfielder,90,false,https://7a0.com.br/en/copas/2026/esp
 2026,Canada/Mexico/United States,esp,Spain,83,2,Midfield,20,Pedri,Midfielder,88,false,https://7a0.com.br/en/copas/2026/esp
 2026,Canada/Mexico/United States,esp,Spain,83,2,Midfield,15,Álex Baena,Attacking midfielder,81,false,https://7a0.com.br/en/copas/2026/esp
 2026,Canada/Mexico/United States,esp,Spain,83,2,Attack,11,Yeremy Pino,Right winger,79,false,https://7a0.com.br/en/copas/2026/esp
