@@ -695,84 +695,69 @@
   <summary>
     <span class="num">18</span>
     <span class="title">Player versus player, for signed-in accounts
-      <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a
-      team against a per-pick clock and playing a live knockout. FULLY SETTLED 2026-08-26:
-      24 decisions, nothing open, and a ten-wave build order. Ready to start.</span>
+      <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
+      against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
+      REVIEWED and revised: 40 decisions, nothing open, a vertical-slice build order.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25,
-    revised and then closed out 2026-08-26</strong> by the owner - <b>all 24 decisions are
-    taken and section 11 of the plan is empty</b>, so a builder needs to ask nothing before
-    wave 0. Written up as
-    <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener"><code>docs/pvp-plan.md</code></a>
-    (requirements in the shape of <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a>,
-    plus a ten-wave build order). <b>Read that before writing any code here</b>; what follows is
-    only the summary.</p>
-    <p><strong>What it is.</strong> Two to eight signed-in players, all present at once, play a
-    knockout tournament against teams they draft on the spot. A room is <b>public</b> (listed in
-    a lobby anyone can browse and join) or <b>private</b> (its six-character code shared outside
-    the game). <b>The host sets the room&#8217;s rules, and those rules are the feature</b>: roll
-    or budget, how much money (a fixed $70 to $200, or each player&#8217;s own career budget),
-    which World Cups are in the pool, <b>how long a pick gets</b>, and, <b>in a roll room,
-    whether ratings are visible at all</b> - the switch that makes a room about knowing the
-    players rather than reading a number, offered only where it works, since a buying
-    room&#8217;s prices are calculated from the ratings and give them away regardless.
-    Formation and style are chosen in the lobby; then 2 play a match, 4 play semi-finals and a final, 8 play quarters,
-    semis and a final, with the XI you drafted playing your whole run.</p>
-    <p><strong>The draft is the thing to understand.</strong> <b>Twenty or thirty seconds a
-    pick, the host&#8217;s choice</b> and set independently of whether the room rolls or buys,
-    each player on their own clock rather than the room&#8217;s. Run out and <b>an eligible player
-    is placed at random into one of your empty slots</b> and the draft moves on. That single rule
-    is what makes a room unstallable and bounds a full draft at three minutes forty, or five
-    thirty on the slower clock. Two details it drags with it: a budget-room auto-pick must reserve
-    a dollar per remaining slot or it can leave an XI it is impossible to finish, and <b>a re-roll
-    must not restart the clock</b> or re-rolling becomes a way to stall forever. Two values and
-    not a slider, so a lobby listing can say fast or considered at a glance and a ladder later can
-    compare like with like.</p>
-    <p><strong>The six original questions, answered.</strong> The team is <b>either draft method,
-    host&#8217;s choice</b>, never the album and never a separate roster. It is <b>live</b>, which
-    means Supabase Realtime comes back into the NAS stack after being trimmed out by design D10.
-    <b>The server validates, simulates and holds the clock</b>, via a referee service that bundles
-    the game&#8217;s own <code>domain/</code> code rather than a second copy of the sim in SQL.
-    Fairness is <b>the host&#8217;s budget setting</b>, so a long career confers nothing by
-    default. At stake: <b>a win/loss record and nothing else</b>, with a ladder as the planned
-    follow-up and the server-authoritative result as the thing that makes one possible later.
-    Guests get a <b>sign-in invitation</b>, never a missing feature.</p>
-    <p><strong>What has to be added</strong>, and it is the honest cost of the item: the Realtime
-    container, a referee service that <b>holds per-player timers and recovers them across its own
-    restart</b>, a display name on accounts (a public lobby cannot show strangers an email), six
-    new tables whose row-level security has to hide one player&#8217;s picks from another until
-    the tie is played, and a ratings-hidden mode reaching every component the roll draft can
-    render a number in.</p>
-    <p><strong>Two worries the plan carried are now closed, both on 2026-08-26.</strong> The
-    accepted price/rating leak (a budget room with ratings hidden still showing prices calculated
-    from those ratings) is <b>void</b>: the switch is simply not offered where buying is, so the
-    two can never co-occur. And <b>thirty seconds is enough for the transfer market</b>, because
-    the market is never a search over 8,377 players - it is filtered to the slot being shopped
-    for, narrowed by the cup and country facets and sorted by rating, so what is on screen is a
-    short ranked list. Between them they shrink the ratings-hidden wave, which was the fiddliest
-    part of the client work.</p>
-    <p><strong>The last five questions, answered 2026-08-26.</strong> A timed-out pick stays
-    <b>random</b> rather than best-affordable, because a good fallback would make running out
-    of time nearly free and in a budget room often the smarter play, which turns the clock into
-    a suggestion. Display names are <b>unique and reportable</b>, with no word filter: unique is
-    the part that cannot be retrofitted once duplicates exist, and a blocklist catches only the
-    lazy cases. An idler who joins and does nothing gets <b>no machinery at all</b> for now,
-    since the timeout means they cannot stall anybody. A knocked-out player <b>stays and watches
-    the rest live</b>, which costs nothing because they already receive everything the room
-    publishes. And you <b>draft once</b>, confirmed against both a between-rounds swap window
-    and a full redraft: an eight-player room only stays short because all eight draft at once,
-    exactly once. What replaces the open list is <b>three things to measure once it is
-    playable</b>, each naming the decision it would revisit.</p>
-    <p class="next"><strong>Next step:</strong> wave 0 of the plan - lift <code>simulateKoTie</code>
-    out of <code>domain/run.ts</code> into <code>domain/knockout.ts</code>, and add the four rules
-    the referee needs (is this XI legal, what did it cost, was it dealt, and the auto-pick) to
-    <code>domain/</code> as pure checked functions. All of it is offline work that needs no
-    server.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
+    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25/26</strong>
+    by the owner, then <strong>put through three independent reviews</strong> (game design and
+    fairness, server architecture, product and mobile) whose findings were <b>verified by hand
+    against the code and by measurement</b>. That review changed real things. The plan is
+    <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener"><code>docs/pvp-plan.md</code></a>;
+    <b>read it before writing any code here</b>.</p>
+    <p><strong>What it is.</strong> Two to eight signed-in players, all present at once, draft a
+    team on the spot and play a knockout. A room is <b>public</b> (listed in a lobby) or
+    <b>private</b> (code only). <b>The host sets the rules and those rules are the feature</b>:
+    roll or budget, how much money, which World Cups, <b>how long a pick gets</b> (20 or 30
+    seconds), and, in a roll room, whether ratings are visible. <b>Twenty or thirty seconds a
+    pick</b>, each player on their own clock; run out and a player is placed for you, which is
+    what makes a room unstallable. Nothing is at stake but the record.</p>
+    <p><strong>What the review changed.</strong> <b>Chemistry is now OFF in a room</b>: measured,
+    the same eleven players with the full bonus beat themselves without it <b>73.2%</b> of the
+    time, because it is added to attack and defence alike and both are what the sim reads. In
+    single-player that is a nudge helping a patchwork XI close on a real national side; in a room
+    both sides are patchwork, so it became the whole game, and a pure knowledge check at that
+    (400 naively auto-filled XIs never once reached the cap). <b>A room gets its own build
+    state</b>, which is a requirement rather than a preference: the app holds one game state and
+    every path that starts a build clears the active run, so a room entering through the same
+    door would have <b>silently deleted a live Cup Run</b>, and while signed in every single tap
+    writes to the server, where one failure raises the blocking unreachable screen with the pick
+    clock still running. <b>The referee holds no timers</b> (a stored deadline and a stateless
+    sweeper, which is restart-correct by construction), and it must <b>give back the time an
+    outage ate</b> or a thirty-second container restart auto-picks for every player in every
+    drafting room at once. And the build order is now a <b>vertical slice</b>: a private
+    two-player room playable end to end at wave 5, instead of the first complete game arriving at
+    wave 7 behind an optional polish wave.</p>
+    <p><strong>One thing accepted with its numbers, by decision.</strong> The sim reads two
+    numbers a side, so the budget draft has a closed-form best answer: defence averages over
+    fewer slots, so it is cheaper to lift, and only two formation families field four defensive
+    slots. Measured at $110, <b>a stacked 3-4-3 beats an even 4-3-3 56.6%</b> - and when both
+    finalists have found it the match measures <b>0.62 goals and 54.4% decided on penalties</b>,
+    against 2.35 goals and 16.9% for two even sides. That empties the live goal feed, which is the
+    mode&#8217;s flagship screen. <b>Kept as skill rather than designed against</b>; turning
+    chemistry off sharpens it, since chemistry was the one axis competing with it. The cheapest
+    reversal, a minimum spend per line, is one rule in wave 0 and nowhere else.</p>
+    <p><strong>Two corrections to this plan&#8217;s own earlier text</strong>, both found by
+    review and confirmed in the code: the knockout resolver was said to need lifting out of the
+    Cup Run and <b>is already exported and shared</b>, so that wave-0 item is gone (what is
+    actually needed is a two-sided team builder, since the existing one hard-codes &#8220;Your
+    XI&#8221; and cannot describe two opponents); and a roll deal was said to <b>guarantee</b> a
+    squad that can fill an open slot, where the code only <b>prefers</b> one and falls back to the
+    whole pool.</p>
+    <p><strong>A single-player defect found on the way</strong>, unrelated to PvP and worth its own
+    item: <b>the build page and a Cup Run do not agree on chemistry</b>. The build page scores
+    &#8220;in position&#8221; against a player&#8217;s real primary role; the run maps each
+    player&#8217;s slot onto him, so the category is free once a run starts. Measured over 400
+    XIs they disagree in <b>358</b>, always with the run exactly one higher. The game shows one
+    number while you draft and uses another in the match.</p>
+    <p class="next"><strong>Next step:</strong> wave 0 - the rules as pure checked functions (is
+    this XI legal, what did it cost, was it dealt, the auto-pick) plus a two-sided team builder.
+    Offline work needing no server.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
 
