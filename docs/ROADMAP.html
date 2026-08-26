@@ -736,49 +736,61 @@
   <summary>
     <span class="num">18</span>
     <span class="title">Player versus player, for signed-in accounts
-      <span class="sub">Rooms of 2, 4 or 8 signed-in players building a team on the spot and
-      playing a live knockout against each other. SHAPE SETTLED 2026-08-25: every one of the
-      six questions this item opened with is answered, and the plan is written.</span>
+      <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a
+      team at twenty seconds a pick and playing a live knockout. SHAPE SETTLED 2026-08-25,
+      the draft clock and room visibility added 2026-08-26. The plan is written.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25</strong>
-    by the owner, and written up as
+    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25 and
+    revised 2026-08-26</strong> by the owner, and written up as
     <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener"><code>docs/pvp-plan.md</code></a>
     (requirements in the shape of <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a>,
     plus a ten-wave build order). <b>Read that before writing any code here</b>; what follows is
     only the summary.</p>
     <p><strong>What it is.</strong> Two to eight signed-in players, all present at once, play a
-    knockout tournament against teams they build on the spot. One creates a room and shares a
-    six-character code. <b>The host sets the room&#8217;s rules, and those rules are the feature</b>:
-    roll a squad or buy with a budget, how much money (a fixed $70 to $200, or each player&#8217;s
-    own career budget), which World Cups the players may come from, and <b>whether ratings are
-    visible at all</b> - the switch that makes a room about knowing the players rather than
-    reading a number. Everyone builds at once against a shared clock; an unfinished XI is
-    completed automatically when it runs out. Then 2 play a match, 4 play semi-finals and a
-    final, 8 play quarters, semis and a final, with the XI you built playing your whole run.</p>
-    <p><strong>The six questions, answered.</strong> The team is <b>either build method, host&#8217;s
-    choice</b>, never the album and never a separate roster. It is <b>live</b>, which means
-    Supabase Realtime comes back into the NAS stack after being trimmed out. <b>The server
-    validates and simulates</b>, via a small service that bundles the game&#8217;s own
-    <code>domain/</code> code rather than a second copy of the sim in SQL. Fairness is <b>the
-    host&#8217;s budget setting</b>, so a long career confers nothing by default. At stake:
-    <b>a win/loss record and nothing else</b>, with a ladder as the planned follow-up and the
-    server-authoritative result as the thing that makes one possible later. Guests get a
-    <b>sign-in invitation</b>, never a missing feature.</p>
+    knockout tournament against teams they draft on the spot. A room is <b>public</b> (listed in
+    a lobby anyone can browse and join) or <b>private</b> (its six-character code shared outside
+    the game). <b>The host sets the room&#8217;s rules, and those rules are the feature</b>: roll
+    or budget, how much money (a fixed $70 to $200, or each player&#8217;s own career budget),
+    which World Cups are in the pool, and <b>whether ratings are visible at all</b> - the switch
+    that makes a room about knowing the players rather than reading a number. Formation and style
+    are chosen in the lobby; then 2 play a match, 4 play semi-finals and a final, 8 play quarters,
+    semis and a final, with the XI you drafted playing your whole run.</p>
+    <p><strong>The draft is the thing to understand.</strong> <b>Twenty seconds a pick</b>
+    (<code>PVP_PICK_SECONDS</code>, a constant rather than a host option), each player on their
+    own clock rather than the room&#8217;s. Run out and <b>an eligible player is placed at random
+    into one of your empty slots</b> and the draft moves on. That single rule is what makes a room
+    unstallable and bounds a full draft at three minutes forty. Two details it drags with it: a
+    budget-room auto-pick must reserve a dollar per remaining slot or it can leave an XI it is
+    impossible to finish, and <b>a re-roll must not restart the clock</b> or re-rolling becomes a
+    way to stall forever.</p>
+    <p><strong>The six original questions, answered.</strong> The team is <b>either draft method,
+    host&#8217;s choice</b>, never the album and never a separate roster. It is <b>live</b>, which
+    means Supabase Realtime comes back into the NAS stack after being trimmed out by design D10.
+    <b>The server validates, simulates and holds the clock</b>, via a referee service that bundles
+    the game&#8217;s own <code>domain/</code> code rather than a second copy of the sim in SQL.
+    Fairness is <b>the host&#8217;s budget setting</b>, so a long career confers nothing by
+    default. At stake: <b>a win/loss record and nothing else</b>, with a ladder as the planned
+    follow-up and the server-authoritative result as the thing that makes one possible later.
+    Guests get a <b>sign-in invitation</b>, never a missing feature.</p>
     <p><strong>What has to be added</strong>, and it is the honest cost of the item: the Realtime
-    container, a referee service on the NAS, a display name on accounts (an email is not
-    something to show strangers), six new tables with their own row-level security, and a
-    ratings-hidden mode that reaches every component in the build page that renders a number.
-    One accepted hole, decided rather than missed: in a budget room with ratings hidden,
-    <b>a player&#8217;s price still gives his rating away</b> to anyone who knows the curve.</p>
+    container, a referee service that <b>holds per-player timers and recovers them across its own
+    restart</b>, a display name on accounts (a public lobby cannot show strangers an email), six
+    new tables whose row-level security has to hide one player&#8217;s picks from another until
+    the tie is played, and a ratings-hidden mode reaching every component in the build page that
+    renders a number. One accepted hole, decided rather than missed: in a budget room with ratings
+    hidden, <b>a player&#8217;s price still gives his rating away</b> to anyone who knows the curve.
+    One thing to play before trusting: <b>twenty seconds against the transfer market</b>, which is
+    a search over 8,377 players and is tight even filtered to one position.</p>
     <p class="next"><strong>Next step:</strong> wave 0 of the plan - lift <code>simulateKoTie</code>
-    out of <code>domain/run.ts</code> into <code>domain/knockout.ts</code>, and add the three
-    validation rules (is this XI legal, what did it cost, was it dealt) to <code>domain/</code>
-    as pure checked functions. All of it is offline work that needs no server.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
+    out of <code>domain/run.ts</code> into <code>domain/knockout.ts</code>, and add the four rules
+    the referee needs (is this XI legal, what did it cost, was it dealt, and the auto-pick) to
+    <code>domain/</code> as pure checked functions. All of it is offline work that needs no
+    server.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
 
