@@ -763,7 +763,7 @@
       <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
       REVIEWED and revised: 42 decisions, nothing open. <b>WAVES 0 TO 2 SHIPPED
-      2026-08-26</b>; the migration is queued as item 39.</span>
+      2026-08-26</b>, migration 0016 applied. Next: wave 3, which needs the NAS.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -858,23 +858,33 @@
     testing found it; nothing in the design said it was there. And <b>whatever the fallback
     reaches for must be recorded as dealt</b>, or it builds an XI the referee itself then
     refuses.</p>
-    <p><strong>Wave 2 shipped 2026-08-26:</strong>
-    <a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener"><code>0016_pvp_rooms.sql</code></a> - seven tables, their row-level security,
+    <p><strong>Wave 2 shipped 2026-08-26, and the migration is APPLIED</strong> (it was
+    queued as item 39, which is closed - see the shipped history for what the apply itself
+    turned up).
+    <a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener"><code>0016_pvp_rooms.sql</code></a>: seven tables, fourteen policies,
     <code>pvp_records</code> as a <b>view</b> rather than a counter, a display name on
-    accounts, and a <code>pvp_referee</code> role that owns those tables and can reach
-    nothing else. Written, parse-checked against the real Postgres grammar, dry-run, and
-    <b>queued rather than applied</b> as <b>item 39</b>. Three things it settled: the
-    rollback block was WRONG until it was parsed (<code>drop role</code> fails while the role
-    still holds a grant, so it needed a <code>drop owned by</code>); <code>bypassrls</code>
-    would have defeated the whole point of a narrow referee role, since it is global and
-    would hand it every account's album, where owning the pvp tables gives the same access to
-    only those; and the view needs <code>security_invoker</code> or it leaks every account's
-    record to anybody signed in, which makes PostgreSQL 15 a stated requirement.</p>
+    accounts, and a <code>pvp_referee</code> role that is the only thing allowed to write any
+    of it and can reach nothing else. Nothing reads or writes those tables yet - the referee
+    is wave 3 - so no player-visible behaviour changed.</p>
+    <p><strong>Three things wave 2 settled while it was being written.</strong> The rollback
+    block was WRONG until it was parsed (<code>drop role</code> fails while the role still
+    holds a grant, so it needed a <code>drop owned by</code>). <code>bypassrls</code> would
+    have defeated the whole point of a narrow referee role, being global - it would hand it
+    every account's album and career. And the view needs <code>security_invoker</code> or it
+    leaks every account's record to anybody signed in, which makes PostgreSQL 15 a stated
+    requirement. <b>A fourth was settled by the apply rather than the writing:</b> the
+    referee <b>owns nothing</b>. Ownership was the first design, because a table's owner
+    bypasses its own row-level security - but migrations here run as <code>postgres</code>,
+    which on this server is not a superuser and cannot hand a table to a role it is not a
+    member of, and the obvious repair crashed the database. It has seven <code>for all</code>
+    policies naming it instead.</p>
     <p class="next"><strong>Next step:</strong> wave 3 - deploy. Realtime back into the NAS
-    stack (Broadcast, not change capture), the referee behind a route on the existing
-    gateway, unique display names, the version endpoint, and outage recovery. This is the one
-    wave that needs the NAS and cannot be done by a cloud session; item 39's apply belongs
-    with it.</p>
+    stack (Broadcast, not change capture), the referee behind a route on the existing gateway,
+    the version endpoint, and outage recovery. Plus one thing 0016 deliberately left undone:
+    the <code>pvp_referee</code> role is <code>nologin</code> with no password, because a
+    credential does not belong in version control, so wave 3 runs
+    <code>alter role pvp_referee login password '...'</code> by hand. This is the one wave
+    that needs the NAS and cannot be done by a cloud session.</p>
     <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
