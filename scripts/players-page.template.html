@@ -140,6 +140,7 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 
 /* dual-handle rating slider */
 .rng { position: relative; width: 210px; height: 30px; display: flex; align-items: center; }
+.rng.one { width: 118px; }
 .rng .track { position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: var(--line); }
 .rng .fill { position: absolute; height: 4px; border-radius: 2px; background: var(--pitch); }
 .rng input {
@@ -158,6 +159,7 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .rng input:focus-visible::-webkit-slider-thumb { border-color: var(--amber); }
 .rng input:focus-visible::-moz-range-thumb { border-color: var(--amber); }
 .rlab { font-family: var(--mono); font-size: 12px; font-weight: 600; min-width: 62px; }
+.rlab.any { color: var(--muted); font-weight: 500; }
 .rlab b { color: var(--pitch); }
 
 .fspacer { flex: 1; }
@@ -331,6 +333,19 @@ __FLAG_CSS__
         </div>
       </div>
 
+      <!-- How far apart the two datasets are on this player. Off at zero, and
+           absent when the file carries only one dataset to compare against. -->
+      <div class="field" id="gapfield">
+        <span class="mono-cap" id="gapcap">Difference</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="rng one">
+            <div class="track"></div><div class="fill" id="gfill"></div>
+            <input id="gap" type="range" aria-label="Smallest rating difference to show" />
+          </div>
+          <span class="rlab" id="glab"></span>
+        </div>
+      </div>
+
       <span class="fspacer"></span>
       <div class="field" style="align-items:flex-end">
         <span class="count" id="count"></span>
@@ -394,6 +409,8 @@ function decode(index) {
     // (127) is "he is not in it" - no real difference can reach it.
     diff: Int8Array.from(S.diffs),
   };
+  d.maxGap = 0;
+  for (const v of d.diff) if (v !== 127 && Math.abs(v) > d.maxGap) d.maxGap = Math.abs(v);
   for (let i = 0, r = 0; i < N; i++, r += 7) {
     d.person[i] = S.rows[r]; d.nation[i] = S.rows[r + 1]; d.year[i] = S.rows[r + 2];
     d.num[i] = S.rows[r + 3]; d.combo[i] = S.rows[r + 4]; d.elo[i] = S.rows[r + 5]; d.tier[i] = S.rows[r + 6];
@@ -440,6 +457,10 @@ const state = {
   year: new Set(),                                   // years
   col: new Set(),                                    // 1 = collectible / legend, 0 = not
   lo: 0, hi: 0,
+  /* Show only players the two datasets disagree about by at least this much,
+     ignoring which way. 0 is off, and a player the other dataset has never heard
+     of is out as soon as it is on - he has no difference, not a small one. */
+  gap: 0,
   /* Whether the reader has actually moved the rating handles. An untouched range
      opens to the incoming dataset's own scale on a switch rather than being
      clamped to the outgoing one - the two do not share a floor (62 here, 64
@@ -454,6 +475,9 @@ let otherTab = '';                                   // what the other one is ca
 let view = null;                                     // the filtered + sorted row ids
 let viewLen = 0;
 let dropped = 0;                                     // values the switch could not carry
+
+/** No counterpart in the other dataset. Mirrors DIFF_NONE in the generator. */
+const NO_DIFF = 127;
 
 function maskOf(set) { let m = 0; for (const p of set) m |= 1 << p; return m; }
 
@@ -474,7 +498,7 @@ function applyFilters() {
   // A filter this dataset cannot answer keeps its selection and stops filtering.
   const mAdd = P.alt ? maskOf(state.add) : 0, mAny = P.alt ? maskOf(state.any) : 0;
   const colOn = state.col.size === 1, wantCol = state.col.has(1);
-  const lo = state.lo, hi = state.hi;
+  const lo = state.lo, hi = state.hi, gap = state.gap;
   const N = D.N;
 
   // Nations and years are held by value, so they resolve to this dataset's own
@@ -544,6 +568,10 @@ function applyFilters() {
 
     const e = D.elo[i];
     if (e < lo || e > hi) continue;
+    if (gap) {
+      const v = D.diff[i];
+      if (v === NO_DIFF || (v < 0 ? -v : v) < gap) continue;
+    }
     if (nameOk && !nameOk[D.person[i]]) continue;
     view[n++] = i;
   }
@@ -562,9 +590,6 @@ const KEY = {
   rating: (i) => D.elo[i],
   col: (i) => D.tier[i],
 };
-
-/** No counterpart in the other dataset. Mirrors DIFF_NONE in the generator. */
-const NO_DIFF = 127;
 
 function sortView() {
   const d = state.dir, s = state.sort;
@@ -1021,14 +1046,33 @@ function onRange() {
 rmin.addEventListener('input', onRange);
 rmax.addEventListener('input', onRange);
 
+const gapEl = document.getElementById('gap'), gfill = document.getElementById('gfill');
+const glab = document.getElementById('glab');
+
+function paintGap() {
+  gapEl.value = state.gap;
+  gfill.style.left = '0%';
+  gfill.style.width = (D.maxGap ? (state.gap / D.maxGap) * 100 : 0) + '%';
+  glab.textContent = state.gap ? '\u2265 ' + state.gap : 'Any';
+  glab.className = state.gap ? 'rlab' : 'rlab any';
+}
+gapEl.addEventListener('input', () => {
+  state.gap = +gapEl.value;
+  dropped = 0;
+  paintGap();
+  render();
+});
+
 document.getElementById('reset').addEventListener('click', () => {
   state.q = ''; qEl.value = ''; qClr.hidden = true;
   for (const k of ['main', 'add', 'any', 'nat', 'year', 'col']) state[k].clear();
   state.lo = D.set.eloMin; state.hi = D.set.eloMax;
   state.rangeSet = false;
+  state.gap = 0;
   dropped = 0;
   for (const c of controls) c.refresh();   // and drop any text typed into a popover
   paintRange();
+  paintGap();
   render();                   // recounts the facets, which refreshes every list
 });
 
@@ -1081,9 +1125,14 @@ function load(index) {
   for (const b of seg.children) b.setAttribute('aria-pressed', String(+b.dataset.i === index));
 
   for (const el of [rmin, rmax]) { el.min = D.set.eloMin; el.max = D.set.eloMax; el.step = 1; }
+  gapEl.min = 0; gapEl.max = D.maxGap; gapEl.step = 1;
+  if (state.gap > D.maxGap) state.gap = D.maxGap;
+  document.getElementById('gapfield').hidden = !D.maxGap;
+  document.getElementById('gapcap').textContent = 'Difference to ' + otherTab;
   controls = [];              // the old dataset's controls are about to be replaced
   buildHead();
   paintRange();
+  paintGap();
   render();                   // counts the facets the new controls are built from
   buildFields();
 }

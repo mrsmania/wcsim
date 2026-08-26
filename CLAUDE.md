@@ -968,7 +968,10 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   rating, **what the other game rates the same man at** (as a signed difference), and
   collectible (yes, with the tier's colour, or no). **Filters** for main position,
   additional position, position (either), country, World Cup and collectible are all
-  multi-select; rating is a two-handle range; the search box matches the name only,
+  multi-select; rating is a two-handle range; **"Difference to <the other game>" is a
+  one-handle slider that keeps only the players the two disagree about by at least that
+  much** (either way, and a player the other dataset does not carry is out as soon as it
+  is on - he has no difference, not a small one); the search box matches the name only,
   diacritic-insensitively. Every column sorts, rating descending by default.
 - **It carries TWO datasets and a toggle** (top right of the page header): **WCS**, the
   game's own, and **7a0**, the other game's ratings. See the section below - that toggle
@@ -981,7 +984,7 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   it: a row records WHICH filters it fails as a bitmask, and counts towards a dropdown
   when it fails at most that dropdown's own. **The World Cup dropdown counts TEAMS**,
   not players (1970 is 16), since a tournament's size is its field; the player figure is
-  in the option's hover text. **The search box and the rating range are
+  in the option's hover text. **The search box and the two sliders are
   deliberately left out** - what you type and where you drag a handle would otherwise
   reshuffle every list under your hand. An option is dropped when it would empty the
   table, **unless it is already ticked**, or a selection made before the query narrowed
