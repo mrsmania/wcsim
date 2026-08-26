@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-26<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -620,63 +620,6 @@
     <code>git clone</code> reaches it through the proxy that blocks direct
     <code>raw.githubusercontent.com</code> fetches.</p>
     <p class="files"><a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a>, <a class="dl" href="../scripts/gen-collectibles.ts" target="_blank" rel="noopener">scripts/gen-collectibles.ts</a></p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">40</span>
-    <span class="title">The transfer market never says what position a player actually plays
-      <span class="sub">The roll draft underlines a player&#8217;s natural role and explains that
-      only placing him there earns positional chemistry. The market shows a name, a flag, a year,
-      a rating and a price - and no position at all. Since <b>38</b> made &#8220;In position&#8221;
-      earnable again, that is a point the market gives you no way to aim at. FOUND 2026-08-26.</span>
-    </span>
-    <span class="tag">Bug</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Found 2026-08-26</strong> while fixing <b>38</b>, and it is that fix&#8217;s only
-    loose end. Chemistry&#8217;s <b>In position</b> category rewards fielding players in the role
-    they really played. Until 38 it was free once a run started, so nothing hung on being able to
-    see a natural role. It is now a real target, and worth a point of attack <em>and</em> a point
-    of defence.</p>
-
-    <p><strong>The two build paths are not equal on this.</strong> <code>SquadPanel</code> - the
-    drawn squad in the roll draft - prints the whole position list with
-    <code>positions[0]</code> <b>underlined</b>, behind a tooltip that says in as many words:
-    &#8220;Underlined = natural position; only placing the player there earns positional
-    chemistry.&#8221; It is gated on <code>FEATURES.chemistry</code>, so it exists for exactly
-    this reason. <code>BudgetMarket</code> renders no position in either its list rows or its grid
-    cards; the file does not reference <code>positions</code> anywhere.</p>
-
-    <p><strong>Why that is worse than it sounds.</strong> The market filters to the slot being
-    shopped using <em>every</em> position a player can fill, not his primary - which is correct
-    for eligibility and is exactly what makes the display necessary. So the sixty rows on screen
-    are all legal for the slot and an unknown subset of them are naturally in it. Measured while
-    fixing 38: a budget XI auto-filled at random puts <b>7.3 of 11</b> players in their natural
-    role and earns the category <b>6%</b> of the time, while an XI built by shopping each
-    slot&#8217;s natural role scored <b>11/11 in 200 of 200</b> attempts. The whole gap between
-    those two numbers is information the market withholds.</p>
-
-    <p><strong>The constraint to design against is width, not doubt.</strong> Market names are
-    already truncated - the year was moved underneath the flag to give them 28px back, and that
-    is recorded as a deliberate trade. So this is not &#8220;add the position column&#8221;: the
-    useful signal is one bit, since every visible row is eligible anyway. A mark on the rows that
-    are naturally in the shopped slot, with one legend beside the existing
-    &#8220;Buying: <em>label</em> (<em>POS</em>)&#8221; line rather than sixty tooltips, would
-    carry it. Whether it should instead be a filter or a sort is the open question, and a filter
-    has a precedent right there: <b>36</b> settled that a control is shown when it has more than
-    one option or a selection is live on it.</p>
-
-    <p><strong>Do not answer it by widening the category.</strong> Lowering
-    <code>FIT_MIN</code> so the market earns the point by accident is the free point 38 just
-    removed, wearing a different hat.</p>
-
-    <p class="next"><strong>Next step:</strong> a product call on mark versus filter versus sort,
-    then a small change in one component. The roll draft&#8217;s wording and underline convention
-    already exist and should be reused verbatim rather than reinvented.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/BudgetMarket.tsx" target="_blank" rel="noopener">src/components/BudgetMarket.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/SquadPanel.tsx" target="_blank" rel="noopener">src/components/SquadPanel.tsx</a> (the convention to reuse), <a class="dl" href="../src/domain/chemistry.ts" target="_blank" rel="noopener">src/domain/chemistry.ts</a> (<code>FIT_MIN</code>)</p>
   </div>
 </details>
 
@@ -1248,6 +1191,17 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
     <h3>Closed 2026-08-26</h3>
+    <p><b>40 was VOID</b>, and the reason is worth keeping because the same wrong conclusion
+    is easy to reach again from the code alone. It was written up as "the transfer market never
+    says what position a player plays", with a mock and measured width costs, and <b>the
+    information was already on screen the whole time</b>: hold a player and the pitch pulses his
+    natural position in <b>amber</b> and any other position he can fill in <b>white</b>
+    (<code>positions[0] === slot.position</code> in <code>Pitch</code>, and the market's held
+    card drives the identical prop, so it covers both build paths). So a player aiming at
+    positional chemistry, or at the <b>Textbook</b> honour, follows the amber pulses; nothing
+    needs to be added to the list rows, and the 24px the mock was arguing over buys nothing.
+    <b>Do not re-open this by reading <code>BudgetMarket</code> on its own</b> - the answer is
+    not in that file, it is in the board beside it. The mock was deleted with the item.</p>
     <p><b>39</b> is the migration apply, and the rehearsal is the whole story. Parse-checking
     said the file was well formed; rehearsing it inside a transaction on the real server found
     two things that reading never would. The first was ordinary: this repo applies migrations as
@@ -1345,11 +1299,11 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     that are <code>ASCENSIONS</code> and the difficulty setting, which exist for it; chemistry is
     not the place.</p>
 
-    <p class="next"><strong>What it exposed, now item 40:</strong> the category is earnable in the
-    roll draft, where the drawn-squad panel underlines the natural position and says why. The
-    <b>transfer market shows no position at all</b>, so in the build path this item&#8217;s own
-    measurement is based on, the player cannot see which of sixty eligible men is naturally in
-    the slot. The fix made that information matter; nothing puts it on screen.</p>
+    <p class="next"><strong>A follow-up was opened here and it was wrong.</strong> Item 40 argued
+    that the fix made the natural role matter while the transfer market never shows it. It does
+    show it, on the pitch rather than in the list: holding a player pulses his natural position
+    amber and every other position he can fill white, in both build paths. 40 is void, recorded
+    above.</p>
     <p class="files"><a class="dl" href="../src/domain/run.ts" target="_blank" rel="noopener">src/domain/run.ts</a> (<code>chemistryOf</code>), <a class="dl" href="../src/domain/chemistry.ts" target="_blank" rel="noopener">src/domain/chemistry.ts</a>, <a class="dl" href="../src/data/squads.ts" target="_blank" rel="noopener">src/data/squads.ts</a> (<code>basePlayer</code>), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/checks/chemistry.ts" target="_blank" rel="noopener">scripts/checks/chemistry.ts</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (where it was found)</p>
   </div>
 </details>

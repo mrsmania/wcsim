@@ -1020,12 +1020,17 @@ display; opponents are real, intact squads with innate chemistry). Lives in
   auto-fill averages 7.3 and earns it 6% of the time. Widening `FIT_MIN` to hand the point
   back would just re-grant the free point. The levers for run difficulty are `ASCENSIONS`
   and the difficulty setting.
-- **The transfer market shows no positions at all, which is now a gap** (roadmap 40).
-  `SquadPanel` underlines `positions[0]` and its tooltip says only placing a player there
-  earns positional chemistry; `BudgetMarket` prints name, flag, year, rating and price and
-  never references `positions`. Since the market filters by every position a player can
-  fill, all sixty visible rows are eligible and an unknown subset are naturally in the slot,
-  so the category is aimable in the roll draft and blind in the market.
+- **"In position" is AIMED FROM THE PITCH, not from the list, and this is worth knowing
+  before concluding the market has a gap.** `BudgetMarket` prints name, flag, year, rating
+  and price and never references `positions`, so reading that file alone makes it look as
+  though a market build is flying blind. It is not: hold a player and `Pitch` pulses his
+  **natural** position amber (`SLOT_AMBER`, when `positions[0] === slot.position`) and every
+  other position he can fill white (`SLOT_WHITE`). `App` passes the market's held card to
+  the identical `selectedPlayer` prop, so both build paths get it. So the player follows the
+  amber pulses, for the chemistry point and for the **Textbook** honour alike, and nothing
+  needs adding to the rows. This was written up as roadmap item 40 with a mock and measured
+  width costs, then found void on exactly this ground; the item's history entry has the
+  detail. **The answer is not in `BudgetMarket`, it is in the board beside it.**
 - Entirely behind **`FEATURES.chemistry`** in `src/config.ts`. With it `false`, the
   bonus is 0 and all chemistry UI (box, "?" rules, breakdown, the underlined primary
   position in the draft chip, the per-player flag/year in the box) disappears.
