@@ -213,7 +213,7 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .pos { font-weight: 600; }
 .alt { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rat { font-family: var(--mono); font-size: 13.5px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-.dif { font-family: var(--mono); font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.dif { font-family: var(--mono); font-size: 12.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .dif.up { color: var(--pitch); }
 .dif.dn { color: var(--loss); }
 .dif.eq, .dif.no { color: var(--dim); }
@@ -604,13 +604,14 @@ function sortView() {
     cmp = (a, b) => d * (nations[D.nation[a]][1] < nations[D.nation[b]][1] ? -1 : nations[D.nation[a]][1] > nations[D.nation[b]][1] ? 1 : 0)
       || D.year[a] - D.year[b] || D.elo[b] - D.elo[a];
   } else if (s === 'diff') {
-    // A player the other dataset has not got sorts last either way: he is not a
-    // small difference, he is an absent one.
+    // Sorted on the number the column actually shows - the other dataset's rating.
+    // A player it has not got sorts last either way: he has no rating there, which
+    // is not a low one. To rank by disagreement, use the Difference filter.
     cmp = (a, b) => {
       const x = D.diff[a], y = D.diff[b];
       if ((x === NO_DIFF) !== (y === NO_DIFF)) return x === NO_DIFF ? 1 : -1;
       if (x === NO_DIFF) return D.elo[b] - D.elo[a];
-      return d * (x - y) || D.elo[b] - D.elo[a];
+      return d * ((D.elo[a] - x) - (D.elo[b] - y)) || D.elo[b] - D.elo[a];
     };
   } else if (s === 'main' || s === 'alt') {
     // Positions sort in pitch order (GK -> ST), which is the order POS is in.
@@ -646,13 +647,18 @@ function measure() { headH = thead.offsetHeight; viewH = scroller.clientHeight; 
 
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
 
-/** The "vs" cell: the gap to the other dataset's rating for the same man. */
+/** The "vs" cell: what the OTHER dataset rates the same man at. The number is
+ *  theirs; the colour is the comparison - green where this dataset is higher, red
+ *  where it is lower - and the gap itself is in the hover text and in the
+ *  Difference filter. */
 function diffHtml(i) {
   const v = D.diff[i];
   if (v === NO_DIFF) return '<span class="dif no" title="not in ' + otherTab + '">&ndash;</span>';
+  const theirs = D.elo[i] - v;
   const cls = v > 0 ? 'up' : v < 0 ? 'dn' : 'eq';
-  const title = P.tab + ' ' + D.elo[i] + ' &middot; ' + otherTab + ' ' + (D.elo[i] - v);
-  return '<span class="dif ' + cls + '" title="' + title + '">' + (v > 0 ? '+' + v : v) + '</span>';
+  const gap = v > 0 ? '+' + v : v;
+  const title = P.tab + ' ' + D.elo[i] + ' &middot; ' + otherTab + ' ' + theirs + ' (' + gap + ')';
+  return '<span class="dif ' + cls + '" title="' + title + '">' + theirs + '</span>';
 }
 
 function rowHtml(i, top) {
