@@ -552,11 +552,45 @@ answers instantly.
 
 ## The referee (versus)
 
-Roadmap item 18, wave 3 of `docs/pvp-plan.md`. **Not applied.** This is the sit-at-the-box
-checklist for it, written by the session that built the referee and could not reach the NAS.
+Roadmap item 18, wave 3 of `docs/pvp-plan.md`. This is the sit-at-the-box checklist for it.
 Everything below is additive: nothing here touches the accounts stack the game already uses,
 and stopping at any step leaves the game exactly as it is, because `FEATURES.pvp` is off
 until the last one.
+
+> **STATE, 2026-08-26.** A session with HTTPS reach to the server but no shell on the box
+> did the half that can be done over `push:sql`:
+>
+> - **Step 1's migration is APPLIED and verified** against the real PostgreSQL 17.6. It was
+>   rehearsed first inside a rolled-back transaction, as the house rule requires, and the
+>   rehearsal **found a defect that was corrected before the apply**: `revoke ... from
+>   public` does not remove the Supabase image's explicit grant to `anon`, so
+>   `set_display_name` would have been the one function in the database that `anon` could
+>   execute. It reads `from public, anon` now, and its ACL matches every other function
+>   there.
+> - **Verification steps 1, 2, 4, 5, 6 and 7 pass.** Step 3 (a second account cannot take a
+>   held name) is **not runnable: the server has exactly one profile**, which the migration
+>   header anticipated - its stated fallback, that the unique index exists, is confirmed
+>   (`profiles_name_key_uniq` on `name_key where name_key is not null`). Step 8 is a browser
+>   check and was not driven; all six single-player functions are present and untouched.
+> - **Step 1's PASSWORD is deliberately NOT set.** `pvp_referee` is still `nologin` exactly
+>   as 0016 left it. A login-capable role with no container using it is surface for nothing,
+>   and the credential has to be carried to the box by hand anyway - so do it in the same
+>   sitting as steps 2 to 4. `dkr/.env` carries a commented `PVP_REFEREE_PASSWORD=`
+>   placeholder saying the same.
+> - **Steps 2 and 4's file edits are STAGED in `dkr/`**, unapplied: realtime is restored
+>   into `docker-compose.yml`, `cds.yaml` and `lds.template.yaml` **verbatim from the `.bak`
+>   originals** (verified byte-identical), and a `referee` service, cluster and route are
+>   added beside them. All three edits are purely additive. **They have never been parsed by
+>   a YAML reader or seen by envoy** - no parser was installable on that machine - so treat
+>   them as a draft to read, not a tested artifact.
+> - **Steps 3, 5 and 6 are untouched**, and the DSM WebSocket header in step 2 is a GUI
+>   action nobody without the console can do.
+>
+> **A note on the referee route, since it saves reading the Lua:** the apikey gate is
+> **opt-in by route name**, via the `PROTECTED_ROUTES` table in `lds.template.yaml`. So the
+> staged `referee` route is ungated simply by not being listed there, which is what the
+> step 4 warning asks for - and restoring the two realtime routes re-gates *them*
+> automatically, because their names are already in that table. Neither needed a Lua edit.
 
 **Do it in this order.** The client is deployed by pushing to `main` and the server is not,
 so the server goes first, always - the same rule migrations already follow.

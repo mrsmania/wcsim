@@ -243,7 +243,17 @@ $$;
 -- 0008's lesson, restated because it is exactly the kind of thing that is forgotten:
 -- Postgres makes a new function executable by PUBLIC, and the Supabase image grants it to
 -- `anon` and `authenticated` on top. So say it.
-revoke all on function set_display_name(text, text) from public;
-grant execute on function set_display_name(text, text) to authenticated;
+--
+-- CORRECTED 2026-08-26 BEFORE THE FIRST APPLY, by rehearsing this file against the NAS
+-- inside a rolled-back transaction and reading the resulting ACL. `revoke ... from public`
+-- does NOT remove the image's explicit grant to `anon`, so the first version of these two
+-- lines left `set_display_name` as the ONE function in the database that `anon` could
+-- execute - measured, not guessed: every other security definer function there reads
+-- `authenticated=X | service_role=X` and nothing else. Not exploitable, because the body's
+-- first act is to refuse a null `auth.uid()` with PT401, but it is precisely the hole 0008
+-- exists to close and the shape 0008 uses is `from public, anon`. `service_role` is granted
+-- for the same consistency: every other function in 0008 carries it.
+revoke all on function set_display_name(text, text) from public, anon;
+grant execute on function set_display_name(text, text) to authenticated, service_role;
 
 commit;

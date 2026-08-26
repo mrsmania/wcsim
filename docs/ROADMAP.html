@@ -684,10 +684,11 @@
   <summary>
     <span class="num">41</span>
     <span class="title">Deploy the referee, and apply migration 0017
-      <span class="sub">The half of PvP wave 3 that needs the NAS: the migration, the
-      <code>pvp_referee</code> password, Realtime back in the stack for Broadcast, the
-      gateway route, and the container. Written and verified 2026-08-26 by a session with no
-      route to the box. <b>Nothing a player can see changes until the last step.</b></span>
+      <span class="sub"><b>Migration 0017 is APPLIED and verified</b> (2026-08-26), and the
+      envoy and compose edits are staged in <code>dkr/</code>. What is LEFT needs a shell on
+      the box: the <code>pvp_referee</code> password, the Realtime tenant and the DSM
+      WebSocket header, the container build, and the repository variable.
+      <b>Nothing a player can see changes until that last step.</b></span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -696,6 +697,52 @@
     <p>The house rule (CLAUDE.md, 2026-08-24): a migration you write and cannot apply, you
     QUEUE. This is that item for wave 3 of item 18, and it is the worked example from item 39
     repeated - which is the point of having done it that way once.</p>
+
+    <p><strong>DONE 2026-08-26, by a session with HTTPS reach to the server but no shell on
+    the box.</strong> The split turned out to be almost exactly the one the queueing rule
+    anticipates, so the item is now half closed rather than open:</p>
+    <ul>
+      <li><b>Step 1's migration is applied and verified against the real PostgreSQL 17.6.</b>
+      It was rehearsed first inside a rolled-back transaction, and <b>the rehearsal earned
+      its keep</b>: reading the resulting ACL showed that <code>revoke ... from public</code>
+      does <em>not</em> remove the Supabase image's explicit grant to <code>anon</code>, so
+      <code>set_display_name</code> would have shipped as the one function in the database
+      <code>anon</code> could execute. Not exploitable - the body refuses a null
+      <code>auth.uid()</code> with PT401 - but it is precisely the hole 0008 exists to close,
+      and every other function there reads <code>authenticated | service_role</code> and
+      nothing else. Corrected to <code>from public, anon</code> <em>before</em> the apply,
+      which is the one moment an append-only migration can still be edited.</li>
+      <li><b>Verification steps 1, 2, 4, 5, 6 and 7 pass</b>, including the half of step 7
+      that matters most: connected as the referee role the column grants on
+      <code>profiles</code> are exactly <code>id, display_name, name_key</code> - no
+      <code>email</code>. <b>Step 3 cannot be run: the server holds one profile</b>, exactly
+      as the migration header predicted, so its stated fallback was used and the unique
+      partial index is confirmed. Step 8 is a browser check and was not driven.</li>
+      <li><b>Step 1's password was deliberately NOT set</b>, against the runbook's own
+      grouping. A login-capable role with no container using it is surface for nothing, and
+      the credential must be hand-carried to the box regardless, so it belongs in the same
+      sitting as steps 2 to 4. Postgres publishes no port in the compose file, so this is a
+      sequencing choice rather than a risk finding.</li>
+      <li><b>Steps 2 and 4 are staged, not applied.</b> Realtime is restored into the three
+      files <b>verbatim from the <code>.bak</code> originals</b> (verified byte-identical),
+      with a <code>referee</code> service, cluster and route added beside them; all three
+      edits are purely additive. They have <b>never been parsed by a YAML reader or seen by
+      envoy</b>, so they are a draft to read rather than a tested artifact.</li>
+    </ul>
+
+    <p><strong>What is left, all of it needing a shell or the DSM console:</strong> set the
+    <code>pvp_referee</code> password and <code>PVP_REFEREE_PASSWORD</code> together; carry
+    the three staged files up and <code>docker compose up -d</code>; provision the Realtime
+    tenant and add the WebSocket upgrade header; build and run the referee container; work
+    the three curls in step 5; then set <code>VITE_REFEREE_URL</code> and push.</p>
+
+    <p><strong>One finding that saves reading 300 lines of Lua:</strong> the apikey gate is
+    <b>opt-in by route name</b>, through the <code>PROTECTED_ROUTES</code> table in
+    <code>lds.template.yaml</code>. So step 4's "no apikey filter" requirement is satisfied by
+    the <code>referee</code> route simply not being listed there, and restoring the two
+    realtime routes re-gates <em>them</em> automatically because their names already are.
+    Neither needed a Lua edit, which the runbook did not say and a reader would have
+    worried about.</p>
     <p><strong>The checklist is written out</strong>, step by step with the verification for
     each, under &#8220;The referee (versus)&#8221; in
     <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>.
