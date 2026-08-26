@@ -94,7 +94,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
     }, [allPlayers]);
 
     return (
-        <div className="mt-6">
+        <div className="mt-[30px]">
             {/* HERO - the pitch as a tactics board, text laid over the grass */}
             <section
                 className="relative flex items-center gap-10 overflow-hidden rounded-[14px] px-[clamp(22px,5vw,52px)] py-[clamp(30px,5vw,54px)] text-white shadow-[7px_7px_0_var(--color-ink)]"

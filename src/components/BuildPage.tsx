@@ -1,5 +1,5 @@
 import type { MutableRefObject, ReactNode } from 'react';
-import { PAGE_EYEBROW } from './matchUi';
+import { StageHeader } from './matchUi';
 
 /** The build page's section header and its three-column layout (hygiene H84).
  *
@@ -33,17 +33,7 @@ export default function BuildPage({
 }) {
     return (
         <>
-            <div className="mb-5 mt-7 flex items-center gap-4">
-                <div>
-                    <div className={PAGE_EYEBROW}>{eyebrow}</div>
-                    <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
-                        {title}
-                    </h2>
-                </div>
-                <div className="relative h-0 flex-1 border-t-2 border-line">
-                    <span className="absolute -top-[5px] left-0 h-2 w-2 rounded-full border-2 border-line bg-panel" />
-                </div>
-            </div>
+            <StageHeader eyebrow={eyebrow} title={title} />
             {/* One column below 760, two to 1080, three above; the source panel (setup /
                 drawn squad / market / complete) is always FIRST on a phone, then the
                 pitch, then the ratings.

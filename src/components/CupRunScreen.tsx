@@ -481,7 +481,7 @@ export default function CupRunScreen({
         // of play reached from the build, not a place you navigate to.
         <StageHeader eyebrow="Your career" title="Cup Run Career" />
       ) : (
-        <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-7" />
+        <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-[30px]" />
       )}
 
       {/* Career hub - open above the content; a slim strip during an active run. Its own

@@ -17,7 +17,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './stickerTheme';
-import { CARD, MONO_CAP, PAGE_EYEBROW } from './matchUi';
+import { CARD, MONO_CAP, StageHeader } from './matchUi';
 import TeamRoster from './TeamRoster';
 
 /** The back control above a roster / a team's cup list. Rendered as a <button> in one
@@ -96,20 +96,7 @@ export default function SquadBrowser() {
 
     return (
         <>
-            {/* Section header (matches the game screens' eyebrow + title) */}
-            <div className="mb-5 mt-7 flex items-center gap-4">
-                <div>
-                    <div className={PAGE_EYEBROW}>
-                        Squads database
-                    </div>
-                    <h2 className="mt-0.5 font-display text-3xl font-extrabold leading-none tracking-[-0.02em]">
-                        {title}
-                    </h2>
-                </div>
-                <div className="relative h-0 flex-1 border-t-2 border-line">
-                    <span className="absolute -top-[5px] left-0 h-2 w-2 rounded-full border-2 border-line bg-panel" />
-                </div>
-            </div>
+            <StageHeader eyebrow="Squads database" title={title} />
 
             {/* Display toggle + search */}
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
