@@ -283,7 +283,15 @@ Memory and operational fragility are.
   person can farm wins from day one by letting one side idle; nothing is at stake yet, but this
   is the corpus a ladder inherits and by then it is too late to tell them apart. One column now,
   impossible later.
-- **`pvp_records`** - derived from `pvp_matches` (P36), not incremented.
+- **`pvp_records`** - derived from `pvp_matches` (P36), not incremented. **A view, and it
+  must be `security_invoker`**: without that a view runs with its OWNER's rights, and the
+  owner is the migration's superuser, so `select * from pvp_records` would hand every
+  account's record to anybody signed in, with the row-level security on `pvp_matches`
+  bypassed by the thing reading it. That needs PostgreSQL 15 or newer, which is a stated
+  requirement now rather than an assumption.
+- **`pvp_lineups`** - formation and style, in their own table. Section 7 offered "column
+  grants or a separate table" and the separate table won: a column grant has to be restated
+  every time the member row changes shape, and row-level security is row-level either way.
 - **`pvp_name_reports`** - insert-only from the client, read by the owner.
 
 **Row-level security:** a public room in its lobby phase is readable by any signed-in player;
@@ -347,7 +355,7 @@ after most of the client work was done.
 |---|---|---|
 | 0 | **DONE 2026-08-26** (`src/domain/pvp.ts`, `scripts/checks/pvp.ts`, 23 checks). **The rules, as pure functions.** Is this XI legal, what did it cost, was it dealt, the auto-pick, and a **two-sided `GroupTeam` builder** (`userGroupTeam` hard-codes `id: USER_ID`, `name: 'Your XI'`, `code: 'YOU'`, `isUser: true`, so it cannot describe two opponents in one tie). Call `resolveKoTie` directly: it is **already exported** and already returns a definite winner on every path, so the earlier plan's "lift `simulateKoTie`" was wrong and that item is gone | Checks refuse an illegal XI for each reason; a thousand auto-picks from a one-dollar-per-slot corner never strand a slot |
 | 1 | **DONE 2026-08-26** (`src/domain/pvpRoom.ts`, `src/domain/pvpAuth.ts`, `scripts/checks/pvpRoom.ts`, 25 checks). **The referee, offline.** Bundles the domain code, runs a whole draft against simulated players, deadlines as stored data plus a sweeper, auto-picks on expiry, returns a result | Over-budget, duplicated person, out-of-pool, undealt and **late** picks each refused, at both clock lengths; a request bearing the **anon key** is refused; a player who does nothing still ends with a legal XI |
-| 2 | **The migration**, parse-checked, dry-run, rollback block, roadmap item opened for the apply | `push:sql -- --dry-run` clean |
+| 2 | **DONE 2026-08-26** (`supabase/migrations/0016_pvp_rooms.sql`, queued as roadmap item 39). **The migration**, parse-checked, dry-run, rollback block, roadmap item opened for the apply | `push:sql -- --dry-run` clean; parsed with the real Postgres grammar, and the rollback block parsed too |
 | 3 | **Deployed.** Realtime Broadcast, the gateway route, unique names, the version endpoint, and **outage recovery** | Two browsers see each other; killing the referee for 45 seconds returns every open window with roughly the time it had left, and fires no auto-pick for a window that was open when it died |
 | 4 | **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Entering a room leaves a Cup Run and a half-built solo XI untouched, and no per-tap server write happens inside a room |
 | 5 | **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Two people with a code play a whole game end to end |
@@ -436,6 +444,20 @@ fix if this is ever worth closing.
 - **Two overlapping guarantees are worse than one testable one.** The stuck-room fix first
   had a retry loop AND a pool fallback, and each masked the other under mutation, so
   neither was individually covered. Collapsed to one path.
+
+### Found while writing the migration (wave 2)
+
+- **The rollback block was wrong, and parsing it is what showed that.** `drop role` fails
+  while the role still holds any privilege, and this one holds a column grant on `profiles`
+  and usage on the schema, so the rollback needed a `drop owned by` first. A rollback that
+  fails is worse than none, because it fails at the worst moment. Parse it, every time.
+- **`bypassrls` would have defeated P34 entirely.** It is the obvious way to let the referee
+  past its own tables' policies, and it is global: it would hand the referee every account's
+  album and career, which is the exact opposite of narrowing its blast radius. Owning the
+  `pvp_*` tables gives the same access to those tables and to nothing else.
+- **The house convention is `bigserial`, not `gen_random_uuid`.** Nothing in the existing
+  migrations generates a uuid, so following the instinct would have added a pgcrypto
+  dependency for no reason.
 
 ### To measure once it is playable
 

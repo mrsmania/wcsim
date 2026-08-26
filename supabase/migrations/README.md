@@ -38,6 +38,14 @@ mode, and it has happened.
 | `delete_account()` | 0003 | - |
 | `create_profile()` | 0004 | - |
 | `enforce_invite()` | dropped in **0005** | 0004 |
+| `pvp_is_member(bigint)` | 0016 | - |
+| `pvp_tie_played(bigint, uuid)` | 0016 | - |
+
+The two `pvp_*` helpers are not part of the client surface and are not called by anything
+yet. They exist because a row-level-security policy on `pvp_rooms` that reads `pvp_members`,
+whose own policy reads `pvp_rooms`, recurses; a `security definer` helper breaks the cycle.
+They are `stable` and read one table each. See `0016_pvp_rooms.sql`, and
+`docs/pvp-plan.md` for what the tables are for.
 
 `finish_run` and `finish_run_v2` are two live functions, not an old and a new one. The
 client tries `v2` (one round trip, migration 0010) and falls back to `finish_run` once per

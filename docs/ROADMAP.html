@@ -647,6 +647,69 @@
   </div>
 </details>
 
+<details class="item">
+  <summary>
+    <span class="num">39</span>
+    <span class="title">Apply migration 0016 (the PvP room tables) to the account server
+      <span class="sub">Written, parse-checked and dry-run 2026-08-26; <b>not applied</b>.
+      Needs LAN or VPN reach to the NAS and <code>dkr/.env</code>. Nothing a player can see
+      changes either way - the referee that uses these tables is wave 3.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The standing handover</strong> the house rule asks for (CLAUDE.md,
+    2026-08-24): a session that writes a migration and cannot apply it opens an item so the
+    apply can be handed to one that can. Item 35 was the worked example and was closed empty
+    once its two migrations went in; this is a new one rather than a reopening.</p>
+    <p><strong>What the file does.</strong>
+    <a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener"><code>supabase/migrations/0016_pvp_rooms.sql</code></a>
+    adds a display name to <code>profiles</code> (a room cannot show strangers an email),
+    seven <code>pvp_*</code> tables, their row-level security, <code>pvp_records</code> as a
+    <b>view</b> rather than a counter, and a <code>pvp_referee</code> role that owns those
+    tables and can reach nothing else. It touches no existing table except adding two nullable
+    columns, and <b>no existing function at all</b>. 55 top-level statements.</p>
+    <p><strong>Already done, so do not repeat it:</strong> parsed with the real Postgres
+    grammar via <code>pglast</code> (55 statements, and the dry-run counts the same 55
+    independently); the <b>rollback block was parsed too</b> and corrected as a result - it
+    was missing a <code>drop owned by</code>, without which <code>drop role</code> fails
+    because the role still holds a column grant on <code>profiles</code>.</p>
+    <p><strong>Two things to check BEFORE applying, in this order.</strong></p>
+    <ul>
+      <li><b><code>select version();</code></b> The file uses
+      <code>security_invoker</code> on its view, which needs <b>PostgreSQL 15 or newer</b>.
+      That option is load-bearing rather than tidy: without it the view reads
+      <code>pvp_matches</code> as its superuser owner and would hand every account's record
+      to anybody signed in, with row-level security silently bypassed by the thing reading
+      it. On 14 the file fails at that statement, which is the correct loud failure - do not
+      work around it by dropping the option.</li>
+      <li><b>Rehearse inside a transaction that gets rolled back</b>, which is the habit
+      recorded after 0014: send <code>begin;</code> plus the body minus its own
+      begin/commit, plus the verification queries, plus <code>rollback;</code> as one file.
+      Put results in a temp table and <code>select</code> it at the end, because notices do
+      not come back through <code>push:sql</code>.</li>
+    </ul>
+    <p><strong>After applying</strong>, run the seven numbered checks in the file's own
+    header. Two of them matter more than the rest: as an ordinary signed-in browser session,
+    <code>select * from pvp_rooms</code> must return nothing AND
+    <code>insert into pvp_rooms ...</code> must be refused (the first proves the policy is
+    not wide open, the second that there is no client write path); and play a normal
+    single-player run to the end, because confirming the untouched path is untouched is the
+    point of checking.</p>
+    <p><strong>One thing this migration deliberately leaves undone.</strong> The
+    <code>pvp_referee</code> role is created <code>nologin</code> with no password, because a
+    credential does not belong in version control. It can do nothing at all until wave 3
+    runs <code>alter role pvp_referee login password '...'</code> by hand. That is not a
+    defect to fix here.</p>
+    <p class="next"><strong>Next step:</strong> from a machine with LAN or VPN reach and
+    <code>dkr/.env</code>, do the version check, then the rehearsal, then the apply, then the
+    header's verification list. Prefix with <code>NODE_OPTIONS=--use-system-ca</code> if it
+    reports a certificate error while <code>curl</code> reaches the host.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener">supabase/migrations/0016_pvp_rooms.sql</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (section 7), <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../supabase/migrations/README.md" target="_blank" rel="noopener">supabase/migrations/README.md</a></p>
+  </div>
+</details>
+
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
 <details class="item">
@@ -756,8 +819,8 @@
     <span class="title">Player versus player, for signed-in accounts
       <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
-      REVIEWED and revised: 42 decisions, nothing open. <b>WAVES 0 AND 1 SHIPPED
-      2026-08-26.</b></span>
+      REVIEWED and revised: 42 decisions, nothing open. <b>WAVES 0 TO 2 SHIPPED
+      2026-08-26</b>; the migration is queued as item 39.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -852,9 +915,23 @@
     testing found it; nothing in the design said it was there. And <b>whatever the fallback
     reaches for must be recorded as dealt</b>, or it builds an XI the referee itself then
     refuses.</p>
-    <p class="next"><strong>Next step:</strong> wave 2, the schema migration - written,
-    parse-checked with <code>pglast</code>, dry-run, a rollback block in its header, and a new
-    roadmap item opened for the apply, since a cloud session cannot reach the NAS.</p>
+    <p><strong>Wave 2 shipped 2026-08-26:</strong>
+    <a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener"><code>0016_pvp_rooms.sql</code></a> - seven tables, their row-level security,
+    <code>pvp_records</code> as a <b>view</b> rather than a counter, a display name on
+    accounts, and a <code>pvp_referee</code> role that owns those tables and can reach
+    nothing else. Written, parse-checked against the real Postgres grammar, dry-run, and
+    <b>queued rather than applied</b> as <b>item 39</b>. Three things it settled: the
+    rollback block was WRONG until it was parsed (<code>drop role</code> fails while the role
+    still holds a grant, so it needed a <code>drop owned by</code>); <code>bypassrls</code>
+    would have defeated the whole point of a narrow referee role, since it is global and
+    would hand it every account's album, where owning the pvp tables gives the same access to
+    only those; and the view needs <code>security_invoker</code> or it leaks every account's
+    record to anybody signed in, which makes PostgreSQL 15 a stated requirement.</p>
+    <p class="next"><strong>Next step:</strong> wave 3 - deploy. Realtime back into the NAS
+    stack (Broadcast, not change capture), the referee behind a route on the existing
+    gateway, unique display names, the version endpoint, and outage recovery. This is the one
+    wave that needs the NAS and cannot be done by a cloud session; item 39's apply belongs
+    with it.</p>
     <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a></p>
   </div>
 </details>
