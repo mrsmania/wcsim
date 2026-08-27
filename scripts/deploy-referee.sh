@@ -79,6 +79,24 @@ require_local_files() {
   grep -q 'name: referee' "$LOCAL_LDS" \
     || die "$LOCAL_LDS has no referee route"
   ok "the three staged files are present and carry the referee entries"
+
+  # THE SIGN-IN MAIL TRAP, and it has already cost a day (2026-08-26). --config REPLACES
+  # the NAS's docker-compose.yml with this local copy, and the four mail keys below are
+  # NOT in the stock Supabase compose: it ships them commented out. So a stock-derived
+  # local copy reverts every player to GoTrue's built-in "Magic Link" mail, and NOTHING
+  # FAILS while it happens - the deploy reports success and the fault only shows up in
+  # somebody's inbox at the next sign-in. See docs/nas-setup.md, "The sign-in email".
+  local missing=""
+  local k
+  for k in GOTRUE_MAILER_SUBJECTS_MAGIC_LINK GOTRUE_MAILER_SUBJECTS_CONFIRMATION \
+           GOTRUE_MAILER_TEMPLATES_MAGIC_LINK GOTRUE_MAILER_TEMPLATES_CONFIRMATION; do
+    grep -q "^[[:space:]]*$k:" "$LOCAL_COMPOSE" || missing="$missing $k"
+  done
+  [ -z "$missing" ] || die "$LOCAL_COMPOSE is missing the sign-in mail keys:$missing
+   Pushing it would revert every player to GoTrue's stock \"Magic Link\" mail. Add them
+   under the auth service's 'environment:' as 'KEY: \${KEY}', with the values in the
+   stack's .env, then re-run. docs/nas-setup.md, \"The sign-in email\", has all four."
+  ok "the four sign-in mail keys are in the staged compose"
 }
 
 # Synology puts docker outside a login shell's PATH, and it usually needs root.

@@ -248,6 +248,33 @@ container, and the mail arrives as designed. The pre-change files are kept besid
 themselves as `.env.pre-mailer` and `docker-compose.yml.pre-mailer`, which is what the
 rollback above restores.
 
+**AND IT WAS SILENTLY UNDONE ON 2026-08-26, by the referee deploy.** Worth reading before
+touching this stack again, because nothing about it looked like a failure at the time.
+`scripts/deploy-referee.sh --config` REPLACES the NAS's `docker-compose.yml` with the local
+`dkr/docker-compose.yml`, and that local copy was a stock-derived file that had never
+carried the four keys: the mailer edits of 2026-08-18 were made by hand ON THE NAS, so the
+laptop's staging copy never learned about them. The deploy verified its md5, reported
+success, re-created `auth`, and every player went back to GoTrue's built-in "Magic Link"
+mail, complete with a login link the app cannot even use.
+
+Three things this settles:
+
+- **The rename was not involved**, which is the first place suspicion lands. `otp.html` is
+  fetched by URL from the Pages build and was serving correctly throughout; the Mondialino
+  commit changed one word of wordmark text inside it and nothing else.
+- **`.env` was never the problem, and still is not.** The script only appends
+  `PVP_REFEREE_PASSWORD` there, so the four values survived on the NAS. What was lost is the
+  compose ALLOWLIST that hands them to the container, which is the failure mode this section
+  already warned about: a value in `.env` that no service references reaches nothing.
+- **A hand edit on the NAS that the laptop's staging copy does not carry will be reverted by
+  the next deploy.** Anything edited directly on the box belongs in `dkr/` the same day.
+
+Fixed in two places, so it cannot happen a third time: the four keys are in
+`dkr/docker-compose.yml` under the `auth` service with a comment saying why they are not in
+the stock file, and `require_local_files` in `scripts/deploy-referee.sh` now refuses to run
+any stage while they are absent. That guard was mutation-tested (strip one key, confirm it
+goes red) and it fires before the first ssh, so a bad file cannot reach the NAS.
+
 ---
 
 ## 5. Point the game at it
