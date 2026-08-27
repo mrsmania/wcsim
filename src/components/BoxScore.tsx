@@ -168,7 +168,7 @@ export default function BoxScore({ formation, filled, ratings = true, chemistry 
                                     className="rounded-[3px] border border-line px-2 py-1 font-mono text-[11px] font-semibold text-muted"
                                     title={c.detail}
                                 >
-                                    {c.name} <b className="font-bold text-pitch">+{c.points}</b>
+                                    {c.name} <b className="font-bold text-pitch-ink">+{c.points}</b>
                                 </span>
                             ))}
                         </div>

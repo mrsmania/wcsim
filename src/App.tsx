@@ -310,7 +310,7 @@ export default function App({
                 {heldRoom && roomTo && !isVersus && (
                     <Link
                         to={roomTo}
-                        className="mb-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch transition hover:bg-pitch/20"
+                        className="mb-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch-ink transition hover:bg-pitch/20"
                     >
                         <span className="truncate">
                             Versus {heldRoom.code} &middot; {heldRoom.line}

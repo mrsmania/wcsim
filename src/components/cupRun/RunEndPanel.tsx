@@ -1,4 +1,4 @@
-import { CARD, PRIMARY_BTN, SECONDARY_BTN_BASE } from '../matchUi';
+import { CARD, PRIMARY_BTN, btn } from '../matchUi';
 import { AWARDS_ON, challengeById } from '../../domain/challenges';
 import ChallengeRow from '../challengeUi';
 import type { Reward } from './types';
@@ -28,11 +28,11 @@ export default function RunEndPanel({
       {reward && (
         <div className="mt-1.5 font-mono text-[12px] text-muted">
           +{reward.xpGained} XP &middot;{' '}
-          <span className="text-amber">+{reward.prestigeGained} Prestige</span>
+          <span className="text-amber-ink">+{reward.prestigeGained} Prestige</span>
           {reward.ascensionMult > 1 && (
             <span className="ml-2 text-amber-ink">Ascension x{reward.ascensionMult}</span>
           )}
-          {reward.leveledUp && <span className="ml-2 font-bold text-pitch">Level up!</span>}
+          {reward.leveledUp && <span className="ml-2 font-bold text-pitch-ink">Level up!</span>}
         </div>
       )}
       {!!reward?.challenges.length && (
@@ -42,7 +42,7 @@ export default function RunEndPanel({
               Challenges completed
             </span>
             {AWARDS_ON && (
-              <span className="font-mono text-[13px] font-bold text-amber">
+              <span className="font-mono text-[13px] font-bold text-amber-ink">
                 +{reward.challengePrestige} Prestige
               </span>
             )}
@@ -70,13 +70,13 @@ export default function RunEndPanel({
         <button
           onClick={onReplay}
           disabled={banking}
-          className={`px-4 py-3 ${SECONDARY_BTN_BASE} disabled:opacity-60`}
+          className={btn('secondary')}
         >
           Replay same XI
         </button>
         <button
           onClick={onCareer}
-          className={`px-4 py-3 ${SECONDARY_BTN_BASE}`}
+          className={btn('secondary')}
         >
           Career
         </button>

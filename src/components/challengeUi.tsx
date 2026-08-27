@@ -105,7 +105,7 @@ export function ChallengeLedgerRow({
     <div className="flex items-start gap-[11px] border-b border-hair px-0.5 py-2">
       <span
         className={`mt-0.5 grid h-[15px] w-[15px] shrink-0 place-items-center ${
-          done ? 'text-pitch' : 'text-dim'
+          done ? 'text-pitch-ink' : 'text-dim'
         }`}
         aria-hidden="true"
       >

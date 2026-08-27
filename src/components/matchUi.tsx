@@ -24,40 +24,79 @@ export function RatingChip({ value, className = '' }: { value: number; className
 /** Presentational helpers shared by the group-stage and knockout screens. Kept
  *  framework-light: every piece is a pure function of its props. */
 
-/** Primary-button visual identity only (the turf-flat `.btn.primary`): colors,
- *  border, font, hover, active. Callers that need their own layout/sizing (width,
- *  display, padding, gap, text size, disabled) append it, like SECONDARY_BTN. */
-export const PRIMARY_BTN_BASE =
-  'rounded-[5px] border border-pitch-dark bg-pitch font-display font-extrabold uppercase tracking-[0.04em] text-white transition hover:bg-pitch-dark active:scale-[0.99]';
-
-/** Shared rectangular primary action button: PRIMARY_BTN_BASE plus the default
- *  inline layout + sizing most call sites want. */
-export const PRIMARY_BTN =
-  `inline-flex items-center justify-center gap-2 px-5 py-3 text-[13px] ${PRIMARY_BTN_BASE}`;
-
-/** Outline-button visual identity only (the turf-flat `.btn.secondary`): colors, border,
- *  font, hover. Callers that need their own layout/sizing append it, exactly as with
- *  `PRIMARY_BTN_BASE`. Most callers want `SECONDARY_BTN` below instead. */
-export const SECONDARY_BTN_BASE =
-  'rounded-[5px] border border-ink bg-panel font-display font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch';
-
 /**
- * The outline button at the ordinary size: the base plus the same box `PRIMARY_BTN` has,
- * so a solid and an outline button sitting side by side line up.
+ * THE BUTTONS. Four tones, three sizes, one function.
  *
- * IT IS NAMED THE PLAIN NAME ON PURPOSE, and that is the fix for a real defect rather than
- * tidiness. The identity-only string used to be called `SECONDARY_BTN`, so a caller who
- * used it bare - as every versus screen did - got a button with NO PADDING AND NO TEXT
- * SIZE, which reads as a mistake rather than as a smaller button. The trap was that the
- * obvious name was the one you must not use alone. Now the obvious name is the safe one and
- * the deliberate choice carries the `_BASE` suffix, matching the primary pair.
+ * Reworked 2026-08-27, after the observation that the app had "about ten different looks of
+ * buttons". It did: `PRIMARY_BTN` and `SECONDARY_BTN` here, plus a bespoke string in each of
+ * `CompletePanel`, `SetupPanel`, `ModeSelect`, `SquadBrowser`, `UnreachableScreen`,
+ * `SettingsModal`, `AlbumScreen` and `BudgetMarket`, and four different paddings appended to
+ * the outline base. Every one of them was a near-copy differing by a pixel of padding or a
+ * point of type, which is the shape of a token nobody could find.
+ *
+ * NOTHING NEW WAS INVENTED. The turf-flat identity is unchanged: `rounded-[5px]`, a 1px
+ * border, the display face in extrabold uppercase, green for the action you came to take and
+ * an ink outline for the one beside it. What is new is that there are now four TONES and
+ * three SIZES and no fourth axis, so the answer to "which button is this" is a pair rather
+ * than a fresh class string.
+ *
+ * WHY A FUNCTION AND NOT TWELVE CONSTANTS: twelve names is the problem restated. Every class
+ * it returns is a literal in this file, so Tailwind still sees the whole set.
+ *
+ * THE TONES CARRY MEASURED CONTRAST, which is the other half of the rework - the primary
+ * button did not meet AA and had not since it was written:
+ *
+ *   * `primary` fills with **pitch-dark**, not pitch. White on pitch measures **4.00** in
+ *     light and **3.25** on graphite against the 4.5 a 13px bold label needs; white on
+ *     pitch-dark is 8.08 and 10.34. The hover lifts to `pitch-hover`, which is the one step
+ *     between the two greens that still carries white (5.62) - the bright `pitch` does not,
+ *     so hovering would have dropped the button back below AA. This is the single biggest
+ *     thing the audit found.
+ *   * `secondary` is ink on panel: 16.66 and 14.36, and never in doubt.
+ *   * `quiet` is muted on panel, 5.70 and 7.06. It exists because the app already had this
+ *     third emphasis - Back, Refresh, Auto-fill, the masthead's two - expressed six
+ *     different ways.
+ *   * `danger` fills with **loss-deep**. Plain `loss` carries white at 4.80 in light but
+ *     only **3.14** on graphite, so the destructive confirm failed AA in the dark theme.
+ *
+ * Hovers reach for `pitch-ink` rather than `pitch` for the same reason: green as TEXT is
+ * 4.00 on white. See the token's own note in `index.css`.
  */
-export const SECONDARY_BTN =
-  `inline-flex items-center justify-center gap-2 px-5 py-3 text-[13px] ${SECONDARY_BTN_BASE}`;
+export const BTN_TONES = ['primary', 'secondary', 'quiet', 'danger'] as const;
+export type BtnTone = (typeof BTN_TONES)[number];
 
-/** The solid-red destructive confirm button (used to confirm a start-over / reset). */
-export const DANGER_BTN =
-  'rounded-[5px] border border-loss bg-loss px-3 py-2 font-display text-[12px] font-extrabold uppercase tracking-[0.04em] text-white transition hover:opacity-90';
+/** `lg` is a page action, `md` one inside a card, `sm` one in a row or a toolbar. Three,
+ *  because the twelve strings this replaced used exactly three scales between them. */
+export const BTN_SIZES = ['lg', 'md', 'sm'] as const;
+export type BtnSize = (typeof BTN_SIZES)[number];
+
+const BTN_SHAPE =
+  'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50';
+
+const BTN_SIZE: Record<BtnSize, string> = {
+  lg: 'px-5 py-3 text-[13px]',
+  md: 'px-4 py-2.5 text-[12px]',
+  sm: 'px-2.5 py-1.5 text-[11px]',
+};
+
+const BTN_TONE: Record<BtnTone, string> = {
+  primary: 'border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]',
+  secondary: 'border-ink bg-panel text-ink hover:border-pitch hover:text-pitch-ink',
+  quiet: 'border-line bg-panel text-muted hover:border-pitch hover:text-pitch-ink',
+  danger: 'border-loss-deep bg-loss-deep text-white hover:opacity-90 active:scale-[0.99]',
+};
+
+/** One button's classes. See the note above for what the tones mean and what they measure. */
+export function btn(tone: BtnTone = 'primary', size: BtnSize = 'lg'): string {
+  return `${BTN_SHAPE} ${BTN_SIZE[size]} ${BTN_TONE[tone]}`;
+}
+
+/** The two names most of the app already uses, kept so a call site that wants the ordinary
+ *  page action does not have to say so twice. */
+export const PRIMARY_BTN = btn('primary');
+export const SECONDARY_BTN = btn('secondary');
+/** The destructive confirm, at in-card size because that is where a confirm always is. */
+export const DANGER_BTN = btn('danger', 'md');
 
 /** The turf-flat card: 6px corners, a 1px rule and the signature hard offset shadow.
  *  Class strings rather than a `<Card>` component, deliberately: the call sites need
@@ -83,7 +122,7 @@ export const MONO_CAP = 'font-mono text-[10px] font-semibold uppercase tracking-
  *  front page, the squad browser, the album, the challenge ledger, the group draw) use
  *  this directly. */
 export const PAGE_EYEBROW =
-  'font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch';
+  'font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch-ink';
 
 /** A horizontal progress meter: a chalk track with a 1px rule and a filled bar.
  *  Six copies of this existed - album completion, honours completion, the career's
@@ -134,7 +173,7 @@ export const METER_GRADIENT = 'bg-gradient-to-r from-pitch to-pitch-dark';
  *  of the build page's pickers). A caller with a third state - the Ascension picker's
  *  locked tier - keeps that at the call site. */
 export const CHIP_ON = 'border-ink bg-ink text-ground';
-export const CHIP_OFF = 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch';
+export const CHIP_OFF = 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch-ink';
 
 /** A card's footer disclosure: a full-width chalk strip carrying a mono label and a
  *  chevron, which opens a match's goal feed and a group's full results. Written out at
@@ -158,7 +197,7 @@ export function CardDisclosure({
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      className={`flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 ${className} ${MONO_CAP} transition hover:text-pitch`}
+      className={`flex w-full items-center justify-center gap-1.5 border-t border-line bg-chalk px-4 ${className} ${MONO_CAP} transition hover:text-pitch-ink`}
     >
       {label}
       {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -332,7 +371,7 @@ export function StageCrumb({
   to?: string;
   className?: string;
 }) {
-  const cls = `group inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch ${className}`;
+  const cls = `group inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch-ink ${className}`;
   const inner = (
     <>
       {dir === 'back' && (
@@ -391,14 +430,14 @@ export function StageHeader({
 export function ResultTag({ kind, label }: { kind: ResultKind; label: string }) {
   if (kind === 'next') {
     return (
-      <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber">
+      <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-ink">
         {label}
       </span>
     );
   }
   const tone =
     kind === 'w'
-      ? 'bg-pitch/[0.13] text-pitch'
+      ? 'bg-pitch/[0.13] text-pitch-ink'
       : kind === 'l'
         ? 'bg-loss/[0.13] text-loss'
         : 'bg-chalk text-muted';
@@ -460,7 +499,7 @@ export function FixtureHead({
         {status && (
           <span
             className={`font-mono text-[8.5px] font-semibold uppercase tracking-[0.1em] ${
-              statusDim ? 'text-muted' : 'text-amber'
+              statusDim ? 'text-muted' : 'text-amber-ink'
             }`}
           >
             {status}
@@ -482,7 +521,7 @@ export function FixtureHead({
 /** The amber "live" line shown at the foot of a feed while a match plays. */
 export function LiveLine({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-[7px] pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-amber">
+    <div className="flex items-center gap-[7px] pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-ink">
       <span className="h-[7px] w-[7px] rounded-full bg-amber" />
       {label}
     </div>
@@ -523,7 +562,7 @@ export function Banner({
       />
       <div
         className={`relative font-mono text-[10px] font-semibold uppercase tracking-[0.2em] ${
-          champion ? 'text-amber' : 'text-loss'
+          champion ? 'text-amber-ink' : 'text-loss'
         }`}
       >
         {eyebrow}

@@ -74,7 +74,7 @@ export default function PlayerBadge({
                     </span>
                 )}
                 {swap && (
-                    <span className="absolute -left-2 -top-2 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-amber text-ink">
+                    <span className="absolute -left-2 -top-2 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-amber text-[#13211a]">
                         {rotate ? (
                             <RotateCw size={10} strokeWidth={3} />
                         ) : (

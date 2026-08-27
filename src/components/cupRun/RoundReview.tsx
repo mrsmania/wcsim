@@ -31,14 +31,14 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
       <div className={`${CARD} p-5`}>
         <div className="mb-3 text-[14px] font-semibold">
           Group stage, finished {ordinal(record.groupPos)} of {record.groupSize} ·{' '}
-          <span className={record.won ? 'text-pitch' : 'text-loss'}>
+          <span className={record.won ? 'text-pitch-ink' : 'text-loss'}>
             {record.won ? GROUP_OUTCOME.advanced : GROUP_OUTCOME.out}
           </span>
         </div>
         {record.groupResults && (
           <div className="flex flex-col gap-1.5">
             {record.groupResults.map((r, i) => {
-              const res = r.us > r.them ? 'text-pitch' : r.us < r.them ? 'text-loss' : 'text-muted';
+              const res = r.us > r.them ? 'text-pitch-ink' : r.us < r.them ? 'text-loss' : 'text-muted';
               return (
                 <div key={i} className="flex items-center gap-2 text-[13px]">
                   <span className="w-[74px] shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">

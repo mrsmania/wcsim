@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { STYLES, STYLE_LABEL, type FormationName, type Style } from '../domain/formations';
 import type { TeamStrength } from '../domain/draft';
 import { ChevronDown, Coins, Dices } from 'lucide-react';
-import { CARD, CHIP_OFF, CHIP_ON, PRIMARY_BTN_BASE, SECONDARY_BTN_BASE } from './matchUi';
+import { CARD, CHIP_OFF, CHIP_ON, btn } from './matchUi';
 
 const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'weak', label: 'Weak', hint: 'rating < 75' },
@@ -15,7 +15,10 @@ const SEGLBL = 'mb-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0
 
 /** The two build-your-XI primary buttons share this sizing/disabled layout on top of
  *  the shared primary-button identity; they differ only in width (flex-1 vs w-full). */
-const BUILD_BTN = `items-center justify-center gap-2 px-4 py-[11px] text-[13px] ${PRIMARY_BTN_BASE} disabled:cursor-not-allowed disabled:opacity-50`;
+/** Two build paths, and the ROLL keeps the solid green: they are peers by design (both are
+ *  always available) but two identical primaries stacked read as two headline actions and
+ *  are heavy besides, and the app's own tagline leads with rolling. One word to swap. */
+const BUILD_BTN = btn('primary');
 
 interface Props {
     names: FormationName[];
@@ -90,7 +93,7 @@ export default function SetupPanel({
                                     active
                                         ? 'bg-pitch-dark text-white'
                                         : enabled
-                                          ? 'bg-panel text-muted hover:text-pitch'
+                                          ? 'bg-panel text-muted hover:text-pitch-ink'
                                           : 'cursor-not-allowed bg-pitch/5 text-muted/40',
                                 ].join(' ')}
                             >
@@ -108,7 +111,7 @@ export default function SetupPanel({
                     <button
                         onClick={onStart}
                         disabled={!ready}
-                        className={`flex flex-1 ${BUILD_BTN}`}
+                        className={`flex-1 ${BUILD_BTN}`}
                     >
                         {ready ? 'Roll a squad' : 'Loading…'}
                         {ready && <Dices size={16} strokeWidth={2.5} />}
@@ -119,7 +122,7 @@ export default function SetupPanel({
                                 onClick={() => setMenuOpen((o) => !o)}
                                 disabled={!ready}
                                 title="Testing: auto-fill a random valid XI of a chosen strength and skip the draft"
-                                className={`flex w-full items-center justify-center gap-2 px-4 py-[11px] text-[13px] ${SECONDARY_BTN_BASE} disabled:cursor-not-allowed disabled:opacity-50`}
+                                className={`w-full ${btn('secondary')}`}
                             >
                                 Random team
                                 <ChevronDown size={15} strokeWidth={2.5} />
@@ -156,7 +159,7 @@ export default function SetupPanel({
                     <button
                         onClick={onBudgetDraft}
                         disabled={!ready}
-                        className={`mt-[9px] flex w-full ${BUILD_BTN}`}
+                        className={`mt-[9px] w-full ${btn('secondary')}`}
                     >
                         Buy with a budget
                         <Coins size={16} strokeWidth={2.5} />

@@ -51,7 +51,7 @@ export default function AscensionPicker({ tier, max, onSelect }: Props) {
                             }
                             className={[
                                 'rounded-[4px] border py-2.5 text-center font-mono text-[11.5px] font-semibold transition',
-                                active ? CHIP_ON : locked ? 'border-line bg-panel text-line' : CHIP_OFF,
+                                active ? CHIP_ON : locked ? 'border-line bg-panel text-dim opacity-70' : CHIP_OFF,
                             ].join(' ')}
                         >
                             {a.label.replace('Ascension ', '')}

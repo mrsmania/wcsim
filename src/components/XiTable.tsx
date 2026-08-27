@@ -67,7 +67,7 @@ export default function XiTable({
             <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3 font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted">
                 <span>
                     Line-up{' '}
-                    <span className="tracking-[0.1em] text-pitch">
+                    <span className="tracking-[0.1em] text-pitch-ink">
                         &middot; {placed}/{formation.slots.length}
                     </span>
                 </span>
@@ -92,7 +92,7 @@ export default function XiTable({
                         className={`grid ${cols} items-center gap-2.5 border-b border-line px-4 py-2.5 last:border-b-0 ${isGk ? 'bg-chalk' : ''}`}
                         style={tier ? { boxShadow: `inset 3px 0 0 ${TIER_META[tier].accent}` } : undefined}
                     >
-                        <span className="font-mono text-[11px] font-semibold tracking-[0.04em] text-pitch">
+                        <span className="font-mono text-[11px] font-semibold tracking-[0.04em] text-pitch-ink">
                             {slot.label}
                         </span>
                         <span

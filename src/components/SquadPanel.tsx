@@ -274,7 +274,7 @@ function RerollButton({
                         : 'cursor-not-allowed border border-line bg-panel text-muted/40'
                     : primary
                       ? 'bg-pitch text-white shadow-[0_6px_16px_rgba(19,146,76,0.25)] hover:bg-pitch-dark'
-                      : 'border border-line bg-panel hover:border-pitch hover:text-pitch',
+                      : 'border border-line bg-panel hover:border-pitch hover:text-pitch-ink',
             ].join(' ')}
         >
             <RotateCcw size={15} strokeWidth={2.5} />

@@ -48,7 +48,7 @@ function Seat({ seat }: { seat: BracketSeat }) {
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
             <span className={`min-w-0 truncate text-[12.5px] font-bold ${tone}`}>
                 {shortName(seat.name)}
-                {seat.you && <span className="ml-1.5 font-mono text-[9px] text-pitch">YOU</span>}
+                {seat.you && <span className="ml-1.5 font-mono text-[9px] text-pitch-ink">YOU</span>}
             </span>
             <span
                 className={`shrink-0 font-mono text-[12.5px] font-bold tabular-nums ${
@@ -122,7 +122,7 @@ export default function RoomBracket({
                             >
                                 {shortName(m.name)}
                                 {m.userId === view.you?.userId && (
-                                    <span className="ml-1.5 font-mono text-[9px] text-pitch">YOU</span>
+                                    <span className="ml-1.5 font-mono text-[9px] text-pitch-ink">YOU</span>
                                 )}
                             </span>
                         ))}

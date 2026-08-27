@@ -340,7 +340,7 @@ function StickerLightbox({
                         {meta.name}
                     </span>
                     {duplicateCount > 0 && (
-                        <span className="rounded-full bg-amber px-2 py-0.5 font-mono text-[11px] font-bold leading-none text-white">
+                        <span className="rounded-full border border-amber/40 bg-amber/[0.16] px-2 py-0.5 font-mono text-[11px] font-bold leading-none text-amber-ink">
                             &times;{duplicateCount}
                         </span>
                     )}

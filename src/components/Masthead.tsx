@@ -32,7 +32,7 @@ export default function Masthead({
                     makes it the little one). Keeps the wordmark's signature without a
                     second word. */}
                 <h1 className="font-display text-[23px] font-black uppercase leading-none tracking-[-0.02em]">
-                    Mondial<span className="text-pitch">ino</span>
+                    Mondial<span className="text-pitch-ink">ino</span>
                 </h1>
             </Link>
             <span className="border-l border-line pl-3.5 text-[12.5px] text-muted max-sm:hidden">
@@ -46,7 +46,7 @@ export default function Masthead({
                         type="button"
                         onClick={onOpenAccount}
                         title={accountEmail ?? 'Sign in to keep your album on every device'}
-                        className="flex h-[33px] shrink-0 items-center gap-1.5 rounded-[5px] border border-line bg-panel px-2.5 text-[12px] font-semibold text-muted transition hover:border-pitch hover:text-pitch"
+                        className="flex h-[33px] shrink-0 items-center gap-1.5 rounded-[5px] border border-line bg-panel px-2.5 text-[12px] font-semibold text-muted transition hover:border-pitch hover:text-pitch-ink"
                     >
                         <User size={15} strokeWidth={2.2} />
                         <span className="max-sm:hidden">
@@ -59,7 +59,7 @@ export default function Masthead({
                     onClick={onOpenSettings}
                     aria-label="Settings"
                     title="Settings"
-                    className="grid h-[33px] w-[33px] shrink-0 place-items-center rounded-[5px] border border-line bg-panel text-muted transition hover:border-pitch hover:text-pitch"
+                    className="grid h-[33px] w-[33px] shrink-0 place-items-center rounded-[5px] border border-line bg-panel text-muted transition hover:border-pitch hover:text-pitch-ink"
                 >
                     <SettingsIcon size={17} strokeWidth={2} />
                 </button>

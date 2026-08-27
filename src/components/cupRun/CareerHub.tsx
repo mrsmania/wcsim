@@ -128,7 +128,7 @@ export default function CareerHub({
                                 )}
                             </HubTitle>
                         </span>
-                        <span className="inline-flex shrink-0 items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch">
+                        <span className="inline-flex shrink-0 items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch-ink">
                             {hubOpen ? 'Hide' : 'Open'}
                             <span className="grid h-[26px] w-[26px] place-items-center rounded-full border-[1.5px] border-pitch transition group-hover:bg-pitch group-hover:text-white">
                                 {hubOpen ? (
@@ -275,7 +275,7 @@ export default function CareerHub({
                                                 )}
                                             </span>
                                             {next && (
-                                                <span className="font-mono text-[11px] font-semibold text-amber">
+                                                <span className="font-mono text-[11px] font-semibold text-amber-ink">
                                                     {next.cost}
                                                 </span>
                                             )}
@@ -284,7 +284,7 @@ export default function CareerHub({
                                         <p className="mt-1 text-[11.5px] leading-snug text-muted">
                                             {owned ? (
                                                 <>
-                                                    <span className="font-semibold text-pitch">
+                                                    <span className="font-semibold text-pitch-ink">
                                                         Active:
                                                     </span>{' '}
                                                     {owned.description}
@@ -308,7 +308,7 @@ export default function CareerHub({
                                             className={[
                                                 'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
                                                 !next
-                                                    ? 'cursor-default bg-pitch/10 text-pitch'
+                                                    ? 'cursor-default bg-pitch/10 text-pitch-ink'
                                                     : canBuy
                                                       ? 'bg-pitch text-white hover:bg-pitch-dark'
                                                       : 'cursor-not-allowed border border-line bg-panel text-muted/50',
@@ -353,7 +353,7 @@ export default function CareerHub({
                                                 </span>
                                             </span>
                                             {!inPool && (
-                                                <span className="font-mono text-[11px] font-semibold text-amber">
+                                                <span className="font-mono text-[11px] font-semibold text-amber-ink">
                                                     {cost}
                                                 </span>
                                             )}
@@ -362,7 +362,7 @@ export default function CareerHub({
                                             {b.description}
                                         </p>
                                         {inPool ? (
-                                            <div className="mt-2 w-full rounded-[5px] bg-pitch/10 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-pitch">
+                                            <div className="mt-2 w-full rounded-[5px] bg-pitch/10 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-pitch-ink">
                                                 {b.starter ? 'Starter' : 'In pool'}
                                             </div>
                                         ) : (

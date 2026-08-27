@@ -13,7 +13,7 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
-import { CARD, Meter } from './matchUi';
+import { CARD, Meter, btn } from './matchUi';
 
 
 /** A market row's price: the struck-through full price when the album already holds this
@@ -253,7 +253,7 @@ export default function BudgetMarket({
           {onAutoFill && emptySlots.length > 0 && (
             <button
               onClick={autoFill}
-              className="rounded-[5px] border border-line bg-panel px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink transition hover:border-pitch hover:text-pitch"
+              className={btn('quiet', 'sm')}
             >
               Auto-fill &amp; spend
             </button>
@@ -261,7 +261,7 @@ export default function BudgetMarket({
           {onClear && placed.length > 0 && (
             <button
               onClick={onClear}
-              className="rounded-[5px] border border-line bg-panel px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-muted transition hover:border-loss hover:text-loss"
+              className={`${btn('quiet', 'sm')} hover:!border-loss hover:!text-loss`}
             >
               Clear
             </button>
@@ -367,7 +367,7 @@ export default function BudgetMarket({
               aria-pressed={affordableOnly}
               className={`inline-flex items-center gap-1 rounded-[5px] border px-2 py-1 font-mono text-[11px] font-semibold transition ${
                 affordableOnly
-                  ? 'border-pitch bg-pitch/10 text-pitch'
+                  ? 'border-pitch bg-pitch/10 text-pitch-ink'
                   : 'border-line bg-panel text-muted hover:border-pitch'
               }`}
             >
@@ -444,7 +444,7 @@ export default function BudgetMarket({
                       <MarketPrice
                         cost={c}
                         className="flex items-baseline gap-1 font-mono text-[11px] font-semibold tabular-nums"
-                        priceClassName={c.affordable ? 'text-pitch' : 'text-loss'}
+                        priceClassName={c.affordable ? 'text-pitch-ink' : 'text-loss'}
                       />
                     </div>
                   </button>

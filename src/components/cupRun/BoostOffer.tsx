@@ -2,7 +2,7 @@ import { Dices } from 'lucide-react';
 import type { Boon } from '../../domain/boons';
 import type { GroupTeam } from '../../domain/tournament';
 import Flag from '../Flag';
-import { CARD_FLAT, SECONDARY_BTN_BASE } from '../matchUi';
+import { CARD_FLAT, btn } from '../matchUi';
 import { RARITY_COLOR } from './types';
 
 /** The three-boost picker (rarity-topped cards) plus the "Next: opponent" line. Shared
@@ -67,7 +67,7 @@ export default function BoostOffer({
           <button
             type="button"
             onClick={onReroll}
-            className={`inline-flex items-center gap-2 px-3 py-2 text-[12px] ${SECONDARY_BTN_BASE}`}
+            className={btn('secondary', 'md')}
           >
             <Dices className="h-4 w-4" aria-hidden="true" />
             Re-roll these boosts

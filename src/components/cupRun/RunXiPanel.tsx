@@ -60,7 +60,7 @@ export default function RunXiPanel({
               key={p.id}
               className="flex items-center gap-2 border-b border-line px-4 py-1.5 last:border-b-0"
             >
-              <span className="w-7 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-pitch">
+              <span className="w-7 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-pitch-ink">
                 {primaryPosition(p)}
               </span>
               <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{p.name}</span>
@@ -73,7 +73,7 @@ export default function RunXiPanel({
                       ? 'Brought in by a boost - earns no sticker'
                       : 'Brought in by a boost'
                   }
-                  className="shrink-0 rounded-[3px] bg-amber px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.04em] text-white"
+                  className="shrink-0 rounded-[3px] border border-amber/40 bg-amber/[0.16] px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.04em] text-amber-ink"
                 >
                   Boost
                 </span>

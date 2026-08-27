@@ -4,7 +4,7 @@ import { collectibleCards, type CollectibleCard } from '../domain/album';
 import { tierRank } from '../config';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
-import { PRIMARY_BTN, SECONDARY_BTN_BASE } from './matchUi';
+import { PRIMARY_BTN, btn } from './matchUi';
 
 interface Props {
   /** Ids of genuinely new (non-duplicate) stickers earned this run. */
@@ -30,7 +30,7 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
 
   return (
     <Overlay onClose={onClose} ariaLabel="New stickers added">
-      <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch">
+      <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch-ink">
         Run complete
       </div>
       <h3 className="mt-1 font-display text-2xl font-black leading-tight tracking-[-0.02em]">
@@ -48,7 +48,7 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
         ))}
       </div>
       <div className="mt-5 flex justify-end gap-2.5">
-        <button onClick={onClose} className={`px-4 py-2.5 text-[13px] ${SECONDARY_BTN_BASE}`}>
+        <button onClick={onClose} className={btn('secondary', 'md')}>
           Done
         </button>
         <button onClick={onViewAlbum} className={PRIMARY_BTN}>

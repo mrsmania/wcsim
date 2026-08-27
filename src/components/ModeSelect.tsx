@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CircleDashed, Swords, Trophy } from 'lucide-react';
 import ConfirmAction from './ConfirmAction';
 import type { Player } from '../data/types';
+import { WORLD_CUP_YEARS } from '../data/squads';
 import { FEATURES } from '../config';
 import { collectibleCards } from '../domain/album';
 import { SQUAD_BY_ID } from '../data/squads';
@@ -110,6 +111,16 @@ export default function ModeSelect({ continueAction, buildTo, versusTo, onNewXi,
                     style={{
                         background: `repeating-linear-gradient(0deg, ${GRASS_STRIPE} 0 44px, ${GRASS_BASE} 44px 88px)`,
                     }}
+                />
+                {/* A scrim under the WORDS only, and it is a contrast fix rather than a
+                    flourish: the amber headline on the bare stripes measures 1.76, under
+                    even the 3:1 that large text is allowed, and no value of a mid amber
+                    reads on a mid green. This deepens the turf where the text sits (3.79
+                    for the amber, 9.42 for the white) and fades out before the tactics
+                    board, which stays exactly as bright as it was. */}
+                <div
+                    aria-hidden
+                    className="absolute inset-0 bg-gradient-to-r from-ink/55 via-ink/25 to-transparent"
                 />
 
                 <div className="relative max-w-[620px] flex-1">
@@ -306,8 +317,14 @@ export default function ModeSelect({ continueAction, buildTo, versusTo, onNewXi,
             {/* CLOSING */}
             <div className="mt-10 flex flex-wrap items-center justify-between gap-3.5 border-t border-line pt-6">
                 <div className="max-w-[42ch] font-display text-[17px] font-bold tracking-[-0.01em]">
-                    From Maradona in '90 to Mbapp&eacute; in '22.{' '}
-                    <span className="font-medium text-muted">Nine World Cups, every squad, one trophy.</span>
+                    {/* Derived, both halves. "Nine World Cups" was true three drops ago and
+                        "'90 to '22" named the ends of a dataset that now runs further at both
+                        ends - a hardcoded count in front of a growing dataset is a promise
+                        that goes stale quietly. */}
+                    From {WORLD_CUP_YEARS[0]} to {WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1]}.{' '}
+                    <span className="font-medium text-muted">
+                        {WORLD_CUP_YEARS.length} World Cups, every squad, one trophy.
+                    </span>
                 </div>
                 {/* Album and Squads are tabs, so shortcuts here would be a third way to
                     the same two places. */}

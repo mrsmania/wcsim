@@ -542,7 +542,7 @@ export default function CabinetScreen({
                     <Check
                       size={10}
                       strokeWidth={3.4}
-                      className="text-pitch"
+                      className="text-pitch-ink"
                       aria-hidden="true"
                     />
                   )}
@@ -757,7 +757,7 @@ export default function CabinetScreen({
                     <div
                       className={`grid h-[46px] place-items-center rounded-[3px] ${
                         owned
-                          ? 'bg-chalk text-pitch-dark'
+                          ? 'bg-chalk text-pitch-ink'
                           : 'border border-dashed border-line text-dim'
                       }`}
                     >

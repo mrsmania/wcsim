@@ -45,7 +45,29 @@
        different case and are correct; the comment there says why.) */
     --color-faint: #ecebe3;
     --color-cup-deep: #0a1b12;
-    --color-amber-ink: #9a6512;
+    /* Nudged from #9a6512 on 2026-08-27: that value measured 4.42 against `ground`, so it
+       missed AA on the app's own paper by a whisker - which is exactly the kind of miss
+       nobody sees. This clears 4.5 on all three light surfaces (5.28 ground, 5.92 panel,
+       5.09 chalk). */
+    --color-amber-ink: #8a5a0f;
+    /* PITCH AS TEXT, the exact parallel of `amber-ink` above and added for the same
+       measured reason: the surface green is 4.00 against panel and 4.15 against ground, so
+       every small green label in the app - the YOU badges, the earned ticks, a button's
+       hover - missed AA in the light theme. This is 8.08 against panel. It flips to the
+       BRIGHT green on graphite, where the surface value already clears AA and a dark green
+       would vanish; that flip is the whole point of an `-ink` token. */
+    --color-pitch-ink: #0e5c34;
+    /* THE PRIMARY BUTTON'S HOVER, and the reason it is not just `pitch`: the fill rests on
+       pitch-dark (which is what makes it pass AA at all), so the hover has to lift without
+       going as far as the bright green, which carries white at only 4.00. This is the one
+       step between them that still clears AA - 5.62 with white - and it is one value for
+       both themes, because a hover that flips lightness between themes is two hovers. */
+    --color-pitch-hover: #12773f;
+    /* The destructive FILL. `loss` carries white at 4.80 in light and only 3.14 on
+       graphite, so a solid red confirm button failed AA in the dark theme; this is one
+       value for both, at 5.93 with white. `loss` itself stays the border and text colour,
+       where it passes on both papers. */
+    --color-loss-deep: #b23a32;
     /* The mowed-turf pair: the board's base green and its lighter stripe. Deliberately
        NOT overridden in the dark theme - the pitch is a green board under either theme,
        which is why these are not `pitch` / `pitch-dark` (those do flip). Two consumers
@@ -98,6 +120,9 @@
     --color-cup-deep: #0a2417;
     /* On graphite the surface amber already clears AA, so ink and surface converge. */
     --color-amber-ink: #eea23a;
+    /* Same story as amber: on graphite the surface green clears AA, so the text variant is
+       the surface value. The dark theme therefore renders identically to before. */
+    --color-pitch-ink: #22a35d;
 }
 :root[data-theme='dark'] body {
     /* Faint green glow at the very top, tying the accent into the neutral base. */

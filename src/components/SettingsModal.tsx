@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import Overlay from './Overlay';
-import { CARD_FLAT, SegControl, SpeedControl } from './matchUi';
+import { CARD_FLAT, SegControl, SpeedControl, btn } from './matchUi';
 import type { MatchSpeed } from '../domain/clock';
 import type { Difficulty } from '../domain/difficulty';
 import { WORLD_CUP_YEARS } from '../data/squads';
@@ -12,8 +12,7 @@ const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
 const GH = 'font-display text-[14px] font-extrabold';
 const HINT = 'mt-0.5 text-[12px] leading-snug text-muted';
 
-const SHORTCUT_BTN =
-    'rounded-full border border-line bg-panel px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted transition hover:border-pitch hover:text-pitch';
+const SHORTCUT_BTN = `!rounded-full ${btn('quiet', 'sm')}`;
 
 const DIFFICULTIES: { value: Difficulty; label: string }[] = [
     { value: 'casual', label: 'Casual' },

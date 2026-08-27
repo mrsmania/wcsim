@@ -17,14 +17,14 @@ import { FEATURES } from '../config';
 import Flag from './Flag';
 import CollectibleStar from './CollectibleStar';
 import { TIER_META } from './stickerTheme';
-import { CARD, MONO_CAP, StageHeader } from './matchUi';
+import { CARD, MONO_CAP, StageHeader, btn } from './matchUi';
 import TeamRoster from './TeamRoster';
 
 /** The back control above a roster / a team's cup list. Rendered as a <button> in one
  *  case and a router <Link> in the other, so it is a class string rather than a
  *  component - it was the same string typed twice. */
-const BACK_BTN =
-    'inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition hover:border-pitch hover:text-pitch';
+/** Going back is the app's third emphasis, and `quiet` is what that is now called. */
+const BACK_BTN = btn('quiet', 'md');
 
 /** How many search hits the page draws. The full count is printed beside them, so this
  *  cap stays HERE and not inside `searchArchive` - see that function. */
@@ -119,7 +119,7 @@ export default function SquadBrowser() {
                                     'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
                                     mode === m
                                         ? 'bg-ink text-ground'
-                                        : 'bg-panel text-muted hover:text-pitch',
+                                        : 'bg-panel text-muted hover:text-pitch-ink',
                                 ].join(' ')}
                             >
                                 {label}
@@ -182,7 +182,7 @@ export default function SquadBrowser() {
                                             'rounded-[5px] border px-3 py-2 font-mono text-[12px] font-semibold tabular-nums transition',
                                             active
                                                 ? 'border-pitch-dark bg-pitch-dark text-white'
-                                                : 'border-line bg-panel text-muted hover:border-pitch hover:text-pitch',
+                                                : 'border-line bg-panel text-muted hover:border-pitch hover:text-pitch-ink',
                                         ].join(' ')}
                                     >
                                         {y}
@@ -365,7 +365,7 @@ function TeamCups({ team }: { team: TeamGroup }) {
                         key={l.personId}
                         className="flex items-center gap-3 border-b border-line px-4 py-2.5 last:border-b-0"
                     >
-                        <span className="w-5 shrink-0 text-center font-mono text-[12px] font-bold tabular-nums text-pitch">
+                        <span className="w-5 shrink-0 text-center font-mono text-[12px] font-bold tabular-nums text-pitch-ink">
                             {i + 1}
                         </span>
                         <div className="min-w-0 flex-1">

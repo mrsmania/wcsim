@@ -67,7 +67,7 @@ export default function GoalList({
             </span>
             <span className="font-semibold text-ink">{e.scorer}</span>
             <span
-              className={`ml-0.5 font-mono text-[10px] ${isUser ? 'text-pitch' : 'text-muted'}`}
+              className={`ml-0.5 font-mono text-[10px] ${isUser ? 'text-pitch-ink' : 'text-muted'}`}
             >
               {isUser ? 'You' : e.side === USER_SIDE ? userCode : oppCode}
             </span>

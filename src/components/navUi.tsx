@@ -101,7 +101,7 @@ export function TabBottomBar({ items, locked }: { items: TabItem[]; locked?: boo
                         tabIndex={inert ? -1 : undefined}
                         className={[
                             'flex flex-col items-center gap-[3px] px-1 pb-[9px] pt-[7px] transition',
-                            t.active ? 'text-pitch' : 'text-muted',
+                            t.active ? 'text-pitch-ink' : 'text-muted',
                             inert ? 'pointer-events-none opacity-35' : '',
                         ].join(' ')}
                     >

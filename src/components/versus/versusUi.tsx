@@ -67,7 +67,7 @@ export function SeatRow({
         <li className="flex items-center gap-3 border-b border-hair py-2.5 last:border-b-0">
             <span className="min-w-0 flex-1 truncate text-[14px] font-bold text-ink">
                 {member.name}
-                {you && <span className="ml-1.5 font-mono text-[10px] text-pitch">YOU</span>}
+                {you && <span className="ml-1.5 font-mono text-[10px] text-pitch-ink">YOU</span>}
                 {host && <span className="ml-1.5 font-mono text-[10px] text-muted">HOST</span>}
             </span>
             {detail}
@@ -78,7 +78,7 @@ export function SeatRow({
 /** Ready / not ready, as the lobby's own two states. */
 export function ReadyMark({ ready }: { ready: boolean }) {
     return ready ? (
-        <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-pitch">
+        <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-pitch-ink">
             <Check size={13} strokeWidth={3} /> Ready
         </span>
     ) : (

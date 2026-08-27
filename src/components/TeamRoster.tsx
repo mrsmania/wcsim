@@ -68,7 +68,7 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                 if (group.length === 0) return null;
                 return (
                     <div key={cat}>
-                        <div className="border-b border-line bg-ground/60 px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-pitch">
+                        <div className="border-b border-line bg-ground/60 px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-pitch-ink">
                             {CATEGORY_LABEL[cat]}
                             <span className="ml-1.5 text-muted">&middot; {group.length}</span>
                         </div>

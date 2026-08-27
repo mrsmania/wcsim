@@ -42,6 +42,7 @@ import { challengesChecks } from './checks/challenges';
 import { cabinetChecks } from './checks/cabinet';
 import { scorersChecks } from './checks/scorers';
 import { stateChecks } from './checks/state';
+import { uiChecks } from './checks/ui';
 import { pvpChecks } from './checks/pvp';
 import { pvpRoomChecks } from './checks/pvpRoom';
 import { pvpViewChecks } from './checks/pvpView';
@@ -70,6 +71,7 @@ const CONCERNS: [string, () => void | Promise<void>][] = [
   ['cabinet', cabinetChecks],
   ['scorers', scorersChecks],
   ['state', stateChecks],
+  ['ui', uiChecks],
   ['pvp', pvpChecks],
   ['pvpRoom', pvpRoomChecks],
   ['pvpView', pvpViewChecks],

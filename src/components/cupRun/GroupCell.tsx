@@ -54,7 +54,7 @@ export default function GroupCell({
       </span>
       <span
         className={`ml-auto shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.1em] ${
-          record.won ? 'text-pitch' : 'text-loss'
+          record.won ? 'text-pitch-ink' : 'text-loss'
         }`}
       >
         {record.won ? 'through' : 'out'}

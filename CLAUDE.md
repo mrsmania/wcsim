@@ -2485,6 +2485,69 @@ keep working.
 - When delegating to agents, review their diff before committing - they can
   overreach (reformatting, incidental behavior changes).
 
+## Buttons and contrast
+
+Reworked 2026-08-27, on the observation that the app had "about ten different looks of
+buttons". It did, and the primary one had never met AA.
+
+**EVERY BUTTON IS `btn(tone, size)`** (`components/matchUi.tsx`). Four tones -
+`primary` (solid green), `secondary` (ink outline), `quiet` (line outline, the app's
+genuine third emphasis: Back, Refresh, Auto-fill, the masthead's two) and `danger` - by
+three sizes: `lg` a page action, `md` one inside a card, `sm` one in a row or a toolbar.
+`PRIMARY_BTN`, `SECONDARY_BTN` and `DANGER_BTN` are just the three common pairs, kept as
+names because most call sites want them. **Do not write a button class string.** What it
+replaced: those two tokens plus a bespoke one in each of `CompletePanel`, `SetupPanel`,
+`ModeSelect`, `SquadBrowser`, `UnreachableScreen`, `SettingsModal`, `AlbumScreen` and
+`BudgetMarket`, and four different paddings appended to the outline base - every one a
+near-copy differing by a pixel of padding or a point of type, which is the shape of a token
+nobody could find. **Nothing was invented**: the turf-flat identity (rounded-[5px], 1px
+border, display face in extrabold uppercase) is exactly as it was.
+
+**THE PRIMARY FILLS WITH `pitch-dark`, AND THAT IS A MEASUREMENT.** White on `pitch` is
+**4.00** in light and **3.25** on graphite, against the 4.5 a 13px bold label needs - so the
+app's main button had always failed AA. On `pitch-dark` it is 8.08 and 10.34. The hover
+lifts to **`--color-pitch-hover`** (5.62), which exists because the bright `pitch` would
+have dropped it back under on hover. **`npm run checks` computes all of this from the real
+tokens** (`scripts/checks/ui.ts`) and fails on any tone below 4.5 in either theme, resting
+or hovered; putting the primary back on `pitch` reads `primary light 4.00, primary dark
+3.25`. The 4.5 is deliberate and written down there: the relaxed 3:1 is for text at 18.66px
+bold or larger, and the biggest label in this app is 13px.
+
+**`--color-pitch-ink` IS GREEN AS TEXT, exactly as `--color-amber-ink` is amber as text**,
+and it was added for the same measured reason: the surface green is 4.00 on panel, so every
+small green label in the app - the YOU badges, the earned ticks, a button's hover - missed
+AA in light. All 48 `text-pitch` uses moved to it; none sat on a dark fill, so the sweep was
+mechanical and the DARK theme renders identically (there, ink and surface converge). Amber's
+own token was also nudged from `#9a6512` to `#8a5a0f`, because 4.42 on `ground` is a miss.
+
+**A FILLED AMBER PILL WITH WHITE TEXT CANNOT BE MADE TO PASS, so do not try.** Amber flips
+lightness between the themes, so white on it is 2.49 / 2.13 and dark ink on it is 6.70 /
+1.83 - there is no foreground that works in both. The three that shipped that way (the
+album's and the sticker card's duplicate counts, the run XI's Boost tag) use the tinted
+idiom `CareerHub` already had: `border-amber/40 bg-amber/[0.16] text-amber-ink`, which is
+5.25 / 7.84. The one exception is a foreground that is dark in BOTH themes - the literal
+`text-[#13211a]` - which is what `ModeSelect`'s hero CTAs and `PlayerBadge`'s amber disc use
+and why those are correct rather than untidy.
+
+**THE HERO'S AMBER HEADLINE NEEDED A SCRIM, not a new colour.** Amber on the hero's turf
+measures **1.76**, under even the 3:1 large text is allowed, and no value of a mid amber
+reads on a mid green - reaching 3:1 by lightening takes it to lemon. So the hero carries a
+left-to-right `from-ink/55` gradient under the words only: 3.79 for the amber, 9.42 for the
+white, and the tactics board on the right stays exactly as bright.
+
+**`UnreachableScreen` IS THE ONE PLACE THE STRINGS ARE WRITTEN OUT BY HAND**, and it has to
+be: `main.tsx` renders it before the app exists, so importing `matchUi` would drag lucide,
+react-router and `Flag` onto that path. `npm run checks` asserts its two literals still equal
+`btn('primary')` and `btn('quiet')` - a screen nobody sees until something has gone wrong is
+exactly the one that drifts.
+
+**NO DESCRIPTIONS INSIDE A BUTTON.** A button says what it is; the line under the row says
+what it does. `AscensionPicker` had already settled that shape - short labels, one sentence
+beneath that follows the selection - and the versus room settings were rebuilt onto it,
+which took four sentences off the screen per decision. The exception is a card you are
+choosing BETWEEN on its own merits, and the boost offer is the case: there the description
+is the choice.
+
 ## UI gotchas
 
 - **Boot screen** (`index.html` + `main.tsx`): a cover with the trophy tile, wordmark
@@ -2784,16 +2847,8 @@ Two consequences: a formation change falls back to the first style the new forma
 a disabled button under it), and the shape posts are deliberately not gated on the `busy`
 flag, which is the HOST's - sharing it made Start flicker disabled on every chip tap.
 
-**THE BUTTON TOKENS: the plain name is the SAFE one** (`matchUi.tsx`, corrected
-2026-08-27). `SECONDARY_BTN` is the base plus the same box `PRIMARY_BTN` has, so a solid and
-an outline button side by side line up; `SECONDARY_BTN_BASE` is identity only, for a caller
-that wants a tighter box (the lobby list's row action). It used to be the other way round -
-the obvious name was the one you must not use alone - and every versus screen used it bare,
-so ten buttons shipped with **no padding and no text size**, which reads as a mistake rather
-than as a smaller button. Two checks hold it: the two sized tokens are built from the same
-literal, and every bare use of the base under `components/versus/` carries its own padding.
-The rename left `dist/assets/*.css` **byte-identical** (`628114a0...`), which is the same
-cheap proof the wave-3 token migration used.
+**THE BUTTONS ARE `btn(tone, size)` AND THERE ARE NO OTHERS** - see "Buttons and contrast"
+near the end of this file, which is where the whole rule lives now.
 
 **A ROOM NOBODY IS IN CLOSES ITSELF, and the sweeper that does it is the pick clock's**
 (P31). Closing a tab fires no reliable event, so leaving is OBSERVED rather than announced:

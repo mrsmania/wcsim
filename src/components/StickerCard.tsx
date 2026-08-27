@@ -83,7 +83,7 @@ export default function StickerCard({
                     {meta.name}
                 </span>
                 {collected && duplicateCount > 0 ? (
-                    <span className="rounded-full bg-amber px-1.5 py-px font-mono text-[10px] font-bold leading-none text-white">
+                    <span className="rounded-full border border-amber/40 bg-amber/[0.16] px-1.5 py-px font-mono text-[10px] font-bold leading-none text-amber-ink">
                         &times;{duplicateCount}
                     </span>
                 ) : !collected ? (

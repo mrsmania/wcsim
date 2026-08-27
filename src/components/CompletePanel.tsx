@@ -3,7 +3,7 @@ import { STYLE_LABEL, type Formation, type Style } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
-import { CARD, PRIMARY_BTN_BASE, SECONDARY_BTN_BASE } from './matchUi';
+import { CARD, btn } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 import AscensionPicker from './AscensionPicker';
 
@@ -22,7 +22,7 @@ interface Props {
     ascension: { tier: number; max: number; onSelect: (tier: number) => void };
 }
 
-const CTA = `flex w-full items-center justify-center gap-2 px-4 py-3 text-[13px] ${PRIMARY_BTN_BASE}`;
+const CTA = `w-full ${btn('primary')}`;
 
 export default function CompletePanel({
     formation,
@@ -39,7 +39,7 @@ export default function CompletePanel({
     return (
         <div className={`overflow-hidden ${CARD}`}>
             <div className="border-b border-line p-[18px]">
-                <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch">
+                <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch-ink">
                     Complete
                 </div>
                 <div className="mt-1.5 font-display text-[26px] font-black leading-[1.05] tracking-[-0.02em]">
@@ -91,7 +91,7 @@ export default function CompletePanel({
                         confirmLabel="Yes, reset"
                         onConfirm={onReset}
                         triggerLabel="Start over"
-                        triggerClassName={`flex w-full items-center justify-center px-4 py-3 text-[13px] ${SECONDARY_BTN_BASE}`}
+                        triggerClassName={`w-full ${btn('secondary')}`}
                         rowClassName="flex items-center gap-2"
                     />
                 </div>

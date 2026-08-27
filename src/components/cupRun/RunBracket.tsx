@@ -217,7 +217,7 @@ export default function RunBracket({
                 <span className="font-display text-[13px] font-extrabold uppercase tracking-[0.06em]">
                     The bracket
                 </span>
-                <span className="ml-auto font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch">
+                <span className="ml-auto font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch-ink">
                     <span className="max-sm:hidden">
                         {open ? 'Hide the full bracket' : 'Show the full bracket'}
                     </span>
@@ -226,7 +226,7 @@ export default function RunBracket({
                 <ChevronDown
                     size={17}
                     strokeWidth={2.5}
-                    className={`shrink-0 text-pitch transition-transform ${open ? 'rotate-180' : ''}`}
+                    className={`shrink-0 text-pitch-ink transition-transform ${open ? 'rotate-180' : ''}`}
                 />
             </button>
 

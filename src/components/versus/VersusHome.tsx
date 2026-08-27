@@ -14,11 +14,13 @@ import { createRoom, readLobby } from '../../state/pvp/referee';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
 import {
     CARD,
+    CHIP_OFF,
+    CHIP_ON,
     MONO_CAP,
     PRIMARY_BTN,
     SECONDARY_BTN,
-    SECONDARY_BTN_BASE,
     StageHeader,
+    btn,
 } from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
 import { RefereeProblem, RoomNote } from './versusUi';
@@ -57,16 +59,17 @@ import { RefereeProblem, RoomNote } from './versusUi';
  *  step; three named choices are what a room needs, and the third is the one that makes
  *  the price curve bite. */
 const BUDGETS = [
-    { value: 90, label: '$90', sub: 'Tight. One star at most, and the rest is bargains.' },
-    { value: 110, label: '$110', sub: 'The standard. About one 99 and ten players near 80.' },
-    { value: 150, label: '$150', sub: 'Generous. Two or three genuine greats.' },
+    { value: 90, label: '$90', sub: 'Tight: one star at most, and the rest is bargains.' },
+    { value: 110, label: '$110', sub: 'About one 99 and ten players near 80.' },
+    { value: 150, label: '$150', sub: 'Two or three genuine greats.' },
 ];
 
-/** The three sizes, named in what each one is to play rather than in seats. */
+/** Two, four or eight. No description: the number is the answer, and the lobby states how
+ *  many rounds that comes to. */
 const SIZES = [
-    { value: 2, label: 'Two', sub: 'One match. Straight into it.' },
-    { value: 4, label: 'Four', sub: 'Semi-finals and a final. Two rounds.' },
-    { value: 8, label: 'Eight', sub: 'Quarters, semis, final. The longest wait to draft.' },
+    { value: 2, label: 'Two' },
+    { value: 4, label: 'Four' },
+    { value: 8, label: 'Eight' },
 ];
 
 /** How many re-rolls a roll room allows. Named in outcomes: what the number MEANS is how
@@ -74,10 +77,18 @@ const SIZES = [
 const REROLLS = [
     { value: 0, label: 'None', sub: 'Take what you are dealt, every time.' },
     { value: 3, label: 'Three', sub: 'Enough to refuse a squad with nobody you need.' },
-    { value: 6, label: 'Six', sub: 'Generous. You will nearly always get a shape you want.' },
+    { value: 6, label: 'Six', sub: 'You will nearly always get a shape you want.' },
 ];
 
-/** One row of choices, each a name and a sentence about what it does to the game. */
+/**
+ * One row of choices: the labels on the buttons, and ONE line under the row saying what the
+ * chosen one means.
+ *
+ * The description used to live inside each button, which put four sentences on screen to
+ * explain one decision and made every option a paragraph. `AscensionPicker` had already
+ * settled the right shape - a row of short labels with a single line beneath that follows
+ * the selection - and this is that. A button says what it is; the room says what it does.
+ */
 function Choice<T extends number | string>({
     label,
     options,
@@ -85,30 +96,31 @@ function Choice<T extends number | string>({
     onPick,
 }: {
     label: string;
-    options: readonly { value: T; label: string; sub: string }[];
+    options: readonly { value: T; label: string; sub?: string }[];
     value: T;
     onPick: (v: T) => void;
 }) {
+    const chosen = options.find((o) => o.value === value);
     return (
         <>
             <div className={`${MONO_CAP} mt-4`}>{label}</div>
-            <div className="mt-1.5 flex flex-col gap-1.5">
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {options.map((o) => (
                     <button
                         key={String(o.value)}
                         type="button"
                         onClick={() => onPick(o.value)}
-                        className={`rounded-[5px] border px-3 py-2 text-left transition ${
-                            o.value === value
-                                ? 'border-pitch bg-pitch/10'
-                                : 'border-line bg-panel hover:border-pitch'
+                        className={`rounded-[5px] border px-3 py-1.5 font-mono text-[12px] font-bold transition ${
+                            o.value === value ? CHIP_ON : CHIP_OFF
                         }`}
                     >
-                        <span className="font-mono text-[13px] font-bold text-ink">{o.label}</span>
-                        <span className="ml-2 text-[12px] text-muted">{o.sub}</span>
+                        {o.label}
                     </button>
                 ))}
             </div>
+            {chosen?.sub && (
+                <p className="mt-1.5 text-[12px] leading-snug text-muted">{chosen.sub}</p>
+            )}
         </>
     );
 }
@@ -235,7 +247,7 @@ export default function VersusHome() {
                             {
                                 value: 'private' as const,
                                 label: 'Just my friends',
-                                sub: 'Code only. Nobody can find it, and nobody can even confirm it exists.',
+                                sub: 'Code only. Nobody can find it, or even confirm it exists.',
                             },
                             {
                                 value: 'public' as const,
@@ -253,12 +265,12 @@ export default function VersusHome() {
                             {
                                 value: 'budget' as const,
                                 label: 'Buy them',
-                                sub: 'Shop the whole dataset against a budget. Skill is knowing what a player is worth.',
+                                sub: 'Shop the whole dataset. The skill is knowing what a player is worth.',
                             },
                             {
                                 value: 'roll' as const,
                                 label: 'Roll for them',
-                                sub: 'Random squads, one at a time, pick one man from each. Skill is knowing who to take.',
+                                sub: 'Random squads, one man from each. The skill is knowing who to take.',
                             },
                         ]}
                     />
@@ -283,42 +295,19 @@ export default function VersusHome() {
                                 and a second tab defeats it completely. It hides the numbers
                                 on the room's own screens, which is worth having and is all it
                                 claims. */}
-                            <div className={`${MONO_CAP} mt-4`}>The numbers</div>
-                            <div className="mt-1.5 flex flex-col gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowRatings(true)}
-                                    className={`rounded-[5px] border px-3 py-2 text-left transition ${
-                                        showRatings
-                                            ? 'border-pitch bg-pitch/10'
-                                            : 'border-line bg-panel hover:border-pitch'
-                                    }`}
-                                >
-                                    <span className="font-mono text-[13px] font-bold text-ink">
-                                        Ratings on
-                                    </span>
-                                    <span className="ml-2 text-[12px] text-muted">
-                                        You both see what everybody is rated.
-                                    </span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowRatings(false)}
-                                    className={`rounded-[5px] border px-3 py-2 text-left transition ${
-                                        !showRatings
-                                            ? 'border-pitch bg-pitch/10'
-                                            : 'border-line bg-panel hover:border-pitch'
-                                    }`}
-                                >
-                                    <span className="font-mono text-[13px] font-bold text-ink">
-                                        Ratings hidden
-                                    </span>
-                                    <span className="ml-2 text-[12px] text-muted">
-                                        Pick on the name and the year. The numbers come back at
-                                        the whistle.
-                                    </span>
-                                </button>
-                            </div>
+                            <Choice
+                                label="The numbers"
+                                value={showRatings ? 'on' : 'off'}
+                                onPick={(v) => setShowRatings(v === 'on')}
+                                options={[
+                                    { value: 'on' as const, label: 'Ratings on' },
+                                    {
+                                        value: 'off' as const,
+                                        label: 'Ratings hidden',
+                                        sub: 'Pick on the name and the year. The numbers come back at the whistle.',
+                                    },
+                                ]}
+                            />
                             {!showRatings && (
                                 <RoomNote>
                                     <span className="mt-2 block">
@@ -360,7 +349,7 @@ export default function VersusHome() {
                         <div className={MONO_CAP}>Rooms you can join</div>
                         <button
                             type="button"
-                            className="ml-auto font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-muted hover:text-pitch"
+                            className="ml-auto font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-muted hover:text-pitch-ink"
                             onClick={refreshLobby}
                         >
                             Refresh
@@ -403,9 +392,7 @@ export default function VersusHome() {
                                         <button
                                             type="button"
                                             disabled={!open}
-                                            className={`shrink-0 px-3 py-1.5 text-[12px] ${SECONDARY_BTN_BASE} ${
-                                                open ? '' : 'cursor-not-allowed opacity-45'
-                                            }`}
+                                            className={`shrink-0 ${btn('secondary', 'sm')}`}
                                             onClick={() => navigate(`/versus/${r.code}`)}
                                         >
                                             {open ? 'Take a seat' : 'Full'}
