@@ -57,6 +57,32 @@ export interface TieView {
   winnerId: string | null;
 }
 
+/**
+ * One room on the public lobby list (P18).
+ *
+ * Deliberately NOT a `RoomView`. A listing is read by people who are not in the room, so it
+ * carries what somebody needs to decide whether to join - what kind of draft, how much
+ * money, how fast the clock, how many seats are left, whether the numbers are hidden - and
+ * nothing else. No members, no XIs, no picks: the moment a listing carries a member row it
+ * is carrying a formation, and P19 puts formations out of a lobby's reach precisely so the
+ * last person to choose cannot counter everyone.
+ */
+export interface LobbyRoom {
+  code: string;
+  size: number;
+  /** Seats taken. `size - seated` is what the row actually says. */
+  seated: number;
+  method: 'roll' | 'budget';
+  budget: number;
+  pickSeconds: number;
+  rerolls: number;
+  showRatings: boolean;
+  /** The host's display name, which is the only thing on the row that is a person. */
+  hostName: string;
+  /** When it opened, for "3 minutes ago" and for the ordering. */
+  openedAt: number;
+}
+
 export interface RoomView {
   code: string;
   visibility: 'public' | 'private';

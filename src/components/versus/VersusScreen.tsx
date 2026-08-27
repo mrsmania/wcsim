@@ -63,9 +63,10 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
                 <div className={`${CARD} p-5`}>
                     <RoomNote>
                         Two, four or eight people, a team each from the same money or the same
-                        dice, and a knockout to settle it. It needs an account, because the
-                        others have to know who they beat and the result has to live somewhere
-                        none of you can edit.
+                        dice, and a knockout to settle it. Play whoever is around - there is a
+                        list of open rooms - or send a code to the people you want. It needs an
+                        account, because the others have to know who they beat and the result
+                        has to live somewhere none of you can edit.
                     </RoomNote>
                     <RoomNote>
                         <span className="mt-2 block">

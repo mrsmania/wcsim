@@ -75,6 +75,31 @@ const DEFAULT_STYLE: Style = 'bal';
 /** Re-rolls a roll room allows, when the host says nothing (plan section 3). */
 const DEFAULT_REROLLS = 3;
 
+/**
+ * P31's lifecycle numbers, and the reason they exist at all.
+ *
+ * CLOSING A TAB FIRES NO RELIABLE EVENT, so leaving has to be OBSERVED rather than
+ * announced: every client pings while it holds a room and `RoomMember.lastSeen` is what
+ * that ping writes. Without this a public room whose host closed their laptop sits in the
+ * lobby at 3 of 8 for ever, and a lobby full of dead rooms is indistinguishable from a
+ * lobby nobody uses - which is the failure the public half of this feature dies of.
+ *
+ * All three are evaluated by the same stateless sweeper that runs the pick clock (P32), so
+ * there is still nothing held in memory anywhere.
+ */
+export const SEEN_GONE_MS = 90_000;
+/** A lobby nobody has touched for a quarter of an hour is not going to fill. */
+export const LOBBY_IDLE_MS = 15 * 60_000;
+/** And any room at all, in any phase, is over after half an hour of nothing. */
+export const ROOM_IDLE_MS = 30 * 60_000;
+/** The draft's hard bound: eleven windows plus a minute. The per-window auto-pick already
+ *  guarantees a draft finishes, so this is a backstop for the case where it somehow does
+ *  not - a room stuck in the one phase built to be unstallable is the worst outcome
+ *  available, so it is worth having a second answer. */
+export const DRAFT_SLACK_MS = 60_000;
+/** Slots in an XI. Every formation has eleven; the pick clock's bound is counted in them. */
+const XI_SLOTS = 11;
+
 /** Room sizes (plan P7). A host may reduce before the start, never increase. */
 export const ROOM_SIZES = [2, 4, 8] as const;
 export type RoomSize = (typeof ROOM_SIZES)[number];
@@ -103,6 +128,12 @@ export interface RoomMember {
   rerollsUsed: number;
   /** The round they went out in, absent while still in. */
   outIn?: number;
+  /** When this player was last known to be here (P31). Written by the client's ping, read
+   *  by the sweeper: a member unseen for `SEEN_GONE_MS` is dropped from a LOBBY, which is
+   *  the only phase where dropping somebody is the right answer - past the start their XI
+   *  plays on without them, because the alternative is one absent person voiding a
+   *  tournament seven other people are in. */
+  lastSeen: number;
 }
 
 /** The four facts about a pick that are not "who is in which slot", recorded because the
@@ -177,6 +208,9 @@ export interface PvpRoom {
   round: number;
   championId?: string;
   startedAt?: number;
+  /** When anything last happened here (P31). Every write stamps it; an idle sweep does
+   *  not, which is what makes "nobody has touched this" a fact rather than a guess. */
+  touchedAt: number;
 }
 
 /** What happened to a submitted pick. `late` and `illegal` are distinct because they mean
@@ -269,6 +303,9 @@ export function createRoom(input: {
    *  does not care about presentation does not have to say so. */
   showRatings?: boolean;
   rerolls?: number;
+  /** When the room was opened. P31 counts from it, and `now` is an argument here for the
+   *  same reason it is everywhere else in this module. */
+  now: number;
 }): PvpRoom {
   return {
     id: input.id,
@@ -281,18 +318,25 @@ export function createRoom(input: {
     showRatings: input.showRatings ?? true,
     rerolls: input.rerolls ?? DEFAULT_REROLLS,
     status: 'lobby',
-    members: [newMember(input.hostId, 0, input.hostName, input.hostBudget)],
+    members: [newMember(input.hostId, 0, input.hostName, input.hostBudget, input.now)],
     xi: {},
     picks: {},
     deals: {},
     windows: {},
     ties: [],
     round: 0,
+    touchedAt: input.now,
   };
 }
 
 /** One seated player, before anything has happened to them. */
-function newMember(userId: string, seat: number, name: string, budget: number): RoomMember {
+function newMember(
+  userId: string,
+  seat: number,
+  name: string,
+  budget: number,
+  now: number,
+): RoomMember {
   return {
     userId,
     seat,
@@ -302,6 +346,7 @@ function newMember(userId: string, seat: number, name: string, budget: number): 
     style: DEFAULT_STYLE,
     budget,
     rerollsUsed: 0,
+    lastSeen: now,
   };
 }
 
@@ -310,12 +355,18 @@ export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in';
 export function joinRoom(
   room: PvpRoom,
   member: { userId: string; name: string; budget: number },
+  now: number,
 ): { room: PvpRoom; outcome: JoinOutcome } {
   if (room.status !== 'lobby') return { room, outcome: 'started' };
   if (memberOf(room, member.userId)) return { room, outcome: 'already-in' };
   if (room.members.length >= room.size) return { room, outcome: 'full' };
   const next = clone(room);
-  next.members.push(newMember(member.userId, next.members.length, member.name, member.budget));
+  // The next FREE seat, not the member count. A lobby can now lose somebody to P31's
+  // liveness sweep, which leaves a gap, and `pvp_members` has a unique index on (room,
+  // seat) - so counting would hand the newcomer a number somebody else still holds. Seats
+  // are labels that decide nothing (the draw is random, P47), so a gap costs nothing.
+  const seat = next.members.reduce((max, m) => Math.max(max, m.seat + 1), 0);
+  next.members.push(newMember(member.userId, seat, member.name, member.budget, now));
   return { room: next, outcome: 'ok' };
 }
 
@@ -608,6 +659,73 @@ function forceFillOne(room: PvpRoom, m: RoomMember, window: PickWindow, now: num
 }
 
 /**
+ * A lobby's own sweep (P31).
+ *
+ * Three rules, in the order that makes each one cheap. A lobby nobody has touched for
+ * `LOBBY_IDLE_MS` is not going to fill, so it closes. Anybody unseen for `SEEN_GONE_MS` is
+ * gone and is dropped - and only HERE, in the lobby: past the start a player's XI plays on
+ * without them, because the alternative is one absent person voiding a tournament seven
+ * other people are in. And if the person who went was the HOST, the next seat is promoted
+ * rather than the room dying with them.
+ *
+ * Dropping leaves a GAP in the seat numbers, deliberately. A seat is a label that decides
+ * nothing (the draw is random, P47), and re-numbering would have every remaining member
+ * change seat - which collides with `pvp_members`' unique index the moment the writer
+ * updates one row before deleting another.
+ */
+function tickLobby(room: PvpRoom, now: number): PvpRoom {
+  if (now - room.touchedAt > LOBBY_IDLE_MS) return closeRoom(room);
+  const here = room.members.filter((m) => now - m.lastSeen <= SEEN_GONE_MS);
+  if (here.length === room.members.length) return room;
+  // Everybody left. Nothing to promote and nothing to wait for.
+  if (!here.length) return closeRoom(room);
+  const next = clone(room);
+  next.members = next.members.filter((m) => here.some((h) => h.userId === m.userId));
+  if (!next.members.some((m) => m.userId === next.hostId)) {
+    // The lowest remaining seat, which is the earliest of the people still here.
+    next.hostId = next.members.reduce((a, b) => (a.seat <= b.seat ? a : b)).userId;
+  }
+  next.touchedAt = now;
+  return next;
+}
+
+/**
+ * A room that is over without having been won.
+ *
+ * It is `ended` with NO champion, and that pair is the whole encoding: the status column
+ * takes four values and adding a fifth would need a migration, while "ended and nobody
+ * won" is a state a normally-finished room can never be in (`playRound` eliminates exactly
+ * one player per tie, so exactly one survives). `roomClosed` is that reading, exported so
+ * the screens can say "this room closed" rather than "the result".
+ */
+function closeRoom(room: PvpRoom): PvpRoom {
+  const next = clone(room);
+  next.status = 'ended';
+  delete next.championId;
+  return next;
+}
+
+/** Did this room close rather than crown somebody? See `closeRoom`.
+ *
+ *  It takes the two fields rather than a `PvpRoom` so the SCREENS can ask it of a
+ *  `RoomView` too, where `championId` is null rather than absent. One reading of the rule,
+ *  asked by both sides, is the whole point of it being a function. */
+export const roomClosed = (room: {
+  status: RoomStatus | string;
+  championId?: string | null;
+}): boolean => room.status === 'ended' && !room.championId;
+
+/** Fill every slot this member has left, for the draft's hard bound. */
+function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
+  const slots = formationOf(m).slots.length;
+  for (let i = 0; i < slots && !xiComplete(room, m); i++) {
+    const w = room.windows[m.userId] ?? { ordinal: i + 1, openedAt: now };
+    forceFillOne(room, m, w, now);
+  }
+  delete room.windows[m.userId];
+}
+
+/**
  * One sweep. Call it when a pick arrives and every second or two otherwise; it is the
  * only thing that moves a room forward, and it holds no state of its own.
  *
@@ -615,11 +733,25 @@ function forceFillOne(room: PvpRoom, m: RoomMember, window: PickWindow, now: num
  * rather than by diffing - the pattern `prepareGroupStage` uses for a resumed run.
  */
 export function tickRoom(room: PvpRoom, now: number): PvpRoom {
-  if (room.status === 'lobby' || room.status === 'ended') return room;
+  if (room.status === 'ended') return room;
+  // P31: half an hour of nothing at all closes a room whatever phase it is in. First,
+  // because a room this stale has nothing worth advancing.
+  if (now - room.touchedAt > ROOM_IDLE_MS) return closeRoom(room);
+  if (room.status === 'lobby') return tickLobby(room, now);
   let next = room;
   const edit = () => (next === room ? (next = clone(room)) : next);
 
   if (next.status === 'drafting') {
+    // The hard bound (P31). Eleven windows plus slack, and every remaining slot is filled
+    // at once rather than one per sweep: past this point the room is not drafting any
+    // more, it is stuck, and the answer to stuck is to finish it.
+    if (now - (room.startedAt ?? room.touchedAt) > XI_SLOTS * room.pickSeconds * 1000 + DRAFT_SLACK_MS) {
+      const w = edit();
+      for (const m of w.members) forceCompleteOne(w, m, now);
+      drawRound(w, now);
+      return w;
+    }
+
     // Expired windows: fill one slot each, then open the next window. One slot per sweep
     // rather than the whole XI, so a player who comes back finds the draft where they
     // left it rather than finished.

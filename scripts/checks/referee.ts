@@ -50,9 +50,15 @@ import {
 import { handle, type ApiDeps, type ApiResponse } from '../../referee/src/api';
 import { readEnv } from '../../referee/src/env';
 import { recoverIfNeeded, wasOutage } from '../../referee/src/outage';
-import { roomFromRows, rowsFromRoom, type RoomRows } from '../../referee/src/rows';
+import { msOf, roomFromRows, rowsFromRoom, type RoomRows } from '../../referee/src/rows';
 import { recoverAtBoot, sweepOnce } from '../../referee/src/sweeper';
-import type { CreateInput, Mutation, MutateContext, RoomStore } from '../../referee/src/store';
+import type {
+  CreateInput,
+  LobbyRow,
+  Mutation,
+  MutateContext,
+  RoomStore,
+} from '../../referee/src/store';
 import type { RoomView } from '../../referee/src/view';
 
 const SECRET = 'a-test-jwt-secret-that-is-long-enough';
@@ -81,6 +87,7 @@ class MemStore implements RoomStore {
       hostBudget: input.method === 'budget' ? input.budget : 0,
       showRatings: input.showRatings,
       rerolls: input.rerolls,
+      now,
     });
     this.put(room, now);
     return room;
@@ -115,9 +122,28 @@ class MemStore implements RoomStore {
   }
 
   async liveCodes(): Promise<string[]> {
+    // Lobbies included, exactly as `pgStore` does: P31's liveness is this same sweeper.
     return [...this.rows.values()]
-      .filter((r) => r.room.status === 'drafting' || r.room.status === 'round')
+      .filter((r) => r.room.status !== 'ended')
       .map((r) => r.room.code);
+  }
+
+  async publicLobbies(limit: number): Promise<LobbyRow[]> {
+    return [...this.rows.values()]
+      .filter((r) => r.room.visibility === 'public' && r.room.status === 'lobby')
+      .map((r) => ({
+        code: r.room.code,
+        size: r.room.size,
+        seated: r.members.length,
+        method: r.room.method,
+        budget: r.room.budget,
+        pickSeconds: r.room.pick_seconds,
+        rerolls: r.room.rerolls,
+        showRatings: r.room.show_ratings,
+        hostName: this.names[r.room.host_id] ?? '',
+        openedAt: msOf(r.room.touched_at),
+      }))
+      .slice(0, limit);
   }
 
   async activeRoomOf(userId: string): Promise<string | null> {
@@ -405,6 +431,67 @@ export async function refereeChecks(): Promise<void> {
       'room: a private room answers 404 to somebody who is not in it',
       () => stranger.status === 404,
       () => `${stranger.status} ${JSON.stringify(stranger.body)}`,
+    );
+  }
+
+  // --- THE PUBLIC LOBBY LIST (P18), wave 8 ----------------------------------
+  // The whole point of a public room is that somebody who was never sent a code can find
+  // it, so this is the one read in the referee that answers about a room the caller is not
+  // in - and it must not become a way to enumerate PRIVATE rooms, which is the same rule
+  // the 404 above exists for.
+  {
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno', u3: 'Chidi' };
+    const deps = depsFor(store, clock);
+    const open = async (
+      who: string,
+      visibility: 'public' | 'private',
+      over: Record<string, unknown> = {},
+    ): Promise<string> => {
+      const made = await post(deps, '/referee/v1/rooms', session(who), {
+        visibility,
+        size: 4,
+        method: 'budget',
+        budget: 110,
+        pickSeconds: 20,
+        years: [],
+        ...over,
+      });
+      return (made.body as RoomView).code;
+    };
+    const pub = await open('u1', 'public');
+    const priv = await open('u2', 'private');
+    const list = await get(deps, '/referee/v1/lobby', session('u3'));
+    const rooms = (list.body as { rooms: { code: string; seated: number; hostName: string }[] }).rooms;
+    check(
+      'referee: the lobby lists a PUBLIC room to somebody who was never sent a code, and lists no private one',
+      () =>
+        list.status === 200 &&
+        // Vacuity: there really are two rooms open, and only one of them is listed.
+        !!pub &&
+        !!priv &&
+        rooms.length === 1 &&
+        rooms[0]!.code === pub &&
+        rooms[0]!.seated === 1 &&
+        rooms[0]!.hostName === 'Ada',
+      () => `${list.status}: ${JSON.stringify(rooms)}`,
+    );
+    const anon = await get(deps, '/referee/v1/lobby', null);
+    check(
+      'referee: the lobby still needs a session - a room is account-only, listed or not',
+      () => anon.status === 401,
+      () => String(anon.status),
+    );
+    // A room that has STARTED leaves the list: it is not something anybody can join.
+    await post(deps, `/referee/v1/rooms/${pub}/join`, session('u3'));
+    const started = await get(deps, '/referee/v1/lobby', session('u2'));
+    check(
+      'referee: a public room stays listed while it is a lobby, and its seat count is live',
+      () =>
+        (started.body as { rooms: { seated: number }[] }).rooms.length === 1 &&
+        (started.body as { rooms: { seated: number }[] }).rooms[0]!.seated === 2,
+      () => JSON.stringify(started.body),
     );
   }
 
@@ -796,6 +883,7 @@ export async function refereeChecks(): Promise<void> {
         size: 2,
         rules: { method: 'budget', budget: 110, years: [] },
         pickSeconds: 20,
+        now: clock,
         hostBudget: 110,
       });
       return recoverIfNeeded(room, clock, clock + SWEEP_MS, SWEEP_MS) === room;

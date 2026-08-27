@@ -14,7 +14,11 @@ import { getFormation } from '../../src/domain/formations';
 import type { MatchEvent } from '../../src/domain/match';
 import {
   REVEAL_JOIN_MS,
+  agoLine,
   gamesIn,
+  lobbyJoinable,
+  lobbyLine,
+  seatsLine,
   meIn,
   playersOf,
   roomBracket,
@@ -27,7 +31,7 @@ import {
   viewerTie,
   xiFrom,
 } from '../../src/domain/pvpView';
-import type { RoomView, TieView } from '../../src/domain/pvpWire';
+import type { LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
 import { readFileSync, readdirSync } from 'node:fs';
 import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
@@ -499,6 +503,79 @@ export function pvpViewChecks(): void {
         roomLine({ ...eight, status: 'lobby', members: eight.members.slice(0, 2) }) ===
           'waiting, 2 of 8 in, 2 ready',
       () => roomLine(eight),
+    );
+  }
+
+  // --- THE PUBLIC LOBBY LIST (P18) ------------------------------------------
+  // Wave 8. A row is read by somebody who has never seen the room, so it says what the room
+  // IS TO PLAY rather than what its columns are set to - the same rule the room settings
+  // themselves are written under.
+  {
+    const budget: LobbyRoom = {
+      code: 'AB12CD',
+      size: 4,
+      seated: 2,
+      method: 'budget',
+      budget: 110,
+      pickSeconds: 20,
+      rerolls: 3,
+      showRatings: true,
+      hostName: 'Ada',
+      openedAt: 1_000_000,
+    };
+    const roll: LobbyRoom = { ...budget, method: 'roll', rerolls: 1, showRatings: false };
+    check(
+      'pvpView: a lobby row says what the room is to PLAY, and a hidden-ratings roll room says so',
+      () =>
+        lobbyLine(budget) === 'Buy an XI with $110, 20s a pick' &&
+        // One re-roll is not "1 re-rolls", and the hidden-ratings note only appears when it
+        // is true - which is the whole reason a budget room never carries it (P5).
+        lobbyLine(roll) === 'Roll for your XI, 1 re-roll, 20s a pick, ratings hidden' &&
+        lobbyLine({ ...roll, rerolls: 3, showRatings: true }) ===
+          'Roll for your XI, 3 re-rolls, 20s a pick' &&
+        !lobbyLine(budget).includes('ratings'),
+      () => `${lobbyLine(budget)} | ${lobbyLine(roll)}`,
+    );
+    check(
+      'pvpView: a row counts the seats LEFT, and a room that filled says Full rather than offering a join',
+      () =>
+        seatsLine(budget) === '2 of 4 seats left' &&
+        seatsLine({ ...budget, seated: 3 }) === '1 of 4 seat left' &&
+        seatsLine({ ...budget, seated: 4 }) === 'Full' &&
+        // Vacuity in the direction that matters: the joinable test really does flip.
+        lobbyJoinable(budget) &&
+        !lobbyJoinable({ ...budget, seated: 4 }) &&
+        !lobbyJoinable({ ...budget, seated: 5 }),
+      () => `${seatsLine(budget)} / ${seatsLine({ ...budget, seated: 4 })}`,
+    );
+    check(
+      'pvpView: an age is coarse on purpose, and a clock that has run backwards reads as just now',
+      () =>
+        agoLine(1_000_000, 1_000_000) === 'just now' &&
+        agoLine(1_000_000, 1_000_000 + 59_000) === 'just now' &&
+        agoLine(1_000_000, 1_000_000 + 61_000) === '1 minute ago' &&
+        agoLine(1_000_000, 1_000_000 + 5 * 60_000) === '5 minutes ago' &&
+        agoLine(1_000_000, 1_000_000 + 61 * 60_000) === '1 hour ago' &&
+        agoLine(1_000_000, 1_000_000 + 3 * 3600_000) === '3 hours ago' &&
+        // A phone whose clock is behind the server's must not read "-4 minutes ago".
+        agoLine(1_000_000, 500_000) === 'just now',
+      () => agoLine(1_000_000, 1_000_000 + 61_000),
+    );
+  }
+
+  {
+    // A room that CLOSED is not a room that finished, and the chrome's strip is one of the
+    // two places a player is told either (P31).
+    const room = fixtureRoom({ status: 'ended', championId: null, ties: [] });
+    check(
+      'pvpView: the strip tells a closed room from a finished one, and from a won one',
+      () =>
+        roomLine(room) === 'closed' &&
+        // Vacuity both ways: with a champion it reads as a result, and with the viewer as
+        // the champion it reads as a win.
+        roomLine({ ...room, championId: AWAY }) === 'finished' &&
+        roomLine({ ...room, championId: HOME }) === 'you won',
+      () => roomLine(room),
     );
   }
 

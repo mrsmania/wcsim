@@ -15,8 +15,12 @@ import type { Filled } from '../../src/domain/draft';
 import { FORMATIONS_DATA, STYLES, getFormation } from '../../src/domain/formations';
 import { verifyCaller } from '../../src/domain/pvpAuth';
 import {
+  DRAFT_SLACK_MS,
+  LOBBY_IDLE_MS,
   PICK_GRACE_MS,
   PICK_SECONDS,
+  ROOM_IDLE_MS,
+  roomClosed,
   createRoom,
   deadlineOf,
   formationOf,
@@ -49,9 +53,10 @@ function roomOf(size: RoomSize, rules: RoomRules, pickSeconds: PickSeconds = 20)
     rules,
     pickSeconds,
     hostBudget: rules.budget,
+    now: T0,
   });
   for (let i = 1; i < size; i++) {
-    room = joinRoom(room, { userId: `u${i}`, name: `P${i}`, budget: rules.budget }).room;
+    room = joinRoom(room, { userId: `u${i}`, name: `P${i}`, budget: rules.budget }, T0).room;
   }
   return room;
 }
@@ -120,8 +125,8 @@ export function pvpRoomChecks(): void {
   // --- The lobby -----------------------------------------------------------
   {
     const room = roomOf(2, BUDGET);
-    const full = joinRoom(room, { userId: 'zz', name: 'Late', budget: 110 });
-    const dupe = joinRoom(room, { userId: 'u0', name: 'Host again', budget: 110 });
+    const full = joinRoom(room, { userId: 'zz', name: 'Late', budget: 110 }, T0);
+    const dupe = joinRoom(room, { userId: 'u0', name: 'Host again', budget: 110 }, T0);
     check(
       'room: a full room refuses a joiner, and nobody joins twice',
       () => full.outcome === 'full' && dupe.outcome === 'already-in' && room.members.length === 2,
@@ -596,6 +601,189 @@ export function pvpRoomChecks(): void {
           const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
           return avg(pens) > avg(reg);
         },
+      );
+    });
+  }
+
+  // --- P31's LIFECYCLE: a room nobody is in has to end -----------------------
+  // The failure this exists against is not exotic and it is what kills the PUBLIC half of
+  // the feature: closing a tab fires no reliable event, so a room whose host shut their
+  // laptop sits in the lobby list at 3 of 8 for ever, and a list of dead rooms is
+  // indistinguishable from a list nobody uses. Every rule here is evaluated by the same
+  // stateless sweeper that runs the pick clock, so nothing is held in memory anywhere.
+  {
+    const lobby = roomOf(4, BUDGET);
+    // Nobody has pinged for two minutes, which is past SEEN_GONE_MS for all four.
+    const gone = tickRoom(lobby, T0 + 120_000);
+    check(
+      'room: a lobby everybody has walked away from CLOSES, and closing is "ended with nobody having won"',
+      () =>
+        // Vacuity: the same room one second in is untouched, so this is the timeout and
+        // not something that was always true.
+        tickRoom(lobby, T0 + 1000) === lobby &&
+        gone.status === 'ended' &&
+        !gone.championId &&
+        roomClosed(gone) &&
+        // And a room that was actually WON is not "closed", or the screens would tell a
+        // champion their room shut.
+        !roomClosed({ status: 'ended', championId: 'u0' }),
+      () => `${gone.status} / champion ${gone.championId ?? 'none'}`,
+    );
+  }
+
+  {
+    // The host goes and the room does NOT die with them (P31): the next seat is promoted.
+    // Their three friends are still here, which is the whole reason to promote rather than
+    // close.
+    const lobby = roomOf(4, BUDGET);
+    const late = T0 + 120_000;
+    const stillHere: PvpRoom = {
+      ...lobby,
+      members: lobby.members.map((m) =>
+        m.userId === 'u0' ? m : { ...m, lastSeen: late - 1000 },
+      ),
+    };
+    const after = tickRoom(stillHere, late);
+    check(
+      'room: a lobby whose HOST went promotes the next seat and stays open',
+      () =>
+        // Vacuity: the host really was the one who left.
+        stillHere.hostId === 'u0' &&
+        after.status === 'lobby' &&
+        after.hostId === 'u1' &&
+        after.members.length === 3 &&
+        !after.members.some((m) => m.userId === 'u0'),
+      () => `host ${after.hostId}, ${after.members.length} left, status ${after.status}`,
+    );
+  }
+
+  {
+    // Dropping somebody leaves a SEAT GAP on purpose, and a newcomer must not reuse the
+    // number: `pvp_members` has a unique index on (room, seat), so counting members would
+    // hand out a seat somebody else still holds. Seats decide nothing (P47).
+    const lobby = roomOf(4, BUDGET);
+    const late = T0 + 120_000;
+    // u1 (seat 1) goes; the other three are here.
+    const one: PvpRoom = {
+      ...lobby,
+      members: lobby.members.map((m) =>
+        m.userId === 'u1' ? m : { ...m, lastSeen: late - 1000 },
+      ),
+    };
+    const after = tickRoom(one, late);
+    const joined = joinRoom(after, { userId: 'u9', name: 'New', budget: 110 }, late).room;
+    const seats = joined.members.map((m) => m.seat);
+    check(
+      'room: a dropped member leaves a seat gap, and the next joiner takes a FREE number rather than the member count',
+      () =>
+        // Vacuity: there really is a gap (0, 2, 3) before the join.
+        after.members.map((m) => m.seat).join() === '0,2,3' &&
+        joined.members.length === 4 &&
+        new Set(seats).size === seats.length &&
+        Math.max(...seats) === 4,
+      () => `seats ${seats.join(',')}`,
+    );
+  }
+
+  {
+    // A lobby nobody has TOUCHED for a quarter of an hour is not going to fill, even if
+    // everybody in it is still pinging away.
+    const lobby = roomOf(2, BUDGET);
+    const late = T0 + LOBBY_IDLE_MS + 1000;
+    const pinging: PvpRoom = {
+      ...lobby,
+      members: lobby.members.map((m) => ({ ...m, lastSeen: late })),
+    };
+    check(
+      'room: a lobby untouched for fifteen minutes closes, however alive the people in it are',
+      () =>
+        // Vacuity: with the same pings a minute in, nothing happens.
+        tickRoom({ ...pinging, touchedAt: late - 60_000 }, late).status === 'lobby' &&
+        tickRoom(pinging, late).status === 'ended',
+      () => tickRoom(pinging, late).status,
+    );
+  }
+
+  {
+    // And half an hour of nothing closes a room in ANY phase, which is the backstop under
+    // all of the above.
+    withSeed(31, () => {
+      const drafting = startRoom(roomOf(2, BUDGET), 'u0', T0);
+      const late = T0 + ROOM_IDLE_MS + 1000;
+      const closed = tickRoom(drafting, late);
+      check(
+        'room: half an hour of nothing closes a room whatever phase it is in',
+        () =>
+          // Vacuity: at twenty-nine minutes it is NOT closed. It is not still drafting
+          // either - the draft's own hard bound is four and a half minutes, so by then it
+          // has been force-completed and is playing - and that is the point: this rule is
+          // the backstop UNDER the others, so the thing to assert is that it had not
+          // already fired.
+          tickRoom(drafting, T0 + ROOM_IDLE_MS - 60_000).status !== 'ended' &&
+          closed.status === 'ended' &&
+          roomClosed(closed),
+        () => closed.status,
+      );
+    });
+  }
+
+  {
+    // The draft's HARD BOUND (P31). The per-window auto-pick already finishes a draft, so
+    // this is the second answer for a room that somehow does not - and a room stuck in the
+    // one phase built to be unstallable is the worst outcome available.
+    withSeed(77, () => {
+      const drafting = startRoom(roomOf(2, BUDGET), 'u0', T0);
+      // Frozen windows: opened in the far future, so no deadline can ever pass and the
+      // ordinary one-slot-per-sweep path cannot fire at all. That is what leaves the hard
+      // bound as the only thing that can move this room.
+      const frozen: PvpRoom = {
+        ...drafting,
+        windows: Object.fromEntries(
+          Object.entries(drafting.windows).map(([k, w]) => [
+            k,
+            w ? { ...w, openedAt: T0 + 1_000_000_000 } : w,
+          ]),
+        ),
+      };
+      const at = T0 + 11 * 20_000 + DRAFT_SLACK_MS + 1000;
+      const forced = tickRoom(frozen, at);
+      const legal = forced.members.every(
+        (m) => validateXi(formationOf(m), forced.xi[m.userId] ?? {}, forced.rules).ok,
+      );
+      check(
+        'room: past eleven windows plus slack a stuck draft is force-completed with legal XIs and the bracket is drawn',
+        () =>
+          // Vacuity: a sweep just before the bound leaves it drafting with nothing filled,
+          // because the frozen windows mean the ordinary path does nothing.
+          tickRoom(frozen, at - 5000).status === 'drafting' &&
+          Object.keys(tickRoom(frozen, at - 5000).xi['u0'] ?? {}).length === 0 &&
+          forced.status === 'round' &&
+          forced.ties.length === 1 &&
+          forced.members.every((m) => xiComplete(forced, m)) &&
+          legal,
+        () => `status ${forced.status}, ties ${forced.ties.length}, legal ${legal}`,
+      );
+    });
+  }
+
+  {
+    // AND NOBODY IS DROPPED PAST THE START. A player who closes their laptop mid-draft has
+    // their XI completed and it plays on without them: the alternative is one absent person
+    // voiding a tournament seven other people are in.
+    withSeed(78, () => {
+      const drafting = startRoom(roomOf(4, BUDGET), 'u0', T0);
+      const silent: PvpRoom = {
+        ...drafting,
+        members: drafting.members.map((m) => ({ ...m, lastSeen: T0 })),
+      };
+      const after = tickRoom(silent, T0 + 120_000);
+      check(
+        'room: a player who goes silent mid-DRAFT keeps their seat, where the same silence in a lobby loses it',
+        () =>
+          after.members.length === 4 &&
+          // Vacuity: the identical silence in a lobby does drop them.
+          tickRoom({ ...silent, status: 'lobby' }, T0 + 120_000).status === 'ended',
+        () => `${after.members.length} members, status ${after.status}`,
       );
     });
   }

@@ -15,6 +15,7 @@ import {
     viewerTie,
     xiFrom,
 } from '../../domain/pvpView';
+import { roomClosed } from '../../domain/pvpRoom';
 import { holdVersusRoom } from '../../nav/versusRoom';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
@@ -50,6 +51,8 @@ const HEADINGS: Record<string, string> = {
     round: 'The match',
     ended: 'The result',
 };
+
+const CLOSED_TITLE = 'The room closed';
 
 export default function RoomScreen({ code }: { code: string }) {
     const navigate = useNavigate();
@@ -126,18 +129,35 @@ export default function RoomScreen({ code }: { code: string }) {
 
     const me = meIn(view);
 
-    // A public room you have not joined. The only way in is to take a seat.
+    // A public room you have not joined. The only way in is to take a seat - and it may
+    // have filled between the lobby list being drawn and the tap landing, which is a
+    // ten-second window and the ordinary case rather than a rare one.
     if (!me) {
+        const full = view.members.length >= view.size;
         return (
             <>
                 <StageHeader eyebrow="Versus" title="Join the room" />
                 <div className={`${CARD_FLAT} p-5`}>
                     <RoomNote>
-                        {view.members.length} of {view.size} are in, playing with $
-                        {view.rules.budget} each.
+                        {view.members.length} of {view.size} are in.{' '}
+                        {view.rules.method === 'budget'
+                            ? `Buy an XI with $${view.rules.budget}`
+                            : 'Roll random squads and take one man from each'}
+                        , {view.pickSeconds} seconds a pick.
                     </RoomNote>
-                    <button className={`${PRIMARY_BTN} mt-3`} onClick={() => void room.join()}>
-                        Take a seat
+                    {full ? (
+                        <RoomNote>
+                            <span className="mt-2 block">
+                                It filled up. Try another, or open one of your own.
+                            </span>
+                        </RoomNote>
+                    ) : (
+                        <button className={`${PRIMARY_BTN} mt-3`} onClick={() => void room.join()}>
+                            Take a seat
+                        </button>
+                    )}
+                    <button className={`${SECONDARY_BTN} mt-3 ml-2`} onClick={() => navigate('/versus')}>
+                        Back to versus
                     </button>
                 </div>
             </>
@@ -165,7 +185,9 @@ export default function RoomScreen({ code }: { code: string }) {
                 title={
                     tree && view.status === 'round'
                         ? currentRoundLabel(view)
-                        : (HEADINGS[view.status] ?? 'The room')
+                        : roomClosed(view)
+                          ? CLOSED_TITLE
+                          : (HEADINGS[view.status] ?? 'The room')
                 }
             />
 
@@ -256,6 +278,19 @@ export default function RoomScreen({ code }: { code: string }) {
 
             {view.status === 'ended' && (
                 <div className="flex flex-col gap-[18px]">
+                    {/* A room that CLOSED never played, so there is no tree and no result to
+                        show - only the honest reason (P31). It happens when everybody left a
+                        lobby, or when nobody touched one for a quarter of an hour. */}
+                    {roomClosed(view) && !ended ? (
+                        <div className={`${CARD_FLAT} p-5`}>
+                            <div className={MONO_CAP}>The room closed</div>
+                            <RoomNote>
+                                Nobody was left in it, so it shut rather than sitting open for
+                                ever. Open another and send the code round again.
+                            </RoomNote>
+                        </div>
+                    ) : (
+                        <>
                     {tree && <RoomBracket view={view} serverNow={view.at} />}
                     {ended ? (
                         <RoomResult view={view} tie={ended.tie} you={me} them={ended.them} />
@@ -263,6 +298,8 @@ export default function RoomScreen({ code }: { code: string }) {
                         <div className={`${CARD_FLAT} p-5`}>
                             <RoomNote>This room is finished.</RoomNote>
                         </div>
+                    )}
+                        </>
                     )}
                 </div>
             )}

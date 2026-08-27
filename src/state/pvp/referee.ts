@@ -1,5 +1,5 @@
 import { REFEREE } from '../../config';
-import type { RoomView } from '../../domain/pvpWire';
+import type { LobbyRoom, RoomView } from '../../domain/pvpWire';
 import { localVersion, versionMismatch, type PvpVersion, type VersionMismatch } from '../../domain/pvpVersion';
 import { nameKeyOf, normalizeName } from '../../domain/displayName';
 
@@ -195,6 +195,10 @@ export const createRoom = (input: CreateRoomInput): Promise<RoomView> =>
 
 export const readRoom = (code: string): Promise<RoomView> =>
     call('GET', `/v1/rooms/${code}`);
+
+/** The open public rooms (P18). It needs a session, because a room is account-only, but it
+ *  deliberately does not need a seat - that is what makes a public room public. */
+export const readLobby = (): Promise<{ rooms: LobbyRoom[] }> => call('GET', '/v1/lobby');
 
 export const joinRoom = (code: string): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/join`);

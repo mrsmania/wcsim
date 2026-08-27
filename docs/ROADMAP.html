@@ -356,14 +356,16 @@
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
       REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED AND DEPLOYED 2026-08-26</b>: the rules,
       the referee's logic, the tables, the referee itself, and now its deploy (item 41,
-      closed) - <b>the server half is live and verified</b>. <b>WAVES 4 TO 7 SHIPPED
-      2026-08-27, AND VERSUS IS LIVE</b>: two, four or eight people with a six-character code
-      either buy an XI from a shared budget or roll random squads, draft against a clock, and
-      play a knockout - the bracket drawn at random once every team is in, and whoever goes out
-      first stays and watches the rest. The host can hide every rating, which turns the draft
-      into a genuine judgement. Nobody touches anybody else&#8217;s saved game. <b>Next is
-      WAVE 8</b>, public rooms anyone can find and join. One decision is settled: no part of a
-      career reaches a room.</span>
+      closed) - <b>the server half is live and verified</b>. <b>WAVES 4 TO 8 SHIPPED
+      2026-08-27, AND VERSUS IS FEATURE-COMPLETE</b>: two, four or eight people either buy an
+      XI from a shared budget or roll random squads, draft against a clock, and play a knockout
+      - found on a public list anybody can browse or reached with a six-character code, the
+      bracket drawn at random once every team is in, and whoever goes out first stays and
+      watches the rest. The host can hide every rating, which turns the draft into a genuine
+      judgement. A room nobody is in closes itself. Nobody touches anybody else&#8217;s saved
+      game. <b>The last wave is documentation.</b> <b>WAVE 8 NEEDS THE SERVER REDEPLOYED</b>
+      (no database change, just the container). One decision is settled: no part of a career
+      reaches a room.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -686,13 +688,90 @@
     won and which round their own run ended in, the finished tree carrying real scorelines, and
     a knocked-out player watching the final with both finalists named and neither of them
     called "you". Nobody&#8217;s saved game was touched in either pass.</p>
-    <p class="next"><strong>Next step:</strong> wave 8 - public rooms. A list anybody signed in
-    can browse and join without being sent a code, which is the half of the feature that
-    depends on other people being there. It brings the liveness rules with it (a room whose
-    host closed their tab has to stop sitting in the list), the win/loss record, and reporting
-    a name. Still open from wave 5, for whichever wave next touches the server: a per-pick
-    <b>Skip</b>, and <b>moving a player already placed</b>.</p>
+    <p><strong>Wave 8 shipped 2026-08-27: rooms anybody can find.</strong> A host now
+    chooses who can join. <b>Just my friends</b> is code only - nobody can find it and nobody
+    can even confirm it exists. <b>Anybody</b> puts it on a list every signed-in player can
+    browse: the host&#8217;s name, how many seats are left, and what the room actually plays
+    ("buy an XI with $110, 20 seconds a pick"), so you can pick a game rather than a setting.
+    Taking a seat needs nothing but the tap.</p>
+    <p><strong>A room nobody is in now closes itself, and that is what makes the list worth
+    having.</strong> Closing a tab tells a server nothing, so being there has to be observed:
+    every open room quietly says "still here" while you have it, and anybody who goes silent
+    for ninety seconds is dropped from a lobby. If the person who went was the host, the next
+    seat takes over rather than the room dying with them. A lobby where nothing at all has
+    happened for a quarter of an hour closes, and any room untouched for half an hour closes.
+    Without this a public list fills up with rooms whose hosts left, at 3 of 8 for ever, and a
+    list of dead rooms is indistinguishable from a list nobody uses.</p>
+    <p><strong>Nobody is ever dropped once the football starts.</strong> The ninety-second rule
+    is for lobbies only: past the first whistle an absent player&#8217;s team plays on without
+    them, because the alternative is one person walking away and voiding a tournament seven
+    other people are in.</p>
+    <p><strong>Your record, and a way to report a name.</strong> Wins and losses are counted
+    from the matches themselves rather than kept as a tally, so nothing can drift, and the
+    figure sits above the room list. Beside every other player in a lobby is a small flag: one
+    tap, one confirm, and the report reaches the owner. There is no word filter and nothing
+    happens automatically - it is read by a person, who renames or removes an account by hand,
+    which is the right amount of machinery for a game this size.</p>
+    <p><strong>It needed no database change at all</strong>, which is the earlier work paying
+    out: every column this wave reads was added months of commits ago with its purpose written
+    beside it and no caller yet. <b>It does need the versus server rebuilt and redeployed</b>,
+    which is one container and no SQL; until then the list simply shows nothing rather than
+    breaking. <b>Verified with two real browsers</b>, the second never sent the code: it opened
+    the versus page, the room was on the list with its host and its seats, and taking a seat
+    put it in the lobby. A private room opened beside it appeared on nobody else&#8217;s list, a
+    report reached the server once, and the liveness sweep closed a lobby whose people had
+    stopped pinging - with the screen saying the room closed rather than showing a result.</p>
+    <p class="next"><strong>Next step:</strong> wave 9, which is documentation and closing this
+    item. Still open, for whichever wave next touches the server: a per-pick <b>Skip</b>, and
+    <b>moving a player already placed</b>.</p>
     <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a>, <a class="dl" href="../src/state/pvp/referee.ts" target="_blank" rel="noopener">src/state/pvp/referee.ts</a>, <a class="dl" href="../src/hooks/useVersusRoom.ts" target="_blank" rel="noopener">src/hooks/useVersusRoom.ts</a>, <a class="dl" href="../src/domain/pvpView.ts" target="_blank" rel="noopener">src/domain/pvpView.ts</a>, <a class="dl" href="../src/components/versus/" target="_blank" rel="noopener">src/components/versus/</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/versus/RoomBracket.tsx" target="_blank" rel="noopener">src/components/versus/RoomBracket.tsx</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">43</span>
+    <span class="title">Redeploy the versus server for the public lobby
+      <span class="sub">Wave 8 of item 18 added a public room list, the liveness rules that keep
+      it clean, and the win/loss record. <b>No database change at all</b> - every column it
+      reads was added by the first versus migration with its purpose written beside it and no
+      caller yet. What it does need is the <b>versus server container rebuilt and redeployed</b>,
+      because the app now asks it for the room list and the deployed build has no such answer.
+      Until then the list shows nothing rather than breaking, and a public room is invisible to
+      everyone but its host. Needs the NAS, so a cloud session cannot do it.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What to do.</strong> Rebuild and redeploy the referee exactly as on 2026-08-26
+    (<a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a>
+    step 6, and <code>scripts/deploy-referee.sh</code> with <code>--verify</code>). There is
+    <b>no migration</b>: the columns this wave reads (<code>pvp_rooms.touched_at</code>,
+    <code>pvp_members.last_seen</code>, the <code>pvp_rooms_open_idx</code> partial index, the
+    <code>pvp_records</code> view and <code>pvp_name_reports</code>) all came in with 0016.</p>
+    <p><strong>How to know it worked.</strong> Four things, in order, and the first two are
+    the ones the old build cannot do:</p>
+    <ol>
+      <li><code>GET /referee/v1/lobby</code> with a real session answers <code>200</code> and a
+      <code>rooms</code> array, rather than a 404.</li>
+      <li>Open a room set to <b>Anybody</b> from one account; from a second account, the versus
+      page lists it with the host&#8217;s name, its code and the seats left. Taking a seat gets
+      in without the code ever being typed.</li>
+      <li>Open a room set to <b>Just my friends</b>; it appears on nobody else&#8217;s list.</li>
+      <li>Leave a lobby (close the tab) and wait two minutes: the room stops being listed,
+      because the sweeper drops a member nobody has heard from for ninety seconds. If the host
+      was the one who left, the next seat becomes host instead of the room dying.</li>
+    </ol>
+    <p><strong>If it goes wrong.</strong> The previous image is the rollback, and it is safe:
+    the schema did not move, so the old build reads the same tables. What you lose by rolling
+    back is the list and the liveness sweep, which is exactly the state the app already
+    degrades to.</p>
+    <p><strong>Why this is an item at all.</strong> The same standing rule an unapplied
+    migration follows: a change that cannot be deployed by the session that wrote it gets an
+    item with what to do, how to check it and how to undo it, so the apply can be handed to
+    somebody with the access.</p>
+    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
   </div>
 </details>
 

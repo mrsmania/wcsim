@@ -14,6 +14,11 @@
 // to forget; handing them `read` and `save` makes it impossible to see.
 
 import type { PvpRoom } from '../../src/domain/pvpRoom';
+import type { LobbyRoom } from '../../src/domain/pvpWire';
+
+/** One line of the lobby list, as the store hands it over. The wire shape is shared with
+ *  the client (`src/domain/pvpWire.ts`), so the two sides cannot describe it differently. */
+export type LobbyRow = LobbyRoom;
 
 /** What a transition is told besides the room itself. */
 export interface MutateContext {
@@ -64,8 +69,18 @@ export interface RoomStore {
     fn: (room: PvpRoom, ctx: MutateContext) => Mutation<T>,
   ): Promise<Mutation<T> | null>;
 
-  /** Codes of the rooms a sweep should look at: drafting or revealing. */
+  /** Codes of the rooms a sweep should look at.
+   *
+   *  IT INCLUDES LOBBIES, and that is not an optimisation to reverse: P31's liveness is
+   *  evaluated by the same sweeper as the pick clock, so a lobby the sweeper never visits
+   *  is a lobby whose host can close their laptop and leave the room sitting at 3 of 8 for
+   *  ever - which is exactly the state that makes a public lobby list worthless. */
   liveCodes(): Promise<string[]>;
+
+  /** The open public rooms, newest first, for the lobby list (P18). Read-only and cheap:
+   *  it answers off `pvp_rooms` plus a member count, never the whole room, because a
+   *  listing has no business carrying anybody's XI. */
+  publicLobbies(limit: number): Promise<LobbyRow[]>;
 
   /** The code of the room this account already holds a seat in, if any (P39: one active
    *  room per account, so one person on a phone and a laptop cannot take two seats). */

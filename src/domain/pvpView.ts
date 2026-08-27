@@ -18,11 +18,12 @@
 import type { Player } from '../data/types';
 import { datasetPlayer } from '../data/squads';
 import { STRENGTH_BANDS } from './draft';
+import { roomClosed } from './pvpRoom';
 import type { Filled } from './draft';
 import type { Formation } from './formations';
 import type { KoDecided } from './knockout';
 import type { MatchEvent, ShootoutResult } from './match';
-import type { MemberView, RoomView, TieView } from './pvpWire';
+import type { LobbyRoom, MemberView, RoomView, TieView } from './pvpWire';
 
 /** How long after the server stamped a reveal a client will still start playing it from
  *  the beginning. Past that it has missed too much, and the settled card is the honest
@@ -153,7 +154,13 @@ export function roomLine(view: RoomView): string {
             // a player wants to know from the strip, and the label is derivable.
             return `${roundLabel(view.size, view.round).toLowerCase()} on`;
         case 'ended':
-            return view.championId === me?.userId ? 'you won' : 'finished';
+            // A room that CLOSED (nobody there, or nobody touching it) is not a room that
+            // finished, and the strip is the one place a player might be told either.
+            return view.championId === me?.userId
+                ? 'you won'
+                : roomClosed(view)
+                  ? 'closed'
+                  : 'finished';
     }
 }
 
@@ -373,4 +380,59 @@ export function spectateTie(view: RoomView): TieView | null {
         ? live.find((t) => t.homeId === beatenBy || t.awayId === beatenBy)
         : undefined;
     return theirs ?? live[0]!;
+}
+
+
+// --- The public lobby list (P18) -------------------------------------------
+
+/**
+ * A lobby row, in words.
+ *
+ * The same rule the room settings are written under (plan section 8): a row says what the
+ * room IS TO PLAY, not what its columns are set to. "Buy an XI with $110" is a sentence
+ * somebody can act on; "budget: 110" is not, and the person reading this list has by
+ * definition never seen the room.
+ *
+ * It is here rather than inside the component for the reason the rest of this file is: it
+ * is a derivation, and a derivation can be checked.
+ */
+export function lobbyLine(room: LobbyRoom): string {
+    const clock = `${room.pickSeconds}s a pick`;
+    if (room.method === 'budget') return `Buy an XI with $${room.budget}, ${clock}`;
+    const rr = room.rerolls === 1 ? '1 re-roll' : `${room.rerolls} re-rolls`;
+    const hidden = room.showRatings ? '' : ', ratings hidden';
+    return `Roll for your XI, ${rr}, ${clock}${hidden}`;
+}
+
+/** How many seats are still open, and how that reads. A row whose room filled while you
+ *  were looking at it says so rather than offering a Join that cannot work. */
+export function seatsLine(room: LobbyRoom): string {
+    const left = Math.max(0, room.size - room.seated);
+    if (left <= 0) return 'Full';
+    return `${left} of ${room.size} seat${left === 1 ? '' : 's'} left`;
+}
+
+/** Whether a row can still be joined. */
+export const lobbyJoinable = (room: LobbyRoom): boolean => room.seated < room.size;
+
+/**
+ * How long ago something happened, in the coarsest honest unit.
+ *
+ * Coarse on purpose: a lobby row updates on a poll, so a seconds-precise age would tick
+ * visibly out of date between reads and invite the reader to trust it. Minutes are what
+ * the number is actually good for.
+ *
+ * A NEGATIVE AGE NEEDS NO CLAMP, and there was one here until a mutation test showed it did
+ * nothing: the times come from two different clocks (the room's stamp is the server's, the
+ * reading is the browser's), so a phone running slow can be asked about the future - and
+ * every negative gap floors to something under a minute and falls out as "just now"
+ * already. Guarding it twice reads as though the second guard were doing something.
+ */
+export function agoLine(at: number, now: number): string {
+    const mins = Math.floor((now - at) / 60_000);
+    if (mins < 1) return 'just now';
+    if (mins === 1) return '1 minute ago';
+    if (mins < 60) return `${mins} minutes ago`;
+    const hours = Math.floor(mins / 60);
+    return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
 }

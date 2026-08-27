@@ -8,12 +8,15 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: waves 0 to 7 built**; the server half is deployed (2026-08-26, roadmap item 41),
-0016, 0017 and **0018** applied, and waves 4, 5, 6 and 7 all landed 2026-08-27. Two, four or
-eight people with a code play a whole knockout, in either kind of room, with or without the
-numbers, and whoever goes out first stays and watches the rest. The one decision wave 3
-reopened, the career budget in P2, was settled on 2026-08-27 by dropping the option.
-**Next is wave 8, public rooms.**
+(P48). **Status: waves 0 to 8 built**; the server half is deployed (2026-08-26, roadmap item 41),
+0016, 0017 and **0018** applied, and waves 4 to 8 all landed 2026-08-27. Two, four or eight
+people play a whole knockout - found on a public list or reached with a code - in either kind
+of room, with or without the numbers, and whoever goes out first stays and watches the rest.
+A room nobody is in closes itself. The one decision wave 3 reopened, the career budget in P2,
+was settled on 2026-08-27 by dropping the option. **Only wave 9 is left: the documentation
+pass and closing the roadmap item.** Wave 8 needs NO migration (every column it reads was in
+0016) but it DOES need the referee redeployed, which is the standing rule: deploy the referee
+before the client that talks to it.
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -365,7 +368,7 @@ after most of the client work was done.
 | 5 | **DONE 2026-08-27** (`src/state/pvp/referee.ts`, `src/hooks/useVersusRoom.ts`, `src/domain/pvpWire.ts`, `src/domain/pvpView.ts`, `src/nav/versusRoom.ts`, `src/components/versus/`, `src/components/buildControls.ts`, `scripts/checks/pvpView.ts`, 7 checks). **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Proven: two real browsers, one code, a whole game against the REAL referee handlers - name, room, join, ready, start, eleven manual picks each with nothing auto-picked, the tie watched live in both, a champion crowned, both XIs revealed, and neither player's saved game touched |
 | 6 | **DONE 2026-08-27** (`src/domain/pvpView.ts` gains `roomDisplay` / `ratingBand` / `offersRatingSwitch`; `BoxScore`, `XiTable`, `SquadPanel` and `MatchdayCard` learn to hide a number; `useSquadRoll` learns to stand down; 3 checks). **Roll rooms**, and the ratings switch inside them | Proven both ways in the real app: two browsers played a whole hidden-ratings roll room and a whole budget room, and NOT ONE rating appeared in the hidden one - empty board, three placed, or live match - with twenty-five on the result screen at the whistle. The switch is not offered for a budget room (`offersRatingSwitch`), and `roomDisplay` ignores the flag there rather than trusting it |
 | 7 | **DONE 2026-08-27** (`src/domain/pvpView.ts` gains `roundsFor` / `roundLabel` / `gamesIn` / `roomBracket` / `spectateTie`; `src/components/versus/RoomBracket.tsx`; `RoomScreen`, `RoomLobby`, `RoomDraft`, `RoomResult` and `VersusHome` learn that a room is not two people; `MatchdayCard` / `FixtureHead` / `GoalList` learn to name both sides; 7 checks). **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination. The referee had taken all of it since wave 1, so this wave added no server behaviour at all - only the client's reading of it, plus the `size` command it had never called | Proven in real browsers against the REAL referee, in two passes. **The draft**, four browsers, a room of four: the size choice, four seats with the empty ones drawn out, all four joining, the draw on screen through the wait with every seat "not drawn" and every name in the pot, the tree filling when the last XI landed, both semi-finals played, and no scoreline printed on the tree while its own match was still revealing. **The end states**, browsers pointed at rooms the referee had already driven there (the draft is eleven twenty-second windows a player and is the pass above): the champion told they won, the loser told WHO won and which round their own run ended in, the finished tree carrying real scorelines (0-1, 1-0, then 0-1), and a knocked-out player watching the final with **both** finalists named and neither called "you". No seat's saved game or run was written in either pass. The random draw and the round-feeds-forward property are asserted offline over 60 rooms of eight |
-| 8 | **Public visibility**: the lobby list, liveness, size reduction, records, reporting, the signed-out entry | A public room is found and joined by someone never sent a code |
+| 8 | **DONE 2026-08-27** (`domain/pvpRoom.ts` gains `SEEN_GONE_MS` / `LOBBY_IDLE_MS` / `ROOM_IDLE_MS` / `DRAFT_SLACK_MS`, `tickLobby`, `closeRoom`, `roomClosed`, `RoomMember.lastSeen` and `PvpRoom.touchedAt`; `domain/pvpWire.ts` gains `LobbyRoom`; `domain/pvpView.ts` gains `lobbyLine` / `seatsLine` / `lobbyJoinable` / `agoLine`; `referee/src/api.ts` gains `GET /v1/lobby` and the store `publicLobbies`; `state/pvp/records.ts` is new; `VersusHome` gains the visibility choice, the list and the record; `versusUi` gains `ReportName`. 13 checks). **Public visibility**: the lobby list, liveness (P31), records (P9), reporting (P22), the signed-out entry. Size reduction went with wave 7. **No migration**: every column this reads - `pvp_rooms.touched_at`, `pvp_members.last_seen`, the `pvp_rooms_open_idx` partial index, the `pvp_records` view and `pvp_name_reports` - was written by 0016 and has been waiting for a caller | Proven: two real browsers, and the second one never sent the code - it opened `/versus`, the room was on the list with its host, its seats and what it plays, and taking a seat put it in the lobby. A private room opened beside it appeared on nobody else's list. A report reached the server once, with the reporter and the reported and nothing else. And the liveness sweep closed a lobby whose people had stopped pinging, with the room screen saying it closed rather than showing a result |
 | 9 | **Checks and documentation.** CLAUDE.md gains its section; the roadmap item closes | `npm run checks` and `npm run build` clean |
 
 **Where the size really is.** Wave 4 was the largest unestimated piece in the whole plan and
@@ -547,6 +550,54 @@ fix if this is ever worth closing.
   (auto-fill, Clear, Start over, the random-team shortcut) are still unconditional in
   `BuildSurface`, because a switch with no room behind it cannot be tested and would have
   been speculation. Turning them off is a prop apiece when the room screen exists.
+
+### Found while building the public half (wave 8)
+
+- **IT NEEDED NO MIGRATION, and that is 0016 having been written properly rather than luck.**
+  Every column this wave reads was already there and had been waiting for a caller:
+  `pvp_rooms.touched_at` (which the migration's own comment says is what P31's garbage
+  collection reads), `pvp_members.last_seen`, the partial index `pvp_rooms_open_idx` whose
+  predicate is exactly the lobby query, the `pvp_records` view and `pvp_name_reports`. Two of
+  them were not even mapped into the room yet. **A column added with a stated purpose and no
+  caller is worth the line it costs.**
+- **The sweeper had to start visiting LOBBIES**, and it was only looking at rooms that were
+  drafting or revealing. So every liveness rule in P31 would have been unreachable code: a
+  lobby the sweeper never visits is a lobby whose host can close their laptop and leave the
+  room in the list at 3 of 8 for ever, which is the exact state that makes a public list
+  worthless. One word in one query, and it is the whole wave.
+- **The writer had never DELETED a member**, because until now nobody ever left a room. It
+  upserts every member and deleted none, so a member the lobby sweep dropped would come
+  straight back on the next read. And the delete has to run BEFORE the upserts, for the same
+  reason the picks cleanup does: `pvp_members` has a unique index on (room, seat).
+- **A dropped member leaves a SEAT GAP, and `joinRoom` was counting members.** Seats decide
+  nothing (P47), so a gap is free - but the next joiner was being handed `members.length`,
+  which is a number somebody else still holds the moment there is a gap. The mutation test for
+  it produces two members on seat 3, which is precisely the unique-index violation. **A
+  derived key stops being derivable the moment rows can be removed.**
+- **"Closed" is `ended` with no champion**, rather than a fifth status. The status column takes
+  four values under a check constraint and a fifth would need a migration; meanwhile a room
+  that was actually WON can never be in that state, because `playRound` eliminates exactly one
+  player per tie so exactly one survives. `roomClosed` is that reading, shared by the referee
+  and the screens, and the screens use it to say "the room closed" rather than "the result".
+- **The fifteen-minute lobby timeout deliberately ignores the pings.** A lobby where everybody
+  is present and nobody has done anything for a quarter of an hour closes, and that is P31 as
+  written: `touched_at` moves on every join, every ready and every size change, so fifteen
+  minutes of literally nothing is abandoned however many tabs are still open. The liveness
+  rule (ninety seconds) is what handles people leaving; this one is what handles a tab left
+  open overnight.
+- **A `Math.max(0, ...)` clamp was deleted because a mutation test proved it did nothing.**
+  `agoLine` compares two different clocks (a server stamp against the browser's reading), so
+  it can be asked about the future - and every negative gap already floors to under a minute
+  and falls out as "just now". Guarding it twice reads as though the second guard mattered.
+- **The records and the report do NOT go through the referee**, and that is the plan's own
+  split rather than a shortcut: `pvp_records` is a `security_invoker` view with `select`
+  granted to `authenticated`, and `pvp_name_reports` is the one table the client may insert
+  into. The referee is the only writer of ROOMS, and neither of these is a room.
+- **What the offline check cannot cover, said plainly.** The listing's visibility rule lives in
+  each store's query - SQL in `pgStore`, a filter in the in-memory double - so the check
+  exercises the double. What it does prove is the route, the payload shape, the seat count and
+  that a private room never reaches the listing code path at all; the SQL predicate is proven
+  the way the rest of 0016 was, by rehearsal on a real Postgres.
 
 ### Found while building rooms of four and eight (wave 7)
 

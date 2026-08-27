@@ -433,7 +433,9 @@ src/
                (the Cup Run career <-> wcsim_career_v1), runStorage.ts, settingsStorage.ts;
                buildIo.ts (the two writes a build makes, so a versus room can turn both
                off - see "The build is an instantiable unit" below); pvp/referee.ts (the
-               one place that talks to the referee)
+               one place that talks to the referee) and pvp/records.ts (the two things a
+               room writes about a PERSON rather than a room: the win/loss record, and a
+               report of a name - both straight to the account server, not the referee)
   hooks/       useBuild.ts (THE BUILD: the reducer, its effects, the three interaction
                machines and the handlers, as a unit that can be instantiated twice),
                useVersusRoom.ts (one room live: the answer, the poll, the broadcast, the
@@ -2606,12 +2608,23 @@ than about tidiness.
 ## Versus: a room, and what it is not allowed to touch
 
 Roadmap item 18. **Waves 0 to 3 (the rules, the room's state machine, the migration and
-the referee) shipped and were deployed 2026-08-26; waves 4 to 7 all landed 2026-08-27** -
+the referee) shipped and were deployed 2026-08-26; waves 4 to 8 all landed 2026-08-27** -
 the build as an instantiable unit, THE FIRST PLAYABLE HALF, roll rooms with the ratings
-switch, and rooms of four and eight. **Two, four or eight people with a six-character code
-play a whole knockout**: lobby, draft, the draw, the matches, the bracket, the result, and
-whoever goes out first stays and watches the rest. The plan is `docs/pvp-plan.md` and it is
-the thing to read before touching any of this.
+switch, rooms of four and eight, and the public half. **Two, four or eight people play a
+whole knockout**, found on a public list or reached with a six-character code: lobby, draft,
+the draw, the matches, the bracket, the result, whoever goes out first stays and watches the
+rest, and a room nobody is in closes itself. The plan is `docs/pvp-plan.md` and it is the
+thing to read before touching any of this.
+
+**WAVE 8 NEEDS THE REFEREE REDEPLOYED AND NO MIGRATION AT ALL.** Every column it reads was
+written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
+`pvp_members.last_seen`, the `pvp_rooms_open_idx` partial index, the `pvp_records` view,
+`pvp_name_reports`), so there is no SQL to apply - but the client now calls `GET
+/v1/lobby`, which the container deployed on 2026-08-26 does not have. It degrades to an
+empty list rather than an error, and a public room opened against the old referee is simply
+invisible until it is rebuilt. **Deploy the referee before the client that talks to it**, the
+same standing rule migrations follow; the queue for it is a roadmap item, exactly as an
+unapplied migration is.
 
 - **Routes are `/versus` and `/versus/:code`**, reached from a door on the front page, not
   a sixth tab and not a segment under Play (the tab bar stays at five).
@@ -2744,6 +2757,41 @@ a pick. All still private. The referee has taken public rooms and a thirty-secon
 wave 3, and each is a later wave with a screen to answer for it. **P41's per-pick Skip is not
 built**, and neither is P42's move: both need an instruction the referee does not have, so
 the clock is the only way a window ends early.
+
+**A ROOM NOBODY IS IN CLOSES ITSELF, and the sweeper that does it is the pick clock's**
+(P31). Closing a tab fires no reliable event, so leaving is OBSERVED rather than announced:
+every client pings while it holds a room, `RoomMember.lastSeen` is what the ping writes, and
+four numbers in `domain/pvpRoom.ts` decide the rest. **A member unseen for 90 seconds is
+dropped from a LOBBY and never from anything later** - past the start an absent player's XI
+plays on without them, because the alternative is one person voiding a tournament seven
+others are in. A lobby that loses its HOST promotes the lowest remaining seat rather than
+dying. A lobby untouched for **15 minutes** closes and any room at all untouched for **30**
+closes, and the fifteen-minute rule deliberately ignores the pings: `touched_at` moves on
+every join, ready and resize, so fifteen minutes of nothing is abandoned however many tabs
+are open. A stuck draft is force-completed past **eleven windows plus a minute**.
+
+**"CLOSED" IS `ended` WITH NO CHAMPION**, not a fifth status: the column takes four values
+under a check constraint, and a room that was actually won can never be in that state
+(`playRound` eliminates exactly one player a tie, so exactly one survives). `roomClosed` is
+that reading, shared by the referee and the screens, and it is why a closed room says "the
+room closed" instead of "the result".
+
+**A DROPPED MEMBER LEAVES A SEAT GAP, ON PURPOSE.** Seats decide nothing (P47), so a gap is
+free, and re-numbering would have every remaining member change seat - which collides with
+`pvp_members`' unique index on (room, seat) the moment the writer updates one row before
+deleting another. What it does mean is that **`joinRoom` takes the next FREE seat and never
+`members.length`**, and that the writer now DELETES a member row that is no longer in the
+room, before the upserts. Neither had ever mattered, because until wave 8 nobody ever left.
+
+**THE LOBBY LIST IS A REFEREE ENDPOINT; THE RECORD AND THE REPORT ARE NOT.** `GET /v1/lobby`
+answers a `LobbyRoom[]` carrying what somebody who has never seen the room needs - the host,
+the seats left, what it plays, the code - and deliberately no member rows, because a member
+row carries a formation and P19 keeps formations out of a lobby's reach. The record
+(`pvp_records`, a `security_invoker` view) and the name report (`pvp_name_reports`) go
+straight to the account server through `state/pvp/records.ts`: the referee is the only writer
+of ROOMS, and neither of those is a room. Reporting has **no word filter and no automatic
+action** (P22) - the owner reads them and renames an account by hand - so the button is the
+whole report, and one report per person per target is a unique index rather than a vote.
 
 **A ROOM OF MORE THAN TWO ADDED NO SERVER BEHAVIOUR, and that is worth knowing before
 looking for some.** The referee has taken 2, 4 and 8 since wave 1: `drawRound` shuffles the

@@ -12,7 +12,7 @@ import { roundsFor } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import type { VersusRoom } from '../../hooks/useVersusRoom';
 import { CARD, CHIP_OFF, CHIP_ON, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
-import { ReadyMark, RoomCode, RoomNote, SeatRow } from './versusUi';
+import { ReadyMark, ReportName, RoomCode, RoomNote, SeatRow } from './versusUi';
 
 // The lobby: who is here, what shape you are playing, and the host's Start.
 //
@@ -131,7 +131,16 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                             member={m}
                             you={m.userId === view.you?.userId}
                             host={m.userId === view.hostId}
-                            detail={<ReadyMark ready={m.ready} />}
+                            detail={
+                                <span className="flex items-center gap-2.5">
+                                    <ReadyMark ready={m.ready} />
+                                    {/* Not for yourself, and only in the lobby: this is
+                                        where you first read a stranger's name (P22). */}
+                                    {m.userId !== view.you?.userId && (
+                                        <ReportName userId={m.userId} name={m.name} />
+                                    )}
+                                </span>
+                            }
                         />
                     ))}
                     {/* The empty seats are drawn rather than left to arithmetic: "3 of 8"

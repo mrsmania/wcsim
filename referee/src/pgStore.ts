@@ -25,6 +25,7 @@ import {
   dealWrites,
   matchWrites,
   memberWrites,
+  msOf,
   msOrNull,
   pickWrites,
   roomFromRows,
@@ -34,7 +35,7 @@ import {
   type PickRow,
   type RoomRow,
 } from './rows';
-import type { CreateInput, Mutation, MutateContext, RoomStore } from './store';
+import type { CreateInput, LobbyRow, Mutation, MutateContext, RoomStore } from './store';
 
 /** One round trip per table rather than one join: the room row is a single row and the
  *  other four are small lists, and a join would multiply them together and then have to be
@@ -107,6 +108,14 @@ export function pgStore(pool: Pool): RoomStore {
         room.startedAt ? atOf(room.startedAt) : null,
         atOf(now),
       ],
+    );
+
+    // A LOBBY CAN NOW LOSE SOMEBODY (P31), so a member row that is no longer in the room
+    // has to go - and it has to go BEFORE the upserts below, or a seat number that moved
+    // would collide with the row still holding it under `unique (room_id, seat)`.
+    await db.query(
+      `delete from pvp_members where room_id = $1 and not (user_id = any($2::uuid[]))`,
+      [id, room.members.map((m) => m.userId)],
     );
 
     for (const m of memberWrites(room)) {
@@ -213,6 +222,7 @@ export function pgStore(pool: Pool): RoomStore {
           hostBudget: input.method === 'budget' ? input.budget : 0,
           showRatings: input.showRatings,
           rerolls: input.rerolls,
+          now,
         });
         await save(db, room, now);
         await db.query('commit');
@@ -266,10 +276,52 @@ export function pgStore(pool: Pool): RoomStore {
     },
 
     async liveCodes(): Promise<string[]> {
+      // LOBBIES ARE IN HERE, and P31 is why: the liveness sweep is this same sweeper, so a
+      // lobby it never looks at is a lobby whose host can close their laptop and leave the
+      // room in the list at 3 of 8 for ever.
       const res = await pool.query<{ code: string }>(
-        `select code from pvp_rooms where status in ('drafting','round') order by touched_at`,
+        `select code from pvp_rooms where status in ('lobby','drafting','round')
+          order by touched_at`,
       );
       return res.rows.map((r) => r.code);
+    },
+
+    async publicLobbies(limit: number): Promise<LobbyRow[]> {
+      // The room plus a count, never the room's contents: see `LobbyRoom`. The partial
+      // index `pvp_rooms_open_idx` is exactly this predicate and ordering.
+      const res = await pool.query<{
+        code: string;
+        size: number;
+        seated: string;
+        method: 'roll' | 'budget';
+        budget: number;
+        pick_seconds: number;
+        rerolls: number;
+        show_ratings: boolean;
+        host_name: string | null;
+        created_at: Date | string;
+      }>(
+        `select r.code, r.size, r.method, r.budget, r.pick_seconds, r.rerolls,
+                r.show_ratings, r.created_at, p.display_name as host_name,
+                (select count(*) from pvp_members m where m.room_id = r.id) as seated
+           from pvp_rooms r join profiles p on p.id = r.host_id
+          where r.visibility = 'public' and r.status = 'lobby'
+          order by r.created_at desc
+          limit $1`,
+        [limit],
+      );
+      return res.rows.map((x) => ({
+        code: x.code,
+        size: x.size,
+        seated: Number(x.seated),
+        method: x.method,
+        budget: x.budget,
+        pickSeconds: x.pick_seconds,
+        rerolls: x.rerolls,
+        showRatings: x.show_ratings,
+        hostName: x.host_name ?? '',
+        openedAt: msOf(x.created_at),
+      }));
     },
 
     async activeRoomOf(userId: string): Promise<string | null> {

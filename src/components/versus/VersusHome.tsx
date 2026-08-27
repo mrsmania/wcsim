@@ -1,20 +1,33 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WORLD_CUP_YEARS } from '../../data/squads';
-import { offersRatingSwitch } from '../../domain/pvpView';
+import {
+    agoLine,
+    lobbyJoinable,
+    lobbyLine,
+    offersRatingSwitch,
+    seatsLine,
+} from '../../domain/pvpView';
+import type { LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
-import { createRoom } from '../../state/pvp/referee';
+import { createRoom, readLobby } from '../../state/pvp/referee';
+import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
 import { CARD, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
 import { RefereeProblem, RoomNote } from './versusUi';
 
 // The way in: make a room, or type the code somebody gave you.
 //
-// TWO KINDS OF ROOM, AND THREE SIZES: buy an XI from a shared budget or roll random squads
-// and pick from what you are dealt, two, four or eight people, twenty seconds a pick. All
-// still private. The referee has taken public rooms and a thirty-second clock since wave 3,
-// and each is a later wave with a screen of its own to answer for it: offering a control the
-// room cannot yet show properly is worse than not offering it.
+// TWO KINDS OF ROOM, THREE SIZES, AND NOW PUBLIC OR PRIVATE: buy an XI from a shared budget
+// or roll random squads, two, four or eight people, and either a code you send to somebody
+// or a room anybody signed in can find. The one control the referee still takes and this
+// does not offer is the thirty-second clock, which is a decision rather than an omission:
+// see the note on `PICK_SECONDS`.
+//
+// THE LOBBY LIST IS THE HALF OF THIS FEATURE THAT DEPENDS ON OTHER PEOPLE, and it is
+// therefore also the half that looks broken when nobody is playing. So an empty list says
+// so in the room's own voice and puts the answer next to it - open one - rather than
+// rendering an empty table and leaving the reader to wonder whether it loaded.
 //
 // SIZE IS THE ONE SETTING THAT CHANGES THE SHAPE OF THE EVENING rather than the shape of an
 // XI, so it is written in rounds and in waiting: a room of eight is three rounds and a draft
@@ -97,6 +110,7 @@ export default function VersusHome() {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
     const [method, setMethod] = useState<'budget' | 'roll'>('budget');
+    const [visibility, setVisibility] = useState<'private' | 'public'>('private');
     const [size, setSize] = useState(2);
     const [budget, setBudget] = useState(110);
     const [rerolls, setRerolls] = useState(3);
@@ -109,7 +123,7 @@ export default function VersusHome() {
         setBusy(true);
         setError(null);
         void createRoom({
-            visibility: 'private',
+            visibility,
             size,
             method,
             budget,
@@ -132,6 +146,30 @@ export default function VersusHome() {
                 setError(refereeMessage(err, 'open a room'));
             });
     };
+
+    // The lobby, and this account's record. Both are decorations beside the thing you came
+    // to do, so neither failing puts anything on screen: the list simply stays empty and
+    // the record stays at zero.
+    const [lobby, setLobby] = useState<LobbyRoom[] | null>(null);
+    const [record, setRecord] = useState<PvpRecord>(NO_RECORD);
+    const [at, setAt] = useState(() => Date.now());
+    const refreshLobby = useCallback(() => {
+        void readLobby()
+            .then((r) => {
+                setLobby(r.rooms);
+                setAt(Date.now());
+            })
+            .catch(() => setLobby([]));
+    }, []);
+    useEffect(() => {
+        refreshLobby();
+        void myRecord().then(setRecord);
+        // Ten seconds, not two: a lobby is a list you scan before deciding, and a row that
+        // reshuffles under the pointer is worse than a row a few seconds stale. The room
+        // itself polls fast; this does not need to.
+        const t = window.setInterval(refreshLobby, 10_000);
+        return () => window.clearInterval(t);
+    }, [refreshLobby]);
 
     const join = (e: React.FormEvent) => {
         e.preventDefault();
@@ -157,6 +195,23 @@ export default function VersusHome() {
                 </div>
             )}
 
+            {record.played > 0 && (
+                <div className={`${CARD} mb-[18px] flex flex-wrap items-baseline gap-x-5 gap-y-1 p-4`}>
+                    <div className={MONO_CAP}>Your record</div>
+                    <span className="text-[14px] font-bold text-ink">
+                        {record.won} won, {record.lost} lost
+                    </span>
+                    {record.roomsWon > 0 && (
+                        <span className="text-[13px] text-muted">
+                            {record.roomsWon} room{record.roomsWon === 1 ? '' : 's'} won outright
+                        </span>
+                    )}
+                    <span className="ml-auto text-[12px] text-dim">
+                        Nothing is at stake but this.
+                    </span>
+                </div>
+            )}
+
             <div className="grid items-start gap-[22px] min-[860px]:grid-cols-2">
                 <div className={`${CARD} p-4`}>
                     <div className={MONO_CAP}>Make a room</div>
@@ -168,6 +223,24 @@ export default function VersusHome() {
                     </RoomNote>
 
                     <Choice label="How many of you" value={size} onPick={setSize} options={SIZES} />
+
+                    <Choice
+                        label="Who can join"
+                        value={visibility}
+                        onPick={setVisibility}
+                        options={[
+                            {
+                                value: 'private' as const,
+                                label: 'Just my friends',
+                                sub: 'Code only. Nobody can find it, and nobody can even confirm it exists.',
+                            },
+                            {
+                                value: 'public' as const,
+                                label: 'Anybody',
+                                sub: 'Listed below for anyone signed in. It still has a code.',
+                            },
+                        ]}
+                    />
 
                     <Choice
                         label="How you get your players"
@@ -260,11 +333,76 @@ export default function VersusHome() {
                     </button>
                     <RoomNote>
                         <span className="mt-2 block">
-                            You get a six-character code. Send it to{' '}
-                            {size === 2 ? 'whoever you want to play' : `the other ${size - 1}`}.
+                            {visibility === 'private'
+                                ? `You get a six-character code. Send it to ${
+                                      size === 2 ? 'whoever you want to play' : `the other ${size - 1}`
+                                  }.`
+                                : 'It goes on the list below, and you get a code as well.'}
                         </span>
                     </RoomNote>
                     {error && <RefereeProblem message={error} />}
+                </div>
+
+                <div className={`${CARD} p-4`}>
+                    <div className="flex items-baseline gap-3">
+                        <div className={MONO_CAP}>Rooms you can join</div>
+                        <button
+                            type="button"
+                            className="ml-auto font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-muted hover:text-pitch"
+                            onClick={refreshLobby}
+                        >
+                            Refresh
+                        </button>
+                    </div>
+                    {lobby === null ? (
+                        <RoomNote>Looking.</RoomNote>
+                    ) : lobby.length === 0 ? (
+                        <RoomNote>
+                            Nobody has a public room open. Open one above and it appears here
+                            for anybody signed in.
+                        </RoomNote>
+                    ) : (
+                        <ul className="mt-1">
+                            {lobby.map((r) => {
+                                const open = lobbyJoinable(r);
+                                return (
+                                    <li
+                                        key={r.code}
+                                        className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-[13.5px] font-bold text-ink">
+                                                {r.hostName || 'Somebody'}
+                                                {/* The code is on the row because a public
+                                                    room's code is not a secret, and it is
+                                                    what somebody reads out when they say
+                                                    "I'm in this one". */}
+                                                <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
+                                                    {r.code}
+                                                </span>
+                                                <span className="ml-2 font-mono text-[11px] font-medium text-muted">
+                                                    {seatsLine(r)}
+                                                </span>
+                                            </div>
+                                            <div className="text-[12px] text-muted">
+                                                {lobbyLine(r)} &middot; {agoLine(r.openedAt, at)}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={!open}
+                                            className={`${SECONDARY_BTN} ${
+                                                open ? '' : 'cursor-not-allowed opacity-45'
+                                            }`}
+                                            onClick={() => navigate(`/versus/${r.code}`)}
+                                        >
+                                            {open ? 'Take a seat' : 'Full'}
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
                 </div>
 
                 <form className={`${CARD} p-4`} onSubmit={join}>

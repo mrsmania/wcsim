@@ -147,6 +147,10 @@ function readCreate(body: Record<string, unknown>, code: string, hostId: string)
 
 const ROOM_PATH = /^\/referee\/v1\/rooms\/([A-Za-z0-9]{4,12})(?:\/([a-z]+))?$/;
 
+/** How many public rooms a listing returns. A lobby is a thing you scan, not a thing you
+ *  page through: past a screenful the answer is "make one" rather than "keep scrolling". */
+const LOBBY_LIMIT = 30;
+
 export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiResponse> {
   const now = deps.now();
   const path = req.path.replace(/\/+$/, '') || '/';
@@ -176,6 +180,13 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
   const userId = verdict.userId;
 
   if (req.method === 'POST' && path === '/referee/v1/rooms') return create(req, deps, userId, now);
+
+  // The lobby list (P18). It needs a session like everything else - a room is account-only
+  // - but it deliberately does NOT need a seat: that is the whole point of a public room,
+  // and it is the one read in this file that answers about rooms the caller is not in.
+  if (req.method === 'GET' && path === '/referee/v1/lobby') {
+    return ok({ rooms: await deps.store.publicLobbies(LOBBY_LIMIT) });
+  }
 
   const m = ROOM_PATH.exec(path);
   if (!m) return fail(404, 'no-such-route');
@@ -266,7 +277,7 @@ async function join(
 
   const out = await deps.store.mutate(code, now, (room) => {
     const budget = room.rules.method === 'budget' ? room.rules.budget : 0;
-    const r = joinRoom(room, { userId, name, budget });
+    const r = joinRoom(room, { userId, name, budget }, now);
     return { room: r.room, result: r.outcome, unchanged: r.outcome !== 'ok' };
   });
   if (!out) return fail(404, 'no-such-room');

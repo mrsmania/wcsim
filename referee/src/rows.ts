@@ -51,6 +51,8 @@ export interface RoomRow {
   champion_id: string | null;
   started_at: Date | string | null;
   swept_at: Date | string | null;
+  /** What P31's lifecycle rules count from: the last time anything happened here. */
+  touched_at: Date | string;
 }
 
 export interface MemberRow {
@@ -60,6 +62,8 @@ export interface MemberRow {
   budget: number;
   rerolls_used: number;
   out_in: number | null;
+  /** P31's liveness, written by the client's ping and read by the lobby sweep. */
+  last_seen: Date | string;
   window_ordinal: number | null;
   window_opened_at: Date | string | null;
   /** Joined from `profiles`, which the referee may read three columns of and no more. */
@@ -180,6 +184,7 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
       style: (m.style ?? DEFAULT_STYLE) as Style,
       budget: m.budget,
       rerollsUsed: m.rerolls_used,
+      lastSeen: msOf(m.last_seen),
       ...(m.out_in === null ? {} : { outIn: m.out_in }),
     }));
 
@@ -228,6 +233,7 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
     windows,
     ties,
     round: r.round,
+    touchedAt: msOf(r.touched_at),
     ...(r.champion_id ? { championId: r.champion_id } : {}),
     ...(r.started_at ? { startedAt: msOf(r.started_at) } : {}),
   };
@@ -256,6 +262,10 @@ export function memberWrites(room: PvpRoom): {
   windowOpenedAt: string | null;
   formationName: string;
   style: string;
+  /** Carried so the round trip is lossless. The DATABASE is the writer of `last_seen` -
+   *  the ping goes through `store.seen`, not through a room transition - so `save` does
+   *  not update this column; it is here for the reader and for the round-trip check. */
+  lastSeen: string;
 }[] {
   return room.members.map((m) => {
     const w = room.windows[m.userId];
@@ -270,6 +280,7 @@ export function memberWrites(room: PvpRoom): {
       windowOpenedAt: w ? atOf(w.openedAt) : null,
       formationName: m.formationName,
       style: m.style,
+      lastSeen: atOf(m.lastSeen),
     };
   });
 }
@@ -354,6 +365,7 @@ export function rowsFromRoom(
       champion_id: room.championId ?? null,
       started_at: room.startedAt ? atOf(room.startedAt) : null,
       swept_at: extra.sweptAt === null ? null : atOf(extra.sweptAt),
+      touched_at: atOf(room.touchedAt),
     },
     members: members.map((m) => ({
       user_id: m.userId,
@@ -364,6 +376,7 @@ export function rowsFromRoom(
       out_in: m.outIn,
       window_ordinal: m.windowOrdinal,
       window_opened_at: m.windowOpenedAt,
+      last_seen: m.lastSeen,
       display_name: extra.displayNames[m.userId] ?? null,
       formation_name: m.formationName,
       style: m.style,

@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { Check, Clock } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Check, Clock, Flag } from 'lucide-react';
+import { reportName, type ReportOutcome } from '../../state/pvp/records';
 import type { MemberView } from '../../domain/pvpWire';
 import { CARD_FLAT, MONO_CAP } from '../matchUi';
 import type { RefereeMessage } from './refereeMessage';
@@ -83,6 +84,57 @@ export function ReadyMark({ ready }: { ready: boolean }) {
     ) : (
         <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-dim">
             <Clock size={13} /> Choosing
+        </span>
+    );
+}
+
+/**
+ * Report a display name (P22).
+ *
+ * NO WORD FILTER AND NO AUTOMATIC ACTION: the owner reads the reports and renames or
+ * removes an account by hand, which is the right amount of machinery for a game this size.
+ * So there is no category to pick and no text to write - the button IS the report, and it
+ * confirms once before sending because a report about a person should not be one stray tap.
+ *
+ * Pressing it twice is not a failure. One report per person per target is a unique index,
+ * because a report button is not a vote, so the second press reads as "yes, we have it".
+ */
+export function ReportName({ userId, name }: { userId: string; name: string }) {
+    const [asking, setAsking] = useState(false);
+    const [done, setDone] = useState<ReportOutcome | null>(null);
+
+    if (done) {
+        return (
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-dim">
+                {done === 'failed' ? 'Not sent' : 'Reported'}
+            </span>
+        );
+    }
+    if (!asking) {
+        return (
+            <button
+                type="button"
+                aria-label={`Report the name ${name}`}
+                title="Report this name"
+                className="text-dim transition hover:text-loss"
+                onClick={() => setAsking(true)}
+            >
+                <Flag size={13} strokeWidth={2.5} />
+            </button>
+        );
+    }
+    return (
+        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em]">
+            <button
+                type="button"
+                className="font-bold text-loss"
+                onClick={() => void reportName(userId).then(setDone)}
+            >
+                Report
+            </button>
+            <button type="button" className="text-dim" onClick={() => setAsking(false)}>
+                Cancel
+            </button>
         </span>
     );
 }
