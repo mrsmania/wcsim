@@ -25,71 +25,13 @@
 // phone whose clock is two minutes fast would otherwise be shown a window that expired
 // before it opened.
 
-import type { PvpRoom, RoomStatus } from '../../src/domain/pvpRoom';
+import type { PvpRoom } from '../../src/domain/pvpRoom';
 import { deadlineOf } from '../../src/domain/pvpRoom';
-
-export interface MemberView {
-  userId: string;
-  seat: number;
-  name: string;
-  ready: boolean;
-  outIn: number | null;
-  /** How many slots they have filled. Everyone may see how far along everyone else is
-   *  (plan section 4) - that is progress, not information about the team. */
-  picked: number;
-  /** Their own shape, and only ever their own: null for everybody else until the room
-   *  starts, when it stops being a secret worth keeping. */
-  formationName: string | null;
-  style: string | null;
-}
-
-export interface TieView {
-  round: number;
-  game: number;
-  homeId: string;
-  awayId: string;
-  homeGoals: number | null;
-  awayGoals: number | null;
-  decided: string | null;
-  events: unknown[];
-  pens: unknown;
-  stoppage: [number, number] | null;
-  revealFrom: number | null;
-  revealMs: number | null;
-  winnerId: string | null;
-}
-
-export interface RoomView {
-  code: string;
-  visibility: 'public' | 'private';
-  status: RoomStatus;
-  hostId: string;
-  size: number;
-  round: number;
-  championId: string | null;
-  rules: { method: 'roll' | 'budget'; budget: number; years: readonly number[] };
-  pickSeconds: number;
-  showRatings: boolean;
-  rerolls: number;
-  members: MemberView[];
-  /** The viewer's own draft. */
-  you: {
-    userId: string;
-    /** slotId -> player id. Ids, not player objects: the client already holds the dataset,
-     *  and sending eleven full players per broadcast to every member of an eight-player
-     *  room is a lot of bytes to say nothing new. */
-    xi: Record<string, string>;
-    dealt: string[];
-    rerollsLeft: number;
-    budgetLeft: number;
-    window: { ordinal: number; remainingMs: number } | null;
-  } | null;
-  /** Other players' XIs, once their tie has been played. */
-  revealed: Record<string, Record<string, string>>;
-  ties: TieView[];
-  /** The server's own clock, so a client can tell how stale a payload it is holding is. */
-  at: number;
-}
+// The payload's SHAPE is shared with the client (`src/domain/pvpWire.ts`), so the two
+// sides cannot describe it differently while both type-checking. The RULE about what a
+// viewer may see stays here, where it is enforced.
+import type { RoomView } from '../../src/domain/pvpWire';
+export type { MemberView, RoomView, TieView } from '../../src/domain/pvpWire';
 
 const idsOf = (xi: Record<string, { id: string } | undefined> | undefined): Record<string, string> =>
   Object.fromEntries(

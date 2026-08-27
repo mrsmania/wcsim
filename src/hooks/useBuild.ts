@@ -64,6 +64,10 @@ export interface BuildInput {
     /** Re-rolls on top of `INITIAL_REROLLS`. The app reads the Extra Re-roll perk off the
      *  live career; a room has no career at all (P8), so it passes its own allowance. */
     extraRerolls: number;
+    /** Called when a player is bought into a slot, beside the dispatch that does it. A
+     *  versus room posts the pick to the referee from here, which is the one place that
+     *  cannot disagree with what the board just did. */
+    onBuy?: (slotId: string, player: Player) => void;
 }
 
 export interface Build {
@@ -127,7 +131,7 @@ export interface Build {
     reset: () => void;
 }
 
-export function useBuild({ initial, io, pool, extraRerolls }: BuildInput): Build {
+export function useBuild({ initial, io, pool, extraRerolls, onBuy }: BuildInput): Build {
     const [state, dispatch] = useReducer(gameReducer, initialState, () => initial ?? initialState);
     const {
         phase,
@@ -202,6 +206,7 @@ export function useBuild({ initial, io, pool, extraRerolls }: BuildInput): Build
         pool: pool.byId,
         dispatch,
         onTakeCard: move.cancel,
+        onBuy,
         scrollToPitch,
         scrollToPanel,
     });

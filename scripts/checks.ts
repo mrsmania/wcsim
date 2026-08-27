@@ -44,6 +44,7 @@ import { scorersChecks } from './checks/scorers';
 import { stateChecks } from './checks/state';
 import { pvpChecks } from './checks/pvp';
 import { pvpRoomChecks } from './checks/pvpRoom';
+import { pvpViewChecks } from './checks/pvpView';
 import { refereeChecks } from './checks/referee';
 
 /** In the order the single file ran them, which is the order to keep: it is roughly
@@ -71,6 +72,7 @@ const CONCERNS: [string, () => void | Promise<void>][] = [
   ['state', stateChecks],
   ['pvp', pvpChecks],
   ['pvpRoom', pvpRoomChecks],
+  ['pvpView', pvpViewChecks],
   ['referee', refereeChecks],
 ];
 

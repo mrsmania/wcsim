@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { basePlayer } from './data/squads';
 import { budgetOf, extraRerollsOf } from './domain/career';
 import { maxSelectableAscension, selectedAscension } from './domain/ascension';
@@ -10,6 +10,7 @@ import { soloBuildIo } from './state/buildIo';
 import { isPlayTab, isRecords, screenOf } from './state/routes';
 import { buildResume, cupRunResume } from './state/resume';
 import { useLiveMatch } from './nav/liveMatch';
+import { useHeldVersusRoom } from './nav/versusRoom';
 import { SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
 import { requestRunStart } from './nav/pendingRun';
 import { setStoreErrorHandler, store, type AccountSnapshot } from './state/store';
@@ -23,12 +24,15 @@ import AccountModal from './components/AccountModal';
 import ModeSelect from './components/ModeSelect';
 import Masthead from './components/Masthead';
 import BuildSurface from './components/BuildSurface';
+import { SOLO_CONTROLS } from './components/buildControls';
+import CompletePanel from './components/CompletePanel';
 // Route-gated screens are code-split so the home/setup initial load stays small.
 const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
 const CabinetScreen = lazy(() => import('./components/CabinetScreen'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
+const VersusScreen = lazy(() => import('./components/versus/VersusScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
 import { StageHeader } from './components/matchUi';
 const UnreachableScreen = lazy(() => import('./components/UnreachableScreen'));
@@ -132,6 +136,7 @@ export default function App({
     // `/career` is the hub, split off the live run (finding F4); `/records` holds the two
     // honours screens as segments of one destination.
     const isCareerHub = screen === 'career';
+    const isVersus = screen === 'versus';
     const tabsRecords = isRecords(screen);
     const recordsCabinet = screen === 'cabinet';
 
@@ -228,9 +233,15 @@ export default function App({
     // A match reveal is transient state (deliberately not persisted), so the bar goes
     // inert while one plays, exactly as the run ladder already does.
     const liveMatch = useLiveMatch();
+    // A live room is the TOP of the Continue precedence - room, then run, then build -
+    // in the cover's Continue and in the Play tab's destination alike (plan section 8).
+    // Without it, tapping the crest out of habit mid-room lands you on your solo build
+    // with a pick clock running somewhere else.
+    const heldRoom = useHeldVersusRoom();
+    const roomTo = heldRoom ? `/versus/${heldRoom.code}` : null;
     // Where the Play tab lands: the run if there is one, the build if one is half done,
     // otherwise the cover. The crest always returns to the cover.
-    const playTo = resumeCupRun ? '/cup-run' : formation ? '/play' : '/';
+    const playTo = roomTo ?? (resumeCupRun ? '/cup-run' : formation ? '/play' : '/');
     const playTabActive = isPlayTab(screen);
     // A tab is a label and a destination. The per-tab sub-line each of these used to
     // carry (where the run is, level and Prestige, album completion, challenges earned,
@@ -261,11 +272,20 @@ export default function App({
     // The cover's single Continue action: a live Cup Run, else a half-built XI. One
     // action because this navigation keeps one run at a time; "build a new XI" beside it
     // discards whichever of the two it is.
-    const continueAction = resumeCupRun
-        ? { to: '/cup-run', label: 'Resume your Cup Run', sub: resumeCupRun.summary }
-        : resumeBuild
-          ? { to: resumeBuild.to, label: resumeBuild.label, sub: resumeBuild.sub }
-          : null;
+    const continueAction =
+        roomTo && heldRoom
+            ? {
+                  to: roomTo,
+                  label: 'Back to your room',
+                  sub: `Versus ${heldRoom.code} · ${
+                      heldRoom.status === 'lobby' ? 'waiting to start' : 'in progress'
+                  }`,
+              }
+            : resumeCupRun
+              ? { to: '/cup-run', label: 'Resume your Cup Run', sub: resumeCupRun.summary }
+              : resumeBuild
+                ? { to: resumeBuild.to, label: resumeBuild.label, sub: resumeBuild.sub }
+                : null;
 
     return (
         <div className="min-h-full text-ink">
@@ -284,6 +304,26 @@ export default function App({
                         <TabRow items={tabs} locked={liveMatch} />
                         <TabBottomBar items={tabs} locked={liveMatch} />
                     </>
+                )}
+
+                {/* One line saying you are holding a room, and taking you back to it. A
+                    room runs on a clock somebody else is also watching, so wandering off
+                    to the album has a cost the rest of the app does not. */}
+                {heldRoom && roomTo && !isVersus && (
+                    <Link
+                        to={roomTo}
+                        className="mb-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch transition hover:bg-pitch/20"
+                    >
+                        <span className="truncate">
+                            Versus {heldRoom.code} &middot;{' '}
+                            {heldRoom.status === 'drafting'
+                                ? `${heldRoom.picked} of 11 picked`
+                                : heldRoom.status === 'round'
+                                  ? 'match on'
+                                  : 'waiting to start'}
+                        </span>
+                        <span className="shrink-0">Back to it</span>
+                    </Link>
                 )}
 
                 <Suspense
@@ -380,27 +420,42 @@ export default function App({
                     ) : isLauncher ? (
                         <ModeSelect
                             continueAction={continueAction}
+                            versusTo={FEATURES.pvp ? '/versus' : undefined}
                             buildTo="/play"
                             onNewXi={handleReset}
                             allPlayers={poolPlayers}
                         />
+                    ) : isVersus ? (
+                        <VersusScreen signedIn={!!accountEmail} />
                     ) : isBuild ? (
                         <BuildSurface
                             build={build}
                             ownedStickerIds={ownedStickerIds}
                             budget={marketBudget}
-                            ascension={{
-                                tier: ascensionTier,
-                                max: ascensionMax,
-                                onSelect: pickAscension,
-                            }}
-                            onStartRun={() => {
-                                // Tell the run screen this navigation is a kickoff, so it
-                                // never has to infer that from "no run in progress" -
-                                // which a reload also looks like.
-                                requestRunStart();
-                                navigate('/cup-run');
-                            }}
+                            controls={SOLO_CONTROLS}
+                            complete={
+                                state.formation && (
+                                    <CompletePanel
+                                        formation={state.formation}
+                                        filled={filled}
+                                        style={state.style}
+                                        onStartRun={() => {
+                                            // Tell the run screen this navigation is a
+                                            // kickoff, so it never has to infer that from
+                                            // "no run in progress" - which a reload also
+                                            // looks like.
+                                            requestRunStart();
+                                            navigate('/cup-run');
+                                        }}
+                                        onReset={handleReset}
+                                        ascension={{
+                                            tier: ascensionTier,
+                                            max: ascensionMax,
+                                            onSelect: pickAscension,
+                                        }}
+                                    />
+                                )
+                            }
                             onReset={handleReset}
                         />
                     ) : (

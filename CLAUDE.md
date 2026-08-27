@@ -407,27 +407,33 @@ src/
                pvpRoom.ts    (the PvP room as a state machine, driven by the referee: no
                               timers, deadlines are stored data + one sweeper)
                pvpAuth.ts    (who the referee takes an instruction from)
-                              -- all three are waves 0 and 1 of roadmap item 18 and
-                              NOTHING IMPORTS THEM YET, see below
+               pvpView.ts    (what the versus screens derive from a room; pure)
+               pvpWire.ts    (the payload shape, imported by BOTH sides)
+                              -- roadmap item 18, see "Versus" below
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
-               fully built XI; a `build` "roll|budget" field with START_BUDGET/BUY_PLAYER
-               for the in-page budget build); store/ (the persistence seam - see below);
+               fully built XI; SYNC_XI overwrites the board with an XI decided elsewhere,
+               which only a versus room dispatches; a `build` "roll|budget" field with
+               START_BUDGET/BUY_PLAYER for the in-page budget build); store/ (the persistence seam - see below);
                and behind it the per-key modules store/ delegates to: persist.ts (the
                whole game <-> localStorage, so routes survive a refresh), albumStorage.ts
                (the sticker album <-> its own localStorage keys), careerStorage.ts
                (the Cup Run career <-> wcsim_career_v1), runStorage.ts, settingsStorage.ts;
                buildIo.ts (the two writes a build makes, so a versus room can turn both
-               off - see "The build is an instantiable unit" below)
+               off - see "The build is an instantiable unit" below); pvp/referee.ts (the
+               one place that talks to the referee)
   hooks/       useBuild.ts (THE BUILD: the reducer, its effects, the three interaction
                machines and the handlers, as a unit that can be instantiated twice),
+               useVersusRoom.ts (one room live: the answer, the poll, the broadcast, the
+               pick clock),
                useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
                match-reveal clock, used by every live match), useSettings.ts
                (theme / difficulty / year pool, through the store), useStickerAlbum.ts
                (the album + the run-end banking rule, see below), motion.ts
                (prefersReducedMotion)
-  nav/         liveMatch.ts ("a match is revealing", published by useMatchClock),
-               pendingRun.ts (a kickoff is REQUESTED, never inferred - see below)
+  nav/         liveMatch.ts ("the navigation is busy": a match revealing, or your own
+               versus pick window), pendingRun.ts (a kickoff is REQUESTED, never inferred),
+               versusRoom.ts (which room you are holding, for the chrome's strip)
   components/  presentational React (App composes them); the tournament is drawn by
                GroupDrawReveal / StandingsTable / MatchdayCard / Bracket, with
                matchUi.tsx + matchView.ts holding the shared presentational atoms and
@@ -438,7 +444,8 @@ src/
                BudgetMarket is the budget build's left-column panel (shares
                the home page's Pitch + ratings/line-up, not a separate screen);
                BuildSurface draws a build's three columns from a `Build` (BuildPage owns
-               the layout, BuildSurface the wiring);
+               the layout, BuildSurface the wiring) and buildControls.ts says which of its
+               controls are offered; versus/ is the room (lazy-loaded, see below);
                navUi.tsx holds the tabs navigation's atoms (TabRow, TabBottomBar, SubTabs)
   config.ts    FEATURES flags (chemistry, teamRatings, removePlayers, movePlayers,
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
@@ -490,8 +497,8 @@ from playback.
 reducer stays the source of truth for *the build*. `App` branches on
 `location.pathname`: `/` (the front page), `/play` (the build page =
 setup/draft/complete, sub-view derived from `formation` + `isComplete`, not `phase`),
-`/cup-run`, `/career`, `/album`, `/records` + `/records/cabinet`, and
-`/squads/*`. Anything else hits a catch-all `<Navigate to="/">`, which is what the
+`/cup-run`, `/career`, `/album`, `/records` + `/records/cabinet`,
+`/squads/*`, and `/versus` + `/versus/:code` (one destination, gated on `FEATURES.pvp`). Anything else hits a catch-all `<Navigate to="/">`, which is what the
 deleted `/group`, `/knockout` and the four legacy aliases now do. Navigation happens via `useNavigate` in the tab
 bar and the transition handlers (`handleReset`), which never rebuild existing state, so
 Back/Forward move between screens without losing progress. The whole `GameState` is
@@ -2578,31 +2585,107 @@ than about tidiness.
 - What is NOT in the unit, on purpose: the album, the career, the run, routing and the
   page's layout (`BuildPage` still owns the grid). Those are the app's, and a room has
   none of them.
+- **Wave 5 uses it, and the seam held.** A room's draft is a second `useBuild` with
+  `detachedBuildIo`, `ROOM_CONTROLS` and the room's own pool and budget, and the only
+  thing wave 5 had to ADD to the build was a way for the server to overwrite the board
+  (`SYNC_XI`) and a callback fired beside a purchase (`onBuy`), which is where the pick is
+  posted. Nothing about persistence had to be revisited.
 
-## The `pvp*` modules and `referee/` have no importer in the app yet, on purpose
+## Versus: a room, and what it is not allowed to touch
 
-Waves 0 to 3 of roadmap item 18 (player versus player) shipped 2026-08-26, and **wave 4
-(the room's own build state) shipped 2026-08-27** - see the section above; it touched only
-the single-player build, so this still holds. **Nothing in
-`src/` imports any of it**, because the screens are waves 5 to 8, and a tree-shaking or
-dead-code pass therefore finds it, concludes it is unused and deletes it - which is what
-this note exists to stop, the same way the one below stops the same conclusion about
-`public/jerseys/`. It costs nothing shipped: Rollup tree-shakes an unimported module out of
-the bundle entirely, and `referee/` is not in the browser build at all.
+Roadmap item 18. **Waves 0 to 3 (the rules, the room's state machine, the migration and
+the referee) shipped and were deployed 2026-08-26; wave 4 (the build as an instantiable
+unit) 2026-08-27; wave 5, THE FIRST PLAYABLE HALF, the same day.** Two people with a
+six-character code play a whole game: lobby, draft, match, result. The plan is
+`docs/pvp-plan.md` and it is the thing to read before touching any of this.
 
-- **Waves 0 and 1**: `domain/pvp.ts` (the rules a room is judged by), `domain/pvpRoom.ts`
-  (the room as a state machine) and `domain/pvpAuth.ts` (who the referee will act for).
-- **Wave 3**: `referee/` (the service - see `referee/README.md`), plus the two rules both
-  sides need, `domain/displayName.ts` and `domain/pvpVersion.ts`. `FEATURES.pvp` is derived
-  from `VITE_REFEREE_URL` **as well as** the account server, so configuring accounts alone
-  cannot put a Versus tab on the site whose every call would fail.
+- **Routes are `/versus` and `/versus/:code`**, reached from a door on the front page, not
+  a sixth tab and not a segment under Play (the tab bar stays at five).
+  `components/versus/` holds the screens: `VersusScreen` (the three gates - an account, a
+  referee that speaks this build's language, a name), `VersusHome`, `RoomLobby`,
+  `RoomDraft`, `VersusMatch`, `RoomResult`.
+- **`state/pvp/referee.ts` is the ONE place that talks to the referee**, and it posts an
+  instruction and renders the answer. Nothing on this side computes a room's next state
+  from its previous one: every command comes back with the room as the caller may see it.
+- **`hooks/useVersusRoom.ts` holds one room live**: the answer, the poll, the broadcast
+  subscription, the liveness ping, and the pick clock.
+- **`domain/pvpWire.ts` is the payload's shape, and BOTH sides import it.** The referee
+  builds a `RoomView` and the browser reads one; describing it twice is how the two come to
+  disagree while both type-check.
+- **`domain/pvpView.ts` is every derivation the screens make**, pure and checked, for the
+  same reason `domain/` is.
 - **`referee/` is type-checked by `npm run build`** (it is in `tsconfig.node.json`, like
   `scripts/`) and driven end to end by `npm run checks`, with no Postgres and no socket. Its
   one runtime dependency, `pg`, is a devDependency of this repo and external to the bundle.
+- **`FEATURES.pvp` derives from `VITE_REFEREE_URL` as well as the account server**, so
+  configuring accounts alone cannot put a Versus door on the site whose every call fails.
+  The deploy workflow already passes it; **deploy the referee BEFORE pushing a client that
+  talks to it, always**, which is the same rule migrations follow. Wave 5 changed neither
+  the protocol nor the dataset, so the referee deployed on 2026-08-26 still matches it.
 
-**The deploy is roadmap item 41 and it has not happened**: the migration, the
-`pvp_referee` password, Realtime, the gateway route and the container. `docs/nas-setup.md`
-has the checklist. Deploy the referee BEFORE pushing a client that talks to it, always.
+**FOUR THINGS A ROOM MUST NOT DO, and each is enforced somewhere you can point at:**
+
+- **It must not write the player's saved game.** The room's draft is a SECOND build, handed
+  `detachedBuildIo` (see "The build is an instantiable unit"): it persists nothing and it
+  cannot reach the Cup Run. `npm run checks` reads the wiring, because a room handed
+  `soloBuildIo` behaves perfectly until somebody's run disappears.
+- **It must not offer a control that breaks the clock or that the referee cannot honour.**
+  `components/buildControls.ts` is that list as data - auto-fill, Clear, Start over, the
+  random-team shortcut, the badge's remove "x", moving a placed player, the chemistry card
+  and the album's marks - with `SOLO_CONTROLS` all on and `ROOM_CONTROLS` all off, and a
+  check that the two are the same shape and opposite. It is a LIST rather than a flag
+  because each entry is broken for its own reason: auto-fill would make ten picks in one
+  tap, Start over navigates out of the room, and **moving a placed player is P42's
+  intention but the referee takes picks and nothing else**, so a move would be reverted by
+  the next answer. That one needs an instruction the referee does not have.
+- **It must not show chemistry.** `pvpTeam` takes no chemistry argument at all (P25), so a
+  room's match is played on the plain eleven ratings; a card promising an effective overall
+  four points higher describes a bonus the simulator never receives. `BoxScore` takes
+  `chemistry={false}`.
+- **It must not show the album.** No owned-sticker discount (P3), no tier star, no
+  Collectible filter: `BudgetMarket` takes `collectibles={false}`.
+
+**FIVE RULES IN THE CLIENT, each of which is a decision rather than a detail:**
+
+- **THE BOARD IS OPTIMISTIC AND THE REFEREE IS THE TRUTH.** A tap places the player at
+  once, because on a mobile link an unconfirmed tap looks like a tap that did nothing, and
+  then the answer reconciles the board through `SYNC_XI`. Three ordinary things make the
+  two differ: a refused pick, the clock filling a slot while you read the market, and a
+  reload starting from an empty board with eleven picks already made. **A pick in flight is
+  expected to disagree** - the reconcile waits for its answer rather than yanking the
+  player back out for one render.
+- **THE ORDINAL IS THE ROOM'S, read off the open window**, never counted on this side. The
+  referee treats a repeated ordinal as the same pick (P36), so a retry on a flaky link is a
+  no-op rather than two spent windows - and a number invented here would not line up.
+- **THE CLOCK COUNTS DOWN FROM `performance.now()`, NEVER FROM A DEADLINE.** The referee
+  sends remaining milliseconds; a phone whose wall clock is two minutes fast would
+  otherwise see a window that expired before it opened. It is recomputed from that base on
+  every tick and on `visibilitychange`, never accumulated, so a backgrounded tab comes back
+  telling the truth. **The controls lock a measured round trip early**, so a tap you made
+  in time is never answered with "the clock beat you".
+- **A TIE IS TURNED ROUND SO THE VIEWER IS HOME** (`viewerTie`). Home is randomised per tie
+  and cosmetic (P44), while every match component here is written as "you and them" with
+  `USER_SIDE` a constant. One pure relabelling beats teaching five components that a side
+  is a parameter. `npm run checks` asserts the flip both ways and that doing it twice is
+  the identity.
+- **A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT.** Reading one you are not in answers
+  "no such room" rather than "not allowed", so a code cannot be confirmed by probing - which
+  means arriving with a code and being told there is no room is the NORMAL first step, and
+  the answer to it is a Join button. Do not "fix" that 404.
+
+**Freshness is a broadcast PLUS a poll, and the poll is not a fallback nobody exercises.**
+`REALTIME_URL` is optional in the referee's configuration and a room must work without it,
+so the broadcast is a nudge that triggers a re-read and the poll runs at two seconds while
+a draft or a reveal is live. It is also why `REVEAL_JOIN_MS` is four seconds and not one:
+a room learns about a kick-off on its next read, and a client that refuses to reveal
+anything it did not see stamped shows a result nobody watched.
+
+**Wave 5 is ONE KIND OF ROOM**: private, two players, buy from a budget, twenty seconds a
+pick. The referee has taken every other combination since wave 3 - public rooms, four and
+eight players, rolled squads, hidden ratings, a thirty-second clock - and each is a later
+wave with a screen to answer for it. **P41's per-pick Skip is not built**: it is meant to
+replace auto-fill, and the referee has no instruction for it, so the clock is the only way
+a window ends early.
 
 **Three rules in the referee are load-bearing and each was a bug first:**
 

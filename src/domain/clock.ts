@@ -36,18 +36,28 @@ function stoppage(): number {
 
 /**
  * Build the live-clock step sequence for a match up to `maxMinute` (90, or 120
- * for a knockout that goes to extra time). Each half gets random stoppage time
- * (45+x, 90+x), and a brief half-time hold separates the halves. Goals still
- * live at minutes 1..maxMinute; stoppage is shown on the clock only.
+ * for a knockout that goes to extra time). Each half gets stoppage time (45+x,
+ * 90+x), and a brief half-time hold separates the halves. Goals still live at
+ * minutes 1..maxMinute; stoppage is shown on the clock only.
+ *
+ * `added` is the two halves' stoppage, when the CALLER already knows it. The
+ * single-player game does not and rolls it here, which is right for a match one
+ * person is watching. A versus room does: the added time is decided by the server
+ * and sent with the result (plan P30), because it is rolled per client otherwise
+ * and two people watching the same stored match would see two different lengths.
  */
-export function buildMatchSteps(maxMinute: number, halfTimeHold: number): ClockStep[] {
+export function buildMatchSteps(
+  maxMinute: number,
+  halfTimeHold: number,
+  added?: readonly [number, number],
+): ClockStep[] {
   const steps: ClockStep[] = [];
   for (let m = 1; m <= 45; m++) steps.push({ reveal: m, label: `${m}'` });
-  const firstHalfAdded = stoppage();
+  const firstHalfAdded = added ? added[0] : stoppage();
   for (let k = 1; k <= firstHalfAdded; k++) steps.push({ reveal: 45, label: `45+${k}'` });
   steps.push({ reveal: 45, label: 'HT', hold: halfTimeHold });
   for (let m = 46; m <= 90; m++) steps.push({ reveal: m, label: `${m}'` });
-  const secondHalfAdded = stoppage();
+  const secondHalfAdded = added ? added[1] : stoppage();
   for (let k = 1; k <= secondHalfAdded; k++) steps.push({ reveal: 90, label: `90+${k}'` });
   // Extra time (knockout only): no extra stoppage, just count on.
   for (let m = 91; m <= maxMinute; m++) steps.push({ reveal: m, label: `${m}'` });

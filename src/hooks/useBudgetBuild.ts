@@ -53,6 +53,7 @@ export function useBudgetBuild({
     pool,
     dispatch,
     onTakeCard,
+    onBuy,
     scrollToPitch,
     scrollToPanel,
 }: {
@@ -68,6 +69,11 @@ export function useBudgetBuild({
     dispatch: (action: Action) => void;
     /** Called when a card is taken, so a move in progress can be dropped. */
     onTakeCard: () => void;
+    /** Called when a buy is actually being made, with the slot and the player. It fires
+     *  from inside `place`, after its guards and beside the dispatch, so a caller cannot
+     *  be told about a purchase the reducer then refuses. A versus room posts the pick to
+     *  the referee here; the single-player game passes nothing. */
+    onBuy?: (slotId: string, player: Player) => void;
     /** Mobile choreography: holding a card scrolls to the board, buying scrolls back to
      *  the market. Passed in, because the refs belong to the layout. */
     scrollToPitch: () => void;
@@ -118,13 +124,14 @@ export function useBudgetBuild({
             const player = heldId ? (pool.get(heldId) ?? null) : null;
             if (!player || !formation) return;
             dispatch({ type: 'BUY_PLAYER', slotId, player });
+            onBuy?.(slotId, player);
             setHeldId(null);
             const next = formation.slots.find((s) => s.id !== slotId && !filled[s.id]);
             setTargetId(next ? next.id : null);
             // Mobile: back up to the market for the next position, as a placement does.
             scrollToPanel();
         },
-        [heldId, formation, filled, pool, dispatch, scrollToPanel],
+        [heldId, formation, filled, pool, dispatch, onBuy, scrollToPanel],
     );
 
     const shop = useCallback((slotId: string) => {

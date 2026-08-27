@@ -1,0 +1,224 @@
+import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { Player } from '../../data/types';
+import type { RoomView } from '../../domain/pvpWire';
+import { getFormation, type FormationName, type Style } from '../../domain/formations';
+import {
+    meIn,
+    othersIn,
+    playersOf,
+    shouldReveal,
+    tieOf,
+    viewerTie,
+    xiFrom,
+} from '../../domain/pvpView';
+import { holdVersusRoom } from '../../nav/versusRoom';
+import { useVersusRoom } from '../../hooks/useVersusRoom';
+import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
+import RoomDraft from './RoomDraft';
+import RoomLobby from './RoomLobby';
+import RoomResult, { decidingTie } from './RoomResult';
+import VersusMatch from './VersusMatch';
+import { RoomNote } from './versusUi';
+
+// One room, from the lobby to the result.
+//
+// It is a branch on the room's status and nothing else: the referee decides when a room
+// moves on, including when a match stops being watched (P30 - the round advances when the
+// server's reveal window closes, whoever is or is not looking at it), so there is no
+// phase machine on this side to disagree with it.
+
+const HEADINGS: Record<string, string> = {
+    lobby: 'The room',
+    drafting: 'The draft',
+    round: 'The match',
+    ended: 'The result',
+};
+
+export default function RoomScreen({ code }: { code: string }) {
+    const navigate = useNavigate();
+    const room = useVersusRoom(code, true);
+    const view = room.view;
+    const [leaving, setLeaving] = useState(false);
+
+    const leave = useCallback(() => {
+        holdVersusRoom(null);
+        navigate('/versus');
+    }, [navigate]);
+
+    // The tie the viewer is in, this round, turned round so they are the home side.
+    const mine = useMemo(() => {
+        if (!view?.you) return null;
+        const t = tieOf(view, view.round, view.you.userId);
+        return t ? { raw: t, tie: viewerTie(t, view.you.userId) } : null;
+    }, [view]);
+
+    if (!view) {
+        // A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT, and that is the policy
+        // working rather than a fault: a room you may not see answers "no such room"
+        // rather than "not allowed", so a code cannot be confirmed by probing for it. So
+        // arriving with a code and being told there is no room is the NORMAL first step,
+        // and the answer to it is to join - which is what the code is for.
+        const missing = room.error?.code === 'no-such-room';
+        return (
+            <>
+                <StageHeader eyebrow="Versus" title={missing ? 'Take your seat' : 'Finding the room'} />
+                <div className={`${CARD_FLAT} p-5`}>
+                    <RoomNote>{joinNote(room.error?.code, code)}</RoomNote>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {missing && (
+                            <button className={PRIMARY_BTN} onClick={() => void room.join().catch(() => undefined)}>
+                                Join room {code}
+                            </button>
+                        )}
+                        {room.error && (
+                            <button className={SECONDARY_BTN} onClick={() => navigate('/versus')}>
+                                Back to versus
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    const me = meIn(view);
+    const others = othersIn(view);
+
+    // A public room you have not joined. The only way in is to take a seat.
+    if (!me) {
+        return (
+            <>
+                <StageHeader eyebrow="Versus" title="Join the room" />
+                <div className={`${CARD_FLAT} p-5`}>
+                    <RoomNote>
+                        {view.members.length} of {view.size} are in, playing with $
+                        {view.rules.budget} each.
+                    </RoomNote>
+                    <button className={`${PRIMARY_BTN} mt-3`} onClick={() => void room.join()}>
+                        Take a seat
+                    </button>
+                </div>
+            </>
+        );
+    }
+
+    const them = others[0] ?? null;
+    const myFormation =
+        getFormation((me.formationName as FormationName) ?? '4-3-3', (me.style as Style) ?? 'bal') ??
+        getFormation('4-3-3', 'bal')!;
+
+    return (
+        <>
+            <StageHeader eyebrow={`Room ${view.code}`} title={HEADINGS[view.status] ?? 'The room'} />
+
+            {view.status === 'lobby' && <RoomLobby view={view} room={room} />}
+
+            {view.status === 'drafting' && (
+                <RoomDraft
+                    // Keyed on the shape: a build cannot change formation underneath
+                    // itself, and after the start it never does.
+                    key={`${myFormation.name}-${myFormation.style}`}
+                    view={view}
+                    room={room}
+                    formation={myFormation}
+                />
+            )}
+
+            {view.status === 'round' && (
+                <div className="flex flex-col gap-[18px]">
+                    {mine && them ? (
+                        mine.tie.decided === null ? (
+                            <div className={`${CARD_FLAT} p-5`}>
+                                <div className={MONO_CAP}>Kick-off</div>
+                                <RoomNote>
+                                    Both teams are in. {them.name} versus you, any moment.
+                                </RoomNote>
+                            </div>
+                        ) : (
+                            <VersusMatch
+                                // A fresh key per tie, so the reveal starts with the match
+                                // rather than with the screen.
+                                key={`${mine.raw.round}-${mine.raw.game}`}
+                                label="The match"
+                                tie={mine.tie}
+                                opponentName={them.name}
+                                yourXi={playersOf(myFormation, xiFrom(myFormation, view.you?.xi ?? {}))}
+                                theirXi={theirPlayers(view, them.userId)}
+                                live={shouldReveal(mine.raw, view.at)}
+                                onEnd={room.refresh}
+                            />
+                        )
+                    ) : (
+                        <div className={`${CARD_FLAT} p-5`}>
+                            <RoomNote>The round is being played.</RoomNote>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {view.status === 'ended' &&
+                (mine && them ? (
+                    <RoomResult view={view} tie={decidingTie(view) ?? mine.tie} you={me} them={them} />
+                ) : (
+                    <div className={`${CARD_FLAT} p-5`}>
+                        <RoomNote>This room is finished.</RoomNote>
+                    </div>
+                ))}
+
+            <div className="mt-6 flex items-center gap-2">
+                {view.status === 'ended' ? (
+                    <button className={PRIMARY_BTN} onClick={leave}>
+                        Back to versus
+                    </button>
+                ) : leaving ? (
+                    <>
+                        <RoomNote>Your team plays on without you.</RoomNote>
+                        <button className={SECONDARY_BTN} onClick={leave}>
+                            Leave anyway
+                        </button>
+                        <button className={SECONDARY_BTN} onClick={() => setLeaving(false)}>
+                            Stay
+                        </button>
+                    </>
+                ) : (
+                    <button className={SECONDARY_BTN} onClick={() => setLeaving(true)}>
+                        Leave
+                    </button>
+                )}
+            </div>
+        </>
+    );
+}
+
+/** What to say to somebody standing outside a room. */
+function joinNote(code: string | undefined, roomCode: string): string {
+    switch (code) {
+        case undefined:
+            return 'One moment.';
+        case 'no-such-room':
+            return `Room ${roomCode}. Take a seat and the room opens up; until you do, a private room is not visible at all.`;
+        case 'room-full':
+            return 'That room is full.';
+        case 'room-started':
+            return 'That room has already started.';
+        case 'already-in-a-room':
+            return 'You are already in another room. Leave that one first.';
+        case 'no-display-name':
+            return 'Pick a name before joining a room.';
+        default:
+            return 'Cannot reach the referee just now.';
+    }
+}
+
+/** The other player's XI, once their tie has been played and the referee has opened it. */
+function theirPlayers(view: RoomView, userId: string): Player[] {
+    const member = view.members.find((m) => m.userId === userId);
+    const ids = view.revealed[userId];
+    if (!member || !ids) return [];
+    const f = getFormation(
+        (member.formationName as FormationName) ?? '4-3-3',
+        (member.style as Style) ?? 'bal',
+    );
+    return f ? playersOf(f, xiFrom(f, ids)) : [];
+}

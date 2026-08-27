@@ -30,8 +30,9 @@ interface Props {
     selectedPlayerId: string | null;
     onReroll: (kind: RerollKind) => void;
     onSelectPlayer: (playerId: string) => void;
-    /** Drop the whole XI and return to setup (rendered inside the box footer). */
-    onReset: () => void;
+    /** Drop the whole XI and return to setup (rendered inside the box footer). Absent in
+     *  a versus room, where it would run the app's reset and navigate out mid-draft. */
+    onReset?: () => void;
 }
 
 function Header({ squad, scrambling }: { squad: Squad; scrambling: boolean }) {
@@ -208,7 +209,7 @@ export default function SquadPanel({
                         </>
                     )}
                 </div>
-                <StartOverButton onReset={onReset} />
+                {onReset && <StartOverButton onReset={onReset} />}
             </div>
         </div>
     );

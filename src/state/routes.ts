@@ -25,6 +25,7 @@ export type Screen =
     | 'records'
     | 'cabinet'
     | 'squads'
+    | 'versus'
     | 'unknown';
 
 /** The screen a basename-relative pathname means.
@@ -46,6 +47,13 @@ export function screenOf(path: string): Screen {
     if (path === '/records') return 'records';
     if (path === '/') return 'front';
     if (path === '/play') return 'build';
+    // Versus gets its OWN destination rather than a segment under Play (plan section 8).
+    // The Records precedent does not transfer: Records is two read-only screens of one
+    // shape, while Play covers three routes of three shapes, one of which is the
+    // marketing cover the navigation rework deliberately kept. `/versus/:code` is the
+    // same destination, which is why both forms land here.
+    if (FEATURES.pvp && (path === '/versus' || /^\/versus\/[A-Za-z0-9]{4,12}$/.test(path)))
+        return 'versus';
     return 'unknown';
 }
 

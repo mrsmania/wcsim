@@ -884,11 +884,12 @@
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
       REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED AND DEPLOYED 2026-08-26</b>: the rules,
       the referee's logic, the tables, the referee itself, and now its deploy (item 41,
-      closed) - <b>the server half is live and verified</b>. <b>WAVE 4 SHIPPED
-      2026-08-27</b>: building an XI is an instantiable unit, so a room can hold its own
-      without touching your run or your half-built team. <b>Next is WAVE 5, the vertical
-      slice</b> - two people with a code playing a whole game. One decision is settled: no
-      part of a career reaches a room.</span>
+      closed) - <b>the server half is live and verified</b>. <b>WAVES 4 AND 5 SHIPPED
+      2026-08-27, AND VERSUS IS PLAYABLE</b>: two people with a six-character code draft
+      against a clock and play a match, without either of them touching the other&#8217;s
+      saved game. <b>Next is WAVE 6</b>, rooms where you roll random squads and the host
+      can hide the ratings. One decision is settled: no part of a career reaches a
+      room.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -1081,14 +1082,44 @@
     all</b>, since a detached writer can only intercept the two writes it was given; that
     rule is asserted over both files, with the app itself as the vacuity guard. Four new
     checks, all mutation-tested; the suite is <b>298</b>, from 293.</p>
-    <p class="next"><strong>Next step:</strong> wave 5, the vertical slice - a private
-    two-player budget room, code only, playable end to end: lobby, draft, tie, result. It
-    is the first wave a player can see, and the first that talks to the referee that has
-    been live since 2026-08-26. Deliberately left for it, rather than guessed at now: the
-    four build controls a room hides (auto-fill, Clear, Start over, the random-team
-    shortcut) are still unconditional, because a switch with no room behind it cannot be
-    tested.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a></p>
+    <p><strong>Wave 5 shipped 2026-08-27, and it is the first half anybody can
+    see.</strong> Make a room, get six characters, send them to somebody. You both pick a
+    formation, press Ready, and then buy an eleven out of the same money against a
+    twenty-second clock per pick, watching each other&#8217;s progress but not each
+    other&#8217;s team. Then the two teams play, live and minute by minute, and at the
+    whistle both XIs are laid out side by side with the ratings shown - which is the whole
+    reward, because nothing else is at stake. No career, no perks, no boosts, no album and
+    <b>no chemistry</b>: eleven players against eleven players.</p>
+    <p><strong>It was proven the only way that counts: two real browsers playing a whole
+    game.</strong> A throwaway harness ran the referee&#8217;s actual code, stubbed the
+    account server, and drove two Chromium windows through the real production build -
+    name, room, join, ready, start, eleven hand-made picks each with nothing filled in by
+    the clock, the match watched live in both windows, a champion crowned, both teams
+    revealed, and <b>neither player&#8217;s saved game touched</b>. That harness needs no
+    NAS and can be re-run in any session, which is a direct dividend of wave 3 having made
+    the referee pure over a store and a clock.</p>
+    <p><strong>Three things the room had to be stopped from doing, and one of them was a
+    lie rather than clutter.</strong> The chemistry readout was still on the draft screen,
+    promising a team four points better than the one the match would actually be played
+    with - chemistry is off in a room by decision, and that has to mean the number too.
+    Half a dozen build controls had to go with it, each broken for its own reason: auto-fill
+    would make ten picks in one tap and skip the clock; Start over walks you out of the
+    room; the remove button undoes itself, because the referee holds the team and has no
+    way to take a player back out. And the album is out entirely - no discount, no stars -
+    since a collection earned somewhere else must not buy a better team here.</p>
+    <p><strong>One thing to know before touching it.</strong> A private room is invisible
+    until you take a seat: asking about one you are not in is answered with "no such room"
+    rather than "not allowed", so a code cannot be fished for. That means arriving with a
+    code is always refused first, and the answer to that refusal is a Join button rather
+    than an error - which the first version of the screen got wrong.</p>
+    <p class="next"><strong>Next step:</strong> wave 6 - rooms where everybody rolls random
+    squads instead of shopping, and the host&#8217;s switch that hides the ratings inside
+    them. Two things wave 5 left on the table for whichever wave next touches the referee:
+    a per-pick <b>Skip</b> (the honest version of auto-fill, which needs a server
+    instruction that does not exist), and <b>moving a player already placed</b> - the plan
+    wants it, and the referee takes picks and nothing else, so a move is undone by the next
+    answer.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a>, <a class="dl" href="../src/state/pvp/referee.ts" target="_blank" rel="noopener">src/state/pvp/referee.ts</a>, <a class="dl" href="../src/hooks/useVersusRoom.ts" target="_blank" rel="noopener">src/hooks/useVersusRoom.ts</a>, <a class="dl" href="../src/domain/pvpView.ts" target="_blank" rel="noopener">src/domain/pvpView.ts</a>, <a class="dl" href="../src/components/versus/" target="_blank" rel="noopener">src/components/versus/</a></p>
   </div>
 </details>
 

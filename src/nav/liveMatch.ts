@@ -8,6 +8,11 @@
  * mid-match loses it. The run ladder already takes a `locked` flag for exactly this;
  * this is the same rule for the nav bar.
  *
+ * A versus room holds it too, for its own pick window (plan section 8): leaving mid-window
+ * does not pause the clock, it spends it. Same rule, same mechanism, which is why this is
+ * "the navigation is busy" rather than a match-specific flag - the module keeps the name it
+ * was born with because renaming it would touch six call sites to say the same thing.
+ *
  * A counter rather than a boolean, so two overlapping reveals (a screen unmounting while
  * another mounts) cannot leave the bar stuck. Before the tabs shipped nothing
  * subscribes and this is a number no one reads.

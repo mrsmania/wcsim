@@ -72,6 +72,17 @@ export type Action =
   | { type: 'REMOVE_PLAYER'; slotId: string }
   | { type: 'MOVE_PLAYER'; fromSlotId: string; toSlotId: string }
   | { type: 'SET_SPEED'; speed: MatchSpeed }
+  | {
+      /** Overwrite the board with an XI decided elsewhere. A versus room's draft is
+       *  the referee's to decide, not the browser's: a pick can be refused, and the
+       *  pick clock can fill a slot for you while you are still reading the market.
+       *  So the room renders its taps optimistically and then reconciles against what
+       *  the server says it holds, which is this. Nothing in the single-player game
+       *  dispatches it - there is nobody else to disagree with. */
+      type: 'SYNC_XI';
+      formation: Formation;
+      filled: Filled;
+    }
   | { type: 'RESET' };
 
 export const initialState: GameState = {
@@ -285,6 +296,24 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
     case 'SET_SPEED':
       return { ...state, speed: action.speed };
+
+    case 'SYNC_XI': {
+      // `usedPersonIds` is DERIVED here rather than sent, because it is a fact about
+      // the board: an authority that could disagree with its own XI about who is in it
+      // would let a person be drafted twice. The phase follows the same rule the three
+      // placement actions do.
+      const { formation, filled } = action;
+      const people = formation.slots
+        .map((s) => filled[s.id]?.personId)
+        .filter((id): id is string => !!id);
+      return {
+        ...state,
+        formation,
+        filled,
+        usedPersonIds: people,
+        phase: isComplete(formation, filled) ? 'complete' : 'draft',
+      };
+    }
 
     case 'RESET':
       // Keep the display prefs across a reset.

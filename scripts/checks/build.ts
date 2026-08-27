@@ -128,6 +128,24 @@ export function buildChecks(): void {
           : `the scan found only ${appReaches.length} of ${FORBIDDEN.length} in App.tsx, so it is not reading imports`,
     );
 
+    // A ROOM'S BUILD IS THE DETACHED ONE, and this is the same kind of check as the two
+    // export lines below and for the same reason: `detachedBuildIo` and `soloBuildIo` are
+    // interchangeable objects, so a room wired to the wrong one behaves perfectly until
+    // somebody's Cup Run disappears. It also has to hide the four controls (P41), which
+    // is what `ROOM_CONTROLS` is.
+    {
+      const draft = src('components/versus/RoomDraft.tsx');
+      check(
+        "build: a room's draft is built detached, and hides the controls a room hides",
+        () =>
+          draft.includes('detachedBuildIo') &&
+          draft.includes('ROOM_CONTROLS') &&
+          !draft.includes('soloBuildIo') &&
+          !draft.includes('SOLO_CONTROLS'),
+        () => 'src/components/versus/RoomDraft.tsx is not wired to the detached build',
+      );
+    }
+
     // The store is reached from ONE file on the build's behalf, and that file is the
     // seam. A second one would be a second policy nobody could switch off.
     //

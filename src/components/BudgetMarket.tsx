@@ -69,15 +69,23 @@ interface Props {
   heldPlayer: Player | null;
   /** Hold / release a market player. */
   onHold: (player: Player) => void;
-  /** Fill every empty slot within budget (randomized). App dispatches AUTOFILL. */
-  onAutoFill: (filled: Filled, usedPersonIds: string[]) => void;
-  /** Empty the XI but stay in the budget build. */
-  onClear: () => void;
-  /** Drop the XI and return to setup. */
-  onStartOver: () => void;
+  /** Fill every empty slot within budget (randomized). App dispatches AUTOFILL.
+   *  Absent in a versus room, where ten picks in one tap would skip the clock (P41). */
+  onAutoFill?: (filled: Filled, usedPersonIds: string[]) => void;
+  /** Empty the XI but stay in the budget build. Absent in a room: the referee holds the
+   *  XI and would not follow. */
+  onClear?: () => void;
+  /** Drop the XI and return to setup. Absent in a room: it runs the app's reset, which
+   *  navigates out of the room the clock is running in. */
+  onStartOver?: () => void;
   /** Player ids whose sticker is already in the album, so a collectible row can say
    *  "you have this one" rather than only "collectible". Empty when the album is off. */
   ownedStickerIds: Set<string>;
+  /** Whether the album's marks appear at all: the tier star on a row and the Collectible
+   *  filter. False in a versus room, where the album has no business being (P3, P8) - the
+   *  discount does not apply, the sticker cannot be earned, and a star beside a name is
+   *  then only a distraction that says "this player is rated 90 or more". */
+  collectibles?: boolean;
 }
 
 /** The transfer-market panel: the left column of the budget build (the player
@@ -98,6 +106,7 @@ export default function BudgetMarket({
   onClear,
   onStartOver,
   ownedStickerIds,
+  collectibles = true,
 }: Props) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<MarketSortKey>('rating');
@@ -198,7 +207,7 @@ export default function BudgetMarket({
       poolPlayers,
       price,
     );
-    onAutoFill(next, usedPersonIds);
+    onAutoFill?.(next, usedPersonIds);
   };
 
   // Per-player display state, shared by the list rows and the grid cards.
@@ -217,7 +226,7 @@ export default function BudgetMarket({
       affordable,
       selectable,
       held: p.id === heldPlayer?.id,
-      tier: FEATURES.stickerAlbum ? tierOf(p) : null,
+      tier: FEATURES.stickerAlbum && collectibles ? tierOf(p) : null,
       owned: ownedStickerIds.has(p.id),
     };
   };
@@ -241,7 +250,7 @@ export default function BudgetMarket({
           fill={remaining < 0 ? 'bg-loss' : 'bg-pitch'}
         />
         <div className="mt-3 flex gap-2">
-          {emptySlots.length > 0 && (
+          {onAutoFill && emptySlots.length > 0 && (
             <button
               onClick={autoFill}
               className="rounded-[5px] border border-line bg-panel px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink transition hover:border-pitch hover:text-pitch"
@@ -249,7 +258,7 @@ export default function BudgetMarket({
               Auto-fill &amp; spend
             </button>
           )}
-          {placed.length > 0 && (
+          {onClear && placed.length > 0 && (
             <button
               onClick={onClear}
               className="rounded-[5px] border border-line bg-panel px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-muted transition hover:border-loss hover:text-loss"
@@ -365,7 +374,7 @@ export default function BudgetMarket({
               <Wallet size={11} strokeWidth={2.5} />
               Affordable
             </button>
-            {FEATURES.stickerAlbum && (
+            {FEATURES.stickerAlbum && collectibles && (
               <button
                 onClick={() => setCollectiblesOnly((v) => !v)}
                 aria-pressed={collectiblesOnly}
@@ -498,9 +507,11 @@ export default function BudgetMarket({
         <div className="p-6 text-center font-mono text-[12px] text-muted">XI complete.</div>
       )}
 
-      <div className="border-t border-line px-4 pb-4 pt-1">
-        <StartOverButton onReset={onStartOver} />
-      </div>
+      {onStartOver && (
+        <div className="border-t border-line px-4 pb-4 pt-1">
+          <StartOverButton onReset={onStartOver} />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import { FEATURES } from '../config';
+import type { BuildControls } from './buildControls';
 import type { Build, BuildView } from '../hooks/useBuild';
 import BuildPage from './BuildPage';
 import SetupPanel from './SetupPanel';
 import SquadPanel from './SquadPanel';
 import BudgetMarket from './BudgetMarket';
-import CompletePanel from './CompletePanel';
 import Pitch from './Pitch';
 import BoxScore from './BoxScore';
 import XiTable from './XiTable';
@@ -39,8 +40,8 @@ export default function BuildSurface({
     build,
     ownedStickerIds,
     budget,
-    ascension,
-    onStartRun,
+    controls,
+    complete,
     onReset,
 }: {
     build: Build;
@@ -50,13 +51,16 @@ export default function BuildSurface({
     /** The transfer market's money. The build itself has no opinion about it: the app
      *  scales it by the career's perk tier, and a room is told a figure by its host. */
     budget: number;
-    /** The Ascension picker on the complete panel: the tier in force, the highest one
-     *  selectable, and what picking one does. */
-    ascension: { tier: number; max: number; onSelect: (tier: number) => void };
-    /** The XI is set and the player is kicking off. */
-    onStartRun: () => void;
-    /** Start over: everything a reset means to the caller, including the build's own. */
-    onReset: () => void;
+    /** Which of the build's own controls are offered (P41). */
+    controls: BuildControls;
+    /** What shows once all eleven slots are filled. The app's is the confirmed line-up
+     *  with the Ascension picker and Start Run; a room's says the draft is done and who
+     *  it is still waiting for. It is a NODE rather than a set of props because the two
+     *  have nothing in common but their position on the page. */
+    complete: ReactNode;
+    /** Start over: everything a reset means to the caller, including the build's own.
+     *  Omitted in a room, along with the controls that would offer it. */
+    onReset?: () => void;
 }) {
     const { state, view, activeFormation, isBudgetBuild, market, movePlayer } = build;
     const { formation, filled, style, formationName, selectedPlayerId, rerollsLeft, rolling } =
@@ -82,7 +86,11 @@ export default function BuildSurface({
                             onSelectName={build.setFormationName}
                             onSelectStyle={build.setStyle}
                             onStart={build.start}
-                            onRandomTeam={FEATURES.randomTeam ? build.randomTeam : undefined}
+                            onRandomTeam={
+                                FEATURES.randomTeam && controls.randomTeam
+                                    ? build.randomTeam
+                                    : undefined
+                            }
                             onBudgetDraft={FEATURES.budgetDraft ? build.enterBudget : undefined}
                         />
                     )}
@@ -97,10 +105,11 @@ export default function BuildSurface({
                                 targetSlot={market.targetSlot}
                                 heldPlayer={market.heldPlayer}
                                 onHold={market.hold}
-                                onAutoFill={market.autoFill}
-                                onClear={build.clearBudget}
-                                onStartOver={onReset}
+                                onAutoFill={controls.autoFill ? market.autoFill : undefined}
+                                onClear={controls.clear ? build.clearBudget : undefined}
+                                onStartOver={controls.startOver ? onReset : undefined}
                                 ownedStickerIds={ownedStickerIds}
+                                collectibles={controls.collectibles}
                             />
                         ) : (
                             <SquadPanel
@@ -117,23 +126,10 @@ export default function BuildSurface({
                                 onReroll={build.reroll}
                                 onSelectPlayer={build.selectPlayer}
                                 ownedStickerIds={ownedStickerIds}
-                                onReset={onReset}
+                                onReset={controls.startOver ? onReset : undefined}
                             />
                         ))}
-                    {view === 'complete' && formation && (
-                        <CompletePanel
-                            formation={formation}
-                            filled={filled}
-                            style={style}
-                            onStartRun={onStartRun}
-                            onReset={onReset}
-                            ascension={{
-                                tier: ascension.tier,
-                                max: ascension.max,
-                                onSelect: ascension.onSelect,
-                            }}
-                        />
-                    )}
+                    {view === 'complete' && complete}
                 </>
             }
             board={
@@ -144,11 +140,13 @@ export default function BuildSurface({
                         selectedPlayer={isBudgetBuild ? market.heldPlayer : build.selectedPlayer}
                         onPlace={isBudgetBuild ? market.place : build.place}
                         onRemove={
-                            isBudgetBuild
-                                ? market.remove
-                                : FEATURES.removePlayers
-                                  ? build.remove
-                                  : undefined
+                            !controls.removePlayer
+                                ? undefined
+                                : isBudgetBuild
+                                  ? market.remove
+                                  : FEATURES.removePlayers
+                                    ? build.remove
+                                    : undefined
                         }
                         onSwap={
                             !isBudgetBuild && STICKERS && state.swapsLeft > 0
@@ -160,16 +158,28 @@ export default function BuildSurface({
                         // Moving a placed player. Offered even with a card in hand: a slot
                         // the held card can swap into keeps the swap, and anywhere else the
                         // tap picks the placed player up instead, dropping the card.
-                        onStartMove={FEATURES.movePlayers ? build.startMove : undefined}
+                        onStartMove={
+                            FEATURES.movePlayers && controls.movePlayer
+                                ? build.startMove
+                                : undefined
+                        }
                         movingSlotId={movePlayer.movingSlotId}
-                        onMove={FEATURES.movePlayers ? movePlayer.move : undefined}
+                        onMove={
+                            FEATURES.movePlayers && controls.movePlayer
+                                ? movePlayer.move
+                                : undefined
+                        }
                     />
                 )
             }
             stack={
                 activeFormation && (
                     <>
-                        <BoxScore formation={activeFormation} filled={filled} />
+                        <BoxScore
+                            formation={activeFormation}
+                            filled={filled}
+                            chemistry={controls.chemistry}
+                        />
                         <XiTable
                             formation={activeFormation}
                             filled={filled}

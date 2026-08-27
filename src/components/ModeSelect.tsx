@@ -21,6 +21,10 @@ interface Props {
     /** The single Continue action (a live run, a tournament, or a half-built XI), or null
      *  when nothing is in progress. */
     continueAction: { to: string; label: string; sub: string } | null;
+    /** Where "play somebody" goes, when versus is configured (FEATURES.pvp). Its own
+     *  door on the cover rather than a sixth tab or a segment under Play (plan section
+     *  8): the tab bar stays at five, and the hero is what sells the game. */
+    versusTo?: string;
     /** Where "Build your XI" goes. */
     buildTo: string;
     /** Discard what is in progress and start a fresh build. Destructive, so it confirms
@@ -82,7 +86,7 @@ function Beat({
     );
 }
 
-export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayers }: Props) {
+export default function ModeSelect({ continueAction, buildTo, versusTo, onNewXi, allPlayers }: Props) {
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
     const legends = useMemo(() => {
         if (!FEATURES.stickerAlbum) return [];
@@ -148,6 +152,15 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                                 className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
                             >
                                 Build your XI
+                                <ArrowRight size={17} strokeWidth={2.5} />
+                            </Link>
+                        )}
+                        {versusTo && (
+                            <Link
+                                to={versusTo}
+                                className={`${CTA} border border-white/35 bg-transparent text-white hover:bg-white/[0.12]`}
+                            >
+                                Play somebody
                                 <ArrowRight size={17} strokeWidth={2.5} />
                             </Link>
                         )}

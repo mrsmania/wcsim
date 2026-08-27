@@ -80,6 +80,14 @@ export function stateChecks(): void {
       ['/squads', FEATURES.squadBrowser ? 'squads' : 'unknown'],
       ['/squads/by-world-cup/1990', FEATURES.squadBrowser ? 'squads' : 'unknown'],
       ['/squads/team/bra-2002', FEATURES.squadBrowser ? 'squads' : 'unknown'],
+      // Versus is its own destination, and `/versus/:code` is the same one (plan
+      // section 8). A code is four to twelve characters of letters and digits; anything
+      // else is not a room and must not render one.
+      ['/versus', FEATURES.pvp ? 'versus' : 'unknown'],
+      ['/versus/RM0001', FEATURES.pvp ? 'versus' : 'unknown'],
+      ['/versus/rm0001', FEATURES.pvp ? 'versus' : 'unknown'],
+      ['/versus/AB', 'unknown'],
+      ['/versus/RM0001/extra', 'unknown'],
       // Deleted routes and the four legacy aliases: all catch-all.
       ['/group', 'unknown'],
       ['/knockout', 'unknown'],

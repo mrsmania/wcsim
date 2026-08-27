@@ -1,0 +1,144 @@
+import { maxMinute } from '../../domain/clock';
+import { PVP_SPEED } from '../../domain/pvpRoom';
+import { xiStrength } from '../../domain/match';
+import type { Player } from '../../data/types';
+import type { ViewerTie } from '../../domain/pvpView';
+import { useMatchClock, KO_END_HOLD_MS, FT_HOLD_MS } from '../../hooks/useMatchClock';
+import { koEndLabel, koFinishedStatus, liveMatchView } from '../matchView';
+import { ResultTag } from '../matchUi';
+import MatchdayCard from '../MatchdayCard';
+
+// One versus tie, revealed or settled, drawn with the game's own match card.
+//
+// TWO THINGS MAKE IT THE SAME MATCH FOR BOTH PEOPLE, and both are the server's doing
+// (P30). The added time comes with the result rather than being rolled in each browser,
+// and the speed is fixed at the room's - in the single-player game it is a personal
+// setting spanning five to one, so two people watching the same stored result would
+// otherwise see two different lengths and disagree about what happened when.
+//
+// The tie arrives already turned round so the viewer is the home side (`viewerTie`), which
+// is why this can hand a two-sided match to a card written for "you and them".
+
+export default function VersusMatch({
+    label,
+    tie,
+    opponentName,
+    yourXi,
+    theirXi,
+    live,
+    onEnd,
+}: {
+    label: string;
+    tie: ViewerTie;
+    opponentName: string;
+    yourXi: Player[];
+    /** Empty until their tie has been played, which is exactly when this is shown. */
+    theirXi: Player[];
+    /** Reveal it minute by minute, rather than showing the settled result. */
+    live: boolean;
+    onEnd: () => void;
+}) {
+    const decided = tie.decided ?? 'reg';
+    const liveMax = maxMinute(decided);
+    const yourRating = yourXi.length ? xiStrength(yourXi).overall : undefined;
+    const theirRating = theirXi.length ? xiStrength(theirXi).overall : undefined;
+    return live ? (
+        <Live
+            label={label}
+            tie={tie}
+            opponentName={opponentName}
+            liveMax={liveMax}
+            yourRating={yourRating}
+            theirRating={theirRating}
+            onEnd={onEnd}
+        />
+    ) : (
+        <MatchdayCard
+            label={label}
+            tag={
+                <ResultTag
+                    kind={tie.won === null ? 'next' : tie.won ? 'w' : 'l'}
+                    label={tie.won === null ? 'Playing' : tie.won ? 'Won' : 'Lost'}
+                />
+            }
+            userRating={yourRating ?? 0}
+            oppName={opponentName}
+            // No code and no year: the other side is a person, and a three-letter code
+            // derived from a name would fly whatever country's flag it collided with.
+            oppCode=""
+            oppRating={theirRating ?? 0}
+            view={liveMatchView({
+                playing: false,
+                liveMinute: liveMax,
+                liveMax,
+                clockLabel: '',
+                finished: {
+                    userGoals: tie.yourGoals ?? 0,
+                    oppGoals: tie.theirGoals ?? 0,
+                    ...koFinishedStatus(decided),
+                    events: tie.events,
+                },
+            })}
+            playing={false}
+            clockLabel=""
+            penKicks={decided === 'pens' ? (tie.pens?.kicks ?? undefined) : undefined}
+            penShown={tie.pens?.kicks.length ?? 0}
+            showShootout={decided === 'pens'}
+        />
+    );
+}
+
+/** The reveal. Its own component so the clock hook mounts with the match and not with
+ *  the screen: the card above it is the settled one, and mounting a clock for that would
+ *  hold the navigation inert over a result nobody is watching. */
+function Live({
+    label,
+    tie,
+    opponentName,
+    liveMax,
+    yourRating,
+    theirRating,
+    onEnd,
+}: {
+    label: string;
+    tie: ViewerTie;
+    opponentName: string;
+    liveMax: number;
+    yourRating?: number;
+    theirRating?: number;
+    onEnd: () => void;
+}) {
+    const decided = tie.decided ?? 'reg';
+    const penKicks = decided === 'pens' ? tie.pens?.kicks : undefined;
+    const { liveMinute, clockLabel, penShown } = useMatchClock({
+        speed: PVP_SPEED,
+        maxMinute: liveMax,
+        stoppage: tie.stoppage ?? undefined,
+        endLabel: koEndLabel(decided),
+        penKicks,
+        endHoldMs: decided === 'reg' ? FT_HOLD_MS : KO_END_HOLD_MS,
+        onEnd,
+    });
+    return (
+        <MatchdayCard
+            label={label}
+            tag={<ResultTag kind="next" label="Live now" />}
+            userRating={yourRating ?? 0}
+            oppName={opponentName}
+            oppCode=""
+            oppRating={theirRating ?? 0}
+            view={liveMatchView({
+                playing: true,
+                liveMinute,
+                liveMax,
+                clockLabel,
+                playingEvents: tie.events,
+            })}
+            playing
+            clockLabel={clockLabel}
+            penKicks={penKicks}
+            penShown={penShown}
+            showShootout={!!penKicks && liveMinute >= liveMax}
+        />
+    );
+}

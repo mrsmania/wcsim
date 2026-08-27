@@ -8,10 +8,12 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: waves 0 to 4 built**; the server half is deployed (2026-08-26, roadmap item 41),
-0016 and 0017 applied, and **wave 4 - the room's own build state - landed 2026-08-27**. The
-one decision wave 3 reopened, the career budget in P2, was settled on 2026-08-27 by
-dropping the option. **Next is wave 5, the vertical slice.**
+(P48). **Status: waves 0 to 5 built**; the server half is deployed (2026-08-26, roadmap item 41),
+0016 and 0017 applied, wave 4 (the room's own build state) and **wave 5 - the vertical
+slice, and the first half a player can see - both landed 2026-08-27**. Two people with a
+code play a whole game. The one decision wave 3 reopened, the career budget in P2, was
+settled on 2026-08-27 by dropping the option. **Next is wave 6, roll rooms and the ratings
+switch.**
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -360,7 +362,7 @@ after most of the client work was done.
 | 2 | **DONE AND APPLIED 2026-08-26** (`supabase/migrations/0016_pvp_rooms.sql`; roadmap item 39, closed). **The migration**, parse-checked, dry-run, rollback block, roadmap item opened for the apply | `push:sql -- --dry-run` clean; parsed with the real Postgres grammar, and the rollback block parsed too |
 | 3 | **DONE AND DEPLOYED 2026-08-26** (`referee/`, `src/domain/displayName.ts`, `src/domain/pvpVersion.ts`, `supabase/migrations/0017_pvp_referee.sql`, `scripts/checks/referee.ts`, 53 checks). The referee itself: the router, the Postgres store, the row mapping, the sweeper, the broadcast, the JWT, and **outage recovery**; plus the display-name rule and the version endpoint. The DEPLOY half - Realtime, the gateway route, the role's password, the migration - needs the NAS and is queued as its own roadmap item, exactly as 0016 was | Two browsers see each other, and the 45-second outage, are both asserted offline (the referee's real handlers over an in-memory store); the room lifecycle was also played through the real `pgStore` as the real `pvp_referee` role on a local PostgreSQL. The deployment is now proven too (roadmap item 41): the referee answers on the live gateway with a dataset hash matching the deployed client, refuses the anon key, and the WebSocket upgrade returns 101. Three things bit that this plan did not predict, and all three are written up in `docs/nas-setup.md`: the gateway's RBAC filter is a SECOND key gate and is default-deny, the `/referee/` prefix must not be rewritten because the referee matches full paths, and **container operations wipe the docker bridge firewall rules**, which takes the whole accounts stack down and is the finding that outlives this item |
 | 4 | **DONE 2026-08-27** (`src/state/buildIo.ts`, `src/hooks/useBuild.ts`, `src/components/BuildSurface.tsx`, `scripts/checks/build.ts`, 4 checks). **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Proven both ways in the real app, driving a second build beside the first: through `detachedBuildIo` the solo build's stored state came back byte-identical and the Cup Run key survived; through `soloBuildIo` the same taps overwrote the solo XI and deleted the run |
-| 5 | **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Two people with a code play a whole game end to end |
+| 5 | **DONE 2026-08-27** (`src/state/pvp/referee.ts`, `src/hooks/useVersusRoom.ts`, `src/domain/pvpWire.ts`, `src/domain/pvpView.ts`, `src/nav/versusRoom.ts`, `src/components/versus/`, `src/components/buildControls.ts`, `scripts/checks/pvpView.ts`, 7 checks). **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Proven: two real browsers, one code, a whole game against the REAL referee handlers - name, room, join, ready, start, eleven manual picks each with nothing auto-picked, the tie watched live in both, a champion crowned, both XIs revealed, and neither player's saved game touched |
 | 6 | **Roll rooms**, and the ratings switch inside them | The check proves the room's own screens hide every rating; the switch is not offered when the room buys |
 | 7 | **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination | A room of 8 plays to a winner; the draw differs across repeated rooms with the same seats; and the first player out sees every remaining match |
 | 8 | **Public visibility**: the lobby list, liveness, size reduction, records, reporting, the signed-out entry | A public room is found and joined by someone never sent a code |
@@ -545,6 +547,49 @@ fix if this is ever worth closing.
   (auto-fill, Clear, Start over, the random-team shortcut) are still unconditional in
   `BuildSurface`, because a switch with no room behind it cannot be tested and would have
   been speculation. Turning them off is a prop apiece when the room screen exists.
+
+### Found while building the first playable room (wave 5)
+
+- **A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT, and the first screen built got that
+  wrong.** Reading a room you are not in answers 404 rather than 403, so a private code
+  cannot be confirmed by probing - which is the policy working. But it means arriving with
+  a code is ALWAYS refused first, and the room screen read that as "no room with that
+  code" and offered a way back. The code IS the join: the answer to that 404 is a Join
+  button, not an error. Anybody tempted to "fix" the 404 should read this first.
+- **The chemistry card was showing in a room, and it was a lie rather than clutter.**
+  `pvpTeam` takes no chemistry argument at all, so a room's match is played on the plain
+  eleven ratings - and the build page's right-hand column was promising an effective
+  overall four points higher than the number the simulator would receive. P25 says
+  chemistry is off in a room; that has to mean the readout too. Found by looking at a
+  screenshot of the draft, not by reading the code.
+- **P41's list needed three more entries than P41 names**, and each is broken for its own
+  reason: the badge's remove "x" (the referee has no instruction for taking a player back
+  out, so the tap undoes itself on the next reconcile), **moving a placed player** (P42
+  says a room should allow it and the referee takes picks and nothing else, so a move is
+  reverted by the next answer - it needs an instruction that does not exist), and the
+  album's marks (P3 keeps the discount out; a tier star beside a name is then only a
+  distraction that says "this player is rated 90 or more"). They are all in
+  `components/buildControls.ts` as data, with a check that the app's set and the room's are
+  the same shape and opposite.
+- **A tie is turned round for the viewer rather than teaching five components that a side
+  is a parameter.** Home is randomised and cosmetic (P44), while `USER_SIDE` is a constant
+  and every match component is written as "you and them". One pure relabelling of stored
+  data does it, and it is checked both ways plus the identity.
+- **The reveal-join window is set by the POLL, not by taste.** `REALTIME_URL` is optional
+  in the referee's configuration and a room must work without it, so a client can learn
+  about a kick-off up to a poll interval after the stamp. Refusing to reveal anything not
+  seen stamped shows a result nobody watched; four seconds covers the poll and still
+  finishes inside the server's window, which is the playback plus its own hold.
+- **The end-to-end proof did not need the NAS.** `api.handle` is pure over a store and a
+  clock (wave 3's decision), so a throwaway harness wired the REAL handlers over an
+  in-memory store, stubbed the twelve PostgREST calls the account layer makes, minted two
+  session tokens, and drove two Chromium contexts through a whole game against the real
+  production bundle. That is what "two people with a code play a whole game end to end"
+  was verified against, and it is repeatable in any session.
+- **What wave 5 deliberately did not build:** P41's per-pick **Skip**. It is meant to
+  replace auto-fill at P21's price, and the referee has no instruction for it, so the clock
+  is the only way a window ends early. It is a referee change plus a button, and it should
+  go in whichever wave next touches the referee.
 
 ### Settled by deletion: the career budget (P2), 2026-08-27
 

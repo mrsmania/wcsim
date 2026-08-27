@@ -25,6 +25,11 @@ export interface MatchClockSpec {
   speed: MatchSpeed;
   /** Last minute to count to (90, or 120 for a knockout that went to extra time). */
   maxMinute: number;
+  /** Added time for the two halves, when the caller already knows it. A versus room
+   *  does, because the server decides it and sends it with the result (P30) so two
+   *  people watching the same stored match see the same match; the single-player game
+   *  does not, and the clock rolls its own. */
+  stoppage?: readonly [number, number];
   /** Label shown at the final whistle ("FT", "a.e.t.", "pens"). */
   endLabel: string;
   /** Penalty kicks to reveal one by one after full time (knockout shootouts). */
@@ -81,7 +86,11 @@ export function useMatchClock(spec: MatchClockSpec): MatchClockState {
     const endLabel = start.endLabel;
     const endHoldMs = start.endHoldMs;
     const kicks = start.penKicks ?? [];
-    const steps = buildMatchSteps(maxMinute, HALF_TIME_MS[specRef.current.speed]);
+    const steps = buildMatchSteps(
+      maxMinute,
+      HALF_TIME_MS[specRef.current.speed],
+      start.stoppage,
+    );
     let idx = 0;
     let timer: number | undefined;
 
