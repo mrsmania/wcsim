@@ -8,15 +8,19 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: waves 0 to 8 built**; the server half is deployed (2026-08-26, roadmap item 41),
-0016, 0017 and **0018** applied, and waves 4 to 8 all landed 2026-08-27. Two, four or eight
-people play a whole knockout - found on a public list or reached with a code - in either kind
-of room, with or without the numbers, and whoever goes out first stays and watches the rest.
-A room nobody is in closes itself. The one decision wave 3 reopened, the career budget in P2,
-was settled on 2026-08-27 by dropping the option. **Only wave 9 is left: the documentation
-pass and closing the roadmap item.** Wave 8 needs NO migration (every column it reads was in
-0016) but it DOES need the referee redeployed, which is the standing rule: deploy the referee
-before the client that talks to it.
+(P48). **Status: ALL NINE WAVES BUILT, and the roadmap item is closed** (2026-08-27). The server
+half is deployed through wave 8 and verified (roadmap items 41 and 43); 0016, 0017 and
+**0018** are applied and no further migration is outstanding. Two, four or eight people play
+a whole knockout - found on a public list or reached with a code - in either kind of room,
+with or without the numbers, at either clock length, and whoever goes out first stays and
+watches the rest. A room nobody is in closes itself. The one decision wave 3 reopened, the
+career budget in P2, was settled on 2026-08-27 by dropping the option.
+
+**Two locked decisions are deliberately NOT built and have their own roadmap item:** P41's
+per-pick Skip and P42's move-a-placed-player. Both need an instruction the referee does not
+have, so both are a server change plus a deploy rather than a screen. Everything else the
+plan locks is live, and "every setting the referee accepts is reachable from the create form"
+is now enforced by the client's types rather than left to memory - see wave 9.
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -369,7 +373,7 @@ after most of the client work was done.
 | 6 | **DONE 2026-08-27** (`src/domain/pvpView.ts` gains `roomDisplay` / `ratingBand` / `offersRatingSwitch`; `BoxScore`, `XiTable`, `SquadPanel` and `MatchdayCard` learn to hide a number; `useSquadRoll` learns to stand down; 3 checks). **Roll rooms**, and the ratings switch inside them | Proven both ways in the real app: two browsers played a whole hidden-ratings roll room and a whole budget room, and NOT ONE rating appeared in the hidden one - empty board, three placed, or live match - with twenty-five on the result screen at the whistle. The switch is not offered for a budget room (`offersRatingSwitch`), and `roomDisplay` ignores the flag there rather than trusting it |
 | 7 | **DONE 2026-08-27** (`src/domain/pvpView.ts` gains `roundsFor` / `roundLabel` / `gamesIn` / `roomBracket` / `spectateTie`; `src/components/versus/RoomBracket.tsx`; `RoomScreen`, `RoomLobby`, `RoomDraft`, `RoomResult` and `VersusHome` learn that a room is not two people; `MatchdayCard` / `FixtureHead` / `GoalList` learn to name both sides; 7 checks). **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination. The referee had taken all of it since wave 1, so this wave added no server behaviour at all - only the client's reading of it, plus the `size` command it had never called | Proven in real browsers against the REAL referee, in two passes. **The draft**, four browsers, a room of four: the size choice, four seats with the empty ones drawn out, all four joining, the draw on screen through the wait with every seat "not drawn" and every name in the pot, the tree filling when the last XI landed, both semi-finals played, and no scoreline printed on the tree while its own match was still revealing. **The end states**, browsers pointed at rooms the referee had already driven there (the draft is eleven twenty-second windows a player and is the pass above): the champion told they won, the loser told WHO won and which round their own run ended in, the finished tree carrying real scorelines (0-1, 1-0, then 0-1), and a knocked-out player watching the final with **both** finalists named and neither called "you". No seat's saved game or run was written in either pass. The random draw and the round-feeds-forward property are asserted offline over 60 rooms of eight |
 | 8 | **DONE 2026-08-27** (`domain/pvpRoom.ts` gains `SEEN_GONE_MS` / `LOBBY_IDLE_MS` / `ROOM_IDLE_MS` / `DRAFT_SLACK_MS`, `tickLobby`, `closeRoom`, `roomClosed`, `RoomMember.lastSeen` and `PvpRoom.touchedAt`; `domain/pvpWire.ts` gains `LobbyRoom`; `domain/pvpView.ts` gains `lobbyLine` / `seatsLine` / `lobbyJoinable` / `agoLine`; `referee/src/api.ts` gains `GET /v1/lobby` and the store `publicLobbies`; `state/pvp/records.ts` is new; `VersusHome` gains the visibility choice, the list and the record; `versusUi` gains `ReportName`. 13 checks). **Public visibility**: the lobby list, liveness (P31), records (P9), reporting (P22), the signed-out entry. Size reduction went with wave 7. **No migration**: every column this reads - `pvp_rooms.touched_at`, `pvp_members.last_seen`, the `pvp_rooms_open_idx` partial index, the `pvp_records` view and `pvp_name_reports` - was written by 0016 and has been waiting for a caller | Proven: two real browsers, and the second one never sent the code - it opened `/versus`, the room was on the list with its host, its seats and what it plays, and taking a seat put it in the lobby. A private room opened beside it appeared on nobody else's list. A report reached the server once, with the reporter and the reported and nothing else. And the liveness sweep closed a lobby whose people had stopped pinging, with the room screen saying it closed rather than showing a result |
-| 9 | **Checks and documentation.** CLAUDE.md gains its section; the roadmap item closes | `npm run checks` and `npm run build` clean |
+| 9 | **DONE 2026-08-27** (`VersusHome` gains the clock choice, built from the domain's own `PICK_SECONDS`; CLAUDE.md's versus section reconciled against the shipped code; this file's status, this row and section 11 brought up to date; roadmap item 18 closed and item 44 opened for the two deferred decisions). **Checks and documentation** - and an audit rather than a prose pass, which is what it was for: reading the section against the code found **P20 unbuilt**, the form sending a flat twenty with a comment calling that a decision and pointing at a note that did not exist, plus four claims that had gone stale (the redeploy still described as pending, wave 5's protocol note, "all still private", and `--verify` described without its read-back step) | `npm run checks` (351) and `npm run build` clean. The clock options are derived from `PICK_SECONDS` with the copy in a `Record<PickSeconds, ...>`, so a third value is a **type error** in the client rather than a setting the host silently cannot reach - verified by adding one. And the clock length is now pinned **absolutely**: the existing block loops over both lengths and is not vacuous, but it is RELATIVE - it asks each room to honour `deadlineOf`, and both sides of that read `room.pickSeconds`, so hardcoding twenty seconds inside `deadlineOf` kept them agreeing and passed. One instant, 25 seconds in, is late on a twenty and in time on a thirty; that mutation now goes red. It had never mattered before, because until this wave no host could choose the second value. The control itself is proven by the type and by the room checks rather than by a browser run, which is stated rather than implied: it is the same numeric `Choice` row as the size and budget controls, which two earlier waves drove in real browsers |
 
 **Where the size really is.** Wave 4 was the largest unestimated piece in the whole plan and
 a refactor rather than a feature; it came out at four new files, 366 lines off the
@@ -439,6 +443,25 @@ bought; a random defender is sixteen rating points short. P21's stated reason ("
 run on purpose") therefore does not hold for seven of the eleven slots. Drawing the timeout
 pick from **cheap** players rather than uniformly would make it bad in every slot, and is the
 fix if this is ever worth closing.
+
+### Deferred with a reason, not dropped: P41's Skip and P42's move
+
+Both are locked decisions in section 2 and neither is built, so they are stated here rather
+than left to be discovered. **The referee's instruction set is picks and re-rolls**: a Skip
+has to end the current window and open the next one, and a move has to rewrite the slot map,
+and neither is expressible as a pick. So both are a server change plus a deploy rather than a
+screen, which is why they did not fit inside a client wave, and both are one roadmap item.
+
+What their absence costs today. **Skip**: the clock is the only way a window ends early, so a
+player who has decided cannot hand the time back, and a room of eight waits out the slowest
+of eight people at every one of eleven windows (P47's accepted cost, now with no release
+valve). **Move**: `ROOM_CONTROLS` turns the gesture off, so a multi-position player placed in
+the wrong slot stays there - the honest alternative was leaving it on and having the next
+answer from the referee silently undo it, which is worse than not offering it.
+
+Neither is load-bearing for anything shipped, and the seams they need are already in place:
+`pvp_picks` records the CURRENT state of an XI rather than an append-only log (P42's whole
+reason), and `buildControls.ts` is a list precisely so one entry can be turned back on.
 
 ### Found while building, and worth knowing
 

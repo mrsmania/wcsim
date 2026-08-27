@@ -190,6 +190,37 @@ export function pvpRoomChecks(): void {
   }
 
   {
+    // THE CLOCK LENGTH IS REALLY READ, pinned against a wall-clock instant rather than
+    // against each room's own deadline.
+    //
+    // The loop above covers both lengths and is not vacuous, but it is RELATIVE: it asks
+    // each room to honour `deadlineOf`, and both sides of that comparison read
+    // `room.pickSeconds`, so a bug that quietly gave every room twenty seconds would keep
+    // them agreeing and pass. It was worth checking, because the host could not choose the
+    // thirty-second clock at all until wave 9 - the create form sent a flat twenty - so
+    // until then nothing outside this file had ever exercised the second value.
+    //
+    // 25 seconds in is past a twenty-second window and its 750ms grace, and comfortably
+    // inside a thirty-second one.
+    const at = T0 + 25_000;
+    const short = startRoom(roomOf(2, BUDGET, 20), 'u0', T0);
+    const long = startRoom(roomOf(2, BUDGET, 30), 'u0', T0);
+    const a = submitPick(short, 'u0', firstLegalPick(short, 'u0'), at);
+    const b = submitPick(long, 'u0', firstLegalPick(long, 'u0'), at);
+    check(
+      'room: one instant is LATE on a 20s clock and in time on a 30s one, so the length is read',
+      () =>
+        a.outcome === 'late' &&
+        b.outcome === 'ok' &&
+        // Vacuity: the same pick is taken by both rooms early on, so the difference above
+        // is the clock and not the pick being illegal in one of them.
+        submitPick(short, 'u0', firstLegalPick(short, 'u0'), T0 + 1000).outcome === 'ok' &&
+        submitPick(long, 'u0', firstLegalPick(long, 'u0'), T0 + 1000).outcome === 'ok',
+      () => `20s ${a.outcome} / 30s ${b.outcome}`,
+    );
+  }
+
+  {
     // A retry that resends the ordinal already taken is a replay, not a second spent
     // window (P36). This is the flaky-mobile-link case.
     const room = startRoom(roomOf(2, BUDGET), 'u0', T0);

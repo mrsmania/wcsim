@@ -370,7 +370,7 @@ the two disagree. See "Accounts" below.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, currently **293 checks**. It exercises the sim, penalty
+per concern in `scripts/checks/`, **350 checks** as of 2026-08-27. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -2679,24 +2679,41 @@ than about tidiness.
 
 ## Versus: a room, and what it is not allowed to touch
 
-Roadmap item 18. **Waves 0 to 3 (the rules, the room's state machine, the migration and
-the referee) shipped and were deployed 2026-08-26; waves 4 to 8 all landed 2026-08-27** -
-the build as an instantiable unit, THE FIRST PLAYABLE HALF, roll rooms with the ratings
-switch, rooms of four and eight, and the public half. **Two, four or eight people play a
-whole knockout**, found on a public list or reached with a six-character code: lobby, draft,
-the draw, the matches, the bracket, the result, whoever goes out first stays and watches the
-rest, and a room nobody is in closes itself. The plan is `docs/pvp-plan.md` and it is the
-thing to read before touching any of this.
+Roadmap item 18, **CLOSED 2026-08-27, all nine waves**. Waves 0 to 3 (the rules, the room's
+state machine, the migration and the referee) shipped and were deployed 2026-08-26; waves 4
+to 9 all landed 2026-08-27 - the build as an instantiable unit, THE FIRST PLAYABLE HALF, roll
+rooms with the ratings switch, rooms of four and eight, the public half, and the closing
+pass. **Two, four or eight people play a whole knockout**, found on a public list or reached
+with a six-character code: lobby, draft, the draw, the matches, the bracket, the result,
+whoever goes out first stays and watches the rest, and a room nobody is in closes itself. The
+plan is `docs/pvp-plan.md` and it is the thing to read before touching any of this.
 
-**WAVE 8 NEEDS THE REFEREE REDEPLOYED AND NO MIGRATION AT ALL.** Every column it reads was
-written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
+**WHAT IS DELIBERATELY NOT BUILT, so nobody goes looking for it:** P41's per-pick **Skip**
+and P42's **move a placed player**. Both need an instruction the referee does not have (it
+takes picks and re-rolls and nothing else), so both are a server change plus a deploy rather
+than a screen, and they have their own roadmap item. The clock is therefore the only way a
+pick window ends early. Everything else the plan locks is live: every setting the referee
+accepts is reachable from the create form, which is checked.
+
+**THE SERVER IS DEPLOYED THROUGH WAVE 8 AND THE SCHEMA IS AT 0018** (referee redeployed and
+verified 2026-08-27, roadmap item 43). Wave 8 needed **no migration at all**: every column it
+reads was written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
 `pvp_members.last_seen`, the `pvp_rooms_open_idx` partial index, the `pvp_records` view,
-`pvp_name_reports`), so there is no SQL to apply - but the client now calls `GET
-/v1/lobby`, which the container deployed on 2026-08-26 does not have. It degrades to an
-empty list rather than an error, and a public room opened against the old referee is simply
-invisible until it is rebuilt. **Deploy the referee before the client that talks to it**, the
-same standing rule migrations follow; the queue for it is a roadmap item, exactly as an
-unapplied migration is. That deploy also carries the `/leave` route below.
+`pvp_name_reports`). It did need the container rebuilt, for `GET /v1/lobby` and the `/leave`
+route below. **Deploy the referee before the client that talks to it**, always: it is the
+same standing rule migrations follow, and a session that cannot reach the NAS queues the
+deploy as a roadmap item exactly as it would an unapplied migration.
+
+**THAT DEPLOY TOOK THREE ATTEMPTS AND ONLY THE FIRST WAS THE REFEREE'S FAULT**, which is
+worth knowing because the other two are the ones that will recur. The first was the missing
+columns below. The second was the **docker bridge firewall rules being wiped by the container
+operations of the deploy itself**, which takes the whole accounts stack down with it and is
+already written up in `docs/nas-setup.md`. The third was `scripts/deploy-referee.sh --verify`
+**aborting inside a stage while reporting success** - its last two steps reach the database
+through compose on the NAS, which Synology needs a full path and root for, and that one stage
+never ran the probe that finds it, so under `set -euo pipefail` a failing command
+substitution took the script down mid-step. A verification that stops without saying so is
+worse than none, and `npm run checks` now asserts every stage detects docker before using it.
 
 **LEAVING A ROOM HAS TO TELL THE REFEREE, and for a while it did not** (reported and fixed
 2026-08-27). The Leave button cleared the local pointer and navigated, so the seat stayed
@@ -2735,8 +2752,9 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
 - **`FEATURES.pvp` derives from `VITE_REFEREE_URL` as well as the account server**, so
   configuring accounts alone cannot put a Versus door on the site whose every call fails.
   The deploy workflow already passes it; **deploy the referee BEFORE pushing a client that
-  talks to it, always**, which is the same rule migrations follow. Wave 5 changed neither
-  the protocol nor the dataset, so the referee deployed on 2026-08-26 still matches it.
+  talks to it, always**, which is the same rule migrations follow. `PVP_PROTOCOL` has been
+  `1` throughout, so the handshake cannot tell an old container from a new one - which means
+  a client change that needs a new route needs the deploy scheduled, not detected.
 - **`VITE_REFEREE_URL` POINTS AT THE ROUTE, NOT AT THE HOST**: it is `https://HOST/referee`
   (docs/nas-setup.md step 6), because the referee is a route on the account server's own
   gateway (P46). So a path in `state/pvp/referee.ts` is `/version` and `/v1/rooms/...` and
@@ -2832,9 +2850,12 @@ the offending row's values there.
 **AND A VERSION ENDPOINT ANSWERING IS NOT A WORKING REFEREE.** `scripts/deploy-referee.sh
 --verify` used to check `/referee/version` and two 401s, none of which touches Postgres, so
 a deploy passed and the first database write the feature ever made was made by a player. It
-now mints a session on the box from the stack's own `JWT_SECRET`, creates a real room and
-deletes it. The handshake is also blind to one drift by construction: an image built a commit
-early whose squads are unchanged passes it and fails on its first write.
+now mints a session on the box from the stack's own `JWT_SECRET`, creates a real room,
+**changes it**, and deletes it. Creating is not enough on its own and that gap cost a second
+broken deploy: creating builds the room in memory and inserts it, so it never READS one back,
+which is the half that was broken. The handshake is also blind to one drift by construction:
+an image built a commit early whose squads are unchanged passes it and fails on its first
+write.
 
 **A REFUSAL IS ALWAYS SAID IN THE REFEREE'S OWN WORDS** (`components/versus/refereeMessage.ts`).
 The referee names every refusal and, for the ones a deployment gets wrong, sends a fault
@@ -2861,12 +2882,16 @@ a draft or a reveal is live. It is also why `REVEAL_JOIN_MS` is four seconds and
 a room learns about a kick-off on its next read, and a client that refuses to reveal
 anything it did not see stamped shows a result nobody watched.
 
-**TWO KINDS OF ROOM AND THREE SIZES** (waves 6 and 7): buy an XI from a shared budget or
-roll random squads and take one man from each, **two, four or eight people**, twenty seconds
-a pick. All still private. The referee has taken public rooms and a thirty-second clock since
-wave 3, and each is a later wave with a screen to answer for it. **P41's per-pick Skip is not
-built**, and neither is P42's move: both need an instruction the referee does not have, so
-the clock is the only way a window ends early.
+**EVERY SETTING THE REFEREE TAKES IS REACHABLE FROM THE CREATE FORM, and that is checked by
+the type.** Buy an XI from a shared budget or roll random squads and take one man from each;
+two, four or eight people; public or private; twenty or thirty seconds a pick; and the
+ratings switch where it means anything. **The clock was the last one to arrive** (wave 9), and
+how it was missing is the instructive part: the form sent a flat `pickSeconds: 20` with a
+comment upstairs calling that a decision and pointing at a note that did not exist. A
+hardcoded literal agreed with nothing and disagreed with nothing either, so nothing could
+catch it. The options are **built from the domain's own `PICK_SECONDS`** now, with the copy in
+a `Record<PickSeconds, ...>`, so a third value is a type error in the client rather than a
+value the host silently cannot choose. Do the same for any future room setting.
 
 **THE LOBBY POSTS YOUR SHAPE THE MOMENT YOU PICK IT, and that is what removed a button.**
 It used to hold the choice locally, so the primary action read "I'm ready" and then turned

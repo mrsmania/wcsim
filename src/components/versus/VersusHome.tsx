@@ -8,6 +8,7 @@ import {
     offersRatingSwitch,
     seatsLine,
 } from '../../domain/pvpView';
+import { PICK_SECONDS, type PickSeconds } from '../../domain/pvpRoom';
 import type { LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
 import { createRoom, readLobby } from '../../state/pvp/referee';
@@ -27,11 +28,10 @@ import { RefereeProblem, RoomNote } from './versusUi';
 
 // The way in: make a room, or type the code somebody gave you.
 //
-// TWO KINDS OF ROOM, THREE SIZES, AND NOW PUBLIC OR PRIVATE: buy an XI from a shared budget
-// or roll random squads, two, four or eight people, and either a code you send to somebody
-// or a room anybody signed in can find. The one control the referee still takes and this
-// does not offer is the thirty-second clock, which is a decision rather than an omission:
-// see the note on `PICK_SECONDS`.
+// TWO KINDS OF ROOM, THREE SIZES, PUBLIC OR PRIVATE, AND EITHER CLOCK: buy an XI from a
+// shared budget or roll random squads, two, four or eight people, a code you send to
+// somebody or a room anybody signed in can find, twenty or thirty seconds a pick. That is
+// every setting the referee takes; nothing it accepts is unreachable from here.
 //
 // THE LOBBY LIST IS THE HALF OF THIS FEATURE THAT DEPENDS ON OTHER PEOPLE, and it is
 // therefore also the half that looks broken when nobody is playing. So an empty list says
@@ -71,6 +71,31 @@ const SIZES = [
     { value: 4, label: 'Four' },
     { value: 8, label: 'Eight' },
 ];
+
+/**
+ * How long a pick gets (P20). Two values and not a slider, so the lobby list can say fast
+ * or considered and a ladder could one day compare like with like.
+ *
+ * The referee has taken either since wave 1 and this form sent a flat twenty until wave 9,
+ * with a comment upstairs calling that a decision and pointing at a note that did not
+ * exist. It was an omission wearing a decision's clothes, and P20 is locked: the host
+ * chooses. Independent of the draft method deliberately - twenty seconds is tight for
+ * shopping a market and roomy for taking one man off a dealt squad, so tying the two
+ * would make one of the two rooms wrong.
+ */
+const CLOCK_COPY: Record<PickSeconds, { label: string; sub: string }> = {
+    20: { label: '20 seconds', sub: 'Fast. Decide on instinct and keep the room moving.' },
+    30: {
+        label: '30 seconds',
+        sub: 'Considered. Time to read the market, or the squad you were dealt.',
+    },
+};
+
+/** BUILT FROM THE REFEREE'S OWN LIST, not typed out beside it. That is the whole reason the
+ *  omission above went unnoticed: a hardcoded 20 here agreed with nothing and disagreed with
+ *  nothing either. A third clock length added to `PICK_SECONDS` is now a type error in
+ *  `CLOCK_COPY` rather than a value the host silently cannot choose. */
+const CLOCKS = PICK_SECONDS.map((value) => ({ value, ...CLOCK_COPY[value] }));
 
 /** How many re-rolls a roll room allows. Named in outcomes: what the number MEANS is how
  *  often you can refuse a squad you were dealt. */
@@ -133,6 +158,7 @@ export default function VersusHome() {
     const [size, setSize] = useState(2);
     const [budget, setBudget] = useState(110);
     const [rerolls, setRerolls] = useState(3);
+    const [pickSeconds, setPickSeconds] = useState<PickSeconds>(20);
     const [showRatings, setShowRatings] = useState(true);
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
@@ -154,7 +180,7 @@ export default function VersusHome() {
             // a literal list of every current year, which is the bug that once hid a
             // whole World Cup from every existing save.
             years: [],
-            pickSeconds: 20,
+            pickSeconds,
         })
             .then((room) => navigate(`/versus/${room.code}`))
             .catch((err: unknown) => {
@@ -318,6 +344,15 @@ export default function VersusHome() {
                             )}
                         </>
                     )}
+
+                    {/* LAST, and outside the method branch, because it is the one setting
+                        that applies to both kinds of room (P20). */}
+                    <Choice
+                        label="How long a pick gets"
+                        value={pickSeconds}
+                        onPick={setPickSeconds}
+                        options={CLOCKS}
+                    />
 
                     <button className={`${PRIMARY_BTN} mt-4 w-full`} disabled={busy} onClick={make}>
                         Open a room
