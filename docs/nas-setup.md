@@ -547,6 +547,16 @@ be wiped by ANY container operation and not just by boots and firewall edits, wh
 times a year and always during work that hides the symptom. Press **Run** anyway when you
 know you have just caused it, rather than waiting out the window.
 
+**Watched working, 2026-08-27**, which is the first measurement of it rather than a claim.
+Re-creating `auth` for the mailer fix left the stack healthy for several minutes and then
+took it down anyway: `/auth/v1/settings` went 503 at 22:23:33 and was back at **22:24:44**,
+about a minute, with nobody touching DSM. `/rest/v1/` stayed 403 throughout, so a single
+endpoint is not enough to see this. Two things worth taking from it. The wipe does **not**
+have to be simultaneous with the container operation, so a health check taken straight
+afterwards can pass and mean nothing - which is exactly how this stayed hidden before the
+schedule existed. And the referee is the clearest tell: it answered `upstream connect error
+... connection timeout` while auth was still merely 503.
+
 **This cannot be fixed in the app or the compose file.** The block is in the host's
 `FORWARD` chain, below anything a container can influence: envoy must reach `rest`/`auth`
 and they must reach `db` over the bridge. Sharing one network namespace
