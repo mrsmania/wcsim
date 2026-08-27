@@ -288,8 +288,8 @@ prints what a service WOULD receive, and it creates nothing, so the fix was prov
 old container was still serving. Then `up -d --no-deps auth` to touch exactly one container,
 `docker compose exec auth env` for what actually landed inside it, and only then plain HTTPS
 against `/auth/v1/settings` with the anon key. The bridge firewall rules survived this one,
-but the Task Scheduler job was open and ready, which is the way to do it until that job is
-on its 5-minute schedule.
+with the Task Scheduler job open and ready as a belt-and-braces measure beside its 5-minute
+schedule.
 
 ---
 
@@ -539,9 +539,13 @@ actually fires.
 DSM rewrite the chain, the boot task does not fire, and the stack is down until you go to
 Task Scheduler and press **Run** on it. That is the whole recovery. Turning the firewall
 off also "fixes" it, which misleads: it removes the blocking chain rather than restoring
-these rules. A repeating scheduled task would automate it, at the cost of a window minutes
-wide after each edit and a job running forever for something you do twice a year, so the
-manual click is the deliberate choice.
+these rules. **The job ALSO runs on a 5-minute schedule** (confirmed in place 2026-08-27),
+which is what makes the outage self-healing rather than lasting until somebody notices. This
+paragraph used to argue the opposite, that a repeating task was not worth a job running
+forever for something you do twice a year: that reasoning died when the rules turned out to
+be wiped by ANY container operation and not just by boots and firewall edits, which is many
+times a year and always during work that hides the symptom. Press **Run** anyway when you
+know you have just caused it, rather than waiting out the window.
 
 **This cannot be fixed in the app or the compose file.** The block is in the host's
 `FORWARD` chain, below anything a container can influence: envoy must reach `rest`/`auth`
@@ -660,9 +664,10 @@ until the last one.
 >    exactly the work that provokes it: a throwaway `docker run --rm` used to CHECK whether
 >    the stack is healthy wipes the rules again as it exits, so the stack recovers for a few
 >    minutes and then fails, and it reads as a flapping network. Diagnose this with plain
->    HTTPS calls, never with a throwaway container. Put the Task Scheduler job on a
->    **5-minute schedule** as well as its triggers - it is a no-op when the rules are there,
->    and it turns a silent outage lasting until somebody notices into one that heals itself.
+>    HTTPS calls, never with a throwaway container. The Task Scheduler job is on a
+>    **5-minute schedule** as well as its triggers (done, confirmed 2026-08-27) - it is a
+>    no-op when the rules are there, and it turns a silent outage lasting until somebody
+>    notices into one that heals itself.
 >    **Re-run the job after any container work, and check a real upstream
 >    call afterwards.** Not `/auth/v1/health` without a key, which returns 401 from the
 >    gateway itself and proves nothing; use `/auth/v1/settings` with the anon key and
