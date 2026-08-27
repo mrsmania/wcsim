@@ -741,6 +741,15 @@ another hostname is another certificate renewal that can take versus down on its
    one credential it exists to reject.
 3. `docker compose restart api-gw`.
 
+> **IF ROOMS 500 ON A SERVER THAT WAS SET UP BEFORE 2026-08-27, THIS IS WHY.** 0017's
+> `alter table pvp_rooms drop column if exists budget_source` did not land on the live
+> server, while the rest of 0017 did. 0016 creates that column `not null` with no default and
+> the referee stopped supplying it, so every room insert raised `null value in column
+> "budget_source" ... violates not-null` and answered HTTP 500. Apply
+> `0018_drop_budget_source_for_real.sql`; **no rebuild is needed**, because the running image
+> already omits the column. One statement:
+> `docker compose exec -T db psql -U postgres -c 'alter table pvp_rooms drop column if exists budget_source;'`
+
 ### 5. Verify, before pointing the client at it
 
 **THE FIRST THREE CHECKS NEVER TOUCH THE DATABASE, AND THAT IS HOW A DEPLOY THIS RUNBOOK

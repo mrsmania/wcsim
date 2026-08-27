@@ -350,6 +350,54 @@
 
 <details class="item">
   <summary>
+    <span class="num">42</span>
+    <span class="title">Apply migration 0018: the column that broke every versus room
+      <span class="sub">ONE STATEMENT, and it needs a shell on the NAS rather than a rebuild.
+      The live database still has <code>pvp_rooms.budget_source</code>, which 0017 says to
+      drop and which the match server stopped filling in, so <b>every attempt to open a
+      versus room answered HTTP 500</b>. Reproduced and fixed against a copy of the
+      server&#8217;s exact state. Nothing else in the game is affected.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What to run</strong>, from the stack folder on the NAS:</p>
+    <p><code>docker compose exec -T db psql -U postgres -f - &lt; supabase/migrations/0018_drop_budget_source_for_real.sql</code>
+    - or, since it is one statement,
+    <code>docker compose exec -T db psql -U postgres -c 'alter table pvp_rooms drop column if exists budget_source;'</code>.
+    <b>No container rebuild is needed for this fix</b>: the running image already omits the
+    column from its insert, which is precisely why the insert fails.</p>
+    <p><strong>How it happened.</strong> 0016 creates the column <code>not null</code> with a
+    check and <b>no default</b>. When the career-budget option was deleted (P2) the referee
+    stopped supplying it and 0017 gained the matching <code>drop column</code>. Every other
+    part of 0017 is applied and verified on the live server; that one statement is not, so
+    the room insert had nothing to put in a column that demands a value.</p>
+    <p><strong>Why nothing caught it, which is the part worth keeping.</strong> The deploy
+    runbook&#8217;s three verification checks are all database-free - a version endpoint that
+    reads a bundled constant, and two refusals that happen before Postgres is touched - so
+    the deploy passed and <b>the first database write this feature ever made was made by a
+    player in a browser</b>. The version handshake could not have caught it either: it
+    compares the protocol number and the squad-data hash, and the commit that removed the
+    column from the insert moved neither. Both gaps are closed:
+    <code>scripts/deploy-referee.sh --verify</code> now mints a session on the box, creates a
+    real room and deletes it; and a 500 from the referee now carries its error class and the
+    column involved, so the same fault would have read
+    <code>23502 column=budget_source table=pvp_rooms</code> on the page instead of being
+    visible only in a container log.</p>
+    <p><strong>Verified, not assumed.</strong> All seventeen migrations were applied to a
+    real PostgreSQL here, then 0017 re-applied with that one statement removed to reproduce
+    the server exactly: the referee&#8217;s own create handler raised the identical error from
+    the live log, and applying 0018 made the same call answer 201. 0018 is
+    <code>if exists</code>, so it is a no-op on any server that applied 0017 whole.</p>
+    <p class="next"><strong>Next step:</strong> run it, open a room, and this item closes.
+    Then take the referee rebuild at leisure, for the better 500 message.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0018_drop_budget_source_for_real.sql" target="_blank" rel="noopener">supabase/migrations/0018_drop_budget_source_for_real.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
       <span class="sub">Extend the dataset: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b>, <b>1974</b> and <b>1970</b> all shipped 2026-08-25, and <b>2026</b> on 2026-08-26 as the first drop made forwards. Fifteen tournaments, 9,625 rows, 416 squads, 115 collectibles. Next: 1966, then 1962 and earlier.</span>
