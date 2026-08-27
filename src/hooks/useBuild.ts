@@ -64,10 +64,18 @@ export interface BuildInput {
     /** Re-rolls on top of `INITIAL_REROLLS`. The app reads the Extra Re-roll perk off the
      *  live career; a room has no career at all (P8), so it passes its own allowance. */
     extraRerolls: number;
-    /** Called when a player is bought into a slot, beside the dispatch that does it. A
-     *  versus room posts the pick to the referee from here, which is the one place that
-     *  cannot disagree with what the board just did. */
-    onBuy?: (slotId: string, player: Player) => void;
+    /** Called when a player lands in a slot, beside the dispatch that puts him there -
+     *  a market buy or a drawn-squad placement alike. A versus room posts the pick to the
+     *  referee from here, which is the one place that cannot disagree with what the board
+     *  just did. */
+    onPick?: (slotId: string, player: Player) => void;
+    /** Where the drawn squads come from. `local` rolls them out of the pool, which is the
+     *  single-player draft; `dealt` means the referee hands them over one at a time (P13)
+     *  and the caller pushes each one in with `ROLL_SETTLE`. */
+    squads?: 'local' | 'dealt';
+    /** Spend a re-roll, when the caller owns them. A room's re-roll is an instruction to
+     *  the referee, and it takes no kind: there is one button (plan section 3). */
+    onReroll?: (kind: RerollKind) => void;
 }
 
 export interface Build {
@@ -131,7 +139,15 @@ export interface Build {
     reset: () => void;
 }
 
-export function useBuild({ initial, io, pool, extraRerolls, onBuy }: BuildInput): Build {
+export function useBuild({
+    initial,
+    io,
+    pool,
+    extraRerolls,
+    onPick,
+    squads = 'local',
+    onReroll,
+}: BuildInput): Build {
     const [state, dispatch] = useReducer(gameReducer, initialState, () => initial ?? initialState);
     const {
         phase,
@@ -189,6 +205,7 @@ export function useBuild({ initial, io, pool, extraRerolls, onBuy }: BuildInput)
         usedPersonIds,
         rerollsLeft,
         pool: poolSquads,
+        dealt: squads === 'dealt',
         dispatch,
     });
 
@@ -206,7 +223,7 @@ export function useBuild({ initial, io, pool, extraRerolls, onBuy }: BuildInput)
         pool: pool.byId,
         dispatch,
         onTakeCard: move.cancel,
-        onBuy,
+        onBuy: onPick,
         scrollToPitch,
         scrollToPanel,
     });
@@ -283,10 +300,14 @@ export function useBuild({ initial, io, pool, extraRerolls, onBuy }: BuildInput)
 
             // Mobile: jump back up to the squad list (showing the next drawn squad); the
             // panel's scroll-mt keeps a little margin above it. Only for a placement
-            // that actually landed.
-            if (willPlace) scrollToPanel();
+            // that actually landed - and that same guard is what makes it safe to tell
+            // the caller, since a room must not post a pick the reducer refused.
+            if (willPlace) {
+                scrollToPanel();
+                if (player) onPick?.(slotId, player);
+            }
         },
-        [formation, currentSquad, selectedPlayerId, filled, scrollToPanel],
+        [formation, currentSquad, selectedPlayerId, filled, scrollToPanel, onPick],
     );
 
     // Swap the selected player into an already-filled slot (sticker album feature).
@@ -379,11 +400,11 @@ export function useBuild({ initial, io, pool, extraRerolls, onBuy }: BuildInput)
         setFormationName,
         setStyle,
         setSpeed,
+        reroll: onReroll ?? reroll,
         start,
         enterBudget,
         clearBudget,
         randomTeam,
-        reroll,
         selectPlayer,
         place,
         swap,

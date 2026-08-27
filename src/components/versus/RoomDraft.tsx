@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Player } from '../../data/types';
+import { SQUAD_BY_ID, squadsInPool } from '../../data/squads';
 import type { Formation } from '../../domain/formations';
-import { squadsInPool } from '../../data/squads';
-import { xiFrom } from '../../domain/pvpView';
+import { roomDisplay, xiFrom } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import { detachedBuildIo } from '../../state/buildIo';
 import { initialState, type GameState } from '../../state/gameReducer';
@@ -22,6 +22,12 @@ import { PickClock, RoomNote } from './versusUi';
 // refused, the clock can fill a slot for you while you are still reading the market, and
 // a reload starts from an empty board with eleven picks already made.
 //
+// A ROLL ROOM'S SQUADS ARE DEALT, NOT ROLLED (P13). The referee hands over one squad at a
+// time, so the whole local roll - the scramble, the draw-next-squad policy, the three
+// kinds of re-roll - stands down (`squads: 'dealt'`), and what arrives is pushed onto the
+// board with `ROLL_SETTLE`. Rolling here as well would race the server and let a player
+// see a squad the referee never dealt, which it would then refuse to take a pick from.
+//
 // THE BUILD IS DETACHED (P29, wave 4). It writes nothing: not the solo XI it would
 // otherwise overwrite, and not the active Cup Run, which every path that starts a build
 // otherwise deletes.
@@ -31,6 +37,10 @@ import { PickClock, RoomNote } from './versusUi';
  *  object's key order. */
 const signature = (formation: Formation, ids: Record<string, string | undefined>): string =>
     formation.slots.map((s) => ids[s.id] ?? '').join('|');
+
+/** A roll room's re-roll is one button: the referee deals the next squad and takes no
+ *  argument saying which kind, so "another team" and "another cup" have nothing to send. */
+const ROOM_REROLLS = ['any'] as const;
 
 export default function RoomDraft({
     view,
@@ -46,6 +56,8 @@ export default function RoomDraft({
     const you = view.you;
     const me = view.members.find((m) => m.userId === you?.userId) ?? null;
     const others = view.members.filter((m) => m.userId !== you?.userId);
+    const rolling = view.rules.method === 'roll';
+    const { ratings } = roomDisplay(view);
 
     // The room's cups, and only the room's (P4): everybody in a room draws from the same
     // pool, which is the host's choice and not the player's own setting.
@@ -55,19 +67,19 @@ export default function RoomDraft({
         return { squads, players, byId: new Map(players.map((p) => [p.id, p])) };
     }, [view.rules.years]);
 
-    // Seeded straight into the budget build with the lobby's shape, so the setup step -
-    // which a room does not have, formation and style being lobby decisions (P19) - is
-    // never on screen for a frame.
+    // Seeded straight into the draft with the lobby's shape, so the setup step - which a
+    // room does not have, formation and style being lobby decisions (P19) - is never on
+    // screen for a frame.
     const seed = useMemo<GameState>(
         () => ({
             ...initialState,
             phase: 'draft',
-            build: 'budget',
+            build: rolling ? 'roll' : 'budget',
             formationName: formation.name,
             style: formation.style,
             formation,
         }),
-        [formation],
+        [formation, rolling],
     );
 
     // A pick, posted the moment the board takes it. The ordinal is the room's, read off
@@ -75,17 +87,35 @@ export default function RoomDraft({
     // the same pick (P36), so a retry on a flaky link is a no-op rather than two spent
     // windows, and a number this side invented would not line up.
     const submitting = useRef(false);
-    const onBuy = (slotId: string, player: Player): void => {
+    const onPick = (slotId: string, player: Player): void => {
         submitting.current = true;
-        void room
-            .pick(slotId, player.id)
-            .finally(() => {
-                submitting.current = false;
-            });
+        void room.pick(slotId, player.id).finally(() => {
+            submitting.current = false;
+        });
     };
 
-    const build = useBuild({ initial: seed, io: detachedBuildIo, pool, extraRerolls: 0, onBuy });
+    const build = useBuild({
+        initial: seed,
+        io: detachedBuildIo,
+        pool,
+        // A room's re-roll allowance is the host's, and it is spent by asking the referee.
+        extraRerolls: 0,
+        onPick,
+        squads: rolling ? 'dealt' : 'local',
+        onReroll: rolling ? () => void room.reroll() : undefined,
+    });
     const { dispatch } = build;
+
+    // The dealt squad, newest last (P13: one at a time). Pushed onto the board as if it
+    // had been rolled, which is exactly what `ROLL_SETTLE` is for - so every screen below
+    // reads the same state a single-player draft would.
+    const dealtId = rolling ? (you?.dealt[you.dealt.length - 1] ?? null) : null;
+    const boardSquadId = build.state.currentSquad?.id ?? null;
+    useEffect(() => {
+        if (!dealtId || dealtId === boardSquadId) return;
+        const squad = SQUAD_BY_ID[dealtId];
+        if (squad) dispatch({ type: 'ROLL_SETTLE', squad });
+    }, [dealtId, boardSquadId, dispatch]);
 
     // Reconcile. The server's XI wins, always - but only when it actually differs, or
     // every poll would rebuild the board and drop the card in your hand.
@@ -105,6 +135,14 @@ export default function RoomDraft({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [serverSig, boardSig, formation, dispatch]);
 
+    // The referee's count, never the reducer's: a re-roll it refused (none left, or a
+    // deal that found no squad) must not read as spent here.
+    const rerollsLeft = you?.rerollsLeft ?? 0;
+    const withRerolls = useMemo(
+        () => ({ ...build, state: { ...build.state, rerollsLeft } }),
+        [build, rerollsLeft],
+    );
+
     const window = you?.window ?? null;
     const done = !window && (me?.picked ?? 0) >= formation.slots.length;
 
@@ -115,6 +153,11 @@ export default function RoomDraft({
                     remainingMs={room.remainingMs}
                     ordinal={window.ordinal}
                     locked={room.locked}
+                    hint={
+                        rolling
+                            ? 'Pick from the squad you were dealt, then tap his position'
+                            : 'Buy a player, then tap his position'
+                    }
                 />
             ) : (
                 <div className={`${CARD_FLAT} px-4 py-3`}>
@@ -133,6 +176,11 @@ export default function RoomDraft({
                         <b className="text-ink">{m.name}</b> {m.picked} of 11
                     </span>
                 ))}
+                {!ratings && (
+                    <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-amber-ink">
+                        Ratings hidden
+                    </span>
+                )}
             </div>
 
             {/* Locked means the window is within a round trip of closing, so a tap could
@@ -141,18 +189,21 @@ export default function RoomDraft({
                 you were told was too late. */}
             <div className={room.locked && !done ? 'pointer-events-none opacity-60' : ''}>
                 <BuildSurface
-                    build={build}
+                    build={withRerolls}
                     // The album has no business in a room (P3, P8): no owned-sticker tick
                     // and, more to the point, no owned-sticker discount.
                     ownedStickerIds={EMPTY}
                     budget={view.rules.budget}
                     controls={ROOM_CONTROLS}
+                    ratings={ratings}
+                    rerollKinds={rolling ? ROOM_REROLLS : undefined}
                     complete={
                         <div className={`${CARD_FLAT} p-4`}>
                             <div className={MONO_CAP}>Line-up confirmed</div>
                             <RoomNote>
-                                Eleven picked and ${you?.budgetLeft ?? 0} left over. The match
-                                starts when everybody is done.
+                                {rolling
+                                    ? 'Eleven picked. The match starts when everybody is done.'
+                                    : `Eleven picked and $${you?.budgetLeft ?? 0} left over. The match starts when everybody is done.`}
                             </RoomNote>
                         </div>
                     }

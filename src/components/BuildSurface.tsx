@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { FEATURES } from '../config';
 import type { BuildControls } from './buildControls';
+import type { RerollKind } from '../domain/draft';
 import type { Build, BuildView } from '../hooks/useBuild';
 import BuildPage from './BuildPage';
 import SetupPanel from './SetupPanel';
@@ -41,6 +42,8 @@ export default function BuildSurface({
     ownedStickerIds,
     budget,
     controls,
+    ratings,
+    rerollKinds,
     complete,
     onReset,
 }: {
@@ -53,6 +56,20 @@ export default function BuildSurface({
     budget: number;
     /** Which of the build's own controls are offered (P41). */
     controls: BuildControls;
+    /** Whether the numbers are shown: the ratings strip's figures, the line-up sheet's
+     *  column, the rating on a drawn-squad row. False in a hidden-ratings versus room
+     *  (P5). It is NOT one of the controls above: those are a fixed room-versus-app
+     *  split, and this varies from room to room.
+     *
+     *  REQUIRED, deliberately, and `npm run checks` asserts it stays that way. The three
+     *  components below default it to true so the single-player callers read unchanged, so
+     *  a room that simply forgot to pass it would show every rating and look perfectly
+     *  fine. Making the one door into them require an answer is what turns "the room hides
+     *  the numbers" from a habit into a compiler error. */
+    ratings: boolean;
+    /** Which re-rolls the drawn-squad panel offers. Omitted means all three; a room has
+     *  one, because the referee deals the next squad and takes no kind. */
+    rerollKinds?: readonly RerollKind[];
     /** What shows once all eleven slots are filled. The app's is the confirmed line-up
      *  with the Ascension picker and Start Run; a room's says the draft is done and who
      *  it is still waiting for. It is a NODE rather than a set of props because the two
@@ -119,8 +136,12 @@ export default function BuildSurface({
                                 canAnotherTeam={build.canAnotherTeam}
                                 canAnotherCup={build.canAnotherCup}
                                 openPositions={build.openPositions}
-                                swapEligibleIds={build.swapEligibleIds}
+                                swapEligibleIds={controls.swap ? build.swapEligibleIds : EMPTY_IDS}
                                 swapsLeft={state.swapsLeft}
+                                ratings={ratings}
+                                chemistry={controls.chemistry}
+                                collectibles={controls.collectibles}
+                                rerollKinds={rerollKinds}
                                 usedPersonIds={build.usedPersonIds}
                                 selectedPlayerId={selectedPlayerId}
                                 onReroll={build.reroll}
@@ -149,7 +170,7 @@ export default function BuildSurface({
                                     : undefined
                         }
                         onSwap={
-                            !isBudgetBuild && STICKERS && state.swapsLeft > 0
+                            !isBudgetBuild && STICKERS && controls.swap && state.swapsLeft > 0
                                 ? build.swap
                                 : undefined
                         }
@@ -178,12 +199,14 @@ export default function BuildSurface({
                         <BoxScore
                             formation={activeFormation}
                             filled={filled}
+                            ratings={ratings}
                             chemistry={controls.chemistry}
                         />
                         <XiTable
                             formation={activeFormation}
                             filled={filled}
                             budget={isBudgetBuild ? budget : undefined}
+                            ratings={ratings}
                             ownedStickerIds={ownedStickerIds}
                         />
                     </>
@@ -192,3 +215,6 @@ export default function BuildSurface({
         />
     );
 }
+
+/** One empty set, so a room's render does not allocate a new one every frame. */
+const EMPTY_IDS: Set<string> = new Set();

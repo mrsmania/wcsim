@@ -20,12 +20,16 @@ export function PickClock({
     remainingMs,
     ordinal,
     locked,
+    hint,
 }: {
     remainingMs: number;
     /** Which pick this is, 1-based. */
     ordinal: number;
     /** The window is close enough to its end that a pick would not arrive in time. */
     locked: boolean;
+    /** What to do with the window, which is not the same sentence in both kinds of room:
+     *  you BUY in a budget room and you are DEALT in a roll one. */
+    hint: string;
 }) {
     const secs = Math.ceil(remainingMs / 1000);
     const tone =
@@ -35,7 +39,7 @@ export function PickClock({
             <div>
                 <div className={MONO_CAP}>Pick {ordinal} of 11</div>
                 <div className="mt-0.5 text-[12px] font-semibold text-muted">
-                    {locked ? 'Too late for this one' : 'Buy a player, then tap his position'}
+                    {locked ? 'Too late for this one' : hint}
                 </div>
             </div>
             <div className={`flex items-baseline gap-1 font-mono text-4xl font-bold tabular-nums ${tone}`}>

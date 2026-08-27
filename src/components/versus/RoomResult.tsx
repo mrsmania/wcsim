@@ -39,7 +39,15 @@ function XiOf({
                     {formation.name}
                 </span>
             </div>
-            <XiTable formation={formation} filled={xiFrom(formation, ids)} ownedStickerIds={EMPTY} />
+            {/* Explicit rather than defaulted: at the whistle the numbers come back
+                whatever the room was played under (P38), and that is a decision worth
+                seeing at the call site. */}
+            <XiTable
+                formation={formation}
+                filled={xiFrom(formation, ids)}
+                ratings
+                ownedStickerIds={EMPTY}
+            />
         </div>
     );
 }
@@ -96,6 +104,9 @@ export default function RoomResult({
                     theirFormation ? playersOf(theirFormation, xiFrom(theirFormation, theirIds)) : []
                 }
                 live={false}
+                // The numbers come back at the whistle whatever the room was played
+                // under (P38), which is what `roomDisplay` says for an ended room.
+                ratings
                 onEnd={() => undefined}
             />
 

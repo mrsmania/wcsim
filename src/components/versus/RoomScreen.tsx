@@ -7,6 +7,7 @@ import {
     meIn,
     othersIn,
     playersOf,
+    roomDisplay,
     shouldReveal,
     tieOf,
     viewerTie,
@@ -168,6 +169,7 @@ export default function RoomScreen({ code }: { code: string }) {
                                 opponentName={them.name}
                                 yourXi={playersOf(myFormation, xiFrom(myFormation, view.you?.xi ?? {}))}
                                 theirXi={theirPlayers(view, them.userId)}
+                                ratings={roomDisplay(view).ratings}
                                 live={shouldReveal(mine.raw, view.at)}
                                 onEnd={room.refresh}
                             />

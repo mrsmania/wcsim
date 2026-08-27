@@ -25,6 +25,7 @@ export default function VersusMatch({
     opponentName,
     yourXi,
     theirXi,
+    ratings,
     live,
     onEnd,
 }: {
@@ -34,14 +35,19 @@ export default function VersusMatch({
     yourXi: Player[];
     /** Empty until their tie has been played, which is exactly when this is shown. */
     theirXi: Player[];
+    /** Whether the two rating chips are shown. False while a hidden-ratings room is still
+     *  playing; true at the whistle, where the numbers come back (P38). */
+    ratings: boolean;
     /** Reveal it minute by minute, rather than showing the settled result. */
     live: boolean;
     onEnd: () => void;
 }) {
     const decided = tie.decided ?? 'reg';
     const liveMax = maxMinute(decided);
-    const yourRating = yourXi.length ? xiStrength(yourXi).overall : undefined;
-    const theirRating = theirXi.length ? xiStrength(theirXi).overall : undefined;
+    // Undefined omits the chip entirely rather than blanking it, which is what
+    // `FixtureHead` already does for a side whose rating is unknown.
+    const yourRating = ratings && yourXi.length ? xiStrength(yourXi).overall : undefined;
+    const theirRating = ratings && theirXi.length ? xiStrength(theirXi).overall : undefined;
     return live ? (
         <Live
             label={label}
@@ -61,12 +67,12 @@ export default function VersusMatch({
                     label={tie.won === null ? 'Playing' : tie.won ? 'Won' : 'Lost'}
                 />
             }
-            userRating={yourRating ?? 0}
+            userRating={yourRating}
             oppName={opponentName}
             // No code and no year: the other side is a person, and a three-letter code
             // derived from a name would fly whatever country's flag it collided with.
             oppCode=""
-            oppRating={theirRating ?? 0}
+            oppRating={theirRating}
             view={liveMatchView({
                 playing: false,
                 liveMinute: liveMax,
@@ -123,10 +129,10 @@ function Live({
         <MatchdayCard
             label={label}
             tag={<ResultTag kind="next" label="Live now" />}
-            userRating={yourRating ?? 0}
+            userRating={yourRating}
             oppName={opponentName}
             oppCode=""
-            oppRating={theirRating ?? 0}
+            oppRating={theirRating}
             view={liveMatchView({
                 playing: true,
                 liveMinute,

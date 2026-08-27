@@ -17,6 +17,7 @@
 
 import type { Player } from '../data/types';
 import { datasetPlayer } from '../data/squads';
+import { STRENGTH_BANDS } from './draft';
 import type { Filled } from './draft';
 import type { Formation } from './formations';
 import type { KoDecided } from './knockout';
@@ -152,4 +153,69 @@ export function roomLine(view: RoomView): string {
         case 'ended':
             return view.championId === me?.userId ? 'you won' : 'finished';
     }
+}
+
+
+// --- What a room shows of the numbers (P5, P38, P40) -----------------------
+
+/** The presentation decisions a room makes, as data rather than as four booleans read off
+ *  `view` in four components. */
+export interface RoomDisplay {
+    /** Whether ratings appear at all: the chips on a match card, the figures in the
+     *  ratings strip, the column in the line-up sheet, the number on a squad row. */
+    ratings: boolean;
+}
+
+/**
+ * Whether this viewer sees the numbers.
+ *
+ * TWO RULES, and both are decisions rather than details.
+ *
+ * The switch exists in ROLL ROOMS ONLY (P5). A budget room computes a price straight from
+ * a rating, so hiding the rating while showing the price hides nothing - that was P14, and
+ * it is void because the two can no longer co-occur. This function therefore ignores
+ * `showRatings` for a budget room rather than trusting it; the referee already forces it
+ * true there, and two sides agreeing is worth more than one side being careful.
+ *
+ * And THE NUMBERS COME BACK AT THE WHISTLE (P38), whatever the room was played under. The
+ * result is the whole reward, since nothing else is at stake, and in a hidden-ratings room
+ * it is also the only way to learn whether you misjudged a player or the dice fell badly -
+ * which is the question the switch exists to make interesting.
+ */
+export function roomDisplay(view: RoomView): RoomDisplay {
+    if (view.rules.method === 'budget') return { ratings: true };
+    return { ratings: view.showRatings || view.status === 'ended' };
+}
+
+/** Whether the host is offered the ratings switch at all (P5). A budget room is not. */
+export const offersRatingSwitch = (method: 'roll' | 'budget'): boolean => method === 'roll';
+
+/**
+ * A rating as a word, for the strip when the numbers are hidden.
+ *
+ * The thresholds are `STRENGTH_BANDS`, which the random-XI helper has used since long
+ * before any of this: inventing a second set of boundaries for the same 60-to-99 scale
+ * would mean two answers in the codebase to "is 83 strong". Only the labels are new,
+ * because "very-strong" is a key and not something to show a player.
+ */
+const BAND_LABEL: Record<keyof typeof STRENGTH_BANDS, string> = {
+    weak: 'Modest',
+    medium: 'Fair',
+    strong: 'Strong',
+    'very-strong': 'Elite',
+};
+
+/** Weakest first, so the first band whose `max` the value is under is the answer. */
+const BANDS = (Object.keys(STRENGTH_BANDS) as (keyof typeof STRENGTH_BANDS)[]).sort(
+    (a, b) => STRENGTH_BANDS[a].min - STRENGTH_BANDS[b].min,
+);
+
+/** The band a rating falls in, or a dash for a line with nobody in it - which is what the
+ *  strip shows for a number too, so a hidden room reads the same shape as an open one. */
+export function ratingBand(value: number): string {
+    if (!value) return '\u2013';
+    for (const key of BANDS) {
+        if (value < STRENGTH_BANDS[key].max) return BAND_LABEL[key];
+    }
+    return BAND_LABEL[BANDS[BANDS.length - 1]!];
 }

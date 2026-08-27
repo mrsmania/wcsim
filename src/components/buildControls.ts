@@ -34,6 +34,10 @@ export interface BuildControls {
     /** The album's marks: the tier star on a market row and the Collectible filter. Off
      *  in a room, where the album has no business being at all (P3, P8). */
     collectibles: boolean;
+    /** Swapping a collectible into a filled slot. Off in a room for the same reason, and
+     *  it needs saying separately: the two per-run swaps come from the reducer's initial
+     *  state, so a roll room that only hid the STARS would still let a player use them. */
+    swap: boolean;
 }
 
 /** The single-player build: everything on. */
@@ -46,6 +50,7 @@ export const SOLO_CONTROLS: BuildControls = {
     movePlayer: true,
     chemistry: true,
     collectibles: true,
+    swap: true,
 };
 
 /** A room's draft: none of them. */
@@ -58,4 +63,5 @@ export const ROOM_CONTROLS: BuildControls = {
     movePlayer: false,
     chemistry: false,
     collectibles: false,
+    swap: false,
 };

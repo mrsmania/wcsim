@@ -8,12 +8,11 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: waves 0 to 5 built**; the server half is deployed (2026-08-26, roadmap item 41),
-0016 and 0017 applied, wave 4 (the room's own build state) and **wave 5 - the vertical
-slice, and the first half a player can see - both landed 2026-08-27**. Two people with a
-code play a whole game. The one decision wave 3 reopened, the career budget in P2, was
-settled on 2026-08-27 by dropping the option. **Next is wave 6, roll rooms and the ratings
-switch.**
+(P48). **Status: waves 0 to 6 built**; the server half is deployed (2026-08-26, roadmap item 41),
+0016, 0017 and **0018** applied, and waves 4, 5 and 6 all landed 2026-08-27. Two people with
+a code play a whole game, in either kind of room, with or without the numbers. The one
+decision wave 3 reopened, the career budget in P2, was settled on 2026-08-27 by dropping the
+option. **Next is wave 7, rooms of four and eight.**
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -363,7 +362,7 @@ after most of the client work was done.
 | 3 | **DONE AND DEPLOYED 2026-08-26** (`referee/`, `src/domain/displayName.ts`, `src/domain/pvpVersion.ts`, `supabase/migrations/0017_pvp_referee.sql`, `scripts/checks/referee.ts`, 53 checks). The referee itself: the router, the Postgres store, the row mapping, the sweeper, the broadcast, the JWT, and **outage recovery**; plus the display-name rule and the version endpoint. The DEPLOY half - Realtime, the gateway route, the role's password, the migration - needs the NAS and is queued as its own roadmap item, exactly as 0016 was | Two browsers see each other, and the 45-second outage, are both asserted offline (the referee's real handlers over an in-memory store); the room lifecycle was also played through the real `pgStore` as the real `pvp_referee` role on a local PostgreSQL. The deployment is now proven too (roadmap item 41): the referee answers on the live gateway with a dataset hash matching the deployed client, refuses the anon key, and the WebSocket upgrade returns 101. Three things bit that this plan did not predict, and all three are written up in `docs/nas-setup.md`: the gateway's RBAC filter is a SECOND key gate and is default-deny, the `/referee/` prefix must not be rewritten because the referee matches full paths, and **container operations wipe the docker bridge firewall rules**, which takes the whole accounts stack down and is the finding that outlives this item |
 | 4 | **DONE 2026-08-27** (`src/state/buildIo.ts`, `src/hooks/useBuild.ts`, `src/components/BuildSurface.tsx`, `scripts/checks/build.ts`, 4 checks). **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Proven both ways in the real app, driving a second build beside the first: through `detachedBuildIo` the solo build's stored state came back byte-identical and the Cup Run key survived; through `soloBuildIo` the same taps overwrote the solo XI and deleted the run |
 | 5 | **DONE 2026-08-27** (`src/state/pvp/referee.ts`, `src/hooks/useVersusRoom.ts`, `src/domain/pvpWire.ts`, `src/domain/pvpView.ts`, `src/nav/versusRoom.ts`, `src/components/versus/`, `src/components/buildControls.ts`, `scripts/checks/pvpView.ts`, 7 checks). **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Proven: two real browsers, one code, a whole game against the REAL referee handlers - name, room, join, ready, start, eleven manual picks each with nothing auto-picked, the tie watched live in both, a champion crowned, both XIs revealed, and neither player's saved game touched |
-| 6 | **Roll rooms**, and the ratings switch inside them | The check proves the room's own screens hide every rating; the switch is not offered when the room buys |
+| 6 | **DONE 2026-08-27** (`src/domain/pvpView.ts` gains `roomDisplay` / `ratingBand` / `offersRatingSwitch`; `BoxScore`, `XiTable`, `SquadPanel` and `MatchdayCard` learn to hide a number; `useSquadRoll` learns to stand down; 3 checks). **Roll rooms**, and the ratings switch inside them | Proven both ways in the real app: two browsers played a whole hidden-ratings roll room and a whole budget room, and NOT ONE rating appeared in the hidden one - empty board, three placed, or live match - with twenty-five on the result screen at the whistle. The switch is not offered for a budget room (`offersRatingSwitch`), and `roomDisplay` ignores the flag there rather than trusting it |
 | 7 | **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination | A room of 8 plays to a winner; the draw differs across repeated rooms with the same seats; and the first player out sees every remaining match |
 | 8 | **Public visibility**: the lobby list, liveness, size reduction, records, reporting, the signed-out entry | A public room is found and joined by someone never sent a code |
 | 9 | **Checks and documentation.** CLAUDE.md gains its section; the roadmap item closes | `npm run checks` and `npm run build` clean |
@@ -547,6 +546,47 @@ fix if this is ever worth closing.
   (auto-fill, Clear, Start over, the random-team shortcut) are still unconditional in
   `BuildSurface`, because a switch with no room behind it cannot be tested and would have
   been speculation. Turning them off is a prop apiece when the room screen exists.
+
+### Found while building roll rooms and the switch (wave 6)
+
+- **A DEFAULT IS NOT A GUARANTEE, and this is the whole shape of the wave.** `BoxScore`,
+  `XiTable` and `SquadPanel` all default `ratings` to true, because every single-player
+  caller must read unchanged - which means a room that simply forgot to pass it would show
+  every number and look completely fine. So the two doors a room renders them through,
+  `BuildSurface` and `VersusMatch`, take `ratings` as a REQUIRED prop, and the check reads
+  those two type lines. Making it optional again, or drawing a `RatingChip` straight into a
+  versus screen, turns the suite red. **When the safe state is the non-default one, the type
+  has to demand an answer.**
+- **The whole local roll has to stand down, not just be pointed elsewhere.** A roll room's
+  squads are dealt by the referee one at a time (P13), and `useSquadRoll` holds a scramble
+  animation, a draw-next-squad policy with four refs, and three kinds of re-roll - every one
+  of which would decide something the server owns. `squads: 'dealt'` switches all of it off
+  and the dealt squad is pushed in with `ROLL_SETTLE`, so every screen below reads exactly
+  the state a single-player draft would. Rolling locally as well would have raced the server
+  and offered a squad the referee would then refuse to take a pick from.
+- **A room's re-roll is ONE button.** The referee's instruction takes no argument saying
+  which kind, so "another team" and "another cup" have nothing to send. `SquadPanel` takes
+  the list of kinds as data rather than growing a flag, which is also where plan section 3's
+  "say so rather than shipping a button that cannot fire" will land for a one-cup room.
+- **The count comes from the referee, never the reducer.** A re-roll it refused - none left,
+  or a deal that found no squad - must not read as spent on the panel, so the draft screen
+  overrides the local `rerollsLeft` with `you.rerollsLeft`.
+- **Two things only LOOKING at it would have found**, both from one screenshot of a real
+  hidden-ratings draft: the clock still said "buy a player" in a room where you are dealt
+  one, and the drawn-squad list was underlining each player's natural position with its
+  chemistry tooltip - in a room where chemistry is off entirely (P25), so it was promising a
+  bonus the simulator never receives. Neither is visible in the code; both are obvious on
+  screen. **Screenshot the thing.**
+- **The album needed a THIRD switch, not two.** `collectibles` hides the stars and the
+  filter, but the two per-run swaps come from the reducer's initial state, so a roll room
+  that only hid the marks would still have let a player use them. `swap` is its own entry in
+  the controls list for exactly that reason - which is the argument for the list being a list
+  rather than one flag, made a second time.
+- **The band words reuse `STRENGTH_BANDS`.** The random-XI helper has had thresholds for the
+  same 60-to-99 scale since long before any of this, and inventing a second set would mean
+  two answers in the codebase to "is 83 strong". Only the labels are new, because
+  `very-strong` is a key and not something to show a player. The check asserts the whole
+  scale is covered, every band is reachable, and each word owns one contiguous run.
 
 ### Found while building the first playable room (wave 5)
 

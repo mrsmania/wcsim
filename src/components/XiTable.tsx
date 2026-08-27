@@ -21,11 +21,16 @@ export default function XiTable({
     formation,
     filled,
     budget,
+    ratings = true,
     ownedStickerIds,
 }: {
     formation: Formation;
     filled: Filled;
     budget?: number;
+    /** Whether the rating column is there at all. False in a hidden-ratings versus room
+     *  (P5): the sheet keeps position, name, flag and year, which is what a player picks
+     *  on when the numbers are off. */
+    ratings?: boolean;
     /** Player ids already in the album, so the row marker matches the player lists
      *  the XI was picked from (a star meaning two things on one screen would be worse
      *  than no marker). Optional: absent means "unknown", which reads as not owned. */
@@ -47,9 +52,15 @@ export default function XiTable({
               ownedStickerIds,
           )
         : 0;
-    const cols = isBudget
-        ? 'grid-cols-[30px_1fr_auto_auto_auto]'
-        : 'grid-cols-[30px_1fr_auto_auto]';
+    // The column set, and it is four strings rather than a template because Tailwind
+    // emits utilities from the classes it can SEE - a computed one would not exist.
+    const cols = ratings
+        ? isBudget
+            ? 'grid-cols-[30px_1fr_auto_auto_auto]'
+            : 'grid-cols-[30px_1fr_auto_auto]'
+        : isBudget
+          ? 'grid-cols-[30px_1fr_auto_auto]'
+          : 'grid-cols-[30px_1fr_auto]';
 
     return (
         <div className={`overflow-hidden ${CARD}`}>
@@ -66,7 +77,7 @@ export default function XiTable({
                         <span className="text-muted"> / ${budget}</span>
                     </span>
                 ) : (
-                    <span>Rating</span>
+                    ratings && <span>Rating</span>
                 )}
             </div>
             {ordered.map((slot) => {
@@ -102,9 +113,11 @@ export default function XiTable({
                                 '–'
                             )}
                         </span>
-                        <span className="min-w-[24px] text-right font-mono text-sm font-bold">
-                            {player ? player.elo : '–'}
-                        </span>
+                        {ratings && (
+                            <span className="min-w-[24px] text-right font-mono text-sm font-bold">
+                                {player ? player.elo : '–'}
+                            </span>
+                        )}
                         {isBudget && (
                             <span className="min-w-[26px] text-right font-mono text-[11.5px] text-muted tabular-nums">
                                 {player ? `$${priceFor(player, ownedStickerIds)}` : '–'}

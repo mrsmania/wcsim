@@ -122,9 +122,21 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
 
                 <div className={`${MONO_CAP} mt-4`}>The rules</div>
                 <RoomNote>
-                    ${view.rules.budget} each, every World Cup, {view.pickSeconds} seconds a
-                    pick. No boosts, no perks and no chemistry: eleven players against eleven.
+                    {view.rules.method === 'budget'
+                        ? `Buy an XI with $${view.rules.budget}, out of every World Cup, ${view.pickSeconds} seconds a pick.`
+                        : `Roll random squads and pick one man from each, ${view.rerolls} re-roll${
+                              view.rerolls === 1 ? '' : 's'
+                          } each, ${view.pickSeconds} seconds a pick.`}{' '}
+                    No boosts, no perks and no chemistry: eleven players against eleven.
                 </RoomNote>
+                {!view.showRatings && (
+                    <RoomNote>
+                        <span className="mt-1.5 block font-semibold text-amber-ink">
+                            Ratings are hidden in this room. You pick on the name and the year;
+                            the numbers come back at the whistle.
+                        </span>
+                    </RoomNote>
+                )}
 
                 {isHost ? (
                     <button

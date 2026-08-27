@@ -9,13 +9,14 @@ interface Props {
   label: string;
   /** Tag beside the label (result/live/up-next), or null for none. */
   tag: ReactNode;
-  /** The user's XI overall rating (shown as a chip in the header). */
-  userRating: number;
+  /** The user's XI overall rating (shown as a chip in the header). Omitted in a
+   *  hidden-ratings versus room (P5), where the chips are the numbers. */
+  userRating?: number;
   /** Opponent identity for the fixture header. */
   oppName: string;
   oppCode: string;
   oppYear?: number;
-  oppRating: number;
+  oppRating?: number;
   /** The derived score/status/feed view-model for this card. */
   view: MatchView;
   /** Which event side is the user's XI (home in the knockout, either in a group). */

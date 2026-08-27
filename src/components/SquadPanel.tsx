@@ -28,6 +28,19 @@ interface Props {
     ownedStickerIds: Set<string>;
     usedPersonIds: Set<string>;
     selectedPlayerId: string | null;
+    /** Whether each row shows its rating. False in a hidden-ratings versus room (P5). */
+    ratings?: boolean;
+    /** Whether the natural position is underlined with its chemistry note. False in a
+     *  versus room, where chemistry is off entirely (P25): the underline promises a bonus
+     *  the simulator never receives there. */
+    chemistry?: boolean;
+    /** Whether the album's marks appear: the tier star per row and the "collectibles in
+     *  this squad" call-out. False in a room, where the album has no business being. */
+    collectibles?: boolean;
+    /** Which re-rolls are offered. The single-player draft has all three; a versus room
+     *  has ONE, because the referee deals the next squad and takes no argument saying
+     *  which kind - a button that cannot fire is worse than no button (plan section 3). */
+    rerollKinds?: readonly RerollKind[];
     onReroll: (kind: RerollKind) => void;
     onSelectPlayer: (playerId: string) => void;
     /** Drop the whole XI and return to setup (rendered inside the box footer). Absent in
@@ -54,6 +67,23 @@ function Header({ squad, scrambling }: { squad: Squad; scrambling: boolean }) {
     );
 }
 
+/** The three re-roll kinds, in the order the single-player panel has always shown them. */
+const ALL_REROLLS: readonly RerollKind[] = ['team', 'cup', 'any'];
+
+const REROLL_LABEL: Record<RerollKind, string> = {
+    team: 'Another team',
+    cup: 'Another cup',
+    any: 'Roll again',
+};
+
+/** Written out per count rather than interpolated: Tailwind emits utilities from the
+ *  classes it can SEE in the source, so `grid-cols-${n}` would emit nothing. */
+const REROLL_GRID: Record<number, string> = {
+    1: 'grid grid-cols-1 gap-2',
+    2: 'grid grid-cols-2 gap-2',
+    3: 'grid grid-cols-3 gap-2',
+};
+
 function sortSquad(players: Player[]): Player[] {
     return [...players].sort(
         (a, b) =>
@@ -74,6 +104,10 @@ export default function SquadPanel({
     ownedStickerIds,
     usedPersonIds,
     selectedPlayerId,
+    ratings = true,
+    chemistry = true,
+    collectibles = true,
+    rerollKinds = ALL_REROLLS,
     onReroll,
     onSelectPlayer,
     onReset,
@@ -94,12 +128,19 @@ export default function SquadPanel({
     }
 
     const rerollDisabled = rerollsLeft <= 0;
+    // Which of the offered kinds have anything to draw from. `any` always does.
+    const CAN: Record<RerollKind, boolean> = {
+        team: canAnotherTeam,
+        cup: canAnotherCup,
+        any: true,
+    };
 
     return (
         <div className={`flex flex-col gap-3 ${CARD} pt-3`}>
             <Header squad={squad} scrambling={false} />
 
             {FEATURES.stickerAlbum &&
+                collectibles &&
                 (() => {
                     const colls = squad.players.filter((p) => tierOf(p));
                     if (colls.length === 0) return null;
@@ -125,7 +166,7 @@ export default function SquadPanel({
                 {sortSquad(squad.players).map((p) => {
                     const selectable = isSelectable(p, openPositions, usedPersonIds);
                     const used = usedPersonIds.has(p.personId);
-                    const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
+                    const tier = FEATURES.stickerAlbum && collectibles ? tierOf(p) : null;
                     // A collectible that can swap into a filled slot (App computed the
                     // occupant rules). This is why a used person's better version is
                     // still pickable - to upgrade themselves in place.
@@ -154,7 +195,7 @@ export default function SquadPanel({
                                     {p.name}
                                 </span>
                                 {tier && <CollectibleStar tier={tier} owned={ownedStickerIds.has(p.id)} />}
-                                {FEATURES.chemistry ? (
+                                {FEATURES.chemistry && chemistry ? (
                                     <Tooltip
                                         className="shrink-0 text-[11px] text-muted"
                                         label="Underlined = natural position; only placing the player there earns positional chemistry"
@@ -171,9 +212,11 @@ export default function SquadPanel({
                                         {formatPositions(p.positions)}
                                     </span>
                                 )}
-                                <span className="w-7 shrink-0 text-right font-mono text-[15px] font-extrabold">
-                                    {p.elo}
-                                </span>
+                                {ratings && (
+                                    <span className="w-7 shrink-0 text-right font-mono text-[15px] font-extrabold">
+                                        {p.elo}
+                                    </span>
+                                )}
                             </button>
                         </li>
                     );
@@ -182,27 +225,20 @@ export default function SquadPanel({
 
             {/* Re-roll controls (one row of three), the count, then Start over */}
             <div className="px-3 pb-3.5">
-                <div className="grid grid-cols-3 gap-2">
-                    <RerollButton
-                        label="Another team"
-                        disabled={rerollDisabled || !canAnotherTeam}
-                        onClick={() => onReroll('team')}
-                    />
-                    <RerollButton
-                        label="Another cup"
-                        disabled={rerollDisabled || !canAnotherCup}
-                        onClick={() => onReroll('cup')}
-                    />
-                    <RerollButton
-                        label="Roll again"
-                        primary
-                        disabled={rerollDisabled}
-                        onClick={() => onReroll('any')}
-                    />
+                <div className={REROLL_GRID[rerollKinds.length] ?? 'grid grid-cols-3 gap-2'}>
+                    {rerollKinds.map((kind) => (
+                        <RerollButton
+                            key={kind}
+                            label={REROLL_LABEL[kind]}
+                            primary={kind === 'any'}
+                            disabled={rerollDisabled || !CAN[kind]}
+                            onClick={() => onReroll(kind)}
+                        />
+                    ))}
                 </div>
                 <div className="mt-2 text-center text-[11px] text-muted">
                     {rerollsLeft} re-roll{rerollsLeft === 1 ? '' : 's'} left
-                    {FEATURES.stickerAlbum && (
+                    {FEATURES.stickerAlbum && collectibles && (
                         <>
                             {' '}
                             &middot; {swapsLeft} collectible swap{swapsLeft === 1 ? '' : 's'} left

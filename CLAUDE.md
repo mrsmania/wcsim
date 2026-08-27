@@ -2723,12 +2723,42 @@ a draft or a reveal is live. It is also why `REVEAL_JOIN_MS` is four seconds and
 a room learns about a kick-off on its next read, and a client that refuses to reveal
 anything it did not see stamped shows a result nobody watched.
 
-**Wave 5 is ONE KIND OF ROOM**: private, two players, buy from a budget, twenty seconds a
-pick. The referee has taken every other combination since wave 3 - public rooms, four and
-eight players, rolled squads, hidden ratings, a thirty-second clock - and each is a later
-wave with a screen to answer for it. **P41's per-pick Skip is not built**: it is meant to
-replace auto-fill, and the referee has no instruction for it, so the clock is the only way
-a window ends early.
+**TWO KINDS OF ROOM** (wave 6): buy an XI from a shared budget, or roll random squads and
+take one man from each. Both private, two players, twenty seconds a pick. The referee has
+taken every other combination since wave 3 - public rooms, four and eight players, a
+thirty-second clock - and each is a later wave with a screen to answer for it. **P41's
+per-pick Skip is not built**, and neither is P42's move: both need an instruction the
+referee does not have, so the clock is the only way a window ends early.
+
+**A ROLL ROOM'S SQUADS ARE DEALT, AND THE LOCAL ROLL STANDS DOWN COMPLETELY.** The referee
+hands over one squad at a time (P13 - pre-generating the sequence would let a player read
+every future squad, re-roll outcomes included, off their own row), so `useSquadRoll` takes
+`dealt: true` and switches off its scramble, its draw-next-squad policy and its three kinds
+of re-roll. What arrives is pushed onto the board with `ROLL_SETTLE`, so every screen below
+reads exactly the state a single-player draft would. Two consequences worth knowing: **a
+room's re-roll is ONE button**, because the referee's instruction takes no argument saying
+which kind (`SquadPanel` takes the kinds as data); and **the count comes from
+`you.rerollsLeft`, never the reducer**, or a re-roll the referee refused would read as spent.
+
+**HIDING THE RATINGS IS ENFORCED BY THE TYPE, NOT BY A HABIT** (P5, P38, P40).
+`domain/pvpView.ts` owns the rules: `roomDisplay` says whether this viewer sees numbers
+(hidden only in a roll room, and **the numbers always come back at the whistle**),
+`offersRatingSwitch` says the host is not offered it for a budget room (a price computed
+from a rating hides nothing - the void P14), and `ratingBand` turns a figure into a word
+using **`STRENGTH_BANDS`**, because a second set of boundaries for the same scale would mean
+two answers to "is 83 strong".
+The enforcement is the part to keep: `BoxScore`, `XiTable` and `SquadPanel` all DEFAULT
+`ratings` to true so the single-player callers read unchanged, which means a room that forgot
+to pass it would show everything and look fine. So `BuildSurface` and `VersusMatch` require
+it, and `npm run checks` reads those two type lines and refuses a `RatingChip` anywhere under
+`components/versus/`. It is a **house rule** and the copy says so: `/squads` exists to show
+ratings, so a second tab defeats it.
+
+**The album needs THREE switches in a room, not two.** `collectibles` hides the stars and the
+Collectible filter; `swap` is its own entry because the two per-run swaps come from the
+reducer's initial state, so a room that only hid the marks would still let a player use them;
+and `chemistry` covers the drawn-squad list's underline as well as the card, since the
+underline promises a bonus a room's match never receives.
 
 **Three rules in the referee are load-bearing and each was a bug first:**
 

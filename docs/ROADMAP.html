@@ -350,49 +350,313 @@
 
 <details class="item">
   <summary>
-    <span class="num">42</span>
-    <span class="title">Apply migration 0018: the column that broke every versus room
-      <span class="sub">ONE STATEMENT, and it needs a shell on the NAS rather than a rebuild.
-      The live database still has <code>pvp_rooms.budget_source</code>, which 0017 says to
-      drop and which the match server stopped filling in, so <b>every attempt to open a
-      versus room answered HTTP 500</b>. Reproduced and fixed against a copy of the
-      server&#8217;s exact state. Nothing else in the game is affected.</span>
+    <span class="num">18</span>
+    <span class="title">Player versus player, for signed-in accounts
+      <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
+      against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
+      REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED AND DEPLOYED 2026-08-26</b>: the rules,
+      the referee's logic, the tables, the referee itself, and now its deploy (item 41,
+      closed) - <b>the server half is live and verified</b>. <b>WAVES 4, 5 AND 6 SHIPPED
+      2026-08-27, AND VERSUS IS LIVE</b>: two people with a six-character code either buy an
+      XI from a shared budget or roll random squads, draft against a clock, and play a match -
+      and the host can hide every rating, which turns the draft into a genuine judgement.
+      Neither player touches the other&#8217;s saved game. <b>Next is WAVE 7</b>, rooms of
+      four and eight with a random bracket draw. One decision is settled: no part of a career
+      reaches a room.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>What to run</strong>, from the stack folder on the NAS:</p>
-    <p><code>docker compose exec -T db psql -U postgres -f - &lt; supabase/migrations/0018_drop_budget_source_for_real.sql</code>
-    - or, since it is one statement,
-    <code>docker compose exec -T db psql -U postgres -c 'alter table pvp_rooms drop column if exists budget_source;'</code>.
-    <b>No container rebuild is needed for this fix</b>: the running image already omits the
-    column from its insert, which is precisely why the insert fails.</p>
-    <p><strong>How it happened.</strong> 0016 creates the column <code>not null</code> with a
-    check and <b>no default</b>. When the career-budget option was deleted (P2) the referee
-    stopped supplying it and 0017 gained the matching <code>drop column</code>. Every other
-    part of 0017 is applied and verified on the live server; that one statement is not, so
-    the room insert had nothing to put in a column that demands a value.</p>
-    <p><strong>Why nothing caught it, which is the part worth keeping.</strong> The deploy
-    runbook&#8217;s three verification checks are all database-free - a version endpoint that
-    reads a bundled constant, and two refusals that happen before Postgres is touched - so
-    the deploy passed and <b>the first database write this feature ever made was made by a
-    player in a browser</b>. The version handshake could not have caught it either: it
-    compares the protocol number and the squad-data hash, and the commit that removed the
-    column from the insert moved neither. Both gaps are closed:
-    <code>scripts/deploy-referee.sh --verify</code> now mints a session on the box, creates a
-    real room and deletes it; and a 500 from the referee now carries its error class and the
-    column involved, so the same fault would have read
-    <code>23502 column=budget_source table=pvp_rooms</code> on the page instead of being
-    visible only in a container log.</p>
-    <p><strong>Verified, not assumed.</strong> All seventeen migrations were applied to a
-    real PostgreSQL here, then 0017 re-applied with that one statement removed to reproduce
-    the server exactly: the referee&#8217;s own create handler raised the identical error from
-    the live log, and applying 0018 made the same call answer 201. 0018 is
-    <code>if exists</code>, so it is a no-op on any server that applied 0017 whole.</p>
-    <p class="next"><strong>Next step:</strong> run it, open a room, and this item closes.
-    Then take the referee rebuild at leisure, for the better 500 message.</p>
-    <p class="files"><a class="dl" href="../supabase/migrations/0018_drop_budget_source_for_real.sql" target="_blank" rel="noopener">supabase/migrations/0018_drop_budget_source_for_real.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
+    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25/26</strong>
+    by the owner, then <strong>put through three independent reviews</strong> (game design and
+    fairness, server architecture, product and mobile) whose findings were <b>verified by hand
+    against the code and by measurement</b>. That review changed real things. The plan is
+    <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener"><code>docs/pvp-plan.md</code></a>;
+    <b>read it before writing any code here</b>.</p>
+    <p><strong>What it is.</strong> Two to eight signed-in players, all present at once, draft a
+    team on the spot and play a knockout. A room is <b>public</b> (listed in a lobby) or
+    <b>private</b> (code only). <b>The host sets the rules and those rules are the feature</b>:
+    roll or budget, how much money, which World Cups, <b>how long a pick gets</b> (20 or 30
+    seconds), and, in a roll room, whether ratings are visible. <b>Twenty or thirty seconds a
+    pick</b>, each player on their own clock; run out and a player is placed for you, which is
+    what makes a room unstallable. Nothing is at stake but the record.</p>
+    <p><strong>What the review changed.</strong> <b>Chemistry is now OFF in a room</b>: measured,
+    the same eleven players with the full bonus beat themselves without it <b>73.2%</b> of the
+    time, because it is added to attack and defence alike and both are what the sim reads. In
+    single-player that is a nudge helping a patchwork XI close on a real national side; in a room
+    both sides are patchwork, so it became the whole game, and a pure knowledge check at that
+    (400 naively auto-filled XIs never once reached the cap). <b>A room gets its own build
+    state</b>, which is a requirement rather than a preference: the app holds one game state and
+    every path that starts a build clears the active run, so a room entering through the same
+    door would have <b>silently deleted a live Cup Run</b>, and while signed in every single tap
+    writes to the server, where one failure raises the blocking unreachable screen with the pick
+    clock still running. <b>The referee holds no timers</b> (a stored deadline and a stateless
+    sweeper, which is restart-correct by construction), and it must <b>give back the time an
+    outage ate</b> or a thirty-second container restart auto-picks for every player in every
+    drafting room at once. And the build order is now a <b>vertical slice</b>: a private
+    two-player room playable end to end at wave 5, instead of the first complete game arriving at
+    wave 7 behind an optional polish wave.</p>
+    <p><strong>One thing accepted with its numbers, by decision.</strong> The sim reads two
+    numbers a side, so the budget draft has a closed-form best answer: defence averages over
+    fewer slots, so it is cheaper to lift, and only two formation families field four defensive
+    slots. Measured at $110, <b>a stacked 3-4-3 beats an even 4-3-3 56.6%</b> - and when both
+    finalists have found it the match measures <b>0.62 goals and 54.4% decided on penalties</b>,
+    against 2.35 goals and 16.9% for two even sides. That empties the live goal feed, which is the
+    mode&#8217;s flagship screen. <b>Kept as skill rather than designed against</b>; turning
+    chemistry off sharpens it, since chemistry was the one axis competing with it. The cheapest
+    reversal, a minimum spend per line, is one rule in wave 0 and nowhere else.</p>
+    <p><strong>Two corrections to this plan&#8217;s own earlier text</strong>, both found by
+    review and confirmed in the code: the knockout resolver was said to need lifting out of the
+    Cup Run and <b>is already exported and shared</b>, so that wave-0 item is gone (what is
+    actually needed is a two-sided team builder, since the existing one hard-codes &#8220;Your
+    XI&#8221; and cannot describe two opponents); and a roll deal was said to <b>guarantee</b> a
+    squad that can fill an open slot, where the code only <b>prefers</b> one and falls back to the
+    whole pool.</p>
+    <p><strong>A single-player defect found on the way</strong>, unrelated to PvP and worth its own
+    item: <b>the build page and a Cup Run do not agree on chemistry</b>. The build page scores
+    &#8220;in position&#8221; against a player&#8217;s real primary role; the run maps each
+    player&#8217;s slot onto him, so the category is free once a run starts. Measured over 400
+    XIs they disagree in <b>358</b>, always with the run exactly one higher. The game shows one
+    number while you draft and uses another in the match.</p>
+    <p><strong>Two late additions, 2026-08-26.</strong> In a room of more than two,
+    <b>every draft finishes before anything is paired, and then the whole bracket is drawn at
+    random in one go</b>. Two things come free: nobody knows who they face while drafting, so
+    no one can build to counter a particular opponent; and the draw cannot be arranged, where
+    pairing by join order would let two people sharing a private code agree who joins first and
+    put themselves on opposite sides of the tree. The accepted cost is a wait, up to about four
+    minutes for the quickest drafter in an eight-player room, which is now where the draw
+    ceremony goes. And a player <b>readies up</b>: pick a formation and style, press Ready. The
+    plan previously had no gate at all between choosing a shape and the host pressing Start, so
+    a host could start on somebody who had chosen nothing and the plan never said what they got.
+    Ready is a signal rather than a lock - the host may start a full room regardless, and anyone
+    not ready gets a default - so nobody can hold a room by wandering off.</p>
+    <p><strong>Wave 0 shipped 2026-08-26:</strong> <code>src/domain/pvp.ts</code>, the rules a
+    room is judged by as pure functions, with <b>23 checks</b> in
+    <code>scripts/checks/pvp.ts</code> (the suite is 202, from 179). Is this XI legal, what did
+    it cost, was he dealt, what the clock does when it expires, and a two-sided match side.
+    <b>Every check was mutation-tested</b>, and two of the six mutations are worth recording:
+    dropping the budget auto-pick&#8217;s per-slot reserve takes 1,000 auto-completed XIs from
+    1,000 legal to <b>0</b>, and resolving a submitted player through <code>basePlayer</code>
+    instead of the new <code>datasetPlayer</code> lets an invented player through at whatever
+    rating the client claims. <b>Nothing imports it yet</b> - the screens and the server are
+    waves 4 to 8 - so CLAUDE.md carries a note stopping a dead-code pass from deleting it.</p>
+    <p><strong>Wave 1 shipped 2026-08-26:</strong> the referee&#8217;s logic, offline.
+    <code>src/domain/pvpRoom.ts</code> is the room as a state machine with <b>no timers at
+    all</b> - a deadline is stored data, evaluated when a pick arrives and by one stateless
+    sweeper - so it is restart-correct by construction, and a twenty-second clock is tested in
+    microseconds by advancing a number. <code>src/domain/pvpAuth.ts</code> is the caller rule.
+    25 more checks; the suite is <b>237</b>.</p>
+    <p><strong>Three things the build changed or found.</strong> <b>P45 was written wrong</b>:
+    "shift every window forward by the outage" is not the rule, because a 45-second restart on
+    a 20-second clock leaves every window still expired and the first sweep auto-picks for
+    everybody regardless. What is owed is the REMAINDER. <b>A roll room can genuinely stall</b>:
+    the auto-pick fills from the last squad dealt, and 345 of the (squad, position) pairs in the
+    dataset are empty - most 1970s squads list no wide midfielder - so the dealt squad routinely
+    has nobody for the slots left, and the window reopens onto the same squad for ever. Mutation
+    testing found it; nothing in the design said it was there. And <b>whatever the fallback
+    reaches for must be recorded as dealt</b>, or it builds an XI the referee itself then
+    refuses.</p>
+    <p><strong>Wave 2 shipped 2026-08-26, and the migration is APPLIED</strong> (it was
+    queued as item 39, which is closed - see the shipped history for what the apply itself
+    turned up).
+    <a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener"><code>0016_pvp_rooms.sql</code></a>: seven tables, fourteen policies,
+    <code>pvp_records</code> as a <b>view</b> rather than a counter, a display name on
+    accounts, and a <code>pvp_referee</code> role that is the only thing allowed to write any
+    of it and can reach nothing else. Nothing reads or writes those tables yet - the referee
+    is wave 3 - so no player-visible behaviour changed.</p>
+    <p><strong>Three things wave 2 settled while it was being written.</strong> The rollback
+    block was WRONG until it was parsed (<code>drop role</code> fails while the role still
+    holds a grant, so it needed a <code>drop owned by</code>). <code>bypassrls</code> would
+    have defeated the whole point of a narrow referee role, being global - it would hand it
+    every account's album and career. And the view needs <code>security_invoker</code> or it
+    leaks every account's record to anybody signed in, which makes PostgreSQL 15 a stated
+    requirement. <b>A fourth was settled by the apply rather than the writing:</b> the
+    referee <b>owns nothing</b>. Ownership was the first design, because a table's owner
+    bypasses its own row-level security - but migrations here run as <code>postgres</code>,
+    which on this server is not a superuser and cannot hand a table to a role it is not a
+    member of, and the obvious repair crashed the database. It has seven <code>for all</code>
+    policies naming it instead.</p>
+    <p><strong>Wave 3 shipped 2026-08-26: the referee exists.</strong>
+    <code>referee/</code> is a plain node service in ten small files - the router, the
+    Postgres store, the row mapping, the sweeper, the broadcast, the JWT, the view, the
+    config, the entry point and the outage rule - that <b>bundles the game&#8217;s own domain
+    code rather than reimplementing any of it</b>. Every command loads a room, applies ONE
+    pure transition and saves it under a row lock, so no handler reaches in and edits a
+    field: if a rule is missing it belongs in the state machine, where it can be checked
+    without a server. A pick carries a player ID, never a player, so a submitted rating
+    cannot decide a price. Wave 3 also adds the two rules both sides need: the display-name
+    normalisation (P22) and the version handshake (P35). 53 new checks - the suite is
+    <b>293</b>, from 240 - and the whole referee is driven by them with no Postgres and no
+    socket, because the in-memory store they use keeps rooms AS ROWS, so the table mapping is
+    exercised by every check rather than by one round trip. Five mutations verified red.</p>
+    <p><strong>The rehearsal found a hole in wave 2, and it would have broken every
+    room.</strong> 0016 grants the referee three columns of <code>profiles</code> and adds no
+    POLICY - and <code>profiles</code> has row-level security on, with one policy naming
+    <code>authenticated</code>. So the referee could read no rows at all: every
+    <code>select display_name</code> came back empty, which it reads as &#8220;this account
+    has not chosen a name&#8221;, and it refuses to open or join a room. Every room, for
+    everybody. The rule it breaks is written down one screen above the omission, in 0016&#8217;s
+    own header. Reading did not find it; applying both files to a real PostgreSQL and playing
+    a whole room through the real referee as the real <code>pvp_referee</code> role did.</p>
+    <p><strong>And one bug that would have stopped the pick clock dead.</strong> P45 says give
+    back the time an outage ate, and the sweeper knows when it last swept, so the obvious shape
+    is to hand back the remainder every sweep. That freezes the elapsed time at its previous
+    value and freezes it there again next time: <b>no window ever expires</b>, the auto-pick
+    never fires, and a room with an absent player waits for ever - the exact stall the whole
+    no-timers design exists to prevent, reintroduced by the mechanism meant to be fair about
+    it. Recovery is unconditional at BOOT (which is what P45 actually says) and conditional
+    during a sweep. The check that matters is the ordinary case, because a room whose clock has
+    stopped looks perfectly healthy until somebody stops picking.</p>
+    <p><strong>Three things the state machine was not recording</strong>, none visible until
+    something had to persist a room: a pick&#8217;s ordinal, timing and automatic flag (so the
+    idempotency key and the ladder&#8217;s <code>loser_auto_picks</code> had nothing to write);
+    the host&#8217;s <b>re-roll allowance</b>, which nothing read, so a room set to zero
+    re-rolls offered unlimited ones; and the ratings switch, which had nowhere to sit.
+    <b>Migration 0017</b> carries the columns for the first, the referee&#8217;s heartbeat, the
+    missing policy, and a <code>set_display_name</code> function - because 0016 added the two
+    name columns and their unique index and <b>nothing on either side could write them</b>.
+    Written, parse-checked, rehearsed, rolled back and re-applied; queued as item 41.</p>
+    <p><strong>The one decision wave 3 reopened is settled, by deletion (2026-08-27).</strong>
+    P2 let a host price a room off each player&#8217;s own career transfer budget, and P34
+    forbids the referee any privilege on <code>career</code> - and snapshotting the figure at
+    the start does not dodge that, because the snapshot still has to be READ by the thing that
+    may not read it. Two repairs existed and both were rejected: <b>the option is gone</b>.
+    Everyone in a room has the same money, chosen by the host. It was the weakest setting in
+    the room anyway - $160 beats $70 <b>85.7%</b> of the time at the optimum, so a
+    career-budget room was decided in the lobby - and deleting it answers the question the way
+    the One-off run was answered. P8 (&#8220;your career decides nothing here&#8221;) is now
+    absolute rather than &#8220;by default&#8221;, and the <code>budget_source</code> column
+    goes with it in 0017. Reopening it means reopening P34, which is the sentence to read
+    first: the referee can be trusted with un-RLS&#8217;d input from the internet precisely
+    because of the length of the list of things it cannot reach.</p>
+    <p><strong>Wave 4 shipped 2026-08-27: the build is an instantiable unit.</strong>
+    Building an XI used to BE the app&#8217;s main screen - the reducer, the roll
+    animation, the market&#8217;s held card, the move gesture and eleven handlers, all in
+    one 867-line file - so there could only ever be one of it. It is now a hook plus a
+    component that draw a build from whatever they are handed, and the app instantiates
+    one. <b>Nothing a player can see changed</b>; the stylesheet came out byte-identical,
+    which is the cheap proof that the screen moved rather than being rewritten.</p>
+    <p><strong>The point was never tidiness, it was two writes.</strong> A build mirrors
+    itself to storage on every single tap, and every path that starts a fresh XI drops
+    your active Cup Run. Those two are now handed IN, so a room is given a version that
+    writes nothing at all - and both halves were reproduced as real failures before being
+    fixed. Driving a second build with the app&#8217;s own writes, three picks in it
+    overwrote the solo team (one player at 4-3-3 became three at 3-5-2) and <b>deleted the
+    live Cup Run outright</b>. With the detached version the same taps left the solo build
+    byte-identical and the run untouched. Signed in, that first write is also a server
+    round trip per tap, where one failure raises the blocking unreachable screen full
+    screen with a pick clock running.</p>
+    <p><strong>Two things learned that shape wave 5.</strong> <b>A no-op cannot be told
+    from a mis-wire by testing it</b>: the detached writer writes nothing because it has
+    nothing to write to, so a copy-paste handing it the real store would pass every
+    behavioural check there is - the check that catches it reads the export line instead.
+    And <b>the build must not import the store, the router, the career or the album at
+    all</b>, since a detached writer can only intercept the two writes it was given; that
+    rule is asserted over both files, with the app itself as the vacuity guard. Four new
+    checks, all mutation-tested; the suite is <b>298</b>, from 293.</p>
+    <p><strong>Wave 5 shipped 2026-08-27, and it is the first half anybody can
+    see.</strong> Make a room, get six characters, send them to somebody. You both pick a
+    formation, press Ready, and then buy an eleven out of the same money against a
+    twenty-second clock per pick, watching each other&#8217;s progress but not each
+    other&#8217;s team. Then the two teams play, live and minute by minute, and at the
+    whistle both XIs are laid out side by side with the ratings shown - which is the whole
+    reward, because nothing else is at stake. No career, no perks, no boosts, no album and
+    <b>no chemistry</b>: eleven players against eleven players.</p>
+    <p><strong>It was proven the only way that counts: two real browsers playing a whole
+    game.</strong> A throwaway harness ran the referee&#8217;s actual code, stubbed the
+    account server, and drove two Chromium windows through the real production build -
+    name, room, join, ready, start, eleven hand-made picks each with nothing filled in by
+    the clock, the match watched live in both windows, a champion crowned, both teams
+    revealed, and <b>neither player&#8217;s saved game touched</b>. That harness needs no
+    NAS and can be re-run in any session, which is a direct dividend of wave 3 having made
+    the referee pure over a store and a clock.</p>
+    <p><strong>Three things the room had to be stopped from doing, and one of them was a
+    lie rather than clutter.</strong> The chemistry readout was still on the draft screen,
+    promising a team four points better than the one the match would actually be played
+    with - chemistry is off in a room by decision, and that has to mean the number too.
+    Half a dozen build controls had to go with it, each broken for its own reason: auto-fill
+    would make ten picks in one tap and skip the clock; Start over walks you out of the
+    room; the remove button undoes itself, because the referee holds the team and has no
+    way to take a player back out. And the album is out entirely - no discount, no stars -
+    since a collection earned somewhere else must not buy a better team here.</p>
+    <p><strong>And one thing broke the moment it was live, which is the honest part of the
+    story.</strong> Versus showed &#8220;Versus is updating&#8221; and nothing else. The
+    match server was running perfectly; the page was knocking on the wrong door. The
+    address it is given already includes the path the server sits on, and the page was
+    adding that path a second time, so every single request went nowhere and the page read
+    that as a server that was down. Fixed, and now guarded from both ends: the checks read
+    the addresses the page builds AND the line in the deployment notes that sets the
+    address, so changing one without the other fails the suite. The deeper lesson is about
+    the test rather than the bug - the end-to-end harness had served the match server at
+    the root of its own address, so the doubled path cancelled out and every assertion
+    passed. <b>A harness that does not reproduce the deployment&#8217;s shape is not testing
+    the deployment.</b></p>
+    <p><strong>The second thing that broke was the error message itself.</strong> Opening a
+    room said &#8220;the referee would not open a room just now&#8221;, which is what a
+    wrong sign-in secret, a name the server cannot read, a full room and a database error
+    all look like - so it told nobody anything, least of all the one person who could fix
+    it. The server had been sending its own reason all along and the page was discarding it.
+    Every message now says what happened in words, prints the server&#8217;s own code
+    underneath it for a bug report, and marks the ones that are a server setting rather than
+    something to retry. The checks hold that list against the refusals the server can
+    actually send, so a new one without a sentence fails before it ships. <b>A page that
+    cannot repeat what the server told it makes every server-side problem invisible.</b></p>
+    <p><strong>Then it failed on the server, and the deploy checks could not have caught
+    it.</strong> Opening a room returned a server-side error. The three checks the deployment
+    runbook uses all pass without ever writing to the database - so the deploy was called
+    verified and <b>the first database write this feature ever made was made by a player in a
+    browser</b>. Two things came out of it. The server now names what went wrong in its reply
+    (the error class and which column or constraint, never the raw message, which can carry
+    private values), so the same problem is visible from the page next time instead of only
+    in a container log. And the deploy check now creates a real room and deletes it again,
+    because <b>a version endpoint answering is not a working server</b>. The code and the
+    database schema were also cleared as suspects properly rather than by reading: all
+    seventeen migrations were applied to a real database here and the whole sequence replayed
+    through the real server code under the real restricted account, and every step passed.</p>
+    <p><strong>One thing to know before touching it.</strong> A private room is invisible
+    until you take a seat: asking about one you are not in is answered with "no such room"
+    rather than "not allowed", so a code cannot be fished for. That means arriving with a
+    code is always refused first, and the answer to that refusal is a Join button rather
+    than an error - which the first version of the screen got wrong.</p>
+    <p><strong>Wave 6 shipped 2026-08-27: the other kind of room, and the switch that
+    makes the draft a judgement.</strong> A host now chooses how you get your players. <b>Buy
+    them</b> and the skill is knowing what a player is worth. <b>Roll for them</b> and the
+    server deals you one random squad at a time, you take one man from each, and the skill is
+    knowing who to take - with as many re-rolls as the host allowed, spent by asking the
+    server rather than by rolling locally, so nobody can shop a squad the referee never dealt.
+    And in a roll room the host can <b>hide the ratings</b>: you pick on the name, the country
+    and the year, the strength readout shows a word instead of a number, and <b>every number
+    comes back at the whistle</b> - which is the only way to learn whether you misjudged a
+    player or the dice fell badly, and the question the switch exists to make interesting.</p>
+    <p><strong>The switch is honest about what it is.</strong> It is a house rule, and the
+    copy says so: the game ships a Squads tab whose whole purpose is to show ratings, so a
+    second browser tab defeats it completely. What it does do is hide every number on the
+    room&#8217;s own screens, and that is now a structural guarantee rather than a habit. The
+    three shared panels all default to showing ratings, because the single-player game must
+    read unchanged - which means a room that simply forgot to ask would show everything and
+    look perfectly fine. So the two doors a room draws them through <b>require</b> an answer,
+    and the checks hold that: make it optional again, or draw a rating chip straight into a
+    versus screen, and the suite goes red.</p>
+    <p><strong>Two things only looking at it would have found.</strong> The clock still said
+    "buy a player" in a room where you are dealt one. And the drawn-squad list was underlining
+    each player&#8217;s natural position with its chemistry note - in a room where chemistry is
+    switched off entirely, so it was promising a bonus the match would never receive. Both
+    caught from a screenshot of a real hidden-ratings draft, not from reading the code.</p>
+    <p><strong>Verified the same way as wave 5, twice over</strong>: two browsers played a
+    whole hidden-ratings roll room AND a whole budget room end to end - dealt squads, a
+    re-roll that went through the server, eleven picks each, the match watched live in both
+    windows, a champion, both teams revealed. <b>Not one rating appeared anywhere in the
+    hidden room</b> - not on an empty board, not with three players placed, not during the
+    live match - and twenty-five of them were on the result screen at the whistle.</p>
+    <p class="next"><strong>Next step:</strong> wave 7 - rooms of four and eight. Everybody
+    drafts first and then the whole bracket is drawn at random in one go, so nobody knows who
+    they are facing while they pick and two people sharing a code cannot arrange the tree
+    between them. It needs the wait-for-everyone barrier, the draw as something to watch, the
+    bracket screen, and what a knocked-out player sees while the rest plays on. Still open from
+    wave 5, for whichever wave next touches the server: a per-pick <b>Skip</b>, and <b>moving a
+    player already placed</b>.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a>, <a class="dl" href="../src/state/pvp/referee.ts" target="_blank" rel="noopener">src/state/pvp/referee.ts</a>, <a class="dl" href="../src/hooks/useVersusRoom.ts" target="_blank" rel="noopener">src/hooks/useVersusRoom.ts</a>, <a class="dl" href="../src/domain/pvpView.ts" target="_blank" rel="noopener">src/domain/pvpView.ts</a>, <a class="dl" href="../src/components/versus/" target="_blank" rel="noopener">src/components/versus/</a></p>
   </div>
 </details>
 
@@ -671,156 +935,6 @@
   </div>
 </details>
 
-<details class="item">
-  <summary>
-    <span class="num">41</span>
-    <span class="title">Deploy the referee, and apply migration 0017
-      <span class="sub"><b>SHIPPED 2026-08-26, all six steps.</b> Migration applied,
-      referee built and running on the NAS, Realtime back in the stack, WebSocket upgrade
-      confirmed at 101, and <code>VITE_REFEREE_URL</code> set and deployed - the built
-      bundle carries it, so <b>Versus is live for signed-in players</b>. The deploy also
-      turned up an operational fault that has nothing to do with versus: <b>container
-      operations wipe the docker bridge firewall rules</b>, which silently takes the whole
-      accounts stack down.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>The house rule (CLAUDE.md, 2026-08-24): a migration you write and cannot apply, you
-    QUEUE. This is that item for wave 3 of item 18, and it is the worked example from item 39
-    repeated - which is the point of having done it that way once.</p>
-
-    <p><strong>DONE 2026-08-26, by a session with HTTPS reach to the server but no shell on
-    the box.</strong> The split turned out to be almost exactly the one the queueing rule
-    anticipates, so the item is now half closed rather than open:</p>
-    <ul>
-      <li><b>Step 1's migration is applied and verified against the real PostgreSQL 17.6.</b>
-      It was rehearsed first inside a rolled-back transaction, and <b>the rehearsal earned
-      its keep</b>: reading the resulting ACL showed that <code>revoke ... from public</code>
-      does <em>not</em> remove the Supabase image's explicit grant to <code>anon</code>, so
-      <code>set_display_name</code> would have shipped as the one function in the database
-      <code>anon</code> could execute. Not exploitable - the body refuses a null
-      <code>auth.uid()</code> with PT401 - but it is precisely the hole 0008 exists to close,
-      and every other function there reads <code>authenticated | service_role</code> and
-      nothing else. Corrected to <code>from public, anon</code> <em>before</em> the apply,
-      which is the one moment an append-only migration can still be edited.</li>
-      <li><b>Verification steps 1, 2, 4, 5, 6 and 7 pass</b>, including the half of step 7
-      that matters most: connected as the referee role the column grants on
-      <code>profiles</code> are exactly <code>id, display_name, name_key</code> - no
-      <code>email</code>. <b>Step 3 cannot be run: the server holds one profile</b>, exactly
-      as the migration header predicted, so its stated fallback was used and the unique
-      partial index is confirmed. Step 8 is a browser check and was not driven.</li>
-      <li><b>Step 1's password was deliberately NOT set</b>, against the runbook's own
-      grouping. A login-capable role with no container using it is surface for nothing, and
-      the credential must be hand-carried to the box regardless, so it belongs in the same
-      sitting as steps 2 to 4. Postgres publishes no port in the compose file, so this is a
-      sequencing choice rather than a risk finding.</li>
-      <li><b>Steps 2 and 4 are staged, not applied.</b> Realtime is restored into the three
-      files <b>verbatim from the <code>.bak</code> originals</b> (verified byte-identical),
-      with a <code>referee</code> service, cluster and route added beside them; all three
-      edits are purely additive. They have <b>never been parsed by a YAML reader or seen by
-      envoy</b>, so they are a draft to read rather than a tested artifact.</li>
-    </ul>
-
-    <p><strong>THE DEPLOY ITSELF, 2026-08-26.</strong> Done over ssh with
-    <code>scripts/deploy-referee.sh</code>: image built on the NAS from a streamed snapshot
-    of HEAD (no checkout there, no Docker on the laptop), role password generated and set
-    ON the box so it never left it, Realtime restored, gateway reloaded. The referee answers
-    <code>{"protocol":1,"dataset":"89ed74de"}</code>, matching what the client computes, and
-    refuses the anon key with <code>not-authenticated</code>.</p>
-
-    <p><strong>Three things bit that the runbook did not predict, and all three looked like
-    the referee being broken.</strong> They are written up in
-    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>:
-    the gateway's RBAC filter is a SECOND gate and it is default-deny, so the route needed
-    an explicit allow (<code>RBAC: access denied</code>); the <code>/referee/</code> prefix
-    must NOT be rewritten, because the referee matches full paths, and stripping it 401s
-    everything including the health check, which then makes envoy drop the endpoint; and
-    <b>the docker bridge firewall rules are wiped by container operations</b>, not just by
-    boots and firewall edits.</p>
-
-    <p><strong>THE FIREWALL FINDING IS THE ONE TO KEEP, and it got worse the closer it
-    was looked at.</strong> The rules are wiped by <b>creating or removing ANY container</b>,
-    not just by boots and firewall edits as this file used to say. That makes it a trap
-    during exactly the work that provokes it: every throwaway diagnostic container run to
-    check whether the stack was healthy wiped the rules again on exit, so the stack kept
-    coming back for a few minutes and then failing, and the debugging looked like a flapping
-    network. It took four rounds to see that the probe was the cause.</p>
-
-    <p><strong>Two things follow.</strong> Diagnose this class of fault with plain HTTPS
-    calls, never with <code>docker run --rm</code>. And <b>put the Task Scheduler job on a
-    5-minute schedule</b> as well as its triggers: it is a no-op when the rules are present,
-    so it costs nothing, and it turns a silent outage that lasts until somebody notices into
-    one that heals itself. The alternative is that a container restart at 3am leaves every
-    signed-in player staring at the blocking unreachable screen.</p>
-
-    <p><strong>That third one took the live accounts stack down twice mid-deploy</strong>,
-    and it is the finding worth carrying: <code>/auth/v1/</code> and <code>/rest/v1/</code>
-    both 503, which is the blocking unreachable screen for every signed-in player of the
-    single-player game, caused by a versus deployment nobody was using yet. It is invisible
-    from the outside because envoy keeps serving on connections it already holds. Re-run the
-    Task Scheduler job after any container work, and prove it with a real upstream call -
-    <code>/auth/v1/settings</code> with the anon key, expecting 200. A bare
-    <code>/auth/v1/health</code> answers 401 from the gateway itself and proves nothing,
-    which is exactly how it was missed for twenty minutes.</p>
-
-    <p><strong>What is left, all of it needing a shell or the DSM console:</strong> set the
-    <code>pvp_referee</code> password and <code>PVP_REFEREE_PASSWORD</code> together; carry
-    the three staged files up and <code>docker compose up -d</code>; provision the Realtime
-    tenant and add the WebSocket upgrade header; build and run the referee container; work
-    the three curls in step 5; then set <code>VITE_REFEREE_URL</code> and push.</p>
-
-    <p><strong>One finding that saves reading 300 lines of Lua:</strong> the apikey gate is
-    <b>opt-in by route name</b>, through the <code>PROTECTED_ROUTES</code> table in
-    <code>lds.template.yaml</code>. So step 4's "no apikey filter" requirement is satisfied by
-    the <code>referee</code> route simply not being listed there, and restoring the two
-    realtime routes re-gates <em>them</em> automatically because their names already are.
-    Neither needed a Lua edit, which the runbook did not say and a reader would have
-    worried about.</p>
-    <p><strong>The checklist is written out</strong>, step by step with the verification for
-    each, under &#8220;The referee (versus)&#8221; in
-    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>.
-    Six steps: apply <code>0017_pvp_referee.sql</code> and work its own eight verification
-    steps; <code>alter role pvp_referee login password</code>, because a credential does not
-    belong in a public repository and 0016 deliberately left the role unable to do anything;
-    put <b>Realtime</b> back into the compose file and the two envoy files, with the
-    WebSocket upgrade header on the DSM reverse proxy; build and run the referee container;
-    add one cluster and one route for <code>/referee/</code>; then set the repository
-    variable <code>VITE_REFEREE_URL</code> and push.</p>
-    <p><strong>Do it in that order, and the order is the safety.</strong> Every step before
-    the last is additive and invisible: <code>FEATURES.pvp</code> derives from that variable
-    as well as the account server, so until it is set the deployed game has no Versus at all.
-    The undo is unsetting it and redeploying; the containers can stay up.</p>
-    <p><strong>Three traps worth reading before starting.</strong> A missing <b>WebSocket
-    upgrade header</b> presents as &#8220;the lobby never updates&#8221;, with a clean 200 in
-    the logs - check it before suspecting the referee. Enable <b>Broadcast only</b>: change
-    capture needs a replication slot, and a slot nothing drains pins the write-ahead log
-    until the disk fills and Postgres refuses writes, which would hand every signed-in player
-    the blocking unreachable screen for the <i>single-player</i> game because of a versus
-    feature nobody was using. And the referee&#8217;s route must carry <b>no apikey
-    filter</b>: it verifies the player&#8217;s own session itself and refuses the anon key on
-    purpose, so a gate in front of it would be checking the one credential it exists to
-    reject.</p>
-    <p><strong>The one check to do by hand</strong> is that third curl in the runbook: the
-    anon key is a valid signature from the same secret and it ships in the browser bundle, so
-    a referee that only verifies signatures accepts it from anybody on the internet. It must
-    answer 401 with <code>not-authenticated</code>.</p>
-    <p><strong>What has already been proven, and what has not.</strong> 0016 and 0017 were
-    applied to a local PostgreSQL 16 with a stand-in for the parts of the stack they touch,
-    all eight verification steps passed, the rollback block ran and the file re-applied after
-    it, and a whole room - create, join, ready, start, a pick, a draft run out by the clock,
-    a tie, a champion - was played through the real referee connected as the real
-    <code>pvp_referee</code> role, with its inability to read <code>career</code>,
-    <code>album_stickers</code>, <code>settings</code>, <code>game_state</code>,
-    <code>active_run</code> and <code>run_results</code> confirmed as permission denials
-    rather than assumed. <b>Unproven is everything that is a deployment</b>: the NAS is on
-    PostgreSQL 17.6, and Realtime, the tenant, the upgrade header and the route have never
-    been exercised.</p>
-    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../supabase/migrations/0017_pvp_referee.sql" target="_blank" rel="noopener">supabase/migrations/0017_pvp_referee.sql</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
-  </div>
-</details>
-
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
 <details class="item">
@@ -921,287 +1035,6 @@
     period and whether the pool is filtered by reachability, both of which change how it
     feels far more than the multiplier does.</p>
     <p class="files"><a class="dl" href="challenges-spec.html" target="_blank" rel="noopener">docs/challenges-spec.html</a>, <a class="dl" href="../src/domain/challenges.ts" target="_blank" rel="noopener">src/domain/challenges.ts</a> (from item 01), <a class="dl" href="../src/domain/career.ts" target="_blank" rel="noopener">src/domain/career.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/CupRunScreen.tsx" target="_blank" rel="noopener">src/components/CupRunScreen.tsx</a></p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">18</span>
-    <span class="title">Player versus player, for signed-in accounts
-      <span class="sub">Public or private rooms of 2, 4 or 8 signed-in players drafting a team
-      against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
-      REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED AND DEPLOYED 2026-08-26</b>: the rules,
-      the referee's logic, the tables, the referee itself, and now its deploy (item 41,
-      closed) - <b>the server half is live and verified</b>. <b>WAVES 4 AND 5 SHIPPED
-      2026-08-27, AND VERSUS IS PLAYABLE</b>: two people with a six-character code draft
-      against a clock and play a match, without either of them touching the other&#8217;s
-      saved game. <b>Next is WAVE 6</b>, rooms where you roll random squads and the host
-      can hide the ratings. One decision is settled: no part of a career reaches a
-      room.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p>Requested 2026-08-18 with the shape deliberately open. <strong>Settled 2026-08-25/26</strong>
-    by the owner, then <strong>put through three independent reviews</strong> (game design and
-    fairness, server architecture, product and mobile) whose findings were <b>verified by hand
-    against the code and by measurement</b>. That review changed real things. The plan is
-    <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener"><code>docs/pvp-plan.md</code></a>;
-    <b>read it before writing any code here</b>.</p>
-    <p><strong>What it is.</strong> Two to eight signed-in players, all present at once, draft a
-    team on the spot and play a knockout. A room is <b>public</b> (listed in a lobby) or
-    <b>private</b> (code only). <b>The host sets the rules and those rules are the feature</b>:
-    roll or budget, how much money, which World Cups, <b>how long a pick gets</b> (20 or 30
-    seconds), and, in a roll room, whether ratings are visible. <b>Twenty or thirty seconds a
-    pick</b>, each player on their own clock; run out and a player is placed for you, which is
-    what makes a room unstallable. Nothing is at stake but the record.</p>
-    <p><strong>What the review changed.</strong> <b>Chemistry is now OFF in a room</b>: measured,
-    the same eleven players with the full bonus beat themselves without it <b>73.2%</b> of the
-    time, because it is added to attack and defence alike and both are what the sim reads. In
-    single-player that is a nudge helping a patchwork XI close on a real national side; in a room
-    both sides are patchwork, so it became the whole game, and a pure knowledge check at that
-    (400 naively auto-filled XIs never once reached the cap). <b>A room gets its own build
-    state</b>, which is a requirement rather than a preference: the app holds one game state and
-    every path that starts a build clears the active run, so a room entering through the same
-    door would have <b>silently deleted a live Cup Run</b>, and while signed in every single tap
-    writes to the server, where one failure raises the blocking unreachable screen with the pick
-    clock still running. <b>The referee holds no timers</b> (a stored deadline and a stateless
-    sweeper, which is restart-correct by construction), and it must <b>give back the time an
-    outage ate</b> or a thirty-second container restart auto-picks for every player in every
-    drafting room at once. And the build order is now a <b>vertical slice</b>: a private
-    two-player room playable end to end at wave 5, instead of the first complete game arriving at
-    wave 7 behind an optional polish wave.</p>
-    <p><strong>One thing accepted with its numbers, by decision.</strong> The sim reads two
-    numbers a side, so the budget draft has a closed-form best answer: defence averages over
-    fewer slots, so it is cheaper to lift, and only two formation families field four defensive
-    slots. Measured at $110, <b>a stacked 3-4-3 beats an even 4-3-3 56.6%</b> - and when both
-    finalists have found it the match measures <b>0.62 goals and 54.4% decided on penalties</b>,
-    against 2.35 goals and 16.9% for two even sides. That empties the live goal feed, which is the
-    mode&#8217;s flagship screen. <b>Kept as skill rather than designed against</b>; turning
-    chemistry off sharpens it, since chemistry was the one axis competing with it. The cheapest
-    reversal, a minimum spend per line, is one rule in wave 0 and nowhere else.</p>
-    <p><strong>Two corrections to this plan&#8217;s own earlier text</strong>, both found by
-    review and confirmed in the code: the knockout resolver was said to need lifting out of the
-    Cup Run and <b>is already exported and shared</b>, so that wave-0 item is gone (what is
-    actually needed is a two-sided team builder, since the existing one hard-codes &#8220;Your
-    XI&#8221; and cannot describe two opponents); and a roll deal was said to <b>guarantee</b> a
-    squad that can fill an open slot, where the code only <b>prefers</b> one and falls back to the
-    whole pool.</p>
-    <p><strong>A single-player defect found on the way</strong>, unrelated to PvP and worth its own
-    item: <b>the build page and a Cup Run do not agree on chemistry</b>. The build page scores
-    &#8220;in position&#8221; against a player&#8217;s real primary role; the run maps each
-    player&#8217;s slot onto him, so the category is free once a run starts. Measured over 400
-    XIs they disagree in <b>358</b>, always with the run exactly one higher. The game shows one
-    number while you draft and uses another in the match.</p>
-    <p><strong>Two late additions, 2026-08-26.</strong> In a room of more than two,
-    <b>every draft finishes before anything is paired, and then the whole bracket is drawn at
-    random in one go</b>. Two things come free: nobody knows who they face while drafting, so
-    no one can build to counter a particular opponent; and the draw cannot be arranged, where
-    pairing by join order would let two people sharing a private code agree who joins first and
-    put themselves on opposite sides of the tree. The accepted cost is a wait, up to about four
-    minutes for the quickest drafter in an eight-player room, which is now where the draw
-    ceremony goes. And a player <b>readies up</b>: pick a formation and style, press Ready. The
-    plan previously had no gate at all between choosing a shape and the host pressing Start, so
-    a host could start on somebody who had chosen nothing and the plan never said what they got.
-    Ready is a signal rather than a lock - the host may start a full room regardless, and anyone
-    not ready gets a default - so nobody can hold a room by wandering off.</p>
-    <p><strong>Wave 0 shipped 2026-08-26:</strong> <code>src/domain/pvp.ts</code>, the rules a
-    room is judged by as pure functions, with <b>23 checks</b> in
-    <code>scripts/checks/pvp.ts</code> (the suite is 202, from 179). Is this XI legal, what did
-    it cost, was he dealt, what the clock does when it expires, and a two-sided match side.
-    <b>Every check was mutation-tested</b>, and two of the six mutations are worth recording:
-    dropping the budget auto-pick&#8217;s per-slot reserve takes 1,000 auto-completed XIs from
-    1,000 legal to <b>0</b>, and resolving a submitted player through <code>basePlayer</code>
-    instead of the new <code>datasetPlayer</code> lets an invented player through at whatever
-    rating the client claims. <b>Nothing imports it yet</b> - the screens and the server are
-    waves 4 to 8 - so CLAUDE.md carries a note stopping a dead-code pass from deleting it.</p>
-    <p><strong>Wave 1 shipped 2026-08-26:</strong> the referee&#8217;s logic, offline.
-    <code>src/domain/pvpRoom.ts</code> is the room as a state machine with <b>no timers at
-    all</b> - a deadline is stored data, evaluated when a pick arrives and by one stateless
-    sweeper - so it is restart-correct by construction, and a twenty-second clock is tested in
-    microseconds by advancing a number. <code>src/domain/pvpAuth.ts</code> is the caller rule.
-    25 more checks; the suite is <b>237</b>.</p>
-    <p><strong>Three things the build changed or found.</strong> <b>P45 was written wrong</b>:
-    "shift every window forward by the outage" is not the rule, because a 45-second restart on
-    a 20-second clock leaves every window still expired and the first sweep auto-picks for
-    everybody regardless. What is owed is the REMAINDER. <b>A roll room can genuinely stall</b>:
-    the auto-pick fills from the last squad dealt, and 345 of the (squad, position) pairs in the
-    dataset are empty - most 1970s squads list no wide midfielder - so the dealt squad routinely
-    has nobody for the slots left, and the window reopens onto the same squad for ever. Mutation
-    testing found it; nothing in the design said it was there. And <b>whatever the fallback
-    reaches for must be recorded as dealt</b>, or it builds an XI the referee itself then
-    refuses.</p>
-    <p><strong>Wave 2 shipped 2026-08-26, and the migration is APPLIED</strong> (it was
-    queued as item 39, which is closed - see the shipped history for what the apply itself
-    turned up).
-    <a class="dl" href="../supabase/migrations/0016_pvp_rooms.sql" target="_blank" rel="noopener"><code>0016_pvp_rooms.sql</code></a>: seven tables, fourteen policies,
-    <code>pvp_records</code> as a <b>view</b> rather than a counter, a display name on
-    accounts, and a <code>pvp_referee</code> role that is the only thing allowed to write any
-    of it and can reach nothing else. Nothing reads or writes those tables yet - the referee
-    is wave 3 - so no player-visible behaviour changed.</p>
-    <p><strong>Three things wave 2 settled while it was being written.</strong> The rollback
-    block was WRONG until it was parsed (<code>drop role</code> fails while the role still
-    holds a grant, so it needed a <code>drop owned by</code>). <code>bypassrls</code> would
-    have defeated the whole point of a narrow referee role, being global - it would hand it
-    every account's album and career. And the view needs <code>security_invoker</code> or it
-    leaks every account's record to anybody signed in, which makes PostgreSQL 15 a stated
-    requirement. <b>A fourth was settled by the apply rather than the writing:</b> the
-    referee <b>owns nothing</b>. Ownership was the first design, because a table's owner
-    bypasses its own row-level security - but migrations here run as <code>postgres</code>,
-    which on this server is not a superuser and cannot hand a table to a role it is not a
-    member of, and the obvious repair crashed the database. It has seven <code>for all</code>
-    policies naming it instead.</p>
-    <p><strong>Wave 3 shipped 2026-08-26: the referee exists.</strong>
-    <code>referee/</code> is a plain node service in ten small files - the router, the
-    Postgres store, the row mapping, the sweeper, the broadcast, the JWT, the view, the
-    config, the entry point and the outage rule - that <b>bundles the game&#8217;s own domain
-    code rather than reimplementing any of it</b>. Every command loads a room, applies ONE
-    pure transition and saves it under a row lock, so no handler reaches in and edits a
-    field: if a rule is missing it belongs in the state machine, where it can be checked
-    without a server. A pick carries a player ID, never a player, so a submitted rating
-    cannot decide a price. Wave 3 also adds the two rules both sides need: the display-name
-    normalisation (P22) and the version handshake (P35). 53 new checks - the suite is
-    <b>293</b>, from 240 - and the whole referee is driven by them with no Postgres and no
-    socket, because the in-memory store they use keeps rooms AS ROWS, so the table mapping is
-    exercised by every check rather than by one round trip. Five mutations verified red.</p>
-    <p><strong>The rehearsal found a hole in wave 2, and it would have broken every
-    room.</strong> 0016 grants the referee three columns of <code>profiles</code> and adds no
-    POLICY - and <code>profiles</code> has row-level security on, with one policy naming
-    <code>authenticated</code>. So the referee could read no rows at all: every
-    <code>select display_name</code> came back empty, which it reads as &#8220;this account
-    has not chosen a name&#8221;, and it refuses to open or join a room. Every room, for
-    everybody. The rule it breaks is written down one screen above the omission, in 0016&#8217;s
-    own header. Reading did not find it; applying both files to a real PostgreSQL and playing
-    a whole room through the real referee as the real <code>pvp_referee</code> role did.</p>
-    <p><strong>And one bug that would have stopped the pick clock dead.</strong> P45 says give
-    back the time an outage ate, and the sweeper knows when it last swept, so the obvious shape
-    is to hand back the remainder every sweep. That freezes the elapsed time at its previous
-    value and freezes it there again next time: <b>no window ever expires</b>, the auto-pick
-    never fires, and a room with an absent player waits for ever - the exact stall the whole
-    no-timers design exists to prevent, reintroduced by the mechanism meant to be fair about
-    it. Recovery is unconditional at BOOT (which is what P45 actually says) and conditional
-    during a sweep. The check that matters is the ordinary case, because a room whose clock has
-    stopped looks perfectly healthy until somebody stops picking.</p>
-    <p><strong>Three things the state machine was not recording</strong>, none visible until
-    something had to persist a room: a pick&#8217;s ordinal, timing and automatic flag (so the
-    idempotency key and the ladder&#8217;s <code>loser_auto_picks</code> had nothing to write);
-    the host&#8217;s <b>re-roll allowance</b>, which nothing read, so a room set to zero
-    re-rolls offered unlimited ones; and the ratings switch, which had nowhere to sit.
-    <b>Migration 0017</b> carries the columns for the first, the referee&#8217;s heartbeat, the
-    missing policy, and a <code>set_display_name</code> function - because 0016 added the two
-    name columns and their unique index and <b>nothing on either side could write them</b>.
-    Written, parse-checked, rehearsed, rolled back and re-applied; queued as item 41.</p>
-    <p><strong>The one decision wave 3 reopened is settled, by deletion (2026-08-27).</strong>
-    P2 let a host price a room off each player&#8217;s own career transfer budget, and P34
-    forbids the referee any privilege on <code>career</code> - and snapshotting the figure at
-    the start does not dodge that, because the snapshot still has to be READ by the thing that
-    may not read it. Two repairs existed and both were rejected: <b>the option is gone</b>.
-    Everyone in a room has the same money, chosen by the host. It was the weakest setting in
-    the room anyway - $160 beats $70 <b>85.7%</b> of the time at the optimum, so a
-    career-budget room was decided in the lobby - and deleting it answers the question the way
-    the One-off run was answered. P8 (&#8220;your career decides nothing here&#8221;) is now
-    absolute rather than &#8220;by default&#8221;, and the <code>budget_source</code> column
-    goes with it in 0017. Reopening it means reopening P34, which is the sentence to read
-    first: the referee can be trusted with un-RLS&#8217;d input from the internet precisely
-    because of the length of the list of things it cannot reach.</p>
-    <p><strong>Wave 4 shipped 2026-08-27: the build is an instantiable unit.</strong>
-    Building an XI used to BE the app&#8217;s main screen - the reducer, the roll
-    animation, the market&#8217;s held card, the move gesture and eleven handlers, all in
-    one 867-line file - so there could only ever be one of it. It is now a hook plus a
-    component that draw a build from whatever they are handed, and the app instantiates
-    one. <b>Nothing a player can see changed</b>; the stylesheet came out byte-identical,
-    which is the cheap proof that the screen moved rather than being rewritten.</p>
-    <p><strong>The point was never tidiness, it was two writes.</strong> A build mirrors
-    itself to storage on every single tap, and every path that starts a fresh XI drops
-    your active Cup Run. Those two are now handed IN, so a room is given a version that
-    writes nothing at all - and both halves were reproduced as real failures before being
-    fixed. Driving a second build with the app&#8217;s own writes, three picks in it
-    overwrote the solo team (one player at 4-3-3 became three at 3-5-2) and <b>deleted the
-    live Cup Run outright</b>. With the detached version the same taps left the solo build
-    byte-identical and the run untouched. Signed in, that first write is also a server
-    round trip per tap, where one failure raises the blocking unreachable screen full
-    screen with a pick clock running.</p>
-    <p><strong>Two things learned that shape wave 5.</strong> <b>A no-op cannot be told
-    from a mis-wire by testing it</b>: the detached writer writes nothing because it has
-    nothing to write to, so a copy-paste handing it the real store would pass every
-    behavioural check there is - the check that catches it reads the export line instead.
-    And <b>the build must not import the store, the router, the career or the album at
-    all</b>, since a detached writer can only intercept the two writes it was given; that
-    rule is asserted over both files, with the app itself as the vacuity guard. Four new
-    checks, all mutation-tested; the suite is <b>298</b>, from 293.</p>
-    <p><strong>Wave 5 shipped 2026-08-27, and it is the first half anybody can
-    see.</strong> Make a room, get six characters, send them to somebody. You both pick a
-    formation, press Ready, and then buy an eleven out of the same money against a
-    twenty-second clock per pick, watching each other&#8217;s progress but not each
-    other&#8217;s team. Then the two teams play, live and minute by minute, and at the
-    whistle both XIs are laid out side by side with the ratings shown - which is the whole
-    reward, because nothing else is at stake. No career, no perks, no boosts, no album and
-    <b>no chemistry</b>: eleven players against eleven players.</p>
-    <p><strong>It was proven the only way that counts: two real browsers playing a whole
-    game.</strong> A throwaway harness ran the referee&#8217;s actual code, stubbed the
-    account server, and drove two Chromium windows through the real production build -
-    name, room, join, ready, start, eleven hand-made picks each with nothing filled in by
-    the clock, the match watched live in both windows, a champion crowned, both teams
-    revealed, and <b>neither player&#8217;s saved game touched</b>. That harness needs no
-    NAS and can be re-run in any session, which is a direct dividend of wave 3 having made
-    the referee pure over a store and a clock.</p>
-    <p><strong>Three things the room had to be stopped from doing, and one of them was a
-    lie rather than clutter.</strong> The chemistry readout was still on the draft screen,
-    promising a team four points better than the one the match would actually be played
-    with - chemistry is off in a room by decision, and that has to mean the number too.
-    Half a dozen build controls had to go with it, each broken for its own reason: auto-fill
-    would make ten picks in one tap and skip the clock; Start over walks you out of the
-    room; the remove button undoes itself, because the referee holds the team and has no
-    way to take a player back out. And the album is out entirely - no discount, no stars -
-    since a collection earned somewhere else must not buy a better team here.</p>
-    <p><strong>And one thing broke the moment it was live, which is the honest part of the
-    story.</strong> Versus showed &#8220;Versus is updating&#8221; and nothing else. The
-    match server was running perfectly; the page was knocking on the wrong door. The
-    address it is given already includes the path the server sits on, and the page was
-    adding that path a second time, so every single request went nowhere and the page read
-    that as a server that was down. Fixed, and now guarded from both ends: the checks read
-    the addresses the page builds AND the line in the deployment notes that sets the
-    address, so changing one without the other fails the suite. The deeper lesson is about
-    the test rather than the bug - the end-to-end harness had served the match server at
-    the root of its own address, so the doubled path cancelled out and every assertion
-    passed. <b>A harness that does not reproduce the deployment&#8217;s shape is not testing
-    the deployment.</b></p>
-    <p><strong>The second thing that broke was the error message itself.</strong> Opening a
-    room said &#8220;the referee would not open a room just now&#8221;, which is what a
-    wrong sign-in secret, a name the server cannot read, a full room and a database error
-    all look like - so it told nobody anything, least of all the one person who could fix
-    it. The server had been sending its own reason all along and the page was discarding it.
-    Every message now says what happened in words, prints the server&#8217;s own code
-    underneath it for a bug report, and marks the ones that are a server setting rather than
-    something to retry. The checks hold that list against the refusals the server can
-    actually send, so a new one without a sentence fails before it ships. <b>A page that
-    cannot repeat what the server told it makes every server-side problem invisible.</b></p>
-    <p><strong>Then it failed on the server, and the deploy checks could not have caught
-    it.</strong> Opening a room returned a server-side error. The three checks the deployment
-    runbook uses all pass without ever writing to the database - so the deploy was called
-    verified and <b>the first database write this feature ever made was made by a player in a
-    browser</b>. Two things came out of it. The server now names what went wrong in its reply
-    (the error class and which column or constraint, never the raw message, which can carry
-    private values), so the same problem is visible from the page next time instead of only
-    in a container log. And the deploy check now creates a real room and deletes it again,
-    because <b>a version endpoint answering is not a working server</b>. The code and the
-    database schema were also cleared as suspects properly rather than by reading: all
-    seventeen migrations were applied to a real database here and the whole sequence replayed
-    through the real server code under the real restricted account, and every step passed.</p>
-    <p><strong>One thing to know before touching it.</strong> A private room is invisible
-    until you take a seat: asking about one you are not in is answered with "no such room"
-    rather than "not allowed", so a code cannot be fished for. That means arriving with a
-    code is always refused first, and the answer to that refusal is a Join button rather
-    than an error - which the first version of the screen got wrong.</p>
-    <p class="next"><strong>Next step:</strong> wave 6 - rooms where everybody rolls random
-    squads instead of shopping, and the host&#8217;s switch that hides the ratings inside
-    them. Two things wave 5 left on the table for whichever wave next touches the referee:
-    a per-pick <b>Skip</b> (the honest version of auto-fill, which needs a server
-    instruction that does not exist), and <b>moving a player already placed</b> - the plan
-    wants it, and the referee takes picks and nothing else, so a move is undone by the next
-    answer.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a>, <a class="dl" href="../src/state/pvp/referee.ts" target="_blank" rel="noopener">src/state/pvp/referee.ts</a>, <a class="dl" href="../src/hooks/useVersusRoom.ts" target="_blank" rel="noopener">src/hooks/useVersusRoom.ts</a>, <a class="dl" href="../src/domain/pvpView.ts" target="_blank" rel="noopener">src/domain/pvpView.ts</a>, <a class="dl" href="../src/components/versus/" target="_blank" rel="noopener">src/components/versus/</a></p>
   </div>
 </details>
 
@@ -1375,6 +1208,44 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-08-27</h3>
+    <p><b>42 was one SQL statement, and finding it is the whole story.</b> Versus loaded,
+    signed in, named you - and then <b>every attempt to open a room answered a server
+    error</b>. The database still had a column from a setting deleted weeks earlier (pricing
+    a room off your career budget), declared as required with no default, and the match
+    server had rightly stopped filling it in. The instruction to remove it was written and
+    was supposed to have been applied with everything else in that batch; every other part
+    of that batch did land and this one line did not.
+    <br><b>Nothing upstream could have caught it, and that is the finding worth keeping.</b>
+    The deploy runbook&#8217;s three verification checks are all database-free - a version
+    endpoint reading a bundled constant, and two refusals that happen before the database is
+    touched - so the deploy was declared verified and <b>the first database write this
+    feature ever made was made by a player in a browser</b>. The version handshake was blind
+    to it too: it compares the squad data, and the change that removed the column from the
+    insert did not touch that. Both gaps are closed - the deploy check now creates a real
+    room and deletes it, and a server error now names its class and the column involved, so
+    the same fault would have read <code>23502 column=budget_source table=pvp_rooms</code> on
+    the page rather than only in a container log.
+    <br><b>Ruled out properly rather than by reading.</b> All seventeen migrations were
+    applied to a real database here and the whole sequence replayed through the real server
+    code as the real restricted account: every step passed. Then the server&#8217;s exact
+    state was rebuilt - everything applied, minus that one line - and it reproduced the
+    identical error, which 0018 then fixed. <b>Applied and confirmed working 2026-08-27.</b></p>
+    <p><b>41 is the referee deploy, and it earned three findings that outlive it.</b> The
+    migration, the role password, the container, Realtime, the gateway route and the client
+    variable: all six steps done, and versus is live. <b>The gateway has two key gates, not
+    one, and the second is default-deny</b> - a global RBAC filter naming four path prefixes,
+    so a new route matching none of them is refused outright and the referee never sees the
+    request. <b>The <code>/referee/</code> prefix must not be rewritten</b>, because the
+    referee&#8217;s own router matches full paths; stripping it makes every request miss the
+    two unauthenticated routes, fall through to the session check, and read as a credential
+    problem. And the one that matters beyond versus: <b>container operations wipe the docker
+    bridge firewall rules</b>, which takes the entire accounts stack down - the blocking
+    unreachable screen for every signed-in player of the single-player game - and is
+    invisible from outside, because the gateway keeps serving connections it already holds
+    while every new one fails. The honest check is <code>/auth/v1/settings</code> with the
+    anon key expecting 200, not a health path that the gateway answers itself.</p>
+
     <h3>Closed 2026-08-26</h3>
     <p><b>40 was VOID</b>, and the reason is worth keeping because the same wrong conclusion
     is easy to reach again from the code alone. It was written up as "the transfer market never

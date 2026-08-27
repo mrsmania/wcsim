@@ -36,6 +36,12 @@ export interface SquadRollInput {
     usedPersonIds: string[];
     rerollsLeft: number;
     pool: readonly Squad[];
+    /** True when the squads are DEALT rather than rolled: a versus roll room, where the
+     *  referee hands them over one at a time (P13 - pre-generating the sequence would let
+     *  a player read every future squad, re-roll outcomes included, off their own row). It
+     *  stands the whole hook down: no scramble, no draw-next-squad effect, and no local
+     *  re-roll, because every one of those would decide something the server owns. */
+    dealt?: boolean;
     dispatch: (action: Action) => void;
 }
 
@@ -58,6 +64,7 @@ export function useSquadRoll({
     usedPersonIds,
     rerollsLeft,
     pool,
+    dealt = false,
     dispatch,
 }: SquadRollInput): SquadRoll {
     const [displaySquad, setDisplaySquad] = useState<Squad | null>(null);
@@ -131,8 +138,10 @@ export function useSquadRoll({
     // explicit (they keep a squad in hand / set rolling, so this never interferes).
     useEffect(() => {
         // Roll build only: the budget build has no rolling (its slots are filled by
-        // buying), so it must never draw a squad.
-        const needSquad = phase === 'draft' && build === 'roll' && !!formation && !currentSquad;
+        // buying), so it must never draw a squad. Nor does a DEALT one: there the squad
+        // arrives from the referee and a local draw would race it.
+        const needSquad =
+            !dealt && phase === 'draft' && build === 'roll' && !!formation && !currentSquad;
         // `rolling` is true but no animation is actually running: the in-flight
         // scramble was interrupted (a reload/StrictMode remount cleared its timer).
         // Recover by rolling again, otherwise the squad box stays on "Drawing...".
@@ -150,11 +159,11 @@ export function useSquadRoll({
         const open = positionsWithOpenSlot(formation, filled);
         const used = new Set(usedPersonIds);
         runRoll(rollAny(pool, open, used, lastSquadIdRef.current), false);
-    }, [phase, build, formation, currentSquad, rolling, filled, usedPersonIds, runRoll, pool]);
+    }, [dealt, phase, build, formation, currentSquad, rolling, filled, usedPersonIds, runRoll, pool]);
 
     const reroll = useCallback(
         (kind: RerollKind) => {
-            if (!formation || !currentSquad || rolling || rerollsLeft <= 0) return;
+            if (dealt || !formation || !currentSquad || rolling || rerollsLeft <= 0) return;
             const open = positionsWithOpenSlot(formation, filled);
             const used = new Set(usedPersonIds);
             const target =
@@ -165,7 +174,7 @@ export function useSquadRoll({
                       : rollAny(pool, open, used, currentSquad.id);
             runRoll(target, true);
         },
-        [formation, currentSquad, filled, usedPersonIds, rerollsLeft, rolling, runRoll, pool],
+        [dealt, formation, currentSquad, filled, usedPersonIds, rerollsLeft, rolling, runRoll, pool],
     );
 
     return { displaySquad, reroll };

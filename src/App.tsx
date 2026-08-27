@@ -433,6 +433,9 @@ export default function App({
                             ownedStickerIds={ownedStickerIds}
                             budget={marketBudget}
                             controls={SOLO_CONTROLS}
+                            // The single-player game always shows them; the switch is a
+                            // room's, and only a roll room's (P5).
+                            ratings
                             complete={
                                 state.formation && (
                                     <CompletePanel

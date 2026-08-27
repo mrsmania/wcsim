@@ -23,6 +23,9 @@ import {
   xiFrom,
 } from '../../src/domain/pvpView';
 import type { RoomView, TieView } from '../../src/domain/pvpWire';
+import { readFileSync, readdirSync } from 'node:fs';
+import { STRENGTH_BANDS } from '../../src/domain/draft';
+import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
 import { ROOM_CONTROLS, SOLO_CONTROLS } from '../../src/components/buildControls';
 
 const HOME = 'user-home';
@@ -194,6 +197,97 @@ export function pvpViewChecks(): void {
         roomLine({ ...room, status: 'lobby' }) === 'waiting, 2 of 2 in, 2 ready' &&
         roomLine({ ...room, status: 'ended', championId: HOME }) === 'you won',
       () => roomLine(room),
+    );
+  }
+
+  // --- The ratings switch: whose room, which phase (P5, P38, P40) ------------
+  // Two rules, and each is a decision. The switch exists in ROLL rooms only, because a
+  // budget room shows a price computed straight from the rating it would be hiding - that
+  // was the accepted hole P14 recorded, and it is void because the two can no longer
+  // co-occur. And the numbers COME BACK at the whistle, because the result is the whole
+  // reward and, in a hidden room, the only way to learn whether you misjudged a player.
+  {
+    const roll = (over: Partial<RoomView>) =>
+      fixtureRoom({ rules: { method: 'roll', budget: 0, years: [] }, ...over });
+    const hidden = { showRatings: false };
+    const phases = (['lobby', 'drafting', 'round'] as const).map(
+      (status) => roomDisplay(roll({ ...hidden, status })).ratings,
+    );
+    check(
+      'pvpView: a hidden-ratings roll room hides them until the whistle, and a budget room never does',
+      () =>
+        // Vacuity: the hidden case really is hidden, in every phase before the result.
+        phases.every((shown) => shown === false) &&
+        roomDisplay(roll({ ...hidden, status: 'ended' })).ratings &&
+        roomDisplay(roll({ showRatings: true, status: 'drafting' })).ratings &&
+        // A budget room shows them whatever the flag says: the price IS the rating, so
+        // hiding one and showing the other hides nothing.
+        roomDisplay(fixtureRoom({ ...hidden, status: 'drafting' })).ratings &&
+        // ...and the host is not offered the switch there in the first place.
+        offersRatingSwitch('roll') &&
+        !offersRatingSwitch('budget'),
+      () => `phases: ${phases.join(',')}`,
+    );
+  }
+
+  // --- The word that replaces a hidden number --------------------------------
+  // The thresholds are `STRENGTH_BANDS`, which the random-XI helper has used since long
+  // before any of this - a second set of boundaries for the same scale would mean two
+  // answers to "is 83 strong". This asserts the whole 60-to-99 range is covered with no
+  // gap, that every band is reachable, and that the words only ever go up.
+  {
+    const scale = Array.from({ length: 40 }, (_, i) => 60 + i);
+    const words = scale.map(ratingBand);
+    const distinct = [...new Set(words)];
+    // Where each word first appears, which must be strictly increasing: a band that
+    // reappeared after another would mean the ramp is not monotone.
+    const firstAt = distinct.map((w) => words.indexOf(w));
+    check(
+      `pvpView: every rating from 60 to 99 gets a band word, all ${Object.keys(STRENGTH_BANDS).length} are reachable, and they only go up`,
+      () =>
+        words.every((w) => w.length > 2) &&
+        distinct.length === Object.keys(STRENGTH_BANDS).length &&
+        firstAt.every((at, i) => i === 0 || at > firstAt[i - 1]!) &&
+        // Each word occupies one contiguous run.
+        distinct.every((w) => words.lastIndexOf(w) - words.indexOf(w) + 1 === words.filter((x) => x === w).length) &&
+        // An empty line reads as a dash, exactly as the figure does, so a hidden strip
+        // has the same shape as an open one.
+        ratingBand(0) === '\u2013',
+      () => distinct.join(' < '),
+    );
+  }
+
+  // --- THE ROOM'S SCREENS CANNOT SHOW A RATING BY ACCIDENT -------------------
+  // The done-when for this wave, and a structural claim rather than a behavioural one.
+  // `BoxScore`, `XiTable` and `SquadPanel` all DEFAULT `ratings` to true, because the
+  // single-player callers must read unchanged - which means a room that simply forgot to
+  // pass it would show every number and look perfectly fine. So the two doors a room
+  // renders rating-bearing UI through, `BuildSurface` and `VersusMatch`, require it, and
+  // the versus screens never reach a rating chip directly.
+  {
+    const dir = 'src/components/versus';
+    const files = readdirSync(dir).filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'));
+    const src = (f: string) => readFileSync(`${dir}/${f}`, 'utf8');
+    const surface = readFileSync('src/components/BuildSurface.tsx', 'utf8');
+    const match = src('VersusMatch.tsx');
+    const required = (text: string) => /\n\s*ratings: boolean;/.test(text) && !/ratings\?: boolean;/.test(text);
+    // A chip drawn straight into a versus screen would bypass both doors.
+    const chips = files.filter((f) => /\bRatingChip\b/.test(src(f)));
+    // And the decision has to come from the one place that knows the rules.
+    const deciders = files.filter((f) => src(f).includes('roomDisplay'));
+    check(
+      `pvpView: the room's two doors into ratings require an answer, and its ${files.length} screens draw no chip of their own`,
+      () =>
+        files.length >= 7 &&
+        required(surface) &&
+        required(match) &&
+        chips.length === 0 &&
+        // RoomDraft decides for the draft, RoomScreen for the live match.
+        deciders.length >= 2,
+      () =>
+        chips.length
+          ? `RatingChip reached directly in: ${chips.join(', ')}`
+          : `BuildSurface required=${required(surface)}, VersusMatch required=${required(match)}, deciders=${deciders.join(',')}`,
     );
   }
 
