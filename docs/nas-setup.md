@@ -685,6 +685,16 @@ until the last one.
 >
 > The script's `--verify` now names which of the three it is looking at rather than
 > blaming the image, which it did on the first run and which cost two pointless rebuilds.
+>
+> **And `--verify` used to ABORT SILENTLY at step 4, which is worth knowing because the
+> symptom is indistinguishable from finishing.** Its last two steps reach the database
+> through compose on the NAS, and Synology needs a full path and sudo for that, so the
+> script probes four spellings and remembers the one that works - except `--verify` never
+> ran the probe and its two calls were written as a bare `docker compose`. Under
+> `set -euo pipefail` that fails inside a command substitution and takes the whole script
+> with it: the step-4 heading prints, nothing follows, and the shell reports success. Fixed,
+> and `npm run checks` now asserts that every stage touching the NAS's docker detects it
+> first and that none names it directly.
 
 > **THERE IS A SCRIPT FOR THE MECHANICAL HALF: `scripts/deploy-referee.sh`.** Run it from
 > the repository root in Git Bash, on a machine that can reach the NAS, one stage at a

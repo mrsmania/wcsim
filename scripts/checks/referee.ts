@@ -1149,6 +1149,44 @@ export async function refereeChecks(): Promise<void> {
       );
     }
 
+    // --- THE DEPLOY SCRIPT FINDS DOCKER BEFORE IT USES IT --------------------------
+    // Synology keeps docker off a login shell's PATH and usually needs root for it, so the
+    // script probes four spellings and remembers the one that works. `--verify` did not
+    // probe, so its two database calls were written as a bare `docker compose` - and under
+    // `set -euo pipefail` a failing command substitution aborts the script mid-stage: the
+    // step-4 heading printed and then nothing at all, no warning and no footer. A stage
+    // that reaches the NAS's docker has to detect it first, and none may hardcode it.
+    {
+      const sh = readFileSync('scripts/deploy-referee.sh', 'utf8');
+      // Each `stage_*` function, from its own header to the next one.
+      const bounds = [...sh.matchAll(/^stage_[a-z_]+\(\) \{$/gm)].map((m) => m.index!);
+      const stages = bounds.map((at, i) => ({
+        name: /^stage_[a-z_]+/.exec(sh.slice(at))![0],
+        body: sh.slice(at, bounds[i + 1] ?? sh.length),
+      }));
+      const uses = stages.filter((x) => /\$DOCKER|\$COMPOSE/.test(x.body));
+      const blind = uses.filter((x) => !x.body.includes('detect_docker')).map((x) => x.name);
+      // A remote invocation of docker by name rather than through the probed variable.
+      const hardcoded = [...sh.matchAll(/on "(?:sudo )?(?:\/[\w/]+\/)?docker[\s-]/g)].length;
+      check(
+        `referee: all ${uses.length} deploy stages that use the NAS's docker detect it first`,
+        () =>
+          // Vacuity: it found the stages and the ones that use docker. There are five
+          // stages and four of them talk to docker, so anything less means the split or
+          // the test has stopped working.
+          stages.length >= 5 &&
+          uses.length >= 3 &&
+          blind.length === 0 &&
+          hardcoded === 0,
+        () =>
+          blind.length
+            ? `does not call detect_docker: ${blind.join(', ')}`
+            : hardcoded
+              ? `${hardcoded} remote call(s) name docker directly instead of using $DOCKER/$COMPOSE`
+              : `the scan found ${stages.length} stages and ${uses.length} using docker, so it is not reading them`,
+      );
+    }
+
     const setup = readFileSync('docs/nas-setup.md', 'utf8');
     check(
       'referee: the deployment still points VITE_REFEREE_URL at the route, not at the host',

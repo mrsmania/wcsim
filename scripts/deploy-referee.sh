@@ -260,6 +260,13 @@ stage_up_host() {
 
 stage_verify() {
   say "Verify"
+  # THIS WAS MISSING AND IT COST A WHOLE VERIFY RUN. Steps 4 and 5 reach the database
+  # through compose on the NAS, and Synology needs both a full path and sudo for it - so
+  # without this the two calls below were written as a bare `docker compose`, which fails,
+  # which under `set -euo pipefail` aborts the script inside a command substitution. The
+  # symptom is the step-4 heading printing and then nothing at all: no warning, no footer,
+  # exit 0 as far as the shell prompt is concerned.
+  detect_docker
   local host; host=$(stage_up_host)
   [ -n "$host" ] || die "could not read the public URL from $STACK/.env"
   ok "public URL: $host"
@@ -308,7 +315,7 @@ stage_verify() {
 
   say "3. the ANON KEY - must ALSO be 401, and this is the one that matters"
   local anon
-  anon=$(on "grep -E '^ANON_KEY=' '$STACK/.env' | head -1 | cut -d= -f2-" | tr -d '\r')
+  anon=$(on "grep -E '^ANON_KEY=' '$STACK/.env' | head -1 | cut -d= -f2-" | tr -d '\r' || true)
   if [ -n "$anon" ]; then
     local body
     body=$(curl -s --ssl-no-revoke --max-time 15 -X POST \
@@ -336,8 +343,8 @@ stage_verify() {
   # profile id, because the referee correctly refuses everything else - including the anon
   # key, which is what step 3 proves. The room is deleted afterwards.
   local secret profile
-  secret=$(on "grep -E '^JWT_SECRET=' '$STACK/.env' | head -1 | cut -d= -f2-" | tr -d '\r')
-  profile=$(on "docker compose -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -tAc \"select id from profiles order by created_at limit 1\"" 2>/dev/null | tr -d '\r' | head -1)
+  secret=$(on "grep -E '^JWT_SECRET=' '$STACK/.env' | head -1 | cut -d= -f2-" | tr -d '\r' || true)
+  profile=$(on "$COMPOSE -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -tAc \"select id from profiles order by created_at limit 1\"" 2>/dev/null | tr -d '\r' | head -1 || true)
   if [ -z "$secret" ] || [ -z "$profile" ]; then
     warn "could not mint a test session (JWT_SECRET or a profile id was unreadable), so the
    database side is STILL unverified. Do not call this deploy done: open a room in the
@@ -391,7 +398,7 @@ PYEOF" | tr -d '\r' | tail -1)
    is NOT verified, which is most of what a room does." ;;
         esac
 
-        on "docker compose -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -qc \"delete from pvp_rooms where code = '$made_code'\"" >/dev/null 2>&1 \
+        on "$COMPOSE -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -qc \"delete from pvp_rooms where code = '$made_code'\"" >/dev/null 2>&1 \
           && ok "test room deleted" || warn "could not delete the test room $made_code - do it in Studio" ;;
       *no-display-name*)
         warn "THE REFEREE CANNOT READ profiles.display_name. That is a POLICY, not a grant:
