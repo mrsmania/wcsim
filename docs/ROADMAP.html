@@ -773,6 +773,12 @@
       that ninety-second sweep noticed. The fix is a new server instruction, so it needs this
       deploy like the rest.</li>
     </ol>
+    <p><strong>DEPLOYED AND VERIFIED 2026-08-27.</strong> The server is on the new build and
+    all five verification steps pass, step 5 included, so a room can be created, read back,
+    changed and saved. What is left of this item is the browser pass below (steps 2 to 5 of
+    "How to know it worked"), which needs two accounts and cannot be done from a shell. It
+    took three attempts and each one is written up here, because two of the three were the
+    verification lying rather than the deploy failing.</p>
     <p><strong>The first attempt at this deploy failed, and the fix is in the same rebuild.</strong>
     It went up cleanly and then logged <code>sweep failed</code> against one room once a
     second for ever. Two columns the room reader reads were missing from the two queries that
@@ -790,6 +796,16 @@
     server's own log. It should show it listening and then nothing. Any line reading
     <code>sweep failed</code> now carries the reason after the room code, and that reason is
     what to paste back.</p>
+    <p><strong>And two more things went wrong on the way, neither of them the referee.</strong>
+    The gateway could not reach it at all, which is the documented Synology trap: creating
+    and removing containers wipes the docker bridge firewall rules, so everything behind the
+    gateway answers 503 until the Task Scheduler job is re-run. And the deploy script's own
+    verification <b>aborted silently at step 4</b>, which is worse than it sounds because the
+    symptom is indistinguishable from finishing: the heading printed, nothing followed, and
+    the shell reported success. Its last two steps reach the database through compose on the
+    NAS, which Synology needs a full path and root for, and that stage alone never ran the
+    probe that finds it. Fixed, with a check that every stage touching the NAS's docker
+    detects it first and none names it directly.</p>
     <p><strong>If it goes wrong.</strong> The previous image is the rollback, and it is safe:
     the schema did not move, so the old build reads the same tables. What you lose by rolling
     back is the list and the liveness sweep, which is exactly the state the app already
