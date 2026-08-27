@@ -1107,6 +1107,18 @@
     room; the remove button undoes itself, because the referee holds the team and has no
     way to take a player back out. And the album is out entirely - no discount, no stars -
     since a collection earned somewhere else must not buy a better team here.</p>
+    <p><strong>And one thing broke the moment it was live, which is the honest part of the
+    story.</strong> Versus showed &#8220;Versus is updating&#8221; and nothing else. The
+    match server was running perfectly; the page was knocking on the wrong door. The
+    address it is given already includes the path the server sits on, and the page was
+    adding that path a second time, so every single request went nowhere and the page read
+    that as a server that was down. Fixed, and now guarded from both ends: the checks read
+    the addresses the page builds AND the line in the deployment notes that sets the
+    address, so changing one without the other fails the suite. The deeper lesson is about
+    the test rather than the bug - the end-to-end harness had served the match server at
+    the root of its own address, so the doubled path cancelled out and every assertion
+    passed. <b>A harness that does not reproduce the deployment&#8217;s shape is not testing
+    the deployment.</b></p>
     <p><strong>One thing to know before touching it.</strong> A private room is invisible
     until you take a seat: asking about one you are not in is answered with "no such room"
     rather than "not allowed", so a code cannot be fished for. That means arriving with a

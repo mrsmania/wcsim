@@ -16,6 +16,7 @@
 // for the apply says so rather than this file pretending otherwise.
 
 import { createHmac } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { check } from './harness';
 import { SQUADS, datasetPlayer } from '../../src/data/squads';
 import { getFormation } from '../../src/domain/formations';
@@ -798,4 +799,54 @@ export async function refereeChecks(): Promise<void> {
       return recoverIfNeeded(room, clock, clock + SWEEP_MS, SWEEP_MS) === room;
     },
   );
+
+  // --- THE CLIENT KNOCKS ON THE DOOR THE DEPLOYMENT OPENED --------------------
+  // The first thing wrong with wave 5 in production, and nothing else could have caught
+  // it: the deployed referee answered perfectly, the browser asked the wrong path, every
+  // call came back 404, and the client read that as "the referee is not answering" and
+  // said Versus was updating.
+  //
+  // `VITE_REFEREE_URL` points at the ROUTE (`https://HOST/referee`), not at the host, so a
+  // path in the client is `/version` and `/v1/...`. Repeating the prefix asks the gateway
+  // for `/referee/referee/...`, which matches nothing.
+  //
+  // Two halves, and both are needed. The first reads the client; the second reads the
+  // DEPLOYMENT NOTE that sets the variable, so changing the deployment shape without
+  // changing the client fails here rather than in a browser.
+  {
+    const client = readFileSync('src/state/pvp/referee.ts', 'utf8');
+    // Every path this file builds, as the argument to `call` or appended to the base.
+    const paths = [
+      ...client.matchAll(/call(?:<[^>]*>)?\(\s*'(?:GET|POST)',\s*[`']([^`']+)/g),
+      ...client.matchAll(/\$\{REFEREE\.url\}([^`]*)/g),
+    ]
+      .map((m) => m[1]!)
+      // `${REFEREE.url}${path}` inside `call` is the generic concatenation rather than a
+      // path of its own; every real path is a literal.
+      .filter((x) => !x.startsWith('${'));
+    const doubled = paths.filter((x) => x.startsWith('/referee'));
+    check(
+      `referee: none of the client's ${paths.length} paths repeats the /referee prefix the URL already carries`,
+      () =>
+        // Vacuity: it really is reading the paths. There are nine calls plus the
+        // handshake, so anything under eight means the matcher has stopped matching.
+        paths.length >= 8 &&
+        paths.every((x) => x.startsWith('/')) &&
+        doubled.length === 0,
+      () =>
+        doubled.length
+          ? `doubled: ${doubled.join(', ')}`
+          : `the scan found ${paths.length} paths, so it is not reading them`,
+    );
+
+    const setup = readFileSync('docs/nas-setup.md', 'utf8');
+    check(
+      'referee: the deployment still points VITE_REFEREE_URL at the route, not at the host',
+      () => /`VITE_REFEREE_URL`[^\n]*`https:\/\/HOST\/referee`/.test(setup),
+      () =>
+        'docs/nas-setup.md no longer sets VITE_REFEREE_URL to https://HOST/referee - if the ' +
+        'deployment now points at the host, every path in src/state/pvp/referee.ts needs the ' +
+        'prefix back',
+    );
+  }
 }

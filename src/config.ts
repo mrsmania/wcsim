@@ -107,7 +107,12 @@ export const SUPABASE = {
  *  as the account server rather than a second hostname (P46), so there is one certificate
  *  and one proxy rule - a second hostname adds a renewal path that can take Versus down on
  *  its own. No key: the referee is called with the player's OWN session token, and the one
- *  thing it will not accept is the anon key (P34, `domain/pvpAuth.ts`). */
+ *  thing it will not accept is the anon key (P34, `domain/pvpAuth.ts`).
+ *
+ *  IT POINTS AT THE ROUTE, NOT AT THE HOST: `https://HOST/referee`, which is what
+ *  docs/nas-setup.md step 6 sets and what the gateway forwards. So a caller appends
+ *  `/version` and `/v1/...` and never repeats the prefix - see `state/pvp/referee.ts`,
+ *  where getting that wrong made every call 404 and read as a referee that was down. */
 export const REFEREE = {
     url: (ENV.VITE_REFEREE_URL ?? '').replace(/\/+$/, ''),
 } as const;

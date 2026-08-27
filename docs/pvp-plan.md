@@ -550,6 +550,21 @@ fix if this is ever worth closing.
 
 ### Found while building the first playable room (wave 5)
 
+- **THE ONE THING THAT BROKE IN PRODUCTION, and no amount of local testing had a chance
+  of catching it.** `VITE_REFEREE_URL` is `https://HOST/referee` - it points at the
+  gateway ROUTE, because P46 puts the referee on the account server's gateway rather than
+  on a hostname of its own - and the client appended `/referee/v1/...` to it. Every call
+  asked for `/referee/referee/v1/...`, Envoy matched nothing, and the handshake read the
+  404 as "the referee is not answering": the Versus screen said it was updating, with a
+  deployed referee answering perfectly on the other side of the wrong door. Two things
+  came out of it. The client's paths are now `/version` and `/v1/...`, and `npm run checks`
+  reads both halves of the contract - the paths in `state/pvp/referee.ts` AND the sentence
+  in `docs/nas-setup.md` that sets the variable - so changing the deployment shape without
+  changing the client fails in the suite. And **the end-to-end harness now mounts the
+  referee behind a `/referee/` route with the variable pointing at that route**, which is
+  how it is deployed; the first version served it at the origin root and configured the
+  origin, so the doubled prefix cancelled out and every assertion passed. **A harness that
+  does not reproduce the deployment's SHAPE is not testing the deployment.**
 - **A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT, and the first screen built got that
   wrong.** Reading a room you are not in answers 404 rather than 403, so a private code
   cannot be confirmed by probing - which is the policy working. But it means arriving with

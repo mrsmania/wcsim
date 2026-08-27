@@ -2622,6 +2622,16 @@ six-character code play a whole game: lobby, draft, match, result. The plan is
   The deploy workflow already passes it; **deploy the referee BEFORE pushing a client that
   talks to it, always**, which is the same rule migrations follow. Wave 5 changed neither
   the protocol nor the dataset, so the referee deployed on 2026-08-26 still matches it.
+- **`VITE_REFEREE_URL` POINTS AT THE ROUTE, NOT AT THE HOST**: it is `https://HOST/referee`
+  (docs/nas-setup.md step 6), because the referee is a route on the account server's own
+  gateway (P46). So a path in `state/pvp/referee.ts` is `/version` and `/v1/rooms/...` and
+  never repeats the prefix. **This was wave 5's one production failure**: every call asked
+  for `/referee/referee/v1/...`, the gateway matched nothing, the handshake read the 404s
+  as a referee that was not answering, and the screen said "Versus is updating" - a
+  deployed referee working perfectly and a client knocking on the wrong door. `npm run
+  checks` now reads the client's paths AND the sentence in the deploy note that sets the
+  variable, so changing the deployment shape without changing the client fails there
+  rather than in a browser.
 
 **FOUR THINGS A ROOM MUST NOT DO, and each is enforced somewhere you can point at:**
 

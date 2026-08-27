@@ -23,6 +23,21 @@ import { nameKeyOf, normalizeName } from '../../domain/displayName';
 // that arrangement is that it lands in none.
 // ---------------------------------------------------------------------------
 
+/**
+ * THE CONFIGURED URL ALREADY CARRIES THE ROUTE PREFIX, so nothing here repeats it.
+ *
+ * `VITE_REFEREE_URL` is `https://HOST/referee` (docs/nas-setup.md, step 6): the referee is
+ * a route on the account server's own gateway rather than a second hostname (P46), and the
+ * variable points at the route, not at the host. So a path here is `/version` and
+ * `/v1/rooms/...`, and writing `/referee/v1/rooms` would ask the gateway for
+ * `/referee/referee/v1/rooms`, which matches nothing.
+ *
+ * That was the first thing wrong with wave 5 in production: every call 404'd, the
+ * handshake read that as "the referee is not answering", and the Versus screen said it was
+ * updating. It is a check now (`scripts/checks/build.ts`), because nothing else can catch
+ * it: the deployed referee answers perfectly and the client is asking the wrong door.
+ */
+
 /** How long a call may take before it is abandoned. Short on purpose: a pick is a hundred
  *  bytes and the clock is twenty seconds, so a request still in flight after this has
  *  already lost the window it was for. */
@@ -101,7 +116,7 @@ export interface Handshake {
  */
 export async function handshake(): Promise<Handshake> {
     try {
-        const res = await fetch(`${REFEREE.url}/referee/version`, {
+        const res = await fetch(`${REFEREE.url}/version`, {
             signal: AbortSignal.timeout(TIMEOUT_MS),
         });
         if (!res.ok) return { mismatch: null, theirs: null, unreachable: true };
@@ -170,13 +185,13 @@ export interface CreateRoomInput {
 }
 
 export const createRoom = (input: CreateRoomInput): Promise<RoomView> =>
-    call('POST', '/referee/v1/rooms', input);
+    call('POST', '/v1/rooms', input);
 
 export const readRoom = (code: string): Promise<RoomView> =>
-    call('GET', `/referee/v1/rooms/${code}`);
+    call('GET', `/v1/rooms/${code}`);
 
 export const joinRoom = (code: string): Promise<RoomView> =>
-    call('POST', `/referee/v1/rooms/${code}/join`);
+    call('POST', `/v1/rooms/${code}/join`);
 
 export const setLineup = (
     code: string,
@@ -184,10 +199,10 @@ export const setLineup = (
     style: string,
     ready: boolean,
 ): Promise<RoomView> =>
-    call('POST', `/referee/v1/rooms/${code}/lineup`, { formationName, style, ready });
+    call('POST', `/v1/rooms/${code}/lineup`, { formationName, style, ready });
 
 export const startRoom = (code: string): Promise<RoomView> =>
-    call('POST', `/referee/v1/rooms/${code}/start`);
+    call('POST', `/v1/rooms/${code}/start`);
 
 /** What the referee said about a pick. `late` and `illegal` are distinct because they
  *  mean different things to a player: one is "the clock beat you", the other is "that was
@@ -204,7 +219,7 @@ export async function submitPick(
     playerId: string,
 ): Promise<PickAnswer> {
     try {
-        return await call<PickAnswer>('POST', `/referee/v1/rooms/${code}/pick`, {
+        return await call<PickAnswer>('POST', `/v1/rooms/${code}/pick`, {
             ordinal,
             slotId,
             playerId,
@@ -227,10 +242,10 @@ function roomInside(err: unknown): RoomView | null {
 }
 
 export const rerollDeal = (code: string): Promise<RoomView> =>
-    call('POST', `/referee/v1/rooms/${code}/reroll`);
+    call('POST', `/v1/rooms/${code}/reroll`);
 
 /** Liveness (P31). A member unseen for ninety seconds is dropped from a lobby, so this is
  *  sent on a timer while a room is held - a closed tab fires no reliable event, which is
  *  why leaving has to be observed rather than announced. */
 export const seen = (code: string): Promise<{ ok: true }> =>
-    call('POST', `/referee/v1/rooms/${code}/seen`);
+    call('POST', `/v1/rooms/${code}/seen`);
