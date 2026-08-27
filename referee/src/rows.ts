@@ -116,17 +116,30 @@ export interface RoomRows {
 
 /** A `timestamptz` as milliseconds. `pg` hands back a `Date` for a timestamptz column, but
  *  a string when the value came through `json_agg`, and both happen here - so this takes
- *  either rather than the caller having to remember which query it came from. */
+ *  either rather than the caller having to remember which query it came from.
+ *
+ *  IT THROWS RATHER THAN HANDING BACK `NaN`, and that is the correction of a real production
+ *  bug: `touched_at` and `last_seen` were read here and not named in the two `select`s that
+ *  fill these rows, so `pg` handed over `undefined`, every time became `NaN`, and the
+ *  consequences were all silent. `NaN > LOBBY_IDLE_MS` is false, so the whole of P31's
+ *  lifecycle - the ninety-second drop, the fifteen-minute close, the thirty-minute close -
+ *  simply never fired; and `atOf(NaN)` throws deep inside the WRITE instead, so the sweeper
+ *  rolled back every room it touched and logged a code with no reason. A time that cannot be
+ *  read is a bug in the query, not a value to carry, and it belongs at the load where the
+ *  column name is still in view. */
 export function msOf(at: Date | string): number {
-  return at instanceof Date ? at.getTime() : new Date(at).getTime();
+  const ms = at instanceof Date ? at.getTime() : new Date(at as string).getTime();
+  if (!Number.isFinite(ms)) throw new Error(`unreadable timestamp: ${String(at)}`);
+  return ms;
 }
 
 export function msOrNull(at: Date | string | null): number | null {
-  return at === null ? null : msOf(at);
+  return at === null || at === undefined ? null : msOf(at);
 }
 
 /** Milliseconds as something Postgres will take. ISO, always UTC. */
 export function atOf(ms: number): string {
+  if (!Number.isFinite(ms)) throw new Error(`unwritable timestamp: ${String(ms)}`);
   return new Date(ms).toISOString();
 }
 

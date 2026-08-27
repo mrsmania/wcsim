@@ -21,6 +21,7 @@ import pg from 'pg';
 import { handle, type ApiDeps } from './api';
 import { httpBroadcaster, silentBroadcaster, type Broadcaster } from './broadcast';
 import { readEnv } from './env';
+import { faultOf } from './fault';
 import { pgStore } from './pgStore';
 import { recoverAtBoot, startSweeper } from './sweeper';
 
@@ -70,32 +71,6 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
-/** A database or runtime failure, named by its schema identifiers and nothing else.
- *
- *  Every field here is in `supabase/migrations/`, i.e. already public: an SQLSTATE, a
- *  column, a constraint, a table, a function. It is the difference between "the referee
- *  hit an error" and "42703 column=budget_source", which is a fix rather than a mystery. */
-function faultOf(err: unknown): string {
-  const e = err as {
-    code?: unknown;
-    column?: unknown;
-    constraint?: unknown;
-    table?: unknown;
-    routine?: unknown;
-    name?: unknown;
-  } | null;
-  const pick = (v: unknown): string | null =>
-    typeof v === 'string' && /^[A-Za-z0-9_]{1,63}$/.test(v) ? v : null;
-  const bits = [
-    pick(e?.code) ?? pick(e?.name),
-    pick(e?.column) ? `column=${pick(e?.column)}` : null,
-    pick(e?.constraint) ? `constraint=${pick(e?.constraint)}` : null,
-    pick(e?.table) ? `table=${pick(e?.table)}` : null,
-    pick(e?.routine) ? `in=${pick(e?.routine)}` : null,
-  ].filter(Boolean);
-  return bits.length ? bits.join(' ') : 'unclassified';
-}
-
 async function main(): Promise<void> {
   const env = readEnv(process.env);
   const pool = new pg.Pool({ connectionString: env.databaseUrl, max: 8 });
@@ -125,7 +100,7 @@ async function main(): Promise<void> {
   const stopSweeper = startSweeper(store, env.sweepMs, (result) => {
     for (const code of result.recovered) log(`recovered ${code} after an outage`);
     for (const code of result.advanced) nudge(code);
-    for (const code of result.failed) log(`sweep failed for ${code}`);
+    for (const f of result.failed) log(`sweep failed for ${f.code}: ${f.fault}`);
   });
 
   const server = createServer((req, res) => {

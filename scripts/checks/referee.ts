@@ -50,7 +50,7 @@ import {
 import { handle, type ApiDeps, type ApiResponse } from '../../referee/src/api';
 import { readEnv } from '../../referee/src/env';
 import { recoverIfNeeded, wasOutage } from '../../referee/src/outage';
-import { msOf, roomFromRows, rowsFromRoom, type RoomRows } from '../../referee/src/rows';
+import { atOf, msOf, roomFromRows, rowsFromRoom, type RoomRows } from '../../referee/src/rows';
 import { recoverAtBoot, sweepOnce } from '../../referee/src/sweeper';
 import type {
   CreateInput,
@@ -1047,6 +1047,105 @@ export async function refereeChecks(): Promise<void> {
             'null',
           ),
         () => `${held.room} / ${held.text}`,
+      );
+    }
+
+    // --- EVERY COLUMN THE ROW MAPPER READS IS NAMED IN THE `select` THAT FILLS IT -------
+    // The bug this exists for reached production and broke the whole feature. `rows.ts`
+    // reads `touched_at` on the room and `last_seen` on the member; `pgStore.ts` did not
+    // name either in its two `select`s. `pg` hands over `undefined` for a column it was
+    // not asked for, so both times came back unreadable, and the two halves of that failed
+    // in opposite directions: on the READ, nothing threw and the whole of P31's lifecycle
+    // quietly stopped working (an unreadable time is never older than ninety seconds); on
+    // the WRITE, the conversion threw from inside the save, so the sweeper rolled back
+    // every room it touched, once a second, for ever.
+    //
+    // THE ROUND-TRIP CHECK CANNOT SEE THIS, and that is why it needs its own check rather
+    // than a better fixture. The offline store keeps rooms as rows built by `rowsFromRoom`,
+    // which by construction fills every field of every interface - so the mapping was
+    // exercised thousands of times here and the only untested thing in the whole path was
+    // the list of column names in the query. That list is text, so this reads it as text.
+    {
+      const rows = readFileSync('referee/src/rows.ts', 'utf8');
+      const store = readFileSync('referee/src/pgStore.ts', 'utf8');
+
+      const fieldsOf = (name: string): string[] => {
+        const at = rows.indexOf(`export interface ${name} {`);
+        if (at < 0) return [];
+        const body = rows.slice(at, rows.indexOf('\n}', at));
+        return [...new Set([...body.matchAll(/^\s{2}([a-z_]+)\??:/gm)].map((m) => m[1]!))];
+      };
+
+      // The `select` that fills each interface, found by the table it reads from. The room's
+      // is picked out by its own `where`, since `publicLobbies` also reads `pvp_rooms`.
+      const columnsOf = (marker: string): string => {
+        const at = store.indexOf(marker);
+        if (at < 0) return '';
+        return store.slice(store.lastIndexOf('select', at), at);
+      };
+
+      const QUERIES: { row: string; marker: string }[] = [
+        { row: 'RoomRow', marker: 'from pvp_rooms where code = $1' },
+        { row: 'MemberRow', marker: 'from pvp_members m' },
+        { row: 'DealRow', marker: 'from pvp_deals' },
+        { row: 'PickRow', marker: 'from pvp_picks' },
+        { row: 'MatchRow', marker: 'from pvp_matches' },
+      ];
+
+      // A column name as a whole word, with or without a table alias in front of it. The
+      // allowed characters before it deliberately exclude `_`, so `room_id` in the query
+      // does not answer for a field called `id`.
+      const names = (column: string, list: string): boolean =>
+        new RegExp(`(^|[\\s,.(])${column}(?![A-Za-z0-9_])`).test(list);
+
+      const scanned = QUERIES.map((q) => {
+        const fields = fieldsOf(q.row);
+        const list = columnsOf(q.marker);
+        return { ...q, fields, list, missing: fields.filter((f) => !names(f, list)) };
+      });
+      const missing = scanned.flatMap((x) => x.missing.map((f) => `${x.row}.${f}`));
+      const total = scanned.reduce((n, x) => n + x.fields.length, 0);
+
+      check(
+        `referee: all ${total} columns the row mapper reads are named in the select that fills it`,
+        () =>
+          // Vacuity, three ways, because every part of this can silently stop reading.
+          // It found all five interfaces; each has a plausible number of fields; and a
+          // column that is NOT there really is reported, which is the whole mechanism.
+          scanned.every((x) => x.fields.length >= 3 && x.list.length > 20) &&
+          total >= 45 &&
+          scanned.every((x) => !names('no_such_column', x.list)) &&
+          missing.length === 0,
+        () =>
+          missing.length
+            ? `not selected: ${missing.join(', ')}`
+            : `the scan read ${total} fields across ${scanned.length} queries, so it is not reading them`,
+      );
+    }
+
+    // And the belt to that braces: a time the query did not fetch must FAIL rather than
+    // become `NaN`. An unreadable time is silently never older than anything, so carrying
+    // one turns every lifecycle rule off without a word; throwing at the load puts the
+    // failure where the column name still is.
+    {
+      const threw = (fn: () => unknown): boolean => {
+        try {
+          fn();
+          return false;
+        } catch {
+          return true;
+        }
+      };
+      const missing = undefined as unknown as Date;
+      check(
+        'referee: a timestamp the query did not fetch is a failure, not NaN',
+        () =>
+          threw(() => msOf(missing)) &&
+          threw(() => msOf('not a date')) &&
+          threw(() => atOf(Number.NaN)) &&
+          // Vacuity: the real values still convert, so this is not simply throwing always.
+          msOf(new Date(1700)) === 1700 &&
+          atOf(1700) === new Date(1700).toISOString(),
       );
     }
 

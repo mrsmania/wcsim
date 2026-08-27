@@ -13,6 +13,7 @@
 // This is a loop and an error boundary.
 
 import { recoverFromOutage, tickRoom } from '../../src/domain/pvpRoom';
+import { faultOf } from './fault';
 import { recoverIfNeeded } from './outage';
 import type { RoomStore } from './store';
 
@@ -23,9 +24,11 @@ export interface SweepResult {
   advanced: string[];
   /** Rooms that came back from an outage with time handed back. */
   recovered: string[];
-  /** Codes that threw. One bad room must not stop the sweep: the next room's player is
-   *  waiting on a clock that does not care why. */
-  failed: string[];
+  /** Rooms that threw, each with the fault named. One bad room must not stop the sweep: the
+   *  next room's player is waiting on a clock that does not care why - but a code with no
+   *  reason beside it is a log line nobody can act on, which is how a missing column came to
+   *  spend a morning as "sweep failed for E7AYHR" once a second. */
+  failed: { code: string; fault: string }[];
 }
 
 export async function sweepOnce(
@@ -52,8 +55,8 @@ export async function sweepOnce(
       if (!done) continue;
       if (done.result.recovered) out.recovered.push(code);
       if (done.result.changed) out.advanced.push(code);
-    } catch {
-      out.failed.push(code);
+    } catch (err) {
+      out.failed.push({ code, fault: faultOf(err) });
     }
   }
   return out;

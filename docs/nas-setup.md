@@ -783,9 +783,19 @@ another hostname is another certificate renewal that can take versus down on its
 CALLED VERIFIED HANDED A PLAYER A 500.** `/referee/version` reads a constant the image
 bundles; both 401s are refused before Postgres is reached. So passing them proves the
 routing and the JWT and says nothing at all about whether a room can be written. `--verify`
-now mints a session on the box from the stack's own `JWT_SECRET`, creates a real room and
-deletes it again; do that, or open a room in a browser with `docker compose logs -f referee`
-running beside you. **A version endpoint answering is not a working referee.**
+now mints a session on the box from the stack's own `JWT_SECRET`, creates a real room,
+**changes it**, and deletes it again; do that, or open a room in a browser with
+`docker compose logs -f referee` running beside you. **A version endpoint answering is not a
+working referee.**
+
+**AND CREATING A ROOM IS NOT READING ONE BACK**, which is a second deploy this runbook
+called verified and a second thing it could not see. Creating builds the room in memory and
+inserts it; every other operation LOADS one out of Postgres first. On 2026-08-27 two columns
+the row mapper needs were missing from the two queries that fetch a room, so the referee
+opened rooms happily and then failed on every join, ready, start and pick, and swept every
+room into a rollback once a second. Step 5 of `--verify` is now one more call that changes
+the room it just made, which is the whole load-mutate-save path. If it ever reports a throw
+on a room the same run created, the fault is that path and the log names it.
 
 Note what the version handshake CANNOT catch: an image built one commit early. It compares
 the protocol and the dataset hash, so a referee whose *code* is stale but whose squads are

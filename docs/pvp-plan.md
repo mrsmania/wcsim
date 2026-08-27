@@ -618,6 +618,45 @@ is unnecessary or very obvious, and what is the button *Change my shape* for?"
   work out from the screen: the ratings house rule, why a private room answers "no room",
   that a score waits for its own match to finish.
 
+### Found by DEPLOYING it (wave 8, the same day)
+
+- **THE FIRST DEPLOY BROKE VERSUS OUTRIGHT, and every check in the suite was green.** The
+  container went up, reported itself healthy, and then logged `sweep failed for E7AYHR` once
+  a second for ever. `referee/src/rows.ts` reads `pvp_rooms.touched_at` and
+  `pvp_members.last_seen`; the two `select`s in `referee/src/pgStore.ts` named neither, and
+  `pg` hands over `undefined` for a column it was not asked for.
+- **The two halves failed in OPPOSITE directions, which is why it was invisible.** On the
+  read, `msOf(undefined)` was `NaN` and nothing threw: `NaN > SEEN_GONE_MS` is false, so
+  P31's entire lifecycle - the ninety-second drop, the fifteen-minute lobby close, the
+  thirty-minute room close - was dead and said nothing about it. On the write, `atOf(NaN)`
+  throws `RangeError: Invalid time value` from inside `save`, so **every mutation of an
+  existing room rolled back**. A room could still be created (the object is built in memory
+  with a real `now`) and then nothing could be done to it: no join, no ready, no start, no
+  pick.
+- **NO BEHAVIOURAL CHECK COULD HAVE CAUGHT THIS, and that is the interesting part.** The
+  offline store deliberately keeps rooms AS ROWS and converts on every load and save, which
+  is the highest-value decision in `scripts/checks/referee.ts` and it worked exactly as
+  intended for everything except this. It builds those rows with `rowsFromRoom`, which by
+  construction fills every field of every interface - so the mapping was exercised thousands
+  of times and **the list of column names in the query was the only untested thing in the
+  whole path**. It is text, so it is now checked as text: every field of every row interface
+  must be named in the `select` that fills it. Mutation-tested by removing each of the two
+  columns; it names the missing one.
+- **A time that cannot be read is now a failure, not a value.** `msOf` and `atOf` throw. The
+  alternative is what happened: an unreadable time is silently never older than anything, so
+  it turns rules off rather than breaking them, and the eventual complaint surfaces two
+  layers away inside a write.
+- **And a failed sweep names its fault.** `faultOf` moved to `referee/src/fault.ts` and the
+  sweep result carries a reason per room. A room code once a second with no reason beside it
+  is undiagnosable by the only person who can see it, which is the same correction the 500
+  handler had already had - the header of that handler says so at length, and the sweeper
+  four files away had the identical hole.
+- **The lesson for the next wave that touches the store: `--verify` proves the container
+  answers, not that it works.** It mints a session, creates a real room and deletes it,
+  which is why it passed - creating is the one operation the bug did not break. A probe that
+  creates a room, joins it as a second account and reads it back would have caught this in
+  the deploy script rather than in the log.
+
 ### Found while building the public half (wave 8)
 
 - **IT NEEDED NO MIGRATION, and that is 0016 having been written properly rather than luck.**

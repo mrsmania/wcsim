@@ -364,6 +364,33 @@ PYEOF" | tr -d '\r' | tail -1)
       *'"code"'*'"status":"lobby"'*)
         local made_code; made_code=$(printf '%s' "$made" | sed -n 's/.*"code":"\([A-Z0-9]*\)".*/\1/p')
         ok "a room was created and read back: $made_code"
+
+        say "5. NOW CHANGE IT - creating a room never READS one back"
+        # THE SECOND CHECK THIS SCRIPT WAS MISSING, and it cost a second broken deploy.
+        # Step 4 builds the room object in memory and inserts it, so nothing there reads a
+        # room out of Postgres - and that is precisely the half that broke on 2026-08-27:
+        # two columns the row mapper needs were absent from the two selects that fetch a
+        # room, so the referee could open one and then failed on every join, ready, start
+        # and pick. This script called that deploy verified, because creating is the one
+        # operation the bug did not touch. One more curl covers load, mutate and save.
+        local changed
+        changed=$(curl -s --ssl-no-revoke --max-time 20 -X POST \
+                    -H "Authorization: Bearer $token" -H 'content-type: application/json' \
+                    -d '{"formationName":"4-4-2","style":"bal","ready":true}' \
+                    "$host/referee/v1/rooms/$made_code/lineup" || true)
+        printf '   %s\n' "${changed:-<no answer>}"
+        case "$changed" in
+          *'"formationName":"4-4-2"'*) ok "read back, changed and saved" ;;
+          *referee-error*)
+            warn "THE REFEREE THREW ON A ROOM IT HAD JUST CREATED. So creating one works and
+   reading one back does not, which is the 2026-08-27 failure exactly. The reply names the
+   SQLSTATE where there is one; the log has the rest. NO SQLSTATE at all means the fault is
+   in the row mapping rather than in Postgres: every column referee/src/rows.ts reads must
+   be named in the selects in referee/src/pgStore.ts, which npm run checks asserts." ;;
+          *) warn "expected the room back carrying the new formation. The read-and-save path
+   is NOT verified, which is most of what a room does." ;;
+        esac
+
         on "docker compose -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -qc \"delete from pvp_rooms where code = '$made_code'\"" >/dev/null 2>&1 \
           && ok "test room deleted" || warn "could not delete the test room $made_code - do it in Studio" ;;
       *no-display-name*)

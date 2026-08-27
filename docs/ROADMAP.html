@@ -740,7 +740,10 @@
       Until then the list shows nothing rather than breaking, and a public room is invisible to
       everyone but its host. <b>It also carries the fix for a reported bug</b>: leaving a room
       used to leave the seat taken, so opening another was refused for a minute and a half.
-      Needs the NAS, so a cloud session cannot do it.</span>
+      <b>And it now carries the fix for a bug the first attempt at this deploy exposed</b>,
+      which had broken versus outright: two columns the room reader needs were not being
+      asked for, so the server could open a room and then fail on every single thing done to
+      it afterwards. Needs the NAS, so a cloud session cannot do it.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -770,6 +773,23 @@
       that ninety-second sweep noticed. The fix is a new server instruction, so it needs this
       deploy like the rest.</li>
     </ol>
+    <p><strong>The first attempt at this deploy failed, and the fix is in the same rebuild.</strong>
+    It went up cleanly and then logged <code>sweep failed</code> against one room once a
+    second for ever. Two columns the room reader reads were missing from the two queries that
+    fetch a room, so every time came back unreadable - and the two halves of that broke in
+    opposite directions. On the way IN nothing complained at all, and the whole of the
+    liveness lifecycle silently stopped working, because an unreadable time is never older
+    than ninety seconds. On the way OUT the conversion threw from inside the write, so the
+    server rolled back every room it touched: it could still open a room and then failed on
+    every join, ready, start and pick. Three things changed, and the third is the one that
+    matters most: the columns are asked for; an unreadable time is now a loud failure at the
+    read rather than a value that gets carried; and a failed sweep names its fault in the log
+    instead of printing a room code and nothing else. There is a new check over the queries,
+    mutation-tested by removing each of the two columns.</p>
+    <p><strong>Watch the log after this one.</strong> The last thing the deploy prints is the
+    server's own log. It should show it listening and then nothing. Any line reading
+    <code>sweep failed</code> now carries the reason after the room code, and that reason is
+    what to paste back.</p>
     <p><strong>If it goes wrong.</strong> The previous image is the rollback, and it is safe:
     the schema did not move, so the old build reads the same tables. What you lose by rolling
     back is the list and the liveness sweep, which is exactly the state the app already

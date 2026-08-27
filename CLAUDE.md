@@ -2789,6 +2789,29 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
   means arriving with a code and being told there is no room is the NORMAL first step, and
   the answer to it is a Join button. Do not "fix" that 404.
 
+**A COLUMN THE ROW MAPPER READS AND THE QUERY DOES NOT ASK FOR IS A SILENT DISASTER, and it
+reached production** (2026-08-27, found by the first wave-8 deploy). `referee/src/rows.ts`
+read `pvp_rooms.touched_at` and `pvp_members.last_seen`; the two `select`s in
+`referee/src/pgStore.ts` named neither, and `pg` hands over `undefined` for a column it was
+not asked for. **The two halves then failed in opposite directions**, which is what made it
+so hard to see. On the READ nothing threw and every P31 lifecycle rule quietly stopped
+working, because `NaN > SEEN_GONE_MS` is false - so the ninety-second drop, the fifteen-
+minute lobby close and the thirty-minute room close were all dead. On the WRITE `atOf(NaN)`
+threw from inside `save`, so **every command that mutates an existing room rolled back**: a
+room could be opened and then nothing could be done to it, and the sweeper logged one room
+code once a second for ever. Three rules came out of it and all three are checked:
+
+- **`msOf` and `atOf` THROW rather than handing back `NaN`.** A time that cannot be read is
+  a bug in the query, and it belongs at the load where the column name is still in view.
+- **`npm run checks` reads the `select` text against the row interfaces**, because nothing
+  behavioural can catch this: the offline store keeps rooms as rows built by `rowsFromRoom`,
+  which by construction fills every field, so the round-trip check exercised the mapping
+  thousands of times and the column NAMES in the query were the one untested thing in the
+  path. Mutation-tested by removing each of the two columns.
+- **A failed sweep names its fault** (`referee/src/fault.ts`, now shared with the 500
+  handler). `sweep failed for E7AYHR`, once a second, is undiagnosable by the only person
+  who can see it - which is the same mistake the 500 handler had already been corrected for.
+
 **A 500 FROM THE REFEREE NAMES ITS FAULT, and stops short of its message.** The message can
 carry a query, a row value or a connection string and stays in the log; the reply carries the
 SQLSTATE plus whichever of the column, constraint, table and function the driver attached -

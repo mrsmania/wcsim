@@ -42,7 +42,7 @@ import type { CreateInput, LobbyRow, Mutation, MutateContext, RoomStore } from '
  *  un-multiplied in JavaScript. */
 const SELECT_ROOM = `select id, code, visibility, host_id, size, method,
     budget, years, show_ratings, rerolls, pick_seconds, status, round, champion_id,
-    started_at, swept_at
+    started_at, swept_at, touched_at
   from pvp_rooms where code = $1`;
 
 export function pgStore(pool: Pool): RoomStore {
@@ -57,7 +57,7 @@ export function pgStore(pool: Pool): RoomStore {
     // today, so the concurrency was never real, only the deprecation warning was.
     const members = await db.query<MemberRow>(
         `select m.user_id, m.seat, m.ready, m.budget, m.rerolls_used, m.out_in,
-                m.window_ordinal, m.window_opened_at, p.display_name,
+                m.last_seen, m.window_ordinal, m.window_opened_at, p.display_name,
                 l.formation_name, l.style
            from pvp_members m
            left join profiles p on p.id = m.user_id
