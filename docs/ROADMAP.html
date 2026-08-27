@@ -356,13 +356,14 @@
       against a per-pick clock and playing a live knockout. SETTLED 2026-08-25/26, then
       REVIEWED and revised. <b>WAVES 0 TO 3 SHIPPED AND DEPLOYED 2026-08-26</b>: the rules,
       the referee's logic, the tables, the referee itself, and now its deploy (item 41,
-      closed) - <b>the server half is live and verified</b>. <b>WAVES 4, 5 AND 6 SHIPPED
-      2026-08-27, AND VERSUS IS LIVE</b>: two people with a six-character code either buy an
-      XI from a shared budget or roll random squads, draft against a clock, and play a match -
-      and the host can hide every rating, which turns the draft into a genuine judgement.
-      Neither player touches the other&#8217;s saved game. <b>Next is WAVE 7</b>, rooms of
-      four and eight with a random bracket draw. One decision is settled: no part of a career
-      reaches a room.</span>
+      closed) - <b>the server half is live and verified</b>. <b>WAVES 4 TO 7 SHIPPED
+      2026-08-27, AND VERSUS IS LIVE</b>: two, four or eight people with a six-character code
+      either buy an XI from a shared budget or roll random squads, draft against a clock, and
+      play a knockout - the bracket drawn at random once every team is in, and whoever goes out
+      first stays and watches the rest. The host can hide every rating, which turns the draft
+      into a genuine judgement. Nobody touches anybody else&#8217;s saved game. <b>Next is
+      WAVE 8</b>, public rooms anyone can find and join. One decision is settled: no part of a
+      career reaches a room.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -649,14 +650,43 @@
     windows, a champion, both teams revealed. <b>Not one rating appeared anywhere in the
     hidden room</b> - not on an empty board, not with three players placed, not during the
     live match - and twenty-five of them were on the result screen at the whistle.</p>
-    <p class="next"><strong>Next step:</strong> wave 7 - rooms of four and eight. Everybody
-    drafts first and then the whole bracket is drawn at random in one go, so nobody knows who
-    they are facing while they pick and two people sharing a code cannot arrange the tree
-    between them. It needs the wait-for-everyone barrier, the draw as something to watch, the
-    bracket screen, and what a knocked-out player sees while the rest plays on. Still open from
-    wave 5, for whichever wave next touches the server: a per-pick <b>Skip</b>, and <b>moving a
-    player already placed</b>.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a>, <a class="dl" href="../src/state/pvp/referee.ts" target="_blank" rel="noopener">src/state/pvp/referee.ts</a>, <a class="dl" href="../src/hooks/useVersusRoom.ts" target="_blank" rel="noopener">src/hooks/useVersusRoom.ts</a>, <a class="dl" href="../src/domain/pvpView.ts" target="_blank" rel="noopener">src/domain/pvpView.ts</a>, <a class="dl" href="../src/components/versus/" target="_blank" rel="noopener">src/components/versus/</a></p>
+    <p><strong>Wave 7 shipped 2026-08-27: four and eight of you, and a bracket.</strong> A
+    host now picks how many people are playing - two for one match, four for semi-finals and a
+    final, eight for quarters as well - and the tournament is a real knockout with a tree
+    everyone can read. <b>Everybody drafts first and then the whole bracket is drawn at random
+    in one go</b>, which buys two things: nobody knows who they are facing while they pick, so
+    the draft is the same problem for everyone; and the draw cannot be arranged, where pairing
+    by who joined first would let two people sharing a code put themselves on opposite sides
+    of the tree.</p>
+    <p><strong>The wait is where the draw goes, and that was the design question.</strong>
+    Nothing is paired until the last pick lands, so somebody decisive in a room of eight can
+    finish four minutes early. What fills those minutes is the draw itself: the tree on screen
+    with every seat empty, every name sitting in the pot, and the pairings appearing in front
+    of them when the last team is in. A progress bar counting other people&#8217;s picks would
+    have spent the same time saying less.</p>
+    <p><strong>Going out is not leaving.</strong> A knocked-out player stays and watches the
+    rest of the tournament, and the match they are shown is the one their own conqueror is in -
+    the single game in that round they have a reason to care about, with no control to hunt for.
+    Both players are named on the card rather than one of them being called "you", which needed
+    three shared parts of the match screen to learn that neither side is always the viewer.</p>
+    <p><strong>One rule worth knowing.</strong> A score does not appear on the tree until that
+    match has finished playing. Every game in a round kicks off at the same moment and they run
+    for different lengths, so without it the tree beside the match you are watching would print
+    the result of the game you are about to be shown.</p>
+    <p><strong>The server needed no changes at all</strong>, which is the design paying out: it
+    has taken rooms of four and eight, the wait-for-everyone barrier and the random draw since
+    the very first wave, and all of it was already tested over sixty simulated rooms of eight.
+    Wave 7 is what the screens make of it. <b>Verified with four real browsers</b> against the
+    real server: the size choice, four seats with the empty ones drawn out, the draw on screen
+    through the wait, both semi-finals, a knocked-out player watching the final, and a champion
+    named on all four screens - with nobody&#8217;s saved game touched.</p>
+    <p class="next"><strong>Next step:</strong> wave 8 - public rooms. A list anybody signed in
+    can browse and join without being sent a code, which is the half of the feature that
+    depends on other people being there. It brings the liveness rules with it (a room whose
+    host closed their tab has to stop sitting in the list), the win/loss record, and reporting
+    a name. Still open from wave 5, for whichever wave next touches the server: a per-pick
+    <b>Skip</b>, and <b>moving a player already placed</b>.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>, <a class="dl" href="../src/domain/match.ts" target="_blank" rel="noopener">src/domain/match.ts</a>, <a class="dl" href="../src/domain/knockout.ts" target="_blank" rel="noopener">src/domain/knockout.ts</a>, <a class="dl" href="../src/domain/draft.ts" target="_blank" rel="noopener">src/domain/draft.ts</a>, <a class="dl" href="../supabase/migrations/" target="_blank" rel="noopener">supabase/migrations/</a>, <a class="dl" href="../src/state/store/" target="_blank" rel="noopener">src/state/store/</a>, <a class="dl" href="../src/state/buildIo.ts" target="_blank" rel="noopener">src/state/buildIo.ts</a>, <a class="dl" href="../src/hooks/useBuild.ts" target="_blank" rel="noopener">src/hooks/useBuild.ts</a>, <a class="dl" href="../src/components/BuildSurface.tsx" target="_blank" rel="noopener">src/components/BuildSurface.tsx</a>, <a class="dl" href="../src/state/pvp/referee.ts" target="_blank" rel="noopener">src/state/pvp/referee.ts</a>, <a class="dl" href="../src/hooks/useVersusRoom.ts" target="_blank" rel="noopener">src/hooks/useVersusRoom.ts</a>, <a class="dl" href="../src/domain/pvpView.ts" target="_blank" rel="noopener">src/domain/pvpView.ts</a>, <a class="dl" href="../src/components/versus/" target="_blank" rel="noopener">src/components/versus/</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/versus/RoomBracket.tsx" target="_blank" rel="noopener">src/components/versus/RoomBracket.tsx</a></p>
   </div>
 </details>
 

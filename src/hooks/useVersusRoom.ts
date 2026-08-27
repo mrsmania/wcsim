@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { roomLine } from '../domain/pvpView';
 import type { RoomView } from '../domain/pvpWire';
 import { holdLiveMatch } from '../nav/liveMatch';
 import { holdVersusRoom } from '../nav/versusRoom';
@@ -7,6 +8,7 @@ import {
     joinRoom,
     readRoom,
     rerollDeal,
+    resizeRoom,
     seen,
     setLineup as postLineup,
     startRoom,
@@ -76,6 +78,8 @@ export interface VersusRoom {
     refresh: () => void;
     ready: (formationName: string, style: string, ready: boolean) => Promise<void>;
     start: () => Promise<void>;
+    /** The host playing with fewer than the room was opened for (P7). */
+    resize: (size: number) => Promise<void>;
     join: () => Promise<void>;
     reroll: () => Promise<void>;
     pick: (slotId: string, playerId: string) => Promise<PickAnswer['outcome']>;
@@ -111,12 +115,9 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
             ? { ordinal: w.ordinal, remainingMs: w.remainingMs, at: performance.now() }
             : null;
         setRemainingMs(w ? w.remainingMs : null);
-        holdVersusRoom({
-            code: next.code,
-            status: next.status,
-            picked: next.members.find((m) => m.userId === next.you?.userId)?.picked ?? 0,
-            size: next.size,
-        });
+        // The strip's sentence is written HERE, by the room's own reading of itself, so the
+        // chrome does not compose a second one out of a status and a count.
+        holdVersusRoom({ code: next.code, status: next.status, line: roomLine(next) });
     }, []);
 
     /** Run a call, recording what it cost so the lock lead is a measurement. */
@@ -250,6 +251,10 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         [code, command],
     );
     const start = useCallback(() => command(() => startRoom(code)), [code, command]);
+    const resize = useCallback(
+        (size: number) => command(() => resizeRoom(code, size)),
+        [code, command],
+    );
     const join = useCallback(() => command(() => joinRoom(code)), [code, command]);
     const reroll = useCallback(() => command(() => rerollDeal(code)), [code, command]);
 
@@ -286,6 +291,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         refresh,
         ready,
         start,
+        resize,
         join,
         reroll,
         pick,

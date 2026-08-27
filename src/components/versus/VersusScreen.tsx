@@ -62,9 +62,10 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
                 <StageHeader eyebrow="Versus" title="Play somebody" />
                 <div className={`${CARD} p-5`}>
                     <RoomNote>
-                        Two people, two teams bought from the same money, one match. It needs
-                        an account, because the other person has to know who they beat and the
-                        result has to live somewhere neither of you can edit.
+                        Two, four or eight people, a team each from the same money or the same
+                        dice, and a knockout to settle it. It needs an account, because the
+                        others have to know who they beat and the result has to live somewhere
+                        none of you can edit.
                     </RoomNote>
                     <RoomNote>
                         <span className="mt-2 block">

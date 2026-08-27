@@ -5,10 +5,12 @@ import type { RoomView } from '../../domain/pvpWire';
 import { getFormation, type FormationName, type Style } from '../../domain/formations';
 import {
     meIn,
-    othersIn,
+    memberOf,
     playersOf,
     roomDisplay,
+    roundsFor,
     shouldReveal,
+    spectateTie,
     tieOf,
     viewerTie,
     xiFrom,
@@ -16,6 +18,7 @@ import {
 import { holdVersusRoom } from '../../nav/versusRoom';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
+import RoomBracket, { currentRoundLabel, shortName } from './RoomBracket';
 import RoomDraft from './RoomDraft';
 import RoomLobby from './RoomLobby';
 import RoomResult, { decidingTie } from './RoomResult';
@@ -29,6 +32,17 @@ import { RefereeProblem, RoomNote } from './versusUi';
 // moves on, including when a match stops being watched (P30 - the round advances when the
 // server's reveal window closes, whoever is or is not looking at it), so there is no
 // phase machine on this side to disagree with it.
+//
+// THERE IS NO "THE OTHER PLAYER" ANY MORE. In a room of two the opponent is the only other
+// seat, and reading it that way is how this screen was first written; in a room of eight it
+// is whoever the draw paired you with, and after you go out there is nobody at all. So the
+// opponent comes off the TIE and the tie comes off the round, and the screen has a third
+// state besides playing and finished: watching (P24).
+//
+// A KNOCKED-OUT PLAYER STAYS AND WATCHES THE REST (P24), and the default game is the one
+// their own conqueror is in - the single match in the round they have a reason to care
+// about, chosen without a control. That match has two other people in it, so it is drawn
+// with both of them named rather than with one of them called "you".
 
 const HEADINGS: Record<string, string> = {
     lobby: 'The room',
@@ -48,12 +62,26 @@ export default function RoomScreen({ code }: { code: string }) {
         navigate('/versus');
     }, [navigate]);
 
-    // The tie the viewer is in, this round, turned round so they are the home side.
+    // The tie the viewer is in, this round, turned round so they are the home side - and
+    // the opponent the DRAW gave them, which in a room of more than two is not "the other
+    // seat" and after an exit is nobody.
     const mine = useMemo(() => {
         if (!view?.you) return null;
         const t = tieOf(view, view.round, view.you.userId);
-        return t ? { raw: t, tie: viewerTie(t, view.you.userId) } : null;
+        if (!t) return null;
+        const tie = viewerTie(t, view.you.userId);
+        return { raw: t, tie, them: memberOf(view, tie.opponentId) };
     }, [view]);
+
+    // The game to watch when the viewer is not in one (P24).
+    const watching = useMemo(() => {
+        if (!view || view.status !== 'round' || mine) return null;
+        const t = spectateTie(view);
+        if (!t) return null;
+        const home = memberOf(view, t.homeId);
+        const away = memberOf(view, t.awayId);
+        return home && away ? { raw: t, tie: viewerTie(t, t.homeId), home, away } : null;
+    }, [view, mine]);
 
     if (!view) {
         // A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT, and that is the policy
@@ -97,7 +125,6 @@ export default function RoomScreen({ code }: { code: string }) {
     }
 
     const me = meIn(view);
-    const others = othersIn(view);
 
     // A public room you have not joined. The only way in is to take a seat.
     if (!me) {
@@ -117,14 +144,30 @@ export default function RoomScreen({ code }: { code: string }) {
         );
     }
 
-    const them = others[0] ?? null;
+    const them = mine?.them ?? null;
+    const tree = roundsFor(view.size) > 1;
+    // The match a finished room is about, from this player's side: the cup they won, or
+    // the tie they went out in. `mine` is not it - the room ends on a round they may have
+    // been watching rather than playing.
+    const deciding = decidingTie(view);
+    const decidingThem = deciding ? memberOf(view, deciding.opponentId) : null;
+    const ended = deciding && decidingThem ? { tie: deciding, them: decidingThem } : null;
     const myFormation =
         getFormation((me.formationName as FormationName) ?? '4-3-3', (me.style as Style) ?? 'bal') ??
         getFormation('4-3-3', 'bal')!;
 
     return (
         <>
-            <StageHeader eyebrow={`Room ${view.code}`} title={HEADINGS[view.status] ?? 'The room'} />
+            <StageHeader
+                eyebrow={`Room ${view.code}`}
+                // A room of two plays one match and calling it the Final is grandiose; a
+                // room of eight plays three rounds and "The match" says nothing.
+                title={
+                    tree && view.status === 'round'
+                        ? currentRoundLabel(view)
+                        : (HEADINGS[view.status] ?? 'The room')
+                }
+            />
 
             {/* A refused command - a Start the referee would not take, a join it turned
                 down - said in words, with its own code underneath. It has its own field on
@@ -151,6 +194,7 @@ export default function RoomScreen({ code }: { code: string }) {
 
             {view.status === 'round' && (
                 <div className="flex flex-col gap-[18px]">
+                    {tree && <RoomBracket view={view} serverNow={view.at} />}
                     {mine && them ? (
                         mine.tie.decided === null ? (
                             <div className={`${CARD_FLAT} p-5`}>
@@ -164,7 +208,7 @@ export default function RoomScreen({ code }: { code: string }) {
                                 // A fresh key per tie, so the reveal starts with the match
                                 // rather than with the screen.
                                 key={`${mine.raw.round}-${mine.raw.game}`}
-                                label="The match"
+                                label={currentRoundLabel(view)}
                                 tie={mine.tie}
                                 opponentName={them.name}
                                 yourXi={playersOf(myFormation, xiFrom(myFormation, view.you?.xi ?? {}))}
@@ -174,6 +218,34 @@ export default function RoomScreen({ code }: { code: string }) {
                                 onEnd={room.refresh}
                             />
                         )
+                    ) : watching ? (
+                        <>
+                            <div className={`${CARD_FLAT} px-4 py-3`}>
+                                <div className={MONO_CAP}>You are out</div>
+                                <RoomNote>
+                                    Your run ended in the{' '}
+                                    {roundLabelOf(view, me.outIn ?? view.round)}. Stay and watch
+                                    it out: this is {watching.home.name} against{' '}
+                                    {watching.away.name}.
+                                </RoomNote>
+                            </div>
+                            <VersusMatch
+                                key={`watch-${watching.raw.round}-${watching.raw.game}`}
+                                label={currentRoundLabel(view)}
+                                tie={watching.tie}
+                                opponentName={watching.away.name}
+                                yourXi={theirPlayers(view, watching.home.userId)}
+                                theirXi={theirPlayers(view, watching.away.userId)}
+                                ratings={roomDisplay(view).ratings}
+                                live={shouldReveal(watching.raw, view.at)}
+                                // Neither side is the viewer's, so both are named.
+                                sides={{
+                                    user: shortName(watching.home.name),
+                                    opp: shortName(watching.away.name),
+                                }}
+                                onEnd={room.refresh}
+                            />
+                        </>
                     ) : (
                         <div className={`${CARD_FLAT} p-5`}>
                             <RoomNote>The round is being played.</RoomNote>
@@ -182,14 +254,18 @@ export default function RoomScreen({ code }: { code: string }) {
                 </div>
             )}
 
-            {view.status === 'ended' &&
-                (mine && them ? (
-                    <RoomResult view={view} tie={decidingTie(view) ?? mine.tie} you={me} them={them} />
-                ) : (
-                    <div className={`${CARD_FLAT} p-5`}>
-                        <RoomNote>This room is finished.</RoomNote>
-                    </div>
-                ))}
+            {view.status === 'ended' && (
+                <div className="flex flex-col gap-[18px]">
+                    {tree && <RoomBracket view={view} serverNow={view.at} />}
+                    {ended ? (
+                        <RoomResult view={view} tie={ended.tie} you={me} them={ended.them} />
+                    ) : (
+                        <div className={`${CARD_FLAT} p-5`}>
+                            <RoomNote>This room is finished.</RoomNote>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="mt-6 flex items-center gap-2">
                 {view.status === 'ended' ? (
@@ -214,6 +290,11 @@ export default function RoomScreen({ code }: { code: string }) {
             </div>
         </>
     );
+}
+
+/** What a round is called in this room, for a round somebody has already played. */
+function roundLabelOf(view: RoomView, round: number): string {
+    return currentRoundLabel({ ...view, round }).toLowerCase();
 }
 
 /** The other player's XI, once their tie has been played and the referee has opened it. */

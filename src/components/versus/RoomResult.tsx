@@ -1,5 +1,12 @@
 import { getFormation, type FormationName, type Style } from '../../domain/formations';
-import { playersOf, viewerTie, xiFrom, type ViewerTie } from '../../domain/pvpView';
+import {
+    playersOf,
+    roundLabel,
+    roundsFor,
+    viewerTie,
+    xiFrom,
+    type ViewerTie,
+} from '../../domain/pvpView';
 import type { MemberView, RoomView } from '../../domain/pvpWire';
 import { Banner, CARD_FLAT, MONO_CAP } from '../matchUi';
 import XiTable from '../XiTable';
@@ -7,6 +14,11 @@ import VersusMatch from './VersusMatch';
 import { RoomNote } from './versusUi';
 
 // The result (P38): the score, then BOTH XIs side by side with the ratings revealed.
+//
+// THE MATCH IT SHOWS IS THE ONE THAT ENDED YOUR OWN RUN, which in a room of two is also the
+// one that decided the room and in a room of eight usually is not: `decidingTie` reads the
+// last tie the viewer PLAYED, so a quarter-final loser gets their quarter-final and the two
+// XIs that played it, while the room's winner is named from `championId`.
 //
 // It was the thinnest thing in the plan and it is the whole reward, because nothing else
 // is at stake (P9). In a room where ratings were hidden it is also the only way to learn
@@ -65,6 +77,9 @@ export default function RoomResult({
     them: MemberView;
 }) {
     const wonRoom = view.championId === you.userId;
+    // Who actually won the ROOM, which in anything bigger than two is not the person who
+    // beat you: read it off the champion rather than off the opponent in front of you.
+    const champion = view.members.find((m) => m.userId === view.championId) ?? null;
     const yourIds = view.you?.xi ?? {};
     const theirIds = view.revealed[them.userId] ?? {};
     const yourFormation = getFormation(
@@ -81,7 +96,13 @@ export default function RoomResult({
             <Banner
                 champion={wonRoom}
                 eyebrow="Full time"
-                heading={wonRoom ? 'You won the room' : `${them.name} won the room`}
+                heading={
+                    wonRoom
+                        ? 'You won the room'
+                        : champion
+                          ? `${champion.name} won the room`
+                          : 'The room is finished'
+                }
                 body={
                     tie.yourGoals === null
                         ? undefined
@@ -95,8 +116,26 @@ export default function RoomResult({
                 }
             />
 
+            {/* In a room of more than two the scoreline above is YOUR last match and the
+                name is whoever won the whole thing, so which round yours ended in is the
+                line that joins them up. A room of two has one match and needs no such
+                sentence. */}
+            {roundsFor(view.size) > 1 && !wonRoom && (
+                <div className={`${CARD_FLAT} px-4 py-3`}>
+                    <RoomNote>
+                        Your run ended in the{' '}
+                        {roundLabel(view.size, you.outIn ?? view.round).toLowerCase()}, against{' '}
+                        {them.name}.
+                    </RoomNote>
+                </div>
+            )}
+
             <VersusMatch
-                label="The match"
+                label={
+                    roundsFor(view.size) > 1
+                        ? roundLabel(view.size, you.outIn ?? view.round)
+                        : 'The match'
+                }
                 tie={tie}
                 opponentName={them.name}
                 yourXi={yourFormation ? playersOf(yourFormation, xiFrom(yourFormation, yourIds)) : []}

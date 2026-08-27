@@ -166,7 +166,19 @@ done and why. What that means for anyone working in this tree now:
   more traps that cost time twice: the tab bar's PLAY / CAREER / ALBUM / RECORDS / SQUADS
   buttons match almost any CTA regex, so a clicker must skip them explicitly; and the static
   test server has no SPA fallback, so reloading a deep path serves its own 404 page - go to
-  the base path and push the route instead. Every wave-6 item was verified by driving the
+  the base path and push the route instead.
+  **AND IN A SANDBOX WITH NO EGRESS THE APP NEVER BOOTS AT ALL, for a reason that is not the
+  app** (found 2026-08-27, and it cost an hour): `index.html` loads Google Fonts with a
+  `<link rel="stylesheet">` above the module script, and **a pending stylesheet blocks script
+  execution** - so with no route to `fonts.googleapis.com` the page sits on its boot cover
+  for ever, `#root` empty, `data-booted` unstamped, and **no console error and no failed
+  request to say why**. Stub it (`ctx.route(/fonts\.(googleapis|gstatic)\.com/, ...)`) and
+  stub it with a **regex**: a `*` in a playwright glob does not match across a `/`, so
+  `**fonts.g*` matches nothing and looks like it worked. Two related ones from the same
+  session: `main.tsx` is a module with a top-level await on the boot read and a module script
+  blocks `DOMContentLoaded`, so `waitUntil: 'domcontentloaded'` hangs the navigation rather
+  than showing the screen - use `'commit'` and then poll the text; and `pkill -f <name>`
+  where `<name>` appears in your own command line kills your own shell. Every wave-6 item was verified by driving the
   real app against the pre-change build served side by side; the scratch harnesses are
   disposable, but that method is the one worth repeating.
 - **The checks harness is a small index over `scripts/checks/`** (one module per concern
@@ -2594,14 +2606,17 @@ than about tidiness.
 ## Versus: a room, and what it is not allowed to touch
 
 Roadmap item 18. **Waves 0 to 3 (the rules, the room's state machine, the migration and
-the referee) shipped and were deployed 2026-08-26; wave 4 (the build as an instantiable
-unit) 2026-08-27; wave 5, THE FIRST PLAYABLE HALF, the same day.** Two people with a
-six-character code play a whole game: lobby, draft, match, result. The plan is
-`docs/pvp-plan.md` and it is the thing to read before touching any of this.
+the referee) shipped and were deployed 2026-08-26; waves 4 to 7 all landed 2026-08-27** -
+the build as an instantiable unit, THE FIRST PLAYABLE HALF, roll rooms with the ratings
+switch, and rooms of four and eight. **Two, four or eight people with a six-character code
+play a whole knockout**: lobby, draft, the draw, the matches, the bracket, the result, and
+whoever goes out first stays and watches the rest. The plan is `docs/pvp-plan.md` and it is
+the thing to read before touching any of this.
 
 - **Routes are `/versus` and `/versus/:code`**, reached from a door on the front page, not
   a sixth tab and not a segment under Play (the tab bar stays at five).
-  `components/versus/` holds the screens: `VersusScreen` (the three gates - an account, a
+  `components/versus/` holds the screens, `RoomBracket` among them (the tree, and the draw
+  ceremony that fills the wait): `VersusScreen` (the three gates - an account, a
   referee that speaks this build's language, a name), `VersusHome`, `RoomLobby`,
   `RoomDraft`, `VersusMatch`, `RoomResult`.
 - **`state/pvp/referee.ts` is the ONE place that talks to the referee**, and it posts an
@@ -2723,12 +2738,48 @@ a draft or a reveal is live. It is also why `REVEAL_JOIN_MS` is four seconds and
 a room learns about a kick-off on its next read, and a client that refuses to reveal
 anything it did not see stamped shows a result nobody watched.
 
-**TWO KINDS OF ROOM** (wave 6): buy an XI from a shared budget, or roll random squads and
-take one man from each. Both private, two players, twenty seconds a pick. The referee has
-taken every other combination since wave 3 - public rooms, four and eight players, a
-thirty-second clock - and each is a later wave with a screen to answer for it. **P41's
-per-pick Skip is not built**, and neither is P42's move: both need an instruction the
-referee does not have, so the clock is the only way a window ends early.
+**TWO KINDS OF ROOM AND THREE SIZES** (waves 6 and 7): buy an XI from a shared budget or
+roll random squads and take one man from each, **two, four or eight people**, twenty seconds
+a pick. All still private. The referee has taken public rooms and a thirty-second clock since
+wave 3, and each is a later wave with a screen to answer for it. **P41's per-pick Skip is not
+built**, and neither is P42's move: both need an instruction the referee does not have, so
+the clock is the only way a window ends early.
+
+**A ROOM OF MORE THAN TWO ADDED NO SERVER BEHAVIOUR, and that is worth knowing before
+looking for some.** The referee has taken 2, 4 and 8 since wave 1: `drawRound` shuffles the
+survivors, `playRound` plays every tie of the round, `tickRoom` advances until one is left,
+and `npm run checks` has asserted the lot over sixty rooms of eight since then. Wave 7 is
+entirely the client's READING of it (`roundsFor`, `roundLabel`, `gamesIn`, `roomBracket`,
+`spectateTie` in `domain/pvpView.ts`, drawn by `components/versus/RoomBracket.tsx`) plus one
+command the client had never called: `size`, which is P7's play-it-smaller.
+
+**THERE IS NO "THE OTHER PLAYER".** Every versus screen was first written with `others[0]`
+as the opponent, which is right in a room of two and wrong three ways in a room of eight -
+the opponent is whoever the DRAW paired you with, it changes every round, and after you go
+out there is nobody. The opponent comes off the tie, the tie comes off the round, and the
+screen has a third state besides playing and finished: **watching** (P24).
+
+**A SCORELINE IS HELD BACK UNTIL ITS OWN REVEAL WINDOW CLOSES.** Every tie of a round is
+stamped at the same instant (P30) and they run for different lengths, so a tree that printed
+results as it had them would show a player the outcome of the tie they are about to watch, in
+the box beside the one they are watching. `roomBracket` takes the server's clock and reads a
+scoreline only past `revealFrom + revealMs`. It is the single-player bracket's own rule,
+reached again.
+
+**THE WAIT IS WHERE THE DRAW GOES** (P47), and that is a decision rather than a layout. A
+decisive player in a room of eight can sit on a finished XI for four minutes, because nothing
+is paired until every draft is in. So the tree is on screen through that wait with every seat
+reading "not drawn" and every name in the pot, and it fills in front of them when the last
+pick lands. It appears only once YOUR XI is in: while you are still picking, the board is
+what the screen is for.
+
+**WATCHING TWO OTHER PEOPLE MEANS THREE SHARED COMPONENTS STOP SAYING "YOU".**
+`FixtureHead` hard-codes "Your XI" and the red YOU badge and `GoalList` tags the home side
+"You" in pitch green, so `MatchdayCard` takes an optional `sides` that names both instead.
+The tie is turned round for its own HOME player, which is the identity - nothing is
+relabelled - so a card written for "you and them" takes a neutral match unchanged. The
+default game is **the one your conqueror is in**: the single match in the round a
+knocked-out player has a reason to care about, chosen with no control at all.
 
 **A ROLL ROOM'S SQUADS ARE DEALT, AND THE LOCAL ROLL STANDS DOWN COMPLETELY.** The referee
 hands over one squad at a time (P13 - pre-generating the sequence would let a player read

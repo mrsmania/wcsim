@@ -149,7 +149,9 @@ export function roomLine(view: RoomView): string {
         case 'drafting':
             return `drafting, ${me?.picked ?? 0} of 11 picked`;
         case 'round':
-            return 'match on';
+            // Named rather than "match on": in a room of eight the round is half of what
+            // a player wants to know from the strip, and the label is derivable.
+            return `${roundLabel(view.size, view.round).toLowerCase()} on`;
         case 'ended':
             return view.championId === me?.userId ? 'you won' : 'finished';
     }
@@ -218,4 +220,157 @@ export function ratingBand(value: number): string {
         if (value < STRENGTH_BANDS[key].max) return BAND_LABEL[key];
     }
     return BAND_LABEL[BANDS[BANDS.length - 1]!];
+}
+
+
+// --- The bracket, and who watches what (P47, P24) --------------------------
+
+/** How many rounds a room of this size plays: one for two people, three for eight. */
+export const roundsFor = (size: number): number => Math.max(1, Math.round(Math.log2(size)));
+
+/** How many games a given round holds, in a room of this size. */
+export const gamesIn = (size: number, round: number): number =>
+    Math.max(1, size / 2 ** round);
+
+/**
+ * What a round is called, counted BACK from the final.
+ *
+ * The same three words the rest of the game uses (`KO_ROUNDS` in domain/knockout.ts), but
+ * derived rather than indexed, because a room's first round is a quarter-final in a room
+ * of eight and the final itself in a room of two. Beyond eight there is nothing to name,
+ * and the referee does not take a bigger room.
+ */
+export function roundLabel(size: number, round: number): string {
+    const left = roundsFor(size) - round;
+    return left <= 0 ? 'Final' : left === 1 ? 'Semi-final' : 'Quarter-final';
+}
+
+/** One side of one game on the room's bracket. A null `userId` is a seat the draw has
+ *  not reached yet. */
+export interface BracketSeat {
+    userId: string | null;
+    /** The player's name, or a placeholder for an undrawn seat. */
+    name: string;
+    you: boolean;
+    /** Their goals, or null while the game has not finished revealing. */
+    goals: number | null;
+    /** True when they went through, false when they went out, null while unsettled. */
+    won: boolean | null;
+}
+
+export interface BracketGame {
+    round: number;
+    game: number;
+    home: BracketSeat;
+    away: BracketSeat;
+    /** The reveal window has closed, so the scoreline is public. */
+    settled: boolean;
+    /** It is being played right now: paired, but the window is still open. */
+    live: boolean;
+    /** The viewer is one of the two. */
+    yours: boolean;
+}
+
+export interface BracketRound {
+    round: number;
+    label: string;
+    games: BracketGame[];
+    /** False while this round has not been drawn, which is every round after the current
+     *  one: the draw sets the whole first round in one go (P47) and each later round is
+     *  drawn from its survivors when the one before it closes. */
+    drawn: boolean;
+}
+
+const EMPTY_SEAT: BracketSeat = { userId: null, name: '', you: false, goals: null, won: null };
+
+/**
+ * The room's whole bracket, from the viewer's side.
+ *
+ * ONE RULE IS WORTH STATING: A SCORELINE APPEARS ONLY ONCE ITS REVEAL WINDOW HAS CLOSED.
+ * Every tie of a round is stamped at the same instant (`revealFrom`) and they run for
+ * different lengths, so a player watching their own match would otherwise read the result
+ * of the tie they are about to be shown, printed on the tree beside it. It is the same
+ * rule the single-player bracket keeps, where the user's own scores stay hidden until the
+ * round is played, and it is judged on the SERVER's clock at both ends for the reason
+ * `shouldReveal` is.
+ */
+export function roomBracket(view: RoomView, serverNow: number): BracketRound[] {
+    const you = view.you?.userId ?? null;
+    const nameOf = (id: string): string =>
+        view.members.find((m) => m.userId === id)?.name ?? 'Someone';
+
+    const out: BracketRound[] = [];
+    for (let round = 1; round <= roundsFor(view.size); round++) {
+        const ties = view.ties
+            .filter((t) => t.round === round)
+            .slice()
+            .sort((a, b) => a.game - b.game);
+        const games: BracketGame[] = [];
+        for (let game = 0; game < gamesIn(view.size, round); game++) {
+            const t = ties.find((x) => x.game === game);
+            if (!t) {
+                games.push({
+                    round,
+                    game,
+                    home: EMPTY_SEAT,
+                    away: EMPTY_SEAT,
+                    settled: false,
+                    live: false,
+                    yours: false,
+                });
+                continue;
+            }
+            const settled =
+                t.decided !== null && serverNow >= (t.revealFrom ?? 0) + (t.revealMs ?? 0);
+            const seat = (id: string, goals: number | null): BracketSeat => ({
+                userId: id,
+                name: nameOf(id),
+                you: id === you,
+                goals: settled ? goals : null,
+                won: settled && t.winnerId ? t.winnerId === id : null,
+            });
+            games.push({
+                round,
+                game,
+                home: seat(t.homeId, t.homeGoals),
+                away: seat(t.awayId, t.awayGoals),
+                settled,
+                live: !settled,
+                yours: !!you && (t.homeId === you || t.awayId === you),
+            });
+        }
+        out.push({ round, label: roundLabel(view.size, round), games, drawn: ties.length > 0 });
+    }
+    return out;
+}
+
+/** The round the viewer went out in, or null while they are still in it. */
+export function outIn(view: RoomView): number | null {
+    return meIn(view)?.outIn ?? null;
+}
+
+/**
+ * The tie a viewer who is NOT playing this round should watch (P24).
+ *
+ * A knocked-out player stays and watches the rest, and the default is the tie their own
+ * conqueror is in: it is the one game in the round they have a reason to care about, and
+ * picking it needs no control. Failing that (their conqueror went out too), the first
+ * game of the round. Null when the viewer is playing this round themselves, which is the
+ * ordinary case and is handled by their own match.
+ */
+export function spectateTie(view: RoomView): TieView | null {
+    const you = view.you?.userId;
+    if (!you) return null;
+    const live = view.ties
+        .filter((t) => t.round === view.round)
+        .slice()
+        .sort((a, b) => a.game - b.game);
+    if (!live.length || live.some((t) => t.homeId === you || t.awayId === you)) return null;
+    const beatenBy = view.ties.find(
+        (t) => (t.homeId === you || t.awayId === you) && t.winnerId && t.winnerId !== you,
+    )?.winnerId;
+    const theirs = beatenBy
+        ? live.find((t) => t.homeId === beatenBy || t.awayId === beatenBy)
+        : undefined;
+    return theirs ?? live[0]!;
 }

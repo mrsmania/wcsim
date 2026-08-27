@@ -15,6 +15,11 @@ interface Props {
   /** Opponent identity for the fixture header. */
   oppName: string;
   oppCode: string;
+  /** The two short labels for a match between two people, NEITHER of whom is the viewer:
+   *  a versus room where a knocked-out player watches the rest of the tournament (P24).
+   *  Given, the header names the left side instead of calling it "Your XI" and the goal
+   *  feed names both sides instead of tagging one of them "You". */
+  sides?: { user: string; opp: string };
   oppYear?: number;
   oppRating?: number;
   /** The derived score/status/feed view-model for this card. */
@@ -47,6 +52,7 @@ export default function MatchdayCard({
   userRating,
   oppName,
   oppCode,
+  sides,
   oppYear,
   oppRating,
   view,
@@ -108,6 +114,7 @@ export default function MatchdayCard({
           statusDim={view.statusDim}
           userRating={userRating}
           oppRating={oppRating}
+          userName={sides?.user}
         />
         {toggleable && (
           <CardDisclosure label="Goals" open={feedOpen} onToggle={() => setFeedOpen((v) => !v)} />
@@ -125,7 +132,8 @@ export default function MatchdayCard({
           >
             <GoalList
               events={events ?? []}
-              oppCode={oppCode}
+              oppCode={sides ? sides.opp : oppCode}
+              userCode={sides?.user}
               live={view.live}
             />
             {showShootout && penKicks && (

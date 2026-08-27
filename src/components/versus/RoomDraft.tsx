@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { Player } from '../../data/types';
 import { SQUAD_BY_ID, squadsInPool } from '../../data/squads';
 import type { Formation } from '../../domain/formations';
-import { roomDisplay, xiFrom } from '../../domain/pvpView';
+import { othersIn, roomDisplay, xiFrom } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import { detachedBuildIo } from '../../state/buildIo';
 import { initialState, type GameState } from '../../state/gameReducer';
@@ -11,6 +11,7 @@ import type { VersusRoom } from '../../hooks/useVersusRoom';
 import BuildSurface from '../BuildSurface';
 import { ROOM_CONTROLS } from '../buildControls';
 import { CARD_FLAT, MONO_CAP } from '../matchUi';
+import RoomBracket from './RoomBracket';
 import { PickClock, RoomNote } from './versusUi';
 
 // The draft: the build page, with the room's rules and the room's clock.
@@ -31,6 +32,12 @@ import { PickClock, RoomNote } from './versusUi';
 // THE BUILD IS DETACHED (P29, wave 4). It writes nothing: not the solo XI it would
 // otherwise overwrite, and not the active Cup Run, which every path that starts a build
 // otherwise deletes.
+//
+// FINISHING EARLY MEANS WAITING, and in a room of eight that is the longest single stretch
+// of the feature: nothing is paired until every draft is done (P47), so a decisive player
+// can be sitting on a finished XI for four minutes. What fills it is the draw itself - the
+// tree with every seat empty and every name in the pot - which is the thing that is about
+// to happen, rather than a progress bar counting other people's picks.
 
 /** The signature of a slot map, for deciding whether the server disagrees with the board.
  *  Slot order is the formation's, so this cannot report a difference that is only an
@@ -55,7 +62,7 @@ export default function RoomDraft({
 }) {
     const you = view.you;
     const me = view.members.find((m) => m.userId === you?.userId) ?? null;
-    const others = view.members.filter((m) => m.userId !== you?.userId);
+    const others = othersIn(view);
     const rolling = view.rules.method === 'roll';
     const { ratings } = roomDisplay(view);
 
@@ -162,13 +169,13 @@ export default function RoomDraft({
             ) : (
                 <div className={`${CARD_FLAT} px-4 py-3`}>
                     <div className={MONO_CAP}>Your XI is in</div>
-                    <RoomNote>
-                        {others.length === 1
-                            ? `Waiting for ${others[0]!.name} to finish.`
-                            : 'Waiting for the rest of the room.'}
-                    </RoomNote>
+                    <RoomNote>{waitingLine(others)}</RoomNote>
                 </div>
             )}
+
+            {/* The draw, through the wait (P47). Only once YOUR XI is in: while you are
+                still picking, the board is what the screen is for. */}
+            {done && <RoomBracket view={view} serverNow={view.at} />}
 
             <div className={`${CARD_FLAT} flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2.5`}>
                 {view.members.map((m) => (
@@ -214,3 +221,16 @@ export default function RoomDraft({
 }
 
 const EMPTY: Set<string> = new Set();
+
+/** Who is still picking, named while there are few enough names to be worth reading. Past
+ *  three it is a count: eight names in a sentence is a list, not a sentence. */
+function waitingLine(others: { name: string; picked: number }[]): string {
+    const busy = others.filter((m) => m.picked < 11);
+    if (!busy.length) return 'Everybody is done. The draw is being made.';
+    if (busy.length === 1) return `Waiting for ${busy[0]!.name} to finish.`;
+    if (busy.length <= 3) {
+        const names = busy.map((m) => m.name);
+        return `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}.`;
+    }
+    return `Waiting for ${busy.length} others to finish.`;
+}

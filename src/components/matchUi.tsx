@@ -408,6 +408,7 @@ export function FixtureHead({
   statusDim,
   userRating,
   oppRating,
+  userName,
 }: {
   oppName?: string;
   oppCode?: string;
@@ -419,13 +420,17 @@ export function FixtureHead({
   /** Team ratings, shown as a RatingChip on each side. */
   userRating?: number;
   oppRating?: number;
+  /** A name for the left side, which is otherwise always the user's own XI. It exists for
+   *  one screen: a versus room where a knocked-out player watches two OTHER people play
+   *  (P24). Giving it also drops the red YOU badge, because neither side is theirs. */
+  userName?: string;
 }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-[18px] py-[14px] max-sm:gap-1.5 max-sm:px-3 max-sm:text-[13px] sm:text-[14.5px]">
       <div className="flex min-w-0 items-center justify-end gap-[9px] font-semibold text-ink max-sm:gap-1.5">
-        <span className="truncate">Your XI</span>
+        <span className="truncate">{userName ?? 'Your XI'}</span>
         {userRating != null && <RatingChip value={userRating} />}
-        <Flag isUser code="" className="h-[15px] w-[22px]" />
+        {userName === undefined && <Flag isUser code="" className="h-[15px] w-[22px]" />}
       </div>
       <div className="flex flex-col items-center gap-[3px] max-sm:min-w-[58px] sm:min-w-[74px]">
         {score ? (

@@ -23,11 +23,14 @@ const KEY = 'wcsim_versus_room';
 
 export interface HeldRoom {
     code: string;
-    /** Enough to write the strip without fetching: what the room is doing, and how far
-     *  along your own draft is. */
     status: 'lobby' | 'drafting' | 'round' | 'ended';
-    picked: number;
-    size: number;
+    /** The strip's whole sentence, written by `roomLine` (domain/pvpView) when the answer
+     *  arrived. The chrome used to compose it from a status and a pick count, which was
+     *  the same job done twice and got it wrong as soon as a room had more than one round:
+     *  "match on" is what a two-player room plays, and a room of eight plays a
+     *  quarter-final. Holding the line rather than the ingredients means the room's own
+     *  vocabulary reaches the chrome unchanged. */
+    line: string;
 }
 
 function read(): HeldRoom | null {
@@ -36,7 +39,7 @@ function read(): HeldRoom | null {
         if (!raw) return null;
         const v = JSON.parse(raw) as Partial<HeldRoom>;
         return typeof v?.code === 'string' && typeof v.status === 'string'
-            ? { code: v.code, status: v.status, picked: v.picked ?? 0, size: v.size ?? 2 }
+            ? { code: v.code, status: v.status, line: v.line ?? 'in progress' }
             : null;
     } catch {
         // A private window, storage turned off, or a shape from an older build. Losing
@@ -58,9 +61,7 @@ export function holdVersusRoom(room: HeldRoom | null): void {
     // be offered as "carry on".
     const next = room && room.status !== 'ended' ? room : null;
     const same =
-        next?.code === held?.code &&
-        next?.status === held?.status &&
-        next?.picked === held?.picked;
+        next?.code === held?.code && next?.status === held?.status && next?.line === held?.line;
     if (same) return;
     held = next;
     try {

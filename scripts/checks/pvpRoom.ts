@@ -267,6 +267,41 @@ export function pvpRoomChecks(): void {
   }
 
   {
+    // The TREE, which is what wave 7's bracket screen draws: every later round is made of
+    // the round before it, so a player on the tree can be followed from their first tie to
+    // the trophy. Nothing in the room enforces this directly - `drawRound` shuffles the
+    // survivors - so it is a property to assert rather than a line to read.
+    withSeed(778899, () => {
+      const room = startRoom(roomOf(8, BUDGET), 'u0', T0);
+      const { room: done } = runToEnd(room);
+      const inRound = (r: number) =>
+        done.ties.filter((t) => t.round === r).flatMap((t) => [t.homeId, t.awayId]);
+      const wonRound = (r: number) =>
+        done.ties.filter((t) => t.round === r).map((t) => t.winnerId!);
+      const feedsForward = [1, 2].every(
+        (r) => inRound(r + 1).slice().sort().join() === wonRound(r).slice().sort().join(),
+      );
+      check(
+        'room: each round of an eight-player bracket is made of exactly the winners of the one before it',
+        () =>
+          // Vacuity: there really are three rounds of 4, 2 and 1 games to check.
+          [4, 2, 1].every((n, i) => done.ties.filter((t) => t.round === i + 1).length === n) &&
+          feedsForward &&
+          // And the champion is the winner of the last one.
+          done.championId === wonRound(3)[0] &&
+          // Every game index within a round is distinct, or a tree would draw two boxes
+          // over each other.
+          [1, 2, 3].every((r) => {
+            const games = done.ties.filter((t) => t.round === r).map((t) => t.game);
+            return new Set(games).size === games.length;
+          }),
+        () =>
+          `rounds ${[1, 2, 3].map((r) => done.ties.filter((t) => t.round === r).length).join('/')}, feeds ${feedsForward}`,
+      );
+    });
+  }
+
+  {
     // The draw is random, not by seat (P47). The same eight seats, drawn many times, must
     // not always produce the same first-round pairing - which is what stops two people
     // sharing a code from arranging the tree by agreeing who joins first.

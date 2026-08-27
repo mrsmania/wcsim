@@ -18,6 +18,13 @@ import MatchdayCard from '../MatchdayCard';
 //
 // The tie arrives already turned round so the viewer is the home side (`viewerTie`), which
 // is why this can hand a two-sided match to a card written for "you and them".
+//
+// EXCEPT WHEN NOBODY WATCHING IS IN IT. A knocked-out player stays and watches the rest of
+// the tournament (P24), and there the two sides are two other people: the tie is turned
+// round for its own HOME player (which is the identity, so nothing is relabelled) and
+// `sides` names them both, so the header stops saying "Your XI" and the feed stops tagging
+// one of them "You". Whether a side WON is then not a thing to say from the viewer's
+// chair either, so the tag reads "Full time" rather than won or lost.
 
 export default function VersusMatch({
     label,
@@ -27,6 +34,7 @@ export default function VersusMatch({
     theirXi,
     ratings,
     live,
+    sides,
     onEnd,
 }: {
     label: string;
@@ -40,6 +48,8 @@ export default function VersusMatch({
     ratings: boolean;
     /** Reveal it minute by minute, rather than showing the settled result. */
     live: boolean;
+    /** Short labels for both sides when NEITHER is the viewer (P24). See the header. */
+    sides?: { user: string; opp: string };
     onEnd: () => void;
 }) {
     const decided = tie.decided ?? 'reg';
@@ -56,19 +66,25 @@ export default function VersusMatch({
             liveMax={liveMax}
             yourRating={yourRating}
             theirRating={theirRating}
+            sides={sides}
             onEnd={onEnd}
         />
     ) : (
         <MatchdayCard
             label={label}
             tag={
-                <ResultTag
-                    kind={tie.won === null ? 'next' : tie.won ? 'w' : 'l'}
-                    label={tie.won === null ? 'Playing' : tie.won ? 'Won' : 'Lost'}
-                />
+                sides ? (
+                    <ResultTag kind="next" label={tie.won === null ? 'Playing' : 'Full time'} />
+                ) : (
+                    <ResultTag
+                        kind={tie.won === null ? 'next' : tie.won ? 'w' : 'l'}
+                        label={tie.won === null ? 'Playing' : tie.won ? 'Won' : 'Lost'}
+                    />
+                )
             }
             userRating={yourRating}
             oppName={opponentName}
+            sides={sides}
             // No code and no year: the other side is a person, and a three-letter code
             // derived from a name would fly whatever country's flag it collided with.
             oppCode=""
@@ -104,6 +120,7 @@ function Live({
     liveMax,
     yourRating,
     theirRating,
+    sides,
     onEnd,
 }: {
     label: string;
@@ -112,6 +129,7 @@ function Live({
     liveMax: number;
     yourRating?: number;
     theirRating?: number;
+    sides?: { user: string; opp: string };
     onEnd: () => void;
 }) {
     const decided = tie.decided ?? 'reg';
@@ -132,6 +150,7 @@ function Live({
             userRating={yourRating}
             oppName={opponentName}
             oppCode=""
+            sides={sides}
             oppRating={theirRating}
             view={liveMatchView({
                 playing: true,

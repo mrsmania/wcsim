@@ -210,6 +210,12 @@ export const setLineup = (
 export const startRoom = (code: string): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/start`);
 
+/** Play with fewer people than the room was opened for (P7). The host only, downwards
+ *  only, and no byes are ever created: a room of eight that will not fill becomes a room
+ *  of four or two and plays a full bracket, rather than sitting in a lobby for ever. */
+export const resizeRoom = (code: string, size: number): Promise<RoomView> =>
+    call('POST', `/v1/rooms/${code}/size`, { size });
+
 /** What the referee said about a pick. `late` and `illegal` are distinct because they
  *  mean different things to a player: one is "the clock beat you", the other is "that was
  *  not a legal move". Either way the room comes back, so the board reconciles. */

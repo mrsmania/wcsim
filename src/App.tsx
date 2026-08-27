@@ -277,9 +277,7 @@ export default function App({
             ? {
                   to: roomTo,
                   label: 'Back to your room',
-                  sub: `Versus ${heldRoom.code} · ${
-                      heldRoom.status === 'lobby' ? 'waiting to start' : 'in progress'
-                  }`,
+                  sub: `Versus ${heldRoom.code} · ${heldRoom.line}`,
               }
             : resumeCupRun
               ? { to: '/cup-run', label: 'Resume your Cup Run', sub: resumeCupRun.summary }
@@ -315,12 +313,7 @@ export default function App({
                         className="mb-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch transition hover:bg-pitch/20"
                     >
                         <span className="truncate">
-                            Versus {heldRoom.code} &middot;{' '}
-                            {heldRoom.status === 'drafting'
-                                ? `${heldRoom.picked} of 11 picked`
-                                : heldRoom.status === 'round'
-                                  ? 'match on'
-                                  : 'waiting to start'}
+                            Versus {heldRoom.code} &middot; {heldRoom.line}
                         </span>
                         <span className="shrink-0">Back to it</span>
                     </Link>

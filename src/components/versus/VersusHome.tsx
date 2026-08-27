@@ -10,11 +10,17 @@ import { RefereeProblem, RoomNote } from './versusUi';
 
 // The way in: make a room, or type the code somebody gave you.
 //
-// TWO KINDS OF ROOM NOW: buy an XI from a shared budget, or roll random squads and pick
-// from what you are dealt. Both private, two players, twenty seconds a pick. The referee
-// has taken every other combination since wave 3 - public rooms, four and eight players, a
-// thirty-second clock - and each is a later wave with a screen of its own to answer for it.
-// Offering a control the room cannot yet show properly is worse than not offering it.
+// TWO KINDS OF ROOM, AND THREE SIZES: buy an XI from a shared budget or roll random squads
+// and pick from what you are dealt, two, four or eight people, twenty seconds a pick. All
+// still private. The referee has taken public rooms and a thirty-second clock since wave 3,
+// and each is a later wave with a screen of its own to answer for it: offering a control the
+// room cannot yet show properly is worse than not offering it.
+//
+// SIZE IS THE ONE SETTING THAT CHANGES THE SHAPE OF THE EVENING rather than the shape of an
+// XI, so it is written in rounds and in waiting: a room of eight is three rounds and a draft
+// that finishes when the SLOWEST of eight people finishes (P47), which is the cost that
+// decision knowingly accepts. The host can drop the size later if the room will not fill
+// (P7), which is what stops a room of eight becoming a room of nobody.
 //
 // THE RATINGS SWITCH IS OFFERED FOR A ROLL ROOM AND NOT FOR A BUDGET ONE (P5), and the
 // reason is not squeamishness: a budget room shows a price computed straight from the
@@ -34,6 +40,13 @@ const BUDGETS = [
     { value: 90, label: '$90', sub: 'Tight. One star at most, and the rest is bargains.' },
     { value: 110, label: '$110', sub: 'The standard. About one 99 and ten players near 80.' },
     { value: 150, label: '$150', sub: 'Generous. Two or three genuine greats.' },
+];
+
+/** The three sizes, named in what each one is to play rather than in seats. */
+const SIZES = [
+    { value: 2, label: 'Two', sub: 'One match. Straight into it.' },
+    { value: 4, label: 'Four', sub: 'Semi-finals and a final. Two rounds.' },
+    { value: 8, label: 'Eight', sub: 'Quarters, semis, final. The longest wait to draft.' },
 ];
 
 /** How many re-rolls a roll room allows. Named in outcomes: what the number MEANS is how
@@ -84,6 +97,7 @@ export default function VersusHome() {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
     const [method, setMethod] = useState<'budget' | 'roll'>('budget');
+    const [size, setSize] = useState(2);
     const [budget, setBudget] = useState(110);
     const [rerolls, setRerolls] = useState(3);
     const [showRatings, setShowRatings] = useState(true);
@@ -96,7 +110,7 @@ export default function VersusHome() {
         setError(null);
         void createRoom({
             visibility: 'private',
-            size: 2,
+            size,
             method,
             budget,
             rerolls,
@@ -134,7 +148,7 @@ export default function VersusHome() {
                     <div className="min-w-0 flex-1">
                         <div className={MONO_CAP}>You are in a room</div>
                         <RoomNote>
-                            {held.code} &middot; {held.status === 'lobby' ? 'waiting to start' : 'in progress'}
+                            {held.code} &middot; {held.line}
                         </RoomNote>
                     </div>
                     <button className={PRIMARY_BTN} onClick={() => navigate(`/versus/${held.code}`)}>
@@ -147,11 +161,13 @@ export default function VersusHome() {
                 <div className={`${CARD} p-4`}>
                     <div className={MONO_CAP}>Make a room</div>
                     <RoomNote>
-                        You and one other person each put together an XI out of all{' '}
-                        {WORLD_CUP_YEARS.length} World Cups, twenty seconds a pick. Then the two
-                        teams play. Your career, your album and your perks stay out of it
-                        entirely: it is eleven players against eleven players.
+                        Everybody puts together an XI out of all {WORLD_CUP_YEARS.length} World
+                        Cups, twenty seconds a pick, and then the teams play a knockout. Your
+                        career, your album and your perks stay out of it entirely: it is eleven
+                        players against eleven players.
                     </RoomNote>
+
+                    <Choice label="How many of you" value={size} onPick={setSize} options={SIZES} />
 
                     <Choice
                         label="How you get your players"
@@ -244,7 +260,8 @@ export default function VersusHome() {
                     </button>
                     <RoomNote>
                         <span className="mt-2 block">
-                            You get a six-character code. Send it to whoever you want to play.
+                            You get a six-character code. Send it to{' '}
+                            {size === 2 ? 'whoever you want to play' : `the other ${size - 1}`}.
                         </span>
                     </RoomNote>
                     {error && <RefereeProblem message={error} />}

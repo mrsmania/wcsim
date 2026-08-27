@@ -8,11 +8,12 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: waves 0 to 6 built**; the server half is deployed (2026-08-26, roadmap item 41),
-0016, 0017 and **0018** applied, and waves 4, 5 and 6 all landed 2026-08-27. Two people with
-a code play a whole game, in either kind of room, with or without the numbers. The one
-decision wave 3 reopened, the career budget in P2, was settled on 2026-08-27 by dropping the
-option. **Next is wave 7, rooms of four and eight.**
+(P48). **Status: waves 0 to 7 built**; the server half is deployed (2026-08-26, roadmap item 41),
+0016, 0017 and **0018** applied, and waves 4, 5, 6 and 7 all landed 2026-08-27. Two, four or
+eight people with a code play a whole knockout, in either kind of room, with or without the
+numbers, and whoever goes out first stays and watches the rest. The one decision wave 3
+reopened, the career budget in P2, was settled on 2026-08-27 by dropping the option.
+**Next is wave 8, public rooms.**
 
 **Read `docs/cloud-sync-requirements.md` and `docs/cloud-sync-design.md` first** if you are
 picking this up. PvP sits on top of accounts and inherits their rules.
@@ -363,7 +364,7 @@ after most of the client work was done.
 | 4 | **DONE 2026-08-27** (`src/state/buildIo.ts`, `src/hooks/useBuild.ts`, `src/components/BuildSurface.tsx`, `scripts/checks/build.ts`, 4 checks). **The room's own build state** (P29): the build extracted into an instantiable unit, persistence and run-clearing off | Proven both ways in the real app, driving a second build beside the first: through `detachedBuildIo` the solo build's stored state came back byte-identical and the Cup Run key survived; through `soloBuildIo` the same taps overwrote the solo XI and deleted the run |
 | 5 | **DONE 2026-08-27** (`src/state/pvp/referee.ts`, `src/hooks/useVersusRoom.ts`, `src/domain/pvpWire.ts`, `src/domain/pvpView.ts`, `src/nav/versusRoom.ts`, `src/components/versus/`, `src/components/buildControls.ts`, `scripts/checks/pvpView.ts`, 7 checks). **The vertical slice.** A private two-player budget room, code only, one clock length, no lobby list, no roll rooms, no ratings switch, no records: lobby, draft, tie, result | Proven: two real browsers, one code, a whole game against the REAL referee handlers - name, room, join, ready, start, eleven manual picks each with nothing auto-picked, the tie watched live in both, a champion crowned, both XIs revealed, and neither player's saved game touched |
 | 6 | **DONE 2026-08-27** (`src/domain/pvpView.ts` gains `roomDisplay` / `ratingBand` / `offersRatingSwitch`; `BoxScore`, `XiTable`, `SquadPanel` and `MatchdayCard` learn to hide a number; `useSquadRoll` learns to stand down; 3 checks). **Roll rooms**, and the ratings switch inside them | Proven both ways in the real app: two browsers played a whole hidden-ratings roll room and a whole budget room, and NOT ONE rating appeared in the hidden one - empty board, three placed, or live match - with twenty-five on the result screen at the whistle. The switch is not offered for a budget room (`offersRatingSwitch`), and `roomDisplay` ignores the flag there rather than trusting it |
-| 7 | **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination | A room of 8 plays to a winner; the draw differs across repeated rooms with the same seats; and the first player out sees every remaining match |
+| 7 | **DONE 2026-08-27** (`src/domain/pvpView.ts` gains `roundsFor` / `roundLabel` / `gamesIn` / `roomBracket` / `spectateTie`; `src/components/versus/RoomBracket.tsx`; `RoomScreen`, `RoomLobby`, `RoomDraft`, `RoomResult` and `VersusHome` learn that a room is not two people; `MatchdayCard` / `FixtureHead` / `GoalList` learn to name both sides; 7 checks). **Four and eight player rooms**: the wait-for-all barrier, the **random bracket draw** (P47), the bracket screen, watching after elimination. The referee had taken all of it since wave 1, so this wave added no server behaviour at all - only the client's reading of it, plus the `size` command it had never called | Proven: four real browsers played a whole room of four against the REAL referee - the size choice, four seats with the empty ones drawn, the draw on screen through the wait with every name in the pot, both semi-finals, a knocked-out player watching the final with both players named, a champion crowned and named on all four screens, and no seat's saved game touched. The random draw and the round-feeds-forward property are asserted offline over 60 rooms of eight |
 | 8 | **Public visibility**: the lobby list, liveness, size reduction, records, reporting, the signed-out entry | A public room is found and joined by someone never sent a code |
 | 9 | **Checks and documentation.** CLAUDE.md gains its section; the roadmap item closes | `npm run checks` and `npm run build` clean |
 
@@ -546,6 +547,56 @@ fix if this is ever worth closing.
   (auto-fill, Clear, Start over, the random-team shortcut) are still unconditional in
   `BuildSurface`, because a switch with no room behind it cannot be tested and would have
   been speculation. Turning them off is a prop apiece when the room screen exists.
+
+### Found while building rooms of four and eight (wave 7)
+
+- **THE WAVE ADDED NO SERVER BEHAVIOUR AT ALL, and that is the design paying out.** The
+  referee has taken 2, 4 and 8 since wave 1: `drawRound` shuffles the survivors, `playRound`
+  plays every tie of the round, and `tickRoom` advances until one player is left, all of it
+  already asserted over sixty rooms of eight. What wave 7 had to build was the client's
+  READING of that - the tree, the wait, the spectator - plus one command the client had
+  never called (`size`, P7's play-it-smaller). A wave that touches only one side is the
+  reward for having put the rules in `domain/` first.
+- **THERE IS NO "THE OTHER PLAYER".** Every versus screen was written with `others[0]` as
+  the opponent, which is exactly right in a room of two and wrong in three different ways in
+  a room of eight: the opponent is whoever the DRAW paired you with, it changes every round,
+  and after you go out there is nobody. So the opponent comes off the tie, the tie comes off
+  the round, and the screen grew a third state besides playing and finished: watching.
+- **A SCORELINE HAS TO BE HELD BACK UNTIL ITS OWN REVEAL WINDOW CLOSES.** Every tie of a
+  round is stamped at the same instant (P30) and they run for different lengths, so a tree
+  that printed results as it had them would show a player the outcome of the tie they are
+  about to be shown, in the box next to the one they are watching. `roomBracket` takes the
+  server's clock and reads a scoreline only once `revealFrom + revealMs` has passed. It is
+  the same rule the single-player bracket keeps for the user's own ties, arrived at again.
+- **THE WAIT IS THE PLACE FOR THE DRAW, which is what P47 says and it is right.** A decisive
+  player in a room of eight can sit on a finished XI for four minutes. What fills it is the
+  tree with every seat reading "not drawn" and every name in the pot - the thing that is
+  about to happen - and it fills in front of them when the last pick lands. A progress strip
+  would have spent the same minutes saying less. It appears only once YOUR XI is in: while
+  you are still picking, the board is what the screen is for.
+- **Watching two other people needed three shared components to stop saying "you".**
+  `FixtureHead` hard-codes "Your XI" and the red YOU badge, and `GoalList` tags the home
+  side "You" in pitch green. One optional prop each (`MatchdayCard`'s `sides`) names both
+  sides instead, and the tie is turned round for its own HOME player - which is the
+  identity, so nothing is relabelled and the card written for "you and them" takes a
+  neutral match unchanged. The check asserts that identity, with the away flip as its
+  vacuity guard.
+- **The default spectated game is the one your conqueror is in.** It is the single match in
+  the round a knocked-out player has a reason to care about, and choosing it needs no
+  control at all. If their conqueror went out too it falls back to the first game rather
+  than to a blank screen. Checkable only in a room of EIGHT, whose second round has two
+  ties: in a room of four "the conqueror's tie" and "the first tie" are the same answer.
+- **The chrome was writing its own second version of the room's own sentence.** `roomLine`
+  (domain) said "match on" and `App` composed "match on" from a status and a pick count, so
+  the same job was done twice and both were wrong the moment a room had more than one round.
+  The held pointer carries the LINE now, written by `roomLine` when the answer arrives, so
+  "quarter-final on" reaches the chrome without the chrome knowing what a quarter-final is.
+- **A browser check in a sandbox with no egress never boots the app, and the reason is not
+  the app.** The Google Fonts `<link>` sits above the module script in the built HTML, and a
+  pending stylesheet BLOCKS script execution - so with no route to `fonts.googleapis.com`
+  the page sits on its boot cover for ever, with no console error and no failed request to
+  say why. Stub it. And stub it with a REGEX: a `*` in a playwright glob does not match
+  across a `/`, so `**fonts.g*` matches nothing and looks like it worked.
 
 ### Found while building roll rooms and the switch (wave 6)
 

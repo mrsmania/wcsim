@@ -7,6 +7,8 @@ import {
     type FormationName,
     type Style,
 } from '../../domain/formations';
+import { ROOM_SIZES } from '../../domain/pvpRoom';
+import { roundsFor } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import type { VersusRoom } from '../../hooks/useVersusRoom';
 import { CARD, CHIP_OFF, CHIP_ON, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
@@ -23,6 +25,12 @@ import { ReadyMark, RoomCode, RoomNote, SeatRow } from './versusUi';
 // pressed it, and anybody who has not is given an ordinary 4-3-3; you can change your
 // shape right up to the start. Nobody can hold a room by wandering off, and it needs no
 // second clock.
+//
+// A ROOM THAT WILL NOT FILL CAN BE PLAYED SMALLER (P7). The host may drop eight to four or
+// two, never upwards and never below the people already sitting here, and NO BYES ARE EVER
+// CREATED - the room plays a full bracket at its new size. It is offered rather than
+// automatic, because "three of you turned up, shall we just play?" is the host's call and
+// not the server's.
 
 export default function RoomLobby({ view, room }: { view: RoomView; room: VersusRoom }) {
     const me = view.members.find((m) => m.userId === view.you?.userId) ?? null;
@@ -35,6 +43,12 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const full = view.members.length >= view.size;
     const styles = FORMATIONS_DATA.stylesByName[name] ?? STYLES;
     const shapeOk = !!getFormation(name, style);
+    // Downwards only, and never below the people already sitting here: that is the
+    // referee's rule (`reduceSize`), and offering a button it would refuse is worse than
+    // not offering one.
+    const smaller = isHost
+        ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length)
+        : [];
 
     const send = (ready: boolean) => {
         setBusy(true);
@@ -101,7 +115,9 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                 </div>
                 <RoomNote>
                     {view.visibility === 'private'
-                        ? 'Private: give this to the person you want to play.'
+                        ? `Private: give this to the ${
+                              view.size === 2 ? 'person' : `${view.size - 1} people`
+                          } you want to play.`
                         : 'Anybody signed in can join with this.'}
                 </RoomNote>
 
@@ -118,7 +134,46 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                             detail={<ReadyMark ready={m.ready} />}
                         />
                     ))}
+                    {/* The empty seats are drawn rather than left to arithmetic: "3 of 8"
+                        is a count, and four grey rows is how long the wait looks. */}
+                    {Array.from({ length: Math.max(0, view.size - view.members.length) }).map(
+                        (_, i) => (
+                            <li
+                                key={`empty-${i}`}
+                                className="flex items-center gap-3 border-b border-hair py-2.5 last:border-b-0"
+                            >
+                                <span className="flex-1 text-[14px] font-semibold text-dim">
+                                    Empty seat
+                                </span>
+                            </li>
+                        ),
+                    )}
                 </ul>
+
+                {smaller.length > 0 && (
+                    <>
+                        <div className={`${MONO_CAP} mt-4`}>Not going to fill?</div>
+                        <RoomNote>
+                            Play it smaller. Everyone here keeps their seat and the bracket
+                            shrinks with the room.
+                        </RoomNote>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                            {smaller.map((n) => (
+                                <button
+                                    key={n}
+                                    disabled={busy}
+                                    className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${CHIP_OFF}`}
+                                    onClick={() => {
+                                        setBusy(true);
+                                        void room.resize(n).finally(() => setBusy(false));
+                                    }}
+                                >
+                                    Play {n}
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                )}
 
                 <div className={`${MONO_CAP} mt-4`}>The rules</div>
                 <RoomNote>
@@ -147,7 +202,11 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                             void room.start().finally(() => setBusy(false));
                         }}
                     >
-                        {full ? 'Start the draft' : `Waiting for ${view.size - view.members.length} more`}
+                        {full
+                            ? `Start the draft${
+                                  roundsFor(view.size) > 1 ? ` (${roundsFor(view.size)} rounds)` : ''
+                              }`
+                            : `Waiting for ${view.size - view.members.length} more`}
                     </button>
                 ) : (
                     <RoomNote>

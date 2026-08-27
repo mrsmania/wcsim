@@ -14,10 +14,15 @@ import { getFormation } from '../../src/domain/formations';
 import type { MatchEvent } from '../../src/domain/match';
 import {
   REVEAL_JOIN_MS,
+  gamesIn,
   meIn,
   playersOf,
+  roomBracket,
   roomLine,
+  roundLabel,
+  roundsFor,
   shouldReveal,
+  spectateTie,
   tieOf,
   viewerTie,
   xiFrom,
@@ -87,6 +92,36 @@ function fixtureRoom(over: Partial<RoomView> = {}): RoomView {
     at: 1_000_000,
     ...over,
   };
+}
+
+/** A room of four, one round in: both semi-finals played and revealing, the final undrawn.
+ *  The two scorelines differ (2-1 and 0-3) so a bracket that printed the wrong game's
+ *  score would show. */
+function fourRoom(over: Partial<RoomView> = {}): RoomView {
+  const semi = (game: number, homeId: string, awayId: string, hg: number, ag: number): TieView => ({
+    ...fixtureTie(),
+    round: 1,
+    game,
+    homeId,
+    awayId,
+    homeGoals: hg,
+    awayGoals: ag,
+    decided: 'reg',
+    pens: null,
+    winnerId: hg > ag ? homeId : awayId,
+  });
+  return fixtureRoom({
+    size: 4,
+    round: 1,
+    members: [
+      { userId: HOME, seat: 0, name: 'Alpha', ready: true, outIn: null, picked: 11, formationName: '4-3-3', style: 'bal' },
+      { userId: AWAY, seat: 1, name: 'Bravo', ready: true, outIn: null, picked: 11, formationName: '4-3-3', style: 'bal' },
+      { userId: 'u2', seat: 2, name: 'Carla', ready: true, outIn: null, picked: 11, formationName: '4-3-3', style: 'bal' },
+      { userId: 'u3', seat: 3, name: 'Dara', ready: true, outIn: null, picked: 11, formationName: '4-3-3', style: 'bal' },
+    ],
+    ties: [semi(0, HOME, AWAY, 2, 1), semi(1, 'u2', 'u3', 0, 3)],
+    ...over,
+  });
 }
 
 export function pvpViewChecks(): void {
@@ -288,6 +323,182 @@ export function pvpViewChecks(): void {
         chips.length
           ? `RatingChip reached directly in: ${chips.join(', ')}`
           : `BuildSurface required=${required(surface)}, VersusMatch required=${required(match)}, deciders=${deciders.join(',')}`,
+    );
+  }
+
+  // --- A ROOM OF MORE THAN TWO: the tree, and who watches what (P47, P24) ----
+  // Wave 7. The referee has taken four and eight players since wave 3 and its own checks
+  // cover the barrier and the random draw; what is new here is entirely a READING of the
+  // room, so this is where it is asserted.
+  {
+    check(
+      'pvpView: a room of 2, 4 and 8 plays 1, 2 and 3 rounds, and each round halves the field',
+      () =>
+        roundsFor(2) === 1 &&
+        roundsFor(4) === 2 &&
+        roundsFor(8) === 3 &&
+        gamesIn(8, 1) === 4 &&
+        gamesIn(8, 2) === 2 &&
+        gamesIn(8, 3) === 1 &&
+        gamesIn(4, 1) === 2 &&
+        gamesIn(2, 1) === 1 &&
+        // Counted BACK from the final, so the first round of a room of two IS the final
+        // and the first round of a room of eight is a quarter-final.
+        roundLabel(2, 1) === 'Final' &&
+        roundLabel(4, 1) === 'Semi-final' &&
+        roundLabel(4, 2) === 'Final' &&
+        roundLabel(8, 1) === 'Quarter-final' &&
+        roundLabel(8, 2) === 'Semi-final' &&
+        roundLabel(8, 3) === 'Final',
+      () => `${roundLabel(8, 1)} / ${roundLabel(8, 2)} / ${roundLabel(8, 3)}`,
+    );
+  }
+
+  {
+    // A room of four, one round in: the semi-finals are played and the final is not drawn.
+    const room = fourRoom();
+    const tree = roomBracket(room, room.at);
+    check(
+      'pvpView: the tree holds every round of the room, and one not yet drawn reads as empty seats',
+      () =>
+        tree.length === 2 &&
+        tree[0]!.drawn &&
+        tree[0]!.games.length === 2 &&
+        // The final exists on the tree before anybody is in it, or the wait after the
+        // draft would have nothing to show and the shape of the room would be a surprise.
+        !tree[1]!.drawn &&
+        tree[1]!.games.length === 1 &&
+        tree[1]!.games[0]!.home.userId === null &&
+        tree[1]!.games[0]!.home.name === '' &&
+        tree[1]!.label === 'Final' &&
+        // The viewer's own game is marked, and only theirs.
+        tree[0]!.games.filter((g) => g.yours).length === 1 &&
+        tree[0]!.games[0]!.yours &&
+        tree[0]!.games[0]!.home.you,
+      () => JSON.stringify(tree.map((r) => [r.label, r.drawn, r.games.length])),
+    );
+  }
+
+  {
+    // THE SPOILER RULE, and the reason it exists: every tie of a round is stamped at the
+    // SAME instant and they run for different lengths, so a player watching their own
+    // match would otherwise read the result of the tie they are about to be shown,
+    // printed on the tree beside it.
+    const room = fourRoom();
+    const openWindow = room.at; // both reveals still running
+    const closed = room.at + 60_000; // both windows long past
+    const during = roomBracket(room, openWindow);
+    const after = roomBracket(room, closed);
+    const scores = (t: ReturnType<typeof roomBracket>) =>
+      t[0]!.games.map((g) => `${g.home.goals ?? '-'}:${g.away.goals ?? '-'}`).join(',');
+    check(
+      'pvpView: a scoreline is held back until its OWN reveal window closes, and appears once it has',
+      () =>
+        // Vacuity in both directions: the fixture has results, and they really do come
+        // out. Without this the check would pass on a bracket that never shows a score.
+        during.every((r) => r.games.every((g) => g.home.goals === null && g.away.goals === null)) &&
+        during[0]!.games.every((g) => g.live && !g.settled && g.home.won === null) &&
+        scores(after) === '2:1,0:3' &&
+        after[0]!.games.every((g) => g.settled && !g.live) &&
+        // And who went through, which is the other half of the tree.
+        after[0]!.games[0]!.home.won === true &&
+        after[0]!.games[0]!.away.won === false &&
+        after[0]!.games[1]!.away.won === true,
+      () => `during ${scores(during)}, after ${scores(after)}`,
+    );
+  }
+
+  {
+    // A KNOCKED-OUT PLAYER WATCHES THE REST (P24), and the default is the game their own
+    // conqueror is in - the one match in the round they have a reason to care about,
+    // chosen without a control. A room of EIGHT is what makes that checkable: its second
+    // round has two ties, so preferring the conqueror's is a different answer from taking
+    // the first game, which in a room of four it would not be.
+    const semi = (game: number, homeId: string, awayId: string): TieView => ({
+      ...fixtureTie(),
+      round: 2,
+      game,
+      homeId,
+      awayId,
+      decided: 'reg',
+      pens: null,
+      winnerId: homeId,
+    });
+    const room = fourRoom({
+      size: 8,
+      round: 2,
+      members: [
+        { userId: HOME, seat: 0, name: 'Alpha', ready: true, outIn: 1, picked: 11, formationName: '4-3-3', style: 'bal' },
+        { userId: AWAY, seat: 1, name: 'Bravo', ready: true, outIn: null, picked: 11, formationName: '4-3-3', style: 'bal' },
+        { userId: 'u2', seat: 2, name: 'Carla', ready: true, outIn: null, picked: 11, formationName: '4-3-3', style: 'bal' },
+        { userId: 'u3', seat: 3, name: 'Dara', ready: true, outIn: null, picked: 11, formationName: '4-3-3', style: 'bal' },
+      ],
+      // Alpha lost their quarter-final to Bravo, who is in the SECOND semi.
+      ties: [
+        { ...fixtureTie(), round: 1, game: 0, homeId: AWAY, awayId: HOME, winnerId: AWAY, decided: 'reg', pens: null },
+        semi(0, 'u2', 'u3'),
+        semi(1, AWAY, 'u2'),
+      ],
+    });
+    const watching = spectateTie(room);
+    // Somebody still IN gets nothing to spectate: their own match is the screen.
+    const stillIn = spectateTie({ ...room, you: { ...room.you!, userId: 'u3' } });
+    // And a viewer whose conqueror also went out falls back to the first game rather than
+    // to nothing, or the screen would be blank for them.
+    const orphan = spectateTie({
+      ...room,
+      ties: room.ties.map((t) => (t.game === 1 && t.round === 2 ? { ...t, homeId: 'u9' } : t)),
+    });
+    check(
+      'pvpView: a knocked-out player is shown the tie their own conqueror is in, a player still in is shown none, and an orphan gets the first game',
+      () =>
+        // Vacuity: the round really has two ties, and the conqueror's is NOT the first, so
+        // "take game 0" would be a different answer.
+        room.ties.filter((t) => t.round === 2).length === 2 &&
+        !!watching &&
+        watching.game === 1 &&
+        (watching.homeId === AWAY || watching.awayId === AWAY) &&
+        stillIn === null &&
+        orphan?.game === 0,
+      () =>
+        `watching game ${watching?.game}, stillIn ${stillIn ? 'a tie' : 'null'}, orphan game ${orphan?.game}`,
+    );
+  }
+
+  {
+    // A spectated tie is turned round for its OWN home player, which is the identity: the
+    // header comment claims nothing is relabelled, and that is what makes it safe to hand
+    // two other people's match to a card written for "you and them".
+    const tie = fixtureTie();
+    const neutral = viewerTie(tie, tie.homeId);
+    const flipped = viewerTie(tie, tie.awayId);
+    check(
+      'pvpView: turning a tie round for its own home player changes nothing, where turning it for the away player does',
+      () =>
+        neutral.yourGoals === tie.homeGoals &&
+        neutral.theirGoals === tie.awayGoals &&
+        neutral.events.map((e) => e.side).join() === tie.events.map((e) => e.side).join() &&
+        neutral.pens?.home === tie.pens?.home &&
+        // Vacuity: the flip is not a no-op for everybody, or this asserts nothing.
+        flipped.yourGoals !== neutral.yourGoals,
+      () => `${neutral.yourGoals}-${neutral.theirGoals} vs ${flipped.yourGoals}-${flipped.theirGoals}`,
+    );
+  }
+
+  {
+    // The chrome's strip is the ROOM's own sentence, and in a room of eight that means the
+    // round rather than "match on". It is written once, here, and held on the pointer the
+    // chrome reads - the chrome used to compose a second one out of a status and a count.
+    const eight = fourRoom({ size: 8, round: 1 });
+    check(
+      'pvpView: the room strip names the round it is playing, and a room of two still reads as its final',
+      () =>
+        roomLine(eight) === 'quarter-final on' &&
+        roomLine({ ...eight, round: 3 }) === 'final on' &&
+        roomLine({ ...eight, size: 2, round: 1 }) === 'final on' &&
+        roomLine({ ...eight, status: 'lobby', members: eight.members.slice(0, 2) }) ===
+          'waiting, 2 of 8 in, 2 ready',
+      () => roomLine(eight),
     );
   }
 
