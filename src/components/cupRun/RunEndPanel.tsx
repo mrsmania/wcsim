@@ -1,4 +1,4 @@
-import { CARD, PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
+import { CARD, PRIMARY_BTN, SECONDARY_BTN_BASE } from '../matchUi';
 import { AWARDS_ON, challengeById } from '../../domain/challenges';
 import ChallengeRow from '../challengeUi';
 import type { Reward } from './types';
@@ -70,13 +70,13 @@ export default function RunEndPanel({
         <button
           onClick={onReplay}
           disabled={banking}
-          className={`px-4 py-3 ${SECONDARY_BTN} disabled:opacity-60`}
+          className={`px-4 py-3 ${SECONDARY_BTN_BASE} disabled:opacity-60`}
         >
           Replay same XI
         </button>
         <button
           onClick={onCareer}
-          className={`px-4 py-3 ${SECONDARY_BTN}`}
+          className={`px-4 py-3 ${SECONDARY_BTN_BASE}`}
         >
           Career
         </button>

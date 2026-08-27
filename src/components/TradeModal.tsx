@@ -3,7 +3,7 @@ import type { StickerTier } from '../config';
 import { TIER_META } from './stickerTheme';
 import StickerCard from './StickerCard';
 import Overlay from './Overlay';
-import { SECONDARY_BTN } from './matchUi';
+import { SECONDARY_BTN_BASE } from './matchUi';
 
 interface Props {
   targetTier: StickerTier;
@@ -42,7 +42,7 @@ export default function TradeModal({ targetTier, costDuplicates, options, onPick
         ))}
       </div>
       <div className="mt-5 flex justify-end">
-        <button onClick={onCancel} className={`px-4 py-2.5 text-[13px] ${SECONDARY_BTN}`}>
+        <button onClick={onCancel} className={`px-4 py-2.5 text-[13px] ${SECONDARY_BTN_BASE}`}>
           Cancel
         </button>
       </div>

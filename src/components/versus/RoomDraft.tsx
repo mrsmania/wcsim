@@ -205,14 +205,15 @@ export default function RoomDraft({
                     ratings={ratings}
                     rerollKinds={rolling ? ROOM_REROLLS : undefined}
                     complete={
-                        <div className={`${CARD_FLAT} p-4`}>
-                            <div className={MONO_CAP}>Line-up confirmed</div>
-                            <RoomNote>
-                                {rolling
-                                    ? 'Eleven picked. The match starts when everybody is done.'
-                                    : `Eleven picked and $${you?.budgetLeft ?? 0} left over. The match starts when everybody is done.`}
-                            </RoomNote>
-                        </div>
+                        // No heading of its own: `BuildSurface` already puts "Confirmed
+                        // line-up / Your XI is set" directly above, and the wait is said by
+                        // the panel at the top of the screen, so all that is left to add is
+                        // what the money did.
+                        !rolling ? (
+                            <div className={`${CARD_FLAT} p-4`}>
+                                <RoomNote>${you?.budgetLeft ?? 0} left over.</RoomNote>
+                            </div>
+                        ) : null
                     }
                 />
             </div>

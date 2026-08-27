@@ -35,10 +35,25 @@ export const PRIMARY_BTN_BASE =
 export const PRIMARY_BTN =
   `inline-flex items-center justify-center gap-2 px-5 py-3 text-[13px] ${PRIMARY_BTN_BASE}`;
 
-/** Shared outline action button (the turf-flat `.btn.secondary`). Visual identity
- *  only, so callers append their own layout/sizing (width, padding, gap, disabled). */
-export const SECONDARY_BTN =
+/** Outline-button visual identity only (the turf-flat `.btn.secondary`): colors, border,
+ *  font, hover. Callers that need their own layout/sizing append it, exactly as with
+ *  `PRIMARY_BTN_BASE`. Most callers want `SECONDARY_BTN` below instead. */
+export const SECONDARY_BTN_BASE =
   'rounded-[5px] border border-ink bg-panel font-display font-extrabold uppercase tracking-[0.04em] text-ink transition hover:border-pitch hover:text-pitch';
+
+/**
+ * The outline button at the ordinary size: the base plus the same box `PRIMARY_BTN` has,
+ * so a solid and an outline button sitting side by side line up.
+ *
+ * IT IS NAMED THE PLAIN NAME ON PURPOSE, and that is the fix for a real defect rather than
+ * tidiness. The identity-only string used to be called `SECONDARY_BTN`, so a caller who
+ * used it bare - as every versus screen did - got a button with NO PADDING AND NO TEXT
+ * SIZE, which reads as a mistake rather than as a smaller button. The trap was that the
+ * obvious name was the one you must not use alone. Now the obvious name is the safe one and
+ * the deliberate choice carries the `_BASE` suffix, matching the primary pair.
+ */
+export const SECONDARY_BTN =
+  `inline-flex items-center justify-center gap-2 px-5 py-3 text-[13px] ${SECONDARY_BTN_BASE}`;
 
 /** The solid-red destructive confirm button (used to confirm a start-over / reset). */
 export const DANGER_BTN =

@@ -114,8 +114,8 @@ export default function RoomScreen({ code }: { code: string }) {
                 <div className={`${CARD_FLAT} p-5`}>
                     {missing ? (
                         <RoomNote>
-                            Room {code}. Take a seat and the room opens up; until you do, a
-                            private room is not visible at all.
+                            A private room is invisible until you are in it, so this is what
+                            arriving with a code looks like. Take a seat.
                         </RoomNote>
                     ) : room.error ? (
                         <RefereeProblem message={refereeMessage(room.error, 'reach the room')} />
@@ -160,20 +160,21 @@ export default function RoomScreen({ code }: { code: string }) {
                             : 'Roll random squads and take one man from each'}
                         , {view.pickSeconds} seconds a pick.
                     </RoomNote>
-                    {full ? (
+                    {full && (
                         <RoomNote>
-                            <span className="mt-2 block">
-                                It filled up. Try another, or open one of your own.
-                            </span>
+                            <span className="mt-2 block">It filled up.</span>
                         </RoomNote>
-                    ) : (
-                        <button className={`${PRIMARY_BTN} mt-3`} onClick={() => void room.join()}>
-                            Take a seat
-                        </button>
                     )}
-                    <button className={`${SECONDARY_BTN} mt-3 ml-2`} onClick={() => navigate('/versus')}>
-                        Back to versus
-                    </button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {!full && (
+                            <button className={PRIMARY_BTN} onClick={() => void room.join()}>
+                                Take a seat
+                            </button>
+                        )}
+                        <button className={SECONDARY_BTN} onClick={() => navigate('/versus')}>
+                            Back to versus
+                        </button>
+                    </div>
                 </div>
             </>
         );
@@ -236,9 +237,7 @@ export default function RoomScreen({ code }: { code: string }) {
                         mine.tie.decided === null ? (
                             <div className={`${CARD_FLAT} p-5`}>
                                 <div className={MONO_CAP}>Kick-off</div>
-                                <RoomNote>
-                                    Both teams are in. {them.name} versus you, any moment.
-                                </RoomNote>
+                                <RoomNote>{them.name} versus you, any moment.</RoomNote>
                             </div>
                         ) : (
                             <VersusMatch
@@ -260,10 +259,8 @@ export default function RoomScreen({ code }: { code: string }) {
                             <div className={`${CARD_FLAT} px-4 py-3`}>
                                 <div className={MONO_CAP}>You are out</div>
                                 <RoomNote>
-                                    Your run ended in the{' '}
-                                    {roundLabelOf(view, me.outIn ?? view.round)}. Stay and watch
-                                    it out: this is {watching.home.name} against{' '}
-                                    {watching.away.name}.
+                                    Beaten in the {roundLabelOf(view, me.outIn ?? view.round)}.
+                                    Stay and watch it out.
                                 </RoomNote>
                             </div>
                             <VersusMatch
@@ -301,7 +298,7 @@ export default function RoomScreen({ code }: { code: string }) {
                             <div className={MONO_CAP}>The room closed</div>
                             <RoomNote>
                                 Nobody was left in it, so it shut rather than sitting open for
-                                ever. Open another and send the code round again.
+                                ever.
                             </RoomNote>
                         </div>
                     ) : (

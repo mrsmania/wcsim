@@ -584,6 +584,40 @@ right, and it is worth writing up because the fault is one the plan invited.
   **It needs the referee redeployed** along with the rest of wave 8: the `/leave` route is new
   server code.
 
+### The buttons, and the button nobody could explain (2026-08-27)
+
+Asked for after playing it: "fix the button design all over the pvp pages, remove text that
+is unnecessary or very obvious, and what is the button *Change my shape* for?"
+
+- **The buttons had no padding, and the token's NAME was the trap.** `SECONDARY_BTN` was
+  identity only - colours, border, font - with the layout left to each caller, exactly as
+  `PRIMARY_BTN_BASE` is. Ten versus buttons used it bare, so they shipped with no padding and
+  no text size, which reads as a mistake rather than as a smaller button. The fix is the
+  naming: the plain name is now the SIZED one and the deliberate choice carries `_BASE`,
+  mirroring the primary pair. `dist/assets/*.css` is byte-identical across the rename, which
+  is the cheap proof that nothing moved but the names.
+- **"Change my shape" was a button whose job was to send a choice the chips looked as though
+  they had already made.** The lobby held the formation and style locally until you pressed
+  something, so the primary action read "I'm ready" and then became that. The question "what
+  is it for?" is the correct reaction: a chip that is lit and not yet sent is a lie. Picking
+  posts now, and Ready is one toggle labelled for what it does, with the seat list carrying
+  the state. P48 already allows a ready player to keep changing shape, so nothing had to lock.
+- **Two dead ends went with it.** Changing formation could make the current style illegal, and
+  the old screen left the impossible pair on screen with a disabled button under it; it falls
+  back to the first legal style instead. And the shape posts had shared the host's `busy`
+  flag, which made Start flicker disabled every time anybody tapped a formation.
+- **Seven rows of "Empty seat"** in a room of eight was most of the lobby card's height
+  saying what "1 of 8 here" and "Waiting for 7 more" already said twice. They went, and the
+  card is now short enough that the two columns balance.
+- **What the copy pass cut, as a rule rather than a list**: anything the control beside it
+  already said. "Somebody sent you six characters. Put them in." under a heading reading
+  "Join with a code" above a box showing `ABC234`. "You get a six-character code" on a page
+  whose next screen is the code. A third heading reading "Line-up confirmed" under
+  `BuildSurface`'s own "Confirmed line-up / Your XI is set". "Waiting for the room to fill"
+  beside a seat count. What stayed is every sentence that says something a player could not
+  work out from the screen: the ratings house rule, why a private room answers "no room",
+  that a score waits for its own match to finish.
+
 ### Found while building the public half (wave 8)
 
 - **IT NEEDED NO MIGRATION, and that is 0016 having been written properly rather than luck.**

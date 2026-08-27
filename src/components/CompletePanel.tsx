@@ -3,7 +3,7 @@ import { STYLE_LABEL, type Formation, type Style } from '../domain/formations';
 import { teamRating, type Filled } from '../domain/draft';
 import { teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
-import { CARD, PRIMARY_BTN_BASE, SECONDARY_BTN } from './matchUi';
+import { CARD, PRIMARY_BTN_BASE, SECONDARY_BTN_BASE } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 import AscensionPicker from './AscensionPicker';
 
@@ -91,7 +91,7 @@ export default function CompletePanel({
                         confirmLabel="Yes, reset"
                         onConfirm={onReset}
                         triggerLabel="Start over"
-                        triggerClassName={`flex w-full items-center justify-center px-4 py-3 text-[13px] ${SECONDARY_BTN}`}
+                        triggerClassName={`flex w-full items-center justify-center px-4 py-3 text-[13px] ${SECONDARY_BTN_BASE}`}
                         rowClassName="flex items-center gap-2"
                     />
                 </div>

@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { FEATURES } from '../config';
-import { PRIMARY_BTN, SECONDARY_BTN } from './matchUi';
+import { PRIMARY_BTN, SECONDARY_BTN_BASE } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 // ---------------------------------------------------------------------------
@@ -136,13 +136,13 @@ export default function AccountPanel({
           Your album, career and settings follow this account on any device.
         </p>
         <div className="mt-2.5 flex flex-wrap gap-2">
-          <button type="button" onClick={() => void out('local')} className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}>
+          <button type="button" onClick={() => void out('local')} className={`px-3 py-2 text-[12px] ${SECONDARY_BTN_BASE}`}>
             Sign out
           </button>
           <button
             type="button"
             onClick={() => void out('global')}
-            className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
+            className={`px-3 py-2 text-[12px] ${SECONDARY_BTN_BASE}`}
           >
             Sign out everywhere
           </button>

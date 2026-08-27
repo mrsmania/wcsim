@@ -102,13 +102,12 @@ export default function RoomBracket({
             <div className={MONO_CAP}>{undrawn ? 'The draw' : 'The bracket'}</div>
             {undrawn ? (
                 <RoomNote>
-                    Nobody is paired yet. Every XI is finished first and then the whole tree
-                    is drawn at once, so no one knows who they are facing while they pick.
+                    Every XI is finished first and then the whole tree is drawn at once, so
+                    nobody knows who they are facing while they pick.
                 </RoomNote>
             ) : (
                 <RoomNote>
-                    Drawn at random when the last pick landed. A score appears when its match
-                    finishes.
+                    Drawn at random. A score appears when that match finishes.
                 </RoomNote>
             )}
 

@@ -2773,6 +2773,28 @@ wave 3, and each is a later wave with a screen to answer for it. **P41's per-pic
 built**, and neither is P42's move: both need an instruction the referee does not have, so
 the clock is the only way a window ends early.
 
+**THE LOBBY POSTS YOUR SHAPE THE MOMENT YOU PICK IT, and that is what removed a button.**
+It used to hold the choice locally, so the primary action read "I'm ready" and then turned
+into **"Change my shape"** - a button whose job was to send a choice the chips looked as
+though they had already made. Nobody could tell what it was for, which is the correct
+reaction: a chip that is lit and not yet sent is a lie. Picking posts, so Ready is one
+toggle labelled for what it does, and the seat list beside it is where the STATE is shown.
+Two consequences: a formation change falls back to the first style the new formation allows
+(a 3-4-3 has no defensive variant, and the old code left the impossible pair on screen with
+a disabled button under it), and the shape posts are deliberately not gated on the `busy`
+flag, which is the HOST's - sharing it made Start flicker disabled on every chip tap.
+
+**THE BUTTON TOKENS: the plain name is the SAFE one** (`matchUi.tsx`, corrected
+2026-08-27). `SECONDARY_BTN` is the base plus the same box `PRIMARY_BTN` has, so a solid and
+an outline button side by side line up; `SECONDARY_BTN_BASE` is identity only, for a caller
+that wants a tighter box (the lobby list's row action). It used to be the other way round -
+the obvious name was the one you must not use alone - and every versus screen used it bare,
+so ten buttons shipped with **no padding and no text size**, which reads as a mistake rather
+than as a smaller button. Two checks hold it: the two sized tokens are built from the same
+literal, and every bare use of the base under `components/versus/` carries its own padding.
+The rename left `dist/assets/*.css` **byte-identical** (`628114a0...`), which is the same
+cheap proof the wave-3 token migration used.
+
 **A ROOM NOBODY IS IN CLOSES ITSELF, and the sweeper that does it is the pick clock's**
 (P31). Closing a tab fires no reliable event, so leaving is OBSERVED rather than announced:
 every client pings while it holds a room, `RoomMember.lastSeen` is what the ping writes, and

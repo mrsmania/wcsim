@@ -579,6 +579,62 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- THE BUTTONS ARE ONE SIZE (2026-08-27) --------------------------------
+  // Every versus screen shipped using the outline button's IDENTITY-ONLY token bare, so
+  // ten buttons had no padding and no text size - which reads as a mistake rather than as
+  // a smaller button. The fix was to name the safe one the plain name: `SECONDARY_BTN` now
+  // carries the same box as `PRIMARY_BTN`, and the deliberate choice is
+  // `SECONDARY_BTN_BASE`, matching `PRIMARY_BTN_BASE`. These two assertions are what stop
+  // it coming back, because nothing about a bare token LOOKS wrong in a diff.
+  {
+    const ui = readFileSync('src/components/matchUi.tsx', 'utf8');
+    const box = 'inline-flex items-center justify-center gap-2 px-5 py-3 text-[13px]';
+    check(
+      'pvpView: the solid and outline buttons carry the same box, so the two line up side by side',
+      () =>
+        // Both sized tokens are built from the same literal, and each is the base plus it.
+        new RegExp(`export const PRIMARY_BTN =\\s*\`${box.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\$\\{PRIMARY_BTN_BASE\\}\``).test(ui) &&
+        new RegExp(`export const SECONDARY_BTN =\\s*\`${box.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\$\\{SECONDARY_BTN_BASE\\}\``).test(ui) &&
+        // And the identity-only halves are still identity only: no layout in either.
+        !/export const PRIMARY_BTN_BASE =\s*\n?\s*'[^']*\bp[xy]-/.test(ui) &&
+        !/export const SECONDARY_BTN_BASE =\s*\n?\s*'[^']*\bp[xy]-/.test(ui),
+      () => 'matchUi.tsx no longer builds PRIMARY_BTN and SECONDARY_BTN from the same box',
+    );
+  }
+
+  {
+    const dir = 'src/components/versus';
+    const files = readdirSync(dir).filter((f) => f.endsWith('.tsx'));
+    // A bare identity token is the defect. Reaching for it deliberately is fine - the
+    // lobby list's row action wants a tighter box than the page-level one - so the rule is
+    // that it must be accompanied by padding, not that it must not appear.
+    const naked: string[] = [];
+    for (const f of files) {
+      // The import list mentions the token and has no box beside it, which is correct and
+      // not a use, so the imports come off first.
+      const src = readFileSync(`${dir}/${f}`, 'utf8').replace(/^import[\s\S]*?';$/gm, '');
+      const parts = src.split('SECONDARY_BTN_BASE');
+      for (let i = 1; i < parts.length; i++) {
+        if (!/\bpy-[\d.[]/.test(parts[i - 1]!.slice(-220))) naked.push(`${f}#${i}`);
+      }
+    }
+    // Vacuity: the scan has to be finding the real uses, or it proves nothing.
+    const uses = files.reduce(
+      (n, f) =>
+        n +
+        (readFileSync(`${dir}/${f}`, 'utf8')
+          .replace(/^import[\s\S]*?';$/gm, '')
+          .split('SECONDARY_BTN_BASE').length -
+          1),
+      0,
+    );
+    check(
+      `pvpView: every deliberate use of the identity-only outline token brings its own box (${uses} of them)`,
+      () => uses >= 1 && naked.length === 0,
+      () => `no padding beside: ${naked.join(', ')}`,
+    );
+  }
+
   // --- The four controls a room hides (P41), plus the three it turns off -----
   // A LIST rather than a flag, because the list is the decision: each entry breaks the
   // pick clock, or the referee, in its own way. This asserts the two sets are the same

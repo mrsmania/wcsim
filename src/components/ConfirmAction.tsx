@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { DANGER_BTN, SECONDARY_BTN } from './matchUi';
+import { DANGER_BTN, SECONDARY_BTN_BASE } from './matchUi';
 
 /**
  * A destructive action with an inline confirm step, so a stray click never fires it.
@@ -73,7 +73,7 @@ export default function ConfirmAction({
         <button
           onClick={() => setConfirm(false)}
           disabled={busy}
-          className={`px-3 py-2 text-[12px] ${SECONDARY_BTN}`}
+          className={`px-3 py-2 text-[12px] ${SECONDARY_BTN_BASE}`}
         >
           Cancel
         </button>

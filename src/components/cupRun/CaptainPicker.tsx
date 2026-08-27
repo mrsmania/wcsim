@@ -2,7 +2,7 @@ import { primaryPosition, type Player } from '../../data/types';
 import { SQUAD_BY_ID } from '../../data/squads';
 import { boonById } from '../../domain/boons';
 import Flag from '../Flag';
-import { SECONDARY_BTN } from '../matchUi';
+import { SECONDARY_BTN_BASE } from '../matchUi';
 
 /**
  * The answer step for a card that asks a question at pick time - today only The Armband.
@@ -43,7 +43,7 @@ export default function CaptainPicker({
               key={p.id}
               type="button"
               onClick={() => onChoose(p.id)}
-              className={`${SECONDARY_BTN} flex w-full items-center gap-2 px-3 py-2 text-left`}
+              className={`${SECONDARY_BTN_BASE} flex w-full items-center gap-2 px-3 py-2 text-left`}
             >
               <span className="w-8 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
                 {primaryPosition(p)}

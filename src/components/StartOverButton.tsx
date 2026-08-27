@@ -1,4 +1,4 @@
-import { SECONDARY_BTN } from './matchUi';
+import { SECONDARY_BTN_BASE } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 /**
@@ -12,7 +12,7 @@ export default function StartOverButton({ onReset }: { onReset: () => void }) {
       confirmLabel="Yes, start over"
       onConfirm={onReset}
       triggerLabel="Start over"
-      triggerClassName={`mt-3 flex w-full items-center justify-center px-4 py-2.5 text-[13px] ${SECONDARY_BTN}`}
+      triggerClassName={`mt-3 flex w-full items-center justify-center px-4 py-2.5 text-[13px] ${SECONDARY_BTN_BASE}`}
       rowClassName="mt-3 flex flex-wrap items-center justify-center gap-2"
     />
   );

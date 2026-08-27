@@ -12,7 +12,14 @@ import type { LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
 import { createRoom, readLobby } from '../../state/pvp/referee';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
-import { CARD, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
+import {
+    CARD,
+    MONO_CAP,
+    PRIMARY_BTN,
+    SECONDARY_BTN,
+    SECONDARY_BTN_BASE,
+    StageHeader,
+} from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
 import { RefereeProblem, RoomNote } from './versusUi';
 
@@ -206,9 +213,6 @@ export default function VersusHome() {
                             {record.roomsWon} room{record.roomsWon === 1 ? '' : 's'} won outright
                         </span>
                     )}
-                    <span className="ml-auto text-[12px] text-dim">
-                        Nothing is at stake but this.
-                    </span>
                 </div>
             )}
 
@@ -216,10 +220,9 @@ export default function VersusHome() {
                 <div className={`${CARD} p-4`}>
                     <div className={MONO_CAP}>Make a room</div>
                     <RoomNote>
-                        Everybody puts together an XI out of all {WORLD_CUP_YEARS.length} World
-                        Cups, twenty seconds a pick, and then the teams play a knockout. Your
-                        career, your album and your perks stay out of it entirely: it is eleven
-                        players against eleven players.
+                        An XI each out of all {WORLD_CUP_YEARS.length} World Cups, twenty
+                        seconds a pick, then a knockout. Your career, album and perks stay out
+                        of it: eleven players against eleven.
                     </RoomNote>
 
                     <Choice label="How many of you" value={size} onPick={setSize} options={SIZES} />
@@ -319,9 +322,8 @@ export default function VersusHome() {
                             {!showRatings && (
                                 <RoomNote>
                                     <span className="mt-2 block">
-                                        It is a house rule, not a lock: the Squads tab exists to
-                                        show ratings, so a second tab defeats it. Agree not to,
-                                        and it makes the draft a genuine judgement.
+                                        A house rule, not a lock: the Squads tab shows every
+                                        rating, so a second tab defeats it. Agree not to.
                                     </span>
                                 </RoomNote>
                             )}
@@ -331,15 +333,6 @@ export default function VersusHome() {
                     <button className={`${PRIMARY_BTN} mt-4 w-full`} disabled={busy} onClick={make}>
                         Open a room
                     </button>
-                    <RoomNote>
-                        <span className="mt-2 block">
-                            {visibility === 'private'
-                                ? `You get a six-character code. Send it to ${
-                                      size === 2 ? 'whoever you want to play' : `the other ${size - 1}`
-                                  }.`
-                                : 'It goes on the list below, and you get a code as well.'}
-                        </span>
-                    </RoomNote>
                     {error && (
                         <RefereeProblem
                             message={error}
@@ -361,6 +354,7 @@ export default function VersusHome() {
                     )}
                 </div>
 
+                <div className="flex flex-col gap-[22px]">
                 <div className={`${CARD} p-4`}>
                     <div className="flex items-baseline gap-3">
                         <div className={MONO_CAP}>Rooms you can join</div>
@@ -372,12 +366,9 @@ export default function VersusHome() {
                             Refresh
                         </button>
                     </div>
-                    {lobby === null ? (
-                        <RoomNote>Looking.</RoomNote>
-                    ) : lobby.length === 0 ? (
+                    {lobby === null ? null : lobby.length === 0 ? (
                         <RoomNote>
-                            Nobody has a public room open. Open one above and it appears here
-                            for anybody signed in.
+                            Nobody has a public room open. Open one and it appears here.
                         </RoomNote>
                     ) : (
                         <ul className="mt-1">
@@ -406,10 +397,13 @@ export default function VersusHome() {
                                                 {lobbyLine(r)} &middot; {agoLine(r.openedAt, at)}
                                             </div>
                                         </div>
+                                        {/* A ROW action, so it takes the identity token and
+                                            its own tighter box: the page-level size would
+                                            be taller than the hairline row it sits in. */}
                                         <button
                                             type="button"
                                             disabled={!open}
-                                            className={`${SECONDARY_BTN} ${
+                                            className={`shrink-0 px-3 py-1.5 text-[12px] ${SECONDARY_BTN_BASE} ${
                                                 open ? '' : 'cursor-not-allowed opacity-45'
                                             }`}
                                             onClick={() => navigate(`/versus/${r.code}`)}
@@ -425,7 +419,6 @@ export default function VersusHome() {
 
                 <form className={`${CARD} p-4`} onSubmit={join}>
                     <div className={MONO_CAP}>Join with a code</div>
-                    <RoomNote>Somebody sent you six characters. Put them in.</RoomNote>
                     <input
                         value={code}
                         onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
@@ -440,6 +433,7 @@ export default function VersusHome() {
                         Go to the room
                     </button>
                 </form>
+                </div>
             </div>
         </>
     );

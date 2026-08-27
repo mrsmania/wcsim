@@ -42,7 +42,6 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const isHost = view.hostId === view.you?.userId;
     const full = view.members.length >= view.size;
     const styles = FORMATIONS_DATA.stylesByName[name] ?? STYLES;
-    const shapeOk = !!getFormation(name, style);
     // Downwards only, and never below the people already sitting here: that is the
     // referee's rule (`reduceSize`), and offering a button it would refuse is worse than
     // not offering one.
@@ -50,23 +49,47 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
         ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length)
         : [];
 
-    const send = (ready: boolean) => {
-        setBusy(true);
-        void room.ready(name, style, ready).finally(() => setBusy(false));
+    /**
+     * THE SHAPE IS SENT THE MOMENT IT IS PICKED, and that is what removed a button.
+     *
+     * It used to be held locally until you pressed something, so the primary action read
+     * "I'm ready" and then turned into "Change my shape" - a button whose job was to post a
+     * choice the chips looked as though they had already made. Nobody could tell what it
+     * was for, which is the correct reaction: a chip that is lit and not yet sent is a lie.
+     * Picking posts, so Ready is only ever Ready (P48 lets a ready player keep changing
+     * shape right up to the start, so nothing here has to lock).
+     *
+     * A formation change may make the current STYLE illegal - a 3-4-3 has no defensive
+     * variant - so it falls back to the first the new formation allows rather than leaving
+     * an impossible pair on screen with a disabled button underneath, which is a dead end
+     * the player did not ask for.
+     */
+    const post = (n: FormationName, s: Style, ready: boolean): void => {
+        setName(n);
+        setStyle(s);
+        // Deliberately not gated on `busy`: that flag is the HOST's commands, and sharing
+        // it made Start flicker disabled every time somebody tapped a formation. There is
+        // no clock in a lobby, and a refused post is reconciled by the next poll.
+        void room.ready(n, s, ready).catch(() => undefined);
+    };
+    const pickFormation = (n: FormationName): void => {
+        const allowed = FORMATIONS_DATA.stylesByName[n] ?? STYLES;
+        const s = allowed.includes(style) ? style : (allowed[0] ?? 'bal');
+        if (getFormation(n, s)) post(n, s, me?.ready ?? false);
     };
 
     return (
-        <div className="grid items-start gap-[22px] min-[860px]:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid items-start gap-[22px] min-[860px]:grid-cols-[minmax(0,1fr)_360px]">
             <div className={`${CARD} p-4`}>
                 <div className={MONO_CAP}>Your shape</div>
                 <RoomNote>
-                    Pick it now: the clock only ever covers picking players.
+                    Chosen here, not on the clock: the clock only ever covers picking players.
                 </RoomNote>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                     {FORMATIONS_DATA.names.map((n) => (
                         <button
                             key={n}
-                            onClick={() => setName(n)}
+                            onClick={() => pickFormation(n)}
                             className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${
                                 n === name ? CHIP_ON : CHIP_OFF
                             }`}
@@ -75,14 +98,14 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                         </button>
                     ))}
                 </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                     {STYLES.map((s) => {
                         const enabled = styles.includes(s);
                         return (
                             <button
                                 key={s}
                                 disabled={!enabled}
-                                onClick={() => setStyle(s)}
+                                onClick={() => post(name, s, me?.ready ?? false)}
                                 className={`rounded-[5px] border px-2.5 py-1.5 text-[12px] font-bold transition ${
                                     s === style ? CHIP_ON : CHIP_OFF
                                 } ${enabled ? '' : 'cursor-not-allowed opacity-40'}`}
@@ -92,20 +115,14 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                         );
                     })}
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                        className={PRIMARY_BTN}
-                        disabled={busy || !shapeOk}
-                        onClick={() => send(true)}
-                    >
-                        {me?.ready ? 'Change my shape' : "I'm ready"}
-                    </button>
-                    {me?.ready && (
-                        <button className={SECONDARY_BTN} disabled={busy} onClick={() => send(false)}>
-                            Not yet
-                        </button>
-                    )}
-                </div>
+                {/* One button, labelled for what it DOES. The seat list beside it is where
+                    the state is shown, so the button does not have to be both. */}
+                <button
+                    className={`${me?.ready ? SECONDARY_BTN : PRIMARY_BTN} mt-4`}
+                    onClick={() => post(name, style, !me?.ready)}
+                >
+                    {me?.ready ? 'Not ready' : "I'm ready"}
+                </button>
             </div>
 
             <div className={`${CARD} p-4`}>
@@ -115,10 +132,8 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                 </div>
                 <RoomNote>
                     {view.visibility === 'private'
-                        ? `Private: give this to the ${
-                              view.size === 2 ? 'person' : `${view.size - 1} people`
-                          } you want to play.`
-                        : 'Anybody signed in can join with this.'}
+                        ? 'Private. Send it to whoever you want to play.'
+                        : 'Public: it is on the list too, so anybody signed in can join.'}
                 </RoomNote>
 
                 <div className={`${MONO_CAP} mt-4`}>
@@ -143,29 +158,12 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                             }
                         />
                     ))}
-                    {/* The empty seats are drawn rather than left to arithmetic: "3 of 8"
-                        is a count, and four grey rows is how long the wait looks. */}
-                    {Array.from({ length: Math.max(0, view.size - view.members.length) }).map(
-                        (_, i) => (
-                            <li
-                                key={`empty-${i}`}
-                                className="flex items-center gap-3 border-b border-hair py-2.5 last:border-b-0"
-                            >
-                                <span className="flex-1 text-[14px] font-semibold text-dim">
-                                    Empty seat
-                                </span>
-                            </li>
-                        ),
-                    )}
                 </ul>
 
                 {smaller.length > 0 && (
                     <>
                         <div className={`${MONO_CAP} mt-4`}>Not going to fill?</div>
-                        <RoomNote>
-                            Play it smaller. Everyone here keeps their seat and the bracket
-                            shrinks with the room.
-                        </RoomNote>
+                        <RoomNote>Play it smaller. Everyone here keeps their seat.</RoomNote>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {smaller.map((n) => (
                                 <button
@@ -191,13 +189,16 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                         : `Roll random squads and pick one man from each, ${view.rerolls} re-roll${
                               view.rerolls === 1 ? '' : 's'
                           } each, ${view.pickSeconds} seconds a pick.`}{' '}
+                    {roundsFor(view.size) > 1
+                        ? `Then ${roundsFor(view.size)} knockout rounds.`
+                        : 'Then one match.'}{' '}
                     No boosts, no perks and no chemistry: eleven players against eleven.
                 </RoomNote>
                 {!view.showRatings && (
                     <RoomNote>
                         <span className="mt-1.5 block font-semibold text-amber-ink">
-                            Ratings are hidden in this room. You pick on the name and the year;
-                            the numbers come back at the whistle.
+                            Ratings are hidden. Pick on the name and the year; the numbers come
+                            back at the whistle.
                         </span>
                     </RoomNote>
                 )}
@@ -212,19 +213,15 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                         }}
                     >
                         {full
-                            ? `Start the draft${
-                                  roundsFor(view.size) > 1 ? ` (${roundsFor(view.size)} rounds)` : ''
-                              }`
+                            ? 'Start the draft'
                             : `Waiting for ${view.size - view.members.length} more`}
                     </button>
                 ) : (
-                    <RoomNote>
-                        <span className="mt-4 block">
-                            {full
-                                ? 'Everyone is here. The host starts it.'
-                                : 'Waiting for the room to fill.'}
-                        </span>
-                    </RoomNote>
+                    full && (
+                        <RoomNote>
+                            <span className="mt-4 block">The host starts it.</span>
+                        </RoomNote>
+                    )
                 )}
             </div>
         </div>
