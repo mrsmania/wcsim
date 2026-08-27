@@ -1129,6 +1129,18 @@
     something to retry. The checks hold that list against the refusals the server can
     actually send, so a new one without a sentence fails before it ships. <b>A page that
     cannot repeat what the server told it makes every server-side problem invisible.</b></p>
+    <p><strong>Then it failed on the server, and the deploy checks could not have caught
+    it.</strong> Opening a room returned a server-side error. The three checks the deployment
+    runbook uses all pass without ever writing to the database - so the deploy was called
+    verified and <b>the first database write this feature ever made was made by a player in a
+    browser</b>. Two things came out of it. The server now names what went wrong in its reply
+    (the error class and which column or constraint, never the raw message, which can carry
+    private values), so the same problem is visible from the page next time instead of only
+    in a container log. And the deploy check now creates a real room and deletes it again,
+    because <b>a version endpoint answering is not a working server</b>. The code and the
+    database schema were also cleared as suspects properly rather than by reading: all
+    seventeen migrations were applied to a real database here and the whole sequence replayed
+    through the real server code under the real restricted account, and every step passed.</p>
     <p><strong>One thing to know before touching it.</strong> A private room is invisible
     until you take a seat: asking about one you are not in is answered with "no such room"
     rather than "not allowed", so a code cannot be fished for. That means arriving with a

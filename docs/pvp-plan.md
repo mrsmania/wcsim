@@ -550,6 +550,21 @@ fix if this is ever worth closing.
 
 ### Found while building the first playable room (wave 5)
 
+- **A VERSION ENDPOINT ANSWERING IS NOT A WORKING REFEREE, and the deploy runbook's
+  verification could not tell the difference.** Its three checks are `/referee/version` (a
+  bundled constant) and two 401s (refused before Postgres is touched), so a deploy passed
+  all three and the FIRST DATABASE WRITE THIS FEATURE EVER MADE was made by a player in a
+  browser - and it 500'd. `--verify` now mints a session on the box from the stack's own
+  `JWT_SECRET`, creates a real room and deletes it. Related, and worth stating because it is
+  the one drift the handshake is blind to: **the version check cannot catch an image built
+  one commit early.** It compares the protocol and the dataset hash, and a commit that
+  changes the referee's SQL without touching the squads moves neither.
+- **The code and the schema were cleared together, on a real PostgreSQL.** All seventeen
+  migrations applied in order to an empty database over a stand-in for the Supabase pieces
+  they assume; a user was created through the real signup trigger and named through the real
+  `set_display_name`; then create / join / lineup / start / read / seen were replayed through
+  the REAL `pgStore` as the real `pvp_referee` role. Every step answered 200. So a 500 in
+  production is that deployment, not this repository - which is a much smaller place to look.
 - **THE SECOND PRODUCTION FAILURE WAS A SENTENCE, NOT A BUG.** Opening a room answered
   "The referee would not open a room just now", which is the least useful thing the screen
   could have said: it is what a wrong JWT secret, a display name the referee cannot read, a

@@ -743,6 +743,19 @@ another hostname is another certificate renewal that can take versus down on its
 
 ### 5. Verify, before pointing the client at it
 
+**THE FIRST THREE CHECKS NEVER TOUCH THE DATABASE, AND THAT IS HOW A DEPLOY THIS RUNBOOK
+CALLED VERIFIED HANDED A PLAYER A 500.** `/referee/version` reads a constant the image
+bundles; both 401s are refused before Postgres is reached. So passing them proves the
+routing and the JWT and says nothing at all about whether a room can be written. `--verify`
+now mints a session on the box from the stack's own `JWT_SECRET`, creates a real room and
+deletes it again; do that, or open a room in a browser with `docker compose logs -f referee`
+running beside you. **A version endpoint answering is not a working referee.**
+
+Note what the version handshake CANNOT catch: an image built one commit early. It compares
+the protocol and the dataset hash, so a referee whose *code* is stale but whose squads are
+identical passes it and then fails on its first write. `41d8d67` removed a column from the
+room insert and `0017` dropped that column, and neither moved the dataset hash.
+
 ```
 curl -s https://HOST/referee/version                          # {"protocol":1,"dataset":"..."}
 curl -s -o /dev/null -w '%{http_code}\n' \

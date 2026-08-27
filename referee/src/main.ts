@@ -70,6 +70,32 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
+/** A database or runtime failure, named by its schema identifiers and nothing else.
+ *
+ *  Every field here is in `supabase/migrations/`, i.e. already public: an SQLSTATE, a
+ *  column, a constraint, a table, a function. It is the difference between "the referee
+ *  hit an error" and "42703 column=budget_source", which is a fix rather than a mystery. */
+function faultOf(err: unknown): string {
+  const e = err as {
+    code?: unknown;
+    column?: unknown;
+    constraint?: unknown;
+    table?: unknown;
+    routine?: unknown;
+    name?: unknown;
+  } | null;
+  const pick = (v: unknown): string | null =>
+    typeof v === 'string' && /^[A-Za-z0-9_]{1,63}$/.test(v) ? v : null;
+  const bits = [
+    pick(e?.code) ?? pick(e?.name),
+    pick(e?.column) ? `column=${pick(e?.column)}` : null,
+    pick(e?.constraint) ? `constraint=${pick(e?.constraint)}` : null,
+    pick(e?.table) ? `table=${pick(e?.table)}` : null,
+    pick(e?.routine) ? `in=${pick(e?.routine)}` : null,
+  ].filter(Boolean);
+  return bits.length ? bits.join(' ') : 'unclassified';
+}
+
 async function main(): Promise<void> {
   const env = readEnv(process.env);
   const pool = new pg.Pool({ connectionString: env.databaseUrl, max: 8 });
@@ -120,9 +146,19 @@ async function main(): Promise<void> {
         if (out.publish) nudge(out.publish);
         send(res, out.status, out.body);
       } catch (err) {
-        // Never the message: it can carry a query or a connection string. The log has it.
-        log(`500 ${req.method} ${req.url}: ${(err as Error).message}`);
-        send(res, 500, { error: 'referee-error' });
+        // NEVER THE MESSAGE: it can carry a query, a row value or a connection string. But
+        // a 500 with nothing at all in it is undiagnosable by the only person who can see
+        // it, which is what happened the first time wave 5 met a real database - the answer
+        // was in this log and nobody watching the browser could get at it. So the reply
+        // carries the SCHEMA IDENTIFIERS, which are public facts (they are in the
+        // repository) and are enough to name the fault: an SQLSTATE plus whichever of the
+        // column, constraint, table and function the driver attached.
+        //
+        // Deliberately NOT `err.detail`: Postgres puts the offending row's values in there
+        // ("Key (code)=(RM0001) already exists"), which is the one part of a database error
+        // that is nobody else's business.
+        log(`500 ${req.method} ${req.url}: ${faultOf(err)} ${(err as Error).message}`);
+        send(res, 500, { error: 'referee-error', detail: faultOf(err) });
       }
     })();
   });

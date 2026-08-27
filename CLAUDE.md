@@ -2683,6 +2683,21 @@ six-character code play a whole game: lobby, draft, match, result. The plan is
   means arriving with a code and being told there is no room is the NORMAL first step, and
   the answer to it is a Join button. Do not "fix" that 404.
 
+**A 500 FROM THE REFEREE NAMES ITS FAULT, and stops short of its message.** The message can
+carry a query, a row value or a connection string and stays in the log; the reply carries the
+SQLSTATE plus whichever of the column, constraint, table and function the driver attached -
+all of them schema identifiers that are already public in `supabase/migrations/`. A 500 with
+nothing in it is undiagnosable by the only person who can see it, which is exactly what
+happened the first time wave 5 met the real database. **Never `err.detail`**: Postgres puts
+the offending row's values there.
+
+**AND A VERSION ENDPOINT ANSWERING IS NOT A WORKING REFEREE.** `scripts/deploy-referee.sh
+--verify` used to check `/referee/version` and two 401s, none of which touches Postgres, so
+a deploy passed and the first database write the feature ever made was made by a player. It
+now mints a session on the box from the stack's own `JWT_SECRET`, creates a real room and
+deletes it. The handshake is also blind to one drift by construction: an image built a commit
+early whose squads are unchanged passes it and fails on its first write.
+
 **A REFUSAL IS ALWAYS SAID IN THE REFEREE'S OWN WORDS** (`components/versus/refereeMessage.ts`).
 The referee names every refusal and, for the ones a deployment gets wrong, sends a fault
 with it - `bad-signature`, `wrong-audience`, `expired` - and its own header says why: those

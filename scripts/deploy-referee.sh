@@ -307,6 +307,64 @@ stage_verify() {
     warn "could not read ANON_KEY from the stack .env - do this curl by hand"
   fi
 
+  say "4. MAKE A REAL ROOM - the first thing here that touches the database"
+  # THE CHECK THIS SCRIPT WAS MISSING, and its absence is why wave 5's first player got a
+  # 500 from a deploy this script had called verified. Steps 1 to 3 are all database-free:
+  # `/version` reads a bundled constant, and both 401s are refused before Postgres is
+  # touched. So "verified" meant "the routing and the auth work" and the very first INSERT
+  # was made by a player in a browser.
+  #
+  # A session token is minted ON THE BOX from the stack's own JWT_SECRET, for a real
+  # profile id, because the referee correctly refuses everything else - including the anon
+  # key, which is what step 3 proves. The room is deleted afterwards.
+  local secret profile
+  secret=$(on "grep -E '^JWT_SECRET=' '$STACK/.env' | head -1 | cut -d= -f2-" | tr -d '\r')
+  profile=$(on "docker compose -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -tAc \"select id from profiles order by created_at limit 1\"" 2>/dev/null | tr -d '\r' | head -1)
+  if [ -z "$secret" ] || [ -z "$profile" ]; then
+    warn "could not mint a test session (JWT_SECRET or a profile id was unreadable), so the
+   database side is STILL unverified. Do not call this deploy done: open a room in the
+   browser and watch 'docker compose logs -f referee' while you do."
+  else
+    ok "minting a session for profile $profile"
+    # HS256 by hand, in the shell, so nothing has to be installed on the NAS.
+    local token
+    token=$(on "python3 - <<'PYEOF'
+import base64, hashlib, hmac, json, time
+def b64(b): return base64.urlsafe_b64encode(b).rstrip(b'=').decode()
+h = b64(json.dumps({'alg':'HS256','typ':'JWT'},separators=(',',':')).encode())
+p = b64(json.dumps({'role':'authenticated','sub':'$profile','exp':int(time.time())+300},separators=(',',':')).encode())
+sig = b64(hmac.new('''$secret'''.encode(), f'{h}.{p}'.encode(), hashlib.sha256).digest())
+print(f'{h}.{p}.{sig}')
+PYEOF" | tr -d '\r' | tail -1)
+    local made
+    made=$(curl -s --ssl-no-revoke --max-time 20 -X POST \
+             -H "Authorization: Bearer $token" -H 'content-type: application/json' \
+             -d '{"visibility":"private","size":2,"method":"budget","budget":110,"years":[],"pickSeconds":20}' \
+             "$host/referee/v1/rooms" || true)
+    printf '   %s\n' "${made:-<no answer>}"
+    case "$made" in
+      *'"code"'*'"status":"lobby"'*)
+        local made_code; made_code=$(printf '%s' "$made" | sed -n 's/.*"code":"\([A-Z0-9]*\)".*/\1/p')
+        ok "a room was created and read back: $made_code"
+        on "docker compose -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -qc \"delete from pvp_rooms where code = '$made_code'\"" >/dev/null 2>&1 \
+          && ok "test room deleted" || warn "could not delete the test room $made_code - do it in Studio" ;;
+      *no-display-name*)
+        warn "THE REFEREE CANNOT READ profiles.display_name. That is a POLICY, not a grant:
+   0016 grants it three columns and adds no policy, and row-level security denies by
+   default. 0017's profiles_referee_read is the fix - check it is applied." ;;
+      *referee-error*)
+        warn "THE REFEREE THREW. Its reply now names the SQLSTATE; the container log has the
+   rest: 'docker compose logs --tail=50 referee'. 42501 is a missing grant, 42703 a column
+   the image expects and the schema has not got (rebuild from HEAD), 23502 a not-null with
+   no default, 28P01 a wrong pvp_referee password." ;;
+      *unauthorized*)
+        warn "the referee refused a token signed with the stack's own JWT_SECRET, so the
+   container was given a different one. Check REFEREE_DATABASE_URL's neighbour
+   SUPABASE_JWT_SECRET in the compose service." ;;
+      *) warn "unexpected answer - the database side is not verified" ;;
+    esac
+  fi
+
   say "Still yours to do, neither has a CLI"
   printf '   %s\n' \
     "a. DSM -> Control Panel -> Login Portal -> Advanced -> Reverse Proxy -> your rule" \
