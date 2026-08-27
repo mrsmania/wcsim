@@ -21,6 +21,7 @@ import {
   PICK_GRACE_MS,
   PICK_SECONDS,
   ROOM_IDLE_MS,
+  SEEN_GONE_MS,
   roomClosed,
   createRoom,
   deadlineOf,
@@ -42,6 +43,12 @@ import {
 const BUDGET: RoomRules = { method: 'budget', budget: 110, years: [] };
 const ROLL: RoomRules = { method: 'roll', budget: 0, years: [] };
 const T0 = 1_000_000;
+
+/** "Everybody stopped pinging a while ago", expressed as the rule plus a margin rather than
+ *  as a number. A fixture that hardcodes a duration is a fixture that fails when the rule it
+ *  is testing changes, which is backwards: three of these were a flat two minutes and went
+ *  red when the lobby window widened from ninety seconds to five minutes. */
+const GONE = T0 + SEEN_GONE_MS + 60_000;
 
 function roomOf(size: RoomSize, rules: RoomRules, pickSeconds: PickSeconds = 20): PvpRoom {
   let room = createRoom({
@@ -645,8 +652,11 @@ export function pvpRoomChecks(): void {
   // stateless sweeper that runs the pick clock, so nothing is held in memory anywhere.
   {
     const lobby = roomOf(4, BUDGET);
-    // Nobody has pinged for two minutes, which is past SEEN_GONE_MS for all four.
-    const gone = tickRoom(lobby, T0 + 120_000);
+    // Nobody has pinged since kickoff, and this is a minute past the rule for all four.
+    // DERIVED, not a literal: these fixtures were written as a flat two minutes, which was
+    // comfortably past a ninety-second rule and inside the five-minute one it became, so
+    // widening the window turned three checks red for no reason but the number.
+    const gone = tickRoom(lobby, GONE);
     check(
       'room: a lobby everybody has walked away from CLOSES, and closing is "ended with nobody having won"',
       () =>
@@ -664,11 +674,39 @@ export function pvpRoomChecks(): void {
   }
 
   {
+    // A PHONE SCREEN LOCK IS NOT LEAVING, and this fixture IS the reported bug.
+    //
+    // 2026-08-27: a host opened a room of four on a phone, joined it from a laptop as the
+    // second player, and the phone slept while he did. The liveness rule then took the seat
+    // in the room he had opened himself - and being host is no protection, because the host
+    // is promoted away rather than spared. A locked phone runs no JavaScript, so the ping
+    // stops, and the LOBBY is the one phase whose entire activity is waiting for other
+    // people to arrive: the rule was at its most aggressive in the situation it was least
+    // entitled to judge.
+    //
+    // Two minutes is a screen lock plus a glance away. The window was ninety seconds, so
+    // this check goes red against the old value.
+    const lobby = roomOf(4, BUDGET);
+    const after = tickRoom(lobby, T0 + 120_000);
+    check(
+      'room: a lobby seat survives two minutes of silence, because a sleeping phone is not a closed tab',
+      () =>
+        after.members.length === 4 &&
+        after.status === 'lobby' &&
+        after.hostId === 'u0' &&
+        // Vacuity: the rule still bites eventually. Without this the check would pass just
+        // as well if liveness had been deleted altogether.
+        tickRoom(lobby, GONE).status === 'ended',
+      () => `${after.members.length} members, status ${after.status}, host ${after.hostId}`,
+    );
+  }
+
+  {
     // The host goes and the room does NOT die with them (P31): the next seat is promoted.
     // Their three friends are still here, which is the whole reason to promote rather than
     // close.
     const lobby = roomOf(4, BUDGET);
-    const late = T0 + 120_000;
+    const late = GONE;
     const stillHere: PvpRoom = {
       ...lobby,
       members: lobby.members.map((m) =>
@@ -694,7 +732,7 @@ export function pvpRoomChecks(): void {
     // number: `pvp_members` has a unique index on (room, seat), so counting members would
     // hand out a seat somebody else still holds. Seats decide nothing (P47).
     const lobby = roomOf(4, BUDGET);
-    const late = T0 + 120_000;
+    const late = GONE;
     // u1 (seat 1) goes; the other three are here.
     const one: PvpRoom = {
       ...lobby,
@@ -808,13 +846,13 @@ export function pvpRoomChecks(): void {
         ...drafting,
         members: drafting.members.map((m) => ({ ...m, lastSeen: T0 })),
       };
-      const after = tickRoom(silent, T0 + 120_000);
+      const after = tickRoom(silent, GONE);
       check(
         'room: a player who goes silent mid-DRAFT keeps their seat, where the same silence in a lobby loses it',
         () =>
           after.members.length === 4 &&
           // Vacuity: the identical silence in a lobby does drop them.
-          tickRoom({ ...silent, status: 'lobby' }, T0 + 120_000).status === 'ended',
+          tickRoom({ ...silent, status: 'lobby' }, GONE).status === 'ended',
         () => `${after.members.length} members, status ${after.status}`,
       );
     });

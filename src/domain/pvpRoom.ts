@@ -87,7 +87,29 @@ const DEFAULT_REROLLS = 3;
  * All three are evaluated by the same stateless sweeper that runs the pick clock (P32), so
  * there is still nothing held in memory anywhere.
  */
-export const SEEN_GONE_MS = 90_000;
+
+/**
+ * How long a LOBBY seat survives silence. Five minutes, and it was ninety seconds until
+ * 2026-08-27, when the first person to test a room of four on a phone was thrown out of the
+ * room he had opened himself.
+ *
+ * THE MISTAKE WAS CONFLATING "THIS TAB IS GONE" WITH "THIS PERSON IS NOT LOOKING", and it
+ * lands hardest exactly where it does most damage. A phone locks its screen after thirty
+ * seconds or a minute, and a locked phone runs no JavaScript at all, so the ping stops -
+ * while the LOBBY is the one phase whose entire activity is waiting for other people to
+ * arrive. So the rule was at its most aggressive in the situation it was least entitled to
+ * judge, and being the host was no protection: the host is promoted away, not spared.
+ *
+ * Five minutes is longer than any screen lock plus a glance away, and still three times
+ * faster than `LOBBY_IDLE_MS`, which is the rule that actually keeps the public list clean:
+ * a lobby where nothing HAPPENS closes at fifteen minutes whoever is still watching it. The
+ * cost of the change is one stale seat held for a few minutes longer on a public row, which
+ * is a nuisance; the cost of ninety seconds was a host losing his own room, which is not.
+ *
+ * The other half of the fix is in the client and matters more: it pings the moment the tab
+ * becomes visible again, so waking a phone inside this window never reaches it at all.
+ */
+export const SEEN_GONE_MS = 5 * 60_000;
 /** A lobby nobody has touched for a quarter of an hour is not going to fill. */
 export const LOBBY_IDLE_MS = 15 * 60_000;
 /** And any room at all, in any phase, is over after half an hour of nothing. */

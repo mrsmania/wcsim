@@ -2718,14 +2718,14 @@ worse than none, and `npm run checks` now asserts every stage detects docker bef
 **LEAVING A ROOM HAS TO TELL THE REFEREE, and for a while it did not** (reported and fixed
 2026-08-27). The Leave button cleared the local pointer and navigated, so the seat stayed
 taken and P39's one-room-at-a-time then refused the player's next room with
-`already-in-a-room` until the liveness sweep noticed ninety seconds later. P31's "leaving has
+`already-in-a-room` until the liveness sweep noticed (ninety seconds, the window at the time). P31's "leaving has
 to be OBSERVED rather than announced" is about a closing tab and does not extend to a button
 press: **observing what cannot be announced is not a reason to ignore what can.**
 `leaveRoom` works in a LOBBY only - past the start your XI is in a bracket other people are
 playing (P15, P24) - and it shares `withoutMembers` with the sweep, because a lobby that
 promotes a host one way and closes the other is two rules wearing one name. The navigation
 does not wait for the answer: a player who pressed Leave is leaving, and a lost request costs
-the ninety seconds it used to cost every time. The refusal also needed an ANSWER rather than
+no more than the liveness window, which is what it used to cost every time. The refusal also needed an ANSWER rather than
 just a sentence, since it stays reachable legitimately (a started room you walked away from):
 the referee already sent the room's code as its `detail`, so `refereeMessage` names it and
 `RefereeProblem` takes an `action` for the "Go to room X" button.
@@ -2822,8 +2822,8 @@ read `pvp_rooms.touched_at` and `pvp_members.last_seen`; the two `select`s in
 `referee/src/pgStore.ts` named neither, and `pg` hands over `undefined` for a column it was
 not asked for. **The two halves then failed in opposite directions**, which is what made it
 so hard to see. On the READ nothing threw and every P31 lifecycle rule quietly stopped
-working, because `NaN > SEEN_GONE_MS` is false - so the ninety-second drop, the fifteen-
-minute lobby close and the thirty-minute room close were all dead. On the WRITE `atOf(NaN)`
+working, because `NaN > SEEN_GONE_MS` is false - so the liveness drop, the fifteen-minute
+lobby close and the thirty-minute room close were all dead. On the WRITE `atOf(NaN)`
 threw from inside `save`, so **every command that mutates an existing room rolled back**: a
 room could be opened and then nothing could be done to it, and the sweeper logged one room
 code once a second for ever. Three rules came out of it and all three are checked:
@@ -2910,10 +2910,26 @@ near the end of this file, which is where the whole rule lives now.
 **A ROOM NOBODY IS IN CLOSES ITSELF, and the sweeper that does it is the pick clock's**
 (P31). Closing a tab fires no reliable event, so leaving is OBSERVED rather than announced:
 every client pings while it holds a room, `RoomMember.lastSeen` is what the ping writes, and
-four numbers in `domain/pvpRoom.ts` decide the rest. **A member unseen for 90 seconds is
+four numbers in `domain/pvpRoom.ts` decide the rest. **A member unseen for five minutes is
 dropped from a LOBBY and never from anything later** - past the start an absent player's XI
 plays on without them, because the alternative is one person voiding a tournament seven
-others are in. A lobby that loses its HOST promotes the lowest remaining seat rather than
+others are in.
+
+**IT WAS NINETY SECONDS AND THAT WAS WRONG, reported the first time anybody tested a room
+from a phone** (2026-08-27). The host opened a room of four on a phone, joined it from a
+laptop as the second player, and the phone slept while he did: the rule took his seat in the
+room he had opened, and being host is no protection because the host is **promoted away**
+rather than spared. **The mistake was conflating "this tab is gone" with "this person is not
+looking"**, and it lands hardest exactly where it does most damage - a phone locks after
+thirty seconds, a locked phone runs no JavaScript so the ping simply stops, and the lobby is
+the one phase whose entire activity is waiting for other people to arrive. Five minutes is
+longer than a screen lock plus a glance away and still three times faster than
+`LOBBY_IDLE_MS`, which is the rule that actually keeps the list clean. **The other half of the
+fix matters more and is in the client**: `useVersusRoom` pings on `visibilitychange`, so a
+phone woken inside the window never reaches it. And a dropped player is now TOLD - holding
+the room pointer and being answered "no such room" means the seat went, which used to render
+as "a private room is invisible until you are in it", of a room they had opened themselves.
+Changing the number needs the referee redeployed, since the sweeper is what reads it. A lobby that loses its HOST promotes the lowest remaining seat rather than
 dying. A lobby untouched for **15 minutes** closes and any room at all untouched for **30**
 closes, and the fifteen-minute rule deliberately ignores the pings: `touched_at` moves on
 every join, ready and resize, so fifteen minutes of nothing is abandoned however many tabs

@@ -49,7 +49,7 @@ import {
 const POLL_BUSY_MS = 2000;
 const POLL_IDLE_MS = 5000;
 
-/** Liveness (P31): a member unseen for ninety seconds is dropped from a lobby. */
+/** Liveness (P31): a member unseen for `SEEN_GONE_MS` is dropped from a lobby. */
 const SEEN_MS = 25_000;
 
 /** The floor on the lock lead. Even on a perfect link the last tenth of a second is not
@@ -203,12 +203,29 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     }, [enabled, code, refresh]);
 
     // Liveness, while the room is held.
+    //
+    // AND ON WAKE, WHICH IS THE HALF THAT WAS MISSING. A locked phone runs no JavaScript,
+    // so this interval simply stops - and the lobby is the one phase whose whole activity
+    // is waiting, which is to say putting the phone down. Without a ping the moment the tab
+    // comes back, the first thing a returning player learns is that they have been dropped
+    // from the room they opened. Reported 2026-08-27 by exactly that, on a phone that slept
+    // while a second player joined from a laptop.
+    //
+    // The listener is on `visibilitychange` rather than `focus` because a phone waking to
+    // an already-focused tab fires the first and not always the second.
     useEffect(() => {
         if (!enabled || !code) return;
         const ping = () => void seen(code).catch(() => undefined);
+        const wake = () => {
+            if (document.visibilityState === 'visible') ping();
+        };
         ping();
         const t = window.setInterval(ping, SEEN_MS);
-        return () => window.clearInterval(t);
+        document.addEventListener('visibilitychange', wake);
+        return () => {
+            window.clearInterval(t);
+            document.removeEventListener('visibilitychange', wake);
+        };
     }, [enabled, code]);
 
     // The countdown. Recomputed from the base on every tick, and again the moment the tab

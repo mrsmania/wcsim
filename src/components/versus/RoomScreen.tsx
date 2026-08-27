@@ -16,7 +16,7 @@ import {
     xiFrom,
 } from '../../domain/pvpView';
 import { roomClosed } from '../../domain/pvpRoom';
-import { holdVersusRoom } from '../../nav/versusRoom';
+import { holdVersusRoom, useHeldVersusRoom } from '../../nav/versusRoom';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
 import RoomBracket, { currentRoundLabel, shortName } from './RoomBracket';
@@ -58,6 +58,7 @@ export default function RoomScreen({ code }: { code: string }) {
     const navigate = useNavigate();
     const room = useVersusRoom(code, true);
     const view = room.view;
+    const held = useHeldVersusRoom();
     const [leaving, setLeaving] = useState(false);
 
     /**
@@ -108,11 +109,28 @@ export default function RoomScreen({ code }: { code: string }) {
         // arriving with a code and being told there is no room is the NORMAL first step,
         // and the answer to it is to join - which is what the code is for.
         const missing = room.error?.code === 'no-such-room';
+        // BUT THE SAME ANSWER MEANS SOMETHING ELSE ENTIRELY IF YOU WERE JUST IN IT, and
+        // saying the first thing in that case is a lie the player can catch: the reported
+        // case was a host whose phone slept, who lost the seat to the liveness rule, and
+        // who was then told that a private room is invisible until you are in it - of the
+        // room he had opened himself. The pointer tells the two apart at no cost: it is
+        // written on every answer the room gives and cleared only by pressing Leave, so
+        // holding this code and being told there is no room means the seat went.
+        const wasIn = missing && held?.code === code;
         return (
             <>
-                <StageHeader eyebrow="Versus" title={missing ? 'Take your seat' : 'Finding the room'} />
+                <StageHeader
+                    eyebrow="Versus"
+                    title={wasIn ? 'Your seat went' : missing ? 'Take your seat' : 'Finding the room'}
+                />
                 <div className={`${CARD_FLAT} p-5`}>
-                    {missing ? (
+                    {wasIn ? (
+                        <RoomNote>
+                            The room stopped hearing from this device, so it gave your seat
+                            up. That happens if a phone sleeps or a tab is closed for a few
+                            minutes. If the room is still waiting, you can take a seat again.
+                        </RoomNote>
+                    ) : missing ? (
                         <RoomNote>
                             A private room is invisible until you are in it, so this is what
                             arriving with a code looks like. Take a seat.

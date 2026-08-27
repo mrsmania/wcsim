@@ -119,7 +119,7 @@ in rather than a missing feature.
 | P29 | The room's build state | **A room gets its OWN build state, and this is a requirement rather than a preference.** The app holds one reducer, and every path that starts a build calls `saveRun(null)`, so a room entering through the same door would **silently delete a live Cup Run** and overwrite a half-built solo XI. Worse, while signed in the whole game state is written to the server on **every** state change, a selection tap included, and one failed write raises the blocking unreachable screen (D9) full-screen **while the pick clock keeps running**. So the build has to become an instantiable unit that a room can hold with persistence and the run-clearing side effects off. This is a refactor of the app's most load-bearing composition root and it gets its own wave |
 | P32 | The referee holds no timers | **A deadline is a stored timestamp**, evaluated when a pick arrives and by **one stateless sweeper** every second or two. The earlier draft said the referee holds a tick loop and per-player timers; nothing requires that, and a stateless sweeper is correct across a restart by construction (there is no state to lose), correct if two instances ever run at once (`for update skip locked`), and has no per-room memory |
 | P45 | Surviving a referee outage | **On start, the referee reads its own heartbeat and reopens every window with the time it had LEFT**, which is `now - (heartbeat - openedAt)`. *Sharpened 2026-08-26 while building wave 1: "shift every window forward by the outage" is not the same rule and is wrong for a long outage - a 45-second restart on a 20-second clock leaves every window still expired, so the very first sweep auto-picks for everybody anyway. What is owed is the REMAINDER, not the gap.* The elapsed time is clamped into one window, so a window that had already run out before the crash comes back expired (it is not resurrected as thinking time) and repeated restarts preserve the remainder rather than accumulating it. Without this, a container restart of thirty seconds means every open window is already past its deadline and the referee auto-picks for every player in every drafting room the instant it returns, possibly cascading through a whole XI. "Deadlines recovered from the database" restores the data and not the fairness, and a done-when written around recovery would pass while every player lost their draft |
-| P31 | Room lifecycle | **A heartbeat and a sweeper, with numbers.** Closing a tab fires no reliable event, so leaving has to be observed rather than announced: `pvp_members.last_seen`, and a member unseen for 90 seconds is dropped from a lobby. A lobby whose host is gone promotes the next seat or closes; a lobby untouched for 15 minutes closes; a drafting room is hard-bounded at eleven windows plus slack and force-completed past it; any room untouched for 30 minutes closes. Closed rooms and their picks and deals are deleted after 24 hours; matches and records are kept. Without this a public room whose host closed their tab sits in the lobby at 3 of 8 forever, and a lobby of dead rooms is indistinguishable from a lobby nobody uses |
+| P31 | Room lifecycle | **A heartbeat and a sweeper, with numbers.** Closing a tab fires no reliable event, so leaving has to be observed rather than announced: `pvp_members.last_seen`, and a member unseen for **five minutes** is dropped from a lobby. *Revised 2026-08-27 from ninety seconds, the first time a room was tested from a phone: a locked phone runs no JavaScript, so the ping stops, and the lobby is the one phase whose whole activity is waiting - so the rule took the host's seat in the room he had opened. Conflating "this tab is gone" with "this person is not looking" is the mistake; five minutes is longer than a screen lock plus a glance away and still three times faster than the fifteen-minute idle close, which is what actually keeps the list clean. The client also pings on `visibilitychange` now, so a phone woken inside the window never reaches it.* A lobby whose host is gone promotes the next seat or closes; a lobby untouched for 15 minutes closes; a drafting room is hard-bounded at eleven windows plus slack and force-completed past it; any room untouched for 30 minutes closes. Closed rooms and their picks and deals are deleted after 24 hours; matches and records are kept. Without this a public room whose host closed their tab sits in the lobby at 3 of 8 forever, and a lobby of dead rooms is indistinguishable from a lobby nobody uses |
 | P33 | Broadcast, not change-capture | **The referee broadcasts room state; the client does not subscribe to table changes.** `postgres_changes` needs logical decoding, a publication and a **replication slot**, and a slot nothing drains pins write-ahead log forever: if the Realtime container is stopped or killed, the disk fills, Postgres refuses writes, and **every signed-in player gets the blocking unreachable screen for the single-player game** because of a versus feature nobody was using. Set `max_slot_wal_keep_size` regardless. Broadcast also removes a whole authorization surface: no per-row policy is evaluated over a change stream, so the column leak in P34 cannot happen by accident. The cost is that the referee must remember to publish after every write |
 | P34 | Referee authorization | **Verify `role = authenticated`, a present `sub`, and a valid `exp` and `aud`, not merely a valid signature.** In self-hosted Supabase the anon key **is itself a JWT signed with the same secret** and it ships in the browser bundle by design, so a referee that only checks the signature accepts it from any visitor with no user id at all. A test that a request bearing the anon key is refused belongs in wave 1. Separately the referee gets **its own Postgres role**, holding no privilege on `career`, `album_stickers`, `settings`, `game_state`, `active_run` or `run_results`, and `select (id, display_name, name_key)` on `profiles`. *Amended 2026-08-26 by the apply (migration 0016): it does NOT own the pvp tables. Ownership was the first design and could not be applied - see the wave 2 notes in section 11 - so it has one `for all` policy per pvp table instead, which is the more auditable half of the trade.* It is the only component in the whole design that accepts un-RLS'd input from the internet, so it must not also be the one that can read every account |
 | P35 | Version handshake | **`GET /referee/version` returns a protocol number and a dataset hash**, checked when the Versus screen mounts; a mismatch shows "Versus is updating" rather than letting anyone into a room that will break. The client deploys on push to `main` and the referee is rebuilt by hand, so they are never in lockstep, and there are **two** drifts: the protocol, and the dataset. The referee bundles the squad data to validate picks and deal squads, and the dataset moved three times in one audit and gained five tournaments on consecutive days. Deploy the referee before pushing the client, always, the same rule migrations already follow |
@@ -444,6 +444,45 @@ run on purpose") therefore does not hold for seven of the eleven slots. Drawing 
 pick from **cheap** players rather than uniformly would make it bad in every slot, and is the
 fix if this is ever worth closing.
 
+### Found by PLAYING it: a sleeping phone is not a closed tab (2026-08-27)
+
+The first time a room was tested from a phone, the host was thrown out of the room he had
+opened. He made a room of four on the phone, joined it from a laptop as the second player,
+and the phone slept while he did that; ninety seconds later the liveness rule took his seat.
+
+- **The rule conflated "this tab is gone" with "this person is not looking".** Closing a tab
+  fires no reliable event, which is true and is why P31 observes rather than listens - but a
+  phone locks its screen after thirty seconds, a locked phone runs no JavaScript at all, so
+  the ping stops for a reason that has nothing to do with leaving.
+- **And it applied only to lobbies, which is the worst possible place for it.** The lobby is
+  the one phase whose entire activity is waiting for other people to arrive, which is to say
+  putting the phone down. The rule was at its most aggressive in the situation it was least
+  entitled to judge.
+- **Being the host was no protection**, because P31 promotes the host away rather than
+  sparing them - correct in itself, and it meant the person who opened the room was as
+  droppable as anybody.
+- **The window is five minutes now**: longer than a screen lock plus a glance away, and still
+  three times faster than `LOBBY_IDLE_MS`, which is the rule that actually keeps the public
+  list clean (a lobby where nothing HAPPENS closes at fifteen minutes whoever is watching).
+  The cost is one stale seat held a few minutes longer on a public row, against a host losing
+  his own room.
+- **The half that matters more is in the client**: `useVersusRoom` pings on
+  `visibilitychange`, so a phone woken inside the window never reaches it. `visibilitychange`
+  rather than `focus`, because a phone waking to an already-focused tab fires the first and
+  not always the second.
+- **And the screen was lying about it.** A dropped player gets "no such room", which is the
+  same answer a private room gives somebody who has never joined - so they were told that a
+  private room is invisible until you are in it, of a room they had opened. The per-tab room
+  pointer tells the two apart at no cost, since it is written on every answer and cleared
+  only by pressing Leave.
+- **The check is the reported case, not the constant.** Two minutes of silence must leave a
+  lobby of four intact; against ninety seconds the room closes instead. Three existing
+  fixtures had hardcoded two minutes as "gone" and went red on the change, which is the
+  fixture being wrong rather than the rule: they derive from `SEEN_GONE_MS` now.
+
+**It needs the referee redeployed**, because the sweeper is what reads the number. The two
+client halves ship with the site.
+
 ### Deferred with a reason, not dropped: P41's Skip and P42's move
 
 Both are locked decisions in section 2 and neither is built, so they are stated here rather
@@ -596,7 +635,7 @@ right, and it is worth writing up because the fault is one the plan invited.
   `withoutMembers` with the sweep, because a lobby that promotes a host one way and closes the
   other is two rules wearing one name.
 - **The navigation does not wait for the answer.** A player who pressed Leave is leaving, and
-  the worst a lost request costs is the ninety seconds it used to cost every time - which is
+  the worst a lost request costs is the liveness window it used to cost every time - which is
   the floor, not the design.
 - **The refusal needed an answer, not just a sentence.** "You are already in a room" with no
   route to that room is a dead end, and it stays reachable for legitimate reasons (a room you
@@ -650,7 +689,7 @@ is unnecessary or very obvious, and what is the button *Change my shape* for?"
   `pg` hands over `undefined` for a column it was not asked for.
 - **The two halves failed in OPPOSITE directions, which is why it was invisible.** On the
   read, `msOf(undefined)` was `NaN` and nothing threw: `NaN > SEEN_GONE_MS` is false, so
-  P31's entire lifecycle - the ninety-second drop, the fifteen-minute lobby close, the
+  P31's entire lifecycle - the liveness drop, the fifteen-minute lobby close, the
   thirty-minute room close - was dead and said nothing about it. On the write, `atOf(NaN)`
   throws `RangeError: Invalid time value` from inside `save`, so **every mutation of an
   existing room rolled back**. A room could still be created (the object is built in memory
@@ -712,7 +751,7 @@ is unnecessary or very obvious, and what is the button *Change my shape* for?"
   is present and nobody has done anything for a quarter of an hour closes, and that is P31 as
   written: `touched_at` moves on every join, every ready and every size change, so fifteen
   minutes of literally nothing is abandoned however many tabs are still open. The liveness
-  rule (ninety seconds) is what handles people leaving; this one is what handles a tab left
+  rule (five minutes) is what handles people leaving; this one is what handles a tab left
   open overnight.
 - **A `Math.max(0, ...)` clamp was deleted because a mutation test proved it did nothing.**
   `agoLine` compares two different clocks (a server stamp against the browser's reading), so

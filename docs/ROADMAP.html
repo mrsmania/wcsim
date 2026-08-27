@@ -400,6 +400,21 @@
     "How to know it worked"), which needs two accounts and cannot be done from a shell. It
     took three attempts and each one is written up here, because two of the three were the
     verification lying rather than the deploy failing.</p>
+    <p><strong>ONE MORE DEPLOY IS NEEDED, and it is a reported bug rather than a wave.</strong>
+    The first time a room was tested from a phone, the host was thrown out of the room he had
+    opened: he made a room of four on the phone, joined it from a laptop as the second player,
+    and the phone slept while he did, and ninety seconds later the rule that clears abandoned
+    seats took his. A locked phone runs no JavaScript, so the check-in stops for a reason that
+    has nothing to do with leaving - and the lobby is the one part of a room whose whole
+    activity is waiting for people to arrive, which is to say putting the phone down. Being
+    the host was no protection, because the host is handed to the next seat rather than
+    spared. <b>The window is five minutes now</b>, the app checks in the instant a tab comes
+    back so a phone woken inside that window never reaches it at all, and a dropped player is
+    told what happened instead of being told that a private room is invisible until you are in
+    it, of a room they opened themselves. The two app-side halves ship with the site on their
+    own; <b>the five minutes needs the server rebuilt</b>, because the sweeper is what reads
+    it. So: run the three deploy stages again, then check that a phone left to sleep for two
+    or three minutes in a lobby still has its seat when you pick it up.</p>
     <p><strong>The first attempt at this deploy failed, and the fix is in the same rebuild.</strong>
     It went up cleanly and then logged <code>sweep failed</code> against one room once a
     second for ever. Two columns the room reader reads were missing from the two queries that
