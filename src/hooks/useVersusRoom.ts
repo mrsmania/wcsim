@@ -58,8 +58,14 @@ const MAX_LOCK_MS = 2500;
 
 export interface VersusRoom {
     view: RoomView | null;
-    /** The last failure, or null. Cleared by the next answer. */
+    /** The last failure of a READ, or null. Cleared by the next answer, which for a poll
+     *  running every couple of seconds means it clears itself. */
     error: RefereeError | null;
+    /** The last failure of a COMMAND - a join, a ready, a start, a pick - or null. Its own
+     *  field rather than sharing `error`, because the poll would clear that within two
+     *  seconds and a refused Start would flash and vanish. Cleared when the next command
+     *  is issued, which is the moment the player is asking again. */
+    commandError: RefereeError | null;
     /** True until the first answer arrives. */
     loading: boolean;
     /** Milliseconds left in YOUR pick window, counted locally; null when you have none. */
@@ -84,6 +90,7 @@ function busy(view: RoomView | null): boolean {
 export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     const [view, setView] = useState<RoomView | null>(null);
     const [error, setError] = useState<RefereeError | null>(null);
+    const [commandError, setCommandError] = useState<RefereeError | null>(null);
     const [loading, setLoading] = useState(true);
     // The countdown's base: the window as the server described it, and the monotonic
     // reading at the moment that description arrived.
@@ -226,10 +233,11 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
 
     const command = useCallback(
         async (run: () => Promise<RoomView>): Promise<void> => {
+            setCommandError(null);
             try {
                 accept(await timed(run));
             } catch (err) {
-                if (err instanceof RefereeError) setError(err);
+                if (err instanceof RefereeError) setCommandError(err);
                 throw err;
             }
         },
@@ -251,9 +259,18 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
             // No window means the clock already filled this slot, or the draft is over.
             // Saying so is better than sending an ordinal the referee will not recognise.
             if (ordinal === undefined) return 'no-window';
-            const answer = await timed(() => submitPick(code, ordinal, slotId, playerId));
-            accept(answer.room);
-            return answer.outcome;
+            // A pick's own refusals (late, illegal) are NOT surfaced here: the room comes
+            // back with them, the board reconciles, and the draft screen says what happened
+            // where the player is looking. Only a pick that could not be sent at all is a
+            // failure of the kind the room strip should carry.
+            try {
+                const answer = await timed(() => submitPick(code, ordinal, slotId, playerId));
+                accept(answer.room);
+                return answer.outcome;
+            } catch (err) {
+                if (err instanceof RefereeError) setCommandError(err);
+                throw err;
+            }
         },
         [code, accept, timed],
     );
@@ -262,6 +279,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     return {
         view,
         error,
+        commandError,
         loading,
         remainingMs,
         locked: remainingMs !== null && remainingMs <= lockLead,

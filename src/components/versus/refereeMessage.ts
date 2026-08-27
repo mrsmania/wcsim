@@ -1,0 +1,142 @@
+import { RefereeError } from '../../state/pvp/referee';
+
+// ---------------------------------------------------------------------------
+// Turning the referee's refusal into a sentence, and NEVER throwing its words away.
+//
+// The referee answers a refusal with its own name for it (`no-display-name`, `late`,
+// `bad-room`) and, for the ones a deployment gets wrong, a `detail` naming the fault -
+// `bad-signature`, `wrong-audience`, `expired`. Its own docstring says why: "the faults
+// are returned because they are how a deployment is debugged", since "the anon key was
+// used" and "the session expired" look identical from outside and need different fixes.
+//
+// The first version of the versus screens threw all of that away and said "the referee
+// would not open a room just now", which is the least useful sentence available: it is
+// true of a wrong JWT secret, a name the referee cannot read, a full room and a database
+// error alike. So every screen goes through here, and anything without a sentence of its
+// own still shows the referee's own words rather than a shrug.
+//
+// Pure, so `npm run checks` can hold this list against the refusals `referee/src/api.ts`
+// actually returns.
+// ---------------------------------------------------------------------------
+
+/** A sentence for the player, and the referee's own words underneath it. */
+export interface RefereeMessage {
+    /** What to say. Always populated. */
+    text: string;
+    /** The referee's own code and detail, for a bug report. Null when there is nothing to
+     *  add - a refusal whose sentence already says everything. */
+    raw: string | null;
+    /** True when this is something the OWNER has to fix rather than the player: the two
+     *  sides disagree about a secret, or the referee cannot read what it needs. */
+    deployment: boolean;
+}
+
+/** The faults the referee reports for a token it would not act on. Named here so the
+ *  three that mean "the deployment is wrong" get a different sentence from the three that
+ *  mean "sign in again". */
+const TOKEN_FAULTS: Record<string, { text: string; deployment: boolean }> = {
+    'bad-signature': {
+        text: 'This site and the versus server disagree about the sign-in secret, so the server will not accept your session. Nothing you can do from here.',
+        deployment: true,
+    },
+    'wrong-algorithm': {
+        text: 'The versus server refused the shape of your session token. Nothing you can do from here.',
+        deployment: true,
+    },
+    'wrong-audience': {
+        text: 'The versus server expects sessions from a different sign-in setup than this site uses. Nothing you can do from here.',
+        deployment: true,
+    },
+    expired: {
+        text: 'Your sign-in has expired. Reload the page and try again.',
+        deployment: false,
+    },
+    missing: { text: 'You are not signed in any more. Sign in and try again.', deployment: false },
+    malformed: { text: 'You are not signed in any more. Sign in and try again.', deployment: false },
+    'not-authenticated': {
+        text: 'The versus server did not accept your sign-in. Reload the page and try again.',
+        deployment: false,
+    },
+    'no-subject': {
+        text: 'The versus server did not accept your sign-in. Reload the page and try again.',
+        deployment: false,
+    },
+};
+
+/** Every refusal `referee/src/api.ts` can return, in the player's words. */
+const CODES: Record<string, { text: string; deployment?: boolean }> = {
+    unreachable: { text: 'Cannot reach the versus server. Versus is off until it answers; nothing else in the game is affected.' },
+    'signed-out': { text: 'You are not signed in any more. Sign in and try again.' },
+    'profile-read': { text: 'Could not read your account just now. Try again in a moment.' },
+    'name-taken': { text: 'Somebody already plays under that name.' },
+    'name-refused': { text: 'That name could not be saved.' },
+    'no-display-name': {
+        text: 'The versus server cannot see the name on your account, so it will not let you into a room. That is a server-side permission rather than anything you typed.',
+        deployment: true,
+    },
+    'already-in-a-room': { text: 'You are already in a room.' },
+    'room-full': { text: 'That room is full.' },
+    'room-started': { text: 'That room has already started.' },
+    'no-such-room': { text: 'No room with that code.' },
+    'bad-room': { text: 'The versus server would not accept those room settings.' },
+    'bad-formation': { text: 'The versus server would not accept that formation.' },
+    'bad-size': { text: 'The versus server would not accept that room size.' },
+    'bad-ordinal': { text: 'That pick arrived out of order. The board will catch up in a moment.' },
+    'unknown-player': {
+        text: 'The versus server has never heard of that player, which means it is carrying a different set of squads from this page.',
+        deployment: true,
+    },
+    'no-code-available': { text: 'The versus server could not find a free room code. Try again.' },
+    'no-such-route': {
+        text: 'The versus server does not recognise what this page asked it for, so the two are on different versions.',
+        deployment: true,
+    },
+    'referee-error': {
+        text: 'The versus server hit an error of its own. Its log says what; nothing here can.',
+        deployment: true,
+    },
+    late: { text: 'The clock beat that one.' },
+    'no-window': { text: 'That pick window has closed.' },
+    illegal: { text: 'The versus server would not take that pick.' },
+    unauthorized: { text: 'The versus server did not accept your sign-in.' },
+};
+
+/** The codes this module claims to cover. Exported for the check that holds it against
+ *  the refusals the referee actually returns. */
+export const KNOWN_CODES: readonly string[] = Object.keys(CODES);
+
+/**
+ * What to show for a failed call.
+ *
+ * `what` is the thing being attempted, so one sentence can carry it: "could not open a
+ * room" reads better than a bare code, and the code is underneath either way.
+ */
+export function refereeMessage(err: unknown, what: string): RefereeMessage {
+    if (!(err instanceof RefereeError)) {
+        return { text: `Could not ${what}.`, raw: null, deployment: false };
+    }
+    const detail = err.detail;
+    // An `unauthorized` carries the reason in its detail, and the reasons split into two
+    // very different instructions, so it is read first.
+    if (err.code === 'unauthorized' && detail) {
+        for (const fault of detail.split(',')) {
+            const hit = TOKEN_FAULTS[fault.trim()];
+            if (hit) return { text: hit.text, raw: rawOf(err), deployment: hit.deployment };
+        }
+    }
+    const known = CODES[err.code];
+    if (known) {
+        return {
+            text: known.text,
+            raw: rawOf(err),
+            deployment: known.deployment ?? false,
+        };
+    }
+    return { text: `Could not ${what}.`, raw: rawOf(err), deployment: false };
+}
+
+/** The referee's own words, for a bug report: its code, and its detail when it sent one. */
+function rawOf(err: RefereeError): string {
+    const bits = [err.status ? `HTTP ${err.status}` : null, err.code, err.detail];
+    return bits.filter(Boolean).join(' · ');
+}

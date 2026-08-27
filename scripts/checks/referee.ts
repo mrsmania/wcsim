@@ -17,6 +17,8 @@
 
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { KNOWN_CODES, refereeMessage } from '../../src/components/versus/refereeMessage';
+import { RefereeError } from '../../src/state/pvp/referee';
 import { check } from './harness';
 import { SQUADS, datasetPlayer } from '../../src/data/squads';
 import { getFormation } from '../../src/domain/formations';
@@ -838,6 +840,57 @@ export async function refereeChecks(): Promise<void> {
           ? `doubled: ${doubled.join(', ')}`
           : `the scan found ${paths.length} paths, so it is not reading them`,
     );
+
+    // --- EVERY REFUSAL THE REFEREE CAN SEND HAS A SENTENCE ----------------------
+    // The referee names its refusals and, for the ones a deployment gets wrong, sends a
+    // fault with them - which its own header says is how a deployment is debugged. A
+    // client that collapses all of them into "the referee would not open a room just now"
+    // throws that away, and that is exactly what wave 5 shipped: one sentence covering a
+    // wrong JWT secret, a name the referee cannot read, a full room and a database error.
+    //
+    // So the mapping is held against the SOURCE of the refusals rather than against a list
+    // somebody remembered to update.
+    {
+      const api = readFileSync('referee/src/api.ts', 'utf8');
+      const sent = [
+        ...new Set([
+          ...[...api.matchAll(/fail\(\s*\d+,\s*'([a-z-]+)'/g)].map((m) => m[1]!),
+          ...[...api.matchAll(/error:\s*'([a-z-]+)'/g)].map((m) => m[1]!),
+        ]),
+      ];
+      const missing = sent.filter((c) => !KNOWN_CODES.includes(c));
+      check(
+        `referee: all ${sent.length} refusals the referee can send have a sentence in the client`,
+        () =>
+          // Vacuity: the scan really is reading the refusals. There are a dozen in the
+          // router alone, so anything under eight means it has stopped matching.
+          sent.length >= 8 && missing.length === 0,
+        () =>
+          missing.length
+            ? `no sentence for: ${missing.join(', ')}`
+            : `the scan found only ${sent.length} refusals, so it is not reading them`,
+      );
+      // And the token faults, which are the half that tells an owner their secret is
+      // wrong. They come from two unions rather than from `fail` calls.
+      const faults = [
+        ...[...readFileSync('referee/src/jwt.ts', 'utf8').matchAll(/'([a-z-]+)'/g)].map((m) => m[1]!),
+        ...[...readFileSync('src/domain/pvpAuth.ts', 'utf8').matchAll(/'([a-z-]+)'/g)].map((m) => m[1]!),
+      ];
+      const unionFaults = ['missing', 'malformed', 'wrong-algorithm', 'bad-signature', 'not-authenticated', 'no-subject', 'expired', 'wrong-audience'];
+      const unnamed = unionFaults.filter((f) => !faults.includes(f));
+      const unmapped = unionFaults.filter((f) => !refereeMessage(new RefereeError(401, 'unauthorized', f), 'x').raw?.includes(f));
+      check(
+        'referee: every token fault is still one of the two unions, and each gets its own sentence',
+        () =>
+          unnamed.length === 0 &&
+          unmapped.length === 0 &&
+          // The two halves say different things: a bad signature is the owner's to fix,
+          // an expired session is the player's.
+          refereeMessage(new RefereeError(401, 'unauthorized', 'bad-signature'), 'x').deployment &&
+          !refereeMessage(new RefereeError(401, 'unauthorized', 'expired'), 'x').deployment,
+        () => `not in a union: ${unnamed.join(', ')}; not carried: ${unmapped.join(', ')}`,
+      );
+    }
 
     const setup = readFileSync('docs/nas-setup.md', 'utf8');
     check(

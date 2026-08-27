@@ -19,7 +19,8 @@ import RoomDraft from './RoomDraft';
 import RoomLobby from './RoomLobby';
 import RoomResult, { decidingTie } from './RoomResult';
 import VersusMatch from './VersusMatch';
-import { RoomNote } from './versusUi';
+import { refereeMessage } from './refereeMessage';
+import { RefereeProblem, RoomNote } from './versusUi';
 
 // One room, from the lobby to the result.
 //
@@ -64,10 +65,22 @@ export default function RoomScreen({ code }: { code: string }) {
             <>
                 <StageHeader eyebrow="Versus" title={missing ? 'Take your seat' : 'Finding the room'} />
                 <div className={`${CARD_FLAT} p-5`}>
-                    <RoomNote>{joinNote(room.error?.code, code)}</RoomNote>
+                    {missing ? (
+                        <RoomNote>
+                            Room {code}. Take a seat and the room opens up; until you do, a
+                            private room is not visible at all.
+                        </RoomNote>
+                    ) : room.error ? (
+                        <RefereeProblem message={refereeMessage(room.error, 'reach the room')} />
+                    ) : (
+                        <RoomNote>One moment.</RoomNote>
+                    )}
                     <div className="mt-3 flex flex-wrap gap-2">
                         {missing && (
-                            <button className={PRIMARY_BTN} onClick={() => void room.join().catch(() => undefined)}>
+                            <button
+                                className={PRIMARY_BTN}
+                                onClick={() => void room.join().catch(() => undefined)}
+                            >
                                 Join room {code}
                             </button>
                         )}
@@ -111,6 +124,16 @@ export default function RoomScreen({ code }: { code: string }) {
     return (
         <>
             <StageHeader eyebrow={`Room ${view.code}`} title={HEADINGS[view.status] ?? 'The room'} />
+
+            {/* A refused command - a Start the referee would not take, a join it turned
+                down - said in words, with its own code underneath. It has its own field on
+                the hook rather than sharing the poll's, or it would be cleared two seconds
+                later by a read that succeeded. */}
+            {room.commandError && (
+                <div className="mb-[18px]">
+                    <RefereeProblem message={refereeMessage(room.commandError, 'do that')} />
+                </div>
+            )}
 
             {view.status === 'lobby' && <RoomLobby view={view} room={room} />}
 
@@ -189,26 +212,6 @@ export default function RoomScreen({ code }: { code: string }) {
             </div>
         </>
     );
-}
-
-/** What to say to somebody standing outside a room. */
-function joinNote(code: string | undefined, roomCode: string): string {
-    switch (code) {
-        case undefined:
-            return 'One moment.';
-        case 'no-such-room':
-            return `Room ${roomCode}. Take a seat and the room opens up; until you do, a private room is not visible at all.`;
-        case 'room-full':
-            return 'That room is full.';
-        case 'room-started':
-            return 'That room has already started.';
-        case 'already-in-a-room':
-            return 'You are already in another room. Leave that one first.';
-        case 'no-display-name':
-            return 'Pick a name before joining a room.';
-        default:
-            return 'Cannot reach the referee just now.';
-    }
 }
 
 /** The other player's XI, once their tie has been played and the referee has opened it. */

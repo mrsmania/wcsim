@@ -1119,6 +1119,16 @@
     the root of its own address, so the doubled path cancelled out and every assertion
     passed. <b>A harness that does not reproduce the deployment&#8217;s shape is not testing
     the deployment.</b></p>
+    <p><strong>The second thing that broke was the error message itself.</strong> Opening a
+    room said &#8220;the referee would not open a room just now&#8221;, which is what a
+    wrong sign-in secret, a name the server cannot read, a full room and a database error
+    all look like - so it told nobody anything, least of all the one person who could fix
+    it. The server had been sending its own reason all along and the page was discarding it.
+    Every message now says what happened in words, prints the server&#8217;s own code
+    underneath it for a bug report, and marks the ones that are a server setting rather than
+    something to retry. The checks hold that list against the refusals the server can
+    actually send, so a new one without a sentence fails before it ships. <b>A page that
+    cannot repeat what the server told it makes every server-side problem invisible.</b></p>
     <p><strong>One thing to know before touching it.</strong> A private room is invisible
     until you take a seat: asking about one you are not in is answered with "no such room"
     rather than "not allowed", so a code cannot be fished for. That means arriving with a

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Check, Clock } from 'lucide-react';
 import type { MemberView } from '../../domain/pvpWire';
 import { CARD_FLAT, MONO_CAP } from '../matchUi';
+import type { RefereeMessage } from './refereeMessage';
 
 // The versus screens' shared atoms. Small on purpose: a room reuses the build page, the
 // match card and the standings the rest of the game already has, and what is genuinely
@@ -95,4 +96,30 @@ export function RoomCode({ code }: { code: string }) {
 /** A short line of state, in the room's own voice. */
 export function RoomNote({ children }: { children: ReactNode }) {
     return <p className="text-[13px] leading-relaxed text-muted">{children}</p>;
+}
+
+/**
+ * A refusal, said in words, with the referee's own code underneath.
+ *
+ * The code line is not debris: the referee returns it precisely so a deployment can be
+ * debugged, and a player reporting "it says HTTP 401 unauthorized bad-signature" has
+ * handed over the whole answer. `deployment` marks the ones that are the owner's to fix
+ * rather than anything the player did, so the copy does not send them round in circles.
+ */
+export function RefereeProblem({ message }: { message: RefereeMessage }) {
+    return (
+        <div className="mt-3 rounded-[5px] border border-loss/50 bg-loss/[0.07] px-3 py-2.5">
+            <p className="text-[13px] font-semibold leading-snug text-ink">{message.text}</p>
+            {message.deployment && (
+                <p className="mt-1 text-[12px] text-muted">
+                    This one is a server setting, not something to retry.
+                </p>
+            )}
+            {message.raw && (
+                <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-dim">
+                    {message.raw}
+                </p>
+            )}
+        </div>
+    );
 }

@@ -2683,6 +2683,24 @@ six-character code play a whole game: lobby, draft, match, result. The plan is
   means arriving with a code and being told there is no room is the NORMAL first step, and
   the answer to it is a Join button. Do not "fix" that 404.
 
+**A REFUSAL IS ALWAYS SAID IN THE REFEREE'S OWN WORDS** (`components/versus/refereeMessage.ts`).
+The referee names every refusal and, for the ones a deployment gets wrong, sends a fault
+with it - `bad-signature`, `wrong-audience`, `expired` - and its own header says why: those
+are how a deployment is debugged, since "the anon key was used" and "the session expired"
+look identical from outside. Wave 5 shipped screens that collapsed all of it into "the
+referee would not open a room just now", which is true of a wrong JWT secret, a name the
+referee cannot read, a full room and a database error alike, and told nobody anything. Every
+screen goes through one mapping now, anything unmapped still shows the code, and the ones
+that are the OWNER's to fix say so rather than inviting a retry. `npm run checks` holds the
+mapping against the refusals `referee/src/api.ts` actually returns and against the two
+token-fault unions, so a new refusal without a sentence fails the suite.
+
+**A command's failure is not a read's failure** (`useVersusRoom`'s `commandError`). The poll
+runs every two seconds and clears `error` with the next good answer, so a refused Start
+would flash and vanish; a command keeps its own field until the next command. A refused
+PICK is deliberately neither: the room travels with the refusal, so the board reconciles and
+the draft screen says what happened where the player is looking.
+
 **Freshness is a broadcast PLUS a poll, and the poll is not a fallback nobody exercises.**
 `REALTIME_URL` is optional in the referee's configuration and a room must work without it,
 so the broadcast is a nudge that triggers a re-read and the poll runs at two seconds while

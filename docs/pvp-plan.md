@@ -550,6 +550,26 @@ fix if this is ever worth closing.
 
 ### Found while building the first playable room (wave 5)
 
+- **THE SECOND PRODUCTION FAILURE WAS A SENTENCE, NOT A BUG.** Opening a room answered
+  "The referee would not open a room just now", which is the least useful thing the screen
+  could have said: it is what a wrong JWT secret, a display name the referee cannot read, a
+  full room, a bad setting and a database error all look like. The referee had already sent
+  its own name for the refusal AND, for the token faults, the reason - its own header says
+  those are returned "because they are how a deployment is debugged" - and the client threw
+  all of it away. Every screen goes through one mapping now
+  (`components/versus/refereeMessage.ts`), an unmapped code still shows itself, and the
+  refusals that are the OWNER's to fix say so rather than inviting a retry. `npm run checks`
+  holds the mapping against the `fail(...)` calls in `referee/src/api.ts` and against the
+  two token-fault unions, so a refusal added to the referee without a sentence fails the
+  suite. **A client that cannot repeat what the server told it makes every server-side
+  problem undiagnosable by the only person who can see it.**
+- **The schema was cleared as a suspect by rehearsing, not by reading.** `pvp_rooms.budget_source`
+  is `not null` with a check and NO DEFAULT in 0016, and the referee's insert does not
+  supply it, so a server missing 0017's drop would fail every create - a perfect match for
+  the symptom. Applying 0016 and 0017 to a local PostgreSQL over a stand-in for the stack
+  and replaying create / join / lineup / start / pick through the REAL `pgStore` as the real
+  `pvp_referee` role showed the whole sequence answering 200. That is twenty minutes and it
+  is the difference between a hypothesis and a fact.
 - **THE ONE THING THAT BROKE IN PRODUCTION, and no amount of local testing had a chance
   of catching it.** `VITE_REFEREE_URL` is `https://HOST/referee` - it points at the
   gateway ROUTE, because P46 puts the referee on the account server's gateway rather than

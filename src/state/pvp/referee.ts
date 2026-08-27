@@ -49,6 +49,11 @@ const TIMEOUT_MS = 8000;
 export class RefereeError extends Error {
     readonly status: number;
     readonly code: string;
+    /** The referee's own extra word about the refusal, when it sent one: which token
+     *  fault, which room setting. It is the difference between "the anon key was used"
+     *  and "the session expired", which look identical from outside and need different
+     *  fixes - and the reason `components/versus/refereeMessage.ts` never throws it away. */
+    readonly detail?: string;
     /** The whole refusal body. A refused PICK carries the room with it, which is what
      *  lets the board reconcile rather than sit on a player the referee never took. */
     readonly payload: unknown;
@@ -57,6 +62,7 @@ export class RefereeError extends Error {
         this.name = 'RefereeError';
         this.status = status;
         this.code = code;
+        this.detail = detail;
         this.payload = payload ?? null;
     }
 }

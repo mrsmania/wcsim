@@ -3,7 +3,6 @@ import { useMatch } from 'react-router-dom';
 import { NAME_MAX, NAME_MIN, validateName } from '../../domain/displayName';
 import type { PvpVersion, VersionMismatch } from '../../domain/pvpVersion';
 import {
-    RefereeError,
     claimDisplayName,
     clientVersion,
     currentDisplayName,
@@ -12,7 +11,8 @@ import {
 import { CARD, MONO_CAP, PRIMARY_BTN, StageHeader } from '../matchUi';
 import RoomScreen from './RoomScreen';
 import VersusHome from './VersusHome';
-import { RoomNote } from './versusUi';
+import { refereeMessage, type RefereeMessage } from './refereeMessage';
+import { RefereeProblem, RoomNote } from './versusUi';
 
 // The way into versus, and the three things that have to be true before anybody sees a
 // room: an account, a referee that speaks this build's language, and a name to be called.
@@ -129,7 +129,7 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
 function NamePanel({ onDone }: { onDone: () => void }) {
     const [raw, setRaw] = useState('');
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<RefereeMessage | null>(null);
     const verdict = validateName(raw);
 
     const submit = (e: React.FormEvent) => {
@@ -141,11 +141,7 @@ function NamePanel({ onDone }: { onDone: () => void }) {
             .then(onDone)
             .catch((err: unknown) => {
                 setBusy(false);
-                setError(
-                    err instanceof RefereeError && err.code === 'name-taken'
-                        ? 'Somebody already plays under that name.'
-                        : 'That name could not be saved.',
-                );
+                setError(refereeMessage(err, 'save that name'));
             });
     };
 
@@ -178,7 +174,7 @@ function NamePanel({ onDone }: { onDone: () => void }) {
                         You will be shown as <b className="text-ink">{verdict.name}</b>.
                     </p>
                 )}
-                {error && <p className="mt-2 text-[13px] font-semibold text-loss">{error}</p>}
+                {error && <RefereeProblem message={error} />}
                 <button className={`${PRIMARY_BTN} mt-4`} disabled={!verdict.ok || busy}>
                     That's me
                 </button>

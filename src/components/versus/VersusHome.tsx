@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WORLD_CUP_YEARS } from '../../data/squads';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
-import { RefereeError, createRoom } from '../../state/pvp/referee';
+import { createRoom } from '../../state/pvp/referee';
 import { CARD, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
-import { RoomNote } from './versusUi';
+import { refereeMessage, type RefereeMessage } from './refereeMessage';
+import { RefereeProblem, RoomNote } from './versusUi';
 
 // The way in: make a room, or type the code somebody gave you.
 //
@@ -34,7 +35,7 @@ export default function VersusHome() {
     const [budget, setBudget] = useState(110);
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<RefereeMessage | null>(null);
 
     const make = () => {
         setBusy(true);
@@ -53,11 +54,10 @@ export default function VersusHome() {
             .then((room) => navigate(`/versus/${room.code}`))
             .catch((err: unknown) => {
                 setBusy(false);
-                if (err instanceof RefereeError && err.code === 'already-in-a-room') {
-                    setError(`You are already in room ${err.message.split(': ').pop() ?? ''}.`);
-                } else {
-                    setError('The referee would not open a room just now.');
-                }
+                // Whatever the referee said, said back. The old version of this replaced
+                // every refusal with one sentence, which was true of a wrong sign-in
+                // secret, a name the server cannot read, and a database error alike.
+                setError(refereeMessage(err, 'open a room'));
             });
     };
 
@@ -123,7 +123,7 @@ export default function VersusHome() {
                             You get a six-character code. Send it to whoever you want to play.
                         </span>
                     </RoomNote>
-                    {error && <p className="mt-2 text-[13px] font-semibold text-loss">{error}</p>}
+                    {error && <RefereeProblem message={error} />}
                 </div>
 
                 <form className={`${CARD} p-4`} onSubmit={join}>
