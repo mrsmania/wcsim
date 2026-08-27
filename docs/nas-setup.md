@@ -557,6 +557,14 @@ afterwards can pass and mean nothing - which is exactly how this stayed hidden b
 schedule existed. And the referee is the clearest tell: it answered `upstream connect error
 ... connection timeout` while auth was still merely 503.
 
+**So `--verify` WAITS for it now** (2026-08-27, after the third deploy in one day tripped it
+and reported the image as unreachable). The deploy causes the wipe itself, so failing on the
+first probe is the script blaming the image for its own footprint: it retries the version
+probe twelve times thirty seconds apart, says why it is waiting, and reports how long the
+rules took to come back. It waits only for that symptom - a wrong image, a refused token or a
+database fault still answer at once and are reported at once. Pressing **Run** on the Task
+Scheduler job skips the wait.
+
 **This cannot be fixed in the app or the compose file.** The block is in the host's
 `FORWARD` chain, below anything a container can influence: envoy must reach `rest`/`auth`
 and they must reach `db` over the bridge. Sharing one network namespace
