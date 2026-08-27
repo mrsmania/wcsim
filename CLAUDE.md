@@ -243,6 +243,15 @@ path (`/wcsim/`, and changing it means rebuilding every deployed asset URL, see
 machine that holds them, including the author's own. The wordmark is one word in two tones
 (`Mondial` + a green `ino`); the tagline is unchanged.
 
+**The sign-in email took TWO passes, and the second was 2026-08-27.** The rename commit
+changed the wordmark inside `public/email/otp.html` and stopped there, which looked
+complete and was not: the mail's **subject line and sender name** are GoTrue settings that
+live on the NAS, not in this repo, so they went on saying "World Cup Simulator" for a day.
+They are `Mondialino` / `Your Mondialino code` now. The sender ADDRESS stays
+`worldcupsim@gmail.com` because it is a real mailbox and can only be replaced, not renamed.
+The general point for any future rename: **grep the repo and the stack's `.env`**, since
+user-facing copy is not all in `src/`.
+
 **It was Mundialito for a few hours of the same day, and the swap to Mondialino is a
 measured decision worth not re-opening.** `Mundialito` is the better-known word and that is
 exactly the problem: `mundialito.ch` is a live Swiss children's football tournament (Zurich,

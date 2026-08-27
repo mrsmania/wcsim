@@ -194,8 +194,8 @@ Four values, in the `.env` beside `docker-compose.yml` (the file `dkr/.env` is a
 No quotes, no spaces around `=`:
 
 ```
-GOTRUE_MAILER_SUBJECTS_MAGIC_LINK=Your World Cup Simulator code
-GOTRUE_MAILER_SUBJECTS_CONFIRMATION=Your World Cup Simulator code
+GOTRUE_MAILER_SUBJECTS_MAGIC_LINK=Your Mondialino code
+GOTRUE_MAILER_SUBJECTS_CONFIRMATION=Your Mondialino code
 GOTRUE_MAILER_TEMPLATES_MAGIC_LINK=https://mrsmania.github.io/wcsim/email/otp.html
 GOTRUE_MAILER_TEMPLATES_CONFIRMATION=https://mrsmania.github.io/wcsim/email/otp.html
 ```
@@ -274,6 +274,22 @@ Fixed in two places, so it cannot happen a third time: the four keys are in
 the stock file, and `require_local_files` in `scripts/deploy-referee.sh` now refuses to run
 any stage while they are absent. That guard was mutation-tested (strip one key, confirm it
 goes red) and it fires before the first ssh, so a bad file cannot reach the NAS.
+
+**Restored on the NAS 2026-08-27**, and the rename was finished in the same re-create so it
+cost one outage rather than two. `SMTP_SENDER_NAME` and both subject lines said "World Cup
+Simulator" right up to that point: the 2026-08-26 rename reached the wordmark inside
+`otp.html` and nothing else, because those three live on the NAS rather than in the repo.
+They now read `Mondialino` and `Your Mondialino code`. The sender ADDRESS is unchanged and
+is not a rename job: `worldcupsim@gmail.com` is a real mailbox, so it can only be replaced.
+
+Worth copying if you ever do this again, because it made the whole thing verifiable before
+anything restarted. `docker compose config` resolves the `.env` against the compose file and
+prints what a service WOULD receive, and it creates nothing, so the fix was proved while the
+old container was still serving. Then `up -d --no-deps auth` to touch exactly one container,
+`docker compose exec auth env` for what actually landed inside it, and only then plain HTTPS
+against `/auth/v1/settings` with the anon key. The bridge firewall rules survived this one,
+but the Task Scheduler job was open and ready, which is the way to do it until that job is
+on its 5-minute schedule.
 
 ---
 
