@@ -162,10 +162,19 @@ export function RoomNote({ children }: { children: ReactNode }) {
  * handed over the whole answer. `deployment` marks the ones that are the owner's to fix
  * rather than anything the player did, so the copy does not send them round in circles.
  */
-export function RefereeProblem({ message }: { message: RefereeMessage }) {
+export function RefereeProblem({
+    message,
+    action,
+}: {
+    message: RefereeMessage;
+    /** Something to DO about it, when the refusal has an answer. Only one does: being
+     *  told you are already in a room with no route to that room is a dead end. */
+    action?: ReactNode;
+}) {
     return (
         <div className="mt-3 rounded-[5px] border border-loss/50 bg-loss/[0.07] px-3 py-2.5">
             <p className="text-[13px] font-semibold leading-snug text-ink">{message.text}</p>
+            {action && <div className="mt-2">{action}</div>}
             {message.deployment && (
                 <p className="mt-1 text-[12px] text-muted">
                     This one is a server setting, not something to retry.

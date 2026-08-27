@@ -2624,7 +2624,22 @@ written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
 empty list rather than an error, and a public room opened against the old referee is simply
 invisible until it is rebuilt. **Deploy the referee before the client that talks to it**, the
 same standing rule migrations follow; the queue for it is a roadmap item, exactly as an
-unapplied migration is.
+unapplied migration is. That deploy also carries the `/leave` route below.
+
+**LEAVING A ROOM HAS TO TELL THE REFEREE, and for a while it did not** (reported and fixed
+2026-08-27). The Leave button cleared the local pointer and navigated, so the seat stayed
+taken and P39's one-room-at-a-time then refused the player's next room with
+`already-in-a-room` until the liveness sweep noticed ninety seconds later. P31's "leaving has
+to be OBSERVED rather than announced" is about a closing tab and does not extend to a button
+press: **observing what cannot be announced is not a reason to ignore what can.**
+`leaveRoom` works in a LOBBY only - past the start your XI is in a bracket other people are
+playing (P15, P24) - and it shares `withoutMembers` with the sweep, because a lobby that
+promotes a host one way and closes the other is two rules wearing one name. The navigation
+does not wait for the answer: a player who pressed Leave is leaving, and a lost request costs
+the ninety seconds it used to cost every time. The refusal also needed an ANSWER rather than
+just a sentence, since it stays reachable legitimately (a started room you walked away from):
+the referee already sent the room's code as its `detail`, so `refereeMessage` names it and
+`RefereeProblem` takes an `action` for the "Go to room X" button.
 
 - **Routes are `/versus` and `/versus/:code`**, reached from a door on the front page, not
   a sixth tab and not a segment under Play (the tab bar stays at five).

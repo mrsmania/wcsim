@@ -29,6 +29,11 @@ export interface RefereeMessage {
     /** True when this is something the OWNER has to fix rather than the player: the two
      *  sides disagree about a secret, or the referee cannot read what it needs. */
     deployment: boolean;
+    /** A room code the refusal is ABOUT rather than the one that was asked for: only
+     *  `already-in-a-room` sets it, and it is there so the screen can offer a way back to
+     *  the room holding the seat. Being told "you are already in a room" with no route to
+     *  it is a dead end, and it is the shape of the bug that made this necessary. */
+    room: string | null;
 }
 
 /** The faults the referee reports for a token it would not act on. Named here so the
@@ -74,6 +79,8 @@ const CODES: Record<string, { text: string; deployment?: boolean }> = {
         text: 'The versus server cannot see the name on your account, so it will not let you into a room. That is a server-side permission rather than anything you typed.',
         deployment: true,
     },
+    // The detail is the code of the room holding the seat, so the sentence names it and
+    // `room` carries it out to the screen.
     'already-in-a-room': { text: 'You are already in a room.' },
     'room-full': { text: 'That room is full.' },
     'room-started': { text: 'That room has already started.' },
@@ -113,7 +120,7 @@ export const KNOWN_CODES: readonly string[] = Object.keys(CODES);
  */
 export function refereeMessage(err: unknown, what: string): RefereeMessage {
     if (!(err instanceof RefereeError)) {
-        return { text: `Could not ${what}.`, raw: null, deployment: false };
+        return { text: `Could not ${what}.`, raw: null, deployment: false, room: null };
     }
     const detail = err.detail;
     // An `unauthorized` carries the reason in its detail, and the reasons split into two
@@ -121,18 +128,28 @@ export function refereeMessage(err: unknown, what: string): RefereeMessage {
     if (err.code === 'unauthorized' && detail) {
         for (const fault of detail.split(',')) {
             const hit = TOKEN_FAULTS[fault.trim()];
-            if (hit) return { text: hit.text, raw: rawOf(err), deployment: hit.deployment };
+            if (hit)
+                return {
+                    text: hit.text,
+                    raw: rawOf(err),
+                    deployment: hit.deployment,
+                    room: null,
+                };
         }
     }
+    // The one refusal that is ABOUT another room. Naming it turns a dead end into a door:
+    // the code is the detail, and the screen puts a button on it.
+    const room = err.code === 'already-in-a-room' && detail ? detail.trim().toUpperCase() : null;
     const known = CODES[err.code];
     if (known) {
         return {
-            text: known.text,
+            text: room ? `You are already in room ${room}.` : known.text,
             raw: rawOf(err),
             deployment: known.deployment ?? false,
+            room,
         };
     }
-    return { text: `Could not ${what}.`, raw: rawOf(err), deployment: false };
+    return { text: `Could not ${what}.`, raw: rawOf(err), deployment: false, room: null };
 }
 
 /** The referee's own words, for a bug report: its code, and its detail when it sent one. */

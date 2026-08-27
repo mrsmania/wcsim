@@ -738,7 +738,9 @@
       caller yet. What it does need is the <b>versus server container rebuilt and redeployed</b>,
       because the app now asks it for the room list and the deployed build has no such answer.
       Until then the list shows nothing rather than breaking, and a public room is invisible to
-      everyone but its host. Needs the NAS, so a cloud session cannot do it.</span>
+      everyone but its host. <b>It also carries the fix for a reported bug</b>: leaving a room
+      used to leave the seat taken, so opening another was refused for a minute and a half.
+      Needs the NAS, so a cloud session cannot do it.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -750,7 +752,7 @@
     <b>no migration</b>: the columns this wave reads (<code>pvp_rooms.touched_at</code>,
     <code>pvp_members.last_seen</code>, the <code>pvp_rooms_open_idx</code> partial index, the
     <code>pvp_records</code> view and <code>pvp_name_reports</code>) all came in with 0016.</p>
-    <p><strong>How to know it worked.</strong> Four things, in order, and the first two are
+    <p><strong>How to know it worked.</strong> Five things, in order, and the first two are
     the ones the old build cannot do:</p>
     <ol>
       <li><code>GET /referee/v1/lobby</code> with a real session answers <code>200</code> and a
@@ -762,6 +764,11 @@
       <li>Leave a lobby (close the tab) and wait two minutes: the room stops being listed,
       because the sweeper drops a member nobody has heard from for ninety seconds. If the host
       was the one who left, the next seat becomes host instead of the room dying.</li>
+      <li><b>Press Leave in a room and then open another one immediately.</b> It should just
+      work. This was a reported bug: leaving used to be a navigation and nothing more, so the
+      seat stayed taken and the next room was refused with "you are already in a room" until
+      that ninety-second sweep noticed. The fix is a new server instruction, so it needs this
+      deploy like the rest.</li>
     </ol>
     <p><strong>If it goes wrong.</strong> The previous image is the rollback, and it is safe:
     the schema did not move, so the old build reads the same tables. What you lose by rolling

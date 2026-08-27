@@ -340,7 +340,25 @@ export default function VersusHome() {
                                 : 'It goes on the list below, and you get a code as well.'}
                         </span>
                     </RoomNote>
-                    {error && <RefereeProblem message={error} />}
+                    {error && (
+                        <RefereeProblem
+                            message={error}
+                            // The one refusal with an answer: go to the room that holds
+                            // your seat. Without this the player is told they are in a room
+                            // and given no way to reach it, which is how the reported bug
+                            // felt even after leaving started working.
+                            action={
+                                error.room ? (
+                                    <button
+                                        className={SECONDARY_BTN}
+                                        onClick={() => navigate(`/versus/${error.room}`)}
+                                    >
+                                        Go to room {error.room}
+                                    </button>
+                                ) : undefined
+                            }
+                        />
+                    )}
                 </div>
 
                 <div className={`${CARD} p-4`}>

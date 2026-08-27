@@ -60,10 +60,25 @@ export default function RoomScreen({ code }: { code: string }) {
     const view = room.view;
     const [leaving, setLeaving] = useState(false);
 
+    /**
+     * Leave, and MEAN IT.
+     *
+     * This used to clear the local pointer and navigate, and nothing else - so the seat
+     * stayed taken on the server and the next room was refused with "you are already in a
+     * room" until the liveness sweep noticed ninety seconds later. That was the reported
+     * bug. The instruction goes first now; a lobby gives the seat up, and a room that has
+     * started answers it as a no-op, which is right (your XI is in a bracket other people
+     * are playing).
+     *
+     * The navigation does not wait for the answer and does not care whether it failed: a
+     * player who pressed Leave is leaving. The worst a lost request costs is the ninety
+     * seconds it cost before, which is the floor rather than the design.
+     */
     const leave = useCallback(() => {
+        void room.leave().catch(() => undefined);
         holdVersusRoom(null);
         navigate('/versus');
-    }, [navigate]);
+    }, [navigate, room]);
 
     // The tie the viewer is in, this round, turned round so they are the home side - and
     // the opponent the DRAW gave them, which in a room of more than two is not "the other
@@ -311,7 +326,15 @@ export default function RoomScreen({ code }: { code: string }) {
                     </button>
                 ) : leaving ? (
                     <>
-                        <RoomNote>Your team plays on without you.</RoomNote>
+                        {/* Two different things, and the copy has to say which. In a LOBBY
+                            you give the seat up and somebody else can have it; once the
+                            football has started nothing can remove you, so your XI keeps
+                            playing and leaving is only looking away. */}
+                        <RoomNote>
+                            {view.status === 'lobby'
+                                ? 'You give up your seat, and somebody else can take it.'
+                                : 'Your team plays on without you.'}
+                        </RoomNote>
                         <button className={SECONDARY_BTN} onClick={leave}>
                             Leave anyway
                         </button>

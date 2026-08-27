@@ -17,6 +17,7 @@ import { verifyCaller } from '../../src/domain/pvpAuth';
 import {
   DRAFT_SLACK_MS,
   LOBBY_IDLE_MS,
+  leaveRoom,
   PICK_GRACE_MS,
   PICK_SECONDS,
   ROOM_IDLE_MS,
@@ -784,6 +785,74 @@ export function pvpRoomChecks(): void {
           // Vacuity: the identical silence in a lobby does drop them.
           tickRoom({ ...silent, status: 'lobby' }, T0 + 120_000).status === 'ended',
         () => `${after.members.length} members, status ${after.status}`,
+      );
+    });
+  }
+
+  // --- LEAVING, FOR REAL (the reported bug) ---------------------------------
+  // It used to be a navigation and nothing else: the local pointer was cleared, the seat
+  // was not, and `activeRoomOf` then refused the player their next room with "you are
+  // already in a room" until the liveness sweep noticed ninety seconds later.
+  {
+    const lobby = roomOf(4, BUDGET);
+    const gone = leaveRoom(lobby, 'u2', T0 + 1000);
+    check(
+      'room: leaving a LOBBY gives the seat up, and the seat is free for somebody else',
+      () =>
+        // Vacuity: they really were in it.
+        lobby.members.some((m) => m.userId === 'u2') &&
+        gone.status === 'lobby' &&
+        gone.members.length === 3 &&
+        !gone.members.some((m) => m.userId === 'u2') &&
+        // And the room can be filled again, which is the point of freeing it.
+        joinRoom(gone, { userId: 'u9', name: 'New', budget: 110 }, T0 + 2000).outcome === 'ok',
+      () => `${gone.members.length} left: ${gone.members.map((m) => m.userId).join(',')}`,
+    );
+  }
+
+  {
+    // The host leaving is the same rule the liveness sweep keeps, and it has to be: a lobby
+    // that promotes one way and closes the other is two rules wearing one name.
+    const lobby = roomOf(4, BUDGET);
+    const gone = leaveRoom(lobby, 'u0', T0 + 1000);
+    // And the last person out closes it.
+    let one = lobby;
+    for (const id of ['u0', 'u1', 'u2']) one = leaveRoom(one, id, T0 + 1000);
+    const empty = leaveRoom(one, 'u3', T0 + 2000);
+    check(
+      'room: the HOST leaving promotes the next seat, and the last person out closes the room',
+      () =>
+        lobby.hostId === 'u0' &&
+        gone.status === 'lobby' &&
+        gone.hostId === 'u1' &&
+        // Vacuity: the intermediate room really did still have somebody in it.
+        one.status === 'lobby' &&
+        one.members.length === 1 &&
+        empty.status === 'ended' &&
+        roomClosed(empty),
+      () => `host ${gone.hostId}; last ${empty.status}`,
+    );
+  }
+
+  {
+    // AND IT IS A NO-OP ONCE THE FOOTBALL HAS STARTED, by the same reasoning that stops the
+    // liveness sweep dropping anybody past the lobby: an XI is in a bracket other people
+    // are playing, so there is nothing to remove without voiding their tournament. Identity
+    // is the test, because that is what tells the store there is nothing to write.
+    withSeed(88, () => {
+      const drafting = startRoom(roomOf(4, BUDGET), 'u0', T0);
+      const { room: ended } = runToEnd(drafting);
+      check(
+        'room: leaving is a no-op once a room has started, and after it has finished',
+        () =>
+          // Vacuity: the identical call on the lobby it came from DOES remove them.
+          leaveRoom(roomOf(4, BUDGET), 'u2', T0 + 1000).members.length === 3 &&
+          leaveRoom(drafting, 'u2', T0 + 1000) === drafting &&
+          leaveRoom(ended, 'u2', T0 + 1000) === ended &&
+          // Somebody who was never in it changes nothing either.
+          leaveRoom(roomOf(4, BUDGET), 'nobody', T0 + 1000) instanceof Object &&
+          leaveRoom(roomOf(2, BUDGET), 'nobody', T0 + 1000).members.length === 2,
+        () => `drafting ${leaveRoom(drafting, 'u2', T0 + 1000) === drafting}`,
       );
     });
   }

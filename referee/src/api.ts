@@ -32,6 +32,7 @@ import {
   PICK_SECONDS,
   ROOM_SIZES,
   joinRoom,
+  leaveRoom,
   reduceSize,
   remainingBudget,
   rerollDeal,
@@ -210,6 +211,11 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
       return size(req, deps, userId, code, now);
     case 'start':
       return command(deps, userId, code, now, (room) => startRoom(room, userId, now));
+    case 'leave':
+      // A lobby seat given up for real (P39). It is a no-op once the room has started,
+      // where an XI is in a bracket other people are playing - so the command always
+      // answers with the room rather than refusing, and the screen says which it was.
+      return command(deps, userId, code, now, (room) => leaveRoom(room, userId, now));
     case 'pick':
       return pick(req, deps, userId, code, now);
     case 'reroll':

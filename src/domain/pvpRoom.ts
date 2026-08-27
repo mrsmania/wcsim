@@ -677,16 +677,53 @@ function tickLobby(room: PvpRoom, now: number): PvpRoom {
   if (now - room.touchedAt > LOBBY_IDLE_MS) return closeRoom(room);
   const here = room.members.filter((m) => now - m.lastSeen <= SEEN_GONE_MS);
   if (here.length === room.members.length) return room;
-  // Everybody left. Nothing to promote and nothing to wait for.
-  if (!here.length) return closeRoom(room);
+  return withoutMembers(room, new Set(here.map((m) => m.userId)), now);
+}
+
+/**
+ * A lobby with some of its members gone: the one place seats are given up.
+ *
+ * Both callers reach it - the liveness sweep, which decides somebody LEFT WITHOUT SAYING
+ * SO, and `leaveRoom`, which is somebody saying so - and they must agree on what happens
+ * next, because a lobby that promotes a host one way and closes the other is two rules
+ * wearing one name.
+ */
+function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom {
+  // Nobody is left. Nothing to promote and nothing to wait for.
+  if (!room.members.some((m) => keep.has(m.userId))) return closeRoom(room);
   const next = clone(room);
-  next.members = next.members.filter((m) => here.some((h) => h.userId === m.userId));
+  next.members = next.members.filter((m) => keep.has(m.userId));
   if (!next.members.some((m) => m.userId === next.hostId)) {
     // The lowest remaining seat, which is the earliest of the people still here.
     next.hostId = next.members.reduce((a, b) => (a.seat <= b.seat ? a : b)).userId;
   }
   next.touchedAt = now;
   return next;
+}
+
+/**
+ * Give up your seat, deliberately.
+ *
+ * IT ONLY WORKS IN A LOBBY, and that is the same rule the liveness sweep keeps rather than
+ * a limitation: past the start your XI is in a bracket other people are playing, so there
+ * is nothing to remove you from without voiding their tournament (P15, P24). Leaving a
+ * running room is therefore a navigation and nothing more, and the screen says so - "your
+ * team plays on without you".
+ *
+ * IN A LOBBY IT HAS TO BE REAL, though, and this was a reported bug: leaving used to be
+ * purely local, so the seat stayed taken, and `activeRoomOf` then refused the player their
+ * next room (P39's one-room-at-a-time) until the liveness sweep noticed ninety seconds
+ * later. "I left and it says I am still in a room" is exactly right, and the answer is that
+ * leaving has to tell the referee.
+ */
+export function leaveRoom(room: PvpRoom, userId: string, now: number): PvpRoom {
+  if (room.status !== 'lobby') return room;
+  if (!room.members.some((m) => m.userId === userId)) return room;
+  return withoutMembers(
+    room,
+    new Set(room.members.filter((m) => m.userId !== userId).map((m) => m.userId)),
+    now,
+  );
 }
 
 /**

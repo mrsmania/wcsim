@@ -551,6 +551,39 @@ fix if this is ever worth closing.
   `BuildSurface`, because a switch with no room behind it cannot be tested and would have
   been speculation. Turning them off is a prop apiece when the room screen exists.
 
+### Reported and fixed the same day: leaving a room did not leave it
+
+"When I leave my own room I'm still in the room when trying to create a new room." Exactly
+right, and it is worth writing up because the fault is one the plan invited.
+
+- **Leaving was a NAVIGATION and nothing else.** The Leave button cleared the local pointer
+  and routed back to `/versus`; the seat stayed taken, so P39's one-room-at-a-time refused the
+  next room with `already-in-a-room`. P31's liveness sweep would free it ninety seconds later,
+  which is why this looked like a *sometimes* bug rather than a permanent one - and ninety
+  seconds is a very long time to be told you are somewhere you just left.
+- **The plan's own words are where it came from.** P31 says leaving "has to be observed rather
+  than announced", because closing a tab fires no reliable event. That is true of the tab
+  closing and it does NOT follow that a player pressing Leave should be treated the same way:
+  a button press is exactly an announcement, and throwing it away in favour of inferring the
+  same fact ninety seconds later is strictly worse. **Observing what cannot be announced is not
+  a reason to ignore what can.**
+- **`leaveRoom` only works in a LOBBY**, which is the same rule the sweep keeps and for the
+  same reason: past the start your XI is in a bracket other people are playing (P15, P24), so
+  there is nothing to remove you from without voiding their tournament. It shares
+  `withoutMembers` with the sweep, because a lobby that promotes a host one way and closes the
+  other is two rules wearing one name.
+- **The navigation does not wait for the answer.** A player who pressed Leave is leaving, and
+  the worst a lost request costs is the ninety seconds it used to cost every time - which is
+  the floor, not the design.
+- **The refusal needed an answer, not just a sentence.** "You are already in a room" with no
+  route to that room is a dead end, and it stays reachable for legitimate reasons (a room you
+  left that has already started, a stale tab). The referee was already sending the room's code
+  as its `detail`; the message now names it and the screen puts a "Go to room X" button on it.
+- **Five checks go red if the bug is put back**, and the sharpest is the end-to-end one, which
+  reads `409 already-in-a-room` on the second create with the fix removed and `201` with it in.
+  **It needs the referee redeployed** along with the rest of wave 8: the `/leave` route is new
+  server code.
+
 ### Found while building the public half (wave 8)
 
 - **IT NEEDED NO MIGRATION, and that is 0016 having been written properly rather than luck.**

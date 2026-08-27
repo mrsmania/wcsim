@@ -214,6 +214,19 @@ export const setLineup = (
 export const startRoom = (code: string): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/start`);
 
+/**
+ * Give up your seat.
+ *
+ * IT HAS TO BE SENT, not just navigated away from, and that was a reported bug: leaving
+ * used to be local only, so the seat stayed taken and the next room was refused with
+ * "you are already in a room" until the liveness sweep noticed ninety seconds later.
+ *
+ * Past the start it is a no-op on the server by design - your XI is in a bracket other
+ * people are playing - so this is safe to call either way and the screen says which it is.
+ */
+export const leaveRoom = (code: string): Promise<RoomView> =>
+    call('POST', `/v1/rooms/${code}/leave`);
+
 /** Play with fewer people than the room was opened for (P7). The host only, downwards
  *  only, and no byes are ever created: a room of eight that will not fill becomes a room
  *  of four or two and plays a full bracket, rather than sitting in a lobby for ever. */

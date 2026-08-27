@@ -6,6 +6,7 @@ import { holdVersusRoom } from '../nav/versusRoom';
 import {
     RefereeError,
     joinRoom,
+    leaveRoom,
     readRoom,
     rerollDeal,
     resizeRoom,
@@ -80,6 +81,9 @@ export interface VersusRoom {
     start: () => Promise<void>;
     /** The host playing with fewer than the room was opened for (P7). */
     resize: (size: number) => Promise<void>;
+    /** Give up your seat. A no-op on the server once the room has started (your XI plays
+     *  on), so the caller may always send it. */
+    leave: () => Promise<void>;
     join: () => Promise<void>;
     reroll: () => Promise<void>;
     pick: (slotId: string, playerId: string) => Promise<PickAnswer['outcome']>;
@@ -255,6 +259,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         (size: number) => command(() => resizeRoom(code, size)),
         [code, command],
     );
+    const leave = useCallback(() => command(() => leaveRoom(code)), [code, command]);
     const join = useCallback(() => command(() => joinRoom(code)), [code, command]);
     const reroll = useCallback(() => command(() => rerollDeal(code)), [code, command]);
 
@@ -292,6 +297,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         ready,
         start,
         resize,
+        leave,
         join,
         reroll,
         pick,

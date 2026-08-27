@@ -495,6 +495,55 @@ export async function refereeChecks(): Promise<void> {
     );
   }
 
+  // --- THE REPORTED BUG: leaving a room, then opening another ---------------
+  // "When I leave my own room I'm still in the room when trying to create a new one."
+  // Leaving was a navigation and nothing else, so the seat stayed taken and P39's
+  // one-room-at-a-time refused the next room with `already-in-a-room` until the liveness
+  // sweep noticed ninety seconds later.
+  {
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno' };
+    const deps = depsFor(store, clock);
+    const make = (): Promise<ApiResponse> =>
+      post(deps, '/referee/v1/rooms', session('u1'), {
+        visibility: 'private',
+        size: 2,
+        method: 'budget',
+        budget: 110,
+        pickSeconds: 20,
+        years: [],
+      });
+    const first = await make();
+    const code = (first.body as RoomView).code;
+    // Without leaving, a second room is refused - and the refusal names the room holding
+    // the seat, which is what lets the screen offer a way back to it.
+    const refused = await make();
+    await post(deps, `/referee/v1/rooms/${code}/leave`, session('u1'));
+    const after = await make();
+    check(
+      'referee: leaving a room frees the seat AT ONCE, where before it took the ninety-second liveness sweep',
+      () =>
+        // Vacuity: the second attempt really is refused while the seat is held, and the
+        // refusal carries the code of the room holding it.
+        refused.status === 409 &&
+        (refused.body as { error?: string }).error === 'already-in-a-room' &&
+        (refused.body as { detail?: string }).detail === code &&
+        // And the same call goes through once the seat is given up.
+        after.status === 201 &&
+        (after.body as RoomView).code !== code,
+      () => `${refused.status}/${JSON.stringify(refused.body)} then ${after.status}`,
+    );
+    // The room the host left had nobody else in it, so it closed rather than sitting in a
+    // lobby list for ever.
+    const left = await store.read(code);
+    check(
+      'referee: the room the last person left is closed, not left open with nobody in it',
+      () => left?.status === 'ended' && !left.championId,
+      () => `${left?.status} / ${left?.championId ?? 'no champion'}`,
+    );
+  }
+
   // --- One room at a time (P39), and a name before a room -------------------
 
   {
@@ -977,6 +1026,27 @@ export async function refereeChecks(): Promise<void> {
           refereeMessage(new RefereeError(401, 'unauthorized', 'bad-signature'), 'x').deployment &&
           !refereeMessage(new RefereeError(401, 'unauthorized', 'expired'), 'x').deployment,
         () => `not in a union: ${unnamed.join(', ')}; not carried: ${unmapped.join(', ')}`,
+      );
+
+      // ONE REFUSAL HAS AN ANSWER, and it has to reach the screen. "You are already in a
+      // room" with no route to that room is a dead end, which is how the reported leave bug
+      // felt: the referee sends the code as its detail, so the sentence names it and
+      // `room` carries it out for a button.
+      const held = refereeMessage(new RefereeError(409, 'already-in-a-room', 'ab12cd'), 'x');
+      const other = refereeMessage(new RefereeError(409, 'room-full'), 'x');
+      check(
+        'referee: the already-in-a-room refusal names the room and hands it to the screen',
+        () =>
+          held.room === 'AB12CD' &&
+          held.text.includes('AB12CD') &&
+          // Vacuity: no other refusal invents one, and the same code with no detail does
+          // not either - it falls back to the plain sentence rather than to "room null".
+          other.room === null &&
+          refereeMessage(new RefereeError(409, 'already-in-a-room'), 'x').room === null &&
+          !refereeMessage(new RefereeError(409, 'already-in-a-room'), 'x').text.includes(
+            'null',
+          ),
+        () => `${held.room} / ${held.text}`,
       );
     }
 
