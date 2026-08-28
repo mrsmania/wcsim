@@ -209,7 +209,13 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
   color: var(--amber-ink); border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent);
   border-radius: 999px; padding: 1px 5px; cursor: help;
 }
-.ctry { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.ctry {
+  display: flex; align-items: center; gap: 7px; min-width: 0;
+  border: 0; background: none; padding: 0; font: inherit; color: inherit;
+  cursor: pointer; text-align: left; border-radius: 3px;
+}
+.ctry:hover span.t, .ctry:focus-visible span.t { color: var(--pitch); text-decoration: underline; text-underline-offset: 2px; }
+.ctry:focus-visible { outline: 2px solid var(--pitch); outline-offset: 1px; }
 .ctry span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fl { flex: none; width: 21px; height: 14px; border-radius: 2px; background-size: cover; background-position: center; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
 .yr, .pos { font-family: var(--mono); font-size: 11.5px; }
@@ -730,6 +736,15 @@ let winFrom = -1, winTo = -1;
 let headH = 0, viewH = 0;
 function measure() { headH = thead.offsetHeight; viewH = scroller.clientHeight; }
 
+/** The country cell, which is also the link between the two views: from a player
+ *  it opens that squad in Teams, from a squad it opens its players. */
+function countryHtml(nat, year, to) {
+  return '<button type="button" class="ctry" data-n="' + nat + '" data-y="' + year + '"'
+    + ' title="' + D.natHtml[nat] + ' ' + D.set.years[year] + ' in ' + (to === 'teams' ? 'Teams' : 'Players') + '">'
+    + '<span class="fl f' + D.set.nations[nat][0] + '"></span>'
+    + '<span class="t">' + D.natHtml[nat] + '</span></button>';
+}
+
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
 
 /** The "vs" cell: what the OTHER dataset rates the same man at, and by how much
@@ -756,7 +771,7 @@ function teamRowHtml(i, top) {
   const nat = D.tNation[i], size = D.tSize[i];
   const xi = D.tXi[i], avg = D.tAvg[i];
   return '<div class="row cols" data-i="' + i + '" style="top:' + top + 'px">'
-    + '<span class="ctry"><span class="fl f' + D.set.nations[nat][0] + '"></span><span class="t">' + D.natHtml[nat] + '</span></span>'
+    + countryHtml(nat, D.tYear[i], 'players')
     + '<span class="yr">' + D.set.years[D.tYear[i]] + '</span>'
     + '<span class="rat">' + (xi < 0 ? '&ndash;' : (xi / 10).toFixed(1)) + '</span>'
     + '<span class="avg" title="' + size + ' players">' + (avg / 10).toFixed(1) + '</span>'
@@ -777,7 +792,7 @@ function rowHtml(i, top) {
     + accent
     + '<span class="num">' + (D.num[i] || '&ndash;') + '</span>'
     + '<span class="nm"><span class="t">' + D.personHtml[p] + '</span>' + dup + '</span>'
-    + '<span class="ctry"><span class="fl f' + D.set.nations[nat][0] + '"></span><span class="t">' + D.natHtml[nat] + '</span></span>'
+    + countryHtml(nat, D.year[i], 'teams')
     + '<span class="yr">' + D.set.years[D.year[i]] + '</span>'
     + '<span class="pos">' + POS[D.comboMain[c]] + '</span>'
     + '<span class="alt">' + D.comboAltHtml[c] + '</span>'
@@ -1281,16 +1296,43 @@ function paintViews() {
     '<button type="button" data-v="' + id + '" aria-pressed="' + (id === mode) + '">' + label
     + '<span class="n">' + (id === 'teams' ? D.T : D.N).toLocaleString('en-GB') + '</span></button>').join('');
 }
-vseg.addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b || b.dataset.v === mode) return;
-  mode = b.dataset.v;
+function setMode(next) {
+  if (next === mode) return;
+  mode = next;
   // The name query means a different thing in each view, so it does not travel;
   // the country and World Cup filters do, which is the point of one filter row.
   state.q = ''; qEl.value = ''; qClr.hidden = true;
   dropped = 0;
   active = -1;                     // force a full rebuild of the active dataset
   load(activeIndex);
+}
+
+vseg.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b) setMode(b.dataset.v);
+});
+
+/* Clicking a country crosses between the views with that squad selected: from a
+   player it asks "how good was this team", from a team "who was in it". It is a
+   fresh question about one squad, so it REPLACES the query rather than adding to
+   it - the position, rating and collectible filters set for a different purpose
+   are not the ones you meant to carry in. */
+function openSquad(natIndex, yearIndex) {
+  const code = D.set.nations[natIndex][0], year = D.set.years[yearIndex];
+  for (const k of ['main', 'add', 'any', 'nat', 'year', 'col']) state[k].clear();
+  state.nat.add(code);
+  state.year.add(year);
+  state.lo = D.set.eloMin; state.hi = D.set.eloMax; state.rangeSet = false;
+  state.gap = 0;
+  setMode(isTeams() ? 'players' : 'teams');
+}
+
+tbody.addEventListener('click', (e) => {
+  const c = e.target.closest('.ctry');
+  if (!c) return;
+  e.stopPropagation();
+  hideTip();
+  openSquad(+c.dataset.n, +c.dataset.y);
 });
 
 if (DATA.sets.length > 1) {

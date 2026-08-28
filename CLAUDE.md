@@ -1184,6 +1184,13 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   average**. The Teams view shares the country and World Cup filters (they carry across
   the switch, so "1970" narrows both), drops the player-only ones, and reads whichever
   dataset the toggle is on.
+- **The country cell is the link between the two views.** Clicking it on a player opens
+  his squad in Teams; clicking it on a team opens that squad's players. It REPLACES the
+  query rather than adding to it (`openSquad` clears the positions, the collectible, the
+  rating range and the gap, then sets that one country and year), because it asks a fresh
+  question about one squad and the filters set for a different purpose - especially the
+  player-only ones, which are not even on screen in Teams - are not the ones you meant to
+  carry in.
 - **Top XI is the best eleven that can be FIELDED TOGETHER, not the top eleven by
   rating.** A team needs a keeper and a shape, so `bestXiTotal` (scripts/players-page.ts)
   solves a maximum-weight assignment of players to the line counts each of the game's 24
