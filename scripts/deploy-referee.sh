@@ -276,7 +276,44 @@ stage_verify() {
            | node --input-type=module 2>/dev/null || true)
 
   say "1. the referee's version"
-  local got; got=$(curl -s --ssl-no-revoke --max-time 15 "$host/referee/version" || true)
+  # THE DEPLOY BREAKS THIS ITSELF, EVERY TIME, so failing on the first attempt is the script
+  # blaming the image for its own footprint. Creating and removing containers wipes the
+  # docker bridge firewall rules (docs/nas-setup.md), which takes every service behind the
+  # gateway down - and `--up` has just created and removed a container. The Task Scheduler
+  # job restores them on a five-minute schedule, so the outage is self-healing; what was
+  # missing here was the patience to let it heal. Twelve tries thirty seconds apart is six
+  # minutes, comfortably past one window.
+  #
+  # It waits only for THIS symptom. A wrong image, a refused token or a database fault all
+  # answer immediately and are reported immediately, as before.
+  local got=""
+  local tries=0
+  while :; do
+    got=$(curl -s --ssl-no-revoke --max-time 15 "$host/referee/version" || true)
+    case "$got" in
+      *'upstream connect'*|*'no healthy upstream'*|'')
+        tries=$((tries + 1))
+        if [ "$tries" -eq 1 ]; then
+          printf '   the gateway cannot reach the referee yet. After a deploy that is EXPECTED:
+'
+          printf '   the container work just wiped the docker bridge firewall rules, and the
+'
+          printf '   Task Scheduler job puts them back within five minutes. Waiting for it.
+'
+          printf '   To skip the wait, press Run on that job in DSM.
+'
+        fi
+        if [ "$tries" -ge 12 ]; then break; fi
+        printf '   ... still down, attempt %s of 12, thirty seconds apart
+' "$tries"
+        sleep 30
+        ;;
+      *) break ;;
+    esac
+  done
+  if [ "$tries" -gt 0 ] && [ "$tries" -lt 12 ]; then
+    ok "the bridge rules came back after about $((tries * 30))s"
+  fi
   printf '   served:    %s\n' "${got:-<no answer>}"
   printf '   this repo: %s\n' "${want:-<could not compute>}"
   # Distinguish "the referee answered with the wrong hash" from "nothing answered at all".
