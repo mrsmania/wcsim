@@ -45,58 +45,31 @@ export function assetsChecks(): void {
   // Two directions, and one deliberate allowance:
   //   - an ORPHAN webp (art for a player who is no longer collectible) is a hard failure;
   //     it is dead weight shipping on every deploy and it is always cheap to delete.
-  //   - a MISSING webp (a collectible with no art) is a hard failure UNLESS the id is in
-  //     KNOWN_MISSING_ART below. Those cards have no source image anywhere, so the check
-  //     cannot be made green by working harder - it is waiting on artwork.
-  // The allowance is itself checked: a KNOWN_MISSING_ART id that has since gained art, or
-  // that is no longer collectible, FAILS. So the list cannot quietly become permanent debt -
-  // it shrinks as art arrives and it tells you to shrink it.
-  const KNOWN_MISSING_ART = new Set([
-    'fra-1986-10', // Platini
-    'esp-1986-9', // Butragueno
-    'eng-1986-10', // Lineker
-    'den-1986-10', // Elkjaer
-    'urs-1986-19', // Belanov
-    // 1982, added with that tournament. A card with no file is no longer a hole in the
-    // grid - `STICKER_PLACEHOLDER_SRC` draws a silhouette at the right size - but it is
-    // still a gap, which is why they are listed rather than waved through.
-    'ita-1982-20', // Rossi (the tournament's 91)
-    'bra-1982-10', // Zico
-    'ger-1982-11', // Rummenigge
-    'fra-1982-12', // Giresse
-    'pol-1982-20', // Boniek
-    'fra-1982-10', // Platini, once his 1982 rating crossed 90
-    // 1978, added with that tournament. Only two players in that field reach 90.
-    'arg-1978-10', // Kempes (the tournament's 91)
-    'ned-1978-12', // Rensenbrink
-    // 1974, added with that tournament. Cruyff is the first new ICONIC in a while.
-    'ned-1974-14', // Cruyff (Iconic, 95)
-    'ger-1974-5', // Beckenbauer
-    'ger-1974-13', // Gerd Muller
-    'ned-1974-13', // Neeskens
-    'pol-1974-12', // Deyna
-    // 1970. Brazil's champions were re-rated on 2026-08-28, which took Pele to 99 and
-    // added two cards to this list; Pele's and Jairzinho's artwork arrived in the same
-    // pass, so they are off it.
-    'ger-1970-13', // Gerd Muller (Iconic, 93)
-    'ger-1970-4', // Beckenbauer
-    'eng-1970-6', // Bobby Moore
-    'bra-1970-8', // Gerson (92)
-    'bra-1970-11', // Rivellino (90)
-    // 2026, added with that tournament. Ten new cards, and the first MONUMENTAL since
-    // Pele: Mbappe's 97 matches his own 2022 row. Haaland is the first Norwegian
-    // collectible the dataset has ever had.
-    'fra-2026-10', // Mbappe (Monumental, 97 - Golden Boot)
-    'nor-2026-9', // Haaland (Iconic, 94)
-    'arg-2026-10', // Messi (Iconic, 94 - his fifth collectible card)
-    'esp-2026-19', // Lamine Yamal (Iconic, 93)
-    'esp-2026-16', // Rodri (Golden Ball)
-    'eng-2026-10', // Bellingham
-    'bra-2026-7', // Vinicius Junior
-    'mar-2026-2', // Hakimi
-    'fra-2026-7', // Dembele
-    'bel-2026-1', // Courtois
-  ]);
+  //   - a MISSING webp (a collectible with no art) is a hard failure UNLESS the id is
+  //     listed in art/awaiting-artwork.txt. Those cards have no source image anywhere, so
+  //     the check cannot be made green by working harder - it is waiting on artwork.
+  // The allowance is itself checked: a listed id that has since gained art, or that is no
+  // longer collectible, FAILS. So the list cannot quietly become permanent debt - it
+  // shrinks as art arrives and it tells you to shrink it.
+  //
+  // The list is a FILE rather than a literal here for two reasons. It is a worklist the
+  // author maintains (and the one who draws the cards does not read TypeScript), and
+  // `npm run ratings:sync` rewrites it: that command prunes the entries a rating change
+  // has settled, and appends a new one only when asked to, so accepting a card as undrawn
+  // stays a deliberate act. An unreadable list is a FAILURE, not an empty allowance.
+  const AWAITING_ART_PATH = 'art/awaiting-artwork.txt';
+  let awaiting: Set<string> | null = null;
+  try {
+    awaiting = new Set(
+      readFileSync(AWAITING_ART_PATH, 'utf8')
+        .split(/\r?\n/)
+        .map((line) => line.replace(/#.*$/, '').trim())
+        .filter((line) => line.length > 0),
+    );
+  } catch {
+    awaiting = null;
+  }
+  const KNOWN_MISSING_ART = awaiting ?? new Set<string>();
   {
     const STICKER_DIR = 'public/stickers';
     let shipped: Set<string> | null = null;
@@ -118,11 +91,21 @@ export function assetsChecks(): void {
     const staleAllowed = [...KNOWN_MISSING_ART].filter(
       (id) => !ids.has(id) || (shipped ? shipped.has(id) : false),
     );
-    const ok = shipped !== null && unexpected.length === 0 && orphans.length === 0 && staleAllowed.length === 0;
+    const ok =
+      shipped !== null &&
+      awaiting !== null &&
+      unexpected.length === 0 &&
+      orphans.length === 0 &&
+      staleAllowed.length === 0;
+    if (awaiting === null) console.log(`    ${AWAITING_ART_PATH} could not be read`);
     if (unexpected.length) console.log('    collectibles with no art: ' + unexpected.join(', '));
     if (orphans.length) console.log('    art with no collectible: ' + orphans.join(', '));
     if (staleAllowed.length)
-      console.log('    KNOWN_MISSING_ART is stale, drop these: ' + staleAllowed.join(', '));
+      console.log(
+        `    ${AWAITING_ART_PATH} is stale, drop these: ` +
+          staleAllowed.join(', ') +
+          ' (or run `npm run ratings:sync`)',
+      );
     check(
       `stickers: shipped art matches the collectible set ` +
         `(${collectible.length} collectible, ${shipped?.size ?? 0} shipped, ` +

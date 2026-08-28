@@ -10,6 +10,7 @@
     "typecheck": "tsc -b",
     "checks": "esbuild scripts/checks.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "album:fill": "esbuild scripts/album-fill.ts --bundle --format=esm --platform=node | node --input-type=module -",
+    "ratings:sync": "esbuild scripts/ratings-sync.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "gen:collectibles": "esbuild scripts/gen-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "gen:players": "esbuild scripts/gen-players-page.ts --bundle --format=esm --platform=node | node --input-type=module -",
     "push:collectibles": "esbuild scripts/push-collectibles.ts --bundle --format=esm --platform=node | node --input-type=module -",

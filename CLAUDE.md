@@ -349,6 +349,8 @@ npm run typecheck  # tsc -b   (both projects: src, and the config + scripts)
 npm run preview    # serve the production build
 npm run checks     # run the characterization checks (scripts/checks.ts + scripts/checks/)
 VITE_BASE=/ npm run build      # build for a host serving from the root, e.g. the Docker image
+npm run ratings:sync       # EVERYTHING a rating change owes, in one command (see below;
+                           #   -- --accept-all / --accept=<id> / --force-art / --skip-checks)
 npm run gen:collectibles   # regenerate supabase/seed/collectibles.sql from the dataset
 npm run push:collectibles  # send that seed to the account server (needs dkr/.env, LAN/VPN;
                            #   prefix NODE_OPTIONS=--use-system-ca if it says "fetch failed"
@@ -362,10 +364,34 @@ python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/sticker
 ```
 
 **After changing ratings in `squads.ts` or `STICKER_TIERS`, run `npm run
-gen:collectibles` and `npm run push:collectibles`.** The accounts feature needs a
-server-side copy of who is collectible (SQL cannot read the TypeScript dataset), so
-`supabase/seed/collectibles.sql` is generated from it and `npm run checks` fails while
-the two disagree. See "Accounts" below.
+ratings:sync`.** A rating crossing a `STICKER_TIERS` boundary changes who is collectible,
+and FIVE things downstream have to move with it - the shipped artwork both ways, the
+awaiting-artwork list, the server's catalogue and the player index. Doing four of them by
+hand and forgetting the fifth broke the build twice on 2026-08-28, once for a card with no
+artwork and once for a name left on the waiting list after its rating came back down. The
+command does the four mechanical ones, reports the one that is a judgement (a new
+collectible with no artwork is REPORTED, never accepted for you - see "The waiting list"
+below), and finishes by running `npm run checks`, which is the same gate CI runs before it
+deploys. It deliberately pushes NOTHING: it ends by saying whether the server's catalogue
+moved and therefore whether `npm run push:collectibles` is owed BEFORE the push to `main`
+that deploys the site. The accounts feature needs a server-side copy of who is collectible
+(SQL cannot read the TypeScript dataset), so `supabase/seed/collectibles.sql` is generated
+from the dataset and `npm run checks` fails while the two disagree. See "Accounts" below.
+
+**The waiting list.** `art/awaiting-artwork.txt` is the cards that are collectible and not
+drawn yet, one player id a line - the allowance that used to be `KNOWN_MISSING_ART` inside
+the checks. It is a FILE because it is a worklist rather than code (the person who draws
+the cards does not read TypeScript), and `ratings:sync` rewrites it whole: it prunes a line
+whose art has arrived or whose player is no longer collectible, refreshes each note from
+the dataset, and ADDS a line only when asked with `--accept-all` or `--accept=<id>`.
+That last part is the point and should not be automated away: the check exists because the
+album shipped blank cards twice in two days without anyone noticing, one of them Maradona
+in the top tier, so shipping a silhouette has to be a decision. Generating the list from
+the ratings would leave the check passing for ever and meaning nothing. An UNREADABLE list
+is a failure rather than an empty allowance. `docs/missing-sticker-art.xlsx` is the same
+thing as a spreadsheet for whoever is drawing (`scripts/build-art-worklist.py`, needs
+`pip install openpyxl`); it carries a fingerprint of its own contents in `Summary!B5` so a
+sync with nothing to change does not rewrite a binary file.
 
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
@@ -1426,8 +1452,8 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `onStickerArtError`, which swaps the src once and sets a `data-fallback` flag so a
   failure cannot loop. **The background is transparent on purpose**: the card's own
   surface shows through, which is what lets one fixed silhouette work in both themes.
-  `npm run checks` still fails on a missing file unless its id is in
-  `KNOWN_MISSING_ART`, so the gap stays visible rather than being papered over.
+  `npm run checks` still fails on a missing file unless its id is listed in
+  `art/awaiting-artwork.txt`, so the gap stays visible rather than being papered over.
   **Art pipeline:** originals (full-size PNG) live in **`art/stickers-src/`**, which is
   NOT under `public/` and so is never deployed; `python scripts/build-sticker-art.py`
   resizes them to 400px-wide WebP in `public/stickers/<player.id>.webp`, which is what
@@ -1435,7 +1461,11 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   image on collected cards). The originals average 1.3 MB against ~40 KB shipped, so
   serving them directly was ~139 MB of images for a grid of thumbnails. Re-run the
   script after adding or replacing art; it skips unchanged files. Superseded art is
-  parked in `art/stickers-archive/` (also undeployed).
+  parked in `art/stickers-archive/` (also undeployed), which is where `npm run
+  ratings:sync` moves the original of anyone who drops out of the bands - it deletes the
+  shipped card (an orphan is a hard failure) and never the original, because a rating can
+  come back up and the drawing cannot. Prefer `ratings:sync` to running this script
+  directly: it is one of the five things a rating change owes.
 - **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier star
   chip + a "collectibles in this squad" call-out); `XiTable` marks them the same way in
   the line-up sheet (tier star + a tier-coloured left accent bar on the row).
@@ -2382,7 +2412,9 @@ Server setup: `docs/nas-setup.md`.
 derived from `player.elo` in TypeScript that SQL cannot read. So it is generated:
 `npm run gen:collectibles` writes `supabase/seed/collectibles.sql`, `npm run checks`
 **fails while it is stale**, and `npm run push:collectibles` sends it to the server.
-Run all three after any rating change that crosses a `STICKER_TIERS` boundary. A player
+`npm run ratings:sync` does the first two (and the four other things a rating change owes)
+and then tells you whether the push is owed; the push stays a separate command because it
+needs the LAN or the VPN. A player
 who falls out of the bands is marked inactive, never deleted, so albums holding them
 keep working.
 
