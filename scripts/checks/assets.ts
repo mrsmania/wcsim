@@ -76,13 +76,12 @@ export function assetsChecks(): void {
     'ned-1974-13', // Neeskens
     'pol-1974-12', // Deyna
     // 1970. Brazil's champions were re-rated on 2026-08-28, which took Pele to 99 and
-    // added three cards to this list; Pele's and Jairzinho's artwork arrived in the same
+    // added two cards to this list; Pele's and Jairzinho's artwork arrived in the same
     // pass, so they are off it.
     'ger-1970-13', // Gerd Muller (Iconic, 93)
     'ger-1970-4', // Beckenbauer
     'eng-1970-6', // Bobby Moore
     'bra-1970-8', // Gerson (92)
-    'bra-1970-1', // Felix (91)
     'bra-1970-11', // Rivellino (90)
     // 2026, added with that tournament. Ten new cards, and the first MONUMENTAL since
     // Pele: Mbappe's 97 matches his own 2022 row. Haaland is the first Norwegian
