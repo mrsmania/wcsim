@@ -5,6 +5,10 @@
     "move, and the card is one player at one World Cup.",
     "",
     "Read by `npm run ratings:sync`, which merges it into docs/missing-sticker-art.html.",
+    "`numberOnFront` says whether the shirt carries the player's number on the CHEST as well",
+    "as the back, which the drawing prompt has to state either way. Modern national shirts do",
+    "and every side before the 1990s did not.",
+    "",
     "A squad with no entry prints as 'not recorded' rather than being guessed at, and only",
     "squads that owe a card need one. `npm run checks` fails on an entry whose key is not a",
     "real squad, so a typo cannot sit here looking like data.",
@@ -19,159 +23,389 @@
   ],
   "kits": {
     "bra-1970": {
-      "shirt": { "name": "Canary yellow, green collar and cuffs", "hex": "#F5D318" },
-      "shorts": { "name": "Royal blue", "hex": "#1B4CA1" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "Canary yellow, green collar and cuffs",
+        "hex": "#F5D318"
+      },
+      "shorts": {
+        "name": "Royal blue",
+        "hex": "#1B4CA1"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "verified",
-      "note": "Matches the cards already drawn for this squad (Pele, Jairzinho): open V collar in dark green, CBD shield on the left breast."
+      "note": "Matches the cards already drawn for this squad (Pele, Jairzinho): open V collar in dark green, CBD shield on the left breast.",
+      "numberOnFront": false
     },
     "ger-1970": {
-      "shirt": { "name": "White, black collar and cuffs", "hex": "#FFFFFF" },
-      "shorts": { "name": "Black", "hex": "#141414" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "White, black collar and cuffs",
+        "hex": "#FFFFFF"
+      },
+      "shorts": {
+        "name": "Black",
+        "hex": "#141414"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "verified",
-      "note": "As drawn on the shipped Beckenbauer 1974 card: DFB roundel on the left breast, no maker's stripes on the shirt body."
+      "note": "As drawn on the shipped Beckenbauer 1974 card: DFB roundel on the left breast, no maker's stripes on the shirt body.",
+      "numberOnFront": false
     },
     "eng-1970": {
-      "shirt": { "name": "White, navy trim", "hex": "#FFFFFF" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "White, navy trim",
+        "hex": "#FFFFFF"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "verified",
-      "note": "All white, NOT the usual navy shorts: Umbro made the Mexico kit in perforated Airtex and England wore white shorts to take less heat. The red change shirt was swapped for sky blue for the same reason."
+      "note": "All white, NOT the usual navy shorts: Umbro made the Mexico kit in perforated Airtex and England wore white shorts to take less heat. The red change shirt was swapped for sky blue for the same reason.",
+      "numberOnFront": false
     },
     "ned-1974": {
-      "shirt": { "name": "Orange, black trim", "hex": "#E8590C" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "Orange", "hex": "#E8590C" },
+      "shirt": {
+        "name": "Orange, black trim",
+        "hex": "#E8590C"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Orange",
+        "hex": "#E8590C"
+      },
       "confidence": "known",
-      "note": "Adidas, with black stripes down the sleeve (see the note on Cruyff: his shirt carried two of them, not three)."
+      "note": "Adidas, with black stripes down the sleeve (see the note on Cruyff: his shirt carried two of them, not three).",
+      "numberOnFront": false
     },
     "pol-1974": {
-      "shirt": { "name": "White, red trim", "hex": "#FFFFFF" },
-      "shorts": { "name": "Red", "hex": "#C4162A" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "White, red trim",
+        "hex": "#FFFFFF"
+      },
+      "shorts": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "verified",
-      "note": "The white eagle crest on the left breast. 1974 is where Poland settled on white at home and red away."
+      "note": "The white eagle crest on the left breast. 1974 is where Poland settled on white at home and red away.",
+      "numberOnFront": false
     },
     "ned-1978": {
-      "shirt": { "name": "Orange, black trim", "hex": "#E8590C" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "Orange", "hex": "#E8590C" },
+      "shirt": {
+        "name": "Orange, black trim",
+        "hex": "#E8590C"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Orange",
+        "hex": "#E8590C"
+      },
       "confidence": "known",
-      "note": "Same family as 1974."
+      "note": "Same family as 1974.",
+      "numberOnFront": false
     },
     "fra-1982": {
-      "shirt": { "name": "Blue with red and white pinstripes", "hex": "#1F3A93" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "Red", "hex": "#C4162A" },
+      "shirt": {
+        "name": "Blue with red and white pinstripes",
+        "hex": "#1F3A93"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
       "confidence": "verified",
-      "note": "The Adidas shirt with fine red and white pinstripes on blue, tricolour V neck, gold cockerel crest."
+      "note": "The Adidas shirt with fine red and white pinstripes on blue, tricolour V neck, gold cockerel crest.",
+      "numberOnFront": false
     },
     "bra-1982": {
-      "shirt": { "name": "Canary yellow, green trim", "hex": "#F5D318" },
-      "shorts": { "name": "Royal blue", "hex": "#1B4CA1" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "Canary yellow, green trim",
+        "hex": "#F5D318"
+      },
+      "shorts": {
+        "name": "Royal blue",
+        "hex": "#1B4CA1"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "known",
-      "note": "Topolino era: same colours as 1970, crew neck rather than a collar."
+      "note": "Topolino era: same colours as 1970, crew neck rather than a collar.",
+      "numberOnFront": false
     },
     "ger-1982": {
-      "shirt": { "name": "White with a black, red and gold chest band", "hex": "#FFFFFF" },
-      "shorts": { "name": "Black", "hex": "#141414" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "White with a black, red and gold chest band",
+        "hex": "#FFFFFF"
+      },
+      "shorts": {
+        "name": "Black",
+        "hex": "#141414"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "known",
-      "note": "The band across the chest is the whole character of this shirt; get it in and the card reads as 1982 immediately."
+      "note": "The band across the chest is the whole character of this shirt; get it in and the card reads as 1982 immediately.",
+      "numberOnFront": false
     },
     "pol-1982": {
-      "shirt": { "name": "White, red trim", "hex": "#FFFFFF" },
-      "shorts": { "name": "Red", "hex": "#C4162A" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "White, red trim",
+        "hex": "#FFFFFF"
+      },
+      "shorts": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "known",
-      "note": "As 1974."
+      "note": "As 1974.",
+      "numberOnFront": false
     },
     "fra-1986": {
-      "shirt": { "name": "Blue, tricolour trim", "hex": "#1F3A93" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "Red", "hex": "#C4162A" },
+      "shirt": {
+        "name": "Blue, tricolour trim",
+        "hex": "#1F3A93"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
       "confidence": "known",
-      "note": "Plainer than 1982: no pinstripes, red and white banding at the collar and cuffs."
+      "note": "Plainer than 1982: no pinstripes, red and white banding at the collar and cuffs.",
+      "numberOnFront": false
     },
     "esp-1986": {
-      "shirt": { "name": "Red, yellow and blue trim", "hex": "#C8102E" },
-      "shorts": { "name": "Navy", "hex": "#1B2A4A" },
-      "socks": { "name": "Black", "hex": "#141414" },
+      "shirt": {
+        "name": "Red, yellow and blue trim",
+        "hex": "#C8102E"
+      },
+      "shorts": {
+        "name": "Navy",
+        "hex": "#1B2A4A"
+      },
+      "socks": {
+        "name": "Black",
+        "hex": "#141414"
+      },
       "confidence": "known",
-      "note": "Red shirt over dark shorts is the Spanish constant; the crest sits on the left breast."
+      "note": "Red shirt over dark shorts is the Spanish constant; the crest sits on the left breast.",
+      "numberOnFront": false
     },
     "eng-1986": {
-      "shirt": { "name": "White, red and navy trim", "hex": "#FFFFFF" },
-      "shorts": { "name": "Navy", "hex": "#1B2A4A" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
+      "shirt": {
+        "name": "White, red and navy trim",
+        "hex": "#FFFFFF"
+      },
+      "shorts": {
+        "name": "Navy",
+        "hex": "#1B2A4A"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
       "confidence": "verified",
-      "note": "Navy shorts are back by 1986, so this is NOT the all-white 1970 look."
+      "note": "Navy shorts are back by 1986, so this is NOT the all-white 1970 look.",
+      "numberOnFront": false
     },
     "den-1986": {
-      "shirt": { "name": "Halved red and white pinstripes", "hex": "#C4162A" },
-      "shorts": { "name": "White, matching pinstripes", "hex": "#FFFFFF" },
-      "socks": { "name": "Red", "hex": "#C4162A" },
+      "shirt": {
+        "name": "Halved red and white pinstripes",
+        "hex": "#C4162A"
+      },
+      "shorts": {
+        "name": "White, matching pinstripes",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
       "confidence": "verified",
-      "note": "The Hummel shirt: the two halves carry red and white pinstripes at different weights, with chevrons on the sleeves. The pattern is the card."
+      "note": "The Hummel shirt: the two halves carry red and white pinstripes at different weights, with chevrons on the sleeves. The pattern is the card.",
+      "numberOnFront": false
     },
     "urs-1986": {
-      "shirt": { "name": "Red, CCCP across the chest", "hex": "#C4162A" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "Red", "hex": "#C4162A" },
+      "shirt": {
+        "name": "Red, CCCP across the chest",
+        "hex": "#C4162A"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
       "confidence": "verified",
-      "note": "Adidas. The lettering rather than a crest is what dates it."
+      "note": "Adidas. The lettering rather than a crest is what dates it.",
+      "numberOnFront": false
     },
     "arg-2026": {
-      "shirt": { "name": "Sky blue and white stripes", "hex": "#6CACE4" },
-      "shorts": { "name": "Black", "hex": "#141414" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
-      "confidence": "standard"
+      "shirt": {
+        "name": "Sky blue and white stripes",
+        "hex": "#6CACE4"
+      },
+      "shorts": {
+        "name": "Black",
+        "hex": "#141414"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "confidence": "standard",
+      "numberOnFront": true
     },
     "bra-2026": {
-      "shirt": { "name": "Canary yellow, green trim", "hex": "#F5D318" },
-      "shorts": { "name": "Royal blue", "hex": "#1B4CA1" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
-      "confidence": "standard"
+      "shirt": {
+        "name": "Canary yellow, green trim",
+        "hex": "#F5D318"
+      },
+      "shorts": {
+        "name": "Royal blue",
+        "hex": "#1B4CA1"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "confidence": "standard",
+      "numberOnFront": true
     },
     "eng-2026": {
-      "shirt": { "name": "White", "hex": "#FFFFFF" },
-      "shorts": { "name": "Navy", "hex": "#1B2A4A" },
-      "socks": { "name": "White", "hex": "#FFFFFF" },
-      "confidence": "standard"
+      "shirt": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "shorts": {
+        "name": "Navy",
+        "hex": "#1B2A4A"
+      },
+      "socks": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "confidence": "standard",
+      "numberOnFront": true
     },
     "esp-2026": {
-      "shirt": { "name": "Red, navy sleeve panels and yellow pinstripes", "hex": "#C8102E" },
-      "shorts": { "name": "Navy", "hex": "#1B2A4A" },
-      "socks": { "name": "Navy", "hex": "#1B2A4A" },
+      "shirt": {
+        "name": "Red, navy sleeve panels and yellow pinstripes",
+        "hex": "#C8102E"
+      },
+      "shorts": {
+        "name": "Navy",
+        "hex": "#1B2A4A"
+      },
+      "socks": {
+        "name": "Navy",
+        "hex": "#1B2A4A"
+      },
       "confidence": "standard",
-      "note": "The 2026 shirt is reported as red with navy sleeve panels and yellow pinstripes off the flag and crest; the rest is Spain's usual."
+      "note": "The 2026 shirt is reported as red with navy sleeve panels and yellow pinstripes off the flag and crest; the rest is Spain's usual.",
+      "numberOnFront": true
     },
     "fra-2026": {
-      "shirt": { "name": "Blue", "hex": "#1F3A93" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "Red", "hex": "#C4162A" },
-      "confidence": "standard"
+      "shirt": {
+        "name": "Blue",
+        "hex": "#1F3A93"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
+      "confidence": "standard",
+      "numberOnFront": true
     },
     "nor-2026": {
-      "shirt": { "name": "Red, blue and white trim", "hex": "#C4162A" },
-      "shorts": { "name": "White", "hex": "#FFFFFF" },
-      "socks": { "name": "Blue", "hex": "#1B2A4A" },
-      "confidence": "standard"
+      "shirt": {
+        "name": "Red, blue and white trim",
+        "hex": "#C4162A"
+      },
+      "shorts": {
+        "name": "White",
+        "hex": "#FFFFFF"
+      },
+      "socks": {
+        "name": "Blue",
+        "hex": "#1B2A4A"
+      },
+      "confidence": "standard",
+      "numberOnFront": true
     },
     "mar-2026": {
-      "shirt": { "name": "Red, green trim", "hex": "#C4162A" },
-      "shorts": { "name": "Red", "hex": "#C4162A" },
-      "socks": { "name": "Red", "hex": "#C4162A" },
+      "shirt": {
+        "name": "Red, green trim",
+        "hex": "#C4162A"
+      },
+      "shorts": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
+      "socks": {
+        "name": "Red",
+        "hex": "#C4162A"
+      },
       "confidence": "standard",
-      "note": "The green is the pentangle on the flag and it is what stops the card reading as any other red side."
+      "note": "The green is the pentangle on the flag and it is what stops the card reading as any other red side.",
+      "numberOnFront": true
     },
     "bel-2026": {
-      "shirt": { "name": "Red, black and yellow trim", "hex": "#C8102E" },
-      "shorts": { "name": "Black", "hex": "#141414" },
-      "socks": { "name": "Red", "hex": "#C8102E" },
-      "confidence": "standard"
+      "shirt": {
+        "name": "Red, black and yellow trim",
+        "hex": "#C8102E"
+      },
+      "shorts": {
+        "name": "Black",
+        "hex": "#141414"
+      },
+      "socks": {
+        "name": "Red",
+        "hex": "#C8102E"
+      },
+      "confidence": "standard",
+      "numberOnFront": true
     }
   },
   "players": {

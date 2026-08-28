@@ -61,6 +61,19 @@ if os.path.exists(OUT):
     except OSError:
         pass  # unreadable: rewrite it
 
+PROMPT_FN = r"""
+function buildPrompt(p) {
+    const numText = p.numOnFront
+        ? `with the number ${p.no} on the front`
+        : `without the number on the front (number is only on the back)`;
+    const numApparelText = p.numOnFront
+        ? `and the player's number large on the front`
+        : `and no number on the front`;
+
+    return `Create an image of ${p.name} with the following style. He wears the attached ${p.nation} jersey and ${p.colorName} shorts from the world cup ${p.year}, fitted and athletic ${numText}. The look of him at that world cup should be incorporated. A stylized soccer player rendered as a comic-style 3D character, in the spirit of a premium animated-film hero (Pixar / DreamWorks / Sony Animation look) crossed with a designer vinyl art toy. Use gently caricatured proportions: a minimally oversized head relative to the body (roughly a 1:6 head-to-body feel, not a realistic 1:7.5). The body stays lean and athletic. The character stands centered, facing forward to the camera, framed from the femoral up, arms hanging down lose. No visible modular joints or seams. Face Large, expressive, glossy eyes with clearly painted irises and a bright catchlight in each eye. Big, bold, slightly exaggerated eyebrows that drive a determined, focused, competitive expression with a light furrow. Smooth, rounded facial planes with soft cheeks and a simplified nose and chin. Skin is clean and stylized, almost matte, with a subtle warm gradient. The overall read should be "realistic person." Hair If given a specific person, render that pesons hairstyle at the given time. It should look slightly soft and natural in shading, but it is NOT photoreal and NOT individual loose strands. Think "rendered character hair," painted with soft highlights. Apparel and texturing A fitted athletic national-team jersey in the team's signature colors, with crisp colored trim on the collar and shoulders. Place a highly detailed, authentic-looking team crest over the heart, ${numApparelText}. The brand mark, if any, sits opposite the crest and small. Strictly no sponsor logos across the chest or torso. Render the jersey as textured fabric with a subtle sheen, visible weave and stitching, so the cloth clearly contrasts with the smoother, more matte stylized skin. The contrast between fabric and skin is part of the toy-like charm. Background and lighting Pure uniform white background, no environment or props. Soft professional 3D studio lighting: a key light, fill, and gentle rim light to define the silhouette. Bright, clean, friendly lighting with soft shadows, no harsh dramatic contrast. Technical modifiers Aspect ratio 2:3, vertical portrait. Append: "stylized 3D character, animated film style, cute comic style, designer vinyl collectible, octane render, soft studio lighting, high detail, smooth shading." Importantly, do NOT use the modifiers "photorealistic," "realistic skin," or "realistic hair," and avoid "unreal engine hyperrealism," since those are what tip your outputs into the too-real zone.`;
+}
+"""
+
 E = html.escape
 TIERS = ["Monumental", "Iconic", "Legendary"]
 
@@ -78,17 +91,27 @@ def swatch(part):
 
 
 def kit_cell(card):
-    """The SHIRT only. art/kits.json also records shorts and socks, and the table
-    deliberately does not print them: one colour a row is what makes the column
-    scannable, and the shirt is what anybody means by the colour of a kit."""
+    """The SHORTS only, which is not the obvious choice and is the useful one: the drawing
+    prompt carries the SHIRT as an attached photograph, so the one colour it has to state
+    in words is the shorts. art/kits.json records all three; one colour a row is what
+    keeps the column scannable."""
     kit = card.get("kit")
     if not kit:
         return '<td class="kit"><span class="none">not recorded</span></td>'
-    parts = f'<div class="line">{swatch(kit.get("shirt"))}</div>'
+    parts = f'<div class="line">{swatch(kit.get("shorts"))}</div>'
     conf = str(kit.get("confidence", ""))
     tag = f'<span class="conf c-{E(conf)}">{E(conf)}</span>' if conf else ""
     note = f'<p class="note">{E(str(kit["note"]))}</p>' if kit.get("note") else ""
     return f'<td class="kit">{parts}{tag}{note}</td>'
+
+
+def number_on_front(card):
+    """Whether the shirt carried the number on the CHEST as well as the back. Recorded per
+    SQUAD in art/kits.json, because it is a fact about a kit and not about a player, and it
+    changes the prompt's wording either way. An unrecorded squad reads as no, which is what
+    every side before the 1990s did."""
+    kit = card.get("kit") or {}
+    return bool(kit.get("numberOnFront"))
 
 
 rows = []
@@ -112,6 +135,8 @@ for card in cards:
         f'<td class="num">{card["rating"]}</td>'
         f'<td><span class="tier t-{tier.lower()}">{tier}</span></td>'
         + kit_cell(card)
+        + f'<td class="bool-val">{"yes" if number_on_front(card) else "no"}</td>'
+        + f'<td><button class="btn-copy" onclick="copyPrompt({len(rows)}, this)">Copy prompt</button></td>'
         + f'<td class="file"><code>{E(card["id"])}.png</code></td>'
         "</tr>"
     )
@@ -150,12 +175,18 @@ notes = [
     "Nothing here is breaking the build. An undrawn card shows the shared silhouette at the "
     "right size, so the album has a gap rather than a hole; a row marked <strong>new</strong> "
     "is one that has only just become collectible.",
-    "The shirt column is <code>art/kits.json</code>, which is hand-written and says how sure "
+    "<strong>Copy prompt</strong> puts that card's whole image-generation prompt on the "
+    "clipboard, with the player, the nation, the year, the shorts colour and the "
+    "number-on-front wording filled in. Attach the shirt photograph from "
+    "<code>public/jerseys/</code> alongside it. The prompt's wording lives in "
+    "<code>scripts/build-art-worklist.py</code>; edit it there, never here.",
+    "The shorts column is <code>art/kits.json</code>, which is hand-written and says how sure "
     "each entry is. <strong>verified</strong> was checked against a source or against art "
     "already shipped for that squad, <strong>known</strong> is long-established colours, and "
     "<strong>standard</strong> is the nation's usual colours rather than the specific release "
-    "worn that year. That file also records the shorts and the socks, which this table leaves "
-    "out on purpose. Correct one by editing the file, never this page.",
+    "worn that year. That file also records the shirt and the socks, which this table leaves "
+    "out: the shirt is attached to the prompt as a photograph, so the shorts are the colour "
+    "that has to be described. Correct one by editing the file, never this page.",
 ]
 if twice:
     notes.append(
@@ -253,6 +284,17 @@ h2 {
   font: 700 15px/1.2 Archivo, "Segoe UI", system-ui, sans-serif; margin: 34px 0 10px;
   text-transform: uppercase; letter-spacing: 0.04em;
 }
+.btn-copy {
+  background: var(--pitch); color: #fff; border: none; border-radius: 4px;
+  padding: 6px 12px; cursor: pointer;
+  font: 600 12px "Spline Sans Mono", ui-monospace, monospace;
+}
+.btn-copy:hover { background: var(--pitch-deep); }
+.btn-copy:active { transform: scale(0.96); }
+.btn-copy.copied { background: var(--amber); }
+.bool-val {
+  font-family: "Spline Sans Mono", ui-monospace, monospace; text-align: center;
+}
 .notes { margin: 0; padding-left: 20px; color: var(--muted); font-size: 13.5px; }
 .notes li { margin-bottom: 8px; max-width: 92ch; }
 """
@@ -289,7 +331,8 @@ if cards:
     parts.append(
         "<thead><tr>"
         "<th>Player</th><th>No.</th><th>Nation</th><th>World Cup</th><th>Rating</th>"
-        "<th>Tier</th><th>Shirt at that World Cup</th><th>File to add</th>"
+        "<th>Tier</th><th>Shorts</th><th>Number on front</th><th>Prompt</th>"
+        "<th>File to add</th>"
         "</tr></thead><tbody>"
     )
     parts.extend(rows)
@@ -297,11 +340,46 @@ if cards:
 else:
     parts.append("<p>Every collectible has artwork. Nothing to draw.</p>")
 
+# The drawing prompt, which is what this page is FOR: the author generates each card from
+# it. Rendered per row as a button rather than as text, because it is 3,000 characters and
+# would bury the table. The function is the author's own wording, carried through verbatim -
+# only the values it reads come from the dataset and art/kits.json.
+PROMPT_FIELDS = [
+    {
+        "name": c["name"],
+        "no": c["number"],
+        "nation": c["nation"],
+        "year": c["year"],
+        "colorName": ((c.get("kit") or {}).get("shorts") or {}).get("name", "team-coloured"),
+        "numOnFront": number_on_front(c),
+    }
+    for c in cards
+]
+SCRIPT = (
+    "const players = " + json.dumps(PROMPT_FIELDS, ensure_ascii=False) + ";"
+    + PROMPT_FN
+    + """
+function copyPrompt(index, btn) {
+  navigator.clipboard.writeText(buildPrompt(players[index])).then(() => {
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy prompt';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+"""
+)
+
 parts.append("<h2>Notes</h2>")
 parts.append('<ul class="notes">')
 parts.extend(f"<li>{note}</li>" for note in notes)
 parts.append("</ul>")
-parts.append("</div></body></html>")
+parts.append("</div>")
+if cards:
+    parts.append(f"<script>{SCRIPT}</script>")
+parts.append("</body></html>")
 
 with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
     fh.write("\n".join(parts) + "\n")
