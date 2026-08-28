@@ -160,6 +160,37 @@ for (const p of collectiblePlayers(ALL_PLAYERS)) {
 const TIER_ORDER: StickerTier[] = ['monumental', 'iconic', 'legendary'];
 const tierRank = (t: StickerTier) => TIER_ORDER.indexOf(t);
 
+// --- 0. Adopt originals dropped into the SHIPPED folder --------------------------------
+// Three times now the source art has been saved into public/stickers, which is where the
+// BUILT cards live: the app asks for `<id>.webp`, so a PNG sitting there is invisible to
+// the album and ships as dead weight on every deploy (27 MB of it, the first time). It is
+// always the same mistake and always the same fix, so the command does the fix rather than
+// reporting the mistake. A stray whose name is already taken in art/stickers-src/ is left
+// alone unless it is byte-identical, since replacing a drawing is not a thing to guess at.
+{
+  const adopted: string[] = [];
+  for (const file of listFiles(OUT_DIR, /\.(png|jpe?g)$/i)) {
+    const from = join(OUT_DIR, file);
+    const target = join(SRC_DIR, file);
+    if (existsSync(target)) {
+      if (readFileSync(target).equals(readFileSync(from))) {
+        rmSync(from);
+        adopted.push(`${idOf(file)} (already had it)`);
+      } else {
+        notes.push(
+          `${from} left alone: ${target} exists with different content - replace it by hand ` +
+            'if the new one is the drawing you want',
+        );
+      }
+      continue;
+    }
+    renameSync(from, target);
+    adopted.push(idOf(file));
+  }
+  if (adopted.length)
+    say('adopted', `${adopted.length} original${adopted.length === 1 ? '' : 's'} moved out of ${OUT_DIR}: ${adopted.join(', ')}`);
+}
+
 // --- 1. Retire art for anyone who has left the bands -----------------------------------
 // The card goes (an orphan fails the checks and ships on every deploy); the original is
 // ARCHIVED rather than deleted, because a rating can come back up and redrawing it cannot.
