@@ -1179,6 +1179,22 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   much** (either way, and a player the other dataset does not carry is out as soon as it
   is on - he has no difference, not a small one); the search box matches the name only,
   diacritic-insensitively. Every column sorts, rating descending by default.
+- **It has TWO views**, switched top right beside the dataset toggle: **Players**, the
+  table above, and **Teams**, one row per squad with country, year, **Top XI** and **team
+  average**. The Teams view shares the country and World Cup filters (they carry across
+  the switch, so "1970" narrows both), drops the player-only ones, and reads whichever
+  dataset the toggle is on.
+- **Top XI is the best eleven that can be FIELDED TOGETHER, not the top eleven by
+  rating.** A team needs a keeper and a shape, so `bestXiTotal` (scripts/players-page.ts)
+  solves a maximum-weight assignment of players to the line counts each of the game's 24
+  formations calls for, and takes the best. A player may fill any slot in a line one of
+  his positions belongs to. **Deliberately looser than the app's own draft rule**, which
+  needs the exact role: at that strictness 9 of the game's 368 squads and 68 of 7a0's 302
+  cannot field any formation at all, mostly for want of a natural winger, and a column of
+  dashes says nothing about a team. It is also the fairer comparison, since 7a0 gives a
+  player one position and `squads.ts` gives up to three. It is NOT the same number as the
+  app's `squadOverall` (that one is the top eleven by rating, shape ignored): Brazil 2002
+  reads 88.9 here against 89.1 there. Both are computed at generation time, in tenths.
 - **It carries TWO datasets and a toggle** (top right of the page header): **WCS**, the
   game's own, and **7a0**, the other game's ratings. See the section below - that toggle
   is the reason there is no second file.

@@ -43,6 +43,9 @@
 }
 
 * { box-sizing: border-box; }
+/* `.field` and `.setlab` are flex, which outranks the UA's [hidden] rule - so a
+   field hidden by the attribute stayed on screen. */
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--ground); color: var(--ink);
@@ -171,6 +174,7 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .table { overflow: hidden; }
 .scroller { overflow: auto; max-height: calc(100vh - 150px); overscroll-behavior: contain; }
 .grid { min-width: 900px; }
+.grid.teams { min-width: 520px; max-width: 760px; }
 /* The column widths come from the data blob, and there is ONE set of them for
    every dataset: the two are meant to be read against each other, so a column
    that moved when the toggle was thrown would defeat the whole thing. */
@@ -213,6 +217,8 @@ h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spac
 .pos { font-weight: 600; }
 .alt { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rat { font-family: var(--mono); font-size: 13.5px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.avg { font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sz { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
 .dif { font-family: var(--mono); font-size: 12.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .dif.no { color: var(--dim); }
 /* The bracket is the only coloured part: it is the signed number, so + is green
@@ -300,6 +306,10 @@ __FLAG_CSS__
       <h1 id="title"></h1>
     </div>
     <div class="rule"></div>
+    <div class="setlab">
+      <span class="mono-cap">View</span>
+      <div class="seg" id="vseg"></div>
+    </div>
     <!-- Only rendered when the file carries more than one dataset. -->
     <div class="setlab" id="setlab" hidden>
       <span class="mono-cap">Dataset</span>
@@ -307,7 +317,7 @@ __FLAG_CSS__
     </div>
   </div>
 
-  <section class="card filters">
+  <section class="card filters" id="filtercard">
     <div class="frow">
       <div class="field">
         <span class="mono-cap">Search</span>
@@ -325,7 +335,7 @@ __FLAG_CSS__
            the nations and tournaments that dataset actually holds. -->
       <span id="msfields" style="display:contents"></span>
 
-      <div class="field">
+      <div class="field" id="ratefield">
         <span class="mono-cap">Rating</span>
         <div style="display:flex;align-items:center;gap:10px">
           <div class="rng">
@@ -358,13 +368,13 @@ __FLAG_CSS__
     </div>
   </section>
 
-  <section class="card table">
+  <section class="card table" id="tablecard">
     <div class="scroller" id="scroller">
       <div class="grid">
         <div class="cols thead" id="thead"></div>
         <div class="tbody" id="tbody"></div>
       </div>
-      <div class="empty" id="empty" hidden><b>No players match</b>Widen the rating range or clear a filter.</div>
+      <div class="empty" id="empty" hidden><b>Nothing matches</b>Widen the rating range or clear a filter.</div>
     </div>
   </section>
 
@@ -443,7 +453,19 @@ function decode(index) {
   for (let i = 0; i < N; i++) (d.apps[d.person[i]] || (d.apps[d.person[i]] = [])).push(i);
   for (const a of d.apps) if (a && a.length > 1) a.sort((x, y) => d.year[x] - d.year[y]);
 
-  d.view = new Int32Array(N);
+  /* The Teams view: one row per squad, prepared by the generator (the best eleven
+     that can be fielded together is an assignment problem, not a sort). Ratings
+     arrive in tenths so the blob stays integers. */
+  const T = S.teams.length / 5;
+  d.T = T;
+  d.tNation = new Int16Array(T); d.tYear = new Uint8Array(T);
+  d.tXi = new Int16Array(T); d.tAvg = new Int16Array(T); d.tSize = new Uint8Array(T);
+  for (let i = 0, r = 0; i < T; i++, r += 5) {
+    d.tNation[i] = S.teams[r]; d.tYear[i] = S.teams[r + 1];
+    d.tXi[i] = S.teams[r + 2]; d.tAvg[i] = S.teams[r + 3]; d.tSize[i] = S.teams[r + 4];
+  }
+
+  d.view = new Int32Array(Math.max(N, T));
   CACHE[index] = d;
   return d;
 }
@@ -476,6 +498,12 @@ const state = {
 let D = null;                                        // the active decoded dataset
 let P = null;                                        // its page block
 let otherTab = '';                                   // what the other one is called
+
+/* Which table is on screen. The two views share the country and World Cup
+   filters, the dataset toggle and the whole sort/virtualise machine; everything
+   else about them differs, and branches off this. */
+let mode = 'players';
+const isTeams = () => mode === 'teams';
 let view = null;                                     // the filtered + sorted row ids
 let viewLen = 0;
 let dropped = 0;                                     // values the switch could not carry
@@ -497,7 +525,57 @@ function maskOf(set) { let m = 0; for (const p of set) m |= 1 << p; return m; }
 const BIT = { main: 1, add: 2, any: 4, nat: 8, year: 16, col: 32 };
 let facets = null;
 
+/* The Teams view's own pass: the same country and World Cup filters, over squads.
+   The player-only controls (positions, rating, collectible, the gap) do not apply
+   and are not shown, so they are not consulted either - and the two facets are
+   counted the same way, each over what the other leaves. */
+function applyTeams() {
+  const T = D.T;
+  const natOk = natFilter(), yearOk = yearFilter();
+  let nameOk = null;
+  if (state.q) {
+    nameOk = new Uint8Array(D.set.nations.length);
+    D.set.nations.forEach((n, i) => { if (fold(n[1]).includes(state.q) || fold(n[0]).includes(state.q)) nameOk[i] = 1; });
+  }
+  const f = {
+    main: new Array(POS.length).fill(0), add: new Array(POS.length).fill(0),
+    any: new Array(POS.length).fill(0), nat: new Array(D.set.nations.length).fill(0),
+    year: new Array(D.set.years.length).fill(0), yearPlayers: new Array(D.set.years.length).fill(0),
+    col: [0, 0],
+  };
+  let n = 0;
+  for (let i = 0; i < T; i++) {
+    let bad = 0;
+    if (natOk && !natOk[D.tNation[i]]) bad |= BIT.nat;
+    if (yearOk && !yearOk[D.tYear[i]]) bad |= BIT.year;
+    if ((bad & (bad - 1)) === 0) {
+      if (!bad || bad === BIT.nat) f.nat[D.tNation[i]]++;
+      if (!bad || bad === BIT.year) { f.year[D.tYear[i]]++; f.yearPlayers[D.tYear[i]] += D.tSize[i]; }
+    }
+    if (bad) continue;
+    if (nameOk && !nameOk[D.tNation[i]]) continue;
+    view[n++] = i;
+  }
+  facets = f;
+  viewLen = n;
+  sortView();
+}
+
+function natFilter() {
+  if (!state.nat.size) return null;
+  const ok = new Uint8Array(D.set.nations.length);
+  D.set.nations.forEach((x, i) => { if (state.nat.has(x[0])) ok[i] = 1; });
+  return ok;
+}
+function yearFilter() {
+  if (!state.year.size) return null;
+  const ok = new Uint8Array(D.set.years.length);
+  D.set.years.forEach((y, i) => { if (state.year.has(y)) ok[i] = 1; });
+  return ok;
+}
+
 function applyFilters() {
+  if (isTeams()) return applyTeams();
   const mMain = maskOf(state.main);
   // A filter this dataset cannot answer keeps its selection and stops filtering.
   const mAdd = P.alt ? maskOf(state.add) : 0, mAny = P.alt ? maskOf(state.any) : 0;
@@ -507,16 +585,7 @@ function applyFilters() {
 
   // Nations and years are held by value, so they resolve to this dataset's own
   // indices once per pass rather than per row.
-  let natOk = null;
-  if (state.nat.size) {
-    natOk = new Uint8Array(D.set.nations.length);
-    D.set.nations.forEach((x, i) => { if (state.nat.has(x[0])) natOk[i] = 1; });
-  }
-  let yearOk = null;
-  if (state.year.size) {
-    yearOk = new Uint8Array(D.set.years.length);
-    D.set.years.forEach((y, i) => { if (state.year.has(y)) yearOk[i] = 1; });
-  }
+  const natOk = natFilter(), yearOk = yearFilter();
 
   // The name query is answered per PERSON and then read per row.
   let nameOk = null;
@@ -599,6 +668,18 @@ function sortView() {
   const d = state.dir, s = state.sort;
   const sub = view.subarray(0, viewLen);
   const arr = Array.prototype.slice.call(sub);
+  if (isTeams()) {
+    const nations = D.set.nations;
+    const byNation = (a, b) => (nations[D.tNation[a]][1] < nations[D.tNation[b]][1] ? -1
+      : nations[D.tNation[a]][1] > nations[D.tNation[b]][1] ? 1 : 0);
+    const key = { year: (i) => D.tYear[i], xi: (i) => D.tXi[i], avg: (i) => D.tAvg[i] }[s];
+    const cmp = s === 'nat'
+      ? (a, b) => d * byNation(a, b) || D.tYear[a] - D.tYear[b]
+      : (a, b) => d * (key(a) - key(b)) || D.tXi[b] - D.tXi[a] || byNation(a, b);
+    arr.sort(cmp);
+    for (let i = 0; i < arr.length; i++) sub[i] = arr[i];
+    return;
+  }
   const key = D.personKey, person = D.person, nations = D.set.nations;
   const byName = (a, b) => (key[person[a]] < key[person[b]] ? -1 : key[person[a]] > key[person[b]] ? 1 : 0);
   let cmp;
@@ -669,7 +750,21 @@ function diffHtml(i) {
     + ' <span class="gap ' + cls + '">' + shown + '</span></span>';
 }
 
+/** One squad: the country, the tournament, the best eleven that can play together
+ *  and the average over everyone in the squad. */
+function teamRowHtml(i, top) {
+  const nat = D.tNation[i], size = D.tSize[i];
+  const xi = D.tXi[i], avg = D.tAvg[i];
+  return '<div class="row cols" data-i="' + i + '" style="top:' + top + 'px">'
+    + '<span class="ctry"><span class="fl f' + D.set.nations[nat][0] + '"></span><span class="t">' + D.natHtml[nat] + '</span></span>'
+    + '<span class="yr">' + D.set.years[D.tYear[i]] + '</span>'
+    + '<span class="rat">' + (xi < 0 ? '&ndash;' : (xi / 10).toFixed(1)) + '</span>'
+    + '<span class="avg" title="' + size + ' players">' + (avg / 10).toFixed(1) + '</span>'
+    + '</div>';
+}
+
 function rowHtml(i, top) {
+  if (isTeams()) return teamRowHtml(i, top);
   const c = D.combo[i], t = D.tier[i], nat = D.nation[i], p = D.person[i];
   const list = D.apps[p];
   const dup = list.length > 1 ? '<span class="dup">&times;' + list.length + '</span>' : '';
@@ -715,7 +810,9 @@ function render() {
   // The dropdowns describe the query as it now stands, not the whole dataset.
   for (let i = 0; i < controls.length; i++) controls[i].setOptions(FIELDS[i].opts());
   const n = viewLen.toLocaleString('en-GB');
-  document.getElementById('count').innerHTML = '<b>' + n + '</b> of ' + D.N.toLocaleString('en-GB') + ' players'
+  const all = isTeams() ? D.T : D.N;
+  document.getElementById('count').innerHTML = '<b>' + n + '</b> of ' + all.toLocaleString('en-GB')
+    + (isTeams() ? ' teams' : ' players')
     + (dropped ? ' <span class="gone">' + dropped + ' filter value' + (dropped > 1 ? 's' : '')
       + ' not in this dataset</span>' : '');
 }
@@ -756,6 +853,7 @@ function tipHtml(p, self) {
 
 let tipRow = null;
 function showTip(row) {
+  if (isTeams()) return;
   if (row === tipRow && tip.classList.contains('show')) return;
   tipRow = row;
   const i = +row.dataset.i, p = +row.dataset.p;
@@ -797,6 +895,14 @@ document.addEventListener('click', (e) => { if (!e.target.closest('.row')) hideT
  *  Only two labels change, and both name what the data is rather than how the
  *  table is built: the other dataset, and what its last column marks. */
 function columns() {
+  if (isTeams()) {
+    return [
+      { id: 'nat', label: 'Country', cls: '', dir: 1 },
+      { id: 'year', label: 'Year', cls: '', dir: -1 },
+      { id: 'xi', label: 'Top XI', cls: 'r', dir: -1 },
+      { id: 'avg', label: 'Team average', cls: 'r', dir: -1 },
+    ];
+  }
   return [
     { id: 'num', label: '#', cls: 'r', dir: 1 },
     { id: 'name', label: 'Name', cls: '', dir: 1 },
@@ -813,7 +919,7 @@ let COLS = [];
 
 function buildHead() {
   COLS = columns();
-  if (!COLS.some((c) => c.id === state.sort)) { state.sort = 'rating'; state.dir = -1; }
+  if (!COLS.some((c) => c.id === state.sort)) { state.sort = isTeams() ? 'xi' : 'rating'; state.dir = -1; }
   thead.innerHTML = COLS.map((c) =>
     '<span' + (c.cls ? ' style="text-align:right"' : '') + '><button class="th ' + c.cls + '" data-c="' + c.id + '" type="button">'
     + c.label + '<span class="ar">&#9660;</span></button></span>').join('');
@@ -973,6 +1079,13 @@ const flagHtml = (code) => '<span class="fl f' + code + '" style="display:inline
 const ONE_POSITION = '7a0 gives each player one position, so this filter has nothing to narrow';
 
 function fields() {
+  if (isTeams()) {
+    return FIELD_LIST().filter((f) => f.key === 'nat' || f.key === 'year');
+  }
+  return FIELD_LIST();
+}
+
+function FIELD_LIST() {
   return [
     { key: 'main', label: 'Main position', opts: () => posOpts(facets.main, state.main) },
     { key: 'add', label: 'Additional position', off: P.alt ? '' : ONE_POSITION, opts: () => posOpts(facets.add, state.add) },
@@ -1095,6 +1208,7 @@ document.getElementById('reset').addEventListener('click', () => {
 --------------------------------------------------------------------------- */
 const seg = document.getElementById('seg');
 let active = -1;
+let activeIndex = 0;             // the dataset on screen, kept across a view switch
 
 /** Carry the query across a switch: drop the values the incoming dataset does not
  *  hold, and clamp the rating range to its own scale. */
@@ -1122,13 +1236,13 @@ function load(index) {
   const first = active < 0;
   if (first) { state.lo = next.set.eloMin; state.hi = next.set.eloMax; }
   else pruneState(next);
-  active = index;
+  active = index; activeIndex = index;
   D = next; P = next.page; view = next.view;
 
-  document.title = P.docTitle;
+  document.title = isTeams() ? 'Team ratings - ' + P.tab : P.docTitle;
   document.getElementById('tag').textContent = P.tag;
   document.getElementById('eyebrow').textContent = P.eyebrow;
-  document.getElementById('title').textContent = P.title;
+  document.getElementById('title').textContent = isTeams() ? 'Every team' : P.title;
   document.getElementById('foot').textContent = D.set.footer;
   otherTab = DATA.sets.length > 1 ? DATA.sets[(index + 1) % DATA.sets.length].page.tab : '';
   // The two datasets are meant to be told apart at a glance, here and in a second
@@ -1141,15 +1255,43 @@ function load(index) {
   for (const el of [rmin, rmax]) { el.min = D.set.eloMin; el.max = D.set.eloMax; el.step = 1; }
   gapEl.min = 0; gapEl.max = D.maxGap; gapEl.step = 1;
   if (state.gap > D.maxGap) state.gap = D.maxGap;
-  document.getElementById('gapfield').hidden = !D.maxGap;
+  document.getElementById('gapfield').hidden = !D.maxGap || isTeams();
+  document.getElementById('ratefield').hidden = isTeams();
   document.getElementById('gapcap').textContent = 'Difference to ' + otherTab;
+  qEl.placeholder = isTeams() ? 'Country' : 'Player name';
+  document.querySelector('.grid').classList.toggle('teams', isTeams());
+  // Four columns do not need 1,400px; the cards follow the table rather than the page.
+  const cap = isTeams() ? '780px' : '';
+  document.getElementById('tablecard').style.maxWidth = cap;
+  document.getElementById('filtercard').style.maxWidth = cap;
+  document.documentElement.style.setProperty('--grid-cols', isTeams() ? DATA.gridTeams : DATA.grid);
   controls = [];              // the old dataset's controls are about to be replaced
+  paintViews();
   buildHead();
   paintRange();
   paintGap();
   render();                   // counts the facets the new controls are built from
   buildFields();
 }
+
+const vseg = document.getElementById('vseg');
+const VIEWS = [['players', 'Players'], ['teams', 'Teams']];
+function paintViews() {
+  vseg.innerHTML = VIEWS.map(([id, label]) =>
+    '<button type="button" data-v="' + id + '" aria-pressed="' + (id === mode) + '">' + label
+    + '<span class="n">' + (id === 'teams' ? D.T : D.N).toLocaleString('en-GB') + '</span></button>').join('');
+}
+vseg.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || b.dataset.v === mode) return;
+  mode = b.dataset.v;
+  // The name query means a different thing in each view, so it does not travel;
+  // the country and World Cup filters do, which is the point of one filter row.
+  state.q = ''; qEl.value = ''; qClr.hidden = true;
+  dropped = 0;
+  active = -1;                     // force a full rebuild of the active dataset
+  load(activeIndex);
+});
 
 if (DATA.sets.length > 1) {
   document.getElementById('setlab').hidden = false;
@@ -1176,7 +1318,6 @@ try { saved = localStorage.getItem('wcsim_players_theme'); } catch (e) { /* priv
 setTheme(saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
 
-document.documentElement.style.setProperty('--grid-cols', DATA.grid);
 load(0);
 // Web fonts land after the first paint and can change the header's height.
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); paint(true); });
