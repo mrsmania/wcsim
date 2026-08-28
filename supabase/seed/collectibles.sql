@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 117 (82 legendary / 28 iconic / 7 monumental)
--- checksum: 314626589a09e594
+-- rows: 115 (80 legendary / 28 iconic / 7 monumental)
+-- checksum: 060e22cbf22c2ab9
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -40,7 +40,6 @@ values
   ('bel-2018-7', 'iconic', 93, 'Kevin De Bruyne', 'bel-2018', 'BEL', 2018),
   ('bel-2022-1', 'iconic', 93, 'Thibaut Courtois', 'bel-2022', 'BEL', 2022),
   ('bel-2022-7', 'iconic', 94, 'Kevin De Bruyne', 'bel-2022', 'BEL', 2022),
-  ('bel-2026-1', 'legendary', 90, 'Thibaut Courtois', 'bel-2026', 'BEL', 2026),
   ('bra-1970-10', 'monumental', 99, 'Pelé', 'bra-1970', 'BRA', 1970),
   ('bra-1970-11', 'legendary', 90, 'Rivellino', 'bra-1970', 'BRA', 1970),
   ('bra-1970-7', 'iconic', 94, 'Jairzinho', 'bra-1970', 'BRA', 1970),
@@ -121,7 +120,6 @@ values
   ('ita-2006-10', 'legendary', 90, 'Francesco Totti', 'ita-2006', 'ITA', 2006),
   ('ita-2006-21', 'legendary', 91, 'Andrea Pirlo', 'ita-2006', 'ITA', 2006),
   ('ita-2006-5', 'iconic', 96, 'Fabio Cannavaro', 'ita-2006', 'ITA', 2006),
-  ('mar-2026-2', 'legendary', 90, 'Achraf Hakimi', 'mar-2026', 'MAR', 2026),
   ('ned-1974-13', 'legendary', 90, 'Johan Neeskens', 'ned-1974', 'NED', 1974),
   ('ned-1974-14', 'iconic', 95, 'Johan Cruyff', 'ned-1974', 'NED', 1974),
   ('ned-1978-12', 'legendary', 90, 'Rob Rensenbrink', 'ned-1978', 'NED', 1978),

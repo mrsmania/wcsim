@@ -9679,7 +9679,7 @@ export const SQUADS: readonly Squad[] = [
         [1, 'Yassine Bounou', ['GK'], 82],
         [12, 'Munir Mohamedi', ['GK'], 68],
         [22, 'Ahmed Reda Tagnaouti', ['GK'], 70],
-        [2, 'Achraf Hakimi', ['RB'], 90],
+        [2, 'Achraf Hakimi', ['RB'], 89],
         [3, 'Noussair Mazraoui', ['LB', 'RB', 'CB'], 81],
         [5, 'Marwane Saâdane', ['CB', 'DM'], 70],
         [13, 'Zakaria El Ouahdi', ['RB', 'RW'], 75],
@@ -10068,7 +10068,7 @@ export const SQUADS: readonly Squad[] = [
         [26, 'Sebastian Tounekti', ['ST', 'RW'], 72],
     ]),
     squad('BEL', 'Belgium', 2026, [
-        [1, 'Thibaut Courtois', ['GK'], 90],
+        [1, 'Thibaut Courtois', ['GK'], 89],
         [12, 'Senne Lammens', ['GK'], 77],
         [13, 'Mike Penders', ['GK'], 71],
         [2, 'Zeno Debast', ['CB', 'DM'], 77],

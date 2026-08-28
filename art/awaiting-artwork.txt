@@ -12,17 +12,12 @@
 # below) and run `npm run ratings:sync`, which builds the small WebP the site serves
 # and takes the line off. docs/missing-sticker-art.xlsx is the same list to work from.
 #
-# 29 cards of 117 collectibles, as of 2026-08-28.
+# 15 cards of 115 collectibles, as of 2026-08-28.
 
 # 1970
-ger-1970-13    # Gerd Müller, Germany, iconic 93
-bra-1970-8     # Gérson, Brazil, legendary 92
-ger-1970-4     # Franz Beckenbauer, Germany, legendary 92
-bra-1970-11    # Rivellino, Brazil, legendary 90
 eng-1970-6     # Bobby Moore, England, legendary 90
 
 # 1974
-ned-1974-14    # Johan Cruyff, Netherlands, iconic 95
 ned-1974-13    # Johan Neeskens, Netherlands, legendary 90
 pol-1974-12    # Kazimierz Deyna, Poland, legendary 90
 
@@ -44,13 +39,4 @@ den-1986-10    # Preben Elkjær, Denmark, legendary 90
 urs-1986-19    # Ihor Belanov, Soviet Union, legendary 90
 
 # 2026
-fra-2026-10    # Kylian Mbappé, France, iconic 96
-nor-2026-9     # Erling Haaland, Norway, iconic 94
 arg-2026-10    # Lionel Messi, Argentina, iconic 94
-esp-2026-16    # Rodri, Spain, iconic 93
-esp-2026-19    # Lamine Yamal, Spain, iconic 93
-bra-2026-7     # Vinícius Júnior, Brazil, legendary 92
-eng-2026-10    # Jude Bellingham, England, legendary 92
-mar-2026-2     # Achraf Hakimi, Morocco, legendary 90
-bel-2026-1     # Thibaut Courtois, Belgium, legendary 90
-fra-2026-7     # Ousmane Dembélé, France, legendary 90
