@@ -46,13 +46,12 @@ export function assetsChecks(): void {
   //   - an ORPHAN webp (art for a player who is no longer collectible) is a hard failure;
   //     it is dead weight shipping on every deploy and it is always cheap to delete.
   //   - a MISSING webp (a collectible with no art) is a hard failure UNLESS the id is in
-  //     KNOWN_MISSING_ART below. Those six have no source image anywhere, so the check
+  //     KNOWN_MISSING_ART below. Those cards have no source image anywhere, so the check
   //     cannot be made green by working harder - it is waiting on artwork.
   // The allowance is itself checked: a KNOWN_MISSING_ART id that has since gained art, or
   // that is no longer collectible, FAILS. So the list cannot quietly become permanent debt -
   // it shrinks as art arrives and it tells you to shrink it.
   const KNOWN_MISSING_ART = new Set([
-    'arg-1986-10', // Maradona (Monumental)
     'fra-1986-10', // Platini
     'esp-1986-9', // Butragueno
     'eng-1986-10', // Lineker
@@ -76,12 +75,15 @@ export function assetsChecks(): void {
     'ger-1974-13', // Gerd Muller
     'ned-1974-13', // Neeskens
     'pol-1974-12', // Deyna
-    // 1970. Pele is the dataset's seventh MONUMENTAL card.
-    'bra-1970-10', // Pele (Monumental, 97)
+    // 1970. Brazil's champions were re-rated on 2026-08-28, which took Pele to 99 and
+    // added three cards to this list; Pele's and Jairzinho's artwork arrived in the same
+    // pass, so they are off it.
     'ger-1970-13', // Gerd Muller (Iconic, 93)
-    'bra-1970-7', // Jairzinho
     'ger-1970-4', // Beckenbauer
     'eng-1970-6', // Bobby Moore
+    'bra-1970-8', // Gerson (92)
+    'bra-1970-1', // Felix (91)
+    'bra-1970-11', // Rivellino (90)
     // 2026, added with that tournament. Ten new cards, and the first MONUMENTAL since
     // Pele: Mbappe's 97 matches his own 2022 row. Haaland is the first Norwegian
     // collectible the dataset has ever had.
