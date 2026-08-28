@@ -987,7 +987,7 @@ export const SQUADS: readonly Squad[] = [
         [18, 'Roberto Bettega', ['ST'], 85],
         [19, 'Francesco Graziani', ['ST'], 80],
         [20, 'Paolo Pulici', ['ST'], 80],
-        [21, 'Paolo Rossi', ['ST'], 84],
+        [21, 'Paolo Rossi', ['ST'], 83],
     ]),
     squad('POL', 'Poland', 1978, [
         [1, 'Jan Tomaszewski', ['GK'], 81],
@@ -1312,7 +1312,7 @@ export const SQUADS: readonly Squad[] = [
         [17, 'Daniele Massaro', ['ST', 'RW'], 73],
         [18, 'Alessandro Altobelli', ['ST'], 81],
         [19, 'Francesco Graziani', ['ST'], 80],
-        [20, 'Paolo Rossi', ['ST'], 91],
+        [20, 'Paolo Rossi', ['ST'], 94],
         [21, 'Franco Selvaggi', ['ST'], 71],
     ]),
     squad('GER', 'Germany', 1982, [
@@ -2139,7 +2139,7 @@ export const SQUADS: readonly Squad[] = [
         [17, 'Gianluca Vialli', ['ST', 'LW'], 81],
         [18, 'Alessandro Altobelli', ['ST'], 83],
         [19, 'Giuseppe Galderisi', ['ST'], 74],
-        [20, 'Paolo Rossi', ['ST'], 77],
+        [20, 'Paolo Rossi', ['ST'], 85],
         [21, 'Aldo Serena', ['ST'], 76],
     ]),
     squad('MAR', 'Morocco', 1986, [
