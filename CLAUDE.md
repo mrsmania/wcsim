@@ -1444,8 +1444,8 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   placeholder card.
   **A card with no artwork gets a silhouette, not a hole** (`STICKER_PLACEHOLDER_SRC`,
   added 2026-08-25). The dataset can always run ahead of the art - a collectible appears
-  the moment a rating crosses a `STICKER_TIERS` boundary, and eleven currently have no
-  file - and before this each of those collapsed its image box, so the album grid grew
+  the moment a rating crosses a `STICKER_TIERS` boundary, and 29 of 117 have no file as of
+  2026-08-28 - and before this each of those collapsed its image box, so the album grid grew
   gaps and the cards around them reflowed. It is a **data URI rather than a component**,
   so the three call sites (album grid, the lightbox hero, the home page's legends
   showcase) each need one line and keep their own very different layouts; they share
@@ -1460,12 +1460,20 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `StickerCard` requests (base-path-aware, lazy-loaded, `aspect-square w-full` hero
   image on collected cards). The originals average 1.3 MB against ~40 KB shipped, so
   serving them directly was ~139 MB of images for a grid of thumbnails. Re-run the
-  script after adding or replacing art; it skips unchanged files. Superseded art is
+  script after adding or replacing art; it skips unchanged files. Retired art is
   parked in `art/stickers-archive/` (also undeployed), which is where `npm run
   ratings:sync` moves the original of anyone who drops out of the bands - it deletes the
   shipped card (an orphan is a hard failure) and never the original, because a rating can
   come back up and the drawing cannot. Prefer `ratings:sync` to running this script
   directly: it is one of the five things a rating change owes.
+  **That directory is ALSO an abandoned scope, and it is worth reading before drawing
+  anything new**: 30 images predating the sync, either players who are not collectible or a
+  second rendering of a card already drawn, listed either way in its own README. **Four were
+  adopted on 2026-08-28** (Kempes 1978, Beckenbauer and Gerd Muller 1974, Rossi 1982), which
+  is the worked example of taking one: rename it to the `player.id` scheme, put it in
+  `stickers-src`, and let `ratings:sync` build the card and prune the line from
+  `art/awaiting-artwork.txt`. Check the player by EYE first - a surname in a filename is not
+  an identity, and that directory holds two Muellers.
 - **Draft integration.** `SquadPanel` marks collectibles in the drawn squad (tier star
   chip + a "collectibles in this squad" call-out); `XiTable` marks them the same way in
   the line-up sheet (tier star + a tier-coloured left accent bar on the row).
