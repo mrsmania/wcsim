@@ -44,7 +44,7 @@ den-1986-10    # Preben Elkjær, Denmark, legendary 90
 urs-1986-19    # Ihor Belanov, Soviet Union, legendary 90
 
 # 2026
-fra-2026-10    # Kylian Mbappé, France, monumental 97
+fra-2026-10    # Kylian Mbappé, France, iconic 96
 nor-2026-9     # Erling Haaland, Norway, iconic 94
 arg-2026-10    # Lionel Messi, Argentina, iconic 94
 esp-2026-16    # Rodri, Spain, iconic 93
