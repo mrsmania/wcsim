@@ -93,7 +93,7 @@ export const SQUADS: readonly Squad[] = [
     // later row is a decline number for anyone at his peak here and a target for anyone
     // young. West Germany is recorded as Germany on GER, as elsewhere. =====
     squad('BRA', 'Brazil', 1970, [
-        [1, 'Félix', ['GK'], 91],
+        [1, 'Félix', ['GK'], 81],
         [12, 'Ado', ['GK'], 72],
         [22, 'Leão', ['GK'], 79],
         [2, 'Brito', ['CB'], 81],
@@ -493,11 +493,11 @@ export const SQUADS: readonly Squad[] = [
     // number for anyone at his peak (Cruyff, Beckenbauer, Zoff, Figueroa, McGrain) and a
     // target for anyone young (Kempes and Fillol at 19 and 24, Zmuda at 20). =====
     squad('GER', 'Germany', 1974, [
-        [1, 'Sepp Maier', ['GK'], 86],
+        [1, 'Sepp Maier', ['GK'], 89],
         [21, 'Norbert Nigbur', ['GK'], 76],
         [22, 'Wolfgang Kleff', ['GK'], 76],
-        [2, 'Berti Vogts', ['RB', 'CB'], 85],
-        [3, 'Paul Breitner', ['LB', 'CM'], 85],
+        [2, 'Berti Vogts', ['RB', 'CB'], 88],
+        [3, 'Paul Breitner', ['LB', 'CM'], 87],
         [4, 'Hans-Georg Schwarzenbeck', ['CB'], 81],
         [5, 'Franz Beckenbauer', ['CB', 'DM'], 97],
         [6, 'Horst-Dieter Höttges', ['RB', 'CB'], 76],
@@ -508,11 +508,11 @@ export const SQUADS: readonly Squad[] = [
         [10, 'Günter Netzer', ['AM', 'CM'], 84],
         [12, 'Wolfgang Overath', ['AM', 'CM'], 87],
         [15, 'Heinz Flohe', ['CM', 'AM'], 79],
-        [16, 'Rainer Bonhof', ['DM', 'CM'], 82],
-        [17, 'Bernd Hölzenbein', ['LW', 'ST'], 81],
+        [16, 'Rainer Bonhof', ['DM', 'CM'], 86],
+        [17, 'Bernd Hölzenbein', ['LW', 'ST'], 85],
         [9, 'Jürgen Grabowski', ['RW', 'RM'], 83],
         [11, 'Jupp Heynckes', ['ST', 'LW'], 82],
-        [13, 'Gerd Müller', ['ST'], 90],
+        [13, 'Gerd Müller', ['ST'], 91],
         [14, 'Uli Hoeneß', ['CM', 'LW', 'ST'], 83],
         [18, 'Dieter Herzog', ['LW'], 75],
     ]),
