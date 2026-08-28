@@ -350,7 +350,7 @@ npm run preview    # serve the production build
 npm run checks     # run the characterization checks (scripts/checks.ts + scripts/checks/)
 VITE_BASE=/ npm run build      # build for a host serving from the root, e.g. the Docker image
 npm run ratings:sync       # EVERYTHING a rating change owes, in one command (see below;
-                           #   -- --accept-all / --accept=<id> / --force-art / --skip-checks)
+                           #   -- --force-art / --skip-checks)
 npm run gen:collectibles   # regenerate supabase/seed/collectibles.sql from the dataset
 npm run push:collectibles  # send that seed to the account server (needs dkr/.env, LAN/VPN;
                            #   prefix NODE_OPTIONS=--use-system-ca if it says "fetch failed"
@@ -369,8 +369,7 @@ and FIVE things downstream have to move with it - the shipped artwork both ways,
 awaiting-artwork list, the server's catalogue and the player index. Doing four of them by
 hand and forgetting the fifth broke the build twice on 2026-08-28, once for a card with no
 artwork and once for a name left on the waiting list after its rating came back down. The
-command does the four mechanical ones, reports the one that is a judgement (a new
-collectible with no artwork is REPORTED, never accepted for you - see "The waiting list"
+command does all five, names any card that is newly undrawn (see "The waiting list"
 below), and finishes by running `npm run checks`, which is the same gate CI runs before it
 deploys. It deliberately pushes NOTHING: it ends by saying whether the server's catalogue
 moved and therefore whether `npm run push:collectibles` is owed BEFORE the push to `main`
@@ -379,19 +378,23 @@ that deploys the site. The accounts feature needs a server-side copy of who is c
 from the dataset and `npm run checks` fails while the two disagree. See "Accounts" below.
 
 **The waiting list.** `art/awaiting-artwork.txt` is the cards that are collectible and not
-drawn yet, one player id a line - the allowance that used to be `KNOWN_MISSING_ART` inside
-the checks. It is a FILE because it is a worklist rather than code (the person who draws
-the cards does not read TypeScript), and `ratings:sync` rewrites it whole: it prunes a line
-whose art has arrived or whose player is no longer collectible, refreshes each note from
-the dataset, and ADDS a line only when asked with `--accept-all` or `--accept=<id>`.
-That last part is the point and should not be automated away: the check exists because the
-album shipped blank cards twice in two days without anyone noticing, one of them Maradona
-in the top tier, so shipping a silhouette has to be a decision. Generating the list from
-the ratings would leave the check passing for ever and meaning nothing. An UNREADABLE list
-is a failure rather than an empty allowance. `docs/missing-sticker-art.xlsx` is the same
-thing as a spreadsheet for whoever is drawing (`scripts/build-art-worklist.py`, needs
-`pip install openpyxl`); it carries a fingerprint of its own contents in `Summary!B5` so a
-sync with nothing to change does not rewrite a binary file.
+drawn yet, one player id a line - what used to be `KNOWN_MISSING_ART` inside the checks. It
+is **generated**: `ratings:sync` rewrites it whole from the dataset and the art on disk, so
+there is nothing to maintain and nothing to accept. **An undrawn card is not an error, and
+`npm run checks` does not fail on one** (decided 2026-08-28, after it failed a rating pass
+twice in one morning): `StickerCard` swaps a file that will not load for
+`STICKER_PLACEHOLDER_SRC`, so the card is a silhouette at the right size and no part of the
+album is broken. The real risk is a gap going UNNOTICED - which is how Maradona sat undrawn
+in the Monumental tier for two days - so the list exists as MEMORY: the sync compares it
+against the cards actually missing and NAMES the ones that appeared since last time. That
+report is the whole protection, so do not silence it. The other direction is still a hard
+failure: **art shipping for a player who is no longer collectible**, which is dead weight
+on every deploy, always cheap to delete, and also how a misnamed source file surfaces (the
+built card is named after the source, so a typo in the id lands there rather than passing).
+`docs/missing-sticker-art.xlsx` is the same list as a spreadsheet for whoever is drawing
+(`scripts/build-art-worklist.py`, needs `pip install openpyxl`); it carries a fingerprint of
+its own contents in `Summary!B5` so a sync with nothing to change does not rewrite a binary
+file and dirty the tree.
 
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
@@ -1452,8 +1455,9 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `onStickerArtError`, which swaps the src once and sets a `data-fallback` flag so a
   failure cannot loop. **The background is transparent on purpose**: the card's own
   surface shows through, which is what lets one fixed silhouette work in both themes.
-  `npm run checks` still fails on a missing file unless its id is listed in
-  `art/awaiting-artwork.txt`, so the gap stays visible rather than being papered over.
+  `npm run checks` does not fail on a missing file - the silhouette is a correct rendering,
+  not a hole - it reports the count and `npm run ratings:sync` names the new ones, which is
+  what keeps a gap from going unnoticed. See "The waiting list" above.
   **Art pipeline:** originals (full-size PNG) live in **`art/stickers-src/`**, which is
   NOT under `public/` and so is never deployed; `python scripts/build-sticker-art.py`
   resizes them to 400px-wide WebP in `public/stickers/<player.id>.webp`, which is what

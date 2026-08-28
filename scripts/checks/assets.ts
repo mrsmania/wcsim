@@ -35,41 +35,25 @@ export function assetsChecks(): void {
     );
   }
 
-  // --- Sticker art: shipped webp files match the collectible set ---------------
-  // Nothing guarded this, and it broke twice in two days while it was going unguarded: the
-  // 1986 drop created three collectibles with no artwork, and re-rating 1986 took it to six.
-  // Both times the album silently shipped text-fallback cards, one of them Maradona in the
-  // Monumental tier. `build-sticker-art.py` never consults the dataset, so a rating change
-  // that crosses a STICKER_TIERS boundary neither builds the new card nor prunes the old one.
+  // --- Sticker art: nothing ships for a player who is not collectible ---------
+  // `build-sticker-art.py` never consults the dataset, so a rating change that crosses a
+  // STICKER_TIERS boundary neither builds a new card nor prunes the one that is now dead.
   //
-  // Two directions, and one deliberate allowance:
-  //   - an ORPHAN webp (art for a player who is no longer collectible) is a hard failure;
-  //     it is dead weight shipping on every deploy and it is always cheap to delete.
-  //   - a MISSING webp (a collectible with no art) is a hard failure UNLESS the id is
-  //     listed in art/awaiting-artwork.txt. Those cards have no source image anywhere, so
-  //     the check cannot be made green by working harder - it is waiting on artwork.
-  // The allowance is itself checked: a listed id that has since gained art, or that is no
-  // longer collectible, FAILS. So the list cannot quietly become permanent debt - it
-  // shrinks as art arrives and it tells you to shrink it.
-  //
-  // The list is a FILE rather than a literal here for two reasons. It is a worklist the
-  // author maintains (and the one who draws the cards does not read TypeScript), and
-  // `npm run ratings:sync` rewrites it: that command prunes the entries a rating change
-  // has settled, and appends a new one only when asked to, so accepting a card as undrawn
-  // stays a deliberate act. An unreadable list is a FAILURE, not an empty allowance.
-  const AWAITING_ART_PATH = 'art/awaiting-artwork.txt';
-  let awaiting: Set<string> | null = null;
-  try {
-    awaiting = new Set(
-      readFileSync(AWAITING_ART_PATH, 'utf8')
-        .split(/\r?\n/)
-        .map((line) => line.replace(/#.*$/, '').trim())
-        .filter((line) => line.length > 0),
-    );
-  } catch {
-    awaiting = null;
-  }
-  const KNOWN_MISSING_ART = awaiting ?? new Set<string>();
+  // The two directions are NOT equally serious, and treating them as though they were is
+  // what made this check a nuisance (decided 2026-08-28, after it failed a rating pass
+  // twice in one morning):
+  //   - an ORPHAN webp (art for a player who is no longer collectible) is a hard FAILURE.
+  //     It is dead weight shipping on every deploy, it is always cheap to delete, and it
+  //     is also how a misnamed source file shows up - the built card is named after the
+  //     source, so a typo in the id lands here rather than passing silently.
+  //   - a MISSING webp (a collectible nobody has drawn yet) PASSES, and is reported.
+  //     `StickerCard` swaps a file that will not load for `STICKER_PLACEHOLDER_SRC`, so an
+  //     undrawn card is a silhouette at the right size rather than a hole in the grid:
+  //     nothing the player sees is broken, and a red build for a purely cosmetic gap stops
+  //     work on something else. What keeps the gap from going UNNOTICED - which is the real
+  //     risk, and how Maradona sat undrawn in the Monumental tier for two days - is
+  //     `npm run ratings:sync`: it names every newly undrawn card as it appears, records
+  //     the set in art/awaiting-artwork.txt and lists them in docs/missing-sticker-art.xlsx.
   {
     const STICKER_DIR = 'public/stickers';
     let shipped: Set<string> | null = null;
@@ -86,30 +70,20 @@ export function assetsChecks(): void {
     const ids = new Set(collectible.map((p) => p.id));
     const missing = shipped ? [...ids].filter((id) => !shipped!.has(id)) : [];
     const orphans = shipped ? [...shipped].filter((id) => !ids.has(id)) : [];
-    const unexpected = missing.filter((id) => !KNOWN_MISSING_ART.has(id));
-    // The allowance must stay honest in both directions.
-    const staleAllowed = [...KNOWN_MISSING_ART].filter(
-      (id) => !ids.has(id) || (shipped ? shipped.has(id) : false),
-    );
-    const ok =
-      shipped !== null &&
-      awaiting !== null &&
-      unexpected.length === 0 &&
-      orphans.length === 0 &&
-      staleAllowed.length === 0;
-    if (awaiting === null) console.log(`    ${AWAITING_ART_PATH} could not be read`);
-    if (unexpected.length) console.log('    collectibles with no art: ' + unexpected.join(', '));
+    // Unreadable is a failure, not an empty set: with no directory to read, "no orphans"
+    // is true of every tree and the check would be worth nothing.
+    const ok = shipped !== null && orphans.length === 0;
+    if (shipped === null) console.log(`    ${STICKER_DIR} could not be read`);
     if (orphans.length) console.log('    art with no collectible: ' + orphans.join(', '));
-    if (staleAllowed.length)
+    if (missing.length)
       console.log(
-        `    ${AWAITING_ART_PATH} is stale, drop these: ` +
-          staleAllowed.join(', ') +
-          ' (or run `npm run ratings:sync`)',
+        `    ${missing.length} collectible${missing.length === 1 ? '' : 's'} undrawn, ` +
+          'showing the silhouette (listed in art/awaiting-artwork.txt)',
       );
     check(
-      `stickers: shipped art matches the collectible set ` +
+      `stickers: nothing shipped for a non-collectible ` +
         `(${collectible.length} collectible, ${shipped?.size ?? 0} shipped, ` +
-        `${KNOWN_MISSING_ART.size} awaiting artwork)`,
+        `${missing.length} undrawn)`,
       () => ok,
     );
   }

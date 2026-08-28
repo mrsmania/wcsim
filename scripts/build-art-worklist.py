@@ -38,7 +38,7 @@ with open(SRC, encoding="utf-8") as fh:
     data = json.load(fh)
 
 cards = data["cards"]
-accepted = set(data.get("accepted", []))
+fresh = set(data.get("fresh", []))
 fingerprint = data["fingerprint"]
 
 # A spreadsheet is a zip of timestamped XML, so writing an identical one still produces a
@@ -66,7 +66,6 @@ COLUMNS = [
     ("World Cup", 12, "center"),
     ("Rating", 9, "center"),
     ("Tier", 14, "left"),
-    ("Accepted", 11, "center"),
     ("File to add", 18, "left"),
 ]
 
@@ -82,9 +81,6 @@ for i, (label, width, _align) in enumerate(COLUMNS, start=1):
     ws.column_dimensions[get_column_letter(i)].width = width
 
 for r, card in enumerate(cards, start=2):
-    # "Accepted" is the honest distinction between a gap that is known and shipping as a
-    # silhouette (it is on art/awaiting-artwork.txt) and one that is currently failing the
-    # build. Without it the sheet cannot tell the two apart, and they need different action.
     values = [
         card["name"],
         card["number"],
@@ -92,7 +88,6 @@ for r, card in enumerate(cards, start=2):
         card["year"],
         card["rating"],
         card["tier"].capitalize(),
-        "yes" if card["id"] in accepted else "NO - failing",
         f"{card['id']}.webp",
     ]
     for i, (value, (_label, _width, align)) in enumerate(zip(values, COLUMNS), start=1):
@@ -127,7 +122,6 @@ rows = [
     (6, "Collectibles in the dataset", data["collectibles"]),
     (7, "With artwork", "=B6-B8"),
     (8, "Missing (rows on the list)", f"=COUNTA({rng})"),
-    (9, "Of those, accepted as silhouettes", f"=COUNTIF('Missing art'!$G$2:$G${last},\"yes\")"),
 ]
 for row, label, value in rows:
     s.cell(row=row, column=1, value=label).font = Font(bold=(row in (6, 8)))
@@ -157,9 +151,11 @@ notes = [
     "named in B4.",
     "To draw a card: save the full-size PNG as art/stickers-src/<id>.png, where <id> is the "
     "file name in the last column minus .webp, then run `npm run ratings:sync`. It builds "
-    "the small WebP the site serves and takes the card off the waiting list.",
-    "A row saying NO in Accepted is failing the build right now: either draw it or accept "
-    "it as a silhouette with `npm run ratings:sync -- --accept-all`.",
+    "the small WebP the site serves and takes the card off the list.",
+    "Nothing here is broken or failing. A card with no artwork shows a silhouette at the "
+    "same size in the album, so this is a worklist rather than a fault list. The command "
+    "above names the cards that appeared since the last time it ran, which is how a rating "
+    "change that creates a new collectible gets noticed.",
 ]
 if twice:
     notes.append(
@@ -176,4 +172,4 @@ for note in notes:
     row += 4
 
 wb.save(OUT)
-print(f"build-art-worklist: {OUT} - {len(cards)} cards to draw, {len(accepted)} accepted")
+print(f"build-art-worklist: {OUT} - {len(cards)} cards to draw, {len(fresh)} new")

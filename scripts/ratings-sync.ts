@@ -2,30 +2,29 @@
  * One command for a rating change: sync everything the collectible album derives from it.
  *
  *     npm run ratings:sync
- *     npm run ratings:sync -- --accept-all       # accept the new cards as undrawn
- *     npm run ratings:sync -- --accept=bra-1970-8
  *     npm run ratings:sync -- --force-art        # re-encode every card
  *     npm run ratings:sync -- --skip-checks      # stop before `npm run checks`
  *
  * A rating crossing a STICKER_TIERS boundary changes who is collectible, and five things
- * downstream of that have to move together. Four of them are mechanical and this command
- * does them; the fifth is a judgement and it deliberately does not.
+ * downstream of that have to move with it. This command does all five.
  *
  *   1. Art for a player who has LEFT the bands is retired: the shipped card goes, and the
  *      original is parked in art/stickers-archive/ rather than deleted. An orphaned card
  *      is a hard failure in `npm run checks` and ships on every deploy until it goes.
  *   2. New artwork is built (`scripts/build-sticker-art.py`), which is a no-op when there
  *      is none to build.
- *   3. art/awaiting-artwork.txt is pruned: a card whose art has arrived, or whose player
- *      is no longer collectible, comes off. Both are settled facts with nothing to decide,
- *      and leaving one behind is what failed the build on 2026-08-28.
+ *   3. art/awaiting-artwork.txt is rewritten: it is the cards that are collectible and not
+ *      drawn yet, so a card whose art has arrived or whose player has left the bands comes
+ *      off, and a newly collectible one goes on.
  *   4. The server's collectible catalogue and the player index are regenerated, and the
  *      artwork worklist spreadsheet with them.
- *   5. A player who is NEWLY collectible and has no artwork is REPORTED, not accepted.
- *      That check exists because the album shipped blank cards twice in two days without
- *      anyone noticing, one of them Maradona in the top tier - so a silhouette has to be
- *      accepted out loud, with --accept-all or --accept=<id>. Generating the allowance
- *      from the ratings would make the check pass for ever and mean nothing.
+ *   5. A card that is newly undrawn is NAMED, once, as it appears. It does not fail
+ *      anything: `StickerCard` falls back to `STICKER_PLACEHOLDER_SRC`, so an undrawn card
+ *      is a silhouette at the right size and nothing the player sees is broken (decided
+ *      2026-08-28, after a red build twice in one morning for a purely cosmetic gap). The
+ *      risk being managed is a gap going UNNOTICED - which is how Maradona sat undrawn in
+ *      the Monumental tier for two days - so this command is the thing that notices, and
+ *      the list plus the spreadsheet are the record between runs.
  *
  * It does NOT push anything: `npm run push:collectibles` needs the LAN or the VPN, and
  * pushing to main deploys the site, so both stay the author's call. The command says when
@@ -63,15 +62,7 @@ const WORKLIST_SCRIPT = 'scripts/build-art-worklist.py';
 
 const args = process.argv.slice(2);
 const has = (name: string) => args.some((a) => a === `--${name}`);
-const valueOf = (name: string) =>
-  args
-    .filter((a) => a.startsWith(`--${name}=`))
-    .flatMap((a) => a.slice(name.length + 3).split(','))
-    .map((s) => s.trim())
-    .filter(Boolean);
 
-const ACCEPT_ALL = has('accept-all');
-const ACCEPT = new Set(valueOf('accept'));
 const FORCE_ART = has('force-art');
 const SKIP_CHECKS = has('skip-checks');
 
@@ -199,18 +190,13 @@ const listed = new Set(
     .filter(Boolean),
 );
 
+// The list is every undrawn card, so it needs no curating - but the difference between the
+// backlog and a card that appeared just now is the whole value of the report, and the
+// committed list is the only memory of which is which.
 const drawn = [...listed].filter((id) => shipped.has(id));
 const gone = [...listed].filter((id) => !shipped.has(id) && !cards.has(id));
-const keep = new Set([...listed].filter((id) => missing.includes(id)));
-
-const acceptable = missing.filter((id) => !keep.has(id));
-const accepted = acceptable.filter((id) => ACCEPT_ALL || ACCEPT.has(id));
-for (const id of accepted) keep.add(id);
-for (const id of ACCEPT) {
-  if (!cards.has(id)) notes.push(`--accept=${id} ignored: not a collectible player`);
-  else if (shipped.has(id)) notes.push(`--accept=${id} ignored: that card already has art`);
-}
-const pending = missing.filter((id) => !keep.has(id));
+const fresh = missing.filter((id) => !listed.has(id));
+const keep = new Set(missing);
 
 {
   const settled = [
@@ -219,7 +205,7 @@ const pending = missing.filter((id) => !keep.has(id));
   ];
   const parts = [
     settled.length ? `pruned ${settled.length}: ${settled.join(', ')}` : '',
-    accepted.length ? `accepted ${accepted.length}: ${accepted.join(', ')}` : '',
+    fresh.length ? `NEW ${fresh.length}: ${fresh.join(', ')}` : '',
   ].filter(Boolean);
   say(
     'waiting list',
@@ -237,19 +223,19 @@ const pending = missing.filter((id) => !keep.has(id));
     );
   const today = new Date().toISOString().slice(0, 10);
   const out = [
-    '# Sticker cards that are collectible and NOT DRAWN yet. One player id per line;',
-    '# everything after a # is a comment.',
+    '# GENERATED by `npm run ratings:sync` - the sticker cards that are collectible and NOT',
+    '# DRAWN yet, one player id a line. Editing it by hand is harmless and pointless: the',
+    '# next sync rewrites it from the dataset and the art on disk.',
     '#',
-    '# `npm run checks` fails on a collectible with no artwork unless it is listed here, and',
-    '# fails on a line here that has since been settled - so the list shrinks as art arrives',
-    '# and cannot quietly become permanent debt.',
-    '#',
-    '# Maintained by `npm run ratings:sync`, which prunes the settled lines and rewrites',
-    '# these notes. It adds a card only when asked (--accept-all or --accept=<id>), because',
-    '# shipping a card as a silhouette is a decision rather than a consequence.',
+    '# An undrawn card is not an error. `StickerCard` falls back to a silhouette at the same',
+    '# size, so the album has no hole in it - nothing here is failing, it is a worklist.',
+    '# What this file is FOR is memory: the sync compares it against the cards actually',
+    '# missing and names the ones that appeared since last time, which is how a rating tweak',
+    '# that creates a new collectible gets noticed at all.',
     '#',
     '# To draw one: save the full-size PNG as art/stickers-src/<id>.png (the id is the line',
-    '# below) and run `npm run ratings:sync` again.',
+    '# below) and run `npm run ratings:sync`, which builds the small WebP the site serves',
+    '# and takes the line off. docs/missing-sticker-art.xlsx is the same list to work from.',
     '#',
     `# ${rows.length} card${rows.length === 1 ? '' : 's'} of ${cards.size} collectibles, as of ${today}.`,
     '',
@@ -296,7 +282,7 @@ for (const [stage, script, path] of [
   // produces a different file and a dirty tree on every run. The fingerprint of what the
   // sheet SAYS travels inside it, and the builder skips a write that would not change it.
   const fingerprint = createHash('sha256')
-    .update(JSON.stringify({ cards: rows, accepted: [...keep].sort(), n: cards.size }))
+    .update(JSON.stringify({ cards: rows, n: cards.size }))
     .digest('hex')
     .slice(0, 16);
   const handoff = join(tmpdir(), `wcsim-art-worklist-${process.pid}.json`);
@@ -307,7 +293,7 @@ for (const [stage, script, path] of [
       commit,
       fingerprint,
       collectibles: cards.size,
-      accepted: [...keep],
+      fresh,
       cards: rows,
     }),
     'utf8',
@@ -322,19 +308,21 @@ for (const [stage, script, path] of [
   } else say('worklist', lastLine(r.out));
 }
 
-// --- The one decision this command will not make for you -------------------------------
-if (pending.length) {
+// --- The cards that appeared just now, named once --------------------------------------
+// Not a failure and not a question: the album shows them as silhouettes and the game plays
+// exactly the same. This is the one moment anybody is told they exist.
+if (fresh.length) {
   console.log(
-    `\n  DECISION NEEDED - ${pending.length} collectible card${pending.length === 1 ? ' has' : 's have'} no artwork:`,
+    `\n  NEW - ${fresh.length} collectible card${fresh.length === 1 ? ' has' : 's have'} no artwork yet:`,
   );
-  for (const id of pending) {
+  for (const id of fresh) {
     const c = cards.get(id)!;
     console.log(
       `    ${id.padEnd(14)} ${c.name.padEnd(22)} ${String(c.rating).padStart(2)}  ${c.tier.padEnd(10)} ${c.nation} ${c.year}`,
     );
   }
-  console.log(`  Draw them (save the PNG as ${SRC_DIR}/<id>.png and run this again), or ship`);
-  console.log('  them as silhouettes for now with:  npm run ratings:sync -- --accept-all');
+  console.log(`  They show the silhouette until drawn. To draw one, save the PNG as`);
+  console.log(`  ${SRC_DIR}/<id>.png and run this again.`);
 }
 
 // --- The checks, which is what CI runs before it deploys -------------------------------
@@ -366,7 +354,7 @@ if (seedMoved) {
 } else {
   console.log('  The collectible catalogue did not change, so nothing is owed to the server.');
 }
-if (!checksFailed && !pending.length) console.log('  Everything else is in step: clear to commit and push.');
+if (!checksFailed) console.log('  Everything else is in step: clear to commit and push.');
 console.log('');
 
-process.exit(checksFailed || pending.length ? 1 : 0);
+process.exit(checksFailed ? 1 : 0);
