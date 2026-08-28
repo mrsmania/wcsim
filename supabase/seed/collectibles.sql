@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 117 (82 legendary / 26 iconic / 9 monumental)
--- checksum: 8e92de322de24cd2
+-- rows: 117 (82 legendary / 28 iconic / 7 monumental)
+-- checksum: 314626589a09e594
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -93,9 +93,9 @@ values
   ('fra-2006-10', 'monumental', 97, 'Zinedine Zidane', 'fra-2006', 'FRA', 2006),
   ('fra-2018-10', 'legendary', 90, 'Kylian Mbappé', 'fra-2018', 'FRA', 2018),
   ('fra-2018-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2018', 'FRA', 2018),
-  ('fra-2022-10', 'monumental', 97, 'Kylian Mbappé', 'fra-2022', 'FRA', 2022),
+  ('fra-2022-10', 'iconic', 96, 'Kylian Mbappé', 'fra-2022', 'FRA', 2022),
   ('fra-2022-7', 'legendary', 90, 'Antoine Griezmann', 'fra-2022', 'FRA', 2022),
-  ('fra-2026-10', 'monumental', 97, 'Kylian Mbappé', 'fra-2026', 'FRA', 2026),
+  ('fra-2026-10', 'iconic', 96, 'Kylian Mbappé', 'fra-2026', 'FRA', 2026),
   ('fra-2026-7', 'legendary', 90, 'Ousmane Dembélé', 'fra-2026', 'FRA', 2026),
   ('ger-1970-13', 'iconic', 93, 'Gerd Müller', 'ger-1970', 'GER', 1970),
   ('ger-1970-4', 'legendary', 92, 'Franz Beckenbauer', 'ger-1970', 'GER', 1970),
