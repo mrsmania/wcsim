@@ -391,15 +391,33 @@ report is the whole protection, so do not silence it. The other direction is sti
 failure: **art shipping for a player who is no longer collectible**, which is dead weight
 on every deploy, always cheap to delete, and also how a misnamed source file surfaces (the
 built card is named after the source, so a typo in the id lands there rather than passing).
-`docs/missing-sticker-art.xlsx` is the same list as a spreadsheet for whoever is drawing
-(`scripts/build-art-worklist.py`, needs `pip install openpyxl`); it carries a fingerprint of
-its own contents in `Summary!B5` so a sync with nothing to change does not rewrite a binary
-file and dirty the tree.
+
+**`docs/missing-sticker-art.html` is the same list as a page for whoever is drawing**
+(`scripts/build-art-worklist.py`, python's own library and nothing else), and it carries a
+fingerprint of its own contents in an HTML comment so a sync with nothing to change does
+not rewrite it and dirty the tree. That stamp also folds in a hash of the BUILDER's source,
+because the content fingerprint knows nothing about the markup: without it, editing the
+layout leaves the page untouched and looks like an edit that did not work. **It was an xlsx
+until 2026-08-28** and HTML replaced it for three measured reasons rather than a taste:
+openpyxl writes no cached values, so every derived figure showed blank until the file had
+been opened in a spreadsheet once (and this repo is often built in a sandbox whose
+LibreOffice cannot open an xlsx at all, so the file could not even be verified after
+writing); a colour swatch is one line of CSS and a spreadsheet cannot draw one; and a diff
+now says what changed where a zip of XML said only that the bytes had moved.
+Its **shirt column comes from `art/kits.json`**, which is hand-written, keyed by SQUAD
+(`bra-1970`) rather than by nation because a nation's colours move and a card is one player
+at one tournament. Each entry carries a `confidence` of `verified` / `known` / `standard`,
+since a 2026 side's exact release is not the same class of fact as Brazil 1970, and the
+page prints it. Nothing in the app reads the file; `ratings:sync` merges it into the cards,
+which is what makes correcting a colour rewrite the page (the fingerprint is taken over the
+rows). It records shorts and socks too and the table deliberately prints only the shirt.
+`npm run checks` fails on an entry whose key is not a real squad, since that row would
+otherwise go on printing "not recorded" and say nothing.
 
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **350 checks** as of 2026-08-27. It exercises the sim, penalty
+per concern in `scripts/checks/`, **353 checks** as of 2026-08-28. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on

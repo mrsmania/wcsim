@@ -53,7 +53,7 @@ export function assetsChecks(): void {
   //     work on something else. What keeps the gap from going UNNOTICED - which is the real
   //     risk, and how Maradona sat undrawn in the Monumental tier for two days - is
   //     `npm run ratings:sync`: it names every newly undrawn card as it appears, records
-  //     the set in art/awaiting-artwork.txt and lists them in docs/missing-sticker-art.xlsx.
+  //     the set in art/awaiting-artwork.txt and lists them in docs/missing-sticker-art.html.
   {
     const STICKER_DIR = 'public/stickers';
     let shipped: Set<string> | null = null;
@@ -85,6 +85,64 @@ export function assetsChecks(): void {
         `(${collectible.length} collectible, ${shipped?.size ?? 0} shipped, ` +
         `${missing.length} undrawn)`,
       () => ok,
+    );
+  }
+
+  // --- Kit colours: art/kits.json names real squads ----------------------------
+  // What each squad wore, for whoever draws the cards, merged into the worklist page by
+  // `npm run ratings:sync`. Nothing in the app reads it and a missing squad is a legal
+  // answer (the page says "not recorded"), so the only thing worth failing on is a key
+  // that names NO squad: a typo there is invisible, since the row it was meant for simply
+  // goes on printing as unrecorded. The parse is checked too, because a file that cannot
+  // be read silently costs every colour on the page.
+  {
+    const KITS_PATH = 'art/kits.json';
+    type Part = { name?: unknown; hex?: unknown };
+    type Kit = { shirt?: Part; shorts?: Part; socks?: Part; confidence?: unknown };
+    let kits: Record<string, Kit> | null = null;
+    let players: Record<string, unknown> | null = null;
+    try {
+      const raw = JSON.parse(readFileSync(KITS_PATH, 'utf8')) as {
+        kits?: Record<string, Kit>;
+        players?: Record<string, unknown>;
+      };
+      kits = raw.kits ?? null;
+      players = raw.players ?? {};
+    } catch {
+      kits = null;
+    }
+    const ids = new Set(ALL_PLAYERS.map((p) => p.id));
+    const entries = kits ? Object.entries(kits) : [];
+    const unknownSquads = entries.filter(([squadId]) => !SQUAD_BY_ID[squadId]).map(([s]) => s);
+    // A shirt with no readable colour is the one shape that reaches the page and prints an
+    // empty box, so it is worth the same treatment as a bad key.
+    const badShirts = entries
+      .filter(([, kit]) => {
+        const hex = kit.shirt?.hex;
+        return typeof hex !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(hex);
+      })
+      .map(([squadId]) => squadId);
+    const CONFIDENCE = new Set(['verified', 'known', 'standard']);
+    const badConfidence = entries
+      .filter(([, kit]) => !CONFIDENCE.has(String(kit.confidence)))
+      .map(([squadId]) => squadId);
+    const unknownPlayers = Object.keys(players ?? {}).filter((id) => !ids.has(id));
+    if (unknownSquads.length) console.log('    kits: no such squad: ' + unknownSquads.join(', '));
+    if (badShirts.length) console.log('    kits: unreadable shirt colour: ' + badShirts.join(', '));
+    if (badConfidence.length)
+      console.log('    kits: confidence must be verified/known/standard: ' + badConfidence.join(', '));
+    if (unknownPlayers.length)
+      console.log('    kits: no such player: ' + unknownPlayers.join(', '));
+    check(
+      `kits: ${KITS_PATH} names real squads and readable colours (${entries.length} squads)`,
+      () =>
+        // Non-empty is the vacuity guard: an unreadable or emptied file would otherwise
+        // pass every assertion below by having nothing to assert.
+        entries.length > 0 &&
+        unknownSquads.length === 0 &&
+        badShirts.length === 0 &&
+        badConfidence.length === 0 &&
+        unknownPlayers.length === 0,
     );
   }
 

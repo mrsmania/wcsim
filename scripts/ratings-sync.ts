@@ -17,21 +17,22 @@
  *      drawn yet, so a card whose art has arrived or whose player has left the bands comes
  *      off, and a newly collectible one goes on.
  *   4. The server's collectible catalogue and the player index are regenerated, and the
- *      artwork worklist spreadsheet with them.
+ *      artwork worklist page with them (docs/missing-sticker-art.html, which also carries
+ *      the shirt each squad wore, from art/kits.json).
  *   5. A card that is newly undrawn is NAMED, once, as it appears. It does not fail
  *      anything: `StickerCard` falls back to `STICKER_PLACEHOLDER_SRC`, so an undrawn card
  *      is a silhouette at the right size and nothing the player sees is broken (decided
  *      2026-08-28, after a red build twice in one morning for a purely cosmetic gap). The
  *      risk being managed is a gap going UNNOTICED - which is how Maradona sat undrawn in
  *      the Monumental tier for two days - so this command is the thing that notices, and
- *      the list plus the spreadsheet are the record between runs.
+ *      the list plus the page are the record between runs.
  *
  * It does NOT push anything: `npm run push:collectibles` needs the LAN or the VPN, and
  * pushing to main deploys the site, so both stay the author's call. The command says when
  * the catalogue has moved and therefore when the push is owed.
  *
- * Requires python + Pillow for step 2 (and openpyxl for the spreadsheet); it reports a
- * missing one and carries on rather than failing.
+ * Requires python + Pillow for step 2; it reports a missing one and carries on rather than
+ * failing. The worklist page needs nothing but python's own library.
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -56,7 +57,8 @@ const ARCHIVE_DIR = 'art/stickers-archive';
 const LIST_PATH = 'art/awaiting-artwork.txt';
 const SEED_PATH = 'supabase/seed/collectibles.sql';
 const INDEX_PATH = 'docs/players.html';
-const WORKLIST_PATH = 'docs/missing-sticker-art.xlsx';
+const WORKLIST_PATH = 'docs/missing-sticker-art.html';
+const KITS_PATH = 'art/kits.json';
 const ART_SCRIPT = 'scripts/build-sticker-art.py';
 const WORKLIST_SCRIPT = 'scripts/build-art-worklist.py';
 
@@ -110,7 +112,35 @@ type Card = {
   year: number;
   rating: number;
   tier: StickerTier;
+  /** The shirt, shorts and socks of that squad at that tournament, from art/kits.json, or
+   *  undefined where nobody has recorded them. Merged in HERE rather than read by the
+   *  builder, so editing a colour moves the worklist's fingerprint and rewrites the page. */
+  kit?: Kit;
 };
+// --- What each squad wore -----------------------------------------------------------------
+// Hand-written, because no part of the dataset knows a colour: the game draws a flag and a
+// name, and only the person drawing a card needs a shirt. Missing is a legal answer and the
+// page prints it as one; a key that is not a real squad fails `npm run checks`.
+type Kit = {
+  shirt?: { name: string; hex: string };
+  shorts?: { name: string; hex: string };
+  socks?: { name: string; hex: string };
+  confidence?: string;
+  note?: string;
+};
+let kits: Record<string, Kit> = {};
+let kitPlayerNotes: Record<string, string> = {};
+try {
+  const raw = JSON.parse(readFileSync(KITS_PATH, 'utf8')) as {
+    kits?: Record<string, Kit>;
+    players?: Record<string, string>;
+  };
+  kits = raw.kits ?? {};
+  kitPlayerNotes = raw.players ?? {};
+} catch (err) {
+  notes.push(`${KITS_PATH} not read (${(err as Error).message}), so no kit colours`);
+}
+
 const cards = new Map<string, Card>();
 for (const p of collectiblePlayers(ALL_PLAYERS)) {
   const tier = tierOf(p);
@@ -124,6 +154,7 @@ for (const p of collectiblePlayers(ALL_PLAYERS)) {
     year: squad.year,
     rating: p.elo,
     tier,
+    kit: kits[p.squadId],
   });
 }
 const TIER_ORDER: StickerTier[] = ['monumental', 'iconic', 'legendary'];
@@ -271,16 +302,17 @@ for (const [stage, script, path] of [
   say(stage, `${summary}${moved ? '  CHANGED' : '  unchanged'}`);
 }
 
-// The worklist spreadsheet is every card still to draw, listed or not, so it never reads as
-// a shorter list than the album shows gaps for.
+// The worklist page is every card still to draw, listed or not, so it never reads as a
+// shorter list than the album shows gaps for.
 {
   const rows = missing
     .map((id) => cards.get(id)!)
     .sort((a, b) => tierRank(a.tier) - tierRank(b.tier) || b.rating - a.rating || a.year - b.year);
   const commit = run('git', ['rev-parse', '--short', 'HEAD']).out.trim().split(/\r?\n/)[0] ?? '';
-  // A spreadsheet is a zip of XML with timestamps in it, so writing an identical one still
-  // produces a different file and a dirty tree on every run. The fingerprint of what the
-  // sheet SAYS travels inside it, and the builder skips a write that would not change it.
+  // The fingerprint of what the page SAYS travels inside it, and the builder skips a write
+  // that would not change it - so a sync with nothing to report does not rewrite the date
+  // and the commit into a dirty tree. It covers the kit colours too, since they are on the
+  // rows: correcting one in art/kits.json therefore does refresh the page.
   const fingerprint = createHash('sha256')
     .update(JSON.stringify({ cards: rows, n: cards.size }))
     .digest('hex')
@@ -294,6 +326,7 @@ for (const [stage, script, path] of [
       fingerprint,
       collectibles: cards.size,
       fresh,
+      playerNotes: kitPlayerNotes,
       cards: rows,
     }),
     'utf8',
