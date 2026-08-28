@@ -3,8 +3,8 @@
 -- Regenerate with `npm run gen:collectibles` after any rating or tier change;
 -- `npm run checks` fails while this file and the dataset disagree.
 --
--- rows: 115 (81 legendary / 25 iconic / 9 monumental)
--- checksum: ce6ef9eb2c71d633
+-- rows: 118 (83 legendary / 26 iconic / 9 monumental)
+-- checksum: b1913aca7505e639
 --
 -- Idempotent: upserts the catalogue, and marks anything no longer collectible as
 -- inactive rather than deleting it, so a sticker somebody already owns keeps its
@@ -41,8 +41,11 @@ values
   ('bel-2022-1', 'iconic', 93, 'Thibaut Courtois', 'bel-2022', 'BEL', 2022),
   ('bel-2022-7', 'iconic', 94, 'Kevin De Bruyne', 'bel-2022', 'BEL', 2022),
   ('bel-2026-1', 'legendary', 90, 'Thibaut Courtois', 'bel-2026', 'BEL', 2026),
+  ('bra-1970-1', 'legendary', 91, 'Félix', 'bra-1970', 'BRA', 1970),
   ('bra-1970-10', 'monumental', 99, 'Pelé', 'bra-1970', 'BRA', 1970),
-  ('bra-1970-7', 'legendary', 91, 'Jairzinho', 'bra-1970', 'BRA', 1970),
+  ('bra-1970-11', 'legendary', 90, 'Rivellino', 'bra-1970', 'BRA', 1970),
+  ('bra-1970-7', 'iconic', 94, 'Jairzinho', 'bra-1970', 'BRA', 1970),
+  ('bra-1970-8', 'legendary', 92, 'Gérson', 'bra-1970', 'BRA', 1970),
   ('bra-1982-10', 'legendary', 90, 'Zico', 'bra-1982', 'BRA', 1982),
   ('bra-1994-11', 'iconic', 96, 'Romário', 'bra-1994', 'BRA', 1994),
   ('bra-1994-7', 'legendary', 90, 'Bebeto', 'bra-1994', 'BRA', 1994),
