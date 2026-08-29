@@ -10,33 +10,8 @@
 #
 # To draw one: save the full-size PNG as art/stickers-src/<id>.png (the id is the line
 # below) and run `npm run ratings:sync`, which builds the small WebP the site serves
-# and takes the line off. docs/missing-sticker-art.xlsx is the same list to work from.
+# and takes the line off. docs/missing-sticker-art.html is the same list to work from,
+# with the drawing prompt for each card on a button.
 #
-# 15 cards of 115 collectibles, as of 2026-08-28.
+# 0 cards of 115 collectibles, as of 2026-08-29.
 
-# 1970
-eng-1970-6     # Bobby Moore, England, legendary 90
-
-# 1974
-ned-1974-13    # Johan Neeskens, Netherlands, legendary 90
-pol-1974-12    # Kazimierz Deyna, Poland, legendary 90
-
-# 1978
-ned-1978-12    # Rob Rensenbrink, Netherlands, legendary 90
-
-# 1982
-fra-1982-12    # Alain Giresse, France, legendary 92
-fra-1982-10    # Michel Platini, France, legendary 91
-ger-1982-11    # Karl-Heinz Rummenigge, Germany, legendary 90
-pol-1982-20    # Zbigniew Boniek, Poland, legendary 90
-bra-1982-10    # Zico, Brazil, legendary 90
-
-# 1986
-fra-1986-10    # Michel Platini, France, legendary 90
-esp-1986-9     # Emilio Butragueño, Spain, legendary 90
-eng-1986-10    # Gary Lineker, England, legendary 90
-den-1986-10    # Preben Elkjær, Denmark, legendary 90
-urs-1986-19    # Ihor Belanov, Soviet Union, legendary 90
-
-# 2026
-arg-2026-10    # Lionel Messi, Argentina, iconic 94
