@@ -335,7 +335,7 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-26<br>
+    <strong>Updated:</strong> 2026-08-29<br>
     <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
@@ -353,18 +353,14 @@
   <summary>
     <span class="num">43</span>
     <span class="title">Redeploy the versus server for the public lobby
-      <span class="sub">Wave 8 of item 18 added a public room list, the liveness rules that keep
-      it clean, and the win/loss record. <b>No database change at all</b> - every column it
-      reads was added by the first versus migration with its purpose written beside it and no
-      caller yet. What it does need is the <b>versus server container rebuilt and redeployed</b>,
-      because the app now asks it for the room list and the deployed build has no such answer.
-      Until then the list shows nothing rather than breaking, and a public room is invisible to
-      everyone but its host. <b>It also carries the fix for a reported bug</b>: leaving a room
-      used to leave the seat taken, so opening another was refused for a minute and a half.
-      <b>And it now carries the fix for a bug the first attempt at this deploy exposed</b>,
-      which had broken versus outright: two columns the room reader needs were not being
-      asked for, so the server could open a room and then fail on every single thing done to
-      it afterwards. Needs the NAS, so a cloud session cannot do it.</span>
+      <span class="sub"><b>THE SERVER IS DEPLOYED AND CURRENT as of 2026-08-29</b>, second
+      rebuild done, so the public room list, the Leave button releasing your seat, and the
+      five-minute window before an idle lobby seat is cleared are all live. <b>All that is
+      left is the browser pass</b>: two accounts on two devices, a public room found and
+      joined without the code, a friends-only room staying hidden, and a phone left to sleep
+      in a lobby keeping its seat. That cannot be done from a shell, so it stays with the
+      owner. Everything below is the record of how it got here, including the two deploys and
+      the three ways the first one went wrong.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -400,7 +396,8 @@
     "How to know it worked"), which needs two accounts and cannot be done from a shell. It
     took three attempts and each one is written up here, because two of the three were the
     verification lying rather than the deploy failing.</p>
-    <p><strong>ONE MORE DEPLOY IS NEEDED, and it is a reported bug rather than a wave.</strong>
+    <p><strong>THE SECOND DEPLOY IS DONE, 2026-08-29, and it was a reported bug rather than a
+    wave.</strong>
     The first time a room was tested from a phone, the host was thrown out of the room he had
     opened: he made a room of four on the phone, joined it from a laptop as the second player,
     and the phone slept while he did, and ninety seconds later the rule that clears abandoned
@@ -411,10 +408,17 @@
     spared. <b>The window is five minutes now</b>, the app checks in the instant a tab comes
     back so a phone woken inside that window never reaches it at all, and a dropped player is
     told what happened instead of being told that a private room is invisible until you are in
-    it, of a room they opened themselves. The two app-side halves ship with the site on their
-    own; <b>the five minutes needs the server rebuilt</b>, because the sweeper is what reads
-    it. So: run the three deploy stages again, then check that a phone left to sleep for two
-    or three minutes in a lobby still has its seat when you pick it up.</p>
+    it, of a room they opened themselves. The two app-side halves shipped with the site on
+    their own; the five minutes needed the server rebuilt, because the sweeper is what reads
+    it. <b>Rebuilt and restarted 2026-08-29</b> from a clean tree, and the running container
+    was read back to confirm it carries the five-minute figure rather than the old ninety
+    seconds. All five verification steps pass again, so a room can be created, read back,
+    changed and saved. Nothing was copied and no password was needed: the three staged config
+    files on the NAS were already byte-identical to this checkout, since the wave changed one
+    number in the code and nothing about the deployment. <b>The firewall rules survived this
+    one</b>, checked from outside straight afterwards, so there was no outage to heal. What is
+    left to check by hand is that a phone left to sleep for two or three minutes in a lobby
+    still has its seat when you pick it up.</p>
     <p><strong>The first attempt at this deploy failed, and the fix is in the same rebuild.</strong>
     It went up cleanly and then logged <code>sweep failed</code> against one room once a
     second for ever. Two columns the room reader reads were missing from the two queries that
