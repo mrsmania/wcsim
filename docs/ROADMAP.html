@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-29<br>
-    <strong>Open:</strong> 5 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -348,6 +348,62 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
+
+<details class="item">
+  <summary>
+    <span class="num">45</span>
+    <span class="title">Turn the practice opponents on: one migration, one redeploy
+      <span class="sub"><b>The code is written, checked and pushed; the feature is dark until
+      the NAS is touched.</b> A host can fill the empty chairs of a room of four or eight with
+      practice opponents that build their own strong XI, so a tournament can be played without
+      waiting for eight people. It needs <b>migration 0019</b> applied and the <b>versus server
+      rebuilt</b>, in that order, and neither can be done from a cloud session. Until then the
+      button is on screen and answers "the versus server does not recognise what this page
+      asked it for" - everything else about versus is unaffected.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What to do, in this order.</strong> The order is the standing rule and it is
+    load-bearing here: an old server against the new schema is harmless (it never reads the
+    new table, and the new column defaults to zero), while a new server against the old schema
+    fails on the first write of a room with a practice opponent in it.</p>
+    <ol>
+      <li><b>Rehearse the migration.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0019_pvp_bots.sql</code> needs no credentials; then send the body
+      inside a <code>begin; ... rollback;</code> with the checks from the file's own header, so
+      the post-migration state is exercised against real data and nothing is left behind. That
+      is what turned "this looks wrong" into a reproduced failure for 0014.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0019_pvp_bots.sql</code>,
+      then re-run the same probes.</li>
+      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
+      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
+    </ol>
+    <p><strong>How to know it worked.</strong> Open a room of four from one account. The lobby
+    offers "Nobody else coming?" with chips for one, two or three opponents; pick three and
+    Start goes live. The seat list shows three of them with a small robot mark, and each plays
+    a real team - at $110 they field an XI rated about 83, where the best possible is 84 and a
+    team the clock builds for an absent player is 75. Then, from a second account, join that
+    room while the chairs are filled: <b>a person always takes a practice opponent's chair
+    rather than being refused</b>. Finally check that beating one does <b>not</b> move your
+    record on the versus page, which is the whole reason the match rows carry a count of them.</p>
+    <p><strong>What the migration does.</strong> Adds a table for the practice opponents, adds
+    one column to the match table saying how many of the two sides were one, drops four
+    foreign keys that a seat with no account cannot satisfy (replacing what they were for with
+    a trigger, so deleting an account still takes its matches with it), and restates the
+    records view so a tie with a practice opponent in it is not counted. Its header carries the
+    verification steps and a complete rollback, and both parse under the real Postgres grammar.</p>
+    <p><strong>If it goes wrong.</strong> The rollback block in the file is complete and in
+    order. Note the one-way door in it: re-adding the dropped foreign keys fails if a room has
+    already played a tie against a practice opponent, which is correct rather than a fault -
+    delete those rooms first, or keep the migration.</p>
+    <p><strong>Why this is an item at all.</strong> The same standing rule item 43 states: a
+    change that cannot be applied by the session that wrote it gets an item saying what to do,
+    how to check it and how to undo it, so the apply can be handed to somebody with the access.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0019_pvp_bots.sql" target="_blank" rel="noopener">supabase/migrations/0019_pvp_bots.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
 
 <details class="item">
   <summary>

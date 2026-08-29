@@ -88,6 +88,7 @@ const CODES: Record<string, { text: string; deployment?: boolean }> = {
     'bad-room': { text: 'The versus server would not accept those room settings.' },
     'bad-formation': { text: 'The versus server would not accept that formation.' },
     'bad-size': { text: 'The versus server would not accept that room size.' },
+    'bad-bots': { text: 'The versus server would not accept that many practice opponents.' },
     'bad-ordinal': { text: 'That pick arrived out of order. The board will catch up in a moment.' },
     'unknown-player': {
         text: 'The versus server has never heard of that player, which means it is carrying a different set of squads from this page.',

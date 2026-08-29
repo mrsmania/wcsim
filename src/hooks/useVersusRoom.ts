@@ -11,6 +11,7 @@ import {
     rerollDeal,
     resizeRoom,
     seen,
+    setRoomBots,
     setLineup as postLineup,
     startRoom,
     submitPick,
@@ -81,6 +82,8 @@ export interface VersusRoom {
     start: () => Promise<void>;
     /** The host playing with fewer than the room was opened for (P7). */
     resize: (size: number) => Promise<void>;
+    /** The host filling the empty chairs with practice opponents, as a TARGET count. */
+    setBots: (count: number) => Promise<void>;
     /** Give up your seat. A no-op on the server once the room has started (your XI plays
      *  on), so the caller may always send it. */
     leave: () => Promise<void>;
@@ -276,6 +279,10 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         (size: number) => command(() => resizeRoom(code, size)),
         [code, command],
     );
+    const setBots = useCallback(
+        (count: number) => command(() => setRoomBots(code, count)),
+        [code, command],
+    );
     const leave = useCallback(() => command(() => leaveRoom(code)), [code, command]);
     const join = useCallback(() => command(() => joinRoom(code)), [code, command]);
     const reroll = useCallback(() => command(() => rerollDeal(code)), [code, command]);
@@ -314,6 +321,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         ready,
         start,
         resize,
+        setBots,
         leave,
         join,
         reroll,

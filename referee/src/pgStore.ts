@@ -19,9 +19,10 @@
 
 import type { Pool, PoolClient } from 'pg';
 import type { PvpRoom } from '../../src/domain/pvpRoom';
-import { createRoom } from '../../src/domain/pvpRoom';
+import { createRoom, humansIn } from '../../src/domain/pvpRoom';
 import {
   atOf,
+  botWrites,
   dealWrites,
   matchWrites,
   memberWrites,
@@ -29,6 +30,7 @@ import {
   msOrNull,
   pickWrites,
   roomFromRows,
+  type BotRow,
   type DealRow,
   type MatchRow,
   type MemberRow,
@@ -65,6 +67,11 @@ export function pgStore(pool: Pool): RoomStore {
           where m.room_id = $1`,
       [id],
     );
+    const bots = await db.query<BotRow>(
+      `select bot_id, seat, name, formation_name, style, out_in, xi
+         from pvp_bots where room_id = $1`,
+      [id],
+    );
     const deals = await db.query<DealRow>(
       `select user_id, dealt_seq, squad_id from pvp_deals where room_id = $1`,
       [id],
@@ -84,6 +91,7 @@ export function pgStore(pool: Pool): RoomStore {
       room: roomFromRows({
         room: row,
         members: members.rows,
+        bots: bots.rows,
         deals: deals.rows,
         picks: picks.rows,
         matches: matches.rows,
@@ -140,6 +148,28 @@ export function pgStore(pool: Pool): RoomStore {
       );
     }
 
+    // The practice opponents (migration 0019), the same shape as the member write above
+    // and for the same reason: a seat that is no longer in the room has to go before the
+    // upserts, or the seat number it still holds collides under `unique (room_id, seat)` -
+    // which is exactly what a person taking a bot's chair does.
+    const bots = botWrites(room);
+    await db.query(`delete from pvp_bots where room_id = $1 and not (bot_id = any($2::uuid[]))`, [
+      id,
+      bots.map((b) => b.botId),
+    ]);
+    for (const b of bots) {
+      await db.query(
+        `insert into pvp_bots
+           (room_id, bot_id, seat, name, formation_name, style, out_in, xi)
+         values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb)
+         on conflict (room_id, bot_id) do update set
+           seat = excluded.seat, name = excluded.name,
+           formation_name = excluded.formation_name, style = excluded.style,
+           out_in = excluded.out_in, xi = excluded.xi`,
+        [id, b.botId, b.seat, b.name, b.formationName, b.style, b.outIn, JSON.stringify(b.xi)],
+      );
+    }
+
     for (const d of dealWrites(room)) {
       await db.query(
         `insert into pvp_deals (room_id, user_id, dealt_seq, squad_id)
@@ -165,7 +195,7 @@ export function pgStore(pool: Pool): RoomStore {
     // statement per member rather than one clever one over the whole room: a statement that
     // ERRORS inside a transaction poisons every statement after it, so a "try the neat
     // version and fall back" would take the whole save down rather than degrade.
-    for (const m of room.members) {
+    for (const m of humansIn(room)) {
       const keep = picks.filter((p) => p.userId === m.userId).map((p) => p.slotId);
       await db.query(
         `delete from pvp_picks where room_id = $1 and user_id = $2 and not (slot_id = any($3))`,
@@ -178,13 +208,14 @@ export function pgStore(pool: Pool): RoomStore {
         `insert into pvp_matches
            (room_id, round, game, home_id, away_id, home_goals, away_goals, decided,
             events, pens, stoppage, winner_id, reveal_from, reveal_ms,
-            room_visibility, room_size, loser_auto_picks)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17)
+            room_visibility, room_size, loser_auto_picks, bot_sides)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18)
          on conflict (room_id, round, game) do nothing`,
         [
           id, x.round, x.game, x.homeId, x.awayId, x.homeGoals, x.awayGoals, x.decided,
           JSON.stringify(x.events), x.pens ? JSON.stringify(x.pens) : null, x.stoppage,
           x.winnerId, x.revealFrom, x.revealMs, x.roomVisibility, x.roomSize, x.loserAutoPicks,
+          x.botSides,
         ],
       );
     }
@@ -300,10 +331,15 @@ export function pgStore(pool: Pool): RoomStore {
         show_ratings: boolean;
         host_name: string | null;
         created_at: Date | string;
+        bots: string;
       }>(
+        // `seated` counts PEOPLE and `bots` the chairs the host filled, because a bot yields
+        // its seat to anybody who turns up (`joinRoom`): folding the two together would
+        // print "Full" over a room that is open.
         `select r.code, r.size, r.method, r.budget, r.pick_seconds, r.rerolls,
                 r.show_ratings, r.created_at, p.display_name as host_name,
-                (select count(*) from pvp_members m where m.room_id = r.id) as seated
+                (select count(*) from pvp_members m where m.room_id = r.id) as seated,
+                (select count(*) from pvp_bots b where b.room_id = r.id) as bots
            from pvp_rooms r join profiles p on p.id = r.host_id
           where r.visibility = 'public' and r.status = 'lobby'
           order by r.created_at desc
@@ -314,6 +350,7 @@ export function pgStore(pool: Pool): RoomStore {
         code: x.code,
         size: x.size,
         seated: Number(x.seated),
+        bots: Number(x.bots),
         method: x.method,
         budget: x.budget,
         pickSeconds: x.pick_seconds,

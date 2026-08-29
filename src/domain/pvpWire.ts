@@ -37,6 +37,10 @@ export interface MemberView {
    *  starts, when it stops being a secret worth keeping. */
   formationName: string | null;
   style: string | null;
+  /** A practice opponent the host seated rather than a person (`domain/pvpBot.ts`). The
+   *  screens mark the seat; nothing else has to care, because a bot is a member in every
+   *  other way. Absent from a referee that predates them, hence the `?? false` on read. */
+  bot?: boolean;
 }
 
 export interface TieView {
@@ -70,8 +74,14 @@ export interface TieView {
 export interface LobbyRoom {
   code: string;
   size: number;
-  /** Seats taken. `size - seated` is what the row actually says. */
+  /** PEOPLE seated. `size - seated` is what the row actually says, and a chair the host
+   *  filled with a practice opponent is not one of them: a newcomer takes a bot's seat
+   *  rather than being refused (`joinRoom`), so counting bots here would print "Full" over
+   *  a room anybody can walk into. */
   seated: number;
+  /** How many practice opponents are holding the other chairs, so the row can say what
+   *  turning up would mean. Absent from a referee that predates them: read it as `?? 0`. */
+  bots?: number;
   method: 'roll' | 'budget';
   budget: number;
   pickSeconds: number;

@@ -52,6 +52,40 @@ export function othersIn(view: RoomView): MemberView[] {
 export const memberOf = (view: RoomView, userId: string): MemberView | null =>
     view.members.find((m) => m.userId === userId) ?? null;
 
+/** The people in the room, as opposed to the chairs the host filled with practice
+ *  opponents. The lobby counts these when it says how full the room is: a bot yields its
+ *  seat to anybody who turns up (`joinRoom`), so counting one as taken would be a lie in
+ *  the direction that turns people away. */
+export const peopleIn = (view: RoomView): MemberView[] => view.members.filter((m) => !m.bot);
+
+/** The practice opponents (`domain/pvpBot.ts`), newest seat last. */
+export const botsIn = (view: RoomView): MemberView[] => view.members.filter((m) => m.bot);
+
+// --- Inviting somebody (the code, and the link) ----------------------------
+
+/**
+ * The link that puts somebody in this room.
+ *
+ * IT IS A LINK RATHER THAN JUST THE CODE because the code is a thing you read out and a
+ * link is a thing you send, and sending is what actually happens: a room is opened and then
+ * pasted into a message. Arriving on it takes the seat with no further step (`RoomScreen`),
+ * so the whole invitation is one tap at both ends.
+ *
+ * `base` is Vite's, which is `/wcsim/` on GitHub Pages and `/` in dev, so the link works
+ * from wherever the build is actually served rather than from wherever it was written. The
+ * two arguments are passed in rather than read off `window` here, because this file is
+ * `domain/`: it is checked, and a check has no window.
+ */
+export function inviteUrl(origin: string, base: string, code: string): string {
+    const path = base.endsWith('/') ? base : `${base}/`;
+    return `${origin.replace(/\/+$/, '')}${path}versus/${code}`;
+}
+
+/** What a share sheet sends: a sentence, then the link. The code is in the sentence too,
+ *  because a message can be read aloud and a link cannot. */
+export const inviteText = (code: string, url: string): string =>
+    `Play me at Mondialino. Room ${code}: ${url}`;
+
 /** The tie the viewer is playing in a given round, or null. */
 export function tieOf(view: RoomView, round: number, userId: string): TieView | null {
     return (
@@ -398,10 +432,15 @@ export function spectateTie(view: RoomView): TieView | null {
  */
 export function lobbyLine(room: LobbyRoom): string {
     const clock = `${room.pickSeconds}s a pick`;
-    if (room.method === 'budget') return `Buy an XI with $${room.budget}, ${clock}`;
+    // The practice opponents, when there are any: it changes what turning up means, since
+    // the room can start the moment you arrive and one of your ties may be against a seat
+    // rather than a person. Taken as zero from a referee that predates them.
+    const bots = room.bots ?? 0;
+    const practice = bots ? `, ${bots} practice opponent${bots === 1 ? '' : 's'}` : '';
+    if (room.method === 'budget') return `Buy an XI with $${room.budget}, ${clock}${practice}`;
     const rr = room.rerolls === 1 ? '1 re-roll' : `${room.rerolls} re-rolls`;
     const hidden = room.showRatings ? '' : ', ratings hidden';
-    return `Roll for your XI, ${rr}, ${clock}${hidden}`;
+    return `Roll for your XI, ${rr}, ${clock}${hidden}${practice}`;
 }
 
 /** How many seats are still open, and how that reads. A row whose room filled while you

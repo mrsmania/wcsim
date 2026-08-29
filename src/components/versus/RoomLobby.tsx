@@ -8,11 +8,17 @@ import {
     type Style,
 } from '../../domain/formations';
 import { ROOM_SIZES } from '../../domain/pvpRoom';
-import { roundsFor } from '../../domain/pvpView';
+import { botsIn, inviteUrl, peopleIn, roundsFor } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import type { VersusRoom } from '../../hooks/useVersusRoom';
 import { CARD, CHIP_OFF, CHIP_ON, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
-import { ReadyMark, ReportName, RoomCode, RoomNote, SeatRow } from './versusUi';
+import { InviteRoom, ReadyMark, ReportName, RoomNote, SeatRow } from './versusUi';
+
+/** Where this build is being served from, for the invite link. Read here rather than
+ *  inside `inviteUrl`, which is `domain/` and has no window - and defaulted so a checks
+ *  harness or a server render cannot throw on it. */
+const origin = (): string => (typeof window === 'undefined' ? '' : window.location.origin);
+const base = (): string => import.meta.env.BASE_URL;
 
 // The lobby: who is here, what shape you are playing, and the host's Start.
 //
@@ -48,6 +54,12 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const smaller = isHost
         ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length)
         : [];
+    // The practice opponents, and the counts the host may choose between: every chair no
+    // PERSON is sitting in, which is the same bound `setBots` enforces. Offering a number
+    // the referee would refuse is the same mistake as offering a size it would refuse.
+    const bots = botsIn(view);
+    const freeSeats = view.size - peopleIn(view).length;
+    const botCounts = Array.from({ length: freeSeats + 1 }, (_, i) => i);
 
     /**
      * THE SHAPE IS SENT THE MOMENT IT IS PICKED, and that is what removed a button.
@@ -126,13 +138,13 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
             </div>
 
             <div className={`${CARD} p-4`}>
-                <div className={MONO_CAP}>Room code</div>
+                <div className={MONO_CAP}>Invite somebody</div>
                 <div className="mt-1.5">
-                    <RoomCode code={view.code} />
+                    <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
                 </div>
                 <RoomNote>
                     {view.visibility === 'private'
-                        ? 'Private. Send it to whoever you want to play.'
+                        ? 'Private. The link puts them straight in; nobody else can find it.'
                         : 'Public: it is on the list too, so anybody signed in can join.'}
                 </RoomNote>
 
@@ -149,9 +161,11 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                             detail={
                                 <span className="flex items-center gap-2.5">
                                     <ReadyMark ready={m.ready} />
-                                    {/* Not for yourself, and only in the lobby: this is
-                                        where you first read a stranger's name (P22). */}
-                                    {m.userId !== view.you?.userId && (
+                                    {/* Not for yourself, not for a seat the host filled,
+                                        and only in the lobby: this is where you first read
+                                        a STRANGER's name (P22), and a practice opponent is
+                                        not a stranger - it is named by this build. */}
+                                    {!m.bot && m.userId !== view.you?.userId && (
                                         <ReportName userId={m.userId} name={m.name} />
                                     )}
                                 </span>
@@ -159,6 +173,40 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                         />
                     ))}
                 </ul>
+
+                {/* PRACTICE OPPONENTS (`domain/pvpBot.ts`). The one thing a room of eight
+                    cannot do for itself is find eight people, and P7's play-it-smaller only
+                    answers half of that: dropping to two is a different evening from the
+                    tournament the host opened. Filling the chairs is the other half, and it
+                    is deliberately not automatic - "shall we just play?" is the host's call.
+                    A seat given up here is given back the moment somebody arrives, since a
+                    person joining a full room takes the newest bot's chair. */}
+                {isHost && freeSeats > 0 && (
+                    <>
+                        <div className={`${MONO_CAP} mt-4`}>Nobody else coming?</div>
+                        <RoomNote>
+                            Fill the empty chairs and start now. They build their own XI out
+                            of the same pool, spend nearly all the money, and play to win.
+                        </RoomNote>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                            {botCounts.map((n) => (
+                                <button
+                                    key={n}
+                                    disabled={busy}
+                                    className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${
+                                        n === bots.length ? CHIP_ON : CHIP_OFF
+                                    }`}
+                                    onClick={() => {
+                                        setBusy(true);
+                                        void room.setBots(n).finally(() => setBusy(false));
+                                    }}
+                                >
+                                    {n === 0 ? 'None' : `${n} opponent${n === 1 ? '' : 's'}`}
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                )}
 
                 {smaller.length > 0 && (
                     <>

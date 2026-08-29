@@ -16,6 +16,8 @@ import {
   REVEAL_JOIN_MS,
   agoLine,
   gamesIn,
+  inviteText,
+  inviteUrl,
   lobbyJoinable,
   lobbyLine,
   seatsLine,
@@ -537,6 +539,20 @@ export function pvpViewChecks(): void {
       () => `${lobbyLine(budget)} | ${lobbyLine(roll)}`,
     );
     check(
+      'pvpView: a row says how many chairs the host filled with practice opponents, and none is silent',
+      () =>
+        // It changes what turning up MEANS - the room can start the moment you arrive, and
+        // one of your ties may be against a seat rather than a person.
+        lobbyLine({ ...budget, bots: 2 }) === 'Buy an XI with $110, 20s a pick, 2 practice opponents' &&
+        lobbyLine({ ...budget, bots: 1 }) === 'Buy an XI with $110, 20s a pick, 1 practice opponent' &&
+        lobbyLine({ ...roll, bots: 1 }).endsWith(', 1 practice opponent') &&
+        // Zero says nothing, and so does a referee too old to have sent the field at all -
+        // which is the state the deployment is actually in until the container is rebuilt.
+        lobbyLine({ ...budget, bots: 0 }) === lobbyLine(budget) &&
+        !lobbyLine(budget).includes('practice'),
+      () => lobbyLine({ ...budget, bots: 2 }),
+    );
+    check(
       'pvpView: a row counts the seats LEFT, and a room that filled says Full rather than offering a join',
       () =>
         seatsLine(budget) === '2 of 4 seats left' &&
@@ -576,6 +592,31 @@ export function pvpViewChecks(): void {
         roomLine({ ...room, championId: AWAY }) === 'finished' &&
         roomLine({ ...room, championId: HOME }) === 'you won',
       () => roomLine(room),
+    );
+  }
+
+  // --- The invitation ------------------------------------------------------
+  // A room is opened and then PASTED INTO A MESSAGE, so the link is the invitation and the
+  // code is what you say out loud. The base path is the thing to get wrong: this build is
+  // served from `/wcsim/` on GitHub Pages and from `/` in the Docker image, and a link that
+  // hardcoded either would be dead from the other.
+  {
+    check(
+      'pvpView: an invite link lands on the room, under whichever base path this build is served from',
+      () =>
+        inviteUrl('https://x.github.io', '/wcsim/', 'AB12CD') ===
+          'https://x.github.io/wcsim/versus/AB12CD' &&
+        inviteUrl('https://play.example', '/', 'AB12CD') ===
+          'https://play.example/versus/AB12CD' &&
+        // A base without its trailing slash, and an origin with one, are both survivable:
+        // the two come from different places (Vite, and the browser) and only one of them
+        // promises a shape.
+        inviteUrl('https://x.dev/', '/wcsim', 'AB12CD') === 'https://x.dev/wcsim/versus/AB12CD' &&
+        // The text carries the code as well, because a message gets read aloud and a link
+        // does not.
+        inviteText('AB12CD', 'https://x.dev/versus/AB12CD').includes('AB12CD') &&
+        inviteText('AB12CD', 'https://x.dev/versus/AB12CD').includes('https://x.dev/versus/AB12CD'),
+      () => inviteUrl('https://x.github.io', '/wcsim/', 'AB12CD'),
     );
   }
 

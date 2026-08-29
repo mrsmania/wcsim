@@ -2780,6 +2780,15 @@ than a screen, and they have their own roadmap item. The clock is therefore the 
 pick window ends early. Everything else the plan locks is live: every setting the referee
 accepts is reachable from the create form, which is checked.
 
+**THE PRACTICE OPPONENTS ARE WRITTEN AND DARK** (2026-08-29, **roadmap item 45**). A host can
+fill the empty chairs of a room of four or eight with bots that build their own strong XI, so
+a tournament can be played without eight people; it needs **migration 0019 applied and the
+referee rebuilt**, in that order, and neither can be done from a cloud session. Until then the
+control is on screen and answers "the versus server does not recognise what this page asked it
+for". `PVP_PROTOCOL` was deliberately **not** bumped: the change is additive (an old referee
+simply never creates a bot), and bumping would take the whole of Versus down for a button. See
+"Practice opponents" below.
+
 **THE SERVER IS DEPLOYED THROUGH WAVE 8 AND THE SCHEMA IS AT 0018** (referee redeployed and
 verified 2026-08-27, roadmap item 43). Wave 8 needed **no migration at all**: every column it
 reads was written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
@@ -2898,8 +2907,29 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
   the identity.
 - **A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT.** Reading one you are not in answers
   "no such room" rather than "not allowed", so a code cannot be confirmed by probing - which
-  means arriving with a code and being told there is no room is the NORMAL first step, and
-  the answer to it is a Join button. Do not "fix" that 404.
+  means arriving with a code and being told there is no room is the NORMAL first step. Do
+  not "fix" that 404: it is not an error, it is the read that triggers the join below.
+- **ARRIVING AT A ROOM IS TAKING THE SEAT** (2026-08-29). There is ONE door. `RoomScreen`
+  sends the join as soon as the first read comes back, and what is left on that screen is
+  the moment in between and the reason it did not work. There used to be two gates and they
+  were the same gate: "Take your seat" for a code that answered 404, and "Join the room" for
+  a public room you could already see - both showing a room you had chosen to open and
+  asking you to confirm you meant it, which is a question with one answer, since the only
+  ways to arrive are typing the code, tapping a lobby row and following an invitation link.
+  Two things keep it honest: a ref fires the join **once per room**, because a refused join
+  (full, started, already in another room) leaves the read failing exactly as it was and
+  without the guard it would resend every two seconds; and that ref is **cleared on
+  success**, so a seat lost LATER to the liveness sweep is taken again the same way rather
+  than leaving the screen on "one moment" for ever.
+- **THE INVITATION IS A LINK, and Share is the phone's own sheet.** A room is opened and then
+  pasted into a message, so the lobby offers Copy link and (where the browser has
+  `navigator.share`) Share, which opens the system share sheet rather than a menu of ours -
+  the destinations are the ones already on the person's phone and nothing here has to know
+  what they are. The code stays beside it because it is what gets read out loud. `inviteUrl`
+  (domain/pvpView) builds the link from Vite's own base, so it works from `/wcsim/` and from
+  the Docker image's `/` alike, and the copy has an `execCommand` fallback because
+  `navigator.clipboard` is absent over plain http - which is exactly how the NAS serves this
+  on a LAN.
 
 **A COLUMN THE ROW MAPPER READS AND THE QUERY DOES NOT ASK FOR IS A SILENT DISASTER, and it
 reached production** (2026-08-27, found by the first wave-8 deploy). `referee/src/rows.ts`
@@ -2991,6 +3021,47 @@ flag, which is the HOST's - sharing it made Start flicker disabled on every chip
 
 **THE BUTTONS ARE `btn(tone, size)` AND THERE ARE NO OTHERS** - see "Buttons and contrast"
 near the end of this file, which is where the whole rule lives now.
+
+**PRACTICE OPPONENTS: the host can fill the empty chairs** (P49, `domain/pvpBot.ts`,
+2026-08-29). The one thing a room of eight cannot do for itself is find eight people, and
+P7's play-it-smaller answers only half of that - dropping to two is a different evening from
+the tournament the host opened. Four rules make a bot a SEAT rather than a player, and each
+one is a lifecycle rule re-read as being about people rather than about chairs:
+
+- **A BOT NEVER KEEPS A HUMAN OUT.** Somebody arriving at a full room takes the newest bot's
+  chair (`joinRoom`), so filling up is a decision the host can make early and unmake by doing
+  nothing. The public listing therefore counts PEOPLE as `seated` and the bots apart:
+  folding them together prints "Full" over a room anybody can walk into.
+- **A BOT CANNOT HOLD A ROOM OPEN.** A lobby whose last human leaves closes, however many
+  chairs are filled (`withoutMembers` tests for a human, not for a member) - or a host who
+  walked away would leave three robots holding a listed room for fifteen minutes. It also
+  cannot be swept out for silence (there is no tab to hear from) and cannot be promoted to
+  host (it cannot press Start, so the room could never begin).
+- **IT IS NOT THE AUTO-PICK, and that is the point.** The expired-window fallback is random
+  BY DESIGN (P21), so a bot that drafted like one would be a free win in every round it
+  appeared - worse than the empty room it exists to fix. `botXi` builds near the best XI its
+  money can buy, at the kick-off, in one step: a **Lagrangian** search (an exchange rate for
+  a rating point, bisected onto the budget) rather than a greedy fill, which commits its
+  money slot by slot in an order it cannot revisit and overpays for whichever position it
+  shops first. A roll room's bot takes the best man from each of eleven rolled squads.
+- **`BOT_SPEND` (0.95) IS THE ONLY DIFFICULTY KNOB.** Measured at $110 over a 4-3-3: the
+  best XI the whole budget can buy rates **84.0**, a bot rates **83.0**, it beats the XI an
+  expired clock builds (75.4) **80%** of ties and the transfer market's own one-tap
+  Auto-fill (80.5) **57%**. The check asserts the CONSTANT as well as the spend, because
+  measuring a spend against the number that produced it passes happily when that number is
+  mutated to 1 - the one edit that makes every room unwinnable.
+
+**A BOT CANNOT BE A `pvp_members` ROW**, and that is the whole of migration **0019**:
+`user_id` is a foreign key into `profiles`, which is one into `auth.users`. Giving bots real
+accounts (rows in a table GoTrue owns and lists) and relaxing the key for every member were
+both rejected, so bots get their own table with their XI as one jsonb slot map - it was
+built in one step and has no ordinal, window or landing time to record. The same key sits on
+`pvp_matches.home_id`/`away_id`/`winner_id` and `pvp_rooms.champion_id`, and a bot plays ties
+and can win a room, so those four are dropped and a trigger does what they were for (deleting
+an account still takes its matches). `pvp_matches.bot_sides` counts them per tie and
+**`pvp_records` excludes any tie with one in it**, or a room of seven bots would be three
+wins for turning up; `finals` still reads every match, or a final played against a bot would
+promote the semi into "rooms won".
 
 **A ROOM NOBODY IS IN CLOSES ITSELF, and the sweeper that does it is the pick clock's**
 (P31). Closing a tab fires no reliable event, so leaving is OBSERVED rather than announced:

@@ -85,6 +85,7 @@ in rather than a missing feature.
 | P48 | Readying up | **You pick your formation and style, then press Ready**, and the lobby shows who has. The plan previously had no gate at all between choosing a shape and the host pressing Start, so a host could start on a player who had chosen nothing and the plan never said what that player got. **Ready is a signal, not a lock**: once the room is full the host may start whenever they like, and anyone not ready is given a default formation and style. Nobody can hold a room hostage by wandering off, and it needs no second clock. A player who readies may still change their shape until the start |
 | P25 | Chemistry | **OFF inside a room** (2026-08-26). Measured: the same eleven players with the full bonus beat themselves without it **73.2%** of the time, because `userGroupTeam` adds it to attack AND defence, both of which the sim reads. In the single-player game that is a nudge helping a patchwork XI close on an intact national side, which is what it exists for. In a room both sides are patchwork, so it stops being a nudge and becomes the game, and it is a pure knowledge check: eleven men from one squad reach the cap, while **400 naively auto-filled XIs never reached it once** (0 to 5, most often 1). A versus match is the two numbers the sim reads and nothing else |
 | P26 | The defence-stacking meta | **Accepted as skill, not designed against** (2026-08-26). See section 11 for the measurement and for exactly what is being accepted. No minimum spend per line, no formation restriction |
+| P49 | Not enough people | **The host may fill the empty chairs with practice opponents** (2026-08-29, roadmap item 45). P7's play-it-smaller answers half of "a room of eight will not fill" and stops there, because dropping to two is a different evening from the tournament the host opened; this is the other half. Four rules make it a seat rather than a player: a bot **never keeps a person out** (somebody arriving at a full room takes the newest bot's chair), a bot **cannot hold a room open** (a lobby whose last human leaves closes, however many chairs are filled), a bot **cannot be host** and cannot be swept out for silence, and a tie with a bot in it is **excluded from `pvp_records`**, so a room full of them is not a record. It **builds a team worth playing** rather than drafting like an expired clock, which is deliberately random (P21) and would make a bot a free win: near the best XI its money can buy, minus `BOT_SPEND`. Measured at $110: the optimum rates 84.0, a bot rates 83.0, it beats the expired-window XI **80%** of the time and the transfer market's own one-tap auto-fill **57%**. It needs its own table (`pvp_bots`, migration 0019) because `pvp_members.user_id` is a foreign key into `profiles` and a bot has no account |
 | P27 | Can two players pick the same man? | **Yes. The room pool is shared, not exclusive.** It is the only version compatible with eleven independent clocks (P12): under exclusivity two players claim the same man in overlapping windows and somebody has to be told no, which makes a fast connection an advantage. Named here as a decision rather than left as an assumption, because exclusivity is the largest single lever available if the mode ever plays flat |
 
 ### The draft
@@ -406,6 +407,41 @@ Every question this document raised was answered before building started. Buildi
 opened exactly one - the career budget - and it was settled by deletion on 2026-08-27; it is
 kept below as the record of a decision rather than as a question. Wave 3 also found five
 things worth recording.
+
+### Found while building the practice opponents (2026-08-29, P49)
+
+- **A BOT CANNOT BE A `pvp_members` ROW**, and that is the whole shape of the change.
+  `user_id` is a foreign key into `profiles`, which is a foreign key into `auth.users`, so
+  the three ways to seat one were: give bots real accounts (rows in a table GoTrue owns and
+  lists - rejected outright), relax the key for every member so a few of them could be
+  nobody (rejected: it is the constraint that stops a room seating a user id that does not
+  exist), or give bots their own table. Migration 0019 is the third. The same key sits on
+  `pvp_matches.home_id`, `away_id` and `winner_id` and on `pvp_rooms.champion_id`, and a bot
+  plays ties and can win a room - so those four go, and a trigger does what they were
+  actually for (deleting an account still takes its matches with it).
+- **NOT THE AUTO-PICK, AND THAT IS THE POINT.** The obvious implementation is the thing the
+  expired pick window already does, and it is exactly wrong: `autoPick` is random BY DESIGN
+  (P21), so that a clock running out is a punishment. A bot that drafted that way would be a
+  free win in every round it appeared, which is worse than the empty room it exists to fix.
+  It rates 75.4 against a real bot's 83.0 and loses 80% of ties to it.
+- **THE SEARCH IS A LAGRANGIAN, NOT A GREEDY FILL.** A greedy fill commits its money slot by
+  slot in an order it cannot revisit, so it reliably overpays for whichever position it shops
+  first. Instead: an exchange rate for a rating point, each slot independently taking whoever
+  maximises `elo - lambda * price`, and thirty steps of bisection on lambda to land on the
+  budget. It has no slot order at all, which is also the only reason the order is randomised
+  - two slots can want the same multi-position player, and whoever asks first gets him, so
+  randomising it is what makes two bots in one room different teams.
+- **`BOT_SPEND` IS THE ONLY DIFFICULTY KNOB, and the check has to assert the CONSTANT.** The
+  first version measured the spend against `BOT_SPEND` and passed happily when `BOT_SPEND`
+  was mutated to 1 - the one edit that turns every practice opponent into the strongest XI
+  the money can buy. Measuring a thing against the number that produced it is not a check.
+- **THE LOBBY RULES ARE ABOUT PEOPLE, NOT SEATS**, and every one of them had to be re-read
+  that way: a lobby closes when the last HUMAN leaves (or a host who walks away leaves three
+  robots holding a listed room for fifteen minutes), the host promotion skips bots (a bot
+  cannot press Start, so a room it hosted could never begin), the liveness sweep skips them
+  (there is no tab to hear from), and the public listing counts people and chairs apart (a
+  bot yields its seat, so folding them together prints "Full" over a room anybody can walk
+  into).
 
 ### Accepted, with the measurement: the mode is low-scoring at the top (P25, P26)
 

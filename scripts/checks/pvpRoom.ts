@@ -10,11 +10,25 @@
 // clock lengths; and a request bearing the anon key is refused.
 
 import { check, withSeed } from './harness';
-import { roomPlayers, roomSquads, validateXi, type RoomRules } from '../../src/domain/pvp';
+import type { Player } from '../../src/data/types';
+import {
+  autoCompleteXi,
+  pvpTeam,
+  roomPlayers,
+  roomSquads,
+  validateXi,
+  type RoomRules,
+} from '../../src/domain/pvp';
+import { BOT_SPEND, botXi } from '../../src/domain/pvpBot';
 import type { Filled } from '../../src/domain/draft';
 import { FORMATIONS_DATA, STYLES, getFormation } from '../../src/domain/formations';
+import { resolveKoTie } from '../../src/domain/knockout';
+import { xiStrength } from '../../src/domain/match';
 import { verifyCaller } from '../../src/domain/pvpAuth';
 import {
+  botsIn,
+  humansIn,
+  setBots,
   DRAFT_SLACK_MS,
   LOBBY_IDLE_MS,
   leaveRoom,
@@ -922,6 +936,251 @@ export function pvpRoomChecks(): void {
           leaveRoom(roomOf(4, BUDGET), 'nobody', T0 + 1000) instanceof Object &&
           leaveRoom(roomOf(2, BUDGET), 'nobody', T0 + 1000).members.length === 2,
         () => `drafting ${leaveRoom(drafting, 'u2', T0 + 1000) === drafting}`,
+      );
+    });
+  }
+
+  botChecks();
+}
+/**
+ * The bot rules (`domain/pvpBot.ts`, roadmap item 45).
+ *
+ * TWO CLAIMS ARE WORTH MORE THAN THE REST OF THIS BLOCK PUT TOGETHER, and both are
+ * measurements rather than assertions about the code:
+ *
+ *   * A PRACTICE OPPONENT IS NOT THE AUTO-PICK. The expired-window fallback is random by
+ *     decision (P21), so a bot that drafted like one would be a free win in every round it
+ *     appeared - which is worse than the empty room it exists to fix. The tie is played,
+ *     both ways, thousands of times.
+ *   * IT DOES NOT SPEND EVERYTHING EITHER. `BOT_SPEND` is the whole handicap and it is
+ *     easy to lose: any change that stops the search reserving it leaves the strongest XI
+ *     the money can buy sitting in every room, and nothing else would notice.
+ *
+ * The rest is the lifecycle, and every one of those was a way for a bot to break a rule
+ * P31 states about people: holding a lobby open after everybody left, being promoted to
+ * host, being swept out for silence, or keeping a person from taking a seat.
+ */
+function botChecks(): void {
+  /** Predictable ids, in the shape the database wants. */
+  const botIds = (): (() => string) => {
+    let n = 0;
+    return () => `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}`;
+  };
+
+  /** A lobby of `size` with `humans` people in it and nothing else. */
+  function lobbyOf(size: RoomSize, rules: RoomRules, humans: number): PvpRoom {
+    let room = createRoom({
+      id: 'r1',
+      code: 'BOT123',
+      hostId: 'u0',
+      hostName: 'Host',
+      visibility: 'private',
+      size,
+      rules,
+      pickSeconds: 20,
+      hostBudget: rules.budget,
+      now: T0,
+    });
+    for (let i = 1; i < humans; i++) {
+      room = joinRoom(room, { userId: `u${i}`, name: `P${i}`, budget: rules.budget }, T0).room;
+    }
+    return room;
+  }
+
+  // --- The team it turns up with -------------------------------------------
+  {
+    withSeed(4401, () => {
+      const legal: boolean[] = [];
+      const spends: number[] = [];
+      for (let i = 0; i < 12; i++) {
+        for (const rules of [BUDGET, ROLL]) {
+          const lobby = setBots(lobbyOf(2, rules, 1), 'u0', 1, T0, botIds());
+          const started = startRoom(lobby, 'u0', T0);
+          const bot = botsIn(started)[0]!;
+          const xi = started.xi[bot.userId] ?? {};
+          const verdict = validateXi(formationOf(bot), xi, rules);
+          legal.push(verdict.ok);
+          if (rules.method === 'budget') spends.push(verdict.cost / rules.budget);
+        }
+      }
+      const worst = Math.min(...spends);
+      const most = Math.max(...spends);
+      const mean = spends.reduce((a, b) => a + b, 0) / spends.length;
+      console.log(
+        `  practice opponents: budget spent ${(mean * 100).toFixed(1)}% of the room's money ` +
+          `(${(worst * 100).toFixed(1)} to ${(most * 100).toFixed(1)}), cap ${BOT_SPEND * 100}%`,
+      );
+      check(
+        `bot: all ${legal.length} teams are legal and complete under the room's own rules`,
+        // Vacuity: it built some, in both kinds of room, and `validateXi` is the same
+        // judgement a submitted XI gets - an incomplete one fails on `empty-slot`.
+        () => legal.length === 24 && legal.every(Boolean),
+        () => `${legal.filter((x) => !x).length} of ${legal.length} refused`,
+      );
+      check(
+        'bot: a budget bot spends nearly all of BOT_SPEND, and never a dollar past it',
+        () =>
+          spends.length === 12 &&
+          // THE HANDICAP IS THE CONSTANT ITSELF, so it is asserted rather than only read:
+          // measuring the spend against `BOT_SPEND` alone cannot notice `BOT_SPEND` being
+          // set to 1, which is the one edit that turns every practice opponent into the
+          // strongest XI the money can buy.
+          BOT_SPEND < 1 &&
+          BOT_SPEND >= 0.85 &&
+          most <= BOT_SPEND &&
+          // Nearly all of it: the bisection lands under the cap and the leftover pass
+          // spends what is left, so anything much below this means one of the two stopped
+          // working and nothing else would say so.
+          worst >= BOT_SPEND - 0.06,
+        () => `spent ${(worst * 100).toFixed(1)}% to ${(most * 100).toFixed(1)}%`,
+      );
+    });
+  }
+
+  // --- Not cannon fodder, and not unbeatable either -------------------------
+  {
+    withSeed(4402, () => {
+      const f = getFormation('4-3-3', 'bal')!;
+      const rules = BUDGET;
+      let botWins = 0;
+      let overBot = 0;
+      let overAuto = 0;
+      const TIES = 240;
+      for (let i = 0; i < TIES; i++) {
+        const bot = botXi(rules, f);
+        // The expired-window fallback: what a player who does nothing at all ends up with
+        // (P21, deliberately random). This is the thing a bot must not be.
+        const idle = autoCompleteXi(f, {}, rules, { remaining: rules.budget });
+        const side = (filled: Filled, id: string) =>
+          pvpTeam({
+            id,
+            name: id,
+            code: id.slice(0, 3).toUpperCase(),
+            players: f.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p),
+          });
+        const result = resolveKoTie(side(bot, 'bot'), side(idle, 'idle'));
+        if (result.homeWon) botWins++;
+        overBot += xiStrength(
+          f.slots.map((s) => bot[s.id]).filter((p): p is Player => !!p),
+        ).overall;
+        overAuto += xiStrength(
+          f.slots.map((s) => idle[s.id]).filter((p): p is Player => !!p),
+        ).overall;
+      }
+      const rate = botWins / TIES;
+      console.log(
+        `  practice opponents: beat the expired-window XI ${(rate * 100).toFixed(1)}% of ` +
+          `${TIES} ties, rated ${(overBot / TIES).toFixed(1)} against ${(overAuto / TIES).toFixed(1)}`,
+      );
+      check(
+        'bot: a practice opponent beats the XI an expired clock would build, decisively',
+        // A ceiling as well as a floor. The floor is the point of the feature; the ceiling
+        // is the reason `BOT_SPEND` exists, and a bot winning every single tie would mean
+        // the handicap had stopped being applied rather than that the search got better.
+        () => rate > 0.75 && rate < 1,
+        () => `${(rate * 100).toFixed(1)}% of ${TIES}`,
+      );
+    });
+  }
+
+  // --- A bot never keeps a person out ---------------------------------------
+  {
+    const full = setBots(lobbyOf(4, BUDGET, 2), 'u0', 2, T0, botIds());
+    const joined = joinRoom(full, { userId: 'u9', name: 'Late', budget: 110 }, T0 + 1000);
+    // And when there is no bot to give up a chair, a full room is still full.
+    const people = roomOf(4, BUDGET);
+    check(
+      'bot: somebody arriving at a full room takes a BOT’s seat, never a person’s',
+      () =>
+        // Vacuity: the room really was full, and of four seats two were bots.
+        full.members.length === 4 &&
+        botsIn(full).length === 2 &&
+        joined.outcome === 'ok' &&
+        joined.room.members.length === 4 &&
+        botsIn(joined.room).length === 1 &&
+        humansIn(joined.room).length === 3 &&
+        // Nobody who was already sitting there moved.
+        ['u0', 'u1'].every((id) => joined.room.members.some((m) => m.userId === id)) &&
+        joinRoom(people, { userId: 'u9', name: 'Late', budget: 110 }, T0).outcome === 'full',
+      () => `${joined.outcome}, ${botsIn(joined.room).length} bots left`,
+    );
+  }
+
+  // --- Who may ask for them, and how many -----------------------------------
+  {
+    const lobby = lobbyOf(4, BUDGET, 2);
+    const two = setBots(lobby, 'u0', 2, T0, botIds());
+    check(
+      'bot: only the host seats them, only into free chairs, and a repeated request is a no-op',
+      () =>
+        two.members.length === 4 &&
+        // Not a guest's to ask for.
+        setBots(lobby, 'u1', 2, T0, botIds()) === lobby &&
+        // Never more than the empty chairs, and never a negative number of them.
+        setBots(lobby, 'u0', 3, T0, botIds()) === lobby &&
+        setBots(lobby, 'u0', -1, T0, botIds()) === lobby &&
+        // Idempotent: the same target twice changes nothing, which is what makes it safe
+        // to send again on a flaky link (P36's reasoning, applied to a second command).
+        setBots(two, 'u0', 2, T0, botIds()).members.length === 4 &&
+        // And it steps back down, newest chair first.
+        botsIn(setBots(two, 'u0', 1, T0, botIds())).length === 1 &&
+        botsIn(setBots(two, 'u0', 0, T0, botIds())).length === 0 &&
+        // Not once the football has started.
+        setBots(startRoom(two, 'u0', T0), 'u0', 0, T0, botIds()).members.length === 4,
+      () => `${two.members.length} seated, ${botsIn(two).length} of them bots`,
+    );
+  }
+
+  // --- The lifecycle rules a bot must not break -----------------------------
+  {
+    const lobby = setBots(lobbyOf(4, BUDGET, 2), 'u0', 2, T0, botIds());
+    // Everybody's phone slept. A bot has no phone, so the sweep must not take it - and
+    // must not leave the room open on the strength of it either.
+    const swept = tickRoom(lobby, GONE);
+    // The host alone goes: the other person is still here, so the room lives on with them.
+    const hostGone = leaveRoom(lobby, 'u0', T0 + 1000);
+    // Both people go: four seats are still filled and the room is over anyway.
+    const empty = leaveRoom(hostGone, 'u1', T0 + 2000);
+    check(
+      'bot: a bot cannot be swept out, cannot become host, and cannot hold a room open',
+      () =>
+        // A LOBBY WITH NOBODY IN IT IS OVER, however many chairs are filled. Without this
+        // a host who walked away would leave a room of three robots listed as joinable
+        // until `LOBBY_IDLE_MS`.
+        roomClosed(swept) &&
+        roomClosed(empty) &&
+        // Vacuity: with a person still there the same rule keeps the room AND the bots.
+        hostGone.status === 'lobby' &&
+        hostGone.hostId === 'u1' &&
+        botsIn(hostGone).length === 2 &&
+        // The promotion skipped both bots even though one holds an earlier seat than
+        // nobody - a bot cannot press Start, so a room it hosted could never begin.
+        !hostGone.members.find((m) => m.userId === hostGone.hostId)?.bot,
+      () => `swept ${swept.status}, host ${hostGone.hostId}, empty ${empty.status}`,
+    );
+  }
+
+  // --- A room that is mostly practice still plays ---------------------------
+  {
+    withSeed(4403, () => {
+      const lobby = setBots(lobbyOf(4, BUDGET, 1), 'u0', 3, T0, botIds());
+      const started = startRoom(lobby, 'u0', T0);
+      const { room: done } = runToEnd(started);
+      const champion = done.members.find((m) => m.userId === done.championId);
+      check(
+        'bot: one person and three practice opponents play a whole room out to a champion',
+        () =>
+          // The bots are ready to play the moment the room starts and never take a window,
+          // so the only clock in the room is the person's.
+          botsIn(started).every((m) => !started.windows[m.userId] && xiComplete(started, m)) &&
+          started.windows['u0'] !== undefined &&
+          done.status === 'ended' &&
+          !roomClosed(done) &&
+          !!champion &&
+          // Two rounds, four seats, three of them beaten.
+          done.ties.length === 3 &&
+          done.members.filter((m) => m.outIn !== undefined).length === 3,
+        () => `${done.status}, champion ${champion?.name ?? 'none'}, ${done.ties.length} ties`,
       );
     });
   }

@@ -233,6 +233,17 @@ export const leaveRoom = (code: string): Promise<RoomView> =>
 export const resizeRoom = (code: string, size: number): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/size`, { size });
 
+/**
+ * How many practice opponents sit in this room (`domain/pvpBot.ts`).
+ *
+ * A TARGET rather than "add one", so a tap that arrives twice over a flaky link fills the
+ * room once - the same idempotence the pick ordinal has (P36). The host only, and only
+ * into seats nobody is sitting in: the referee refuses anything else by answering with the
+ * room unchanged, exactly as it does for a resize it will not make.
+ */
+export const setRoomBots = (code: string, count: number): Promise<RoomView> =>
+    call('POST', `/v1/rooms/${code}/bots`, { count });
+
 /** What the referee said about a pick. `late` and `illegal` are distinct because they
  *  mean different things to a player: one is "the clock beat you", the other is "that was
  *  not a legal move". Either way the room comes back, so the board reconciles. */

@@ -22,6 +22,7 @@ import type { FormationName, Style } from '../../src/domain/formations';
 import type { KoDecided } from '../../src/domain/knockout';
 import type { MatchEvent } from '../../src/domain/match';
 import type { ShootoutResult } from '../../src/domain/match';
+import { botsIn, humansIn } from '../../src/domain/pvpRoom';
 import type {
   PickRecord,
   PickSeconds,
@@ -72,6 +73,28 @@ export interface MemberRow {
   style: string | null;
 }
 
+/**
+ * A practice opponent (migration 0019), which is a member of the room and NOT a row of
+ * `pvp_members`.
+ *
+ * The reason is one column: `pvp_members.user_id` is a foreign key into `profiles`, and a
+ * bot has no account to point at. Relaxing that key for every member so that a few of them
+ * could be nobody is the wrong trade - it is the constraint that stops a room seating a
+ * user id that does not exist - so a bot gets its own table, and its XI travels as one
+ * jsonb column rather than as eleven `pvp_picks` rows for the same reason.
+ */
+export interface BotRow {
+  bot_id: string;
+  seat: number;
+  name: string;
+  formation_name: string;
+  style: string;
+  out_in: number | null;
+  /** slotId -> player id. Empty until the host starts the room, which is when a bot's team
+   *  is built (`domain/pvpBot.ts`). */
+  xi: Record<string, string> | null;
+}
+
 export interface DealRow {
   user_id: string;
   dealt_seq: number;
@@ -107,6 +130,7 @@ export interface MatchRow {
 export interface RoomRows {
   room: RoomRow;
   members: MemberRow[];
+  bots: BotRow[];
   deals: DealRow[];
   picks: PickRow[];
   matches: MatchRow[];
@@ -186,9 +210,19 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
     };
   }
 
-  const members: RoomMember[] = [...rows.members]
-    .sort((a, b) => a.seat - b.seat)
-    .map((m) => ({
+  // A bot's XI is one jsonb column rather than eleven pick rows, so it is resolved here.
+  // Same rule as a pick: an id the dataset does not hold is dropped rather than faked.
+  for (const b of rows.bots) {
+    xi[b.bot_id] = {};
+    picks[b.bot_id] = {};
+    for (const [slotId, playerId] of Object.entries(b.xi ?? {})) {
+      const player = datasetPlayer(playerId);
+      if (player) xi[b.bot_id]![slotId] = player;
+    }
+  }
+
+  const members: RoomMember[] = [
+    ...rows.members.map((m) => ({
       userId: m.user_id,
       seat: m.seat,
       name: m.display_name ?? '',
@@ -199,7 +233,27 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
       rerollsUsed: m.rerolls_used,
       lastSeen: msOf(m.last_seen),
       ...(m.out_in === null ? {} : { outIn: m.out_in }),
-    }));
+    })),
+    ...rows.bots.map((b) => ({
+      userId: b.bot_id,
+      seat: b.seat,
+      name: b.name,
+      // Ready and never otherwise: there is nobody to press it, and a seat that read as
+      // "choosing" would leave the host waiting on a robot.
+      ready: true,
+      formationName: b.formation_name as FormationName,
+      style: b.style as Style,
+      budget: r.method === 'budget' ? r.budget : 0,
+      rerollsUsed: 0,
+      // NEVER SEEN, and it has no column: `lastSeen` answers "has this person's tab said
+      // anything lately", and there is no tab. `tickLobby` skips bots for exactly that
+      // reason, so nothing reads this - storing a plausible-looking time would only invite
+      // something to.
+      lastSeen: 0,
+      bot: true,
+      ...(b.out_in === null ? {} : { outIn: b.out_in }),
+    })),
+  ].sort((a, b) => a.seat - b.seat);
 
   const windows: PvpRoom['windows'] = {};
   for (const m of rows.members) {
@@ -280,7 +334,10 @@ export function memberWrites(room: PvpRoom): {
    *  not update this column; it is here for the reader and for the round-trip check. */
   lastSeen: string;
 }[] {
-  return room.members.map((m) => {
+  // PEOPLE ONLY. A practice opponent has no `profiles` row to point `user_id` at, so it is
+  // written to `pvp_bots` by `botWrites` instead; writing one here is a foreign-key
+  // violation that takes the whole save down with it.
+  return humansIn(room).map((m) => {
     const w = room.windows[m.userId];
     return {
       userId: m.userId,
@@ -310,7 +367,11 @@ export function pickWrites(room: PvpRoom): {
   automatic: boolean;
 }[] {
   const out = [];
+  const bots = new Set(botsIn(room).map((m) => m.userId));
   for (const [userId, slots] of Object.entries(room.xi)) {
+    // A bot's XI rides in its own row (`botWrites`), for the foreign-key reason above -
+    // and it is not a series of picks anyway: it was built in one go at the kick-off.
+    if (bots.has(userId)) continue;
     for (const [slotId, player] of Object.entries(slots)) {
       if (!player) continue;
       const rec = room.picks[userId]?.[slotId];
@@ -332,11 +393,41 @@ export function pickWrites(room: PvpRoom): {
   return out;
 }
 
-/** Every deal, in the order they were dealt. */
+/** Every deal, in the order they were dealt. Bots have none: a practice opponent in a roll
+ *  room rolls its whole team at the kick-off rather than being dealt one squad at a time,
+ *  so there is nothing per-window to record. */
 export function dealWrites(room: PvpRoom): { userId: string; seq: number; squadId: string }[] {
-  return Object.entries(room.deals).flatMap(([userId, squads]) =>
-    squads.map((squadId, i) => ({ userId, seq: i + 1, squadId })),
-  );
+  const bots = new Set(botsIn(room).map((m) => m.userId));
+  return Object.entries(room.deals)
+    .filter(([userId]) => !bots.has(userId))
+    .flatMap(([userId, squads]) => squads.map((squadId, i) => ({ userId, seq: i + 1, squadId })));
+}
+
+/** The practice opponents, as their own rows. The XI is a slot map of player IDS, like the
+ *  wire and unlike `pvp_picks`: nothing about a bot's team needs an ordinal, a window or a
+ *  landing time, because it was not drafted. */
+export function botWrites(room: PvpRoom): {
+  botId: string;
+  seat: number;
+  name: string;
+  formationName: string;
+  style: string;
+  outIn: number | null;
+  xi: Record<string, string>;
+}[] {
+  return botsIn(room).map((m) => ({
+    botId: m.userId,
+    seat: m.seat,
+    name: m.name,
+    formationName: m.formationName,
+    style: m.style,
+    outIn: m.outIn ?? null,
+    xi: Object.fromEntries(
+      Object.entries(room.xi[m.userId] ?? {})
+        .filter(([, p]) => !!p)
+        .map(([slotId, p]) => [slotId, p!.id]),
+    ),
+  }));
 }
 
 /**
@@ -394,6 +485,15 @@ export function rowsFromRoom(
       formation_name: m.formationName,
       style: m.style,
     })),
+    bots: botWrites(room).map((b) => ({
+      bot_id: b.botId,
+      seat: b.seat,
+      name: b.name,
+      formation_name: b.formationName,
+      style: b.style,
+      out_in: b.outIn,
+      xi: b.xi,
+    })),
     deals: dealWrites(room).map((d) => ({
       user_id: d.userId,
       dealt_seq: d.seq,
@@ -446,7 +546,14 @@ export function matchWrites(room: PvpRoom): {
   roomVisibility: 'public' | 'private';
   roomSize: number;
   loserAutoPicks: number;
+  /** How many of the two sides were practice opponents (migration 0019). It is the fourth
+   *  fact in the same family as the three above, and it is the one that keeps `pvp_records`
+   *  honest: a tie with a bot in it is excluded from the view, so a room full of them
+   *  cannot be used to build a record. Recording it rather than deriving it later is the
+   *  same reasoning - by the time a ladder wants to know, the room is gone. */
+  botSides: number;
 }[] {
+  const bots = new Set(botsIn(room).map((m) => m.userId));
   return room.ties
     .filter((t) => t.result && t.winnerId)
     .map((t) => {
@@ -468,6 +575,7 @@ export function matchWrites(room: PvpRoom): {
         roomVisibility: room.visibility,
         roomSize: room.size,
         loserAutoPicks: autoPickCount(room.picks[loserId]),
+        botSides: (bots.has(t.homeId) ? 1 : 0) + (bots.has(t.awayId) ? 1 : 0),
       };
     });
 }

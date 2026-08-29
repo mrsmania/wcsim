@@ -134,7 +134,10 @@ class MemStore implements RoomStore {
       .map((r) => ({
         code: r.room.code,
         size: r.room.size,
+        // People, and the practice opponents counted apart - exactly the two `pgStore`'s
+        // query counts, and for the reason `LobbyRoom.seated` gives: a bot yields its chair.
         seated: r.members.length,
+        bots: r.bots.length,
         method: r.room.method,
         budget: r.room.budget,
         pickSeconds: r.room.pick_seconds,
@@ -189,6 +192,9 @@ function depsFor(store: MemStore, clock: { now: number }): ApiDeps {
     jwtSecret: SECRET,
     sweepMs: SWEEP_MS,
     newCode: () => `RM${String(++n).padStart(4, '0')}`,
+    // Predictable, and a real uuid: `pvp_bots.bot_id` is one, and a bot is addressed
+    // exactly like a member everywhere above the database.
+    newBotId: () => `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}`,
   };
 }
 
@@ -870,6 +876,127 @@ export async function refereeChecks(): Promise<void> {
         room.members.length === 2 &&
         Object.values(room.picks.u1 ?? {}).length >= 1,
       () => `status ${room.status}, picks ${Object.values(room.picks.u1 ?? {}).length}`,
+    );
+  }
+
+  // --- Practice opponents, through the real handlers ------------------------
+  //
+  // The point of driving this here rather than only in `pvpRoom` is the ROWS: a bot is the
+  // one member that is not a `pvp_members` row, so every command in this block writes it
+  // through `botWrites` and reads it back through `roomFromRows`. A field the writer forgets
+  // shows up as a room that comes back wrong, which is the whole reason this store keeps
+  // rooms as rows.
+
+  {
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno' };
+    const deps = depsFor(store, clock);
+    const made = await post(deps, '/referee/v1/rooms', session('u1'), {
+      visibility: 'public',
+      size: 4,
+      method: 'budget',
+      budget: 110,
+      pickSeconds: 20,
+      years: [],
+    });
+    const code = (made.body as RoomView).code;
+    const refusedToGuest = await post(deps, `/referee/v1/rooms/${code}/join`, session('u2'));
+    const notHost = await post(deps, `/referee/v1/rooms/${code}/bots`, session('u2'), { count: 2 });
+    const bad = await post(deps, `/referee/v1/rooms/${code}/bots`, session('u1'), { count: 'two' });
+    const filled = await post(deps, `/referee/v1/rooms/${code}/bots`, session('u1'), { count: 2 });
+    const view = filled.body as RoomView;
+    check(
+      'bots: the host fills the empty chairs, they are marked as such, and a guest cannot ask',
+      () =>
+        // Vacuity: two people really did take seats first.
+        refusedToGuest.status === 200 &&
+        bad.status === 422 &&
+        view.members.length === 4 &&
+        view.members.filter((m) => m.bot).length === 2 &&
+        // The seat is marked on the wire, or no screen can say which of eight names is a
+        // person - and the two the referee seated are not the two who signed in.
+        view.members.filter((m) => !m.bot).every((m) => ['u1', 'u2'].includes(m.userId)) &&
+        // Not the guest's to ask for: the referee answers with the room, unchanged, the
+        // same way it answers a resize it will not make.
+        (notHost.body as RoomView).members.length === 2,
+      () => `${view.members.length} seated, ${view.members.filter((m) => m.bot).length} bots`,
+    );
+
+    // The lobby row a stranger reads: people and chairs counted apart, because a bot gives
+    // its seat up to anybody who turns up.
+    const lobby = (await get(deps, '/referee/v1/lobby', session('u2'))).body as {
+      rooms: { code: string; seated: number; bots?: number; size: number }[];
+    };
+    const row = lobby.rooms.find((r) => r.code === code);
+    check(
+      'bots: a public room lists its PEOPLE as seated and says how many chairs are practice',
+      () => !!row && row.seated === 2 && row.bots === 2 && row.size === 4,
+      () => JSON.stringify(row),
+    );
+
+    // A third person arrives at a room with no empty chairs left.
+    store.names.u3 = 'Cleo';
+    const late = await post(deps, `/referee/v1/rooms/${code}/join`, session('u3'));
+    const after = late.body as RoomView;
+    check(
+      'bots: somebody arriving at a full room takes a bot’s chair rather than being refused',
+      () =>
+        late.status === 200 &&
+        after.members.length === 4 &&
+        after.members.filter((m) => m.bot).length === 1 &&
+        after.members.some((m) => m.userId === 'u3'),
+      () => `${late.status}: ${after.members.map((m) => (m.bot ? 'bot' : m.userId)).join(',')}`,
+    );
+
+    // And the room plays out, with one seat that never picks anything.
+    await post(deps, `/referee/v1/rooms/${code}/start`, session('u1'));
+    // The round trip, on a room whose members are not all `pvp_members` rows. The existing
+    // one below uses two people, so it says nothing about the table a bot lives in.
+    {
+      const mid = (await store.read(code))!;
+      const back = roomFromRows(rowsFromRoom(mid, { sweptAt: clock.now, displayNames: store.names }));
+      check(
+        'bots: a room with practice opponents in it survives the round trip through the tables',
+        () => JSON.stringify(back) === JSON.stringify(mid),
+        () => {
+          const a = JSON.stringify(mid);
+          const b = JSON.stringify(back);
+          const i = [...a].findIndex((c, k) => c !== b[k]);
+          return `first difference at ${i}: ${a.slice(Math.max(0, i - 80), i + 80)} != ${b.slice(Math.max(0, i - 80), i + 80)}`;
+        },
+      );
+      check(
+        'bots: and that room really had a bot with a built XI in it',
+        () =>
+          mid.status === 'drafting' &&
+          mid.members.some((m) => m.bot) &&
+          Object.keys(mid.xi[mid.members.find((m) => m.bot)!.userId] ?? {}).length === 11,
+        () => `${mid.status}, ${mid.members.filter((m) => m.bot).length} bots`,
+      );
+    }
+    let guard = 0;
+    let room = (await store.read(code))!;
+    while (room.status !== 'ended' && guard++ < 600) {
+      clock.now += SWEEP_MS;
+      await sweepOnce(store, clock.now, SWEEP_MS);
+      room = (await store.read(code))!;
+    }
+    const bot = room.members.find((m) => m.bot);
+    check(
+      'bots: a room with a practice opponent in it plays through the referee to a champion',
+      () =>
+        room.status === 'ended' &&
+        !!room.championId &&
+        !!bot &&
+        // Its XI survived the round trip through `pvp_bots` rather than `pvp_picks`, and it
+        // is legal at the room's own rules - which is what a submitted one would be judged
+        // by, even though nothing ever submits it.
+        validateXi(formationOf(bot), room.xi[bot.userId] ?? {}, room.rules).ok &&
+        // It was built at the kick-off and never drafted: no window, and no pick records.
+        room.windows[bot.userId] === undefined &&
+        Object.keys(room.picks[bot.userId] ?? {}).length === 0,
+      () => `${room.status}, bot ${bot?.name ?? 'none'} after ${guard} sweeps`,
     );
   }
 

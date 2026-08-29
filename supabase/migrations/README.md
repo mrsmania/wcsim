@@ -40,6 +40,7 @@ mode, and it has happened.
 | `enforce_invite()` | dropped in **0005** | 0004 |
 | `pvp_is_member(bigint)` | 0016 | - |
 | `pvp_tie_played(bigint, uuid)` | 0016 | - |
+| `pvp_forget_account()` | 0019 | - |
 | `set_display_name(text, text)` | 0017 | - |
 
 `set_display_name` is the one client-callable function 0017 adds, and it exists because
@@ -65,7 +66,8 @@ header says to keep the pair in step, and it means it.
 
 | Thing | Defined in | Changed by |
 | --- | --- | --- |
-| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped), 0016 (the seven `pvp_*` tables, and two columns on `profiles`), 0017 (the open pick window and the re-roll count on `pvp_members`, `swept_at` on `pvp_rooms`) |
+| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped), 0016 (the seven `pvp_*` tables, and two columns on `profiles`), 0017 (the open pick window and the re-roll count on `pvp_members`, `swept_at` on `pvp_rooms`), 0019 (`pvp_bots`, `pvp_matches.bot_sides`, and four `profiles` foreign keys dropped for a trigger) |
+| Views | 0016 (`pvp_records`) | **0019** (ties with a practice opponent in them excluded) |
 | Row-level security, enabled | 0002 | - |
 | Policies | 0002 | 0013 (four `for all` policies narrowed to `for select`), 0014 (`run_results_read` dropped) |
 | Function grants | 0008 | 0010 (`finish_run_v2`), 0014 (`export_account` revoked) |

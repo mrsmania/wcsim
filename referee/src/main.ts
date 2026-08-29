@@ -16,7 +16,7 @@
 // every player in every drafting room and then hands back the time it has already spent.
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { handle, type ApiDeps } from './api';
 import { httpBroadcaster, silentBroadcaster, type Broadcaster } from './broadcast';
@@ -88,6 +88,7 @@ async function main(): Promise<void> {
     jwtAudience: env.jwtAudience,
     sweepMs: env.sweepMs,
     newCode,
+    newBotId: () => randomUUID(),
   };
 
   const nudge = (code: string): void => {

@@ -37,6 +37,7 @@ import {
   remainingBudget,
   rerollDeal,
   rerollsLeft,
+  setBots,
   setLineup,
   startRoom,
   submitPick,
@@ -76,6 +77,10 @@ export interface ApiDeps {
   sweepMs: number;
   /** Six characters. Injected so a check can make them predictable. */
   newCode: () => string;
+  /** A practice opponent's id. Injected for the same reason `newCode` is, and it is a UUID
+   *  because `pvp_bots.bot_id` is one - a bot is addressed exactly like a member everywhere
+   *  above the database, so its id has to be the same shape as a member's. */
+  newBotId: () => string;
 }
 
 const ok = (body: unknown): ApiResponse => ({ status: 200, body });
@@ -209,6 +214,8 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
       return lineup(req, deps, userId, code, now);
     case 'size':
       return size(req, deps, userId, code, now);
+    case 'bots':
+      return bots(req, deps, userId, code, now);
     case 'start':
       return command(deps, userId, code, now, (room) => startRoom(room, userId, now));
     case 'leave':
@@ -316,6 +323,30 @@ async function size(
   const want = Number(req.body.size);
   if (!(ROOM_SIZES as readonly number[]).includes(want)) return fail(422, 'bad-size');
   return command(deps, userId, code, now, (room) => reduceSize(room, userId, want as RoomSize));
+}
+
+/**
+ * How many practice opponents sit in this room.
+ *
+ * A TARGET, not "add one", so a tap that arrives twice fills the room once - the same
+ * idempotence the pick ordinal has (P36) and for the same reason: this is a mobile link.
+ * The upper bound is checked here against what the ROUTE can be asked for and again inside
+ * `setBots` against the room's free seats, because only the room knows how many people are
+ * already sitting in it.
+ */
+async function bots(
+  req: ApiRequest,
+  deps: ApiDeps,
+  userId: string,
+  code: string,
+  now: number,
+): Promise<ApiResponse> {
+  const count = Number(req.body.count);
+  const most = ROOM_SIZES[ROOM_SIZES.length - 1]!;
+  if (!(Number.isInteger(count) && count >= 0 && count <= most)) return fail(422, 'bad-bots');
+  return command(deps, userId, code, now, (room) =>
+    setBots(room, userId, count, now, deps.newBotId),
+  );
 }
 
 async function pick(

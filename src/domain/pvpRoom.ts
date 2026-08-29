@@ -28,12 +28,19 @@
 // ---------------------------------------------------------------------------
 
 import type { Player } from '../data/types';
-import { getFormation, type FormationName, type Formation, type Style } from './formations';
+import {
+  FORMATIONS_DATA,
+  getFormation,
+  type FormationName,
+  type Formation,
+  type Style,
+} from './formations';
 import type { Filled } from './draft';
 import { rollAny } from './draft';
 import { HALF_TIME_MS, PEN_MS, STEP_MS, maxMinute, type MatchSpeed } from './clock';
 import { resolveKoTie, type KoTieResult } from './knockout';
-import { shuffled } from './random';
+import { botName, botXi } from './pvpBot';
+import { pick, shuffled } from './random';
 import {
   autoPick,
   pvpPriceOf,
@@ -156,6 +163,16 @@ export interface RoomMember {
    *  plays on without them, because the alternative is one absent person voiding a
    *  tournament seven other people are in. */
   lastSeen: number;
+  /**
+   * A practice opponent the host added rather than a person (`domain/pvpBot.ts`).
+   *
+   * It is a member in every way the room cares about - a seat, a name, a shape, an XI - and
+   * differs in exactly three: it never has a pick window (its team is built the moment the
+   * room starts), the liveness sweep cannot drop it (there is nobody to hear from), and it
+   * cannot hold a room open (a lobby whose last HUMAN leaves closes). Optional rather than
+   * a boolean on every member so a room stored before bots existed reads back unchanged.
+   */
+  bot?: boolean;
 }
 
 /** The four facts about a pick that are not "who is in which slot", recorded because the
@@ -244,6 +261,15 @@ export type PickOutcome = 'ok' | 'late' | 'illegal' | 'no-window' | 'replay';
 
 const memberOf = (room: PvpRoom, userId: string): RoomMember | undefined =>
   room.members.find((m) => m.userId === userId);
+
+/** The people in the room, as opposed to the seats the host filled. Every lifecycle rule
+ *  reads this rather than `members`: a bot cannot leave, cannot be swept out and cannot
+ *  hold a room open, so counting it as present would keep an abandoned lobby alive for
+ *  ever - which is the exact failure P31 exists to prevent. */
+export const humansIn = (room: PvpRoom): RoomMember[] => room.members.filter((m) => !m.bot);
+
+/** The practice opponents, newest seat last. */
+export const botsIn = (room: PvpRoom): RoomMember[] => room.members.filter((m) => m.bot);
 
 /** The formation a member is drafting into. Falls back to the default rather than
  *  throwing: an unready player at kickoff has chosen nothing (P48). */
@@ -372,6 +398,12 @@ function newMember(
   };
 }
 
+/** The next seat nobody holds. Seats decide nothing (the draw is random, P47), so the gap a
+ *  departure leaves is never re-used - `pvp_members` has a unique index on (room, seat) and
+ *  renumbering would collide with the row still holding the old one. */
+const nextSeat = (room: PvpRoom): number =>
+  room.members.reduce((max, m) => Math.max(max, m.seat + 1), 0);
+
 export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in';
 
 export function joinRoom(
@@ -381,15 +413,78 @@ export function joinRoom(
 ): { room: PvpRoom; outcome: JoinOutcome } {
   if (room.status !== 'lobby') return { room, outcome: 'started' };
   if (memberOf(room, member.userId)) return { room, outcome: 'already-in' };
-  if (room.members.length >= room.size) return { room, outcome: 'full' };
+  const bots = botsIn(room);
+  if (room.members.length >= room.size && !bots.length) return { room, outcome: 'full' };
   const next = clone(room);
+  // A BOT NEVER KEEPS A HUMAN OUT. A host who filled the last two chairs with practice
+  // opponents so the room could start has not closed it: a person arriving takes the
+  // newest bot's seat, which is what makes filling up a decision the host can make early
+  // and change their mind about by doing nothing.
+  if (next.members.length >= next.size) {
+    const giveUp = botsIn(next)[botsIn(next).length - 1]!;
+    next.members = next.members.filter((m) => m.userId !== giveUp.userId);
+  }
   // The next FREE seat, not the member count. A lobby can now lose somebody to P31's
   // liveness sweep, which leaves a gap, and `pvp_members` has a unique index on (room,
-  // seat) - so counting would hand the newcomer a number somebody else still holds. Seats
-  // are labels that decide nothing (the draw is random, P47), so a gap costs nothing.
-  const seat = next.members.reduce((max, m) => Math.max(max, m.seat + 1), 0);
-  next.members.push(newMember(member.userId, seat, member.name, member.budget, now));
+  // seat) - so counting would hand the newcomer a number somebody else still holds.
+  next.members.push(newMember(member.userId, nextSeat(next), member.name, member.budget, now));
   return { room: next, outcome: 'ok' };
+}
+
+/**
+ * Set how many practice opponents sit in this room (`domain/pvpBot.ts`).
+ *
+ * ONE COMMAND FOR BOTH DIRECTIONS, taking a TARGET rather than "add one": the host is
+ * choosing how full the room is, the chips on the screen show a count, and a target is
+ * idempotent - a tap that arrives twice on a flaky link fills the room once, where "add
+ * one" twice fills it twice. Same reasoning as the pick ordinal (P36).
+ *
+ * It is refused rather than clamped when it would not fit, because a lobby that quietly
+ * seated fewer opponents than the host asked for is a lobby whose Start button is still
+ * greyed out for no stated reason. The one thing it will not do is push a PERSON out: the
+ * cap is the seats nobody is sitting in.
+ */
+export function setBots(
+  room: PvpRoom,
+  hostId: string,
+  count: number,
+  now: number,
+  newId: () => string,
+): PvpRoom {
+  if (room.status !== 'lobby' || hostId !== room.hostId) return room;
+  if (!Number.isInteger(count) || count < 0) return room;
+  const humans = humansIn(room).length;
+  if (count > room.size - humans) return room;
+  const bots = botsIn(room);
+  if (count === bots.length) return room;
+  const next = clone(room);
+  if (count < bots.length) {
+    // Newest first, so a host stepping the count down loses the chair they added last.
+    const drop = new Set(bots.slice(count).map((m) => m.userId));
+    next.members = next.members.filter((m) => !drop.has(m.userId));
+  } else {
+    for (let i = bots.length; i < count; i++) {
+      const seat = nextSeat(next);
+      const budget = next.rules.method === 'budget' ? next.rules.budget : 0;
+      const m = newMember(newId(), seat, botName(next.members.map((x) => x.name)), budget, now);
+      // Ready, always: there is nobody to press it, and an unready seat would leave the
+      // host's Start button reading as though somebody were still choosing. `lastSeen` is
+      // 0 for the reason `rows.ts` gives - it answers a question about a tab, and there is
+      // no tab, so the liveness sweep skips bots rather than reading a made-up time.
+      next.members.push({ ...m, bot: true, ready: true, lastSeen: 0, ...botShape() });
+    }
+  }
+  next.touchedAt = now;
+  return next;
+}
+
+/** A bot's formation and style: a real one, drawn at random. Fixing it at 4-3-3 would make
+ *  every practice opponent the same team before a player has been bought, and the shape is
+ *  the one decision a room makes before the clock starts (P19). */
+function botShape(): { formationName: FormationName; style: Style } {
+  const name = pick(FORMATIONS_DATA.names) ?? DEFAULT_FORMATION;
+  const styles = FORMATIONS_DATA.stylesByName[name] ?? [DEFAULT_STYLE];
+  return { formationName: name, style: pick(styles) ?? DEFAULT_STYLE };
 }
 
 /** Choose a shape and say you are ready (P48). Both in one call because they are one
@@ -435,8 +530,18 @@ export function startRoom(room: PvpRoom, hostId: string, now: number): PvpRoom {
   for (const m of next.members) {
     next.xi[m.userId] = {};
     next.picks[m.userId] = {};
-    if (next.rules.method === 'roll') next.deals[m.userId] = [];
-    openWindow(next, m, now);
+    // No deals for a bot even in a roll room: it rolls its whole team in one step below
+    // rather than being dealt a squad per window, so there is nothing to record - and
+    // `pvp_deals` has the same foreign key `pvp_members` has, so an empty list here would
+    // be a field that cannot survive a reload.
+    if (next.rules.method === 'roll' && !m.bot) next.deals[m.userId] = [];
+    // A BOT'S TEAM IS BUILT HERE, ONCE, and it never gets a window. Nobody is watching it
+    // think, so a seat-filler drafting against the clock would be theatre - and the room
+    // then finishes its draft when the PEOPLE do, which is the only thing anybody is
+    // waiting for. Its XI is judged by nothing afterwards: `submitPick` is the only caller
+    // of `validateXi`, and a bot never submits one.
+    if (m.bot) next.xi[m.userId] = botXi(next.rules, formationOf(m));
+    else openWindow(next, m, now);
   }
   return next;
 }
@@ -697,7 +802,11 @@ function forceFillOne(room: PvpRoom, m: RoomMember, window: PickWindow, now: num
  */
 function tickLobby(room: PvpRoom, now: number): PvpRoom {
   if (now - room.touchedAt > LOBBY_IDLE_MS) return closeRoom(room);
-  const here = room.members.filter((m) => now - m.lastSeen <= SEEN_GONE_MS);
+  // A BOT IS NEVER SWEPT OUT: there is nobody to hear from, so its `lastSeen` is whenever
+  // the host added it and would expire five minutes later, taking the room's seats with it.
+  // What it does not do is keep the room alive - `withoutMembers` closes a lobby with no
+  // people left in it, however many chairs are still filled.
+  const here = room.members.filter((m) => m.bot || now - m.lastSeen <= SEEN_GONE_MS);
   if (here.length === room.members.length) return room;
   return withoutMembers(room, new Set(here.map((m) => m.userId)), now);
 }
@@ -711,13 +820,19 @@ function tickLobby(room: PvpRoom, now: number): PvpRoom {
  * wearing one name.
  */
 function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom {
-  // Nobody is left. Nothing to promote and nothing to wait for.
-  if (!room.members.some((m) => keep.has(m.userId))) return closeRoom(room);
+  // NOBODY IS LEFT, and "nobody" counts people rather than seats: a room whose last human
+  // walked out is over, whether or not the host had filled the other chairs with practice
+  // opponents. Bots cannot leave, so without this a lobby of one host and three bots would
+  // outlive its host by the fifteen minutes `LOBBY_IDLE_MS` allows - and be listed as
+  // joinable for all of them.
+  const staying = room.members.filter((m) => keep.has(m.userId));
+  if (!staying.some((m) => !m.bot)) return closeRoom(room);
   const next = clone(room);
   next.members = next.members.filter((m) => keep.has(m.userId));
   if (!next.members.some((m) => m.userId === next.hostId)) {
-    // The lowest remaining seat, which is the earliest of the people still here.
-    next.hostId = next.members.reduce((a, b) => (a.seat <= b.seat ? a : b)).userId;
+    // The lowest remaining seat AMONG THE PEOPLE. A bot cannot press Start, so promoting
+    // one would leave a room nobody could begin.
+    next.hostId = humansIn(next).reduce((a, b) => (a.seat <= b.seat ? a : b)).userId;
   }
   next.touchedAt = now;
   return next;

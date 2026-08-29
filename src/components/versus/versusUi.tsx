@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Check, Clock, Flag } from 'lucide-react';
+import { Bot, Check, Clock, Flag, Link2, Share2 } from 'lucide-react';
 import { reportName, type ReportOutcome } from '../../state/pvp/records';
+import { inviteText } from '../../domain/pvpView';
 import type { MemberView } from '../../domain/pvpWire';
-import { CARD_FLAT, MONO_CAP } from '../matchUi';
+import { CARD_FLAT, MONO_CAP, btn } from '../matchUi';
 import type { RefereeMessage } from './refereeMessage';
 
 // The versus screens' shared atoms. Small on purpose: a room reuses the build page, the
@@ -66,6 +67,17 @@ export function SeatRow({
     return (
         <li className="flex items-center gap-3 border-b border-hair py-2.5 last:border-b-0">
             <span className="min-w-0 flex-1 truncate text-[14px] font-bold text-ink">
+                {/* A practice opponent is marked on the seat, not by its name: the name is
+                    already unlike a person's, and one player in a room of eight scanning
+                    for who is real should not have to read eight of them to find out. */}
+                {member.bot && (
+                    <Bot
+                        size={13}
+                        strokeWidth={2.5}
+                        aria-label="Practice opponent"
+                        className="mr-1.5 inline align-[-2px] text-muted"
+                    />
+                )}
                 {member.name}
                 {you && <span className="ml-1.5 font-mono text-[10px] text-pitch-ink">YOU</span>}
                 {host && <span className="ml-1.5 font-mono text-[10px] text-muted">HOST</span>}
@@ -147,6 +159,104 @@ export function RoomCode({ code }: { code: string }) {
             {code}
         </span>
     );
+}
+
+/**
+ * Getting somebody else into this room: the code, a link, and the phone's own share sheet.
+ *
+ * THE CODE ALONE WAS NOT AN INVITATION. A room is opened and then pasted into a message,
+ * and reading six characters out to somebody so they can type them into a form is the long
+ * way round of that - so the LINK is the primary action here, and arriving on it takes the
+ * seat with no further step (`RoomScreen`). The code stays because it is what somebody says
+ * out loud, and because a link is no use over the phone.
+ *
+ * SHARE OPENS THE SYSTEM SHEET (`navigator.share`) rather than a menu of our own. That is
+ * the whole point of it: the destinations are the ones already on the person's phone, and
+ * nothing here has to know what they are. It is offered only where the browser has it,
+ * which is most phones and few desktops, so Copy is always there beside it.
+ *
+ * Both say what happened, in place and briefly. A copy that gives no sign is a copy you do
+ * twice; a share the reader cancels is not a failure and says nothing.
+ */
+export function InviteRoom({ code, url }: { code: string; url: string }) {
+    const [said, setSaid] = useState<'copied' | 'failed' | null>(null);
+
+    const say = (what: 'copied' | 'failed'): void => {
+        setSaid(what);
+        window.setTimeout(() => setSaid(null), 2000);
+    };
+
+    const copy = (): void => {
+        void writeToClipboard(url).then((ok) => say(ok ? 'copied' : 'failed'));
+    };
+
+    const share = (): void => {
+        // A cancelled share rejects, and a cancellation is not a failure: the reader
+        // changed their mind, which is a thing the sheet is FOR.
+        void navigator
+            .share({ title: `Mondialino room ${code}`, text: inviteText(code, url), url })
+            .catch(() => undefined);
+    };
+
+    return (
+        <div>
+            <div className="flex flex-wrap items-center gap-2">
+                <RoomCode code={code} />
+                <button type="button" className={btn('quiet', 'sm')} onClick={copy}>
+                    <Link2 size={13} strokeWidth={2.5} className="mr-1.5 inline align-[-2px]" />
+                    Copy link
+                </button>
+                {typeof navigator !== 'undefined' && !!navigator.share && (
+                    <button type="button" className={btn('quiet', 'sm')} onClick={share}>
+                        <Share2 size={13} strokeWidth={2.5} className="mr-1.5 inline align-[-2px]" />
+                        Share
+                    </button>
+                )}
+            </div>
+            {said && (
+                <p
+                    className={`mt-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] ${
+                        said === 'copied' ? 'text-pitch-ink' : 'text-loss'
+                    }`}
+                >
+                    {said === 'copied' ? 'Link copied' : 'Could not copy - the link is above'}
+                </p>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Put text on the clipboard, whatever the browser allows.
+ *
+ * `navigator.clipboard` needs a secure context, so it is absent over plain http - which is
+ * exactly how this app is served from the NAS on a LAN, and a Copy button that silently
+ * does nothing there is worse than no button. The old `execCommand` route still works in
+ * every browser that lacks the new one, so it is the fallback rather than a shim.
+ */
+async function writeToClipboard(text: string): Promise<boolean> {
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch {
+        // Denied, or no permission. Fall through and try the old way.
+    }
+    try {
+        const box = document.createElement('textarea');
+        box.value = text;
+        // Off-screen rather than hidden: `display: none` cannot be selected.
+        box.style.position = 'fixed';
+        box.style.left = '-9999px';
+        document.body.appendChild(box);
+        box.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(box);
+        return ok;
+    } catch {
+        return false;
+    }
 }
 
 /** A short line of state, in the room's own voice. */

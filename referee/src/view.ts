@@ -84,6 +84,11 @@ export function roomView(
       picked: Object.values(room.xi[m.userId] ?? {}).filter(Boolean).length,
       formationName: m.userId === viewerId || room.status !== 'lobby' ? m.formationName : null,
       style: m.userId === viewerId || room.status !== 'lobby' ? m.style : null,
+      // A practice opponent's shape is hidden in the lobby exactly as a person's is, by the
+      // two lines above: it is decided when the host seats it, and a room that showed it
+      // would let the last human to choose counter it (P19). Nothing about a bot is a
+      // secret except the same thing everybody's is.
+      bot: !!m.bot,
     })),
     you: me
       ? {

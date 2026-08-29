@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '../../data/types';
 import type { RoomView } from '../../domain/pvpWire';
@@ -81,6 +81,45 @@ export default function RoomScreen({ code }: { code: string }) {
         navigate('/versus');
     }, [navigate, room]);
 
+    /**
+     * TAKE THE SEAT ON ARRIVAL. There is one door into a room now, and this is it.
+     *
+     * The three ways to get here - typing the code, tapping a row on the public list, and
+     * following an invitation link - are all somebody saying they want in, so a screen
+     * asking them to confirm it was a second door onto the same street. What is left is the
+     * moment in between and the reason it did not work, which is what the block below draws.
+     *
+     * ONCE PER ROOM, and the ref is what makes that true: a refused join (full, started,
+     * already in another room) leaves the read failing exactly as it was, so without the
+     * guard this would send the same instruction every two seconds for as long as the
+     * screen is open. Retrying is the player's, on a button.
+     *
+     * The trigger is the READ having come back, either way: a room the viewer may not see
+     * answers 404 (which is the policy working - a private code cannot be confirmed by
+     * probing), and a public one comes back with no `you` on it. Both mean the same thing
+     * here, which is why they are no longer two screens.
+     */
+    const asked = useRef<string | null>(null);
+    useEffect(() => {
+        asked.current = null;
+    }, [code]);
+    useEffect(() => {
+        if (room.loading || asked.current === code) return;
+        const outside = view ? !meIn(view) : room.error?.code === 'no-such-room';
+        if (!outside) return;
+        asked.current = code;
+        void room.join().then(
+            // Cleared on success, so a seat lost LATER - the liveness sweep, five minutes
+            // of a sleeping phone - is taken again the same way rather than leaving the
+            // screen on "one moment" for ever. It cannot loop: an answer with `you` in it
+            // stops the effect firing at all.
+            () => {
+                asked.current = null;
+            },
+            () => undefined,
+        );
+    }, [code, room, view]);
+
     // The tie the viewer is in, this round, turned round so they are the home side - and
     // the opponent the DRAW gave them, which in a room of more than two is not "the other
     // seat" and after an exit is nobody.
@@ -102,97 +141,74 @@ export default function RoomScreen({ code }: { code: string }) {
         return home && away ? { raw: t, tie: viewerTie(t, t.homeId), home, away } : null;
     }, [view, mine]);
 
-    if (!view) {
-        // A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT, and that is the policy
-        // working rather than a fault: a room you may not see answers "no such room"
-        // rather than "not allowed", so a code cannot be confirmed by probing for it. So
-        // arriving with a code and being told there is no room is the NORMAL first step,
-        // and the answer to it is to join - which is what the code is for.
-        const missing = room.error?.code === 'no-such-room';
-        // BUT THE SAME ANSWER MEANS SOMETHING ELSE ENTIRELY IF YOU WERE JUST IN IT, and
-        // saying the first thing in that case is a lie the player can catch: the reported
-        // case was a host whose phone slept, who lost the seat to the liveness rule, and
-        // who was then told that a private room is invisible until you are in it - of the
-        // room he had opened himself. The pointer tells the two apart at no cost: it is
-        // written on every answer the room gives and cleared only by pressing Leave, so
-        // holding this code and being told there is no room means the seat went.
-        const wasIn = missing && held?.code === code;
+    const me = view ? meIn(view) : null;
+
+    if (!view || !me) {
+        // ARRIVING AT A ROOM IS TAKING THE SEAT. There used to be two doors here and they
+        // were the same door: a "Take your seat" page for a code that answered 404 (a
+        // private room is invisible until you are in it) and a "Join the room" page for a
+        // public one you could already see. Both showed a room you had chosen to open, said
+        // little about it, and asked you to confirm that you had meant it - which is a
+        // question with one answer, since the only ways to arrive are typing the code,
+        // tapping a row on the lobby list, and following an invitation link.
+        //
+        // So the join is sent as soon as the read comes back, and this screen is only ever
+        // the moment in between or the reason it did not work. Leave is the way out, and it
+        // gives the seat back properly.
+        const failed = room.commandError ?? (room.error?.code === 'no-such-room' ? null : room.error);
+        // A refusal that means something else if you were JUST IN THIS ROOM. The reported
+        // case was a host whose phone slept, who lost the seat to the liveness rule and was
+        // then told that a private room is invisible until you are in it - of a room he had
+        // opened himself. The pointer tells the two apart: it is written on every answer
+        // the room gives and cleared only by pressing Leave.
+        const wasIn = held?.code === code && room.commandError?.code === 'no-such-room';
+        const problem = failed ? refereeMessage(failed, 'take a seat') : null;
         return (
             <>
                 <StageHeader
                     eyebrow="Versus"
-                    title={wasIn ? 'Your seat went' : missing ? 'Take your seat' : 'Finding the room'}
+                    title={wasIn ? 'The room is gone' : failed ? 'Could not get in' : 'Taking your seat'}
                 />
                 <div className={`${CARD_FLAT} p-5`}>
                     {wasIn ? (
                         <RoomNote>
-                            The room stopped hearing from this device, so it gave your seat
-                            up. That happens if a phone sleeps or a tab is closed for a few
-                            minutes. If the room is still waiting, you can take a seat again.
+                            The room stopped hearing from this device and then closed, which
+                            happens when a phone sleeps or a tab is shut for a few minutes and
+                            nobody else is left in it.
                         </RoomNote>
-                    ) : missing ? (
-                        <RoomNote>
-                            A private room is invisible until you are in it, so this is what
-                            arriving with a code looks like. Take a seat.
-                        </RoomNote>
-                    ) : room.error ? (
-                        <RefereeProblem message={refereeMessage(room.error, 'reach the room')} />
+                    ) : problem ? (
+                        <RefereeProblem
+                            message={problem}
+                            action={
+                                // The one refusal with somewhere to go: the room that holds
+                                // your seat. Being told you are already in a room with no
+                                // route to it is the dead end this exists to close.
+                                problem.room ? (
+                                    <button
+                                        className={SECONDARY_BTN}
+                                        onClick={() => navigate(`/versus/${problem.room}`)}
+                                    >
+                                        Go to room {problem.room}
+                                    </button>
+                                ) : undefined
+                            }
+                        />
                     ) : (
-                        <RoomNote>One moment.</RoomNote>
+                        <RoomNote>Room {code}. One moment.</RoomNote>
                     )}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        {missing && (
+                    {problem && (
+                        <div className="mt-3 flex flex-wrap gap-2">
                             <button
                                 className={PRIMARY_BTN}
                                 onClick={() => void room.join().catch(() => undefined)}
                             >
-                                Join room {code}
+                                Try again
                             </button>
-                        )}
-                        {room.error && (
                             <button className={SECONDARY_BTN} onClick={() => navigate('/versus')}>
                                 Back to versus
                             </button>
-                        )}
-                    </div>
-                </div>
-            </>
-        );
-    }
-
-    const me = meIn(view);
-
-    // A public room you have not joined. The only way in is to take a seat - and it may
-    // have filled between the lobby list being drawn and the tap landing, which is a
-    // ten-second window and the ordinary case rather than a rare one.
-    if (!me) {
-        const full = view.members.length >= view.size;
-        return (
-            <>
-                <StageHeader eyebrow="Versus" title="Join the room" />
-                <div className={`${CARD_FLAT} p-5`}>
-                    <RoomNote>
-                        {view.members.length} of {view.size} are in.{' '}
-                        {view.rules.method === 'budget'
-                            ? `Buy an XI with $${view.rules.budget}`
-                            : 'Roll random squads and take one man from each'}
-                        , {view.pickSeconds} seconds a pick.
-                    </RoomNote>
-                    {full && (
-                        <RoomNote>
-                            <span className="mt-2 block">It filled up.</span>
-                        </RoomNote>
+                        </div>
                     )}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        {!full && (
-                            <button className={PRIMARY_BTN} onClick={() => void room.join()}>
-                                Take a seat
-                            </button>
-                        )}
-                        <button className={SECONDARY_BTN} onClick={() => navigate('/versus')}>
-                            Back to versus
-                        </button>
-                    </div>
                 </div>
             </>
         );

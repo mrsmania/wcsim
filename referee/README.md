@@ -68,6 +68,7 @@ existing gateway, not a second hostname with its own certificate to let lapse).
 | `POST /referee/v1/rooms/:code/join` | session | Take a seat |
 | `POST /referee/v1/rooms/:code/lineup` | session | Formation, style, ready (P48) |
 | `POST /referee/v1/rooms/:code/size` | session, host | Shrink a room that will not fill (P7) |
+| `POST /referee/v1/rooms/:code/bots` | session, host | `{count}` - how many practice opponents sit in the empty chairs (P49). A TARGET, so a retry fills the room once. Needs **migration 0019** |
 | `POST /referee/v1/rooms/:code/start` | session, host | Begin the draft |
 | `POST /referee/v1/rooms/:code/pick` | session | `{ordinal, slotId, playerId}` |
 | `POST /referee/v1/rooms/:code/reroll` | session | Deal another squad, against the allowance |

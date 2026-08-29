@@ -754,6 +754,12 @@ npm run push:sql -- supabase/migrations/0017_pvp_referee.sql
 Then work the eight verification steps in that file's own header. They are written to be
 run, not read; step 7 in particular is the one this migration exists for.
 
+**A server set up after 2026-08-29 also needs `0019_pvp_bots.sql`**, which adds the practice
+opponents a host can seat in an empty chair (roadmap item 45). Same shape, same order - the
+migration, then the container - and its own header carries the verification steps and a
+complete rollback. Without it the referee's `/bots` route answers 500 on its first write;
+with it and an OLD container, nothing happens at all, which is why this way round.
+
 The `pvp_referee` role from 0016 is `nologin` with no password, because a credential does
 not belong in a public repository. Give it one, at the SQL editor:
 
