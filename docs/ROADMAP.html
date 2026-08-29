@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-29<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 5 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -348,115 +348,6 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
-
-<details class="item">
-  <summary>
-    <span class="num">43</span>
-    <span class="title">Redeploy the versus server for the public lobby
-      <span class="sub"><b>THE SERVER IS DEPLOYED AND CURRENT as of 2026-08-29</b>, second
-      rebuild done, so the public room list, the Leave button releasing your seat, and the
-      five-minute window before an idle lobby seat is cleared are all live. <b>All that is
-      left is the browser pass</b>: two accounts on two devices, a public room found and
-      joined without the code, a friends-only room staying hidden, and a phone left to sleep
-      in a lobby keeping its seat. That cannot be done from a shell, so it stays with the
-      owner. Everything below is the record of how it got here, including the two deploys and
-      the three ways the first one went wrong.</span>
-    </span>
-    <span class="tag">Accounts</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What to do.</strong> Rebuild and redeploy the referee exactly as on 2026-08-26
-    (<a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a>
-    step 6, and <code>scripts/deploy-referee.sh</code> with <code>--verify</code>). There is
-    <b>no migration</b>: the columns this wave reads (<code>pvp_rooms.touched_at</code>,
-    <code>pvp_members.last_seen</code>, the <code>pvp_rooms_open_idx</code> partial index, the
-    <code>pvp_records</code> view and <code>pvp_name_reports</code>) all came in with 0016.</p>
-    <p><strong>How to know it worked.</strong> Five things, in order, and the first two are
-    the ones the old build cannot do:</p>
-    <ol>
-      <li><code>GET /referee/v1/lobby</code> with a real session answers <code>200</code> and a
-      <code>rooms</code> array, rather than a 404.</li>
-      <li>Open a room set to <b>Anybody</b> from one account; from a second account, the versus
-      page lists it with the host&#8217;s name, its code and the seats left. Taking a seat gets
-      in without the code ever being typed.</li>
-      <li>Open a room set to <b>Just my friends</b>; it appears on nobody else&#8217;s list.</li>
-      <li>Leave a lobby (close the tab) and wait two minutes: the room stops being listed,
-      because the sweeper drops a member nobody has heard from for ninety seconds. If the host
-      was the one who left, the next seat becomes host instead of the room dying.</li>
-      <li><b>Press Leave in a room and then open another one immediately.</b> It should just
-      work. This was a reported bug: leaving used to be a navigation and nothing more, so the
-      seat stayed taken and the next room was refused with "you are already in a room" until
-      that ninety-second sweep noticed. The fix is a new server instruction, so it needs this
-      deploy like the rest.</li>
-    </ol>
-    <p><strong>DEPLOYED AND VERIFIED 2026-08-27.</strong> The server is on the new build and
-    all five verification steps pass, step 5 included, so a room can be created, read back,
-    changed and saved. What is left of this item is the browser pass below (steps 2 to 5 of
-    "How to know it worked"), which needs two accounts and cannot be done from a shell. It
-    took three attempts and each one is written up here, because two of the three were the
-    verification lying rather than the deploy failing.</p>
-    <p><strong>THE SECOND DEPLOY IS DONE, 2026-08-29, and it was a reported bug rather than a
-    wave.</strong>
-    The first time a room was tested from a phone, the host was thrown out of the room he had
-    opened: he made a room of four on the phone, joined it from a laptop as the second player,
-    and the phone slept while he did, and ninety seconds later the rule that clears abandoned
-    seats took his. A locked phone runs no JavaScript, so the check-in stops for a reason that
-    has nothing to do with leaving - and the lobby is the one part of a room whose whole
-    activity is waiting for people to arrive, which is to say putting the phone down. Being
-    the host was no protection, because the host is handed to the next seat rather than
-    spared. <b>The window is five minutes now</b>, the app checks in the instant a tab comes
-    back so a phone woken inside that window never reaches it at all, and a dropped player is
-    told what happened instead of being told that a private room is invisible until you are in
-    it, of a room they opened themselves. The two app-side halves shipped with the site on
-    their own; the five minutes needed the server rebuilt, because the sweeper is what reads
-    it. <b>Rebuilt and restarted 2026-08-29</b> from a clean tree, and the running container
-    was read back to confirm it carries the five-minute figure rather than the old ninety
-    seconds. All five verification steps pass again, so a room can be created, read back,
-    changed and saved. Nothing was copied and no password was needed: the three staged config
-    files on the NAS were already byte-identical to this checkout, since the wave changed one
-    number in the code and nothing about the deployment. <b>The firewall rules survived this
-    one</b>, checked from outside straight afterwards, so there was no outage to heal. What is
-    left to check by hand is that a phone left to sleep for two or three minutes in a lobby
-    still has its seat when you pick it up.</p>
-    <p><strong>The first attempt at this deploy failed, and the fix is in the same rebuild.</strong>
-    It went up cleanly and then logged <code>sweep failed</code> against one room once a
-    second for ever. Two columns the room reader reads were missing from the two queries that
-    fetch a room, so every time came back unreadable - and the two halves of that broke in
-    opposite directions. On the way IN nothing complained at all, and the whole of the
-    liveness lifecycle silently stopped working, because an unreadable time is never older
-    than ninety seconds. On the way OUT the conversion threw from inside the write, so the
-    server rolled back every room it touched: it could still open a room and then failed on
-    every join, ready, start and pick. Three things changed, and the third is the one that
-    matters most: the columns are asked for; an unreadable time is now a loud failure at the
-    read rather than a value that gets carried; and a failed sweep names its fault in the log
-    instead of printing a room code and nothing else. There is a new check over the queries,
-    mutation-tested by removing each of the two columns.</p>
-    <p><strong>Watch the log after this one.</strong> The last thing the deploy prints is the
-    server's own log. It should show it listening and then nothing. Any line reading
-    <code>sweep failed</code> now carries the reason after the room code, and that reason is
-    what to paste back.</p>
-    <p><strong>And two more things went wrong on the way, neither of them the referee.</strong>
-    The gateway could not reach it at all, which is the documented Synology trap: creating
-    and removing containers wipes the docker bridge firewall rules, so everything behind the
-    gateway answers 503 until the Task Scheduler job is re-run. And the deploy script's own
-    verification <b>aborted silently at step 4</b>, which is worse than it sounds because the
-    symptom is indistinguishable from finishing: the heading printed, nothing followed, and
-    the shell reported success. Its last two steps reach the database through compose on the
-    NAS, which Synology needs a full path and root for, and that stage alone never ran the
-    probe that finds it. Fixed, with a check that every stage touching the NAS's docker
-    detects it first and none names it directly.</p>
-    <p><strong>If it goes wrong.</strong> The previous image is the rollback, and it is safe:
-    the schema did not move, so the old build reads the same tables. What you lose by rolling
-    back is the list and the liveness sweep, which is exactly the state the app already
-    degrades to.</p>
-    <p><strong>Why this is an item at all.</strong> The same standing rule an unapplied
-    migration follows: a change that cannot be deployed by the session that wrote it gets an
-    item with what to do, how to check it and how to undo it, so the apply can be handed to
-    somebody with the access.</p>
-    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -1059,6 +950,114 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-08-29</h3>
+<details class="item">
+  <summary>
+    <span class="num">43</span>
+    <span class="title">Redeploy the versus server for the public lobby
+      <span class="sub"><b>CLOSED 2026-08-29.</b> The server is deployed and current, second
+      rebuild done, so the public room list, the Leave button releasing your seat, and the
+      five-minute window before an idle lobby seat is cleared are all live. The browser pass was
+      run by the owner and <b>everything was confirmed</b>: a public room found and joined
+      without the code, a friends-only room staying hidden, and a lobby seat surviving a
+      screen lock. Everything below is the record of how it got here, including the two
+      deploys and the three ways the first one went wrong.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What to do.</strong> Rebuild and redeploy the referee exactly as on 2026-08-26
+    (<a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a>
+    step 6, and <code>scripts/deploy-referee.sh</code> with <code>--verify</code>). There is
+    <b>no migration</b>: the columns this wave reads (<code>pvp_rooms.touched_at</code>,
+    <code>pvp_members.last_seen</code>, the <code>pvp_rooms_open_idx</code> partial index, the
+    <code>pvp_records</code> view and <code>pvp_name_reports</code>) all came in with 0016.</p>
+    <p><strong>How to know it worked.</strong> Five things, in order, and the first two are
+    the ones the old build cannot do:</p>
+    <ol>
+      <li><code>GET /referee/v1/lobby</code> with a real session answers <code>200</code> and a
+      <code>rooms</code> array, rather than a 404.</li>
+      <li>Open a room set to <b>Anybody</b> from one account; from a second account, the versus
+      page lists it with the host&#8217;s name, its code and the seats left. Taking a seat gets
+      in without the code ever being typed.</li>
+      <li>Open a room set to <b>Just my friends</b>; it appears on nobody else&#8217;s list.</li>
+      <li>Leave a lobby (close the tab) and wait two minutes: the room stops being listed,
+      because the sweeper drops a member nobody has heard from for ninety seconds. If the host
+      was the one who left, the next seat becomes host instead of the room dying.</li>
+      <li><b>Press Leave in a room and then open another one immediately.</b> It should just
+      work. This was a reported bug: leaving used to be a navigation and nothing more, so the
+      seat stayed taken and the next room was refused with "you are already in a room" until
+      that ninety-second sweep noticed. The fix is a new server instruction, so it needs this
+      deploy like the rest.</li>
+    </ol>
+    <p><strong>DEPLOYED AND VERIFIED 2026-08-27.</strong> The server is on the new build and
+    all five verification steps pass, step 5 included, so a room can be created, read back,
+    changed and saved. What is left of this item is the browser pass below (steps 2 to 5 of
+    "How to know it worked"), which needs two accounts and cannot be done from a shell. It
+    took three attempts and each one is written up here, because two of the three were the
+    verification lying rather than the deploy failing.</p>
+    <p><strong>THE SECOND DEPLOY IS DONE, 2026-08-29, and it was a reported bug rather than a
+    wave.</strong>
+    The first time a room was tested from a phone, the host was thrown out of the room he had
+    opened: he made a room of four on the phone, joined it from a laptop as the second player,
+    and the phone slept while he did, and ninety seconds later the rule that clears abandoned
+    seats took his. A locked phone runs no JavaScript, so the check-in stops for a reason that
+    has nothing to do with leaving - and the lobby is the one part of a room whose whole
+    activity is waiting for people to arrive, which is to say putting the phone down. Being
+    the host was no protection, because the host is handed to the next seat rather than
+    spared. <b>The window is five minutes now</b>, the app checks in the instant a tab comes
+    back so a phone woken inside that window never reaches it at all, and a dropped player is
+    told what happened instead of being told that a private room is invisible until you are in
+    it, of a room they opened themselves. The two app-side halves shipped with the site on
+    their own; the five minutes needed the server rebuilt, because the sweeper is what reads
+    it. <b>Rebuilt and restarted 2026-08-29</b> from a clean tree, and the running container
+    was read back to confirm it carries the five-minute figure rather than the old ninety
+    seconds. All five verification steps pass again, so a room can be created, read back,
+    changed and saved. Nothing was copied and no password was needed: the three staged config
+    files on the NAS were already byte-identical to this checkout, since the wave changed one
+    number in the code and nothing about the deployment. <b>The firewall rules survived this
+    one</b>, checked from outside straight afterwards, so there was no outage to heal. <b>The
+    owner then ran the browser pass and confirmed all of it</b>, the sleeping phone keeping
+    its lobby seat included, which is what closed this item.</p>
+    <p><strong>The first attempt at this deploy failed, and the fix is in the same rebuild.</strong>
+    It went up cleanly and then logged <code>sweep failed</code> against one room once a
+    second for ever. Two columns the room reader reads were missing from the two queries that
+    fetch a room, so every time came back unreadable - and the two halves of that broke in
+    opposite directions. On the way IN nothing complained at all, and the whole of the
+    liveness lifecycle silently stopped working, because an unreadable time is never older
+    than ninety seconds. On the way OUT the conversion threw from inside the write, so the
+    server rolled back every room it touched: it could still open a room and then failed on
+    every join, ready, start and pick. Three things changed, and the third is the one that
+    matters most: the columns are asked for; an unreadable time is now a loud failure at the
+    read rather than a value that gets carried; and a failed sweep names its fault in the log
+    instead of printing a room code and nothing else. There is a new check over the queries,
+    mutation-tested by removing each of the two columns.</p>
+    <p><strong>Watch the log after this one.</strong> The last thing the deploy prints is the
+    server's own log. It should show it listening and then nothing. Any line reading
+    <code>sweep failed</code> now carries the reason after the room code, and that reason is
+    what to paste back.</p>
+    <p><strong>And two more things went wrong on the way, neither of them the referee.</strong>
+    The gateway could not reach it at all, which is the documented Synology trap: creating
+    and removing containers wipes the docker bridge firewall rules, so everything behind the
+    gateway answers 503 until the Task Scheduler job is re-run. And the deploy script's own
+    verification <b>aborted silently at step 4</b>, which is worse than it sounds because the
+    symptom is indistinguishable from finishing: the heading printed, nothing followed, and
+    the shell reported success. Its last two steps reach the database through compose on the
+    NAS, which Synology needs a full path and root for, and that stage alone never ran the
+    probe that finds it. Fixed, with a check that every stage touching the NAS's docker
+    detects it first and none names it directly.</p>
+    <p><strong>If it goes wrong.</strong> The previous image is the rollback, and it is safe:
+    the schema did not move, so the old build reads the same tables. What you lose by rolling
+    back is the list and the liveness sweep, which is exactly the state the app already
+    degrades to.</p>
+    <p><strong>Why this is an item at all.</strong> The same standing rule an unapplied
+    migration follows: a change that cannot be deployed by the session that wrote it gets an
+    item with what to do, how to check it and how to undo it, so the apply can be handed to
+    somebody with the access.</p>
+    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl" href="../referee/README.md" target="_blank" rel="noopener">referee/README.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
     <h3>Closed 2026-08-27</h3>
 <details class="item">
   <summary>
