@@ -672,6 +672,32 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- The pick clock is a proportion, so it needs the window ---------------
+  // It was a big numeral until 2026-08-30 and it is a draining bar now, which changed what
+  // it depends on: a number needs only the time left, a BAR needs the length of the window
+  // it is a fraction of. The host chooses twenty or thirty (P20), so a hardcoded twenty
+  // here would draw a thirty-second window as full for its first ten seconds - and a
+  // literal agrees with nothing and disagrees with nothing either, which is exactly how
+  // P20 went unbuilt for three waves. Source-level because there is nothing to run.
+  {
+    const clock = readFileSync('src/components/versus/versusUi.tsx', 'utf8');
+    const draft = readFileSync('src/components/versus/RoomDraft.tsx', 'utf8');
+    const props = /export function PickClock\(\{[^}]*\}: \{([^]*?)\n\}\) \{/.exec(clock)?.[1] ?? '';
+    check(
+      'pvpView: the pick clock draws a bar against the ROOM\'s window length, never a literal',
+      () =>
+        // It takes the window, and it is required rather than defaulted.
+        /\n\s*windowMs: number;/.test(props) &&
+        !/windowMs\?/.test(props) &&
+        // And the one caller feeds it the room's own figure.
+        /windowMs=\{view\.pickSeconds \* 1000\}/.test(draft) &&
+        // Vacuity: the scan really did find the component's props, and the bar it draws.
+        props.includes('remainingMs') &&
+        clock.includes('role="progressbar"'),
+      () => `props found: ${props.length > 0}, caller wires it: ${/windowMs=/.test(draft)}`,
+    );
+  }
+
   // --- The invitation ------------------------------------------------------
   // A room is opened and then PASTED INTO A MESSAGE, so the link is the invitation and the
   // code is what you say out loud. The base path is the thing to get wrong: this build is

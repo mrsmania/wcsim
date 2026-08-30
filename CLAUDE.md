@@ -2900,6 +2900,18 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
   every tick and on `visibilitychange`, never accumulated, so a backgrounded tab comes back
   telling the truth. **The controls lock a measured round trip early**, so a tap you made
   in time is never answered with "the clock beat you".
+- **AND IT IS DRAWN AS A BAR, NOT A NUMERAL** (2026-08-30). What a player needs from the
+  clock is "how much of my window is gone", which is a proportion: reading one off a bar
+  costs a glance, where reading it off "13" costs arithmetic against a window length nobody
+  memorised, and a bar a quarter full is still legible out of the corner of an eye over a
+  market you are reading. It cost the component one prop and that prop is the whole trap:
+  **a proportion needs the window it is a proportion OF**, and the host chooses twenty or
+  thirty (P20), so `PickClock` takes `windowMs` and `RoomDraft` feeds it `view.pickSeconds`
+  - a literal twenty would draw a thirty-second window as full for its first ten seconds,
+  and would agree with nothing and disagree with nothing either, which is exactly how P20
+  went unbuilt for three waves. `npm run checks` reads both halves. The urgency stays in
+  WORDS as well as in colour ("Nearly out of time", "Too late for this one"), which matters
+  more now the numeral is gone, and the count itself lives on in `aria-valuetext`.
 - **A TIE IS TURNED ROUND SO THE VIEWER IS HOME** (`viewerTie`). Home is randomised per tie
   and cosmetic (P44), while every match component here is written as "you and them" with
   `USER_SIDE` a constant. One pure relabelling beats teaching five components that a side

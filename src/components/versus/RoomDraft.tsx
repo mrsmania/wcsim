@@ -158,6 +158,10 @@ export default function RoomDraft({
             {window && room.remainingMs !== null ? (
                 <PickClock
                     remainingMs={room.remainingMs}
+                    // The bar is a PROPORTION, so it needs the room's own window length:
+                    // the host chooses twenty or thirty (P20), and a thirty drawn against
+                    // a hardcoded twenty would sit full for the first ten seconds.
+                    windowMs={view.pickSeconds * 1000}
                     ordinal={window.ordinal}
                     locked={room.locked}
                     hint={

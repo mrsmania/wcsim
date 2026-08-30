@@ -3,7 +3,7 @@ import { Bot, Check, Clock, Flag, Link2, Share2, UserPlus } from 'lucide-react';
 import { reportName, type ReportOutcome } from '../../state/pvp/records';
 import { inviteText } from '../../domain/pvpView';
 import type { MemberView } from '../../domain/pvpWire';
-import { CARD_FLAT, MONO_CAP, btn } from '../matchUi';
+import { CARD_FLAT, MONO_CAP, Meter, btn } from '../matchUi';
 import type { RefereeMessage } from './refereeMessage';
 
 // The versus screens' shared atoms. Small on purpose: a room reuses the build page, the
@@ -11,20 +11,38 @@ import type { RefereeMessage } from './refereeMessage';
 // new is the clock, the seat list and the code you read out to somebody.
 
 /**
- * The pick clock.
+ * The pick clock, as a bar that drains.
  *
- * THE LOUDEST THING ON THE SCREEN, by decision (plan section 8): a draft is twenty
- * seconds a pick and the number is what the whole screen is about. It turns amber under
- * five seconds and red under two, and it says so in words as well as in colour, because
- * "it went red" is not a thing everybody can see.
+ * THE LOUDEST THING ON THE SCREEN, by decision (plan section 8): a draft is twenty seconds
+ * a pick and how long is left is what the whole screen is about. It was a big numeral until
+ * 2026-08-30 and it is a BAR now, for the reason a bar beats a number at this job: what a
+ * player needs from it is "how much of my window is gone", which is a proportion, and
+ * reading a proportion off a bar costs a glance where reading it off "13" costs arithmetic
+ * against a window length nobody memorised. It also degrades better - a bar a quarter full
+ * is still legible out of the corner of an eye, over a market you are reading.
+ *
+ * IT NEEDS THE WINDOW LENGTH, which is the one thing a number did not: a proportion has no
+ * meaning without what it is a proportion OF, and the host chooses between twenty and
+ * thirty seconds (P20). Passing the remaining milliseconds alone would draw a thirty-second
+ * window as though it were a twenty.
+ *
+ * It turns amber under five seconds and red under two, AND SAYS SO IN WORDS, because "it
+ * went red" is not a thing everybody can see - and with the numeral gone the colour would
+ * otherwise be the only thing carrying it. The count itself stays available to a screen
+ * reader through `aria-valuetext`, which is the right place for a number nobody wants on
+ * screen.
  */
 export function PickClock({
     remainingMs,
+    windowMs,
     ordinal,
     locked,
     hint,
 }: {
     remainingMs: number;
+    /** How long this room's window is, in milliseconds: `pickSeconds * 1000` (P20 allows
+     *  twenty or thirty). Without it there is no proportion to draw. */
+    windowMs: number;
     /** Which pick this is, 1-based. */
     ordinal: number;
     /** The window is close enough to its end that a pick would not arrive in time. */
@@ -34,20 +52,43 @@ export function PickClock({
     hint: string;
 }) {
     const secs = Math.ceil(remainingMs / 1000);
-    const tone =
-        locked || secs <= 2 ? 'text-loss' : secs <= 5 ? 'text-amber-ink' : 'text-ink';
+    const left = Math.max(0, secs);
+    const urgent = locked || secs <= 2;
+    const near = !urgent && secs <= 5;
+    const pct = windowMs > 0 ? (remainingMs / windowMs) * 100 : 0;
+    // A surface rather than text, so the plain tokens are right here: it is `amber-ink`
+    // and `pitch-ink` that exist for the other case.
+    const fill = urgent ? 'bg-loss' : near ? 'bg-amber' : 'bg-pitch';
     return (
-        <div className={`${CARD_FLAT} flex items-center justify-between gap-4 px-4 py-3`}>
-            <div>
-                <div className={MONO_CAP}>Pick {ordinal} of 11</div>
-                <div className="mt-0.5 text-[12px] font-semibold text-muted">
-                    {locked ? 'Too late for this one' : hint}
-                </div>
+        <div
+            className={`${CARD_FLAT} px-4 py-3`}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(windowMs / 1000)}
+            aria-valuenow={left}
+            aria-valuetext={`${left} second${left === 1 ? '' : 's'} left of this pick`}
+        >
+            {/* STACKED, not a caption opposite a sentence: the hint runs to eight words and
+                a phone is 380px wide, so side by side it wraps "Pick 4 of 11" onto two
+                lines to make room for it. */}
+            <div className={MONO_CAP}>Pick {ordinal} of 11</div>
+            <div
+                className={`mt-0.5 text-[12px] font-semibold ${
+                    urgent ? 'text-loss' : near ? 'text-amber-ink' : 'text-muted'
+                }`}
+            >
+                {locked ? 'Too late for this one' : urgent || near ? 'Nearly out of time' : hint}
             </div>
-            <div className={`flex items-baseline gap-1 font-mono text-4xl font-bold tabular-nums ${tone}`}>
-                {secs}
-                <span className="text-[13px] font-semibold">s</span>
-            </div>
+            {/* Keyed on the window, so a new pick starts a full bar rather than sliding
+                back up to it: the transition is there to make ten updates a second read as
+                one continuous drain, and it would animate the reset too. */}
+            <Meter
+                key={ordinal}
+                pct={pct}
+                height={12}
+                fill={`${fill} transition-[width] duration-100 ease-linear`}
+                className="mt-2"
+            />
         </div>
     );
 }

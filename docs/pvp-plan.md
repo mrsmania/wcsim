@@ -339,6 +339,13 @@ signed-out state); the room lobby; the draft; the round; the result.
 
 **The draft screen is the existing build page with the room's rules**, minus the controls in
 P41, with the clock as the loudest thing on screen and a strip showing everyone's progress.
+*Amended 2026-08-30: the clock is a **bar that drains**, not a numeral. What it is read for
+is a proportion - how much of the window is gone - and a bar answers that at a glance where
+a number needs arithmetic against a window length nobody memorised. It is still the loudest
+thing on the screen, by width rather than by type size, and the urgency is still in words as
+well as in colour. The one thing it added is a dependency the numeral did not have: the
+length of the room's own window (P20 allows two), because a proportion is meaningless
+without it.*
 **It needs its own build state** (P29).
 
 **Hiding the ratings replaces rather than blanks.** Chemistry is off in a room anyway (P25), so
