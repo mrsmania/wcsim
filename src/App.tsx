@@ -237,7 +237,17 @@ export default function App({
     // in the cover's Continue and in the Play tab's destination alike (plan section 8).
     // Without it, tapping the crest out of habit mid-room lands you on your solo build
     // with a pick clock running somewhere else.
-    const heldRoom = useHeldVersusRoom();
+    //
+    // AND IT IS ONLY EVER SHOWN TO AN ACCOUNT, which was a reported bug: the pointer lives
+    // in `sessionStorage` and signing out reloads the page, so a guest was left with a
+    // "Back to your room" on the front page and a room strip in the chrome, for a room the
+    // guest cannot even read. A room is account-only (P17), so a pointer with no account is
+    // stale by definition - gating the READ covers every way it can go stale (a sign-out, a
+    // session expiring, an account deleted in another tab), where clearing it at each of
+    // those sites covers only the ones somebody remembered. `AccountPanel` clears it too,
+    // so the stale value does not sit there waiting.
+    const signedInHeld = useHeldVersusRoom();
+    const heldRoom = accountEmail ? signedInHeld : null;
     const roomTo = heldRoom ? `/versus/${heldRoom.code}` : null;
     // Where the Play tab lands: the run if there is one, the build if one is half done,
     // otherwise the cover. The crest always returns to the cover.

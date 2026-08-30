@@ -61,6 +61,57 @@ export const peopleIn = (view: RoomView): MemberView[] => view.members.filter((m
 /** The practice opponents (`domain/pvpBot.ts`), newest seat last. */
 export const botsIn = (view: RoomView): MemberView[] => view.members.filter((m) => m.bot);
 
+/**
+ * Every chair in the room, in seat order, with the ones nobody is sitting in as nulls.
+ *
+ * A LOBBY IS MOSTLY ABOUT WHO IS NOT THERE YET, which a list of the people present cannot
+ * say: "2 of 4 here" is a count, and four rows with two of them empty is the room. It also
+ * makes the practice opponents legible as what they are - a way to fill exactly those
+ * rows - rather than as two extra names that appeared from nowhere.
+ *
+ * Seats are padded rather than indexed by `seat`, because a seat number is a label with
+ * gaps in it: somebody dropped by the liveness sweep leaves theirs behind for ever (P47,
+ * and `pvp_members` has a unique index that makes renumbering unsafe), so seat 5 in a room
+ * of four is perfectly ordinary.
+ */
+export function seatsOf(view: RoomView): (MemberView | null)[] {
+    const taken = [...view.members].sort((a, b) => a.seat - b.seat);
+    const empty = Math.max(0, view.size - taken.length);
+    return [...taken, ...Array.from({ length: empty }, () => null)];
+}
+
+// --- Kick-off (the countdown) ----------------------------------------------
+
+/** How long the room counts down before the draft starts. Three, because it is a beat to
+ *  look up at the screen and not a wait: everybody in the room has already said they are
+ *  ready, and the pick clock starts the moment it reaches zero. */
+export const KICKOFF_SECONDS = 3;
+
+/** How long the count waits at zero before giving up and showing the lobby again. It is
+ *  the answer to the one way this can hang: the client that sends the Start is the host's,
+ *  so a host whose tab dies in the last second would otherwise leave everybody else on a
+ *  screen that never changes. A few seconds is longer than a poll and a round trip, and
+ *  what it falls back to - the lobby, with its Start button - is the honest state. */
+export const KICKOFF_HOLD_SECONDS = 5;
+
+/**
+ * Is this room about to start on its own?
+ *
+ * IT IS DERIVED, WHICH IS THE ONLY REASON THE COUNTDOWN CAN BE SHARED. Every client sees
+ * the same members and the same ready marks, so each one reaches this answer within a poll
+ * of the others and counts down on its own - no instruction, no new server route, and
+ * nothing to deploy. What the HOST'S client does at zero is send the Start the host would
+ * otherwise have pressed.
+ *
+ * A practice opponent is always ready (there is nobody to press it), so a host who filled
+ * the empty chairs starts the moment they are ready themselves - which is the whole point
+ * of having filled them.
+ */
+export const everybodyReady = (view: RoomView): boolean =>
+    view.status === 'lobby' &&
+    view.members.length >= view.size &&
+    view.members.every((m) => m.ready);
+
 // --- Inviting somebody (the code, and the link) ----------------------------
 
 /**

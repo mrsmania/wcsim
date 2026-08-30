@@ -241,6 +241,37 @@ button:not(:disabled) {
     animation: slot-pulse-secondary 1.15s ease-out infinite;
 }
 
+/* The versus kick-off count (versus/versusUi.tsx). One beat per numeral: it starts
+   large and settles, so three, two and one each land rather than the number simply
+   changing. Under a second, because a tick that has not finished when the next one
+   begins reads as a stutter. The motion is decoration on a number that is legible
+   without it, so it is dropped entirely under prefers-reduced-motion - which is the
+   pattern the confetti and the boot cover already keep. */
+@keyframes kickoff-tick {
+    0% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+    35% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-kickoff {
+    animation: kickoff-tick 0.9s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-kickoff {
+        animation: none;
+    }
+}
+
 /* ============================================================================
    KNOCKOUT BRACKET (Bracket.tsx, mounted by cupRun/RunBracket). Layout + connectors
    only; seed text styling

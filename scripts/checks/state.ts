@@ -171,6 +171,39 @@ export function stateChecks(): void {
     );
   }
 
+  // --- The versus room pointer does not outlive the account -------------------
+  // A REPORTED BUG, and the shape of it is worth keeping: the pointer to the room you are
+  // holding lives in `sessionStorage`, and signing out RELOADS the page - so it survived
+  // into the guest session and the front page went on offering "Back to your room" for a
+  // room only an account can read. A room is account-only (P17), so a pointer with no
+  // account is stale by definition.
+  //
+  // Two guards, because they fail differently: App refuses to READ one without an account,
+  // which covers every way it can go stale (a session expiring, another tab), and the
+  // account panel CLEARS it on the way out, so the stale value is not left sitting there.
+  // Source-level on purpose - there is nothing to run, the defect is a line not being there.
+  {
+    const app = readFileSync('src/App.tsx', 'utf8');
+    const panel = readFileSync('src/components/AccountPanel.tsx', 'utf8');
+    // The two sign-out paths (`out`, which signs out, and `remove`, which deletes the
+    // account) must each clear it: they are separate handlers and the second is the one a
+    // reader forgets.
+    const cleared = (panel.match(/holdVersusRoom\(null\)/g) ?? []).length;
+    check(
+      'versus: the room pointer is gated on the account and cleared when it ends',
+      () =>
+        // Vacuity: this file really is the one that reads the pointer, and the panel
+        // really does have two ways out of an account.
+        app.includes('useHeldVersusRoom()') &&
+        /const heldRoom = accountEmail \? \w+ : null;/.test(app) &&
+        panel.includes("await signOut(scope)") &&
+        panel.includes('await deleteAccount()') &&
+        cleared === 2,
+      () =>
+        `gate ${/const heldRoom = accountEmail \? \w+ : null;/.test(app)}, cleared in ${cleared} of the 2 ways out`,
+    );
+  }
+
   // --- Migrations: the index says where each function actually lives -----------
   // Migrations are append-only and applied by hand, so a function that has changed four
   // times exists four times on disk and only the last one is live. `finish_run`'s body is

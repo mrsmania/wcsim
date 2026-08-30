@@ -86,6 +86,7 @@ in rather than a missing feature.
 | P25 | Chemistry | **OFF inside a room** (2026-08-26). Measured: the same eleven players with the full bonus beat themselves without it **73.2%** of the time, because `userGroupTeam` adds it to attack AND defence, both of which the sim reads. In the single-player game that is a nudge helping a patchwork XI close on an intact national side, which is what it exists for. In a room both sides are patchwork, so it stops being a nudge and becomes the game, and it is a pure knowledge check: eleven men from one squad reach the cap, while **400 naively auto-filled XIs never reached it once** (0 to 5, most often 1). A versus match is the two numbers the sim reads and nothing else |
 | P26 | The defence-stacking meta | **Accepted as skill, not designed against** (2026-08-26). See section 11 for the measurement and for exactly what is being accepted. No minimum spend per line, no formation restriction |
 | P49 | Not enough people | **The host may fill the empty chairs with practice opponents** (2026-08-29, roadmap item 45). P7's play-it-smaller answers half of "a room of eight will not fill" and stops there, because dropping to two is a different evening from the tournament the host opened; this is the other half. Four rules make it a seat rather than a player: a bot **never keeps a person out** (somebody arriving at a full room takes the newest bot's chair), a bot **cannot hold a room open** (a lobby whose last human leaves closes, however many chairs are filled), a bot **cannot be host** and cannot be swept out for silence, and a tie with a bot in it is **excluded from `pvp_records`**, so a room full of them is not a record. It **builds a team worth playing** rather than drafting like an expired clock, which is deliberately random (P21) and would make a bot a free win: near the best XI its money can buy, minus `BOT_SPEND`. Measured at $110: the optimum rates 84.0, a bot rates 83.0, it beats the expired-window XI **80%** of the time and the transfer market's own one-tap auto-fill **57%**. It needs its own table (`pvp_bots`, migration 0019) because `pvp_members.user_id` is a foreign key into `profiles` and a bot has no account |
+| P50 | Starting the draft | **The room starts itself once everybody is ready, three seconds after** (2026-08-29). P48 made Ready a signal and left the host as the only thing that could act on it, so a full room of ready players sat waiting for one person to notice and press a button. The countdown is **derived from the room every client already holds** - full, and everybody ready - so it needs no instruction and nothing deployed: each screen counts down on its own and the HOST'S client sends the Start at zero. The host's button stays, for a room where somebody has not readied (P48's whole point), and arms the same three seconds rather than dropping the draft on the room. Two failure modes were designed for and both are checked: the count **disarms** if a seat is lost or somebody un-readies, so it cannot fire a Start the referee would refuse; and it **gives up at zero** after a few seconds, because the only client that sends the Start is the host's, and a host whose tab dies in the last second would otherwise leave everybody on a screen that never changes. Accepted asymmetry: a host's press on a room that was not all-ready is not visible to the others, so they see the draft arrive rather than a count - making it visible needs a server instruction, which is where P41's Skip is |
 | P27 | Can two players pick the same man? | **Yes. The room pool is shared, not exclusive.** It is the only version compatible with eleven independent clocks (P12): under exclusivity two players claim the same man in overlapping windows and somebody has to be told no, which makes a fast connection an advantage. Named here as a decision rather than left as an assumption, because exclusivity is the largest single lever available if the mode ever plays flat |
 
 ### The draft
@@ -442,6 +443,23 @@ things worth recording.
   (there is no tab to hear from), and the public listing counts people and chairs apart (a
   bot yields its seat, so folding them together prints "Full" over a room anybody can walk
   into).
+
+### Reported after playing it: three things about the lobby (2026-08-29)
+
+- **A ROOM FULL OF READY PLAYERS STILL WAITED FOR A BUTTON.** P48 settled that Ready is a
+  signal rather than a lock and left the host as the only thing that could act on it, which
+  is right for a room where somebody has NOT readied and wrong for the ordinary case. The
+  fix costs no server change because the condition is already on every screen: see P50.
+- **THE LOBBY SHOWED THE PEOPLE, NOT THE ROOM.** A list of who is present cannot say who is
+  missing, which is most of what a lobby is about. Every chair is a row now, and the empty
+  ones say so - which also makes the practice opponents legible as the thing that fills
+  exactly those rows rather than as names that appeared from nowhere.
+- **THE ROOM POINTER OUTLIVED THE ACCOUNT.** It lives in `sessionStorage` and signing out
+  reloads the page, so a guest was left with "Back to your room" on the front page and a
+  room strip in the chrome, for a room only an account can read. The lesson is the general
+  one about a pointer to something you do not own: the fix is to gate the READ on the thing
+  it depends on, which covers every way it can go stale, and to clear it at the sites you
+  know about as well - not one or the other.
 
 ### Accepted, with the measurement: the mode is low-scoring at the top (P25, P26)
 

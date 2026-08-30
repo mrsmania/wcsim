@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { FEATURES } from '../config';
+import { holdVersusRoom } from '../nav/versusRoom';
 import { PRIMARY_BTN, btn } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
@@ -108,7 +109,9 @@ export default function AccountPanel({
     try {
       const { deleteAccount } = await import('../state/auth');
       await deleteAccount();
-      // Same handover as signing out: the store has to be rebuilt as a guest.
+      // Same handover as signing out: the store has to be rebuilt as a guest, and the
+      // versus room pointer goes with the account it belonged to.
+      holdVersusRoom(null);
       onSignedOut();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -121,6 +124,11 @@ export default function AccountPanel({
     try {
       const { signOut } = await import('../state/auth');
       await signOut(scope);
+      // The versus room pointer goes with the account. It lives in `sessionStorage` and
+      // signing out RELOADS the page, so without this it survives into the guest session
+      // and offers a way back to a room only an account can read. App also refuses to
+      // show one without an account, which is the belt to this pair of braces.
+      holdVersusRoom(null);
       onSignedOut();
     } catch (err) {
       fail(err);

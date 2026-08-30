@@ -13,11 +13,15 @@ import { ALL_PLAYERS, SQUAD_BY_ID } from '../../src/data/squads';
 import { getFormation } from '../../src/domain/formations';
 import type { MatchEvent } from '../../src/domain/match';
 import {
+  KICKOFF_HOLD_SECONDS,
+  KICKOFF_SECONDS,
   REVEAL_JOIN_MS,
   agoLine,
+  everybodyReady,
   gamesIn,
   inviteText,
   inviteUrl,
+  seatsOf,
   lobbyJoinable,
   lobbyLine,
   seatsLine,
@@ -592,6 +596,79 @@ export function pvpViewChecks(): void {
         roomLine({ ...room, championId: AWAY }) === 'finished' &&
         roomLine({ ...room, championId: HOME }) === 'you won',
       () => roomLine(room),
+    );
+  }
+
+  // --- The whole room, and the kick-off ------------------------------------
+  //
+  // A LOBBY IS MOSTLY ABOUT WHO IS NOT THERE YET, and the countdown is the one thing in
+  // this feature that happens on several screens at once without anybody being told to do
+  // it: it is DERIVED from the room every client already holds, which is what lets it need
+  // no server route and nothing deployed.
+  {
+    const seat = (userId: string, n: number, ready: boolean, bot = false) => ({
+      userId,
+      seat: n,
+      name: userId,
+      ready,
+      outIn: null,
+      picked: 0,
+      formationName: '4-3-3',
+      style: 'bal',
+      bot,
+    });
+    const room = (members: ReturnType<typeof seat>[], size = 4): RoomView =>
+      fixtureRoom({ size, members, status: 'lobby' });
+    const two = room([seat('a', 0, true), seat('b', 1, false)]);
+    const rows = seatsOf(two);
+    check(
+      'pvpView: every chair in the room is a row, and the ones nobody is in are empty',
+      () =>
+        rows.length === 4 &&
+        rows.filter((r) => r === null).length === 2 &&
+        // In seat order, and the people first: an empty chair is not somebody's place
+        // being held, it is the end of the list.
+        rows[0]?.userId === 'a' &&
+        rows[1]?.userId === 'b' &&
+        rows[2] === null &&
+        // A seat NUMBER has gaps in it - the liveness sweep leaves one behind - so the
+        // padding counts rows rather than indexing by seat.
+        seatsOf(room([seat('a', 7, true)])).length === 4 &&
+        // A full room has no empty rows at all, which is the vacuity guard in the other
+        // direction: a function that always padded would fail here.
+        seatsOf(room([seat('a', 0, true), seat('b', 1, true)], 2)).every((r) => r !== null),
+      () => JSON.stringify(rows.map((r) => r?.userId ?? null)),
+    );
+    check(
+      'pvpView: a room starts itself only when every seat is taken AND everybody is ready',
+      () =>
+        // Not full: two of four.
+        !everybodyReady(two) &&
+        // Full but somebody is still choosing (P48 keeps the host's Start for exactly this).
+        !everybodyReady(
+          room([seat('a', 0, true), seat('b', 1, true), seat('c', 2, true), seat('d', 3, false)]),
+        ) &&
+        // Full and all ready.
+        everybodyReady(
+          room([seat('a', 0, true), seat('b', 1, true), seat('c', 2, true), seat('d', 3, true)]),
+        ) &&
+        // A PRACTICE OPPONENT IS ALWAYS READY, so a host who filled the chairs starts the
+        // moment they are ready themselves - which is the whole point of having filled them.
+        everybodyReady(
+          room([seat('a', 0, true), seat('b', 1, true, true), seat('c', 2, true, true), seat('d', 3, true, true)]),
+        ) &&
+        // And never once the football has started: the draft is not something to count
+        // down to twice.
+        !everybodyReady({
+          ...room([seat('a', 0, true), seat('b', 1, true)], 2),
+          status: 'drafting',
+        }) &&
+        // The count is a beat, not a wait, and the hold at zero is longer than a poll plus
+        // a round trip - it is what stops a dead host tab leaving everybody on that screen.
+        KICKOFF_SECONDS >= 2 &&
+        KICKOFF_SECONDS <= 5 &&
+        KICKOFF_HOLD_SECONDS > KICKOFF_SECONDS - 2,
+      () => `${KICKOFF_SECONDS}s then ${KICKOFF_HOLD_SECONDS}s`,
     );
   }
 

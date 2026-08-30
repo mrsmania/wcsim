@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     FORMATIONS_DATA,
     STYLES,
@@ -8,11 +8,28 @@ import {
     type Style,
 } from '../../domain/formations';
 import { ROOM_SIZES } from '../../domain/pvpRoom';
-import { botsIn, inviteUrl, peopleIn, roundsFor } from '../../domain/pvpView';
+import {
+    KICKOFF_HOLD_SECONDS,
+    KICKOFF_SECONDS,
+    botsIn,
+    everybodyReady,
+    inviteUrl,
+    peopleIn,
+    roundsFor,
+    seatsOf,
+} from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import type { VersusRoom } from '../../hooks/useVersusRoom';
 import { CARD, CHIP_OFF, CHIP_ON, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN } from '../matchUi';
-import { InviteRoom, ReadyMark, ReportName, RoomNote, SeatRow } from './versusUi';
+import {
+    EmptySeat,
+    InviteRoom,
+    KickoffCountdown,
+    ReadyMark,
+    ReportName,
+    RoomNote,
+    SeatRow,
+} from './versusUi';
 
 /** Where this build is being served from, for the invite link. Read here rather than
  *  inside `inviteUrl`, which is `domain/` and has no window - and defaulted so a checks
@@ -90,6 +107,72 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
         if (getFormation(n, s)) post(n, s, me?.ready ?? false);
     };
 
+    /**
+     * THE ROOM STARTS ITSELF ONCE EVERYBODY IS READY, and counts down to it.
+     *
+     * The two things that arm it are the same countdown: everybody pressing Ready, which
+     * every client works out for itself from the room it already holds, and the host
+     * pressing Start on a room where somebody has not (P48 keeps that button, since Ready
+     * is a signal rather than a lock). The first is DERIVED, which is the only reason it
+     * needs no new server route and nothing deployed: the same fact reaches every screen
+     * within a poll, so everybody counts down together, and at zero the HOST's client
+     * sends the instruction it would otherwise have waited for a tap to send.
+     *
+     * The host's own press is the one asymmetry and it is accepted: a room that was not
+     * all-ready has nothing the other clients can read, so they see the draft arrive rather
+     * than a count. Fixing that means an instruction the referee does not have, which is
+     * the same wall P41's Skip is behind.
+     *
+     * `armed` drops the moment the room stops being full or somebody un-readies, and the
+     * count restarts from three, so a seat lost at "one" is a cancelled kick-off rather
+     * than a start the referee refuses.
+     */
+    const [pressed, setPressed] = useState(false);
+    const [since, setSince] = useState<number | null>(null);
+    const [now, setNow] = useState(0);
+    const fired = useRef(false);
+    const armed = full && (everybodyReady(view) || pressed);
+    useEffect(() => {
+        if (!armed) {
+            setSince(null);
+            setPressed(false);
+            fired.current = false;
+            return;
+        }
+        // `performance.now()`, never the wall clock: the same monotonic reading the pick
+        // clock counts on, and for the same reason - a phone that corrects its clock
+        // mid-count must not jump to zero or back to three.
+        const from = performance.now();
+        setSince(from);
+        setNow(from);
+        const t = window.setInterval(() => setNow(performance.now()), 100);
+        return () => window.clearInterval(t);
+    }, [armed]);
+
+    const elapsed = since === null ? 0 : (now - since) / 1000;
+    const left = Math.max(0, Math.ceil(KICKOFF_SECONDS - elapsed));
+    useEffect(() => {
+        if (!armed || since === null || left > 0 || fired.current || !isHost) return;
+        fired.current = true;
+        void room.start().catch(() => undefined);
+    }, [armed, since, left, isHost, room]);
+
+    // The count is over and the room has not moved: the host's tab may have gone in the
+    // last second, or its Start may have failed, so the lobby comes back rather than
+    // leaving everybody staring at a screen that will never change.
+    const stalled = elapsed > KICKOFF_SECONDS + KICKOFF_HOLD_SECONDS;
+
+    /** Count again, from three. It is the host's Start button and it is also the way OUT of
+     *  a stall: the fire is latched per countdown rather than for ever, so pressing this
+     *  after one gives the room another go. */
+    const rearm = (): void => {
+        fired.current = false;
+        const from = performance.now();
+        setSince(from);
+        setNow(from);
+        setPressed(true);
+    };
+
     return (
         <div className="grid items-start gap-[22px] min-[860px]:grid-cols-[minmax(0,1fr)_360px]">
             <div className={`${CARD} p-4`}>
@@ -151,27 +234,37 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                 <div className={`${MONO_CAP} mt-4`}>
                     {view.members.length} of {view.size} here
                 </div>
+                {/* EVERY CHAIR, INCLUDING THE EMPTY ONES. A lobby is mostly about who is
+                    not here yet, and a list of the people present cannot say that: four
+                    rows with two of them empty is the room, where "2 of 4" is a count. It
+                    is also what makes the practice opponents below read as what they are -
+                    a way to fill exactly those rows. */}
                 <ul className="mt-1">
-                    {view.members.map((m) => (
-                        <SeatRow
-                            key={m.userId}
-                            member={m}
-                            you={m.userId === view.you?.userId}
-                            host={m.userId === view.hostId}
-                            detail={
-                                <span className="flex items-center gap-2.5">
-                                    <ReadyMark ready={m.ready} />
-                                    {/* Not for yourself, not for a seat the host filled,
-                                        and only in the lobby: this is where you first read
-                                        a STRANGER's name (P22), and a practice opponent is
-                                        not a stranger - it is named by this build. */}
-                                    {!m.bot && m.userId !== view.you?.userId && (
-                                        <ReportName userId={m.userId} name={m.name} />
-                                    )}
-                                </span>
-                            }
-                        />
-                    ))}
+                    {seatsOf(view).map((m, i) =>
+                        m ? (
+                            <SeatRow
+                                key={m.userId}
+                                member={m}
+                                you={m.userId === view.you?.userId}
+                                host={m.userId === view.hostId}
+                                detail={
+                                    <span className="flex items-center gap-2.5">
+                                        <ReadyMark ready={m.ready} />
+                                        {/* Not for yourself, not for a seat the host
+                                            filled, and only in the lobby: this is where you
+                                            first read a STRANGER's name (P22), and a
+                                            practice opponent is not a stranger - it is
+                                            named by this build. */}
+                                        {!m.bot && m.userId !== view.you?.userId && (
+                                            <ReportName userId={m.userId} name={m.name} />
+                                        )}
+                                    </span>
+                                }
+                            />
+                        ) : (
+                            <EmptySeat key={`empty-${i}`} />
+                        ),
+                    )}
                 </ul>
 
                 {/* PRACTICE OPPONENTS (`domain/pvpBot.ts`). The one thing a room of eight
@@ -254,24 +347,37 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                 {isHost ? (
                     <button
                         className={`${PRIMARY_BTN} mt-4 w-full`}
-                        disabled={!full || busy}
-                        onClick={() => {
-                            setBusy(true);
-                            void room.start().finally(() => setBusy(false));
-                        }}
+                        // Live again once a countdown has stalled, which is the only way
+                        // back from a Start that did not land.
+                        disabled={!full || busy || (armed && !stalled)}
+                        // It arms the same countdown the room arms itself, rather than
+                        // starting the draft under everybody: three seconds is the
+                        // difference between a draft appearing and a draft beginning.
+                        onClick={rearm}
                     >
                         {full
-                            ? 'Start the draft'
+                            ? stalled
+                                ? 'Start it again'
+                                : 'Start the draft'
                             : `Waiting for ${view.size - view.members.length} more`}
                     </button>
                 ) : (
                     full && (
                         <RoomNote>
-                            <span className="mt-4 block">The host starts it.</span>
+                            <span className="mt-4 block">
+                                {stalled
+                                    ? 'Waiting for the host to start it.'
+                                    : 'It starts as soon as everybody is ready.'}
+                            </span>
                         </RoomNote>
                     )
                 )}
             </div>
+
+            {/* The kick-off. Last in the tree because it covers the screen; `stalled` is
+                what stops it covering it for ever if the host's tab went in the last
+                second. */}
+            {armed && !stalled && <KickoffCountdown secondsLeft={left} />}
         </div>
     );
 }

@@ -2921,6 +2921,36 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
   without the guard it would resend every two seconds; and that ref is **cleared on
   success**, so a seat lost LATER to the liveness sweep is taken again the same way rather
   than leaving the screen on "one moment" for ever.
+- **THE ROOM STARTS ITSELF ONCE EVERYBODY IS READY, and counts three down to it**
+  (2026-08-29). Two things arm the same countdown: everybody pressing Ready, and the host
+  pressing Start on a room where somebody has not (P48 keeps that button, since Ready is a
+  signal rather than a lock). The first is **DERIVED** (`everybodyReady`, domain/pvpView),
+  which is the only reason it needed no new server route and nothing deployed: the same
+  fact reaches every screen within a poll, so everybody counts down together, and at zero
+  the HOST'S client sends the instruction it would otherwise have waited for a tap to send.
+  The count is `performance.now()` based, like the pick clock and for the same reason. Two
+  things about it are not obvious and both are load-bearing: it **disarms** the moment the
+  room stops being full or somebody un-readies, so a seat lost at "one" is a cancelled
+  kick-off rather than a Start the referee refuses; and it **gives up at zero after
+  `KICKOFF_HOLD_SECONDS`**, because the client that sends the Start is the host's, so a
+  host whose tab dies in the last second would otherwise leave everybody on a screen that
+  never changes - the lobby comes back and the button reads "Start it again". The one
+  asymmetry is accepted: a host's press on a room that was NOT all-ready has nothing the
+  other clients can read, so they see the draft arrive rather than a count. Fixing that
+  needs an instruction the referee does not have, which is the wall P41's Skip is behind.
+- **EVERY CHAIR IS A ROW, INCLUDING THE EMPTY ONES** (`seatsOf`). A lobby is mostly about
+  who is not here yet, and a list of the people present cannot say that: four rows with two
+  of them empty is the room, where "2 of 4" is a count. It is also what makes the practice
+  opponents read as what they are - a way to fill exactly those rows. Seats are PADDED
+  rather than indexed by `seat`, because a seat number has gaps in it: a member dropped by
+  the liveness sweep leaves theirs behind for ever, so seat 5 in a room of four is ordinary.
+- **THE ROOM POINTER DOES NOT OUTLIVE THE ACCOUNT**, and that was a reported bug. It lives
+  in `sessionStorage` and signing out RELOADS the page, so it survived into the guest
+  session and the front page went on offering "Back to your room" - for a room only an
+  account can read. A room is account-only (P17), so a pointer with no account is stale by
+  definition: `App` refuses to READ one without an account (which covers a session
+  expiring, or another tab, as well as a sign-out), and `AccountPanel` clears it on both
+  ways out of an account. `npm run checks` holds both halves, because they fail differently.
 - **THE INVITATION IS A LINK, and Share is the phone's own sheet.** A room is opened and then
   pasted into a message, so the lobby offers Copy link and (where the browser has
   `navigator.share`) Share, which opens the system share sheet rather than a menu of ours -

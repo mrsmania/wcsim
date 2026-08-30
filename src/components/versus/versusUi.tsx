@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Bot, Check, Clock, Flag, Link2, Share2 } from 'lucide-react';
+import { Bot, Check, Clock, Flag, Link2, Share2, UserPlus } from 'lucide-react';
 import { reportName, type ReportOutcome } from '../../state/pvp/records';
 import { inviteText } from '../../domain/pvpView';
 import type { MemberView } from '../../domain/pvpWire';
@@ -52,6 +52,56 @@ export function PickClock({
     );
 }
 
+/**
+ * KICK-OFF. The three seconds between the room being ready and the draft starting.
+ *
+ * IT IS FULL SCREEN BECAUSE IT IS THE MOMENT THE ROOM HAS BEEN WAITING FOR, and because
+ * what happens at zero is a twenty-second clock: somebody still reading the formation chips
+ * when the first pick window opens has lost a fifth of it. Everything else on the lobby can
+ * wait three seconds, and blocking the taps is part of the point - a shape changed at
+ * "one" would not reach the server before the draft did.
+ *
+ * It sits UNDER the shared `Overlay` (`z-[80]`) and over the phone's tab bar (`z-20`), so a
+ * sticker lightbox or a reward picker still comes out on top of it. Nothing here can be
+ * dismissed: the room is starting whether or not this screen is looked at, which is the
+ * same rule the reveal windows keep.
+ */
+export function KickoffCountdown({ secondsLeft }: { secondsLeft: number }) {
+    return (
+        <div
+            className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-3 bg-ground px-6 text-center"
+            role="status"
+            aria-live="assertive"
+        >
+            <div className={MONO_CAP}>Everybody is ready</div>
+            {secondsLeft > 0 ? (
+                <>
+                    {/* `tabular-nums` so 3, 2 and 1 do not shift the layout, and a key on
+                        the value so the fade plays again on each tick rather than once. */}
+                    <div
+                        key={secondsLeft}
+                        className="animate-kickoff font-display text-[120px] font-extrabold leading-none tabular-nums text-pitch-ink"
+                    >
+                        {secondsLeft}
+                    </div>
+                    <p className="text-[15px] font-bold text-ink">The draft starts</p>
+                </>
+            ) : (
+                <>
+                    <div className="font-display text-[64px] font-extrabold leading-none text-pitch-ink">
+                        Kick-off
+                    </div>
+                    {/* If the host's tab died in the last second this is where a room would
+                        sit for ever, so the caller drops this screen after a few seconds and
+                        the lobby comes back with its Start button. Saying so beats a spinner
+                        that means nothing. */}
+                    <p className="text-[13px] text-muted">Waiting for the room to begin.</p>
+                </>
+            )}
+        </div>
+    );
+}
+
 /** One player in the room: their name, and whatever this phase says about them. */
 export function SeatRow({
     member,
@@ -83,6 +133,28 @@ export function SeatRow({
                 {host && <span className="ml-1.5 font-mono text-[10px] text-muted">HOST</span>}
             </span>
             {detail}
+        </li>
+    );
+}
+
+/** A chair nobody is sitting in. Drawn as a row rather than left out, so the lobby shows
+ *  the whole room: dimmed and dashed, because it is the one row that is not a person and
+ *  should not read as one waiting. */
+export function EmptySeat() {
+    return (
+        <li className="flex items-center gap-3 border-b border-hair py-2.5 last:border-b-0">
+            <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-dim">
+                <UserPlus
+                    size={13}
+                    strokeWidth={2.5}
+                    aria-hidden
+                    className="mr-1.5 inline align-[-2px]"
+                />
+                Empty seat
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
+                Waiting
+            </span>
         </li>
     );
 }
