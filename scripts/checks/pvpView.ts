@@ -23,6 +23,7 @@ import {
   KICKOFF_SECONDS,
   REVEAL_JOIN_MS,
   agoLine,
+  answerIsFresh,
   duelDowngraded,
   duelLine,
   duelRules,
@@ -850,6 +851,54 @@ export function pvpViewChecks(): void {
         !isDuel(fixtureRoom()) &&
         !isChallengeToMe(fixtureRoom({ status: 'lobby', you: undefined })),
       () => `${isChallengeToMe(challenge)} / ${isDuel(fixtureRoom())}`,
+    );
+  }
+
+  // --- A slow answer must not undo a fast one ------------------------------
+  //
+  // Reported as "changing my formation un-readies me", which is a real bug and is not about
+  // formations at all. A room is read from three places that are not ordered against each
+  // other - a poll, a re-read whenever the broadcast says something changed, and the answer
+  // to every command - so the last answer to ARRIVE is not the last one to have been TRUE.
+  // A poll that left before you pressed Ready describes a room where you are not ready, and
+  // landing after the Ready answer it puts that back; the next shape you pick then honestly
+  // reports what the screen says, and the reset sticks.
+  {
+    const at = (t: number, ready: boolean): RoomView =>
+      fixtureRoom({
+        status: 'lobby',
+        at: t,
+        members: [
+          { userId: HOME, seat: 0, name: 'Alpha', ready, outIn: null, picked: 0, formationName: '4-3-3', style: 'bal' },
+        ],
+      });
+    // The reported sequence, in order of ARRIVAL: a poll leaves, Ready is pressed and
+    // answered, then the poll's older answer lands.
+    const poll = at(1_000, false);
+    const command = at(1_500, true);
+    const hook = readFileSync('src/hooks/useVersusRoom.ts', 'utf8');
+    check(
+      'pvpView: an answer older than the one on screen is dropped, so a poll cannot undo a command',
+      () =>
+        answerIsFresh(null, poll) &&
+        answerIsFresh(poll.at, command) &&
+        // The one that matters: the poll arriving late is refused.
+        !answerIsFresh(command.at, poll) &&
+        // Equal is accepted - two answers built in the same millisecond describe the same
+        // room, so refusing one would drop an update for nothing.
+        answerIsFresh(command.at, at(1_500, false)) &&
+        // And a stamp a long way behind is a server clock that stepped back, not a slow
+        // request: nothing in flight is a minute old. Refusing it would freeze the room
+        // until the clock caught up, which is worse than the one wrong render it costs.
+        answerIsFresh(command.at, at(command.at - 120_000, false)) &&
+        // And the hook actually asks, before it touches the view or the clock bases.
+        /if \(!answerIsFresh\(appliedAt\.current, next\)\) return;/.test(hook) &&
+        hook.indexOf('answerIsFresh(appliedAt.current') < hook.indexOf('setView(next)') &&
+        // The mark is cleared when the room changes identity, or a referee whose clock
+        // stepped back would have every later answer refused for ever.
+        /appliedAt\.current = null;/.test(hook),
+      () =>
+        `fresh(none)=${answerIsFresh(null, poll)}, stale-after-command=${!answerIsFresh(command.at, poll)}`,
     );
   }
 

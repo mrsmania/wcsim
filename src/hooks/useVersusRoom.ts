@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { roomLine } from '../domain/pvpView';
+import { answerIsFresh, roomLine } from '../domain/pvpView';
 import type { RoomView } from '../domain/pvpWire';
 import { holdLiveMatch } from '../nav/liveMatch';
 import { holdVersusRoom } from '../nav/versusRoom';
@@ -129,13 +129,23 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     const roundTrip = useRef(400);
     const alive = useRef(true);
 
+    // The newest answer already applied, by the server's own clock. See `answerIsFresh`:
+    // the poll, the broadcast's re-read and every command's answer all describe this room
+    // and none of them is ordered against the others.
+    const appliedAt = useRef<number | null>(null);
+
     // One place every answer lands, so the clock base and the chrome's pointer cannot be
     // updated in one path and forgotten in another.
     const accept = useCallback((next: RoomView) => {
         if (!alive.current) return;
-        setView(next);
-        setError(null);
+        // A read that left before the change it is describing must not undo it. Loading and
+        // the error are still cleared, because a stale answer is still proof the server
+        // answered - it is only the CONTENT that is out of date.
         setLoading(false);
+        setError(null);
+        if (!answerIsFresh(appliedAt.current, next)) return;
+        appliedAt.current = next.at;
+        setView(next);
         const w = next.you?.window ?? null;
         clock.current = w
             ? { ordinal: w.ordinal, remainingMs: w.remainingMs, at: performance.now() }
@@ -188,6 +198,10 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     useEffect(() => {
         setLoading(true);
         setView(null);
+        // A DIFFERENT ROOM IS A DIFFERENT CLOCK to compare against - and the same room read
+        // again after a gap must not be judged against a mark from before it, or a referee
+        // restart with a clock a second behind would silently reject every answer for ever.
+        appliedAt.current = null;
         refresh();
     }, [refresh]);
 

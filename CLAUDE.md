@@ -3048,6 +3048,20 @@ that are the OWNER's to fix say so rather than inviting a retry. `npm run checks
 mapping against the refusals `referee/src/api.ts` actually returns and against the two
 token-fault unions, so a new refusal without a sentence fails the suite.
 
+**A SLOW ANSWER MUST NOT UNDO A FAST ONE** (`answerIsFresh`, 2026-08-30). A room is read
+from three places that are not ordered against each other - the poll, the re-read the
+broadcast triggers, and the answer to every command - so **the last answer to ARRIVE is not
+the last one to have been TRUE**. It was reported as "changing my formation un-readies me"
+and has nothing to do with formations: a poll that left before you pressed Ready describes
+a room where you are not ready, and landing after the Ready answer it puts that back; the
+next shape you pick then honestly reports what the screen says, and the reset sticks. The
+guard is a high-water mark on **`RoomView.at`**, the server's own clock, which is the field
+that exists for exactly this. Three things about it: a stale answer still clears `loading`
+and `error` (the server answered - only the CONTENT is old); the mark is cleared when the
+room changes identity; and a stamp more than a minute behind is accepted, because nothing
+in flight is a minute old, so that is a server clock stepping backwards and refusing it
+would freeze the room until the clock caught up.
+
 **A command's failure is not a read's failure** (`useVersusRoom`'s `commandError`). The poll
 runs every two seconds and clears `error` with the next good answer, so a refused Start
 would flash and vanish; a command keeps its own field until the next command. A refused

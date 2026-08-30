@@ -112,6 +112,40 @@ export const everybodyReady = (view: RoomView): boolean =>
     view.members.length >= view.size &&
     view.members.every((m) => m.ready);
 
+/**
+ * Is this answer newer than the newest one already on screen?
+ *
+ * A ROOM IS READ FROM SEVERAL PLACES AT ONCE and none of them is ordered against the
+ * others: a poll every few seconds, a re-read every time the broadcast says the room
+ * changed, and the answer to every command a player sends. They all describe the same room
+ * and they all land whenever the network gets round to them, so the last one to ARRIVE is
+ * not the last one to have been TRUE.
+ *
+ * The symptom that found this was reported as "changing my formation un-readies me", and
+ * the mechanism is one request overtaking another: a poll that left before you pressed
+ * Ready describes a room where you are not ready, and if it lands after the Ready answer it
+ * puts that back. The next shape you pick then honestly reports what the screen says - not
+ * ready - and the reset sticks. Nothing about it is specific to `ready`; it is every field
+ * of every room, and it was simply most visible on the one the player had just changed.
+ *
+ * `RoomView.at` is the server's own clock, stamped when the payload was built, and it is
+ * there for exactly this. Equal is accepted: two answers built in the same millisecond
+ * describe the same room, so it does not matter which wins.
+ */
+export const answerIsFresh = (appliedAt: number | null, next: RoomView): boolean => {
+    if (appliedAt === null || next.at >= appliedAt) return true;
+    // A LONG WAY BEHIND IS A CLOCK, NOT AN OVERTAKE. Nothing in flight is a minute old - a
+    // request that took that long has already timed out - so a stamp this far back means
+    // the server's clock stepped backwards rather than that this answer is stale. Refusing
+    // it would freeze the room until the clock caught up, which is a far worse failure than
+    // the one render this costs.
+    return appliedAt - next.at > CLOCK_STEP_MS;
+};
+
+/** Past this, a stamp behind the newest one is a clock correction rather than a slow
+ *  request. Generous on purpose: it only has to be longer than any request can live. */
+const CLOCK_STEP_MS = 60_000;
+
 // --- Duels: a game nobody has to be present for (P51) -----------------------
 
 /**

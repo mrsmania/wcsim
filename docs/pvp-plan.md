@@ -438,6 +438,23 @@ opened exactly one - the career budget - and it was settled by deletion on 2026-
 kept below as the record of a decision rather than as a question. Wave 3 also found five
 things worth recording.
 
+### Found by playing a lobby (2026-08-30)
+
+- **THE CLIENT HAD NO ORDERING ON ITS ANSWERS AT ALL, and it was reported as a formation
+  bug.** "Changing the formation or style un-readies me" is true, intermittently, and has
+  nothing to do with either: a room is read by a poll every few seconds, by a re-read
+  whenever the broadcast says something changed, and by the answer to every command, and
+  none of those is ordered against the others. A poll that left before Ready was pressed
+  describes a room where you are not ready; landing after the Ready answer it puts that
+  back, and the next shape you pick then honestly reports what the screen says. The reset
+  sticks and looks like the shape caused it.
+  The fix is a high-water mark on `RoomView.at` - the server's own clock, which the payload
+  has carried since wave 5 for precisely this and which nothing was reading. It is not a
+  `ready` fix: every field of every room had the same hole, and `ready` was only the one the
+  player had just changed and so was watching. Worth knowing for any future field: the
+  optimistic board (P36) is protected by its own in-flight guard, and this is what protects
+  everything that is not the board.
+
 ### Found while building the whole-draft budget room (2026-08-30, P52)
 
 - **THE PICK CLOCK WAS ALWAYS WRONG FOR A BUDGET ROOM, and it took playing one to see it.**
