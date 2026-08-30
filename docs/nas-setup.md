@@ -622,6 +622,53 @@ Everything below is additive: nothing here touches the accounts stack the game a
 and stopping at any step leaves the game exactly as it is, because `FEATURES.pvp` is off
 until the last one.
 
+### Two things `deploy-referee.sh` needs and never said so (found 2026-08-30)
+
+Both stopped a deploy dead, both look like something else, and neither was written down.
+
+**IT NEEDS AN SSH KEY, NOT A PASSWORD.** Every call it makes carries `-o BatchMode=yes`,
+which switches interactive prompts off, so a password-only login fails as
+`Permission denied (publickey,password)` - the same message a wrong key gives, and it
+arrives immediately after `[ok] ssh ... works` has NOT been printed, so it reads as the NAS
+refusing you rather than as the script declining to ask. `ssh user@nas` by hand still works
+and prompts, which makes it look like the script is at fault. Set the key up once:
+
+```
+ssh-keygen -t ed25519 -C "wcsim-deploy"          # if you have no ~/.ssh/id_ed25519.pub
+cat ~/.ssh/id_ed25519.pub | ssh user@nas \
+  "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys \
+   && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys && chmod 700 ~"
+ssh -o BatchMode=yes user@nas "echo ok"          # must print ok with no prompt
+```
+
+The passphrase has to be **empty**, or `BatchMode` cannot use the key without an agent
+armed in every shell. **`chmod 700 ~` is the Synology-specific half**: DSM's sshd refuses a
+key when the home directory is group-writable and reports it identically to a missing key.
+If it still refuses, Control Panel -> User & Group -> Advanced -> enable the user home
+service, which is what `~` depends on existing at all.
+
+**`dkr/` IS A MIRROR OF THE NAS, AND IT GOES STALE.** The three staged files are untracked
+(`.gitignore`), so they are whatever that machine last had - and a checkout that predates
+the referee stops the preflight with *"dkr/docker-compose.yml has no referee service - is
+this the staged copy?"*, which reads as the NAS being misconfigured and is the opposite: the
+NAS is right and the local copy is behind. `--check`, `--build` and `--config` all guard on
+it; `--up` and `--verify` do not. Pull the live ones down before a deploy, one line at a
+time, and prefer `ssh ... cat` over `scp` because DSM ships the SFTP subsystem off:
+
+```
+cp dkr/docker-compose.yml dkr/docker-compose.yml.before-pull
+mkdir -p dkr/volumes/api/envoy
+ssh user@nas "cat /volume1/docker/wcsim-supabase/docker-compose.yml" > dkr/docker-compose.yml
+ssh user@nas "cat /volume1/docker/wcsim-supabase/volumes/api/envoy/cds.yaml" > dkr/volumes/api/envoy/cds.yaml
+ssh user@nas "cat /volume1/docker/wcsim-supabase/volumes/api/envoy/lds.template.yaml" > dkr/volumes/api/envoy/lds.template.yaml
+grep -c wcsim-referee dkr/docker-compose.yml    # anything above 0
+```
+
+Pulling DOWN is safe. Pushing up is `--config`, which is a different decision: it replaces
+the NAS's compose with the local copy, and the sign-in mail guard above it exists because
+that has silently reverted every player to stock "Magic Link" mail once already. A rebuild
+needs neither - it is `--build`, `--up`, `--verify`.
+
 > **STATE, 2026-08-26.** A session with HTTPS reach to the server but no shell on the box
 > did the half that can be done over `push:sql`:
 >

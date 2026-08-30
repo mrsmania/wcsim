@@ -9,8 +9,8 @@ room, the room gets its own build state, the referee holds no timers, and the bu
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
 (P48). **Status: ALL NINE WAVES BUILT, and the roadmap item is closed** (2026-08-27). The server
-half is deployed through wave 8 and verified (roadmap items 41 and 43); 0016, 0017 and
-**0018** are applied and no further migration is outstanding. Two, four or eight people play
+half is deployed through wave 8 and verified (roadmap items 41 and 43); every migration
+through **0021** is applied, confirmed against the live database on 2026-08-30. Two, four or eight people play
 a whole knockout - found on a public list or reached with a code - in either kind of room,
 with or without the numbers, at either clock length, and whoever goes out first stays and
 watches the rest. A room nobody is in closes itself. The one decision wave 3 reopened, the
