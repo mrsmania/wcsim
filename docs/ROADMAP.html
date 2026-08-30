@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-30<br>
-    <strong>Open:</strong> 8 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -349,172 +349,60 @@
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
 
-<details class="item">
-  <summary>
-    <span class="num">45</span>
-    <span class="title">Turn the practice opponents on: one migration, one redeploy
-      <span class="sub"><b>The code is written, checked and pushed; the feature is dark until
-      the NAS is touched.</b> A host can fill the empty chairs of a room of four or eight with
-      practice opponents that build their own strong XI, so a tournament can be played without
-      waiting for eight people. It needs <b>migration 0019</b> applied and the <b>versus server
-      rebuilt</b>, in that order, and neither can be done from a cloud session. Until then the
-      button is on screen and answers "the versus server does not recognise what this page
-      asked it for" - everything else about versus is unaffected.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What to do, in this order.</strong> The order is the standing rule and it is
-    load-bearing here: an old server against the new schema is harmless (it never reads the
-    new table, and the new column defaults to zero), while a new server against the old schema
-    fails on the first write of a room with a practice opponent in it.</p>
-    <ol>
-      <li><b>Rehearse the migration.</b> <code>npm run push:sql -- --dry-run
-      supabase/migrations/0019_pvp_bots.sql</code> needs no credentials; then send the body
-      inside a <code>begin; ... rollback;</code> with the checks from the file's own header, so
-      the post-migration state is exercised against real data and nothing is left behind. That
-      is what turned "this looks wrong" into a reproduced failure for 0014.</li>
-      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0019_pvp_bots.sql</code>,
-      then re-run the same probes.</li>
-      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
-      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
-    </ol>
-    <p><strong>How to know it worked.</strong> Open a room of four from one account. The lobby
-    offers "Nobody else coming?" with chips for one, two or three opponents; pick three and
-    Start goes live. The seat list shows three of them with a small robot mark, and each plays
-    a real team - at $110 they field an XI rated about 83, where the best possible is 84 and a
-    team the clock builds for an absent player is 75. Then, from a second account, join that
-    room while the chairs are filled: <b>a person always takes a practice opponent's chair
-    rather than being refused</b>. Finally check that beating one does <b>not</b> move your
-    record on the versus page, which is the whole reason the match rows carry a count of them.</p>
-    <p><strong>What the migration does.</strong> Adds a table for the practice opponents, adds
-    one column to the match table saying how many of the two sides were one, drops four
-    foreign keys that a seat with no account cannot satisfy (replacing what they were for with
-    a trigger, so deleting an account still takes its matches with it), and restates the
-    records view so a tie with a practice opponent in it is not counted. Its header carries the
-    verification steps and a complete rollback, and both parse under the real Postgres grammar.</p>
-    <p><strong>If it goes wrong.</strong> The rollback block in the file is complete and in
-    order. Note the one-way door in it: re-adding the dropped foreign keys fails if a room has
-    already played a tie against a practice opponent, which is correct rather than a fault -
-    delete those rooms first, or keep the migration.</p>
-    <p><strong>Why this is an item at all.</strong> The same standing rule item 43 states: a
-    change that cannot be applied by the session that wrote it gets an item saying what to do,
-    how to check it and how to undo it, so the apply can be handed to somebody with the access.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0019_pvp_bots.sql" target="_blank" rel="noopener">supabase/migrations/0019_pvp_bots.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
-  </div>
-</details>
+
+
 
 <details class="item">
   <summary>
-    <span class="num">47</span>
-    <span class="title">Turn the new buy-mode draft on: one migration, one redeploy
-      <span class="sub"><b>The third thing waiting on the same NAS visit, and the only one of
-      the three that degrades correctly without it.</b> Buying an XI in a versus room now runs
-      <b>one clock over the whole draft</b> instead of eleven twenty-second picks, and inside
-      it you may move a player to another of his positions and take one back out - then press
-      "I'm done", and the room plays as soon as everybody has. If the clock runs out with
-      slots open they are filled for you. Rolling for your XI is completely unchanged. It
-      needs <b>migration 0021</b> applied and the <b>versus server rebuilt</b>. Until then a
-      budget room simply drafts the old way, with no error and nothing broken.</span>
+    <span class="num">48</span>
+    <span class="title">Play the three versus features that just went live
+      <span class="sub">Practice opponents, duels and the new buy-them draft are all deployed
+      and verified at the server, and <b>none of them has been played by a person</b>. The
+      deploy proves a room can be created, read back and changed; it proves nothing about
+      whether the screens do what the rules say, or whether any of it is any fun. Two accounts
+      and half an hour.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>Do all three in one visit.</strong> Apply 0019, 0020 and 0021 in any order
-    between themselves, then redeploy the versus server once. Migrations before server, which
-    is the standing rule: an old server against the new schema is harmless (it never writes
-    the new columns and they all have defaults); a new server against the old schema fails on
-    its first read.</p>
-    <ol>
-      <li><b>Rehearse it.</b> <code>npm run push:sql -- --dry-run
-      supabase/migrations/0021_pvp_whole_draft.sql</code> needs no credentials; then send the
-      body inside a <code>begin; ... rollback;</code> with the checks from the file's own
-      header.</li>
-      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0021_pvp_whole_draft.sql</code>,
-      then re-run the same probes.</li>
-      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
-      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
-    </ol>
-    <p><strong>How to know it worked.</strong> Open a room of two on "Buy them" from two
-    accounts. There is <b>one bar</b> counting the whole draft down rather than a bar per
-    pick, and the host chose its length (3, 5 or 8 minutes) when opening the room. Buy a
-    player who can fill two positions, then tap him: his other position lights up and he
-    moves there. Tap the red "x" and he comes back out and his money with him. Press "I'm
-    done" - it is refused until all eleven are filled - and the match starts the moment the
-    other person does too; "Change my XI" takes it back. Then open another and let the clock
-    run out with slots empty: they get filled and the room plays. Finally play a <b>roll</b>
-    room and confirm it is exactly as it was, twenty seconds a pick and no moving.</p>
-    <p><strong>What the migration does.</strong> Two columns: how long a room's whole draft
-    gets, and whether a player has said they are through. Nothing else - the team sheet has
-    been stored as a map of positions since the first versus migration, which is what makes
-    moving a player a stored row under a different position rather than a new feature.</p>
-    <p><strong>If it goes wrong.</strong> The rollback in the file is complete and has no
-    one-way door: a room mid-draft when it is undone loses its clock and its declarations and
-    gets finished by the old backstop instead, which is untidy for those rooms and harmless
-    for everything else.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0021_pvp_whole_draft.sql" target="_blank" rel="noopener">supabase/migrations/0021_pvp_whole_draft.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
-  </div>
-</details>
+    <p><strong>Why this is its own item rather than a line in the three it follows.</strong>
+    Those three were about the server: a migration applied and a container rebuilt, both now
+    proven. This is about the game, and it is the only thing that can find the class of fault
+    the whole toolchain is blind to - a rule that is right and a screen that says something
+    else, or a feature that works exactly as designed and is no good.</p>
 
-<details class="item">
-  <summary>
-    <span class="num">46</span>
-    <span class="title">Turn duels on: one migration, one redeploy
-      <span class="sub"><b>Written, checked and pushed; dark until the NAS is touched, exactly
-      like item 45 - and both are one visit.</b> A duel is a challenge you send to one person
-      and neither of you has to be online: they accept whenever they next open the page, each
-      of you builds an XI in your own time, and the match plays itself the moment the second
-      one is in. There is a rematch button on the result. It needs <b>migration 0020</b>
-      applied and the <b>versus server rebuilt</b>, in that order. Until then the button for it is
-      greyed out with the reason, and everything else about versus is unaffected.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Do it in the same visit as item 45.</strong> Two migrations and one rebuild:
-    apply 0019, apply 0020, then redeploy the server once. The order between the two
-    migrations does not matter; the order of migrations before server does, and it is the
-    standing rule. An old server against the new schema is harmless (it never writes the new
-    columns, and the default makes every room it opens a live one); a new server against the
-    old schema fails on its first insert.</p>
+    <p><strong>The buy-them draft</strong>, which has the most new behaviour in it:</p>
     <ol>
-      <li><b>Rehearse it.</b> <code>npm run push:sql -- --dry-run
-      supabase/migrations/0020_pvp_duels.sql</code> needs no credentials; then send the body
-      inside a <code>begin; ... rollback;</code> with the checks from the file's own header, so
-      the post-migration state is exercised against real data and nothing is left behind.</li>
-      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0020_pvp_duels.sql</code>,
-      then re-run the same probes.</li>
-      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
-      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
+      <li>One bar counting the whole draft, not one per pick, and the host chose its length
+      when opening the room.</li>
+      <li>Buy a player who can fill two positions, tap him, and his other position lights up.
+      Tap it and he moves there.</li>
+      <li>Tap the red x and he comes back out, with his money.</li>
+      <li>"I'm done" is refused until all eleven are filled; the match starts once everybody
+      has pressed it; "Change my XI" takes it back.</li>
+      <li>Let one run out with slots still empty and confirm they are filled for you.</li>
     </ol>
-    <p><strong>How to know it worked.</strong> From one account, choose "In your own time" on
-    the versus page, type the other account's name and send it. Sign in as that account: the
-    challenge is at the top of the versus page under "Your duels", with Accept and No thanks.
-    Accept it and the draft opens with <b>no clock at all</b> - the panel says which pick you
-    are on and nothing is counting. Close the tab, come back an hour later, finish the XI.
-    When the second XI lands the match plays itself, and both sides see the result whether or
-    not they were watching. The result offers a rematch, which sends a fresh challenge with
-    the same settings. Three things worth checking on purpose: a third account opening the
-    code is told the seat is not open; declining closes it and the challenger's list says so;
-    and holding two duels does not stop you opening an ordinary live room.</p>
-    <p><strong>One thing the old server does that is worth knowing.</strong> It does not
-    refuse a duel - the pace is a setting it has never heard of, so it reads past it and opens
-    an ordinary room of two and calls that success. The first version of this shipped
-    believing otherwise and walked the player into a normal lobby. The page now checks what
-    came back rather than that it came back, closes the wrong room and says so, and greys the
-    button out in the first place. All of that becomes dead weight the moment the server is
-    rebuilt, and it stays: a fork runs whatever version it has.</p>
-    <p><strong>What the migration does.</strong> Two columns on the rooms table - which pace a
-    room plays at, and which account a challenge is addressed to - plus one index and a
-    constraint saying a duel is never public. Its header carries the verification steps and a
-    complete rollback, and both parse under the real Postgres grammar. Note the one-way door
-    in the rollback: dropping the pace column turns any duel in flight into a live room with a
-    dead clock, which the sweeper then auto-picks to a finish, so the rollback deletes the
-    duels first.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0020_pvp_duels.sql" target="_blank" rel="noopener">supabase/migrations/0020_pvp_duels.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+
+    <p><strong>A roll room, which must be exactly as it was</strong> - twenty seconds a pick,
+    a squad dealt per window, no moving and no selling. This is the half the change must not
+    have touched, and the easiest thing to have broken by accident.</p>
+
+    <p><strong>Practice opponents:</strong> fill three chairs of a room of four and start it.
+    Each plays a real team (at $110 about 83, where the best possible is 84). Then join that
+    room from a second account and confirm <b>a person takes an opponent's chair rather than
+    being refused</b>. Beating one must not move your record.</p>
+
+    <p><strong>A duel:</strong> send one, accept it from the other account, and confirm there
+    is no clock anywhere. Close the tab, come back, finish. The match plays itself when the
+    second XI lands. Then check that a third account is told the seat is not open, that
+    declining closes it, and that the rematch button sends a fresh one.</p>
+
+    <p><strong>What to do with what you find.</strong> A rule that is wrong is a code change
+    and probably a check with it; a screen that is wrong is usually just a screen. Neither
+    needs the NAS again unless it turns out to be the server, which is now the least likely
+    half of the three.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
   </div>
 </details>
 
@@ -1127,6 +1015,169 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-08-30</h3>
+<details class="item">
+  <summary>
+    <span class="num">47</span>
+    <span class="title">Turn the new buy-mode draft on: one migration, one redeploy
+      <span class="sub"><b>CLOSED 2026-08-30.</b> Buying an XI in a room now runs one clock
+      over the whole draft, and a player may move and un-buy inside it. Migration 0021 was
+      applied and the versus server rebuilt the same day. The deploy's verification proved it:
+      the room it created carries a <code>draft</code> block, which is P52's own field.
+      <b>Not yet played by a person</b> - that is item 48.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Do all three in one visit.</strong> Apply 0019, 0020 and 0021 in any order
+    between themselves, then redeploy the versus server once. Migrations before server, which
+    is the standing rule: an old server against the new schema is harmless (it never writes
+    the new columns and they all have defaults); a new server against the old schema fails on
+    its first read.</p>
+    <ol>
+      <li><b>Rehearse it.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0021_pvp_whole_draft.sql</code> needs no credentials; then send the
+      body inside a <code>begin; ... rollback;</code> with the checks from the file's own
+      header.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0021_pvp_whole_draft.sql</code>,
+      then re-run the same probes.</li>
+      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
+      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
+    </ol>
+    <p><strong>How to know it worked.</strong> Open a room of two on "Buy them" from two
+    accounts. There is <b>one bar</b> counting the whole draft down rather than a bar per
+    pick, and the host chose its length (3, 5 or 8 minutes) when opening the room. Buy a
+    player who can fill two positions, then tap him: his other position lights up and he
+    moves there. Tap the red "x" and he comes back out and his money with him. Press "I'm
+    done" - it is refused until all eleven are filled - and the match starts the moment the
+    other person does too; "Change my XI" takes it back. Then open another and let the clock
+    run out with slots empty: they get filled and the room plays. Finally play a <b>roll</b>
+    room and confirm it is exactly as it was, twenty seconds a pick and no moving.</p>
+    <p><strong>What the migration does.</strong> Two columns: how long a room's whole draft
+    gets, and whether a player has said they are through. Nothing else - the team sheet has
+    been stored as a map of positions since the first versus migration, which is what makes
+    moving a player a stored row under a different position rather than a new feature.</p>
+    <p><strong>If it goes wrong.</strong> The rollback in the file is complete and has no
+    one-way door: a room mid-draft when it is undone loses its clock and its declarations and
+    gets finished by the old backstop instead, which is untidy for those rooms and harmless
+    for everything else.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0021_pvp_whole_draft.sql" target="_blank" rel="noopener">supabase/migrations/0021_pvp_whole_draft.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">46</span>
+    <span class="title">Turn duels on: one migration, one redeploy
+      <span class="sub"><b>CLOSED 2026-08-30.</b> Duels: challenge one person and play in
+      both your own time. Migration 0020 was applied on the 29th and the versus server was
+      rebuilt on the 30th. The deploy's own verification proved it: the room it created and
+      read back carries a <code>pace</code> field, which did not exist in the previous image.
+      <b>Not yet played by a person</b> - that is item 48.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Do it in the same visit as item 45.</strong> Two migrations and one rebuild:
+    apply 0019, apply 0020, then redeploy the server once. The order between the two
+    migrations does not matter; the order of migrations before server does, and it is the
+    standing rule. An old server against the new schema is harmless (it never writes the new
+    columns, and the default makes every room it opens a live one); a new server against the
+    old schema fails on its first insert.</p>
+    <ol>
+      <li><b>Rehearse it.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0020_pvp_duels.sql</code> needs no credentials; then send the body
+      inside a <code>begin; ... rollback;</code> with the checks from the file's own header, so
+      the post-migration state is exercised against real data and nothing is left behind.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0020_pvp_duels.sql</code>,
+      then re-run the same probes.</li>
+      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
+      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
+    </ol>
+    <p><strong>How to know it worked.</strong> From one account, choose "In your own time" on
+    the versus page, type the other account's name and send it. Sign in as that account: the
+    challenge is at the top of the versus page under "Your duels", with Accept and No thanks.
+    Accept it and the draft opens with <b>no clock at all</b> - the panel says which pick you
+    are on and nothing is counting. Close the tab, come back an hour later, finish the XI.
+    When the second XI lands the match plays itself, and both sides see the result whether or
+    not they were watching. The result offers a rematch, which sends a fresh challenge with
+    the same settings. Three things worth checking on purpose: a third account opening the
+    code is told the seat is not open; declining closes it and the challenger's list says so;
+    and holding two duels does not stop you opening an ordinary live room.</p>
+    <p><strong>One thing the old server does that is worth knowing.</strong> It does not
+    refuse a duel - the pace is a setting it has never heard of, so it reads past it and opens
+    an ordinary room of two and calls that success. The first version of this shipped
+    believing otherwise and walked the player into a normal lobby. The page now checks what
+    came back rather than that it came back, closes the wrong room and says so, and greys the
+    button out in the first place. All of that becomes dead weight the moment the server is
+    rebuilt, and it stays: a fork runs whatever version it has.</p>
+    <p><strong>What the migration does.</strong> Two columns on the rooms table - which pace a
+    room plays at, and which account a challenge is addressed to - plus one index and a
+    constraint saying a duel is never public. Its header carries the verification steps and a
+    complete rollback, and both parse under the real Postgres grammar. Note the one-way door
+    in the rollback: dropping the pace column turns any duel in flight into a live room with a
+    dead clock, which the sweeper then auto-picks to a finish, so the rollback deletes the
+    duels first.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0020_pvp_duels.sql" target="_blank" rel="noopener">supabase/migrations/0020_pvp_duels.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">45</span>
+    <span class="title">Turn the practice opponents on: one migration, one redeploy
+      <span class="sub"><b>CLOSED 2026-08-30.</b> A host can fill the empty chairs of a
+      room of four or eight with practice opponents that build their own strong XI. Migration
+      0019 was applied on the 29th and the versus server was rebuilt on the 30th, so the
+      feature is live. <b>Not yet played by a person</b> - that is item 48. Everything below is
+      the record of how it got here, including the migration's own one-way door.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What to do, in this order.</strong> The order is the standing rule and it is
+    load-bearing here: an old server against the new schema is harmless (it never reads the
+    new table, and the new column defaults to zero), while a new server against the old schema
+    fails on the first write of a room with a practice opponent in it.</p>
+    <ol>
+      <li><b>Rehearse the migration.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0019_pvp_bots.sql</code> needs no credentials; then send the body
+      inside a <code>begin; ... rollback;</code> with the checks from the file's own header, so
+      the post-migration state is exercised against real data and nothing is left behind. That
+      is what turned "this looks wrong" into a reproduced failure for 0014.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0019_pvp_bots.sql</code>,
+      then re-run the same probes.</li>
+      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
+      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
+    </ol>
+    <p><strong>How to know it worked.</strong> Open a room of four from one account. The lobby
+    offers "Nobody else coming?" with chips for one, two or three opponents; pick three and
+    Start goes live. The seat list shows three of them with a small robot mark, and each plays
+    a real team - at $110 they field an XI rated about 83, where the best possible is 84 and a
+    team the clock builds for an absent player is 75. Then, from a second account, join that
+    room while the chairs are filled: <b>a person always takes a practice opponent's chair
+    rather than being refused</b>. Finally check that beating one does <b>not</b> move your
+    record on the versus page, which is the whole reason the match rows carry a count of them.</p>
+    <p><strong>What the migration does.</strong> Adds a table for the practice opponents, adds
+    one column to the match table saying how many of the two sides were one, drops four
+    foreign keys that a seat with no account cannot satisfy (replacing what they were for with
+    a trigger, so deleting an account still takes its matches with it), and restates the
+    records view so a tie with a practice opponent in it is not counted. Its header carries the
+    verification steps and a complete rollback, and both parse under the real Postgres grammar.</p>
+    <p><strong>If it goes wrong.</strong> The rollback block in the file is complete and in
+    order. Note the one-way door in it: re-adding the dropped foreign keys fails if a room has
+    already played a tie against a practice opponent, which is correct rather than a fault -
+    delete those rooms first, or keep the migration.</p>
+    <p><strong>Why this is an item at all.</strong> The same standing rule item 43 states: a
+    change that cannot be applied by the session that wrote it gets an item saying what to do,
+    how to check it and how to undo it, so the apply can be handed to somebody with the access.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0019_pvp_bots.sql" target="_blank" rel="noopener">supabase/migrations/0019_pvp_bots.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
+
     <h3>Closed 2026-08-29</h3>
 <details class="item">
   <summary>
