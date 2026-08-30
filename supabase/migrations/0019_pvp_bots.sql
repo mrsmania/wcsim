@@ -138,6 +138,13 @@ alter table pvp_bots enable row level security;
 
 -- The referee, and nobody else. There is deliberately no `authenticated` policy and no
 -- select grant: see "what is deliberately not granted" in the header.
+--
+-- DROPPED FIRST BECAUSE `create policy` HAS NO `if not exists`, and every other statement in
+-- this file does. Without this the file is the one migration in the tree that cannot be
+-- re-run: `create table if not exists` no-ops on a second pass and then the policy raises
+-- 42710, which reads as "this is already applied" and is indistinguishable from "this is
+-- half applied". Found 2026-08-30, by exactly that error.
+drop policy if exists pvp_bots_referee on pvp_bots;
 create policy pvp_bots_referee on pvp_bots
   for all to pvp_referee using (true) with check (true);
 
