@@ -129,6 +129,10 @@ export interface Build {
     /** Testing shortcut: a full valid XI within a strength band, straight to complete. */
     randomTeam: (tier: TeamStrength) => void;
     reroll: (kind: RerollKind) => void;
+    /** Put a squad somebody ELSE chose on the board, through the same scramble a rolled
+     *  one gets. Only a versus room calls it: there the referee deals the squads (P13),
+     *  so the draw is not ours to make but the animation still is. */
+    deal: (squad: Squad) => void;
     selectPlayer: (playerId: string) => void;
     place: (slotId: string) => void;
     swap: (slotId: string) => void;
@@ -195,7 +199,7 @@ export function useBuild({
     // The roll draft: the scramble animation and the draw-next-squad policy, with their
     // four refs and their two effects (hooks/useSquadRoll). It is the subtlest code the
     // build has and none of it is composition, which is why it is not here.
-    const { displaySquad, reroll } = useSquadRoll({
+    const { displaySquad, reroll, deal } = useSquadRoll({
         phase,
         build,
         formation,
@@ -401,6 +405,10 @@ export function useBuild({
         setStyle,
         setSpeed,
         reroll: onReroll ?? reroll,
+        // Only a room calls this: it is how a squad the REFEREE chose gets the same
+        // scramble a rolled one gets. `reroll` above is the local draw, which a room
+        // replaces with `onReroll` because the draw itself is the server's.
+        deal,
         start,
         enterBudget,
         clearBudget,

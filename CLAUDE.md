@@ -3192,15 +3192,31 @@ relabelled - so a card written for "you and them" takes a neutral match unchange
 default game is **the one your conqueror is in**: the single match in the round a
 knocked-out player has a reason to care about, chosen with no control at all.
 
-**A ROLL ROOM'S SQUADS ARE DEALT, AND THE LOCAL ROLL STANDS DOWN COMPLETELY.** The referee
-hands over one squad at a time (P13 - pre-generating the sequence would let a player read
-every future squad, re-roll outcomes included, off their own row), so `useSquadRoll` takes
-`dealt: true` and switches off its scramble, its draw-next-squad policy and its three kinds
-of re-roll. What arrives is pushed onto the board with `ROLL_SETTLE`, so every screen below
+**A ROLL ROOM'S SQUADS ARE DEALT, SO EVERYTHING THAT DECIDES ONE STANDS DOWN - AND NOTHING
+ELSE DOES.** The referee hands over one squad at a time (P13 - pre-generating the sequence
+would let a player read every future squad, re-roll outcomes included, off their own row),
+so `useSquadRoll` takes `dealt: true` and switches off its draw-next-squad policy and its
+three kinds of re-roll. What arrives goes on the board through `deal`, so every screen below
 reads exactly the state a single-player draft would. Two consequences worth knowing: **a
 room's re-roll is ONE button**, because the referee's instruction takes no argument saying
 which kind (`SquadPanel` takes the kinds as data); and **the count comes from
 `you.rerollsLeft`, never the reducer**, or a re-roll the referee refused would read as spent.
+
+**THE SCRAMBLE IS NOT ONE OF THE THINGS THAT STAND DOWN** (2026-08-30). It was, and that was
+the wrong cut: `dealt` should switch off what DECIDES a squad, and the animation decides
+nothing - the target is the referee's either way. Without it the moment a roll draft is
+about arrived as a squad that had simply appeared. `deal(squad)` plays **the single-player
+animation unchanged, duration included**: a room's draft is the same draft, and a shorter
+beat for a room would be a second scramble to keep in step with the first. It costs
+`SCRAMBLE_MS` of a twenty-second window and that is accepted rather than overlooked. Two
+things in it are load-bearing: the caller keys on **the dealt id in a ref, never the board's
+own squad**, because placing a player CLEARS the drawn squad (the reducer does that so a
+single-player draft rolls the next one), so between the tap landing and the referee
+answering, the board has none while `dealt` still ends with the one just used - comparing
+the two put that spent squad straight back, with a scramble in front of it. And a deal
+arriving MID-SCRAMBLE re-points the settle (`pendingDealRef`) rather than starting a second
+one, which is reachable without anybody doing anything: a window expiring during the
+scramble auto-picks and deals the next squad.
 
 **HIDING THE RATINGS IS ENFORCED BY THE TYPE, NOT BY A HABIT** (P5, P38, P40).
 `domain/pvpView.ts` owns the rules: `roomDisplay` says whether this viewer sees numbers

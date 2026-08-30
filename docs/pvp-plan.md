@@ -451,6 +451,20 @@ things worth recording.
   bot yields its seat, so folding them together prints "Full" over a room anybody can walk
   into).
 
+### Reported after playing it: the deal had no moment (2026-08-30)
+
+**THE SCRAMBLE WAS SWITCHED OFF WITH THE REST OF THE LOCAL ROLL, and it should not have
+been.** Wave 6 stood `useSquadRoll` down for a dealt room, correctly for the draw policy and
+the three re-rolls - each of those decides a squad, and in a room the squad is the referee's.
+The animation decides nothing: the target is the same either way. So a room's draft skipped
+the one beat a roll draft is about and each squad simply appeared. It plays the single-player
+animation now, unchanged and at the same length: a room's draft is the same draft, and a
+shorter beat for a room would be a second scramble to keep in step with the first. It costs
+part of a pick window and that is accepted rather than overlooked.
+
+The general lesson is the one the `dealt` flag was named for and then over-applied: **stand
+down what decides, not what shows.**
+
 ### Reported after playing it: three things about the lobby (2026-08-29)
 
 - **A ROOM FULL OF READY PLAYERS STILL WAITED FOR A BUTTON.** P48 settled that Ready is a

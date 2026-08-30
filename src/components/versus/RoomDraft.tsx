@@ -117,12 +117,31 @@ export default function RoomDraft({
     // had been rolled, which is exactly what `ROLL_SETTLE` is for - so every screen below
     // reads the same state a single-player draft would.
     const dealtId = rolling ? (you?.dealt[you.dealt.length - 1] ?? null) : null;
-    const boardSquadId = build.state.currentSquad?.id ?? null;
+    const { deal } = build;
+    // The last deal this screen has put on the board. A REF and not the board's own
+    // squad, which is what it used to compare against, and the difference is a real
+    // one: placing a player CLEARS the drawn squad (the reducer does that so a
+    // single-player draft rolls the next one), so between the tap landing on the board
+    // and the referee's answer arriving the board has no squad while `dealt` still ends
+    // with the one just used - and comparing the two put that spent squad straight back,
+    // now with a scramble in front of it. Keyed on the deal instead, the gap shows
+    // "Drawing a squad" until the next one really arrives, which is what is happening.
+    const dealtRef = useRef<string | null>(null);
     useEffect(() => {
-        if (!dealtId || dealtId === boardSquadId) return;
+        if (!dealtId || dealtId === dealtRef.current) return;
         const squad = SQUAD_BY_ID[dealtId];
-        if (squad) dispatch({ type: 'ROLL_SETTLE', squad });
-    }, [dealtId, boardSquadId, dispatch]);
+        if (!squad) return;
+        dealtRef.current = dealtId;
+        // Through the SCRAMBLE, not straight onto the board. The deal is the moment a
+        // roll draft is about, and settling it silently made a squad simply appear -
+        // which is what a room looked like until 2026-08-30. It is the single-player
+        // animation unchanged, duration included, and it decides nothing: the target is
+        // the referee's squad either way. It plays on a reload too, which costs a beat
+        // of a window already part spent - the alternative is skipping the FIRST squad
+        // of every draft, since that one is already dealt by the time this screen
+        // mounts.
+        deal(squad);
+    }, [dealtId, deal]);
 
     // Reconcile. The server's XI wins, always - but only when it actually differs, or
     // every poll would rebuild the board and drop the card in your hand.
