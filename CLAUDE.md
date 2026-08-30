@@ -2793,9 +2793,15 @@ simply never creates a bot), and bumping would take the whole of Versus down for
 challenge you send to one person, played in both your own time: they accept whenever they
 next open the page, each of you builds an XI whenever, and the match plays itself the moment
 the second one lands. It needs **migration 0020 applied and the referee rebuilt**, same order
-and same reason as 0019, and both are one visit. Until then the create form offers it and the
-answer is "the versus server would not accept those room settings". `PVP_PROTOCOL` was again
-deliberately **not** bumped, for the same reason. See "A duel" below.
+and same reason as 0019, and both are one visit. `PVP_PROTOCOL` was again deliberately **not**
+bumped, for the same reason. **AN OLD REFEREE DOES NOT REFUSE A DUEL, IT SILENTLY OPENS AN
+ORDINARY ROOM** - `pace` is a field it has never heard of, so it reads past it and answers
+201 with a live room of two, and the first version of this shipped believing the opposite and
+walked the player into a lobby with a Ready button. So the create path tests the ANSWER
+(`duelDowngraded`) rather than the status, closes the room it was handed instead of leaving
+it holding the account's one live seat, and says what happened; the form also greys the
+button out up front, probed off `GET /v1/duels` answering `no-such-route`, since the
+handshake cannot tell an old container from a new one. See "A duel" below.
 
 **THE SERVER IS DEPLOYED THROUGH WAVE 8 AND THE SCHEMA IS AT 0018** (referee redeployed and
 verified 2026-08-27, roadmap item 43). Wave 8 needed **no migration at all**: every column it

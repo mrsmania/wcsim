@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { duelRules, inviteUrl, isDuel } from '../../domain/pvpView';
+import { duelDowngraded, duelRules, inviteUrl, isDuel } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
-import { createRoom, type CreateRoomInput } from '../../state/pvp/referee';
+import { createRoom, leaveRoom, type CreateRoomInput } from '../../state/pvp/referee';
 import type { VersusRoom } from '../../hooks/useVersusRoom';
 import { CARD, CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, btn } from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
@@ -152,7 +152,23 @@ export function DuelRematch({ view }: { view: RoomView }) {
             opponent: them.name,
         };
         void createRoom(input)
-            .then((next) => navigate(`/versus/${next.code}`))
+            .then(async (next) => {
+                // The same guard the create form carries, and for the same reason: a
+                // server older than duels opens an ordinary room and calls it success, so
+                // the answer is what gets tested. See `duelDowngraded`.
+                if (duelDowngraded('async', next)) {
+                    await leaveRoom(next.code).catch(() => undefined);
+                    setBusy(false);
+                    setError({
+                        text: 'The versus server has not been rebuilt for duels yet, so a rematch cannot be sent.',
+                        raw: 'duels not deployed',
+                        deployment: true,
+                        room: null,
+                    });
+                    return;
+                }
+                navigate(`/versus/${next.code}`);
+            })
             .catch((err: unknown) => {
                 setBusy(false);
                 setError(refereeMessage(err, 'send a rematch'));

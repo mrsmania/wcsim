@@ -17,6 +17,7 @@ import {
   KICKOFF_SECONDS,
   REVEAL_JOIN_MS,
   agoLine,
+  duelDowngraded,
   duelLine,
   duelRules,
   duelTurn,
@@ -777,6 +778,36 @@ export function pvpViewChecks(): void {
         duelRules({ method: 'roll', budget: 0 }).includes('Roll'),
       () => turns.join(),
     );
+
+    // A REFEREE OLDER THAN DUELS DOES NOT REFUSE ONE, and that is what makes this worth a
+    // check rather than a comment: `pace` is a field it has never heard of, so it reads
+    // past it and opens an ordinary live room of two - a 201, a code, and the wrong game.
+    // The create path therefore tests the ANSWER rather than the status, and both call
+    // sites close the room they were handed instead of walking into it.
+    {
+        const old = fixtureRoom({ status: 'lobby' });
+        delete (old as { pace?: string }).pace;
+        const src = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
+        const rematch = readFileSync('src/components/versus/DuelPanels.tsx', 'utf8');
+        check(
+            'pvpView: a duel answered with an ordinary room is caught, and the room is closed',
+            () =>
+                // A referee that predates duels sends no pace at all.
+                duelDowngraded('async', old) &&
+                // And one that has them sends the pace that was asked for.
+                !duelDowngraded('async', fixtureRoom({ pace: 'async' })) &&
+                // Asking for a live room is never downgraded, whatever comes back.
+                !duelDowngraded('live', old) &&
+                // Both call sites act on it, and both CLOSE the room rather than leaving
+                // it holding this account's one live seat (P39) until the sweeper.
+                /duelDowngraded\(pace, room\)[^]{0,240}leaveRoom\(room\.code\)/.test(src) &&
+                /duelDowngraded\('async', next\)[^]{0,240}leaveRoom\(next\.code\)/.test(rematch) &&
+                // Vacuity: the scan really did read two files that create a duel.
+                src.includes("pace,") &&
+                rematch.includes("pace: 'async'"),
+            () => `${duelDowngraded('async', old)} / ${/leaveRoom\(room\.code\)/.test(src)}`,
+        );
+    }
 
     // THE ONE ROOM A PLAYER DID NOT CHOOSE TO OPEN. Everywhere else arriving takes the
     // seat, so this predicate is what keeps the two-answer question to the one place it

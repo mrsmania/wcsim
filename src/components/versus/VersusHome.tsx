@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { WORLD_CUP_YEARS } from '../../data/squads';
 import {
     agoLine,
+    duelDowngraded,
     duelLine,
     duelRules,
     duelTurn,
@@ -14,7 +15,7 @@ import {
 import { PICK_SECONDS, type PickSeconds } from '../../domain/pvpRoom';
 import type { DuelRow, LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
-import { createRoom, readDuels, readLobby } from '../../state/pvp/referee';
+import { RefereeError, createRoom, leaveRoom, readDuels, readLobby } from '../../state/pvp/referee';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
 import {
     CARD,
@@ -117,6 +118,19 @@ const REROLLS = [
  * settled the right shape - a row of short labels with a single line beneath that follows
  * the selection - and this is that. A button says what it is; the room says what it does.
  */
+/**
+ * What to say when the versus server is older than duels.
+ *
+ * `deployment: true` because it is nothing the player can do anything about, which is the
+ * distinction that field exists for: this is the owner's to fix by rebuilding the server.
+ */
+const NO_DUELS: RefereeMessage = {
+    text: 'The versus server has not been rebuilt for duels yet, so it opened an ordinary room instead of sending a challenge. That room has been closed again. Play "Together, now" until it is updated.',
+    raw: 'duels not deployed',
+    deployment: true,
+    room: null,
+};
+
 function Choice<T extends number | string>({
     label,
     options,
@@ -195,7 +209,21 @@ export default function VersusHome() {
             years: [],
             pickSeconds,
         })
-            .then((room) => navigate(`/versus/${room.code}`))
+            .then(async (room) => {
+                // THE ANSWER IS TESTED, NOT THE STATUS. A server that predates duels opens
+                // an ordinary room for one and reports success, so without this the player
+                // asked for a challenge and silently got a live lobby. The room it opened
+                // instead is CLOSED rather than left in the way: it is not the one that was
+                // asked for, and it would otherwise hold this account's one live seat (P39)
+                // until the sweeper collected it a quarter of an hour later.
+                if (duelDowngraded(pace, room)) {
+                    await leaveRoom(room.code).catch(() => undefined);
+                    setBusy(false);
+                    setError(NO_DUELS);
+                    return;
+                }
+                navigate(`/versus/${room.code}`);
+            })
             .catch((err: unknown) => {
                 setBusy(false);
                 // Whatever the referee said, said back. The old version of this replaced
@@ -210,6 +238,12 @@ export default function VersusHome() {
     // the record stays at zero.
     const [lobby, setLobby] = useState<LobbyRoom[] | null>(null);
     const [duels, setDuels] = useState<DuelRow[]>([]);
+    // Whether this server does duels at all, probed off the list below rather than
+    // announced: `PVP_PROTOCOL` was deliberately not bumped for an additive change, so the
+    // handshake cannot tell an old container from a new one. It is a HINT and not a gate -
+    // the authoritative test is the answer to the create itself - so it starts optimistic
+    // and only a refusal that means exactly this moves it.
+    const [duelsRoute, setDuelsRoute] = useState(true);
     const [record, setRecord] = useState<PvpRecord>(NO_RECORD);
     const [at, setAt] = useState(() => Date.now());
     const refreshLobby = useCallback(() => {
@@ -224,8 +258,19 @@ export default function VersusHome() {
         // page that showed an error for it would be broken for everybody until the server
         // is rebuilt - where an absent list is just a feature that has not arrived.
         void readDuels()
-            .then((r) => setDuels(r.duels))
-            .catch(() => setDuels([]));
+            .then((r) => {
+                setDuels(r.duels);
+                setDuelsRoute(true);
+            })
+            .catch((err: unknown) => {
+                setDuels([]);
+                // ONLY this one refusal means "this server has no duels". A timeout, a 500
+                // or a signed-out session all land here too and mean nothing of the sort,
+                // and treating them the same would hide the feature over a dropped packet.
+                if (err instanceof RefereeError && err.code === 'no-such-route') {
+                    setDuelsRoute(false);
+                }
+            });
     }, []);
     useEffect(() => {
         refreshLobby();
@@ -423,7 +468,19 @@ export default function VersusHome() {
                         />
                     )}
 
-                    <button className={`${PRIMARY_BTN} mt-4 w-full`} disabled={busy} onClick={make}>
+                    {duel && !duelsRoute && (
+                        <p className="mt-4 rounded-[5px] border border-line bg-faint px-3 py-2.5 text-[12px] leading-snug text-muted">
+                            The versus server here has not been rebuilt for duels yet, so a
+                            challenge cannot be sent. Everything else about versus works;
+                            play "Together, now" until it is updated.
+                        </p>
+                    )}
+
+                    <button
+                        className={`${PRIMARY_BTN} mt-4 w-full`}
+                        disabled={busy || (duel && !duelsRoute)}
+                        onClick={make}
+                    >
                         {duel ? 'Send the challenge' : 'Open a room'}
                     </button>
                     {error && (

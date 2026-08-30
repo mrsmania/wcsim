@@ -123,6 +123,19 @@ export const everybodyReady = (view: RoomView): boolean =>
  */
 export const isDuel = (view: RoomView): boolean => view.pace === 'async';
 
+/**
+ * The referee opened a ROOM when a DUEL was asked for.
+ *
+ * A REFEREE THAT PREDATES DUELS DOES NOT REFUSE ONE, which is the trap: `pace` is a field
+ * it has never heard of, so it reads straight past it and opens an ordinary live room of
+ * two - a 201, a code, and the wrong game. That is the worst shape a version skew can take,
+ * because it looks exactly like success, and the player lands in a lobby with a Ready
+ * button wondering what happened to their challenge. So the create path tests the ANSWER
+ * rather than the status, and this is that test.
+ */
+export const duelDowngraded = (asked: 'live' | 'async', view: RoomView): boolean =>
+    asked === 'async' && !isDuel(view);
+
 /** A challenge addressed to this viewer that they have not answered yet: the one state
  *  where somebody is looking at a room they are not in and did not ask for. */
 export const isChallengeToMe = (view: RoomView): boolean =>

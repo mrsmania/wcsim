@@ -414,9 +414,8 @@
       and neither of you has to be online: they accept whenever they next open the page, each
       of you builds an XI in your own time, and the match plays itself the moment the second
       one is in. There is a rematch button on the result. It needs <b>migration 0020</b>
-      applied and the <b>versus server rebuilt</b>, in that order. Until then the create form
-      offers it and the answer is "the versus server would not accept those room settings" -
-      everything else about versus is unaffected.</span>
+      applied and the <b>versus server rebuilt</b>, in that order. Until then the button for it is
+      greyed out with the reason, and everything else about versus is unaffected.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>
@@ -448,6 +447,13 @@
     the same settings. Three things worth checking on purpose: a third account opening the
     code is told the seat is not open; declining closes it and the challenger's list says so;
     and holding two duels does not stop you opening an ordinary live room.</p>
+    <p><strong>One thing the old server does that is worth knowing.</strong> It does not
+    refuse a duel - the pace is a setting it has never heard of, so it reads past it and opens
+    an ordinary room of two and calls that success. The first version of this shipped
+    believing otherwise and walked the player into a normal lobby. The page now checks what
+    came back rather than that it came back, closes the wrong room and says so, and greys the
+    button out in the first place. All of that becomes dead weight the moment the server is
+    rebuilt, and it stays: a fork runs whatever version it has.</p>
     <p><strong>What the migration does.</strong> Two columns on the rooms table - which pace a
     room plays at, and which account a challenge is addressed to - plus one index and a
     constraint saying a duel is never public. Its header carries the verification steps and a

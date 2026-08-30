@@ -458,6 +458,20 @@ things worth recording.
   sending a challenge). Only the first is testable through behaviour that the other also
   produces, which is why both have their own assertion.
 
+- **AN ADDITIVE CHANGE IS NOT A SAFE ONE, and this was reported from the live site.** Not
+  bumping `PVP_PROTOCOL` for duels is right - bumping takes the whole of Versus down for a
+  feature nobody can use yet - but "the old referee simply never creates a duel" was wrong
+  in the way that matters. It does not REFUSE one either: `pace` is a field it has never
+  heard of, so `readCreate` reads past it and opens an ordinary live room of two, answers
+  201, and the client navigates the player into a lobby with a Ready button wondering where
+  their challenge went. The lesson generalises past duels: **when the handshake cannot tell
+  the two versions apart, the caller has to test the ANSWER rather than the status**, because
+  a field the server ignores is indistinguishable from one it honoured. `duelDowngraded` is
+  that test, it closes the room it was handed (which would otherwise hold the account's one
+  live seat until the sweeper), and the create form additionally greys the button out up
+  front by probing `GET /v1/duels` for `no-such-route` - a hint, not the gate, since a
+  timeout lands in the same `catch` and means nothing of the sort.
+
 - **A NULL WINDOW REMAINDER, NEVER A LARGE NUMBER.** The wire could have sent a duel's window
   as a very long one and let the bar draw itself, and it would have looked fine and been a
   lie: a screen that forgot to ask would draw a clock counting down to a deadline nothing
