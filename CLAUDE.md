@@ -3062,7 +3062,10 @@ a room learns about a kick-off on its next read, and a client that refuses to re
 anything it did not see stamped shows a result nobody watched.
 
 **EVERY SETTING THE REFEREE TAKES IS REACHABLE FROM THE CREATE FORM, and that is checked by
-the type.** Buy an XI from a shared budget or roll random squads and take one man from each;
+the type.** Roll random squads and take one man from each (the default since 2026-08-30: it
+is the game this mode actually is, where buying is the variant in which knowing the price
+list is the skill) or buy an XI from a shared budget of $100 to $200 in five rungs,
+defaulting to $125;
 two, four or eight people; public or private; twenty or thirty seconds a pick; and the
 ratings switch where it means anything. **The clock was the last one to arrive** (wave 9), and
 how it was missing is the instructive part: the form sent a flat `pickSeconds: 20` with a
@@ -3070,7 +3073,13 @@ comment upstairs calling that a decision and pointing at a note that did not exi
 hardcoded literal agreed with nothing and disagreed with nothing either, so nothing could
 catch it. The options are **built from the domain's own `PICK_SECONDS`** now, with the copy in
 a `Record<PickSeconds, ...>`, so a third value is a type error in the client rather than a
-value the host silently cannot choose. Do the same for any future room setting.
+value the host silently cannot choose. Do the same for any future room setting - `DRAFT_SECONDS`
+and **`ROOM_BUDGETS`** both followed it. The budget ladder keeps one thing worth knowing
+apart: the RUNGS the form offers and the RANGE the referee accepts (`BUDGET_MIN` /
+`BUDGET_MAX`, $70 to $200) are deliberately different, because a room stored before a rung
+moved is still a legal room. `npm run checks` holds every rung inside the range, since a
+rung outside it is refused as `bad-room` and tells the host nothing about which of the six
+settings was wrong.
 
 **THE LOBBY POSTS YOUR SHAPE THE MOMENT YOU PICK IT, and that is what removed a button.**
 It used to hold the choice locally, so the primary action read "I'm ready" and then turned

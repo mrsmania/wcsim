@@ -164,12 +164,24 @@ in rather than a missing feature.
 |---|---|---|
 | Visibility | Public (listed) or private (code only) | Public |
 | Size | 2, 4 or 8. Reducible before the start (P7) | 2 |
-| Draft method | Roll a squad, or buy with a budget | Buy with a budget |
-| Budget | $70 to $200 in $10 steps, set by the host (P2) | $110 |
+| Draft method | Roll a squad, or buy with a budget | **Roll a squad** (2026-08-30) |
+| Budget | Five rungs, $100 to $200 (`ROOM_BUDGETS`); the referee accepts $70 to $200 (P2) | $125 |
 | Cups | Any subset of the World Cups, never empty | All of them |
-| Pick clock | 20 or 30 seconds, set independently of the draft method | 20 seconds |
+| Pick clock | 20 or 30 seconds. **A ROLL room's only** (P52) | 20 seconds |
+| Draft clock | 3, 5 or 8 minutes over the whole draft. **A BUDGET room's only** (P52) | 5 minutes |
 | Show ratings | On or off. **Roll rooms only** (P5) | On |
 | Re-rolls | 0 to 6, roll rooms only | 3 |
+
+**Two of those defaults moved on 2026-08-30 and neither is a locked decision.** **Rolling is
+the default method**, because it is the game this mode actually is - a squad you did not
+choose, one man from it, and the same eleven decisions for everybody - where buying is the
+variant in which knowing the price list is the skill; it is one tap away either way. And the
+**budget ladder is five rungs from $100 to $200** rather than three from $90 to $150, with
+the default one step up from the old $110 rather than at the middle of the row: the price
+curve is convex, so defaulting to $150 would make what used to be the deliberate rich choice
+the ordinary game. The rungs live in `domain/pvpRoom.ts` beside the two clocks, for the
+reason wave 9 learned about `PICK_SECONDS` - a list typed out beside the referee's own rule
+agrees with nothing and disagrees with nothing either.
 
 **What each player chooses for themselves:** formation and style, in the lobby, and who they
 pick.
@@ -365,8 +377,8 @@ sheet keeps position, flag and year, and the numbers all return at the whistle (
 owned-sticker tick should be off in **every** room, not only hidden-rating ones, since the album
 has no business in a room at all.
 
-**Write listings in outcomes, not settings.** "$110 buys about one 99-rated star and ten players
-around 80" is derivable from the price curve; "roll, ratings hidden" should read "you pick from
+**Write listings in outcomes, not settings.** "$125 buys an XI rating about 85" is derivable
+from the price curve, and is what the create form's five rungs now say; "roll, ratings hidden" should read "you pick from
 random squads and you cannot see the numbers". A player can reach here having never built an XI,
 since the mode is deliberately independent of the career.
 

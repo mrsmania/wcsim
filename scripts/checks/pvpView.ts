@@ -13,6 +13,12 @@ import { ALL_PLAYERS, SQUAD_BY_ID } from '../../src/data/squads';
 import { getFormation } from '../../src/domain/formations';
 import type { MatchEvent } from '../../src/domain/match';
 import {
+  BUDGET_MAX,
+  BUDGET_MIN,
+  DEFAULT_ROOM_BUDGET,
+  ROOM_BUDGETS,
+} from '../../src/domain/pvpRoom';
+import {
   KICKOFF_HOLD_SECONDS,
   KICKOFF_SECONDS,
   REVEAL_JOIN_MS,
@@ -844,6 +850,33 @@ export function pvpViewChecks(): void {
         !isDuel(fixtureRoom()) &&
         !isChallengeToMe(fixtureRoom({ status: 'lobby', you: undefined })),
       () => `${isChallengeToMe(challenge)} / ${isDuel(fixtureRoom())}`,
+    );
+  }
+
+  // --- The money a room may be opened with ---------------------------------
+  //
+  // The rungs and the referee's accepted range are two different things on purpose - the
+  // range says what is PLAYABLE, the rungs say what is OFFERED - and the failure they can
+  // have together is silent from the outside: a rung outside the range is refused as
+  // `bad-room`, which tells the host nothing about which of the six settings was wrong.
+  {
+    const form = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
+    const api = readFileSync('referee/src/api.ts', 'utf8');
+    check(
+      'pvpView: every budget the form offers is one the referee will take, and the default is on the list',
+      () =>
+        ROOM_BUDGETS.every((b) => b >= BUDGET_MIN && b <= BUDGET_MAX) &&
+        // Ascending, because the row is read as a ladder and a chip out of order reads as
+        // a typo rather than as a choice.
+        ROOM_BUDGETS.every((b, i) => i === 0 || b > ROOM_BUDGETS[i - 1]!) &&
+        // A default that is not one of them leaves no chip lit at all.
+        (ROOM_BUDGETS as readonly number[]).includes(DEFAULT_ROOM_BUDGET) &&
+        // The form builds its options from the ladder rather than restating it, which is
+        // what stops the two from drifting - the same rule the pick clock arrived at.
+        /ROOM_BUDGETS\.map\(/.test(form) &&
+        // And the referee checks the shared bounds rather than two literals of its own.
+        /budget >= BUDGET_MIN && budget <= BUDGET_MAX/.test(api),
+      () => `${ROOM_BUDGETS.join('/')}, default ${DEFAULT_ROOM_BUDGET}, range ${BUDGET_MIN}-${BUDGET_MAX}`,
     );
   }
 

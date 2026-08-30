@@ -58,6 +58,39 @@ export const PICK_SECONDS = [20, 30] as const;
 export type PickSeconds = (typeof PICK_SECONDS)[number];
 
 /**
+ * The money a budget room may be opened with.
+ *
+ * FIVE NAMED RUNGS RATHER THAN A SLIDER, for the reason `PICK_SECONDS` has two: a lobby row
+ * has to be able to say what kind of game this is, and a ladder has to compare like with
+ * like. They live here rather than in the create form for the reason the clock lengths came
+ * here in wave 9 - a list typed out beside the referee's own rule agrees with nothing and
+ * disagrees with nothing either, which is how the pick clock went unbuilt for three waves.
+ *
+ * Measured 2026-08-30 over all fifteen tournaments, as the rating of the best XI the money
+ * can actually buy: $100 reads 82.5, $125 85.4, $150 87.6, $175 89.9, $200 92.2. Re-derive
+ * rather than trusting those: the dataset moves.
+ */
+export const ROOM_BUDGETS = [100, 125, 150, 175, 200] as const;
+export type RoomBudget = (typeof ROOM_BUDGETS)[number];
+
+/** What a room is opened with when the host says nothing. One step up from the $110 this
+ *  replaced rather than the middle of the row: the price curve is convex, so a default at
+ *  $150 would make what used to be the deliberate rich choice the ordinary game. */
+export const DEFAULT_ROOM_BUDGET: RoomBudget = 125;
+
+/**
+ * The range the referee will ACCEPT, which is wider than the rungs on purpose.
+ *
+ * A room stored before a rung moved is still a legal room, and the referee is not the place
+ * to relitigate the create form's taste: it judges whether a figure is playable, and the
+ * form decides which of them are offered. Kept here so the two cannot drift - the form
+ * builds its options from `ROOM_BUDGETS` and the referee checks against these, and a rung
+ * added outside the range would be refused as `bad-room` with nothing to say why.
+ */
+export const BUDGET_MIN = 70;
+export const BUDGET_MAX = 200;
+
+/**
  * How long a WHOLE BUDGET DRAFT gets, when the host has a say (P52).
  *
  * A budget room does not run a pick clock at all. Buying an XI is not eleven independent

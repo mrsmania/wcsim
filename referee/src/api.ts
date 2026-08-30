@@ -31,6 +31,8 @@ import { WORLD_CUP_YEARS } from '../../src/data/squads';
 import { nameKeyOf } from '../../src/domain/displayName';
 import { localVersion } from '../../src/domain/pvpVersion';
 import {
+  BUDGET_MAX,
+  BUDGET_MIN,
   DEFAULT_DRAFT_SECONDS,
   DRAFT_SECONDS,
   PICK_SECONDS,
@@ -161,8 +163,12 @@ function readCreate(
   // and snapshotting the figure still means reading it. It was also decided before a ball
   // was kicked: $160 beats $70 85.7% of the time.
   const budget = method === 'budget' ? Number(body.budget) : 0;
-  if (method === 'budget' && !(Number.isInteger(budget) && budget >= 70 && budget <= 200)) {
-    return 'budget must be $70 to $200';
+  // The RANGE, not the create form's five rungs: a room stored before a rung moved is still
+  // a legal room, and which figures are offered is the form's business. Shared constants so
+  // the two cannot drift - a rung outside this would be refused as `bad-room` and the host
+  // would be told nothing useful.
+  if (method === 'budget' && !(Number.isInteger(budget) && budget >= BUDGET_MIN && budget <= BUDGET_MAX)) {
+    return `budget must be $${BUDGET_MIN} to $${BUDGET_MAX}`;
   }
   const rerolls = body.rerolls === undefined ? 3 : Number(body.rerolls);
   if (!(Number.isInteger(rerolls) && rerolls >= 0 && rerolls <= 6)) return 'rerolls must be 0 to 6';

@@ -14,10 +14,13 @@ import {
 } from '../../domain/pvpView';
 import {
     DEFAULT_DRAFT_SECONDS,
+    DEFAULT_ROOM_BUDGET,
     DRAFT_SECONDS,
     PICK_SECONDS,
+    ROOM_BUDGETS,
     type DraftSeconds,
     type PickSeconds,
+    type RoomBudget,
 } from '../../domain/pvpRoom';
 import type { DuelRow, LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
@@ -65,14 +68,26 @@ import { RefereeProblem, RoomNote } from './versusUi';
 // a player can arrive here having never built an XI, since the mode is deliberately
 // independent of the career.
 
-/** The budgets on offer, and what each one buys. The referee allows $70 to $200 in any
- *  step; three named choices are what a room needs, and the third is the one that makes
- *  the price curve bite. */
-const BUDGETS = [
-    { value: 90, label: '$90', sub: 'Tight: one star at most, and the rest is bargains.' },
-    { value: 110, label: '$110', sub: 'About one 99 and ten players near 80.' },
-    { value: 150, label: '$150', sub: 'Two or three genuine greats.' },
-];
+/**
+ * What each budget buys, in the only terms that matter: how good the team comes out.
+ *
+ * BUILT FROM THE DOMAIN'S OWN LADDER, not typed out beside it - the same rule the clock
+ * lengths follow, and for the same reason (a list that agrees with nothing also disagrees
+ * with nothing). A sixth rung is a type error here rather than a figure the host silently
+ * cannot choose.
+ *
+ * The numbers are MEASURED, 2026-08-30: the rating of the best XI each budget can actually
+ * buy, over all fifteen tournaments. Re-derive them rather than trusting them; the dataset
+ * moves, and this figure has been restated once already.
+ */
+const BUDGET_COPY: Record<RoomBudget, string> = {
+    100: 'Tight. A well-shopped XI rates about 82, and every slot is a compromise.',
+    125: 'About 85 across the team. Room for a name or two, and the rest is judgement.',
+    150: 'About 88. Three genuine greats, or spread it and take nine good ones.',
+    175: 'About 90. The squeeze is mostly off and the XI is elite either way.',
+    200: 'About 92. Nearly every slot can be a great, so the game is won elsewhere.',
+};
+const BUDGETS = ROOM_BUDGETS.map((value) => ({ value, label: `$${value}`, sub: BUDGET_COPY[value] }));
 
 /** Two, four or eight. No description: the number is the answer, and the lobby states how
  *  many rounds that comes to. */
@@ -195,10 +210,13 @@ function Choice<T extends number | string>({
 export default function VersusHome() {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
-    const [method, setMethod] = useState<'budget' | 'roll'>('budget');
+    // ROLLING IS THE DEFAULT (2026-08-30). It is the game this one actually is: a squad you
+    // did not choose, one man from it, and the same eleven decisions for everybody. Buying
+    // is the variant where knowing the price list is the skill, and it is one tap away.
+    const [method, setMethod] = useState<'budget' | 'roll'>('roll');
     const [visibility, setVisibility] = useState<'private' | 'public'>('private');
     const [size, setSize] = useState(2);
-    const [budget, setBudget] = useState(110);
+    const [budget, setBudget] = useState<RoomBudget>(DEFAULT_ROOM_BUDGET);
     const [rerolls, setRerolls] = useState(3);
     const [pickSeconds, setPickSeconds] = useState<PickSeconds>(20);
     const [draftSeconds, setDraftSeconds] = useState<DraftSeconds>(DEFAULT_DRAFT_SECONDS);
@@ -425,16 +443,18 @@ export default function VersusHome() {
                         label="How you get your players"
                         value={method}
                         onPick={setMethod}
+                        // Rolling first, because it is the default and every other row in
+                        // this form puts its default first.
                         options={[
-                            {
-                                value: 'budget' as const,
-                                label: 'Buy them',
-                                sub: 'Shop the whole dataset. The skill is knowing what a player is worth.',
-                            },
                             {
                                 value: 'roll' as const,
                                 label: 'Roll for them',
                                 sub: 'Random squads, one man from each. The skill is knowing who to take.',
+                            },
+                            {
+                                value: 'budget' as const,
+                                label: 'Buy them',
+                                sub: 'Shop the whole dataset. The skill is knowing what a player is worth.',
                             },
                         ]}
                     />
