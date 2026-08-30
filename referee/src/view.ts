@@ -26,7 +26,7 @@
 // before it opened.
 
 import type { PvpRoom } from '../../src/domain/pvpRoom';
-import { deadlineOf } from '../../src/domain/pvpRoom';
+import { deadlineOf, draftDeadlineOf, draftSecondsOf, wholeDraft } from '../../src/domain/pvpRoom';
 // The payload's SHAPE is shared with the client (`src/domain/pvpWire.ts`), so the two
 // sides cannot describe it differently while both type-checking. The RULE about what a
 // viewer may see stays here, where it is enforced.
@@ -64,6 +64,7 @@ export function roomView(
   invitedName?: string | null,
 ): RoomView {
   const played = playedIds(room);
+  const deadline = draftDeadlineOf(room);
   const me = room.members.find((m) => m.userId === viewerId);
   const w = viewerId ? room.windows[viewerId] : undefined;
 
@@ -80,6 +81,15 @@ export function roomView(
     status: room.status,
     hostId: room.hostId,
     size: room.size,
+    // The whole draft's clock (P52), and ONLY from a budget room: a roll room sends the
+    // pick windows it has always sent, and a client that gets neither is talking to a
+    // referee older than this, which is exactly what it is meant to conclude.
+    draft: wholeDraft(room)
+      ? {
+          totalMs: draftSecondsOf(room) * 1000,
+          remainingMs: deadline === null ? null : Math.max(0, deadline - now),
+        }
+      : null,
     round: room.round,
     championId: room.championId ?? null,
     rules: room.rules,
@@ -91,6 +101,7 @@ export function roomView(
       seat: m.seat,
       name: m.name,
       ready: m.ready,
+      done: m.done,
       outIn: m.outIn ?? null,
       picked: Object.values(room.xi[m.userId] ?? {}).filter(Boolean).length,
       formationName: m.userId === viewerId || room.status !== 'lobby' ? m.formationName : null,

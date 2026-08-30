@@ -22,10 +22,16 @@ import type { FormationName, Style } from '../../src/domain/formations';
 import type { KoDecided } from '../../src/domain/knockout';
 import type { MatchEvent } from '../../src/domain/match';
 import type { ShootoutResult } from '../../src/domain/match';
-import { botsIn, humansIn } from '../../src/domain/pvpRoom';
+import {
+  DEFAULT_DRAFT_SECONDS,
+  botsIn,
+  draftSecondsOf,
+  humansIn,
+} from '../../src/domain/pvpRoom';
 import type {
   PickRecord,
   PickSeconds,
+  DraftSeconds,
   PvpRoom,
   RoomPace,
   PvpTie,
@@ -55,6 +61,9 @@ export interface RoomRow {
   show_ratings: boolean;
   rerolls: number;
   pick_seconds: number;
+  /** The whole draft's clock in seconds, a budget room's only (migration 0021, P52). Null
+   *  on a room stored before it, which reads as the default. */
+  draft_seconds: number | null;
   status: RoomStatus;
   round: number;
   champion_id: string | null;
@@ -75,6 +84,8 @@ export interface MemberRow {
   last_seen: Date | string;
   window_ordinal: number | null;
   window_opened_at: Date | string | null;
+  /** "I am through" (migration 0021, P52). Null on a row stored before it. */
+  done: boolean | null;
   /** Joined from `profiles`, which the referee may read three columns of and no more. */
   display_name: string | null;
   formation_name: string | null;
@@ -235,6 +246,7 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
       seat: m.seat,
       name: m.display_name ?? '',
       ready: m.ready,
+      ...(m.done ? { done: true } : {}),
       formationName: (m.formation_name ?? DEFAULT_FORMATION) as FormationName,
       style: (m.style ?? DEFAULT_STYLE) as Style,
       budget: m.budget,
@@ -300,6 +312,7 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
     ...(r.invited_id ? { invitedId: r.invited_id } : {}),
     rules: { method: r.method, budget: r.budget, years: r.years ?? [] },
     pickSeconds: r.pick_seconds as PickSeconds,
+    draftSeconds: (r.draft_seconds ?? DEFAULT_DRAFT_SECONDS) as DraftSeconds,
     showRatings: r.show_ratings,
     rerolls: r.rerolls,
     status: r.status,
@@ -332,6 +345,7 @@ export function memberWrites(room: PvpRoom): {
   userId: string;
   seat: number;
   ready: boolean;
+  done: boolean;
   budget: number;
   rerollsUsed: number;
   outIn: number | null;
@@ -353,6 +367,7 @@ export function memberWrites(room: PvpRoom): {
       userId: m.userId,
       seat: m.seat,
       ready: m.ready,
+      done: !!m.done,
       budget: m.budget,
       rerollsUsed: m.rerollsUsed,
       outIn: m.outIn ?? null,
@@ -480,6 +495,7 @@ export function rowsFromRoom(
       show_ratings: room.showRatings,
       rerolls: room.rerolls,
       pick_seconds: room.pickSeconds,
+      draft_seconds: draftSecondsOf(room),
       status: room.status,
       round: room.round,
       champion_id: room.championId ?? null,
@@ -491,6 +507,7 @@ export function rowsFromRoom(
       user_id: m.userId,
       seat: m.seat,
       ready: m.ready,
+      done: m.done,
       budget: m.budget,
       rerolls_used: m.rerollsUsed,
       out_in: m.outIn,

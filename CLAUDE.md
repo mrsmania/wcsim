@@ -2789,6 +2789,14 @@ for". `PVP_PROTOCOL` was deliberately **not** bumped: the change is additive (an
 simply never creates a bot), and bumping would take the whole of Versus down for a button. See
 "Practice opponents" below.
 
+**AND SO IS THE BUDGET ROOM'S NEW DRAFT** (2026-08-30, **roadmap item 47**, plan P52). Buying
+an XI in a room now runs one clock over the whole draft instead of eleven twenty-second
+picks, and a player may move and un-buy inside it. It needs **migration 0021 applied and the
+referee rebuilt**, and it is the third thing waiting on one NAS visit (0019, 0020, 0021, then
+one rebuild). Unlike the two above it **degrades correctly on its own**: an old referee sends
+a budget room its pick windows and no `draft` block, and the screens draw the per-pick draft
+they always drew. See "A budget room runs one clock" below.
+
 **DUELS ARE WRITTEN AND DARK TOO** (2026-08-30, **roadmap item 46**, plan P51). A duel is a
 challenge you send to one person, played in both your own time: they accept whenever they
 next open the page, each of you builds an XI whenever, and the match plays itself the moment
@@ -3118,6 +3126,51 @@ an account still takes its matches). `pvp_matches.bot_sides` counts them per tie
 **`pvp_records` excludes any tie with one in it**, or a room of seven bots would be three
 wins for turning up; `finals` still reads every match, or a final played against a bot would
 promote the semi into "rooms won".
+
+**A BUDGET ROOM RUNS ONE CLOCK OVER THE WHOLE DRAFT, NOT ELEVEN WINDOWS** (P52, roadmap
+item 47, 2026-08-30). **The METHOD decides it, not a setting**, and that is the whole
+reasoning: a roll draft really is eleven decisions - eleven dealt squads, one man from each -
+so a window per squad is what it is; a budget draft is ONE decision about ONE pool of money,
+where the eleventh pick settles whether the first was affordable, so a clock that will not
+let you go back and sell the winger you overpaid for is not a clock, it is a trap. A roll
+room is completely untouched.
+
+- **THE BOARD IS SUBMITTED AS A MAP** (`setXi`, `POST /v1/rooms/:code/xi`), and that one
+  decision is what finally delivers **P42's move and the remove beside it**: buying, moving
+  a player to another of his roles and taking one back out are all "here is my team now", so
+  they are one instruction rather than three and the referee needed no new rule for any of
+  them. It is also idempotent by construction, where a pick needs an ordinal to get there
+  (P36). `roomControls(whole)` is what turns the two controls back on; everything else in
+  `ROOM_CONTROLS` stays off for reasons that were never about the clock (P3, P8, P25, and
+  auto-fill still being eleven decisions in one tap).
+- **THE SCHEMA HAD BEEN READY FOR THIS SINCE WAVE 1**, which is why 0021 is two columns and
+  not a table: `xi` has always been a slot map, `pvp_picks` has always been keyed on the
+  SLOT, and `pgStore.save` has always deleted a slot that left the map - all three put there
+  for P42. What blocked the move was the INSTRUCTION, never the storage.
+- **A FULL XI IS NOT A FINISHED ONE** (`RoomMember.done`, `setDone`). This is the rule that
+  keeps the two features from cancelling each other out: if the eleventh slot filling ended
+  the draft, moving and un-buying would be unusable by exactly the person who fills their
+  last slot last. So finishing is DECLARED, refused on an incomplete XI (so "everybody is
+  done" can never mean "everybody gave up"), and reversible while the draft is open. The
+  room draws when everybody has declared; `draftDone` is the one reading of it and a
+  practice opponent is always finished.
+- **AT ZERO EVERY EMPTY SLOT IS FILLED**, by the same `forceCompleteOne` an expired window
+  uses and recorded `automatic` the same way, so `pvp_matches.loser_auto_picks` still tells
+  a real win from a farmed one. A budget **duel** has neither clock (P51 and P52 at once):
+  no window, no whole-draft deadline, and only the declarations end it.
+- **THE CLIENT DECIDES BY THE ANSWER, NEVER BY THE METHOD.** `PVP_PROTOCOL` is unchanged, so
+  a referee older than P52 sends a budget room its eleven pick windows and no `draft` block
+  at all - and `RoomDraft` branches on `!!view.draft`, which is the only thing that can tell
+  the two apart. Reading `rules.method` there would look right and be wrong on every
+  deployed server until the NAS visit; `npm run checks` reads that line specifically.
+- **THE TWO EFFECTS THAT POST AND RECONCILE THE BOARD ARE ORDER-DEPENDENT.** Both watch the
+  same signature, and React runs a commit's effects in declaration order, so the POSTING one
+  is declared first and sets `submitting` synchronously before the reconciling one looks at
+  it - the other way round the board is yanked back for one render on every change. Two more
+  that bit: a refused board must not be re-sent for ever (hence `postedSig`, since
+  "differs from the server" is not on its own a reason to send), and a ref changing re-runs
+  no effect, so a second change made while the first post is in flight needs `postTick` or
+  it is never sent at all.
 
 **A DUEL IS A ROOM OF TWO WITH ITS DEADLINES SWITCHED OFF** (P51, `RoomPace`, 2026-08-30).
 That is the whole design and it is the reason the feature is small: everything a duel does a

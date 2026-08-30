@@ -14,6 +14,7 @@ import type { Player } from '../../src/data/types';
 import {
   autoCompleteXi,
   pvpTeam,
+  pvpPriceOf,
   roomPlayers,
   roomSquads,
   validateXi,
@@ -37,17 +38,23 @@ import {
   ROOM_IDLE_MS,
   SEEN_GONE_MS,
   roomClosed,
+  DEFAULT_DRAFT_SECONDS,
   createRoom,
   deadlineOf,
+  draftDeadlineOf,
+  draftDone,
   formationOf,
   joinRoom,
   recoverFromOutage,
   reduceSize,
   remainingBudget,
   rerollDeal,
+  setDone,
+  setXi,
   startRoom,
   submitPick,
   tickRoom,
+  wholeDraft,
   xiComplete,
   type PickSeconds,
   type PvpRoom,
@@ -101,7 +108,6 @@ function firstLegalPick(room: PvpRoom, userId: string) {
   const m = room.members.find((x) => x.userId === userId)!;
   const f = formationOf(m);
   const filled = room.xi[userId] ?? {};
-  const slot = f.slots.find((s) => !filled[s.id])!;
   const pool =
     room.rules.method === 'roll'
       ? roomPlayers(room.rules).filter((p) => p.squadId === room.deals[userId]?.slice(-1)[0])
@@ -110,9 +116,16 @@ function firstLegalPick(room: PvpRoom, userId: string) {
   // the SAME man, and a duplicate person is refused as illegal, so without this the
   // helper silently hands back picks that never land.
   const used = new Set(Object.values(filled).map((p) => p!.personId));
-  const player = pool
-    .filter((p) => p.positions.includes(slot.position) && !used.has(p.personId))
-    .sort((a, b) => a.elo - b.elo)[0]!;
+  const canFill = (position: string) =>
+    pool
+      .filter((p) => p.positions.includes(position as never) && !used.has(p.personId))
+      .sort((a, b) => a.elo - b.elo)[0];
+  // A SLOT THE DEALT SQUAD CAN ACTUALLY FILL, not simply the first empty one. In a roll
+  // room the pool is one squad, and 345 of the (squad, position) pairs in the dataset are
+  // empty - most 1970s squads list no wide midfielder at all - so taking the first open
+  // slot hands back a pick with no player in it about a third of the time.
+  const slot = f.slots.filter((s) => !filled[s.id]).find((s) => !!canFill(s.position))!;
+  const player = canFill(slot.position)!;
   return { ordinal: room.windows[userId]!.ordinal, slotId: slot.id, player };
 }
 
@@ -192,7 +205,7 @@ export function pvpRoomChecks(): void {
 
   // --- The pick clock ------------------------------------------------------
   for (const seconds of PICK_SECONDS) {
-    const room = startRoom(roomOf(2, BUDGET, seconds), 'u0', T0);
+    const room = startRoom(roomOf(2, ROLL, seconds), 'u0', T0);
     const w = room.windows['u0']!;
     const req = firstLegalPick(room, 'u0');
     const inTime = submitPick(room, 'u0', req, deadlineOf(room, w) - 1);
@@ -224,8 +237,8 @@ export function pvpRoomChecks(): void {
     // 25 seconds in is past a twenty-second window and its 750ms grace, and comfortably
     // inside a thirty-second one.
     const at = T0 + 25_000;
-    const short = startRoom(roomOf(2, BUDGET, 20), 'u0', T0);
-    const long = startRoom(roomOf(2, BUDGET, 30), 'u0', T0);
+    const short = startRoom(roomOf(2, ROLL, 20), 'u0', T0);
+    const long = startRoom(roomOf(2, ROLL, 30), 'u0', T0);
     const a = submitPick(short, 'u0', firstLegalPick(short, 'u0'), at);
     const b = submitPick(long, 'u0', firstLegalPick(long, 'u0'), at);
     check(
@@ -244,7 +257,7 @@ export function pvpRoomChecks(): void {
   {
     // A retry that resends the ordinal already taken is a replay, not a second spent
     // window (P36). This is the flaky-mobile-link case.
-    const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
+    const room = startRoom(roomOf(2, ROLL), 'u0', T0);
     const req = firstLegalPick(room, 'u0');
     const first = submitPick(room, 'u0', req, T0 + 1000);
     const retry = submitPick(first.room, 'u0', req, T0 + 1200);
@@ -262,7 +275,7 @@ export function pvpRoomChecks(): void {
   {
     // An illegal pick is treated as no pick (P43): the window keeps running, nothing is
     // forfeited, and the player may try again inside it.
-    const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
+    const room = startRoom(roomOf(2, ROLL), 'u0', T0);
     const m = room.members[0]!;
     const f = formationOf(m);
     const outfield = f.slots.find((s) => s.position !== 'GK')!;
@@ -387,7 +400,7 @@ export function pvpRoomChecks(): void {
     // Nothing is paired until EVERY draft is finished (P47). One player picking fast must
     // not get their tie played while somebody else is still drafting.
     withSeed(9, () => {
-      let room = startRoom(roomOf(4, BUDGET), 'u0', T0);
+      let room = startRoom(roomOf(4, ROLL), 'u0', T0);
       // Three players complete their XIs by hand; the fourth does nothing.
       for (const id of ['u0', 'u1', 'u2']) {
         for (let i = 0; i < 11; i++) {
@@ -409,7 +422,7 @@ export function pvpRoomChecks(): void {
 
   // --- Surviving an outage (P45) -------------------------------------------
   {
-    const room = startRoom(roomOf(2, BUDGET, 20), 'u0', T0);
+    const room = startRoom(roomOf(2, ROLL, 20), 'u0', T0);
     // The referee dies 5s into the window and comes back 45s later. Without recovery the
     // first sweep is already past every deadline and auto-picks for everybody at once.
     const deathAt = T0 + 5000;
@@ -816,7 +829,10 @@ export function pvpRoomChecks(): void {
     // this is the second answer for a room that somehow does not - and a room stuck in the
     // one phase built to be unstallable is the worst outcome available.
     withSeed(77, () => {
-      const drafting = startRoom(roomOf(2, BUDGET), 'u0', T0);
+      // A ROLL room, because windows are what this freezes and a budget room has none
+      // (P52): its one clock is `draftDeadlineOf`, which cannot be frozen and so cannot
+      // leave the hard bound as the only thing left.
+      const drafting = startRoom(roomOf(2, ROLL), 'u0', T0);
       // Frozen windows: opened in the far future, so no deadline can ever pass and the
       // ordinary one-slot-per-sweep path cannot fire at all. That is what leaves the hard
       // bound as the only thing that can move this room.
@@ -1170,10 +1186,11 @@ function botChecks(): void {
       check(
         'bot: one person and three practice opponents play a whole room out to a champion',
         () =>
-          // The bots are ready to play the moment the room starts and never take a window,
-          // so the only clock in the room is the person's.
-          botsIn(started).every((m) => !started.windows[m.userId] && xiComplete(started, m)) &&
-          started.windows['u0'] !== undefined &&
+          // The bots are ready to play the moment the room starts, so the only thing the
+          // room is waiting for is the person - which in a budget room means the person
+          // saying they are through, or the draft's one clock running out (P52).
+          botsIn(started).every((m) => draftDone(started, m) && xiComplete(started, m)) &&
+          !draftDone(started, started.members.find((m) => m.userId === 'u0')!) &&
           done.status === 'ended' &&
           !roomClosed(done) &&
           !!champion &&
@@ -1181,6 +1198,220 @@ function botChecks(): void {
           done.ties.length === 3 &&
           done.members.filter((m) => m.outIn !== undefined).length === 3,
         () => `${done.status}, champion ${champion?.name ?? 'none'}, ${done.ties.length} ties`,
+      );
+    });
+  }
+
+  // --- One clock over the whole draft (P52) --------------------------------
+  //
+  // A BUDGET ROOM DOES NOT RUN A PICK CLOCK, and the reason is the money rather than the
+  // pace: buying an XI is one decision about one pool, so the eleventh pick is what decides
+  // whether the first was affordable, and a per-pick window makes that unplayable because
+  // there is no going back. So the room gets one clock, the board is submitted as a map,
+  // and a player may buy, move and sell inside it until they say they are through.
+
+  {
+    const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
+    const rolled = startRoom(roomOf(2, ROLL), 'u0', T0);
+    check(
+      'draft: a budget room opens ONE clock and no pick windows; a roll room is unchanged',
+      () =>
+        wholeDraft(room) &&
+        !wholeDraft(rolled) &&
+        room.members.every((m) => !room.windows[m.userId]) &&
+        draftDeadlineOf(room) === T0 + DEFAULT_DRAFT_SECONDS * 1000 &&
+        // Vacuity, and it is the contrast the whole change is: a roll room still opens a
+        // window per player and has no whole-draft deadline at all.
+        rolled.members.every((m) => !!rolled.windows[m.userId]) &&
+        draftDeadlineOf(rolled) === null,
+      () =>
+        `budget windows ${Object.values(room.windows).filter(Boolean).length}, deadline ${draftDeadlineOf(room)}`,
+    );
+  }
+
+  {
+    // Buy, move, sell - three gestures, one instruction, because the board is a map.
+    const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
+    const me = room.members.find((m) => m.userId === 'u0')!;
+    const f = formationOf(me);
+    // A player who can fill two of this formation's slots, so a MOVE is expressible at all.
+    const two = f.slots.filter((s, i, all) => all.findIndex((x) => x.position === s.position) === i);
+    const pair = (() => {
+      for (const a of two) {
+        for (const b of two) {
+          if (a.id === b.id) continue;
+          const p = roomPlayers(room.rules).find(
+            (x) => x.positions.includes(a.position) && x.positions.includes(b.position),
+          );
+          if (p) return { a, b, p };
+        }
+      }
+      return null;
+    })()!;
+
+    const bought = setXi(room, 'u0', { [pair.a.id]: pair.p }, T0 + 1000);
+    const moved = setXi(bought.room, 'u0', { [pair.b.id]: pair.p }, T0 + 2000);
+    const sold = setXi(moved.room, 'u0', {}, T0 + 3000);
+    check(
+      'draft: buying, moving and selling are all the same instruction - the board',
+      () =>
+        bought.outcome === 'ok' &&
+        bought.room.xi.u0![pair.a.id]?.id === pair.p.id &&
+        // A MOVE. The same man, a different slot, and the pick log follows him rather than
+        // leaving a record behind on a slot that is now empty - which is what `pgStore`
+        // deletes for, and would be a player the room thinks is still there.
+        moved.outcome === 'ok' &&
+        !moved.room.xi.u0![pair.a.id] &&
+        moved.room.xi.u0![pair.b.id]?.id === pair.p.id &&
+        !moved.room.picks.u0![pair.a.id] &&
+        !!moved.room.picks.u0![pair.b.id] &&
+        // And a sale empties both.
+        sold.outcome === 'ok' &&
+        Object.keys(sold.room.xi.u0!).length === 0 &&
+        Object.keys(sold.room.picks.u0!).length === 0,
+      () =>
+        `${bought.outcome}/${moved.outcome}/${sold.outcome}, slots ${Object.keys(moved.room.xi.u0 ?? {}).join()}`,
+    );
+
+    // A slot that did not change keeps its record, which is what stops every keystroke
+    // restamping when the player arrived and whether the clock put him there.
+    const again = setXi(bought.room, 'u0', { [pair.a.id]: pair.p }, T0 + 9000);
+    check(
+      'draft: a slot that did not change keeps its pick record, landing time and all',
+      () =>
+        again.outcome === 'ok' &&
+        again.room.picks.u0![pair.a.id]!.landedAt === bought.room.picks.u0![pair.a.id]!.landedAt &&
+        // Vacuity: the one that DID change got a new time.
+        moved.room.picks.u0![pair.b.id]!.landedAt === T0 + 2000,
+      () => `${again.room.picks.u0?.[pair.a.id]?.landedAt} vs ${bought.room.picks.u0?.[pair.a.id]?.landedAt}`,
+    );
+  }
+
+  {
+    // Nothing trusts the board any more than it trusts a pick. An XI over the budget is
+    // refused whole, and so is one with the same person twice.
+    const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
+    const me = room.members.find((m) => m.userId === 'u0')!;
+    const f = formationOf(me);
+    const dearest = (position: string) =>
+      roomPlayers(room.rules)
+        .filter((p) => p.positions.includes(position as never))
+        .sort((a, b) => b.elo - a.elo)[0]!;
+    const rich: Filled = {};
+    for (const slot of f.slots) rich[slot.id] = dearest(slot.position);
+    const over = setXi(room, 'u0', rich, T0 + 1000);
+
+    const one = roomPlayers(room.rules).find((p) => p.positions.length >= 2)!;
+    const slotsFor = f.slots.filter((s) => one.positions.includes(s.position)).slice(0, 2);
+    const twice: Filled = { [slotsFor[0]!.id]: one, [slotsFor[1]!.id]: one };
+    const dup = slotsFor.length === 2 ? setXi(room, 'u0', twice, T0 + 1000) : null;
+    check(
+      'draft: a board over the budget or holding one man twice is refused whole',
+      () =>
+        over.outcome === 'illegal' &&
+        Object.keys(over.room.xi.u0 ?? {}).length === 0 &&
+        (!dup || dup.outcome === 'illegal') &&
+        // Vacuity: the same eleven slots ARE fillable inside the budget, so the refusal is
+        // about the money and not about the formation.
+        (() => {
+          const cheap: Filled = {};
+          for (const slot of f.slots) {
+            const used = new Set(Object.values(cheap).map((p) => p!.personId));
+            cheap[slot.id] = roomPlayers(room.rules)
+              .filter((p) => p.positions.includes(slot.position) && !used.has(p.personId))
+              .sort((a, b) => a.elo - b.elo)[0]!;
+          }
+          return setXi(room, 'u0', cheap, T0 + 1000).outcome === 'ok';
+        })(),
+      () => `${over.outcome} / ${dup?.outcome ?? 'n/a'}`,
+    );
+  }
+
+  {
+    // "Go ahead when all players are through", and what "through" has to mean here.
+    const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
+    const fill = (r: PvpRoom, who: string): PvpRoom => {
+      const m = r.members.find((x) => x.userId === who)!;
+      const f = formationOf(m);
+      const filled: Filled = {};
+      for (const slot of f.slots) {
+        const used = new Set(Object.values(filled).map((p) => p!.personId));
+        const spent = Object.values(filled).reduce((t, p) => t + pvpPriceOf(p!), 0);
+        filled[slot.id] = roomPlayers(r.rules)
+          .filter(
+            (p) =>
+              p.positions.includes(slot.position) &&
+              !used.has(p.personId) &&
+              pvpPriceOf(p) <= m.budget - spent,
+          )
+          .sort((a, b) => a.elo - b.elo)[0]!;
+      }
+      return setXi(r, who, filled, T0 + 1000).room;
+    };
+    const both = fill(fill(room, 'u0'), 'u1');
+    // A COMPLETE XI IS NOT A FINISHED ONE. This is the rule that makes moving and selling
+    // usable by the person who fills their last slot last, and without it the two features
+    // this change is for would cancel each other out.
+    const stillOpen = tickRoom(both, T0 + 2000);
+    const first = setDone(both, 'u0', true, T0 + 3000);
+    const halfWay = tickRoom(first, T0 + 3500);
+    const second = setDone(first, 'u1', true, T0 + 4000);
+    const drawn = tickRoom(second, T0 + 4500);
+    // And it is reversible while the draft is open.
+    const back = setDone(first, 'u0', false, T0 + 3600);
+    check(
+      'draft: a full XI does not end the draft - saying you are through does, and it is reversible',
+      () =>
+        both.members.every((m) => xiComplete(both, m)) &&
+        stillOpen.status === 'drafting' &&
+        halfWay.status === 'drafting' &&
+        drawn.status === 'round' &&
+        drawn.ties.length === 1 &&
+        back.members.find((m) => m.userId === 'u0')!.done !== true &&
+        // Nobody can declare an empty team finished, so "everybody is done" can never mean
+        // "everybody gave up".
+        setDone(room, 'u0', true, T0 + 1000).members.find((m) => m.userId === 'u0')!.done !==
+          true,
+      () => `${stillOpen.status} / ${halfWay.status} / ${drawn.status}`,
+    );
+
+    // And the board is closed to somebody who has declared - they take it back first.
+    const after = setXi(first, 'u0', {}, T0 + 3100);
+    check(
+      'draft: a player who has said they are through cannot quietly change their XI',
+      () =>
+        after.outcome === 'closed' &&
+        Object.keys(after.room.xi.u0 ?? {}).length === 11 &&
+        // Vacuity: the same submission from the player who has NOT declared is taken.
+        setXi(first, 'u1', {}, T0 + 3100).outcome === 'ok',
+      () => after.outcome,
+    );
+  }
+
+  {
+    // The clock running out, which is the other way a whole draft ends.
+    withSeed(5211, () => {
+      const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
+      const deadline = draftDeadlineOf(room)!;
+      const before = tickRoom(room, deadline - 1000);
+      const after = tickRoom(room, deadline + PICK_GRACE_MS + 1000);
+      const legal = after.members.every(
+        (m) => validateXi(formationOf(m), after.xi[m.userId] ?? {}, after.rules).ok,
+      );
+      check(
+        'draft: at zero every empty slot is filled and the room draws, with legal XIs',
+        () =>
+          // Nothing at all happens until the clock runs out: there are no windows to
+          // expire, so an untouched budget draft sits exactly where it was.
+          before.status === 'drafting' &&
+          before.members.every((m) => Object.keys(before.xi[m.userId] ?? {}).length === 0) &&
+          after.status === 'round' &&
+          after.members.every((m) => xiComplete(after, m)) &&
+          legal &&
+          // Filled BY THE CLOCK, and recorded as such: `pvp_matches.loser_auto_picks` is
+          // one of the three facts a ladder needs to tell a real win from a farmed one.
+          Object.values(after.picks.u0 ?? {}).every((p) => p.automatic),
+        () => `${before.status} -> ${after.status}, legal ${legal}`,
       );
     });
   }

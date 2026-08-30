@@ -55,6 +55,7 @@ import type {
 const SELECT_ROOM = `select r.id, r.code, r.visibility, r.host_id, r.pace, r.invited_id,
     p.display_name as invited_name,
     r.size, r.method, r.budget, r.years, r.show_ratings, r.rerolls, r.pick_seconds,
+    r.draft_seconds,
     r.status, r.round, r.champion_id, r.started_at, r.swept_at, r.touched_at
   from pvp_rooms r
   left join profiles p on p.id = r.invited_id
@@ -74,7 +75,7 @@ export function pgStore(pool: Pool): RoomStore {
     // still running one is deprecated in pg 8 and removed in pg 9 - it happens to serialise
     // today, so the concurrency was never real, only the deprecation warning was.
     const members = await db.query<MemberRow>(
-        `select m.user_id, m.seat, m.ready, m.budget, m.rerolls_used, m.out_in,
+        `select m.user_id, m.seat, m.ready, m.done, m.budget, m.rerolls_used, m.out_in,
                 m.last_seen, m.window_ordinal, m.window_opened_at, p.display_name,
                 l.formation_name, l.style
            from pvp_members m
@@ -145,15 +146,16 @@ export function pgStore(pool: Pool): RoomStore {
     for (const m of memberWrites(room)) {
       await db.query(
         `insert into pvp_members
-           (room_id, user_id, seat, ready, budget, rerolls_used, out_in,
+           (room_id, user_id, seat, ready, done, budget, rerolls_used, out_in,
             window_ordinal, window_opened_at, last_seen)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9, now())
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())
          on conflict (room_id, user_id) do update set
-           seat = excluded.seat, ready = excluded.ready, budget = excluded.budget,
+           seat = excluded.seat, ready = excluded.ready, done = excluded.done,
+           budget = excluded.budget,
            rerolls_used = excluded.rerolls_used, out_in = excluded.out_in,
            window_ordinal = excluded.window_ordinal,
            window_opened_at = excluded.window_opened_at`,
-        [id, m.userId, m.seat, m.ready, m.budget, m.rerollsUsed, m.outIn, m.windowOrdinal, m.windowOpenedAt],
+        [id, m.userId, m.seat, m.ready, m.done, m.budget, m.rerollsUsed, m.outIn, m.windowOrdinal, m.windowOpenedAt],
       );
       await db.query(
         `insert into pvp_lineups (room_id, user_id, formation_name, style)
@@ -249,14 +251,14 @@ export function pgStore(pool: Pool): RoomStore {
         const res = await db.query<{ id: string }>(
           `insert into pvp_rooms
              (code, visibility, host_id, size, method, budget, years,
-              show_ratings, rerolls, pick_seconds, pace, invited_id,
+              show_ratings, rerolls, pick_seconds, draft_seconds, pace, invited_id,
               status, round, touched_at, swept_at)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'lobby',0, now(), now())
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'lobby',0, now(), now())
            returning id`,
           [
             input.code, input.visibility, input.hostId, input.size, input.method,
             input.budget, input.years, input.showRatings, input.rerolls, input.pickSeconds,
-            input.pace, input.invitedId,
+            input.draftSeconds, input.pace, input.invitedId,
           ],
         );
         const room = createRoom({
@@ -271,6 +273,7 @@ export function pgStore(pool: Pool): RoomStore {
           hostBudget: input.method === 'budget' ? input.budget : 0,
           showRatings: input.showRatings,
           rerolls: input.rerolls,
+          draftSeconds: input.draftSeconds,
           pace: input.pace,
           ...(input.invitedId ? { invitedId: input.invitedId } : {}),
           now,

@@ -36,10 +36,13 @@ import {
   localVersion,
   versionMismatch,
 } from '../../src/domain/pvpVersion';
-import { validateXi } from '../../src/domain/pvp';
+import { autoPick, pvpPriceOf, validateXi } from '../../src/domain/pvp';
+import type { Filled } from '../../src/domain/draft';
 import {
+  DEFAULT_DRAFT_SECONDS,
   DUEL_IDLE_MS,
   ROOM_IDLE_MS,
+  XI_SLOTS,
   createRoom,
   deadlineOf,
   formationOf,
@@ -287,15 +290,52 @@ async function get(deps: ApiDeps, path: string, who: string | null): Promise<Api
 }
 
 /** A two-player budget room with both seats taken and both shapes chosen. */
-async function seatedRoom(clock: { now: number }): Promise<{ store: MemStore; deps: ApiDeps; code: string }> {
+/**
+ * A whole legal board for one member, which is how a budget room drafts (P52).
+ *
+ * Built by the same `autoPick` the referee's own deadline uses, so what it produces is
+ * legal by the same rule that judges it - and the money is re-counted each time round,
+ * because in a budget room the eleventh pick is what decides whether the first was
+ * affordable, which is the whole reason this mode has one clock rather than eleven.
+ */
+function fullBoard(room: PvpRoom, who: string): Record<string, string> {
+  const m = room.members.find((x) => x.userId === who)!;
+  const f = formationOf(m);
+  let filled: Filled = { ...(room.xi[who] ?? {}) };
+  for (let i = 0; i < XI_SLOTS; i++) {
+    const spent = Object.values(filled).reduce((t, p) => t + (p ? pvpPriceOf(p) : 0), 0);
+    const made = autoPick(f, filled, room.rules, { remaining: m.budget - spent });
+    if (!made) break;
+    filled = { ...filled, [made.slotId]: made.player };
+  }
+  return Object.fromEntries(
+    Object.entries(filled)
+      .filter(([, p]) => !!p)
+      .map(([slot, p]) => [slot, p!.id]),
+  );
+}
+
+/**
+ * Two people in a room, ready to start.
+ *
+ * THE METHOD IS AN ARGUMENT because the two now draft completely differently (P52): a roll
+ * room runs eleven pick windows, and a budget room runs one clock over the whole draft and
+ * takes the board as a map. Everything about the pick clock below is therefore a ROLL
+ * room's, and it says so rather than being a budget room that happens to still have
+ * windows - which is what it was, and what would have gone silently wrong.
+ */
+async function seatedRoom(
+  clock: { now: number },
+  method: 'roll' | 'budget' = 'budget',
+): Promise<{ store: MemStore; deps: ApiDeps; code: string }> {
   const store = new MemStore();
   store.names = { u1: 'Ada', u2: 'Bruno' };
   const deps = depsFor(store, clock);
   const made = await post(deps, '/referee/v1/rooms', session('u1'), {
     visibility: 'private',
     size: 2,
-    method: 'budget',
-    budget: 110,
+    method,
+    budget: method === 'budget' ? 110 : 0,
     pickSeconds: 20,
     years: [],
   });
@@ -686,14 +726,20 @@ export async function refereeChecks(): Promise<void> {
 
   {
     const clock = { now: T0 };
-    const { deps, code, store } = await seatedRoom(clock);
+    const { deps, code, store } = await seatedRoom(clock, 'roll');
     await post(deps, `/referee/v1/rooms/${code}/start`, session('u1'));
     const room = (await store.read(code))!;
     const me = room.members.find((m) => m.userId === 'u1')!;
-    const slot = formationOf(me).slots[0]!;
-    const legal = SQUADS.flatMap((s) => s.players).find(
-      (p) => p.positions.includes(slot.position) && p.elo < 70,
+    // FROM THE SQUAD THE REFEREE DEALT (P13). A roll room refuses a player it never handed
+    // over, so taking one off the whole dataset - which is what this did while it was a
+    // budget room - would be refused as illegal and the check would pass for the wrong
+    // reason on the way to failing for the right one.
+    const dealtSquad = room.deals.u1!.slice(-1)[0]!;
+    const dealtPlayers = SQUADS.find((sq) => sq.id === dealtSquad)!.players;
+    const slot = formationOf(me).slots.find((sl) =>
+      dealtPlayers.some((p) => p.positions.includes(sl.position)),
     )!;
+    const legal = dealtPlayers.find((p) => p.positions.includes(slot.position))!;
 
     const unknown = await post(deps, `/referee/v1/rooms/${code}/pick`, session('u1'), {
       ordinal: 1,
@@ -736,15 +782,19 @@ export async function refereeChecks(): Promise<void> {
       await sweepOnce(store, clock.now, SWEEP_MS);
     }
     clock.now += 900; // past the deadline and the grace, before the next sweep
-    const other = SQUADS.flatMap((s) => s.players).find(
-      (p) =>
-        p.positions.includes(formationOf(me).slots[1]!.position) &&
-        p.elo < 70 &&
-        p.personId !== legal.personId,
+    // The second slot, and a second player from whatever squad is dealt NOW - the first
+    // pick opened a new window, which deals again.
+    const after = (await store.read(code))!;
+    const nowDealt = SQUADS.find((sq) => sq.id === after.deals.u1!.slice(-1)[0]!)!.players;
+    const slot2 = formationOf(me).slots.find(
+      (sl) => sl.id !== slot.id && nowDealt.some((p) => p.positions.includes(sl.position)),
+    )!;
+    const other = nowDealt.find(
+      (p) => p.positions.includes(slot2.position) && p.personId !== legal.personId,
     )!;
     const late = await post(deps, `/referee/v1/rooms/${code}/pick`, session('u1'), {
       ordinal: 2,
-      slotId: formationOf(me).slots[1]!.id,
+      slotId: slot2.id,
       playerId: other.id,
     });
     check(
@@ -761,7 +811,7 @@ export async function refereeChecks(): Promise<void> {
   // unstallable stalls - see referee/src/outage.ts.
   {
     const clock = { now: T0 };
-    const { deps, code, store } = await seatedRoom(clock);
+    const { deps, code, store } = await seatedRoom(clock, 'roll');
     await post(deps, `/referee/v1/rooms/${code}/start`, session('u1'));
     for (let i = 0; i < 30; i++) {
       clock.now += SWEEP_MS;
@@ -808,7 +858,7 @@ export async function refereeChecks(): Promise<void> {
   // window comes back with roughly the time it had left, having auto-picked for nobody.
   {
     const clock = { now: T0 };
-    const { deps, code, store } = await seatedRoom(clock);
+    const { deps, code, store } = await seatedRoom(clock, 'roll');
     await post(deps, `/referee/v1/rooms/${code}/start`, session('u1'));
     // Five seconds into everybody's first window, the process dies.
     clock.now += 5_000;
@@ -919,7 +969,11 @@ export async function refereeChecks(): Promise<void> {
 
   {
     const clock = { now: T0 };
-    const { deps, code, store } = await seatedRoom(clock);
+    // A ROLL room, so the trip carries the things only a per-pick draft has - an open
+    // window and a list of dealt squads. A budget room's own new columns get their own
+    // round trip in the P52 block below, because the two drafts no longer store the same
+    // things and one fixture cannot cover both.
+    const { deps, code, store } = await seatedRoom(clock, 'roll');
     await post(deps, `/referee/v1/rooms/${code}/start`, session('u1'));
     for (let i = 0; i < 22; i++) {
       clock.now += SWEEP_MS;
@@ -1072,21 +1126,6 @@ export async function refereeChecks(): Promise<void> {
     );
   }
 
-  /** The cheapest legal pick a member could make right now. The same shape the live
-   *  draft's checks use; it is local because that one is a private helper of its own file
-   *  and this needs nothing from it but the idea. */
-  const firstLegalPick = (room: PvpRoom, userId: string) => {
-    const m = room.members.find((x) => x.userId === userId)!;
-    const f = formationOf(m);
-    const filled = room.xi[userId] ?? {};
-    const slot = f.slots.find((sl) => !filled[sl.id])!;
-    const used = new Set(Object.values(filled).map((pl) => pl!.personId));
-    const player = SQUADS.flatMap((sq) => sq.players)
-      .filter((pl) => pl.positions.includes(slot.position) && !used.has(pl.personId))
-      .sort((a, b) => a.elo - b.elo)[0]!;
-    return { ordinal: room.windows[userId]!.ordinal, slotId: slot.id, player };
-  };
-
   // --- A DUEL, played end to end through the referee (P51) ------------------
   //
   // The claim to earn is the one the mode is FOR: nobody has to be present at the same
@@ -1163,15 +1202,18 @@ export async function refereeChecks(): Promise<void> {
     const accepted = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u2'));
     const started = (await store.read(code))!;
     check(
-      'duel: accepting starts the draft at once, with a window that never expires',
+      'duel: accepting starts the draft at once, and nothing at all is counting',
       () =>
         accepted.status === 200 &&
         started.status === 'drafting' &&
         started.members.length === 2 &&
-        // The window is still there - it counts the picks and deals the squads - and the
-        // view sends no time left, which is what stops a clock being drawn.
-        !!started.windows.u1 &&
-        (accepted.body as RoomView).you?.window?.remainingMs === null,
+        // A BUDGET duel is the two clocks OFF at once (P51 and P52): the room runs one
+        // clock over the whole draft rather than eleven windows, and a duel runs none of
+        // it. So there is no window and the whole-draft remainder is null, which is what
+        // stops a screen drawing a bar against a deadline nothing enforces.
+        !started.windows.u1 &&
+        (accepted.body as RoomView).you?.window == null &&
+        (accepted.body as RoomView).draft?.remainingMs === null,
       () => `${accepted.status}, ${started.status}`,
     );
 
@@ -1191,26 +1233,26 @@ export async function refereeChecks(): Promise<void> {
         // Vacuity, and it is the whole point: the SAME six days would have finished a live
         // room's draft against both players and then closed the room.
         Object.values(untouched.picks).every((p) => Object.keys(p).length === 0) &&
-        !!untouched.windows.u1 &&
-        !!untouched.windows.u2,
+        Object.values(untouched.xi).every((x) => Object.keys(x).length === 0) &&
+        // And nothing has declared itself finished on anybody's behalf, which is the only
+        // thing that could end a duel's draft.
+        untouched.members.every((m) => !m.done),
       () => `${untouched.status}, ${Object.keys(untouched.picks.u1 ?? {}).length} picks`,
     );
 
     // Each of them drafts, days apart, and the match plays itself when the second XI lands.
+    // BY THE BOARD, because this is a budget duel and a budget room drafts as a whole XI
+    // now (P52) - and then by SAYING SO, because a whole-draft room does not read a full
+    // team as a finished one.
     const draftFor = async (who: string): Promise<void> => {
-      for (let i = 0; i < 11; i++) {
-        // An hour between picks: this is a person drafting over an evening, and the point
-        // of the mode is that nothing counts it.
-        clock.now += 60 * 60_000;
-        const room = (await store.read(code))!;
-        if (!room.windows[who]) break;
-        const p = firstLegalPick(room, who);
-        await post(deps, `/referee/v1/rooms/${code}/pick`, longSession(who), {
-          ordinal: p.ordinal,
-          slotId: p.slotId,
-          playerId: p.player.id,
-        });
-      }
+      // An hour between the two, which is the point of the mode: nothing counts it.
+      clock.now += 60 * 60_000;
+      const room = (await store.read(code))!;
+      await post(deps, `/referee/v1/rooms/${code}/xi`, longSession(who), {
+        xi: fullBoard(room, who),
+      });
+      clock.now += 60 * 60_000;
+      await post(deps, `/referee/v1/rooms/${code}/done`, longSession(who), { done: true });
     };
     await draftFor('u1');
     const halfway = (await store.read(code))!;
@@ -1258,6 +1300,77 @@ export async function refereeChecks(): Promise<void> {
         // only way a challenge is ever seen.
         rows.length === 2,
       () => `${done.status}, ${rows.length} rows, ${JSON.stringify(row)}`,
+    );
+  }
+
+  {
+    // --- The whole board, through the referee (P52) -------------------------
+    //
+    // A BUDGET ROOM DRAFTS AS A MAP, so this is the route that had to exist before moving
+    // and un-buying could: the referee took picks and nothing else, which is exactly what
+    // P42 said was in the way. Everything it must still refuse it refuses here.
+    const clock = { now: T0 };
+    const { deps, code, store } = await seatedRoom(clock, 'budget');
+    await post(deps, `/referee/v1/rooms/${code}/start`, session('u1'));
+    const started = (await store.read(code))!;
+
+    const invented = await post(deps, `/referee/v1/rooms/${code}/xi`, session('u1'), {
+      xi: { [formationOf(started.members[0]!).slots[0]!.id]: 'no-such-player-9999' },
+    });
+    const board = fullBoard(started, 'u1');
+    const good = await post(deps, `/referee/v1/rooms/${code}/xi`, session('u1'), { xi: board });
+    // The same board again: idempotent BY CONSTRUCTION here, where a pick needs an ordinal
+    // to get there (P36). The same map twice is the same map.
+    const again = await post(deps, `/referee/v1/rooms/${code}/xi`, session('u1'), { xi: board });
+    const held = (await store.read(code))!;
+    check(
+      'board: the referee takes a whole XI, refuses an invented player, and repeats are free',
+      () =>
+        invented.status === 422 &&
+        (invented.body as { error: string }).error === 'unknown-player' &&
+        good.status === 200 &&
+        (good.body as { outcome: string }).outcome === 'ok' &&
+        again.status === 200 &&
+        Object.keys(held.xi.u1 ?? {}).length === 11 &&
+        // The invented board changed nothing, which is the point of refusing it whole
+        // rather than dropping the bad key: dropping it answers "here is my XI" with a
+        // different XI and calls that success.
+        Object.keys(held.xi.u1 ?? {}).every((slot) => board[slot] === held.xi.u1![slot]!.id),
+      () => `${invented.status} / ${good.status} / ${again.status}`,
+    );
+
+    // Declaring, and what it closes.
+    const early = await post(deps, `/referee/v1/rooms/${code}/done`, session('u2'), { done: true });
+    const mine = await post(deps, `/referee/v1/rooms/${code}/done`, session('u1'), { done: true });
+    const locked = await post(deps, `/referee/v1/rooms/${code}/xi`, session('u1'), { xi: {} });
+    check(
+      'board: declaring needs a full XI, and closes the board until it is taken back',
+      () =>
+        // u2 has bought nobody, so there is nothing to declare.
+        early.status === 200 &&
+        !(early.body as RoomView).members.find((m) => m.userId === 'u2')?.done &&
+        mine.status === 200 &&
+        !!(mine.body as RoomView).members.find((m) => m.userId === 'u1')?.done &&
+        locked.status === 409 &&
+        (locked.body as { error: string }).error === 'draft-closed',
+      () => `${early.status} / ${mine.status} / ${locked.status}`,
+    );
+
+    // And the round trip through the tables, for a budget room's own columns: the
+    // whole-draft clock and the declaration, neither of which a roll room has.
+    const trip = roomFromRows(
+      rowsFromRoom((await store.read(code))!, { sweptAt: clock.now, displayNames: store.names }),
+    );
+    const source = (await store.read(code))!;
+    check(
+      'rows: a budget room survives the round trip, clock and declaration included',
+      () =>
+        JSON.stringify(trip) === JSON.stringify(source) &&
+        // Vacuity: the room being compared actually holds both of the new things.
+        trip.draftSeconds === DEFAULT_DRAFT_SECONDS &&
+        trip.members.find((m) => m.userId === 'u1')?.done === true &&
+        Object.keys(trip.xi.u1 ?? {}).length === 11,
+      () => `draftSeconds ${trip.draftSeconds}, done ${trip.members.find((m) => m.userId === 'u1')?.done}`,
     );
   }
 

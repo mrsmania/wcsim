@@ -13,7 +13,7 @@
 // the second overwrites the first. Handing callers a `mutate` makes the locking impossible
 // to forget; handing them `read` and `save` makes it impossible to see.
 
-import type { PvpRoom, RoomPace } from '../../src/domain/pvpRoom';
+import type { DraftSeconds, PvpRoom, RoomPace } from '../../src/domain/pvpRoom';
 import type { DuelRow, LobbyRoom } from '../../src/domain/pvpWire';
 
 /** One line of the lobby list, as the store hands it over. The wire shape is shared with
@@ -49,6 +49,8 @@ export interface CreateInput {
   showRatings: boolean;
   rerolls: number;
   pickSeconds: number;
+  /** The whole draft's clock, a budget room's only (P52). */
+  draftSeconds: DraftSeconds;
   /** Live, or a duel played in both players' own time (P51). */
   pace: RoomPace;
   /** The account a duel is addressed to. Null for a live room, and for a duel opened to

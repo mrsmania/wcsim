@@ -57,6 +57,27 @@ import {
 export const PICK_SECONDS = [20, 30] as const;
 export type PickSeconds = (typeof PICK_SECONDS)[number];
 
+/**
+ * How long a WHOLE BUDGET DRAFT gets, when the host has a say (P52).
+ *
+ * A budget room does not run a pick clock at all. Buying an XI is not eleven independent
+ * decisions the way a roll draft is - the money is one pool, so the eleventh pick is what
+ * decides whether the first was affordable, and a per-pick clock makes that unplayable:
+ * you cannot go back and sell the winger you overpaid for, because there is no back. So
+ * the room gets ONE clock for the lot, everybody drafts inside it at their own pace, and
+ * a player may move and un-buy freely until they say they are done.
+ *
+ * Three lengths and not a slider, for the reason `PICK_SECONDS` has two: a lobby row has
+ * to be able to say what kind of evening this is, and a ladder has to compare like with
+ * like. Roughly the old eleven-window budget (11 x 20s = 3m40) at the bottom, and room to
+ * actually shop at the top.
+ */
+export const DRAFT_SECONDS = [180, 300, 480] as const;
+export type DraftSeconds = (typeof DRAFT_SECONDS)[number];
+
+/** What a room gets when the host says nothing. */
+export const DEFAULT_DRAFT_SECONDS: DraftSeconds = 300;
+
 /** How long after a window closes a pick is still taken. It exists for network latency
  *  and nothing else, which is why it is small: the CLIENT is expected to lock its own
  *  controls about a round trip early (plan section 5), so a pick arriving after this had
@@ -126,8 +147,10 @@ export const ROOM_IDLE_MS = 30 * 60_000;
  *  not - a room stuck in the one phase built to be unstallable is the worst outcome
  *  available, so it is worth having a second answer. */
 export const DRAFT_SLACK_MS = 60_000;
-/** Slots in an XI. Every formation has eleven; the pick clock's bound is counted in them. */
-const XI_SLOTS = 11;
+/** Slots in an XI. Every formation has eleven; the pick clock's bound is counted in them,
+ *  and the referee refuses a submitted board with more keys than this before it looks at
+ *  any of them. */
+export const XI_SLOTS = 11;
 
 /** Room sizes (plan P7). A host may reduce before the start, never increase. */
 export const ROOM_SIZES = [2, 4, 8] as const;
@@ -187,6 +210,20 @@ export interface RoomMember {
   rerollsUsed: number;
   /** The round they went out in, absent while still in. */
   outIn?: number;
+  /**
+   * "I am through" (P52), in a whole-draft room only.
+   *
+   * A BUDGET DRAFT CANNOT END WHEN THE ELEVENTH SLOT FILLS, which is what a per-pick room
+   * does and is exactly what makes moving and un-buying possible here: if the last player
+   * to complete their XI ended the room by completing it, the two things this mode is for
+   * would be unusable for the one person who most wants them. So finishing is DECLARED,
+   * and the room draws when everybody has declared or the clock runs out. Reversible while
+   * the draft is still open, because a misclick must not cost the game.
+   *
+   * Optional so a room stored before P52 reads back unchanged, and meaningless in a roll
+   * room, where completing the XI is finishing by construction.
+   */
+  done?: boolean;
   /** When this player was last known to be here (P31). Written by the client's ping, read
    *  by the sweeper: a member unseen for `SEEN_GONE_MS` is dropped from a LOBBY, which is
    *  the only phase where dropping somebody is the right answer - past the start their XI
@@ -264,7 +301,13 @@ export interface PvpRoom {
   invitedId?: string;
   size: RoomSize;
   rules: RoomRules;
+  /** The per-pick clock. A ROLL ROOM'S ONLY (P52): a budget room runs `draftSeconds` over
+   *  the whole draft instead, and this is left at its stored value there because the
+   *  column is `not null` and because a room can never change method. */
   pickSeconds: PickSeconds;
+  /** The whole-draft clock, a BUDGET ROOM'S ONLY (P52). Absent from a room stored before
+   *  it existed, which reads as the default - the same shape `pace` takes. */
+  draftSeconds?: DraftSeconds;
   /** Whether ratings are shown, and how many re-rolls a roll room allows (plan section 3).
    *  Deliberately NOT part of `RoomRules`: that type is what the rules read, and a
    *  presentation switch must not be reachable from the code that decides whether an XI is
@@ -344,6 +387,45 @@ export function deadlineOf(room: PvpRoom, w: PickWindow): number {
   return w.openedAt + room.pickSeconds * 1000;
 }
 
+/**
+ * Does this room run ONE clock over the whole draft rather than eleven windows? (P52)
+ *
+ * It is the METHOD that decides, not a setting: a roll draft is eleven separate decisions
+ * about eleven dealt squads, so a window per pick is what it is; a budget draft is one
+ * decision about one pool of money, and a clock that will not let you go back and sell the
+ * winger you overpaid for is not a clock, it is a trap. Read through a function rather than
+ * off the field because three files ask it and a fourth will.
+ */
+export const wholeDraft = (room: { rules: RoomRules }): boolean => room.rules.method === 'budget';
+
+/** How long this room's whole draft gets. Defaulted here rather than at every reader, so a
+ *  room stored before P52 answers the same as one opened today. */
+export const draftSecondsOf = (room: PvpRoom): DraftSeconds =>
+  room.draftSeconds ?? DEFAULT_DRAFT_SECONDS;
+
+/**
+ * When a whole-draft room stops taking XIs, or null when nothing is counting.
+ *
+ * Null in two ordinary cases and they are different: a room that is not drafting has no
+ * deadline yet, and a DUEL has none at all - the whole point of that pace being that
+ * nobody is waiting (P51). Null rather than a very large number, so a screen that forgot
+ * to ask draws no clock rather than a wrong one, which is the rule the pick window already
+ * follows.
+ */
+export function draftDeadlineOf(room: PvpRoom): number | null {
+  if (!wholeDraft(room) || room.status !== 'drafting' || room.pace === 'async') return null;
+  if (room.startedAt === undefined) return null;
+  return room.startedAt + draftSecondsOf(room) * 1000;
+}
+
+/** Has this member finished drafting? In a whole-draft room they SAY so (see
+ *  `RoomMember.done`); everywhere else filling the eleventh slot is saying so. A practice
+ *  opponent is always finished: its team is built the moment the room starts. */
+export function draftDone(room: PvpRoom, m: RoomMember): boolean {
+  if (m.bot) return true;
+  return wholeDraft(room) ? m.done === true && xiComplete(room, m) : xiComplete(room, m);
+}
+
 /** Deal the next squad to a roll-room player, avoiding the one they hold. Uses the shared
  *  `rollAny`, so a room's deals obey exactly the rules a solo roll draft does - including
  *  the fallback when no squad can fill an open slot, which the plan wrongly called a
@@ -384,6 +466,9 @@ export function createRoom(input: {
   size: RoomSize;
   rules: RoomRules;
   pickSeconds: PickSeconds;
+  /** The whole-draft clock (P52). Only a budget room reads it; defaulted so every existing
+   *  caller reads unchanged. */
+  draftSeconds?: DraftSeconds;
   hostBudget: number;
   /** Live by default: a duel is the exception and says so, and every existing caller reads
    *  unchanged. */
@@ -408,6 +493,7 @@ export function createRoom(input: {
     size: input.size,
     rules: input.rules,
     pickSeconds: input.pickSeconds,
+    draftSeconds: input.draftSeconds ?? DEFAULT_DRAFT_SECONDS,
     showRatings: input.showRatings ?? true,
     rerolls: input.rerolls ?? DEFAULT_REROLLS,
     status: 'lobby',
@@ -599,13 +685,20 @@ export function startRoom(room: PvpRoom, hostId: string, now: number): PvpRoom {
     // `pvp_deals` has the same foreign key `pvp_members` has, so an empty list here would
     // be a field that cannot survive a reload.
     if (next.rules.method === 'roll' && !m.bot) next.deals[m.userId] = [];
+    // Nobody has declared themselves through yet, whatever the lobby's Ready said: that
+    // signal was about starting, and this one is about finishing (P52).
+    delete m.done;
     // A BOT'S TEAM IS BUILT HERE, ONCE, and it never gets a window. Nobody is watching it
     // think, so a seat-filler drafting against the clock would be theatre - and the room
     // then finishes its draft when the PEOPLE do, which is the only thing anybody is
     // waiting for. Its XI is judged by nothing afterwards: `submitPick` is the only caller
     // of `validateXi`, and a bot never submits one.
     if (m.bot) next.xi[m.userId] = botXi(next.rules, formationOf(m));
-    else openWindow(next, m, now);
+    // A WHOLE-DRAFT ROOM OPENS NO WINDOWS AT ALL (P52). The window is what a per-pick room
+    // counts picks and deals squads with; here there is one clock over the lot and the
+    // board is submitted as a map, so a window would be a second, disagreeing account of
+    // the same draft. `draftDeadlineOf` is the whole of the timing.
+    else if (!wholeDraft(next)) openWindow(next, m, now);
   }
   return next;
 }
@@ -673,6 +766,132 @@ export function submitPick(
   recordPick(next, userId, req.slotId, w, now, false);
   openWindow(next, memberOf(next, userId)!, now);
   return { room: next, outcome: 'ok' };
+}
+
+/** What happened to a submitted XI. `closed` covers every reason the room is not taking
+ *  one - not drafting, not a whole-draft room, already declared done, or past the clock -
+ *  because to the player they are the same sentence and the screen says which from the
+ *  room it is handed back. */
+export type XiOutcome = 'ok' | 'illegal' | 'closed';
+
+/**
+ * Take a whole XI (P52), which is how a budget room drafts.
+ *
+ * THE BOARD IS SUBMITTED AS A MAP, NOT AS A PICK. That one decision is what makes buying,
+ * moving and un-buying the same instruction rather than three, and it is only available
+ * here because `xi` was always a slot map (P42) and `validateXi` always judged a whole
+ * team. A move is an XI with two slots swapped; a removal is an XI with a slot missing;
+ * a purchase is an XI with one more. The referee needs no new rule for any of them.
+ *
+ * It also makes a retry idempotent BY CONSTRUCTION, where the per-pick protocol needs an
+ * ordinal to get there (P36): sending the same map twice is the same map.
+ *
+ * Two things are worth knowing about what it does NOT do. It does not touch the clock -
+ * there is one deadline for the room and nothing a player does moves it, which is what
+ * stops un-buying being a way to stall. And it does not end the draft by completing the
+ * XI: finishing is declared (`setDone`), for the reason `RoomMember.done` gives.
+ */
+export function setXi(
+  room: PvpRoom,
+  userId: string,
+  /** slotId -> the DATASET player. The caller resolves ids; nothing here trusts an object
+   *  that arrived over the wire, which is the rule the whole module keeps. */
+  filled: Filled,
+  now: number,
+): { room: PvpRoom; outcome: XiOutcome } {
+  if (room.status !== 'drafting' || !wholeDraft(room)) return { room, outcome: 'closed' };
+  const m = memberOf(room, userId);
+  if (!m || m.bot) return { room, outcome: 'closed' };
+  // Declared through. Un-declare first (`setDone(false)`) - which is a deliberate second
+  // tap, because the room may already be drawing.
+  if (m.done) return { room, outcome: 'closed' };
+  const deadline = draftDeadlineOf(room);
+  if (deadline !== null && now > deadline + PICK_GRACE_MS) return { room, outcome: 'closed' };
+
+  const f = formationOf(m);
+  // Rebuilt from the FORMATION'S slots, so a map carrying keys this shape has no slot for
+  // cannot be stored: `validateXi` walks the formation and would ignore them, and an
+  // ignored key is one that comes back to the client as an XI it did not send.
+  const next: Filled = {};
+  for (const slot of f.slots) {
+    const p = filled[slot.id];
+    if (p) next[slot.id] = p;
+  }
+  const v = validateXi(f, next, room.rules, room.deals[userId]);
+  if (v.faults.some((x) => x !== 'empty-slot')) return { room, outcome: 'illegal' };
+  if (room.rules.method === 'budget' && v.cost > m.budget) return { room, outcome: 'illegal' };
+
+  const out = clone(room);
+  // The PREVIOUS map, read before it is overwritten: `reconcilePicks` needs to know which
+  // slots actually changed, and asking the new map that question compares it with itself.
+  const before = out.xi[userId] ?? {};
+  out.xi[userId] = next;
+  reconcilePicks(out, userId, before, next, now, false);
+  return { room: out, outcome: 'ok' };
+}
+
+/**
+ * Bring the pick log into line with a submitted map.
+ *
+ * A slot whose player has not changed KEEPS ITS RECORD, which is the point: `landedAt` is
+ * when that player actually arrived and `automatic` is one of the three facts a ladder
+ * needs to tell a real win from a farmed one (`pvp_matches.loser_auto_picks`), so
+ * restamping every slot on every keystroke would erase both. A slot that changed gets the
+ * next ordinal this member has used, so the log still reads as the order things happened
+ * in; a slot that emptied loses its record, which `pgStore` already deletes for.
+ */
+function reconcilePicks(
+  room: PvpRoom,
+  userId: string,
+  /** The map as it was before this submission. */
+  was: Filled,
+  /** The map as it is now. */
+  filled: Filled,
+  now: number,
+  automatic: boolean,
+): void {
+  const had = room.picks[userId] ?? {};
+  let ordinal = Object.values(had).reduce((max, r) => Math.max(max, r.ordinal), 0);
+  const after: Record<string, PickRecord> = {};
+  for (const [slotId, player] of Object.entries(filled)) {
+    if (!player) continue;
+    const kept = had[slotId];
+    if (kept && was[slotId]?.id === player.id) {
+      after[slotId] = kept;
+      continue;
+    }
+    ordinal += 1;
+    after[slotId] = {
+      ordinal,
+      openedAt: room.startedAt ?? now,
+      landedAt: now,
+      automatic,
+    };
+  }
+  room.picks[userId] = after;
+}
+
+/**
+ * Declare yourself through, or take it back (P52).
+ *
+ * "GO AHEAD WHEN ALL PLAYERS ARE THROUGH" is the rule this exists for, and it needs a
+ * signal because a whole-draft room cannot read completion as finishing - see
+ * `RoomMember.done`. Refused on an incomplete XI, so "everybody is done" can never mean
+ * "everybody gave up", and reversible while the draft is still open, because the cost of a
+ * misclick otherwise is the match.
+ */
+export function setDone(room: PvpRoom, userId: string, done: boolean, now: number): PvpRoom {
+  if (room.status !== 'drafting' || !wholeDraft(room)) return room;
+  const m = memberOf(room, userId);
+  if (!m || m.bot || m.done === done) return room;
+  if (done && !xiComplete(room, m)) return room;
+  const deadline = draftDeadlineOf(room);
+  if (deadline !== null && now > deadline + PICK_GRACE_MS) return room;
+  const next = clone(room);
+  const mm = memberOf(next, userId)!;
+  if (done) mm.done = true;
+  else delete mm.done;
+  return next;
 }
 
 /** Note how a slot came to be filled. One place, so a pick made by the clock and a pick
@@ -966,6 +1185,21 @@ export const roomClosed = (room: {
   championId?: string | null;
 }): boolean => room.status === 'ended' && !room.championId;
 
+/**
+ * The draft's hard bound: the clock it is actually running, plus slack.
+ *
+ * A per-pick room's clock is eleven windows; a whole-draft room's is one (P52). Both get
+ * the same minute on top, and it is a BACKSTOP rather than the rule - each method's own
+ * deadline above already guarantees the draft ends - so what matters is only that it is
+ * never SHORTER than the clock it is backing, or it would be the rule by accident.
+ */
+function draftBoundMs(room: PvpRoom): number {
+  const clock = wholeDraft(room)
+    ? draftSecondsOf(room) * 1000
+    : XI_SLOTS * room.pickSeconds * 1000;
+  return clock + DRAFT_SLACK_MS;
+}
+
 /** Fill every slot this member has left, for the draft's hard bound. */
 function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
   const slots = formationOf(m).slots.length;
@@ -996,7 +1230,10 @@ function tickDuel(room: PvpRoom, now: number): PvpRoom {
   if (now - room.touchedAt > DUEL_IDLE_MS) return closeRoom(room);
   if (room.status === 'lobby') return room;
   if (room.status === 'drafting') {
-    if (!room.members.every((m) => xiComplete(room, m))) return room;
+    // The same reading of "finished" a live room uses, which in a budget duel means both
+    // players have SAID so (P52): a duel has no clock to end it, so the declaration is the
+    // only thing that can, and without this a duel's XI could never be revised.
+    if (!room.members.every((m) => draftDone(room, m))) return room;
     const next = clone(room);
     drawRound(next, now);
     return next;
@@ -1041,33 +1278,48 @@ export function tickRoom(room: PvpRoom, now: number): PvpRoom {
   const edit = () => (next === room ? (next = clone(room)) : next);
 
   if (next.status === 'drafting') {
-    // The hard bound (P31). Eleven windows plus slack, and every remaining slot is filled
-    // at once rather than one per sweep: past this point the room is not drafting any
-    // more, it is stuck, and the answer to stuck is to finish it.
-    if (now - (room.startedAt ?? room.touchedAt) > XI_SLOTS * room.pickSeconds * 1000 + DRAFT_SLACK_MS) {
+    // The hard bound (P31). Every remaining slot is filled at once rather than one per
+    // sweep: past this point the room is not drafting any more, it is stuck, and the
+    // answer to stuck is to finish it.
+    if (now - (room.startedAt ?? room.touchedAt) > draftBoundMs(room)) {
       const w = edit();
       for (const m of w.members) forceCompleteOne(w, m, now);
       drawRound(w, now);
       return w;
     }
 
-    // Expired windows: fill one slot each, then open the next window. One slot per sweep
-    // rather than the whole XI, so a player who comes back finds the draft where they
-    // left it rather than finished.
-    for (const m of room.members) {
-      const w = room.windows[m.userId];
-      if (!w || now <= deadlineOf(room, w) + PICK_GRACE_MS) continue;
-      const r = edit();
-      const mm = memberOf(r, m.userId)!;
-      forceFillOne(r, mm, w, now);
-      openWindow(r, mm, now);
+    // A WHOLE-DRAFT ROOM'S ONE CLOCK (P52). At zero every unfinished XI is completed for
+    // its player - which is what the user asked for and what every other deadline in this
+    // module does - and the room draws. There is nothing to do between now and then: a
+    // budget draft has no windows to expire, so this branch is the whole of its timing.
+    if (wholeDraft(room)) {
+      const deadline = draftDeadlineOf(room);
+      if (deadline !== null && now > deadline + PICK_GRACE_MS) {
+        const w = edit();
+        for (const m of w.members) forceCompleteOne(w, m, now);
+        drawRound(w, now);
+        return w;
+      }
+    } else {
+      // Expired windows: fill one slot each, then open the next window. One slot per sweep
+      // rather than the whole XI, so a player who comes back finds the draft where they
+      // left it rather than finished.
+      for (const m of room.members) {
+        const w = room.windows[m.userId];
+        if (!w || now <= deadlineOf(room, w) + PICK_GRACE_MS) continue;
+        const r = edit();
+        const mm = memberOf(r, m.userId)!;
+        forceFillOne(r, mm, w, now);
+        openWindow(r, mm, now);
+      }
     }
 
     // Everyone finished: draw the bracket (P47). Deliberately AFTER the whole room is
     // done, even though a single tie could be played sooner, because that is what makes
-    // the draft blind and the draw unarrangeable.
+    // the draft blind and the draw unarrangeable. What "finished" MEANS differs by method
+    // and that is P52's whole point - see `draftDone`.
     const r = next === room ? room : next;
-    if (r.members.every((m) => xiComplete(r, m))) {
+    if (r.members.every((m) => draftDone(r, m))) {
       const w = edit();
       drawRound(w, now);
       return w;

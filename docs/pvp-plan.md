@@ -18,7 +18,11 @@ career budget in P2, was settled on 2026-08-27 by dropping the option. **Duels w
 2026-08-30** (P51): a challenge to one person, answered in their own time, with a rematch on
 the result. They are the ninth wave's shape rather than a tenth wave - one field on a room,
 and four deadlines read past - and they are DARK until migration 0020 is applied and the
-server rebuilt (roadmap item 46), as the practice opponents are (0019, item 45).
+server rebuilt (roadmap item 46), as the practice opponents are (0019, item 45). **The budget
+room's draft was rebuilt 2026-08-30** (P52): one clock over the whole draft instead of eleven
+pick windows, the board submitted as a map, and a player free to move and un-buy until he says
+he is done. It is dark on the same terms (0021, item 47) and degrades to the old per-pick
+draft on a server that has not got it.
 
 **Two locked decisions are deliberately NOT built and have their own roadmap item:** P41's
 per-pick Skip and P42's move-a-placed-player. Both need an instruction the referee does not
@@ -92,6 +96,7 @@ in rather than a missing feature.
 | P49 | Not enough people | **The host may fill the empty chairs with practice opponents** (2026-08-29, roadmap item 45). P7's play-it-smaller answers half of "a room of eight will not fill" and stops there, because dropping to two is a different evening from the tournament the host opened; this is the other half. Four rules make it a seat rather than a player: a bot **never keeps a person out** (somebody arriving at a full room takes the newest bot's chair), a bot **cannot hold a room open** (a lobby whose last human leaves closes, however many chairs are filled), a bot **cannot be host** and cannot be swept out for silence, and a tie with a bot in it is **excluded from `pvp_records`**, so a room full of them is not a record. It **builds a team worth playing** rather than drafting like an expired clock, which is deliberately random (P21) and would make a bot a free win: near the best XI its money can buy, minus `BOT_SPEND`. Measured at $110: the optimum rates 84.0, a bot rates 83.0, it beats the expired-window XI **80%** of the time and the transfer market's own one-tap auto-fill **57%**. It needs its own table (`pvp_bots`, migration 0019) because `pvp_members.user_id` is a foreign key into `profiles` and a bot has no account |
 | P50 | Starting the draft | **The room starts itself once everybody is ready, three seconds after** (2026-08-29). P48 made Ready a signal and left the host as the only thing that could act on it, so a full room of ready players sat waiting for one person to notice and press a button. The countdown is **derived from the room every client already holds** - full, and everybody ready - so it needs no instruction and nothing deployed: each screen counts down on its own and the HOST'S client sends the Start at zero. The host's button stays, for a room where somebody has not readied (P48's whole point), and arms the same three seconds rather than dropping the draft on the room. Two failure modes were designed for and both are checked: the count **disarms** if a seat is lost or somebody un-readies, so it cannot fire a Start the referee would refuse; and it **gives up at zero** after a few seconds, because the only client that sends the Start is the host's, and a host whose tab dies in the last second would otherwise leave everybody on a screen that never changes. Accepted asymmetry: a host's press on a room that was not all-ready is not visible to the others, so they see the draft arrive rather than a count - making it visible needs a server instruction, which is where P41's Skip is |
 | P51 | Playing somebody who is not online | **A duel: a room of two with its deadlines switched off** (2026-08-30, roadmap item 46). Every rule above about waiting exists because a live room cannot wait for a human (P12, P31) - the pick clock, the liveness sweep, the lobby that closes when it stops filling, the half-hour idle close. A duel is the same room with those four read past, so it is **one field (`pace`) rather than a second state machine**: the draft, the deal, the validation, the tie and the record are all the same code, which is the whole reason this is small. What differs: a challenge is **addressed** to one account by display name (nobody else may take the seat, and it is on their list before they answer), **accepting starts the draft at once** (there is nobody to wait with, so no lobby, no Ready and no Start), a window **never expires** but still counts the picks and deals the squads, **P39 counts live rooms only** (holding five duels is the feature; a duel neither uses up nor is blocked by your one live room), and the idle bound is **a week** rather than half an hour. Declining is **leaving** rather than a command of its own, and it closes the duel. There is no mail and no push notification in this game, so the duels list on the versus page IS how a challenge arrives - which is why the challenger's screen carries the invitation link, and why a row leads with whose move it is rather than with a score. The result offers a **rematch**, which is a NEW duel with the same settings: the old one has a result, and a result that can change is not a result |
+| P52 | The budget room's clock | **One clock over the whole draft, not eleven windows** (2026-08-30, roadmap item 47). The METHOD decides it rather than a setting, because the two are different games: a roll draft is eleven decisions about eleven dealt squads, so a window per squad is what it is; a budget draft is one decision about one pool of money, where the eleventh pick settles whether the first was affordable, so a clock that will not let you go back and sell is a trap rather than a clock. So a budget room runs one clock (three lengths, 3/5/8 minutes) and the board is submitted as a MAP - which makes buying, moving a player to another of his roles and taking one back out the same instruction, and so finally delivers P42 and the remove beside it. Finishing is **declared** and not inferred from a full XI: the last person to complete their team would otherwise end the room by completing it, making the two new gestures unusable by exactly the person who most wants them, so there is an "I'm done" and it is reversible while the draft is open. The room plays when everybody has declared, or the clock runs out and every empty slot is filled for its player, recorded as automatic exactly as an expired window's is. A duel is both clocks off at once (P51): no window and no whole-draft deadline, so only the declarations end it. Needs `pvp_rooms.draft_seconds` and `pvp_members.done` (migration 0021) and nothing else - `xi` has been a slot map since wave 1 and `pvp_picks` has been keyed on the slot since 0016, both put there for P42 |
 | P27 | Can two players pick the same man? | **Yes. The room pool is shared, not exclusive.** It is the only version compatible with eleven independent clocks (P12): under exclusivity two players claim the same man in overlapping windows and somebody has to be told no, which makes a fast connection an advantage. Named here as a decision rather than left as an assumption, because exclusivity is the largest single lever available if the mode ever plays flat |
 
 ### The draft
@@ -420,6 +425,50 @@ Every question this document raised was answered before building started. Buildi
 opened exactly one - the career budget - and it was settled by deletion on 2026-08-27; it is
 kept below as the record of a decision rather than as a question. Wave 3 also found five
 things worth recording.
+
+### Found while building the whole-draft budget room (2026-08-30, P52)
+
+- **THE PICK CLOCK WAS ALWAYS WRONG FOR A BUDGET ROOM, and it took playing one to see it.**
+  A roll draft really is eleven decisions: eleven dealt squads, one man from each, and a
+  window per squad is what that is. A budget draft is ONE decision about ONE pool of money -
+  the eleventh pick is what settles whether the first was affordable - and a per-pick clock
+  makes that unplayable, because there is no going back to sell the winger you overpaid for.
+  The method decides the clock, not a setting, and that is why: they are different games.
+
+- **THE SCHEMA WAS READY THREE WAVES EARLY, and the code was the thing in the way.** P42
+  wanted a move and could not have one, and the reason was never storage: `xi` has been a
+  slot map since wave 1, `pvp_picks` is keyed on the SLOT, and `pgStore.save` already deleted
+  a slot that left the map - all of it put there for exactly this. What blocked it was the
+  INSTRUCTION: the referee took picks, so a move had no way to be expressed and would have
+  been reverted by the next answer. Submitting the board as a map makes buying, moving and
+  selling one instruction rather than three, and the referee needed no new rule for any of
+  them. Worth remembering as a shape: when a feature is "not built" for a protocol reason,
+  check whether the data model has been waiting for it.
+
+- **A FULL XI IS NOT A FINISHED ONE, and getting that wrong would have cancelled the
+  feature out.** The obvious reading of "go ahead when all players are through" is "when
+  everybody's eleventh slot is filled", which is what a per-pick room means by it. Here it
+  would mean the last person to complete their XI ends the room by completing it - so the
+  moving and the selling this whole change exists for would be unusable by exactly the
+  person who most wants them. Finishing is declared, and reversible while the draft is open.
+
+- **THE TWO EFFECTS THAT POST AND RECONCILE THE BOARD MUST BE DECLARED IN THAT ORDER.** The
+  client posts the whole board when it changes and pulls it back when the server disagrees,
+  and both watch the same signature. React runs a commit's effects in declaration order, so
+  the posting one sets the in-flight ref synchronously before the reconciling one looks at
+  it; the other way round the board is yanked back to the server's copy for one render on
+  every single change. A pick never had this problem because it sets the ref inside the tap
+  handler. Two more that are not obvious: a REFUSED board must not be re-sent for ever, so
+  "differs from the server" is not on its own a reason to send (hence the last-posted
+  signature); and a ref changing re-runs no effect, so a second change made while the first
+  post is in flight needs a state tick or it is never sent at all.
+
+- **AN OLD REFEREE NEEDS NO PROTOCOL BUMP HERE, and unlike duels it degrades correctly by
+  itself.** It sends a budget room its eleven pick windows and no `draft` block, and the
+  screen reads the presence of that block rather than the room's method - so it draws
+  exactly the per-pick draft it always drew, with the move and the remove off. Reading the
+  METHOD instead would look right and be wrong on every deployed server until the next NAS
+  visit, which is why the check reads that line specifically.
 
 ### Found while building duels (2026-08-30, P51)
 

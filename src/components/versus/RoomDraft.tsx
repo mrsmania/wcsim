@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../../data/types';
 import { SQUAD_BY_ID, squadsInPool } from '../../data/squads';
 import type { Formation } from '../../domain/formations';
@@ -9,10 +9,10 @@ import { initialState, type GameState } from '../../state/gameReducer';
 import { useBuild } from '../../hooks/useBuild';
 import type { VersusRoom } from '../../hooks/useVersusRoom';
 import BuildSurface from '../BuildSurface';
-import { ROOM_CONTROLS } from '../buildControls';
-import { CARD_FLAT, MONO_CAP } from '../matchUi';
+import { roomControls } from '../buildControls';
+import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, btn } from '../matchUi';
 import RoomBracket from './RoomBracket';
-import { PickClock, RoomNote } from './versusUi';
+import { DraftClock, PickClock, RoomNote } from './versusUi';
 
 // The draft: the build page, with the room's rules and the room's clock.
 //
@@ -101,6 +101,15 @@ export default function RoomDraft({
         });
     };
 
+    // A WHOLE-DRAFT ROOM (P52) POSTS THE BOARD, NOT THE PICK. Buying, moving and taking a
+    // player back out are all "here is my team now", so there is one thing to send and the
+    // per-pick ordinal has nothing to say. Read off the VIEW rather than off the method,
+    // because that is the only way to tell a referee that has P52 from one that has not:
+    // an older one sends pick windows for a budget room and no `draft` at all, and this
+    // screen then draws exactly what it always drew.
+    const whole = !!view.draft;
+    const meDone = me?.done === true;
+
     const build = useBuild({
         initial: seed,
         io: detachedBuildIo,
@@ -151,11 +160,55 @@ export default function RoomDraft({
         formation,
         Object.fromEntries(Object.entries(build.state.filled).map(([k, p]) => [k, p?.id])),
     );
+
+    // THE BOARD, POSTED WHENEVER IT CHANGES (P52). Three things about this effect are
+    // load-bearing and none of them is obvious:
+    //
+    // It is declared ABOVE the reconcile below, and that ordering is the whole reason the
+    // two do not fight. React runs a commit's effects in order, so this one sets
+    // `submitting` synchronously before the reconcile ever looks at it - where a pick sets
+    // it inside the tap handler and has no such problem. The other way round, the board
+    // would be yanked back to the server's copy for one render on every single change.
+    //
+    // `postedSig` is what stops a REFUSED board being sent again for ever: after a refusal
+    // the board and the server disagree and will go on disagreeing until the reconcile
+    // pulls it back, so "differs from the server" is not on its own a reason to send.
+    //
+    // And `postTick` exists because `submitting` is a ref: a second change made while the
+    // first post was still in flight would otherwise never be sent, since a ref changing
+    // re-runs nothing.
+    const postedSig = useRef<string | null>(null);
+    const [postTick, setPostTick] = useState(0);
+    useEffect(() => {
+        if (!whole || meDone || submitting.current) return;
+        if (boardSig === serverSig || boardSig === postedSig.current) return;
+        submitting.current = true;
+        postedSig.current = boardSig;
+        const xi = Object.fromEntries(
+            Object.entries(build.state.filled)
+                .filter(([, p]) => !!p)
+                .map(([slot, p]) => [slot, p!.id]),
+        );
+        void room
+            .setBoard(xi)
+            .catch(() => undefined)
+            .finally(() => {
+                submitting.current = false;
+                setPostTick((n) => n + 1);
+            });
+        // `build.state.filled` is a fresh object every render, so the SIGNATURE is the
+        // dependency: it changes only when the team does.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [whole, meDone, boardSig, serverSig, postTick, room]);
+
     useEffect(() => {
         // A pick in flight is expected to disagree: that is what optimistic means. Wait
         // for its answer rather than yanking the player back out for one render.
         if (submitting.current || serverSig === boardSig) return;
         dispatch({ type: 'SYNC_XI', formation, filled: xiFrom(formation, serverIds) });
+        // What the server holds is now what we last "sent", so a board we were pulled back
+        // to is not immediately posted again.
+        postedSig.current = serverSig;
         // `serverIds` is a fresh object on every poll, so the signature is the dependency:
         // it changes only when the XI does.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,11 +223,63 @@ export default function RoomDraft({
     );
 
     const window = you?.window ?? null;
-    const done = !window && (me?.picked ?? 0) >= formation.slots.length;
+    const filledCount = Object.values(build.state.filled).filter(Boolean).length;
+    const complete = filledCount >= formation.slots.length;
+    // "Nothing left for me to do", which is what puts the draw on screen and takes the
+    // board off it. In a per-pick room that is a spent window; in a whole-draft room it is
+    // saying so (P52), because a full XI there is still one you may take apart.
+    const done = whole ? meDone : !window && (me?.picked ?? 0) >= formation.slots.length;
 
     return (
         <div className="flex flex-col gap-[18px]">
-            {window && room.remainingMs === null ? (
+            {whole ? (
+                <div className="flex flex-col gap-2">
+                    {room.draftRemainingMs !== null ? (
+                        <DraftClock
+                            remainingMs={room.draftRemainingMs}
+                            totalMs={view.draft?.totalMs ?? 0}
+                            filled={filledCount}
+                            done={meDone}
+                        />
+                    ) : (
+                        // A budget DUEL: the two clocks off at once (P51 and P52).
+                        <div className={`${CARD_FLAT} px-4 py-3`}>
+                            <div className={MONO_CAP}>{filledCount} of 11 bought</div>
+                            <RoomNote>
+                                No clock. Build it over a week if you like - buy, move and sell
+                                as much as you want, and say you are done when you are.
+                            </RoomNote>
+                        </div>
+                    )}
+                    {meDone ? (
+                        <div className={`${CARD_FLAT} flex flex-wrap items-center gap-3 px-4 py-3`}>
+                            <RoomNote>{waitingLine(others)}</RoomNote>
+                            {/* Reversible while the draft is still open, because the cost
+                                of a misclick here is otherwise the match. It can lose a
+                                race with the draw, which is honest: the room may already
+                                have moved on, and then the screen has too. */}
+                            <button
+                                type="button"
+                                className={`ml-auto ${btn('quiet', 'sm')}`}
+                                onClick={() => void room.setDone(false).catch(() => undefined)}
+                            >
+                                Change my XI
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            className={PRIMARY_BTN}
+                            disabled={!complete}
+                            onClick={() => void room.setDone(true).catch(() => undefined)}
+                        >
+                            {complete
+                                ? "I'm done - lock this XI in"
+                                : `Fill all eleven first (${filledCount} of 11)`}
+                        </button>
+                    )}
+                </div>
+            ) : window && room.remainingMs === null ? (
                 // A DUEL HAS NO CLOCK, so there is no bar to draw and nothing to hurry. The
                 // panel still says which pick this is, because that is the one thing the
                 // clock was also telling you: how far through the eleven you are.
@@ -232,14 +337,20 @@ export default function RoomDraft({
                 not arrive in time. The board goes read-only rather than taking one it
                 cannot honour, which is the difference between a refused pick and a pick
                 you were told was too late. */}
-            <div className={room.locked && !done ? 'pointer-events-none opacity-60' : ''}>
+            <div
+                className={
+                    (room.locked || meDone) && !(done && !whole)
+                        ? 'pointer-events-none opacity-60'
+                        : ''
+                }
+            >
                 <BuildSurface
                     build={withRerolls}
                     // The album has no business in a room (P3, P8): no owned-sticker tick
                     // and, more to the point, no owned-sticker discount.
                     ownedStickerIds={EMPTY}
                     budget={view.rules.budget}
-                    controls={ROOM_CONTROLS}
+                    controls={roomControls(whole)}
                     ratings={ratings}
                     rerollKinds={rolling ? ROOM_REROLLS : undefined}
                     complete={

@@ -7,6 +7,8 @@ import {
     RefereeError,
     joinRoom,
     leaveRoom,
+    postDone,
+    postXi,
     readRoom,
     rerollDeal,
     resizeRoom,
@@ -74,6 +76,9 @@ export interface VersusRoom {
     loading: boolean;
     /** Milliseconds left in YOUR pick window, counted locally; null when you have none. */
     remainingMs: number | null;
+    /** Milliseconds left in the WHOLE DRAFT (P52), counted locally; null when this room
+     *  does not run one - a roll room, a duel, or a referee older than P52. */
+    draftRemainingMs: number | null;
     /** True when the window is close enough to its end that a pick would not arrive in
      *  time. The board goes read-only rather than taking a tap it cannot honour. */
     locked: boolean;
@@ -90,6 +95,12 @@ export interface VersusRoom {
     join: () => Promise<void>;
     reroll: () => Promise<void>;
     pick: (slotId: string, playerId: string) => Promise<PickAnswer['outcome']>;
+    /** Submit the whole board (P52), which is how a budget room buys, moves and un-buys.
+     *  Answers with the outcome rather than throwing on a refusal, exactly as `pick` does
+     *  and for the same reason: the room travels with the refusal and the board reconciles. */
+    setBoard: (xi: Record<string, string>) => Promise<'ok' | 'illegal' | 'closed'>;
+    /** "I am through", and taking it back. */
+    setDone: (done: boolean) => Promise<void>;
 }
 
 /** Whether anything in this room is moving, i.e. whether to poll fast. */
@@ -109,6 +120,12 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     // has no deadline at all, so there is nothing to count down and nothing to lock.
     const clock = useRef<{ ordinal: number; remainingMs: number | null; at: number } | null>(null);
     const [remainingMs, setRemainingMs] = useState<number | null>(null);
+    // The WHOLE DRAFT's clock (P52), which a budget room runs instead of the eleven above.
+    // Its own base for the same reason: what the server sends is a remainder, never a
+    // deadline, so a phone whose wall clock is wrong is never shown a draft that expired
+    // before it opened.
+    const draftClock = useRef<{ remainingMs: number; at: number } | null>(null);
+    const [draftRemainingMs, setDraftRemainingMs] = useState<number | null>(null);
     const roundTrip = useRef(400);
     const alive = useRef(true);
 
@@ -124,6 +141,10 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
             ? { ordinal: w.ordinal, remainingMs: w.remainingMs, at: performance.now() }
             : null;
         setRemainingMs(w?.remainingMs ?? null);
+        const d = next.draft ?? null;
+        draftClock.current =
+            d && d.remainingMs !== null ? { remainingMs: d.remainingMs, at: performance.now() } : null;
+        setDraftRemainingMs(d?.remainingMs ?? null);
         // The strip's sentence is written HERE, by the room's own reading of itself, so the
         // chrome does not compose a second one out of a status and a count.
         holdVersusRoom({ code: next.code, status: next.status, line: roomLine(next) });
@@ -238,11 +259,15 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     useEffect(() => {
         const tick = () => {
             const base = clock.current;
-            if (!base || base.remainingMs === null) {
-                setRemainingMs(null);
-                return;
-            }
-            setRemainingMs(Math.max(0, base.remainingMs - (performance.now() - base.at)));
+            setRemainingMs(
+                !base || base.remainingMs === null
+                    ? null
+                    : Math.max(0, base.remainingMs - (performance.now() - base.at)),
+            );
+            const draft = draftClock.current;
+            setDraftRemainingMs(
+                draft ? Math.max(0, draft.remainingMs - (performance.now() - draft.at)) : null,
+            );
         };
         const t = window.setInterval(tick, 100);
         document.addEventListener('visibilitychange', tick);
@@ -260,7 +285,12 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     // draft is waiting for you and walking away is the mode rather than a mistake. Holding
     // the chrome for a room somebody may come back to tomorrow would be the tab bar inert
     // for a week.
-    const windowOpen = !!view?.you?.window && view.you.window.remainingMs !== null;
+    //
+    // A WHOLE-DRAFT ROOM COUNTS TOO (P52), and for the same reason rather than by analogy:
+    // there the whole draft is your window, and walking out of it spends the same clock.
+    const windowOpen =
+        (!!view?.you?.window && view.you.window.remainingMs !== null) ||
+        (view?.draft?.remainingMs ?? null) !== null;
     useEffect(() => (windowOpen ? holdLiveMatch() : undefined), [windowOpen]);
 
     const command = useCallback(
@@ -293,6 +323,27 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     const leave = useCallback(() => command(() => leaveRoom(code)), [code, command]);
     const join = useCallback(() => command(() => joinRoom(code)), [code, command]);
     const reroll = useCallback(() => command(() => rerollDeal(code)), [code, command]);
+    // The whole board, and the declaration that finishes it (P52). `setBoard` deliberately
+    // does NOT go through `command`: a refused board is answered with the room, exactly as
+    // a refused pick is, so the draft screen reconciles and says what happened where the
+    // player is looking rather than the room strip carrying a red line about it.
+    const setBoard = useCallback(
+        async (xi: Record<string, string>): Promise<'ok' | 'illegal' | 'closed'> => {
+            try {
+                const answer = await timed(() => postXi(code, xi));
+                accept(answer.room);
+                return answer.outcome;
+            } catch (err) {
+                if (err instanceof RefereeError) setCommandError(err);
+                throw err;
+            }
+        },
+        [code, accept, timed],
+    );
+    const setDone = useCallback(
+        (done: boolean) => command(() => postDone(code, done)),
+        [code, command],
+    );
 
     const pick = useCallback(
         async (slotId: string, playerId: string): Promise<PickAnswer['outcome']> => {
@@ -323,6 +374,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         commandError,
         loading,
         remainingMs,
+        draftRemainingMs,
         locked: remainingMs !== null && remainingMs <= lockLead,
         refresh,
         ready,
@@ -333,5 +385,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         join,
         reroll,
         pick,
+        setBoard,
+        setDone,
     };
 }

@@ -47,7 +47,7 @@ import type { DuelRow, LobbyRoom, RoomView, TieView } from '../../src/domain/pvp
 import { readFileSync, readdirSync } from 'node:fs';
 import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
-import { ROOM_CONTROLS, SOLO_CONTROLS } from '../../src/components/buildControls';
+import { ROOM_CONTROLS, SOLO_CONTROLS, roomControls } from '../../src/components/buildControls';
 
 const HOME = 'user-home';
 const AWAY = 'user-away';
@@ -847,6 +847,33 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- The draft the CLIENT draws, and how it tells which (P52) -------------
+  //
+  // `PVP_PROTOCOL` was not bumped for this, so a budget room from an older referee arrives
+  // with eleven pick windows and no `draft` block at all, and the screens have to fall
+  // back to the per-pick draft they have always drawn. The whole of that decision is one
+  // field being present, so it is worth pinning that the screen reads THAT and not the
+  // room's method - which is the mistake that would look right and be wrong on every
+  // deployed server until the next NAS visit.
+  {
+    const src = readFileSync('src/components/versus/RoomDraft.tsx', 'utf8');
+    check(
+      'pvpView: the draft screen decides by the answer, not by the room being a budget one',
+      () =>
+        // It reads the presence of the block the server sends.
+        /const whole = !!view\.draft;/.test(src) &&
+        // And never off the method, which an older referee would answer the same way.
+        !/const whole = [^\n]*rules\.method/.test(src) &&
+        // The board is posted, the declaration is sent, and the clock is drawn against the
+        // room's own total - the same trap `PickClock` had, one size up.
+        /room\s*\n?\s*\.setBoard\(/.test(src) &&
+        src.includes('room.setDone(') &&
+        /totalMs=\{view\.draft\?\.totalMs/.test(src),
+      () =>
+        `whole: ${/const whole = !!view\.draft;/.test(src)}, board: ${/room\s*\n?\s*\.setBoard\(/.test(src)}`,
+    );
+  }
+
   // --- The four controls a room hides (P41), plus the three it turns off -----
   // A LIST rather than a flag, because the list is the decision: each entry breaks the
   // pick clock, or the referee, in its own way. This asserts the two sets are the same
@@ -855,6 +882,22 @@ export function pvpViewChecks(): void {
   {
     const solo = Object.entries(SOLO_CONTROLS).sort();
     const roomC = Object.entries(ROOM_CONTROLS).sort();
+    // AND WHAT A WHOLE-DRAFT ROOM ADDS BACK (P52). Exactly two, and only because of how it
+    // submits: the board goes over as a map, so a move and a removal are the same
+    // instruction as a purchase. Everything else stays off for reasons that were never
+    // about the clock.
+    const whole = Object.entries(roomControls(true)).sort();
+    check(
+      'pvpView: a whole-draft room adds back the move and the remove, and nothing else',
+      () =>
+        whole.map(([k]) => k).join() === roomC.map(([k]) => k).join() &&
+        whole.filter(([, v]) => v).map(([k]) => k).sort().join() === 'movePlayer,removePlayer' &&
+        // A per-pick room is unchanged, which is the vacuity guard: a `roomControls` that
+        // ignored its argument would pass the line above and fail this one.
+        Object.values(roomControls(false)).every((v) => v === false),
+      () => whole.filter(([, v]) => v).map(([k]) => k).join(),
+    );
+
     check(
       `pvpView: all ${solo.length} build controls are on for the app and off in a room`,
       () =>

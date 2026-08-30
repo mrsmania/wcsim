@@ -131,15 +131,16 @@ export function buildChecks(): void {
     // A ROOM'S BUILD IS THE DETACHED ONE, and this is the same kind of check as the two
     // export lines below and for the same reason: `detachedBuildIo` and `soloBuildIo` are
     // interchangeable objects, so a room wired to the wrong one behaves perfectly until
-    // somebody's Cup Run disappears. It also has to hide the four controls (P41), which
-    // is what `ROOM_CONTROLS` is.
+    // somebody's Cup Run disappears. It also has to take its controls from the room's own
+    // set - `roomControls`, which is `ROOM_CONTROLS` plus the two a whole-draft room can
+    // afford (P52) - and never from the app's.
     {
       const draft = src('components/versus/RoomDraft.tsx');
       check(
         "build: a room's draft is built detached, and hides the controls a room hides",
         () =>
           draft.includes('detachedBuildIo') &&
-          draft.includes('ROOM_CONTROLS') &&
+          /controls=\{roomControls\(/.test(draft) &&
           !draft.includes('soloBuildIo') &&
           !draft.includes('SOLO_CONTROLS'),
         () => 'src/components/versus/RoomDraft.tsx is not wired to the detached build',

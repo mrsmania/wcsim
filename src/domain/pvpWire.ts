@@ -41,6 +41,9 @@ export interface MemberView {
    *  screens mark the seat; nothing else has to care, because a bot is a member in every
    *  other way. Absent from a referee that predates them, hence the `?? false` on read. */
   bot?: boolean;
+  /** They have said they are through (P52). A whole-draft room's only: everywhere else
+   *  filling the eleventh slot says it. Absent from a referee that predates it. */
+  done?: boolean;
 }
 
 export interface TieView {
@@ -141,6 +144,16 @@ export interface RoomView {
   status: RoomStatusWire;
   hostId: string;
   size: number;
+  /**
+   * The whole draft's clock (P52), sent by a budget room and by nothing else.
+   *
+   * ABSENT MEANS THE SERVER HAS NEVER HEARD OF IT, which is the only way a client can
+   * tell: `PVP_PROTOCOL` was not bumped, so a budget room from an older referee arrives
+   * with eleven pick windows and no `draft` at all, and the screens fall back to the
+   * per-pick draft they have always drawn. `remainingMs` is null in a duel, where nothing
+   * is counting.
+   */
+  draft?: { totalMs: number; remainingMs: number | null } | null;
   round: number;
   championId: string | null;
   rules: { method: 'roll' | 'budget'; budget: number; years: readonly number[] };

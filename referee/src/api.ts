@@ -24,14 +24,18 @@
 // edge, where it costs nothing.
 
 import { datasetPlayer } from '../../src/data/squads';
+import type { Filled } from '../../src/domain/draft';
 import type { FormationName, Style } from '../../src/domain/formations';
 import { getFormation } from '../../src/domain/formations';
 import { WORLD_CUP_YEARS } from '../../src/data/squads';
 import { nameKeyOf } from '../../src/domain/displayName';
 import { localVersion } from '../../src/domain/pvpVersion';
 import {
+  DEFAULT_DRAFT_SECONDS,
+  DRAFT_SECONDS,
   PICK_SECONDS,
   ROOM_SIZES,
+  XI_SLOTS,
   joinRoom,
   leaveRoom,
   reduceSize,
@@ -39,10 +43,13 @@ import {
   rerollDeal,
   rerollsLeft,
   setBots,
+  setDone,
   setLineup,
+  setXi,
   startRoom,
   submitPick,
   tickRoom,
+  type DraftSeconds,
   type PickSeconds,
   type PvpRoom,
   type RoomSize,
@@ -140,6 +147,14 @@ function readCreate(
   if (!(PICK_SECONDS as readonly number[]).includes(pickSeconds)) {
     return 'pickSeconds must be 20 or 30';
   }
+  // The whole-draft clock (P52). A ROLL room stores the default and never reads it, the
+  // same way a budget room stores a pick clock it never reads: both columns are `not
+  // null`, and a room can never change method, so neither value can come to mean anything.
+  const draftSeconds =
+    body.draftSeconds === undefined ? DEFAULT_DRAFT_SECONDS : Number(body.draftSeconds);
+  if (!(DRAFT_SECONDS as readonly number[]).includes(draftSeconds)) {
+    return 'draftSeconds must be 180, 300 or 480';
+  }
   // There is ONE kind of budget: a figure the host picks, the same for everybody in the
   // room (P2, settled by deletion 2026-08-27). A room priced off each player's own career
   // was the alternative, and it contradicted P34 - the referee may not read a `career` row,
@@ -171,6 +186,7 @@ function readCreate(
     showRatings,
     rerolls,
     pickSeconds: pickSeconds as PickSeconds,
+    draftSeconds: draftSeconds as DraftSeconds,
     pace,
     invitedId,
   };
@@ -271,6 +287,17 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
       return command(deps, userId, code, now, (room) => leaveRoom(room, userId, now));
     case 'pick':
       return pick(req, deps, userId, code, now);
+    // The whole board at once (P52), which is how a budget room drafts: buying, moving and
+    // un-buying are all "here is my XI now", so they are one instruction rather than three.
+    case 'xi':
+      return setBoard(req, deps, userId, code, now);
+    // "I am through". A whole-draft room cannot read a full XI as a finished one, or the
+    // move and the un-buy it exists to allow would be unusable by whoever fills their last
+    // slot last. See `RoomMember.done`.
+    case 'done':
+      return command(deps, userId, code, now, (room) =>
+        setDone(room, userId, req.body.done !== false, now),
+      );
     case 'reroll':
       return command(deps, userId, code, now, (room) => rerollDeal(room, userId, now));
     case 'seen':
@@ -427,6 +454,55 @@ async function bots(
   return command(deps, userId, code, now, (room) =>
     setBots(room, userId, count, now, deps.newBotId),
   );
+}
+
+/**
+ * A whole board (P52).
+ *
+ * NOTHING TRUSTS THE SUBMITTED PLAYER, exactly as a pick does not: what arrives is a map
+ * of slot to player ID, and every id is resolved in the referee's own dataset before the
+ * rules see it - a submitted rating would otherwise decide a price and submitted positions
+ * would decide eligibility, both from a browser. An id the dataset does not hold refuses
+ * the whole board rather than being dropped, because dropping it would answer a player's
+ * "here is my XI" with a different XI and call it success.
+ */
+async function setBoard(
+  req: ApiRequest,
+  deps: ApiDeps,
+  userId: string,
+  code: string,
+  now: number,
+): Promise<ApiResponse> {
+  const sent = req.body.xi;
+  if (!sent || typeof sent !== 'object' || Array.isArray(sent)) return fail(422, 'bad-xi');
+  const entries = Object.entries(sent as Record<string, unknown>);
+  if (entries.length > XI_SLOTS) return fail(422, 'bad-xi', 'more than eleven slots');
+  const filled: Filled = {};
+  for (const [slotId, id] of entries) {
+    if (id === null || id === undefined) continue;
+    const player = datasetPlayer(String(id));
+    if (!player) return fail(422, 'unknown-player', 'the referee does not have this player');
+    filled[slotId] = player;
+  }
+
+  const out = await deps.store.mutate(code, now, (room, ctx) => {
+    const base = recoverIfNeeded(room, ctx.sweptAt, now, deps.sweepMs);
+    const r = setXi(base, userId, filled, now);
+    // Swept in the same transaction, exactly as a pick is: the submission that makes the
+    // last player's board legal must not wait a sweep to draw the round.
+    const ticked = tickRoom(r.room, now);
+    return { room: ticked, result: r.outcome, unchanged: r.outcome !== 'ok' && ticked === base };
+  });
+  if (!out) return fail(404, 'no-such-room');
+  const view = viewOf(out.room, userId, now);
+  switch (out.result) {
+    case 'ok':
+      return { status: 200, body: { outcome: 'ok', room: view }, publish: code };
+    case 'closed':
+      return { status: 409, body: { error: 'draft-closed', outcome: 'closed', room: view } };
+    default:
+      return { status: 422, body: { error: 'illegal', outcome: 'illegal', room: view } };
+  }
 }
 
 async function pick(

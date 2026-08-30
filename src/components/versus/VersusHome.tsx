@@ -12,7 +12,13 @@ import {
     offersRatingSwitch,
     seatsLine,
 } from '../../domain/pvpView';
-import { PICK_SECONDS, type PickSeconds } from '../../domain/pvpRoom';
+import {
+    DEFAULT_DRAFT_SECONDS,
+    DRAFT_SECONDS,
+    PICK_SECONDS,
+    type DraftSeconds,
+    type PickSeconds,
+} from '../../domain/pvpRoom';
 import type { DuelRow, LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
 import { RefereeError, createRoom, leaveRoom, readDuels, readLobby } from '../../state/pvp/referee';
@@ -101,6 +107,25 @@ const CLOCK_COPY: Record<PickSeconds, { label: string; sub: string }> = {
  *  `CLOCK_COPY` rather than a value the host silently cannot choose. */
 const CLOCKS = PICK_SECONDS.map((value) => ({ value, ...CLOCK_COPY[value] }));
 
+/** And the WHOLE DRAFT's lengths (P52), which is what a budget room runs instead. Built
+ *  from the domain's own list for the same reason, and worded in what the time is FOR: the
+ *  question a host is answering is how long an evening this is, not how many seconds. */
+const DRAFT_COPY: Record<DraftSeconds, { label: string; sub: string }> = {
+    180: {
+        label: '3 minutes',
+        sub: 'Brisk. About what eleven twenty-second picks used to add up to.',
+    },
+    300: {
+        label: '5 minutes',
+        sub: 'Room to shop, change your mind and rearrange the shape.',
+    },
+    480: {
+        label: '8 minutes',
+        sub: 'Unhurried. Read the market properly and tune the last few slots.',
+    },
+};
+const DRAFTS = DRAFT_SECONDS.map((value) => ({ value, ...DRAFT_COPY[value] }));
+
 /** How many re-rolls a roll room allows. Named in outcomes: what the number MEANS is how
  *  often you can refuse a squad you were dealt. */
 const REROLLS = [
@@ -176,6 +201,7 @@ export default function VersusHome() {
     const [budget, setBudget] = useState(110);
     const [rerolls, setRerolls] = useState(3);
     const [pickSeconds, setPickSeconds] = useState<PickSeconds>(20);
+    const [draftSeconds, setDraftSeconds] = useState<DraftSeconds>(DEFAULT_DRAFT_SECONDS);
     const [showRatings, setShowRatings] = useState(true);
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
@@ -208,6 +234,7 @@ export default function VersusHome() {
             // whole World Cup from every existing save.
             years: [],
             pickSeconds,
+            draftSeconds,
         })
             .then(async (room) => {
                 // THE ANSWER IS TESTED, NOT THE STATUS. A server that predates duels opens
@@ -456,17 +483,29 @@ export default function VersusHome() {
                         </>
                     )}
 
-                    {/* LAST, and outside the method branch, because it is the one setting
-                        that applies to both kinds of room (P20) - but not to a duel, which
-                        has no clock at all: the whole point is that nobody is waiting. */}
-                    {!duel && (
-                        <Choice
-                            label="How long a pick gets"
-                            value={pickSeconds}
-                            onPick={setPickSeconds}
-                            options={CLOCKS}
-                        />
-                    )}
+                    {/* LAST, because it is the last thing to decide - and it is now TWO
+                        settings rather than one, because the two methods no longer keep
+                        time the same way (P52). A roll draft is eleven decisions about
+                        eleven dealt squads, so it runs a window per pick; a budget draft is
+                        one decision about one pool of money, so it runs one clock over the
+                        lot and lets you go back and sell. A duel has neither: nobody is
+                        waiting, which is the whole point of it. */}
+                    {!duel &&
+                        (method === 'budget' ? (
+                            <Choice
+                                label="How long the whole draft gets"
+                                value={draftSeconds}
+                                onPick={setDraftSeconds}
+                                options={DRAFTS}
+                            />
+                        ) : (
+                            <Choice
+                                label="How long a pick gets"
+                                value={pickSeconds}
+                                onPick={setPickSeconds}
+                                options={CLOCKS}
+                            />
+                        ))}
 
                     {duel && !duelsRoute && (
                         <p className="mt-4 rounded-[5px] border border-line bg-faint px-3 py-2.5 text-[12px] leading-snug text-muted">

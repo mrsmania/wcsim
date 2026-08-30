@@ -94,6 +94,75 @@ export function PickClock({
 }
 
 /**
+ * THE WHOLE DRAFT'S CLOCK (P52), which is what a budget room runs instead of eleven windows.
+ *
+ * It is the same bar as `PickClock` and deliberately NOT the same component. Three things
+ * differ and each of them is the mode: it counts minutes rather than seconds, so the units
+ * change and "nearly out of time" has to mean half a minute rather than five; it is never
+ * `locked`, because there is no per-tap deadline to beat - a board that arrives late is
+ * refused and the one the referee already holds is the one that plays; and what it says is
+ * how much of the DRAFT is left rather than how much of a pick, which is the difference
+ * the mode exists for.
+ */
+export function DraftClock({
+    remainingMs,
+    totalMs,
+    filled,
+    done,
+}: {
+    remainingMs: number;
+    /** How long this room's whole draft is, in milliseconds. Without it there is no
+     *  proportion to draw - the same trap `PickClock` has, and the host chooses between
+     *  three lengths here rather than two. */
+    totalMs: number;
+    /** How many of the eleven are placed, which is what the clock is about. */
+    filled: number;
+    /** They have said they are through, so the clock is somebody else's problem now. */
+    done: boolean;
+}) {
+    const secs = Math.max(0, Math.ceil(remainingMs / 1000));
+    const urgent = secs <= 15;
+    const near = !urgent && secs <= 45;
+    const pct = totalMs > 0 ? (remainingMs / totalMs) * 100 : 0;
+    const fill = urgent ? 'bg-loss' : near ? 'bg-amber' : 'bg-pitch';
+    const mins = Math.floor(secs / 60);
+    const left = mins > 0 ? `${mins}m ${String(secs % 60).padStart(2, '0')}s` : `${secs}s`;
+    return (
+        <div
+            className={`${CARD_FLAT} px-4 py-3`}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(totalMs / 1000)}
+            aria-valuenow={secs}
+            aria-valuetext={`${left} left of the draft`}
+        >
+            <div className={MONO_CAP}>
+                {filled} of 11 bought &middot; {left} left
+            </div>
+            <div
+                className={`mt-0.5 text-[12px] font-semibold ${
+                    urgent ? 'text-loss' : near ? 'text-amber-ink' : 'text-muted'
+                }`}
+            >
+                {done
+                    ? 'You are done. Waiting for the others.'
+                    : urgent
+                      ? 'Almost out of time - anything empty gets filled for you'
+                      : near
+                        ? 'Not long left'
+                        : 'Buy, move and sell as much as you like until you say you are done'}
+            </div>
+            <Meter
+                pct={pct}
+                height={12}
+                fill={`${fill} transition-[width] duration-100 ease-linear`}
+                className="mt-2"
+            />
+        </div>
+    );
+}
+
+/**
  * KICK-OFF. The three seconds between the room being ready and the draft starting.
  *
  * IT IS FULL SCREEN BECAUSE IT IS THE MOMENT THE ROOM HAS BEEN WAITING FOR, and because

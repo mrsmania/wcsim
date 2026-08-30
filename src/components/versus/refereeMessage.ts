@@ -90,6 +90,12 @@ const CODES: Record<string, { text: string; deployment?: boolean }> = {
         text: 'That duel is a challenge to somebody else, so the seat is not open.',
     },
     'room-started': { text: 'That room has already started.' },
+    // P52's two. A board is only refused for a reason the player can see on it, so the
+    // sentence points at the board rather than at the server.
+    'bad-xi': { text: 'The versus server would not read that team sheet.' },
+    'draft-closed': {
+        text: 'The draft is closed. Either the clock ran out or you have said you are done.',
+    },
     'no-such-room': { text: 'No room with that code.' },
     'bad-room': { text: 'The versus server would not accept those room settings.' },
     'bad-formation': { text: 'The versus server would not accept that formation.' },

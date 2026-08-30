@@ -186,6 +186,9 @@ export interface CreateRoomInput {
     budget: number;
     years: readonly number[];
     pickSeconds: number;
+    /** How long a BUDGET room's whole draft gets (P52). Omitted means the default, which
+     *  is also what a referee older than P52 does with it: nothing. */
+    draftSeconds?: number;
     rerolls?: number;
     showRatings?: boolean;
     /** Live, or a duel played in both players' own time (P51). Omitted means live, which
@@ -261,6 +264,42 @@ export const resizeRoom = (code: string, size: number): Promise<RoomView> =>
  */
 export const setRoomBots = (code: string, count: number): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/bots`, { count });
+
+/** What the referee said about a submitted board (P52). `closed` is every reason the room
+ *  is not taking one - the clock ran out, or you have said you are through - because to a
+ *  player they are the same sentence and the room comes back saying which. */
+export interface BoardAnswer {
+    outcome: 'ok' | 'illegal' | 'closed';
+    room: RoomView;
+}
+
+/**
+ * Send the whole XI (P52), which is how a budget room drafts.
+ *
+ * ONE INSTRUCTION FOR THREE GESTURES. Buying a player, moving one to another of his roles
+ * and taking one back out are all "here is my team now", so the referee needs no separate
+ * command for any of them - which is exactly what P42 said and what the pick protocol
+ * could not express. It is also idempotent by construction, where a pick needs an ordinal
+ * to get there: the same map sent twice is the same map.
+ */
+export async function postXi(code: string, xi: Record<string, string>): Promise<BoardAnswer> {
+    try {
+        return await call<BoardAnswer>('POST', `/v1/rooms/${code}/xi`, { xi });
+    } catch (err) {
+        // A refused board travels WITH the room, exactly as a refused pick does, so the
+        // screen reconciles rather than showing a red line about it.
+        const room = roomInside(err);
+        if (room) {
+            const code_ = (err as RefereeError).code;
+            return { outcome: code_ === 'draft-closed' ? 'closed' : 'illegal', room };
+        }
+        throw err;
+    }
+}
+
+/** "I am through", and taking it back (P52). */
+export const postDone = (code: string, done: boolean): Promise<RoomView> =>
+    call('POST', `/v1/rooms/${code}/done`, { done });
 
 /** What the referee said about a pick. `late` and `illegal` are distinct because they
  *  mean different things to a player: one is "the clock beat you", the other is "that was

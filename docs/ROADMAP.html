@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-30<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 8 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -402,6 +402,59 @@
     change that cannot be applied by the session that wrote it gets an item saying what to do,
     how to check it and how to undo it, so the apply can be handed to somebody with the access.</p>
     <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0019_pvp_bots.sql" target="_blank" rel="noopener">supabase/migrations/0019_pvp_bots.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">47</span>
+    <span class="title">Turn the new buy-mode draft on: one migration, one redeploy
+      <span class="sub"><b>The third thing waiting on the same NAS visit, and the only one of
+      the three that degrades correctly without it.</b> Buying an XI in a versus room now runs
+      <b>one clock over the whole draft</b> instead of eleven twenty-second picks, and inside
+      it you may move a player to another of his positions and take one back out - then press
+      "I'm done", and the room plays as soon as everybody has. If the clock runs out with
+      slots open they are filled for you. Rolling for your XI is completely unchanged. It
+      needs <b>migration 0021</b> applied and the <b>versus server rebuilt</b>. Until then a
+      budget room simply drafts the old way, with no error and nothing broken.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Do all three in one visit.</strong> Apply 0019, 0020 and 0021 in any order
+    between themselves, then redeploy the versus server once. Migrations before server, which
+    is the standing rule: an old server against the new schema is harmless (it never writes
+    the new columns and they all have defaults); a new server against the old schema fails on
+    its first read.</p>
+    <ol>
+      <li><b>Rehearse it.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0021_pvp_whole_draft.sql</code> needs no credentials; then send the
+      body inside a <code>begin; ... rollback;</code> with the checks from the file's own
+      header.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0021_pvp_whole_draft.sql</code>,
+      then re-run the same probes.</li>
+      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
+      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
+    </ol>
+    <p><strong>How to know it worked.</strong> Open a room of two on "Buy them" from two
+    accounts. There is <b>one bar</b> counting the whole draft down rather than a bar per
+    pick, and the host chose its length (3, 5 or 8 minutes) when opening the room. Buy a
+    player who can fill two positions, then tap him: his other position lights up and he
+    moves there. Tap the red "x" and he comes back out and his money with him. Press "I'm
+    done" - it is refused until all eleven are filled - and the match starts the moment the
+    other person does too; "Change my XI" takes it back. Then open another and let the clock
+    run out with slots empty: they get filled and the room plays. Finally play a <b>roll</b>
+    room and confirm it is exactly as it was, twenty seconds a pick and no moving.</p>
+    <p><strong>What the migration does.</strong> Two columns: how long a room's whole draft
+    gets, and whether a player has said they are through. Nothing else - the team sheet has
+    been stored as a map of positions since the first versus migration, which is what makes
+    moving a player a stored row under a different position rather than a new feature.</p>
+    <p><strong>If it goes wrong.</strong> The rollback in the file is complete and has no
+    one-way door: a room mid-draft when it is undone loses its clock and its declarations and
+    gets finished by the old backstop instead, which is untidy for those rooms and harmless
+    for everything else.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0021_pvp_whole_draft.sql" target="_blank" rel="noopener">supabase/migrations/0021_pvp_whole_draft.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
   </div>
 </details>
 

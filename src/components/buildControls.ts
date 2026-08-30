@@ -19,15 +19,15 @@ export interface BuildControls {
     startOver: boolean;
     /** The random-team shortcut on the setup panel: a complete XI in one tap. */
     randomTeam: boolean;
-    /** The "x" on a placed badge. In a room the referee holds the XI and has no
-     *  instruction for taking a player back out, so the tap would place him again on the
-     *  next reconcile - a control that undoes itself. */
+    /** The "x" on a placed badge. Off in a PER-PICK room, where the referee holds the XI
+     *  as a log of eleven windows and has no instruction for taking a player back out, so
+     *  the tap would place him again on the next reconcile - a control that undoes itself.
+     *  On in a whole-draft room, where the board is submitted as a map (P52). */
     removePlayer: boolean;
-    /** Moving a placed player to another of his roles. P42 says a room SHOULD allow it -
-     *  the XI is submitted as a slot map, not a list of picks - but the referee takes
-     *  picks and nothing else, so a move here would be reverted by the next answer. It
-     *  needs an instruction the referee does not have; until then it is off rather than
-     *  broken. */
+    /** Moving a placed player to another of his roles. P42 always said a room SHOULD allow
+     *  it - the XI is a slot map, not a list of picks - and until P52 the referee took
+     *  picks and nothing else, so a move was reverted by the next answer. A whole-draft
+     *  room submits the map, so a move is just another map and needs no new rule. */
     movePlayer: boolean;
     /** The chemistry card. Off in a room (P25): the match is played without it. */
     chemistry: boolean;
@@ -53,7 +53,8 @@ export const SOLO_CONTROLS: BuildControls = {
     swap: true,
 };
 
-/** A room's draft: none of them. */
+/** A PER-PICK room's draft (a roll room, and any room from a referee older than P52):
+ *  none of them. */
 export const ROOM_CONTROLS: BuildControls = {
     autoFill: false,
     clear: false,
@@ -65,3 +66,20 @@ export const ROOM_CONTROLS: BuildControls = {
     collectibles: false,
     swap: false,
 };
+
+/**
+ * What a room's draft offers, which now depends on how it drafts (P52).
+ *
+ * A WHOLE-DRAFT ROOM CAN AFFORD TWO OF THEM, and only because of how it submits: the board
+ * goes to the referee as a map, so moving a player and taking one back out are the same
+ * instruction as buying one, and the answer confirms them the same way. Nothing else moves
+ * - auto-fill still makes eleven decisions in one tap, Start over still navigates out of
+ * the room, and the album and the chemistry card are out for reasons that have nothing to
+ * do with the clock (P3, P8, P25).
+ *
+ * Derived rather than a third constant, so a control added to `BuildControls` cannot be
+ * forgotten here: it starts from the room's own set and turns on exactly the two that P42
+ * always wanted.
+ */
+export const roomControls = (wholeDraft: boolean): BuildControls =>
+    wholeDraft ? { ...ROOM_CONTROLS, removePlayer: true, movePlayer: true } : ROOM_CONTROLS;
