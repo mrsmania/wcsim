@@ -798,26 +798,34 @@
 <details class="item">
   <summary>
     <span class="num">44</span>
-    <span class="title">Versus: hand back the time, and move a player you have placed
-      <span class="sub">The two settled decisions from item 18 that never landed, together
-      because they need the same thing: the match server has to understand an instruction it
-      does not have. <b>Skip</b> lets a player who has decided end their own pick window
-      instead of watching the clock run down, which matters most in a room of eight where every
-      one of eleven rounds waits for the slowest person. <b>Move</b> lets a player drag a
-      placed man to another of his positions, which the single-player board has always allowed
-      and a room turns off. Needs the versus server changed and redeployed, so it needs the
-      NAS.</span>
+    <span class="title">Versus: hand back the time, and move a player in a roll room
+      <span class="sub"><b>Half of this shipped on 2026-08-30 and the item shrank rather than
+      closing.</b> <b>Move</b> - dragging a placed man to another of his positions - is now
+      live in <b>buy-them</b> rooms, because those submit the whole team sheet at once and
+      moving is just a different team sheet (item 47). What is left needs the match server to
+      understand an instruction it has not got: <b>Skip</b>, letting a player who has decided
+      end their own pick window instead of watching the clock run down, which matters most in
+      a room of eight where every one of eleven rounds waits for the slowest person; and
+      <b>Move in a roll-for-them room</b>, which still drafts a pick at a time. Needs the
+      versus server changed and redeployed, so it needs the NAS.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>Why they are one item.</strong> The match server&#8217;s whole instruction set is
-    "here is my pick" and "deal me another squad". Skip has to close the window that is open
-    and start the next one; Move has to rewrite which player stands in which slot. Neither is
-    expressible as a pick, so both are a change to the server and a deploy, which is why
-    neither fitted inside a wave of screen work. Doing them together is one deploy rather than
-    two.</p>
+    <p><strong>What already changed, and why it did not close this.</strong> A buy-them room
+    stopped drafting a pick at a time on 2026-08-30: it sends the whole team sheet, so moving a
+    player and taking one back out are the same instruction as buying one and needed no new
+    rule at all. That is Move delivered, for that half of the game. A roll-for-them room still
+    deals a squad per window and still submits one pick at a time, which is right - there the
+    eleven decisions really are separate - so both gestures below still want a server that can
+    hear them.</p>
+    <p><strong>Why the two that are left are one item.</strong> A per-pick draft&#8217;s whole
+    instruction set is "here is my pick" and "deal me another squad". Skip has to close the
+    window that is open and start the next one; Move has to rewrite which player stands in
+    which slot. Neither is expressible as a pick, so both are a change to the server and a
+    deploy, which is why neither fitted inside a wave of screen work. Doing them together is
+    one deploy rather than two.</p>
     <p><strong>Why the move gesture is OFF rather than half-working.</strong> The board is
     optimistic: a tap places the player at once and the server&#8217;s next answer reconciles
     it. So a move with no instruction behind it would appear to work and then silently undo

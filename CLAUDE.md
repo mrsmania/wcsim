@@ -2773,12 +2773,15 @@ with a six-character code: lobby, draft, the draw, the matches, the bracket, the
 whoever goes out first stays and watches the rest, and a room nobody is in closes itself. The
 plan is `docs/pvp-plan.md` and it is the thing to read before touching any of this.
 
-**WHAT IS DELIBERATELY NOT BUILT, so nobody goes looking for it:** P41's per-pick **Skip**
-and P42's **move a placed player**. Both need an instruction the referee does not have (it
-takes picks and re-rolls and nothing else), so both are a server change plus a deploy rather
-than a screen, and they have their own roadmap item. The clock is therefore the only way a
-pick window ends early. Everything else the plan locks is live: every setting the referee
-accepts is reachable from the create form, which is checked.
+**WHAT IS DELIBERATELY NOT BUILT, so nobody goes looking for it:** P41's per-pick **Skip**,
+and P42's **move a placed player IN A ROLL ROOM**. Both need an instruction a per-pick draft
+does not have (it takes picks and re-rolls and nothing else), so both are a server change
+plus a deploy rather than a screen, and they share roadmap item 44. In a per-pick room the
+clock is therefore still the only way a window ends early. **P42 IS DELIVERED FOR A BUDGET
+ROOM** (P52, item 47): there the board is submitted as a map, so moving and un-buying are
+the same instruction as buying and needed no new rule - which is why item 44 shrank rather
+than closing. Everything else the plan locks is live: every setting the referee accepts is
+reachable from the create form, which is checked.
 
 **THE PRACTICE OPPONENTS ARE WRITTEN AND DARK** (2026-08-29, **roadmap item 45**). A host can
 fill the empty chairs of a room of four or eight with bots that build their own strong XI, so
