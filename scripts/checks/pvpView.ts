@@ -17,10 +17,15 @@ import {
   KICKOFF_SECONDS,
   REVEAL_JOIN_MS,
   agoLine,
+  duelLine,
+  duelRules,
+  duelTurn,
   everybodyReady,
   gamesIn,
   inviteText,
   inviteUrl,
+  isChallengeToMe,
+  isDuel,
   seatsOf,
   lobbyJoinable,
   lobbyLine,
@@ -37,7 +42,7 @@ import {
   viewerTie,
   xiFrom,
 } from '../../src/domain/pvpView';
-import type { LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
+import type { DuelRow, LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
 import { readFileSync, readdirSync } from 'node:fs';
 import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
@@ -720,6 +725,94 @@ export function pvpViewChecks(): void {
         inviteText('AB12CD', 'https://x.dev/versus/AB12CD').includes('AB12CD') &&
         inviteText('AB12CD', 'https://x.dev/versus/AB12CD').includes('https://x.dev/versus/AB12CD'),
       () => inviteUrl('https://x.github.io', '/wcsim/', 'AB12CD'),
+    );
+  }
+
+  // --- Reading a duel (P51) ------------------------------------------------
+  // A DUEL SPANS DAYS, so the question somebody opens the page with is never "what is the
+  // score" - it is "is there anything for me to do". `duelTurn` is that answer in one word,
+  // and it is the only reason the list is worth having, so the four states it can return
+  // are worth pinning here rather than reading off a screen. The trap is the LOBBY: the
+  // same unanswered challenge is "sent" to the person who sent it and "yours" to the person
+  // it was addressed to, and getting that backwards puts a call to action on the one screen
+  // that has nothing to do.
+  {
+    const row = (over: Partial<DuelRow> = {}): DuelRow => ({
+      code: 'DU0001',
+      opponentName: 'Bravo',
+      yours: true,
+      status: 'lobby',
+      method: 'budget',
+      budget: 110,
+      yourPicks: 0,
+      theirPicks: 0,
+      openedAt: 1_000,
+      touchedAt: 1_000,
+      ...over,
+    });
+    const turns = [
+      duelTurn(row()),
+      duelTurn(row({ yours: false })),
+      duelTurn(row({ status: 'drafting', yourPicks: 4, theirPicks: 11 })),
+      duelTurn(row({ status: 'drafting', yourPicks: 11, theirPicks: 4 })),
+      duelTurn(row({ status: 'round', yourPicks: 11, theirPicks: 11 })),
+      duelTurn(row({ status: 'ended', yourGoals: 2, theirGoals: 1, won: true })),
+    ];
+    check(
+      'pvpView: a duel row says whose move it is, and the same unanswered challenge reads both ways',
+      () =>
+        turns.join() === 'sent,yours,yours,theirs,theirs,done' &&
+        // The words follow the turn rather than the status, which is what makes the list
+        // scannable: one line, from the reader's own side.
+        duelLine(row()) === 'Waiting for Bravo to accept' &&
+        duelLine(row({ yours: false })) === 'Challenged you' &&
+        duelLine(row({ status: 'drafting', yourPicks: 4 })).includes('Your move') &&
+        duelLine(row({ status: 'ended', yourGoals: 2, theirGoals: 1, won: true })) ===
+          'You won 2-1' &&
+        // A duel that ended without a match says so rather than printing a score it has not
+        // got: declining and the week are both ordinary endings.
+        duelLine(row({ status: 'ended' })) === 'Closed unplayed' &&
+        // And what it PLAYS, which is the row's second line and the challenge screen's.
+        duelRules({ method: 'budget', budget: 110 }).includes('$110') &&
+        duelRules({ method: 'roll', budget: 0 }).includes('Roll'),
+      () => turns.join(),
+    );
+
+    // THE ONE ROOM A PLAYER DID NOT CHOOSE TO OPEN. Everywhere else arriving takes the
+    // seat, so this predicate is what keeps the two-answer question to the one place it
+    // belongs - and it has to go false the moment the seat is taken, or accepting would
+    // leave the Accept button on screen over a draft.
+    const challenge = fixtureRoom({
+      pace: 'async',
+      status: 'lobby',
+      invitedName: 'Bravo',
+      members: [
+        { userId: HOME, seat: 0, name: 'Alpha', ready: true, outIn: null, picked: 0, formationName: '4-3-3', style: 'bal' },
+      ],
+      you: undefined,
+    });
+    check(
+      'pvpView: a challenge is only a challenge to the person it is addressed to, and only until they take it',
+      () =>
+        isDuel(challenge) &&
+        isChallengeToMe(challenge) &&
+        // The sender is a member, so it is never a challenge to them.
+        !isChallengeToMe({ ...challenge, you: { userId: HOME, xi: {}, dealt: [], rerollsLeft: 0, budgetLeft: 0, window: null } }) &&
+        // Accepting makes them a member, and the question is over.
+        !isChallengeToMe({
+          ...challenge,
+          members: [
+            ...challenge.members,
+            { userId: AWAY, seat: 1, name: 'Bravo', ready: true, outIn: null, picked: 0, formationName: '4-3-3', style: 'bal' },
+          ],
+          you: { userId: AWAY, xi: {}, dealt: [], rerollsLeft: 0, budgetLeft: 0, window: null },
+        }) &&
+        // Past the lobby there is nothing to answer.
+        !isChallengeToMe({ ...challenge, status: 'drafting' }) &&
+        // And a live room is never one of these, whatever else is true of it.
+        !isDuel(fixtureRoom()) &&
+        !isChallengeToMe(fixtureRoom({ status: 'lobby', you: undefined })),
+      () => `${isChallengeToMe(challenge)} / ${isDuel(fixtureRoom())}`,
     );
   }
 

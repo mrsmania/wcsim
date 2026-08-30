@@ -174,7 +174,18 @@ export default function RoomDraft({
 
     return (
         <div className="flex flex-col gap-[18px]">
-            {window && room.remainingMs !== null ? (
+            {window && room.remainingMs === null ? (
+                // A DUEL HAS NO CLOCK, so there is no bar to draw and nothing to hurry. The
+                // panel still says which pick this is, because that is the one thing the
+                // clock was also telling you: how far through the eleven you are.
+                <div className={`${CARD_FLAT} px-4 py-3`}>
+                    <div className={MONO_CAP}>Pick {window.ordinal} of 11</div>
+                    <RoomNote>
+                        No clock. Build it over a week if you like - your opponent is doing
+                        the same, and the match plays itself when the second XI is in.
+                    </RoomNote>
+                </div>
+            ) : window && room.remainingMs !== null ? (
                 <PickClock
                     remainingMs={room.remainingMs}
                     // The bar is a PROPORTION, so it needs the room's own window length:
@@ -192,7 +203,11 @@ export default function RoomDraft({
             ) : (
                 <div className={`${CARD_FLAT} px-4 py-3`}>
                     <div className={MONO_CAP}>Your XI is in</div>
-                    <RoomNote>{waitingLine(others)}</RoomNote>
+                    <RoomNote>
+                        {view.pace === 'async'
+                            ? `Nothing else to do. ${others[0]?.name ?? 'Your opponent'} builds theirs whenever they get to it, and the match plays itself the moment they do - come back for the result.`
+                            : waitingLine(others)}
+                    </RoomNote>
                 </div>
             )}
 

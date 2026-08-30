@@ -4,6 +4,8 @@ import type { Player } from '../../data/types';
 import type { RoomView } from '../../domain/pvpWire';
 import { getFormation, type FormationName, type Style } from '../../domain/formations';
 import {
+    isChallengeToMe,
+    isDuel,
     meIn,
     memberOf,
     playersOf,
@@ -20,6 +22,7 @@ import { holdVersusRoom, useHeldVersusRoom } from '../../nav/versusRoom';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
 import RoomBracket, { currentRoundLabel, shortName } from './RoomBracket';
+import { DuelChallenge, DuelRematch, DuelWaiting } from './DuelPanels';
 import RoomDraft from './RoomDraft';
 import RoomLobby from './RoomLobby';
 import RoomResult, { decidingTie } from './RoomResult';
@@ -107,6 +110,12 @@ export default function RoomScreen({ code }: { code: string }) {
         if (room.loading || asked.current === code) return;
         const outside = view ? !meIn(view) : room.error?.code === 'no-such-room';
         if (!outside) return;
+        // EXCEPT A CHALLENGE, which is the one room a player did not choose to open. One
+        // door and walking through it is the answer everywhere else - a code you typed, a
+        // lobby row you tapped, a link you followed - but a duel addressed to you ARRIVED,
+        // so it gets a question with two answers rather than a seat taken on your behalf
+        // (`DuelChallenge`). A duel with no name on it is a link like any other and joins.
+        if (view && isChallengeToMe(view)) return;
         asked.current = code;
         void room.join().then(
             // Cleared on success, so a seat lost LATER - the liveness sweep, five minutes
@@ -142,6 +151,22 @@ export default function RoomScreen({ code }: { code: string }) {
     }, [view, mine]);
 
     const me = view ? meIn(view) : null;
+
+    // Somebody has challenged you and you have not answered. Rendered before the block
+    // below, which is about a seat you are TRYING to take.
+    if (view && isChallengeToMe(view)) {
+        return (
+            <>
+                <StageHeader eyebrow="Versus" title="A duel" />
+                {room.commandError && (
+                    <div className="mb-[18px]">
+                        <RefereeProblem message={refereeMessage(room.commandError, 'answer that')} />
+                    </div>
+                )}
+                <DuelChallenge view={view} room={room} />
+            </>
+        );
+    }
 
     if (!view || !me) {
         // ARRIVING AT A ROOM IS TAKING THE SEAT. There used to be two doors here and they
@@ -251,7 +276,12 @@ export default function RoomScreen({ code }: { code: string }) {
                 </div>
             )}
 
-            {view.status === 'lobby' && <RoomLobby view={view} room={room} />}
+            {view.status === 'lobby' &&
+                (isDuel(view) ? (
+                    <DuelWaiting view={view} room={room} />
+                ) : (
+                    <RoomLobby view={view} room={room} />
+                ))}
 
             {view.status === 'drafting' && (
                 <RoomDraft
@@ -339,7 +369,14 @@ export default function RoomScreen({ code }: { code: string }) {
                         <>
                     {tree && <RoomBracket view={view} serverNow={view.at} />}
                     {ended ? (
-                        <RoomResult view={view} tie={ended.tie} you={me} them={ended.them} />
+                        <>
+                            <RoomResult view={view} tie={ended.tie} you={me} them={ended.them} />
+                            {/* Only a duel offers one: a live room's rematch is opening
+                                another room, which is where its players already are. A
+                                duel's opponent is somebody you know and are not sitting
+                                with, so "again?" is the whole of the loop. */}
+                            <DuelRematch view={view} />
+                        </>
                     ) : (
                         <div className={`${CARD_FLAT} p-5`}>
                             <RoomNote>This room is finished.</RoomNote>

@@ -1,5 +1,5 @@
 import { REFEREE } from '../../config';
-import type { LobbyRoom, RoomView } from '../../domain/pvpWire';
+import type { DuelRow, LobbyRoom, RoomView } from '../../domain/pvpWire';
 import { localVersion, versionMismatch, type PvpVersion, type VersionMismatch } from '../../domain/pvpVersion';
 import { nameKeyOf, normalizeName } from '../../domain/displayName';
 
@@ -188,6 +188,14 @@ export interface CreateRoomInput {
     pickSeconds: number;
     rerolls?: number;
     showRatings?: boolean;
+    /** Live, or a duel played in both players' own time (P51). Omitted means live, which
+     *  is what a referee that predates duels reads anyway. */
+    pace?: 'live' | 'async';
+    /** Who a duel is addressed to, by display name. The referee resolves it on the
+     *  normalised key and refuses a name nobody has - a challenge to somebody in
+     *  particular is not the same intention as a room anybody may open, so it is not
+     *  quietly downgraded to one. Empty means "whoever I send the link to". */
+    opponent?: string;
 }
 
 export const createRoom = (input: CreateRoomInput): Promise<RoomView> =>
@@ -199,6 +207,16 @@ export const readRoom = (code: string): Promise<RoomView> =>
 /** The open public rooms (P18). It needs a session, because a room is account-only, but it
  *  deliberately does not need a seat - that is what makes a public room public. */
 export const readLobby = (): Promise<{ rooms: LobbyRoom[] }> => call('GET', '/v1/lobby');
+
+/**
+ * Your duels: the ones you are in, and the ones somebody has challenged you to (P51).
+ *
+ * IT IS THE ONLY WAY A CHALLENGE IS EVER SEEN. This game sends no mail and no push
+ * notification, so a duel arrives by being on this list the next time its recipient opens
+ * the versus page - which is why the list is the feature's front door rather than a panel
+ * beside it.
+ */
+export const readDuels = (): Promise<{ duels: DuelRow[] }> => call('GET', '/v1/duels');
 
 export const joinRoom = (code: string): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/join`);

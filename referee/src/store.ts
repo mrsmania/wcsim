@@ -13,12 +13,15 @@
 // the second overwrites the first. Handing callers a `mutate` makes the locking impossible
 // to forget; handing them `read` and `save` makes it impossible to see.
 
-import type { PvpRoom } from '../../src/domain/pvpRoom';
-import type { LobbyRoom } from '../../src/domain/pvpWire';
+import type { PvpRoom, RoomPace } from '../../src/domain/pvpRoom';
+import type { DuelRow, LobbyRoom } from '../../src/domain/pvpWire';
 
 /** One line of the lobby list, as the store hands it over. The wire shape is shared with
  *  the client (`src/domain/pvpWire.ts`), so the two sides cannot describe it differently. */
 export type LobbyRow = LobbyRoom;
+
+/** One line of the duels list, same arrangement and for the same reason. */
+export type DuelListRow = DuelRow;
 
 /** What a transition is told besides the room itself. */
 export interface MutateContext {
@@ -46,6 +49,11 @@ export interface CreateInput {
   showRatings: boolean;
   rerolls: number;
   pickSeconds: number;
+  /** Live, or a duel played in both players' own time (P51). */
+  pace: RoomPace;
+  /** The account a duel is addressed to. Null for a live room, and for a duel opened to
+   *  whoever has the link. */
+  invitedId: string | null;
 }
 
 export interface RoomStore {
@@ -82,9 +90,23 @@ export interface RoomStore {
    *  listing has no business carrying anybody's XI. */
   publicLobbies(limit: number): Promise<LobbyRow[]>;
 
-  /** The code of the room this account already holds a seat in, if any (P39: one active
-   *  room per account, so one person on a phone and a laptop cannot take two seats). */
+  /** The code of the LIVE room this account already holds a seat in, if any (P39: one
+   *  active room per account, so one person on a phone and a laptop cannot take two seats).
+   *
+   *  DUELS ARE EXCLUDED, and that is P51 rather than an oversight: P39 exists because a
+   *  live room needs you present, so holding two is holding one of them up. A duel needs
+   *  nobody present by construction, so five of them at once is the feature working - it is
+   *  the difference between a game you are AT and a game you are IN. */
   activeRoomOf(userId: string): Promise<string | null>;
+
+  /** The duels this account is in or has been challenged to, newest activity first. Like
+   *  the lobby listing it answers off the rooms and a count, never the whole room: what a
+   *  list needs is the other person's name and whose move it is. */
+  myDuels(userId: string, limit: number): Promise<DuelListRow[]>;
+
+  /** Resolve a display name to an account, for addressing a challenge. Matches on the
+   *  NORMALISED key (P22), which is what uniqueness is on - so "mario" finds "Mario". */
+  findByName(nameKey: string): Promise<string | null>;
 
   /** The display name on the account, or null when they have not claimed one. A room
    *  cannot show strangers an email address, so this gates entry rather than defaulting. */

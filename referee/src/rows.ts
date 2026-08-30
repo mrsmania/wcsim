@@ -27,6 +27,7 @@ import type {
   PickRecord,
   PickSeconds,
   PvpRoom,
+  RoomPace,
   PvpTie,
   RoomMember,
   RoomSize,
@@ -40,6 +41,13 @@ export interface RoomRow {
   code: string;
   visibility: 'public' | 'private';
   host_id: string;
+  /** Live, or a duel (migration 0020). Null on a room stored before duels existed, which
+   *  reads as `live` - the column has a default, so this is only ever null in a fixture. */
+  pace: RoomPace | null;
+  /** The account a duel was addressed to, and the name to show for them before they have
+   *  accepted. The name is joined from `profiles`, like a member's. */
+  invited_id: string | null;
+  invited_name: string | null;
   size: number;
   method: 'roll' | 'budget';
   budget: number;
@@ -288,6 +296,8 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
     visibility: r.visibility,
     hostId: r.host_id,
     size: r.size as RoomSize,
+    pace: r.pace ?? 'live',
+    ...(r.invited_id ? { invitedId: r.invited_id } : {}),
     rules: { method: r.method, budget: r.budget, years: r.years ?? [] },
     pickSeconds: r.pick_seconds as PickSeconds,
     showRatings: r.show_ratings,
@@ -457,6 +467,12 @@ export function rowsFromRoom(
       code: room.code,
       visibility: room.visibility,
       host_id: room.hostId,
+      pace: room.pace,
+      invited_id: room.invitedId ?? null,
+      // Not written by a save: the referee reads a display name off `profiles` and has no
+      // grant to write one anywhere (P34). It is here for the reader and the round trip,
+      // exactly as a member's is.
+      invited_name: extra.displayNames[room.invitedId ?? ''] ?? null,
       size: room.size,
       method: room.rules.method,
       budget: room.rules.budget,

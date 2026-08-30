@@ -3,15 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { WORLD_CUP_YEARS } from '../../data/squads';
 import {
     agoLine,
+    duelLine,
+    duelRules,
+    duelTurn,
     lobbyJoinable,
     lobbyLine,
     offersRatingSwitch,
     seatsLine,
 } from '../../domain/pvpView';
 import { PICK_SECONDS, type PickSeconds } from '../../domain/pvpRoom';
-import type { LobbyRoom } from '../../domain/pvpWire';
+import type { DuelRow, LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
-import { createRoom, readLobby } from '../../state/pvp/referee';
+import { createRoom, readDuels, readLobby } from '../../state/pvp/referee';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
 import {
     CARD,
@@ -163,13 +166,23 @@ export default function VersusHome() {
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<RefereeMessage | null>(null);
+    // A DUEL IS THE SAME FORM WITH THE WAITING TAKEN OUT (P51): the same two draft methods
+    // and the same money, minus everything that only means something when people are
+    // present - how many of you, how long a pick gets, who may walk in.
+    const [pace, setPace] = useState<'live' | 'async'>('live');
+    const [opponent, setOpponent] = useState('');
+    const duel = pace === 'async';
 
     const make = () => {
         setBusy(true);
         setError(null);
         void createRoom({
-            visibility,
-            size,
+            pace,
+            // Empty means "whoever I send the link to", which is the same thing a private
+            // room has always been. A name is a challenge to that person and nobody else.
+            opponent: duel ? opponent.trim() : '',
+            visibility: duel ? 'private' : visibility,
+            size: duel ? 2 : size,
             method,
             budget,
             rerolls,
@@ -196,6 +209,7 @@ export default function VersusHome() {
     // to do, so neither failing puts anything on screen: the list simply stays empty and
     // the record stays at zero.
     const [lobby, setLobby] = useState<LobbyRoom[] | null>(null);
+    const [duels, setDuels] = useState<DuelRow[]>([]);
     const [record, setRecord] = useState<PvpRecord>(NO_RECORD);
     const [at, setAt] = useState(() => Date.now());
     const refreshLobby = useCallback(() => {
@@ -205,6 +219,13 @@ export default function VersusHome() {
                 setAt(Date.now());
             })
             .catch(() => setLobby([]));
+        // YOUR DUELS, on the same beat. It fails silently like the lobby does, and for a
+        // sharper reason: a referee that predates duels answers 404 for this route, and a
+        // page that showed an error for it would be broken for everybody until the server
+        // is rebuilt - where an absent list is just a feature that has not arrived.
+        void readDuels()
+            .then((r) => setDuels(r.duels))
+            .catch(() => setDuels([]));
     }, []);
     useEffect(() => {
         refreshLobby();
@@ -256,32 +277,77 @@ export default function VersusHome() {
 
             <div className="grid items-start gap-[22px] min-[860px]:grid-cols-2">
                 <div className={`${CARD} p-4`}>
-                    <div className={MONO_CAP}>Make a room</div>
+                    <div className={MONO_CAP}>{duel ? 'Challenge somebody' : 'Make a room'}</div>
                     <RoomNote>
-                        An XI each out of all {WORLD_CUP_YEARS.length} World Cups, twenty
-                        seconds a pick, then a knockout. Your career, album and perks stay out
-                        of it: eleven players against eleven.
+                        An XI each out of all {WORLD_CUP_YEARS.length} World Cups, then one
+                        match. Your career, album and perks stay out of it: eleven players
+                        against eleven.
                     </RoomNote>
 
-                    <Choice label="How many of you" value={size} onPick={setSize} options={SIZES} />
-
                     <Choice
-                        label="Who can join"
-                        value={visibility}
-                        onPick={setVisibility}
+                        label="When you play it"
+                        value={pace}
+                        onPick={setPace}
                         options={[
                             {
-                                value: 'private' as const,
-                                label: 'Just my friends',
-                                sub: 'Code only. Nobody can find it, or even confirm it exists.',
+                                value: 'live' as const,
+                                label: 'Together, now',
+                                sub: 'Everybody in the room at once, on a pick clock.',
                             },
                             {
-                                value: 'public' as const,
-                                label: 'Anybody',
-                                sub: 'Listed below for anyone signed in. It still has a code.',
+                                value: 'async' as const,
+                                label: 'In your own time',
+                                sub: 'Challenge one person. Neither of you has to be here: build your XI whenever, and the match plays itself when the second one is in.',
                             },
                         ]}
                     />
+
+                    {duel ? (
+                        <>
+                            <div className={`${MONO_CAP} mt-4`}>Who</div>
+                            <input
+                                value={opponent}
+                                onChange={(e) => setOpponent(e.target.value.slice(0, 24))}
+                                autoComplete="off"
+                                spellCheck={false}
+                                placeholder="Their name"
+                                aria-label="The name of the player to challenge"
+                                className="mt-1.5 w-full rounded-[5px] border border-line bg-ground px-3 py-2.5 text-[15px] font-semibold text-ink outline-none focus:border-pitch"
+                            />
+                            <p className="mt-1.5 text-[12px] leading-snug text-muted">
+                                {opponent.trim()
+                                    ? `It goes to ${opponent.trim()} and nobody else can take it.`
+                                    : 'Leave it blank and you get a link to send instead - the first person to open it takes it up.'}
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <Choice
+                                label="How many of you"
+                                value={size}
+                                onPick={setSize}
+                                options={SIZES}
+                            />
+
+                            <Choice
+                                label="Who can join"
+                                value={visibility}
+                                onPick={setVisibility}
+                                options={[
+                                    {
+                                        value: 'private' as const,
+                                        label: 'Just my friends',
+                                        sub: 'Code only. Nobody can find it, or even confirm it exists.',
+                                    },
+                                    {
+                                        value: 'public' as const,
+                                        label: 'Anybody',
+                                        sub: 'Listed below for anyone signed in. It still has a code.',
+                                    },
+                                ]}
+                            />
+                        </>
+                    )}
 
                     <Choice
                         label="How you get your players"
@@ -346,16 +412,19 @@ export default function VersusHome() {
                     )}
 
                     {/* LAST, and outside the method branch, because it is the one setting
-                        that applies to both kinds of room (P20). */}
-                    <Choice
-                        label="How long a pick gets"
-                        value={pickSeconds}
-                        onPick={setPickSeconds}
-                        options={CLOCKS}
-                    />
+                        that applies to both kinds of room (P20) - but not to a duel, which
+                        has no clock at all: the whole point is that nobody is waiting. */}
+                    {!duel && (
+                        <Choice
+                            label="How long a pick gets"
+                            value={pickSeconds}
+                            onPick={setPickSeconds}
+                            options={CLOCKS}
+                        />
+                    )}
 
                     <button className={`${PRIMARY_BTN} mt-4 w-full`} disabled={busy} onClick={make}>
-                        Open a room
+                        {duel ? 'Send the challenge' : 'Open a room'}
                     </button>
                     {error && (
                         <RefereeProblem
@@ -379,6 +448,59 @@ export default function VersusHome() {
                 </div>
 
                 <div className="flex flex-col gap-[22px]">
+                {/* YOUR DUELS, ABOVE THE LOBBY, because one of these rows may be waiting for
+                    you and no lobby row ever is. Nothing in this game sends a message, so
+                    this list IS how a challenge arrives - which is also why it leads with
+                    whose move it is rather than with a score. */}
+                {duels.length > 0 && (
+                    <div className={`${CARD} p-4`}>
+                        <div className={MONO_CAP}>Your duels</div>
+                        <ul className="mt-1">
+                            {duels.map((d) => {
+                                const turn = duelTurn(d);
+                                return (
+                                    <li
+                                        key={d.code}
+                                        className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-[13.5px] font-bold text-ink">
+                                                {d.opponentName || 'Whoever takes it up'}
+                                                <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
+                                                    {d.code}
+                                                </span>
+                                            </div>
+                                            <div
+                                                className={`text-[12px] ${
+                                                    turn === 'yours'
+                                                        ? 'font-semibold text-pitch-ink'
+                                                        : 'text-muted'
+                                                }`}
+                                            >
+                                                {duelLine(d)} &middot; {duelRules(d)}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`shrink-0 ${btn(
+                                                turn === 'yours' ? 'primary' : 'secondary',
+                                                'sm',
+                                            )}`}
+                                            onClick={() => navigate(`/versus/${d.code}`)}
+                                        >
+                                            {turn === 'yours'
+                                                ? 'Your move'
+                                                : turn === 'done'
+                                                  ? 'See it'
+                                                  : 'Open'}
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                )}
+
                 <div className={`${CARD} p-4`}>
                     <div className="flex items-baseline gap-3">
                         <div className={MONO_CAP}>Rooms you can join</div>

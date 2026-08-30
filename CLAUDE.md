@@ -2789,6 +2789,14 @@ for". `PVP_PROTOCOL` was deliberately **not** bumped: the change is additive (an
 simply never creates a bot), and bumping would take the whole of Versus down for a button. See
 "Practice opponents" below.
 
+**DUELS ARE WRITTEN AND DARK TOO** (2026-08-30, **roadmap item 46**, plan P51). A duel is a
+challenge you send to one person, played in both your own time: they accept whenever they
+next open the page, each of you builds an XI whenever, and the match plays itself the moment
+the second one lands. It needs **migration 0020 applied and the referee rebuilt**, same order
+and same reason as 0019, and both are one visit. Until then the create form offers it and the
+answer is "the versus server would not accept those room settings". `PVP_PROTOCOL` was again
+deliberately **not** bumped, for the same reason. See "A duel" below.
+
 **THE SERVER IS DEPLOYED THROUGH WAVE 8 AND THE SCHEMA IS AT 0018** (referee redeployed and
 verified 2026-08-27, roadmap item 43). Wave 8 needed **no migration at all**: every column it
 reads was written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
@@ -3104,6 +3112,60 @@ an account still takes its matches). `pvp_matches.bot_sides` counts them per tie
 **`pvp_records` excludes any tie with one in it**, or a room of seven bots would be three
 wins for turning up; `finals` still reads every match, or a final played against a bot would
 promote the semi into "rooms won".
+
+**A DUEL IS A ROOM OF TWO WITH ITS DEADLINES SWITCHED OFF** (P51, `RoomPace`, 2026-08-30).
+That is the whole design and it is the reason the feature is small: everything a duel does a
+room already does - the draft, the deal, the validation, the tie, the record - and everything
+that differs is a DEADLINE. Four of them, all of which exist because a live room cannot wait
+for a human (P12, P31): the pick window's expiry, the liveness drop, the lobby idle close and
+the room idle close. So `PvpRoom.pace` is one field, `tickRoom` hands an `async` room to
+`tickDuel`, and the rest of the state machine is untouched. A parallel set of tables was the
+first sketch and would have been a second copy of the draft, which is the part with the rules
+in it.
+
+Seven things about it are decisions rather than details, and each one is checked:
+
+- **A CHALLENGE IS ADDRESSED, so the seat is not open.** `PvpRoom.invitedId` is what makes it
+  a challenge rather than a room: `joinRoom` answers `not-invited` to anybody else, and the
+  named account can READ it before answering (`visibleTo`) - without that the one screen the
+  feature depends on would answer "no such room" to its own recipient. A duel with NO name on
+  it is a link like any other and behaves exactly as a private room does.
+- **ARRIVING AT A CHALLENGE IS THE ONE PLACE THAT DOES NOT TAKE THE SEAT.** Wave 8 deleted a
+  confirmation screen to establish that there is one door and walking through it is the
+  answer; a challenge is the exception because it ARRIVED rather than being chosen. Hence
+  `isChallengeToMe` and `DuelChallenge`'s two answers. The exception is narrow on purpose: an
+  unaddressed duel joins on arrival like anything else.
+- **ACCEPTING STARTS THE DRAFT, so a duel has no lobby, no Ready and no Start.** There is
+  nobody to wait with: a Ready button would be one player pressing something and then leaving,
+  and a host's Start a second visit for no decision. Both shapes are chosen already - the
+  challenger's when they sent it, the opponent's as they accept - so `joinRoom` starts the
+  room when a duel's second seat is taken.
+- **THE WINDOW STAYS AND THE DEADLINE GOES.** A duel keeps its pick windows, because that is
+  what counts the picks and triggers the deal in a roll room; `submitPick` and `rerollDeal`
+  simply do not test the clock. On the wire `you.window.remainingMs` is **null**, never a very
+  large number - a screen that forgot to ask then draws no clock instead of a wrong one, and
+  three consumers read it explicitly (the bar, the tab bar's inert-while-your-window-is-open
+  rule, and the draft panel's copy).
+- **P39 COUNTS LIVE ROOMS ONLY, in two independent halves.** The store's `activeRoomOf`
+  filters on the pace, so holding five duels blocks nothing; and `create` does not ask the
+  question at all for a duel, so being in a live room does not stop you sending a challenge.
+  Neither half implies the other, so both have their own assertion.
+- **DECLINING IS LEAVING, and it CLOSES the duel.** It needs no command of its own, which is
+  why `leaveRoom` has the one branch that acts for a non-member: the person a duel is
+  addressed to is not a member, so without it the one button they are offered would do
+  nothing. The seat was never open, so freeing it would mean nothing either.
+- **A REMATCH IS A NEW DUEL.** The old one has a result, and a result that can change is not a
+  result, so `DuelRematch` creates a fresh room with the same rules and the same opponent.
+
+**AND THE DUELS LIST IS HOW A CHALLENGE ARRIVES, because nothing in this game sends a
+message.** No mail, no push. `GET /v1/duels` answers the duels you are in and the ones aimed
+at you, newest activity first, and it sits ABOVE the lobby on the versus page because one of
+its rows may be waiting for you and no lobby row ever is. `duelTurn` is what each row leads
+with - `yours` / `theirs` / `sent` / `done` - because the question somebody opens that page
+with is "is there anything for me to do", never "what is the score". The counts behind it are
+made on the SERVER (`myDuels` counts `pvp_picks` per side), since counting them in the browser
+would mean handing the browser both drafts. It is also why the challenger's screen carries the
+invitation link: telling somebody yourself is part of the feature rather than a gap in it.
 
 **A ROOM NOBODY IS IN CLOSES ITSELF, and the sweeper that does it is the pick clock's**
 (P31). Closing a tab fires no reliable event, so leaving is OBSERVED rather than announced:

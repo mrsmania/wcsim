@@ -93,9 +93,51 @@ export interface LobbyRoom {
   openedAt: number;
 }
 
+/** Live, or a duel in both players' own time. Mirrors `PvpRoom.pace`, restated here so the
+ *  wire shape does not drag the state machine into a browser bundle. */
+export type RoomPaceWire = 'live' | 'async';
+
+/**
+ * One duel on the caller's list (P51).
+ *
+ * IT IS NOT A `RoomView` AND NOT A `LobbyRoom`, for the reason both of those exist
+ * separately: a list is read by somebody deciding what to open, so it carries the other
+ * person's name, how far each side has got and how it finished - and nothing about either
+ * XI. How far each side has got is counted on the SERVER, because counting it here would
+ * mean handing the client the draft, which is the one thing a listing must not do.
+ */
+export interface DuelRow {
+  code: string;
+  /** The other player, or the person it is addressed to who has not accepted yet. Empty
+   *  for a duel opened to whoever has the link. */
+  opponentName: string;
+  /** True when the caller is the one who sent it. */
+  yours: boolean;
+  status: RoomStatusWire;
+  method: 'roll' | 'budget';
+  budget: number;
+  /** How many of the eleven each side has picked. */
+  yourPicks: number;
+  theirPicks: number;
+  /** Set once it is decided: the goals from the caller's side, and whether they won. */
+  yourGoals?: number | null;
+  theirGoals?: number | null;
+  won?: boolean | null;
+  openedAt: number;
+  /** When anything last happened, which is what the list sorts on: a duel somebody has
+   *  just moved in is the one you want at the top. */
+  touchedAt: number;
+}
+
 export interface RoomView {
   code: string;
   visibility: 'public' | 'private';
+  /** Absent from a referee that predates duels, which reads as `live`. */
+  pace?: RoomPaceWire;
+  /** The display name of the person a duel was addressed to, while they have not accepted
+   *  it. Null once they are in the room - they are a member then - and for a duel opened to
+   *  whoever has the link. */
+  invitedName?: string | null;
   status: RoomStatusWire;
   hostId: string;
   size: number;
@@ -116,8 +158,12 @@ export interface RoomView {
     rerollsLeft: number;
     budgetLeft: number;
     /** REMAINING MILLISECONDS, never a deadline (plan section 5): a phone whose clock is
-     *  two minutes fast would otherwise be shown a window that expired before it opened. */
-    window: { ordinal: number; remainingMs: number } | null;
+     *  two minutes fast would otherwise be shown a window that expired before it opened.
+     *
+     *  NULL IN A DUEL, where the window still counts the picks and deals the squads but has
+     *  no deadline at all. Null rather than a very large number, so a screen that forgot to
+     *  ask draws no clock instead of a wrong one. */
+    window: { ordinal: number; remainingMs: number | null } | null;
   } | null;
   /** Other players' XIs, once their tie has been played. */
   revealed: Record<string, Record<string, string>>;

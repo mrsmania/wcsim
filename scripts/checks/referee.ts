@@ -38,10 +38,13 @@ import {
 } from '../../src/domain/pvpVersion';
 import { validateXi } from '../../src/domain/pvp';
 import {
+  DUEL_IDLE_MS,
+  ROOM_IDLE_MS,
   createRoom,
   deadlineOf,
   formationOf,
   recoverFromOutage,
+  roomClosed,
   tickRoom,
   type PickSeconds,
   type PvpRoom,
@@ -54,6 +57,7 @@ import { atOf, msOf, roomFromRows, rowsFromRoom, type RoomRows } from '../../ref
 import { recoverAtBoot, sweepOnce } from '../../referee/src/sweeper';
 import type {
   CreateInput,
+  DuelListRow,
   LobbyRow,
   Mutation,
   MutateContext,
@@ -87,6 +91,8 @@ class MemStore implements RoomStore {
       hostBudget: input.method === 'budget' ? input.budget : 0,
       showRatings: input.showRatings,
       rerolls: input.rerolls,
+      pace: input.pace,
+      ...(input.invitedId ? { invitedId: input.invitedId } : {}),
       now,
     });
     this.put(room, now);
@@ -94,10 +100,14 @@ class MemStore implements RoomStore {
   }
 
   private put(room: PvpRoom, sweptAt: number | null): void {
-    this.rows.set(
-      room.code,
-      rowsFromRoom(room, { sweptAt, displayNames: this.names }),
-    );
+    const rows = rowsFromRoom(room, { sweptAt, displayNames: this.names });
+    // `touched_at` IS THE WRITE'S OWN TIME, exactly as `pgStore`'s `save` sets it: the
+    // column answers "when did anything last happen here", which is a fact about the save
+    // rather than a field the state machine carries. Mirroring it matters most for a duel,
+    // whose one deadline is a week of nothing - without this a duel played over three
+    // evenings would close itself on the third.
+    if (sweptAt !== null) rows.room.touched_at = atOf(sweptAt);
+    this.rows.set(room.code, rows);
     this.swept.set(room.code, sweptAt);
   }
 
@@ -152,9 +162,64 @@ class MemStore implements RoomStore {
   async activeRoomOf(userId: string): Promise<string | null> {
     for (const rows of this.rows.values()) {
       if (rows.room.status === 'ended') continue;
+      // Live rooms only, exactly as `pgStore` filters (P51): a duel needs nobody present,
+      // so holding several is the feature rather than what P39 exists to stop.
+      if ((rows.room.pace ?? 'live') !== 'live') continue;
       if (rows.members.some((m) => m.user_id === userId)) return rows.room.code;
     }
     return null;
+  }
+
+  async myDuels(userId: string, limit: number): Promise<DuelListRow[]> {
+    const mine = [...this.rows.values()].filter(
+      (r) =>
+        r.room.pace === 'async' &&
+        (r.room.invited_id === userId || r.members.some((m) => m.user_id === userId)),
+    );
+    return mine
+      .sort((a, b) => msOf(b.room.touched_at) - msOf(a.room.touched_at))
+      .slice(0, limit)
+      .map((r) => {
+        const match = r.matches[0];
+        const otherSeat = r.members.find((m) => m.user_id !== userId);
+        const opponent = otherSeat
+          ? (this.names[otherSeat.user_id] ?? '')
+          : (this.names[r.room.invited_id ?? ''] ?? '');
+        const count = (id: string | undefined) =>
+          id === undefined
+            ? r.picks.filter((p) => p.user_id !== userId).length
+            : r.picks.filter((p) => p.user_id === id).length;
+        return {
+          code: r.room.code,
+          opponentName: opponent,
+          yours: r.room.host_id === userId,
+          status: r.room.status,
+          method: r.room.method,
+          budget: r.room.budget,
+          yourPicks: count(userId),
+          theirPicks: count(undefined),
+          yourGoals: match
+            ? match.home_id === userId
+              ? match.home_goals
+              : match.away_goals
+            : null,
+          theirGoals: match
+            ? match.home_id === userId
+              ? match.away_goals
+              : match.home_goals
+            : null,
+          won: match ? match.winner_id === userId : null,
+          openedAt: msOf(r.room.touched_at),
+          touchedAt: msOf(r.room.touched_at),
+        };
+      });
+  }
+
+  async findByName(nameKey: string): Promise<string | null> {
+    const hit = Object.entries(this.names).find(
+      ([, name]) => !!name && nameKeyOf(name) === nameKey,
+    );
+    return hit?.[0] ?? null;
   }
 
   async displayName(userId: string): Promise<string | null> {
@@ -177,6 +242,13 @@ function token(claims: Record<string, unknown>, secret = SECRET, alg = 'HS256'):
 
 const session = (sub: string): string =>
   token({ role: 'authenticated', sub, exp: Math.floor(T0 / 1000) + 3600 });
+
+/** A session that outlives a DUEL, which is played over days: the ordinary fixture token
+ *  expires in an hour, which is right for a room and would have every move of a duel
+ *  refused as `expired`. A real player signs in again; the duel does not care, which is the
+ *  point of the mode. */
+const longSession = (sub: string): string =>
+  token({ role: 'authenticated', sub, exp: Math.floor(T0 / 1000) + 400 * 24 * 3600 });
 
 /** The trap P34 exists for: in self-hosted Supabase this is a VALID signature from the same
  *  secret, and it ships in the browser bundle by design. */
@@ -1000,6 +1072,265 @@ export async function refereeChecks(): Promise<void> {
     );
   }
 
+  /** The cheapest legal pick a member could make right now. The same shape the live
+   *  draft's checks use; it is local because that one is a private helper of its own file
+   *  and this needs nothing from it but the idea. */
+  const firstLegalPick = (room: PvpRoom, userId: string) => {
+    const m = room.members.find((x) => x.userId === userId)!;
+    const f = formationOf(m);
+    const filled = room.xi[userId] ?? {};
+    const slot = f.slots.find((sl) => !filled[sl.id])!;
+    const used = new Set(Object.values(filled).map((pl) => pl!.personId));
+    const player = SQUADS.flatMap((sq) => sq.players)
+      .filter((pl) => pl.positions.includes(slot.position) && !used.has(pl.personId))
+      .sort((a, b) => a.elo - b.elo)[0]!;
+    return { ordinal: room.windows[userId]!.ordinal, slotId: slot.id, player };
+  };
+
+  // --- A DUEL, played end to end through the referee (P51) ------------------
+  //
+  // The claim to earn is the one the mode is FOR: nobody has to be present at the same
+  // time. So this plays a whole duel with the clock advancing days between moves, and
+  // asserts that not one of the four rules that keep a live room moving fires - because
+  // every one of them would end the duel prematurely, and three of them would do it
+  // silently.
+
+  {
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno' };
+    const deps = depsFor(store, clock);
+
+    const sent = await post(deps, '/referee/v1/rooms', longSession('u1'), {
+      pace: 'async',
+      opponent: 'bruno',
+      method: 'budget',
+      budget: 110,
+      years: [],
+    });
+    const code = (sent.body as RoomView).code;
+    const missing = await post(deps, '/referee/v1/rooms', longSession('u1'), {
+      pace: 'async',
+      opponent: 'nobody at all',
+      method: 'budget',
+      budget: 110,
+    });
+    const second = await post(deps, '/referee/v1/rooms', longSession('u1'), {
+      pace: 'async',
+      opponent: 'bruno',
+      method: 'budget',
+      budget: 110,
+    });
+    const opened = (await store.read(code))!;
+    check(
+      'duel: a challenge is addressed by name, is private, and does not use up your one room',
+      () =>
+        sent.status === 201 &&
+        (sent.body as RoomView).pace === 'async' &&
+        (sent.body as RoomView).visibility === 'private' &&
+        (sent.body as RoomView).invitedName === 'Bruno' &&
+        // The name is matched on the NORMALISED key, so "bruno" reaches Bruno (P22).
+        opened.invitedId === 'u2' &&
+        // A name nobody plays under is refused rather than quietly opened to anybody: the
+        // two are different intentions and only one was expressed.
+        missing.status === 404 &&
+        // P39 counts live rooms only: a duel needs nobody present, so several is the point.
+        second.status === 201,
+      () => `${sent.status} / ${missing.status} / ${second.status}`,
+    );
+
+    // Nobody else may take an addressed seat, and the person it names may READ it before
+    // answering - which is the whole of the challenge screen.
+    store.names.u3 = 'Cleo';
+    const gatecrash = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u3'));
+    const stranger = await get(deps, `/referee/v1/rooms/${code}`, longSession('u3'));
+    const invited = await get(deps, `/referee/v1/rooms/${code}`, longSession('u2'));
+    check(
+      'duel: the seat is the invited player\'s, and they can read the challenge before answering',
+      () =>
+        gatecrash.status === 403 &&
+        (gatecrash.body as { error: string }).error === 'not-invited' &&
+        // Invisible to anybody else, exactly as a private room is.
+        stranger.status === 404 &&
+        invited.status === 200 &&
+        (invited.body as RoomView).invitedName === 'Bruno' &&
+        (invited.body as RoomView).you === null,
+      () => `${gatecrash.status} / ${stranger.status} / ${invited.status}`,
+    );
+
+    // A DAY LATER. Bruno accepts, and accepting starts the draft: a duel has no lobby.
+    clock.now += 24 * 60 * 60_000;
+    const accepted = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u2'));
+    const started = (await store.read(code))!;
+    check(
+      'duel: accepting starts the draft at once, with a window that never expires',
+      () =>
+        accepted.status === 200 &&
+        started.status === 'drafting' &&
+        started.members.length === 2 &&
+        // The window is still there - it counts the picks and deals the squads - and the
+        // view sends no time left, which is what stops a clock being drawn.
+        !!started.windows.u1 &&
+        (accepted.body as RoomView).you?.window?.remainingMs === null,
+      () => `${accepted.status}, ${started.status}`,
+    );
+
+    // A WEEK OF SWEEPS at the live pace's intervals: not one window expires, nobody is
+    // dropped for silence, and the room is not closed. Every one of those would have
+    // finished this draft without either player.
+    for (let day = 0; day < 6; day++) {
+      clock.now += 24 * 60 * 60_000;
+      await sweepOnce(store, clock.now, SWEEP_MS);
+    }
+    const untouched = (await store.read(code))!;
+    check(
+      'duel: six days of sweeps auto-pick nothing, drop nobody and close nothing',
+      () =>
+        untouched.status === 'drafting' &&
+        untouched.members.length === 2 &&
+        // Vacuity, and it is the whole point: the SAME six days would have finished a live
+        // room's draft against both players and then closed the room.
+        Object.values(untouched.picks).every((p) => Object.keys(p).length === 0) &&
+        !!untouched.windows.u1 &&
+        !!untouched.windows.u2,
+      () => `${untouched.status}, ${Object.keys(untouched.picks.u1 ?? {}).length} picks`,
+    );
+
+    // Each of them drafts, days apart, and the match plays itself when the second XI lands.
+    const draftFor = async (who: string): Promise<void> => {
+      for (let i = 0; i < 11; i++) {
+        // An hour between picks: this is a person drafting over an evening, and the point
+        // of the mode is that nothing counts it.
+        clock.now += 60 * 60_000;
+        const room = (await store.read(code))!;
+        if (!room.windows[who]) break;
+        const p = firstLegalPick(room, who);
+        await post(deps, `/referee/v1/rooms/${code}/pick`, longSession(who), {
+          ordinal: p.ordinal,
+          slotId: p.slotId,
+          playerId: p.player.id,
+        });
+      }
+    };
+    await draftFor('u1');
+    const halfway = (await store.read(code))!;
+    clock.now += 3 * 24 * 60 * 60_000;
+    await draftFor('u2');
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const played = (await store.read(code))!;
+    check(
+      'duel: one XI in leaves it waiting; the second one sets the match going',
+      () =>
+        // Half way: one complete XI, the other untouched, and no match.
+        halfway.status === 'drafting' &&
+        Object.keys(halfway.picks.u1 ?? {}).length === 11 &&
+        Object.keys(halfway.picks.u2 ?? {}).length === 0 &&
+        halfway.ties.length === 0 &&
+        // And with both in, the tie is drawn and played - three days later, by two people
+        // who were never on the screen at the same time.
+        played.ties.length === 1 &&
+        !!played.ties[0]!.result &&
+        !!played.ties[0]!.winnerId,
+      () => `${halfway.status} then ${played.status}, ${played.ties.length} ties`,
+    );
+
+    // The result settles on its own, so whoever was not watching still gets it.
+    clock.now += 10 * 60_000;
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const done = (await store.read(code))!;
+    const list = await get(deps, '/referee/v1/duels', longSession('u2'));
+    const rows = (list.body as { duels: DuelListRow[] }).duels;
+    const row = rows.find((d) => d.code === code)!;
+    check(
+      'duel: it finishes without being watched, and the list says how it went from each side',
+      () =>
+        done.status === 'ended' &&
+        !!done.championId &&
+        !!row &&
+        row.status === 'ended' &&
+        // Bruno did not send it, and the row is written from HIS side.
+        !row.yours &&
+        row.opponentName === 'Ada' &&
+        row.yourPicks === 11 &&
+        row.theirPicks === 11 &&
+        row.won === (done.championId === 'u2') &&
+        // And the whole list is his two duels, the unanswered one included: that is the
+        // only way a challenge is ever seen.
+        rows.length === 2,
+      () => `${done.status}, ${rows.length} rows, ${JSON.stringify(row)}`,
+    );
+  }
+
+  {
+    // THE OTHER HALF OF P39, and it is the half a guard in `create` carries rather than the
+    // store: holding a LIVE room must not stop you SENDING a challenge. A duel needs nobody
+    // present, so it is not a room you are tied up in and it does not ask the question at
+    // all. The second live room being refused is the vacuity guard - it is what proves the
+    // lookup can see the live room the third call is being made while holding.
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno' };
+    const deps = depsFor(store, clock);
+    const live = { method: 'budget', budget: 110, size: 2, pickSeconds: 20, years: [] };
+    const first = await post(deps, '/referee/v1/rooms', longSession('u1'), live);
+    const second = await post(deps, '/referee/v1/rooms', longSession('u1'), live);
+    const challenge = await post(deps, '/referee/v1/rooms', longSession('u1'), {
+      pace: 'async',
+      opponent: 'Bruno',
+      method: 'budget',
+      budget: 110,
+    });
+    check(
+      'duel: a live room refuses a second one and does not refuse a challenge',
+      () => first.status === 201 && second.status === 409 && challenge.status === 201,
+      () => `${first.status} / ${second.status} / ${challenge.status}`,
+    );
+  }
+
+  {
+    // Declining, and the week. Both are the ways a duel ends without a match, and both are
+    // silent - so they are worth asserting rather than assuming.
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno' };
+    const deps = depsFor(store, clock);
+    const open = async (): Promise<string> =>
+      (
+        (
+          await post(deps, '/referee/v1/rooms', longSession('u1'), {
+            pace: 'async',
+            opponent: 'Bruno',
+            method: 'budget',
+            budget: 110,
+          })
+        ).body as RoomView
+      ).code;
+
+    const declined = await open();
+    await post(deps, `/referee/v1/rooms/${declined}/leave`, longSession('u2'));
+    const after = (await store.read(declined))!;
+
+    const ignored = await open();
+    clock.now += DUEL_IDLE_MS + 60_000;
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const stale = (await store.read(ignored))!;
+
+    check(
+      'duel: declining closes it, and one nobody answers closes itself after a week',
+      () =>
+        // Declining is leaving, which is why it needs no command of its own - and the
+        // person it was addressed to is not a member, so this is the one leave that acts
+        // for a non-member.
+        after.status === 'ended' &&
+        roomClosed(after) &&
+        stale.status === 'ended' &&
+        roomClosed(stale) &&
+        // Vacuity: a duel a day old is untouched by the same sweep.
+        DUEL_IDLE_MS > ROOM_IDLE_MS,
+      () => `declined ${after.status}, ignored ${stale.status}`,
+    );
+  }
+
   // --- The re-roll allowance the host sets ---------------------------------
 
   {
@@ -1212,7 +1543,10 @@ export async function refereeChecks(): Promise<void> {
       };
 
       const QUERIES: { row: string; marker: string }[] = [
-        { row: 'RoomRow', marker: 'from pvp_rooms where code = $1' },
+        // The room's own select, told apart from `publicLobbies`' and `myDuels`' by its
+        // `where`. It reads through an alias now (it joins `profiles` for the name on an
+        // outstanding challenge), which the column matcher below already allows for.
+        { row: 'RoomRow', marker: 'where r.code = $1' },
         { row: 'MemberRow', marker: 'from pvp_members m' },
         { row: 'DealRow', marker: 'from pvp_deals' },
         { row: 'PickRow', marker: 'from pvp_picks' },

@@ -37,19 +37,35 @@ import {
   type PickRow,
   type RoomRow,
 } from './rows';
-import type { CreateInput, LobbyRow, Mutation, MutateContext, RoomStore } from './store';
+import type {
+  CreateInput,
+  DuelListRow,
+  LobbyRow,
+  Mutation,
+  MutateContext,
+  RoomStore,
+} from './store';
 
 /** One round trip per table rather than one join: the room row is a single row and the
  *  other four are small lists, and a join would multiply them together and then have to be
  *  un-multiplied in JavaScript. */
-const SELECT_ROOM = `select id, code, visibility, host_id, size, method,
-    budget, years, show_ratings, rerolls, pick_seconds, status, round, champion_id,
-    started_at, swept_at, touched_at
-  from pvp_rooms where code = $1`;
+// A COLUMN THE ROW MAPPER READS AND THIS DOES NOT ASK FOR IS A SILENT DISASTER - `pg` hands
+// over `undefined` and every consequence is quiet (see `msOf`). `rows.ts`'s `RoomRow` is the
+// list this has to match, and `npm run checks` reads the two against each other.
+const SELECT_ROOM = `select r.id, r.code, r.visibility, r.host_id, r.pace, r.invited_id,
+    p.display_name as invited_name,
+    r.size, r.method, r.budget, r.years, r.show_ratings, r.rerolls, r.pick_seconds,
+    r.status, r.round, r.champion_id, r.started_at, r.swept_at, r.touched_at
+  from pvp_rooms r
+  left join profiles p on p.id = r.invited_id
+  where r.code = $1`;
 
 export function pgStore(pool: Pool): RoomStore {
   const load = async (db: PoolClient, code: string, lock: boolean): Promise<{ room: PvpRoom; sweptAt: number | null } | null> => {
-    const roomRes = await db.query<RoomRow>(SELECT_ROOM + (lock ? ' for update' : ''), [code]);
+    // `for update of r`, naming the table: a plain `for update` over a join would try to
+    // lock the joined `profiles` row as well, which the referee has no privilege to lock
+    // and has no business locking either.
+    const roomRes = await db.query<RoomRow>(SELECT_ROOM + (lock ? ' for update of r' : ''), [code]);
     const row = roomRes.rows[0];
     if (!row) return null;
     const id = row.id;
@@ -233,12 +249,14 @@ export function pgStore(pool: Pool): RoomStore {
         const res = await db.query<{ id: string }>(
           `insert into pvp_rooms
              (code, visibility, host_id, size, method, budget, years,
-              show_ratings, rerolls, pick_seconds, status, round, touched_at, swept_at)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'lobby',0, now(), now())
+              show_ratings, rerolls, pick_seconds, pace, invited_id,
+              status, round, touched_at, swept_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'lobby',0, now(), now())
            returning id`,
           [
             input.code, input.visibility, input.hostId, input.size, input.method,
             input.budget, input.years, input.showRatings, input.rerolls, input.pickSeconds,
+            input.pace, input.invitedId,
           ],
         );
         const room = createRoom({
@@ -253,6 +271,8 @@ export function pgStore(pool: Pool): RoomStore {
           hostBudget: input.method === 'budget' ? input.budget : 0,
           showRatings: input.showRatings,
           rerolls: input.rerolls,
+          pace: input.pace,
+          ...(input.invitedId ? { invitedId: input.invitedId } : {}),
           now,
         });
         await save(db, room, now);
@@ -341,7 +361,7 @@ export function pgStore(pool: Pool): RoomStore {
                 (select count(*) from pvp_members m where m.room_id = r.id) as seated,
                 (select count(*) from pvp_bots b where b.room_id = r.id) as bots
            from pvp_rooms r join profiles p on p.id = r.host_id
-          where r.visibility = 'public' and r.status = 'lobby'
+          where r.visibility = 'public' and r.status = 'lobby' and r.pace = 'live'
           order by r.created_at desc
           limit $1`,
         [limit],
@@ -363,11 +383,97 @@ export function pgStore(pool: Pool): RoomStore {
 
     async activeRoomOf(userId: string): Promise<string | null> {
       const res = await pool.query<{ code: string }>(
+        // LIVE ROOMS ONLY (P51): a duel needs nobody present, so holding several is the
+        // feature rather than the thing P39 exists to stop.
         `select r.code from pvp_members m join pvp_rooms r on r.id = m.room_id
-          where m.user_id = $1 and r.status <> 'ended' limit 1`,
+          where m.user_id = $1 and r.status <> 'ended' and r.pace = 'live' limit 1`,
         [userId],
       );
       return res.rows[0]?.code ?? null;
+    },
+
+    async myDuels(userId: string, limit: number): Promise<DuelListRow[]> {
+      // ONE QUERY, and everything on the row is counted in it: a duel list is read by
+      // somebody deciding what to open, so it needs whose move it is, which needs the
+      // picks - and handing the client the picks to count them there is handing it both
+      // drafts. `pvp_picks` is counted per side instead and only the totals come back.
+      //
+      // The `union` is the two ways a duel is yours: you are in it, or it was addressed to
+      // you and you have not answered. Both, because an unanswered challenge is exactly
+      // the row this list exists to show.
+      const res = await pool.query<{
+        code: string;
+        status: 'lobby' | 'drafting' | 'round' | 'ended';
+        method: 'roll' | 'budget';
+        budget: number;
+        host_id: string;
+        opponent_name: string | null;
+        your_picks: string;
+        their_picks: string;
+        your_goals: number | null;
+        their_goals: number | null;
+        winner_id: string | null;
+        created_at: Date | string;
+        touched_at: Date | string;
+      }>(
+        `with mine as (
+           select r.*
+             from pvp_rooms r
+            where r.pace = 'async'
+              and (r.invited_id = $1
+                   or exists (select 1 from pvp_members m
+                               where m.room_id = r.id and m.user_id = $1))
+         )
+         select r.code, r.status, r.method, r.budget, r.host_id, r.created_at, r.touched_at,
+                (select count(*) from pvp_picks p
+                  where p.room_id = r.id and p.user_id = $1) as your_picks,
+                (select count(*) from pvp_picks p
+                  where p.room_id = r.id and p.user_id <> $1) as their_picks,
+                -- The other person: whoever is in it and is not you, else the account it
+                -- was addressed to. One of the two is always set for a duel that has a
+                -- second side at all.
+                coalesce(
+                  (select pr.display_name from pvp_members m
+                     join profiles pr on pr.id = m.user_id
+                    where m.room_id = r.id and m.user_id <> $1 limit 1),
+                  (select pr.display_name from profiles pr where pr.id = r.invited_id)
+                ) as opponent_name,
+                (select case when x.home_id = $1 then x.home_goals else x.away_goals end
+                   from pvp_matches x where x.room_id = r.id limit 1) as your_goals,
+                (select case when x.home_id = $1 then x.away_goals else x.home_goals end
+                   from pvp_matches x where x.room_id = r.id limit 1) as their_goals,
+                (select x.winner_id from pvp_matches x where x.room_id = r.id limit 1)
+                  as winner_id
+           from mine r
+          order by r.touched_at desc
+          limit $2`,
+        [userId, limit],
+      );
+      return res.rows.map((x) => ({
+        code: x.code,
+        opponentName: x.opponent_name ?? '',
+        yours: x.host_id === userId,
+        status: x.status,
+        method: x.method,
+        budget: x.budget,
+        yourPicks: Number(x.your_picks),
+        theirPicks: Number(x.their_picks),
+        yourGoals: x.your_goals,
+        theirGoals: x.their_goals,
+        won: x.winner_id === null ? null : x.winner_id === userId,
+        openedAt: msOf(x.created_at),
+        touchedAt: msOf(x.touched_at),
+      }));
+    },
+
+    async findByName(nameKey: string): Promise<string | null> {
+      // On the NORMALISED key, which is what uniqueness is on (P22) - so a challenge
+      // addressed to "mario" reaches Mario, and there is exactly one of him.
+      const res = await pool.query<{ id: string }>(
+        'select id from profiles where name_key = $1',
+        [nameKey],
+      );
+      return res.rows[0]?.id ?? null;
     },
 
     async displayName(userId: string): Promise<string | null> {

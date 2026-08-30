@@ -133,6 +133,36 @@ const XI_SLOTS = 11;
 export const ROOM_SIZES = [2, 4, 8] as const;
 export type RoomSize = (typeof ROOM_SIZES)[number];
 
+/**
+ * Whether everybody is here at once, or nobody has to be (P51, roadmap item 46).
+ *
+ * `live` is every rule above this line: a pick clock, a liveness ping, a lobby that closes
+ * when it stops filling, and a draft that finishes because nothing ever waits for a human.
+ * `async` is a DUEL - one person challenges another, each builds an XI whenever they get to
+ * it, and the match plays itself the moment the second XI lands.
+ *
+ * IT IS ONE FIELD RATHER THAN A SECOND STATE MACHINE, and that is the whole reason this
+ * feature is small: the draft, the deal, the validation, the tie and the record are the
+ * same in both, and everything that differs is a DEADLINE. So a duel keeps the pick windows
+ * (they still count the picks and trigger the deals) and simply never expires one, and the
+ * three lifecycle rules that close an idle room are read past. What is left over - the
+ * clock on screen, the lobby, the host's Start - is presentation, and the screens branch
+ * on this the same way.
+ */
+export type RoomPace = 'live' | 'async';
+
+/**
+ * How long a duel survives with nothing happening in it.
+ *
+ * A WEEK, because the entire point is that nobody has to be looking: `ROOM_IDLE_MS` is half
+ * an hour and would close a duel while both players were asleep. It still exists, and it
+ * still has to: a challenge nobody accepts and a draft nobody finishes are the two ways a
+ * duel becomes a row that will never resolve, and without a bound the list they sit on
+ * fills with them for ever. Every write stamps `touchedAt`, so a duel somebody is playing
+ * over three evenings never reaches it.
+ */
+export const DUEL_IDLE_MS = 7 * 24 * 60 * 60_000;
+
 // --- Shape -----------------------------------------------------------------
 
 export type RoomStatus = 'lobby' | 'drafting' | 'round' | 'ended';
@@ -224,6 +254,14 @@ export interface PvpRoom {
   code: string;
   visibility: 'public' | 'private';
   hostId: string;
+  /** Live, or a duel played in both players' own time. See `RoomPace`. Absent from a room
+   *  stored before duels existed, which `roomFromRows` reads as `live`. */
+  pace: RoomPace;
+  /** The account a DUEL is addressed to, when it was aimed at somebody by name rather than
+   *  opened for whoever has the link. Nobody else may take that seat, which is what makes
+   *  it a challenge rather than an open room - and it is what puts the duel on their list
+   *  before they have accepted anything. */
+  invitedId?: string;
   size: RoomSize;
   rules: RoomRules;
   pickSeconds: PickSeconds;
@@ -347,6 +385,11 @@ export function createRoom(input: {
   rules: RoomRules;
   pickSeconds: PickSeconds;
   hostBudget: number;
+  /** Live by default: a duel is the exception and says so, and every existing caller reads
+   *  unchanged. */
+  pace?: RoomPace;
+  /** The account a duel is aimed at. Absent means "whoever opens the link". */
+  invitedId?: string;
   /** Both optional and both defaulted to the values plan section 3 gives, so a caller that
    *  does not care about presentation does not have to say so. */
   showRatings?: boolean;
@@ -360,6 +403,8 @@ export function createRoom(input: {
     code: input.code,
     visibility: input.visibility,
     hostId: input.hostId,
+    pace: input.pace ?? 'live',
+    ...(input.invitedId ? { invitedId: input.invitedId } : {}),
     size: input.size,
     rules: input.rules,
     pickSeconds: input.pickSeconds,
@@ -404,7 +449,7 @@ function newMember(
 const nextSeat = (room: PvpRoom): number =>
   room.members.reduce((max, m) => Math.max(max, m.seat + 1), 0);
 
-export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in';
+export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in' | 'not-invited';
 
 export function joinRoom(
   room: PvpRoom,
@@ -413,6 +458,13 @@ export function joinRoom(
 ): { room: PvpRoom; outcome: JoinOutcome } {
   if (room.status !== 'lobby') return { room, outcome: 'started' };
   if (memberOf(room, member.userId)) return { room, outcome: 'already-in' };
+  // A CHALLENGE IS ADDRESSED, so the seat is not open: a duel aimed at somebody by name is
+  // theirs and nobody else's, which is the difference between challenging a friend and
+  // opening a room. A duel with no name on it keeps the ordinary rule - whoever has the
+  // link takes the seat - so the same command serves both.
+  if (room.invitedId && room.invitedId !== member.userId) {
+    return { room, outcome: 'not-invited' };
+  }
   const bots = botsIn(room);
   if (room.members.length >= room.size && !bots.length) return { room, outcome: 'full' };
   const next = clone(room);
@@ -428,6 +480,14 @@ export function joinRoom(
   // liveness sweep, which leaves a gap, and `pvp_members` has a unique index on (room,
   // seat) - so counting would hand the newcomer a number somebody else still holds.
   next.members.push(newMember(member.userId, nextSeat(next), member.name, member.budget, now));
+  // ACCEPTING A DUEL IS STARTING IT. There is no lobby to wait in: a duel is two people who
+  // are not in the same place at the same time, so a Ready button would be one player
+  // pressing something and then leaving, and a host's Start would be a second visit for no
+  // decision. Both shapes are already chosen - the challenger's when they sent it, the
+  // opponent's as they accept - so the draft can begin the moment the second seat is taken.
+  if (next.pace === 'async' && next.members.length === next.size) {
+    return { room: startRoom(next, next.hostId, now), outcome: 'ok' };
+  }
   return { room: next, outcome: 'ok' };
 }
 
@@ -452,6 +512,10 @@ export function setBots(
   newId: () => string,
 ): PvpRoom {
   if (room.status !== 'lobby' || hostId !== room.hostId) return room;
+  // Not in a duel. A duel is a challenge to a PERSON, and the answer to "nobody accepted"
+  // there is to challenge somebody else, not to play the seat filler - which would also
+  // resolve the duel against a robot and put it on the challenger's record.
+  if (room.pace === 'async') return room;
   if (!Number.isInteger(count) || count < 0) return room;
   const humans = humansIn(room).length;
   if (count > room.size - humans) return room;
@@ -582,7 +646,13 @@ export function submitPick(
   if (!m || !w) return { room, outcome: 'no-window' };
   if (req.ordinal < w.ordinal) return { room, outcome: 'replay' };
   if (req.ordinal !== w.ordinal) return { room, outcome: 'no-window' };
-  if (now > deadlineOf(room, w) + PICK_GRACE_MS) return { room, outcome: 'late' };
+  // A DUEL'S WINDOW NEVER CLOSES. The window is kept in both paces because it is what
+  // counts the picks and triggers the deal - the deadline is the only part of it that is
+  // about a clock, and in a duel there is no clock to beat. Nothing else in this function
+  // changes: the same XI is legal in both.
+  if (room.pace === 'live' && now > deadlineOf(room, w) + PICK_GRACE_MS) {
+    return { room, outcome: 'late' };
+  }
 
   const filled = room.xi[userId] ?? {};
   const f = formationOf(m);
@@ -637,7 +707,7 @@ export function rerollDeal(room: PvpRoom, userId: string, now: number): PvpRoom 
   const w = room.windows[userId];
   if (!m || !w) return room;
   if (m.rerollsUsed >= room.rerolls) return room;
-  if (now > deadlineOf(room, w) + PICK_GRACE_MS) return room;
+  if (room.pace === 'live' && now > deadlineOf(room, w) + PICK_GRACE_MS) return room;
   const next = clone(room);
   const mm = memberOf(next, userId)!;
   mm.rerollsUsed += 1;
@@ -855,6 +925,13 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
  */
 export function leaveRoom(room: PvpRoom, userId: string, now: number): PvpRoom {
   if (room.status !== 'lobby') return room;
+  // DECLINING A CHALLENGE IS LEAVING IT, which is why it needs no command of its own. The
+  // person a duel is addressed to is not a member - that is the whole difference between a
+  // challenge and a room - so without this the one button they are offered would do
+  // nothing. Declining closes the duel rather than freeing the seat, because the seat was
+  // never open: a challenge to somebody who says no is over, and the challenger's list says
+  // so at their next look.
+  if (room.pace === 'async' && room.invitedId === userId) return closeRoom(room);
   if (!room.members.some((m) => m.userId === userId)) return room;
   return withoutMembers(
     room,
@@ -900,6 +977,47 @@ function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
 }
 
 /**
+ * A duel's own sweep, which is mostly a list of things it does NOT do.
+ *
+ * No expiry on a pick window, no seat dropped for silence, no lobby closed for not filling
+ * and no hard bound on the draft: every one of those exists because a live room cannot
+ * wait for a human (P12, P31), and waiting for a human is the entire feature here. What is
+ * left is the two transitions that are about the FOOTBALL rather than about anybody being
+ * present - both XIs are in, so play the match; the reveal has run, so settle it - and one
+ * deadline, a week of nothing, which is what stops an unanswered challenge sitting on
+ * somebody's list for ever.
+ *
+ * NOTE WHAT THE FIRST ONE MEANS IN A DUEL: whoever finishes second sets the match going,
+ * and the other player was not there for it. That is why the result is stamped and settles
+ * on its own (`revealFrom` plus `revealMs`) rather than waiting to be watched - a duel is
+ * read afterwards as often as it is watched, and both have to work.
+ */
+function tickDuel(room: PvpRoom, now: number): PvpRoom {
+  if (now - room.touchedAt > DUEL_IDLE_MS) return closeRoom(room);
+  if (room.status === 'lobby') return room;
+  if (room.status === 'drafting') {
+    if (!room.members.every((m) => xiComplete(room, m))) return room;
+    const next = clone(room);
+    drawRound(next, now);
+    return next;
+  }
+  const live = room.ties.filter((t) => t.round === room.round);
+  if (!live.every((t) => now >= (t.revealFrom ?? 0) + (t.revealMs ?? 0))) return room;
+  const next = clone(room);
+  const alive = survivors(next);
+  // A duel is two people, so this is always the end. The general branch is kept rather
+  // than assumed: nothing here needs a duel to be a room of two, and one day a slow
+  // tournament is the same machine with a bigger draw.
+  if (alive.length <= 1) {
+    next.status = 'ended';
+    next.championId = alive[0]?.userId;
+    return next;
+  }
+  drawRound(next, now);
+  return next;
+}
+
+/**
  * One sweep. Call it when a pick arrives and every second or two otherwise; it is the
  * only thing that moves a room forward, and it holds no state of its own.
  *
@@ -908,6 +1026,13 @@ function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
  */
 export function tickRoom(room: PvpRoom, now: number): PvpRoom {
   if (room.status === 'ended') return room;
+  // A DUEL IS THE OTHER PACE, and the sweeper's job there is almost nothing: it never
+  // expires a window, never drops a seat for silence and never closes a lobby that has not
+  // filled, because a duel is two people who are deliberately not here. What it still does
+  // is the two things that MOVE a room - the draw when both XIs are in, and the round when
+  // its reveal has run - plus the one deadline a duel does have, which is a week of nothing
+  // at all. Everything below this line is the live pace's.
+  if (room.pace === 'async') return tickDuel(room, now);
   // P31: half an hour of nothing at all closes a room whatever phase it is in. First,
   // because a room this stale has nothing worth advancing.
   if (now - room.touchedAt > ROOM_IDLE_MS) return closeRoom(room);

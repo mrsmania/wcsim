@@ -105,7 +105,9 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     const [loading, setLoading] = useState(true);
     // The countdown's base: the window as the server described it, and the monotonic
     // reading at the moment that description arrived.
-    const clock = useRef<{ ordinal: number; remainingMs: number; at: number } | null>(null);
+    // Null `remainingMs` is a DUEL: the window counts the picks and deals the squads, and
+    // has no deadline at all, so there is nothing to count down and nothing to lock.
+    const clock = useRef<{ ordinal: number; remainingMs: number | null; at: number } | null>(null);
     const [remainingMs, setRemainingMs] = useState<number | null>(null);
     const roundTrip = useRef(400);
     const alive = useRef(true);
@@ -121,7 +123,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         clock.current = w
             ? { ordinal: w.ordinal, remainingMs: w.remainingMs, at: performance.now() }
             : null;
-        setRemainingMs(w ? w.remainingMs : null);
+        setRemainingMs(w?.remainingMs ?? null);
         // The strip's sentence is written HERE, by the room's own reading of itself, so the
         // chrome does not compose a second one out of a status and a count.
         holdVersusRoom({ code: next.code, status: next.status, line: roomLine(next) });
@@ -236,7 +238,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     useEffect(() => {
         const tick = () => {
             const base = clock.current;
-            if (!base) {
+            if (!base || base.remainingMs === null) {
                 setRemainingMs(null);
                 return;
             }
@@ -253,7 +255,12 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     // The tab bar goes inert while YOUR window is open, the same mechanism a live match
     // reveal already uses and for a related reason: leaving mid-window does not pause the
     // clock, it spends it. The room's own Leave is still there, so nobody is trapped.
-    const windowOpen = !!view?.you?.window;
+    //
+    // NOT IN A DUEL, where leaving costs nothing at all: the window has no deadline, the
+    // draft is waiting for you and walking away is the mode rather than a mistake. Holding
+    // the chrome for a room somebody may come back to tomorrow would be the tab bar inert
+    // for a week.
+    const windowOpen = !!view?.you?.window && view.you.window.remainingMs !== null;
     useEffect(() => (windowOpen ? holdLiveMatch() : undefined), [windowOpen]);
 
     const command = useCallback(

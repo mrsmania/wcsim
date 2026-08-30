@@ -23,7 +23,7 @@ import type { Filled } from './draft';
 import type { Formation } from './formations';
 import type { KoDecided } from './knockout';
 import type { MatchEvent, ShootoutResult } from './match';
-import type { LobbyRoom, MemberView, RoomView, TieView } from './pvpWire';
+import type { DuelRow, LobbyRoom, MemberView, RoomView, TieView } from './pvpWire';
 
 /** How long after the server stamped a reveal a client will still start playing it from
  *  the beginning. Past that it has missed too much, and the settled card is the honest
@@ -111,6 +111,76 @@ export const everybodyReady = (view: RoomView): boolean =>
     view.status === 'lobby' &&
     view.members.length >= view.size &&
     view.members.every((m) => m.ready);
+
+// --- Duels: a game nobody has to be present for (P51) -----------------------
+
+/**
+ * Is this room a duel?
+ *
+ * Read through a helper rather than off the field, because the field is ABSENT from a
+ * referee that predates duels and every screen would otherwise have to remember that a
+ * missing pace means live. Getting that backwards would draw a live room without its clock.
+ */
+export const isDuel = (view: RoomView): boolean => view.pace === 'async';
+
+/** A challenge addressed to this viewer that they have not answered yet: the one state
+ *  where somebody is looking at a room they are not in and did not ask for. */
+export const isChallengeToMe = (view: RoomView): boolean =>
+    isDuel(view) && view.status === 'lobby' && !!view.invitedName && !meIn(view);
+
+/**
+ * Whose move it is, from the caller's side of a duel row.
+ *
+ * IT IS THE WHOLE POINT OF THE LIST. A duel spans days, so the question somebody opens this
+ * page with is never "what is the score" - it is "is there anything for me to do", and a
+ * list that answers that in one word is worth more than one that reports a status. The four
+ * answers are the four things a duel can be waiting for, and only one of them is you.
+ */
+export type DuelTurn = 'yours' | 'theirs' | 'sent' | 'done';
+
+export function duelTurn(row: DuelRow): DuelTurn {
+    if (row.status === 'ended') return 'done';
+    // Nobody has accepted yet, so it is theirs to answer - unless it was sent TO you, in
+    // which case answering it is your move.
+    if (row.status === 'lobby') return row.yours ? 'sent' : 'yours';
+    if (row.status !== 'drafting') return 'theirs';
+    return row.yourPicks < XI_SLOTS ? 'yours' : 'theirs';
+}
+
+/** Slots in an XI. Every formation has eleven; a duel row counts picks against it. */
+const XI_SLOTS = 11;
+
+/** One duel row, in words: what is waiting, or how it went. Written from the caller's side,
+ *  because that is the only side they are reading it from. */
+export function duelLine(row: DuelRow): string {
+    switch (duelTurn(row)) {
+        case 'sent':
+            return row.opponentName
+                ? `Waiting for ${row.opponentName} to accept`
+                : 'Waiting for somebody to take it up';
+        case 'yours':
+            return row.status === 'lobby'
+                ? 'Challenged you'
+                : `Your move, ${row.yourPicks} of ${XI_SLOTS} picked`;
+        case 'theirs':
+            return row.status === 'drafting'
+                ? `Their move, ${row.theirPicks} of ${XI_SLOTS} picked`
+                : 'The match is being played';
+        case 'done': {
+            if (row.yourGoals === null || row.yourGoals === undefined) return 'Closed unplayed';
+            const score = `${row.yourGoals}-${row.theirGoals}`;
+            return row.won ? `You won ${score}` : row.won === false ? `You lost ${score}` : score;
+        }
+    }
+}
+
+/** What a duel PLAYS, for the row's second line and for the challenge screen. The same
+ *  sentence a lobby row gets, minus the clock: a duel has none. */
+export function duelRules(row: Pick<DuelRow, 'method' | 'budget'>): string {
+    return row.method === 'budget'
+        ? `Buy an XI with $${row.budget}`
+        : 'Roll for your XI, one man from each squad';
+}
 
 // --- Inviting somebody (the code, and the link) ----------------------------
 

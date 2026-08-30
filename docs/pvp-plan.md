@@ -14,7 +14,11 @@ half is deployed through wave 8 and verified (roadmap items 41 and 43); 0016, 00
 a whole knockout - found on a public list or reached with a code - in either kind of room,
 with or without the numbers, at either clock length, and whoever goes out first stays and
 watches the rest. A room nobody is in closes itself. The one decision wave 3 reopened, the
-career budget in P2, was settled on 2026-08-27 by dropping the option.
+career budget in P2, was settled on 2026-08-27 by dropping the option. **Duels were added
+2026-08-30** (P51): a challenge to one person, answered in their own time, with a rematch on
+the result. They are the ninth wave's shape rather than a tenth wave - one field on a room,
+and four deadlines read past - and they are DARK until migration 0020 is applied and the
+server rebuilt (roadmap item 46), as the practice opponents are (0019, item 45).
 
 **Two locked decisions are deliberately NOT built and have their own roadmap item:** P41's
 per-pick Skip and P42's move-a-placed-player. Both need an instruction the referee does not
@@ -87,6 +91,7 @@ in rather than a missing feature.
 | P26 | The defence-stacking meta | **Accepted as skill, not designed against** (2026-08-26). See section 11 for the measurement and for exactly what is being accepted. No minimum spend per line, no formation restriction |
 | P49 | Not enough people | **The host may fill the empty chairs with practice opponents** (2026-08-29, roadmap item 45). P7's play-it-smaller answers half of "a room of eight will not fill" and stops there, because dropping to two is a different evening from the tournament the host opened; this is the other half. Four rules make it a seat rather than a player: a bot **never keeps a person out** (somebody arriving at a full room takes the newest bot's chair), a bot **cannot hold a room open** (a lobby whose last human leaves closes, however many chairs are filled), a bot **cannot be host** and cannot be swept out for silence, and a tie with a bot in it is **excluded from `pvp_records`**, so a room full of them is not a record. It **builds a team worth playing** rather than drafting like an expired clock, which is deliberately random (P21) and would make a bot a free win: near the best XI its money can buy, minus `BOT_SPEND`. Measured at $110: the optimum rates 84.0, a bot rates 83.0, it beats the expired-window XI **80%** of the time and the transfer market's own one-tap auto-fill **57%**. It needs its own table (`pvp_bots`, migration 0019) because `pvp_members.user_id` is a foreign key into `profiles` and a bot has no account |
 | P50 | Starting the draft | **The room starts itself once everybody is ready, three seconds after** (2026-08-29). P48 made Ready a signal and left the host as the only thing that could act on it, so a full room of ready players sat waiting for one person to notice and press a button. The countdown is **derived from the room every client already holds** - full, and everybody ready - so it needs no instruction and nothing deployed: each screen counts down on its own and the HOST'S client sends the Start at zero. The host's button stays, for a room where somebody has not readied (P48's whole point), and arms the same three seconds rather than dropping the draft on the room. Two failure modes were designed for and both are checked: the count **disarms** if a seat is lost or somebody un-readies, so it cannot fire a Start the referee would refuse; and it **gives up at zero** after a few seconds, because the only client that sends the Start is the host's, and a host whose tab dies in the last second would otherwise leave everybody on a screen that never changes. Accepted asymmetry: a host's press on a room that was not all-ready is not visible to the others, so they see the draft arrive rather than a count - making it visible needs a server instruction, which is where P41's Skip is |
+| P51 | Playing somebody who is not online | **A duel: a room of two with its deadlines switched off** (2026-08-30, roadmap item 46). Every rule above about waiting exists because a live room cannot wait for a human (P12, P31) - the pick clock, the liveness sweep, the lobby that closes when it stops filling, the half-hour idle close. A duel is the same room with those four read past, so it is **one field (`pace`) rather than a second state machine**: the draft, the deal, the validation, the tie and the record are all the same code, which is the whole reason this is small. What differs: a challenge is **addressed** to one account by display name (nobody else may take the seat, and it is on their list before they answer), **accepting starts the draft at once** (there is nobody to wait with, so no lobby, no Ready and no Start), a window **never expires** but still counts the picks and deals the squads, **P39 counts live rooms only** (holding five duels is the feature; a duel neither uses up nor is blocked by your one live room), and the idle bound is **a week** rather than half an hour. Declining is **leaving** rather than a command of its own, and it closes the duel. There is no mail and no push notification in this game, so the duels list on the versus page IS how a challenge arrives - which is why the challenger's screen carries the invitation link, and why a row leads with whose move it is rather than with a score. The result offers a **rematch**, which is a NEW duel with the same settings: the old one has a result, and a result that can change is not a result |
 | P27 | Can two players pick the same man? | **Yes. The room pool is shared, not exclusive.** It is the only version compatible with eleven independent clocks (P12): under exclusivity two players claim the same man in overlapping windows and somebody has to be told no, which makes a fast connection an advantage. Named here as a decision rather than left as an assumption, because exclusivity is the largest single lever available if the mode ever plays flat |
 
 ### The draft
@@ -415,6 +420,50 @@ Every question this document raised was answered before building started. Buildi
 opened exactly one - the career budget - and it was settled by deletion on 2026-08-27; it is
 kept below as the record of a decision rather than as a question. Wave 3 also found five
 things worth recording.
+
+### Found while building duels (2026-08-30, P51)
+
+- **THE WHOLE FEATURE IS A LIST OF DEADLINES NOT TO CHECK.** Written out, the difference
+  between a live room and a duel is four `if`s: the pick window's expiry, the liveness drop,
+  the lobby idle close and the room idle close. Everything else - the draft, the deal, the
+  auto-pick's own machinery, the validation, the draw, the tie, the reveal, the record - is
+  the same code path. That is the finding rather than a design note: the first sketch had a
+  parallel set of tables and a second state machine, which would have been a second copy of
+  the draft, and the draft is the part with the rules in it.
+
+- **A DUEL STILL NEEDS AN IDLE BOUND, and getting it wrong either way is bad.** `ROOM_IDLE_MS`
+  is half an hour and would close a duel while both players were asleep, so it cannot be
+  reused. But dropping the bound entirely is worse: an unanswered challenge and a draft
+  nobody finishes are the two ways a duel becomes a row that never resolves, and without a
+  bound the list they sit on fills with them for ever. A week, because every write stamps
+  `touchedAt`, so a duel played over three evenings never reaches it.
+
+- **ACCEPTING HAD TO START THE DRAFT, and that removed a screen rather than adding one.** The
+  first version gave a duel the ordinary lobby, and it read as broken the moment it was
+  described: a Ready button is one player pressing something and then leaving, and a host's
+  Start is a second visit for no decision. Both shapes are already chosen by then - the
+  challenger's when they sent it, the opponent's as they accept - so `joinRoom` starts the
+  room when a duel's second seat is taken.
+
+- **THE ONE ROOM A PLAYER DID NOT CHOOSE TO OPEN.** Wave 8 settled that arriving at a room IS
+  taking the seat, and deleted a confirmation screen for saying otherwise - there is one door
+  and every way through it is a decision already made (a code you typed, a lobby row you
+  tapped, a link you followed). A challenge breaks that premise: it ARRIVED. So it is the one
+  exception, and it is narrow - a duel with no name on it is a link like any other and joins
+  on arrival, exactly as before.
+
+- **P39 IS ABOUT LIVE ROOMS, and the two halves of that fail differently.** One is the
+  store's (`activeRoomOf` filters on the pace, so holding duels blocks nothing) and one is
+  the handler's (a duel does not ask the question, so being in a live room does not stop you
+  sending a challenge). Only the first is testable through behaviour that the other also
+  produces, which is why both have their own assertion.
+
+- **A NULL WINDOW REMAINDER, NEVER A LARGE NUMBER.** The wire could have sent a duel's window
+  as a very long one and let the bar draw itself, and it would have looked fine and been a
+  lie: a screen that forgot to ask would draw a clock counting down to a deadline nothing
+  enforces. Null means "there is no clock", and the three consumers - the bar, the tab bar's
+  inert-while-your-window-is-open rule, and the draft panel's copy - each answer it
+  explicitly.
 
 ### Found while building the practice opponents (2026-08-29, P49)
 

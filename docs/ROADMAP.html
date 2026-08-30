@@ -335,8 +335,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-29<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Updated:</strong> 2026-08-30<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -402,6 +402,60 @@
     change that cannot be applied by the session that wrote it gets an item saying what to do,
     how to check it and how to undo it, so the apply can be handed to somebody with the access.</p>
     <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0019_pvp_bots.sql" target="_blank" rel="noopener">supabase/migrations/0019_pvp_bots.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">46</span>
+    <span class="title">Turn duels on: one migration, one redeploy
+      <span class="sub"><b>Written, checked and pushed; dark until the NAS is touched, exactly
+      like item 45 - and both are one visit.</b> A duel is a challenge you send to one person
+      and neither of you has to be online: they accept whenever they next open the page, each
+      of you builds an XI in your own time, and the match plays itself the moment the second
+      one is in. There is a rematch button on the result. It needs <b>migration 0020</b>
+      applied and the <b>versus server rebuilt</b>, in that order. Until then the create form
+      offers it and the answer is "the versus server would not accept those room settings" -
+      everything else about versus is unaffected.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Do it in the same visit as item 45.</strong> Two migrations and one rebuild:
+    apply 0019, apply 0020, then redeploy the server once. The order between the two
+    migrations does not matter; the order of migrations before server does, and it is the
+    standing rule. An old server against the new schema is harmless (it never writes the new
+    columns, and the default makes every room it opens a live one); a new server against the
+    old schema fails on its first insert.</p>
+    <ol>
+      <li><b>Rehearse it.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0020_pvp_duels.sql</code> needs no credentials; then send the body
+      inside a <code>begin; ... rollback;</code> with the checks from the file's own header, so
+      the post-migration state is exercised against real data and nothing is left behind.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql -- supabase/migrations/0020_pvp_duels.sql</code>,
+      then re-run the same probes.</li>
+      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
+      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>).</li>
+    </ol>
+    <p><strong>How to know it worked.</strong> From one account, choose "In your own time" on
+    the versus page, type the other account's name and send it. Sign in as that account: the
+    challenge is at the top of the versus page under "Your duels", with Accept and No thanks.
+    Accept it and the draft opens with <b>no clock at all</b> - the panel says which pick you
+    are on and nothing is counting. Close the tab, come back an hour later, finish the XI.
+    When the second XI lands the match plays itself, and both sides see the result whether or
+    not they were watching. The result offers a rematch, which sends a fresh challenge with
+    the same settings. Three things worth checking on purpose: a third account opening the
+    code is told the seat is not open; declining closes it and the challenger's list says so;
+    and holding two duels does not stop you opening an ordinary live room.</p>
+    <p><strong>What the migration does.</strong> Two columns on the rooms table - which pace a
+    room plays at, and which account a challenge is addressed to - plus one index and a
+    constraint saying a duel is never public. Its header carries the verification steps and a
+    complete rollback, and both parse under the real Postgres grammar. Note the one-way door
+    in the rollback: dropping the pace column turns any duel in flight into a live room with a
+    dead clock, which the sweeper then auto-picks to a finish, so the rollback deletes the
+    duels first.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0020_pvp_duels.sql" target="_blank" rel="noopener">supabase/migrations/0020_pvp_duels.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
   </div>
 </details>
 
