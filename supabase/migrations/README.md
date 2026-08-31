@@ -80,7 +80,7 @@ header says to keep the pair in step, and it means it.
 | Row-level security, enabled | 0002 | - |
 | Policies | 0002 | 0013 (four `for all` policies narrowed to `for select`), 0014 (`run_results_read` dropped) |
 | Function grants | 0008 | 0010 (`finish_run_v2`), 0014 (`export_account` revoked) |
-| Signup trigger | 0004 | 0005 (the invite gate dropped, signup opened) |
+| Signup trigger | 0004 | 0005 (the invite gate dropped, signup opened), **0023** (the address is folded on the way in, and a second trigger carries a change of address across) |
 | The collectible catalogue's ROWS | not here | `../seed/collectibles.sql`, generated - see below |
 
 The catalogue is not a migration: `npm run gen:collectibles` writes

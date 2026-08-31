@@ -82,10 +82,10 @@ done and why. What that means for anyone working in this tree now:
   the audit.
 - **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
   `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
-  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0022**
+  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0023**
   (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018,
-  0019/0020/0021 the three versus features applied 2026-08-30, and 0022 the duel-by-link
-  column drop applied 2026-08-31).
+  0019/0020/0021 the three versus features applied 2026-08-30, 0022 the duel-by-link
+  column drop and 0023 the email address as the identifier, both applied 2026-08-31).
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
@@ -2409,8 +2409,8 @@ run live on a server instead of in the browser, so they are the same on every de
 Requirements: `docs/cloud-sync-requirements.md` (settled). Design: `docs/cloud-sync-design.md`.
 Server setup: `docs/nas-setup.md`.
 
-**THE EMAIL ADDRESS IS THE IDENTIFIER** (2026-08-31, migration **0023**, roadmap item 50 -
-**written and queued, not yet applied**). Two things had been sharing that job and only one
+**THE EMAIL ADDRESS IS THE IDENTIFIER** (2026-08-31, migration **0023**, roadmap item 50,
+**APPLIED 2026-08-31**). Two things had been sharing that job and only one
 of them was enforced: the versus display name has carried a unique index since 0016, and the
 address you actually sign in with had no constraint at all. Worse, `profiles.email` was
 written once by `create_profile` at signup and never again, so a change of address left the
@@ -2589,6 +2589,14 @@ keep working.
   function fails at the next call rather than at migration time; and when a migration restates
   an existing function, take the body from the live server's `pg_get_functiondef`, diff it
   against the repo's copy first, and change only the line you mean to.
+  **And when the migration touches a trigger on a table another COMPONENT writes, drive that
+  component rather than the table** (0023, roadmap item 50). Its verification step is "can
+  somebody still sign in", which SQL cannot answer: an `insert into auth.users` proves the
+  trigger fires and says nothing about whether GoTrue's own insert still succeeds. The way to
+  ask it honestly and send no mail to anybody is the **admin API with the service-role key** -
+  create a user on a throwaway `@example.com` address, read the row the trigger wrote, change
+  the address, then delete the user (`profiles.id` is `on delete cascade`, so the clean-up is
+  the delete). That is the same reading as the item-49 rule above, one component further out.
 - **Persisted-shape versioning has one rule now** (recorded 2026-08-25, hygiene H74).
   Five keys had four different disciplines and no stated policy, so the next schema change
   would have invented a fifth. The rule:
@@ -2833,11 +2841,11 @@ touched each thing. What has NOT been done is **item 48**: none of the three has
 by a person. A deploy proves a room can be created, read back and changed; it proves nothing
 about whether the screens say what the rules do.
 
-**ONE MIGRATION IS QUEUED (0023), AND IT IS NOT VERSUS'S.** The versus schema is at 0022
-and the referee was rebuilt on 2026-08-31 (roadmap item 49, closed); `0023` is an ACCOUNTS
-migration (the email address as the identifier, roadmap item 50) and the referee needs no
-rebuild for it, since it reads three columns of `profiles` and `email` is deliberately not
-one of them. See "Accounts" for what it does.
+**NOTHING IS QUEUED, AND 0023 IS NOT VERSUS'S.** The versus schema is at 0022 and the
+referee was rebuilt on 2026-08-31 (roadmap item 49, closed); `0023` is an ACCOUNTS migration
+(the email address as the identifier, roadmap item 50, applied 2026-08-31) and the referee
+needed no rebuild for it, since it reads three columns of `profiles` and `email` is
+deliberately not one of them. See "Accounts" for what it does.
 
 **The versus schema is at 0022 and the referee was rebuilt on 2026-08-31** (roadmap item 49,
 closed). `0022_pvp_duel_by_link.sql` drops `pvp_rooms.invited_id` again
