@@ -42,6 +42,9 @@ create trigger enforce_invite_on_signup
 
 -- Every account needs its profile row before anything else can reference it, and
 -- `state_version` starts at 0 so the client's first write can carry 0.
+--
+-- SUPERSEDED BY 0023, which folds the address before storing it (the email is the
+-- identifier now, and an index cannot guard two spellings of one value). See README.md here.
 create or replace function create_profile()
 returns trigger
 language plpgsql

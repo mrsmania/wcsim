@@ -419,7 +419,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **400 checks** as of 2026-08-31. It exercises the sim, penalty
+per concern in `scripts/checks/`, **402 checks** as of 2026-08-31. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -2409,6 +2409,25 @@ run live on a server instead of in the browser, so they are the same on every de
 Requirements: `docs/cloud-sync-requirements.md` (settled). Design: `docs/cloud-sync-design.md`.
 Server setup: `docs/nas-setup.md`.
 
+**THE EMAIL ADDRESS IS THE IDENTIFIER** (2026-08-31, migration **0023**, roadmap item 50 -
+**written and queued, not yet applied**). Two things had been sharing that job and only one
+of them was enforced: the versus display name has carried a unique index since 0016, and the
+address you actually sign in with had no constraint at all. Worse, `profiles.email` was
+written once by `create_profile` at signup and never again, so a change of address left the
+copy pointing at the old one for ever - and **an identifier that can go stale is worse than
+no identifier**, because two accounts can then hold the same address, one in `auth.users` and
+one in `profiles`, and a unique index would be guarding a value nothing keeps current. So
+0023 is three statements rather than one `create index`: the stored form is FOLDED
+(lower-cased, trimmed), there is a unique index on it, and `sync_profile_email` carries a
+change of address across. `src/state/auth.ts` `foldEmail` is the same rule where the address
+is typed, and `npm run checks` holds the two sides together - the failure it exists to catch
+is somebody restoring `email.trim()` at a sign-in call site, which works for every address
+typed in lower case and hands the server a second spelling the first time a phone
+capitalises one. Three things it deliberately does NOT do: fold the local part (dots and a
+`+tag` are the mail provider's rule, and folding them would merge two accounts somebody
+keeps apart), let the referee see an address (P34), or add an email-change screen. **The
+name rule is NOT relaxed by it**: a name is still one per person, so a lobby stays readable.
+
 - **Guest-first is the rule** (NFR-1). The whole game is playable with no account and
   guest play never touches the server. An account adds continuity and backup, and may
   gate genuinely online extras (leaderboards later), never core gameplay or content.
@@ -2814,8 +2833,14 @@ touched each thing. What has NOT been done is **item 48**: none of the three has
 by a person. A deploy proves a room can be created, read back and changed; it proves nothing
 about whether the screens say what the rules do.
 
-**NOTHING IS QUEUED. The schema is at 0022 and the referee was rebuilt on 2026-08-31**
-(roadmap item 49, closed). `0022_pvp_duel_by_link.sql` drops `pvp_rooms.invited_id` again
+**ONE MIGRATION IS QUEUED (0023), AND IT IS NOT VERSUS'S.** The versus schema is at 0022
+and the referee was rebuilt on 2026-08-31 (roadmap item 49, closed); `0023` is an ACCOUNTS
+migration (the email address as the identifier, roadmap item 50) and the referee needs no
+rebuild for it, since it reads three columns of `profiles` and `email` is deliberately not
+one of them. See "Accounts" for what it does.
+
+**The versus schema is at 0022 and the referee was rebuilt on 2026-08-31** (roadmap item 49,
+closed). `0022_pvp_duel_by_link.sql` drops `pvp_rooms.invited_id` again
 (see the duel reshape below), and **its order was REVERSED from the standing rule**: the
 referee as deployed WROTE that column on every room it created, so dropping it first would
 have stopped any room being opened at all. Server first, then the migration. **That
@@ -2994,6 +3019,24 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
   `USER_SIDE` a constant. One pure relabelling beats teaching five components that a side
   is a parameter. `npm run checks` asserts the flip both ways and that doing it twice is
   the identity.
+- **A NAME CAN BE CHANGED, AND IT NEEDED NO SERVER WORK** (2026-08-31). The name is on the
+  versus page now - "You are <name>", beside the record, with a Change name button - and it
+  opens the SAME `NamePanel` the first-time gate opens, with a `current` prop as the only
+  difference. Three reasons it cost nothing: `set_display_name` refuses a key held by
+  SOMEBODY ELSE rather than a key that is held (`v_holder <> v_user`), so re-claiming your
+  own row IS the rename; no room stores a name (`pvp_members` holds a seat and every screen
+  joins `profiles`), so a change reaches a lobby, a tree, a duel list and a result already in
+  flight within one poll; and records key on the account (P22), so nothing won is left behind
+  under the old name. **Do not "tighten" that comparison into a refusal for an account that
+  already has a name** - it reads like a guard and would fail the rename screen with "that
+  name is taken" against the player's own name, which is the least diagnosable sentence
+  available. `npm run checks` pins it, and pins the one call site so picking and changing
+  cannot grow two sets of messages. It is offered on the versus HOME only, never with a room
+  code in the URL: a panel that replaced the room screen would take somebody out of a draft
+  to rename themselves. **The name being unique is unchanged** (decided 2026-08-31, against
+  the alternative of letting the email carry uniqueness alone): two people called Mario in
+  one lobby is the cheap grief P22 exists to prevent, and the address being the identifier
+  now is a separate statement, not a replacement.
 - **A PRIVATE ROOM IS INVISIBLE UNTIL YOU TAKE A SEAT.** Reading one you are not in answers
   "no such room" rather than "not allowed", so a code cannot be confirmed by probing - which
   means arriving with a code and being told there is no room is the NORMAL first step. Do

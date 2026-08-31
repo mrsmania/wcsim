@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-31<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -350,6 +350,72 @@
 
 
 
+
+<details class="item">
+  <summary>
+    <span class="num">50</span>
+    <span class="title">Apply the one migration that makes the email address the identifier
+      <span class="sub">Migration <b>0023</b> is written, parse-checked and queued, and it
+      needs the NAS. It makes the address you sign in with the one unique fact about an
+      account, and carries a change of address across instead of leaving the copy behind. The
+      game does not wait for it: <b>changing your versus name already works</b> on the server
+      as it stands, so this item is the invariant, not the feature.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What was wrong.</strong> Two things were sharing the job of saying who
+    somebody is and only one of them was actually enforced. The <b>versus name</b> has been
+    unique since the rooms shipped. The <b>email address</b>, which is the thing a sign-in
+    code lets you into and therefore the real identity, had no constraint on it at all - and
+    worse, it was copied into the account row once at signup and never looked at again, so a
+    change of address left the copy pointing at the old one for ever. An identifier that can
+    go stale is worse than no identifier.</p>
+
+    <p><strong>The name rule is not relaxed.</strong> Decided 2026-08-31: a name is still one
+    per person, so a lobby stays readable and two people cannot both be Mario. The change is
+    only that the address is now stated as the identity as well, and that a name is a label
+    you can change - which is the half that shipped with this item and needed no server work,
+    because nothing in a room stores a name.</p>
+
+    <p><strong>Three statements, and the third is the one that matters.</strong> One form
+    stored (lower-cased and trimmed, which the sign-in field now does too); one account per
+    address, as a unique index; and a change of address carried across by a new trigger. The
+    index alone would have been a one-liner and would have been guarding a value nothing
+    keeps current.</p>
+
+    <p><strong>It can fail on real data, and that is correct.</strong> Run the duplicate check
+    in the file's own header first - two accounts genuinely sharing an address is a decision
+    to take by hand (which of the two keeps it), not something a migration may guess at. Zero
+    rows means it will go in cleanly.</p>
+    <ol>
+      <li><b>Rehearse it.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0023_email_is_the_identifier.sql</code> needs no credentials (it
+      already passes, and the file parses against the real Postgres grammar). Then send the
+      body inside a <code>begin; ... rollback;</code> together with the checks from the
+      file's header, so the post-migration state is exercised against real data and nothing
+      is left behind.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql --
+      supabase/migrations/0023_email_is_the_identifier.sql</code>, then re-run the same
+      probes for real.</li>
+      <li><b>Check sign-in still works</b>, from the game, with the real account. This
+      migration replaces the function that creates a profile row and adds a trigger to the
+      table sign-ups write, so "can somebody still get in" is exactly the question it puts at
+      risk - the same reasoning item 49 records for a dropped column. A brand-new address is
+      the honest test, since that is the path that runs both triggers.</li>
+      <li><b>The versus server needs nothing.</b> No rebuild, no protocol bump: it reads
+      three columns of the account row and <code>email</code> is deliberately not one of
+      them.</li>
+    </ol>
+    <p><strong>How to know it worked, from the game.</strong> Nothing visible should change -
+    that is the point. Sign in, and it is the same account with the same album, the same
+    career and the same versus name. The invariant is on the server: a second account can no
+    longer be created on an address that already has one, and if the owner changes an address
+    in Studio the account row follows it.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0023_email_is_the_identifier.sql" target="_blank" rel="noopener">supabase/migrations/0023_email_is_the_identifier.sql</a>, <a class="dl" href="../supabase/migrations/README.md" target="_blank" rel="noopener">supabase/migrations/README.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/auth.ts" target="_blank" rel="noopener">src/state/auth.ts</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a></p>
+  </div>
+</details>
 
 <details class="item">
   <summary>

@@ -38,6 +38,25 @@ export interface Account {
   email: string;
 }
 
+/**
+ * The one form of an address.
+ *
+ * THE EMAIL IS THE IDENTIFIER (migration 0023), and an identifier has to have exactly one
+ * spelling or the thing guarding it is guarding nothing. `Mario@x.com` and `mario@x.com` are
+ * one mailbox everywhere it matters, so they are one account here. GoTrue folds an address
+ * itself before it looks it up, and the server folds it again before it stores the profile
+ * row - this is the third statement of the same rule, in the place the player typed, and it
+ * is what makes the sign-in field and the stored identifier agree by construction rather
+ * than by all three components happening to do the same thing.
+ *
+ * Only case and surrounding space. NOT the local-part tricks (dots, a `+tag`): whether
+ * `a.b@gmail.com` and `ab@gmail.com` are one mailbox is the mail provider's rule and not
+ * ours, and folding them would merge two accounts somebody deliberately keeps apart.
+ */
+export function foldEmail(email: string): string {
+  return email.trim().toLocaleLowerCase('en-US');
+}
+
 /** The signed-in account, or null. Cheap: reads the stored session, no round trip. */
 export async function currentAccount(): Promise<Account | null> {
   if (!FEATURES.accounts) return null;
@@ -50,7 +69,7 @@ export async function currentAccount(): Promise<Account | null> {
  *  the caller does not distinguish sign-in from sign-up. */
 export async function requestCode(email: string): Promise<void> {
   const { error } = await supabase().auth.signInWithOtp({
-    email: email.trim(),
+    email: foldEmail(email),
     options: { shouldCreateUser: true },
   });
   if (error) throw new Error(error.message);
@@ -59,7 +78,7 @@ export async function requestCode(email: string): Promise<void> {
 /** Exchange a code for a session. Returns the account it belongs to. */
 export async function submitCode(email: string, code: string): Promise<Account> {
   const { data, error } = await supabase().auth.verifyOtp({
-    email: email.trim(),
+    email: foldEmail(email),
     token: code.trim(),
     type: 'email',
   });

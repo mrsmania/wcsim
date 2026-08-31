@@ -270,7 +270,13 @@ function DuelLine({
     );
 }
 
-export default function VersusHome() {
+export default function VersusHome({
+    name,
+    onRename,
+}: {
+    name: string;
+    onRename: () => void;
+}) {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
     // ROLLING IS THE DEFAULT (2026-08-30). It is the game this one actually is: a squad you
@@ -424,19 +430,26 @@ export default function VersusHome() {
                 </div>
             )}
 
-            {record.played > 0 && (
-                <div className={`${CARD} mb-[18px] flex flex-wrap items-baseline gap-x-5 gap-y-1 p-4`}>
-                    <div className={MONO_CAP}>Your record</div>
-                    <span className="text-[14px] font-bold text-ink">
+            {/* WHO YOU ARE, AND WHAT YOU HAVE DONE, ON ONE LINE. Both answer the same
+                question - what the others see of you - and the name is the half that was
+                missing: a player who picked one once had no way of finding out what it was,
+                let alone changing it. It is not two cards, because the record half is often
+                empty and a card that says only your own name is chrome. The name is always
+                there, so this row always is. */}
+            <div className={`${CARD} mb-[18px] flex flex-wrap items-center gap-x-5 gap-y-1 p-4`}>
+                <div className={MONO_CAP}>You are</div>
+                <span className="text-[14px] font-bold text-ink">{name}</span>
+                {record.played > 0 && (
+                    <span className="text-[13px] text-muted">
                         {record.won} won, {record.lost} lost
+                        {record.roomsWon > 0 &&
+                            `, ${record.roomsWon} room${record.roomsWon === 1 ? '' : 's'} won outright`}
                     </span>
-                    {record.roomsWon > 0 && (
-                        <span className="text-[13px] text-muted">
-                            {record.roomsWon} room{record.roomsWon === 1 ? '' : 's'} won outright
-                        </span>
-                    )}
-                </div>
-            )}
+                )}
+                <button className={`${btn('quiet', 'sm')} ml-auto`} onClick={onRename}>
+                    Change name
+                </button>
+            </div>
 
             {/* YOUR MATCHES, FIRST AND FULL WIDTH. Nothing in this game sends a message,
                 so this list is the only way a duel ever reaches anybody: a team waiting to

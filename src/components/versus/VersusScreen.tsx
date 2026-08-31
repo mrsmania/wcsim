@@ -8,7 +8,7 @@ import {
     currentDisplayName,
     handshake,
 } from '../../state/pvp/referee';
-import { CARD, MONO_CAP, PRIMARY_BTN, StageHeader } from '../matchUi';
+import { btn, CARD, MONO_CAP, PRIMARY_BTN, StageHeader } from '../matchUi';
 import RoomScreen from './RoomScreen';
 import VersusHome from './VersusHome';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
@@ -29,12 +29,15 @@ type Gate =
     | { kind: 'unreachable' }
     | { kind: 'mismatch'; why: VersionMismatch; theirs: PvpVersion | null }
     | { kind: 'name' }
-    | { kind: 'ready' };
+    | { kind: 'ready'; name: string };
 
 export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
     const inRoom = useMatch('/versus/:code');
     const code = inRoom?.params.code?.toUpperCase() ?? null;
     const [gate, setGate] = useState<Gate>({ kind: 'checking' });
+    // Changing the name is a DETOUR rather than a gate: the same panel, reached on purpose
+    // from the versus page instead of because there is nothing to be called yet.
+    const [renaming, setRenaming] = useState(false);
 
     const check = useCallback(async () => {
         const shake = await handshake();
@@ -44,7 +47,7 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
         }
         try {
             const name = await currentDisplayName();
-            setGate(name ? { kind: 'ready' } : { kind: 'name' });
+            setGate(name ? { kind: 'ready', name } : { kind: 'name' });
         } catch {
             setGate({ kind: 'unreachable' });
         }
@@ -53,6 +56,7 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
     useEffect(() => {
         if (!signedIn) return;
         setGate({ kind: 'checking' });
+        setRenaming(false);
         void check();
     }, [signedIn, check]);
 
@@ -115,28 +119,73 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
         );
     }
 
-    if (gate.kind === 'name') return <NamePanel onDone={() => setGate({ kind: 'ready' })} />;
+    if (gate.kind === 'name') {
+        return <NamePanel current={null} onDone={(name) => setGate({ kind: 'ready', name })} />;
+    }
 
-    return code ? <RoomScreen code={code} /> : <VersusHome />;
+    // Not while in a room: the code in the URL is somewhere to be, and a panel that replaced
+    // it would take a player out of a draft to rename themselves.
+    if (renaming && !code) {
+        return (
+            <NamePanel
+                current={gate.name}
+                onDone={(name) => {
+                    setGate({ kind: 'ready', name });
+                    setRenaming(false);
+                }}
+                onCancel={() => setRenaming(false)}
+            />
+        );
+    }
+
+    return code ? (
+        <RoomScreen code={code} />
+    ) : (
+        <VersusHome name={gate.name} onRename={() => setRenaming(true)} />
+    );
 }
 
 /**
- * Choosing what everybody else calls you (P22).
+ * Choosing what everybody else calls you (P22), and changing it later.
  *
  * The rule is in `domain/displayName.ts` and it is enforced on both sides, which is why
  * this can show what a name WOULD become before it is claimed: normalised, folded, and
  * refused if the folded form is already held. There is no word filter, by decision; the
  * answer to a name somebody should not have is a report and the owner renaming them.
+ *
+ * ONE PANEL FOR BOTH, and the only difference is `current`. Picking a name for the first
+ * time and changing one are the same instruction (`set_display_name` updates the row it
+ * finds, and re-claiming a key you already hold is not a collision), the same rule and the
+ * same three things that can go wrong. What changes is the copy, the field starting full,
+ * and there being somewhere to go back to.
+ *
+ * A RENAME REACHES A ROOM ALREADY IN FLIGHT, and that is why there is nothing to warn about
+ * here. No room stores a name: `pvp_members` holds a seat and every screen reads the name
+ * off `profiles` through a join, so the lobby you are sitting in, the tree, the duel list
+ * and the result all say the new one within a poll. Records key on the account (P22), so
+ * nothing you have won is left behind under the old name either.
  */
-function NamePanel({ onDone }: { onDone: () => void }) {
-    const [raw, setRaw] = useState('');
+function NamePanel({
+    current,
+    onDone,
+    onCancel,
+}: {
+    current: string | null;
+    onDone: (name: string) => void;
+    onCancel?: () => void;
+}) {
+    const [raw, setRaw] = useState(current ?? '');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<RefereeMessage | null>(null);
     const verdict = validateName(raw);
+    // Nothing to save is not an error, so the button goes quiet rather than the form
+    // reporting a fault. The comparison is on the NORMALISED name, since that is what would
+    // be stored: adding a trailing space is not a rename.
+    const unchanged = current !== null && verdict.name === current;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!verdict.ok || busy) return;
+        if (!verdict.ok || busy || unchanged) return;
         setBusy(true);
         setError(null);
         void claimDisplayName(raw)
@@ -149,12 +198,24 @@ function NamePanel({ onDone }: { onDone: () => void }) {
 
     return (
         <>
-            <StageHeader eyebrow="Versus" title="Pick a name" />
+            <StageHeader
+                eyebrow="Versus"
+                title={current === null ? 'Pick a name' : 'Change your name'}
+            />
             <form className={`${CARD} max-w-[460px] p-5`} onSubmit={submit}>
                 <RoomNote>
                     What everybody else sees. {NAME_MIN} to {NAME_MAX} characters, and one
                     nobody else is using.
                 </RoomNote>
+                {current !== null && (
+                    <RoomNote>
+                        <span className="mt-2 block">
+                            It changes everywhere at once, rooms you are already in included.
+                            Nothing you have won moves with it: your record follows the
+                            account, not the name.
+                        </span>
+                    </RoomNote>
+                )}
                 <input
                     value={raw}
                     onChange={(e) => setRaw(e.target.value)}
@@ -171,15 +232,22 @@ function NamePanel({ onDone }: { onDone: () => void }) {
                             `Not allowed: ${verdict.rejected.join(' ')}`}
                     </p>
                 )}
-                {verdict.ok && verdict.name !== raw && (
+                {verdict.ok && !unchanged && verdict.name !== raw && (
                     <p className="mt-2 text-[13px] text-muted">
                         You will be shown as <b className="text-ink">{verdict.name}</b>.
                     </p>
                 )}
                 {error && <RefereeProblem message={error} />}
-                <button className={`${PRIMARY_BTN} mt-4`} disabled={!verdict.ok || busy}>
-                    That's me
-                </button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <button className={PRIMARY_BTN} disabled={!verdict.ok || busy || unchanged}>
+                        {current === null ? "That's me" : 'Call me that'}
+                    </button>
+                    {onCancel && (
+                        <button type="button" className={btn('quiet')} onClick={onCancel}>
+                            Never mind
+                        </button>
+                    )}
+                </div>
             </form>
         </>
     );

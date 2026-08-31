@@ -209,6 +209,84 @@ export function stateChecks(): void {
     );
   }
 
+  // --- The email address is the identifier, and both sides fold it the same way ---
+  // Migration 0023 makes `profiles.email` unique, which is the ask - but a unique index is
+  // only worth what the stored form is worth. `Mario@x.com` and `mario@x.com` are one
+  // mailbox and would be two rows, so the rule has to be "store one form", and that rule is
+  // stated in THREE places by three different technologies: the sign-in field folds what was
+  // typed, GoTrue folds it again before it looks the account up, and the profile row is
+  // written folded by two trigger functions. Only the first and third are ours, and this
+  // asserts they agree - the failure it exists to catch is somebody restoring `email.trim()`
+  // at a sign-in call site, which works perfectly for every address anybody types in lower
+  // case and hands the server a second spelling of one identity the first time somebody's
+  // phone capitalises the first letter.
+  //
+  // Source-level, like the room-pointer check above and for the same reason: the defect is
+  // a line not being there, and importing `state/auth.ts` here would drag the whole auth
+  // library into the harness for one string function.
+  {
+    const auth = readFileSync('src/state/auth.ts', 'utf8');
+    const sql = readFileSync('supabase/migrations/0023_email_is_the_identifier.sql', 'utf8');
+    // The two places an address is sent. Both must go through the fold, and `.trim()` alone
+    // at either is the regression.
+    const sends = (auth.match(/email: foldEmail\(email\),/g) ?? []).length;
+    const raw = (auth.match(/email: email\.trim\(\),/g) ?? []).length;
+    // The three writes: the backfill, and the two trigger functions.
+    const folds = (sql.match(/lower\(btrim\(/g) ?? []).length;
+    check(
+      'accounts: the email is folded where it is typed and where it is stored, and is unique',
+      () =>
+        // Vacuity: this really is the file that signs in, and those really are the two calls.
+        auth.includes('auth.signInWithOtp(') &&
+        auth.includes('auth.verifyOtp(') &&
+        sends === 2 &&
+        raw === 0 &&
+        // The client's fold is case and surrounding space, and nothing cleverer: the
+        // local-part rules (dots, a `+tag`) belong to the mail provider, and folding them
+        // would merge two accounts somebody keeps apart on purpose.
+        /export function foldEmail[\s\S]{0,200}\.trim\(\)[\s\S]{0,80}toLocaleLowerCase/.test(auth) &&
+        // And the server's, in the two functions plus the backfill.
+        folds >= 3 &&
+        sql.includes('create unique index if not exists profiles_email_uniq on profiles (email)'),
+      () => `${sends} folded sends, ${raw} raw, ${folds} folded writes`,
+    );
+  }
+
+  // --- Changing a versus name is the same instruction as claiming one ----------
+  // A rename needed no SQL, and the reason is one comparison inside `set_display_name`
+  // (0017): it refuses a key held by SOMEBODY ELSE, not a key that is held. So an account
+  // re-claiming its own row updates it, which is exactly what a rename is. That is easy to
+  // "tighten" into a refusal for an account that already has a name - it reads like a
+  // guard - and the rename screen would then fail with "that name is taken" against the
+  // player's own name, which is the least diagnosable sentence available.
+  //
+  // The client half is one panel for both, so the rule, the normalisation preview and the
+  // three refusals cannot differ between picking a name and changing it.
+  {
+    const dir = 'supabase/migrations';
+    const live = readFileSync(`${dir}/0017_pvp_referee.sql`, 'utf8');
+    const body = live.slice(live.indexOf('create or replace function set_display_name'));
+    const screen = readFileSync('src/components/versus/VersusScreen.tsx', 'utf8');
+    const home = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
+    check(
+      'versus: a name can be changed - the claim allows a re-claim, and one panel does both',
+      () =>
+        // Vacuity: the body was found, and it really is the function that writes the name.
+        body.includes('update profiles set display_name = p_name, name_key = p_key') &&
+        // The comparison that makes a rename legal. Against the CALLER, not against null.
+        /v_holder is not null and v_holder <> v_user/.test(body) &&
+        // One call site, so there is one rule and one set of messages.
+        (screen.match(/claimDisplayName\(/g) ?? []).length === 1 &&
+        // The panel takes the current name, which is the only thing that differs.
+        /function NamePanel\(/.test(screen) &&
+        screen.includes('current: string | null;') &&
+        screen.includes('<NamePanel current={null}') &&
+        // And there is a way to reach it that is not the first-time gate.
+        home.includes('onRename') &&
+        screen.includes('setRenaming(true)'),
+    );
+  }
+
   // --- Migrations: the index says where each function actually lives -----------
   // Migrations are append-only and applied by hand, so a function that has changed four
   // times exists four times on disk and only the last one is live. `finish_run`'s body is

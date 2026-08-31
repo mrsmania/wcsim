@@ -36,12 +36,13 @@ mode, and it has happened.
 | `import_guest_progress(jsonb)` | **0011** | 0003 |
 | `export_account()` | 0003 (execute revoked in 0014) | - |
 | `delete_account()` | 0003 | - |
-| `create_profile()` | 0004 | - |
+| `create_profile()` | **0023** | 0004 |
 | `enforce_invite()` | dropped in **0005** | 0004 |
 | `pvp_is_member(bigint)` | 0016 | - |
 | `pvp_tie_played(bigint, uuid)` | 0016 | - |
 | `pvp_forget_account()` | 0019 | - |
 | `set_display_name(text, text)` | 0017 | - |
+| `sync_profile_email()` | 0023 | - |
 
 `set_display_name` is the one client-callable function 0017 adds, and it exists because
 0016 added `profiles.display_name` and `profiles.name_key` and nothing on either side could
@@ -49,6 +50,14 @@ write them: `profiles` has been select-only for the client since 0002, and the r
 deliberately holds no write grant on it (P34). The NORMALISATION is the client's
 (`src/domain/displayName.ts`), and the function checks only what SQL can know on its own -
 that the key is present, within length, and unclaimed.
+
+`create_profile` and `sync_profile_email` are the two halves of one rule, added by 0023:
+the **email address is the identifier**, so it is stored folded (lower-cased, trimmed) and
+carries a unique index, and a change of address on the auth side is carried across rather
+than leaving the copy here pointing at the old one. `profiles.email` had been written once
+at signup and never again, which is the failure the second function exists to close: an
+identifier that can go stale is worse than none. Neither function is called by the client;
+both are triggers on `auth.users`.
 
 The two `pvp_*` helpers are not part of the client surface and are not called by anything
 yet. They exist because a row-level-security policy on `pvp_rooms` that reads `pvp_members`,
