@@ -517,9 +517,12 @@ things worth recording.
   for the shape of a feature only ever catches the version it was written against.
 - **DROPPING A COLUMN CAN INVERT THE DEPLOY ORDER.** Schema first, then the container, is the
   standing rule and it holds because an old container never writes a new column. It does not
-  hold in the other direction: the deployed referee writes `invited_id` on every insert, so
-  dropping it first stops every room being created. 0022's header says so twice and the
-  roadmap item leads with it.
+  hold in the other direction: the deployed referee wrote `invited_id` on every insert, so
+  dropping it first would have stopped every room being created. Server first, then 0022;
+  done in that order on 2026-08-31 (roadmap item 49) and nothing broke. **The verification
+  that mattered was running the SERVER's own create-read-change-delete a second time, AFTER
+  the drop** - the SQL rehearsal proves the migration is safe and says nothing whatever about
+  whether the container can still insert a row.
 
 ### Found while building duels (2026-08-30, P51)
 

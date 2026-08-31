@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-31<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -349,56 +349,6 @@
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
 
-<details class="item">
-  <summary>
-    <span class="num">49</span>
-    <span class="title">Rebuild the versus server, then drop one column
-      <span class="sub">Duels changed shape on 2026-08-31 and the change is already on the
-      site: you build your team straight away, send it with a button, and the invitation is
-      a link rather than somebody's name. The server has not caught up, so <b>opening a
-      challenge is refused with "the versus server is running an older build" until it
-      does</b>. One rebuild and one migration, and the order is <b>the other way round from
-      usual</b>.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Rebuild the server FIRST, then apply the migration.</strong> This is the one
-    time that order is reversed, and getting it wrong takes versus down completely: the
-    server as it stands writes the column this migration drops, on every single room it
-    creates, so dropping it first stops any room being opened at all. The other way round
-    the column simply sits there unwritten for a few minutes, which is harmless. The
-    migration's own header says this twice.</p>
-    <ol>
-      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
-      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>). Confirm the
-      verification's create-and-change step passes before going on.</li>
-      <li><b>Rehearse the migration.</b> <code>npm run push:sql -- --dry-run
-      supabase/migrations/0022_pvp_duel_by_link.sql</code> needs no credentials; then send the
-      body inside a <code>begin; ... rollback;</code> with the checks from the file's own
-      header.</li>
-      <li><b>Apply it.</b> <code>npm run push:sql --
-      supabase/migrations/0022_pvp_duel_by_link.sql</code>, then re-run the same probes.</li>
-    </ol>
-    <p><strong>How to know it worked.</strong> Open a challenge on the versus page. It must
-    drop you straight onto your own team sheet, with the invitation link beside it and the
-    other chair empty - no lobby, no Ready button, nothing to accept. Build the eleven and
-    press Send. Open the link from a second account: it takes the seat there and then and
-    starts building its own team, days later if you like. When the second team is sent the
-    match plays itself, and each of you watches it the next time you open the duel rather
-    than having missed it. A third account opening the link is told the room has started.</p>
-    <p><strong>What the migration does.</strong> Drops one column and its index: the account
-    a challenge used to be addressed to. Nothing else, and no rows. Any challenge already out
-    there with a name on it keeps working - it simply becomes open to whoever holds the link.
-    The header carries the verification steps and a complete rollback.</p>
-    <p><strong>Until it is done</strong> the site refuses to open a challenge rather than
-    opening the wrong kind: the page tests what came back rather than that it came back, and
-    closes the room it was handed. "Together, now" rooms are completely unaffected, as is
-    everything outside versus.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0022_pvp_duel_by_link.sql" target="_blank" rel="noopener">supabase/migrations/0022_pvp_duel_by_link.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
-  </div>
-</details>
 
 
 <details class="item">
@@ -442,8 +392,7 @@
     room from a second account and confirm <b>a person takes an opponent's chair rather than
     being refused</b>. Beating one must not move your record.</p>
 
-    <p><strong>A duel</strong> - <b>after item 49</b>, which the current server has not had
-    yet. Open one: it must put you straight on your own team sheet with a link to send, no
+    <p><strong>A duel</strong> (item 49 landed, so the server is ready for this). Open one: it must put you straight on your own team sheet with a link to send, no
     clock anywhere, and the other chair empty. Send the eleven. Open the link from the second
     account, build there, send. The match plays itself, and each side WATCHES it the next
     time they open the duel rather than finding a score - that reveal is per person and per
@@ -1070,6 +1019,75 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-08-31</h3>
+<details class="item">
+  <summary>
+    <span class="num">49</span>
+    <span class="title">Rebuild the versus server, then drop one column
+      <span class="sub"><b>CLOSED 2026-08-31.</b> The versus server was rebuilt and then
+      migration 0022 applied, in that order. Proved on the live server rather than assumed:
+      opening a challenge now answers with a room already drafting, one seat filled, a squad
+      already dealt and no clock at all. The column is gone, the sixteen rooms that existed
+      are all still there, and sign-in was never interrupted.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Rebuild the server FIRST, then apply the migration.</strong> This was the one
+    time that order is reversed, and getting it wrong would have taken versus down
+    completely: the server as it stood wrote the column this migration drops, on every single
+    room it created, so dropping it first would have stopped any room being opened at all.
+    The other way round the column simply sat there unwritten for a few minutes, which is
+    harmless. It went in that order and nothing broke.</p>
+
+    <p><strong>What was actually checked, in order.</strong> The migration was rehearsed
+    against the live database inside a transaction that rolled back - sixteen rooms before
+    and after, the column and index present then gone, nothing depending on them, and no
+    duel anywhere holding a name, so nothing lost its addressing. Then the server was
+    rebuilt and its own verification passed, including the step that creates a room, reads
+    it back, changes it and deletes it. Then the migration went in. Then the SAME
+    verification was run again, because "can this server still create a room" is exactly
+    the question dropping a column it used to write puts at risk. Last, a real challenge was
+    opened through the public URL and came back <code>drafting</code> with one seat and a
+    squad dealt, and the duel list carried the three new fields. The two test challenges were
+    closed again afterwards.</p>
+
+    <p><strong>The firewall held.</strong> This deploy has twice wiped the container firewall
+    rules and taken sign-in down with it, so the account server was checked before, during
+    and after: 200 throughout, and every container came back healthy. Nothing needed the
+    Task Scheduler recovery.</p>
+    <ol>
+      <li><b>Rebuild and redeploy the versus server</b> exactly as item 43 describes
+      (<code>scripts/deploy-referee.sh</code> with <code>--verify</code>). Confirm the
+      verification's create-and-change step passes before going on.</li>
+      <li><b>Rehearse the migration.</b> <code>npm run push:sql -- --dry-run
+      supabase/migrations/0022_pvp_duel_by_link.sql</code> needs no credentials; then send the
+      body inside a <code>begin; ... rollback;</code> with the checks from the file's own
+      header.</li>
+      <li><b>Apply it.</b> <code>npm run push:sql --
+      supabase/migrations/0022_pvp_duel_by_link.sql</code>, then re-run the same probes.</li>
+    </ol>
+    <p><strong>How to know it worked, from the game.</strong> Open a challenge on the versus page. It must
+    drop you straight onto your own team sheet, with the invitation link beside it and the
+    other chair empty - no lobby, no Ready button, nothing to accept. Build the eleven and
+    press Send. Open the link from a second account: it takes the seat there and then and
+    starts building its own team, days later if you like. When the second team is sent the
+    match plays itself, and each of you watches it the next time you open the duel rather
+    than having missed it. A third account opening the link is told the room has started.</p>
+    <p><strong>What the migration does.</strong> Drops one column and its index: the account
+    a challenge used to be addressed to. Nothing else, and no rows. Any challenge already out
+    there with a name on it keeps working - it simply becomes open to whoever holds the link.
+    The header carries the verification steps and a complete rollback.</p>
+    <p><strong>The guard that covered the gap stays.</strong> While the server was behind,
+    the site refused to open a challenge rather than opening the wrong kind - it tests what
+    came back rather than that it came back, and closes the room it was handed. That is dead
+    weight against our own server now and it stays anyway, for the reason every other version
+    guard in this codebase does: a fork runs whatever version it has.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0022_pvp_duel_by_link.sql" target="_blank" rel="noopener">supabase/migrations/0022_pvp_duel_by_link.sql</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
+
     <h3>Closed 2026-08-30</h3>
 <details class="item">
   <summary>
@@ -1131,8 +1149,9 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       it created and read back carries a <code>pace</code> field, which did not exist in the
       previous image. <b>The shape changed the next day</b> - you build your team straight
       away instead of waiting to be accepted, you send it with a button, and the invitation is
-      a link rather than a name - and that needs one more rebuild and one more migration,
-      which is <b>item 49</b>. Still <b>not played by a person</b>: that is item 48.</span>
+      a link rather than a name - which needed one more rebuild and one more migration,
+      done the same day as <b>item 49</b>. Still <b>not played by a person</b>: that is item
+      48.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>

@@ -82,9 +82,10 @@ done and why. What that means for anyone working in this tree now:
   the audit.
 - **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
   `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
-  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0021**
-  (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018, and
-  0019/0020/0021 the three versus features, applied 2026-08-30). `0022` is queued.
+  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0022**
+  (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018,
+  0019/0020/0021 the three versus features applied 2026-08-30, and 0022 the duel-by-link
+  column drop applied 2026-08-31).
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
@@ -2560,7 +2561,10 @@ keep working.
   the real server against real data, and nothing is left behind. Put the results in a temp
   table and `select` it at the end, since notices do not come back through `push:sql`. That is
   what turned "this looks wrong" into a reproduced failure for 0014, and it is cheap.
-  Re-run the same probes after applying for real. Two habits that go with it:
+  Re-run the same probes after applying for real. **And when the migration DROPS something
+  the server writes, re-run the SERVER's own verification too** (0022, roadmap item 49): the
+  rehearsal proves the SQL is safe and says nothing at all about whether the container can
+  still insert a row afterwards, which is the exact thing a drop puts at risk. Two habits that go with it:
   **"nothing reads it" is not "nothing writes it"** - dropping a column needs BOTH searches,
   and a plpgsql body is not checked when a column is dropped, so a stale `insert` inside a
   function fails at the next call rather than at migration time; and when a migration restates
@@ -2810,12 +2814,14 @@ touched each thing. What has NOT been done is **item 48**: none of the three has
 by a person. A deploy proves a room can be created, read back and changed; it proves nothing
 about whether the screens say what the rules do.
 
-**ONE MIGRATION IS QUEUED: `0022_pvp_duel_by_link.sql`**, which drops `pvp_rooms.invited_id`
-again (see the duel reshape below). **Its order is REVERSED from the standing rule and the
-header says so twice**: the deployed referee WRITES that column on every room it creates, so
-dropping it first breaks room creation outright. **Rebuild the referee first, then apply the
-migration.** The client shipped ahead of both, as it always does, and it degrades honestly -
-see the duel note below.
+**NOTHING IS QUEUED. The schema is at 0022 and the referee was rebuilt on 2026-08-31**
+(roadmap item 49, closed). `0022_pvp_duel_by_link.sql` drops `pvp_rooms.invited_id` again
+(see the duel reshape below), and **its order was REVERSED from the standing rule**: the
+referee as deployed WROTE that column on every room it created, so dropping it first would
+have stopped any room being opened at all. Server first, then the migration. **That
+inversion is the general lesson**: "schema before container" holds because an old container
+never writes a NEW column, and it simply does not hold when a column is going away. Ask
+which way the write points before choosing the order.
 
 **THE PRACTICE OPPONENTS** (2026-08-29, roadmap item 45). A host can fill the empty chairs of
 a room of four or eight with bots that build their own strong XI, so a tournament can be
@@ -2837,12 +2843,16 @@ challenger's draft** (no lobby, no acceptance step, and the second seat stays op
 draft), finishing is **declared in every duel** rather than only in a budget one (the send
 button), and the challenge is **addressed by link and by nothing else** (`invited_id` dropped
 by 0022). `PVP_PROTOCOL` was again deliberately **not** bumped, for the same reason as above.
-**SO THERE ARE NOW TWO VERSION SKEWS TO DEGRADE FROM, and one of them is live today**: a
-referee that predates duels answers 201 with an ordinary live room, and the one deployed right
-now answers 201 with a duel **in a lobby**, waiting to be accepted - which is the shape this
-change removes, and which the screens no longer draw. `duelDowngraded` therefore tests the
-STATUS as well as the pace, and the create path closes the room it was handed rather than
-walking the player into a lobby they cannot draft from. **AN OLD REFEREE DOES NOT REFUSE A
+**THERE ARE TWO VERSION SKEWS TO DEGRADE FROM, and both are now behind us**: a referee that
+predates duels answers 201 with an ordinary live room, and one built between 2026-08-30 and
+the reshape answers 201 with a duel **in a lobby**, waiting to be accepted - a shape the
+screens no longer draw at all. `duelDowngraded` therefore tests the STATUS as well as the
+pace, and the create path closes the room it was handed rather than walking the player into
+a lobby they cannot draft from. It is dead weight against our own server and it stays, for
+the reason every other version guard here does: a fork runs whatever it has. **The general
+point outlasts both**: a probe for the SHAPE of a feature (here `GET /v1/duels` answering
+`no-such-route`) only ever catches the version it was written against, because the second
+skew answers that route perfectly well. Test the ANSWER. **AN OLD REFEREE DOES NOT REFUSE A
 DUEL, IT SILENTLY OPENS AN ORDINARY ROOM** - `pace` is a field it has never heard of, so it reads past it and answers
 201 with a live room of two, and the first version of this shipped believing the opposite and
 walked the player into a lobby with a Ready button. So the create path tests the ANSWER
@@ -2854,8 +2864,8 @@ skew** - a container that has duels answers the route perfectly well - which is 
 reason the answer is tested rather than the request. See "A duel" below.
 
 **THE SERVER WAS DEPLOYED THROUGH WAVE 8 AT SCHEMA 0018** (referee redeployed and verified
-2026-08-27, roadmap item 43); **it is at 0021 now** - see the paragraph above, which is the
-current one. Wave 8 needed **no migration at all**: every column it
+2026-08-27, roadmap item 43); **it is at 0022 now**, rebuilt 2026-08-31 - see the paragraph
+above, which is the current one. Wave 8 needed **no migration at all**: every column it
 reads was written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
 `pvp_members.last_seen`, the `pvp_rooms_open_idx` partial index, the `pvp_records` view,
 `pvp_name_reports`). It did need the container rebuilt, for `GET /v1/lobby` and the `/leave`
