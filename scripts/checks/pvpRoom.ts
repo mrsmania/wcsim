@@ -51,6 +51,7 @@ import {
   remainingBudget,
   rerollDeal,
   setDone,
+  setLineup,
   setXi,
   startRoom,
   submitPick,
@@ -65,6 +66,8 @@ import {
 const BUDGET: RoomRules = { method: 'budget', budget: 110, years: [] };
 const ROLL: RoomRules = { method: 'roll', budget: 0, years: [] };
 const T0 = 1_000_000;
+/** What an unset member drafts into, so the live-room vacuity guard names it once. */
+const DEFAULT_FORMATION_FOR_CHECK = '4-3-3';
 
 /** "Everybody stopped pinging a while ago", expressed as the rule plus a margin rather than
  *  as a number. A fixture that hardcodes a duration is a fixture that fails when the rule it
@@ -1201,6 +1204,57 @@ function botChecks(): void {
         () => `${done.status}, champion ${champion?.name ?? 'none'}, ${done.ties.length} ties`,
       );
     });
+  }
+
+  // --- A duel's shape, which had no control at all --------------------------
+  //
+  // A DUEL DRAFTS FROM THE MOMENT IT IS OPENED, so it never renders the lobby - and the only
+  // formation control lives there. Neither side of any duel could choose a shape, and both
+  // played 4-3-3 balanced. Reported from the game 2026-08-30. `setLineup`'s gate is no longer
+  // "the room has not started" but "you have not taken anybody", which is the same idea
+  // measured against the thing a duel actually has.
+  {
+    const duel = createRoom({
+      id: 'r9',
+      code: 'DU0001',
+      hostId: 'u0',
+      hostName: 'Host',
+      visibility: 'private',
+      size: 2,
+      rules: BUDGET,
+      pickSeconds: 20,
+      hostBudget: BUDGET.budget,
+      pace: 'async',
+      now: T0,
+    });
+    const shaped = setLineup(duel, 'u0', '3-5-2', 'off', true);
+    // Take somebody, and the shape is settled: the slots ARE the formation by then.
+    const withOne = (() => {
+      const m = shaped.members.find((x) => x.userId === 'u0')!;
+      const slot = formationOf(m).slots[0]!;
+      const player = roomPlayers(shaped.rules).find(
+        (pl) => pl.positions.includes(slot.position) && pvpPriceOf(pl) <= m.budget,
+      )!;
+      return setXi(shaped, 'u0', { [slot.id]: player }, T0 + 1000).room;
+    })();
+    const late = setLineup(withOne, 'u0', '4-4-2', 'bal', true);
+    check(
+      "draft: a duel's shape can be changed until the first player, and not after",
+      () =>
+        // It drafts from creation, which is exactly why the lobby gate had to go.
+        duel.status === 'drafting' &&
+        shaped.members.find((m) => m.userId === 'u0')?.formationName === '3-5-2' &&
+        shaped.members.find((m) => m.userId === 'u0')?.style === 'off' &&
+        // And once a player is placed it is refused, so a change can never orphan a board.
+        Object.keys(withOne.xi.u0 ?? {}).length === 1 &&
+        late.members.find((m) => m.userId === 'u0')?.formationName === '3-5-2' &&
+        // Vacuity: a LIVE room is unchanged - its shape is a lobby decision and stays one.
+        setLineup(startRoom(roomOf(2, BUDGET), 'u0', T0), 'u0', '3-5-2', 'off', true).members.find(
+          (m) => m.userId === 'u0',
+        )?.formationName === DEFAULT_FORMATION_FOR_CHECK,
+      () =>
+        `${duel.status}, shaped ${shaped.members.find((m) => m.userId === 'u0')?.formationName}, late ${late.members.find((m) => m.userId === 'u0')?.formationName}`,
+    );
   }
 
   // --- One clock over the whole draft (P52) --------------------------------

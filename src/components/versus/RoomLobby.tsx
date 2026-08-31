@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-    FORMATIONS_DATA,
-    STYLES,
-    STYLE_LABEL,
-    getFormation,
-    type FormationName,
-    type Style,
-} from '../../domain/formations';
+import { type FormationName, type Style } from '../../domain/formations';
 import { ROOM_SIZES } from '../../domain/pvpRoom';
 import {
     KICKOFF_HOLD_SECONDS,
@@ -30,6 +23,7 @@ import {
     RoomNote,
     SeatRow,
 } from './versusUi';
+import ShapePicker from './ShapePicker';
 
 /** Where this build is being served from, for the invite link. Read here rather than
  *  inside `inviteUrl`, which is `domain/` and has no window - and defaulted so a checks
@@ -64,7 +58,6 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const [busy, setBusy] = useState(false);
     const isHost = view.hostId === view.you?.userId;
     const full = view.members.length >= view.size;
-    const styles = FORMATIONS_DATA.stylesByName[name] ?? STYLES;
     // Downwards only, and never below the people already sitting here: that is the
     // referee's rule (`reduceSize`), and offering a button it would refuse is worse than
     // not offering one.
@@ -101,12 +94,6 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
         // no clock in a lobby, and a refused post is reconciled by the next poll.
         void room.ready(n, s, ready).catch(() => undefined);
     };
-    const pickFormation = (n: FormationName): void => {
-        const allowed = FORMATIONS_DATA.stylesByName[n] ?? STYLES;
-        const s = allowed.includes(style) ? style : (allowed[0] ?? 'bal');
-        if (getFormation(n, s)) post(n, s, me?.ready ?? false);
-    };
-
     /**
      * THE ROOM STARTS ITSELF ONCE EVERYBODY IS READY, and counts down to it.
      *
@@ -176,40 +163,13 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     return (
         <div className="grid items-start gap-[22px] min-[860px]:grid-cols-[minmax(0,1fr)_360px]">
             <div className={`${CARD} p-4`}>
-                <div className={MONO_CAP}>Your shape</div>
-                <RoomNote>
-                    Chosen here, not on the clock: the clock only ever covers picking players.
-                </RoomNote>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                    {FORMATIONS_DATA.names.map((n) => (
-                        <button
-                            key={n}
-                            onClick={() => pickFormation(n)}
-                            className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${
-                                n === name ? CHIP_ON : CHIP_OFF
-                            }`}
-                        >
-                            {n}
-                        </button>
-                    ))}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                    {STYLES.map((s) => {
-                        const enabled = styles.includes(s);
-                        return (
-                            <button
-                                key={s}
-                                disabled={!enabled}
-                                onClick={() => post(name, s, me?.ready ?? false)}
-                                className={`rounded-[5px] border px-2.5 py-1.5 text-[12px] font-bold transition ${
-                                    s === style ? CHIP_ON : CHIP_OFF
-                                } ${enabled ? '' : 'cursor-not-allowed opacity-40'}`}
-                            >
-                                {STYLE_LABEL[s]}
-                            </button>
-                        );
-                    })}
-                </div>
+                <ShapePicker
+                    name={name}
+                    style={style}
+                    onPick={(n, st) => post(n, st, me?.ready ?? false)}
+                    note="Chosen here, not on the clock: the clock only ever covers picking players."
+                />
+
                 {/* One button, labelled for what it DOES. The seat list beside it is where
                     the state is shown, so the button does not have to be both. */}
                 <button

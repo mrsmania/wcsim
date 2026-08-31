@@ -701,7 +701,26 @@ export function setLineup(
   style: Style,
   ready: boolean,
 ): PvpRoom {
-  if (room.status !== 'lobby') return room;
+  // A DUEL HAS NO LOBBY - it drafts from the moment it is opened - so "before the room
+  // starts" cannot be what gates a shape there, and while it was, NEITHER player in a duel
+  // could choose one: the only formation control lives on the lobby screen, which a duel
+  // never renders, so every duel was played 4-3-3 balanced by both sides. Reported from the
+  // game on 2026-08-30.
+  //
+  // What replaces it is the same idea measured against the thing a duel actually has: you
+  // may change your shape until you have taken somebody. After that the board is built on
+  // it - the slots ARE the formation - so a change would be a different team, not a
+  // different shape.
+  //
+  // One wrinkle, accepted rather than fixed: a roll duel has already been dealt a squad,
+  // chosen to fill the slots the OLD shape left open. It is not re-dealt, because dealing
+  // again on every shape change is a free re-roll and re-rolls are counted; a squad that
+  // fits nothing under the new shape costs one, exactly as it would have anyway.
+  const changing =
+    room.pace === 'async' &&
+    room.status === 'drafting' &&
+    Object.keys(room.xi[userId] ?? {}).length === 0;
+  if (room.status !== 'lobby' && !changing) return room;
   const next = clone(room);
   const m = memberOf(next, userId);
   if (!m) return room;

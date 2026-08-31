@@ -997,6 +997,37 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- One formation control, reachable from both kinds of room -------------
+  //
+  // It lived inside `RoomLobby`, and a duel never renders a lobby, so a duel had no way to
+  // choose a shape at all. Shared rather than copied now: a second copy is precisely how the
+  // two would drift apart again, and the drift would be silent - a room where the chips are
+  // simply absent looks like a room that has no such setting.
+  {
+    const picker = readFileSync('src/components/versus/ShapePicker.tsx', 'utf8');
+    const lobby = readFileSync('src/components/versus/RoomLobby.tsx', 'utf8');
+    const draft = readFileSync('src/components/versus/RoomDraft.tsx', 'utf8');
+    check(
+      'pvpView: the formation control is one component, and a duel can reach it mid-draft',
+      () =>
+        // It is the real control: the shapes and the styles come off the domain's own lists.
+        /FORMATIONS_DATA\.names\.map/.test(picker) &&
+        /STYLES\.map/.test(picker) &&
+        // Both screens render it and neither keeps a chip row of its own.
+        /<ShapePicker/.test(lobby) &&
+        /<ShapePicker/.test(draft) &&
+        !/FORMATIONS_DATA\.names\.map/.test(lobby) &&
+        !/FORMATIONS_DATA\.names\.map/.test(draft) &&
+        // The draft offers it to a DUEL only, and only while the board is empty - after the
+        // first player the slots are the formation.
+        /view\.pace === 'async' && filledCount === 0/.test(draft) &&
+        // And it posts, or the chips are decoration.
+        /room\.ready\(/.test(draft),
+      () =>
+        `picker ${/FORMATIONS_DATA\.names\.map/.test(picker)}, lobby ${/<ShapePicker/.test(lobby)}, draft ${/<ShapePicker/.test(draft)}`,
+    );
+  }
+
   // --- The four controls a room hides (P41), plus the three it turns off -----
   // A LIST rather than a flag, because the list is the decision: each entry breaks the
   // pick clock, or the referee, in its own way. This asserts the two sets are the same
