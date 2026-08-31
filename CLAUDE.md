@@ -21,6 +21,34 @@ corrected over and over.
 The same rule, with the surrounding workflow detail, is under "Conventions and working
 agreements" below. It is stated twice on purpose.
 
+## AND READ THIS FIRST: YOU ARE PROBABLY NOT ALONE IN THIS TREE
+
+**Several agents, and sometimes the human as well, work on this project at the same time in
+the same working directory.** So the rule above comes with a second half that is just as
+absolute: **commit and push YOUR OWN topic, and nothing else.**
+
+- **Work that is not yours is not yours to touch.** Modified files you did not edit, a local
+  commit you did not make, a half-written feature that does not compile: leave every one of
+  them exactly as you found it. Do not commit them, do not revert them, do not finish them,
+  do not tidy them, and do not stash them out of the way. They are somebody's session in
+  flight, and they are not evidence that the repo is in a bad state.
+- **Stage by name. Never `git add -A`, never `git commit -a`.** Name the files your own
+  change touched. That one habit is most of this rule in practice.
+- **Somebody else's broken file is not your build failure.** If `npm run build` or `npm run
+  checks` fails inside code you never opened, that is their work mid-flight: do not fix it,
+  do not work around it, and do not report it as your own result. Gate your change anyway,
+  in a scratch worktree at `HEAD` with only your files copied in, which compiles cleanly and
+  leaves their tree alone. Use `git -c core.longpaths=true worktree add` and link
+  `node_modules` in: the jersey art has filenames long enough to fail a plain checkout on
+  Windows.
+- **Read `git status` and `git log` again just before you commit**, not only at the start.
+  The tree moves under you. This section was written after a session that started clean,
+  pulled, and by the time it came to commit had six files of somebody else's half-finished
+  duel feature in the tree and a new commit underneath it that had arrived in between.
+- **An unpushed commit that is not yours will ride along with your push**, and there is no
+  honest way around that: rebasing or cherry-picking to dodge it rewrites their work. Check
+  the combined tree builds, push, and say in your report that you carried it.
+
 ## ALSO READ THIS FIRST: HOW TO TALK TO THE HUMAN
 
 **This codebase is ~99% written and maintained by agents. The human behind it is not
@@ -2624,6 +2652,12 @@ keep working.
   answer to "but what about someone who has X saved?".
 - When delegating to agents, review their diff before committing - they can
   overreach (reformatting, incidental behavior changes).
+- **Stage the files YOUR change touched, by name.** Somebody else may be working in this
+  same tree at the same time, so `git add -A` and `git commit -a` can sweep up a stranger's
+  half-finished feature, and a build failure in a file you never opened is theirs rather
+  than a fault in your work. The whole rule is at the top of this file, under "you are
+  probably not alone in this tree"; like the `main` rule above it, it is stated twice on
+  purpose.
 
 ## Buttons and contrast
 
