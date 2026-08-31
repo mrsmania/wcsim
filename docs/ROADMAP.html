@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-30<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -351,6 +351,56 @@
 
 
 
+
+<details class="item">
+  <summary>
+    <span class="num">49</span>
+    <span class="title">Rebuild the versus server so a duel's opponent can pick a shape too
+      <span class="sub"><b>Half of this is already live and half needs the server rebuilt.</b>
+      Neither player in a duel could choose a formation or a style: the control lives on the
+      ordinary lobby, which a duel replaces, and accepting a challenge started the draft on
+      the spot - so every duel was played 4-3-3 balanced by both sides. The challenger can
+      choose now, with no server work. The person accepting still cannot until the container
+      is rebuilt, because the rule that stops the draft beginning too early is the server's.
+      One rebuild, no migration.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What to run.</strong> No migration this time, so it is the deploy alone, from
+    Git Bash in the repository root. Pull first: the script builds whatever is checked out.</p>
+    <ol>
+      <li><code>git pull</code></li>
+      <li><code>bash scripts/deploy-referee.sh --check mario@192.168.1.115</code></li>
+      <li><code>bash scripts/deploy-referee.sh --build mario@192.168.1.115</code></li>
+      <li><code>bash scripts/deploy-referee.sh --up mario@192.168.1.115</code></li>
+      <li><code>bash scripts/deploy-referee.sh --verify mario@192.168.1.115</code> - and it
+      must reach step 5.</li>
+    </ol>
+
+    <p><strong>Until it is rebuilt, duels are unequal rather than broken.</strong> The
+    challenger picks a shape and the person accepting gets 4-3-3 balanced, because their
+    Accept still starts the draft immediately on the old server. That is better than both
+    sides being stuck with it, and worse than fair, which is why this is an item rather than
+    a note.</p>
+
+    <p><strong>How to know it worked.</strong> Send a challenge from one account. The waiting
+    screen offers formations and styles, and changing them is instant. Accept from the other
+    account: instead of dropping straight into the draft, you get the same picker and the
+    draft opens the moment you choose. Check the shape you picked is the one you actually
+    draft into. Then send another challenge, pick a shape, and close the tab without touching
+    anything else - the other side accepting must still be able to start it, which is what
+    marking the challenger ready at creation is for.</p>
+
+    <p><strong>Why the server has to be involved at all.</strong> A duel cannot wait for a
+    host to press Start, because the host may be asleep - that is the whole point of the
+    pace. So the server starts the room itself, once both sides have sent a shape. That rule
+    lives in the room's state machine, which the server bundles, so a client-only fix could
+    only ever have covered the challenger.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
 
 <details class="item">
   <summary>

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { FormationName, Style } from '../../domain/formations';
 import { duelDowngraded, duelRules, inviteUrl, isDuel } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import { createRoom, leaveRoom, type CreateRoomInput } from '../../state/pvp/referee';
 import type { VersusRoom } from '../../hooks/useVersusRoom';
 import { CARD, CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, btn } from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
+import ShapePicker from './ShapePicker';
 import { InviteRoom, RefereeProblem, RoomNote } from './versusUi';
 
 // The three screens a duel has that a live room does not (P51, roadmap item 46).
@@ -87,34 +89,77 @@ export function DuelChallenge({ view, room }: { view: RoomView; room: VersusRoom
  */
 export function DuelWaiting({ view, room }: { view: RoomView; room: VersusRoom }) {
     const navigate = useNavigate();
+    const me = view.members.find((m) => m.userId === view.you?.userId) ?? null;
+    const them = view.members.find((m) => m.userId !== view.you?.userId) ?? null;
+    // The other side has taken the seat, so the only thing this duel is still waiting for is
+    // a shape from whoever has not sent one.
+    const accepted = view.members.length >= view.size;
+    // BOTH PLAYERS SEE THIS PANEL and they are not in the same situation: one sent the
+    // challenge and is waiting, the other has just accepted one. Same controls, different
+    // sentences, because "Challenge sent" is a lie to the person who received it.
+    const mine = view.hostId === view.you?.userId;
+
+    const post = (n: FormationName, s: Style): void => {
+        void room.ready(n, s, true).catch(() => undefined);
+    };
+
     return (
-        <div className={`${CARD} p-5`}>
-            <div className={MONO_CAP}>Challenge sent</div>
-            <div className="mt-1 text-[19px] font-extrabold text-ink">
-                {view.invitedName
-                    ? `Waiting for ${view.invitedName}`
-                    : 'Waiting for somebody to take it up'}
+        <div className="flex flex-col gap-[18px]">
+            <div className={`${CARD} p-5`}>
+                <div className={MONO_CAP}>
+                    {!mine ? 'Challenge accepted' : accepted ? 'Both in' : 'Challenge sent'}
+                </div>
+                <div className="mt-1 text-[19px] font-extrabold text-ink">
+                    {!mine
+                        ? `You and ${them?.name ?? 'them'}`
+                        : accepted
+                          ? `${them?.name ?? 'They'} took it up`
+                          : view.invitedName
+                            ? `Waiting for ${view.invitedName}`
+                            : 'Waiting for somebody to take it up'}
+                </div>
+                <RoomNote>
+                    <span className="mt-1.5 block">
+                        {accepted
+                            ? 'The draft opens as soon as you have both picked a shape. Take as long as you like over yours.'
+                            : view.invitedName
+                              ? `It is on ${view.invitedName}'s list the next time they open Versus. Nothing here sends a message, so tell them - the link takes them straight to it.`
+                              : 'Send the link to whoever you want to play. The first person to open it takes the challenge.'}
+                    </span>
+                </RoomNote>
+                {mine && !accepted && (
+                    <div className="mt-3">
+                        <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
+                    </div>
+                )}
+                <div className="mt-4">
+                    <button
+                        className={btn('quiet', 'md')}
+                        onClick={() => {
+                            void room.leave().catch(() => undefined);
+                            navigate('/versus');
+                        }}
+                    >
+                        {mine ? 'Call it off' : 'Back out'}
+                    </button>
+                </div>
             </div>
-            <RoomNote>
-                <span className="mt-1.5 block">
-                    {view.invitedName
-                        ? `It is on ${view.invitedName}'s list the next time they open Versus. Nothing here sends a message, so tell them - the link takes them straight to it.`
-                        : 'Send the link to whoever you want to play. The first person to open it takes the challenge.'}
-                </span>
-            </RoomNote>
-            <div className="mt-3">
-                <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
-            </div>
-            <div className="mt-4">
-                <button
-                    className={btn('quiet', 'md')}
-                    onClick={() => {
-                        void room.leave().catch(() => undefined);
-                        navigate('/versus');
-                    }}
-                >
-                    Call it off
-                </button>
+
+            {/* THE SHAPE, which a duel had no way to choose at all until 2026-08-30. It is
+                changeable for as long as this is a lobby - which for the challenger means
+                until the other side accepts, and for them means until they have picked. */}
+            <div className={`${CARD} p-4`}>
+                <ShapePicker
+                    name={(me?.formationName as FormationName) ?? '4-3-3'}
+                    style={(me?.style as Style) ?? 'bal'}
+                    onPick={post}
+                    note={
+                        accepted
+                            ? 'Pick one and the draft begins. Nothing is on a clock in a duel.'
+                            : 'Change it as often as you like until they accept. Nothing here is on a clock.'
+                    }
+
+                />
             </div>
         </div>
     );

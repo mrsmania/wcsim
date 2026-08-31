@@ -3220,11 +3220,19 @@ Seven things about it are decisions rather than details, and each one is checked
   answer; a challenge is the exception because it ARRIVED rather than being chosen. Hence
   `isChallengeToMe` and `DuelChallenge`'s two answers. The exception is narrow on purpose: an
   unaddressed duel joins on arrival like anything else.
-- **ACCEPTING STARTS THE DRAFT, so a duel has no lobby, no Ready and no Start.** There is
-  nobody to wait with: a Ready button would be one player pressing something and then leaving,
-  and a host's Start a second visit for no decision. Both shapes are chosen already - the
-  challenger's when they sent it, the opponent's as they accept - so `joinRoom` starts the
-  room when a duel's second seat is taken.
+- **A DUEL HAS NO HOST'S START, AND IT DOES HAVE A LOBBY - the SERVER starts it once both
+  shapes are in.** This was wrong until 2026-08-30, and wrong in a way the docs asserted:
+  "both shapes are chosen already, the challenger's when they sent it and the opponent's as
+  they accept" was true of no code at all. A duel replaces `RoomLobby`, which held the only
+  formation control, and `joinRoom` started the draft the instant the second seat was taken -
+  so **neither** player could pick a formation and every duel was played 4-3-3 balanced by
+  both sides. Now `tickDuel` starts the room when every member is `ready`, which is the one
+  transition a live room does not have (a duel cannot wait for a host to press Start, since
+  the host may be asleep). The challenger is `ready` from `createRoom`, so a challenge sent
+  by somebody who then closes the tab cannot deadlock an accepted duel; they may still change
+  their shape for as long as it is a lobby, which is until the other side accepts.
+  `ShapePicker` is the control, SHARED with `RoomLobby` rather than copied, and `npm run
+  checks` holds both screens against it - a second copy is how the two drift apart again.
 - **THE WINDOW STAYS AND THE DEADLINE GOES.** A duel keeps its pick windows, because that is
   what counts the picks and triggers the deal in a roll room; `submitPick` and `rerollDeal`
   simply do not test the clock. On the wire `you.window.remainingMs` is **null**, never a very

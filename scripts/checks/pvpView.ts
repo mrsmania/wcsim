@@ -854,6 +854,36 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- Both sides of a duel can choose a shape (2026-08-30) ----------------
+  //
+  // They could not, and the plan asserted they could: "both shapes are chosen already - the
+  // challenger's when they sent it, the opponent's as they accept" was true of no code at
+  // all. A duel replaces `RoomLobby`, which is where the only formation control lived, and
+  // the recipient's Accept started the draft on the spot - so every duel was played 4-3-3
+  // balanced by both sides. The control is now SHARED rather than copied, which is the part
+  // worth pinning: a second copy is how the two drift apart again.
+  {
+    const picker = readFileSync('src/components/versus/ShapePicker.tsx', 'utf8');
+    const lobby = readFileSync('src/components/versus/RoomLobby.tsx', 'utf8');
+    const duel = readFileSync('src/components/versus/DuelPanels.tsx', 'utf8');
+    check(
+      'pvpView: the formation control is one component, and both a lobby and a duel use it',
+      () =>
+        // It really is the control: the formation names and the styles come off the domain.
+        /FORMATIONS_DATA\.names\.map/.test(picker) &&
+        /STYLES\.map/.test(picker) &&
+        // Both screens render it, and neither keeps a chip row of its own.
+        /<ShapePicker/.test(lobby) &&
+        /<ShapePicker/.test(duel) &&
+        !/FORMATIONS_DATA\.names\.map/.test(lobby) &&
+        !/FORMATIONS_DATA\.names\.map/.test(duel) &&
+        // And the duel screen POSTS it, or the chips would be decoration.
+        /room\.ready\(/.test(duel),
+      () =>
+        `picker ${/FORMATIONS_DATA\.names\.map/.test(picker)}, lobby ${/<ShapePicker/.test(lobby)}, duel ${/<ShapePicker/.test(duel)}`,
+    );
+  }
+
   // --- A slow answer must not undo a fast one ------------------------------
   //
   // Reported as "changing my formation un-readies me", which is a real bug and is not about

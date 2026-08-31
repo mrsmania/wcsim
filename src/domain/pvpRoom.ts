@@ -530,7 +530,19 @@ export function createRoom(input: {
     showRatings: input.showRatings ?? true,
     rerolls: input.rerolls ?? DEFAULT_REROLLS,
     status: 'lobby',
-    members: [newMember(input.hostId, 0, input.hostName, input.hostBudget, input.now)],
+    members: [
+      {
+        ...newMember(input.hostId, 0, input.hostName, input.hostBudget, input.now),
+        // THE CHALLENGER OF A DUEL IS READY FROM THE START, and that is what stops a duel
+        // deadlocking. A duel begins when everybody is ready (`tickDuel`) rather than the
+        // instant the second seat is taken, so that both players get to choose a shape - and
+        // if the challenger had to press Ready as well, one who sent a challenge and closed
+        // the tab would leave an accepted duel sitting in a lobby for a week. They may still
+        // change their shape for as long as it is a lobby, which is until the other side
+        // accepts; a change keeps them ready, exactly as it does in a live room (P48).
+        ...(input.pace === 'async' ? { ready: true } : {}),
+      },
+    ],
     xi: {},
     picks: {},
     deals: {},
@@ -599,14 +611,6 @@ export function joinRoom(
   // liveness sweep, which leaves a gap, and `pvp_members` has a unique index on (room,
   // seat) - so counting would hand the newcomer a number somebody else still holds.
   next.members.push(newMember(member.userId, nextSeat(next), member.name, member.budget, now));
-  // ACCEPTING A DUEL IS STARTING IT. There is no lobby to wait in: a duel is two people who
-  // are not in the same place at the same time, so a Ready button would be one player
-  // pressing something and then leaving, and a host's Start would be a second visit for no
-  // decision. Both shapes are already chosen - the challenger's when they sent it, the
-  // opponent's as they accept - so the draft can begin the moment the second seat is taken.
-  if (next.pace === 'async' && next.members.length === next.size) {
-    return { room: startRoom(next, next.hostId, now), outcome: 'ok' };
-  }
   return { room: next, outcome: 'ok' };
 }
 
@@ -1261,7 +1265,18 @@ function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
  */
 function tickDuel(room: PvpRoom, now: number): PvpRoom {
   if (now - room.touchedAt > DUEL_IDLE_MS) return closeRoom(room);
-  if (room.status === 'lobby') return room;
+  if (room.status === 'lobby') {
+    // THE ONE THING A DUEL'S LOBBY WAITS FOR IS THE SHAPES. It cannot wait for a host to
+    // press Start - that is the whole point of the pace, and the host may be asleep - so the
+    // SERVER starts it, which is the one transition a live room does not have. Both members
+    // ready means both have chosen (the challenger is ready from creation, see `createRoom`),
+    // and until then neither has had the chance: the draft used to begin the instant the
+    // second seat was taken, so nobody in a duel could pick a formation at all and every one
+    // of them was played 4-3-3 balanced by both sides. Reported 2026-08-30.
+    if (room.members.length !== room.size) return room;
+    if (!room.members.every((m) => m.bot || m.ready)) return room;
+    return startRoom(room, room.hostId, now);
+  }
   if (room.status === 'drafting') {
     // The same reading of "finished" a live room uses, which in a budget duel means both
     // players have SAID so (P52): a duel has no clock to end it, so the declaration is the

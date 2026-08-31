@@ -1197,24 +1197,49 @@ export async function refereeChecks(): Promise<void> {
       () => `${gatecrash.status} / ${stranger.status} / ${invited.status}`,
     );
 
-    // A DAY LATER. Bruno accepts, and accepting starts the draft: a duel has no lobby.
+    // A DAY LATER. Bruno accepts - and the draft does NOT begin yet, because he has not
+    // chosen a shape. It used to begin on the join, which meant nobody in a duel could pick
+    // a formation at all: the challenger's screen had no control and the recipient was
+    // already drafting. Reported 2026-08-30.
     clock.now += 24 * 60 * 60_000;
     const accepted = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u2'));
+    const seated = (await store.read(code))!;
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const stillLobby = (await store.read(code))!;
+    // He picks one, and now it starts - on the SERVER, which is the one transition a live
+    // room does not have: a duel cannot wait for a host to press Start.
+    clock.now += 60 * 60_000;
+    const shaped = await post(deps, `/referee/v1/rooms/${code}/lineup`, longSession('u2'), {
+      formationName: '3-5-2',
+      style: 'off',
+      ready: true,
+    });
+    await sweepOnce(store, clock.now, SWEEP_MS);
     const started = (await store.read(code))!;
     check(
-      'duel: accepting starts the draft at once, and nothing at all is counting',
+      'duel: accepting does not start the draft - choosing a shape does, and the server does it',
       () =>
         accepted.status === 200 &&
+        seated.status === 'lobby' &&
+        seated.members.length === 2 &&
+        // A sweep with one shape missing changes nothing, which is the whole claim: the
+        // recipient gets as long as they like to choose.
+        stillLobby.status === 'lobby' &&
+        // The challenger is ready from creation, so his own shape is never what holds it up.
+        seated.members.find((m) => m.userId === 'u1')?.ready === true &&
+        seated.members.find((m) => m.userId === 'u2')?.ready !== true &&
+        shaped.status === 200 &&
         started.status === 'drafting' &&
-        started.members.length === 2 &&
+        // And the shape he chose is the one he drafts into, rather than the default.
+        started.members.find((m) => m.userId === 'u2')?.formationName === '3-5-2' &&
+        started.members.find((m) => m.userId === 'u2')?.style === 'off' &&
         // A BUDGET duel is the two clocks OFF at once (P51 and P52): the room runs one
         // clock over the whole draft rather than eleven windows, and a duel runs none of
         // it. So there is no window and the whole-draft remainder is null, which is what
         // stops a screen drawing a bar against a deadline nothing enforces.
         !started.windows.u1 &&
-        (accepted.body as RoomView).you?.window == null &&
-        (accepted.body as RoomView).draft?.remainingMs === null,
-      () => `${accepted.status}, ${started.status}`,
+        (shaped.body as RoomView).draft?.remainingMs === null,
+      () => `${accepted.status} seated ${seated.status}, swept ${stillLobby.status}, then ${started.status}`,
     );
 
     // A WEEK OF SWEEPS at the live pace's intervals: not one window expires, nobody is
