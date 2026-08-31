@@ -541,12 +541,27 @@ things worth recording.
   bound the list they sit on fills with them for ever. A week, because every write stamps
   `touchedAt`, so a duel played over three evenings never reaches it.
 
-- **ACCEPTING HAD TO START THE DRAFT, and that removed a screen rather than adding one.** The
-  first version gave a duel the ordinary lobby, and it read as broken the moment it was
-  described: a Ready button is one player pressing something and then leaving, and a host's
-  Start is a second visit for no decision. Both shapes are already chosen by then - the
-  challenger's when they sent it, the opponent's as they accept - so `joinRoom` starts the
-  room when a duel's second seat is taken.
+- **DROPPING THE LOBBY WAS RIGHT, AND ITS STATED REASON WAS FALSE.** The first version gave a
+  duel the ordinary lobby, and it read as broken the moment it was described: a Ready button
+  is one player pressing something and then leaving, and a host's Start is a second visit for
+  no decision. So a duel drafts from the moment it is opened, which stands. But the note
+  justified it with one more clause - "both shapes are already chosen by then, the
+  challenger's when they sent it and the opponent's as they accept" - **and that clause was
+  true of no code at any point.** The formation control lives on the lobby screen. A duel
+  never renders one. So NEITHER side of any duel could choose a shape, and every one of them
+  was played 4-3-3 balanced by both players. Reported from the game 2026-08-30, after the
+  lobby-less redesign had made it structural rather than incidental.
+  The fix keeps the reasoning and drops the premise: `setLineup`'s gate was "the room has not
+  started", which is the right idea measured against the wrong thing for a pace with no
+  lobby, and is now **"you have not taken anybody"** - a duel may reshape until its first
+  player and never after, because by then the slots ARE the formation and a change would be a
+  different team rather than a different shape. `ShapePicker` is that control, lifted out of
+  `RoomLobby` and shared with `RoomDraft` rather than copied, and `npm run checks` reads both
+  screens for it: a screen that silently lost its chips looks like a screen that never had
+  that setting.
+  **The lesson outlasts duels: a design note that asserts a capability exists somewhere else
+  has to be CHECKED against that somewhere else.** This one named the exact screens it was
+  wrong about.
 
 - **THE ONE ROOM A PLAYER DID NOT CHOOSE TO OPEN.** Wave 8 settled that arriving at a room IS
   taking the seat, and deleted a confirmation screen for saying otherwise - there is one door

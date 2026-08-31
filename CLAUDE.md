@@ -2902,6 +2902,22 @@ move and un-buy inside it. It **degrades correctly on its own**: an older refere
 budget room its pick windows and no `draft` block, and the screens draw the per-pick draft
 they always drew. See "A budget room runs one clock" below.
 
+**A DUEL CHOOSES ITS SHAPE IN THE DRAFT, BECAUSE IT HAS NO LOBBY TO CHOOSE IT IN**
+(2026-08-30, roadmap item 51). Reported from the game, and it was true of both sides: the
+formation control lives on the lobby screen, a duel drafts from the moment it is opened, so
+**neither player could pick a formation and every duel was played 4-3-3 balanced**. The plan
+had asserted the opposite ("both shapes are already chosen by then") and the assertion was
+true of no code at any point - see its findings, which now carry that as its own lesson.
+`setLineup`'s gate was "the room has not started"; it is **"you have not taken anybody"**,
+which is the same idea measured against the thing a duel actually has. After the first player
+the slots ARE the formation, so a change then would be a different team rather than a
+different shape. **`ShapePicker` is the one control**, lifted out of `RoomLobby` and shared
+with `RoomDraft` rather than copied, and `npm run checks` reads both screens for it - a screen
+that silently lost its chips looks like a screen that never had that setting. One wrinkle
+accepted rather than fixed: a roll duel keeps the squad it was already dealt, because
+re-dealing on every shape change is a free re-roll and re-rolls are counted; a squad that fits
+nothing under the new shape costs one, as it would have anyway.
+
 **DUELS, RESHAPED 2026-08-31** (2026-08-30, roadmap item 46, plan P51). A duel is a challenge
 you send by link, played in both your own time: you start building the moment you open it,
 whoever follows the link builds theirs whenever, and the match plays itself as soon as the

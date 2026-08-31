@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-31<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -350,6 +350,53 @@
 
 
 
+
+<details class="item">
+  <summary>
+    <span class="num">51</span>
+    <span class="title">Rebuild the versus server so a duel can choose its shape
+      <span class="sub"><b>The screen is live, the rule behind it is not.</b> Neither player in
+      a duel could change formation or style: that control lives on the lobby screen and a duel
+      never has a lobby, so every duel was played 4-3-3 balanced by both sides. The picker is
+      on the draft screen now, and until the container is rebuilt the server declines what it
+      sends - so the chips appear and do nothing. One rebuild, no migration.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What to run.</strong> The deploy alone, from Git Bash in the repository root.
+    Pull first: the script builds whatever is checked out, and the version handshake cannot
+    catch an image built one commit early.</p>
+    <ol>
+      <li><code>git pull</code></li>
+      <li><code>bash scripts/deploy-referee.sh --check mario@192.168.1.115</code></li>
+      <li><code>bash scripts/deploy-referee.sh --build mario@192.168.1.115</code></li>
+      <li><code>bash scripts/deploy-referee.sh --up mario@192.168.1.115</code></li>
+      <li><code>bash scripts/deploy-referee.sh --verify mario@192.168.1.115</code> - and it
+      must reach step 5.</li>
+    </ol>
+
+    <p><strong>Until then the chips are dead rather than absent</strong>, which is worth
+    knowing: tapping a formation posts it, the deployed server refuses it because the room has
+    already started, and the next poll puts the old shape back. That is the honest failure for
+    a client shipped ahead of its server, and it is the reason this is an item rather than a
+    footnote.</p>
+
+    <p><strong>How to know it worked.</strong> Open a duel. Before you take anybody, the draft
+    screen offers formations and styles and changing one is instant - the board rebuilds
+    around the new shape. Take one player and the picker goes: from then on the slots are the
+    formation. Do the same from the second account after following the link, since both sides
+    were equally stuck. In a <b>roll</b> duel, check the copy is telling the truth: the squad
+    you were already dealt stays as it is, so a shape it cannot serve costs you a re-roll.</p>
+
+    <p><strong>Why the server is involved at all.</strong> The gate is one line in the room's
+    state machine - "you may change your shape until you have taken somebody" - and the
+    server bundles that machine. There was no client-only version of this: the old gate was
+    "the room has not started", and a duel has always started.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
 
 <details class="item">
   <summary>
