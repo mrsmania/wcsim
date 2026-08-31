@@ -37,6 +37,7 @@ import {
   versionMismatch,
 } from '../../src/domain/pvpVersion';
 import { autoPick, pvpPriceOf, validateXi } from '../../src/domain/pvp';
+import { leaveKind } from '../../src/domain/pvpView';
 import type { Filled } from '../../src/domain/draft';
 import {
   DEFAULT_DRAFT_SECONDS,
@@ -1406,9 +1407,17 @@ export async function refereeChecks(): Promise<void> {
     // one leave that acts on a room which is not in a lobby: a duel opens straight into its
     // challenger's draft, so without this branch a challenge you had thought better of
     // would be unleavable and would sit on its link for a week.
+    //
+    // AND IT NO LONGER WAITS FOR THE SEAT TO BE EMPTY (2026-08-31). It used to close only
+    // an UNANSWERED challenge, so the moment somebody took the chair neither player could
+    // get out of the game until it played or the week ran out. The creator closes it
+    // whenever they like now; the second player hands the seat back instead, which is a
+    // different answer on purpose - see `leaveDuel`.
     const clock = { now: T0 };
     const store = new MemStore();
-    store.names = { u1: 'Ada', u2: 'Bruno' };
+    // Three people: the challenger, whoever takes the seat, and whoever takes it after they
+    // hand it back.
+    store.names = { u1: 'Ada', u2: 'Bruno', u3: 'Cleo' };
     const deps = depsFor(store, clock);
     const open = async (): Promise<string> =>
       (
@@ -1425,12 +1434,29 @@ export async function refereeChecks(): Promise<void> {
     await post(deps, `/referee/v1/rooms/${withdrawn}/leave`, longSession('u1'));
     const after = (await store.read(withdrawn))!;
 
-    // And once somebody HAS taken it up, leaving is only looking away: their draft is real
-    // work, so it must not be closeable out from under them.
+    // AND ONCE SOMEBODY HAS TAKEN IT UP, both sides still have a way out - two different
+    // ones. The creator closes the game; the person who followed the link gives the chair
+    // back and the challenge is waiting again, which is what stops somebody who opened a
+    // link by accident deleting a challenge that was not theirs.
     const taken = await open();
     await post(deps, `/referee/v1/rooms/${taken}/join`, longSession('u2'));
     await post(deps, `/referee/v1/rooms/${taken}/leave`, longSession('u1'));
-    const stillOn = (await store.read(taken))!;
+    const calledOff = (await store.read(taken))!;
+
+    const handedBack = await open();
+    await post(deps, `/referee/v1/rooms/${handedBack}/join`, longSession('u2'));
+    // WHAT THE SCREEN WOULD SAY, off the same payloads, because a button promising to call
+    // a duel off that the referee then ignores is worse than no button - it looks like it
+    // worked, which is exactly the shape of the bug this replaced. `leaveKind` is that rule
+    // read from the client's end, so it is asserted against the real answers rather than
+    // against a fixture.
+    const asHost = leaveKind((await get(deps, `/referee/v1/rooms/${handedBack}`, longSession('u1'))).body as RoomView);
+    const asGuest = leaveKind((await get(deps, `/referee/v1/rooms/${handedBack}`, longSession('u2'))).body as RoomView);
+    await post(deps, `/referee/v1/rooms/${handedBack}/leave`, longSession('u2'));
+    const reopened = (await store.read(handedBack))!;
+    // And it is a challenge again, which is the whole point of the seat rather than the
+    // room going: somebody else can take it.
+    const retaken = await post(deps, `/referee/v1/rooms/${handedBack}/join`, longSession('u3'));
 
     const ignored = await open();
     clock.now += DUEL_IDLE_MS + 60_000;
@@ -1438,17 +1464,33 @@ export async function refereeChecks(): Promise<void> {
     const stale = (await store.read(ignored))!;
 
     check(
-      'duel: withdrawing closes an unanswered one, leaving a taken one does not, and a week closes it',
+      'duel: the creator calls a taken one off, the other player hands the seat back, and a week closes it',
       () =>
+        // An unanswered one, called off by the person who opened it.
         after.status === 'ended' &&
         roomClosed(after) &&
-        stillOn.status === 'drafting' &&
-        stillOn.members.length === 2 &&
+        // A TAKEN one, called off by the same person. This is the line that used to read
+        // the other way round.
+        calledOff.status === 'ended' &&
+        roomClosed(calledOff) &&
+        // The second player leaving instead: the room lives, one seat, and the challenger
+        // is still in it.
+        reopened.status === 'drafting' &&
+        reopened.members.length === 1 &&
+        reopened.members[0]!.userId === 'u1' &&
+        retaken.status === 200 &&
+        // The two screens offer the two different things, which is what the referee then
+        // does. Both halves matter: swap them and each player gets the other's button.
+        asHost === 'calloff' &&
+        asGuest === 'giveup' &&
         stale.status === 'ended' &&
         roomClosed(stale) &&
         // Vacuity: a duel a day old is untouched by the same sweep.
         DUEL_IDLE_MS > ROOM_IDLE_MS,
-      () => `withdrawn ${after.status}, taken ${stillOn.status}, ignored ${stale.status}`,
+      () =>
+        `withdrawn ${after.status}, called off ${calledOff.status}, ` +
+        `host reads ${asHost}, guest reads ${asGuest}, ` +
+        `reopened ${reopened.status}/${reopened.members.length}, retaken ${retaken.status}`,
     );
   }
 
@@ -1702,6 +1744,35 @@ export async function refereeChecks(): Promise<void> {
           missing.length
             ? `not selected: ${missing.join(', ')}`
             : `the scan read ${total} fields across ${scanned.length} queries, so it is not reading them`,
+      );
+    }
+
+    // --- A MEMBER WHO LEAVES TAKES THEIR ROWS WITH THEM ---------------------------------
+    // Same shape of problem as the check above, and the same reason it has to read the text:
+    // the offline store keeps rooms as rows built from the room itself, so a member who is
+    // gone has no rows to leave behind there and no fixture can catch this. On a real
+    // Postgres they persist - and `roomFromRows` keys a pick on its USER rather than on a
+    // seat, so they are read straight back in and handed to whoever takes the chair next.
+    // Reachable since a duel's second player could give the seat back (2026-08-31); before
+    // that the only way to lose a member was the lobby, where these three tables are empty.
+    {
+      const store = readFileSync('referee/src/pgStore.ts', 'utf8');
+      // A plain substring rather than a pattern: the statement is written out in full in
+      // `pgStore`, and a regex here would need escaping for `$1` and the bracket, which is
+      // exactly the kind of detail that makes a text check quietly stop matching.
+      const sweeps = (table: string): boolean =>
+        store.includes(`delete from ${table} where room_id = $1 and not (user_id = any`);
+      const TABLES = ['pvp_members', 'pvp_picks', 'pvp_deals', 'pvp_lineups'];
+      check(
+        'referee: every table keyed on a member is swept of rows for somebody no longer in the room',
+        () =>
+          TABLES.every(sweeps) &&
+          // Vacuity, both ways: the scan can fail to find one, and it is not matching every
+          // `delete` in the file - the per-slot pick sweep beside these is keyed on the slot
+          // and must not answer for any of them.
+          !sweeps('pvp_no_such_table') &&
+          store.includes('not (slot_id = any($3))'),
+        () => `${TABLES.filter((t) => !sweeps(t)).join(', ') || 'all four swept'}`,
       );
     }
 

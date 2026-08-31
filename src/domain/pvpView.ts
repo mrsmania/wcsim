@@ -286,6 +286,39 @@ export function duelRules(row: Pick<DuelRow, 'method' | 'budget'>): string {
         : 'Roll for your XI, one man from each squad';
 }
 
+/**
+ * What leaving THIS room, as THIS viewer, actually does.
+ *
+ * FOUR THINGS WEAR ONE BUTTON, and the screen has to say which before somebody presses it:
+ * giving a seat up in a lobby, calling a duel off for both players, handing a duel's seat
+ * back so the challenge goes on without you, and walking away from a tournament your XI
+ * keeps playing in. They are as different as an answer can be, and until 2026-08-31 the
+ * middle two did not exist - a duel with both seats filled ignored the button entirely,
+ * which is how it was reported: "for other rooms I have the option to call it off, not for
+ * this one".
+ *
+ * IT IS DERIVED HERE RATHER THAN IN THE SCREEN because it is the referee's rule
+ * (`leaveRoom` in `domain/pvpRoom.ts`) read from the other end, and the two have to agree:
+ * a button promising to call a duel off that the referee then ignores is worse than no
+ * button, since it looks like it worked. `npm run checks` holds the pair together.
+ *
+ * `away` is the one that changes nothing on the server, and it is deliberately not hidden:
+ * leaving the screen is still what the player wants, and the copy is what tells them their
+ * team plays on.
+ */
+export type LeaveKind = 'seat' | 'calloff' | 'giveup' | 'away';
+
+export function leaveKind(view: RoomView): LeaveKind {
+    // Somebody who is not in the room cannot give anything up. A public lobby can be looked
+    // at without joining, and `you` is null for exactly that viewer.
+    const mine = !!view.you;
+    if (isDuel(view) && mine && (view.status === 'lobby' || view.status === 'drafting')) {
+        return view.you!.userId === view.hostId ? 'calloff' : 'giveup';
+    }
+    if (view.status === 'lobby' && mine) return 'seat';
+    return 'away';
+}
+
 // --- Inviting somebody (the code, and the link) ----------------------------
 
 /**

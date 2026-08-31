@@ -1204,6 +1204,20 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
   if (!staying.some((m) => !m.bot)) return closeRoom(room);
   const next = clone(room);
   next.members = next.members.filter((m) => keep.has(m.userId));
+  // A SEAT GIVEN UP IS A TEAM GIVEN UP. In a lobby there is nothing here to drop and this
+  // loop is a no-op, which is why it was not needed until a duel's second player could
+  // leave mid-draft (2026-08-31). Their board, their pick log, their dealt squads and their
+  // open window are all keyed on the member who is going, and leaving them behind would
+  // hand the lot to whoever takes the chair next - an XI bought with somebody else's money,
+  // against a squad they were never dealt, which is exactly what `validateXi` then refuses.
+  // The same rows go from the database, in `pgStore.save`.
+  for (const m of room.members) {
+    if (keep.has(m.userId)) continue;
+    delete next.xi[m.userId];
+    delete next.picks[m.userId];
+    delete next.deals[m.userId];
+    delete next.windows[m.userId];
+  }
   if (!next.members.some((m) => m.userId === next.hostId)) {
     // The lowest remaining seat AMONG THE PEOPLE. A bot cannot press Start, so promoting
     // one would leave a room nobody could begin.
@@ -1216,11 +1230,13 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
 /**
  * Give up your seat, deliberately.
  *
- * IT ONLY WORKS IN A LOBBY, and that is the same rule the liveness sweep keeps rather than
- * a limitation: past the start your XI is in a bracket other people are playing, so there
- * is nothing to remove you from without voiding their tournament (P15, P24). Leaving a
- * running room is therefore a navigation and nothing more, and the screen says so - "your
- * team plays on without you".
+ * IN A LIVE ROOM IT ONLY WORKS IN A LOBBY, and that is the same rule the liveness sweep
+ * keeps rather than a limitation: past the start your XI is in a bracket other people are
+ * playing, so there is nothing to remove you from without voiding their tournament (P15,
+ * P24). Leaving a running room is therefore a navigation and nothing more, and the screen
+ * says so - "your team plays on without you".
+ *
+ * IN A DUEL IT ALWAYS WORKS, up to the moment the football is played. See `leaveDuel`.
  *
  * IN A LOBBY IT HAS TO BE REAL, though, and this was a reported bug: leaving used to be
  * purely local, so the seat stayed taken, and `activeRoomOf` then refused the player their
@@ -1229,22 +1245,50 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
  * leaving has to tell the referee.
  */
 export function leaveRoom(room: PvpRoom, userId: string, now: number): PvpRoom {
-  // A CHALLENGE NOBODY HAS TAKEN UP IS CALLED OFF BY LEAVING IT, which is why withdrawing
-  // needs no command of its own. A duel opens straight into its challenger's draft, so it
-  // is never in a lobby and the rule below would make it unleavable - and a challenge you
-  // have thought better of would then sit on the link for a week. Once the second player is
-  // in, their draft is real work: leaving is looking away, exactly as it is in a live room
-  // that has started.
-  if (room.pace === 'async' && room.status === 'drafting' && room.members.length < room.size) {
-    return room.members.some((m) => m.userId === userId) ? closeRoom(room) : room;
-  }
+  if (room.pace === 'async' && !duelPlayed(room)) return leaveDuel(room, userId, now);
   if (room.status !== 'lobby') return room;
   if (!room.members.some((m) => m.userId === userId)) return room;
-  return withoutMembers(
-    room,
-    new Set(room.members.filter((m) => m.userId !== userId).map((m) => m.userId)),
-    now,
-  );
+  return withoutMembers(room, everyoneBut(room, userId), now);
+}
+
+/** Has this duel's match been played? Its two endings - a result, and closing - are both
+ *  past the point where anybody may take anything back. */
+const duelPlayed = (room: PvpRoom): boolean =>
+  room.status === 'round' || room.status === 'ended';
+
+/** Everybody in the room except one, which is what `withoutMembers` takes. */
+const everyoneBut = (room: PvpRoom, userId: string): Set<string> =>
+  new Set(room.members.filter((m) => m.userId !== userId).map((m) => m.userId));
+
+/**
+ * Walking out of a duel, which is TWO different things (2026-08-31, asked for from the
+ * game).
+ *
+ * IT USED TO BE THE UNANSWERED CASE ONLY: a challenge nobody had opened could be called
+ * off, and the moment somebody took the seat both sides were stuck with it until the match
+ * played or the week ran out. The reasoning was the live room's - once the second player is
+ * in, their draft is real work and leaving is only looking away - and it is wrong here,
+ * because a duel is two people and NO BRACKET. There is no third party's tournament to
+ * void, so the thing that a live room's rule protects does not exist, and what was left was
+ * a game neither player could get out of.
+ *
+ *   * THE CREATOR CALLS IT OFF, at any point up to the match. The room is theirs and the
+ *     link is theirs, so their leaving ends it for both and the link stops working. This is
+ *     the same closing an unanswered challenge always did; what has gone is the condition.
+ *   * WHOEVER TOOK THE SEAT GIVES IT BACK, which is deliberately NOT the same thing. Their
+ *     leaving drops the room to one member and reopens it: the challenger keeps their board
+ *     and their link, and the next person to open it takes the chair, exactly as the first
+ *     one did. Somebody who followed a link by accident should not be able to delete
+ *     somebody else's challenge.
+ *
+ * Their own board goes with them either way (`withoutMembers`), and both of these are
+ * refused once the match has been played, because a result that can be deleted is not a
+ * result - which is the same reason a rematch is a new duel rather than a reopened one.
+ */
+function leaveDuel(room: PvpRoom, userId: string, now: number): PvpRoom {
+  if (!room.members.some((m) => m.userId === userId)) return room;
+  if (userId === room.hostId) return closeRoom(room);
+  return withoutMembers(room, everyoneBut(room, userId), now);
 }
 
 /**

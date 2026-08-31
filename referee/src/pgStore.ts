@@ -136,10 +136,25 @@ export function pgStore(pool: Pool): RoomStore {
     // A LOBBY CAN NOW LOSE SOMEBODY (P31), so a member row that is no longer in the room
     // has to go - and it has to go BEFORE the upserts below, or a seat number that moved
     // would collide with the row still holding it under `unique (room_id, seat)`.
+    const here = room.members.map((m) => m.userId);
     await db.query(
       `delete from pvp_members where room_id = $1 and not (user_id = any($2::uuid[]))`,
-      [id, room.members.map((m) => m.userId)],
+      [id, here],
     );
+
+    // AND SO DOES THEIR DRAFT. Until a duel's second player could give the seat back
+    // mid-draft (2026-08-31) the only way to lose a member was the lobby, where none of
+    // these tables holds anything yet - so nothing needed deleting and nothing did. Now a
+    // departure can leave eleven picks, a pile of dealt squads and a formation behind, and
+    // none of them is reachable through `pvp_members` any more: the pick sweep below walks
+    // the room's own members, so it cannot see them. They would be read straight back in
+    // by `roomFromRows`, which keys on the pick's user rather than on the seat, and handed
+    // to whoever took the chair next. `domain/pvpRoom.ts` drops the same state in memory.
+    // Written out rather than looped over a list of table names: three plain statements say
+    // what they touch, and the table is never a value.
+    await db.query(`delete from pvp_picks where room_id = $1 and not (user_id = any($2::uuid[]))`, [id, here]);
+    await db.query(`delete from pvp_deals where room_id = $1 and not (user_id = any($2::uuid[]))`, [id, here]);
+    await db.query(`delete from pvp_lineups where room_id = $1 and not (user_id = any($2::uuid[]))`, [id, here]);
 
     for (const m of memberWrites(room)) {
       await db.query(

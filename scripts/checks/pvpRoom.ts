@@ -960,7 +960,178 @@ export function pvpRoomChecks(): void {
     });
   }
 
+  duelLeaveChecks();
   botChecks();
+}
+
+/**
+ * Getting out of a duel (2026-08-31, asked for from the game).
+ *
+ * THE RULE IT REPLACED WAS THE LIVE ROOM'S, and it was wrong here for one reason: a duel is
+ * two people and no bracket, so nothing a third party is playing can be voided by either of
+ * them walking out. Once the second seat was taken, the challenge was unleavable by both
+ * sides until the match played or the week ran out.
+ *
+ * The two answers are deliberately different, and the vacuity guard for the whole block is
+ * the LIVE room: every claim below is made against the identical call on a live room of
+ * two, which must still be the no-op it has always been.
+ */
+function duelLeaveChecks(): void {
+  /** A duel, drafting from the moment it opens, with `others` people having taken it up. */
+  const duelWith = (others: number, rules: RoomRules = BUDGET): PvpRoom => {
+    let room = createRoom({
+      id: 'dl1',
+      code: 'DUEL01',
+      hostId: 'u0',
+      hostName: 'Host',
+      visibility: 'private',
+      size: 2,
+      rules,
+      pickSeconds: 20,
+      hostBudget: rules.method === 'budget' ? rules.budget : 0,
+      pace: 'async',
+      now: T0,
+    });
+    for (let i = 1; i <= others; i++) {
+      const joined = joinRoom(
+        room,
+        { userId: `u${i}`, name: `P${i}`, budget: rules.method === 'budget' ? rules.budget : 0 },
+        T0 + i * 1000,
+      );
+      room = joined.room;
+    }
+    return room;
+  };
+
+  /** The cheapest legal XI for one member, submitted as a board - which in a budget room is
+   *  the one instruction there is (P52). */
+  const fillBoard = (r: PvpRoom, who: string, at: number): PvpRoom => {
+    const m = r.members.find((x) => x.userId === who)!;
+    const filled: Filled = {};
+    for (const slot of formationOf(m).slots) {
+      const used = new Set(Object.values(filled).map((p) => p!.personId));
+      const spent = Object.values(filled).reduce((t, p) => t + pvpPriceOf(p!), 0);
+      filled[slot.id] = roomPlayers(r.rules)
+        .filter(
+          (p) =>
+            p.positions.includes(slot.position) &&
+            !used.has(p.personId) &&
+            pvpPriceOf(p) <= m.budget - spent,
+        )
+        .sort((a, b) => a.elo - b.elo)[0]!;
+    }
+    return setXi(r, who, filled, at).room;
+  };
+
+  {
+    // THE CREATOR CALLS IT OFF, taken or not. The first half of this was always true; the
+    // second is the change.
+    const alone = leaveRoom(duelWith(0), 'u0', T0 + 5000);
+    const taken = duelWith(1);
+    const off = leaveRoom(taken, 'u0', T0 + 5000);
+    // Vacuity, and the rule this is deliberately NOT: the same call on a live room that has
+    // started changes nothing at all, because an XI in a bracket cannot be withdrawn.
+    const live = withSeed(31, () => startRoom(roomOf(2, BUDGET), 'u0', T0));
+    check(
+      'duel: the creator can call it off whether or not somebody has taken it up',
+      () =>
+        roomClosed(alone) &&
+        // Vacuity: it really had been taken up, by somebody who is still in it.
+        taken.members.length === 2 &&
+        roomClosed(off) &&
+        // And the live room in the same phase is untouched, by identity.
+        leaveRoom(live, 'u0', T0 + 5000) === live,
+      () => `alone ${alone.status}, taken ${off.status}, live ${leaveRoom(live, 'u0', T0 + 5000) === live}`,
+    );
+  }
+
+  {
+    // THE SECOND PLAYER HANDS THE SEAT BACK, which is not the same thing: the challenge
+    // survives, the challenger keeps their board, and the next person to open the link
+    // takes the chair. Somebody who followed a link by accident must not be able to delete
+    // a challenge that was not theirs.
+    const taken = duelWith(1);
+    const back = leaveRoom(taken, 'u1', T0 + 5000);
+    const retaken = joinRoom(back, { userId: 'u2', name: 'Cleo', budget: BUDGET.budget }, T0 + 6000);
+    check(
+      'duel: the player who took the seat gives it back, and the challenge waits for somebody else',
+      () =>
+        // Vacuity: two seats were filled.
+        taken.members.length === 2 &&
+        // One left, and it is the challenger who is still there rather than whoever stayed.
+        back.status === 'drafting' &&
+        !roomClosed(back) &&
+        back.members.length === 1 &&
+        back.members[0]!.userId === 'u0' &&
+        back.hostId === 'u0' &&
+        // Waiting again, and answerable again.
+        retaken.outcome === 'ok' &&
+        retaken.room.members.length === 2,
+      () => `${back.status}/${back.members.length}, retaken ${retaken.outcome}`,
+    );
+  }
+
+  {
+    // A SEAT GIVEN UP IS A TEAM GIVEN UP, and this is the half that would have been a real
+    // bug rather than a missing feature: their board, pick log, dealt squads and open
+    // window are keyed on the member who is going, and `roomFromRows` reads picks back by
+    // USER rather than by seat - so anything left behind is handed to whoever takes the
+    // chair next, as an XI bought with somebody else's money against squads they were never
+    // dealt, which `validateXi` then refuses.
+    const rolled = duelWith(1, ROLL);
+    // One real pick for the person who is about to leave, so there is something to drop.
+    const picked = submitPick(rolled, 'u1', firstLegalPick(rolled, 'u1'), T0 + 4000).room;
+    const back = leaveRoom(picked, 'u1', T0 + 5000);
+    check(
+      'duel: giving the seat up takes the board, the pick log, the dealt squads and the window with it',
+      () =>
+        // Vacuity: all four really were there.
+        Object.keys(picked.xi.u1 ?? {}).length === 1 &&
+        Object.keys(picked.picks.u1 ?? {}).length === 1 &&
+        (picked.deals.u1?.length ?? 0) >= 1 &&
+        !!picked.windows.u1 &&
+        // And none of them survives.
+        !back.xi.u1 &&
+        !back.picks.u1 &&
+        !back.deals.u1 &&
+        !back.windows.u1 &&
+        // The challenger's own draft is untouched, which is what makes this a seat leaving
+        // rather than a room being reset.
+        !!back.windows.u0 &&
+        (back.deals.u0?.length ?? 0) >= 1,
+      () =>
+        `xi ${!back.xi.u1}, picks ${!back.picks.u1}, deals ${!back.deals.u1}, window ${!back.windows.u1}`,
+    );
+  }
+
+  {
+    // AND NEITHER OF THEM WORKS ONCE THE MATCH HAS BEEN PLAYED. A result that can be
+    // deleted is not a result - the same reason a rematch is a new duel rather than a
+    // reopened one - so both sides are refused by identity from the moment the football
+    // happens.
+    withSeed(77, () => {
+      const both = duelWith(1);
+      const built = fillBoard(fillBoard(both, 'u0', T0 + 8000), 'u1', T0 + 8500);
+      const sent = setDone(setDone(built, 'u0', true, T0 + 9000), 'u1', true, T0 + 9000);
+      const played = tickRoom(sent, T0 + 9000);
+      const ended = tickRoom(played, T0 + 9000 + 10 * 60_000);
+      check(
+        'duel: once the match is played, neither the creator nor the other player can undo it',
+        () =>
+          // Vacuity: the same two calls on the draft it came from DO both work.
+          roomClosed(leaveRoom(both, 'u0', T0 + 5000)) &&
+          leaveRoom(both, 'u1', T0 + 5000).members.length === 1 &&
+          // Played, and now nothing moves.
+          played.status === 'round' &&
+          leaveRoom(played, 'u0', T0 + 9500) === played &&
+          leaveRoom(played, 'u1', T0 + 9500) === played &&
+          ended.status === 'ended' &&
+          !roomClosed(ended) &&
+          leaveRoom(ended, 'u0', T0 + 9500) === ended,
+        () => `played ${played.status}, ended ${ended.status}`,
+      );
+    });
+  }
 }
 /**
  * The bot rules (`domain/pvpBot.ts`, roadmap item 45).

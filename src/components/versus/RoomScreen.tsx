@@ -5,6 +5,7 @@ import type { RoomView } from '../../domain/pvpWire';
 import { getFormation, type FormationName, type Style } from '../../domain/formations';
 import {
     isDuel,
+    leaveKind,
     meIn,
     memberOf,
     playersOf,
@@ -65,6 +66,33 @@ const HEADINGS: Record<string, string> = {
 };
 
 const CLOSED_TITLE = 'The room closed';
+
+/**
+ * What the way out is called, and what it does, per `leaveKind`.
+ *
+ * THE LABEL IS THE ACTION AND THE SENTENCE IS THE CONSEQUENCE, which is the house rule for
+ * a button (see "Buttons and contrast"): "Call it off" says what the tap is, and the line
+ * beside it says who it happens to. Getting that wrong is expensive here, because two of
+ * these four are irreversible and one of them ends somebody else's game as well.
+ */
+const LEAVING: Record<ReturnType<typeof leaveKind>, { label: string; note: string }> = {
+    seat: {
+        label: 'Leave',
+        note: 'You give up your seat, and somebody else can take it.',
+    },
+    calloff: {
+        label: 'Call it off',
+        note: 'The duel is over for both of you and the link stops working.',
+    },
+    giveup: {
+        label: 'Give up the seat',
+        note: 'Your team goes and the challenge waits for somebody else.',
+    },
+    away: {
+        label: 'Leave',
+        note: 'Your team plays on without you.',
+    },
+};
 
 export default function RoomScreen({ code }: { code: string }) {
     const navigate = useNavigate();
@@ -426,17 +454,14 @@ export default function RoomScreen({ code }: { code: string }) {
                     </button>
                 ) : leaving ? (
                     <>
-                        {/* Two different things, and the copy has to say which. In a LOBBY
-                            you give the seat up and somebody else can have it; once the
-                            football has started nothing can remove you, so your XI keeps
-                            playing and leaving is only looking away. */}
-                        <RoomNote>
-                            {view.status === 'lobby'
-                                ? 'You give up your seat, and somebody else can take it.'
-                                : 'Your team plays on without you.'}
-                        </RoomNote>
+                        {/* FOUR DIFFERENT THINGS, and the copy has to say which - a seat
+                            given up in a lobby, a duel called off for both players, a
+                            duel's seat handed back so the challenge goes on without you,
+                            and walking away from a tournament your XI keeps playing in.
+                            `leaveKind` is the referee's own rule read from this end. */}
+                        <RoomNote>{LEAVING[leaveKind(view)].note}</RoomNote>
                         <button className={SECONDARY_BTN} onClick={leave}>
-                            Leave anyway
+                            {LEAVING[leaveKind(view)].label}
                         </button>
                         <button className={SECONDARY_BTN} onClick={() => setLeaving(false)}>
                             Stay
@@ -444,7 +469,7 @@ export default function RoomScreen({ code }: { code: string }) {
                     </>
                 ) : (
                     <button className={SECONDARY_BTN} onClick={() => setLeaving(true)}>
-                        Leave
+                        {LEAVING[leaveKind(view)].label}
                     </button>
                 )}
             </div>

@@ -2923,8 +2923,9 @@ taken and P39's one-room-at-a-time then refused the player's next room with
 `already-in-a-room` until the liveness sweep noticed (ninety seconds, the window at the time). P31's "leaving has
 to be OBSERVED rather than announced" is about a closing tab and does not extend to a button
 press: **observing what cannot be announced is not a reason to ignore what can.**
-`leaveRoom` works in a LOBBY only - past the start your XI is in a bracket other people are
-playing (P15, P24) - and it shares `withoutMembers` with the sweep, because a lobby that
+`leaveRoom` works in a LOBBY only for a LIVE room - past the start your XI is in a bracket
+other people are playing (P15, P24); a duel is the exception and always leavable, see
+"WITHDRAWING IS LEAVING" below - and it shares `withoutMembers` with the sweep, because a lobby that
 promotes a host one way and closes the other is two rules wearing one name. The navigation
 does not wait for the answer: a player who pressed Leave is leaving, and a lost request costs
 no more than the liveness window, which is what it used to cost every time. The refusal also needed an ANSWER rather than
@@ -3357,11 +3358,38 @@ Seven things about it are decisions rather than details, and each one is checked
   which it did not until 2026-08-31 - so somebody sitting in a live room could not take up a
   duel, and a duel is the mode you play precisely because you are busy. None of the three
   implies the others.
-- **WITHDRAWING IS LEAVING, and it CLOSES an unanswered duel.** It needs no command of its
-  own, and it is why `leaveRoom` has the one branch that acts on a room which is not in a
-  lobby: a duel never is one, so without it a challenge you had thought better of would be
-  unleavable and would sit on its link for a week. Once the second player is in, their draft
-  is real work and leaving is only looking away - the same rule a started live room follows.
+- **WITHDRAWING IS LEAVING, and in a duel it ALWAYS works** - which is a correction made
+  2026-08-31 after it was asked for from the game, and the reasoning is worth keeping
+  because the first version sounded right. Leaving closed an UNANSWERED challenge only, on
+  the live room's rule: once the second player is in, their draft is real work and leaving
+  is only looking away. That rule is right about a live room and wrong about a duel, because
+  a duel is two people and **no bracket** - there is no third party's tournament to void, so
+  what the live rule protects does not exist and what was left was a game neither player
+  could get out of. It is now two answers rather than one condition (`leaveDuel`): **the
+  creator calls it off**, taken or not, which ends it for both and stops the link working;
+  **whoever took the seat gives it back**, which is deliberately NOT the same thing - the
+  room drops to one member, the challenger keeps their board and their link, and the next
+  person to open it takes the chair, so somebody who followed a link by accident cannot
+  delete a challenge that was not theirs. Both are refused once the match has been played,
+  for the reason the rematch below gives.
+  **A SEAT GIVEN UP TAKES ITS TEAM WITH IT, and that half is a database rule rather than a
+  courtesy.** The board, the pick log, the dealt squads and the open window are all keyed on
+  the member who is going; `roomFromRows` keys a pick on its USER rather than on a seat, so
+  anything left behind is read straight back in and handed to whoever takes the chair next -
+  an XI bought with somebody else's money against squads they were never dealt, which
+  `validateXi` then refuses. `withoutMembers` drops it in memory and `pgStore.save` sweeps
+  `pvp_picks`, `pvp_deals` and `pvp_lineups` of anybody no longer in the room. **No fixture
+  can catch that**, because the offline store builds its rows from the room itself and so a
+  departed member has no rows to leave behind, which is why `npm run checks` reads the four
+  `delete` statements as text. Before this the only way to lose a member was the lobby, where
+  all three tables are empty.
+  **The screens read the same rule from the other end** (`leaveKind`, domain/pvpView): four
+  things wear one button - a seat given up in a lobby, a duel called off for both, a duel's
+  seat handed back, and walking away from a tournament your XI plays on in - and a button
+  promising to call a duel off that the referee then ignores is worse than no button, since
+  it looks like it worked. That is exactly how the old shape was reported ("for other rooms I
+  have the option to call it off, not for this one"), so the checks hold the pair together on
+  the referee's real answers.
 - **A REMATCH IS A NEW DUEL.** The old one has a result, and a result that can change is not a
   result, so `DuelRematch` opens a fresh room with the same rules and hands back a fresh link.
 

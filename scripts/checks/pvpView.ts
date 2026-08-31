@@ -36,6 +36,7 @@ import {
   inviteText,
   inviteUrl,
   isDuel,
+  leaveKind,
   seatsOf,
   lobbyJoinable,
   lobbyLine,
@@ -893,6 +894,44 @@ export function pvpViewChecks(): void {
             () => `${duelDowngraded('async', old)} / ${/leaveRoom\(room\.code\)/.test(src)}`,
         );
     }
+  }
+
+  // --- The way out, and which of the four it is -----------------------------
+  //
+  // A DUEL WITH BOTH SEATS FILLED USED TO IGNORE THE BUTTON, which is how this was reported
+  // from the game: "for other rooms I have the option to call it off, not for this one". The
+  // referee's rule is in `domain/pvpRoom.ts` and this is the same rule read from the screen,
+  // so the two are asserted TOGETHER on real payloads in `checks/referee.ts` as well. What
+  // is here is the mapping itself, including the two cases a duel does not reach.
+  {
+    const duel = (over: Partial<RoomView> = {}): RoomView =>
+      fixtureRoom({ pace: 'async', status: 'drafting', ...over });
+    const mine = { userId: HOME, xi: {}, dealt: [], rerollsLeft: 0, budgetLeft: 4, window: null };
+    const theirs = { ...mine, userId: AWAY };
+    check(
+      'pvpView: the way out of a room is one of four things, and the duel is the pair that used to be missing',
+      () =>
+        // A duel, seen by the person who opened it, and by the person who took the seat.
+        leaveKind(duel({ you: mine })) === 'calloff' &&
+        leaveKind(duel({ you: theirs })) === 'giveup' &&
+        // Both of them still, with the challenge unanswered: nothing about this reads the
+        // seat count any more, which is the whole change.
+        leaveKind(duel({ you: mine, members: [fixtureRoom().members[0]!] })) === 'calloff' &&
+        // A LIVE room is untouched: a lobby gives a seat up, and once it has started
+        // leaving is only walking away.
+        leaveKind(fixtureRoom({ status: 'lobby', you: mine })) === 'seat' &&
+        leaveKind(fixtureRoom({ status: 'drafting', you: mine })) === 'away' &&
+        leaveKind(fixtureRoom({ status: 'round', you: theirs })) === 'away' &&
+        // And a duel whose match has been played: a result that can be deleted is not a
+        // result, so there is nothing to call off by then.
+        leaveKind(duel({ status: 'round', you: mine })) === 'away' &&
+        leaveKind(duel({ status: 'ended', you: mine })) === 'away' &&
+        // Somebody reading a public lobby they have not joined has no seat to give up.
+        leaveKind(fixtureRoom({ status: 'lobby', you: null })) === 'away',
+      () =>
+        `${leaveKind(duel({ you: mine }))} / ${leaveKind(duel({ you: theirs }))} / ` +
+        `${leaveKind(fixtureRoom({ status: 'lobby', you: mine }))}`,
+    );
   }
 
   // --- A slow answer must not undo a fast one ------------------------------
