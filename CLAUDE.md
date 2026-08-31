@@ -2871,9 +2871,13 @@ the natural thing to do with an unapplied migration is to edit it in place, whic
 wrong once it has run. Two habits come out of that and both are cheap: **`docs/ROADMAP.html`
 is the record of what is deployed, not this file** - check the item before believing a
 deployment claim here - and `supabase/migrations/README.md`'s table says which migration last
-touched each thing. What has NOT been done is **item 48**: none of the three has been played
-by a person. A deploy proves a room can be created, read back and changed; it proves nothing
-about whether the screens say what the rules do.
+touched each thing. **None of the three has been played by a person, and no roadmap item
+tracks that any more**: item 48 was closed on 2026-08-31 because the owner plays them on the
+fly while going through versus, rather than as a scheduled pass, so the list would only have
+been saying "not played yet" until somebody edited it. The caveat therefore lives here
+instead: a deploy proves a room can be created, read back and changed, and proves nothing at
+all about whether the screens say what the rules do. Treat a versus screen as unproven by
+hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
 **NOTHING IS QUEUED, AND 0023 IS NOT VERSUS'S.** The versus schema is at 0022 and the
 referee was rebuilt on 2026-08-31 (roadmap item 49, closed); `0023` is an ACCOUNTS migration

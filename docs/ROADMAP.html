@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-08-31<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Open:</strong> 6 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -395,65 +395,6 @@
     server bundles that machine. There was no client-only version of this: the old gate was
     "the room has not started", and a duel has always started.</p>
     <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
-    <span class="num">48</span>
-    <span class="title">Play the three versus features that just went live
-      <span class="sub">Practice opponents, duels and the new buy-them draft are all deployed
-      and verified at the server, and <b>none of them has been played by a person</b>. The
-      deploy proves a room can be created, read back and changed; it proves nothing about
-      whether the screens do what the rules say, or whether any of it is any fun. Two accounts
-      and half an hour.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>Why this is its own item rather than a line in the three it follows.</strong>
-    Those three were about the server: a migration applied and a container rebuilt, both now
-    proven. This is about the game, and it is the only thing that can find the class of fault
-    the whole toolchain is blind to - a rule that is right and a screen that says something
-    else, or a feature that works exactly as designed and is no good.</p>
-
-    <p><strong>The buy-them draft</strong>, which has the most new behaviour in it:</p>
-    <ol>
-      <li>One bar counting the whole draft, not one per pick, and the host chose its length
-      when opening the room.</li>
-      <li>Buy a player who can fill two positions, tap him, and his other position lights up.
-      Tap it and he moves there.</li>
-      <li>Tap the red x and he comes back out, with his money.</li>
-      <li>"I'm done" is refused until all eleven are filled; the match starts once everybody
-      has pressed it; "Change my XI" takes it back.</li>
-      <li>Let one run out with slots still empty and confirm they are filled for you.</li>
-    </ol>
-
-    <p><strong>A roll room, which must be exactly as it was</strong> - twenty seconds a pick,
-    a squad dealt per window, no moving and no selling. This is the half the change must not
-    have touched, and the easiest thing to have broken by accident.</p>
-
-    <p><strong>Practice opponents:</strong> fill three chairs of a room of four and start it.
-    Each plays a real team (at $110 about 83, where the best possible is 84). Then join that
-    room from a second account and confirm <b>a person takes an opponent's chair rather than
-    being refused</b>. Beating one must not move your record.</p>
-
-    <p><strong>A duel</strong> (item 49 landed, so the server is ready for this). Open one: it must put you straight on your own team sheet with a link to send, no
-    clock anywhere, and the other chair empty. Send the eleven. Open the link from the second
-    account, build there, send. The match plays itself, and each side WATCHES it the next
-    time they open the duel rather than finding a score - that reveal is per person and per
-    browser, so check it on both. Then check that a third account is told the room has
-    started, that calling off an unanswered challenge closes it, and that the rematch button
-    opens a fresh one. Last, check the strip under the tab bar: from another screen entirely
-    it must say a duel is waiting on you, and stop saying it once you have watched the
-    match.</p>
-
-    <p><strong>What to do with what you find.</strong> A rule that is wrong is a code change
-    and probably a check with it; a screen that is wrong is usually just a screen. Neither
-    needs the NAS again unless it turns out to be the server, which is now the least likely
-    half of the three.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
   </div>
 </details>
 
@@ -1193,6 +1134,76 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   </div>
 </details>
 
+<details class="item">
+  <summary>
+    <span class="num">48</span>
+    <span class="title">Play the three versus features that just went live
+      <span class="sub"><b>CLOSED 2026-08-31, by decision rather than by a pass.</b> The
+      owner plays these three in ordinary use, going through the whole of versus on the fly,
+      so a scheduled half hour with a checklist would be the same thing with a date on it.
+      <b>Nothing here claims they have been proven by hand.</b> Whatever turns up while
+      playing opens its own item, with the reproduction in it, which is what this one would
+      have produced anyway. The detail below is kept as the notes to play against.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Why it closed without being run as an item.</strong> A playtest is not work
+    waiting for a slot: it happens the next time somebody opens a room, and it is the owner who
+    opens them. Carrying it on the list says only that the game has not been played yet, which
+    the list cannot know and which stops being true without anybody editing a file. What a list
+    CAN do is say what to look at, so everything written for it is kept below.</p>
+
+    <p><strong>Read the rest of this as the notes, not as a report.</strong> At the time of
+    closing none of it had been carried out, and a fault found while playing gets its own item
+    rather than a tick against this one.</p>
+
+    <p><strong>Why this is its own item rather than a line in the three it follows.</strong>
+    Those three were about the server: a migration applied and a container rebuilt, both now
+    proven. This is about the game, and it is the only thing that can find the class of fault
+    the whole toolchain is blind to - a rule that is right and a screen that says something
+    else, or a feature that works exactly as designed and is no good.</p>
+
+    <p><strong>The buy-them draft</strong>, which has the most new behaviour in it:</p>
+    <ol>
+      <li>One bar counting the whole draft, not one per pick, and the host chose its length
+      when opening the room.</li>
+      <li>Buy a player who can fill two positions, tap him, and his other position lights up.
+      Tap it and he moves there.</li>
+      <li>Tap the red x and he comes back out, with his money.</li>
+      <li>"I'm done" is refused until all eleven are filled; the match starts once everybody
+      has pressed it; "Change my XI" takes it back.</li>
+      <li>Let one run out with slots still empty and confirm they are filled for you.</li>
+    </ol>
+
+    <p><strong>A roll room, which must be exactly as it was</strong> - twenty seconds a pick,
+    a squad dealt per window, no moving and no selling. This is the half the change must not
+    have touched, and the easiest thing to have broken by accident.</p>
+
+    <p><strong>Practice opponents:</strong> fill three chairs of a room of four and start it.
+    Each plays a real team (at $110 about 83, where the best possible is 84). Then join that
+    room from a second account and confirm <b>a person takes an opponent's chair rather than
+    being refused</b>. Beating one must not move your record.</p>
+
+    <p><strong>A duel</strong> (item 49 landed, so the server is ready for this). Open one: it must put you straight on your own team sheet with a link to send, no
+    clock anywhere, and the other chair empty. Send the eleven. Open the link from the second
+    account, build there, send. The match plays itself, and each side WATCHES it the next
+    time they open the duel rather than finding a score - that reveal is per person and per
+    browser, so check it on both. Then check that a third account is told the room has
+    started, that calling off an unanswered challenge closes it, and that the rematch button
+    opens a fresh one. Last, check the strip under the tab bar: from another screen entirely
+    it must say a duel is waiting on you, and stop saying it once you have watched the
+    match.</p>
+
+    <p><strong>What to do with what you find.</strong> A rule that is wrong is a code change
+    and probably a check with it; a screen that is wrong is usually just a screen. Neither
+    needs the NAS again unless it turns out to be the server, which is now the least likely
+    half of the three.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
+
     <h3>Closed 2026-08-30</h3>
 <details class="item">
   <summary>
@@ -1202,7 +1213,8 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       over the whole draft, and a player may move and un-buy inside it. Migration 0021 was
       applied and the versus server rebuilt the same day. The deploy's verification proved it:
       the room it created carries a <code>draft</code> block, which is P52's own field.
-      <b>Not yet played by a person</b> - that is item 48.</span>
+      <b>Not yet played by a person</b> - that was item 48, closed 2026-08-31
+      because the owner plays it on the fly rather than as a tracked pass.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>
@@ -1313,7 +1325,8 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       <span class="sub"><b>CLOSED 2026-08-30.</b> A host can fill the empty chairs of a
       room of four or eight with practice opponents that build their own strong XI. Migration
       0019 was applied on the 29th and the versus server was rebuilt on the 30th, so the
-      feature is live. <b>Not yet played by a person</b> - that is item 48. Everything below is
+      feature is live. <b>Not yet played by a person</b> - that was item 48, closed 2026-08-31
+      because the owner plays it on the fly rather than as a tracked pass. Everything below is
       the record of how it got here, including the migration's own one-way door.</span>
     </span>
     <span class="tag">Versus</span>
