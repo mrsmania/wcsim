@@ -306,10 +306,15 @@ export function inviteUrl(origin: string, base: string, code: string): string {
     return `${origin.replace(/\/+$/, '')}${path}versus/${code}`;
 }
 
-/** What a share sheet sends: a sentence, then the link. The code is in the sentence too,
- *  because a message can be read aloud and a link cannot. */
-export const inviteText = (code: string, url: string): string =>
-    `Play me at Mondialino. Room ${code}: ${url}`;
+/**
+ * What a share sheet sends ALONGSIDE the link, never including it.
+ *
+ * `navigator.share` takes the sentence and the link as two fields and most targets paste
+ * both, so a sentence ending in the address puts it in the message TWICE. The link belongs
+ * in `url`, where an app can also make a preview card of it; this is only the human half.
+ * The code is in it because a message gets read aloud and a link cannot.
+ */
+export const inviteText = (code: string): string => `Play me at Mondialino. Room ${code}.`;
 
 /** The tie the viewer is playing in a given round, or null. */
 export function tieOf(view: RoomView, round: number, userId: string): TieView | null {

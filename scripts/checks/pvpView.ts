@@ -730,11 +730,17 @@ export function pvpViewChecks(): void {
         // the two come from different places (Vite, and the browser) and only one of them
         // promises a shape.
         inviteUrl('https://x.dev/', '/wcsim', 'AB12CD') === 'https://x.dev/wcsim/versus/AB12CD' &&
-        // The text carries the code as well, because a message gets read aloud and a link
-        // does not.
-        inviteText('AB12CD', 'https://x.dev/versus/AB12CD').includes('AB12CD') &&
-        inviteText('AB12CD', 'https://x.dev/versus/AB12CD').includes('https://x.dev/versus/AB12CD'),
-      () => inviteUrl('https://x.github.io', '/wcsim/', 'AB12CD'),
+        // The text carries the code, because a message gets read aloud and a link does not.
+        inviteText('AB12CD').includes('AB12CD') &&
+        // AND IT CARRIES NO LINK AT ALL. `navigator.share` takes the sentence and the link
+        // as two fields and most targets paste both, so a sentence ending in the address
+        // sends it twice. The guard against a vacuous test here is the second line: the
+        // link this is checked against has to be a real one, or "does not contain it" is
+        // true of anything.
+        inviteUrl('https://x.dev', '/', 'AB12CD').startsWith('https://') &&
+        !inviteText('AB12CD').includes(inviteUrl('https://x.dev', '/', 'AB12CD')) &&
+        !/https?:/.test(inviteText('AB12CD')),
+      () => `${inviteUrl('https://x.github.io', '/wcsim/', 'AB12CD')} | ${inviteText('AB12CD')}`,
     );
   }
 

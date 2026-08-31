@@ -359,6 +359,9 @@ export function RoomCode({ code }: { code: string }) {
  *
  * Both say what happened, in place and briefly. A copy that gives no sign is a copy you do
  * twice; a share the reader cancels is not a failure and says nothing.
+ *
+ * THE SENTENCE MUST NOT CARRY THE LINK. The sheet takes `text` and `url` as two fields and
+ * most targets paste both, so an invitation that ended in the address sent it twice.
  */
 export function InviteRoom({ code, url }: { code: string; url: string }) {
     const [said, setSaid] = useState<'copied' | 'failed' | null>(null);
@@ -376,7 +379,7 @@ export function InviteRoom({ code, url }: { code: string; url: string }) {
         // A cancelled share rejects, and a cancellation is not a failure: the reader
         // changed their mind, which is a thing the sheet is FOR.
         void navigator
-            .share({ title: `Mondialino room ${code}`, text: inviteText(code, url), url })
+            .share({ title: `Mondialino room ${code}`, text: inviteText(code), url })
             .catch(() => undefined);
     };
 
