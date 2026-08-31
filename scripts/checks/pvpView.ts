@@ -28,6 +28,7 @@ import {
   duelAlertLine,
   duelDowngraded,
   duelLine,
+  duelListed,
   duelRules,
   duelToOpen,
   duelTurn,
@@ -51,6 +52,7 @@ import {
   spectateTie,
   tieOf,
   viewerTie,
+  walkover,
   xiFrom,
 } from '../../src/domain/pvpView';
 import type { DuelRow, LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
@@ -804,6 +806,71 @@ export function pvpViewChecks(): void {
       () => turns.join(),
     );
 
+    // --- WHAT IS ON THE LIST AT ALL, AND WHAT IS NOT ------------------------
+    //
+    // A DUEL THAT ENDED WITHOUT AN OUTCOME IS NOT A GAME THAT WAS PLAYED, and it was being
+    // filed under "Played" - which is simply untrue of a challenge nobody took up and its
+    // sender called off, or one nobody touched for a week. A WALKOVER is the opposite case
+    // and has to stay: somebody lost that one, and the row is the whole record of it from
+    // their side.
+    {
+      const home = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
+      check(
+        'pvpView: an unplayed duel is off the list, and a walkover is not',
+        () =>
+          // Anything still running, whatever it has or has not got on it.
+          duelListed(row({ status: 'lobby' })) &&
+          duelListed(row({ status: 'drafting' })) &&
+          duelListed(row({ status: 'round' })) &&
+          // A played result, from either side.
+          duelListed(row({ status: 'ended', yourGoals: 2, theirGoals: 1, won: true })) &&
+          duelListed(row({ status: 'ended', yourGoals: 0, theirGoals: 1, won: false })) &&
+          // A walkover: a winner, a loser, and no football.
+          duelListed(row({ status: 'ended', walkover: true, won: false })) &&
+          // And the two that are not games: called off, and left for a week.
+          !duelListed(row({ status: 'ended' })) &&
+          !duelListed(row({ status: 'ended', won: null })) &&
+          // The words follow, so a walkover is not read as a defeat with the score missing.
+          duelLine(row({ status: 'ended', walkover: true, won: false })) === 'You walked away' &&
+          duelLine(row({ status: 'ended', walkover: true, won: true })) ===
+            'They walked away, you win' &&
+          // The screen actually applies it: a filter defined and never called would pass
+          // every assertion above and change nothing at all.
+          /\.filter\(duelListed\)/.test(home),
+        () =>
+          `closed ${duelListed(row({ status: 'ended' }))}, ` +
+          `walkover ${duelListed(row({ status: 'ended', walkover: true, won: false }))}, ` +
+          `applied ${/\.filter\(duelListed\)/.test(home)}`,
+      );
+    }
+
+    // --- A CHAMPION WITH NO TIE UNDER IT ------------------------------------
+    //
+    // The encoding a walkover has instead of a column: a room that was WON, with no match
+    // beneath it, which a duel that actually played can never be. It is read at both ends -
+    // by the result screen, to say who walked instead of printing a scoreline it has not
+    // got, and by `pvp_records`, to count the loss.
+    {
+      const ended = (over: Partial<RoomView>): RoomView =>
+        fixtureRoom({ pace: 'async', status: 'ended', ...over });
+      const tie = fixtureRoom({ status: 'round' }).ties[0]!;
+      check(
+        'pvpView: a walkover is a champion with no match under it, and nothing else is',
+        () =>
+          walkover(ended({ championId: HOME, ties: [] })) &&
+          // A duel that played has its tie, so it is a result rather than a walkover...
+          !walkover(ended({ championId: HOME, ties: [tie] })) &&
+          // ...and a room that closed has no champion, which is the other encoding
+          // (`roomClosed`) and must not be confused with this one.
+          !walkover(ended({ championId: null, ties: [] })) &&
+          // Nothing that has not finished is one, however empty it looks.
+          !walkover(fixtureRoom({ status: 'lobby', championId: null, ties: [] })),
+        () =>
+          `${walkover(ended({ championId: HOME, ties: [] }))} / ` +
+          `${walkover(ended({ championId: HOME, ties: [tie] }))}`,
+      );
+    }
+
     // A ROW FROM THE REFEREE THAT IS DEPLOYED RIGHT NOW has none of the three fields the
     // reading above is built on, because the client ships by pushing to `main` and the
     // server is rebuilt by hand. It must read the way it always did rather than reading as
@@ -877,11 +944,12 @@ export function pvpViewChecks(): void {
                 !isDuel(old) &&
                 isDuel(fixtureRoom({ pace: 'async' })) &&
                 // And a CURRENT one opens the duel already drafting.
-                !duelDowngraded('async', fixtureRoom({ pace: 'async', status: 'drafting' })) &&
-                // The second skew, and the one that is live right now: a referee that has
-                // duels but predates 2026-08-31 opens one in a LOBBY, waiting to be
-                // accepted. The screens no longer draw that, so it is a downgrade too.
-                duelDowngraded('async', fixtureRoom({ pace: 'async', status: 'lobby' })) &&
+                duelDowngraded('async', fixtureRoom({ pace: 'async', status: 'drafting' })) &&
+                // The second skew, and it points the other way now: a referee built on
+                // 2026-08-30 opens a duel straight into its challenger's DRAFT, which is
+                // the shape that let a challenger re-open the room until they liked their
+                // squad. A duel is created in a lobby, so anything else is a downgrade.
+                !duelDowngraded('async', fixtureRoom({ pace: 'async', status: 'lobby' })) &&
                 // Asking for a live room is never downgraded, whatever comes back.
                 !duelDowngraded('live', old) &&
                 // Both call sites act on it, and both CLOSE the room rather than leaving
@@ -898,25 +966,30 @@ export function pvpViewChecks(): void {
 
   // --- The way out, and which of the four it is -----------------------------
   //
-  // A DUEL WITH BOTH SEATS FILLED USED TO IGNORE THE BUTTON, which is how this was reported
-  // from the game: "for other rooms I have the option to call it off, not for this one". The
-  // referee's rule is in `domain/pvpRoom.ts` and this is the same rule read from the screen,
-  // so the two are asserted TOGETHER on real payloads in `checks/referee.ts` as well. What
-  // is here is the mapping itself, including the two cases a duel does not reach.
+  // FOUR THINGS WEAR ONE BUTTON and one of them costs the game, so the screen has to say
+  // which before it is pressed. The referee's rule is in `domain/pvpRoom.ts` and this is the
+  // same rule read from the screen, so the two are asserted TOGETHER on real payloads in
+  // `checks/referee.ts` as well; what is here is the mapping itself, including the cases a
+  // duel does not reach.
   {
     const duel = (over: Partial<RoomView> = {}): RoomView =>
       fixtureRoom({ pace: 'async', status: 'drafting', ...over });
     const mine = { userId: HOME, xi: {}, dealt: [], rerollsLeft: 0, budgetLeft: 4, window: null };
     const theirs = { ...mine, userId: AWAY };
+    const alone = [fixtureRoom().members[0]!];
     check(
-      'pvpView: the way out of a room is one of four things, and the duel is the pair that used to be missing',
+      'pvpView: the way out of a room is one of four things, and a taken-up duel is the one that costs something',
       () =>
-        // A duel, seen by the person who opened it, and by the person who took the seat.
-        leaveKind(duel({ you: mine })) === 'calloff' &&
-        leaveKind(duel({ you: theirs })) === 'giveup' &&
-        // Both of them still, with the challenge unanswered: nothing about this reads the
-        // seat count any more, which is the whole change.
-        leaveKind(duel({ you: mine, members: [fixtureRoom().members[0]!] })) === 'calloff' &&
+        // A duel somebody has taken up: leaving is a FORFEIT at either end, because
+        // accepting is the commitment that sets both drafts going.
+        leaveKind(duel({ you: mine })) === 'forfeit' &&
+        leaveKind(duel({ you: theirs })) === 'forfeit' &&
+        // And with the challenge unanswered it costs nothing, because nothing has been
+        // dealt: the seat count is what tells the two apart, at both statuses a duel can
+        // be waiting in.
+        leaveKind(duel({ you: mine, members: alone })) === 'calloff' &&
+        leaveKind(duel({ status: 'lobby', you: mine, members: alone })) === 'calloff' &&
+        leaveKind(duel({ status: 'lobby', you: mine })) === 'forfeit' &&
         // A LIVE room is untouched: a lobby gives a seat up, and once it has started
         // leaving is only walking away.
         leaveKind(fixtureRoom({ status: 'lobby', you: mine })) === 'seat' &&
@@ -1036,34 +1109,43 @@ export function pvpViewChecks(): void {
     );
   }
 
-  // --- One formation control, reachable from both kinds of room -------------
+  // --- One formation control, and the lobby is where it lives ---------------
   //
-  // It lived inside `RoomLobby`, and a duel never renders a lobby, so a duel had no way to
-  // choose a shape at all. Shared rather than copied now: a second copy is precisely how the
-  // two would drift apart again, and the drift would be silent - a room where the chips are
-  // simply absent looks like a room that has no such setting.
+  // FOR ONE DAY A DUEL HAD NO LOBBY and so no way to choose a shape at all: both sides
+  // played 4-3-3 balanced, unchangeably, and nothing said so. A duel waits in a lobby again,
+  // so the control is back where it belongs - but it stays its own component rather than
+  // going back inside the lobby, because the drift that hid it was silent: a screen where
+  // the chips are simply absent looks like a screen that has no such setting.
+  //
+  // AND IT IS NOT IN THE DRAFT. A shape a board is already built on cannot change - the
+  // slots ARE the formation - so a picker there would be offering a change the referee
+  // refuses, which is the worst of the three possible states.
   {
     const picker = readFileSync('src/components/versus/ShapePicker.tsx', 'utf8');
     const lobby = readFileSync('src/components/versus/RoomLobby.tsx', 'utf8');
     const draft = readFileSync('src/components/versus/RoomDraft.tsx', 'utf8');
     check(
-      'pvpView: the formation control is one component, and a duel can reach it mid-draft',
+      'pvpView: the formation control is one component, in the lobby, and it shows the board',
       () =>
         // It is the real control: the shapes and the styles come off the domain's own lists.
         /FORMATIONS_DATA\.names\.map/.test(picker) &&
         /STYLES\.map/.test(picker) &&
-        // Both screens render it and neither keeps a chip row of its own.
+        // AND THE BOARD, which is the single-player build's own `Pitch` and not a diagram
+        // drawn for this screen - so the eleven circles slide to their new slots on a
+        // change instead of a picture being swapped.
+        /<Pitch/.test(picker) &&
+        /from '\.\.\/Pitch'/.test(picker) &&
+        // The lobby renders it and keeps no chip row of its own.
         /<ShapePicker/.test(lobby) &&
-        /<ShapePicker/.test(draft) &&
         !/FORMATIONS_DATA\.names\.map/.test(lobby) &&
-        !/FORMATIONS_DATA\.names\.map/.test(draft) &&
-        // The draft offers it to a DUEL only, and only while the board is empty - after the
-        // first player the slots are the formation.
-        /view\.pace === 'async' && filledCount === 0/.test(draft) &&
         // And it posts, or the chips are decoration.
-        /room\.ready\(/.test(draft),
+        /room\.ready\(/.test(lobby) &&
+        // The draft has neither the component nor a copy of it.
+        !/<ShapePicker/.test(draft) &&
+        !/FORMATIONS_DATA\.names\.map/.test(draft),
       () =>
-        `picker ${/FORMATIONS_DATA\.names\.map/.test(picker)}, lobby ${/<ShapePicker/.test(lobby)}, draft ${/<ShapePicker/.test(draft)}`,
+        `picker ${/FORMATIONS_DATA\.names\.map/.test(picker)}, board ${/<Pitch/.test(picker)}, ` +
+        `lobby ${/<ShapePicker/.test(lobby)}, draft ${/<ShapePicker/.test(draft)}`,
     );
   }
 

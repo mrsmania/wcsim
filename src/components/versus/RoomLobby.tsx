@@ -7,6 +7,7 @@ import {
     botsIn,
     everybodyReady,
     inviteUrl,
+    isDuel,
     peopleIn,
     roundsFor,
     seatsOf,
@@ -24,6 +25,7 @@ import {
     SeatRow,
 } from './versusUi';
 import ShapePicker from './ShapePicker';
+import { DuelInvite } from './DuelPanels';
 
 /** Where this build is being served from, for the invite link. Read here rather than
  *  inside `inviteUrl`, which is `domain/` and has no window - and defaulted so a checks
@@ -43,6 +45,18 @@ const base = (): string => import.meta.env.BASE_URL;
 // shape right up to the start. Nobody can hold a room by wandering off, and it needs no
 // second clock.
 //
+// A DUEL HAS A LOBBY TOO, and it is this one with three quarters of it switched off: no
+// practice opponents, no playing it smaller, and no host Start. What is left is the half
+// that matters - the shape, and Ready - because nothing at all is dealt or bought in a duel
+// until both players have pressed it (`tickDuel`). That is the whole of the fix for "I can
+// just close the room again and re-open one until I have a banger team": there is nothing
+// to see before you are committed, and once you are, leaving costs the duel.
+//
+// NOBODY PRESSES START IN A DUEL. A live room's kick-off is sent by the host's own client
+// after its three-second count, and a duel's two players are deliberately not both here, so
+// the SERVER starts it on the same two conditions - full, and everybody ready. The count is
+// therefore not armed here at all: the draft simply arrives on the next poll.
+//
 // A ROOM THAT WILL NOT FILL CAN BE PLAYED SMALLER (P7). The host may drop eight to four or
 // two, never upwards and never below the people already sitting here, and NO BYES ARE EVER
 // CREATED - the room plays a full bracket at its new size. It is offered rather than
@@ -58,12 +72,14 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const [busy, setBusy] = useState(false);
     const isHost = view.hostId === view.you?.userId;
     const full = view.members.length >= view.size;
+    const duel = isDuel(view);
     // Downwards only, and never below the people already sitting here: that is the
     // referee's rule (`reduceSize`), and offering a button it would refuse is worse than
     // not offering one.
-    const smaller = isHost
-        ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length)
-        : [];
+    const smaller =
+        isHost && !duel
+            ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length)
+            : [];
     // The practice opponents, and the counts the host may choose between: every chair no
     // PERSON is sitting in, which is the same bound `setBots` enforces. Offering a number
     // the referee would refuse is the same mistake as offering a size it would refuse.
@@ -118,7 +134,7 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const [since, setSince] = useState<number | null>(null);
     const [now, setNow] = useState(0);
     const fired = useRef(false);
-    const armed = full && (everybodyReady(view) || pressed);
+    const armed = !duel && full && (everybodyReady(view) || pressed);
     useEffect(() => {
         if (!armed) {
             setSince(null);
@@ -167,7 +183,11 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     name={name}
                     style={style}
                     onPick={(n, st) => post(n, st, me?.ready ?? false)}
-                    note="Chosen here, not on the clock: the clock only ever covers picking players."
+                    note={
+                        duel
+                            ? 'Choose it now. Nothing is dealt until you are both ready, and once the draft starts the slots are the shape.'
+                            : 'Chosen here, not on the clock: the clock only ever covers picking players.'
+                    }
                 />
 
                 {/* One button, labelled for what it DOES. The seat list beside it is where
@@ -178,18 +198,45 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                 >
                     {me?.ready ? 'Not ready' : "I'm ready"}
                 </button>
+                {duel && (
+                    <RoomNote>
+                        <span className="mt-2 block">
+                            {me?.ready
+                                ? full
+                                    ? 'Ready. It starts the moment they are too.'
+                                    : 'Ready. It starts as soon as somebody takes the challenge up.'
+                                : view.rules.method === 'roll'
+                                  ? 'Your first squad is dealt once you are both ready, and not before.'
+                                  : 'The market opens once you are both ready, and not before.'}
+                        </span>
+                    </RoomNote>
+                )}
             </div>
 
             <div className={`${CARD} p-4`}>
-                <div className={MONO_CAP}>Invite somebody</div>
-                <div className="mt-1.5">
-                    <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
-                </div>
-                <RoomNote>
-                    {view.visibility === 'private'
-                        ? 'Private. The link puts them straight in; nobody else can find it.'
-                        : 'Public: it is on the list too, so anybody signed in can join.'}
-                </RoomNote>
+                {/* A DUEL'S INVITATION IS ITS OWN PANEL, because the sentence beside the
+                    link is a different one: a live room's is "send this to whoever is
+                    playing tonight" and a duel's is "nothing happens at all until somebody
+                    opens this". It used to sit above the board during the draft, which is
+                    where a duel started; there is a lobby to put it in again. */}
+                {duel ? (
+                    <DuelInvite view={view} />
+                ) : (
+                    <>
+                        <div className={MONO_CAP}>Invite somebody</div>
+                        <div className="mt-1.5">
+                            <InviteRoom
+                                code={view.code}
+                                url={inviteUrl(origin(), base(), view.code)}
+                            />
+                        </div>
+                        <RoomNote>
+                            {view.visibility === 'private'
+                                ? 'Private. The link puts them straight in; nobody else can find it.'
+                                : 'Public: it is on the list too, so anybody signed in can join.'}
+                        </RoomNote>
+                    </>
+                )}
 
                 <div className={`${MONO_CAP} mt-4`}>
                     {view.members.length} of {view.size} here
@@ -234,7 +281,7 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     is deliberately not automatic - "shall we just play?" is the host's call.
                     A seat given up here is given back the moment somebody arrives, since a
                     person joining a full room takes the newest bot's chair. */}
-                {isHost && freeSeats > 0 && (
+                {isHost && !duel && freeSeats > 0 && (
                     <>
                         <div className={`${MONO_CAP} mt-4`}>Nobody else coming?</div>
                         <RoomNote>
@@ -304,7 +351,17 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     </RoomNote>
                 )}
 
-                {isHost ? (
+                {duel ? (
+                    // Nobody starts a duel by hand: the server does it the moment both
+                    // players are ready, since neither of them need be here for the other's.
+                    <RoomNote>
+                        <span className="mt-4 block">
+                            {full
+                                ? 'It starts as soon as you are both ready. Neither of you has to be here for the other.'
+                                : 'Send the link. Nothing is dealt until somebody takes it up.'}
+                        </span>
+                    </RoomNote>
+                ) : isHost ? (
                     <button
                         className={`${PRIMARY_BTN} mt-4 w-full`}
                         // Live again once a countdown has stalled, which is the only way

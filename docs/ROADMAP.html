@@ -354,20 +354,31 @@
 <details class="item">
   <summary>
     <span class="num">51</span>
-    <span class="title">Rebuild the versus server so a duel can choose its shape
-      <span class="sub"><b>The screen is live, the rule behind it is not.</b> Neither player in
-      a duel could change formation or style: that control lives on the lobby screen and a duel
-      never has a lobby, so every duel was played 4-3-3 balanced by both sides. The picker is
-      on the draft screen now, and until the container is rebuilt the server declines what it
-      sends - so the chips appear and do nothing. One rebuild, no migration.</span>
+    <span class="title">Rebuild the versus server, and apply 0024, so a duel cannot be re-rolled
+      <span class="sub"><b>The screens are live, the rules behind them are not.</b> A duel now
+      waits in a lobby until both players are ready, so nothing is dealt before anybody is
+      committed, and walking out after somebody has taken the challenge up loses it. Both of
+      those live in the room's state machine, which the server bundles - so until the container
+      is rebuilt the deployed server still opens a duel straight into its challenger's draft
+      and the client refuses to create one at all. One rebuild, plus one migration that can go
+      either side of it.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>What to run.</strong> The deploy alone, from Git Bash in the repository root.
-    Pull first: the script builds whatever is checked out, and the version handshake cannot
-    catch an image built one commit early.</p>
+    <p><strong>What it is fixing.</strong> Reported from the game in one sentence: <em>"I can
+    just close the room again and re-open one until I have a banger team."</em> Opening a
+    challenge costs nothing and calling one off costs nothing, so a challenger who was dealt a
+    squad they disliked could simply do both. Every other re-roll in this game is counted.
+    Two rules close it and neither works alone: <b>nothing is dealt or bought until both
+    players are in and ready</b>, so there is nothing to see before you are committed, and
+    <b>leaving after somebody has taken it up is a forfeit</b>, so there is no way out
+    afterwards. The formation control moves back to the lobby with them.</p>
+
+    <p><strong>What to run.</strong> From Git Bash in the repository root. Pull first: the
+    script builds whatever is checked out, and the version handshake cannot catch an image
+    built one commit early.</p>
     <ol>
       <li><code>git pull</code></li>
       <li><code>bash scripts/deploy-referee.sh --check mario@192.168.1.115</code></li>
@@ -375,26 +386,34 @@
       <li><code>bash scripts/deploy-referee.sh --up mario@192.168.1.115</code></li>
       <li><code>bash scripts/deploy-referee.sh --verify mario@192.168.1.115</code> - and it
       must reach step 5.</li>
+      <li>Then the migration, which is one <code>create or replace view</code>:
+      <code>npm run push:sql -- supabase/migrations/0024_pvp_walkover_records.sql</code>
+      (needs <code>dkr/.env</code> and the LAN or the VPN). Rehearse it first the way the
+      file's own header says.</li>
     </ol>
 
-    <p><strong>Until then the chips are dead rather than absent</strong>, which is worth
-    knowing: tapping a formation posts it, the deployed server refuses it because the room has
-    already started, and the next poll puts the old shape back. That is the honest failure for
-    a client shipped ahead of its server, and it is the reason this is an item rather than a
-    footnote.</p>
+    <p><strong>The migration can go either side of the rebuild</strong>, which is unusual
+    enough to say out loud: nothing about what the referee WRITES changes. A forfeited duel is
+    an ordinary ended room with a champion, written through columns that have existed since
+    0016 - the migration only teaches <code>pvp_records</code> to count a room that was won
+    with no match under it, which is what a walkover is. Applied before the rebuild it counts
+    nothing, because nothing has forfeited yet.</p>
 
-    <p><strong>How to know it worked.</strong> Open a duel. Before you take anybody, the draft
-    screen offers formations and styles and changing one is instant - the board rebuilds
-    around the new shape. Take one player and the picker goes: from then on the slots are the
-    formation. Do the same from the second account after following the link, since both sides
-    were equally stuck. In a <b>roll</b> duel, check the copy is telling the truth: the squad
-    you were already dealt stays as it is, so a shape it cannot serve costs you a re-roll.</p>
+    <p><strong>Until the rebuild, sending a challenge is refused with a sentence</strong>
+    rather than half-working. The client tests the answer it gets back (<code>duelDowngraded</code>),
+    sees a duel that is already drafting, closes that room and says the server has not been
+    rebuilt. That is the honest failure for a client shipped ahead of its server.</p>
 
-    <p><strong>Why the server is involved at all.</strong> The gate is one line in the room's
-    state machine - "you may change your shape until you have taken somebody" - and the
-    server bundles that machine. There was no client-only version of this: the old gate was
-    "the room has not started", and a duel has always started.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+    <p><strong>How to know it worked.</strong> Send a challenge: you land in a lobby with the
+    formation chips, a board that rearranges as you change the shape, and a link - and
+    <b>nothing is dealt</b>. Press ready and it still waits. Follow the link from the second
+    account, choose a shape there, press ready, and both drafts open at once. Then, on a fresh
+    duel, take the challenge up from the second account and press the way out: it should say
+    it counts as a loss, and pressing it should end the room for both with the other player as
+    the winner. Check the versus page afterwards - the finished duel says who walked away, the
+    record counts it once 0024 is in, and a challenge you called off before anybody took it up
+    is not listed as "Played" at all.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0024_pvp_walkover_records.sql" target="_blank" rel="noopener">supabase/migrations/0024_pvp_walkover_records.sql</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
   </div>
 </details>
 
@@ -1186,15 +1205,19 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     room from a second account and confirm <b>a person takes an opponent's chair rather than
     being refused</b>. Beating one must not move your record.</p>
 
-    <p><strong>A duel</strong> (item 49 landed, so the server is ready for this). Open one: it must put you straight on your own team sheet with a link to send, no
-    clock anywhere, and the other chair empty. Send the eleven. Open the link from the second
-    account, build there, send. The match plays itself, and each side WATCHES it the next
-    time they open the duel rather than finding a score - that reveal is per person and per
-    browser, so check it on both. Then check that a third account is told the room has
-    started, that calling off an unanswered challenge closes it, and that the rematch button
-    opens a fresh one. Last, check the strip under the tab bar: from another screen entirely
-    it must say a duel is waiting on you, and stop saying it once you have watched the
-    match.</p>
+    <p><strong>A duel</strong> (the flow below is item 51's, which is still to be deployed;
+    until then the server opens a duel the old way and the client refuses to create one).
+    Open one: it must put you in a lobby with a link to send, the formation chips, a board
+    that rearranges as you change the shape, and <b>nothing dealt to you at all</b>. Press
+    ready; it still waits. Open the link from the second account, choose a shape there, press
+    ready - both drafts open at once, with no clock anywhere. Build and send from each. The
+    match plays itself, and each side WATCHES it the next time they open the duel rather than
+    finding a score - that reveal is per person and per browser, so check it on both. Then
+    check that a third account is told the room has started, that calling off a challenge
+    nobody has taken up closes it for nothing, that leaving one somebody HAS taken up says it
+    counts as a loss and then does, and that the rematch button opens a fresh one. Last, check
+    the strip under the tab bar: from another screen entirely it must say a duel is waiting on
+    you, and stop saying it once you have watched the match.</p>
 
     <p><strong>What to do with what you find.</strong> A rule that is wrong is a code change
     and probably a check with it; a screen that is wrong is usually just a screen. Neither

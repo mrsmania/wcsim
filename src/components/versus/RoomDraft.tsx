@@ -12,7 +12,6 @@ import BuildSurface from '../BuildSurface';
 import { roomControls } from '../buildControls';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, btn } from '../matchUi';
 import RoomBracket from './RoomBracket';
-import ShapePicker from './ShapePicker';
 import { DraftClock, PickClock, RoomNote } from './versusUi';
 
 // The draft: the build page, with the room's rules and the room's clock.
@@ -237,33 +236,14 @@ export default function RoomDraft({
     // board off it. In a per-pick room that is a spent window; in a whole-draft room it is
     // saying so (P52), because a full XI there is still one you may take apart.
     const done = declares ? meDone : !window && (me?.picked ?? 0) >= formation.slots.length;
-    // Nobody has taken the challenge up. The room is drafting - that is the whole change -
-    // so the wait is about a PERSON rather than about their team.
+    // Nobody opposite. A duel cannot reach this screen with an empty seat any more - it
+    // drafts only once both players are in and ready - so this is a room stored under the
+    // day's build that drafted from the moment it was created, and the note is what it gets
+    // instead of a draw that will never come.
     const alone = view.members.length < view.size;
-    // THE SHAPE, WHICH A DUEL HAD NO WAY TO CHOOSE AT ALL until 2026-08-30. The control
-    // lives on the lobby screen and a duel never renders one - it drafts from the moment it
-    // is opened - so both sides played 4-3-3 balanced, unchangeably. Offered here for as long
-    // as the board is empty, which is the same "before you start" the lobby means, measured
-    // against the thing a duel actually has: after your first player the slots ARE the
-    // formation, so a change would be a different team rather than a different shape.
-    const canReshape = view.pace === 'async' && filledCount === 0 && !meDone;
 
     return (
         <div className="flex flex-col gap-[18px]">
-            {canReshape && (
-                <div className={`${CARD_FLAT} p-4`}>
-                    <ShapePicker
-                        name={formation.name}
-                        style={formation.style}
-                        onPick={(n, st) => void room.ready(n, st, me?.ready ?? false).catch(() => undefined)}
-                        note={
-                            rolling
-                                ? 'Change it until you take your first player. The squad you have been dealt stays as it is.'
-                                : 'Change it until you buy your first player.'
-                        }
-                    />
-                </div>
-            )}
             {whole ? (
                 <div className="flex flex-col gap-2">
                     {room.draftRemainingMs !== null ? (

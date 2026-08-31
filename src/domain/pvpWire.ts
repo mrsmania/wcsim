@@ -118,13 +118,13 @@ export interface DuelRow {
   /** True when the caller is the one who sent it. */
   yours: boolean;
   status: RoomStatusWire;
-  /** How many people are in it. A duel drafts from the moment it is opened, so "one" is
-   *  its ordinary early state and is what tells "nobody has taken this up" apart from
-   *  "they are building their team".
+  /** How many people are in it: what tells "nobody has taken this up" apart from "they are
+   *  building their team". A duel with one seat filled is its ordinary early state - it is a
+   *  link waiting to be opened - and the pick counts cannot say so on their own.
    *
-   *  Absent from a referee that predates the 2026-08-31 reshape, where a duel waited in a
-   *  lobby to be accepted and the count could not mean this. `duelTurn` reads it as two,
-   *  which is what such a room becomes the moment anything happens in it. */
+   *  Absent from a referee that predates the field, where a duel could not be read this way
+   *  at all. `duelTurn` reads it as two, which is what such a room becomes the moment
+   *  anything happens in it. */
   seated?: number;
   method: 'roll' | 'budget';
   budget: number;
@@ -139,10 +139,19 @@ export interface DuelRow {
    *  and an old row goes on saying what it always said. */
   yourDone?: boolean;
   theirDone?: boolean;
-  /** Set once it is decided: the goals from the caller's side, and whether they won. */
+  /** Set once it is decided: the goals from the caller's side, and whether they won. A
+   *  walkover has a winner and no goals, which is what `walkover` below is for. */
   yourGoals?: number | null;
   theirGoals?: number | null;
   won?: boolean | null;
+  /** Nobody played it: one of the two walked out after the challenge had been taken up, so
+   *  it is a win and a loss with no scoreline (`forfeitDuel`). `won` says which side of it
+   *  the caller is on.
+   *
+   *  Absent from a referee that predates the forfeit, where leaving simply closed the room -
+   *  and there `won` is unset too, so the row falls off the list rather than claiming a
+   *  result it has not got. */
+  walkover?: boolean;
   openedAt: number;
   /** When anything last happened, which is what the list sorts on: a duel somebody has
    *  just moved in is the one you want at the top. */

@@ -110,10 +110,12 @@ done and why. What that means for anyone working in this tree now:
   the audit.
 - **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
   `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
-  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0023**
+  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0023, and
+  0024 is WRITTEN AND NOT APPLIED** (roadmap item 51, which also owes a referee rebuild).
   (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018,
   0019/0020/0021 the three versus features applied 2026-08-30, 0022 the duel-by-link
-  column drop and 0023 the email address as the identifier, both applied 2026-08-31).
+  column drop and 0023 the email address as the identifier, both applied 2026-08-31; 0024
+  teaches `pvp_records` to count a duel somebody walked out of.)
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
@@ -2879,11 +2881,16 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND 0023 IS NOT VERSUS'S.** The versus schema is at 0022 and the
-referee was rebuilt on 2026-08-31 (roadmap item 49, closed); `0023` is an ACCOUNTS migration
-(the email address as the identifier, roadmap item 50, applied 2026-08-31) and the referee
-needed no rebuild for it, since it reads three columns of `profiles` and `email` is
-deliberately not one of them. See "Accounts" for what it does.
+**ONE MIGRATION AND ONE REBUILD ARE QUEUED, AND 0023 IS NOT VERSUS'S.** The versus schema on
+the server is at 0022 and the referee was last rebuilt on 2026-08-31 (roadmap item 49,
+closed). **Roadmap item 51 owes both**: a rebuild, because a duel now waits in a lobby and a
+forfeit is a rule in the state machine the container bundles, and **0024**, which teaches
+`pvp_records` to count a duel somebody walked out of. That migration is independent of the
+rebuild in both directions, which is unusual - nothing the referee WRITES changed - so either
+order is safe. `0023` is an ACCOUNTS migration (the email address as the identifier, roadmap
+item 50, applied 2026-08-31) and the referee needed no rebuild for it, since it reads three
+columns of `profiles` and `email` is deliberately not one of them. See "Accounts" for what it
+does.
 
 **The versus schema is at 0022 and the referee was rebuilt on 2026-08-31** (roadmap item 49,
 closed). `0022_pvp_duel_by_link.sql` drops `pvp_rooms.invited_id` again
@@ -2906,49 +2913,74 @@ move and un-buy inside it. It **degrades correctly on its own**: an older refere
 budget room its pick windows and no `draft` block, and the screens draw the per-pick draft
 they always drew. See "A budget room runs one clock" below.
 
-**A DUEL CHOOSES ITS SHAPE IN THE DRAFT, BECAUSE IT HAS NO LOBBY TO CHOOSE IT IN**
+**A DUEL HAD NO WAY TO CHOOSE A SHAPE FOR ONE DAY, AND `ShapePicker` IS WHAT CAME OF IT**
 (2026-08-30, roadmap item 51). Reported from the game, and it was true of both sides: the
-formation control lives on the lobby screen, a duel drafts from the moment it is opened, so
+formation control lived inside the lobby screen, and for one day a duel had no lobby, so
 **neither player could pick a formation and every duel was played 4-3-3 balanced**. The plan
 had asserted the opposite ("both shapes are already chosen by then") and the assertion was
-true of no code at any point - see its findings, which now carry that as its own lesson.
-`setLineup`'s gate was "the room has not started"; it is **"you have not taken anybody"**,
-which is the same idea measured against the thing a duel actually has. After the first player
-the slots ARE the formation, so a change then would be a different team rather than a
-different shape. **`ShapePicker` is the one control**, lifted out of `RoomLobby` and shared
-with `RoomDraft` rather than copied, and `npm run checks` reads both screens for it - a screen
-that silently lost its chips looks like a screen that never had that setting. One wrinkle
-accepted rather than fixed: a roll duel keeps the squad it was already dealt, because
-re-dealing on every shape change is a free re-roll and re-rolls are counted; a squad that fits
-nothing under the new shape costs one, as it would have anyway.
+true of no code at any point - see its findings, which now carry that as its own lesson. It
+was first repaired by widening `setLineup`'s gate to "you have not taken anybody"; a duel has
+a lobby again (see DUELS below), so the gate is back to **"in the lobby, and only there"** for
+both paces - one rule rather than one per pace. What survives from the repair, and is the
+useful half, is that **the control is its own component** rather than a block inside
+`RoomLobby`: `npm run checks` reads the screen for it, because a screen that silently loses a
+setting looks exactly like a screen that never had one. It draws the single-player build's
+own `Pitch` beside the chips, so the eleven circles slide to their new slots as the shape
+changes rather than a picture being swapped - the same animation, from the same component.
 
-**DUELS, RESHAPED 2026-08-31** (2026-08-30, roadmap item 46, plan P51). A duel is a challenge
-you send by link, played in both your own time: you start building the moment you open it,
-whoever follows the link builds theirs whenever, and the match plays itself as soon as the
-second team is SENT. The reshape is three changes - a duel opens **straight into its
-challenger's draft** (no lobby, no acceptance step, and the second seat stays open THROUGH the
-draft), finishing is **declared in every duel** rather than only in a budget one (the send
-button), and the challenge is **addressed by link and by nothing else** (`invited_id` dropped
-by 0022). `PVP_PROTOCOL` was again deliberately **not** bumped, for the same reason as above.
-**THERE ARE TWO VERSION SKEWS TO DEGRADE FROM, and both are now behind us**: a referee that
-predates duels answers 201 with an ordinary live room, and one built between 2026-08-30 and
-the reshape answers 201 with a duel **in a lobby**, waiting to be accepted - a shape the
-screens no longer draw at all. `duelDowngraded` therefore tests the STATUS as well as the
-pace, and the create path closes the room it was handed rather than walking the player into
-a lobby they cannot draft from. It is dead weight against our own server and it stays, for
-the reason every other version guard here does: a fork runs whatever it has. **The general
-point outlasts both**: a probe for the SHAPE of a feature (here `GET /v1/duels` answering
-`no-such-route`) only ever catches the version it was written against, because the second
-skew answers that route perfectly well. Test the ANSWER. **AN OLD REFEREE DOES NOT REFUSE A
-DUEL, IT SILENTLY OPENS AN ORDINARY ROOM** - `pace` is a field it has never heard of, so it reads past it and answers
-201 with a live room of two, and the first version of this shipped believing the opposite and
-walked the player into a lobby with a Ready button. So the create path tests the ANSWER
-(`duelDowngraded`) rather than the status, closes the room it was handed instead of leaving
-it holding the account's one live seat, and says what happened; the form also greys the
-button out up front, probed off `GET /v1/duels` answering `no-such-route`, since the
-handshake cannot tell an old container from a new one. **That probe cannot see the SECOND
-skew** - a container that has duels answers the route perfectly well - which is the whole
-reason the answer is tested rather than the request. See "A duel" below.
+**DUELS** (2026-08-30, roadmap item 46, plans P51/P53/P54). A duel is a challenge you send by
+link, played in both your own time: whoever follows the link takes the seat, you each build
+whenever you get to it, and the match plays itself as soon as the second team is SENT. Three
+things beyond that are settled and one of them was settled twice:
+
+- **NOTHING IS DEALT UNTIL BOTH PLAYERS ARE IN AND READY**, and the reason is an exploit
+  rather than a symmetry (2026-08-31, reported from the game, plan P54). A duel spent one day
+  opening **straight into its challenger's draft**, on the reasoning that waiting for somebody
+  to accept buys nothing - and what it actually bought was a free re-roll through the front
+  door: **"I can just close the room again and re-open one until I have a banger team."**
+  Opening a challenge is free and calling one off is free, so a squad you disliked cost
+  nothing to reject. So a duel waits in a **lobby** like every other room, where each player
+  chooses a shape and presses Ready, and the SERVER starts the draft when it is full and
+  everybody is ready - `startRoom` refuses a duel outright, because P48's "the host may start
+  over somebody who has not pressed Ready" would deal a squad to a player who never agreed to
+  play. **Before making a step free, ask what it is the undo of.**
+- **AND LEAVING AFTER SOMEBODY HAS TAKEN IT UP IS A FORFEIT**, which is the other half and
+  does not work without the first: a lobby that hides the squad is worthless if you can walk
+  out once you have seen it. Taking the challenge up is the commitment, so from then on
+  leaving ends the room for both with the player who stayed as the winner. Before that -
+  nobody opposite - calling it off costs nothing, because nothing has been dealt.
+- **Finishing is DECLARED in every duel** rather than only in a budget one (the send button),
+  and the challenge is **addressed by link and by nothing else** (`invited_id` dropped by
+  0022).
+
+**A FORFEIT WRITES NO MATCH AND NEEDED NO COLUMN.** There is no honest 0-0 to record for a
+game nobody played and `pvp_matches.decided` has no word for one, so the encoding is a room
+that was **WON with no match under it** - a state a room that actually played can never be in,
+since a duel that finishes normally has its match and every other unplayed ending leaves no
+champion at all (`roomClosed`). `walkover` in `domain/pvpView.ts` is that reading for the
+result screen, and **migration 0024** is the same reading in SQL, so `pvp_records` counts the
+win and the loss. That migration is unusual in being independent of the deploy in both
+directions: nothing about what the referee WRITES changed.
+
+**AN ENDED DUEL WITH NO OUTCOME IS NOT ON THE LIST AT ALL** (`duelListed`). A challenge nobody
+took up, filed under "Played", is untrue - and `won` is the test rather than the status
+because it is exactly "this one has an outcome", which also degrades correctly against a
+referee that has not been rebuilt: there a forfeit reports no winner and the row disappears
+rather than lying about it.
+
+**`PVP_PROTOCOL` WAS NEVER BUMPED FOR ANY OF IT**, so every skew has to be caught by testing
+the ANSWER. **AN OLD REFEREE DOES NOT REFUSE A DUEL, IT SILENTLY OPENS AN ORDINARY ROOM** -
+`pace` is a field it has never heard of, so it reads past it and answers 201 with a live room
+of two - and a referee built on 2026-08-30 answers 201 with a duel that is already
+**drafting**, which is the shape the exploit above lives in. `duelDowngraded` therefore tests
+the STATUS as well as the pace, and **that line has now pointed both ways**: it read
+`status === 'lobby'` for one day and reads `status !== 'lobby'` again. Both were right about
+their own day, and what makes it testable at all is that a duel is only ever created in one
+place and a created duel has exactly one shape. The create path closes the room it was handed
+rather than walking the player into a game they did not ask for; the form also greys the
+button out up front, probed off `GET /v1/duels` answering `no-such-route`. **That probe cannot
+see the second skew** - a container that has duels answers the route perfectly well - which is
+the whole reason the answer is tested rather than the request. See "A duel" below.
 
 **THE SERVER WAS DEPLOYED THROUGH WAVE 8 AT SCHEMA 0018** (referee redeployed and verified
 2026-08-27, roadmap item 43); **it is at 0022 now**, rebuilt 2026-08-31 - see the paragraph
@@ -2978,8 +3010,8 @@ taken and P39's one-room-at-a-time then refused the player's next room with
 to be OBSERVED rather than announced" is about a closing tab and does not extend to a button
 press: **observing what cannot be announced is not a reason to ignore what can.**
 `leaveRoom` works in a LOBBY only for a LIVE room - past the start your XI is in a bracket
-other people are playing (P15, P24); a duel is the exception and always leavable, see
-"WITHDRAWING IS LEAVING" below - and it shares `withoutMembers` with the sweep, because a lobby that
+other people are playing (P15, P24); a duel is the exception and is leavable until its match is
+played, at the price of losing it, see "WITHDRAWING IS LEAVING" below - and it shares `withoutMembers` with the sweep, because a lobby that
 promotes a host one way and closes the other is two rules wearing one name. The navigation
 does not wait for the answer: a player who pressed Leave is leaving, and a lost request costs
 no more than the liveness window, which is what it used to cost every time. The refusal also needed an ANSWER rather than
@@ -3366,26 +3398,23 @@ the room idle close. So `PvpRoom.pace` is one field, `tickRoom` hands an `async`
 first sketch and would have been a second copy of the draft, which is the part with the rules
 in it.
 
-Seven things about it are decisions rather than details, and each one is checked:
+Eight things about it are decisions rather than details, and each one is checked:
 
-- **A DUEL OPENS STRAIGHT INTO ITS CHALLENGER'S DRAFT** (2026-08-31), which is why it has no
-  lobby, no Ready, no Start and nothing to accept. `createRoom` puts an `async` room in
-  `drafting` with one member and calls `beginDraftFor` on the host. It used to wait in a
-  lobby until somebody accepted, and that wait bought nothing at all: the two drafts never
-  interact, the match is played by the server, and the first thing anybody wants after
-  opening a challenge is to build the team they are challenging with.
-- **THE SECOND SEAT THEREFORE STAYS OPEN THROUGH THE DRAFT**, and that is the only new rule
-  the state machine needed. A live room is shut the moment it starts because everybody is
-  picking against one clock and a latecomer would be picking against a window that has been
-  running a minute; a duel has no clock, so somebody arriving on Tuesday starts a draft of
-  their own exactly as the challenger did on Monday. `joinRoom` has that branch, gated on the
-  pace and on there being a free seat, and `npm run checks` uses a live started room as its
-  vacuity guard - without it the check would pass on a machine that let anybody into any
-  draft.
-- **SO `tickDuel` COUNTS THE SEATS BEFORE IT COUNTS THE DECLARATIONS.** A duel with one member
-  is its ordinary early state, and "everybody has finished" is trivially true of one person -
-  which would draw the challenger against themselves. Mutation-tested: removing that line
-  turns five checks red.
+- **A DUEL WAITS IN A LOBBY AND ITS DRAFT STARTS ITSELF** (2026-08-31, plan P54). Both seats
+  filled and both players ready is the condition, and `tickDuel` is what notices - there is
+  no host tab to press Start, which is the mode. `startRoom` refuses an `async` room outright
+  for the same reason: P48's "the host may start over somebody who has not pressed Ready" is
+  right when everybody is sitting there and here would deal a squad to a player who never
+  agreed to play. It briefly opened straight into the challenger's draft instead, and the
+  exploit that closed that off is at the head of this section.
+- **THE SEAT IS TAKEN IN THE LOBBY, so there is no mid-draft join and nothing to be late
+  for.** Nothing has been dealt before both players are in, so a duel's door shuts when it
+  starts exactly as a live room's does, and `joinRoom` needs no branch for the pace at all.
+- **`tickDuel` STILL COUNTS THE SEATS BEFORE IT COUNTS THE DECLARATIONS.** "Everybody has
+  finished" is trivially true of one person, which would draw a challenger against
+  themselves - unreachable now that a duel cannot draft alone, and kept as the guard that
+  makes that a fact rather than an assumption (and as what a room stored under the day's
+  build falls back to).
 - **FINISHING IS DECLARED IN EVERY DUEL, whatever it plays** (`declaresDone`), where a live
   room only declares in the whole-draft case (P52). The reason is the same one P52 gives,
   reached from the other end: with no clock at all, the eleventh pick landing would kick the
@@ -3412,38 +3441,31 @@ Seven things about it are decisions rather than details, and each one is checked
   which it did not until 2026-08-31 - so somebody sitting in a live room could not take up a
   duel, and a duel is the mode you play precisely because you are busy. None of the three
   implies the others.
-- **WITHDRAWING IS LEAVING, and in a duel it ALWAYS works** - which is a correction made
-  2026-08-31 after it was asked for from the game, and the reasoning is worth keeping
-  because the first version sounded right. Leaving closed an UNANSWERED challenge only, on
-  the live room's rule: once the second player is in, their draft is real work and leaving
-  is only looking away. That rule is right about a live room and wrong about a duel, because
-  a duel is two people and **no bracket** - there is no third party's tournament to void, so
-  what the live rule protects does not exist and what was left was a game neither player
-  could get out of. It is now two answers rather than one condition (`leaveDuel`): **the
-  creator calls it off**, taken or not, which ends it for both and stops the link working;
-  **whoever took the seat gives it back**, which is deliberately NOT the same thing - the
-  room drops to one member, the challenger keeps their board and their link, and the next
-  person to open it takes the chair, so somebody who followed a link by accident cannot
-  delete a challenge that was not theirs. Both are refused once the match has been played,
-  for the reason the rematch below gives.
-  **A SEAT GIVEN UP TAKES ITS TEAM WITH IT, and that half is a database rule rather than a
-  courtesy.** The board, the pick log, the dealt squads and the open window are all keyed on
-  the member who is going; `roomFromRows` keys a pick on its USER rather than on a seat, so
-  anything left behind is read straight back in and handed to whoever takes the chair next -
-  an XI bought with somebody else's money against squads they were never dealt, which
-  `validateXi` then refuses. `withoutMembers` drops it in memory and `pgStore.save` sweeps
-  `pvp_picks`, `pvp_deals` and `pvp_lineups` of anybody no longer in the room. **No fixture
-  can catch that**, because the offline store builds its rows from the room itself and so a
-  departed member has no rows to leave behind, which is why `npm run checks` reads the four
-  `delete` statements as text. Before this the only way to lose a member was the lobby, where
-  all three tables are empty.
+- **WITHDRAWING IS LEAVING, and what it COSTS is the seat count** (`leaveDuel`). Nobody
+  opposite: the person who opened it calls it off, it ends for both and the link stops
+  working, and nothing has been lost because nothing was dealt. Somebody opposite: it is a
+  **forfeit**, at either end - the room ends now and the player who stayed has won it. That
+  rule went through three shapes in two days and the middle one is the instructive part.
+  First, leaving only worked on an unanswered challenge, on the live room's reasoning (once
+  the second player is in, their draft is real work); that left a game neither player could
+  get out of, and was reported as exactly that. Then the second player could hand the seat
+  back and the challenge would wait for somebody else - which reads generously and is the
+  free escape the whole re-roll exploit needs. **The forfeit is what makes the lobby worth
+  having**, and the lobby is what makes the forfeit fair: you commit before you see anything.
+  Both are refused once the match has been played, for the reason the rematch below gives.
+  **NOBODY IS REMOVED BY A FORFEIT**, which is the difference between it and every other
+  ending: a seat given up in a lobby takes its member row with it because the chair is being
+  offered to somebody else, and here the game is over - a room the loser is not in is one they
+  cannot read the result of. (`withoutMembers` still drops a departing member's board, pick
+  log, dealt squads and window, and `pgStore.save` still sweeps the three tables of anybody no
+  longer in the room. Its caller with a draft in flight has gone with the hand-back, but the
+  guarantee belongs to the helper rather than to the caller: "these members are gone" has one
+  correct meaning whoever asks it.)
   **The screens read the same rule from the other end** (`leaveKind`, domain/pvpView): four
-  things wear one button - a seat given up in a lobby, a duel called off for both, a duel's
-  seat handed back, and walking away from a tournament your XI plays on in - and a button
-  promising to call a duel off that the referee then ignores is worse than no button, since
-  it looks like it worked. That is exactly how the old shape was reported ("for other rooms I
-  have the option to call it off, not for this one"), so the checks hold the pair together on
-  the referee's real answers.
+  things wear one button - a seat given up in a lobby, an unanswered challenge called off, a
+  duel FORFEITED, and walking away from a tournament your XI plays on in - and a button
+  promising a free withdrawal that the referee then scores as a defeat is worse than no
+  button. The checks hold the pair together on the referee's real answers.
 - **A REMATCH IS A NEW DUEL.** The old one has a result, and a result that can change is not a
   result, so `DuelRematch` opens a fresh room with the same rules and hands back a fresh link.
 

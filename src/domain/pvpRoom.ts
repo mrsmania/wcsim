@@ -549,19 +549,20 @@ export function createRoom(input: {
     round: 0,
     touchedAt: input.now,
   };
-  // A DUEL HAS NO LOBBY AND NEVER HAD ANYTHING TO WAIT FOR, so it opens straight into the
-  // draft with its challenger already picking. Waiting for somebody to accept before you
-  // may touch your own team is a wait that buys nothing: the two drafts are independent,
-  // the match is played by the server when the second XI lands, and the first thing anybody
-  // wants to do after opening a challenge is build the team they are challenging with.
+  // A DUEL OPENS IN A LOBBY LIKE EVERY OTHER ROOM, and the reason is an exploit rather
+  // than a symmetry (2026-08-31, reported from the game).
   //
-  // The second seat stays open THROUGH the draft, which is the one rule this needs: see
-  // `joinRoom`.
-  if (pace === 'async') {
-    room.status = 'drafting';
-    room.startedAt = input.now;
-    beginDraftFor(room, host, input.now);
-  }
+  // It briefly opened straight into its challenger's draft, on the reasoning that waiting
+  // for somebody to accept buys nothing: the two drafts are independent and the match is
+  // played by the server. What that missed is that opening a challenge is FREE and closing
+  // one is free, so a challenger could roll a squad, dislike it, call the duel off and open
+  // another - "close the room again and re-open one until I have a banger team". Every
+  // re-roll in this game is counted precisely so that cannot happen, and a free one through
+  // the front door is worth more than all of them.
+  //
+  // So nothing is dealt and nothing is bought until the challenge has been TAKEN UP, and by
+  // then walking away costs the duel (`leaveDuel`). The wait is real and it is the price of
+  // the roll meaning anything.
   return room;
 }
 
@@ -600,19 +601,9 @@ export function joinRoom(
   now: number,
 ): { room: PvpRoom; outcome: JoinOutcome } {
   if (memberOf(room, member.userId)) return { room, outcome: 'already-in' };
-  // A DUEL'S SEAT STAYS OPEN THROUGH THE DRAFT, and that is the whole of what "build your
-  // XI before anybody has accepted" costs the state machine. A live room is shut the moment
-  // it starts because everybody in it is drafting against the same clock and a latecomer
-  // would be picking against a window that has been running for a minute; a duel has no
-  // clock at all, so somebody arriving on the link on Tuesday starts a draft of their own,
-  // exactly as the challenger did on Monday. There is nothing to be late for.
-  if (room.status === 'drafting' && room.pace === 'async' && room.members.length < room.size) {
-    const next = clone(room);
-    const m = newMember(member.userId, nextSeat(next), member.name, member.budget, now);
-    next.members.push(m);
-    beginDraftFor(next, m, now);
-    return { room: next, outcome: 'ok' };
-  }
+  // A DUEL'S SEAT IS TAKEN IN ITS LOBBY, like any other, and there is no mid-draft join:
+  // nothing has been dealt or bought until both players are in and ready (`tickDuel`), so
+  // there is nothing to be late for and nothing to catch up on.
   if (room.status !== 'lobby') return { room, outcome: 'started' };
   const bots = botsIn(room);
   if (room.members.length >= room.size && !bots.length) return { room, outcome: 'full' };
@@ -701,26 +692,13 @@ export function setLineup(
   style: Style,
   ready: boolean,
 ): PvpRoom {
-  // A DUEL HAS NO LOBBY - it drafts from the moment it is opened - so "before the room
-  // starts" cannot be what gates a shape there, and while it was, NEITHER player in a duel
-  // could choose one: the only formation control lives on the lobby screen, which a duel
-  // never renders, so every duel was played 4-3-3 balanced by both sides. Reported from the
-  // game on 2026-08-30.
-  //
-  // What replaces it is the same idea measured against the thing a duel actually has: you
-  // may change your shape until you have taken somebody. After that the board is built on
-  // it - the slots ARE the formation - so a change would be a different team, not a
-  // different shape.
-  //
-  // One wrinkle, accepted rather than fixed: a roll duel has already been dealt a squad,
-  // chosen to fill the slots the OLD shape left open. It is not re-dealt, because dealing
-  // again on every shape change is a free re-roll and re-rolls are counted; a squad that
-  // fits nothing under the new shape costs one, exactly as it would have anyway.
-  const changing =
-    room.pace === 'async' &&
-    room.status === 'drafting' &&
-    Object.keys(room.xi[userId] ?? {}).length === 0;
-  if (room.status !== 'lobby' && !changing) return room;
+  // IN THE LOBBY, AND ONLY THERE, in both paces. A duel spent a day without a lobby at all
+  // and so without any way to choose a shape, and every duel in that day was played 4-3-3
+  // balanced by both sides (reported 2026-08-30). It has one again, which fixes that by
+  // giving the control somewhere to live rather than by widening this gate: past the start
+  // the board is built on the shape - the slots ARE the formation - so a change would be a
+  // different team rather than a different shape.
+  if (room.status !== 'lobby') return room;
   const next = clone(room);
   const m = memberOf(next, userId);
   if (!m) return room;
@@ -746,6 +724,12 @@ export function reduceSize(room: PvpRoom, hostId: string, size: RoomSize): PvpRo
  * pressed Ready (P48) - a signal, not a lock, so nobody can hold a room by wandering off.
  */
 export function startRoom(room: PvpRoom, hostId: string, now: number): PvpRoom {
+  // NOBODY STARTS A DUEL BY HAND. Its draft opens when both players are ready and the
+  // server notices (`tickDuel`), and the difference is not a nicety: P48 lets a host start
+  // a live room over somebody who has not pressed Ready, which is right when everybody is
+  // sitting there and would here deal a squad to a player who has not chosen a shape or
+  // agreed to play - and who then cannot leave without losing it.
+  if (room.pace === 'async') return room;
   if (room.status !== 'lobby' || hostId !== room.hostId) return room;
   if (room.members.length !== room.size) return room;
   const next = clone(room);
@@ -1204,13 +1188,15 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
   if (!staying.some((m) => !m.bot)) return closeRoom(room);
   const next = clone(room);
   next.members = next.members.filter((m) => keep.has(m.userId));
-  // A SEAT GIVEN UP IS A TEAM GIVEN UP. In a lobby there is nothing here to drop and this
-  // loop is a no-op, which is why it was not needed until a duel's second player could
-  // leave mid-draft (2026-08-31). Their board, their pick log, their dealt squads and their
-  // open window are all keyed on the member who is going, and leaving them behind would
-  // hand the lot to whoever takes the chair next - an XI bought with somebody else's money,
-  // against a squad they were never dealt, which is exactly what `validateXi` then refuses.
-  // The same rows go from the database, in `pgStore.save`.
+  // A SEAT GIVEN UP IS A TEAM GIVEN UP, which is this helper's contract rather than any
+  // caller's: "these members are gone" has one correct meaning whoever asks it. Their board,
+  // their pick log, their dealt squads and their open window are all keyed on the member who
+  // is going, and leaving them behind would hand the lot to whoever takes the chair next -
+  // an XI bought with somebody else's money, against a squad they were never dealt, which is
+  // exactly what `validateXi` then refuses. The same rows go from the database, in
+  // `pgStore.save`. Every caller today is a LOBBY, where there is nothing yet to drop and
+  // this loop is a no-op; it was written for a duel's second player leaving mid-draft, and
+  // that ending is a forfeit now, which removes nobody.
   for (const m of room.members) {
     if (keep.has(m.userId)) continue;
     delete next.xi[m.userId];
@@ -1236,7 +1222,8 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
  * P24). Leaving a running room is therefore a navigation and nothing more, and the screen
  * says so - "your team plays on without you".
  *
- * IN A DUEL IT ALWAYS WORKS, up to the moment the football is played. See `leaveDuel`.
+ * IN A DUEL IT ALWAYS WORKS, up to the moment the football is played, and past the point
+ * where somebody accepted it COSTS THE DUEL. See `leaveDuel`.
  *
  * IN A LOBBY IT HAS TO BE REAL, though, and this was a reported bug: leaving used to be
  * purely local, so the seat stayed taken, and `activeRoomOf` then refused the player their
@@ -1245,7 +1232,7 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
  * leaving has to tell the referee.
  */
 export function leaveRoom(room: PvpRoom, userId: string, now: number): PvpRoom {
-  if (room.pace === 'async' && !duelPlayed(room)) return leaveDuel(room, userId, now);
+  if (room.pace === 'async' && !duelPlayed(room)) return leaveDuel(room, userId);
   if (room.status !== 'lobby') return room;
   if (!room.members.some((m) => m.userId === userId)) return room;
   return withoutMembers(room, everyoneBut(room, userId), now);
@@ -1264,31 +1251,63 @@ const everyoneBut = (room: PvpRoom, userId: string): Set<string> =>
  * Walking out of a duel, which is TWO different things (2026-08-31, asked for from the
  * game).
  *
- * IT USED TO BE THE UNANSWERED CASE ONLY: a challenge nobody had opened could be called
- * off, and the moment somebody took the seat both sides were stuck with it until the match
- * played or the week ran out. The reasoning was the live room's - once the second player is
- * in, their draft is real work and leaving is only looking away - and it is wrong here,
- * because a duel is two people and NO BRACKET. There is no third party's tournament to
- * void, so the thing that a live room's rule protects does not exist, and what was left was
- * a game neither player could get out of.
+ * THE SEAT COUNT DECIDES WHICH, and this rule went through three shapes in two days. It
+ * began as the unanswered case only - once somebody took the seat, both sides were stuck
+ * until the match played or the week ran out - which is the live room's reasoning (their
+ * draft is real work, and leaving is only looking away) and left a game neither player
+ * could get out of. It was then widened so the second player could hand the seat back and
+ * the challenge would wait for somebody else, which reads generously and is a free escape
+ * from a squad you did not like. What it is now:
  *
- *   * THE CREATOR CALLS IT OFF, at any point up to the match. The room is theirs and the
- *     link is theirs, so their leaving ends it for both and the link stops working. This is
- *     the same closing an unanswered challenge always did; what has gone is the condition.
- *   * WHOEVER TOOK THE SEAT GIVES IT BACK, which is deliberately NOT the same thing. Their
- *     leaving drops the room to one member and reopens it: the challenger keeps their board
- *     and their link, and the next person to open it takes the chair, exactly as the first
- *     one did. Somebody who followed a link by accident should not be able to delete
- *     somebody else's challenge.
+ *   * NOBODY HAS TAKEN IT UP: THE CREATOR CALLS IT OFF, and it costs nothing. There is one
+ *     person in the room, no squad has been dealt and no player bought, so the challenge
+ *     simply stops existing and the link stops working.
+ *   * SOMEBODY HAS: WALKING OUT IS A FORFEIT, whoever does it (2026-08-31, asked for from
+ *     the game). Taking the challenge up is the commitment - it is what sets both drafts
+ *     going - so from that moment leaving is not withdrawing an offer, it is abandoning a
+ *     match somebody else is playing. The room ends there and then for both of them, with
+ *     the player who stayed as the winner.
  *
- * Their own board goes with them either way (`withoutMembers`), and both of these are
- * refused once the match has been played, because a result that can be deleted is not a
- * result - which is the same reason a rematch is a new duel rather than a reopened one.
+ * THE FORFEIT IS THE OTHER HALF OF GIVING A DUEL A LOBBY AGAIN, and without it the change
+ * is worthless: if walking away were free, a challenger could look at the squad they were
+ * dealt, leave, and open another challenge until they liked one. The lobby stops them
+ * seeing anything before they are committed, and this stops them getting out afterwards.
+ *
+ * Both are refused once the match has been played, because a result that can be deleted is
+ * not a result - which is the same reason a rematch is a new duel rather than a reopened
+ * one.
  */
-function leaveDuel(room: PvpRoom, userId: string, now: number): PvpRoom {
+function leaveDuel(room: PvpRoom, userId: string): PvpRoom {
   if (!room.members.some((m) => m.userId === userId)) return room;
-  if (userId === room.hostId) return closeRoom(room);
-  return withoutMembers(room, everyoneBut(room, userId), now);
+  // Nobody opposite, so there is nothing to forfeit - and the one member of a duel of two
+  // is always the person who opened it, which is why this needs no test for that: a host
+  // never leaves without ending the room, so nobody else can be the last one in it.
+  if (room.members.length < room.size) return closeRoom(room);
+  return forfeitDuel(room, userId);
+}
+
+/**
+ * A duel abandoned by one of its two players: over, now, and lost by whoever walked.
+ *
+ * NOBODY IS REMOVED FROM THE ROOM, which is the difference between this and every other
+ * ending. A seat given up in a lobby takes its member row with it because the chair is
+ * being offered to somebody else; here there is no chair to offer - the game is finished -
+ * and both players have to stay in it or neither of them could read the result.
+ *
+ * IT WRITES NO MATCH, and that is deliberate rather than a shortcut: `pvp_matches` rows
+ * carry a scoreline and how it was decided, and there is no honest 0-0 to record for a
+ * game nobody played. The room's own `championId` with no tie beneath it is the encoding,
+ * and it is one a played room can never be in - a duel that finishes normally always has
+ * its match. `walkover` in `domain/pvpView.ts` is that reading, and `pvp_records` counts it
+ * by the same test.
+ */
+function forfeitDuel(room: PvpRoom, userId: string): PvpRoom {
+  const winner = room.members.find((m) => m.userId !== userId);
+  if (!winner) return room;
+  const next = clone(room);
+  next.status = 'ended';
+  next.championId = winner.userId;
+  return next;
 }
 
 /**
@@ -1348,10 +1367,14 @@ function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
  * No expiry on a pick window, no seat dropped for silence, no lobby closed for not filling
  * and no hard bound on the draft: every one of those exists because a live room cannot
  * wait for a human (P12, P31), and waiting for a human is the entire feature here. What is
- * left is the two transitions that are about the FOOTBALL rather than about anybody being
- * present - both XIs are in, so play the match; the reveal has run, so settle it - and one
- * deadline, a week of nothing, which is what stops an unanswered challenge sitting on
- * somebody's list for ever.
+ * left is three transitions that are about the ROOM rather than about anybody being present
+ * - both players are ready, so open the drafts; both XIs are in, so play the match; the
+ * reveal has run, so settle it - and one deadline, a week of nothing, which is what stops
+ * an unanswered challenge sitting on somebody's list for ever.
+ *
+ * THE FIRST OF THE THREE IS THE KICK-OFF NOBODY PRESSES, and it is here rather than in a
+ * client because a duel's two players are deliberately not both present: a live room's
+ * Start is sent by the host's own tab (P50), and there may be no such tab for days.
  *
  * NOTE WHAT THE FIRST ONE MEANS IN A DUEL: whoever finishes second sets the match going,
  * and the other player was not there for it. That is why the result is stamped and settles
@@ -1360,12 +1383,28 @@ function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
  */
 function tickDuel(room: PvpRoom, now: number): PvpRoom {
   if (now - room.touchedAt > DUEL_IDLE_MS) return closeRoom(room);
-  if (room.status === 'lobby') return room;
+  if (room.status === 'lobby') {
+    // THE DRAFT STARTS ITSELF, and it has to: a live room's kick-off is sent by the host's
+    // own client after its three-second count (P50), and a duel's two players are
+    // deliberately not both here. So the server starts it, on the same two conditions the
+    // live countdown arms on - the room is full, and everybody has said they are ready -
+    // which together are the whole of "the challenge has been taken up and both of us have
+    // chosen a shape". Until then nothing has been dealt and nothing bought, which is what
+    // makes calling the duel off before this point cost nothing (`leaveDuel`).
+    if (room.members.length < room.size) return room;
+    if (!room.members.every((m) => m.ready)) return room;
+    const next = clone(room);
+    next.status = 'drafting';
+    next.startedAt = now;
+    for (const m of next.members) beginDraftFor(next, m, now);
+    return next;
+  }
   if (room.status === 'drafting') {
-    // NOBODY HAS TAKEN THE CHALLENGE UP YET, so there is no match to play however finished
-    // the challenger is. A duel drafts from the moment it is opened, which means a room of
-    // one is its ordinary early state rather than an impossible one - and without this a
-    // challenger who sent their XI would be drawn against themselves.
+    // A DUEL ONLY DRAFTS ONCE BOTH SEATS ARE FILLED, and this line is what makes that a
+    // fact rather than an assumption: "everybody has declared" is trivially true of one
+    // person, so without it a challenger alone in a room would be drawn against themselves.
+    // It is also what a duel stored under the day's build that drafted from the moment it
+    // was created falls back to.
     if (room.members.length < room.size) return room;
     // Both players have SAID they are through, which in a duel is the only thing that can
     // end a draft: there is no clock, so without the declaration an XI could never be

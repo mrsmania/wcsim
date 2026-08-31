@@ -7,6 +7,7 @@ import {
     duelDowngraded,
     duelLine,
     duelRules,
+    duelListed,
     duelTurn,
     lobbyJoinable,
     lobbyLine,
@@ -403,8 +404,13 @@ export default function VersusHome({
     // ON NOW versus PLAYED. Two lists rather than one sorted list, because they are read
     // for different reasons: the first is a to-do list and the second is a record. A duel
     // that CLOSED without a match belongs with the played ones - it is over either way.
-    const open = duels.filter((d) => d.status !== 'ended');
-    const finished = duels.filter((d) => d.status === 'ended');
+    // A DUEL THAT ENDED WITHOUT AN OUTCOME IS NOT A GAME THAT WAS PLAYED, so it is not on
+    // the list at all - a challenge nobody took up and its sender called off, or one nobody
+    // touched for a week, under a heading reading "Played" is simply untrue. A walkover has
+    // a winner and stays (`duelListed`).
+    const listed = duels.filter(duelListed);
+    const open = listed.filter((d) => d.status !== 'ended');
+    const finished = listed.filter((d) => d.status === 'ended');
 
     const join = (e: React.FormEvent) => {
         e.preventDefault();
@@ -487,9 +493,9 @@ export default function VersusHome({
                         against eleven.
                         {duel && (
                             <span className="mt-1.5 block">
-                                You start building straight away and get a link to send. Whoever
-                                opens it builds theirs whenever they like, and the match plays
-                                itself once both teams are sent.
+                                You get a link to send. Whoever opens it takes the challenge,
+                                you each build in your own time once you are both ready, and
+                                the match plays itself when the second team is sent.
                             </span>
                         )}
                     </RoomNote>

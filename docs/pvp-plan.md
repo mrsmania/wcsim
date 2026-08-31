@@ -97,6 +97,7 @@ in rather than a missing feature.
 | P50 | Starting the draft | **The room starts itself once everybody is ready, three seconds after** (2026-08-29). P48 made Ready a signal and left the host as the only thing that could act on it, so a full room of ready players sat waiting for one person to notice and press a button. The countdown is **derived from the room every client already holds** - full, and everybody ready - so it needs no instruction and nothing deployed: each screen counts down on its own and the HOST'S client sends the Start at zero. The host's button stays, for a room where somebody has not readied (P48's whole point), and arms the same three seconds rather than dropping the draft on the room. Two failure modes were designed for and both are checked: the count **disarms** if a seat is lost or somebody un-readies, so it cannot fire a Start the referee would refuse; and it **gives up at zero** after a few seconds, because the only client that sends the Start is the host's, and a host whose tab dies in the last second would otherwise leave everybody on a screen that never changes. Accepted asymmetry: a host's press on a room that was not all-ready is not visible to the others, so they see the draft arrive rather than a count - making it visible needs a server instruction, which is where P41's Skip is |
 | P51 | Playing somebody who is not online | **A duel: a room of two with its deadlines switched off** (2026-08-30, roadmap item 46). Every rule above about waiting exists because a live room cannot wait for a human (P12, P31) - the pick clock, the liveness sweep, the lobby that closes when it stops filling, the half-hour idle close. A duel is the same room with those four read past, so it is **one field (`pace`) rather than a second state machine**: the draft, the deal, the validation, the tie and the record are all the same code, which is the whole reason this is small. What differs: *(reshaped 2026-08-31, see the row below)* a duel **opens straight into its challenger's draft** (no lobby, no Ready and no Start, because there is nobody to wait with) and its **second seat stays open through that draft**, the invitation is a **link and nothing else**, finishing is **declared** in every duel rather than only in a budget one, a window **never expires** but still counts the picks and deals the squads, **P39 counts live rooms only** (holding five duels is the feature; a duel neither uses up nor is blocked by your one live room), and the idle bound is **a week** rather than half an hour. Declining is **leaving** rather than a command of its own, and it closes the duel. There is no mail and no push notification in this game, so the duels list on the versus page IS how a challenge arrives - which is why the challenger's screen carries the invitation link, and why a row leads with whose move it is rather than with a score. The result offers a **rematch**, which is a NEW duel with the same settings: the old one has a result, and a result that can change is not a result |
 | P53 | Waiting to be accepted, and finding a score | **A duel drafts from the moment it is opened, is sent with a button, and is watched when you turn up** (2026-08-31, roadmap items 46 and 49). Three corrections to P51, all of them the same mistake in different places: it made one player wait on another for no reason. **The challenger drafted last** - the room sat in a lobby until somebody accepted, so the person who opened it could not touch the team they were challenging with, and the two drafts never interact anyway. A duel is created in `drafting` with one member now, and its second seat stays open through the draft (the one rule the state machine needed; a live room shuts because everybody is on one clock, and a duel has none). **Eleven picked ended the draft**, so in a roll duel the last pick kicked the match off under its owner with no last look at the team: finishing is DECLARED in every duel now (`declaresDone`), which is P52's rule reached from the other end. And **the match was revealed on the server's window** (P30), which is right when two people are watching the same match and wrong when the server plays it at three in the morning: a duel's reveal is a LOCAL fact now (`state/pvp/watched.ts`), so it plays the first time each viewer opens it, with a skip beside it. The invitation drops the addressed name with them - `invited_id`, a lookup, a refusal, a visibility exception and an accept screen, all to say what a private link already says - and the chrome grows a strip reading the most urgent row of your duels, because a duel is the one thing in this game somebody else can be waiting on. Versus is a **tab** for the same reason |
+| P54 | A challenger who does not like their squad | **Nothing is dealt until both players are ready, and leaving afterwards is a forfeit** (2026-08-31, reported from the game). P53 had a duel drafting from the moment it was created, and the reasoning - the two drafts never interact, so waiting buys nothing - missed the economics: opening a challenge is free and calling one off is free, so a squad you disliked cost nothing to reject and re-roll. *"I can just close the room again and re-open one until I have a banger team."* So a duel waits in a **lobby** again, where each player chooses a shape and presses Ready, and the SERVER starts the draft when both have (`startRoom` refuses a duel outright: P48's start-over-the-unready is right in a live room and here would deal a squad to somebody who never agreed to play). **And leaving after somebody has taken the challenge up is a FORFEIT** - the room ends now, the player who stayed wins it - because the lobby is worthless if you can walk out once you have seen the squad. Neither rule works without the other. A forfeit writes no match: a room WON with no match under it is the encoding (`walkover`), which a played room can never be, so it needed no column - only migration 0024, so `pvp_records` counts it. An ended duel with no outcome at all leaves the list entirely: a challenge nobody took up is not a game that was played |
 | P52 | The budget room's clock | **One clock over the whole draft, not eleven windows** (2026-08-30, roadmap item 47). The METHOD decides it rather than a setting, because the two are different games: a roll draft is eleven decisions about eleven dealt squads, so a window per squad is what it is; a budget draft is one decision about one pool of money, where the eleventh pick settles whether the first was affordable, so a clock that will not let you go back and sell is a trap rather than a clock. So a budget room runs one clock (three lengths, 3/5/8 minutes) and the board is submitted as a MAP - which makes buying, moving a player to another of his roles and taking one back out the same instruction, and so finally delivers P42 and the remove beside it. Finishing is **declared** and not inferred from a full XI: the last person to complete their team would otherwise end the room by completing it, making the two new gestures unusable by exactly the person who most wants them, so there is an "I'm done" and it is reversible while the draft is open. The room plays when everybody has declared, or the clock runs out and every empty slot is filled for its player, recorded as automatic exactly as an expired window's is. A duel is both clocks off at once (P51): no window and no whole-draft deadline, so only the declarations end it. Needs `pvp_rooms.draft_seconds` and `pvp_members.done` (migration 0021) and nothing else - `xi` has been a slot map since wave 1 and `pvp_picks` has been keyed on the slot since 0016, both put there for P42 |
 | P27 | Can two players pick the same man? | **Yes. The room pool is shared, not exclusive.** It is the only version compatible with eleven independent clocks (P12): under exclusivity two players claim the same man in overlapping windows and somebody has to be told no, which makes a fast connection an advantage. Named here as a decision rather than left as an assumption, because exclusivity is the largest single lever available if the mode ever plays flat |
 
@@ -207,7 +208,11 @@ three re-roll kinds is dead. Say so in the lobby rather than shipping a button t
    the lobby list; a private one is joined only by code. Each player picks their formation and
    style and then presses **Ready** (P48); the lobby shows who has, and a shape can still be
    changed until the start. The host may reduce the size (P7) and starts when the room is full,
-   ready or not. The listing shows liveness ("5 of 8, two joined in the last five minutes") so
+   ready or not. **A DUEL HAS THIS PHASE TOO AND IT IS WHERE ITS WHOLE ANTI-EXPLOIT RULE
+   LIVES** (P54): nothing is dealt or bought until both players are in and ready, and nobody
+   starts it by hand - the server does, on those two conditions - so a challenger cannot see a
+   squad, dislike it and open another challenge instead. Once somebody has taken it up,
+   leaving the duel forfeits it. The listing shows liveness ("5 of 8, two joined in the last five minutes") so
    waiting is an informed choice, and a waiting player may keep browsing the app with a room
    strip pinned in the chrome.
 2. **The draft.** Each player gets the room's clock per pick, on their own clock, restarting
@@ -500,6 +505,46 @@ things worth recording.
   METHOD instead would look right and be wrong on every deployed server until the next NAS
   visit, which is why the check reads that line specifically.
 
+### Rolled back the next day: a duel waits again, and leaving it costs (2026-08-31, P54)
+
+Reported from the game, in one sentence that settles it: **"I can just close the room again
+and re-open one until I have a banger team."** P53 had a duel drafting from the moment it was
+created, on the reasoning that waiting for somebody to accept buys nothing - the two drafts
+never interact and the server plays the match. That reasoning is sound and it missed the
+economics entirely.
+
+- **A FREE ACTION PLUS A FREE UNDO IS A FREE RE-ROLL.** Opening a challenge costs nothing and
+  calling one off costs nothing, so a challenger dealt a squad they did not like could simply
+  do both and be dealt another. Every re-roll in this game is counted - the allowance is a
+  room setting (P16) - and that one was unlimited and through the front door. The lesson is
+  general and is not about duels: **before making a step free, ask what it is the undo of.**
+- **THE FIX IS TWO RULES AND THEY ONLY WORK TOGETHER.** Nothing is dealt or bought until both
+  players are in and have pressed Ready, so there is nothing to see before you are committed;
+  and from the moment somebody takes the challenge up, leaving is a FORFEIT rather than a
+  withdrawal, so there is no way out afterwards either. Either one alone leaves the loop open:
+  the first without the second just moves the free re-roll one step later.
+- **SO A DUEL HAS A LOBBY AGAIN**, which is also where the formation control lives - the bug
+  P53 fixed by widening `setLineup`'s gate is fixed here by giving the control somewhere to
+  be, and the gate is back to "in the lobby, and only there" for both paces. One rule rather
+  than one per pace.
+- **NOBODY PRESSES START IN A DUEL, AND `startRoom` HAD TO SAY SO.** P48 lets a live room's
+  host start over somebody who has not pressed Ready, which is right when everybody is
+  sitting there; in a duel it would deal a squad to a player who had not chosen a shape or
+  agreed to play, and who then could not leave without losing. The server starts a duel
+  instead, on `tickDuel`, when it is full and everybody is ready.
+- **A FORFEIT WRITES NO MATCH, AND NEEDED NO COLUMN.** There is no honest 0-0 to record for a
+  game nobody played, and `pvp_matches.decided` takes three values, none of which means
+  "walkover". A room that was WON with no match under it is a state a played room can never
+  be in, so that pair IS the encoding: `walkover` in `domain/pvpView.ts` reads it for the
+  result screen, and migration 0024 reads it the same way to count the loss on `pvp_records`.
+  The migration is independent of the deploy in both directions, which is unusual and worth
+  noticing - nothing about what the referee WRITES changed.
+- **AND AN UNPLAYED DUEL IS NOT A PLAYED ONE.** A challenge nobody took up, filed under
+  "Played", is simply untrue. The list drops any ended duel with no outcome, and `won` is the
+  test rather than the status because it is exactly "this one has an outcome" - which also
+  degrades correctly against a referee that has not been rebuilt, where a forfeit reports no
+  winner and the row quietly disappears rather than lying.
+
 ### Found while reshaping duels (2026-08-31, P53)
 
 - **A CLOSED ROADMAP ITEM IS THE DEPLOYMENT RECORD, NOT `CLAUDE.md`.** That file said duels
@@ -541,19 +586,26 @@ things worth recording.
   bound the list they sit on fills with them for ever. A week, because every write stamps
   `touchedAt`, so a duel played over three evenings never reaches it.
 
-- **DROPPING THE LOBBY WAS RIGHT, AND ITS STATED REASON WAS FALSE.** The first version gave a
-  duel the ordinary lobby, and it read as broken the moment it was described: a Ready button
-  is one player pressing something and then leaving, and a host's Start is a second visit for
-  no decision. So a duel drafts from the moment it is opened, which stands. But the note
+- **DROPPING THE LOBBY WAS WRONG, AND ITS STATED REASON WAS FALSE - two separate faults in
+  one paragraph.** *(The first half is P54's, written the next day: the lobby is back, because
+  drafting before anybody was committed made re-opening a challenge a free re-roll. What
+  follows is the second fault, which stands on its own.)* The first version gave a duel the
+  ordinary lobby, and it read as broken the moment it was described: a Ready button is one
+  player pressing something and then leaving, and a host's Start is a second visit for no
+  decision. That reading was about the CEREMONY and it was right about the ceremony - what it
+  missed is that the wait is what makes the deal honest. But the note
   justified it with one more clause - "both shapes are already chosen by then, the
   challenger's when they sent it and the opponent's as they accept" - **and that clause was
   true of no code at any point.** The formation control lives on the lobby screen. A duel
   never renders one. So NEITHER side of any duel could choose a shape, and every one of them
   was played 4-3-3 balanced by both players. Reported from the game 2026-08-30, after the
   lobby-less redesign had made it structural rather than incidental.
-  The fix keeps the reasoning and drops the premise: `setLineup`'s gate was "the room has not
+  *(The gate below was the repair while a duel had no lobby; with one back it reads "in the
+  lobby, and only there" again, for both paces. `ShapePicker` being its own component is what
+  survives, and it is the half worth keeping.)* The fix kept the reasoning and dropped the
+  premise: `setLineup`'s gate was "the room has not
   started", which is the right idea measured against the wrong thing for a pace with no
-  lobby, and is now **"you have not taken anybody"** - a duel may reshape until its first
+  lobby, and became **"you have not taken anybody"** - a duel may reshape until its first
   player and never after, because by then the slots ARE the formation and a change would be a
   different team rather than a different shape. `ShapePicker` is that control, lifted out of
   `RoomLobby` and shared with `RoomDraft` rather than copied, and `npm run checks` reads both

@@ -142,14 +142,15 @@ export function pgStore(pool: Pool): RoomStore {
       [id, here],
     );
 
-    // AND SO DOES THEIR DRAFT. Until a duel's second player could give the seat back
-    // mid-draft (2026-08-31) the only way to lose a member was the lobby, where none of
-    // these tables holds anything yet - so nothing needed deleting and nothing did. Now a
-    // departure can leave eleven picks, a pile of dealt squads and a formation behind, and
-    // none of them is reachable through `pvp_members` any more: the pick sweep below walks
-    // the room's own members, so it cannot see them. They would be read straight back in
-    // by `roomFromRows`, which keys on the pick's user rather than on the seat, and handed
-    // to whoever took the chair next. `domain/pvpRoom.ts` drops the same state in memory.
+    // AND SO DOES THEIR DRAFT, which is the same contract `withoutMembers` keeps in memory:
+    // a member who is no longer in the room leaves nothing of theirs behind. A departure
+    // can leave eleven picks, a pile of dealt squads and a formation, and none of it is
+    // reachable through `pvp_members` any more - the pick sweep below walks the room's own
+    // members, so it cannot see them - and `roomFromRows` keys a pick on its USER rather
+    // than on the seat, so it would read the lot straight back in and hand it to whoever
+    // took the chair next. Every way to lose a member TODAY is a lobby, where these tables
+    // are empty apart from the lineup; it was written for a duel's second player leaving
+    // mid-draft, and that ending is a forfeit now, which removes nobody.
     // Written out rather than looped over a list of table names: three plain statements say
     // what they touch, and the table is never a value.
     await db.query(`delete from pvp_picks where room_id = $1 and not (user_id = any($2::uuid[]))`, [id, here]);
@@ -274,9 +275,9 @@ export function pgStore(pool: Pool): RoomStore {
             input.draftSeconds, input.pace,
           ],
         );
-        // The literal 'lobby' is a placeholder and nothing reads it: `createRoom` decides
-        // the status - a duel opens straight into its challenger's draft - and the `save`
-        // below writes it, along with `started_at`, inside this same transaction.
+        // The literal 'lobby' is what `createRoom` returns for every room today, and it is
+        // still written rather than assumed: the state machine decides the status, and the
+        // `save` below writes it, along with `started_at`, in this same transaction.
         const room = createRoom({
           id: String(res.rows[0]!.id),
           code: input.code,
@@ -434,6 +435,7 @@ export function pgStore(pool: Pool): RoomStore {
         your_goals: number | null;
         their_goals: number | null;
         winner_id: string | null;
+        champion_id: string | null;
         created_at: Date | string;
         touched_at: Date | string;
       }>(
@@ -470,7 +472,13 @@ export function pgStore(pool: Pool): RoomStore {
                 (select case when x.home_id = $1 then x.away_goals else x.home_goals end
                    from pvp_matches x where x.room_id = r.id limit 1) as their_goals,
                 (select x.winner_id from pvp_matches x where x.room_id = r.id limit 1)
-                  as winner_id
+                  as winner_id,
+                -- A WALKOVER HAS A CHAMPION AND NO MATCH (forfeitDuel): somebody took the
+                -- challenge up and then walked out, which ends the duel with a winner and
+                -- no scoreline to print. It is read off the room rather than a column of
+                -- its own, because a champion with nothing beneath it is a state a duel
+                -- that played can never be in.
+                r.champion_id
            from mine r
           order by r.touched_at desc
           limit $2`,
@@ -490,7 +498,10 @@ export function pgStore(pool: Pool): RoomStore {
         theirDone: x.their_done,
         yourGoals: x.your_goals,
         theirGoals: x.their_goals,
-        won: x.winner_id === null ? null : x.winner_id === userId,
+        // The match's winner, or the room's champion when there is no match: a walkover
+        // is decided by the room and nowhere else.
+        won: (x.winner_id ?? x.champion_id) === null ? null : (x.winner_id ?? x.champion_id) === userId,
+        walkover: x.winner_id === null && x.champion_id !== null,
         openedAt: msOf(x.created_at),
         touchedAt: msOf(x.touched_at),
       }));

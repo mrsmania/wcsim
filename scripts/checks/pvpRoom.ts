@@ -965,19 +965,25 @@ export function pvpRoomChecks(): void {
 }
 
 /**
- * Getting out of a duel (2026-08-31, asked for from the game).
+ * Getting out of a duel, and what it costs.
  *
- * THE RULE IT REPLACED WAS THE LIVE ROOM'S, and it was wrong here for one reason: a duel is
- * two people and no bracket, so nothing a third party is playing can be voided by either of
- * them walking out. Once the second seat was taken, the challenge was unleavable by both
- * sides until the match played or the week ran out.
+ * THERE ARE TWO ANSWERS AND THE SEAT COUNT DECIDES WHICH. While nobody has taken the
+ * challenge up, calling it off is free: nothing has been dealt, nobody else is in it, and
+ * the room simply stops existing. Once somebody has, leaving is a FORFEIT at either end -
+ * the room ends there and then and the player who stayed has won it.
  *
- * The two answers are deliberately different, and the vacuity guard for the whole block is
- * the LIVE room: every claim below is made against the identical call on a live room of
- * two, which must still be the no-op it has always been.
+ * THE FORFEIT IS WHAT MAKES THE LOBBY WORTH HAVING. A duel waits in a lobby so that nothing
+ * is seen before both players are committed; if walking out afterwards were free, a
+ * challenger could look at the squad they were dealt, leave, and open another until they
+ * liked one - which is the free re-roll every counted allowance in this game exists to
+ * prevent.
+ *
+ * The vacuity guard for the whole block is the LIVE room: every claim below is made against
+ * the identical call on a live room of two, which must still be the no-op it has always
+ * been.
  */
 function duelLeaveChecks(): void {
-  /** A duel, drafting from the moment it opens, with `others` people having taken it up. */
+  /** A duel in its lobby, with `others` people having taken it up. */
   const duelWith = (others: number, rules: RoomRules = BUDGET): PvpRoom => {
     let room = createRoom({
       id: 'dl1',
@@ -1003,6 +1009,14 @@ function duelLeaveChecks(): void {
     return room;
   };
 
+  /** The same duel, both players ready and so drafting - which is the only way a duel ever
+   *  reaches a draft: nobody presses Start, the server does it when both are ready. */
+  const startedDuel = (rules: RoomRules = BUDGET): PvpRoom => {
+    let room = duelWith(1, rules);
+    for (const m of room.members) room = setLineup(room, m.userId, '4-3-3', 'bal', true);
+    return tickRoom(room, T0 + 2000);
+  };
+
   /** The cheapest legal XI for one member, submitted as a board - which in a budget room is
    *  the one instruction there is (P52). */
   const fillBoard = (r: PvpRoom, who: string, at: number): PvpRoom => {
@@ -1024,83 +1038,105 @@ function duelLeaveChecks(): void {
   };
 
   {
-    // THE CREATOR CALLS IT OFF, taken or not. The first half of this was always true; the
-    // second is the change.
-    const alone = leaveRoom(duelWith(0), 'u0', T0 + 5000);
+    // NOTHING IS DEALT UNTIL BOTH ARE READY, which is the rule the whole change rests on:
+    // a challenger alone in their lobby has no squad to look at, so there is nothing to
+    // reject by re-opening the challenge.
+    const alone = duelWith(0);
+    const aloneReady = tickRoom(setLineup(alone, 'u0', '4-3-3', 'bal', true), T0 + 1000);
     const taken = duelWith(1);
-    const off = leaveRoom(taken, 'u0', T0 + 5000);
+    const oneReady = tickRoom(setLineup(taken, 'u0', '4-3-3', 'bal', true), T0 + 2000);
+    const both = startedDuel(ROLL);
+    check(
+      'duel: it waits in a lobby, and deals nothing until both players are in and ready',
+      () =>
+        alone.status === 'lobby' &&
+        !alone.startedAt &&
+        // Ready on your own: recorded, and it starts nothing.
+        aloneReady.status === 'lobby' &&
+        aloneReady.members[0]!.ready === true &&
+        // Both seats taken and only one ready: still nothing.
+        oneReady.status === 'lobby' &&
+        !oneReady.deals.u0 &&
+        !oneReady.windows.u0 &&
+        // And with both ready it starts itself, with no Start from anybody.
+        both.status === 'drafting' &&
+        !!both.startedAt &&
+        (both.deals.u0?.length ?? 0) === 1 &&
+        (both.deals.u1?.length ?? 0) === 1 &&
+        !!both.windows.u0 &&
+        !!both.windows.u1,
+      () =>
+        `alone ${aloneReady.status}, one ready ${oneReady.status}, both ${both.status}, ` +
+        `dealt ${both.deals.u0?.length ?? 0}`,
+    );
+  }
+
+  {
+    // AN UNANSWERED CHALLENGE IS CALLED OFF FOR NOTHING, and one somebody has taken up is
+    // FORFEITED - by whichever of the two walks out. The two are the same button and the
+    // seat count is the whole of the difference.
+    const off = leaveRoom(duelWith(0), 'u0', T0 + 5000);
+    const started = startedDuel();
+    const creatorLeft = leaveRoom(started, 'u0', T0 + 5000);
+    const guestLeft = leaveRoom(started, 'u1', T0 + 5000);
+    // Nobody walks into a finished game and takes the chair that looks empty.
+    const retaken = joinRoom(guestLeft, { userId: 'u2', name: 'Cleo', budget: BUDGET.budget }, T0 + 6000);
     // Vacuity, and the rule this is deliberately NOT: the same call on a live room that has
     // started changes nothing at all, because an XI in a bracket cannot be withdrawn.
     const live = withSeed(31, () => startRoom(roomOf(2, BUDGET), 'u0', T0));
     check(
-      'duel: the creator can call it off whether or not somebody has taken it up',
+      'duel: calling off an unanswered one costs nothing, and leaving a taken-up one loses it',
       () =>
-        roomClosed(alone) &&
-        // Vacuity: it really had been taken up, by somebody who is still in it.
-        taken.members.length === 2 &&
+        // Closed, with no champion: nothing was played and nobody lost anything.
         roomClosed(off) &&
+        // Vacuity: it really had been taken up, by somebody who is still in it.
+        started.members.length === 2 &&
+        // The creator walking out: ended, NOT closed, and the other player has won it.
+        creatorLeft.status === 'ended' &&
+        !roomClosed(creatorLeft) &&
+        creatorLeft.championId === 'u1' &&
+        // The other way round, and it is the same rule rather than a mirror of it.
+        guestLeft.status === 'ended' &&
+        guestLeft.championId === 'u0' &&
+        // BOTH PLAYERS STAY IN THE ROOM. A seat given up in a lobby takes its member row
+        // with it because the chair is being offered to somebody else; here the game is
+        // over, and a room the loser is not in is one they cannot read the result of.
+        creatorLeft.members.length === 2 &&
+        guestLeft.members.length === 2 &&
+        retaken.outcome === 'started' &&
         // And the live room in the same phase is untouched, by identity.
         leaveRoom(live, 'u0', T0 + 5000) === live,
-      () => `alone ${alone.status}, taken ${off.status}, live ${leaveRoom(live, 'u0', T0 + 5000) === live}`,
-    );
-  }
-
-  {
-    // THE SECOND PLAYER HANDS THE SEAT BACK, which is not the same thing: the challenge
-    // survives, the challenger keeps their board, and the next person to open the link
-    // takes the chair. Somebody who followed a link by accident must not be able to delete
-    // a challenge that was not theirs.
-    const taken = duelWith(1);
-    const back = leaveRoom(taken, 'u1', T0 + 5000);
-    const retaken = joinRoom(back, { userId: 'u2', name: 'Cleo', budget: BUDGET.budget }, T0 + 6000);
-    check(
-      'duel: the player who took the seat gives it back, and the challenge waits for somebody else',
       () =>
-        // Vacuity: two seats were filled.
-        taken.members.length === 2 &&
-        // One left, and it is the challenger who is still there rather than whoever stayed.
-        back.status === 'drafting' &&
-        !roomClosed(back) &&
-        back.members.length === 1 &&
-        back.members[0]!.userId === 'u0' &&
-        back.hostId === 'u0' &&
-        // Waiting again, and answerable again.
-        retaken.outcome === 'ok' &&
-        retaken.room.members.length === 2,
-      () => `${back.status}/${back.members.length}, retaken ${retaken.outcome}`,
+        `off ${off.status}, creator ${creatorLeft.status}/${creatorLeft.championId}, ` +
+        `guest ${guestLeft.status}/${guestLeft.championId}, retaken ${retaken.outcome}`,
     );
   }
 
   {
-    // A SEAT GIVEN UP IS A TEAM GIVEN UP, and this is the half that would have been a real
-    // bug rather than a missing feature: their board, pick log, dealt squads and open
-    // window are keyed on the member who is going, and `roomFromRows` reads picks back by
-    // USER rather than by seat - so anything left behind is handed to whoever takes the
-    // chair next, as an XI bought with somebody else's money against squads they were never
-    // dealt, which `validateXi` then refuses.
-    const rolled = duelWith(1, ROLL);
-    // One real pick for the person who is about to leave, so there is something to drop.
+    // A FORFEIT KEEPS BOTH BOARDS, which is the half that would be a quiet bug the other
+    // way: the loser's XI, pick log, dealt squads and window are all keyed on them, and a
+    // room that dropped the player who walked would be one they could not open to see what
+    // happened. It is the opposite property to the one `withoutMembers` guarantees, and
+    // both are worth pinning because the two endings sit next to each other.
+    const rolled = startedDuel(ROLL);
     const picked = submitPick(rolled, 'u1', firstLegalPick(rolled, 'u1'), T0 + 4000).room;
-    const back = leaveRoom(picked, 'u1', T0 + 5000);
+    const gone = leaveRoom(picked, 'u1', T0 + 5000);
     check(
-      'duel: giving the seat up takes the board, the pick log, the dealt squads and the window with it',
+      'duel: a forfeit ends the room and keeps both players in it, with their drafts',
       () =>
-        // Vacuity: all four really were there.
+        // Vacuity: there really was a draft to keep.
         Object.keys(picked.xi.u1 ?? {}).length === 1 &&
         Object.keys(picked.picks.u1 ?? {}).length === 1 &&
         (picked.deals.u1?.length ?? 0) >= 1 &&
-        !!picked.windows.u1 &&
-        // And none of them survives.
-        !back.xi.u1 &&
-        !back.picks.u1 &&
-        !back.deals.u1 &&
-        !back.windows.u1 &&
-        // The challenger's own draft is untouched, which is what makes this a seat leaving
-        // rather than a room being reset.
-        !!back.windows.u0 &&
-        (back.deals.u0?.length ?? 0) >= 1,
-      () =>
-        `xi ${!back.xi.u1}, picks ${!back.picks.u1}, deals ${!back.deals.u1}, window ${!back.windows.u1}`,
+        // Ended and lost, with nothing thrown away.
+        gone.status === 'ended' &&
+        gone.championId === 'u0' &&
+        gone.members.some((m) => m.userId === 'u1') &&
+        Object.keys(gone.xi.u1 ?? {}).length === 1 &&
+        Object.keys(gone.picks.u1 ?? {}).length === 1 &&
+        // The winner's own draft is untouched too.
+        (gone.deals.u0?.length ?? 0) >= 1,
+      () => `${gone.status}/${gone.championId}, members ${gone.members.length}`,
     );
   }
 
@@ -1110,7 +1146,7 @@ function duelLeaveChecks(): void {
     // reopened one - so both sides are refused by identity from the moment the football
     // happens.
     withSeed(77, () => {
-      const both = duelWith(1);
+      const both = startedDuel();
       const built = fillBoard(fillBoard(both, 'u0', T0 + 8000), 'u1', T0 + 8500);
       const sent = setDone(setDone(built, 'u0', true, T0 + 9000), 'u1', true, T0 + 9000);
       const played = tickRoom(sent, T0 + 9000);
@@ -1118,9 +1154,9 @@ function duelLeaveChecks(): void {
       check(
         'duel: once the match is played, neither the creator nor the other player can undo it',
         () =>
-          // Vacuity: the same two calls on the draft it came from DO both work.
-          roomClosed(leaveRoom(both, 'u0', T0 + 5000)) &&
-          leaveRoom(both, 'u1', T0 + 5000).members.length === 1 &&
+          // Vacuity: the same two calls on the draft it came from DO both end the room.
+          leaveRoom(both, 'u0', T0 + 5000).status === 'ended' &&
+          leaveRoom(both, 'u1', T0 + 5000).status === 'ended' &&
           // Played, and now nothing moves.
           played.status === 'round' &&
           leaveRoom(played, 'u0', T0 + 9500) === played &&
@@ -1379,11 +1415,13 @@ function botChecks(): void {
 
   // --- A duel's shape, which had no control at all --------------------------
   //
-  // A DUEL DRAFTS FROM THE MOMENT IT IS OPENED, so it never renders the lobby - and the only
-  // formation control lives there. Neither side of any duel could choose a shape, and both
-  // played 4-3-3 balanced. Reported from the game 2026-08-30. `setLineup`'s gate is no longer
-  // "the room has not started" but "you have not taken anybody", which is the same idea
-  // measured against the thing a duel actually has.
+  // FOR ONE DAY A DUEL HAD NO LOBBY, and the only formation control lives on one: neither
+  // side of any duel could choose a shape, and both played 4-3-3 balanced. Reported from
+  // the game 2026-08-30. A duel waits in a lobby again - for a different reason, to stop
+  // anything being dealt before both players are committed - so the fix is that the control
+  // has somewhere to live rather than that the gate was widened. This pins the gate at both
+  // ends, because the tempting repair was to let a shape change mid-draft, which would
+  // orphan a board that is already built on the old slots.
   {
     const duel = createRoom({
       id: 'r9',
@@ -1399,27 +1437,25 @@ function botChecks(): void {
       now: T0,
     });
     const shaped = setLineup(duel, 'u0', '3-5-2', 'off', true);
-    // Take somebody, and the shape is settled: the slots ARE the formation by then.
-    const withOne = (() => {
-      const m = shaped.members.find((x) => x.userId === 'u0')!;
-      const slot = formationOf(m).slots[0]!;
-      const player = roomPlayers(shaped.rules).find(
-        (pl) => pl.positions.includes(slot.position) && pvpPriceOf(pl) <= m.budget,
-      )!;
-      return setXi(shaped, 'u0', { [slot.id]: player }, T0 + 1000).room;
-    })();
-    const late = setLineup(withOne, 'u0', '4-4-2', 'bal', true);
+    // Both in and both ready, which is the only thing that starts a duel's draft.
+    const joined = joinRoom(shaped, { userId: 'u1', name: 'Bruno', budget: BUDGET.budget }, T0 + 500).room;
+    const drafting = tickRoom(setLineup(joined, 'u1', '4-4-2', 'bal', true), T0 + 1000);
+    const late = setLineup(drafting, 'u0', '4-4-2', 'bal', true);
     check(
-      "draft: a duel's shape can be changed until the first player, and not after",
+      "draft: a duel's shape is chosen in its lobby, and it is settled once the draft starts",
       () =>
-        // It drafts from creation, which is exactly why the lobby gate had to go.
-        duel.status === 'drafting' &&
+        // It waits in a lobby, which is where the control is.
+        duel.status === 'lobby' &&
         shaped.members.find((m) => m.userId === 'u0')?.formationName === '3-5-2' &&
         shaped.members.find((m) => m.userId === 'u0')?.style === 'off' &&
-        // And once a player is placed it is refused, so a change can never orphan a board.
-        Object.keys(withOne.xi.u0 ?? {}).length === 1 &&
+        // Each player's own choice is carried into the draft, separately.
+        drafting.status === 'drafting' &&
+        drafting.members.find((m) => m.userId === 'u0')?.formationName === '3-5-2' &&
+        drafting.members.find((m) => m.userId === 'u1')?.formationName === '4-4-2' &&
+        // And once it has started it is refused, so a change can never orphan a board.
         late.members.find((m) => m.userId === 'u0')?.formationName === '3-5-2' &&
-        // Vacuity: a LIVE room is unchanged - its shape is a lobby decision and stays one.
+        // Vacuity: a LIVE room reads exactly the same way, which is the point - there is
+        // one rule now rather than one per pace.
         setLineup(startRoom(roomOf(2, BUDGET), 'u0', T0), 'u0', '3-5-2', 'off', true).members.find(
           (m) => m.userId === 'u0',
         )?.formationName === DEFAULT_FORMATION_FOR_CHECK,
@@ -1642,14 +1678,18 @@ function botChecks(): void {
     });
   }
 
-  // --- A duel drafts from the moment it is opened (2026-08-31) --------------
+  // --- A duel's draft, which nobody starts by hand --------------------------
   //
-  // THE TWO RULES THIS ADDS, and they only bite together. A duel opens in `drafting` with
-  // one member, so its challenger builds and SENDS before anybody has taken it up; and the
-  // second seat therefore has to stay open THROUGH the draft, which is the one place a
-  // live room is shut. Get the first without the second and a challenge can never be
-  // answered; get the second without a seat count on the tick and a challenger who sends
-  // their XI is drawn against themselves.
+  // THE TWO RULES THIS ADDS, and they only bite together. A duel has no host sitting at a
+  // Start button - that is the mode - so the SERVER starts its draft, on the two conditions
+  // a live room's countdown arms on: the room is full and everybody is ready. And once it
+  // is drafting, the door is shut like any other room's: there is nothing to be late for,
+  // because nothing was dealt before both players were in.
+  //
+  // WHY IT WAITS AT ALL is the part worth keeping. A duel briefly drafted from the moment
+  // it was created, and that made re-opening a challenge a free re-roll: the challenger
+  // could look at the squad they were dealt and call it off. Nothing is dealt before both
+  // are committed, and leaving after that costs the duel (`duelLeaveChecks`).
   //
   // IT IS CHECKED ON A ROLL ROOM ON PURPOSE. The referee's own end-to-end duel is a budget
   // one, where declaring done was already the rule (P52); a roll duel is the case where
@@ -1671,82 +1711,86 @@ function botChecks(): void {
       });
 
     const fresh = duelOf();
-    // Eleven picks, hours apart, with a sweep between each: nothing may expire, and the
-    // room must not play while the other chair is empty.
-    let solo = fresh;
-    let at = T0;
-    for (let i = 0; i < 11; i++) {
-      at += 3 * 60 * 60_000;
-      const w = solo.windows.u0;
-      if (!w) break;
-      solo = submitPick(solo, 'u0', firstLegalPick(solo, 'u0'), at).room;
-      solo = tickRoom(solo, at);
-    }
-    const full = solo;
-    const sent = tickRoom(setDone(full, 'u0', true, at), at);
-
-    check(
-      'duel: it drafts from the moment it is opened, and a sent XI with nobody opposite plays nothing',
-      () =>
-        // Opened straight into the draft, with one seat filled and the other waiting.
-        fresh.status === 'drafting' &&
-        fresh.members.length === 1 &&
-        fresh.startedAt === T0 &&
-        // A roll duel deals its first squad at once, exactly as a started room does.
-        (fresh.deals.u0?.length ?? 0) === 1 &&
-        !!fresh.windows.u0 &&
-        // ELEVEN PICKED IS NOT FINISHED HERE. This is the whole of the send button: before
-        // the change, `draftDone` read a full XI as a finished one, so the eleventh pick
-        // would have ended the draft under its owner.
-        xiComplete(full, full.members[0]!) &&
-        !draftDone(full, full.members[0]!) &&
-        declaresDone(full) &&
-        // And with it sent, still nothing: there is nobody to play.
-        sent.status === 'drafting' &&
-        sent.ties.length === 0,
-      () =>
-        `${fresh.status}/${fresh.members.length} seats, ` +
-        `${Object.keys(full.xi.u0 ?? {}).length} picked, done ${draftDone(full, full.members[0]!)}`,
-    );
-
-    // The second player arrives MID-DRAFT, days later, and starts a draft of their own.
-    const later = at + 4 * 24 * 60 * 60_000;
-    const joined = joinRoom(sent, { userId: 'u1', name: 'Bruno', budget: 0 }, later);
-    const third = joinRoom(joined.room, { userId: 'u2', name: 'Cleo', budget: 0 }, later);
+    const readyAlone = tickRoom(setLineup(fresh, 'u0', '4-3-3', 'bal', true), T0 + 1000);
+    // Somebody takes it up a day later and is ready; that is what opens both drafts.
+    const joined = joinRoom(readyAlone, { userId: 'u1', name: 'Bruno', budget: 0 }, T0 + 60_000);
+    const half = tickRoom(joined.room, T0 + 61_000);
+    const drafting = tickRoom(setLineup(half, 'u1', '4-3-3', 'bal', true), T0 + 62_000);
+    // Two seats, both taken: the third person is too late.
+    const third = joinRoom(drafting, { userId: 'u2', name: 'Cleo', budget: 0 }, T0 + 63_000);
     // And the live pace still shuts its door the moment it starts, which is the vacuity
     // guard: without it this check would pass on a state machine that let anybody walk
     // into any draft.
     const liveStarted = startRoom(roomOf(2, ROLL), 'u0', T0);
     const gatecrash = joinRoom(liveStarted, { userId: 'u9', name: 'Late', budget: 0 }, T0 + 1000);
 
-    let both = joined.room;
-    let then = later;
-    for (let i = 0; i < 11; i++) {
-      then += 60 * 60_000;
-      if (!both.windows.u1) break;
-      both = submitPick(both, 'u1', firstLegalPick(both, 'u1'), then).room;
-      both = tickRoom(both, then);
-    }
-    const waiting = tickRoom(both, then);
-    const played = tickRoom(setDone(both, 'u1', true, then), then);
+    check(
+      'duel: nobody starts its draft by hand, and nothing is dealt until both are in and ready',
+      () =>
+        // A lobby, and being ready alone in it starts nothing at all.
+        fresh.status === 'lobby' &&
+        !fresh.startedAt &&
+        readyAlone.status === 'lobby' &&
+        !readyAlone.deals.u0 &&
+        // Somebody is opposite and only one of them is ready: still nothing.
+        joined.outcome === 'ok' &&
+        half.status === 'lobby' &&
+        !half.deals.u0 &&
+        // AND THE HOST CANNOT FORCE IT. P48 lets a live room's host start over somebody
+        // who has not pressed Ready, which is right when everybody is sitting there and
+        // would here deal a squad to a player who has not chosen a shape or agreed to
+        // play - and who then could not leave without losing the duel.
+        startRoom(half, 'u0', T0 + 61_500) === half &&
+        // Vacuity: the same call on a full LIVE lobby does start it.
+        startRoom(roomOf(2, ROLL), 'u0', T0).status === 'drafting' &&
+        // Both ready, and it opens both drafts at once with a squad each.
+        drafting.status === 'drafting' &&
+        drafting.startedAt === T0 + 62_000 &&
+        (drafting.deals.u0?.length ?? 0) === 1 &&
+        (drafting.deals.u1?.length ?? 0) === 1 &&
+        !!drafting.windows.u0 &&
+        !!drafting.windows.u1 &&
+        third.outcome === 'started' &&
+        gatecrash.outcome === 'started',
+      () =>
+        `${fresh.status}, ready alone ${readyAlone.status}, half ${half.status}, ` +
+        `drafting ${drafting.status}, third ${third.outcome}`,
+    );
+
+    // Eleven picks each, hours apart, with a sweep between each: nothing may expire, and
+    // eleven picked is not eleven SENT.
+    const draftOut = (from: PvpRoom, who: string, start: number): { room: PvpRoom; at: number } => {
+      let room = from;
+      let at = start;
+      for (let i = 0; i < 11; i++) {
+        at += 3 * 60 * 60_000;
+        if (!room.windows[who]) break;
+        room = submitPick(room, who, firstLegalPick(room, who), at).room;
+        room = tickRoom(room, at);
+      }
+      return { room, at };
+    };
+    const one = draftOut(drafting, 'u0', T0 + 62_000);
+    const full = one.room;
+    const sent = tickRoom(setDone(full, 'u0', true, one.at), one.at);
+    const two = draftOut(sent, 'u1', one.at + 4 * 24 * 60 * 60_000);
+    const both = two.room;
+    const waiting = tickRoom(both, two.at);
+    const played = tickRoom(setDone(both, 'u1', true, two.at), two.at);
 
     check(
-      'duel: the seat stays open through the draft, and the match goes when the second XI is sent',
+      'duel: eleven picked is not eleven sent, and the match goes when the second XI is',
       () =>
-        joined.outcome === 'ok' &&
-        joined.room.members.length === 2 &&
-        // Their own draft, begun on arrival rather than inherited: an empty board and a
-        // squad of their own.
-        Object.keys(joined.room.xi.u1 ?? {}).length === 0 &&
-        (joined.room.deals.u1?.length ?? 0) === 1 &&
-        // The challenger's is untouched by their arrival.
-        Object.keys(joined.room.xi.u0 ?? {}).length === 11 &&
-        // Two seats, both taken: the third person is too late.
-        third.outcome === 'started' &&
-        // A LIVE room in the same phase refuses everybody, which is what makes the rule
-        // above the duel's own rather than a hole in the state machine.
-        gatecrash.outcome === 'started' &&
-        // Eleven picked and not sent leaves it waiting...
+        // ELEVEN PICKED IS NOT FINISHED HERE. This is the whole of the send button: before
+        // it, `draftDone` read a full XI as a finished one, so the eleventh pick would have
+        // ended the draft under its owner - with no clock anywhere to have warned them.
+        xiComplete(full, full.members[0]!) &&
+        !draftDone(full, full.members[0]!) &&
+        declaresDone(full) &&
+        // One XI sent, days of sweeps, and nothing plays: the other player is still out.
+        sent.status === 'drafting' &&
+        sent.ties.length === 0 &&
+        // Eleven picked by the second player and not sent leaves it waiting...
         xiComplete(both, both.members[1]!) &&
         waiting.status === 'drafting' &&
         waiting.ties.length === 0 &&
@@ -1754,7 +1798,7 @@ function botChecks(): void {
         played.status === 'round' &&
         played.ties.length === 1,
       () =>
-        `${joined.outcome}/${third.outcome}/${gatecrash.outcome}, ` +
+        `${Object.keys(full.xi.u0 ?? {}).length} picked, done ${draftDone(full, full.members[0]!)}, ` +
         `waiting ${waiting.status}, played ${played.status}`,
     );
   }

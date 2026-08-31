@@ -167,16 +167,17 @@ export const isDuel = (view: RoomView): boolean => view.pace === 'async';
  * button wondering what happened to their challenge. So the create path tests the ANSWER
  * rather than the status, and this is that test.
  *
- * IT TESTS THE STATUS TOO, and that second half is the 2026-08-31 skew rather than the
- * original one. A referee built between the two dates DOES know about duels and opens one
- * in a LOBBY, waiting for somebody to accept - which is the shape this change exists to
- * remove, and which the screens no longer draw: the challenger would sit in a two-seat
- * lobby unable to touch their own team. A duel from a current referee is `drafting` from
- * the instant it is created, so the status is the whole test, and it needs no new field and
- * no protocol bump to make.
+ * IT TESTS THE STATUS TOO, and that second half has now pointed both ways, which is worth
+ * keeping as the warning it is. A referee built on 2026-08-30 opens a duel straight into
+ * its challenger's DRAFT; a duel is opened in a lobby again, because building before the
+ * challenge was taken up let a challenger re-open the room until they liked their squad.
+ * So the test is that a new duel arrives in a lobby, and the line that used to read
+ * `=== 'lobby'` now reads `!== 'lobby'`. Both versions were right about their own day: what
+ * makes it testable at all is that a duel is only ever created here, and a created duel has
+ * exactly one shape.
  */
 export const duelDowngraded = (asked: 'live' | 'async', view: RoomView): boolean =>
-    asked === 'async' && (!isDuel(view) || view.status === 'lobby');
+    asked === 'async' && (!isDuel(view) || view.status !== 'lobby');
 
 /**
  * Whose move it is, from the caller's side of a duel row.
@@ -208,6 +209,37 @@ export function duelTurn(row: DuelRow): DuelTurn {
 /** Slots in an XI. Every formation has eleven; a duel row counts picks against it. */
 const XI_SLOTS = 11;
 
+/**
+ * Was this room won because somebody walked out of it?
+ *
+ * A CHAMPION WITH NO TIE UNDERNEATH IS THE ENCODING, and it is one a room that actually
+ * played can never be in: a duel that finishes normally has its match, and every other way
+ * a room ends without playing leaves no champion at all (`roomClosed`). So it needs no
+ * field of its own on the wire, no column and no migration - see `forfeitDuel`.
+ *
+ * It is what the result screen reads to say who walked rather than printing a scoreline it
+ * has not got, and `pvp_records` counts a walkover by the same test at the other end.
+ */
+export const walkover = (view: Pick<RoomView, 'status' | 'championId' | 'ties'>): boolean =>
+    view.status === 'ended' && !!view.championId && view.ties.length === 0;
+
+/**
+ * Does this duel belong on the list at all?
+ *
+ * A DUEL THAT ENDED WITHOUT AN OUTCOME IS NOT A GAME THAT WAS PLAYED, and printing it under
+ * "Played" says the opposite. There are two ways to get one and neither is worth a row: a
+ * challenge nobody took up and the sender called off, and one nobody touched for a week. A
+ * walkover is the opposite case and stays, because somebody lost it (`walkover`): the row
+ * is the whole record of that from the player's side.
+ *
+ * `won` is the test rather than the status, because it is exactly "this duel has an
+ * outcome" - a played match sets it from the winner and a walkover from the room's champion.
+ * It also degrades the right way against a referee that has not been rebuilt: an unplayed
+ * duel there reports no winner either, so it drops off the list rather than lying about it.
+ */
+export const duelListed = (row: DuelRow): boolean =>
+    row.status !== 'ended' || row.won === true || row.won === false;
+
 /** One duel row, in words: what is waiting, or how it went. Written from the caller's side,
  *  because that is the only side they are reading it from. */
 export function duelLine(row: DuelRow): string {
@@ -223,6 +255,9 @@ export function duelLine(row: DuelRow): string {
                 ? `${row.opponentName || 'They'} are building, ${row.theirPicks} of ${XI_SLOTS} picked`
                 : 'The match is being played';
         case 'done': {
+            // Nobody played it, and somebody lost it anyway: the row has to say which of
+            // those two it was, or a walkover reads as a defeat with the score missing.
+            if (row.walkover) return row.won ? 'They walked away, you win' : 'You walked away';
             if (row.yourGoals === null || row.yourGoals === undefined) return 'Closed unplayed';
             const score = `${row.yourGoals}-${row.theirGoals}`;
             return row.won ? `You won ${score}` : row.won === false ? `You lost ${score}` : score;
@@ -290,12 +325,10 @@ export function duelRules(row: Pick<DuelRow, 'method' | 'budget'>): string {
  * What leaving THIS room, as THIS viewer, actually does.
  *
  * FOUR THINGS WEAR ONE BUTTON, and the screen has to say which before somebody presses it:
- * giving a seat up in a lobby, calling a duel off for both players, handing a duel's seat
- * back so the challenge goes on without you, and walking away from a tournament your XI
- * keeps playing in. They are as different as an answer can be, and until 2026-08-31 the
- * middle two did not exist - a duel with both seats filled ignored the button entirely,
- * which is how it was reported: "for other rooms I have the option to call it off, not for
- * this one".
+ * giving a seat up in a lobby, calling off a challenge nobody has taken up, FORFEITING a
+ * duel somebody has, and walking away from a tournament your XI keeps playing in. They are
+ * as different as an answer can be, and the third one is the one that costs something: it
+ * ends the game there and then and hands the other player the win.
  *
  * IT IS DERIVED HERE RATHER THAN IN THE SCREEN because it is the referee's rule
  * (`leaveRoom` in `domain/pvpRoom.ts`) read from the other end, and the two have to agree:
@@ -306,14 +339,18 @@ export function duelRules(row: Pick<DuelRow, 'method' | 'budget'>): string {
  * leaving the screen is still what the player wants, and the copy is what tells them their
  * team plays on.
  */
-export type LeaveKind = 'seat' | 'calloff' | 'giveup' | 'away';
+export type LeaveKind = 'seat' | 'calloff' | 'forfeit' | 'away';
 
 export function leaveKind(view: RoomView): LeaveKind {
     // Somebody who is not in the room cannot give anything up. A public lobby can be looked
     // at without joining, and `you` is null for exactly that viewer.
     const mine = !!view.you;
     if (isDuel(view) && mine && (view.status === 'lobby' || view.status === 'drafting')) {
-        return view.you!.userId === view.hostId ? 'calloff' : 'giveup';
+        // ONCE SOMEBODY HAS TAKEN IT UP, LEAVING IS LOSING IT, whichever end you are at:
+        // accepting is what sets both drafts going, so from then on walking out abandons a
+        // game rather than withdrawing an offer. Before that there is only the person who
+        // opened it, and calling it off costs nothing.
+        return view.members.length >= view.size ? 'forfeit' : 'calloff';
     }
     if (view.status === 'lobby' && mine) return 'seat';
     return 'away';

@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { duelDowngraded, inviteUrl, isDuel } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import { createRoom, leaveRoom, type CreateRoomInput } from '../../state/pvp/referee';
-import type { VersusRoom } from '../../hooks/useVersusRoom';
-import { CARD, CARD_FLAT, MONO_CAP, PRIMARY_BTN, btn } from '../matchUi';
+import { CARD_FLAT, MONO_CAP, PRIMARY_BTN } from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
 import { InviteRoom, RefereeProblem, RoomNote } from './versusUi';
 
@@ -14,13 +13,16 @@ import { InviteRoom, RefereeProblem, RoomNote } from './versusUi';
 // screens unchanged - the same draft, the same match card, the same result with both XIs.
 // What is genuinely new is the WAITING, and waiting is the whole mode.
 //
-// THERE WAS A THIRD, AND ITS DELETION IS THE POINT OF THE 2026-08-31 CHANGE. A duel used
-// to be addressed to an account by name, so it opened in a lobby, its recipient got an
-// accept-or-decline screen, and its SENDER could not touch their own team until somebody
-// answered - a wait that bought nothing, since the two drafts never interact and the match
-// is played by the server. Now a duel opens straight into its challenger's draft and the
-// invitation is a link like any other: whoever opens it takes the seat, mid-draft, and
-// starts building. So there is nothing to accept, and `DuelChallenge` is gone.
+// THERE WAS A THIRD AND IT IS GONE: a duel used to be addressed to an account by NAME, so
+// its recipient got an accept-or-decline screen and a stranger with the link got a refusal.
+// The invitation is a link like any other now - whoever opens it takes the seat - so there
+// is nothing to accept and `DuelChallenge` went with the addressing.
+//
+// WHAT IS NOT GONE IS THE WAIT, and one day without it is why. A duel briefly drafted from
+// the moment it was created, on the reasoning that the two drafts never interact; what that
+// bought was a free re-roll through the front door, since opening and closing a challenge
+// both cost nothing and the squad you were dealt could simply be rejected by opening
+// another. So the invitation sits in a lobby again, where there is nothing to see.
 //
 // THERE IS NO NOTIFICATION IN THIS GAME, and these panels are written knowing it. Nothing
 // is emailed and nothing is pushed, so a challenge travels by the link its sender pastes
@@ -33,55 +35,34 @@ const base = (): string => import.meta.env.BASE_URL;
 /**
  * Nobody has taken your challenge up yet.
  *
- * IT SITS ABOVE THE BOARD RATHER THAN INSTEAD OF IT, which is the whole change: you are
- * drafting while this is on screen. The link is here because THIS is the moment it is
- * wanted - a challenge nobody has been told about is a room nobody will ever open - and
- * calling it off is here because a challenge you have thought better of should not sit on
- * a link for a week.
+ * IT IS THE LINK AND THE REASON THE LINK MATTERS. Nothing whatever happens in a duel until
+ * somebody opens it: no squad is dealt, no market opens, and the room sits in its lobby -
+ * so a challenge nobody has been told about is a room nobody will ever open, and this panel
+ * is the whole of telling them.
+ *
+ * CALLING IT OFF IS NOT HERE, deliberately. The room's own way out says what leaving costs,
+ * and that sentence changes the moment somebody takes the seat (`leaveKind`): a second
+ * button here would be a second answer, and would go on reading "the challenge is gone"
+ * after it had become a forfeit.
  */
-export function DuelInvite({ view, room }: { view: RoomView; room: VersusRoom }) {
-    const navigate = useNavigate();
-    const [dropping, setDropping] = useState(false);
+export function DuelInvite({ view }: { view: RoomView }) {
+    const taken = view.members.length >= view.size;
     return (
-        <div className={`${CARD} p-4`}>
-            <div className={MONO_CAP}>Nobody opposite yet</div>
+        <>
+            <div className={MONO_CAP}>{taken ? 'Both here' : 'Nobody opposite yet'}</div>
             <RoomNote>
                 <span className="mt-1 block">
-                    Build your XI now and send it whenever you like. Whoever opens this link
-                    first takes the challenge, builds theirs in their own time, and the match
-                    plays itself the moment the second team is in.
+                    {taken
+                        ? 'They took it up. Once you have both pressed ready you each build your XI in your own time, and the match plays itself when the second one is sent.'
+                        : 'Whoever opens this link first takes the challenge. You both build in your own time, and the match plays itself when the second team is sent.'}
                 </span>
             </RoomNote>
-            <div className="mt-3">
-                <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-                {dropping ? (
-                    <>
-                        <RoomNote>The link stops working and the challenge is gone.</RoomNote>
-                        <button
-                            className={`ml-auto ${btn('quiet', 'sm')}`}
-                            onClick={() => {
-                                void room.leave().catch(() => undefined);
-                                navigate('/versus');
-                            }}
-                        >
-                            Call it off
-                        </button>
-                        <button
-                            className={btn('quiet', 'sm')}
-                            onClick={() => setDropping(false)}
-                        >
-                            Keep it
-                        </button>
-                    </>
-                ) : (
-                    <button className={btn('quiet', 'sm')} onClick={() => setDropping(true)}>
-                        Call it off
-                    </button>
-                )}
-            </div>
-        </div>
+            {!taken && (
+                <div className="mt-3">
+                    <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
+                </div>
+            )}
+        </>
     );
 }
 

@@ -6,6 +6,7 @@ import {
     type FormationName,
     type Style,
 } from '../../domain/formations';
+import Pitch from '../Pitch';
 import { CHIP_OFF, CHIP_ON, MONO_CAP } from '../matchUi';
 import { RoomNote } from './versusUi';
 
@@ -29,6 +30,14 @@ import { RoomNote } from './versusUi';
 //   variant. It falls back to the first the new formation allows rather than leaving an
 //   impossible pair on screen under a disabled button, which is a dead end the player did
 //   not ask for.
+//
+// AND IT SHOWS THE BOARD, which is the single-player build's own `Pitch` and not a diagram
+// drawn for this screen. Eleven names for a shape mean nothing until you see where the
+// eleven stand, and the component already answers that: it keeps eleven persistent circles
+// and slides each one to its nearest new slot on a change (`assignNearest`), so switching
+// from a 4-3-3 to a 3-5-2 is a team moving rather than a picture being replaced. Handing it
+// an empty board and no held player leaves every slot inert, so it is a preview and not a
+// second place to tap.
 
 export default function ShapePicker({
     name,
@@ -45,6 +54,7 @@ export default function ShapePicker({
     note: string;
 }) {
     const styles = FORMATIONS_DATA.stylesByName[name] ?? STYLES;
+    const shape = getFormation(name, style);
 
     const pickFormation = (n: FormationName): void => {
         const allowed = FORMATIONS_DATA.stylesByName[n] ?? STYLES;
@@ -88,6 +98,16 @@ export default function ShapePicker({
                     );
                 })}
             </div>
+            {shape && (
+                <div className="mx-auto mt-4 max-w-[320px]">
+                    <Pitch
+                        formation={shape}
+                        filled={{}}
+                        selectedPlayer={null}
+                        onPlace={() => undefined}
+                    />
+                </div>
+            )}
         </>
     );
 }

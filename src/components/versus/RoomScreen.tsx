@@ -13,6 +13,7 @@ import {
     roundsFor,
     shouldReveal,
     spectateTie,
+    walkover,
     tieOf,
     viewerTie,
     xiFrom,
@@ -23,7 +24,7 @@ import { markDuelWatched, watchedDuels } from '../../state/pvp/watched';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader, btn } from '../matchUi';
 import RoomBracket, { currentRoundLabel, shortName } from './RoomBracket';
-import { DuelInvite, DuelRematch } from './DuelPanels';
+import { DuelRematch } from './DuelPanels';
 import RoomDraft from './RoomDraft';
 import RoomLobby from './RoomLobby';
 import RoomResult, { decidingTie } from './RoomResult';
@@ -82,11 +83,11 @@ const LEAVING: Record<ReturnType<typeof leaveKind>, { label: string; note: strin
     },
     calloff: {
         label: 'Call it off',
-        note: 'The duel is over for both of you and the link stops working.',
+        note: 'Nobody has taken it up, so it costs nothing. The link stops working.',
     },
-    giveup: {
-        label: 'Give up the seat',
-        note: 'Your team goes and the challenge waits for somebody else.',
+    forfeit: {
+        label: 'Give it up',
+        note: 'It counts as a loss, and the duel ends now for both of you.',
     },
     away: {
         label: 'Leave',
@@ -305,14 +306,6 @@ export default function RoomScreen({ code }: { code: string }) {
 
             {view.status === 'lobby' && <RoomLobby view={view} room={room} />}
 
-            {/* A challenge nobody has taken up, ABOVE the board rather than instead of it:
-                the whole point of the change is that you draft while you wait. */}
-            {view.status === 'drafting' && isDuel(view) && view.members.length < view.size && (
-                <div className="mb-[18px]">
-                    <DuelInvite view={view} room={room} />
-                </div>
-            )}
-
             {view.status === 'drafting' && (
                 <RoomDraft
                     // Keyed on the shape: a build cannot change formation underneath
@@ -400,6 +393,30 @@ export default function RoomScreen({ code }: { code: string }) {
                                 ever.
                             </RoomNote>
                         </div>
+                    ) : walkover(view) ? (
+                        // A DUEL SOMEBODY WALKED OUT OF: a winner and no football. There is
+                        // no tie to draw and no score to print, so the card says the one
+                        // thing that happened, and the rematch sits under it exactly as it
+                        // does under a played result.
+                        <>
+                            <div className={`${CARD_FLAT} p-5`}>
+                                <div className={MONO_CAP}>
+                                    {view.championId === view.you?.userId
+                                        ? 'You win it'
+                                        : 'You gave it up'}
+                                </div>
+                                <RoomNote>
+                                    {view.championId === view.you?.userId
+                                        ? `${
+                                              view.members.find(
+                                                  (m) => m.userId !== view.you?.userId,
+                                              )?.name ?? 'They'
+                                          } left after taking the challenge up, so the duel is yours.`
+                                        : 'You left after the challenge had been taken up, so it counts as a loss.'}
+                                </RoomNote>
+                            </div>
+                            <DuelRematch view={view} />
+                        </>
                     ) : (
                         <>
                     {tree && <RoomBracket view={view} serverNow={view.at} />}
