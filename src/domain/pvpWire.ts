@@ -111,17 +111,34 @@ export type RoomPaceWire = 'live' | 'async';
  */
 export interface DuelRow {
   code: string;
-  /** The other player, or the person it is addressed to who has not accepted yet. Empty
-   *  for a duel opened to whoever has the link. */
+  /** The other player. Empty until somebody has taken the challenge up: a duel is opened
+   *  with a link and nobody's name on it, so there is no opponent to print until one
+   *  arrives. */
   opponentName: string;
   /** True when the caller is the one who sent it. */
   yours: boolean;
   status: RoomStatusWire;
+  /** How many people are in it. A duel drafts from the moment it is opened, so "one" is
+   *  its ordinary early state and is what tells "nobody has taken this up" apart from
+   *  "they are building their team".
+   *
+   *  Absent from a referee that predates the 2026-08-31 reshape, where a duel waited in a
+   *  lobby to be accepted and the count could not mean this. `duelTurn` reads it as two,
+   *  which is what such a room becomes the moment anything happens in it. */
+  seated?: number;
   method: 'roll' | 'budget';
   budget: number;
   /** How many of the eleven each side has picked. */
   yourPicks: number;
   theirPicks: number;
+  /** Whether each side has SENT their XI, which in a duel is the only thing that finishes
+   *  a draft: eleven picked is not eleven sent.
+   *
+   *  Absent from a referee that predates the reshape, where filling the eleventh slot WAS
+   *  finishing - so `duelTurn` falls back to exactly that reading rather than to a guess,
+   *  and an old row goes on saying what it always said. */
+  yourDone?: boolean;
+  theirDone?: boolean;
   /** Set once it is decided: the goals from the caller's side, and whether they won. */
   yourGoals?: number | null;
   theirGoals?: number | null;
@@ -137,10 +154,6 @@ export interface RoomView {
   visibility: 'public' | 'private';
   /** Absent from a referee that predates duels, which reads as `live`. */
   pace?: RoomPaceWire;
-  /** The display name of the person a duel was addressed to, while they have not accepted
-   *  it. Null once they are in the room - they are a member then - and for a duel opened to
-   *  whoever has the link. */
-  invitedName?: string | null;
   status: RoomStatusWire;
   hostId: string;
   size: number;

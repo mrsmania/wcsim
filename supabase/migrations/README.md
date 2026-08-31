@@ -66,7 +66,7 @@ header says to keep the pair in step, and it means it.
 
 | Thing | Defined in | Changed by |
 | --- | --- | --- |
-| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped), 0016 (the seven `pvp_*` tables, and two columns on `profiles`), 0017 (the open pick window and the re-roll count on `pvp_members`, `swept_at` on `pvp_rooms`), 0019 (`pvp_bots`, `pvp_matches.bot_sides`, and four `profiles` foreign keys dropped for a trigger), 0020 (`pvp_rooms.pace` and `pvp_rooms.invited_id`, the duel), 0021 (`pvp_rooms.draft_seconds` and `pvp_members.done`, the whole-draft budget room) |
+| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped), 0016 (the seven `pvp_*` tables, and two columns on `profiles`), 0017 (the open pick window and the re-roll count on `pvp_members`, `swept_at` on `pvp_rooms`), 0019 (`pvp_bots`, `pvp_matches.bot_sides`, and four `profiles` foreign keys dropped for a trigger), 0020 (`pvp_rooms.pace` and `pvp_rooms.invited_id`, the duel), 0021 (`pvp_rooms.draft_seconds` and `pvp_members.done`, the whole-draft budget room), **0022** (`pvp_rooms.invited_id` dropped again: a duel is addressed by link and by nothing else) |
 | Views | 0016 (`pvp_records`) | **0019** (ties with a practice opponent in them excluded) |
 | Row-level security, enabled | 0002 | - |
 | Policies | 0002 | 0013 (four `for all` policies narrowed to `for select`), 0014 (`run_results_read` dropped) |

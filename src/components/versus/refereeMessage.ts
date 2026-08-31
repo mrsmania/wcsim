@@ -83,12 +83,6 @@ const CODES: Record<string, { text: string; deployment?: boolean }> = {
     // `room` carries it out to the screen.
     'already-in-a-room': { text: 'You are already in a room.' },
     'room-full': { text: 'That room is full.' },
-    'no-such-player': {
-        text: 'Nobody plays under that name. Check the spelling, or send them a link instead.',
-    },
-    'not-invited': {
-        text: 'That duel is a challenge to somebody else, so the seat is not open.',
-    },
     'room-started': { text: 'That room has already started.' },
     // P52's two. A board is only refused for a reason the player can see on it, so the
     // sentence points at the board rather than at the server.

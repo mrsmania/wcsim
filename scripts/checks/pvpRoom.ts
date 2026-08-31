@@ -41,6 +41,7 @@ import {
   DEFAULT_DRAFT_SECONDS,
   createRoom,
   deadlineOf,
+  declaresDone,
   draftDeadlineOf,
   draftDone,
   formationOf,
@@ -1414,5 +1415,122 @@ function botChecks(): void {
         () => `${before.status} -> ${after.status}, legal ${legal}`,
       );
     });
+  }
+
+  // --- A duel drafts from the moment it is opened (2026-08-31) --------------
+  //
+  // THE TWO RULES THIS ADDS, and they only bite together. A duel opens in `drafting` with
+  // one member, so its challenger builds and SENDS before anybody has taken it up; and the
+  // second seat therefore has to stay open THROUGH the draft, which is the one place a
+  // live room is shut. Get the first without the second and a challenge can never be
+  // answered; get the second without a seat count on the tick and a challenger who sends
+  // their XI is drawn against themselves.
+  //
+  // IT IS CHECKED ON A ROLL ROOM ON PURPOSE. The referee's own end-to-end duel is a budget
+  // one, where declaring done was already the rule (P52); a roll duel is the case where
+  // "eleven picked" used to mean "finished", so it is the one the send button changed.
+  {
+    const duelOf = (): PvpRoom =>
+      createRoom({
+        id: 'd1',
+        code: 'DU12CD',
+        hostId: 'u0',
+        hostName: 'Host',
+        visibility: 'private',
+        size: 2,
+        rules: ROLL,
+        pickSeconds: 20,
+        hostBudget: 0,
+        pace: 'async',
+        now: T0,
+      });
+
+    const fresh = duelOf();
+    // Eleven picks, hours apart, with a sweep between each: nothing may expire, and the
+    // room must not play while the other chair is empty.
+    let solo = fresh;
+    let at = T0;
+    for (let i = 0; i < 11; i++) {
+      at += 3 * 60 * 60_000;
+      const w = solo.windows.u0;
+      if (!w) break;
+      solo = submitPick(solo, 'u0', firstLegalPick(solo, 'u0'), at).room;
+      solo = tickRoom(solo, at);
+    }
+    const full = solo;
+    const sent = tickRoom(setDone(full, 'u0', true, at), at);
+
+    check(
+      'duel: it drafts from the moment it is opened, and a sent XI with nobody opposite plays nothing',
+      () =>
+        // Opened straight into the draft, with one seat filled and the other waiting.
+        fresh.status === 'drafting' &&
+        fresh.members.length === 1 &&
+        fresh.startedAt === T0 &&
+        // A roll duel deals its first squad at once, exactly as a started room does.
+        (fresh.deals.u0?.length ?? 0) === 1 &&
+        !!fresh.windows.u0 &&
+        // ELEVEN PICKED IS NOT FINISHED HERE. This is the whole of the send button: before
+        // the change, `draftDone` read a full XI as a finished one, so the eleventh pick
+        // would have ended the draft under its owner.
+        xiComplete(full, full.members[0]!) &&
+        !draftDone(full, full.members[0]!) &&
+        declaresDone(full) &&
+        // And with it sent, still nothing: there is nobody to play.
+        sent.status === 'drafting' &&
+        sent.ties.length === 0,
+      () =>
+        `${fresh.status}/${fresh.members.length} seats, ` +
+        `${Object.keys(full.xi.u0 ?? {}).length} picked, done ${draftDone(full, full.members[0]!)}`,
+    );
+
+    // The second player arrives MID-DRAFT, days later, and starts a draft of their own.
+    const later = at + 4 * 24 * 60 * 60_000;
+    const joined = joinRoom(sent, { userId: 'u1', name: 'Bruno', budget: 0 }, later);
+    const third = joinRoom(joined.room, { userId: 'u2', name: 'Cleo', budget: 0 }, later);
+    // And the live pace still shuts its door the moment it starts, which is the vacuity
+    // guard: without it this check would pass on a state machine that let anybody walk
+    // into any draft.
+    const liveStarted = startRoom(roomOf(2, ROLL), 'u0', T0);
+    const gatecrash = joinRoom(liveStarted, { userId: 'u9', name: 'Late', budget: 0 }, T0 + 1000);
+
+    let both = joined.room;
+    let then = later;
+    for (let i = 0; i < 11; i++) {
+      then += 60 * 60_000;
+      if (!both.windows.u1) break;
+      both = submitPick(both, 'u1', firstLegalPick(both, 'u1'), then).room;
+      both = tickRoom(both, then);
+    }
+    const waiting = tickRoom(both, then);
+    const played = tickRoom(setDone(both, 'u1', true, then), then);
+
+    check(
+      'duel: the seat stays open through the draft, and the match goes when the second XI is sent',
+      () =>
+        joined.outcome === 'ok' &&
+        joined.room.members.length === 2 &&
+        // Their own draft, begun on arrival rather than inherited: an empty board and a
+        // squad of their own.
+        Object.keys(joined.room.xi.u1 ?? {}).length === 0 &&
+        (joined.room.deals.u1?.length ?? 0) === 1 &&
+        // The challenger's is untouched by their arrival.
+        Object.keys(joined.room.xi.u0 ?? {}).length === 11 &&
+        // Two seats, both taken: the third person is too late.
+        third.outcome === 'started' &&
+        // A LIVE room in the same phase refuses everybody, which is what makes the rule
+        // above the duel's own rather than a hole in the state machine.
+        gatecrash.outcome === 'started' &&
+        // Eleven picked and not sent leaves it waiting...
+        xiComplete(both, both.members[1]!) &&
+        waiting.status === 'drafting' &&
+        waiting.ties.length === 0 &&
+        // ...and sending it plays the match, days after the first XI went in.
+        played.status === 'round' &&
+        played.ties.length === 1,
+      () =>
+        `${joined.outcome}/${third.outcome}/${gatecrash.outcome}, ` +
+        `waiting ${waiting.status}, played ${played.status}`,
+    );
   }
 }

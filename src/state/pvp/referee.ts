@@ -194,11 +194,6 @@ export interface CreateRoomInput {
     /** Live, or a duel played in both players' own time (P51). Omitted means live, which
      *  is what a referee that predates duels reads anyway. */
     pace?: 'live' | 'async';
-    /** Who a duel is addressed to, by display name. The referee resolves it on the
-     *  normalised key and refuses a name nobody has - a challenge to somebody in
-     *  particular is not the same intention as a room anybody may open, so it is not
-     *  quietly downgraded to one. Empty means "whoever I send the link to". */
-    opponent?: string;
 }
 
 export const createRoom = (input: CreateRoomInput): Promise<RoomView> =>
@@ -212,12 +207,13 @@ export const readRoom = (code: string): Promise<RoomView> =>
 export const readLobby = (): Promise<{ rooms: LobbyRoom[] }> => call('GET', '/v1/lobby');
 
 /**
- * Your duels: the ones you are in, and the ones somebody has challenged you to (P51).
+ * Your duels: every one you are in, open and finished (P51).
  *
- * IT IS THE ONLY WAY A CHALLENGE IS EVER SEEN. This game sends no mail and no push
- * notification, so a duel arrives by being on this list the next time its recipient opens
- * the versus page - which is why the list is the feature's front door rather than a panel
- * beside it.
+ * IT IS THE ONLY WAY A DUEL EVER REACHES ANYBODY. This game sends no mail and no push
+ * notification, so a challenge arrives by the link its sender pastes into a message, and
+ * everything after that - your move, their move, the result of a match played while you
+ * were asleep - arrives by being on this list. Hence the Versus tab, and hence the strip
+ * in the chrome, which is this list read down to its most urgent row.
  */
 export const readDuels = (): Promise<{ duels: DuelRow[] }> => call('GET', '/v1/duels');
 

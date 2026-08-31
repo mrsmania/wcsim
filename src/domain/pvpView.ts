@@ -158,7 +158,7 @@ const CLOCK_STEP_MS = 60_000;
 export const isDuel = (view: RoomView): boolean => view.pace === 'async';
 
 /**
- * The referee opened a ROOM when a DUEL was asked for.
+ * The referee opened something OTHER than the duel that was asked for.
  *
  * A REFEREE THAT PREDATES DUELS DOES NOT REFUSE ONE, which is the trap: `pace` is a field
  * it has never heard of, so it reads straight past it and opens an ordinary live room of
@@ -166,14 +166,17 @@ export const isDuel = (view: RoomView): boolean => view.pace === 'async';
  * because it looks exactly like success, and the player lands in a lobby with a Ready
  * button wondering what happened to their challenge. So the create path tests the ANSWER
  * rather than the status, and this is that test.
+ *
+ * IT TESTS THE STATUS TOO, and that second half is the 2026-08-31 skew rather than the
+ * original one. A referee built between the two dates DOES know about duels and opens one
+ * in a LOBBY, waiting for somebody to accept - which is the shape this change exists to
+ * remove, and which the screens no longer draw: the challenger would sit in a two-seat
+ * lobby unable to touch their own team. A duel from a current referee is `drafting` from
+ * the instant it is created, so the status is the whole test, and it needs no new field and
+ * no protocol bump to make.
  */
 export const duelDowngraded = (asked: 'live' | 'async', view: RoomView): boolean =>
-    asked === 'async' && !isDuel(view);
-
-/** A challenge addressed to this viewer that they have not answered yet: the one state
- *  where somebody is looking at a room they are not in and did not ask for. */
-export const isChallengeToMe = (view: RoomView): boolean =>
-    isDuel(view) && view.status === 'lobby' && !!view.invitedName && !meIn(view);
+    asked === 'async' && (!isDuel(view) || view.status === 'lobby');
 
 /**
  * Whose move it is, from the caller's side of a duel row.
@@ -187,11 +190,19 @@ export type DuelTurn = 'yours' | 'theirs' | 'sent' | 'done';
 
 export function duelTurn(row: DuelRow): DuelTurn {
     if (row.status === 'ended') return 'done';
-    // Nobody has accepted yet, so it is theirs to answer - unless it was sent TO you, in
-    // which case answering it is your move.
-    if (row.status === 'lobby') return row.yours ? 'sent' : 'yours';
     if (row.status !== 'drafting') return 'theirs';
-    return row.yourPicks < XI_SLOTS ? 'yours' : 'theirs';
+    // SENDING IS WHAT ENDS YOUR HALF OF IT, not filling the eleventh slot: a duel has no
+    // clock, so the XI stays yours until you say otherwise. Until then it is your move
+    // whether you have picked nobody or all eleven.
+    //
+    // The two fallbacks are for a referee that predates the reshape and are its OLD reading
+    // rather than a guess: there, finishing was filling the eleventh slot, and a duel that
+    // was drafting at all had both seats taken.
+    if (!(row.yourDone ?? row.yourPicks >= XI_SLOTS)) return 'yours';
+    // Sent, and nobody has taken the challenge up. Waiting on a person rather than on a
+    // draft, which is a different sentence and a different thing to do about it (send the
+    // link to somebody else).
+    return (row.seated ?? 2) < 2 ? 'sent' : 'theirs';
 }
 
 /** Slots in an XI. Every formation has eleven; a duel row counts picks against it. */
@@ -202,16 +213,14 @@ const XI_SLOTS = 11;
 export function duelLine(row: DuelRow): string {
     switch (duelTurn(row)) {
         case 'sent':
-            return row.opponentName
-                ? `Waiting for ${row.opponentName} to accept`
-                : 'Waiting for somebody to take it up';
+            return 'Sent. Waiting for somebody to take it up';
         case 'yours':
-            return row.status === 'lobby'
-                ? 'Challenged you'
+            return row.yourPicks >= XI_SLOTS
+                ? 'Your XI is ready to send'
                 : `Your move, ${row.yourPicks} of ${XI_SLOTS} picked`;
         case 'theirs':
             return row.status === 'drafting'
-                ? `Their move, ${row.theirPicks} of ${XI_SLOTS} picked`
+                ? `${row.opponentName || 'They'} are building, ${row.theirPicks} of ${XI_SLOTS} picked`
                 : 'The match is being played';
         case 'done': {
             if (row.yourGoals === null || row.yourGoals === undefined) return 'Closed unplayed';
@@ -220,6 +229,54 @@ export function duelLine(row: DuelRow): string {
         }
     }
 }
+
+/**
+ * What, if anything, this duel wants from the reader.
+ *
+ * IT IS THE WHOLE REASON THE CHROME CARRIES A STRIP FOR DUELS. A live room is a thing you
+ * are AT, so holding one is itself the signal; a duel is a thing you are IN, spread over
+ * days, and the only two states worth interrupting somebody for are "your team is not sent"
+ * and "the match has been played and you have not seen it". Everything else is a row on a
+ * list, which is where it stays.
+ *
+ * `watched` is LOCAL, and it has to be: whether you have sat through the reveal is a fact
+ * about this browser, not about the room, and the server has no business recording it. A
+ * new device therefore replays a result once, which is the right way round - it is the
+ * match, and watching it again costs nothing.
+ */
+export type DuelAlert = 'watch' | 'your-move' | null;
+
+export function duelAlert(row: DuelRow, watched: ReadonlySet<string>): DuelAlert {
+    // A result nobody has watched outranks a draft nobody has finished: the match is over
+    // and the reader does not know how it went, which is the more surprising of the two.
+    if (row.status === 'ended' && row.yourGoals !== null && row.yourGoals !== undefined) {
+        return watched.has(row.code) ? null : 'watch';
+    }
+    return duelTurn(row) === 'yours' ? 'your-move' : null;
+}
+
+/** The one duel to put in the chrome, or null. Results first, then drafts, then whichever
+ *  moved most recently - the list arrives newest first, so the first hit of each kind is
+ *  already the right one. */
+export function duelToOpen(
+    rows: readonly DuelRow[],
+    watched: ReadonlySet<string>,
+): { row: DuelRow; alert: Exclude<DuelAlert, null> } | null {
+    const hit = (want: DuelAlert) => rows.find((r) => duelAlert(r, watched) === want);
+    const result = hit('watch');
+    if (result) return { row: result, alert: 'watch' };
+    const move = hit('your-move');
+    return move ? { row: move, alert: 'your-move' } : null;
+}
+
+/** The strip's sentence for a duel that wants something. Short: it shares a line with the
+ *  code and a "Go" on a phone. */
+export const duelAlertLine = (row: DuelRow, alert: Exclude<DuelAlert, null>): string =>
+    alert === 'watch'
+        ? `the match against ${row.opponentName || 'your opponent'} has been played`
+        : row.yourPicks >= XI_SLOTS
+          ? 'your XI is ready to send'
+          : `your move, ${row.yourPicks} of ${XI_SLOTS} picked`;
 
 /** What a duel PLAYS, for the row's second line and for the challenge screen. The same
  *  sentence a lobby row gets, minus the clock: a duel has none. */
@@ -350,7 +407,12 @@ export function roomLine(view: RoomView): string {
             return `waiting, ${view.members.length} of ${view.size} in, ${ready} ready`;
         }
         case 'drafting':
-            return `drafting, ${me?.picked ?? 0} of 11 picked`;
+            // A duel that nobody has taken up is DRAFTING with one player in it, which is
+            // its ordinary early state rather than a half-started room. Saying "drafting,
+            // 11 of 11 picked" there would read as a room about to play a match.
+            return isDuel(view) && view.members.length < view.size
+                ? 'waiting for somebody to take it up'
+                : `drafting, ${me?.picked ?? 0} of 11 picked`;
         case 'round':
             // Named rather than "match on": in a room of eight the round is half of what
             // a player wants to know from the strip, and the label is derivable.

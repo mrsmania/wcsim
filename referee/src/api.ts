@@ -28,7 +28,6 @@ import type { Filled } from '../../src/domain/draft';
 import type { FormationName, Style } from '../../src/domain/formations';
 import { getFormation } from '../../src/domain/formations';
 import { WORLD_CUP_YEARS } from '../../src/data/squads';
-import { nameKeyOf } from '../../src/domain/displayName';
 import { localVersion } from '../../src/domain/pvpVersion';
 import {
   BUDGET_MAX,
@@ -100,22 +99,13 @@ const fail = (status: number, error: string, detail?: string): ApiResponse => ({
 });
 
 /** The view, with the two per-player figures the room can only work out for itself. */
-function viewOf(
-  room: PvpRoom,
-  viewerId: string | null,
-  now: number,
-  /** The display name of the person a duel is addressed to. Looked up by the handler when
-   *  it has one to hand; the screens fall back to "somebody" rather than to a blank, so an
-   *  answer without it is a plainer sentence and never a broken one. */
-  invitedName?: string | null,
-) {
+function viewOf(room: PvpRoom, viewerId: string | null, now: number) {
   return roomView(
     room,
     viewerId,
     now,
     (u) => remainingBudget(room, u),
     (u) => rerollsLeft(room, u),
-    invitedName,
   );
 }
 
@@ -130,9 +120,6 @@ function readCreate(
   body: Record<string, unknown>,
   code: string,
   hostId: string,
-  /** Resolved by the caller, because it needs a query: the account a duel is addressed to.
-   *  Null for a live room and for a duel opened to whoever has the link. */
-  invitedId: string | null,
 ): CreateInput | string {
   const visibility = body.visibility === 'private' ? 'private' : 'public';
   // A DUEL IS TWO PEOPLE, PRIVATE, AND HAS NO CLOCK. Those are not settings the host is
@@ -194,7 +181,6 @@ function readCreate(
     pickSeconds: pickSeconds as PickSeconds,
     draftSeconds: draftSeconds as DraftSeconds,
     pace,
-    invitedId,
   };
 }
 
@@ -264,14 +250,7 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
     const room = await deps.store.read(code);
     if (!room) return fail(404, 'no-such-room');
     if (!visibleTo(room, userId)) return fail(404, 'no-such-room');
-    // The name of whoever the challenge is addressed to, while it is outstanding: it is
-    // the sentence the screen is made of ("waiting for Mario"), and the referee is the one
-    // thing that may read a display name.
-    const invitedName =
-      room.invitedId && !room.members.some((m) => m.userId === room.invitedId)
-        ? await deps.store.displayName(room.invitedId)
-        : null;
-    return ok(viewOf(room, userId, now, invitedName));
+    return ok(viewOf(room, userId, now));
   }
   if (req.method !== 'POST') return fail(405, 'no-such-route');
 
@@ -320,11 +299,6 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
  *  cannot be confirmed by probing. */
 function visibleTo(room: PvpRoom, userId: string): boolean {
   if (room.visibility === 'public' && room.status === 'lobby') return true;
-  // A CHALLENGE IS VISIBLE TO THE PERSON IT NAMES, before they have accepted anything.
-  // Without this the one screen the whole feature depends on - "somebody has challenged
-  // you, here is what they are playing" - would answer "no such room" to its own
-  // recipient, and a duel could only ever be accepted blind.
-  if (room.invitedId === userId) return true;
   return room.members.some((x) => x.userId === userId);
 }
 
@@ -348,30 +322,22 @@ async function create(
     if (held) return fail(409, 'already-in-a-room', held);
   }
 
-  // WHO IT IS ADDRESSED TO, resolved on the normalised key (P22) - which is what uniqueness
-  // is on, so one name is one account. A challenge to a name nobody has is refused rather
-  // than opened to anybody: "I challenged Mario" and "I opened a room" are different
-  // intentions and only one of them was expressed.
-  let invitedId: string | null = null;
-  const opponent = typeof req.body.opponent === 'string' ? req.body.opponent.trim() : '';
-  if (duel && opponent) {
-    const found = await deps.store.findByName(nameKeyOf(opponent));
-    if (!found) return fail(404, 'no-such-player', opponent);
-    if (found === userId) return fail(422, 'bad-room', 'you cannot challenge yourself');
-    invitedId = found;
-  }
+  // A DUEL IS ADDRESSED BY LINK AND BY NOTHING ELSE (2026-08-31). It used to name an
+  // account, which meant a name lookup here, a seat nobody else could take, a screen for
+  // accepting and a refusal for arriving at somebody else's challenge - four pieces of
+  // machinery to say what a private link already says. The link is the invitation: whoever
+  // opens it takes the seat, exactly as a private room has always worked.
 
   // Retry on a code collision rather than reading first: the unique index is the arbiter,
   // and a read-then-write here is the same race the display name has.
   for (let attempt = 0; attempt < 5; attempt++) {
-    const input = readCreate(req.body, deps.newCode(), userId, invitedId);
+    const input = readCreate(req.body, deps.newCode(), userId);
     if (typeof input === 'string') return fail(422, 'bad-room', input);
     try {
       const room = await deps.store.create(input, now);
-      const invitedName = invitedId ? await deps.store.displayName(invitedId) : null;
       return {
         status: 201,
-        body: viewOf(room, userId, now, invitedName),
+        body: viewOf(room, userId, now),
         publish: room.code,
       };
     } catch (err) {
@@ -394,8 +360,17 @@ async function join(
 ): Promise<ApiResponse> {
   const name = await deps.store.displayName(userId);
   if (!name) return fail(409, 'no-display-name');
-  const held = await deps.store.activeRoomOf(userId);
-  if (held && held !== code) return fail(409, 'already-in-a-room', held);
+  // P39 COUNTS LIVE ROOMS ONLY, on the way IN as well as on the way out (P51). The check
+  // was unconditional, which meant somebody sitting in a live room could not take up a
+  // duel - and a duel is the mode you play precisely because you are busy. So the pace of
+  // the room being joined decides, which needs a read first; `activeRoomOf` already
+  // answers about live rooms alone, so holding duels blocks nothing either way.
+  const target = await deps.store.read(code);
+  if (!target) return fail(404, 'no-such-room');
+  if (target.pace !== 'async') {
+    const held = await deps.store.activeRoomOf(userId);
+    if (held && held !== code) return fail(409, 'already-in-a-room', held);
+  }
 
   const out = await deps.store.mutate(code, now, (room) => {
     const budget = room.rules.method === 'budget' ? room.rules.budget : 0;
@@ -405,10 +380,6 @@ async function join(
   if (!out) return fail(404, 'no-such-room');
   if (out.result === 'full') return fail(409, 'room-full');
   if (out.result === 'started') return fail(409, 'room-started');
-  // A challenge addressed to somebody else. Its own refusal rather than "full", because
-  // the two mean completely different things to whoever is reading: one room filled up,
-  // the other was never yours to walk into.
-  if (out.result === 'not-invited') return fail(403, 'not-invited');
   return { status: 200, body: viewOf(out.room, userId, now), publish: code };
 }
 

@@ -1,18 +1,27 @@
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { LayoutGrid, List, Play, Swords, Trophy } from 'lucide-react';
+import { LayoutGrid, List, Play, Swords, Trophy, Users } from 'lucide-react';
 
 /**
  * The tabs navigation (roadmap item 27, concept 2) - shared atoms.
  *
- * One mechanism for the five destinations, and only destinations: settings and account
- * stay masthead buttons, because they are sheets you adjust without leaving rather than
- * places you go.
+ * One mechanism for the destinations, and only destinations: settings and account stay
+ * masthead buttons, because they are sheets you adjust without leaving rather than places
+ * you go.
  *
- * Two renderings of the same five labels in the same order, so muscle memory carries
- * between devices: a row under the masthead from 700px up, and a fixed bottom bar at
- * thumb height below it. The row carries the masthead's 2px ink rule, so the tabs read
- * as part of the identity block rather than as a strip below it.
+ * IT WAS FIVE UNTIL 2026-08-31 AND IS NOW SIX, and the sixth is the only one that has ever
+ * been added: Versus. The rule that kept it at five is still the rule - a tab is an address
+ * you need from anywhere - and what changed is that versus became somewhere you need from
+ * anywhere. While it was one live room at a time it was an evening you went to and left, so
+ * a front-page door was the right size for it; duels are played over days and are the only
+ * thing in this game that somebody else can be waiting on, so "is anything waiting for me"
+ * has to be answerable from the album. Versus is last, being the one destination that is
+ * not about your own career. Do not add a seventh without a reason of that shape.
+ *
+ * Two renderings of the same labels in the same order, so muscle memory carries between
+ * devices: a row under the masthead from 700px up, and a fixed bottom bar at thumb height
+ * below it. The row carries the masthead's 2px ink rule, so the tabs read as part of the
+ * identity block rather than as a strip below it.
  *
  * A tab is its label and nothing else. The row used to carry a mono sub-line per tab
  * (level and Prestige, album completion, challenges earned, cups in the pool), which put
@@ -26,7 +35,7 @@ import { LayoutGrid, List, Play, Swords, Trophy } from 'lucide-react';
  * over a full-screen backdrop.
  */
 
-export type TabKey = 'play' | 'career' | 'album' | 'records' | 'squads';
+export type TabKey = 'play' | 'career' | 'album' | 'records' | 'squads' | 'versus';
 
 export interface TabItem {
     key: TabKey;
@@ -41,6 +50,9 @@ const ICONS: Record<TabKey, ReactNode> = {
     album: <LayoutGrid size={17} strokeWidth={2.2} />,
     records: <Trophy size={17} strokeWidth={2.2} />,
     squads: <List size={17} strokeWidth={2.2} />,
+    // Two people, which is what the destination is: `Swords` would read better and is
+    // the career's already, and two tabs sharing a glyph is worse than a plainer one.
+    versus: <Users size={17} strokeWidth={2.2} />,
 };
 
 /** The desktop row. Hidden below 700px, where the bottom bar takes over. */
@@ -88,7 +100,15 @@ export function TabBottomBar({ items, locked }: { items: TabItem[]; locked?: boo
     return (
         <nav
             aria-label="Main"
-            className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t-2 border-ink bg-panel pb-[env(safe-area-inset-bottom)] min-[700px]:hidden"
+            className="fixed inset-x-0 bottom-0 z-20 grid border-t-2 border-ink bg-panel pb-[env(safe-area-inset-bottom)] min-[700px]:hidden"
+            // THE COLUMN COUNT FOLLOWS THE ITEMS, and it has to be an inline style rather
+            // than a class: Tailwind emits utilities from the class strings it can SEE in
+            // the source, so a computed `grid-cols-${n}` is a class that does not exist.
+            // It was a literal `grid-cols-5` until Versus made it six, and the bar wrapped
+            // the sixth tab onto a second row - under the fold, on the one layout where
+            // the bar is the whole navigation. The `minmax(0, 1fr)` rather than `1fr` is
+            // what stops a long label widening its own column.
+            style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
         >
             {items.map((t) => {
                 const inert = !!locked && !t.active;
@@ -100,14 +120,14 @@ export function TabBottomBar({ items, locked }: { items: TabItem[]; locked?: boo
                         aria-disabled={inert || undefined}
                         tabIndex={inert ? -1 : undefined}
                         className={[
-                            'flex flex-col items-center gap-[3px] px-1 pb-[9px] pt-[7px] transition',
+                            'flex min-w-0 flex-col items-center gap-[3px] px-0.5 pb-[9px] pt-[7px] transition',
                             t.active ? 'text-pitch-ink' : 'text-muted',
                             inert ? 'pointer-events-none opacity-35' : '',
                         ].join(' ')}
                     >
                         {ICONS[t.key]}
                         <span
-                            className={`font-mono text-[8.5px] uppercase tracking-[0.04em] ${
+                            className={`max-w-full truncate font-mono text-[8.5px] uppercase tracking-[0.02em] ${
                                 t.active ? 'font-bold' : ''
                             }`}
                         >
@@ -154,3 +174,14 @@ export function SubTabs({
         </div>
     );
 }
+
+/**
+ * The strip under the tab bar: "a versus match wants you, and here it is".
+ *
+ * ONE CLASS STRING because there are two of them and only ever one on screen - the live
+ * room you are holding, or the duel that is waiting - and they are the same object as far
+ * as a reader is concerned. Two copies drifting by a pixel of padding is exactly the shape
+ * of the button sprawl the `btn` tokens were written to end.
+ */
+export const ROOM_STRIP =
+    'mb-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch-ink transition hover:bg-pitch/20';

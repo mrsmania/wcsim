@@ -24,15 +24,17 @@ import {
   REVEAL_JOIN_MS,
   agoLine,
   answerIsFresh,
+  duelAlert,
+  duelAlertLine,
   duelDowngraded,
   duelLine,
   duelRules,
+  duelToOpen,
   duelTurn,
   everybodyReady,
   gamesIn,
   inviteText,
   inviteUrl,
-  isChallengeToMe,
   isDuel,
   seatsOf,
   lobbyJoinable,
@@ -740,50 +742,114 @@ export function pvpViewChecks(): void {
   // A DUEL SPANS DAYS, so the question somebody opens the page with is never "what is the
   // score" - it is "is there anything for me to do". `duelTurn` is that answer in one word,
   // and it is the only reason the list is worth having, so the four states it can return
-  // are worth pinning here rather than reading off a screen. The trap is the LOBBY: the
-  // same unanswered challenge is "sent" to the person who sent it and "yours" to the person
-  // it was addressed to, and getting that backwards puts a call to action on the one screen
-  // that has nothing to do.
+  // are worth pinning here rather than reading off a screen.
+  //
+  // THE TRAP IS THAT ELEVEN PICKED IS NOT ELEVEN SENT (2026-08-31). A duel's draft ends
+  // when its players SAY it does, so a full XI nobody has sent is still that player's move
+  // - and reading the pick counts alone, as this used to, puts "waiting for them" on the
+  // one screen that is waiting for you.
   {
     const row = (over: Partial<DuelRow> = {}): DuelRow => ({
       code: 'DU0001',
       opponentName: 'Bravo',
       yours: true,
-      status: 'lobby',
+      status: 'drafting',
+      seated: 2,
       method: 'budget',
       budget: 110,
       yourPicks: 0,
       theirPicks: 0,
+      yourDone: false,
+      theirDone: false,
       openedAt: 1_000,
       touchedAt: 1_000,
       ...over,
     });
     const turns = [
-      duelTurn(row()),
-      duelTurn(row({ yours: false })),
-      duelTurn(row({ status: 'drafting', yourPicks: 4, theirPicks: 11 })),
-      duelTurn(row({ status: 'drafting', yourPicks: 11, theirPicks: 4 })),
-      duelTurn(row({ status: 'round', yourPicks: 11, theirPicks: 11 })),
+      // Nobody has taken it up: sent, and waiting on a person rather than on a draft.
+      duelTurn(row({ seated: 1, yourPicks: 11, yourDone: true })),
+      // Not sent yet, however far along it is. Both of these used to read "theirs".
+      duelTurn(row({ yourPicks: 4 })),
+      duelTurn(row({ yourPicks: 11 })),
+      // Sent, and they are still building.
+      duelTurn(row({ yourPicks: 11, yourDone: true, theirPicks: 4 })),
+      duelTurn(row({ status: 'round', yourDone: true, theirDone: true })),
       duelTurn(row({ status: 'ended', yourGoals: 2, theirGoals: 1, won: true })),
     ];
     check(
-      'pvpView: a duel row says whose move it is, and the same unanswered challenge reads both ways',
+      'pvpView: a duel row says whose move it is, and a full XI is not a sent one',
       () =>
         turns.join() === 'sent,yours,yours,theirs,theirs,done' &&
         // The words follow the turn rather than the status, which is what makes the list
         // scannable: one line, from the reader's own side.
-        duelLine(row()) === 'Waiting for Bravo to accept' &&
-        duelLine(row({ yours: false })) === 'Challenged you' &&
-        duelLine(row({ status: 'drafting', yourPicks: 4 })).includes('Your move') &&
+        duelLine(row({ seated: 1, yourPicks: 11, yourDone: true })) ===
+          'Sent. Waiting for somebody to take it up' &&
+        duelLine(row({ yourPicks: 4 })).includes('Your move') &&
+        duelLine(row({ yourPicks: 11 })) === 'Your XI is ready to send' &&
         duelLine(row({ status: 'ended', yourGoals: 2, theirGoals: 1, won: true })) ===
           'You won 2-1' &&
         // A duel that ended without a match says so rather than printing a score it has not
-        // got: declining and the week are both ordinary endings.
+        // got: withdrawing and the week are both ordinary endings.
         duelLine(row({ status: 'ended' })) === 'Closed unplayed' &&
-        // And what it PLAYS, which is the row's second line and the challenge screen's.
+        // And what it PLAYS, which is the row's second line.
         duelRules({ method: 'budget', budget: 110 }).includes('$110') &&
         duelRules({ method: 'roll', budget: 0 }).includes('Roll'),
       () => turns.join(),
+    );
+
+    // A ROW FROM THE REFEREE THAT IS DEPLOYED RIGHT NOW has none of the three fields the
+    // reading above is built on, because the client ships by pushing to `main` and the
+    // server is rebuilt by hand. It must read the way it always did rather than reading as
+    // "your move" for ever in the chrome's strip: there, finishing WAS filling the eleventh
+    // slot, and a duel that was drafting at all had both seats taken.
+    {
+      const legacy = (over: Partial<DuelRow> = {}): DuelRow => {
+        const r = row({ status: 'drafting', ...over });
+        delete r.seated;
+        delete r.yourDone;
+        delete r.theirDone;
+        return r;
+      };
+      check(
+        'pvpView: a duel row from a referee that predates the reshape reads the way it used to',
+        () =>
+          duelTurn(legacy({ yourPicks: 4 })) === 'yours' &&
+          duelTurn(legacy({ yourPicks: 11, theirPicks: 4 })) === 'theirs' &&
+          // Vacuity, and the whole reason this exists: the SAME row carrying the new fields
+          // says the opposite, which is the reading that would otherwise be applied to it.
+          duelTurn(row({ status: 'drafting', yourPicks: 11, yourDone: false })) === 'yours',
+        () => `${duelTurn(legacy({ yourPicks: 11, theirPicks: 4 }))}`,
+      );
+    }
+
+    // WHAT THE CHROME INTERRUPTS SOMEBODY FOR, which is two things and not four: a team
+    // that is not sent, and a match that has been played and not watched. The second
+    // outranks the first, and it is the one that needs a LOCAL fact - whether this browser
+    // has sat through the reveal - because the server has no business recording that.
+    const none: ReadonlySet<string> = new Set();
+    const seen: ReadonlySet<string> = new Set(['DU0001']);
+    const finished = row({ status: 'ended', yourGoals: 2, theirGoals: 1, won: true });
+    const mine = row({ yourPicks: 4 });
+    const theirs = row({ yourPicks: 11, yourDone: true, theirPicks: 2 });
+    check(
+      'pvpView: the chrome is offered a result to watch first, a draft second, and nothing else',
+      () =>
+        duelAlert(finished, none) === 'watch' &&
+        // Watched once and it stops asking, which is the whole reason the set exists.
+        duelAlert(finished, seen) === null &&
+        duelAlert(mine, none) === 'your-move' &&
+        duelAlert(theirs, none) === null &&
+        // A duel that closed without a match has nothing to watch.
+        duelAlert(row({ status: 'ended' }), none) === null &&
+        // The result wins over the draft, whatever order the list arrives in.
+        duelToOpen([mine, finished], none)?.alert === 'watch' &&
+        duelToOpen([finished, mine], none)?.alert === 'watch' &&
+        duelToOpen([theirs, mine], none)?.row.code === mine.code &&
+        duelToOpen([theirs], none) === null &&
+        // And the sentence names the thing rather than the state.
+        duelAlertLine(finished, 'watch').includes('Bravo') &&
+        duelAlertLine(row({ yourPicks: 11 }), 'your-move') === 'your XI is ready to send',
+      () => `${duelAlert(finished, none)} / ${duelAlert(mine, none)}`,
     );
 
     // A REFEREE OLDER THAN DUELS DOES NOT REFUSE ONE, and that is what makes this worth a
@@ -801,57 +867,26 @@ export function pvpViewChecks(): void {
             () =>
                 // A referee that predates duels sends no pace at all.
                 duelDowngraded('async', old) &&
-                // And one that has them sends the pace that was asked for.
-                !duelDowngraded('async', fixtureRoom({ pace: 'async' })) &&
+                !isDuel(old) &&
+                isDuel(fixtureRoom({ pace: 'async' })) &&
+                // And a CURRENT one opens the duel already drafting.
+                !duelDowngraded('async', fixtureRoom({ pace: 'async', status: 'drafting' })) &&
+                // The second skew, and the one that is live right now: a referee that has
+                // duels but predates 2026-08-31 opens one in a LOBBY, waiting to be
+                // accepted. The screens no longer draw that, so it is a downgrade too.
+                duelDowngraded('async', fixtureRoom({ pace: 'async', status: 'lobby' })) &&
                 // Asking for a live room is never downgraded, whatever comes back.
                 !duelDowngraded('live', old) &&
                 // Both call sites act on it, and both CLOSE the room rather than leaving
                 // it holding this account's one live seat (P39) until the sweeper.
-                /duelDowngraded\(pace, room\)[^]{0,240}leaveRoom\(room\.code\)/.test(src) &&
+                /duelDowngraded\('async', room\)[^]{0,240}leaveRoom\(room\.code\)/.test(src) &&
                 /duelDowngraded\('async', next\)[^]{0,240}leaveRoom\(next\.code\)/.test(rematch) &&
                 // Vacuity: the scan really did read two files that create a duel.
-                src.includes("pace,") &&
+                src.includes('pace,') &&
                 rematch.includes("pace: 'async'"),
             () => `${duelDowngraded('async', old)} / ${/leaveRoom\(room\.code\)/.test(src)}`,
         );
     }
-
-    // THE ONE ROOM A PLAYER DID NOT CHOOSE TO OPEN. Everywhere else arriving takes the
-    // seat, so this predicate is what keeps the two-answer question to the one place it
-    // belongs - and it has to go false the moment the seat is taken, or accepting would
-    // leave the Accept button on screen over a draft.
-    const challenge = fixtureRoom({
-      pace: 'async',
-      status: 'lobby',
-      invitedName: 'Bravo',
-      members: [
-        { userId: HOME, seat: 0, name: 'Alpha', ready: true, outIn: null, picked: 0, formationName: '4-3-3', style: 'bal' },
-      ],
-      you: undefined,
-    });
-    check(
-      'pvpView: a challenge is only a challenge to the person it is addressed to, and only until they take it',
-      () =>
-        isDuel(challenge) &&
-        isChallengeToMe(challenge) &&
-        // The sender is a member, so it is never a challenge to them.
-        !isChallengeToMe({ ...challenge, you: { userId: HOME, xi: {}, dealt: [], rerollsLeft: 0, budgetLeft: 0, window: null } }) &&
-        // Accepting makes them a member, and the question is over.
-        !isChallengeToMe({
-          ...challenge,
-          members: [
-            ...challenge.members,
-            { userId: AWAY, seat: 1, name: 'Bravo', ready: true, outIn: null, picked: 0, formationName: '4-3-3', style: 'bal' },
-          ],
-          you: { userId: AWAY, xi: {}, dealt: [], rerollsLeft: 0, budgetLeft: 0, window: null },
-        }) &&
-        // Past the lobby there is nothing to answer.
-        !isChallengeToMe({ ...challenge, status: 'drafting' }) &&
-        // And a live room is never one of these, whatever else is true of it.
-        !isDuel(fixtureRoom()) &&
-        !isChallengeToMe(fixtureRoom({ status: 'lobby', you: undefined })),
-      () => `${isChallengeToMe(challenge)} / ${isDuel(fixtureRoom())}`,
-    );
   }
 
   // --- A slow answer must not undo a fast one ------------------------------

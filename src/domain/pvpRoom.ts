@@ -327,11 +327,6 @@ export interface PvpRoom {
   /** Live, or a duel played in both players' own time. See `RoomPace`. Absent from a room
    *  stored before duels existed, which `roomFromRows` reads as `live`. */
   pace: RoomPace;
-  /** The account a DUEL is addressed to, when it was aimed at somebody by name rather than
-   *  opened for whoever has the link. Nobody else may take that seat, which is what makes
-   *  it a challenge rather than an open room - and it is what puts the duel on their list
-   *  before they have accepted anything. */
-  invitedId?: string;
   size: RoomSize;
   rules: RoomRules;
   /** The per-pick clock. A ROLL ROOM'S ONLY (P52): a budget room runs `draftSeconds` over
@@ -451,13 +446,29 @@ export function draftDeadlineOf(room: PvpRoom): number | null {
   return room.startedAt + draftSecondsOf(room) * 1000;
 }
 
-/** Has this member finished drafting? In a whole-draft room they SAY so (see
- *  `RoomMember.done`); everywhere else filling the eleventh slot is saying so. A practice
- *  opponent is always finished: its team is built the moment the room starts. */
+/**
+ * Has this member finished drafting?
+ *
+ * THEY SAY SO whenever the room has no clock that could say it for them - a whole-draft
+ * room (P52, where a full XI is still one you may take apart) and EVERY DUEL, whatever it
+ * plays. A duel's whole shape is that nobody is waiting, so the moment the eleventh pick
+ * landing kicked the match off, a player who wanted a last look at their own team would
+ * find it already played. Sending is a deliberate act there, which is what makes the wait
+ * that follows it a decision rather than a surprise.
+ *
+ * A per-pick live room is the one place filling the eleventh slot is saying so: the clock
+ * is the deliberate act, and there is nothing left to change after it.
+ *
+ * A practice opponent is always finished: its team is built the moment the room starts.
+ */
 export function draftDone(room: PvpRoom, m: RoomMember): boolean {
   if (m.bot) return true;
-  return wholeDraft(room) ? m.done === true && xiComplete(room, m) : xiComplete(room, m);
+  return declaresDone(room) ? m.done === true && xiComplete(room, m) : xiComplete(room, m);
 }
+
+/** Whether this room's players END their own draft rather than having it ended for them. */
+export const declaresDone = (room: Pick<PvpRoom, 'rules' | 'pace'>): boolean =>
+  wholeDraft(room) || room.pace === 'async';
 
 /** Deal the next squad to a roll-room player, avoiding the one they hold. Uses the shared
  *  `rollAny`, so a room's deals obey exactly the rules a solo roll draft does - including
@@ -506,8 +517,6 @@ export function createRoom(input: {
   /** Live by default: a duel is the exception and says so, and every existing caller reads
    *  unchanged. */
   pace?: RoomPace;
-  /** The account a duel is aimed at. Absent means "whoever opens the link". */
-  invitedId?: string;
   /** Both optional and both defaulted to the values plan section 3 gives, so a caller that
    *  does not care about presentation does not have to say so. */
   showRatings?: boolean;
@@ -516,13 +525,14 @@ export function createRoom(input: {
    *  same reason it is everywhere else in this module. */
   now: number;
 }): PvpRoom {
-  return {
+  const pace = input.pace ?? 'live';
+  const host = newMember(input.hostId, 0, input.hostName, input.hostBudget, input.now);
+  const room: PvpRoom = {
     id: input.id,
     code: input.code,
     visibility: input.visibility,
     hostId: input.hostId,
-    pace: input.pace ?? 'live',
-    ...(input.invitedId ? { invitedId: input.invitedId } : {}),
+    pace,
     size: input.size,
     rules: input.rules,
     pickSeconds: input.pickSeconds,
@@ -530,7 +540,7 @@ export function createRoom(input: {
     showRatings: input.showRatings ?? true,
     rerolls: input.rerolls ?? DEFAULT_REROLLS,
     status: 'lobby',
-    members: [newMember(input.hostId, 0, input.hostName, input.hostBudget, input.now)],
+    members: [host],
     xi: {},
     picks: {},
     deals: {},
@@ -539,6 +549,20 @@ export function createRoom(input: {
     round: 0,
     touchedAt: input.now,
   };
+  // A DUEL HAS NO LOBBY AND NEVER HAD ANYTHING TO WAIT FOR, so it opens straight into the
+  // draft with its challenger already picking. Waiting for somebody to accept before you
+  // may touch your own team is a wait that buys nothing: the two drafts are independent,
+  // the match is played by the server when the second XI lands, and the first thing anybody
+  // wants to do after opening a challenge is build the team they are challenging with.
+  //
+  // The second seat stays open THROUGH the draft, which is the one rule this needs: see
+  // `joinRoom`.
+  if (pace === 'async') {
+    room.status = 'drafting';
+    room.startedAt = input.now;
+    beginDraftFor(room, host, input.now);
+  }
+  return room;
 }
 
 /** One seated player, before anything has happened to them. */
@@ -568,22 +592,28 @@ function newMember(
 const nextSeat = (room: PvpRoom): number =>
   room.members.reduce((max, m) => Math.max(max, m.seat + 1), 0);
 
-export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in' | 'not-invited';
+export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in';
 
 export function joinRoom(
   room: PvpRoom,
   member: { userId: string; name: string; budget: number },
   now: number,
 ): { room: PvpRoom; outcome: JoinOutcome } {
-  if (room.status !== 'lobby') return { room, outcome: 'started' };
   if (memberOf(room, member.userId)) return { room, outcome: 'already-in' };
-  // A CHALLENGE IS ADDRESSED, so the seat is not open: a duel aimed at somebody by name is
-  // theirs and nobody else's, which is the difference between challenging a friend and
-  // opening a room. A duel with no name on it keeps the ordinary rule - whoever has the
-  // link takes the seat - so the same command serves both.
-  if (room.invitedId && room.invitedId !== member.userId) {
-    return { room, outcome: 'not-invited' };
+  // A DUEL'S SEAT STAYS OPEN THROUGH THE DRAFT, and that is the whole of what "build your
+  // XI before anybody has accepted" costs the state machine. A live room is shut the moment
+  // it starts because everybody in it is drafting against the same clock and a latecomer
+  // would be picking against a window that has been running for a minute; a duel has no
+  // clock at all, so somebody arriving on the link on Tuesday starts a draft of their own,
+  // exactly as the challenger did on Monday. There is nothing to be late for.
+  if (room.status === 'drafting' && room.pace === 'async' && room.members.length < room.size) {
+    const next = clone(room);
+    const m = newMember(member.userId, nextSeat(next), member.name, member.budget, now);
+    next.members.push(m);
+    beginDraftFor(next, m, now);
+    return { room: next, outcome: 'ok' };
   }
+  if (room.status !== 'lobby') return { room, outcome: 'started' };
   const bots = botsIn(room);
   if (room.members.length >= room.size && !bots.length) return { room, outcome: 'full' };
   const next = clone(room);
@@ -599,14 +629,6 @@ export function joinRoom(
   // liveness sweep, which leaves a gap, and `pvp_members` has a unique index on (room,
   // seat) - so counting would hand the newcomer a number somebody else still holds.
   next.members.push(newMember(member.userId, nextSeat(next), member.name, member.budget, now));
-  // ACCEPTING A DUEL IS STARTING IT. There is no lobby to wait in: a duel is two people who
-  // are not in the same place at the same time, so a Ready button would be one player
-  // pressing something and then leaving, and a host's Start would be a second visit for no
-  // decision. Both shapes are already chosen - the challenger's when they sent it, the
-  // opponent's as they accept - so the draft can begin the moment the second seat is taken.
-  if (next.pace === 'async' && next.members.length === next.size) {
-    return { room: startRoom(next, next.hostId, now), outcome: 'ok' };
-  }
   return { room: next, outcome: 'ok' };
 }
 
@@ -710,30 +732,42 @@ export function startRoom(room: PvpRoom, hostId: string, now: number): PvpRoom {
   const next = clone(room);
   next.status = 'drafting';
   next.startedAt = now;
-  for (const m of next.members) {
-    next.xi[m.userId] = {};
-    next.picks[m.userId] = {};
-    // No deals for a bot even in a roll room: it rolls its whole team in one step below
-    // rather than being dealt a squad per window, so there is nothing to record - and
-    // `pvp_deals` has the same foreign key `pvp_members` has, so an empty list here would
-    // be a field that cannot survive a reload.
-    if (next.rules.method === 'roll' && !m.bot) next.deals[m.userId] = [];
-    // Nobody has declared themselves through yet, whatever the lobby's Ready said: that
-    // signal was about starting, and this one is about finishing (P52).
-    delete m.done;
-    // A BOT'S TEAM IS BUILT HERE, ONCE, and it never gets a window. Nobody is watching it
-    // think, so a seat-filler drafting against the clock would be theatre - and the room
-    // then finishes its draft when the PEOPLE do, which is the only thing anybody is
-    // waiting for. Its XI is judged by nothing afterwards: `submitPick` is the only caller
-    // of `validateXi`, and a bot never submits one.
-    if (m.bot) next.xi[m.userId] = botXi(next.rules, formationOf(m));
-    // A WHOLE-DRAFT ROOM OPENS NO WINDOWS AT ALL (P52). The window is what a per-pick room
-    // counts picks and deals squads with; here there is one clock over the lot and the
-    // board is submitted as a map, so a window would be a second, disagreeing account of
-    // the same draft. `draftDeadlineOf` is the whole of the timing.
-    else if (!wholeDraft(next)) openWindow(next, m, now);
-  }
+  for (const m of next.members) beginDraftFor(next, m, now);
   return next;
+}
+
+/**
+ * Put ONE member into a draft that is already running.
+ *
+ * IT IS A PER-MEMBER STEP AND NOT A LOOP INSIDE `startRoom`, because a duel seats its two
+ * players at different times and may be days apart about it: the challenger begins drafting
+ * the moment they open the challenge, and the opponent begins when they arrive (`joinRoom`).
+ * A live room still calls it for everybody at once, which is the same thing done together.
+ *
+ * `room` is mutated, so every caller hands it a clone it already owns.
+ */
+function beginDraftFor(room: PvpRoom, m: RoomMember, now: number): void {
+  room.xi[m.userId] = {};
+  room.picks[m.userId] = {};
+  // No deals for a bot even in a roll room: it rolls its whole team in one step below
+  // rather than being dealt a squad per window, so there is nothing to record - and
+  // `pvp_deals` has the same foreign key `pvp_members` has, so an empty list here would
+  // be a field that cannot survive a reload.
+  if (room.rules.method === 'roll' && !m.bot) room.deals[m.userId] = [];
+  // Nobody has declared themselves through yet, whatever the lobby's Ready said: that
+  // signal was about starting, and this one is about finishing (P52).
+  delete m.done;
+  // A BOT'S TEAM IS BUILT HERE, ONCE, and it never gets a window. Nobody is watching it
+  // think, so a seat-filler drafting against the clock would be theatre - and the room
+  // then finishes its draft when the PEOPLE do, which is the only thing anybody is
+  // waiting for. Its XI is judged by nothing afterwards: `submitPick` is the only caller
+  // of `validateXi`, and a bot never submits one.
+  if (m.bot) room.xi[m.userId] = botXi(room.rules, formationOf(m));
+  // A WHOLE-DRAFT ROOM OPENS NO WINDOWS AT ALL (P52). The window is what a per-pick room
+  // counts picks and deals squads with; here there is one clock over the lot and the
+  // board is submitted as a map, so a window would be a second, disagreeing account of
+  // the same draft. `draftDeadlineOf` is the whole of the timing.
+  else if (!wholeDraft(room)) openWindow(room, m, now);
 }
 
 // --- The draft -------------------------------------------------------------
@@ -914,7 +948,7 @@ function reconcilePicks(
  * misclick otherwise is the match.
  */
 export function setDone(room: PvpRoom, userId: string, done: boolean, now: number): PvpRoom {
-  if (room.status !== 'drafting' || !wholeDraft(room)) return room;
+  if (room.status !== 'drafting' || !declaresDone(room)) return room;
   const m = memberOf(room, userId);
   if (!m || m.bot || m.done === done) return room;
   if (done && !xiComplete(room, m)) return room;
@@ -1176,14 +1210,16 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
  * leaving has to tell the referee.
  */
 export function leaveRoom(room: PvpRoom, userId: string, now: number): PvpRoom {
+  // A CHALLENGE NOBODY HAS TAKEN UP IS CALLED OFF BY LEAVING IT, which is why withdrawing
+  // needs no command of its own. A duel opens straight into its challenger's draft, so it
+  // is never in a lobby and the rule below would make it unleavable - and a challenge you
+  // have thought better of would then sit on the link for a week. Once the second player is
+  // in, their draft is real work: leaving is looking away, exactly as it is in a live room
+  // that has started.
+  if (room.pace === 'async' && room.status === 'drafting' && room.members.length < room.size) {
+    return room.members.some((m) => m.userId === userId) ? closeRoom(room) : room;
+  }
   if (room.status !== 'lobby') return room;
-  // DECLINING A CHALLENGE IS LEAVING IT, which is why it needs no command of its own. The
-  // person a duel is addressed to is not a member - that is the whole difference between a
-  // challenge and a room - so without this the one button they are offered would do
-  // nothing. Declining closes the duel rather than freeing the seat, because the seat was
-  // never open: a challenge to somebody who says no is over, and the challenger's list says
-  // so at their next look.
-  if (room.pace === 'async' && room.invitedId === userId) return closeRoom(room);
   if (!room.members.some((m) => m.userId === userId)) return room;
   return withoutMembers(
     room,
@@ -1263,9 +1299,14 @@ function tickDuel(room: PvpRoom, now: number): PvpRoom {
   if (now - room.touchedAt > DUEL_IDLE_MS) return closeRoom(room);
   if (room.status === 'lobby') return room;
   if (room.status === 'drafting') {
-    // The same reading of "finished" a live room uses, which in a budget duel means both
-    // players have SAID so (P52): a duel has no clock to end it, so the declaration is the
-    // only thing that can, and without this a duel's XI could never be revised.
+    // NOBODY HAS TAKEN THE CHALLENGE UP YET, so there is no match to play however finished
+    // the challenger is. A duel drafts from the moment it is opened, which means a room of
+    // one is its ordinary early state rather than an impossible one - and without this a
+    // challenger who sent their XI would be drawn against themselves.
+    if (room.members.length < room.size) return room;
+    // Both players have SAID they are through, which in a duel is the only thing that can
+    // end a draft: there is no clock, so without the declaration an XI could never be
+    // revised and the eleventh pick would kick the match off under its owner.
     if (!room.members.every((m) => draftDone(room, m))) return room;
     const next = clone(room);
     drawRound(next, now);

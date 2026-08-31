@@ -109,6 +109,13 @@ export default function RoomDraft({
     // screen then draws exactly what it always drew.
     const whole = !!view.draft;
     const meDone = me?.done === true;
+    // WHO ENDS THEIR OWN DRAFT. A whole-draft room's players do (P52, because a full XI
+    // there is still one you may take apart) and so does EVERY duel, whatever it plays:
+    // with no clock at all, the eleventh pick landing would otherwise kick the match off
+    // under its owner, and a team you cannot look at once more before it plays is a team
+    // you did not send. It mirrors `declaresDone` in the domain, which is where the
+    // referee decides the same thing.
+    const declares = whole || view.pace === 'async';
 
     const build = useBuild({
         initial: seed,
@@ -228,7 +235,10 @@ export default function RoomDraft({
     // "Nothing left for me to do", which is what puts the draw on screen and takes the
     // board off it. In a per-pick room that is a spent window; in a whole-draft room it is
     // saying so (P52), because a full XI there is still one you may take apart.
-    const done = whole ? meDone : !window && (me?.picked ?? 0) >= formation.slots.length;
+    const done = declares ? meDone : !window && (me?.picked ?? 0) >= formation.slots.length;
+    // Nobody has taken the challenge up. The room is drafting - that is the whole change -
+    // so the wait is about a PERSON rather than about their team.
+    const alone = view.members.length < view.size;
 
     return (
         <div className="flex flex-col gap-[18px]">
@@ -251,33 +261,6 @@ export default function RoomDraft({
                             </RoomNote>
                         </div>
                     )}
-                    {meDone ? (
-                        <div className={`${CARD_FLAT} flex flex-wrap items-center gap-3 px-4 py-3`}>
-                            <RoomNote>{waitingLine(others)}</RoomNote>
-                            {/* Reversible while the draft is still open, because the cost
-                                of a misclick here is otherwise the match. It can lose a
-                                race with the draw, which is honest: the room may already
-                                have moved on, and then the screen has too. */}
-                            <button
-                                type="button"
-                                className={`ml-auto ${btn('quiet', 'sm')}`}
-                                onClick={() => void room.setDone(false).catch(() => undefined)}
-                            >
-                                Change my XI
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            type="button"
-                            className={PRIMARY_BTN}
-                            disabled={!complete}
-                            onClick={() => void room.setDone(true).catch(() => undefined)}
-                        >
-                            {complete
-                                ? "I'm done - lock this XI in"
-                                : `Fill all eleven first (${filledCount} of 11)`}
-                        </button>
-                    )}
                 </div>
             ) : window && room.remainingMs === null ? (
                 // A DUEL HAS NO CLOCK, so there is no bar to draw and nothing to hurry. The
@@ -286,8 +269,8 @@ export default function RoomDraft({
                 <div className={`${CARD_FLAT} px-4 py-3`}>
                     <div className={MONO_CAP}>Pick {window.ordinal} of 11</div>
                     <RoomNote>
-                        No clock. Build it over a week if you like - your opponent is doing
-                        the same, and the match plays itself when the second XI is in.
+                        No clock. Build it over a week if you like, then send it - the match
+                        plays itself when the second XI is in.
                     </RoomNote>
                 </div>
             ) : window && room.remainingMs !== null ? (
@@ -305,16 +288,57 @@ export default function RoomDraft({
                             : 'Buy a player, then tap his position'
                     }
                 />
-            ) : (
+            ) : declares ? null : (
                 <div className={`${CARD_FLAT} px-4 py-3`}>
                     <div className={MONO_CAP}>Your XI is in</div>
-                    <RoomNote>
-                        {view.pace === 'async'
-                            ? `Nothing else to do. ${others[0]?.name ?? 'Your opponent'} builds theirs whenever they get to it, and the match plays itself the moment they do - come back for the result.`
-                            : waitingLine(others)}
-                    </RoomNote>
+                    <RoomNote>{waitingLine(others)}</RoomNote>
                 </div>
             )}
+
+            {/* SEND IT. One control, wherever the players end their own draft: a budget
+                room on a clock, and every duel. It is the only thing that finishes a duel's
+                half, which is why it is a deliberate press and not something the eleventh
+                pick does for you. */}
+            {declares &&
+                (meDone ? (
+                    <div className={`${CARD_FLAT} flex flex-wrap items-center gap-3 px-4 py-3`}>
+                        <div className="min-w-0">
+                            <div className={MONO_CAP}>Sent</div>
+                            <RoomNote>
+                                {alone
+                                    ? 'Your XI is locked in. Send somebody the link and the match plays itself the moment they finish theirs.'
+                                    : view.pace === 'async'
+                                      ? `Your XI is locked in. ${others[0]?.name ?? 'Your opponent'} builds theirs whenever they get to it, and the match plays itself the moment they do - come back for the result.`
+                                      : waitingLine(others)}
+                            </RoomNote>
+                        </div>
+                        {/* Reversible only where the board can actually still change, which
+                            is a whole-draft room: a roll draft's picks are spent, so an
+                            un-send there would offer a change nothing could make. It can
+                            lose a race with the draw, which is honest - the room may
+                            already have moved on, and then the screen has too. */}
+                        {whole && (
+                            <button
+                                type="button"
+                                className={`ml-auto ${btn('quiet', 'sm')}`}
+                                onClick={() => void room.setDone(false).catch(() => undefined)}
+                            >
+                                Change my XI
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        className={PRIMARY_BTN}
+                        disabled={!complete}
+                        onClick={() => void room.setDone(true).catch(() => undefined)}
+                    >
+                        {complete
+                            ? 'Send my XI'
+                            : `Fill all eleven first (${filledCount} of 11)`}
+                    </button>
+                ))}
 
             {/* The draw, through the wait (P47). Only once YOUR XI is in: while you are
                 still picking, the board is what the screen is for. */}
@@ -339,7 +363,7 @@ export default function RoomDraft({
                 you were told was too late. */}
             <div
                 className={
-                    (room.locked || meDone) && !(done && !whole)
+                    (room.locked || meDone) && !(done && !declares)
                         ? 'pointer-events-none opacity-60'
                         : ''
                 }

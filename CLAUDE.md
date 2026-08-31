@@ -82,8 +82,9 @@ done and why. What that means for anyone working in this tree now:
   the audit.
 - **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
   `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
-  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0016**
-  (0015 the bank cap, 0016 the PvP room tables, both applied 2026-08-26).
+  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0021**
+  (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018, and
+  0019/0020/0021 the three versus features, applied 2026-08-30). `0022` is queued.
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
@@ -417,7 +418,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **353 checks** as of 2026-08-28. It exercises the sim, penalty
+per concern in `scripts/checks/`, **400 checks** as of 2026-08-31. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -491,11 +492,14 @@ src/
                off - see "The build is an instantiable unit" below); pvp/referee.ts (the
                one place that talks to the referee) and pvp/records.ts (the two things a
                room writes about a PERSON rather than a room: the win/loss record, and a
-               report of a name - both straight to the account server, not the referee)
+               report of a name - both straight to the account server, not the referee) and
+               pvp/watched.ts (which duels this BROWSER has watched the result of, which is
+               local by design - see the duel reveal note under "Versus")
   hooks/       useBuild.ts (THE BUILD: the reducer, its effects, the three interaction
                machines and the handlers, as a unit that can be instantiated twice),
                useVersusRoom.ts (one room live: the answer, the poll, the broadcast, the
-               pick clock),
+               pick clock), useDuelAlert.ts (the slow app-wide poll behind the chrome's
+               duel strip - the one thing a duel cannot announce for itself),
                useFollowBottom.ts (auto-scroll), useMatchClock.ts (the shared
                match-reveal clock, used by every live match), useSettings.ts
                (theme / difficulty / year pool, through the store), useStickerAlbum.ts
@@ -702,17 +706,28 @@ sites had to go through it, and the account path had **no** normalisation at all
 `import_guest_progress` inserts verbatim. `npm run checks` asserts the round trip, including
 that a deliberate narrowing still survives it.
 
-## Navigation: five tabs
+## Navigation: six tabs
 
 Roadmap item 27, **shipped 2026-08-21 and now the only navigation.** It went in behind a
 runtime switch (`?nav=tabs`), was compared against the old chrome for a day, and the
 switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There is no
 `TABS` branch and no preview toggle any more: if you find one, it is a leftover.
 
+**IT WAS FIVE UNTIL 2026-08-31 AND VERSUS IS THE SIXTH**, the only one ever added, and the
+reason is worth keeping because the rule that held the bar at five has NOT changed. A tab is
+an address you need from anywhere. While versus was one live room at a time it was an evening
+you went to and left, so the front-page door was the right size for it; duels are played over
+days and are the only thing in this game somebody else can be waiting on, so "is anything
+waiting for me" became a question worth answering from the album. Versus sits last, being the
+one destination that is not about your own career, and it is gated on `FEATURES.pvp` - a
+build with no referee configured still has five. The phone bar's column count follows the
+item count rather than a literal `grid-cols-5`, which is what stopped the sixth tab wrapping
+onto a second row below the fold. Do not add a seventh without a reason of that shape.
+
 - **What replaced what:** the footer text nav (four of eleven destinations, 11px, below the
   fold) is gone, and so are the two launcher door cards and the two navigation cards that
-  sat inside the build page's left column. In their place: five tabs - **Play, Career,
-  Album, Records, Squads** - as a row that carries the masthead's ink rule from 700px up
+  sat inside the build page's left column. In their place: **Play, Career, Album, Records,
+  Squads** (and now Versus) - as a row that carries the masthead's ink rule from 700px up
   and a fixed bottom bar below it. Settings and account stay masthead buttons: they are
   sheets you adjust without leaving, not places you go. A route crumb shipped alongside
   the tabs as a second "where am I" signal (the active tab being the first) and was
@@ -728,8 +743,8 @@ switch, the old chrome and `src/nav/navMode.ts` were deleted once it won. There 
   above: navigation is for getting there, and the destination does the reporting.
 - **Routes:** `/play` (the one build route), `/career` (the hub, split off the live run -
   a shop and a step of play cannot be the same address), `/records` +
-  `/records/cabinet` (the two honours screens as segments of one destination, which is
-  what keeps the bar at five). `/group` and `/knockout` are **gone** (see "There is one way
+  `/records/cabinet` (the two honours screens as segments of one destination, which is why
+  the honours are one tab and not two). `/group` and `/knockout` are **gone** (see "There is one way
   to play" above); they hit the catch-all and redirect to `/`.
 - **The four legacy aliases went on 2026-08-24** (hygiene D14): `/quick-run` and
   `/career-mode` for the build, `/challenges` and `/cabinet` for the two honours screens.
@@ -2783,39 +2798,64 @@ the same instruction as buying and needed no new rule - which is why item 44 shr
 than closing. Everything else the plan locks is live: every setting the referee accepts is
 reachable from the create form, which is checked.
 
-**THE PRACTICE OPPONENTS ARE WRITTEN AND DARK** (2026-08-29, **roadmap item 45**). A host can
-fill the empty chairs of a room of four or eight with bots that build their own strong XI, so
-a tournament can be played without eight people; it needs **migration 0019 applied and the
-referee rebuilt**, in that order, and neither can be done from a cloud session. Until then the
-control is on screen and answers "the versus server does not recognise what this page asked it
-for". `PVP_PROTOCOL` was deliberately **not** bumped: the change is additive (an old referee
-simply never creates a bot), and bumping would take the whole of Versus down for a button. See
-"Practice opponents" below.
+**PRACTICE OPPONENTS, DUELS AND THE WHOLE-DRAFT BUDGET ROOM ARE ALL LIVE ON THE SERVER**
+(roadmap items 45, 46 and 47, all closed 2026-08-30). Migrations **0019, 0020 and 0021 are
+applied** and the referee was rebuilt on the 30th; **the schema is at 0021** and the container
+matches it. **This file said the opposite until 2026-08-31 and it cost real work**, because
+the natural thing to do with an unapplied migration is to edit it in place, which is exactly
+wrong once it has run. Two habits come out of that and both are cheap: **`docs/ROADMAP.html`
+is the record of what is deployed, not this file** - check the item before believing a
+deployment claim here - and `supabase/migrations/README.md`'s table says which migration last
+touched each thing. What has NOT been done is **item 48**: none of the three has been played
+by a person. A deploy proves a room can be created, read back and changed; it proves nothing
+about whether the screens say what the rules do.
 
-**AND SO IS THE BUDGET ROOM'S NEW DRAFT** (2026-08-30, **roadmap item 47**, plan P52). Buying
-an XI in a room now runs one clock over the whole draft instead of eleven twenty-second
-picks, and a player may move and un-buy inside it. It needs **migration 0021 applied and the
-referee rebuilt**, and it is the third thing waiting on one NAS visit (0019, 0020, 0021, then
-one rebuild). Unlike the two above it **degrades correctly on its own**: an old referee sends
-a budget room its pick windows and no `draft` block, and the screens draw the per-pick draft
+**ONE MIGRATION IS QUEUED: `0022_pvp_duel_by_link.sql`**, which drops `pvp_rooms.invited_id`
+again (see the duel reshape below). **Its order is REVERSED from the standing rule and the
+header says so twice**: the deployed referee WRITES that column on every room it creates, so
+dropping it first breaks room creation outright. **Rebuild the referee first, then apply the
+migration.** The client shipped ahead of both, as it always does, and it degrades honestly -
+see the duel note below.
+
+**THE PRACTICE OPPONENTS** (2026-08-29, roadmap item 45). A host can fill the empty chairs of
+a room of four or eight with bots that build their own strong XI, so a tournament can be
+played without eight people. `PVP_PROTOCOL` was deliberately **not** bumped: the change is
+additive (an old referee simply never creates a bot), and bumping would take the whole of
+Versus down for a button. See "Practice opponents" below.
+
+**THE BUDGET ROOM'S DRAFT** (2026-08-30, roadmap item 47, plan P52). Buying an XI in a room
+runs one clock over the whole draft instead of eleven twenty-second picks, and a player may
+move and un-buy inside it. It **degrades correctly on its own**: an older referee sends a
+budget room its pick windows and no `draft` block, and the screens draw the per-pick draft
 they always drew. See "A budget room runs one clock" below.
 
-**DUELS ARE WRITTEN AND DARK TOO** (2026-08-30, **roadmap item 46**, plan P51). A duel is a
-challenge you send to one person, played in both your own time: they accept whenever they
-next open the page, each of you builds an XI whenever, and the match plays itself the moment
-the second one lands. It needs **migration 0020 applied and the referee rebuilt**, same order
-and same reason as 0019, and both are one visit. `PVP_PROTOCOL` was again deliberately **not**
-bumped, for the same reason. **AN OLD REFEREE DOES NOT REFUSE A DUEL, IT SILENTLY OPENS AN
-ORDINARY ROOM** - `pace` is a field it has never heard of, so it reads past it and answers
+**DUELS, RESHAPED 2026-08-31** (2026-08-30, roadmap item 46, plan P51). A duel is a challenge
+you send by link, played in both your own time: you start building the moment you open it,
+whoever follows the link builds theirs whenever, and the match plays itself as soon as the
+second team is SENT. The reshape is three changes - a duel opens **straight into its
+challenger's draft** (no lobby, no acceptance step, and the second seat stays open THROUGH the
+draft), finishing is **declared in every duel** rather than only in a budget one (the send
+button), and the challenge is **addressed by link and by nothing else** (`invited_id` dropped
+by 0022). `PVP_PROTOCOL` was again deliberately **not** bumped, for the same reason as above.
+**SO THERE ARE NOW TWO VERSION SKEWS TO DEGRADE FROM, and one of them is live today**: a
+referee that predates duels answers 201 with an ordinary live room, and the one deployed right
+now answers 201 with a duel **in a lobby**, waiting to be accepted - which is the shape this
+change removes, and which the screens no longer draw. `duelDowngraded` therefore tests the
+STATUS as well as the pace, and the create path closes the room it was handed rather than
+walking the player into a lobby they cannot draft from. **AN OLD REFEREE DOES NOT REFUSE A
+DUEL, IT SILENTLY OPENS AN ORDINARY ROOM** - `pace` is a field it has never heard of, so it reads past it and answers
 201 with a live room of two, and the first version of this shipped believing the opposite and
 walked the player into a lobby with a Ready button. So the create path tests the ANSWER
 (`duelDowngraded`) rather than the status, closes the room it was handed instead of leaving
 it holding the account's one live seat, and says what happened; the form also greys the
 button out up front, probed off `GET /v1/duels` answering `no-such-route`, since the
-handshake cannot tell an old container from a new one. See "A duel" below.
+handshake cannot tell an old container from a new one. **That probe cannot see the SECOND
+skew** - a container that has duels answers the route perfectly well - which is the whole
+reason the answer is tested rather than the request. See "A duel" below.
 
-**THE SERVER IS DEPLOYED THROUGH WAVE 8 AND THE SCHEMA IS AT 0018** (referee redeployed and
-verified 2026-08-27, roadmap item 43). Wave 8 needed **no migration at all**: every column it
+**THE SERVER WAS DEPLOYED THROUGH WAVE 8 AT SCHEMA 0018** (referee redeployed and verified
+2026-08-27, roadmap item 43); **it is at 0021 now** - see the paragraph above, which is the
+current one. Wave 8 needed **no migration at all**: every column it
 reads was written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
 `pvp_members.last_seen`, the `pvp_rooms_open_idx` partial index, the `pvp_records` view,
 `pvp_name_reports`). It did need the container rebuilt, for `GET /v1/lobby` and the `/leave`
@@ -2850,7 +2890,9 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
 `RefereeProblem` takes an `action` for the "Go to room X" button.
 
 - **Routes are `/versus` and `/versus/:code`**, reached from a door on the front page, not
-  a sixth tab and not a segment under Play (the tab bar stays at five).
+  a segment under Play. It became **the sixth tab on 2026-08-31**, when duels made it a
+  place you check rather than a place you visit - see "Navigation" above for why that is a
+  change in what the mode is rather than a change of mind about the bar.
   `components/versus/` holds the screens, `RoomBracket` among them (the tree, and the draw
   ceremony that fills the wait): `VersusScreen` (the three gates - an account, a
   referee that speaks this build's language, a name), `VersusHome`, `RoomLobby`,
@@ -3210,47 +3252,88 @@ in it.
 
 Seven things about it are decisions rather than details, and each one is checked:
 
-- **A CHALLENGE IS ADDRESSED, so the seat is not open.** `PvpRoom.invitedId` is what makes it
-  a challenge rather than a room: `joinRoom` answers `not-invited` to anybody else, and the
-  named account can READ it before answering (`visibleTo`) - without that the one screen the
-  feature depends on would answer "no such room" to its own recipient. A duel with NO name on
-  it is a link like any other and behaves exactly as a private room does.
-- **ARRIVING AT A CHALLENGE IS THE ONE PLACE THAT DOES NOT TAKE THE SEAT.** Wave 8 deleted a
-  confirmation screen to establish that there is one door and walking through it is the
-  answer; a challenge is the exception because it ARRIVED rather than being chosen. Hence
-  `isChallengeToMe` and `DuelChallenge`'s two answers. The exception is narrow on purpose: an
-  unaddressed duel joins on arrival like anything else.
-- **ACCEPTING STARTS THE DRAFT, so a duel has no lobby, no Ready and no Start.** There is
-  nobody to wait with: a Ready button would be one player pressing something and then leaving,
-  and a host's Start a second visit for no decision. Both shapes are chosen already - the
-  challenger's when they sent it, the opponent's as they accept - so `joinRoom` starts the
-  room when a duel's second seat is taken.
+- **A DUEL OPENS STRAIGHT INTO ITS CHALLENGER'S DRAFT** (2026-08-31), which is why it has no
+  lobby, no Ready, no Start and nothing to accept. `createRoom` puts an `async` room in
+  `drafting` with one member and calls `beginDraftFor` on the host. It used to wait in a
+  lobby until somebody accepted, and that wait bought nothing at all: the two drafts never
+  interact, the match is played by the server, and the first thing anybody wants after
+  opening a challenge is to build the team they are challenging with.
+- **THE SECOND SEAT THEREFORE STAYS OPEN THROUGH THE DRAFT**, and that is the only new rule
+  the state machine needed. A live room is shut the moment it starts because everybody is
+  picking against one clock and a latecomer would be picking against a window that has been
+  running a minute; a duel has no clock, so somebody arriving on Tuesday starts a draft of
+  their own exactly as the challenger did on Monday. `joinRoom` has that branch, gated on the
+  pace and on there being a free seat, and `npm run checks` uses a live started room as its
+  vacuity guard - without it the check would pass on a machine that let anybody into any
+  draft.
+- **SO `tickDuel` COUNTS THE SEATS BEFORE IT COUNTS THE DECLARATIONS.** A duel with one member
+  is its ordinary early state, and "everybody has finished" is trivially true of one person -
+  which would draw the challenger against themselves. Mutation-tested: removing that line
+  turns five checks red.
+- **FINISHING IS DECLARED IN EVERY DUEL, whatever it plays** (`declaresDone`), where a live
+  room only declares in the whole-draft case (P52). The reason is the same one P52 gives,
+  reached from the other end: with no clock at all, the eleventh pick landing would kick the
+  match off under its owner, and a team you cannot look at once more before it plays is a
+  team you did not send. So there is a Send button, and in a ROLL duel it is the only thing
+  that ends the draft - the case P52 never covered.
+- **A DUEL IS ADDRESSED BY LINK AND BY NOTHING ELSE** (2026-08-31). It used to name an
+  account: `invited_id`, a lookup on the normalised key, a `not-invited` refusal, a
+  visibility exception so the recipient could read a private room, and an accept-or-decline
+  screen. All of it went, along with the WHO field on the create form and `findByName` in the
+  referee's store. A private link already says who you are playing, and it works for somebody
+  who has not chosen a display name yet. **Whoever opens the link takes the seat**, exactly as
+  a private room has always worked, so arriving at a duel is arriving at a room and there is
+  no exception to "one door, and walking through it is the answer".
 - **THE WINDOW STAYS AND THE DEADLINE GOES.** A duel keeps its pick windows, because that is
   what counts the picks and triggers the deal in a roll room; `submitPick` and `rerollDeal`
   simply do not test the clock. On the wire `you.window.remainingMs` is **null**, never a very
   large number - a screen that forgot to ask then draws no clock instead of a wrong one, and
   three consumers read it explicitly (the bar, the tab bar's inert-while-your-window-is-open
   rule, and the draft panel's copy).
-- **P39 COUNTS LIVE ROOMS ONLY, in two independent halves.** The store's `activeRoomOf`
-  filters on the pace, so holding five duels blocks nothing; and `create` does not ask the
-  question at all for a duel, so being in a live room does not stop you sending a challenge.
-  Neither half implies the other, so both have their own assertion.
-- **DECLINING IS LEAVING, and it CLOSES the duel.** It needs no command of its own, which is
-  why `leaveRoom` has the one branch that acts for a non-member: the person a duel is
-  addressed to is not a member, so without it the one button they are offered would do
-  nothing. The seat was never open, so freeing it would mean nothing either.
+- **P39 COUNTS LIVE ROOMS ONLY, in three independent places.** The store's `activeRoomOf`
+  filters on the pace, so holding five duels blocks nothing; `create` does not ask the
+  question at all for a duel; and `join` asks it only when the room being joined is LIVE,
+  which it did not until 2026-08-31 - so somebody sitting in a live room could not take up a
+  duel, and a duel is the mode you play precisely because you are busy. None of the three
+  implies the others.
+- **WITHDRAWING IS LEAVING, and it CLOSES an unanswered duel.** It needs no command of its
+  own, and it is why `leaveRoom` has the one branch that acts on a room which is not in a
+  lobby: a duel never is one, so without it a challenge you had thought better of would be
+  unleavable and would sit on its link for a week. Once the second player is in, their draft
+  is real work and leaving is only looking away - the same rule a started live room follows.
 - **A REMATCH IS A NEW DUEL.** The old one has a result, and a result that can change is not a
-  result, so `DuelRematch` creates a fresh room with the same rules and the same opponent.
+  result, so `DuelRematch` opens a fresh room with the same rules and hands back a fresh link.
 
-**AND THE DUELS LIST IS HOW A CHALLENGE ARRIVES, because nothing in this game sends a
-message.** No mail, no push. `GET /v1/duels` answers the duels you are in and the ones aimed
-at you, newest activity first, and it sits ABOVE the lobby on the versus page because one of
-its rows may be waiting for you and no lobby row ever is. `duelTurn` is what each row leads
-with - `yours` / `theirs` / `sent` / `done` - because the question somebody opens that page
-with is "is there anything for me to do", never "what is the score". The counts behind it are
-made on the SERVER (`myDuels` counts `pvp_picks` per side), since counting them in the browser
-would mean handing the browser both drafts. It is also why the challenger's screen carries the
-invitation link: telling somebody yourself is part of the feature rather than a gap in it.
+**A DUEL'S MATCH IS REVEALED WHEN ITS VIEWER TURNS UP, NOT WHEN THE SERVER PLAYS IT**
+(2026-08-31). P30's reveal window is the server's and has to be in a live room, where two
+people are watching the same match and must see the same one; a duel is played at the moment
+the second XI lands, with nobody necessarily awake, so honouring that window would hand a
+scoreline to whoever opened the app an hour later. So for a duel the reveal is a LOCAL fact:
+`state/pvp/watched.ts` records which room codes this browser has sat through, `RoomScreen`
+plays the match the first time and shows a "Skip to the result" beside it, and afterwards it
+is the settled card and both XIs. That key is deliberately NOT in `GUEST_KEYS` (a guest can
+hold no room, P17) and deliberately not synced - a second device replays the match once,
+which is the right way round.
+
+**AND THE DUELS LIST IS HOW EVERY DUEL REACHES ANYBODY, because nothing in this game sends a
+message.** No mail, no push. `GET /v1/duels` answers the duels you are IN, newest activity
+first - membership is the whole of "this one is mine" now that nothing is addressed - and the
+versus page leads with them, split into "On now" and "Played". `duelTurn` is what each row
+leads with (`yours` / `theirs` / `sent` / `done`), because the question somebody opens that
+page with is "is there anything for me to do", never "what is the score"; **eleven picked is
+not eleven sent**, so the row carries `yourDone` / `theirDone` and a `seated` count rather
+than being read off the pick totals, which is what tells "nobody has taken it up" apart from
+"they are still building". The counts are made on the SERVER (`myDuels`), since counting them
+in the browser would mean handing the browser both drafts.
+
+**AND THE CHROME CARRIES THE MOST URGENT ROW OF THAT LIST** (`hooks/useDuelAlert`,
+`duelToOpen`). A live room announces itself by being HELD in this tab; a duel cannot, because
+the two moments worth interrupting somebody for - your opponent finishing, and the match
+being played the instant they do - both happen while the player is elsewhere. So the chrome
+polls `/v1/duels` every **thirty seconds** while signed in, and puts one line in the same
+strip the held room uses: a result nobody has watched first, then a team nobody has sent.
+Never both strips at once - holding a live room outranks a duel by a long way, since somebody
+is sitting in that one.
 
 **A ROOM NOBODY IS IN CLOSES ITSELF, and the sweeper that does it is the pick clock's**
 (P31). Closing a tab fires no reliable event, so leaving is OBSERVED rather than announced:

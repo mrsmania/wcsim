@@ -58,10 +58,6 @@ export function roomView(
   now: number,
   budgetLeft: (userId: string) => number,
   rerollsLeft: (userId: string) => number,
-  /** The display name of the person a duel is addressed to, for the screen that says who
-   *  has not answered yet. Looked up by the caller, which is the only thing that can read
-   *  `profiles`. */
-  invitedName?: string | null,
 ): RoomView {
   const played = playedIds(room);
   const deadline = draftDeadlineOf(room);
@@ -72,12 +68,6 @@ export function roomView(
     code: room.code,
     visibility: room.visibility,
     pace: room.pace,
-    // Only while the invitation is outstanding: once they accept they are a member and the
-    // seat list says so, and repeating them here would have a duel showing two of them.
-    invitedName:
-      room.invitedId && !room.members.some((m) => m.userId === room.invitedId)
-        ? (invitedName ?? null)
-        : null,
     status: room.status,
     hostId: room.hostId,
     size: room.size,

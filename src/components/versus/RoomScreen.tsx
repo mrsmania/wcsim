@@ -4,7 +4,6 @@ import type { Player } from '../../data/types';
 import type { RoomView } from '../../domain/pvpWire';
 import { getFormation, type FormationName, type Style } from '../../domain/formations';
 import {
-    isChallengeToMe,
     isDuel,
     meIn,
     memberOf,
@@ -19,10 +18,11 @@ import {
 } from '../../domain/pvpView';
 import { roomClosed } from '../../domain/pvpRoom';
 import { holdVersusRoom, useHeldVersusRoom } from '../../nav/versusRoom';
+import { markDuelWatched, watchedDuels } from '../../state/pvp/watched';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
-import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader } from '../matchUi';
+import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader, btn } from '../matchUi';
 import RoomBracket, { currentRoundLabel, shortName } from './RoomBracket';
-import { DuelChallenge, DuelRematch, DuelWaiting } from './DuelPanels';
+import { DuelInvite, DuelRematch } from './DuelPanels';
 import RoomDraft from './RoomDraft';
 import RoomLobby from './RoomLobby';
 import RoomResult, { decidingTie } from './RoomResult';
@@ -47,6 +47,15 @@ import { RefereeProblem, RoomNote } from './versusUi';
 // their own conqueror is in - the single match in the round they have a reason to care
 // about, chosen without a control. That match has two other people in it, so it is drawn
 // with both of them named rather than with one of them called "you".
+//
+// A DUEL'S MATCH IS REVEALED WHEN ITS VIEWER TURNS UP, NOT WHEN THE SERVER PLAYS IT. In a
+// live room the reveal window is the server's (P30) and it has to be, because two people
+// are watching the same match and must see the same one. A duel is played by the server at
+// the moment the second XI lands, with nobody necessarily awake - so honouring that window
+// would mean the player who opened the app an hour later got a scoreline where the other
+// one got a football match. So for a duel the reveal is a LOCAL fact: it plays the first
+// time this browser opens it (`state/pvp/watched.ts`), with a way to skip straight to the
+// result, and afterwards it is the settled card.
 
 const HEADINGS: Record<string, string> = {
     lobby: 'The room',
@@ -110,12 +119,6 @@ export default function RoomScreen({ code }: { code: string }) {
         if (room.loading || asked.current === code) return;
         const outside = view ? !meIn(view) : room.error?.code === 'no-such-room';
         if (!outside) return;
-        // EXCEPT A CHALLENGE, which is the one room a player did not choose to open. One
-        // door and walking through it is the answer everywhere else - a code you typed, a
-        // lobby row you tapped, a link you followed - but a duel addressed to you ARRIVED,
-        // so it gets a question with two answers rather than a seat taken on your behalf
-        // (`DuelChallenge`). A duel with no name on it is a link like any other and joins.
-        if (view && isChallengeToMe(view)) return;
         asked.current = code;
         void room.join().then(
             // Cleared on success, so a seat lost LATER - the liveness sweep, five minutes
@@ -152,21 +155,17 @@ export default function RoomScreen({ code }: { code: string }) {
 
     const me = view ? meIn(view) : null;
 
-    // Somebody has challenged you and you have not answered. Rendered before the block
-    // below, which is about a seat you are TRYING to take.
-    if (view && isChallengeToMe(view)) {
-        return (
-            <>
-                <StageHeader eyebrow="Versus" title="A duel" />
-                {room.commandError && (
-                    <div className="mb-[18px]">
-                        <RefereeProblem message={refereeMessage(room.commandError, 'answer that')} />
-                    </div>
-                )}
-                <DuelChallenge view={view} room={room} />
-            </>
-        );
-    }
+    // Whether to PLAY this duel's match rather than print it. See the header: a duel's
+    // reveal belongs to whoever turns up, so the fact it reads is local to this browser.
+    // It is state rather than a bare read so that the reveal ending, or the skip, takes
+    // the match off the screen without waiting for a poll.
+    const [watched, setWatched] = useState(() => watchedDuels().has(code));
+    useEffect(() => setWatched(watchedDuels().has(code)), [code]);
+    const finishWatching = useCallback(() => {
+        markDuelWatched(code);
+        setWatched(true);
+    }, [code]);
+    const replay = !!view && isDuel(view) && !watched;
 
     if (!view || !me) {
         // ARRIVING AT A ROOM IS TAKING THE SEAT. There used to be two doors here and they
@@ -276,12 +275,15 @@ export default function RoomScreen({ code }: { code: string }) {
                 </div>
             )}
 
-            {view.status === 'lobby' &&
-                (isDuel(view) ? (
-                    <DuelWaiting view={view} room={room} />
-                ) : (
-                    <RoomLobby view={view} room={room} />
-                ))}
+            {view.status === 'lobby' && <RoomLobby view={view} room={room} />}
+
+            {/* A challenge nobody has taken up, ABOVE the board rather than instead of it:
+                the whole point of the change is that you draft while you wait. */}
+            {view.status === 'drafting' && isDuel(view) && view.members.length < view.size && (
+                <div className="mb-[18px]">
+                    <DuelInvite view={view} room={room} />
+                </div>
+            )}
 
             {view.status === 'drafting' && (
                 <RoomDraft
@@ -314,8 +316,13 @@ export default function RoomScreen({ code }: { code: string }) {
                                 yourXi={playersOf(myFormation, xiFrom(myFormation, view.you?.xi ?? {}))}
                                 theirXi={theirPlayers(view, them.userId)}
                                 ratings={roomDisplay(view).ratings}
-                                live={shouldReveal(mine.raw, view.at)}
-                                onEnd={room.refresh}
+                                // A duel's is played when its viewer arrives; a live
+                                // room's when the server says so.
+                                live={isDuel(view) ? replay : shouldReveal(mine.raw, view.at)}
+                                onEnd={() => {
+                                    if (isDuel(view)) finishWatching();
+                                    room.refresh();
+                                }}
                             />
                         )
                     ) : watching ? (
@@ -368,7 +375,32 @@ export default function RoomScreen({ code }: { code: string }) {
                     ) : (
                         <>
                     {tree && <RoomBracket view={view} serverNow={view.at} />}
-                    {ended ? (
+                    {ended && replay ? (
+                        // THE MATCH, PLAYED FOR SOMEBODY WHO WAS NOT THERE. No banner and
+                        // no result card above it: the score is the thing being revealed,
+                        // and printing it over the top would make the reveal pointless.
+                        <div className="flex flex-col gap-3">
+                            <VersusMatch
+                                key={`replay-${view.code}`}
+                                label="The match"
+                                tie={ended.tie}
+                                opponentName={ended.them.name}
+                                yourXi={playersOf(
+                                    myFormation,
+                                    xiFrom(myFormation, view.you?.xi ?? {}),
+                                )}
+                                theirXi={theirPlayers(view, ended.them.userId)}
+                                ratings
+                                live
+                                onEnd={finishWatching}
+                            />
+                            <div>
+                                <button className={btn('quiet', 'sm')} onClick={finishWatching}>
+                                    Skip to the result
+                                </button>
+                            </div>
+                        </div>
+                    ) : ended ? (
                         <>
                             <RoomResult view={view} tie={ended.tie} you={me} them={ended.them} />
                             {/* Only a duel offers one: a live room's rematch is opening

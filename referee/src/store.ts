@@ -53,9 +53,6 @@ export interface CreateInput {
   draftSeconds: DraftSeconds;
   /** Live, or a duel played in both players' own time (P51). */
   pace: RoomPace;
-  /** The account a duel is addressed to. Null for a live room, and for a duel opened to
-   *  whoever has the link. */
-  invitedId: string | null;
 }
 
 export interface RoomStore {
@@ -105,10 +102,6 @@ export interface RoomStore {
    *  the lobby listing it answers off the rooms and a count, never the whole room: what a
    *  list needs is the other person's name and whose move it is. */
   myDuels(userId: string, limit: number): Promise<DuelListRow[]>;
-
-  /** Resolve a display name to an account, for addressing a challenge. Matches on the
-   *  NORMALISED key (P22), which is what uniqueness is on - so "mario" finds "Mario". */
-  findByName(nameKey: string): Promise<string | null>;
 
   /** The display name on the account, or null when they have not claimed one. A room
    *  cannot show strangers an email address, so this gates entry rather than defaulting. */

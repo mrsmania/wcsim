@@ -52,13 +52,11 @@ import type {
 // A COLUMN THE ROW MAPPER READS AND THIS DOES NOT ASK FOR IS A SILENT DISASTER - `pg` hands
 // over `undefined` and every consequence is quiet (see `msOf`). `rows.ts`'s `RoomRow` is the
 // list this has to match, and `npm run checks` reads the two against each other.
-const SELECT_ROOM = `select r.id, r.code, r.visibility, r.host_id, r.pace, r.invited_id,
-    p.display_name as invited_name,
+const SELECT_ROOM = `select r.id, r.code, r.visibility, r.host_id, r.pace,
     r.size, r.method, r.budget, r.years, r.show_ratings, r.rerolls, r.pick_seconds,
     r.draft_seconds,
     r.status, r.round, r.champion_id, r.started_at, r.swept_at, r.touched_at
   from pvp_rooms r
-  left join profiles p on p.id = r.invited_id
   where r.code = $1`;
 
 export function pgStore(pool: Pool): RoomStore {
@@ -251,16 +249,19 @@ export function pgStore(pool: Pool): RoomStore {
         const res = await db.query<{ id: string }>(
           `insert into pvp_rooms
              (code, visibility, host_id, size, method, budget, years,
-              show_ratings, rerolls, pick_seconds, draft_seconds, pace, invited_id,
+              show_ratings, rerolls, pick_seconds, draft_seconds, pace,
               status, round, touched_at, swept_at)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'lobby',0, now(), now())
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'lobby',0, now(), now())
            returning id`,
           [
             input.code, input.visibility, input.hostId, input.size, input.method,
             input.budget, input.years, input.showRatings, input.rerolls, input.pickSeconds,
-            input.draftSeconds, input.pace, input.invitedId,
+            input.draftSeconds, input.pace,
           ],
         );
+        // The literal 'lobby' is a placeholder and nothing reads it: `createRoom` decides
+        // the status - a duel opens straight into its challenger's draft - and the `save`
+        // below writes it, along with `started_at`, inside this same transaction.
         const room = createRoom({
           id: String(res.rows[0]!.id),
           code: input.code,
@@ -275,7 +276,6 @@ export function pgStore(pool: Pool): RoomStore {
           rerolls: input.rerolls,
           draftSeconds: input.draftSeconds,
           pace: input.pace,
-          ...(input.invitedId ? { invitedId: input.invitedId } : {}),
           now,
         });
         await save(db, room, now);
@@ -411,36 +411,45 @@ export function pgStore(pool: Pool): RoomStore {
         budget: number;
         host_id: string;
         opponent_name: string | null;
+        seated: string;
         your_picks: string;
         their_picks: string;
+        your_done: boolean;
+        their_done: boolean;
         your_goals: number | null;
         their_goals: number | null;
         winner_id: string | null;
         created_at: Date | string;
         touched_at: Date | string;
       }>(
+        // ONE WAY IN: you are a member. A duel used to be addressable by name, so an
+        // unanswered challenge sat on the recipient's list without their being in it; the
+        // invitation is a LINK now, and following it seats you, so membership is the whole
+        // of "this duel is mine".
         `with mine as (
            select r.*
              from pvp_rooms r
             where r.pace = 'async'
-              and (r.invited_id = $1
-                   or exists (select 1 from pvp_members m
-                               where m.room_id = r.id and m.user_id = $1))
+              and exists (select 1 from pvp_members m
+                           where m.room_id = r.id and m.user_id = $1)
          )
          select r.code, r.status, r.method, r.budget, r.host_id, r.created_at, r.touched_at,
+                (select count(*) from pvp_members m where m.room_id = r.id) as seated,
                 (select count(*) from pvp_picks p
                   where p.room_id = r.id and p.user_id = $1) as your_picks,
                 (select count(*) from pvp_picks p
                   where p.room_id = r.id and p.user_id <> $1) as their_picks,
-                -- The other person: whoever is in it and is not you, else the account it
-                -- was addressed to. One of the two is always set for a duel that has a
-                -- second side at all.
-                coalesce(
-                  (select pr.display_name from pvp_members m
-                     join profiles pr on pr.id = m.user_id
-                    where m.room_id = r.id and m.user_id <> $1 limit 1),
-                  (select pr.display_name from profiles pr where pr.id = r.invited_id)
-                ) as opponent_name,
+                -- SENT, not filled: a duel's draft ends when its players say so, so the
+                -- pick counts above cannot answer whose move it is on their own.
+                coalesce((select m.done from pvp_members m
+                           where m.room_id = r.id and m.user_id = $1), false) as your_done,
+                -- bool_and over nobody is null, which is what a duel nobody has taken up
+                -- looks like: read as false, and the seat count tells the two apart.
+                coalesce((select bool_and(m.done) from pvp_members m
+                           where m.room_id = r.id and m.user_id <> $1), false) as their_done,
+                (select pr.display_name from pvp_members m
+                   join profiles pr on pr.id = m.user_id
+                  where m.room_id = r.id and m.user_id <> $1 limit 1) as opponent_name,
                 (select case when x.home_id = $1 then x.home_goals else x.away_goals end
                    from pvp_matches x where x.room_id = r.id limit 1) as your_goals,
                 (select case when x.home_id = $1 then x.away_goals else x.home_goals end
@@ -457,26 +466,19 @@ export function pgStore(pool: Pool): RoomStore {
         opponentName: x.opponent_name ?? '',
         yours: x.host_id === userId,
         status: x.status,
+        seated: Number(x.seated),
         method: x.method,
         budget: x.budget,
         yourPicks: Number(x.your_picks),
         theirPicks: Number(x.their_picks),
+        yourDone: x.your_done,
+        theirDone: x.their_done,
         yourGoals: x.your_goals,
         theirGoals: x.their_goals,
         won: x.winner_id === null ? null : x.winner_id === userId,
         openedAt: msOf(x.created_at),
         touchedAt: msOf(x.touched_at),
       }));
-    },
-
-    async findByName(nameKey: string): Promise<string | null> {
-      // On the NORMALISED key, which is what uniqueness is on (P22) - so a challenge
-      // addressed to "mario" reaches Mario, and there is exactly one of him.
-      const res = await pool.query<{ id: string }>(
-        'select id from profiles where name_key = $1',
-        [nameKey],
-      );
-      return res.rows[0]?.id ?? null;
     },
 
     async displayName(userId: string): Promise<string | null> {

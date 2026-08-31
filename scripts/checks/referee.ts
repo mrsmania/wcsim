@@ -95,7 +95,6 @@ class MemStore implements RoomStore {
       showRatings: input.showRatings,
       rerolls: input.rerolls,
       pace: input.pace,
-      ...(input.invitedId ? { invitedId: input.invitedId } : {}),
       now,
     });
     this.put(room, now);
@@ -175,9 +174,7 @@ class MemStore implements RoomStore {
 
   async myDuels(userId: string, limit: number): Promise<DuelListRow[]> {
     const mine = [...this.rows.values()].filter(
-      (r) =>
-        r.room.pace === 'async' &&
-        (r.room.invited_id === userId || r.members.some((m) => m.user_id === userId)),
+      (r) => r.room.pace === 'async' && r.members.some((m) => m.user_id === userId),
     );
     return mine
       .sort((a, b) => msOf(b.room.touched_at) - msOf(a.room.touched_at))
@@ -185,9 +182,7 @@ class MemStore implements RoomStore {
       .map((r) => {
         const match = r.matches[0];
         const otherSeat = r.members.find((m) => m.user_id !== userId);
-        const opponent = otherSeat
-          ? (this.names[otherSeat.user_id] ?? '')
-          : (this.names[r.room.invited_id ?? ''] ?? '');
+        const opponent = otherSeat ? (this.names[otherSeat.user_id] ?? '') : '';
         const count = (id: string | undefined) =>
           id === undefined
             ? r.picks.filter((p) => p.user_id !== userId).length
@@ -197,10 +192,15 @@ class MemStore implements RoomStore {
           opponentName: opponent,
           yours: r.room.host_id === userId,
           status: r.room.status,
+          seated: r.members.length,
           method: r.room.method,
           budget: r.room.budget,
           yourPicks: count(userId),
           theirPicks: count(undefined),
+          yourDone: r.members.some((m) => m.user_id === userId && m.done),
+          theirDone:
+            r.members.some((m) => m.user_id !== userId) &&
+            r.members.every((m) => m.user_id === userId || m.done),
           yourGoals: match
             ? match.home_id === userId
               ? match.home_goals
@@ -216,13 +216,6 @@ class MemStore implements RoomStore {
           touchedAt: msOf(r.room.touched_at),
         };
       });
-  }
-
-  async findByName(nameKey: string): Promise<string | null> {
-    const hit = Object.entries(this.names).find(
-      ([, name]) => !!name && nameKeyOf(name) === nameKey,
-    );
-    return hit?.[0] ?? null;
   }
 
   async displayName(userId: string): Promise<string | null> {
@@ -1133,6 +1126,11 @@ export async function refereeChecks(): Promise<void> {
   // asserts that not one of the four rules that keep a live room moving fires - because
   // every one of them would end the duel prematurely, and three of them would do it
   // silently.
+  //
+  // AND THE TWO THINGS THAT CHANGED ON 2026-08-31: a duel opens straight into its
+  // challenger's draft, so there is no lobby and no acceptance step to sit through, and
+  // the invitation is a LINK rather than a name - whoever opens it takes the seat, mid
+  // draft, exactly as a private room has always worked.
 
   {
     const clock = { now: T0 };
@@ -1142,108 +1140,39 @@ export async function refereeChecks(): Promise<void> {
 
     const sent = await post(deps, '/referee/v1/rooms', longSession('u1'), {
       pace: 'async',
-      opponent: 'bruno',
       method: 'budget',
       budget: 110,
       years: [],
     });
     const code = (sent.body as RoomView).code;
-    const missing = await post(deps, '/referee/v1/rooms', longSession('u1'), {
-      pace: 'async',
-      opponent: 'nobody at all',
-      method: 'budget',
-      budget: 110,
-    });
     const second = await post(deps, '/referee/v1/rooms', longSession('u1'), {
       pace: 'async',
-      opponent: 'bruno',
       method: 'budget',
       budget: 110,
     });
     const opened = (await store.read(code))!;
     check(
-      'duel: a challenge is addressed by name, is private, and does not use up your one room',
+      "duel: it opens straight into the challenger's draft, private, and does not use up your one room",
       () =>
         sent.status === 201 &&
         (sent.body as RoomView).pace === 'async' &&
         (sent.body as RoomView).visibility === 'private' &&
-        (sent.body as RoomView).invitedName === 'Bruno' &&
-        // The name is matched on the NORMALISED key, so "bruno" reaches Bruno (P22).
-        opened.invitedId === 'u2' &&
-        // A name nobody plays under is refused rather than quietly opened to anybody: the
-        // two are different intentions and only one was expressed.
-        missing.status === 404 &&
+        // THE FEATURE: no lobby and no acceptance step. The challenger is drafting from the
+        // moment they open it, with the second seat still empty - which is what "set my
+        // team up right away" means in the state machine.
+        (sent.body as RoomView).status === 'drafting' &&
+        opened.status === 'drafting' &&
+        opened.members.length === 1 &&
+        !!opened.startedAt &&
         // P39 counts live rooms only: a duel needs nobody present, so several is the point.
         second.status === 201,
-      () => `${sent.status} / ${missing.status} / ${second.status}`,
+      () => `${sent.status} / ${opened.status} / ${opened.members.length} / ${second.status}`,
     );
 
-    // Nobody else may take an addressed seat, and the person it names may READ it before
-    // answering - which is the whole of the challenge screen.
-    store.names.u3 = 'Cleo';
-    const gatecrash = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u3'));
-    const stranger = await get(deps, `/referee/v1/rooms/${code}`, longSession('u3'));
-    const invited = await get(deps, `/referee/v1/rooms/${code}`, longSession('u2'));
-    check(
-      'duel: the seat is the invited player\'s, and they can read the challenge before answering',
-      () =>
-        gatecrash.status === 403 &&
-        (gatecrash.body as { error: string }).error === 'not-invited' &&
-        // Invisible to anybody else, exactly as a private room is.
-        stranger.status === 404 &&
-        invited.status === 200 &&
-        (invited.body as RoomView).invitedName === 'Bruno' &&
-        (invited.body as RoomView).you === null,
-      () => `${gatecrash.status} / ${stranger.status} / ${invited.status}`,
-    );
-
-    // A DAY LATER. Bruno accepts, and accepting starts the draft: a duel has no lobby.
-    clock.now += 24 * 60 * 60_000;
-    const accepted = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u2'));
-    const started = (await store.read(code))!;
-    check(
-      'duel: accepting starts the draft at once, and nothing at all is counting',
-      () =>
-        accepted.status === 200 &&
-        started.status === 'drafting' &&
-        started.members.length === 2 &&
-        // A BUDGET duel is the two clocks OFF at once (P51 and P52): the room runs one
-        // clock over the whole draft rather than eleven windows, and a duel runs none of
-        // it. So there is no window and the whole-draft remainder is null, which is what
-        // stops a screen drawing a bar against a deadline nothing enforces.
-        !started.windows.u1 &&
-        (accepted.body as RoomView).you?.window == null &&
-        (accepted.body as RoomView).draft?.remainingMs === null,
-      () => `${accepted.status}, ${started.status}`,
-    );
-
-    // A WEEK OF SWEEPS at the live pace's intervals: not one window expires, nobody is
-    // dropped for silence, and the room is not closed. Every one of those would have
-    // finished this draft without either player.
-    for (let day = 0; day < 6; day++) {
-      clock.now += 24 * 60 * 60_000;
-      await sweepOnce(store, clock.now, SWEEP_MS);
-    }
-    const untouched = (await store.read(code))!;
-    check(
-      'duel: six days of sweeps auto-pick nothing, drop nobody and close nothing',
-      () =>
-        untouched.status === 'drafting' &&
-        untouched.members.length === 2 &&
-        // Vacuity, and it is the whole point: the SAME six days would have finished a live
-        // room's draft against both players and then closed the room.
-        Object.values(untouched.picks).every((p) => Object.keys(p).length === 0) &&
-        Object.values(untouched.xi).every((x) => Object.keys(x).length === 0) &&
-        // And nothing has declared itself finished on anybody's behalf, which is the only
-        // thing that could end a duel's draft.
-        untouched.members.every((m) => !m.done),
-      () => `${untouched.status}, ${Object.keys(untouched.picks.u1 ?? {}).length} picks`,
-    );
-
-    // Each of them drafts, days apart, and the match plays itself when the second XI lands.
-    // BY THE BOARD, because this is a budget duel and a budget room drafts as a whole XI
-    // now (P52) - and then by SAYING SO, because a whole-draft room does not read a full
-    // team as a finished one.
+    // THE CHALLENGER SENDS AN XI INTO AN EMPTY ROOM, and nothing happens - which is the one
+    // way this could have gone wrong. A duel's draft ends when everybody has declared, and
+    // with one member "everybody" is one person: without the seat count, sending would draw
+    // the challenger against themselves.
     const draftFor = async (who: string): Promise<void> => {
       // An hour between the two, which is the point of the mode: nothing counts it.
       clock.now += 60 * 60_000;
@@ -1255,25 +1184,93 @@ export async function refereeChecks(): Promise<void> {
       await post(deps, `/referee/v1/rooms/${code}/done`, longSession(who), { done: true });
     };
     await draftFor('u1');
-    const halfway = (await store.read(code))!;
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const alone = (await store.read(code))!;
+    const aloneList = await get(deps, '/referee/v1/duels', longSession('u1'));
+    const aloneRow = (aloneList.body as { duels: DuelListRow[] }).duels.find(
+      (d) => d.code === code,
+    )!;
+    check(
+      'duel: a sent XI with nobody opposite plays no match, and the list says it is waiting',
+      () =>
+        alone.status === 'drafting' &&
+        Object.keys(alone.picks.u1 ?? {}).length === 11 &&
+        alone.members[0]!.done === true &&
+        alone.ties.length === 0 &&
+        // The row carries the seat count and the two declarations, which is what lets the
+        // list tell "nobody has taken it up" from "they are still building".
+        !!aloneRow &&
+        aloneRow.seated === 1 &&
+        aloneRow.yourDone === true &&
+        aloneRow.theirDone === false &&
+        aloneRow.opponentName === '',
+      () => `${alone.status}, ${alone.ties.length} ties, ${JSON.stringify(aloneRow)}`,
+    );
+
+    // A DAY LATER somebody follows the link. The invitation is the link and nothing else -
+    // there is no name on the room - so whoever opens it takes the seat and starts a draft
+    // of their own, days after the challenger started theirs.
+    store.names.u3 = 'Cleo';
+    clock.now += 24 * 60 * 60_000;
+    const stranger = await get(deps, `/referee/v1/rooms/${code}`, longSession('u3'));
+    const accepted = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u2'));
+    const late = await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u3'));
+    const started = (await store.read(code))!;
+    check(
+      'duel: the link seats whoever opens it, mid-draft, and the second seat is then shut',
+      () =>
+        // Invisible until you are in it, exactly as a private room is.
+        stranger.status === 404 &&
+        accepted.status === 200 &&
+        started.status === 'drafting' &&
+        started.members.length === 2 &&
+        // Their own draft begins on arrival: an XI to fill, and the challenger's untouched.
+        Object.keys(started.xi.u2 ?? {}).length === 0 &&
+        !started.members[1]!.done &&
+        // A BUDGET duel is the two clocks OFF at once (P51 and P52): the room runs one
+        // clock over the whole draft rather than eleven windows, and a duel runs none of
+        // it. So there is no window and the whole-draft remainder is null, which is what
+        // stops a screen drawing a bar against a deadline nothing enforces.
+        !started.windows.u2 &&
+        (accepted.body as RoomView).you?.window == null &&
+        (accepted.body as RoomView).draft?.remainingMs === null &&
+        // And the third person is too late: two seats, both taken.
+        late.status === 409,
+      () => `${accepted.status}, ${started.status}, ${late.status}`,
+    );
+
+    // A WEEK OF SWEEPS at the live pace's intervals: not one window expires, nobody is
+    // dropped for silence, and the room is not closed. Every one of those would have
+    // finished this draft without the second player.
+    for (let day = 0; day < 6; day++) {
+      clock.now += 24 * 60 * 60_000;
+      await sweepOnce(store, clock.now, SWEEP_MS);
+    }
+    const untouched = (await store.read(code))!;
+    check(
+      'duel: six days of sweeps auto-pick nothing, drop nobody and close nothing',
+      () =>
+        untouched.status === 'drafting' &&
+        untouched.members.length === 2 &&
+        // Vacuity, and it is the whole point: the SAME six days would have finished a live
+        // room's draft against the absent player and then closed the room.
+        Object.keys(untouched.picks.u2 ?? {}).length === 0 &&
+        Object.keys(untouched.xi.u2 ?? {}).length === 0 &&
+        // And nothing has declared itself finished on their behalf, which is the only
+        // thing that could end a duel's draft.
+        !untouched.members[1]!.done,
+      () => `${untouched.status}, ${Object.keys(untouched.picks.u2 ?? {}).length} picks`,
+    );
+
+    // The second XI lands three days later, and the match plays itself.
     clock.now += 3 * 24 * 60 * 60_000;
     await draftFor('u2');
     await sweepOnce(store, clock.now, SWEEP_MS);
     const played = (await store.read(code))!;
     check(
-      'duel: one XI in leaves it waiting; the second one sets the match going',
-      () =>
-        // Half way: one complete XI, the other untouched, and no match.
-        halfway.status === 'drafting' &&
-        Object.keys(halfway.picks.u1 ?? {}).length === 11 &&
-        Object.keys(halfway.picks.u2 ?? {}).length === 0 &&
-        halfway.ties.length === 0 &&
-        // And with both in, the tie is drawn and played - three days later, by two people
-        // who were never on the screen at the same time.
-        played.ties.length === 1 &&
-        !!played.ties[0]!.result &&
-        !!played.ties[0]!.winnerId,
-      () => `${halfway.status} then ${played.status}, ${played.ties.length} ties`,
+      'duel: the second XI sets the match going, days after the first',
+      () => played.ties.length === 1 && !!played.ties[0]!.result && !!played.ties[0]!.winnerId,
+      () => `${played.status}, ${played.ties.length} ties`,
     );
 
     // The result settles on its own, so whoever was not watching still gets it.
@@ -1293,12 +1290,14 @@ export async function refereeChecks(): Promise<void> {
         // Bruno did not send it, and the row is written from HIS side.
         !row.yours &&
         row.opponentName === 'Ada' &&
+        row.seated === 2 &&
         row.yourPicks === 11 &&
         row.theirPicks === 11 &&
         row.won === (done.championId === 'u2') &&
-        // And the whole list is his two duels, the unanswered one included: that is the
-        // only way a challenge is ever seen.
-        rows.length === 2,
+        // His list is this duel alone. The second one Ada opened is hers and nobody has
+        // taken it up, so it reaches no list but her own - which is the whole of what a
+        // link-only invitation means.
+        rows.length === 1,
       () => `${done.status}, ${rows.length} rows, ${JSON.stringify(row)}`,
     );
   }
@@ -1389,7 +1388,6 @@ export async function refereeChecks(): Promise<void> {
     const second = await post(deps, '/referee/v1/rooms', longSession('u1'), live);
     const challenge = await post(deps, '/referee/v1/rooms', longSession('u1'), {
       pace: 'async',
-      opponent: 'Bruno',
       method: 'budget',
       budget: 110,
     });
@@ -1401,8 +1399,13 @@ export async function refereeChecks(): Promise<void> {
   }
 
   {
-    // Declining, and the week. Both are the ways a duel ends without a match, and both are
-    // silent - so they are worth asserting rather than assuming.
+    // Withdrawing, and the week. Both are the ways a duel ends without a match, and both
+    // are silent - so they are worth asserting rather than assuming.
+    //
+    // WITHDRAWING IS LEAVING, which is why it needs no command of its own. It is also the
+    // one leave that acts on a room which is not in a lobby: a duel opens straight into its
+    // challenger's draft, so without this branch a challenge you had thought better of
+    // would be unleavable and would sit on its link for a week.
     const clock = { now: T0 };
     const store = new MemStore();
     store.names = { u1: 'Ada', u2: 'Bruno' };
@@ -1412,16 +1415,22 @@ export async function refereeChecks(): Promise<void> {
         (
           await post(deps, '/referee/v1/rooms', longSession('u1'), {
             pace: 'async',
-            opponent: 'Bruno',
             method: 'budget',
             budget: 110,
           })
         ).body as RoomView
       ).code;
 
-    const declined = await open();
-    await post(deps, `/referee/v1/rooms/${declined}/leave`, longSession('u2'));
-    const after = (await store.read(declined))!;
+    const withdrawn = await open();
+    await post(deps, `/referee/v1/rooms/${withdrawn}/leave`, longSession('u1'));
+    const after = (await store.read(withdrawn))!;
+
+    // And once somebody HAS taken it up, leaving is only looking away: their draft is real
+    // work, so it must not be closeable out from under them.
+    const taken = await open();
+    await post(deps, `/referee/v1/rooms/${taken}/join`, longSession('u2'));
+    await post(deps, `/referee/v1/rooms/${taken}/leave`, longSession('u1'));
+    const stillOn = (await store.read(taken))!;
 
     const ignored = await open();
     clock.now += DUEL_IDLE_MS + 60_000;
@@ -1429,18 +1438,17 @@ export async function refereeChecks(): Promise<void> {
     const stale = (await store.read(ignored))!;
 
     check(
-      'duel: declining closes it, and one nobody answers closes itself after a week',
+      'duel: withdrawing closes an unanswered one, leaving a taken one does not, and a week closes it',
       () =>
-        // Declining is leaving, which is why it needs no command of its own - and the
-        // person it was addressed to is not a member, so this is the one leave that acts
-        // for a non-member.
         after.status === 'ended' &&
         roomClosed(after) &&
+        stillOn.status === 'drafting' &&
+        stillOn.members.length === 2 &&
         stale.status === 'ended' &&
         roomClosed(stale) &&
         // Vacuity: a duel a day old is untouched by the same sweep.
         DUEL_IDLE_MS > ROOM_IDLE_MS,
-      () => `declined ${after.status}, ignored ${stale.status}`,
+      () => `withdrawn ${after.status}, taken ${stillOn.status}, ignored ${stale.status}`,
     );
   }
 

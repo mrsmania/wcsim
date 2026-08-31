@@ -25,6 +25,7 @@ import {
   toStored,
 } from '../../src/state/settingsStorage';
 import { GUEST_KEYS } from '../../src/state/store/localStore';
+import { VERSUS_WATCHED_KEY } from '../../src/state/pvp/watched';
 import { CATALOGUE_PATH } from '../collectibles';
 
 export function stateChecks(): void {
@@ -154,15 +155,19 @@ export function stateChecks(): void {
   // in any storage module silently stopped that slice being imported into an account or
   // cleared afterwards, with no type error (hygiene H88). Now it is assembled from the
   // exports, and this asserts the set is what it should be: all six progress keys, no
-  // duplicates, and never the settings key - preferences are not progress.
+  // duplicates, and neither of the two keys that are not progress - the settings, which
+  // are preferences, and the watched-duels list, which is a note about what this browser
+  // has already looked at. A guest can hold neither a room nor a duel (P17), so importing
+  // that one would be carrying an empty list into an account by definition.
   {
     const progress = [GAME_KEY, ALBUM_KEY, ALBUM_STATS_KEY, CAREER_KEY, RUN_KEY, REVEAL_KEY];
-    const all = [...progress, SETTINGS_KEY];
+    const all = [...progress, SETTINGS_KEY, VERSUS_WATCHED_KEY];
     check(
-      'storage: the guest set is every progress key, once each, and never the settings key',
+      'storage: the guest set is every progress key, once each, and neither of the two that are not',
       () => GUEST_KEYS.length === progress.length &&
         progress.every((k) => GUEST_KEYS.includes(k)) &&
         !GUEST_KEYS.includes(SETTINGS_KEY) &&
+        !GUEST_KEYS.includes(VERSUS_WATCHED_KEY) &&
         new Set(all).size === all.length &&
         // One key uses colons and the rest underscores. It stays that way (renaming it
         // would orphan saved games), so this pins the oddity rather than the pattern.

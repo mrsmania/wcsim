@@ -11,7 +11,9 @@ import { isPlayTab, isRecords, screenOf } from './state/routes';
 import { buildResume, cupRunResume } from './state/resume';
 import { useLiveMatch } from './nav/liveMatch';
 import { useHeldVersusRoom } from './nav/versusRoom';
-import { SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
+import { useDuelAlert } from './hooks/useDuelAlert';
+import { duelAlertLine } from './domain/pvpView';
+import { ROOM_STRIP, SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
 import { requestRunStart } from './nav/pendingRun';
 import { setStoreErrorHandler, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
@@ -249,6 +251,12 @@ export default function App({
     const signedInHeld = useHeldVersusRoom();
     const heldRoom = accountEmail ? signedInHeld : null;
     const roomTo = heldRoom ? `/versus/${heldRoom.code}` : null;
+    // AND THE DUELS, which cannot announce themselves the way a held room does: they are
+    // played over days from whatever device is to hand, and the two things worth telling
+    // somebody about - their team is not sent, the match has been played - both happen
+    // while they are elsewhere. So the chrome asks the referee, slowly. See `useDuelAlert`.
+    const duel = useDuelAlert(!!accountEmail && FEATURES.pvp);
+    const duelTo = duel ? `/versus/${duel.row.code}` : null;
     // Where the Play tab lands: the run if there is one, the build if one is half done,
     // otherwise the cover. The crest always returns to the cover.
     const playTo = roomTo ?? (resumeCupRun ? '/cup-run' : formation ? '/play' : '/');
@@ -275,6 +283,20 @@ export default function App({
             label: 'Squads',
             to: '/squads/by-world-cup',
             active: isSquads,
+        },
+        // THE SIXTH TAB (2026-08-31), and it took a change in what the mode IS to earn it.
+        // Versus was a door on the front page while it was one live room at a time: you
+        // went there, played for twenty minutes and left, so a permanent tab would have
+        // been an address nobody needed twice. A duel is played over days and is the only
+        // thing in the game somebody else can be waiting on, so "is there anything for me"
+        // is now a question worth being able to answer from any screen - which is exactly
+        // what a tab is. It sits last because it is the one destination that is not about
+        // your own single-player career.
+        FEATURES.pvp && {
+            key: 'versus',
+            label: 'Versus',
+            to: '/versus',
+            active: isVersus,
         },
     ];
     const tabs: TabItem[] = tabEntries.filter((t): t is TabItem => t !== false);
@@ -314,19 +336,41 @@ export default function App({
                     </>
                 )}
 
-                {/* One line saying you are holding a room, and taking you back to it. A
-                    room runs on a clock somebody else is also watching, so wandering off
-                    to the album has a cost the rest of the app does not. */}
-                {heldRoom && roomTo && !isVersus && (
+                {/* One line saying a versus match wants you, and taking you to it. For a
+                    LIVE room that is the room itself - it runs on a clock somebody else is
+                    also watching, so wandering off to the album has a cost the rest of the
+                    app does not. For a DUEL it is the one row of your list that is waiting:
+                    a team you have not sent, or a match played while you were away. */}
+                {heldRoom && roomTo && !isVersus ? (
                     <Link
                         to={roomTo}
-                        className="mb-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch-ink transition hover:bg-pitch/20"
+                        className={ROOM_STRIP}
                     >
                         <span className="truncate">
                             Versus {heldRoom.code} &middot; {heldRoom.line}
                         </span>
                         <span className="shrink-0">Back to it</span>
                     </Link>
+                ) : (
+                    // A DUEL WAITING ON YOU, in the same strip and never beside the one
+                    // above: holding a live room is the more urgent of the two by a long
+                    // way (somebody is sitting in it), and two strips stacked would be the
+                    // chrome talking over itself. It shows on the versus page as well,
+                    // unlike the room strip, because that page is a list and this is the
+                    // one row of it that wants you - "the game has been played" is worth
+                    // saying even where the row is already on screen.
+                    duel &&
+                    duelTo && (
+                        <Link to={duelTo} className={ROOM_STRIP}>
+                            <span className="truncate">
+                                Versus {duel.row.code} &middot;{' '}
+                                {duelAlertLine(duel.row, duel.alert)}
+                            </span>
+                            <span className="shrink-0">
+                                {duel.alert === 'watch' ? 'Watch it' : 'Go'}
+                            </span>
+                        </Link>
+                    )
                 )}
 
                 <Suspense

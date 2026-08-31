@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { WORLD_CUP_YEARS } from '../../data/squads';
 import {
     agoLine,
+    duelAlert,
     duelDowngraded,
     duelLine,
     duelRules,
@@ -26,6 +27,7 @@ import type { DuelRow, LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
 import { RefereeError, createRoom, leaveRoom, readDuels, readLobby } from '../../state/pvp/referee';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
+import { onWatchedChange, watchedDuels } from '../../state/pvp/watched';
 import {
     CARD,
     CHIP_OFF,
@@ -39,7 +41,14 @@ import {
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
 import { RefereeProblem, RoomNote } from './versusUi';
 
-// The way in: make a room, or type the code somebody gave you.
+// THE VERSUS TAB: everything you have on, everything you have played, and the way to start
+// another one.
+//
+// IT LEADS WITH YOUR OWN MATCHES because of duels. A live room is a thing you are AT for
+// twenty minutes, so the page that opens one is the page; a duel is a thing you are IN for
+// days, and the question somebody arrives with is "is there anything waiting for me" - not
+// "what settings shall I choose". So your matches are first, the form is beside them, and
+// the public lobby is under it.
 //
 // TWO KINDS OF ROOM, THREE SIZES, PUBLIC OR PRIVATE, AND EITHER CLOCK: buy an XI from a
 // shared budget or roll random squads, two, four or eight people, a code you send to
@@ -165,7 +174,7 @@ const REROLLS = [
  * distinction that field exists for: this is the owner's to fix by rebuilding the server.
  */
 const NO_DUELS: RefereeMessage = {
-    text: 'The versus server has not been rebuilt for duels yet, so it opened an ordinary room instead of sending a challenge. That room has been closed again. Play "Together, now" until it is updated.',
+    text: 'The versus server is running an older build, so the challenge it opened is not the one this page knows how to play. It has been closed again. Play "Together, now" until the server is updated.',
     raw: 'duels not deployed',
     deployment: true,
     room: null,
@@ -207,6 +216,60 @@ function Choice<T extends number | string>({
     );
 }
 
+/**
+ * One duel on the list.
+ *
+ * THE ACTION IS WHAT THE ROW IS FOR, and there are three of them: a match nobody has
+ * watched is the loudest thing on this page, then a team that is not sent, then everything
+ * else, which is a link to look at. `duelAlert` decides the first two and it is shared with
+ * the chrome's strip, so the tab and the page can never disagree about what is waiting.
+ */
+function DuelLine({
+    row,
+    watched,
+    go,
+}: {
+    row: DuelRow;
+    watched: ReadonlySet<string>;
+    go: (to: string) => void;
+}) {
+    const alert = duelAlert(row, watched);
+    const turn = duelTurn(row);
+    return (
+        <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0">
+            <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-bold text-ink">
+                    {row.opponentName || 'Nobody yet'}
+                    <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
+                        {row.code}
+                    </span>
+                </div>
+                <div
+                    className={`text-[12px] ${
+                        alert ? 'font-semibold text-pitch-ink' : 'text-muted'
+                    }`}
+                >
+                    {alert === 'watch' ? 'The match has been played' : duelLine(row)} &middot;{' '}
+                    {duelRules(row)}
+                </div>
+            </div>
+            <button
+                type="button"
+                className={`shrink-0 ${btn(alert ? 'primary' : 'secondary', 'sm')}`}
+                onClick={() => go(`/versus/${row.code}`)}
+            >
+                {alert === 'watch'
+                    ? 'Watch it'
+                    : alert === 'your-move'
+                      ? 'Your move'
+                      : turn === 'done'
+                        ? 'See it'
+                        : 'Open'}
+            </button>
+        </li>
+    );
+}
+
 export default function VersusHome() {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
@@ -227,8 +290,13 @@ export default function VersusHome() {
     // A DUEL IS THE SAME FORM WITH THE WAITING TAKEN OUT (P51): the same two draft methods
     // and the same money, minus everything that only means something when people are
     // present - how many of you, how long a pick gets, who may walk in.
+    //
+    // AND MINUS WHO, since 2026-08-31. A challenge used to be addressed to an account by
+    // display name, which meant knowing what somebody had called themselves before you
+    // could play them, and a whole apparatus behind it - a name lookup, a seat nobody else
+    // could take, an accept-or-decline screen, a refusal for opening the wrong link. The
+    // link says all of that already: whoever you send it to is who you are playing.
     const [pace, setPace] = useState<'live' | 'async'>('live');
-    const [opponent, setOpponent] = useState('');
     const duel = pace === 'async';
 
     const make = () => {
@@ -236,9 +304,6 @@ export default function VersusHome() {
         setError(null);
         void createRoom({
             pace,
-            // Empty means "whoever I send the link to", which is the same thing a private
-            // room has always been. A name is a challenge to that person and nobody else.
-            opponent: duel ? opponent.trim() : '',
             visibility: duel ? 'private' : visibility,
             size: duel ? 2 : size,
             method,
@@ -261,7 +326,7 @@ export default function VersusHome() {
                 // instead is CLOSED rather than left in the way: it is not the one that was
                 // asked for, and it would otherwise hold this account's one live seat (P39)
                 // until the sweeper collected it a quarter of an hour later.
-                if (duelDowngraded(pace, room)) {
+                if (duel && duelDowngraded('async', room)) {
                     await leaveRoom(room.code).catch(() => undefined);
                     setBusy(false);
                     setError(NO_DUELS);
@@ -290,6 +355,8 @@ export default function VersusHome() {
     // and only a refusal that means exactly this moves it.
     const [duelsRoute, setDuelsRoute] = useState(true);
     const [record, setRecord] = useState<PvpRecord>(NO_RECORD);
+    const [watched, setWatched] = useState<ReadonlySet<string>>(watchedDuels);
+    useEffect(() => onWatchedChange(setWatched), []);
     const [at, setAt] = useState(() => Date.now());
     const refreshLobby = useCallback(() => {
         void readLobby()
@@ -326,6 +393,12 @@ export default function VersusHome() {
         const t = window.setInterval(refreshLobby, 10_000);
         return () => window.clearInterval(t);
     }, [refreshLobby]);
+
+    // ON NOW versus PLAYED. Two lists rather than one sorted list, because they are read
+    // for different reasons: the first is a to-do list and the second is a record. A duel
+    // that CLOSED without a match belongs with the played ones - it is over either way.
+    const open = duels.filter((d) => d.status !== 'ended');
+    const finished = duels.filter((d) => d.status === 'ended');
 
     const join = (e: React.FormEvent) => {
         e.preventDefault();
@@ -365,6 +438,33 @@ export default function VersusHome() {
                 </div>
             )}
 
+            {/* YOUR MATCHES, FIRST AND FULL WIDTH. Nothing in this game sends a message,
+                so this list is the only way a duel ever reaches anybody: a team waiting to
+                be sent, an opponent who has just sent theirs, a match played overnight
+                while nobody was watching. A form for starting another one is not what
+                somebody opens this page to find. */}
+            {open.length > 0 && (
+                <div className={`${CARD} mb-[22px] p-4`}>
+                    <div className={MONO_CAP}>On now</div>
+                    <ul className="mt-1">
+                        {open.map((d) => (
+                            <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {finished.length > 0 && (
+                <div className={`${CARD} mb-[22px] p-4`}>
+                    <div className={MONO_CAP}>Played</div>
+                    <ul className="mt-1">
+                        {finished.map((d) => (
+                            <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             <div className="grid items-start gap-[22px] min-[860px]:grid-cols-2">
                 <div className={`${CARD} p-4`}>
                     <div className={MONO_CAP}>{duel ? 'Challenge somebody' : 'Make a room'}</div>
@@ -372,6 +472,13 @@ export default function VersusHome() {
                         An XI each out of all {WORLD_CUP_YEARS.length} World Cups, then one
                         match. Your career, album and perks stay out of it: eleven players
                         against eleven.
+                        {duel && (
+                            <span className="mt-1.5 block">
+                                You start building straight away and get a link to send. Whoever
+                                opens it builds theirs whenever they like, and the match plays
+                                itself once both teams are sent.
+                            </span>
+                        )}
                     </RoomNote>
 
                     <Choice
@@ -392,25 +499,7 @@ export default function VersusHome() {
                         ]}
                     />
 
-                    {duel ? (
-                        <>
-                            <div className={`${MONO_CAP} mt-4`}>Who</div>
-                            <input
-                                value={opponent}
-                                onChange={(e) => setOpponent(e.target.value.slice(0, 24))}
-                                autoComplete="off"
-                                spellCheck={false}
-                                placeholder="Their name"
-                                aria-label="The name of the player to challenge"
-                                className="mt-1.5 w-full rounded-[5px] border border-line bg-ground px-3 py-2.5 text-[15px] font-semibold text-ink outline-none focus:border-pitch"
-                            />
-                            <p className="mt-1.5 text-[12px] leading-snug text-muted">
-                                {opponent.trim()
-                                    ? `It goes to ${opponent.trim()} and nobody else can take it.`
-                                    : 'Leave it blank and you get a link to send instead - the first person to open it takes it up.'}
-                            </p>
-                        </>
-                    ) : (
+                    {duel ? null : (
                         <>
                             <Choice
                                 label="How many of you"
@@ -534,13 +623,17 @@ export default function VersusHome() {
                             play "Together, now" until it is updated.
                         </p>
                     )}
+                    {/* THE OTHER SKEW HAS NO PROBE and cannot have one: a server that has
+                        duels but predates the change below answers this route perfectly
+                        well. It is caught on the ANSWER instead (`duelDowngraded`), which
+                        is why that guard tests the status as well as the pace. */}
 
                     <button
                         className={`${PRIMARY_BTN} mt-4 w-full`}
                         disabled={busy || (duel && !duelsRoute)}
                         onClick={make}
                     >
-                        {duel ? 'Send the challenge' : 'Open a room'}
+                        {duel ? 'Start building my XI' : 'Open a room'}
                     </button>
                     {error && (
                         <RefereeProblem
@@ -564,59 +657,6 @@ export default function VersusHome() {
                 </div>
 
                 <div className="flex flex-col gap-[22px]">
-                {/* YOUR DUELS, ABOVE THE LOBBY, because one of these rows may be waiting for
-                    you and no lobby row ever is. Nothing in this game sends a message, so
-                    this list IS how a challenge arrives - which is also why it leads with
-                    whose move it is rather than with a score. */}
-                {duels.length > 0 && (
-                    <div className={`${CARD} p-4`}>
-                        <div className={MONO_CAP}>Your duels</div>
-                        <ul className="mt-1">
-                            {duels.map((d) => {
-                                const turn = duelTurn(d);
-                                return (
-                                    <li
-                                        key={d.code}
-                                        className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0"
-                                    >
-                                        <div className="min-w-0 flex-1">
-                                            <div className="text-[13.5px] font-bold text-ink">
-                                                {d.opponentName || 'Whoever takes it up'}
-                                                <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
-                                                    {d.code}
-                                                </span>
-                                            </div>
-                                            <div
-                                                className={`text-[12px] ${
-                                                    turn === 'yours'
-                                                        ? 'font-semibold text-pitch-ink'
-                                                        : 'text-muted'
-                                                }`}
-                                            >
-                                                {duelLine(d)} &middot; {duelRules(d)}
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className={`shrink-0 ${btn(
-                                                turn === 'yours' ? 'primary' : 'secondary',
-                                                'sm',
-                                            )}`}
-                                            onClick={() => navigate(`/versus/${d.code}`)}
-                                        >
-                                            {turn === 'yours'
-                                                ? 'Your move'
-                                                : turn === 'done'
-                                                  ? 'See it'
-                                                  : 'Open'}
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </div>
-                )}
-
                 <div className={`${CARD} p-4`}>
                     <div className="flex items-baseline gap-3">
                         <div className={MONO_CAP}>Rooms you can join</div>
