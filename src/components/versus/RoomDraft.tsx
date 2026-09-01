@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../../data/types';
 import { SQUAD_BY_ID, squadsInPool } from '../../data/squads';
 import type { Formation } from '../../domain/formations';
-import { othersIn, roomDisplay, xiFrom } from '../../domain/pvpView';
+import { othersIn, roomDisplay, sendWindowNote, xiFrom } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import { detachedBuildIo } from '../../state/buildIo';
 import { initialState, type GameState } from '../../state/gameReducer';
@@ -241,6 +241,15 @@ export default function RoomDraft({
     // day's build that drafted from the moment it was created, and the note is what it gets
     // instead of a draw that will never come.
     const alone = view.members.length < view.size;
+    // A DUEL'S SENDING WINDOW, said to whichever half of it is being waited on. Null in a
+    // live room, and null from a referee older than the deadline, where there is genuinely
+    // no window to miss.
+    // Only while it is still YOUR move: the panels below stay on screen after you have
+    // sent, and telling somebody who has sent that they have days left to send it is the
+    // one way this note could read as a warning about the wrong player. The other half of
+    // the same window goes in the "Sent" panel instead, where it is the reassurance.
+    const sendNote = meDone ? null : sendWindowNote(view, true);
+    const theirNote = sendWindowNote(view, false);
 
     return (
         <div className="flex flex-col gap-[18px]">
@@ -258,9 +267,13 @@ export default function RoomDraft({
                         <div className={`${CARD_FLAT} px-4 py-3`}>
                             <div className={MONO_CAP}>{filledCount} of 11 bought</div>
                             <RoomNote>
-                                No clock. Build it over a week if you like - buy, move and sell
-                                as much as you want, and say you are done when you are.
+                                No clock on the draft - buy, move and sell as much as you
+                                want, and say you are done when you are.
                             </RoomNote>
+                            {/* THE ONE DEADLINE IT DOES HAVE, and it is named because this
+                                panel used to say "build it over a week if you like", which
+                                is now untrue by five days. */}
+                            {sendNote && <RoomNote>{sendNote}</RoomNote>}
                         </div>
                     )}
                 </div>
@@ -271,9 +284,10 @@ export default function RoomDraft({
                 <div className={`${CARD_FLAT} px-4 py-3`}>
                     <div className={MONO_CAP}>Pick {window.ordinal} of 11</div>
                     <RoomNote>
-                        No clock. Build it over a week if you like, then send it - the match
-                        plays itself when the second XI is in.
+                        No clock on a pick. Take them at your own pace, then send it - the
+                        match plays itself when the second XI is in.
                     </RoomNote>
+                    {sendNote && <RoomNote>{sendNote}</RoomNote>}
                 </div>
             ) : window && room.remainingMs !== null ? (
                 <PickClock
@@ -310,7 +324,7 @@ export default function RoomDraft({
                                 {alone
                                     ? 'Your XI is locked in. Send somebody the link and the match plays itself the moment they finish theirs.'
                                     : view.pace === 'async'
-                                      ? `Your XI is locked in. ${others[0]?.name ?? 'Your opponent'} builds theirs whenever they get to it, and the match plays itself the moment they do - come back for the result.`
+                                      ? `Your XI is locked in. ${others[0]?.name ?? 'Your opponent'} builds theirs whenever they get to it, and the match plays itself the moment they do - come back for the result.${theirNote ? ` ${theirNote}` : ''}`
                                       : waitingLine(others)}
                             </RoomNote>
                         </div>

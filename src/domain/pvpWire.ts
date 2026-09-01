@@ -176,6 +176,19 @@ export interface RoomView {
    * is counting.
    */
   draft?: { totalMs: number; remainingMs: number | null } | null;
+  /**
+   * How long is left to SEND a team in this DUEL, in milliseconds, or null when nothing is
+   * counting (`DUEL_DRAFT_MS`).
+   *
+   * IT IS NOT THE `draft` BLOCK ABOVE. That one is the whole-draft clock a budget room
+   * runs, and a roll duel has none at all - a screen branches on its presence to tell the
+   * two draft shapes apart, so a duel's outer bound put there would draw the wrong one.
+   * This is a date the screen prints ("two days left to send it"), not a bar it fills.
+   *
+   * Absent from a referee that predates the deadline, where a duel's draft really did run
+   * for ever: a screen reads that as nothing to say rather than as a window about to shut.
+   */
+  sendRemainingMs?: number | null;
   round: number;
   championId: string | null;
   rules: { method: 'roll' | 'budget'; budget: number; years: readonly number[] };

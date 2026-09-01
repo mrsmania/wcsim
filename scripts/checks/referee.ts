@@ -1304,8 +1304,12 @@ export async function refereeChecks(): Promise<void> {
       () => `${untouched.status}, ${Object.keys(untouched.picks.u2 ?? {}).length} picks`,
     );
 
-    // The second XI lands three days later, and the match plays itself.
-    clock.now += 3 * 24 * 60 * 60_000;
+    // The second XI lands the next day, and the match plays itself. INSIDE THE WEEK on
+    // purpose: a duel with nothing happening in it for `DUEL_IDLE_MS` is now resolved
+    // against whoever has not sent, so three more days here would be a fixture depicting a
+    // room that no longer exists - and it would pass, because the loop above stops
+    // sweeping. The block below is the one that walks past the bound deliberately.
+    clock.now += 20 * 60 * 60_000;
     await draftFor('u2');
     await sweepOnce(store, clock.now, SWEEP_MS);
     const played = (await store.read(code))!;
@@ -1341,6 +1345,93 @@ export async function refereeChecks(): Promise<void> {
         // link-only invitation means.
         rows.length === 1,
       () => `${done.status}, ${rows.length} rows, ${JSON.stringify(row)}`,
+    );
+  }
+
+  {
+    // --- A duel somebody walked away from (2026-09-01) ----------------------
+    //
+    // "I CAN LEAVE THE DRAW WITHOUT CATCHING A LOSS", reported from the game and true:
+    // giving a duel up is a forfeit, but only if you press the button, and leaving by the
+    // crest or the tab bar or by closing the tab sends nothing at all. A duel has no pick
+    // clock, no liveness sweep and no lobby close on purpose, so nothing was left to force
+    // the issue - `DUEL_IDLE_MS` closed the room a week later with no result for anybody,
+    // which is the free re-roll the lobby and the forfeit exist to shut off.
+    //
+    // IT HAS TO BE CHECKED HERE AND NOT ONLY IN THE DOMAIN, because half the rule lives in
+    // the STORE: `touched_at` is stamped by the write rather than carried by the state
+    // machine, so "a week of nothing" is only true if a poll and a liveness ping are not
+    // writes. A domain fixture cannot see that at all.
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno' };
+    const deps = depsFor(store, clock);
+    const made = await post(deps, '/referee/v1/rooms', longSession('u1'), {
+      pace: 'async',
+      method: 'budget',
+      budget: 110,
+      years: [],
+    });
+    const code = (made.body as RoomView).code;
+    await post(deps, `/referee/v1/rooms/${code}/lineup`, longSession('u1'), {
+      formationName: '4-3-3',
+      style: 'bal',
+      ready: true,
+    });
+    await post(deps, `/referee/v1/rooms/${code}/join`, longSession('u2'));
+    await post(deps, `/referee/v1/rooms/${code}/lineup`, longSession('u2'), {
+      formationName: '4-3-3',
+      style: 'bal',
+      ready: true,
+    });
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const drafting = (await store.read(code))!;
+    // Ada sends hers. Bruno closes the tab and is never heard from again.
+    await post(deps, `/referee/v1/rooms/${code}/xi`, longSession('u1'), {
+      xi: fullBoard(drafting, 'u1'),
+    });
+    await post(deps, `/referee/v1/rooms/${code}/done`, longSession('u1'), { done: true });
+
+    // SIX DAYS OF SWEEPS, AND BRUNO KEEPS THE TAB OPEN. Neither a sweep nor a ping is a
+    // write, so neither may hold the room open - if either stamped `touched_at` the bound
+    // would never arrive, and the player who is WAITING would reset their own win every
+    // time they looked at it.
+    for (let day = 0; day < 6; day++) {
+      clock.now += 24 * 60 * 60_000;
+      await post(deps, `/referee/v1/rooms/${code}/seen`, longSession('u2'));
+      await get(deps, `/referee/v1/rooms/${code}`, longSession('u1'));
+      await sweepOnce(store, clock.now, SWEEP_MS);
+    }
+    const stillOn = (await store.read(code))!;
+    clock.now += 2 * 24 * 60 * 60_000;
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const out = (await store.read(code))!;
+    const list = await get(deps, '/referee/v1/duels', longSession('u2'));
+    const row = (list.body as { duels: DuelListRow[] }).duels.find((d) => d.code === code)!;
+    check(
+      'duel: a week of silence hands it to the player who sent, and neither ping nor poll stops the clock',
+      () =>
+        // Vacuity: a real draft, one team in and one not, six days in and still running.
+        drafting.status === 'drafting' &&
+        stillOn.status === 'drafting' &&
+        stillOn.members[0]!.done === true &&
+        !stillOn.members[1]!.done &&
+        // Past the bound: Bruno never sent, so Bruno has lost it. No football was played,
+        // which is what `pvp_records`' walkover branch counts (migration 0024).
+        out.status === 'ended' &&
+        out.championId === 'u1' &&
+        out.ties.length === 0 &&
+        // BOTH ARE STILL IN THE ROOM, or the loser could not open it to see what happened.
+        out.members.length === 2 &&
+        // And his own list says so, from his side.
+        !!row &&
+        row.status === 'ended' &&
+        row.walkover === true &&
+        row.won === false &&
+        row.opponentName === 'Ada',
+      () =>
+        `six days ${stillOn.status}, out ${out.status}/${out.championId}, ` +
+        `${JSON.stringify(row)}`,
     );
   }
 

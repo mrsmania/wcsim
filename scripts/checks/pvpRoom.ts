@@ -26,11 +26,19 @@ import { FORMATIONS_DATA, STYLES, getFormation } from '../../src/domain/formatio
 import { resolveKoTie } from '../../src/domain/knockout';
 import { xiStrength } from '../../src/domain/match';
 import { verifyCaller } from '../../src/domain/pvpAuth';
+// The one thing this file reads out of the VIEW rules: the sentence that states the duel's
+// sending window. It is checked here rather than beside its neighbours because a deadline
+// and the only sentence that mentions it are worth failing together - a window nobody is
+// told about would be a worse bug than the one the window fixes.
+import { sendWindowNote } from '../../src/domain/pvpView';
+import type { RoomView } from '../../src/domain/pvpWire';
 import {
   botsIn,
   humansIn,
   setBots,
   DRAFT_SLACK_MS,
+  DUEL_IDLE_MS,
+  duelSendDeadlineOf,
   LOBBY_IDLE_MS,
   leaveRoom,
   PICK_GRACE_MS,
@@ -1167,6 +1175,130 @@ function duelLeaveChecks(): void {
         () => `played ${played.status}, ended ${ended.status}`,
       );
     });
+  }
+
+  {
+    // A WEEK OF SILENCE OVER A DRAFT IS THE FORFEIT NOBODY PRESSED, which is the whole of
+    // the 2026-09-01 report: "I can leave the draw without catching a loss". Leaving a duel
+    // deliberately always cost it - and only if you pressed the button, where every other
+    // way out of a screen sends nothing at all, so the room simply stopped and `DUEL_IDLE_MS`
+    // later CLOSED itself with no result for anybody.
+    //
+    // Three endings, and they are three rules rather than one with cases: one player late
+    // loses it, both late closes it with nobody winning, and both teams in plays the
+    // football however late the sweep is.
+    const started = startedDuel();
+    const by = duelSendDeadlineOf(started)!;
+    const onlyMine = setDone(fillBoard(started, 'u0', T0 + 3000), 'u0', true, T0 + 3000);
+    const justBefore = tickRoom(onlyMine, by - 1000);
+    const justAfter = tickRoom(onlyMine, by + 1000);
+    const neither = tickRoom(started, by + 1000);
+    // Both teams in, and the sweep arriving a week late. The declaration is what the
+    // helper tests first, so the bound can never confiscate a duel both players finished.
+    const bothSent = withSeed(41, () => {
+      const built = fillBoard(fillBoard(started, 'u0', T0 + 3000), 'u1', T0 + 3500);
+      const sent = setDone(setDone(built, 'u0', true, T0 + 4000), 'u1', true, T0 + 4000);
+      return tickRoom(sent, by + 1000);
+    });
+    check(
+      'duel: a week of silence mid-draft loses it for whoever never sent, and only them',
+      () =>
+        // Vacuity: it is the room's own week, measured from when anything last happened.
+        by === started.touchedAt + DUEL_IDLE_MS &&
+        duelSendDeadlineOf({ ...started, touchedAt: T0 + 500_000 }) ===
+          T0 + 500_000 + DUEL_IDLE_MS &&
+        // Vacuity: one team really was sent, and the room really was still drafting.
+        started.status === 'drafting' &&
+        draftDone(onlyMine, onlyMine.members.find((m) => m.userId === 'u0')!) &&
+        !draftDone(onlyMine, onlyMine.members.find((m) => m.userId === 'u1')!) &&
+        // It does not fire early: a second short of the week is an ordinary draft.
+        justBefore.status === 'drafting' &&
+        // And past it, the player who never sent has lost it - the same encoding a
+        // walked-out duel uses, a champion with no match under it (migration 0024).
+        justAfter.status === 'ended' &&
+        justAfter.championId === 'u0' &&
+        !roomClosed(justAfter) &&
+        !justAfter.ties.length &&
+        // NEITHER OF THEM SENT ANYTHING, so neither has won anything: closed, no champion,
+        // and `duelListed` keeps a room in that state off the played list.
+        neither.status === 'ended' &&
+        roomClosed(neither) &&
+        // Both sent, and the sweep a week late: the match is played, not confiscated.
+        bothSent.status === 'round',
+      () =>
+        `before ${justBefore.status}, after ${justAfter.status}/${justAfter.championId}, ` +
+        `neither ${neither.status}/${neither.championId}, both ${bothSent.status}`,
+    );
+  }
+
+  {
+    // AND IT IS A DRAFT'S RULE ALONE. A live room has four deadlines of its own (P31) and
+    // needs none of this; a challenge nobody ever took up has nobody to be late, so the
+    // week closes it with no result exactly as it always did.
+    const live = withSeed(53, () => startRoom(roomOf(2, BUDGET), 'u0', T0));
+    const unanswered = duelWith(0);
+    const ignored = tickRoom(unanswered, T0 + DUEL_IDLE_MS + 1000);
+    check(
+      'duel: the sending window is a drafting duel and nothing else',
+      () =>
+        // Vacuity: the live room really is in the same phase, and a duel really has one.
+        live.status === 'drafting' &&
+        duelSendDeadlineOf(startedDuel()) !== null &&
+        duelSendDeadlineOf(live) === null &&
+        duelSendDeadlineOf(unanswered) === null &&
+        // A challenge nobody answered: closed, and nobody has lost anything by it.
+        roomClosed(ignored),
+      () => `live ${duelSendDeadlineOf(live)}, unanswered ${roomClosed(ignored)}`,
+    );
+  }
+
+  {
+    // AND THE PLAYERS ARE TOLD. A bound nobody is shown would take a duel off somebody
+    // while they were not looking, which is the same complaint in reverse. The sentence
+    // rounds DOWN, so it can never promise time that is not there, and it reads the other
+    // way round once you have sent - there it is the reassurance rather than the warning.
+    const view = (sendRemainingMs: number | null | undefined): RoomView =>
+      ({ sendRemainingMs }) as RoomView;
+    check(
+      'duel: the sending window is stated, rounded down, and from both ends',
+      () =>
+        sendWindowNote(view(DUEL_IDLE_MS), true) ===
+          '7 days left to send your team, or you lose the duel.' &&
+        sendWindowNote(view(DUEL_IDLE_MS), false) ===
+          '7 days left for them to send theirs, or the duel is yours.' &&
+        // Rounded down at every step: 47 hours is one day, 90 minutes is one hour.
+        sendWindowNote(view(47 * 3_600_000), true)?.startsWith('1 day ') === true &&
+        sendWindowNote(view(90 * 60_000), true)?.startsWith('1 hour ') === true &&
+        sendWindowNote(view(59 * 60_000), true)?.startsWith('Less than an hour ') === true &&
+        // Nothing to say when there is no window: a live room, or a referee older than it.
+        sendWindowNote(view(null), true) === null &&
+        sendWindowNote(view(undefined), true) === null,
+      () => `${sendWindowNote(view(DUEL_IDLE_MS), true)}`,
+    );
+  }
+
+  {
+    // AND NOTHING MAY QUIETLY REWIND THE WEEK. A duel loses nothing to an outage - its
+    // windows count the picks and have no deadline for a restart to have eaten - but
+    // `recoverFromOutage` used to hand back a CLONE anyway, and a clone is what the sweeper
+    // reads as "this room changed": it wrote the room and stamped `touched_at`, which is
+    // the very stamp the week is measured from. So every sweeper restart handed the player
+    // who had walked away another seven days, silently and for ever.
+    const duel = startedDuel();
+    // A ROLL room for the guard: a whole-draft room has no windows to hand back.
+    const live = withSeed(53, () => startRoom(roomOf(2, ROLL), 'u0', T0));
+    check(
+      'duel: an outage recovery leaves a duel alone, so a restart cannot rewind its week',
+      () =>
+        // BY IDENTITY, which is the only thing the sweeper looks at.
+        recoverFromOutage(duel, T0 + 5000, T0 + 50_000) === duel &&
+        // Vacuity, and it is the whole check: the same call on a LIVE room in the same
+        // phase does hand time back, so this is a rule about the pace and not a no-op.
+        live.status === 'drafting' &&
+        recoverFromOutage(live, T0 + 5000, T0 + 50_000) !== live &&
+        recoverFromOutage(live, T0 + 5000, T0 + 50_000).windows.u0!.openedAt === T0 + 45_000,
+      () => `duel ${recoverFromOutage(duel, T0 + 5000, T0 + 50_000) === duel}`,
+    );
   }
 }
 /**

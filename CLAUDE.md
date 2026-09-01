@@ -2920,7 +2920,12 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED. The versus schema is at 0024 and the referee was rebuilt on
+**A REFEREE REBUILD IS QUEUED (roadmap item 52), and no migration is.** The versus schema
+is at 0024 and the container is a rebuild behind: the week that resolves an abandoned duel
+(below) is read by the SWEEPER, so it does nothing at all until the referee is rebuilt.
+Nothing else waits on it - the client half degrades to saying nothing, which is right,
+because until the container moves there is no window to warn anybody about. **The schema is
+at 0024 and the referee was rebuilt on
 2026-09-01** (roadmap item 51, closed), which is what put the duel lobby and the forfeit on
 the server. **0024 was applied the same day** and it is the one migration in this repo whose
 order genuinely did not matter in either direction, because nothing the referee WRITES
@@ -3565,6 +3570,40 @@ Eight things about it are decisions rather than details, and each one is checked
   button. The checks hold the pair together on the referee's real answers.
 - **A REMATCH IS A NEW DUEL.** The old one has a result, and a result that can change is not a
   result, so `DuelRematch` opens a fresh room with the same rules and hands back a fresh link.
+
+**AND A WEEK OF SILENCE IS THE FORFEIT NOBODY PRESSED** (2026-09-01, roadmap item 52,
+reported from the game as *"leaving a room during rolling does not cost a loss - I can leave
+the draw without catching a loss"*). Every line of the paragraph above was true and only of
+the BUTTON. Leave a duel the way you leave any other screen - the crest, the tab bar, Back,
+closing the tab - and nothing is sent at all, and a duel has no pick clock, no liveness
+sweep and no lobby close ON PURPOSE, so there was nothing left to force the issue: the room
+stopped dead, told both players it was somebody's turn, and `DUEL_IDLE_MS` eventually CLOSED
+it with no result and no loss for anybody. Which is the free re-roll the lobby and the
+forfeit exist to shut off, reachable by pressing nothing. So the week now resolves the way
+the button would have (`duelDraftExpired`): mid-draft, whoever never sent a team loses it.
+Four things about it:
+
+- **IT IS THE WEEK THAT WAS ALREADY THERE, not a new deadline**, and that is the whole
+  reason it changes nothing else. A shorter clock of its own was the obvious first shape and
+  it was wrong: `npm run checks` drafts a duel over nine days on purpose, because playing at
+  your own pace over a week IS the mode, not a tolerance it happens to allow. Silence is the
+  honest test for abandonment and nobody actively playing can trip it, since every move
+  refreshes `touched_at`. **A two-day window would have halved what a duel may take** - a
+  separate decision, one constant away, and not one to take by accident while fixing this.
+- **BOTH LATE CLOSES IT WITH NOBODY WINNING**, which is not the same rule read twice. A
+  forfeit hands the duel to the player who STAYED, and where neither sent anything there is
+  no such player; picking one would be inventing a result out of which seat they took.
+- **A POLL AND A LIVENESS PING ARE NOT WRITES**, and the rule leans on it. `store.seen` is a
+  targeted update of one member column and a `GET` writes nothing, so a tab left open on a
+  duel nobody is playing cannot hold it open - and, the half that would have been perverse,
+  the player who is WAITING cannot reset their own win by checking on it.
+- **AN OUTAGE RECOVERY NOW LEAVES A DUEL ALONE, and without that the rule was already
+  broken.** `recoverFromOutage` returned a CLONE for any drafting room, even with no windows
+  to hand time back to, and a clone is exactly what the sweeper reads as "this room changed":
+  it wrote the room and stamped `touched_at`. So every sweeper restart would have handed the
+  player who walked away another seven days, silently, for ever. A duel loses nothing to an
+  outage anyway - its windows have no deadline for a restart to have eaten - so it is a
+  one-line guard, checked by identity with a live room as the vacuity guard.
 
 **A DUEL'S MATCH IS REVEALED WHEN ITS VIEWER TURNS UP, NOT WHEN THE SERVER PLAYS IT**
 (2026-08-31). P30's reveal window is the server's and has to be in a live room, where two

@@ -215,7 +215,24 @@ export type RoomPace = 'live' | 'async';
  * still has to: a challenge nobody accepts and a draft nobody finishes are the two ways a
  * duel becomes a row that will never resolve, and without a bound the list they sit on
  * fills with them for ever. Every write stamps `touchedAt`, so a duel somebody is playing
- * over three evenings never reaches it.
+ * over three evenings never reaches it. Polling and the liveness ping are NOT writes (the
+ * ping updates one member column of its own), so a tab left open on a duel nobody is
+ * playing does not hold it open, and the player waiting cannot reset it by looking.
+ *
+ * WHAT IT DOES WHEN IT FIRES DEPENDS ON WHO WAS LATE (`duelDraftExpired`, 2026-09-01), and
+ * that is the whole of the fix for "I can leave the draw without catching a loss". Leaving
+ * a duel deliberately is a forfeit, and it always was - but only if you press the button,
+ * and every other way out of a screen sends nothing at all. So a player who closed the tab
+ * used to reach this bound and have the room CLOSED for them, with no result and no loss
+ * for anybody, which is the free re-roll the lobby and the forfeit exist to shut off,
+ * reachable by pressing nothing. Now a week of silence over a DRAFT resolves the way the
+ * button would have: whoever never sent a team loses it.
+ *
+ * IT IS THIS BOUND RATHER THAN A NEW ONE, and that is deliberate. A shorter deadline of its
+ * own would have been a second thing to explain and would have changed what the mode IS:
+ * `npm run checks` drafts a duel over nine days on purpose, because playing at your own
+ * pace over a week is the feature, not a tolerance. Silence is the honest test for
+ * abandonment, and it is one nobody actively playing can trip - every move refreshes it.
  */
 export const DUEL_IDLE_MS = 7 * 24 * 60 * 60_000;
 
@@ -444,6 +461,32 @@ export function draftDeadlineOf(room: PvpRoom): number | null {
   if (!wholeDraft(room) || room.status !== 'drafting' || room.pace === 'async') return null;
   if (room.startedAt === undefined) return null;
   return room.startedAt + draftSecondsOf(room) * 1000;
+}
+
+/**
+ * When this DUEL stops taking teams, or null when nothing is counting.
+ *
+ * IT IS NOT THE ONE ABOVE AND MUST NOT BE FOLDED INTO IT. `draftDeadlineOf` is the clock a
+ * whole-draft room runs (P52) - a budget room's twelve minutes, drawn as a bar over the
+ * market - and it is null for a duel on purpose, because inside its window a duel really
+ * has no clock at all. This is the outer bound on the window itself: a week of nothing
+ * happening, after which whoever has not sent a team loses it (`DUEL_IDLE_MS`). A roll duel
+ * has no whole-draft block either, so folding the two together would also hand the draft
+ * screen the wrong UI.
+ *
+ * IT MOVES WHEN EITHER PLAYER DOES, because it is the ROOM going quiet that it measures,
+ * not one person being slow. Two people picking at each other over a fortnight are playing
+ * the duel and neither is abandoning it.
+ *
+ * BOTH SEATS HAVE TO BE FILLED, so the sweep and the screen say the same thing. A duel only
+ * reaches `drafting` once both players are in and ready, so this is belt and braces for a
+ * room stored under a build that dealt to a challenger sitting on their own - there nobody
+ * has arrived to be late, and the week closes it with no result exactly as before.
+ */
+export function duelSendDeadlineOf(room: PvpRoom): number | null {
+  if (room.pace !== 'async' || room.status !== 'drafting') return null;
+  if (room.members.length < room.size) return null;
+  return room.touchedAt + DUEL_IDLE_MS;
 }
 
 /**
@@ -1301,6 +1344,34 @@ function leaveDuel(room: PvpRoom, userId: string): PvpRoom {
  * its match. `walkover` in `domain/pvpView.ts` is that reading, and `pvp_records` counts it
  * by the same test.
  */
+/**
+ * A duel that went quiet in the middle of its DRAFT (`DUEL_IDLE_MS`).
+ *
+ * ONE LATE PLAYER LOSES IT, and that is the point: this is the forfeit `leaveDuel` gives
+ * somebody who says they are going, given to somebody who just went. Walking out of a duel
+ * now costs the same whether or not you press the button, and the only difference between
+ * the two is how long the other player waits. They get a result rather than a row that
+ * never moves, and it counts on both records through the branch migration 0024 added -
+ * there is no football to record in either case.
+ *
+ * BOTH LATE AND IT CLOSES WITH NOBODY WINNING, which is not the same rule read twice. A
+ * forfeit hands the duel to the player who STAYED, and here there is no such player:
+ * neither of them sent anything, so neither has done a thing to win with, and picking one
+ * would be inventing a result out of which seat they took. `closeRoom` is the honest
+ * ending, and a room in that state is already kept off the played list (`duelListed`).
+ *
+ * NEITHER LATE AND IT HANDS THE ROOM BACK UNTOUCHED, so the caller falls through to the
+ * draw. Both teams are in and the only thing missing is a sweep, which cannot happen while
+ * one is running every second - but "the week ran out" must never be able to confiscate a
+ * duel both players finished, and a rule that reads correctly at every input is worth more
+ * than one that relies on the sweeper's timing.
+ */
+function duelDraftExpired(room: PvpRoom): PvpRoom {
+  const late = room.members.filter((m) => !draftDone(room, m));
+  if (!late.length) return room;
+  return late.length === 1 ? forfeitDuel(room, late[0]!.userId) : closeRoom(room);
+}
+
 function forfeitDuel(room: PvpRoom, userId: string): PvpRoom {
   const winner = room.members.find((m) => m.userId !== userId);
   if (!winner) return room;
@@ -1382,7 +1453,16 @@ function forceCompleteOne(room: PvpRoom, m: RoomMember, now: number): void {
  * read afterwards as often as it is watched, and both have to work.
  */
 function tickDuel(room: PvpRoom, now: number): PvpRoom {
-  if (now - room.touchedAt > DUEL_IDLE_MS) return closeRoom(room);
+  if (now - room.touchedAt > DUEL_IDLE_MS) {
+    // A WEEK OF NOTHING, AND WHAT THAT MEANS DEPENDS ON THE PHASE. Mid-draft it is somebody
+    // who walked away from a game the other player is in, so it resolves as the forfeit
+    // they did not press (`duelDraftExpired`); anywhere else - a challenge nobody ever took
+    // up, a result nobody came back for - there is nothing to award and the room closes.
+    // The helper hands the room back when both teams are in, which falls through to the
+    // draw below rather than confiscating a duel that was finished all along.
+    const out = room.status === 'drafting' ? duelDraftExpired(room) : closeRoom(room);
+    if (out !== room) return out;
+  }
   if (room.status === 'lobby') {
     // THE DRAFT STARTS ITSELF, and it has to: a live room's kick-off is sent by the host's
     // own client after its three-second count (P50), and a duel's two players are
@@ -1543,6 +1623,15 @@ export function tickRoom(room: PvpRoom, now: number): PvpRoom {
  */
 export function recoverFromOutage(room: PvpRoom, lastSeenAt: number, now: number): PvpRoom {
   if (room.status !== 'drafting' || now <= lastSeenAt) return room;
+  // A DUEL IS NEVER RECOVERED, because it lost nothing: its windows count the picks and
+  // deal the squads and have no deadline for an outage to have eaten (P51). Handing time
+  // back to a clock that is not running is a no-op that RETURNS A CLONE, and a clone is
+  // what the sweeper reads as "this room changed" - so it wrote the room, published it, and
+  // stamped `touched_at`. That last one is the one that bites now: the week of silence that
+  // resolves an abandoned duel (`duelDraftExpired`) is measured off that stamp, so a
+  // sweeper restart would have quietly handed the player who walked away another week,
+  // every time, for ever.
+  if (room.pace === 'async') return room;
   const next = clone(room);
   const window = next.pickSeconds * 1000;
   for (const userId of Object.keys(next.windows)) {

@@ -351,6 +351,75 @@
 
 <details class="item">
   <summary>
+    <span class="num">52</span>
+    <span class="title">Rebuild the versus server, so walking away from a duel costs it
+      <span class="sub"><b>Queued 2026-09-01, no migration.</b> A duel abandoned mid-draft
+      now resolves against whoever never sent a team, instead of closing a week later with
+      no result for anybody. The rule is read by the SWEEPER, so it does nothing at all
+      until the container is rebuilt. The client half is already live and degrades to
+      saying nothing, which is correct while there is no window to warn about.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What it is fixing.</strong> Reported from the game in one sentence:
+    "leaving a room during rolling does not cost a loss - I can leave the draw without
+    catching a loss." True, and only of the BUTTON. Giving a duel up is a forfeit and the
+    confirm line says so, but leaving the way you leave any other screen - the crest, the
+    Versus tab, Back, closing the tab - sends nothing at all. A duel has no pick clock, no
+    liveness sweep and no lobby close on purpose, so nothing was left to force the issue:
+    the room stopped dead, went on telling both players it was somebody's turn, and a week
+    later closed itself with no result for either side. Which is the free re-roll the lobby
+    and the forfeit were added to shut off, reachable by pressing nothing.</p>
+
+    <p><strong>What changed.</strong> The week that was already there
+    (<code>DUEL_IDLE_MS</code>) now resolves honestly. Mid-draft, whoever never sent a team
+    loses it, by the same encoding a walked-out duel uses - a champion with no match under
+    it, which <b>migration 0024 already counts</b>, so there is no SQL to apply. Both late
+    still closes it with nobody winning; both teams in still plays the football, however
+    late the sweep. Both draft panels and the wait after sending now name the window.</p>
+
+    <p><strong>Not a new deadline, deliberately.</strong> A shorter clock of its own was the
+    first shape and it was wrong: the checks draft a duel over nine days on purpose, because
+    playing at your own pace over a week is the mode rather than a tolerance. A two-day
+    window would have halved what a duel may take, which is a separate decision and one
+    constant away if it is wanted.</p>
+
+    <p><strong>A neighbouring bug went with it.</strong>
+    <code>recoverFromOutage</code> returned a clone for any drafting room even with no
+    windows to hand time back to, and a clone is what the sweeper reads as "this room
+    changed" - so it wrote the room and stamped <code>touched_at</code>. Every sweeper
+    restart would have handed the player who walked away another seven days, for ever. A
+    duel loses nothing to an outage, so it is now skipped outright.</p>
+
+    <p><strong>How to verify after rebuilding</strong> - do this, do not assume:</p>
+    <ol>
+      <li><code>scripts/deploy-referee.sh --verify</code>, which mints a session on the box
+      and creates, changes and deletes a real room. A version endpoint answering is not a
+      working referee.</li>
+      <li>Open a duel from two accounts, both ready, send ONE team, and leave the other
+      alone. Inside the week the row stays under "On now" and nothing moves.</li>
+      <li>The draft screen names the window: "N days left to send your team, or you lose the
+      duel." An older container sends no such field and the line is simply absent, which is
+      how to tell the two apart from the outside.</li>
+      <li>Past the week the room ends with the sender as champion and no match under it, and
+      both records move - the loser's row reads as a loss under "Played".</li>
+      <li>Check the firewall afterwards. The docker bridge rules have been wiped by the
+      container operations of a deploy before, which takes the whole accounts stack with it
+      (<code>docs/nas-setup.md</code>).</li>
+    </ol>
+
+    <p><strong>Order does not matter in either direction</strong>, unusually. Nothing the
+    referee writes changed and no column moved, so the client can ship first (it says
+    nothing without the field) and the container can ship first (the rule simply starts
+    working). There is no migration to sequence against.</p>
+  </div>
+</details>
+
+
+<details class="item">
+  <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
       <span class="sub">Extend the dataset: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b>, <b>1974</b> and <b>1970</b> all shipped 2026-08-25, and <b>2026</b> on 2026-08-26 as the first drop made forwards. Fifteen tournaments, 9,625 rows, 416 squads, 115 collectibles. Next: 1966, then 1962 and earlier.</span>

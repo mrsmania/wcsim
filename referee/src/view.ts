@@ -26,7 +26,13 @@
 // before it opened.
 
 import type { PvpRoom } from '../../src/domain/pvpRoom';
-import { deadlineOf, draftDeadlineOf, draftSecondsOf, wholeDraft } from '../../src/domain/pvpRoom';
+import {
+  deadlineOf,
+  draftDeadlineOf,
+  draftSecondsOf,
+  duelSendDeadlineOf,
+  wholeDraft,
+} from '../../src/domain/pvpRoom';
 // The payload's SHAPE is shared with the client (`src/domain/pvpWire.ts`), so the two
 // sides cannot describe it differently while both type-checking. The RULE about what a
 // viewer may see stays here, where it is enforced.
@@ -61,6 +67,7 @@ export function roomView(
 ): RoomView {
   const played = playedIds(room);
   const deadline = draftDeadlineOf(room);
+  const sendBy = duelSendDeadlineOf(room);
   const me = room.members.find((m) => m.userId === viewerId);
   const w = viewerId ? room.windows[viewerId] : undefined;
 
@@ -80,6 +87,10 @@ export function roomView(
           remainingMs: deadline === null ? null : Math.max(0, deadline - now),
         }
       : null,
+    // A DUEL'S OUTER BOUND ON SENDING A TEAM AT ALL, which is a separate field from the
+    // block above and has to be: that one is the whole-draft clock, sent by a budget room
+    // and by nothing else, and a roll duel needs to go on sending no such block.
+    sendRemainingMs: sendBy === null ? null : Math.max(0, sendBy - now),
     round: room.round,
     championId: room.championId ?? null,
     rules: room.rules,

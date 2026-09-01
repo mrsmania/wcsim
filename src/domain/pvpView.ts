@@ -345,6 +345,42 @@ export function duelRules(row: Pick<DuelRow, 'method' | 'budget'>): string {
 }
 
 /**
+ * What a duel's sending window has left, for whichever half of it the reader is on.
+ *
+ * A DEADLINE NOBODY IS TOLD ABOUT IS A TRAP, and that is the whole reason this exists. The
+ * window (`DUEL_DRAFT_MS`) is what makes walking out of a duel cost the same whether or not
+ * you press the button, and a player who is never shown it would meet it as a duel that
+ * lost itself while they were not looking - which is a worse bug than the one the deadline
+ * fixes. So both draft panels print it, and so does the wait after you have sent.
+ *
+ * IT READS THE OTHER WAY ROUND ONCE YOU HAVE SENT, and that half is the reassurance rather
+ * than the warning: the same rule that can cost you the duel is what stops it hanging on
+ * somebody who has stopped playing, so it is worth saying in those words.
+ *
+ * NULL WHEN THE SERVER HAS NOT MENTIONED ONE - a live room, a duel that is not drafting, or
+ * a referee older than the deadline. A screen then says nothing, which is right: there is
+ * no window to miss.
+ */
+export function sendWindowNote(view: RoomView, mine: boolean): string | null {
+    const left = view.sendRemainingMs;
+    if (left === null || left === undefined) return null;
+    return mine
+        ? `${sendWindowLeft(left)} left to send your team, or you lose the duel.`
+        : `${sendWindowLeft(left)} left for them to send theirs, or the duel is yours.`;
+}
+
+/** The window as a phrase, always rounded DOWN, so it can never promise time that is not
+ *  there. Coarse for `agoLine`'s reason as well: it is read off a poll, and an hours figure
+ *  is what two days is actually good for. */
+function sendWindowLeft(ms: number): string {
+    const hours = Math.floor(ms / 3_600_000);
+    if (hours < 1) return 'Less than an hour';
+    if (hours < 24) return hours === 1 ? '1 hour' : `${hours} hours`;
+    const days = Math.floor(hours / 24);
+    return days === 1 ? '1 day' : `${days} days`;
+}
+
+/**
  * What leaving THIS room, as THIS viewer, actually does.
  *
  * FOUR THINGS WEAR ONE BUTTON, and the screen has to say which before somebody presses it:
