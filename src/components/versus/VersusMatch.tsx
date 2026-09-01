@@ -48,7 +48,7 @@ export default function VersusMatch({
     ratings: boolean;
     /** Reveal it minute by minute, rather than showing the settled result. */
     live: boolean;
-    /** Short labels for both sides when NEITHER is the viewer (P24). See the header. */
+    /** The two names, for when NEITHER side is the viewer's (P24). See the header. */
     sides?: { user: string; opp: string };
     onEnd: () => void;
 }) {

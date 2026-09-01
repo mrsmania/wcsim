@@ -28,9 +28,15 @@ import { RoomNote } from './versusUi';
 // lengths, so without it a player watching their own match would read the result of the
 // tie they are about to be shown, printed on the tree beside it.
 
-/** Names are people's, not nations', and they sit in a narrow cell. The first word is
- *  what somebody is called; the rest is what makes it not fit. */
-export const shortName = (name: string): string => (name.split(/\s+/)[0] ?? name).slice(0, 10);
+// A NAME IS SHOWN WHOLE, and the narrow cells truncate it in CSS rather than in code.
+// This tree used to print the first word only, on the reasoning that a first word is what
+// somebody is called - which is true of `Mario Smania` and of nothing else here. It was
+// reported from a room of four with two practice opponents in it: `The Reserves` and
+// `The Academy` are both called `The`, so the bracket, the winner box and the pot all
+// named the same nobody three times over. A display name is at most `NAME_MAX` characters
+// and every bot name is inside that too, so there is nothing here that needs shortening;
+// where a box is genuinely too narrow, an ellipsis says a name was cut and a dropped
+// surname says nothing at all.
 
 function Seat({ seat }: { seat: BracketSeat }) {
     if (!seat.userId) {
@@ -46,9 +52,11 @@ function Seat({ seat }: { seat: BracketSeat }) {
     const tone = seat.won === false ? 'text-dim' : 'text-ink';
     return (
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-            <span className={`min-w-0 truncate text-[12.5px] font-bold ${tone}`}>
-                {shortName(seat.name)}
-                {seat.you && <span className="ml-1.5 font-mono text-[9px] text-pitch-ink">YOU</span>}
+            <span className={`flex min-w-0 items-baseline gap-1.5 text-[12.5px] font-bold ${tone}`}>
+                {/* The name truncates and the YOU marker does not: a cell too narrow for both
+                    must lose the end of a name rather than the one word saying it is yours. */}
+                <span className="truncate">{seat.name}</span>
+                {seat.you && <span className="shrink-0 font-mono text-[9px] text-pitch-ink">YOU</span>}
             </span>
             <span
                 className={`shrink-0 font-mono text-[12.5px] font-bold tabular-nums ${
@@ -118,11 +126,11 @@ export default function RoomBracket({
                         {view.members.map((m) => (
                             <span
                                 key={m.userId}
-                                className="rounded-[4px] border border-line bg-panel px-2 py-1 text-[12px] font-bold text-ink"
+                                className="inline-flex max-w-full items-baseline gap-1.5 rounded-[4px] border border-line bg-panel px-2 py-1 text-[12px] font-bold text-ink"
                             >
-                                {shortName(m.name)}
+                                <span className="truncate">{m.name}</span>
                                 {m.userId === view.you?.userId && (
-                                    <span className="ml-1.5 font-mono text-[9px] text-pitch-ink">YOU</span>
+                                    <span className="shrink-0 font-mono text-[9px] text-pitch-ink">YOU</span>
                                 )}
                             </span>
                         ))}
@@ -167,7 +175,7 @@ export default function RoomBracket({
                                 champion ? 'text-ink' : 'text-dim'
                             }`}
                         >
-                            {champion ? shortName(champion.name) : 'To be won'}
+                            {champion ? champion.name : 'To be won'}
                         </span>
                     </div>
                 </div>

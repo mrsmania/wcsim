@@ -61,6 +61,12 @@ import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
 import { ROOM_CONTROLS, SOLO_CONTROLS, roomControls } from '../../src/components/buildControls';
 import { duelsChanged, onDuelsChanged } from '../../src/state/pvp/duels';
+import { botName } from '../../src/domain/pvpBot';
+import { NAME_MAX, validateName } from '../../src/domain/displayName';
+
+/** A name being taken apart in a versus screen: the shape of the bracket bug below.
+ *  Module scope so the pattern is written once and read in the check that uses it. */
+const SPLIT_A_NAME = /\bname\b[^\n]*\.\bsplit\b/;
 
 const HOME = 'user-home';
 const AWAY = 'user-away';
@@ -490,6 +496,57 @@ export function pvpViewChecks(): void {
         tree[0]!.games[0]!.yours &&
         tree[0]!.games[0]!.home.you,
       () => JSON.stringify(tree.map((r) => [r.label, r.drawn, r.games.length])),
+    );
+  }
+
+  // --- A NAME IN THE TREE IS THE WHOLE NAME ----------------------------------
+  // Reported from a room of four with two practice opponents in it: the bracket, the
+  // winner box and the pot each read `The`, because the cells printed the FIRST WORD of a
+  // name and `The Reserves` and `The Academy` share one. Nothing needed shortening in the
+  // first place - a display name is capped at NAME_MAX and every practice-opponent name is
+  // inside that too - so the cells truncate in CSS, where an ellipsis at least says a name
+  // was cut.
+  //
+  // The vacuity guard is the inverted one and it is the point of the check: the names are
+  // asserted to be AMBIGUOUS by first word, so a build that went back to shortening them
+  // that way is naming two different opponents the same thing rather than merely looking
+  // untidy. A future set of bot names that happened to start with distinct words would
+  // fail here and should be re-thought, not re-worded.
+  {
+    // Every name a practice opponent can play under, in the order `botName` hands them
+    // out, plus the numbered fallback that follows the curated list.
+    const bots: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      const next = botName(bots);
+      bots.push(next);
+      if (/^Practice XI /.test(next)) break;
+    }
+    const firstWord = (n: string) => n.split(/\s+/)[0] ?? n;
+    const dir = 'src/components/versus';
+    const files = readdirSync(dir).filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'));
+    const src = (f: string) => readFileSync(`${dir}/${f}`, 'utf8');
+    const tree = src('RoomBracket.tsx');
+    // Nothing that draws a room may take a name apart. Source-level because no fixture can
+    // see it: a shortened name renders perfectly, it just names the wrong nobody.
+    const splitters = files.filter((f) => SPLIT_A_NAME.test(src(f)));
+    check(
+      `pvpView: a room prints a name whole, and the ${bots.length - 1} practice-opponent names need it`,
+      () =>
+        // A room of eight can need seven of them, so the curated list is not a token one.
+        bots.length - 1 >= 7 &&
+        new Set(bots).size === bots.length &&
+        // Every one of them is a name the screens are already built to hold: legal, and
+        // inside the bound a person's own name is held to.
+        bots.every((n) => validateName(n).ok && [...n].length <= NAME_MAX) &&
+        // THE INVERTED GUARD: by first word they are not distinct, which is the bug.
+        new Set(bots.map(firstWord)).size < bots.length &&
+        // And the tree renders the name itself, truncating rather than amputating.
+        /\{seat\.name\}/.test(tree) &&
+        /truncate/.test(tree) &&
+        splitters.length === 0,
+      () =>
+        `${bots.length} names, ${new Set(bots.map(firstWord)).size} distinct first words` +
+        (splitters.length ? `, split in ${splitters.join(', ')}` : ''),
     );
   }
 

@@ -32,7 +32,7 @@ import {
     StageHeader,
     btn,
 } from '../matchUi';
-import RoomBracket, { currentRoundLabel, shortName } from './RoomBracket';
+import RoomBracket, { currentRoundLabel } from './RoomBracket';
 import { DuelRematch } from './DuelPanels';
 import RoomDraft from './RoomDraft';
 import RoomLobby from './RoomLobby';
@@ -400,8 +400,8 @@ export default function RoomScreen({ code }: { code: string }) {
                                 live={shouldReveal(watching.raw, view.at)}
                                 // Neither side is the viewer's, so both are named.
                                 sides={{
-                                    user: shortName(watching.home.name),
-                                    opp: shortName(watching.away.name),
+                                    user: watching.home.name,
+                                    opp: watching.away.name,
                                 }}
                                 onEnd={room.refresh}
                             />
