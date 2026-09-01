@@ -3727,7 +3727,7 @@ reached again.
 **THE WAIT IS WHERE THE DRAW GOES** (P47), and that is a decision rather than a layout. A
 decisive player in a room of eight can sit on a finished XI for four minutes, because nothing
 is paired until every draft is in. So the tree is on screen through that wait with every seat
-reading "not drawn" and every name in the pot, and it fills in front of them when the last
+reading "?" and every name in the pot, and it fills in front of them when the last
 pick lands. It appears only once YOUR XI is in: while you are still picking, the board is
 what the screen is for.
 
@@ -3744,6 +3744,34 @@ guard is INVERTED: it asserts the bot names are AMBIGUOUS by first word, so a bu
 went back to shortening them that way is naming two opponents the same thing rather than
 merely looking untidy. **A name is not a first word, and shortening one is a decision about
 identity rather than about layout.**
+
+**AND THE TREE IS THE CUP RUN'S OWN BRACKET, DOWN TO THE STYLESHEET** (2026-09-01). A room
+plays a knockout and the game already draws one, so drawing it twice was the mistake: the
+room's tree was columns of plain cards ending in a "Winner" box, which said the same things
+in a second visual language on a screen reached from the same tab bar. `RoomBracket` wears
+the `bkt-` design now - the same match box, the same connectors joining a pair into the
+round above, the same round headings with the one being played in amber, the same
+two-sided phone tree converging on the cup, and the same deep green champion node with its
+trophy and its burst of confetti on hover. Three things about it:
+- **Only two figures differ, and they are in the CSS.** A room's tree is 4 or 8 seats
+  rather than 16, so it stands shorter and needs less width before it scrolls: `--bkt-h`
+  and `--bkt-w`, set by `.bkt-of-4` / `.bkt-of-8`, **with the cup's own numbers as the
+  fallbacks** so nothing about the Cup Run's tree moved. Everything else already derived
+  from what is in the columns, which is why a generic tree cost two variables.
+- **What a seat HOLDS is the only real difference, and it is data rather than design**: a
+  person where the cup has a nation, so a name instead of a flag, a country code, a year
+  and a rating chip. The states are the tree's own - through, out (dimmed and struck), not
+  settled yet - and the phone box stacks the two names where the cup's stands two
+  three-letter codes side by side, which is forced by what is in it rather than a second
+  opinion about the layout.
+- **The per-box "Playing" strip went with it.** A drawn tie carrying no score is one being
+  played, which is exactly what the cup's tree says of its own pending round, and the
+  amber round heading is what marks the round the room is in.
+`npm run checks` reads both files, since nothing behavioural can see a design: a room that
+went back to drawing its own cards would render perfectly and simply look like a different
+game. It asserts the shared classes as WHOLE classes rather than as substrings (`bkt-cup`
+is inside `bkt-cup-lbl`, so a plain `includes` would pass a room that kept the label and
+dropped the node), and asserts the cup's fallbacks are still the fallbacks.
 
 **WATCHING TWO OTHER PEOPLE MEANS THREE SHARED COMPONENTS STOP SAYING "YOU".**
 `FixtureHead` hard-codes "Your XI" and the red YOU badge and `GoalList` tags the home side

@@ -307,7 +307,7 @@ button:not(:disabled) {
 .bkt {
     display: flex;
     gap: 30px;
-    min-width: 840px;
+    min-width: var(--bkt-w, 840px);
 }
 .bkt-heads {
     margin-bottom: 10px;
@@ -326,7 +326,7 @@ button:not(:disabled) {
     color: var(--color-amber);
 }
 .bkt {
-    height: 560px;
+    height: var(--bkt-h, 560px);
 }
 .bkt-round {
     flex: 1 1 0;
@@ -658,4 +658,50 @@ button.bkt-match:focus-visible {
 }
 .bkt-mband.bkt-sf.bkt-up .bkt-match::after {
     height: 30px;
+}
+
+/* ---- a versus room's tree: the same board, with 4 or 8 people on it ----
+   A room plays the same knockout the cup does, so it draws the same tree: the same match
+   box, the same connectors, the same champion node. Only two figures differ in the wide
+   layout, because everything else already derives from what is in the columns - how tall
+   the tree stands and how narrow it may get before it scrolls. The cup's own numbers are
+   the fallbacks above, so nothing about the Cup Run's tree moves. */
+.bkt-of-4 {
+    --bkt-h: 200px;
+    --bkt-w: 470px;
+}
+.bkt-of-8 {
+    --bkt-h: 340px;
+    --bkt-w: 660px;
+}
+/* A seat holding a PERSON rather than a nation. The YOU tag stands where the cup's tree
+   puts the red-bordered flag, and carries the same colour: it is the one word that has to
+   survive a box too narrow for the name beside it, so it never shrinks. */
+.bkt-you-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--color-loss);
+    flex: 0 0 auto;
+}
+/* The narrow tree STACKS the two names where the cup's stands them side by side, and that
+   is forced by what is in the box rather than a second opinion about the layout: the cup's
+   phone box is 83px because it holds two three-letter codes, and a display name runs to
+   NAME_MAX characters - two of those will not go across a phone at any font size worth
+   reading. Same tree, same connectors, taller boxes. */
+.bkt-mtree .bkt-match.bkt-stack {
+    width: min(170px, 44vw);
+}
+.bkt-stack .bkt-seed {
+    font-size: 10.5px;
+    padding: 4px 6px;
+}
+/* A champion who is a person: a name up to sixteen characters where a nation is usually
+   one short word, so it wraps inside the node rather than pushing it wider than the column
+   it sits in. */
+.bkt-cup.bkt-cup-who .bkt-cup-nm {
+    max-width: 8.5rem;
+    margin-inline: auto;
+    overflow-wrap: anywhere;
 }

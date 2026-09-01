@@ -526,6 +526,7 @@ export function pvpViewChecks(): void {
     const files = readdirSync(dir).filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'));
     const src = (f: string) => readFileSync(`${dir}/${f}`, 'utf8');
     const tree = src('RoomBracket.tsx');
+    const css = readFileSync('src/index.css', 'utf8');
     // Nothing that draws a room may take a name apart. Source-level because no fixture can
     // see it: a shortened name renders perfectly, it just names the wrong nobody.
     const splitters = files.filter((f) => SPLIT_A_NAME.test(src(f)));
@@ -540,13 +541,61 @@ export function pvpViewChecks(): void {
         bots.every((n) => validateName(n).ok && [...n].length <= NAME_MAX) &&
         // THE INVERTED GUARD: by first word they are not distinct, which is the bug.
         new Set(bots.map(firstWord)).size < bots.length &&
-        // And the tree renders the name itself, truncating rather than amputating.
+        // And the tree renders the name itself, truncating rather than amputating. The
+        // truncation is the cup bracket's own `.bkt-nm` rule, so both halves are asserted:
+        // grepping the screen for the word `truncate` alone would pass on the pot's chips
+        // while a seat printed a name in full and let it push the box open.
         /\{seat\.name\}/.test(tree) &&
-        /truncate/.test(tree) &&
+        /bkt-nm/.test(tree) &&
+        /\.bkt-nm\s*\{[^}]*text-overflow:\s*ellipsis/.test(css) &&
         splitters.length === 0,
       () =>
         `${bots.length} names, ${new Set(bots.map(firstWord)).size} distinct first words` +
         (splitters.length ? `, split in ${splitters.join(', ')}` : ''),
+    );
+  }
+
+  {
+    // A ROOM'S TREE IS THE CUP RUN'S TREE, down to the stylesheet. Source-level because
+    // nothing behavioural can see a design: a room that went back to drawing its own
+    // columns of cards would render perfectly and simply look like a different game on a
+    // screen reached from the same tab bar as the one it copies.
+    //
+    // The two figures the cup's tree fixes for a 16-team draw - how tall it stands, and
+    // how narrow it may get before it scrolls - are variables now, with the cup's own
+    // numbers as the fallbacks, so a room of four can be shorter without moving the Cup
+    // Run at all. Both halves are asserted, since a room sizing itself by overwriting
+    // those literals is the change that would quietly resize the cup's.
+    const tree = readFileSync('src/components/versus/RoomBracket.tsx', 'utf8');
+    const css = readFileSync('src/index.css', 'utf8');
+    const shared = [
+      'bkt-wrap',
+      'bkt-wide',
+      'bkt-narrow',
+      'bkt-match',
+      'bkt-seed',
+      'bkt-pair',
+      'bkt-mtree',
+      'bkt-cup',
+    ];
+    // As a whole class rather than as a substring: `bkt-cup` is inside `bkt-cup-lbl`, so
+    // a room that dropped the champion node and kept its label would pass a plain
+    // `includes`, which is the shape of every mutation worth catching here.
+    const whole = (s: string, c: string) => new RegExp(`${c}(?![\\w-])`).test(s);
+    const missing = shared.filter((c) => !whole(tree, c) || !whole(css, `\\.${c}`));
+    check(
+      'pvpView: a room draws the cup bracket itself, and sizes it without moving the cup',
+      () =>
+        missing.length === 0 &&
+        // The room's own two sizes...
+        /\.bkt-of-4\s*\{[^}]*--bkt-h/.test(css) &&
+        /\.bkt-of-8\s*\{[^}]*--bkt-h/.test(css) &&
+        /bkt-of-4/.test(tree) &&
+        /bkt-of-8/.test(tree) &&
+        // ...over the cup's own, which are still what a tree with nothing to say gets.
+        /min-width:\s*var\(--bkt-w,\s*840px\)/.test(css) &&
+        /height:\s*var\(--bkt-h,\s*560px\)/.test(css),
+      () => (missing.length ? `not shared: ${missing.join(', ')}` : 'the sizing moved'),
     );
   }
 
