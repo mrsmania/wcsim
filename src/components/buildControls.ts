@@ -38,8 +38,11 @@ export interface BuildControls {
      *  behind it, and reads as a recommendation the room does not make. With it off every
      *  slot he can take pulses the same amber. */
     naturalHint: boolean;
-    /** The album's marks: the tier star on a market row and the Collectible filter. Off
-     *  in a room, where the album has no business being at all (P3, P8). */
+    /** The album's marks: the tier star on a market or drawn-squad row, the Collectible
+     *  filter, and the star plus tier accent on the line-up sheet. Off in a room, where
+     *  the album has no business being at all (P3, P8) - the sheet included, since a room
+     *  awards no sticker and the marks would be pointing at a collection this game cannot
+     *  add to. */
     collectibles: boolean;
     /** Swapping a collectible into a filled slot. Off in a room for the same reason, and
      *  it needs saying separately: the two per-run swaps come from the reducer's initial

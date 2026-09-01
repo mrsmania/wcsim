@@ -3156,8 +3156,15 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
   room's match is played on the plain eleven ratings; a card promising an effective overall
   four points higher describes a bonus the simulator never receives. `BoxScore` takes
   `chemistry={false}`.
-- **It must not show the album.** No owned-sticker discount (P3), no tier star, no
-  Collectible filter: `BudgetMarket` takes `collectibles={false}`.
+- **It must not show the album, and the LINE-UP SHEET is part of that** (the sheet was
+  fixed 2026-09-01, reported from the game). No owned-sticker discount (P3), no tier star,
+  no Collectible filter: `BudgetMarket` and `SquadPanel` take `collectibles={false}` and so
+  does `XiTable` now - it had gone on printing the star and the tier-coloured accent down
+  the row, in the room's own line-up and in both XIs on the result screen, for a collection
+  a room cannot add to. Like `ratings`, the flag DEFAULTS to on so the single-player callers
+  read unchanged, so a room that stopped passing it would look perfectly fine: `npm run
+  checks` reads the two call sites, and reads the CALL rather than the file, because the
+  same prop reaches the market and the drawn-squad panel a few lines above.
 
 **FIVE RULES IN THE CLIENT, each of which is a decision rather than a detail:**
 

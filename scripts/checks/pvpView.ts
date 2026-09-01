@@ -388,6 +388,58 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- THE LINE-UP SHEET CARRIES NO ALBUM MARK IN A ROOM ---------------------
+  // A room awards no sticker and prices nothing off the album (P3, P8), so the tier star
+  // and the tier-coloured accent down a row are pointing at a collection this game cannot
+  // add to. `SquadPanel` and `BudgetMarket` have taken the switch since wave 5; the sheet
+  // that lists the finished XI had not, so both the draft's own line-up and the result
+  // screen's two XIs went on marking collectibles.
+  //
+  // Source-level, and for the same reason as the two checks above: `XiTable` defaults the
+  // flag to true so the single-player callers read unchanged, which means a room that
+  // simply stopped passing it would show every star and look perfectly fine.
+  {
+    const dir = 'src/components/versus';
+    const table = readFileSync('src/components/XiTable.tsx', 'utf8');
+    const surface = readFileSync('src/components/BuildSurface.tsx', 'utf8');
+    const result = readFileSync(`${dir}/RoomResult.tsx`, 'utf8');
+    // One gate, on the one thing both marks are drawn from.
+    const gated = /FEATURES\.stickerAlbum && collectibles \? tierOf\(player\) : null/.test(table);
+    // Read the CALL, not the file: `collectibles={controls.collectibles}` is also how the
+    // market and the drawn-squad panel take it, so a whole-file grep would go on passing
+    // with the sheet's own line deleted.
+    const callIn = (text: string) => /<XiTable\b[\s\S]*?\/>/.exec(text)?.[0] ?? '';
+    const inBuild = callIn(surface);
+    const inResult = callIn(result);
+    // And no versus screen reaches a star or a tier of its own, either.
+    const files = readdirSync(dir).filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'));
+    const marked = files.filter((f) =>
+      /\bCollectibleStar\b|\btierOf\b/.test(readFileSync(`${dir}/${f}`, 'utf8')),
+    );
+    check(
+      'pvpView: the line-up sheet drops the album marks in a room, and keeps them in the game',
+      () =>
+        gated &&
+        // Both calls found, or the two tests under them are vacuously true of an empty string.
+        inBuild !== '' &&
+        inResult !== '' &&
+        inBuild.includes('collectibles={controls.collectibles}') &&
+        inResult.includes('collectibles={false}') &&
+        marked.length === 0 &&
+        // Which way round, with the app as the vacuity guard: a control that was false in
+        // both would satisfy every line above and take the stars out of the album's own game.
+        SOLO_CONTROLS.collectibles &&
+        !ROOM_CONTROLS.collectibles &&
+        !roomControls(true).collectibles,
+      () =>
+        marked.length
+          ? `a collectible mark is drawn straight into: ${marked.join(', ')}`
+          : `XiTable gated=${gated}, BuildSurface wires it ` +
+            `${inBuild.includes('collectibles={controls.collectibles}')}, ` +
+            `RoomResult off=${inResult.includes('collectibles={false}')}`,
+    );
+  }
+
   // --- A ROOM OF MORE THAN TWO: the tree, and who watches what (P47, P24) ----
   // Wave 7. The referee has taken four and eight players since wave 3 and its own checks
   // cover the barrier and the random draw; what is new here is entirely a READING of the

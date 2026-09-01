@@ -212,6 +212,7 @@ export default function BuildSurface({
                             filled={filled}
                             budget={isBudgetBuild ? budget : undefined}
                             ratings={ratings}
+                            collectibles={controls.collectibles}
                             ownedStickerIds={ownedStickerIds}
                         />
                     </>

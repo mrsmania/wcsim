@@ -58,6 +58,7 @@ function XiOf({
                 formation={formation}
                 filled={xiFrom(formation, ids)}
                 ratings
+                collectibles={false}
                 ownedStickerIds={EMPTY}
             />
         </div>

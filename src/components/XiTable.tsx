@@ -22,6 +22,7 @@ export default function XiTable({
     filled,
     budget,
     ratings = true,
+    collectibles = true,
     ownedStickerIds,
 }: {
     formation: Formation;
@@ -31,6 +32,12 @@ export default function XiTable({
      *  (P5): the sheet keeps position, name, flag and year, which is what a player picks
      *  on when the numbers are off. */
     ratings?: boolean;
+    /** Whether the album's marks appear: the tier star beside the name and the
+     *  tier-coloured accent down the row. False in a versus room, where the album has no
+     *  business being at all (P3, P8) - the same switch `SquadPanel` and `BudgetMarket`
+     *  take, so the sheet cannot go on marking players the lists it was picked from do
+     *  not. Defaults to true so the single-player callers read unchanged. */
+    collectibles?: boolean;
     /** Player ids already in the album, so the row marker matches the player lists
      *  the XI was picked from (a star meaning two things on one screen would be worse
      *  than no marker). Optional: absent means "unknown", which reads as not owned. */
@@ -84,8 +91,10 @@ export default function XiTable({
                 const player = filled[slot.id];
                 const sq = player ? SQUAD_BY_ID[player.squadId] : null;
                 const isGk = slot.position === 'GK';
-                // Collectible marker + tier accent, matching the drawn-squad list.
-                const tier = player && FEATURES.stickerAlbum ? tierOf(player) : null;
+                // Collectible marker + tier accent, matching the drawn-squad list - and
+                // absent with it, in a room where there is no album.
+                const tier =
+                    player && FEATURES.stickerAlbum && collectibles ? tierOf(player) : null;
                 return (
                     <div
                         key={slot.id}
