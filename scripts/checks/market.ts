@@ -25,6 +25,7 @@ export function marketChecks(): void {
       filterYear: 'all' as const,
       filterCode: 'all' as const,
       collectiblesOnly: false,
+      rating: null as { min: number; max: number } | null,
       maxPrice: null as number | null,
       price,
     };
@@ -86,6 +87,80 @@ export function marketChecks(): void {
       check(
         `market: and he is past the first page in all ${positions.length} positions sampled`,
         () => deeperThanAPage === positions.length,
+      );
+    }
+
+    // 1c. The rating band keeps exactly the players inside it, and it is the one filter that
+    // shops by STRENGTH. Two vacuity guards, because a band over a 60-to-99 scale is very
+    // easy to state in a way that passes on an empty middle: the band must catch somebody,
+    // and it must EXCLUDE somebody at each end.
+    {
+      let ok = true;
+      let bandsThatBiteBothWays = 0;
+      const positions = ['GK', 'CB', 'ST', 'LM'] as const;
+      for (const pos of positions) {
+        const cands = byPos[pos] ?? [];
+        const band = { min: 72, max: 80 };
+        const got = marketResults({ ...anyQuery, candidates: cands, rating: band });
+        const want = cands.filter((p) => p.elo >= band.min && p.elo <= band.max);
+        if (got.rows.length !== want.length) ok = false;
+        if (got.rows.some((p) => p.elo < band.min || p.elo > band.max)) ok = false;
+        // The band is inclusive at both ends, which is what the two handles read as.
+        if (!got.rows.some((p) => p.elo === band.min)) ok = false;
+        if (!got.rows.some((p) => p.elo === band.max)) ok = false;
+        if (
+          got.rows.length > 0 &&
+          cands.some((p) => p.elo < band.min) &&
+          cands.some((p) => p.elo > band.max)
+        ) {
+          bandsThatBiteBothWays++;
+        }
+        // A band covering the whole scale is the same answer as no band at all, which is
+        // why the panel sends null for an untouched one rather than the full span.
+        const whole = { min: Math.min(...cands.map((p) => p.elo)), max: Math.max(...cands.map((p) => p.elo)) };
+        const open = marketResults({ ...anyQuery, candidates: cands });
+        if (marketResults({ ...anyQuery, candidates: cands, rating: whole }).rows.length !== open.rows.length) {
+          ok = false;
+        }
+      }
+      check('market: the rating band keeps exactly the players inside it, ends included', () => ok);
+      check(
+        `market: and it turns players away at BOTH ends in all ${positions.length} positions`,
+        () => bandsThatBiteBothWays === positions.length,
+      );
+    }
+
+    // 1d. A facet keeps whatever is selected ON IT even when that selection matches nobody.
+    // The filters survive a change of shopped position now, so a cup and country that had a
+    // left winger can have no keeper at all - and dropping the option there would leave a
+    // `<select>` whose value is none of its own children, which renders blank. Empty is a
+    // fair answer; a control that cannot show its own state is not.
+    {
+      let ok = true;
+      let emptyPairsFound = 0;
+      // Walk real (year, country) pairs against a position they have nobody for. That the
+      // scan FINDS such pairs is the vacuity guard: with no empty pair the claim is moot.
+      for (const pos of ['GK', 'LM', 'RM'] as const) {
+        const cands = byPos[pos] ?? [];
+        const everyPair = new Set<string>();
+        for (const p of ALL_PLAYERS) {
+          const sq = SQUAD_BY_ID[p.squadId];
+          if (sq) everyPair.add(`${sq.year}|${sq.code}`);
+        }
+        for (const key of [...everyPair].slice(0, 400)) {
+          const [y, code] = key.split('|');
+          const sel = { filterYear: Number(y), filterCode: code };
+          if (marketResults({ ...anyQuery, ...sel, candidates: cands }).rows.length > 0) continue;
+          emptyPairsFound++;
+          const f = marketFacets(cands, sel);
+          if (!f.years.includes(sel.filterYear)) ok = false;
+          if (!f.countries.some((c) => c.code === sel.filterCode)) ok = false;
+        }
+      }
+      check('market: a facet keeps a selection that matches nobody, so the control can show it', () => ok);
+      check(
+        `market: and such a selection is reachable (${emptyPairsFound} empty cup+country pairs)`,
+        () => emptyPairsFound > 0,
       );
     }
 

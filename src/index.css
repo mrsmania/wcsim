@@ -705,3 +705,78 @@ button.bkt-match:focus-visible {
     margin-inline: auto;
     overflow-wrap: anywhere;
 }
+
+/* ---------------------------------------------------------------------------
+   The transfer market's rating band: two handles on one track.
+
+   Real CSS rather than utilities because a range input is styled through
+   `::-webkit-slider-thumb` / `::-moz-range-thumb`, which Tailwind cannot reach. The two
+   inputs are stacked on the same track and the TRACK is inert (`pointer-events: none`),
+   so only the two thumbs take a pointer and neither input swallows the other's clicks.
+
+   Modelled on the player index's own dual handle (`players-page.template.html`), which
+   is the same control over the same scale; the tokens make it the app's colours.
+   --------------------------------------------------------------------------- */
+.mkt-rng {
+    position: relative;
+    flex: 1 1 auto;
+    height: 22px;
+    min-width: 96px;
+}
+.mkt-rng .mkt-track,
+.mkt-rng .mkt-fill {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    border-radius: 2px;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+.mkt-rng .mkt-track {
+    left: 0;
+    right: 0;
+    background: var(--color-line);
+}
+.mkt-rng .mkt-fill {
+    background: var(--color-pitch);
+}
+.mkt-rng input {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 22px;
+    margin: 0;
+    background: none;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.mkt-rng input:focus {
+    outline: none;
+}
+.mkt-rng input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    pointer-events: auto;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--color-panel);
+    border: 2px solid var(--color-pitch);
+    cursor: grab;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+}
+.mkt-rng input::-moz-range-thumb {
+    pointer-events: auto;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--color-panel);
+    border: 2px solid var(--color-pitch);
+    cursor: grab;
+}
+.mkt-rng input:focus-visible::-webkit-slider-thumb {
+    border-color: var(--color-amber);
+}
+.mkt-rng input:focus-visible::-moz-range-thumb {
+    border-color: var(--color-amber);
+}

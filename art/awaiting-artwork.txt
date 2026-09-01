@@ -13,5 +13,5 @@
 # and takes the line off. docs/missing-sticker-art.html is the same list to work from,
 # with the drawing prompt for each card on a button.
 #
-# 0 cards of 115 collectibles, as of 2026-08-29.
+# 0 cards of 115 collectibles, as of 2026-09-01.
 

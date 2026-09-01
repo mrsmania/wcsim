@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutGrid, List as ListIcon, Search, Star, Wallet } from 'lucide-react';
+import { LayoutGrid, List as ListIcon, Search, Star, Wallet, X } from 'lucide-react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/format';
 import { SQUAD_BY_ID } from '../data/squads';
@@ -123,16 +123,59 @@ export default function BudgetMarket({
   const [view, setView] = useState<'list' | 'grid'>('list');
   const position = targetSlot?.position;
 
-  // The cup/country facets are position-specific, so reset them when the shopped position
-  // changes (sort / collectible / affordable / view are kept - they are not).
-  useEffect(() => {
-    setFilterYear('all');
-    setFilterCode('all');
-  }, [position]);
+  // **NOTHING RESETS WHEN THE SHOPPED POSITION CHANGES.** Buying a player advances the
+  // target to the next empty slot, and the cup and country filters used to be cleared on
+  // that move - so a squad built out of, say, Italy 1982 had to be re-filtered eleven
+  // times, once per purchase, and it read as the panel forgetting what it had been told.
+  // The reason it was there was real and is answered elsewhere: a pair that had players at
+  // left wing can have none in goal, so `marketFacets` keeps a selected option even when it
+  // matches nobody, and the empty state offers to clear the lot (see `anyFilter` below).
+  // Empty is a legitimate answer to a filter you set on purpose.
 
   // Players eligible for each position, highest-rated first, from the active pool.
   const byPosition = useMemo(() => playersByPosition(poolPlayers), [poolPlayers]);
   const candidates = position ? (byPosition[position] ?? []) : [];
+
+  // The rating band's own scale is the WHOLE pool's, not the shopped position's, so the
+  // track does not silently rescale under a band you set - a "70 to 80" that becomes "70 to
+  // 78" on the next slot is a filter nobody asked for. Read off the pool because that is
+  // what the year-pool setting narrows.
+  const [eloFloor, eloCeil] = useMemo(() => {
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const p of poolPlayers) {
+      if (p.elo < lo) lo = p.elo;
+      if (p.elo > hi) hi = p.elo;
+    }
+    return Number.isFinite(lo) ? [lo, hi] : [0, 0];
+  }, [poolPlayers]);
+  const [ratingLo, setRatingLo] = useState(eloFloor);
+  const [ratingHi, setRatingHi] = useState(eloCeil);
+  // Changing the year pool moves the scale, and a band left outside it would filter
+  // everything out with both handles apparently at the ends. Widen back to the new scale.
+  useEffect(() => {
+    setRatingLo(eloFloor);
+    setRatingHi(eloCeil);
+  }, [eloFloor, eloCeil]);
+  const ratingNarrowed = ratingLo > eloFloor || ratingHi < eloCeil;
+  // Null rather than the full span, so an untouched band costs the filter nothing and reads
+  // as "no opinion" everywhere downstream. Memoized for the same reason `price` is: it is a
+  // real dependency of the results memo, and rebuilt every render it could not be one.
+  const rating = useMemo(
+    () => (ratingNarrowed ? { min: ratingLo, max: ratingHi } : null),
+    [ratingNarrowed, ratingLo, ratingHi],
+  );
+  // Dragging a handle past its partner PUSHES it rather than stopping, which is the same
+  // behaviour the player index's range has. Each handler knows which handle moved, so
+  // neither has to guess from the focused element.
+  const dragLo = (v: number) => {
+    setRatingLo(v);
+    if (v > ratingHi) setRatingHi(v);
+  };
+  const dragHi = (v: number) => {
+    setRatingHi(v);
+    if (v < ratingLo) setRatingLo(v);
+  };
 
   // The filter dropdowns' options. Keyed on [position, byPosition] rather than on
   // `candidates`, which is derived from them and is a fresh array every render; the two
@@ -177,6 +220,7 @@ export default function BudgetMarket({
             filterYear,
             filterCode,
             collectiblesOnly,
+            rating,
             maxPrice,
             price,
           })
@@ -191,6 +235,7 @@ export default function BudgetMarket({
       filterYear,
       filterCode,
       collectiblesOnly,
+      rating,
       maxPrice,
       price,
     ],
@@ -202,6 +247,27 @@ export default function BudgetMarket({
   // player can neither see nor clear.
   const showYearFilter = facets.years.length > 1 || filterYear !== 'all';
   const showCountryFilter = facets.countries.length > 1 || filterCode !== 'all';
+
+  // Filters outlive a purchase now, so there has to be one gesture that drops the lot -
+  // five controls to walk back individually is how a filter ends up left on by accident,
+  // and it is also the answer an empty list needs. The SORT and the view are not filters
+  // and are not touched: they say how to read the answer, not which answer.
+  const anyFilter =
+    query !== '' ||
+    filterYear !== 'all' ||
+    filterCode !== 'all' ||
+    collectiblesOnly ||
+    affordableOnly ||
+    ratingNarrowed;
+  const clearFilters = () => {
+    setQuery('');
+    setFilterYear('all');
+    setFilterCode('all');
+    setCollectiblesOnly(false);
+    setAffordableOnly(false);
+    setRatingLo(eloFloor);
+    setRatingHi(eloCeil);
+  };
 
   // How much of the answer is on screen. `marketResults` hands over every player that
   // matched - up to 2,257 of them for a centre-back - and putting that many rows in the DOM
@@ -218,7 +284,7 @@ export default function BudgetMarket({
   useEffect(() => {
     setShown(MARKET_PAGE);
     scrollRef.current?.scrollTo({ top: 0 });
-  }, [position, query, sort, filterYear, filterCode, collectiblesOnly, affordableOnly]);
+  }, [position, query, sort, filterYear, filterCode, collectiblesOnly, affordableOnly, rating]);
 
   // Grow when the scroll reaches the last `GROW_AHEAD` pixels of the box.
   //
@@ -433,7 +499,68 @@ export default function BudgetMarket({
                 Collectible
               </button>
             )}
+            {/* "Clear filters", not "Clear": the budget bar above has a Clear that empties
+                the XI, and two buttons of that name on one panel is a trap. */}
+            {anyFilter && (
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 rounded-[5px] border border-line bg-panel px-2 py-1 font-mono text-[11px] font-semibold text-muted transition hover:border-loss hover:text-loss"
+              >
+                <X size={11} strokeWidth={2.5} />
+                Clear filters
+              </button>
+            )}
           </div>
+
+          {/* The rating band. The other filters shop by identity (who, from where, from
+              when) or by money; this is the only one that shops by STRENGTH, which is the
+              direct way to ask for a squad of a given level rather than inferring it from
+              a price. Hidden only if the pool somehow holds one rating. */}
+          {eloCeil > eloFloor && (
+            <div className="mt-2 flex items-center gap-2 px-1">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                Rating
+              </span>
+              <div className="mkt-rng">
+                <div className="mkt-track" />
+                <div
+                  className="mkt-fill"
+                  style={{
+                    left: `${((ratingLo - eloFloor) / (eloCeil - eloFloor)) * 100}%`,
+                    width: `${((ratingHi - ratingLo) / (eloCeil - eloFloor)) * 100}%`,
+                  }}
+                />
+                <input
+                  type="range"
+                  aria-label="Lowest rating"
+                  min={eloFloor}
+                  max={eloCeil}
+                  value={ratingLo}
+                  onChange={(e) => dragLo(Number(e.target.value))}
+                  // Both handles sitting near the right end would leave the one painted
+                  // last swallowing every drag, and the low one could then never be pulled
+                  // back down. In the upper half of the track it goes on top instead.
+                  style={{ zIndex: ratingLo > (eloFloor + eloCeil) / 2 ? 4 : 2 }}
+                />
+                <input
+                  type="range"
+                  aria-label="Highest rating"
+                  min={eloFloor}
+                  max={eloCeil}
+                  value={ratingHi}
+                  onChange={(e) => dragHi(Number(e.target.value))}
+                  style={{ zIndex: 3 }}
+                />
+              </div>
+              <span
+                className={`w-[44px] text-right font-mono text-[11px] font-semibold tabular-nums ${
+                  ratingNarrowed ? 'text-pitch-ink' : 'text-muted'
+                }`}
+              >
+                {ratingLo}-{ratingHi}
+              </span>
+            </div>
+          )}
 
           {/* One reserved line, two jobs. Holding a player is the urgent one and takes it.
               Otherwise it says how deep the list is, which is the thing the panel used to
@@ -456,14 +583,24 @@ export default function BudgetMarket({
           </p>
 
           {rows.length === 0 ? (
-            <p className="px-2 py-6 text-center font-mono text-[12px] text-muted">
-              {/* The price ceiling and the filters are different reasons for an empty list,
-                  and blaming the filters when the answer is "you are out of money" sends
-                  the player off adjusting the wrong control. */}
-              {hiddenByPrice > 0
-                ? `No ${position} you can afford with $${remaining} left.`
-                : `No ${position} matches those filters.`}
-            </p>
+            <div className="px-2 py-6 text-center">
+              <p className="font-mono text-[12px] text-muted">
+                {/* The price ceiling and the filters are different reasons for an empty
+                    list, and blaming the filters when the answer is "you are out of money"
+                    sends the player off adjusting the wrong control. */}
+                {hiddenByPrice > 0
+                  ? `No ${position} you can afford with $${remaining} left.`
+                  : `No ${position} matches those filters.`}
+              </p>
+              {/* An empty list is reachable by design now that filters survive a purchase:
+                  a cup and country that had a left winger can have no keeper at all. That
+                  is a fair answer to the question, and this is the way back out of it. */}
+              {anyFilter && (
+                <button onClick={clearFilters} className={`${btn('quiet', 'sm')} mt-3`}>
+                  Clear filters
+                </button>
+              )}
+            </div>
           ) : (
             // ONE scroll container around both views, so the foot-of-the-list observer
             // and the scroll-to-top have a single box to work with rather than one each.

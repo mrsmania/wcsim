@@ -7,7 +7,7 @@
 
 import type { Player } from '../data/types';
 import { normalizeSearch } from '../data/format';
-import { SQUAD_BY_ID } from '../data/squads';
+import { SQUADS, SQUAD_BY_ID } from '../data/squads';
 import { PRICE_BASE } from './pricing';
 import { tierOf } from './album';
 
@@ -79,6 +79,13 @@ export interface MarketFacets {
  *  what a run can afford changes with every purchase, and a country list that reshuffled as
  *  money was spent would be unpredictable.
  *
+ *  **A facet always keeps whatever is selected ON IT, even when that selection matches
+ *  nobody.** The dropdowns survive a change of shopped position now (a filter you set is a
+ *  filter you meant), and a pair that had players at left wing can have none at all in
+ *  goal - at which point dropping the option would leave a `<select>` whose value matches
+ *  none of its own children, which browsers render blank. Empty is a legitimate answer and
+ *  the panel says so; a control that cannot show its own state is not.
+ *
  *  Years newest-first, countries by nation name. */
 export function marketFacets(candidates: readonly Player[], sel: MarketSelection): MarketFacets {
   const years = new Set<number>();
@@ -88,6 +95,11 @@ export function marketFacets(candidates: readonly Player[], sel: MarketSelection
     if (!sq) continue;
     if (sel.filterCode === 'all' || sq.code === sel.filterCode) years.add(sq.year);
     if (sel.filterYear === 'all' || sq.year === sel.filterYear) countries.set(sq.code, sq.nation);
+  }
+  if (sel.filterYear !== 'all') years.add(sel.filterYear);
+  if (sel.filterCode !== 'all' && !countries.has(sel.filterCode)) {
+    const nation = SQUADS.find((sq) => sq.code === sel.filterCode)?.nation;
+    if (nation) countries.set(sel.filterCode, nation);
   }
   return {
     years: [...years].sort((a, b) => b - a),
@@ -107,6 +119,11 @@ export interface MarketQuery {
   filterYear: 'all' | number;
   filterCode: 'all' | string;
   collectiblesOnly: boolean;
+  /** The rating band to keep, inclusive, or null for the whole scale. It is the one filter
+   *  that shops by STRENGTH rather than by identity or by money, which is what makes it the
+   *  direct way to a squad of a given level - and the reason it is a band and not a ceiling
+   *  is that "nobody under 70" and "nobody over 80" are both real questions. */
+  rating: { min: number; max: number } | null;
   /** The most a row may cost, or null for no ceiling ("only what I can afford"). */
   maxPrice: number | null;
   /** What each player will actually be charged (see `marketSortCmp`). */
@@ -146,6 +163,7 @@ export function marketResults(q: MarketQuery): MarketResults {
     if (q.filterYear !== 'all' && sq?.year !== q.filterYear) return false;
     if (q.filterCode !== 'all' && sq?.code !== q.filterCode) return false;
     if (q.collectiblesOnly && !tierOf(p)) return false;
+    if (q.rating && (p.elo < q.rating.min || p.elo > q.rating.max)) return false;
     if (needle) {
       const hay = `${normalizeSearch(p.name)} ${normalizeSearch(sq?.nation ?? '')} ${(sq?.code ?? '').toLowerCase()} ${sq?.year ?? ''}`;
       if (!hay.includes(needle)) return false;
