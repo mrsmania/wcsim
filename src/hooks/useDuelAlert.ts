@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { duelToOpen, type DuelAlert } from '../domain/pvpView';
 import type { DuelRow } from '../domain/pvpWire';
 import { readDuels } from '../state/pvp/referee';
+import { onDuelsChanged } from '../state/pvp/duels';
 import { onWatchedChange, watchedDuels } from '../state/pvp/watched';
 
 // ---------------------------------------------------------------------------
@@ -60,8 +61,14 @@ export function useDuelAlert(enabled: boolean): DuelAlertRow | null {
         };
         ask();
         const t = window.setInterval(ask, POLL_MS);
+        // AND WHENEVER THIS PLAYER HAS JUST MOVED A DUEL THEMSELVES. Thirty seconds is the
+        // right beat for somebody else's move and much too slow for your own: withdraw
+        // from a duel and the strip would go on saying it is your move, about a game you
+        // have just given up. `duelsChanged` fires when the referee answers.
+        const off = onDuelsChanged(ask);
         return () => {
             alive = false;
+            off();
             window.clearInterval(t);
         };
     }, [enabled]);

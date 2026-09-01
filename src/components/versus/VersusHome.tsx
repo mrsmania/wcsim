@@ -27,6 +27,7 @@ import {
 import type { DuelRow, LobbyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
 import { RefereeError, createRoom, leaveRoom, readDuels, readLobby } from '../../state/pvp/referee';
+import { onDuelsChanged } from '../../state/pvp/duels';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
 import { onWatchedChange, watchedDuels } from '../../state/pvp/watched';
 import {
@@ -400,6 +401,12 @@ export default function VersusHome({
         const t = window.setInterval(refreshLobby, 10_000);
         return () => window.clearInterval(t);
     }, [refreshLobby]);
+    // AND AT ONCE WHEN THIS PLAYER HAS JUST MOVED ONE. Withdrawing from a duel is a
+    // forfeit, so the row leaves "On now" for a loss under "Played" - but the leave is
+    // answered after this screen has already mounted and read the list, so ten seconds of
+    // it saying the game is still on is ten seconds of it being wrong about something the
+    // reader did themselves. `duelsChanged` fires when the referee answers.
+    useEffect(() => onDuelsChanged(refreshLobby), [refreshLobby]);
 
     // ON NOW versus PLAYED. Two lists rather than one sorted list, because they are read
     // for different reasons: the first is a to-do list and the second is a record. A duel

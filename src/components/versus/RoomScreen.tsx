@@ -20,6 +20,7 @@ import {
 } from '../../domain/pvpView';
 import { roomClosed } from '../../domain/pvpRoom';
 import { holdVersusRoom, useHeldVersusRoom } from '../../nav/versusRoom';
+import { duelsChanged } from '../../state/pvp/duels';
 import { markDuelWatched, watchedDuels } from '../../state/pvp/watched';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader, btn } from '../matchUi';
@@ -115,9 +116,19 @@ export default function RoomScreen({ code }: { code: string }) {
      * The navigation does not wait for the answer and does not care whether it failed: a
      * player who pressed Leave is leaving. The worst a lost request costs is the ninety
      * seconds it cost before, which is the floor rather than the design.
+     *
+     * BUT THE DUELS LIST HAS TO BE TOLD WHEN THE ANSWER LANDS, and that was the second
+     * reported bug: leaving a duel is a FORFEIT, so the row moves from "On now" to a loss
+     * under "Played" - and the versus page we are navigating to reads its list on mount,
+     * in parallel with this very request, so it gets the honest pre-forfeit answer and
+     * sits on it until its next slow poll. Signalling on SETTLE rather than on send is the
+     * whole point: it is the only moment the referee's copy is known to have moved.
      */
     const leave = useCallback(() => {
-        void room.leave().catch(() => undefined);
+        void room
+            .leave()
+            .catch(() => undefined)
+            .finally(duelsChanged);
         holdVersusRoom(null);
         navigate('/versus');
     }, [navigate, room]);

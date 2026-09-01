@@ -3052,6 +3052,26 @@ just a sentence, since it stays reachable legitimately (a started room you walke
 the referee already sent the room's code as its `detail`, so `refereeMessage` names it and
 `RefereeProblem` takes an `action` for the "Go to room X" button.
 
+**AND NOT WAITING FOR THE ANSWER MEANS THE DUELS LIST HAS TO BE TOLD WHEN IT LANDS**
+(2026-09-01, reported from the game: *"when I withdraw from a versus match, I still see the
+match as open - only after a refresh the match is moved to PLAYED as a loss"*). Withdrawing
+from a duel is a FORFEIT, so the row leaves "On now" for a loss under "Played" - and the
+versus page reads its list on mount, which is the same instant the leave request goes out.
+So the page **loses a race it did not know it was in**: the referee answers that read
+honestly, with the room as it still is, and the answer is stale by the time it is drawn.
+Then it sat there, because the two readers of that list run on their own slow beats (the
+page ten seconds, the chrome's strip thirty) - which is the right beat for a move the OTHER
+player makes and much too slow for one you just made yourself. **A poll cannot fix a race,
+it can only shorten it.** `state/pvp/duels.ts` is the fix: one signal, fired **when the
+referee has answered** and never beside the request, which both readers take. Two things
+about it. It carries **nothing** - not the room, not the new row - because nothing on this
+side computes what the list now says, which is the same rule as everywhere else here; it
+says only that the copy in hand is out of date. And it fires on a FAILED leave too, where
+the correct re-read is the one that shows the duel still on. `npm run checks` reads all
+three files, since nothing behavioural can see this: a build that never re-reads agrees
+with the server within ten seconds and looks right in every fixture. **The general shape:
+when a screen navigates without waiting for a write, ask what the DESTINATION reads.**
+
 - **Routes are `/versus` and `/versus/:code`**, reached from the Versus tab, not a segment
   under Play. It became **the sixth tab on 2026-08-31**, when duels made it a
   place you check rather than a place you visit - see "Navigation" above for why that is a

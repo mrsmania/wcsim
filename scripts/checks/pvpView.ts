@@ -60,6 +60,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
 import { ROOM_CONTROLS, SOLO_CONTROLS, roomControls } from '../../src/components/buildControls';
+import { duelsChanged, onDuelsChanged } from '../../src/state/pvp/duels';
 
 const HOME = 'user-home';
 const AWAY = 'user-away';
@@ -993,6 +994,52 @@ export function pvpViewChecks(): void {
                 src.includes('pace,') &&
                 rematch.includes("pace: 'async'"),
             () => `${duelDowngraded('async', old)} / ${/leaveRoom\(room\.code\)/.test(src)}`,
+        );
+    }
+
+    // WITHDRAWING FROM A DUEL IS A FORFEIT, so its row leaves "On now" for a loss under
+    // "Played" - and the reported bug was that it did not, until the page was reloaded.
+    // It is a RACE rather than only a slow poll: leaving navigates without waiting for the
+    // referee (`RoomScreen`, deliberately), so the versus page mounts and reads the list
+    // alongside the forfeit and is answered, honestly, with the room as it still is. So
+    // the signal fires when the referee ANSWERS and both readers of the list take it.
+    //
+    // CHECKED AS SOURCE, because nothing behavioural can see it: each of these files reads
+    // a perfectly good list on its own beat, so a version that never re-reads agrees with
+    // the server within ten seconds and looks right in every fixture.
+    {
+        const screen = readFileSync('src/components/versus/RoomScreen.tsx', 'utf8');
+        const home = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
+        const strip = readFileSync('src/hooks/useDuelAlert.ts', 'utf8');
+        /** Fire it once with a subscriber, once without, and count what arrived. */
+        const delivered = (): number => {
+            let n = 0;
+            const off = onDuelsChanged(() => {
+                n += 1;
+            });
+            duelsChanged();
+            off();
+            duelsChanged();
+            return n;
+        };
+        check(
+            'pvpView: leaving tells the duels list, and only once the referee has answered',
+            () =>
+                // It reaches a subscriber, and stops the moment one lets go.
+                delivered() === 1 &&
+                // ON SETTLE, never on send. Signalling beside the request would re-read
+                // the list in the same race the mount read is already losing.
+                /\.leave\(\)[^]{0,160}\.finally\(duelsChanged\)/.test(screen) &&
+                // Both readers take it: the versus page's two lists, and the chrome strip.
+                /onDuelsChanged\(refreshLobby\)/.test(home) &&
+                /onDuelsChanged\(ask\)/.test(strip) &&
+                // Vacuity: these are the three files that matter, and the two readers do
+                // still read the list on their own beat as well - a screen that had
+                // stopped polling would pass the scans above and be worse.
+                screen.includes('leaveKind') &&
+                home.includes('readDuels()') &&
+                strip.includes('readDuels()'),
+            () => `${delivered()} / ${/\.finally\(duelsChanged\)/.test(screen)}`,
         );
     }
   }
