@@ -11,8 +11,13 @@ import { SQUAD_BY_ID } from '../data/squads';
 import { PRICE_BASE } from './pricing';
 import { tierOf } from './album';
 
-/** How many rows the market shows at once. */
-export const MAX_RESULTS = 60;
+/** How many rows the panel adds each time you reach the foot of the list.
+ *
+ *  A WINDOW, not a limit: `marketResults` returns every player that matched, and
+ *  `BudgetMarket` renders this many more of them each time the bottom comes into view. It
+ *  used to be a cap on the ANSWER, which is a different thing and a much worse one - see
+ *  the note on `marketResults`. */
+export const MARKET_PAGE = 60;
 
 /** Ways to order the market list. */
 export type MarketSortKey = 'rating' | 'value' | 'price' | 'newest' | 'name';
@@ -109,6 +114,8 @@ export interface MarketQuery {
 }
 
 export interface MarketResults {
+  /** Every player that matched, best-first by the chosen sort. The panel renders a window
+   *  onto it; nothing here is dropped. */
   rows: Player[];
   /** How many players passed every other filter and failed only on the price ceiling.
    *  The panel's empty state has to say "nothing you can afford" rather than blaming the
@@ -116,13 +123,18 @@ export interface MarketResults {
   hiddenByPrice: number;
 }
 
-/** The rows to show: filter, then sort, then cap.
+/** The rows to show: filter, then sort. EVERY match, in order - no cap.
  *
- *  The cap goes LAST, which is the whole point of it being written down here: capping
- *  before the sort would show sixty arbitrary players sorted, rather than the sixty best by
- *  the chosen order. The price ceiling is part of the FILTER for the same reason - applied
- *  after the cap it would leave a screen of sixty rows with none of them buyable, which is
- *  exactly the state it exists to fix.
+ *  **It used to cap at sixty and that put most of the game out of reach.** A position holds
+ *  between 463 and 2,257 players, the default order is by rating, and sixty rows of that is
+ *  the dearest sixty: the cheapest man visible for a centre-back was $13 against a pool
+ *  floor of $1, so a player shopping for a bargain was not looking below the fold, he was
+ *  looking at a list the cheap end had never been in. The filters were the only way down to
+ *  it, which is exactly backwards - a filter narrows a list you can already see. The panel
+ *  windows the answer instead, `MARKET_PAGE` rows at a time as you scroll (which is a
+ *  rendering decision and belongs there), and the price ceiling stays part of the FILTER
+ *  because "only what I can afford" is a question about the answer rather than about how
+ *  much of it is on screen.
  *
  *  The search is diacritic-insensitive over name, nation, three-letter code and year, so
  *  "muller", "Müller", "GER" and "1990" all find something. */
@@ -146,8 +158,5 @@ export function marketResults(q: MarketQuery): MarketResults {
     }
     return true;
   });
-  return {
-    rows: [...list].sort(marketSortCmp(q.price)[q.sort]).slice(0, MAX_RESULTS),
-    hiddenByPrice,
-  };
+  return { rows: [...list].sort(marketSortCmp(q.price)[q.sort]), hiddenByPrice };
 }

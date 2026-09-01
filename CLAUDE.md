@@ -2405,7 +2405,8 @@ A second way to build the XI, alongside the random roll. Spec:
   old link redirects to `/`. `App` gates the roll-only "draw next squad" effect on `build === 'roll'`.)
 - **`BudgetMarket.tsx`** is the left-column panel (the player source, mirroring the drawn-squad
   panel): a budget bar + "Auto-fill & spend" + "Clear" + "Start over" on top, then the
-  rating-sorted, searchable list for the targeted position (capped at `MAX_RESULTS` = 60;
+  rating-sorted, searchable list for the targeted position (the WHOLE pool, windowed
+  `MARKET_PAGE` = 60 rows at a time as you scroll - see "The list is the whole pool" below;
   unaffordable/used rows disabled; collectible tier stars). You buy from all squads within a budget, each priced by
   rating via **`domain/pricing.ts`** (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so
   the budget forces trade-offs). The budget is a `budget` prop (not a constant): it is the
@@ -2429,14 +2430,42 @@ A second way to build the XI, alongside the random roll. Spec:
   region/confederation filter was **deleted** here; `data/confederations.ts` is still live for
   `domain/chemistry.ts` ("Same continent"), `domain/challenges.ts` and `domain/validateSquads.ts`,
   so do not follow the market's dropdown out of the codebase. Three rules worth keeping:
-  - **The price ceiling is part of the FILTER, not a paint on the rows.** The list caps at 60 and
-    sorts by rating, so the rows on screen are always the dearest players; measured over the
-    thirteen-tournament pool, with $10 left **not one of the 60 visible strikers was buyable**
-    while 1,415 affordable ones sat below the cut, at every position (CB 0 of 60 with 1,738, GK 0
-    of 60 with 954). `maxPrice` on `MarketQuery` therefore filters BEFORE `.slice(MAX_RESULTS)`,
-    for the same reason the cap goes after the sort. `marketResults` returns `hiddenByPrice`
-    alongside the rows so the empty state can say "nothing you can afford" instead of blaming the
-    filters, which sends the player off adjusting the wrong control.
+  - **The price ceiling is part of the FILTER, not a paint on the rows.** Sorted by rating, the
+    rows at the top are always the dearest players; measured over the thirteen-tournament pool,
+    with $10 left **not one of the first 60 strikers was buyable** while 1,415 affordable ones sat
+    below them, at every position (CB 0 of 60 with 1,738, GK 0 of 60 with 954). `maxPrice` on
+    `MarketQuery` therefore filters rather than paints, and it lands before the sort's own
+    ordering question. `marketResults` returns `hiddenByPrice` alongside the rows so the empty
+    state can say "nothing you can afford" instead of blaming the filters, which sends the player
+    off adjusting the wrong control. (Those figures were measured when the list also STOPPED at
+    60, which is no longer true - see the next bullet - so the affordable players were not merely
+    below the fold, they were not in the answer.)
+  - **THE LIST IS THE WHOLE POOL, WINDOWED AS YOU SCROLL** (2026-09-01, reported from the game:
+    the market showed a screenful and the only way to cheaper players was a filter). It used to
+    cap the ANSWER at 60 rows, which is a different and much worse thing than showing 60: a
+    position holds between 463 and 2,257 players, the default order is by rating, and 60 rows of
+    that is the dearest 60 - the cheapest centre-back on screen cost $13 against a pool floor of
+    $1. So the cheap end of every position had never been in the list at all, and **a filter was
+    the only route to it, which is backwards** - a filter narrows a list you can already see.
+    `marketResults` returns every match now and `BudgetMarket` renders `MARKET_PAGE` more of them
+    each time the foot of the list comes into view. Four things about it:
+    - **The observer's root is the SCROLL CONTAINER, never the viewport.** The list scrolls inside
+      its own 52vh box; against the viewport the foot counts as visible from the moment the panel
+      is on screen, which loads every page at once and defeats the whole thing.
+    - **It is rebuilt on each growth**, so a page that does not fill the box chains into the next
+      one: a grown list leaves the foot where it was already intersecting, and an observer only
+      fires on a CHANGE.
+    - **The window resets on the QUERY, not on the rows.** Buying a player moves `remaining`, so
+      with Affordable on the rows change on every purchase, and throwing the scroll position away
+      each time money is spent is the wrong reading of "the list changed".
+    - **One scroll container wraps BOTH views**, list and grid, so there is one box to observe and
+      one to scroll back to the top rather than one each.
+    `npm run checks` holds it in money: sorted by rating with no filter on, the cheapest man in
+    the pool is one of the rows - with the vacuity guard that he is past the first page in every
+    position sampled, since a 60-row cap would have satisfied a weaker claim.
+  - **The sort says which END it starts from.** "Price" and "Value" are ascending and descending
+    respectively and the words said neither, which is the one thing you need from a sort when
+    what you are after is a cheap player. They read **Cheapest** and **Best value**.
   - **The two dropdowns narrow EACH OTHER, and nothing else narrows them.** `marketFacets` takes
     the selection and derives each dropdown from the candidates passing *every filter except its
     own*: pick 1974 and the country list is the 16 nations that were there, pick Wales and the cup

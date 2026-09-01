@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGrid, List as ListIcon, Search, Star, Wallet } from 'lucide-react';
 import type { Player } from '../data/types';
 import { lastName } from '../data/format';
@@ -6,7 +6,7 @@ import { SQUAD_BY_ID } from '../data/squads';
 import type { Formation, Slot } from '../domain/formations';
 import { placedPlayers, type Filled } from '../domain/draft';
 import { priceOf, pricerFor, xiSpend } from '../domain/pricing';
-import { marketFacets, marketResults, type MarketSortKey } from '../domain/market';
+import { MARKET_PAGE, marketFacets, marketResults, type MarketSortKey } from '../domain/market';
 import { autoFillBudget, playersByPosition } from '../domain/budget';
 import { tierOf } from '../domain/album';
 import { FEATURES } from '../config';
@@ -46,14 +46,20 @@ function MarketPrice({
  *  are the words for them. */
 const SORT_OPTIONS: { value: MarketSortKey; label: string }[] = [
   { value: 'rating', label: 'Rating' },
-  { value: 'value', label: 'Value' },
-  { value: 'price', label: 'Price' },
+  // "Value" and "Price" said nothing about which END they started from, which is the one
+  // thing you need from a sort when what you are after is a cheap player.
+  { value: 'value', label: 'Best value' },
+  { value: 'price', label: 'Cheapest' },
   { value: 'newest', label: 'Newest' },
   { value: 'name', label: 'A-Z' },
 ];
 
 const SELECT =
   'rounded-[5px] border border-line bg-panel py-1 pl-2 pr-1 font-mono text-[11px] font-semibold text-ink outline-none transition focus:border-pitch';
+
+/** How close to the foot of the list counts as "reached it", in pixels. About four rows of
+ *  lookahead, so the next page is in the DOM before the reader gets to where it goes. */
+const GROW_AHEAD = 240;
 
 interface Props {
   formation: Formation;
@@ -196,6 +202,45 @@ export default function BudgetMarket({
   // player can neither see nor clear.
   const showYearFilter = facets.years.length > 1 || filterYear !== 'all';
   const showCountryFilter = facets.countries.length > 1 || filterCode !== 'all';
+
+  // How much of the answer is on screen. `marketResults` hands over every player that
+  // matched - up to 2,257 of them for a centre-back - and putting that many rows in the DOM
+  // would cost a phone dearly for a list nobody reads to the end, so the panel renders a
+  // window onto it and grows the window by a page each time the reader reaches the foot.
+  const [shown, setShown] = useState(MARKET_PAGE);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const visible = rows.slice(0, shown);
+
+  // A new question is a new list: back to one page, and back to the top of it. Keyed on the
+  // QUERY and not on `rows`, because buying a player moves `remaining` - so with the
+  // Affordable toggle on the list changes under you, and throwing away the scroll position
+  // every time money is spent would be the wrong reading of "the list changed".
+  useEffect(() => {
+    setShown(MARKET_PAGE);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [position, query, sort, filterYear, filterCode, collectiblesOnly, affordableOnly]);
+
+  // Grow when the scroll reaches the last `GROW_AHEAD` pixels of the box.
+  //
+  // **This was an IntersectionObserver on the foot of the list and that does not work here**,
+  // which is worth writing down because the observer is the obvious tool and it fails
+  // quietly. Even given the scroll container as its `root`, the spec clips the target
+  // against every ancestor clip rect up to the VIEWPORT - and this panel's 52vh box is
+  // routinely taller than the screen from where it starts, so the foot sat fully inside its
+  // root, reported no intersection, and the list stopped growing (measured in the real app
+  // at 420x900: stuck at 180 of 784 with the foot at y=908 of a 900px viewport). A scroll
+  // position cannot be clipped by anything.
+  const maybeGrow = () => {
+    const box = scrollRef.current;
+    if (!box || box.clientHeight === 0) return;
+    if (box.scrollTop + box.clientHeight < box.scrollHeight - GROW_AHEAD) return;
+    setShown((s) => (s < rows.length ? s + MARKET_PAGE : s));
+  };
+
+  // Asked again after every render that changed the list, which covers the two cases a
+  // scroll handler alone cannot: a page that does not fill the box (no scroll event is ever
+  // coming) and a grown list whose foot is still under the reader's thumb.
+  useEffect(maybeGrow);
 
   // Fill every empty slot and spend most of the budget, differently each time (the
   // randomized fill lives in domain/budget). Hands the result to App to commit.
@@ -390,8 +435,24 @@ export default function BudgetMarket({
             )}
           </div>
 
-          <p className="mb-1.5 mt-2 min-h-[14px] px-1 font-mono text-[10px] text-amber">
-            {heldPlayer ? `Tap a highlighted slot to place ${lastName(heldPlayer.name)}.` : ''}
+          {/* One reserved line, two jobs. Holding a player is the urgent one and takes it.
+              Otherwise it says how deep the list is, which is the thing the panel used to
+              keep to itself: capped at sixty rows it read as a shortlist of about twenty,
+              and there was nothing on screen to say the other 724 existed. The count has to
+              live ABOVE the list - at the foot it is only ever seen once the pool runs out,
+              since reaching the foot is what loads the next page. */}
+          <p
+            className={`mb-1.5 mt-2 min-h-[14px] px-1 font-mono text-[10px] ${
+              heldPlayer ? 'text-amber' : 'text-muted'
+            }`}
+          >
+            {heldPlayer
+              ? `Tap a highlighted slot to place ${lastName(heldPlayer.name)}.`
+              : rows.length > MARKET_PAGE
+                ? visible.length < rows.length
+                  ? `${visible.length} of ${rows.length} ${position} · scroll for more`
+                  : `All ${rows.length} ${position} shown`
+                : ''}
           </p>
 
           {rows.length === 0 ? (
@@ -403,104 +464,110 @@ export default function BudgetMarket({
                 ? `No ${position} you can afford with $${remaining} left.`
                 : `No ${position} matches those filters.`}
             </p>
-          ) : view === 'grid' ? (
-            <div className="grid max-h-[52vh] grid-cols-2 gap-1.5 overflow-y-auto">
-              {rows.map((p) => {
-                const c = cell(p);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => c.selectable && onHold(p)}
-                    disabled={!c.selectable}
-                    className={[
-                      'flex flex-col gap-1 rounded-md border p-2 text-left transition',
-                      // No ring: the grid scrolls too, so its outer columns clipped the
-                      // ring exactly as the list rows did. The border is inside the box
-                      // and was already carrying the state, so the ring only ever added
-                      // the artefact.
-                      c.held
-                        ? 'border-pitch bg-pitch/15'
-                        : c.selectable
-                          ? 'border-line hover:border-pitch'
-                          : 'cursor-not-allowed border-line opacity-45',
-                    ].join(' ')}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      {c.sq && <Flag code={c.sq.code} className="h-3 w-[18px]" />}
-                      <span className="font-mono text-[9.5px] text-muted tabular-nums">
-                        {c.sq?.year}
-                      </span>
-                      {c.tier && (
-                        <span className="ml-auto">
-                          <CollectibleStar tier={c.tier} owned={c.owned} />
-                        </span>
-                      )}
-                    </div>
-                    <span className="truncate text-[12.5px] font-semibold leading-tight">
-                      {p.name}
-                    </span>
-                    <div className="mt-0.5 flex items-baseline justify-between">
-                      <span className="font-mono text-[14px] font-bold tabular-nums">{p.elo}</span>
-                      <MarketPrice
-                        cost={c}
-                        className="flex items-baseline gap-1 font-mono text-[11px] font-semibold tabular-nums"
-                        priceClassName={c.affordable ? 'text-pitch-ink' : 'text-loss'}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
           ) : (
-            <ul className="max-h-[52vh] overflow-y-auto">
-              {rows.map((p) => {
-                const c = cell(p);
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => c.selectable && onHold(p)}
-                      disabled={!c.selectable}
-                      className={[
-                        // Selected is a FULL-WIDTH band: no side stroke, and the top and
-                        // bottom rules are borders (inside the box) rather than a ring
-                        // (outside it). A ring is a box-shadow, the list scrolls, and a
-                        // box-shadow is not scrollable overflow - so its left and right
-                        // edges were clipped at the padding box with no way to reach them.
-                        // The transparent border on every other row keeps the height even.
-                        'flex w-full items-center gap-1 border-y px-2 py-1.5 text-left transition',
-                        c.held
-                          ? 'border-pitch bg-pitch/20'
-                          : c.selectable
-                            ? 'border-transparent hover:bg-pitch/5'
-                            : 'cursor-not-allowed border-transparent opacity-45',
-                      ].join(' ')}
-                    >
-                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                        <span className="truncate text-[13px] font-semibold">{p.name}</span>
-                        {c.tier && <CollectibleStar tier={c.tier} owned={c.owned} />}
-                      </span>
-                      {/* Flag over year, in the flag's own 18px. The year used to hold a
-                          28px column of its own next to it, and the names needed it more:
-                          most of them were truncated past recognising. */}
-                      <span className="flex w-[18px] shrink-0 flex-col items-center gap-px">
-                        {c.sq && <Flag code={c.sq.code} className="h-3 w-[18px]" />}
-                        <span className="font-mono text-[8.5px] leading-none text-muted tabular-nums">
-                          {c.sq?.year}
+            // ONE scroll container around both views, so the foot-of-the-list observer
+            // and the scroll-to-top have a single box to work with rather than one each.
+            <div ref={scrollRef} onScroll={maybeGrow} className="max-h-[52vh] overflow-y-auto">
+              {view === 'grid' ? (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {visible.map((p) => {
+                    const c = cell(p);
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => c.selectable && onHold(p)}
+                        disabled={!c.selectable}
+                        className={[
+                          'flex flex-col gap-1 rounded-md border p-2 text-left transition',
+                          // No ring: the grid scrolls too, so its outer columns clipped the
+                          // ring exactly as the list rows did. The border is inside the box
+                          // and was already carrying the state, so the ring only ever added
+                          // the artefact.
+                          c.held
+                            ? 'border-pitch bg-pitch/15'
+                            : c.selectable
+                              ? 'border-line hover:border-pitch'
+                              : 'cursor-not-allowed border-line opacity-45',
+                        ].join(' ')}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {c.sq && <Flag code={c.sq.code} className="h-3 w-[18px]" />}
+                          <span className="font-mono text-[9.5px] text-muted tabular-nums">
+                            {c.sq?.year}
+                          </span>
+                          {c.tier && (
+                            <span className="ml-auto">
+                              <CollectibleStar tier={c.tier} owned={c.owned} />
+                            </span>
+                          )}
+                        </div>
+                        <span className="truncate text-[12.5px] font-semibold leading-tight">
+                          {p.name}
                         </span>
-                      </span>
-                      <span className="w-6 text-right font-mono text-[13px] font-bold tabular-nums">
-                        {p.elo}
-                      </span>
-                      <MarketPrice
-                        cost={c}
-                        className="flex w-[52px] items-baseline justify-end gap-1 font-mono tabular-nums"
-                        priceClassName={`text-[12px] font-semibold ${c.affordable ? 'text-ink' : 'text-loss'}`}
-                      />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                        <div className="mt-0.5 flex items-baseline justify-between">
+                          <span className="font-mono text-[14px] font-bold tabular-nums">{p.elo}</span>
+                          <MarketPrice
+                            cost={c}
+                            className="flex items-baseline gap-1 font-mono text-[11px] font-semibold tabular-nums"
+                            priceClassName={c.affordable ? 'text-pitch-ink' : 'text-loss'}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <ul>
+                  {visible.map((p) => {
+                    const c = cell(p);
+                    return (
+                      <li key={p.id}>
+                        <button
+                          onClick={() => c.selectable && onHold(p)}
+                          disabled={!c.selectable}
+                          className={[
+                            // Selected is a FULL-WIDTH band: no side stroke, and the top and
+                            // bottom rules are borders (inside the box) rather than a ring
+                            // (outside it). A ring is a box-shadow, the list scrolls, and a
+                            // box-shadow is not scrollable overflow - so its left and right
+                            // edges were clipped at the padding box with no way to reach them.
+                            // The transparent border on every other row keeps the height even.
+                            'flex w-full items-center gap-1 border-y px-2 py-1.5 text-left transition',
+                            c.held
+                              ? 'border-pitch bg-pitch/20'
+                              : c.selectable
+                                ? 'border-transparent hover:bg-pitch/5'
+                                : 'cursor-not-allowed border-transparent opacity-45',
+                          ].join(' ')}
+                        >
+                          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                            <span className="truncate text-[13px] font-semibold">{p.name}</span>
+                            {c.tier && <CollectibleStar tier={c.tier} owned={c.owned} />}
+                          </span>
+                          {/* Flag over year, in the flag's own 18px. The year used to hold a
+                              28px column of its own next to it, and the names needed it more:
+                              most of them were truncated past recognising. */}
+                          <span className="flex w-[18px] shrink-0 flex-col items-center gap-px">
+                            {c.sq && <Flag code={c.sq.code} className="h-3 w-[18px]" />}
+                            <span className="font-mono text-[8.5px] leading-none text-muted tabular-nums">
+                              {c.sq?.year}
+                            </span>
+                          </span>
+                          <span className="w-6 text-right font-mono text-[13px] font-bold tabular-nums">
+                            {p.elo}
+                          </span>
+                          <MarketPrice
+                            cost={c}
+                            className="flex w-[52px] items-baseline justify-end gap-1 font-mono tabular-nums"
+                            priceClassName={`text-[12px] font-semibold ${c.affordable ? 'text-ink' : 'text-loss'}`}
+                          />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           )}
         </div>
       ) : (

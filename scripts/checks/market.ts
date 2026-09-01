@@ -9,7 +9,7 @@ import { normalizeSearch } from '../../src/data/format';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../../src/data/squads';
 import { tierOf } from '../../src/domain/album';
 import { playersByPosition } from '../../src/domain/budget';
-import { MAX_RESULTS, marketFacets, marketResults } from '../../src/domain/market';
+import { MARKET_PAGE, marketFacets, marketResults } from '../../src/domain/market';
 import { pricerFor } from '../../src/domain/pricing';
 
 export function marketChecks(): void {
@@ -29,32 +29,63 @@ export function marketChecks(): void {
       price,
     };
 
-    // 1. The ceiling is part of the FILTER, so it lands before the cap. Applied after it,
-    // the screen would hold sixty rows with none of them buyable - which is the state the
-    // toggle exists to fix, and the state the market shipped in.
+    // 1. The ceiling is a FILTER: it decides who is in the answer, not how much of the
+    // answer is on screen. So it keeps every affordable player and drops every other one,
+    // headed by the best the money actually buys - which is the whole feature.
     {
       let ok = true;
-      let anyPositionWasAllUnaffordable = false;
+      let anyPositionUnaffordableOnPageOne = false;
       for (const pos of ['GK', 'CB', 'ST'] as const) {
         const cands = byPos[pos] ?? [];
         const ceiling = 10;
         const affordable = cands.filter((p) => price(p) <= ceiling);
         const capped = marketResults({ ...anyQuery, candidates: cands, maxPrice: ceiling });
-        // A full screen of rows, every one of them buyable, headed by the best the money
-        // actually buys. That last clause is the whole feature: "the best I can afford".
-        if (capped.rows.length !== Math.min(MAX_RESULTS, affordable.length)) ok = false;
+        if (capped.rows.length !== affordable.length) ok = false;
         if (capped.rows.some((p) => price(p) > ceiling)) ok = false;
         if (capped.rows[0].elo !== Math.max(...affordable.map((p) => p.elo))) ok = false;
         if (capped.hiddenByPrice !== cands.length - affordable.length) ok = false;
-        // And without it, the same query at the same money is the broken list.
+        // And without it, the FIRST PAGE at the same money is the list the toggle exists
+        // for: sixty rows, sorted by rating, not one of them buyable. That is now a
+        // scroll away from being fixed rather than a dead end, and it is still not what
+        // somebody down to their last $10 wants to be shown.
         const open = marketResults({ ...anyQuery, candidates: cands });
         if (open.hiddenByPrice !== 0) ok = false;
-        if (!open.rows.some((p) => price(p) <= ceiling)) anyPositionWasAllUnaffordable = true;
+        if (!open.rows.slice(0, MARKET_PAGE).some((p) => price(p) <= ceiling)) {
+          anyPositionUnaffordableOnPageOne = true;
+        }
       }
-      check('market: the price ceiling filters before the 60-row cap, best-affordable first', () => ok);
+      check('market: the price ceiling filters, keeping every affordable player, best first', () => ok);
       check(
-        'market: without it, a rating-sorted screen at $10 holds nothing buyable',
-        () => anyPositionWasAllUnaffordable,
+        'market: without it, the first page at $10 holds nothing buyable',
+        () => anyPositionUnaffordableOnPageOne,
+      );
+    }
+
+    // 1b. The answer is the WHOLE pool. It used to be capped at sixty, and with the default
+    // rating sort that did not put the cheap end of a position below the fold - it left it
+    // out of the answer altogether, so the only route to a bargain was a filter. The panel
+    // windows the list as you scroll now; the query may not.
+    {
+      let ok = true;
+      let deeperThanAPage = 0;
+      const positions = ['GK', 'CB', 'ST', 'LM'] as const;
+      for (const pos of positions) {
+        const cands = byPos[pos] ?? [];
+        const all = marketResults({ ...anyQuery, candidates: cands });
+        if (all.rows.length !== cands.length) ok = false;
+        // The claim that matters, stated in money: sorted by RATING, with no filter on at
+        // all, the cheapest man in the pool is one of the rows.
+        const floor = Math.min(...cands.map(price));
+        if (Math.min(...all.rows.map(price)) !== floor) ok = false;
+        // The vacuity guard, and it is the point of the change rather than a formality: he
+        // is nowhere near the first page, so "the answer holds him" is a real claim about
+        // every position rather than one that a sixty-row cap would also have satisfied.
+        if (all.rows.slice(0, MARKET_PAGE).every((p) => price(p) > floor)) deeperThanAPage++;
+      }
+      check('market: the query returns the whole pool, its cheapest player included', () => ok);
+      check(
+        `market: and he is past the first page in all ${positions.length} positions sampled`,
+        () => deeperThanAPage === positions.length,
       );
     }
 
