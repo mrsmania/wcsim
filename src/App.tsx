@@ -235,10 +235,16 @@ export default function App({
     // A match reveal is transient state (deliberately not persisted), so the bar goes
     // inert while one plays, exactly as the run ladder already does.
     const liveMatch = useLiveMatch();
-    // A live room is the TOP of the Continue precedence - room, then run, then build -
-    // in the cover's Continue and in the Play tab's destination alike (plan section 8).
-    // Without it, tapping the crest out of habit mid-room lands you on your solo build
-    // with a pick clock running somewhere else.
+    // A live room is held so the CHROME can offer it - the one-line strip below the tabs,
+    // which reaches it from every screen in the game. That is the whole of its reach now.
+    //
+    // IT USED TO SIT ON TOP OF THE PLAY TAB TOO, and that was a reported bug: the tab's
+    // destination and the cover's Continue both preferred the room, so a player holding
+    // one could not reach the front page at all - every tap on PLAY forwarded to Versus,
+    // which is a tab of its own now and does not need the Play tab's help to be found.
+    // Versus has an address; Play is where the single-player game lives. The strip is
+    // what stops "tapping the crest out of habit mid-room" stranding anybody, and it does
+    // it without taking a destination away.
     //
     // AND IT IS ONLY EVER SHOWN TO AN ACCOUNT, which was a reported bug: the pointer lives
     // in `sessionStorage` and signing out reloads the page, so a guest was left with a
@@ -258,8 +264,9 @@ export default function App({
     const duel = useDuelAlert(!!accountEmail && FEATURES.pvp);
     const duelTo = duel ? `/versus/${duel.row.code}` : null;
     // Where the Play tab lands: the run if there is one, the build if one is half done,
-    // otherwise the cover. The crest always returns to the cover.
-    const playTo = roomTo ?? (resumeCupRun ? '/cup-run' : formation ? '/play' : '/');
+    // otherwise the cover. The crest always returns to the cover. A versus room is
+    // deliberately NOT in this chain - see above.
+    const playTo = resumeCupRun ? '/cup-run' : formation ? '/play' : '/';
     const playTabActive = isPlayTab(screen);
     // A tab is a label and a destination. The per-tab sub-line each of these used to
     // carry (where the run is, level and Prestige, album completion, challenges earned,
@@ -304,18 +311,16 @@ export default function App({
     // The cover's single Continue action: a live Cup Run, else a half-built XI. One
     // action because this navigation keeps one run at a time; "build a new XI" beside it
     // discards whichever of the two it is.
-    const continueAction =
-        roomTo && heldRoom
-            ? {
-                  to: roomTo,
-                  label: 'Back to your room',
-                  sub: `Versus ${heldRoom.code} · ${heldRoom.line}`,
-              }
-            : resumeCupRun
-              ? { to: '/cup-run', label: 'Resume your Cup Run', sub: resumeCupRun.summary }
-              : resumeBuild
-                ? { to: resumeBuild.to, label: resumeBuild.label, sub: resumeBuild.sub }
-                : null;
+    //
+    // A held versus room used to come FIRST here ("Back to your room"), and it does not
+    // any more: the cover is the Play tab's own screen, so a room on it made the front
+    // page one more place that talked about Versus and hid the single-player game behind
+    // it. The room is reachable from the strip in the chrome, on this screen included.
+    const continueAction = resumeCupRun
+        ? { to: '/cup-run', label: 'Resume your Cup Run', sub: resumeCupRun.summary }
+        : resumeBuild
+          ? { to: resumeBuild.to, label: resumeBuild.label, sub: resumeBuild.sub }
+          : null;
 
     return (
         <div className="min-h-full text-ink">
@@ -467,7 +472,6 @@ export default function App({
                     ) : isLauncher ? (
                         <ModeSelect
                             continueAction={continueAction}
-                            versusTo={FEATURES.pvp ? '/versus' : undefined}
                             buildTo="/play"
                             onNewXi={handleReset}
                             allPlayers={poolPlayers}

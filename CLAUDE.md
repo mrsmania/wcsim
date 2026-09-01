@@ -792,6 +792,28 @@ onto a second row below the fold. Do not add a seventh without a reason of that 
   game - but the two door cards went, and the three resume buttons collapsed into one
   **Continue**: a live Cup Run, else a half-built XI. "Build a new XI" beside it confirms
   first, because it discards whichever of the two that is.
+- **PLAY IS THE SINGLE-PLAYER GAME, and nothing about Versus is under it** (2026-09-01,
+  a reported bug: *"when I have a running versus room I cannot get back to the home page,
+  clicking PLAY always forwards to the versus page"*). Three things had grown there while
+  Versus was a mode with no address of its own, and all three are gone:
+  - **The Play tab's destination** preferred a held room over the run and the build
+    (`playTo = roomTo ?? ...`), so anybody in a room could not reach the front page at
+    all - the tab that leads to the cover forwarded off the cover, and the crest was the
+    only way back. That was defensible when Versus lived behind a door on this very
+    screen; the moment Versus became a tab, the Play tab was lending an address to a
+    destination that already had one, and charging the single-player game for it.
+  - **The cover's Continue** led with "Back to your room", outranking the Cup Run.
+  - **The hero's "Play somebody" door**, which was the cover's own way into Versus and is
+    now a second answer to a question the tab bar answers from every screen.
+  **What replaces all three is the strip that was already there**: the chrome's one-line
+  "Versus CODE - <line>", under the tabs on every screen but the versus page, which is
+  what P29's "tapping the crest out of habit mid-room does not strand you" is actually
+  for. It reaches the room from the album and the squad browser too, which the Play tab
+  never did. So the fix gives a destination back and takes none away, and `npm run checks`
+  pins it - with the strip as the vacuity guard, because "Play does not mention the room"
+  is trivially true of a build that dropped the pointer altogether, and that would be the
+  worse bug. **The general rule: a tab is one destination, and a mode with its own tab
+  does not get to borrow another one's.**
 - **There is one kind of run.** A Career run / One-off control shipped here briefly and
   was **removed 2026-08-21** (roadmap item 28): a career run at Base Ascension with no
   boost taken is the same tournament, so One-off was a strictly dominated choice, and
@@ -3030,10 +3052,14 @@ just a sentence, since it stays reachable legitimately (a started room you walke
 the referee already sent the room's code as its `detail`, so `refereeMessage` names it and
 `RefereeProblem` takes an `action` for the "Go to room X" button.
 
-- **Routes are `/versus` and `/versus/:code`**, reached from a door on the front page, not
-  a segment under Play. It became **the sixth tab on 2026-08-31**, when duels made it a
+- **Routes are `/versus` and `/versus/:code`**, reached from the Versus tab, not a segment
+  under Play. It became **the sixth tab on 2026-08-31**, when duels made it a
   place you check rather than a place you visit - see "Navigation" above for why that is a
   change in what the mode is rather than a change of mind about the bar.
+  **AND ON 2026-09-01 THE PLAY TAB STOPPED CARRYING IT, which was a reported bug** (see
+  "Play is the single-player game" below): the front page's "Play somebody" door, the Play
+  tab's destination and the cover's Continue all pointed at Versus, and the tab is the
+  address now.
   `components/versus/` holds the screens, `RoomBracket` among them (the tree, and the draw
   ceremony that fills the wait): `VersusScreen` (the three gates - an account, a
   referee that speaks this build's language, a name), `VersusHome`, `RoomLobby`,

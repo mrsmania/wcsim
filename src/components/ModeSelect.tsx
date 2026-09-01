@@ -17,15 +17,20 @@ import { onStickerArtError, stickerArtSrc, TIER_META } from './stickerTheme';
  *  the doors led to the identical build page, so the choice became a control on it and
  *  then disappeared entirely when One-off was dropped; and the resume trio became one
  *  Continue. What is left is the part that was always worth keeping - the hero board, the
- *  beats and the legends - plus one primary action. */
+ *  beats and the legends - plus one primary action.
+ *
+ *  A THIRD DOOR, "Play somebody", went on 2026-09-01, and it is the same reasoning one
+ *  step later. It was the cover's own way into Versus, put there when Versus had no
+ *  address of its own; Versus is a tab now, visible from every screen in the game, so the
+ *  door was a second answer to a question the bar already answers - and it was pulling the
+ *  front page towards a mode this screen is not about. Play is the single-player game.
+ *
+ *  The single Continue is likewise single-player only: a held versus room used to outrank
+ *  the Cup Run here and does not any more (see App). */
 interface Props {
     /** The single Continue action (a live run, a tournament, or a half-built XI), or null
      *  when nothing is in progress. */
     continueAction: { to: string; label: string; sub: string } | null;
-    /** Where "play somebody" goes, when versus is configured (FEATURES.pvp). Its own
-     *  door on the cover rather than a sixth tab or a segment under Play (plan section
-     *  8): the tab bar stays at five, and the hero is what sells the game. */
-    versusTo?: string;
     /** Where "Build your XI" goes. */
     buildTo: string;
     /** Discard what is in progress and start a fresh build. Destructive, so it confirms
@@ -87,7 +92,7 @@ function Beat({
     );
 }
 
-export default function ModeSelect({ continueAction, buildTo, versusTo, onNewXi, allPlayers }: Props) {
+export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayers }: Props) {
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
     const legends = useMemo(() => {
         if (!FEATURES.stickerAlbum) return [];
@@ -163,15 +168,6 @@ export default function ModeSelect({ continueAction, buildTo, versusTo, onNewXi,
                                 className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
                             >
                                 Build your XI
-                                <ArrowRight size={17} strokeWidth={2.5} />
-                            </Link>
-                        )}
-                        {versusTo && (
-                            <Link
-                                to={versusTo}
-                                className={`${CTA} border border-white/35 bg-transparent text-white hover:bg-white/[0.12]`}
-                            >
-                                Play somebody
                                 <ArrowRight size={17} strokeWidth={2.5} />
                             </Link>
                         )}

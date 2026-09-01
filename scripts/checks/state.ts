@@ -279,6 +279,42 @@ export function stateChecks(): void {
     );
   }
 
+  // --- The Play tab is the single-player game, and a held room is not on it -----
+  // A REPORTED BUG: the Play tab's destination and the cover's Continue both preferred a
+  // held versus room, so anybody holding one could not reach the front page at all - every
+  // tap on PLAY forwarded to Versus. That preference made sense while Versus was a door on
+  // the cover with no address of its own, and stopped making sense the day it became a tab
+  // (2026-08-31): the mode is reachable from every screen now, so borrowing the Play tab
+  // costs a destination and buys nothing.
+  //
+  // Source-level for the same reason the pointer check above is: there is nothing to run,
+  // the defect is a line being there. The strip assertion is the vacuity guard, and it is
+  // the load-bearing half - "Play does not mention the room" is trivially true of a build
+  // that dropped the pointer altogether, which would be a worse bug than the one this
+  // replaces (a player mid-room with no way back to it from the album).
+  {
+    const app = readFileSync('src/App.tsx', 'utf8');
+    const playTo = /\n\s*const playTo = ([^;]*);/.exec(app)?.[1] ?? '';
+    const continueAction = /\n\s*const continueAction = ([\s\S]*?);\n/.exec(app)?.[1] ?? '';
+    const mentionsRoom = (src: string) => /roomTo|heldRoom|VersusRoom/.test(src);
+    // The chrome's one-line strip is where a held room lives now, and it links to it.
+    const strip = /heldRoom && roomTo && !isVersus \? \(\s*<Link\s+to=\{roomTo\}/.test(app);
+    check(
+      'versus: the Play tab and the cover Continue are single-player, and the strip still holds the room',
+      () =>
+        // Vacuity: both expressions were found and both really do decide a destination.
+        playTo.includes("'/cup-run'") &&
+        continueAction.includes("'/cup-run'") &&
+        !mentionsRoom(playTo) &&
+        !mentionsRoom(continueAction) &&
+        strip,
+      () =>
+        `playTo ${mentionsRoom(playTo) ? 'takes the room' : 'is solo'}, continue ${
+          mentionsRoom(continueAction) ? 'takes the room' : 'is solo'
+        }, strip ${strip}`,
+    );
+  }
+
   // --- The email address is the identifier, and both sides fold it the same way ---
   // Migration 0023 makes `profiles.email` unique, which is the ask - but a unique index is
   // only worth what the stored form is worth. `Mario@x.com` and `mario@x.com` are one
