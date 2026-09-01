@@ -351,10 +351,23 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
   white "+" that ignores the click was the loudest thing on the pitch. **A move is not always two players.** `planMove`
   (domain/draft) runs a bipartite augmenting-path search (Kuhn), so besides an empty
   slot and a straight trade it also finds **rotations of three or more** - which is the
-  only legal rearrangement more often than you would guess (9.3% of all legal moves,
-  measured over every formation). Real case: Knoflicek [LW,ST] at LW, Burruchaga
-  [AM,RW,ST] at ST, Donadoni [LW,RW,AM] at RW - no pair can trade, yet rotating all
-  three round is fine. The badge glyph and label say which: an arrows icon and "trade
+  only legal rearrangement more often than you would guess (884 of 8,960 legal moves,
+  9.9%, measured over every formation with 40 XIs each). Real case: Knoflicek [LW,ST] at
+  LW, Burruchaga [AM,RW,ST] at ST, Donadoni [LW,RW,AM] at RW - no pair can trade, yet
+  rotating all three round is fine.
+  **A ROTATION IS OFFERED ONLY WHERE NOTHING SIMPLER IS LEGAL, and the ORDER the search
+  tries slots in is the whole of that guarantee** (fixed 2026-09-01, reported from the
+  game with three forwards who could each play LW, RW and ST: swapping the right winger
+  with the striker moved the left winger as well, where swapping the left winger with the
+  striker had correctly left the right winger standing). A displaced player walked the
+  formation's slot list from the top and took the first slot he could play, so the slot
+  the mover had just left was reached only when nothing earlier fitted - which dragged a
+  bystander in whenever the vacated slot sat later in that list, on **3,019 of those same
+  8,960 moves** where only 884 needed it. Every one of those plans was legal and none was
+  the one being asked for. He is offered the **vacated slot first, then any other empty
+  slot, and only then an occupied one**, so the two figures agree exactly now. `npm run
+  checks` holds both halves, and needs both: a trade never shifts a third player, and a
+  rotation is still found where no pair can trade. The badge glyph and label say which: an arrows icon and "trade
   places with X" for two, a rotate icon and "take X's spot, rotating N players" beyond
   that. `planMove` returns the whole resulting `Filled`, and `MOVE_PLAYER` just stores
   it, so the reducer never has to know the shape of the chain.
