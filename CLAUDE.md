@@ -523,8 +523,9 @@ src/
                one place that talks to the referee) and pvp/records.ts (the two things a
                room writes about a PERSON rather than a room: the win/loss record, and a
                report of a name - both straight to the account server, not the referee) and
-               pvp/watched.ts (which duels this BROWSER has watched the result of, which is
-               local by design - see the duel reveal note under "Versus")
+               pvp/watched.ts (which duels this PLAYER has watched the result of, read and
+               written through the store - see the duel reveal note under "Versus") over
+               pvp/watchedStorage.ts (that list's guest key)
   hooks/       useBuild.ts (THE BUILD: the reducer, its effects, the three interaction
                machines and the handlers, as a unit that can be instantiated twice),
                useVersusRoom.ts (one room live: the answer, the poll, the broadcast, the
@@ -3479,12 +3480,28 @@ Eight things about it are decisions rather than details, and each one is checked
 (2026-08-31). P30's reveal window is the server's and has to be in a live room, where two
 people are watching the same match and must see the same one; a duel is played at the moment
 the second XI lands, with nobody necessarily awake, so honouring that window would hand a
-scoreline to whoever opened the app an hour later. So for a duel the reveal is a LOCAL fact:
-`state/pvp/watched.ts` records which room codes this browser has sat through, `RoomScreen`
-plays the match the first time and shows a "Skip to the result" beside it, and afterwards it
-is the settled card and both XIs. That key is deliberately NOT in `GUEST_KEYS` (a guest can
-hold no room, P17) and deliberately not synced - a second device replays the match once,
-which is the right way round.
+scoreline to whoever opened the app an hour later. So for a duel the reveal is a fact about
+the VIEWER rather than about the room: `state/pvp/watched.ts` records which room codes have
+been sat through, `RoomScreen` plays the match the first time and shows a "Skip to the
+result" beside it, and afterwards it is the settled card and both XIs.
+
+**AND THAT LIST FOLLOWS THE ACCOUNT. IT USED TO FOLLOW THE BROWSER, AND THAT WAS WRONG**
+(2026-09-01, reported from the game: "all played and seen matches are set back after a
+re-login"). It was a localStorage key on the stated reasoning that having watched a reveal is
+not progress - it earns nothing and changes no result - and that reasoning is true and beside
+the point. **The list is not a record of what you have seen, it is what decides whether the
+app has anything waiting for you**: the duels page leads with it and so does the chrome's
+strip, so a copy that does not travel means every duel you have already watched announces
+itself again on the next device or the next sign-in, and the one signal this mode has stops
+meaning anything. It also had two accounts on one machine sharing a list.
+So it goes through the store seam like everything else persisted, and the interesting part
+is where an account's copy lives: **in the settings row's jsonb**, which is one blob the
+client writes whole, so it needed **no migration**. Two consequences to keep in mind. The
+preferences and the watched list now SHARE that row, so a save of either that does not carry
+the other deletes it - `toStored` takes the list as a REQUIRED argument for exactly that
+reason, and `npm run checks` reads both `save_settings` writes. And a guest's copy stays in
+`watchedStorage`'s own key, which is still deliberately NOT in `GUEST_KEYS` (a guest can hold
+no room, P17, so there is nothing there to import).
 
 **AND THE DUELS LIST IS HOW EVERY DUEL REACHES ANYBODY, because nothing in this game sends a
 message.** No mail, no push. `GET /v1/duels` answers the duels you are IN, newest activity

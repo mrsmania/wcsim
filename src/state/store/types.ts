@@ -33,6 +33,10 @@ export interface AccountSnapshot {
   settings: Settings;
   /** An in-progress Cup Run, or null. */
   run: RunState | null;
+  /** Room codes whose duel result has already been watched (`state/pvp/watched.ts`).
+   *  Persisted per PLAYER rather than per browser, so a re-login does not offer every
+   *  match again as though it were new. */
+  watchedDuels: readonly string[];
   /** An in-flight match reveal. Only meaningful with a `run`; a stale one is dropped. */
   reveal: Reveal | null;
 }
@@ -87,6 +91,9 @@ export interface Store {
   clearAlbum(): Promise<void>;
   saveCareer(career: CareerState): Promise<void>;
   saveSettings(settings: Settings): Promise<void>;
+  /** Replace the watched-duel list. Whole list rather than one code, so the cap and the
+   *  ordering are decided in one place (`markDuelWatched`) rather than by each store. */
+  saveWatchedDuels(codes: readonly string[]): Promise<void>;
   /** `null` drops the run (and any in-flight reveal with it). */
   saveRun(run: RunState | null): Promise<void>;
   /** `null` drops the in-flight reveal only. */

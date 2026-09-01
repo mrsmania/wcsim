@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { emptyAlbum, type AlbumState } from '../../domain/album';
 import { hydrateCareer, INITIAL_CAREER, type CareerState } from '../../domain/career';
-import { normalizeSettings, toStored } from '../settingsStorage';
+import { normalizeSettings, toStored, watchedFrom } from '../settingsStorage';
 import { createSnapshotCache } from './cache';
 import type { AccountSnapshot, AlbumStats, FinishRunResult, Store } from './types';
 
@@ -263,6 +263,11 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
         // across: the account row is jsonb the client wrote, so it carries the same
         // stale-pool problem (and the same tolerance needs) as localStorage.
         settings: normalizeSettings(settings.data?.data),
+        // In the same row as the settings, and deliberately: it is the account's copy of
+        // "which duel results have been watched", it needed no migration to get there, and
+        // reading it here is what makes a re-login stop replaying matches somebody has
+        // already sat through.
+        watchedDuels: watchedFrom(settings.data?.data),
         run: (run.data?.data as AccountSnapshot['run']) ?? null,
         // Deliberately not stored server-side: a refresh mid-reveal replays the
         // current match, exactly as it does for a guest.
@@ -405,9 +410,17 @@ export function createRemoteStore(client: SupabaseClient, userId: string): Store
       version = await rpc<number>('save_career', { p_career: careerToRow(career) });
     },
 
+    // BOTH of these write the WHOLE row, because `save_settings` takes one jsonb and
+    // replaces it: the preferences and the watched-duel list share it, so each save has to
+    // carry the other half from the cache or it deletes it.
     async saveSettings(settings) {
       patch({ settings });
-      await rpcPlain('save_settings', { p_data: toStored(settings) });
+      await rpcPlain('save_settings', { p_data: toStored(settings, peek().watchedDuels) });
+    },
+
+    async saveWatchedDuels(watchedDuels) {
+      patch({ watchedDuels });
+      await rpcPlain('save_settings', { p_data: toStored(peek().settings, watchedDuels) });
     },
 
     async saveRun(run) {

@@ -961,6 +961,46 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     <h3>Closed 2026-09-01</h3>
 <details class="item">
   <summary>
+    <span class="num">52</span>
+    <span class="title">A watched duel stays watched after a re-login
+      <span class="sub"><b>CLOSED 2026-09-01.</b> The list of duel results you have sat
+      through followed the BROWSER and now follows the ACCOUNT, so signing out and back in
+      no longer announces every match you have already watched as though it were new. It
+      rides in the settings row, so it needed <b>no migration</b> and nothing deployed.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What was reported.</strong> "When I re-login with my account, all played and
+    seen matches are set back and I have to watch them again to get them into status
+    watched." Which is exactly what the code did: the codes lived in one localStorage key,
+    so they belonged to a browser rather than to a person - lost on a different device, on a
+    cleared browser, and shared between two accounts signing in on the same machine.</p>
+
+    <p><strong>Why it was built that way, and why that reasoning was wrong.</strong> The
+    original note said whether you have watched a reveal is not progress: it earns nothing
+    and changes no result, so it was not worth a column. True, and beside the point. That
+    list is not a record of what you have seen, it is <b>what decides whether the app has
+    anything waiting for you</b> - the duels page leads with it and so does the strip in the
+    chrome. A copy that does not travel makes the one signal this mode has stop meaning
+    anything, because it cries wolf about matches you watched yesterday.</p>
+
+    <p><strong>Where it lives now, and the trap that came with it.</strong> It goes through
+    the store seam like everything else persisted: a guest keeps its own key, and an account
+    keeps the list in the jsonb blob its settings already occupy - one row the client writes
+    whole, which is what let this ship with no SQL and no referee rebuild. The cost is that
+    preferences and the watched list now share a row, so a save of either that does not
+    carry the other <b>deletes it</b>: changing the theme would have wiped every watched
+    duel. The writer takes the list as a required argument so forgetting it cannot compile,
+    and three checks hold the rest - the round trip, both writes carrying both halves, and
+    the list being read through the store rather than a browser key. All three were
+    mutation-tested.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/pvp/watched.ts" target="_blank" rel="noopener">src/state/pvp/watched.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/pvp/watchedStorage.ts" target="_blank" rel="noopener">src/state/pvp/watchedStorage.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/settingsStorage.ts" target="_blank" rel="noopener">src/state/settingsStorage.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/store/remoteStore.ts" target="_blank" rel="noopener">src/state/store/remoteStore.ts</a></p>
+  </div>
+</details>
+<details class="item">
+  <summary>
     <span class="num">51</span>
     <span class="title">Rebuild the versus server, and apply 0024, so a duel cannot be re-rolled
       <span class="sub"><b>CLOSED 2026-09-01.</b> The referee is rebuilt and <b>0024</b> is

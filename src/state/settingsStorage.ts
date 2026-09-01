@@ -1,5 +1,6 @@
 import { WORLD_CUP_YEARS } from '../data/squads';
 import type { Difficulty } from '../domain/difficulty';
+import { reviveWatched } from './pvp/watchedStorage';
 import { readJson, writeJson } from './storage/kv';
 
 /** Light (default) or dark theme. */
@@ -40,6 +41,15 @@ export interface StoredSettings {
     difficulty: Difficulty;
     poolYears: readonly number[] | null;
     showFullDraw: boolean;
+    /** The duels whose result this player has already watched (`state/pvp/watched.ts`).
+     *
+     *  NOT a preference, and not part of `Settings`: nothing in the settings sheet edits
+     *  it and no screen reads it from there. It rides in this blob because an account's
+     *  copy has to live somewhere on the server and this row is a jsonb the client writes
+     *  whole - which is what let the list start following the account with no migration.
+     *  A guest's copy stays in `watchedStorage`'s own key, so a locally-written blob
+     *  carries an empty list. */
+    watchedDuels: readonly string[];
 }
 
 const SHAPE_VERSION = 2;
@@ -89,15 +99,30 @@ export function normalizeSettings(raw: unknown): Settings {
 }
 
 /** `Settings` in the shape that gets written. Both stores go through it, so there is one
- *  definition of how a pool selection is recorded - see `StoredSettings`. */
-export function toStored(s: Settings): StoredSettings {
+ *  definition of how a pool selection is recorded - see `StoredSettings`.
+ *
+ *  `watchedDuels` IS REQUIRED RATHER THAN OPTIONAL, and that is the whole guard on it: the
+ *  account's list lives in this blob, so a settings save that forgot it would silently
+ *  wipe every watched duel the next time somebody changed the theme. Being a parameter
+ *  makes forgetting it a type error instead. A local write passes an empty list, because a
+ *  guest's copy is kept under its own key. */
+export function toStored(s: Settings, watchedDuels: readonly string[]): StoredSettings {
     return {
         v: SHAPE_VERSION,
         theme: s.theme,
         difficulty: s.difficulty,
         poolYears: coversEveryYear(s.poolYears) ? null : s.poolYears,
         showFullDraw: s.showFullDraw,
+        watchedDuels,
     };
+}
+
+/** The watched-duel codes out of a stored settings blob. Separate from
+ *  `normalizeSettings` because it answers about a different thing: `Settings` is what the
+ *  sheet edits, and this is a note the store carries in the same row. */
+export function watchedFrom(raw: unknown): string[] {
+    if (!raw || typeof raw !== 'object') return [];
+    return reviveWatched((raw as Partial<StoredSettings>).watchedDuels);
 }
 
 /** Load saved preferences (tolerant of an absent key or bad JSON). */
@@ -106,5 +131,6 @@ export function loadSettings(): Settings {
 }
 
 export function saveSettings(s: Settings): void {
-    writeJson(SETTINGS_KEY, toStored(s));
+    // Empty: a guest's watched duels are kept under their own key, never here.
+    writeJson(SETTINGS_KEY, toStored(s, []));
 }

@@ -66,6 +66,7 @@ export const store: Store = {
   clearAlbum: () => reporting(() => impl.clearAlbum()),
   saveCareer: (c) => reporting(() => impl.saveCareer(c)),
   saveSettings: (s) => reporting(() => impl.saveSettings(s)),
+  saveWatchedDuels: (c) => reporting(() => impl.saveWatchedDuels(c)),
   saveRun: (r) => reporting(() => impl.saveRun(r)),
   saveReveal: (r) => reporting(() => impl.saveReveal(r)),
 };
@@ -106,8 +107,13 @@ async function moveGuestProgressIn(): Promise<AccountSnapshot | null> {
     // `p_payload->'settings'` verbatim into the account's jsonb, so handing it the
     // in-memory shape would write a blob the next load reads as a v1 save and widens
     // back to every tournament. See `settingsStorage.toStored`.
-    const { reveal: _reveal, settings, ...rest } = await createLocalStore().load();
-    await impl.importGuest({ ...rest, settings: toStored(settings) });
+    //
+    // `watchedDuels` is dropped for the same reason it is not in `GUEST_KEYS`: a guest
+    // cannot hold a room (P17), so there is nothing there to carry in, and the account's
+    // own list is already in the settings row it is about to read.
+    const { reveal: _reveal, watchedDuels: _watched, settings, ...rest } =
+      await createLocalStore().load();
+    await impl.importGuest({ ...rest, settings: toStored(settings, []) });
     clearGuestData();
     return impl.peek();
   } catch (err) {

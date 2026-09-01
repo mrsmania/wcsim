@@ -23,9 +23,10 @@ import {
   SETTINGS_KEY,
   normalizeSettings,
   toStored,
+  watchedFrom,
 } from '../../src/state/settingsStorage';
 import { GUEST_KEYS } from '../../src/state/store/localStore';
-import { VERSUS_WATCHED_KEY } from '../../src/state/pvp/watched';
+import { VERSUS_WATCHED_KEY, WATCHED_LIMIT } from '../../src/state/pvp/watchedStorage';
 import { CATALOGUE_PATH } from '../collectibles';
 
 export function stateChecks(): void {
@@ -39,8 +40,8 @@ export function stateChecks(): void {
   // narrowing. `toStored` therefore writes null for "all", and a v1 save (which could not
   // tell the two apart) gets its pool back.
   {
-    const storedAll = toStored({ ...DEFAULT_SETTINGS, poolYears: WORLD_CUP_YEARS });
-    const storedNarrow = toStored({ ...DEFAULT_SETTINGS, poolYears: [1990, 2022] });
+    const storedAll = toStored({ ...DEFAULT_SETTINGS, poolYears: WORLD_CUP_YEARS }, []);
+    const storedNarrow = toStored({ ...DEFAULT_SETTINGS, poolYears: [1990, 2022] }, []);
     // A v1 save: no `v`, and a list that covered every year at the time of writing.
     const v1 = { theme: 'light', difficulty: 'normal', poolYears: WORLD_CUP_YEARS.slice(1), showFullDraw: false };
     const roundTrip = (s: unknown) => normalizeSettings(s).poolYears;
@@ -156,9 +157,10 @@ export function stateChecks(): void {
   // cleared afterwards, with no type error (hygiene H88). Now it is assembled from the
   // exports, and this asserts the set is what it should be: all six progress keys, no
   // duplicates, and neither of the two keys that are not progress - the settings, which
-  // are preferences, and the watched-duels list, which is a note about what this browser
-  // has already looked at. A guest can hold neither a room nor a duel (P17), so importing
-  // that one would be carrying an empty list into an account by definition.
+  // are preferences, and the watched-duels list, whose local key is a guest's copy only.
+  // A guest can hold neither a room nor a duel (P17), so importing that one would be
+  // carrying an empty list into an account by definition, and an account's own copy lives
+  // in its settings row rather than in any key here.
   {
     const progress = [GAME_KEY, ALBUM_KEY, ALBUM_STATS_KEY, CAREER_KEY, RUN_KEY, REVEAL_KEY];
     const all = [...progress, SETTINGS_KEY, VERSUS_WATCHED_KEY];
@@ -173,6 +175,74 @@ export function stateChecks(): void {
         // would orphan saved games), so this pins the oddity rather than the pattern.
         GAME_KEY === 'wcsim:game:v1' &&
         all.filter((k) => k.startsWith('wcsim_')).length === all.length - 1,
+    );
+  }
+
+  // --- A watched duel stays watched, on the next device and the next sign-in --
+  // REPORTED FROM THE GAME: every match already watched came back as unwatched after a
+  // re-login, so the duel list announced results the player had sat through and the room
+  // screen played them again. The list was per BROWSER, in its own localStorage key, on
+  // the reasoning that having watched a reveal is not progress - which is true and beside
+  // the point, since that list is what decides whether the app has anything waiting for
+  // you. It follows the ACCOUNT now, in the settings row's jsonb (no migration: that row
+  // is one blob this client writes whole).
+  //
+  // The trap the shape creates, and the reason this block exists: the preferences and the
+  // watched list share one row, so a save of either that does not carry the other DELETES
+  // it - changing the theme would have wiped every watched duel. `toStored` takes the list
+  // as a required argument so forgetting it cannot compile, and the two writes are read
+  // here so neither can be "fixed" into passing an empty list.
+  {
+    const codes = ['ABC123', 'DEF456'];
+    const withList = toStored(DEFAULT_SETTINGS, codes);
+    const withNone = toStored(DEFAULT_SETTINGS, []);
+    const remote = readFileSync('src/state/store/remoteStore.ts', 'utf8');
+    const watched = readFileSync('src/state/pvp/watched.ts', 'utf8');
+    // Both `save_settings` writes, with whatever they hand `toStored`.
+    // Greedy up to the closing brace of the argument object, so `peek().settings` keeps
+    // its own brackets rather than the capture stopping at the first one.
+    const writes = [...remote.matchAll(/p_data: toStored\((.+)\)\s*\}/g)].map((m) => m[1]);
+    check(
+      'versus: a watched duel survives a round trip through the account settings blob',
+      () =>
+        // Vacuity: the sample is not empty, and a blob written without a list reads as one.
+        codes.length > 0 &&
+        watchedFrom(withList).join() === codes.join() &&
+        watchedFrom(withNone).length === 0 &&
+        // Junk of every shape reads as nothing rather than throwing, like every other
+        // stored slice - this blob is jsonb the client wrote and can be any age.
+        watchedFrom(null).length === 0 &&
+        watchedFrom({ watchedDuels: 'ABC123' }).length === 0 &&
+        watchedFrom({ watchedDuels: [1, 'ABC123', null] }).join() === 'ABC123' &&
+        // The cap holds on the way in as well as at the mark, so a hand-edited blob
+        // cannot grow the row without limit.
+        watchedFrom({ watchedDuels: Array(WATCHED_LIMIT + 10).fill('X') }).length ===
+          WATCHED_LIMIT &&
+        // The preferences are untouched by carrying it.
+        normalizeSettings(withList).poolYears.length === WORLD_CUP_YEARS.length,
+    );
+    check(
+      'versus: neither settings write drops the other half of the row',
+      () =>
+        // Vacuity: there really are two writes to find.
+        writes.length === 2 &&
+        // Each passes the settings and the list, and neither invents an empty one.
+        writes.every((args) => args.split(',').length === 2 && !/\[\s*\]/.test(args)) &&
+        writes.some((args) => args.includes('peek().watchedDuels')) &&
+        writes.some((args) => args.includes('peek().settings')),
+      () => `save_settings writes: ${writes.join(' | ') || 'none found'}`,
+    );
+    check(
+      'versus: the watched list is read and written through the store, not a browser key',
+      () =>
+        // The whole of the fix in one line: this module holds no storage of its own.
+        watched.includes("from '../store'") &&
+        !watched.includes('storage/kv') &&
+        watched.includes('store.saveWatchedDuels(') &&
+        watched.includes('store.peek().watchedDuels') &&
+        // Vacuity: the guest's key still exists and is still the thing that talks to
+        // localStorage, so this is reading a real separation rather than an absence.
+        readFileSync('src/state/pvp/watchedStorage.ts', 'utf8').includes('storage/kv'),
     );
   }
 

@@ -20,6 +20,7 @@ import {
   saveRun,
 } from '../runStorage';
 import { loadSettings, saveSettings } from '../settingsStorage';
+import { loadWatchedDuels, saveWatchedDuels } from '../pvp/watchedStorage';
 import { hasAnyKey, removeKeys } from '../storage/kv';
 import { createSnapshotCache } from './cache';
 import { applyRunStickers, executeTrade, pendingNewStickers } from '../../domain/album';
@@ -78,6 +79,7 @@ export function createLocalStore(): Store {
         albumStats: loadStats(),
         career: loadCareer(),
         settings: loadSettings(),
+        watchedDuels: loadWatchedDuels(),
         run,
         // A reveal only means anything with a run in hand, so a stale one is dropped.
         reveal: run ? loadReveal() : null,
@@ -140,6 +142,13 @@ export function createLocalStore(): Store {
     async saveSettings(settings) {
       patch({ settings });
       saveSettings(settings);
+    },
+
+    // Its own key, not the settings blob: a guest cannot hold a room at all (P17), so this
+    // only ever runs for a duel watched before signing in on this device.
+    async saveWatchedDuels(watchedDuels) {
+      patch({ watchedDuels });
+      saveWatchedDuels(watchedDuels);
     },
 
     async saveRun(run) {
