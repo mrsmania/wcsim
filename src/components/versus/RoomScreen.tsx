@@ -33,6 +33,7 @@ import {
     StageHeader,
     btn,
 } from '../matchUi';
+import Confetti from '../Confetti';
 import RoomBracket, { currentRoundLabel } from './RoomBracket';
 import { DuelRematch } from './DuelPanels';
 import RoomDraft from './RoomDraft';
@@ -223,6 +224,56 @@ export default function RoomScreen({ code }: { code: string }) {
     }, [code]);
     const replay = !!view && isDuel(view) && !watched;
 
+    // The match a finished room is about, from this player's side: the cup they won, or
+    // the tie they went out in. `mine` is not it - the room ends on a round they may have
+    // been watching rather than playing. Held up here, above the early return, because the
+    // celebration below has to know whether the result is on screen yet.
+    const ended = useMemo(() => {
+        if (!view) return null;
+        const tie = decidingTie(view);
+        const them = tie ? memberOf(view, tie.opponentId) : null;
+        return tie && them ? { tie, them } : null;
+    }, [view]);
+
+    // Exactly the condition the result card renders under, so the two cannot drift.
+    const showingResult =
+        !!view && view.status === 'ended' && !walkover(view) && !!ended && !replay;
+    const wonRoom = !!view?.you && view.championId === view.you.userId;
+
+    /**
+     * THE CONFETTI RAINS WHEN THE RESULT ARRIVES, NEVER WHEN YOU ARRIVE AT ONE.
+     *
+     * Same rain and same rule as the single-player cup win (`CupRunScreen`): winning is a
+     * MOMENT, and `status: 'ended'` is a property the room keeps for ever, so raining off
+     * the status alone would fall again on every reload and every time an old room's URL
+     * was opened. It is fired by the TRANSITION instead - the first thing a mount sees was
+     * settled before it, and only a result appearing after that is one being seen for the
+     * first time.
+     *
+     * That one rule covers both ways in, which is why there is nothing to persist:
+     *  - live, the room goes from `round` to `ended` under the player, and
+     *  - a duel opened days later plays its reveal first (`replay`), so the result appears
+     *    when the match ends or the skip is pressed - which is the same transition.
+     * Either way a second look starts on the result and stays there, so nothing falls.
+     *
+     * THE FIRST OBSERVATION IS THE FIRST ANSWER, not the first render: the read is in
+     * flight on mount, so treating "no room yet" as a state would make every revisit a
+     * transition from nothing into a result, and rain on all of them.
+     *
+     * A WALKOVER IS EXCLUDED, and deliberately: a duel somebody walked out of is a win in
+     * the record and there was no football, so the screen says so flatly and confetti over
+     * the top of it would be celebrating an opponent leaving.
+     */
+    const seenResult = useRef<boolean | undefined>(undefined);
+    const [celebrating, setCelebrating] = useState(false);
+    useEffect(() => {
+        if (!view) return;
+        const before = seenResult.current;
+        seenResult.current = showingResult;
+        if (before === undefined || before === showingResult) return;
+        setCelebrating(showingResult && wonRoom);
+    }, [view, showingResult, wonRoom]);
+
     if (!view || !me) {
         // ARRIVING AT A ROOM IS TAKING THE SEAT. There used to be two doors here and they
         // were the same door: a "Take your seat" page for a code that answered 404 (a
@@ -299,18 +350,14 @@ export default function RoomScreen({ code }: { code: string }) {
 
     const them = mine?.them ?? null;
     const tree = roundsFor(view.size) > 1;
-    // The match a finished room is about, from this player's side: the cup they won, or
-    // the tie they went out in. `mine` is not it - the room ends on a round they may have
-    // been watching rather than playing.
-    const deciding = decidingTie(view);
-    const decidingThem = deciding ? memberOf(view, deciding.opponentId) : null;
-    const ended = deciding && decidingThem ? { tie: deciding, them: decidingThem } : null;
     const myFormation =
         getFormation((me.formationName as FormationName) ?? '4-3-3', (me.style as Style) ?? 'bal') ??
         getFormation('4-3-3', 'bal')!;
 
     return (
         <>
+            {/* The room won, rained once, the first time the result is looked at. */}
+            {celebrating && <Confetti />}
             <StageHeader
                 eyebrow={`Room ${view.code}`}
                 // A room of two plays one match and calling it the Final is grandiose; a

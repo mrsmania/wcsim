@@ -3709,6 +3709,25 @@ the VIEWER rather than about the room: `state/pvp/watched.ts` records which room
 been sat through, `RoomScreen` plays the match the first time and shows a "Skip to the
 result" beside it, and afterwards it is the settled card and both XIs.
 
+**WINNING A ROOM RAINS THE CUP-WIN CONFETTI, AND IT IS FIRED BY THE TRANSITION INTO THE
+RESULT** (2026-09-01). The same self-contained canvas the single-player cup win uses, and
+the same rule behind it, reached again: **winning is a MOMENT, while `status: 'ended'` is a
+property a room keeps for ever**, so raining off the status alone would fall on every reload
+and every time an old room's URL was opened. `RoomScreen` records the first thing each mount
+sees and rains only on a change into the result screen - which is why **nothing had to be
+persisted for it**, and why one rule covers both ways a winner gets there: live, the room
+goes from `round` to `ended` under the player; a duel opened days later plays its reveal
+first, so the result appears when the match ends or "Skip to the result" is pressed, which is
+the same transition. A second look starts on the result and stays there, so nothing falls.
+Two things about it: **the first observation is the first ANSWER, not the first render** (the
+read is in flight on mount, so treating "no room yet" as a state would make every revisit a
+transition from nothing into a result and rain on all of them), and **a walkover is
+excluded** - a duel somebody walked out of is a win in the record with no football under it,
+the screen says so flatly, and confetti over the top of that is celebrating an opponent
+leaving. `npm run checks` reads the wiring, because nothing behavioural can see it: a version
+that rained off the status shows exactly the same screen the first time and differs only on
+the second look. All three mutations were checked red.
+
 **AND THAT LIST FOLLOWS THE ACCOUNT. IT USED TO FOLLOW THE BROWSER, AND THAT WAS WRONG**
 (2026-09-01, reported from the game: "all played and seen matches are set back after a
 re-login"). It was a localStorage key on the stated reasoning that having watched a reveal is

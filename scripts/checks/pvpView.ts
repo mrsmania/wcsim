@@ -527,6 +527,49 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- WINNING THE ROOM RAINS THE CUP-WIN CONFETTI, ONCE ---------------------
+  // The same rain the single-player cup win uses, and the same rule behind it: winning is
+  // a MOMENT, while `status: 'ended'` is a property a room keeps for ever. So the gate is
+  // the TRANSITION into the result - which is one rule covering both ways a winner reaches
+  // it, the live room going from `round` to `ended` under them and a duel opened days
+  // later playing its reveal first - and a second look starts on the result and stays
+  // there, so nothing falls.
+  //
+  // SOURCE-LEVEL, because nothing behavioural can see it: a version that rained off the
+  // status alone shows exactly the same screen with exactly the same confetti on it the
+  // first time, and only differs on the second look. The two mutations worth guarding are
+  // therefore raining off the status, and treating the first thing a mount sees as a
+  // transition (which would rain on the loading render of every revisit).
+  {
+    const screen = readFileSync('src/components/versus/RoomScreen.tsx', 'utf8');
+    const cupRun = readFileSync('src/components/CupRunScreen.tsx', 'utf8');
+    const render = /\{celebrating && <Confetti \/>\}/.test(screen);
+    check(
+      'pvpView: the room winner gets the cup-win rain, on the transition into the result',
+      () =>
+        // The SHARED component, so the room's celebration cannot drift from the game's.
+        /import Confetti from '\.\.\/Confetti'/.test(screen) &&
+        render &&
+        // Gated on having won, and on the result actually being the thing on screen -
+        // never on the status, which an ended room carries for ever.
+        /setCelebrating\(showingResult && wonRoom\)/.test(screen) &&
+        /const wonRoom = [^;]*view\.championId === view\.you\.userId/.test(screen) &&
+        // The first thing a mount sees is not a transition, and neither is no room at all:
+        // without both of these a revisit rains on the render after the read lands.
+        /if \(!view\) return;[^]{0,200}before === undefined \|\| before === showingResult/.test(
+          screen,
+        ) &&
+        // A walkover is a win with no football under it, and is left flat on purpose.
+        /showingResult =[^;]*!walkover\(view\)/.test(screen) &&
+        // Vacuity, in both directions: the single-player screen really does rain the same
+        // component under the same name, so this is the game's own celebration rather than
+        // a string that happens to match; and the room's own render was found at all.
+        /import Confetti from '\.\/Confetti'/.test(cupRun) &&
+        /\{celebrating && <Confetti \/>\}/.test(cupRun),
+      () => `render=${render}`,
+    );
+  }
+
   // --- A ROOM OF MORE THAN TWO: the tree, and who watches what (P47, P24) ----
   // Wave 7. The referee has taken four and eight players since wave 3 and its own checks
   // cover the barrier and the random draw; what is new here is entirely a READING of the
