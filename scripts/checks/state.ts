@@ -295,7 +295,10 @@ export function stateChecks(): void {
   {
     const app = readFileSync('src/App.tsx', 'utf8');
     const playTo = /\n\s*const playTo = ([^;]*);/.exec(app)?.[1] ?? '';
-    const continueAction = /\n\s*const continueAction = ([\s\S]*?);\n/.exec(app)?.[1] ?? '';
+    // `;\r?\n`, not `;\n`: a Windows checkout has CRLF line endings, so that anchor never
+    // matched there and the capture came back empty - which reads as a Continue that has
+    // stopped naming the run, on a machine where the app is perfectly correct.
+    const continueAction = /\n\s*const continueAction = ([\s\S]*?);\r?\n/.exec(app)?.[1] ?? '';
     const mentionsRoom = (src: string) => /roomTo|heldRoom|VersusRoom/.test(src);
     // The chrome's one-line strip is where a held room lives now, and it links to it.
     const strip = /heldRoom && roomTo && !isVersus \? \(\s*<Link\s+to=\{roomTo\}/.test(app);
