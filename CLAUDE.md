@@ -3247,8 +3247,18 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
   room stops being full or somebody un-readies, so a seat lost at "one" is a cancelled
   kick-off rather than a Start the referee refuses; and it **gives up at zero after
   `KICKOFF_HOLD_SECONDS`**, because the client that sends the Start is the host's, so a
-  host whose tab dies in the last second would otherwise leave everybody on a screen that
-  never changes - the lobby comes back and the button reads "Start it again". The one
+  host whose tab dies in the last second would otherwise leave everybody waiting on a
+  kick-off that is never coming - the lobby stops promising one and the button reads "Start
+  it again".
+  **THE COUNT IS THE WHOLE OF THE FULL-SCREEN MOMENT, AND THAT IS A CORRECTION**
+  (2026-09-01, reported from the game). At zero the cover used to swap in a SECOND screen -
+  a big "Kick-off" over a line saying the room was beginning - and hold it until the draft
+  arrived, which is one round trip away: so it was on and gone again inside a fraction of a
+  second, and the one thing a screen made entirely of words has to allow for is being read.
+  Three, two, one, and then the draft itself with the first squad rolling in front of you.
+  What shows in the gap is the LOBBY, which is honest (the room has not started yet) and is
+  where a kick-off that never lands already fell back to, so there is one fallback instead
+  of two - it just says "Starting the draft" while the count is spent. The one
   asymmetry is accepted: a host's press on a room that was NOT all-ready has nothing the
   other clients can read, so they see the draft arrive rather than a count. Fixing that
   needs an instruction the referee does not have, which is the wall P41's Skip is behind.
@@ -3681,6 +3691,20 @@ is paired until every draft is in. So the tree is on screen through that wait wi
 reading "not drawn" and every name in the pot, and it fills in front of them when the last
 pick lands. It appears only once YOUR XI is in: while you are still picking, the board is
 what the screen is for.
+
+**AND A NAME IN IT IS PRINTED WHOLE** (2026-09-01, reported from the game: a room of four
+with two practice opponents in it read "The" in the semi-final, "The" in the final and "The"
+in the winner box). The tree printed the FIRST WORD of a name, which is a fair reading of
+`Mario Smania` and of nothing else here: `The Reserves` and `The Academy` are both called
+`The`. Nothing needed shortening in the first place - a display name is capped at `NAME_MAX`
+(16 characters) and every practice-opponent name is inside that too - so the narrow cells
+truncate in CSS instead, where an ellipsis at least says a name was cut. The three-letter
+`codeOf` would have collided in exactly the same way and is not the answer either.
+`npm run checks` reads every versus screen for a name being taken apart, and its vacuity
+guard is INVERTED: it asserts the bot names are AMBIGUOUS by first word, so a build that
+went back to shortening them that way is naming two opponents the same thing rather than
+merely looking untidy. **A name is not a first word, and shortening one is a decision about
+identity rather than about layout.**
 
 **WATCHING TWO OTHER PEOPLE MEANS THREE SHARED COMPONENTS STOP SAYING "YOU".**
 `FixtureHead` hard-codes "Your XI" and the red YOU badge and `GoalList` tags the home side

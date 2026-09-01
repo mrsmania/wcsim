@@ -87,11 +87,14 @@ export function seatsOf(view: RoomView): (MemberView | null)[] {
  *  ready, and the pick clock starts the moment it reaches zero. */
 export const KICKOFF_SECONDS = 3;
 
-/** How long the count waits at zero before giving up and showing the lobby again. It is
- *  the answer to the one way this can hang: the client that sends the Start is the host's,
- *  so a host whose tab dies in the last second would otherwise leave everybody else on a
- *  screen that never changes. A few seconds is longer than a poll and a round trip, and
- *  what it falls back to - the lobby, with its Start button - is the honest state. */
+/** How long the room has to actually start once the count runs out, before the lobby stops
+ *  saying so and hands the host their Start button back. It is the answer to the one way
+ *  this can hang: the client that sends the Start is the host's, so a host whose tab dies in
+ *  the last second would otherwise leave everybody else waiting on a kick-off that is never
+ *  coming. A few seconds is longer than a poll and a round trip. It used to be how long a
+ *  full-screen "Kick-off" was held at zero; that screen is gone (nobody could read it - see
+ *  `KickoffCountdown`), so the wait now happens on the lobby, which was always what this
+ *  fell back to. */
 export const KICKOFF_HOLD_SECONDS = 5;
 
 /**

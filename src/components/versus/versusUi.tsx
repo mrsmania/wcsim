@@ -171,10 +171,23 @@ export function DraftClock({
  * wait three seconds, and blocking the taps is part of the point - a shape changed at
  * "one" would not reach the server before the draft did.
  *
+ * IT IS THE COUNT AND NOTHING ELSE, and that is a correction (2026-09-01, reported from the
+ * game). At zero it used to swap in a SECOND screen - a big "Kick-off" over a line saying
+ * the room was beginning - and hold that until the draft arrived. What arrives is one round
+ * trip away, so the screen was on and gone again inside a fraction of a second: nobody could
+ * read it, which is the one fault a screen whose whole content is words can have. So the
+ * cover lifts the moment the count runs out, and what follows is the draft itself with the
+ * first squad rolling in front of you. The gap shows the LOBBY, which is both honest - the
+ * room genuinely has not started yet - and where a kick-off that never lands falls back to
+ * anyway, so it is one fallback rather than two.
+ *
  * It sits UNDER the shared `Overlay` (`z-[80]`) and over the phone's tab bar (`z-20`), so a
  * sticker lightbox or a reward picker still comes out on top of it. Nothing here can be
  * dismissed: the room is starting whether or not this screen is looked at, which is the
  * same rule the reveal windows keep.
+ *
+ * `secondsLeft` is always one or more: the caller unmounts this at zero, which is the whole
+ * of the change above.
  */
 export function KickoffCountdown({ secondsLeft }: { secondsLeft: number }) {
     return (
@@ -184,30 +197,15 @@ export function KickoffCountdown({ secondsLeft }: { secondsLeft: number }) {
             aria-live="assertive"
         >
             <div className={MONO_CAP}>Everybody is ready</div>
-            {secondsLeft > 0 ? (
-                <>
-                    {/* `tabular-nums` so 3, 2 and 1 do not shift the layout, and a key on
-                        the value so the fade plays again on each tick rather than once. */}
-                    <div
-                        key={secondsLeft}
-                        className="animate-kickoff font-display text-[120px] font-extrabold leading-none tabular-nums text-pitch-ink"
-                    >
-                        {secondsLeft}
-                    </div>
-                    <p className="text-[15px] font-bold text-ink">The draft starts</p>
-                </>
-            ) : (
-                <>
-                    <div className="font-display text-[64px] font-extrabold leading-none text-pitch-ink">
-                        Kick-off
-                    </div>
-                    {/* If the host's tab died in the last second this is where a room would
-                        sit for ever, so the caller drops this screen after a few seconds and
-                        the lobby comes back with its Start button. Saying so beats a spinner
-                        that means nothing. */}
-                    <p className="text-[13px] text-muted">Waiting for the room to begin.</p>
-                </>
-            )}
+            {/* `tabular-nums` so 3, 2 and 1 do not shift the layout, and a key on the value
+                so the fade plays again on each tick rather than once. */}
+            <div
+                key={secondsLeft}
+                className="animate-kickoff font-display text-[120px] font-extrabold leading-none tabular-nums text-pitch-ink"
+            >
+                {secondsLeft}
+            </div>
+            <p className="text-[15px] font-bold text-ink">The draft starts</p>
         </div>
     );
 }

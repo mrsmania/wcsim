@@ -129,6 +129,11 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
      * `armed` drops the moment the room stops being full or somebody un-readies, and the
      * count restarts from three, so a seat lost at "one" is a cancelled kick-off rather
      * than a start the referee refuses.
+     *
+     * THE COVER COMES OFF AT ZERO, not when the draft arrives (`KickoffCountdown` carries
+     * the reason). So this lobby is what is on screen for the round trip in between, and it
+     * says so - `starting` below - rather than going back to reading "it starts as soon as
+     * everybody is ready" of a room that is already starting.
      */
     const [pressed, setPressed] = useState(false);
     const [since, setSince] = useState<number | null>(null);
@@ -161,9 +166,13 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     }, [armed, since, left, isHost, room]);
 
     // The count is over and the room has not moved: the host's tab may have gone in the
-    // last second, or its Start may have failed, so the lobby comes back rather than
-    // leaving everybody staring at a screen that will never change.
+    // last second, or its Start may have failed, so the lobby stops promising a kick-off
+    // and offers the host another go.
     const stalled = elapsed > KICKOFF_SECONDS + KICKOFF_HOLD_SECONDS;
+    // The count has run out and the draft has not landed yet. Uncovered now, so it needs a
+    // sentence of its own: this is the ordinary case (one round trip, or one poll for
+    // everybody who is not the host), not the failure `stalled` describes.
+    const starting = armed && !stalled && left <= 0;
 
     /** Count again, from three. It is the host's Start button and it is also the way OUT of
      *  a stall: the fire is latched per countdown rather than for ever, so pressing this
@@ -375,7 +384,9 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                         {full
                             ? stalled
                                 ? 'Start it again'
-                                : 'Start the draft'
+                                : starting
+                                  ? 'Starting the draft'
+                                  : 'Start the draft'
                             : `Waiting for ${view.size - view.members.length} more`}
                     </button>
                 ) : (
@@ -384,17 +395,21 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                             <span className="mt-4 block">
                                 {stalled
                                     ? 'Waiting for the host to start it.'
-                                    : 'It starts as soon as everybody is ready.'}
+                                    : starting
+                                      ? 'Starting the draft.'
+                                      : 'It starts as soon as everybody is ready.'}
                             </span>
                         </RoomNote>
                     )
                 )}
             </div>
 
-            {/* The kick-off. Last in the tree because it covers the screen; `stalled` is
-                what stops it covering it for ever if the host's tab went in the last
-                second. */}
-            {armed && !stalled && <KickoffCountdown secondsLeft={left} />}
+            {/* The kick-off. Last in the tree because it covers the screen, and mounted
+                only while there is a number to show: at zero it lifts and the lobby above
+                waits for the draft, which is what took the unreadable "Kick-off" screen out
+                (see `KickoffCountdown`). `stalled` is the other way out, for a host tab that
+                went in the last second. */}
+            {armed && !stalled && left > 0 && <KickoffCountdown secondsLeft={left} />}
         </div>
     );
 }
