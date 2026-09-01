@@ -182,6 +182,11 @@ export function SubTabs({
  * room you are holding, or the duel that is waiting - and they are the same object as far
  * as a reader is concerned. Two copies drifting by a pixel of padding is exactly the shape
  * of the button sprawl the `btn` tokens were written to end.
+ *
+ * IT NEEDS ITS OWN TOP MARGIN. The tab row above ends in the masthead's 2px ink rule, and
+ * a bordered green panel butted straight against that rule reads as part of the navigation
+ * rather than as a line the navigation is carrying. It sits clear of it now, by the same
+ * gap it already left below itself.
  */
 export const ROOM_STRIP =
-    'mb-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch-ink transition hover:bg-pitch/20';
+    'my-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch-ink transition hover:bg-pitch/20';
