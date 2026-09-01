@@ -477,7 +477,14 @@ export default function App({
                             allPlayers={poolPlayers}
                         />
                     ) : isVersus ? (
-                        <VersusScreen signedIn={!!accountEmail} />
+                        <VersusScreen
+                            signedIn={!!accountEmail}
+                            // An invitation link lands on that screen signed out, and the
+                            // whole of what to do about it is signing in - so it opens the
+                            // same dialog the masthead does, over the room's own URL, which
+                            // is what carries the player back into the room afterwards.
+                            onOpenAccount={() => setAccountOpen(true)}
+                        />
                     ) : isBuild ? (
                         <BuildSurface
                             build={build}

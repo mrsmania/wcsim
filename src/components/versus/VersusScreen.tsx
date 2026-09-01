@@ -12,7 +12,7 @@ import { CARD, MONO_CAP, PRIMARY_BTN, StageCrumb, StageHeader } from '../matchUi
 import RoomScreen from './RoomScreen';
 import VersusHome from './VersusHome';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
-import { RefereeProblem, RoomNote } from './versusUi';
+import { RefereeProblem, RoomCode, RoomNote } from './versusUi';
 
 // The way into versus, and the three things that have to be true before anybody sees a
 // room: an account, a referee that speaks this build's language, and a name to be called.
@@ -31,7 +31,16 @@ type Gate =
     | { kind: 'name' }
     | { kind: 'ready'; name: string };
 
-export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
+export default function VersusScreen({
+    signedIn,
+    onOpenAccount,
+}: {
+    signedIn: boolean;
+    /** Open the account dialog. An invitation lands on a signed-out screen and the whole of
+     *  what to do about it is signing in, so the door has to be ON that screen rather than
+     *  pointed at from it. */
+    onOpenAccount: () => void;
+}) {
     const inRoom = useMatch('/versus/:code');
     const code = inRoom?.params.code?.toUpperCase() ?? null;
     const [gate, setGate] = useState<Gate>({ kind: 'checking' });
@@ -60,29 +69,7 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
         void check();
     }, [signedIn, check]);
 
-    if (!signedIn) {
-        return (
-            <>
-                <StageHeader eyebrow="Versus" title="Play somebody" />
-                <div className={`${CARD} p-5`}>
-                    <RoomNote>
-                        Two, four or eight people, a team each from the same money or the same
-                        dice, and a knockout to settle it. Play whoever is around, or send a
-                        code to the people you want. It needs an account, because the others
-                        have to know who they beat and the result has to live somewhere none of
-                        you can edit.
-                    </RoomNote>
-                    <RoomNote>
-                        <span className="mt-2 block">
-                            Sign in from the account button at the top of the page. Everything
-                            you have already - your XI, your run, your album - stays exactly as
-                            it is; a room never touches any of it.
-                        </span>
-                    </RoomNote>
-                </div>
-            </>
-        );
-    }
+    if (!signedIn) return <SignedOut code={code} onOpenAccount={onOpenAccount} />;
 
     if (gate.kind === 'checking') {
         return (
@@ -142,6 +129,103 @@ export default function VersusScreen({ signedIn }: { signedIn: boolean }) {
         <RoomScreen code={code} />
     ) : (
         <VersusHome name={gate.name} onRename={() => setRenaming(true)} />
+    );
+}
+
+/**
+ * THE DOOR FOR SOMEBODY WITH NO ACCOUNT, and it is not one screen.
+ *
+ * A room is account-only (P17), so a link somebody was sent lands HERE rather than in the
+ * room, and until 2026-09-01 it answered that with the general pitch for the mode plus a
+ * sentence pointing at the account button in the masthead. Somebody who has just been sent
+ * a game does not need the pitch, and the page they got said nothing about the thing they
+ * had followed: not that the link had worked, not which room it was, not that an account was
+ * the only step left. So an invitation gets its own screen, leading with the code and the
+ * button, and the pitch is one line rather than the page.
+ *
+ * SIGNING IN COMES BACK TO THE ROOM, and that is the reason the button is here rather than a
+ * pointer to the masthead. The dialog is an overlay over this page and signing in RELOADS it
+ * (`App`, so the store is rebuilt against the account), so what the reload lands on is this
+ * URL, which is the room's own address; `RoomScreen` then takes the seat on arrival exactly
+ * as it does for anybody following the link with an account already. Nothing has to remember
+ * the code across the sign-in, which is the point of saying it in the copy: the address is
+ * the memory, so there is no pending-invitation state to go stale or to seat somebody who
+ * signed in an hour later for a different reason.
+ *
+ * WHAT IT CANNOT DO IS SAY ANYTHING ABOUT THE ROOM. Reading one needs a session, and a room
+ * a viewer is not in answers "no such room" on purpose, so a code cannot be confirmed by
+ * probing - which means this screen cannot promise the room is still open either. So the
+ * code is all there is to show, and the copy says why rather than leaving the emptiness to
+ * read as a page that failed to load.
+ */
+function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount: () => void }) {
+    // No code: somebody who came in through the Versus tab, so this is the pitch for the
+    // mode. The button is the only change - "sign in from the button at the top of the page"
+    // is an instruction where a button is an action, and it is the same dialog either way.
+    if (!code) {
+        return (
+            <>
+                <StageHeader eyebrow="Versus" title="Play somebody" />
+                <div className={`${CARD} p-5`}>
+                    <RoomNote>
+                        Two, four or eight people, a team each from the same money or the same
+                        dice, and a knockout to settle it. Play whoever is around, or send a
+                        link to the people you want. It needs an account, because the others
+                        have to know who they beat and the result has to live somewhere none of
+                        you can edit.
+                    </RoomNote>
+                    <RoomNote>
+                        <span className="mt-2 block">
+                            An email address and a six-digit code, no password. Everything you
+                            have already - your XI, your run, your album - stays exactly as it
+                            is; a room never touches any of it.
+                        </span>
+                    </RoomNote>
+                    <div className="mt-4">
+                        <button type="button" className={PRIMARY_BTN} onClick={onOpenAccount}>
+                            Sign in
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <StageHeader eyebrow="Versus" title="You have been invited" />
+            <div className={`${CARD} p-5`}>
+                <div className={MONO_CAP}>The room you were sent</div>
+                <div className="mt-1.5">
+                    <RoomCode code={code} />
+                </div>
+                <div className="mt-3">
+                    <RoomNote>
+                        A team each, from the same money or the same dice, and a match to
+                        settle it. One thing stands between you and it: a room needs an
+                        account, because the other player has to know who they beat and the
+                        result has to live somewhere neither of you can edit.
+                    </RoomNote>
+                    <RoomNote>
+                        <span className="mt-2 block">
+                            An email address and a six-digit code, no password. Sign in and you
+                            come straight back here, and your seat is taken the moment you
+                            land.
+                        </span>
+                    </RoomNote>
+                </div>
+                <div className="mt-4">
+                    <button type="button" className={PRIMARY_BTN} onClick={onOpenAccount}>
+                        Sign in and take your seat
+                    </button>
+                </div>
+                <p className="mt-3 text-[12px] leading-relaxed text-dim">
+                    A room shows nothing at all to somebody who is not in it, which is why
+                    there is only the code here. Whatever you have played as a guest - your XI,
+                    your run, your album - stays exactly as it is.
+                </p>
+            </div>
+        </>
     );
 }
 

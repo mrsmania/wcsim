@@ -3269,6 +3269,27 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
   without the guard it would resend every two seconds; and that ref is **cleared on
   success**, so a seat lost LATER to the liveness sweep is taken again the same way rather
   than leaving the screen on "one moment" for ever.
+- **AN INVITATION FOLLOWED BY SOMEBODY WITH NO ACCOUNT GETS ITS OWN SCREEN** (2026-09-01,
+  reported from the game: the information a signed-out visitor got from a link was poor). A
+  room is account-only (P17), so a link somebody was sent lands on the signed-out gate rather
+  than in the room, and that gate answered it with the general pitch for the mode plus a
+  sentence pointing at the account button in the masthead: it never said the link had worked,
+  never said which room it was, and gave nothing to press. `SignedOut` (VersusScreen) branches
+  on the code now - the invited half leads with the code and a sign-in button, and the pitch is
+  one line rather than the page. Two things about it:
+  - **SIGNING IN COMES BACK TO THE ROOM, and the whole of that is the RELOAD.** The dialog is
+    an overlay over this page and `App` hands a sign-in over with `window.location.reload()`
+    (the store has to be rebuilt against the account), so the reload lands on the URL the
+    player is already on, which is the room's own address, and `RoomScreen` then takes the
+    seat on arrival exactly as it does for anybody following the link with an account. So
+    **nothing remembers the code across the sign-in** - and deliberately not: a stored pending
+    invitation would go stale, and would seat somebody who signed in an hour later to sync
+    their album. The address is the memory. `npm run checks` reads that handover, because
+    turning it into a navigation breaks nothing except the promise this screen makes.
+  - **IT CANNOT SAY ANYTHING ABOUT THE ROOM, and says why.** Reading one needs a session, and
+    a room a viewer is not in answers "no such room" on purpose, so the code is all there is
+    to show and this screen cannot promise the room is still open either. The copy carries
+    that, rather than leaving the emptiness to read as a page that failed to load.
 - **THE ROOM STARTS ITSELF ONCE EVERYBODY IS READY, and counts three down to it**
   (2026-08-29). Two things arm the same countdown: everybody pressing Ready, and the host
   pressing Start on a room where somebody has not (P48 keeps that button, since Ready is a

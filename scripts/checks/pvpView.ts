@@ -1409,6 +1409,54 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- An invitation followed by somebody with no account -------------------
+  //
+  // A room is account-only (P17), so a link somebody was sent lands on the SIGNED-OUT versus
+  // screen, and that screen used to answer it with the general pitch for the mode and a
+  // sentence pointing at the account button in the masthead: it never said the link had
+  // worked, never said which room it was, and gave nothing to press.
+  //
+  // TWO CLAIMS, and the second is the one that will rot. First, an invitation is its own
+  // screen: it branches on the code, prints it, and carries the sign-in button itself.
+  // Second, SIGNING IN COMES BACK TO THE ROOM - and the whole of that promise is `App`
+  // handing a sign-in over with a RELOAD, which lands on the URL the player is already on,
+  // that URL being the room's own address. Turn the handover into a navigation and nothing
+  // fails except the copy on this screen, quietly, for the one player who cannot see it.
+  //
+  // Source-level because nothing behavioural can see either half: a screen with no button
+  // renders perfectly, and the reload is a browser call in a component that is not mounted
+  // in the harness. Vacuity: the file really is the signed-out gate, and App really renders
+  // it with a way to open the dialog.
+  {
+    const screen = readFileSync('src/components/versus/VersusScreen.tsx', 'utf8');
+    const app = readFileSync('src/App.tsx', 'utf8');
+    check(
+      'pvpView: an invitation says which room it is and signs you in back into it',
+      () =>
+        // Vacuity: this is the gate a signed-out visitor meets, and the code really does
+        // come off the URL rather than being a prop somebody could stop passing.
+        /const code = inRoom\?\.params\.code/.test(screen) &&
+        /if \(!signedIn\) return <SignedOut code=\{code\}/.test(screen) &&
+        // An invitation is its OWN screen: it branches on the code and prints it.
+        /function SignedOut\(\{ code/.test(screen) &&
+        /if \(!code\) \{/.test(screen) &&
+        /<RoomCode code=\{code\} \/>/.test(screen) &&
+        // And the way in is on it, in both shapes, rather than a sentence about the
+        // masthead: two buttons, both opening the same dialog.
+        (screen.match(/onClick=\{onOpenAccount\}/g) ?? []).length === 2 &&
+        // App hands it that dialog...
+        /<VersusScreen[^]{0,700}onOpenAccount=\{\(\) => setAccountOpen\(true\)\}/.test(app) &&
+        // ...and hands a sign-in over with a RELOAD, which is what carries the player back
+        // into the room: the overlay sits on the room's own URL, so that is where the
+        // reload lands and `RoomScreen` takes the seat on arrival.
+        /<AccountModal[^]{0,600}onAccountChanged=\{\(\) => window\.location\.reload\(\)\}/.test(app),
+      () =>
+        `code branch ${/if \(!code\) \{/.test(screen)}, buttons ${
+          (screen.match(/onClick=\{onOpenAccount\}/g) ?? []).length
+        }, reload ${/onAccountChanged=\{\(\) => window\.location\.reload\(\)\}/.test(app)}`,
+    );
+  }
+
   // --- The four controls a room hides (P41), plus the three it turns off -----
   // A LIST rather than a flag, because the list is the decision: each entry breaks the
   // pick clock, or the referee, in its own way. This asserts the two sets are the same
