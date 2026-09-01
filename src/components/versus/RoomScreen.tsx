@@ -23,7 +23,15 @@ import { holdVersusRoom, useHeldVersusRoom } from '../../nav/versusRoom';
 import { duelsChanged } from '../../state/pvp/duels';
 import { markDuelWatched, watchedDuels } from '../../state/pvp/watched';
 import { useVersusRoom } from '../../hooks/useVersusRoom';
-import { CARD_FLAT, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader, btn } from '../matchUi';
+import {
+    CARD_FLAT,
+    MONO_CAP,
+    PRIMARY_BTN,
+    SECONDARY_BTN,
+    StageCrumb,
+    StageHeader,
+    btn,
+} from '../matchUi';
 import RoomBracket, { currentRoundLabel, shortName } from './RoomBracket';
 import { DuelRematch } from './DuelPanels';
 import RoomDraft from './RoomDraft';
@@ -303,6 +311,21 @@ export default function RoomScreen({ code }: { code: string }) {
                           ? CLOSED_TITLE
                           : (HEADINGS[view.status] ?? 'The room')
                 }
+                // THE WAY OUT OF A FINISHED ROOM IS A CRUMB, NOT A BUTTON AT THE FOOT OF
+                // THE PAGE. A result screen carries the tree, the card and both XIs, so a
+                // green button under all of it was the length of the page away from
+                // somebody who had read the score and was done - and it was the only
+                // control there, which is what makes it navigation rather than an action.
+                // Same atom as the run screen's "Back to the build", above the eyebrow.
+                //
+                // It still calls `leave`: dropping the held pointer is what stops the
+                // chrome's strip offering a room that is over, so a plain link to /versus
+                // would look identical and leave that behind.
+                crumb={
+                    view.status === 'ended' ? (
+                        <StageCrumb dir="back" label="Back to versus" onClick={leave} />
+                    ) : undefined
+                }
             />
 
             {/* A refused command - a Start the referee would not take, a join it turned
@@ -475,32 +498,37 @@ export default function RoomScreen({ code }: { code: string }) {
                 </div>
             )}
 
-            <div className="mt-6 flex items-center gap-2">
-                {view.status === 'ended' ? (
-                    <button className={PRIMARY_BTN} onClick={leave}>
-                        Back to versus
-                    </button>
-                ) : leaving ? (
-                    <>
-                        {/* FOUR DIFFERENT THINGS, and the copy has to say which - a seat
-                            given up in a lobby, a duel called off for both players, a
-                            duel's seat handed back so the challenge goes on without you,
-                            and walking away from a tournament your XI keeps playing in.
-                            `leaveKind` is the referee's own rule read from this end. */}
-                        <RoomNote>{LEAVING[leaveKind(view)].note}</RoomNote>
-                        <button className={SECONDARY_BTN} onClick={leave}>
+            {/* A FINISHED ROOM HAS NO FOOTER AT ALL. There is nothing left to leave, so
+                the row would be an empty band of margin under the result: the way out is
+                the crumb at the top of the page. */}
+            {view.status !== 'ended' && (
+                <div className="mt-6 flex items-center gap-2">
+                    {leaving ? (
+                        <>
+                            {/* FOUR DIFFERENT THINGS, and the copy has to say which - a
+                                seat given up in a lobby, a duel called off for both
+                                players, a duel's seat handed back so the challenge goes on
+                                without you, and walking away from a tournament your XI
+                                keeps playing in. `leaveKind` is the referee's own rule
+                                read from this end. */}
+                            <RoomNote>{LEAVING[leaveKind(view)].note}</RoomNote>
+                            <button className={SECONDARY_BTN} onClick={leave}>
+                                {LEAVING[leaveKind(view)].label}
+                            </button>
+                            <button
+                                className={SECONDARY_BTN}
+                                onClick={() => setLeaving(false)}
+                            >
+                                Stay
+                            </button>
+                        </>
+                    ) : (
+                        <button className={SECONDARY_BTN} onClick={() => setLeaving(true)}>
                             {LEAVING[leaveKind(view)].label}
                         </button>
-                        <button className={SECONDARY_BTN} onClick={() => setLeaving(false)}>
-                            Stay
-                        </button>
-                    </>
-                ) : (
-                    <button className={SECONDARY_BTN} onClick={() => setLeaving(true)}>
-                        {LEAVING[leaveKind(view)].label}
-                    </button>
-                )}
-            </div>
+                    )}
+                </div>
+            )}
         </>
     );
 }
