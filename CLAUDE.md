@@ -110,12 +110,11 @@ done and why. What that means for anyone working in this tree now:
   the audit.
 - **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
   `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
-  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0023, and
-  0024 is WRITTEN AND NOT APPLIED** (roadmap item 51, which also owes a referee rebuild).
+  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0024.**
   (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018,
   0019/0020/0021 the three versus features applied 2026-08-30, 0022 the duel-by-link
   column drop and 0023 the email address as the identifier, both applied 2026-08-31; 0024
-  teaches `pvp_records` to count a duel somebody walked out of.)
+  teaches `pvp_records` to count a duel somebody walked out of, applied 2026-09-01.)
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
@@ -2867,8 +2866,8 @@ reachable from the create form, which is checked.
 
 **PRACTICE OPPONENTS, DUELS AND THE WHOLE-DRAFT BUDGET ROOM ARE ALL LIVE ON THE SERVER**
 (roadmap items 45, 46 and 47, all closed 2026-08-30). Migrations **0019, 0020 and 0021 are
-applied** and the referee was rebuilt on the 30th; **the schema is at 0021** and the container
-matches it. **This file said the opposite until 2026-08-31 and it cost real work**, because
+applied** and the referee was rebuilt on the 30th, taking the schema to **0021** with the
+container matching it. **This file said the opposite until 2026-08-31 and it cost real work**, because
 the natural thing to do with an unapplied migration is to edit it in place, which is exactly
 wrong once it has run. Two habits come out of that and both are cheap: **`docs/ROADMAP.html`
 is the record of what is deployed, not this file** - check the item before believing a
@@ -2881,19 +2880,26 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**ONE MIGRATION AND ONE REBUILD ARE QUEUED, AND 0023 IS NOT VERSUS'S.** The versus schema on
-the server is at 0022 and the referee was last rebuilt on 2026-08-31 (roadmap item 49,
-closed). **Roadmap item 51 owes both**: a rebuild, because a duel now waits in a lobby and a
-forfeit is a rule in the state machine the container bundles, and **0024**, which teaches
-`pvp_records` to count a duel somebody walked out of. That migration is independent of the
-rebuild in both directions, which is unusual - nothing the referee WRITES changed - so either
-order is safe. `0023` is an ACCOUNTS migration (the email address as the identifier, roadmap
-item 50, applied 2026-08-31) and the referee needed no rebuild for it, since it reads three
-columns of `profiles` and `email` is deliberately not one of them. See "Accounts" for what it
-does.
+**NOTHING IS QUEUED. The versus schema is at 0024 and the referee was rebuilt on
+2026-09-01** (roadmap item 51, closed), which is what put the duel lobby and the forfeit on
+the server. **0024 was applied the same day** and it is the one migration in this repo whose
+order genuinely did not matter in either direction, because nothing the referee WRITES
+changed: a forfeited room is an ordinary `ended` room with a champion, through columns that
+have existed since 0016. `0023` is an ACCOUNTS migration (the email address as the
+identifier, roadmap item 50, applied 2026-08-31) and the referee needed no rebuild for it,
+since it reads three columns of `profiles` and `email` is deliberately not one of them. See
+"Accounts" for what it does.
 
-**The versus schema is at 0022 and the referee was rebuilt on 2026-08-31** (roadmap item 49,
-closed). `0022_pvp_duel_by_link.sql` drops `pvp_rooms.invited_id` again
+**A REHEARSAL CAN CATCH A DOUBLE COUNT THAT NO FIXTURE WOULD, and 0024 is the worked
+example.** Its risky line is the `not exists` that stands the walkover branch down once a
+room has a match under it; drop that and a room is counted twice. Rehearsing the view on the
+real server (in a transaction, rolled back) and then rehearsing it AGAIN with the clause
+removed showed the mutant moving two accounts that had nothing to do with the test row - so
+the guard was proved load-bearing against rooms that already existed, which a synthetic
+fixture could never have shown. **Mutate the rehearsal, not just the migration.**
+
+**0022 WENT IN ON 2026-08-31 WITH A REFEREE REBUILD** (roadmap item 49, closed; the schema
+has moved on since, see above). `0022_pvp_duel_by_link.sql` drops `pvp_rooms.invited_id` again
 (see the duel reshape below), and **its order was REVERSED from the standing rule**: the
 referee as deployed WROTE that column on every room it created, so dropping it first would
 have stopped any room being opened at all. Server first, then the migration. **That

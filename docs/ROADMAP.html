@@ -335,8 +335,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-08-31<br>
-    <strong>Open:</strong> 6 items<br>
+    <strong>Updated:</strong> 2026-09-01<br>
+    <strong>Open:</strong> 5 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -348,74 +348,6 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
-
-
-
-<details class="item">
-  <summary>
-    <span class="num">51</span>
-    <span class="title">Rebuild the versus server, and apply 0024, so a duel cannot be re-rolled
-      <span class="sub"><b>The screens are live, the rules behind them are not.</b> A duel now
-      waits in a lobby until both players are ready, so nothing is dealt before anybody is
-      committed, and walking out after somebody has taken the challenge up loses it. Both of
-      those live in the room's state machine, which the server bundles - so until the container
-      is rebuilt the deployed server still opens a duel straight into its challenger's draft
-      and the client refuses to create one at all. One rebuild, plus one migration that can go
-      either side of it.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What it is fixing.</strong> Reported from the game in one sentence: <em>"I can
-    just close the room again and re-open one until I have a banger team."</em> Opening a
-    challenge costs nothing and calling one off costs nothing, so a challenger who was dealt a
-    squad they disliked could simply do both. Every other re-roll in this game is counted.
-    Two rules close it and neither works alone: <b>nothing is dealt or bought until both
-    players are in and ready</b>, so there is nothing to see before you are committed, and
-    <b>leaving after somebody has taken it up is a forfeit</b>, so there is no way out
-    afterwards. The formation control moves back to the lobby with them.</p>
-
-    <p><strong>What to run.</strong> From Git Bash in the repository root. Pull first: the
-    script builds whatever is checked out, and the version handshake cannot catch an image
-    built one commit early.</p>
-    <ol>
-      <li><code>git pull</code></li>
-      <li><code>bash scripts/deploy-referee.sh --check mario@192.168.1.115</code></li>
-      <li><code>bash scripts/deploy-referee.sh --build mario@192.168.1.115</code></li>
-      <li><code>bash scripts/deploy-referee.sh --up mario@192.168.1.115</code></li>
-      <li><code>bash scripts/deploy-referee.sh --verify mario@192.168.1.115</code> - and it
-      must reach step 5.</li>
-      <li>Then the migration, which is one <code>create or replace view</code>:
-      <code>npm run push:sql -- supabase/migrations/0024_pvp_walkover_records.sql</code>
-      (needs <code>dkr/.env</code> and the LAN or the VPN). Rehearse it first the way the
-      file's own header says.</li>
-    </ol>
-
-    <p><strong>The migration can go either side of the rebuild</strong>, which is unusual
-    enough to say out loud: nothing about what the referee WRITES changes. A forfeited duel is
-    an ordinary ended room with a champion, written through columns that have existed since
-    0016 - the migration only teaches <code>pvp_records</code> to count a room that was won
-    with no match under it, which is what a walkover is. Applied before the rebuild it counts
-    nothing, because nothing has forfeited yet.</p>
-
-    <p><strong>Until the rebuild, sending a challenge is refused with a sentence</strong>
-    rather than half-working. The client tests the answer it gets back (<code>duelDowngraded</code>),
-    sees a duel that is already drafting, closes that room and says the server has not been
-    rebuilt. That is the honest failure for a client shipped ahead of its server.</p>
-
-    <p><strong>How to know it worked.</strong> Send a challenge: you land in a lobby with the
-    formation chips, a board that rearranges as you change the shape, and a link - and
-    <b>nothing is dealt</b>. Press ready and it still waits. Follow the link from the second
-    account, choose a shape there, press ready, and both drafts open at once. Then, on a fresh
-    duel, take the challenge up from the second account and press the way out: it should say
-    it counts as a loss, and pressing it should end the room for both with the other player as
-    the winner. Check the versus page afterwards - the finished duel says who walked away, the
-    record counts it once 0024 is in, and a challenge you called off before anybody took it up
-    is not listed as "Played" at all.</p>
-    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0024_pvp_walkover_records.sql" target="_blank" rel="noopener">supabase/migrations/0024_pvp_walkover_records.sql</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
-  </div>
-</details>
 
 <details class="item">
   <summary>
@@ -1026,6 +958,66 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-09-01</h3>
+<details class="item">
+  <summary>
+    <span class="num">51</span>
+    <span class="title">Rebuild the versus server, and apply 0024, so a duel cannot be re-rolled
+      <span class="sub"><b>CLOSED 2026-09-01.</b> The referee is rebuilt and <b>0024</b> is
+      applied, so the server is at 0024. A duel now waits in a lobby: nothing is dealt until
+      both players are in and ready, so there is nothing to see before you are committed and
+      no free squad to reject. Walking out after somebody has taken the challenge up is a
+      forfeit, and it counts on both records.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What it was fixing.</strong> Reported from the game in one sentence: "I can
+    just close the room again and re-open one until I have a banger team." Opening a
+    challenge was free and calling one off was free, so a challenger dealt a squad they
+    disliked could simply do both, while every other re-roll in the game is counted.</p>
+
+    <p><strong>Both halves were driven against the real server, not just deployed.</strong>
+    A duel was created, joined from a second account, readied from both sides, and then walked
+    out of, through the deployed referee on the live database. What that showed, in order:
+    the duel came back <b>waiting in a lobby with nothing dealt</b>; each side could choose a
+    formation and style there, and each saw <b>nothing at all</b> for the other's shape, which
+    is the concealment rule still holding; the moment both were ready the <b>server</b> opened
+    both drafts and only then dealt a squad; and the player who walked out ended the room with
+    the player who stayed as the winner. The test room was deleted afterwards and the records
+    checked back to exactly their previous figures, so none of it was left behind.</p>
+
+    <p><strong>The migration was rehearsed, and then the rehearsal was mutated.</strong> The
+    view went in inside a <code>begin; &hellip; rollback;</code> with five checks after it, run
+    against the real accounts: nothing that already had a record moved, a walkover gave the
+    winner a win and the loser a loss, a room with a match under it was counted once rather
+    than twice, the same shape on an ordinary room counted nothing, and the grants survived.
+    All five passed. Then the one clause the whole file rests on was <b>deleted and the
+    rehearsal run again</b> - and it moved two accounts that had nothing to do with the test
+    row, which proves the guard is holding back real rooms that already exist rather than only
+    the one invented for the test. That is worth repeating on any future view: <b>mutate the
+    rehearsal, not just the migration.</b></p>
+
+    <p><strong>Then it was confirmed on real data.</strong> After the apply, the records were
+    byte-for-byte what they had been before, which is the only correct answer on the day -
+    nothing had forfeited yet. The forfeit driven through afterwards then moved exactly the
+    four numbers it should: the player who stayed gained a play, a win and a room won, and the
+    player who walked out gained a play and a loss.</p>
+
+    <p><strong>The order genuinely did not matter here</strong>, which is unusual enough that
+    the file says so out loud: nothing about what the referee <em>writes</em> changed, so a
+    forfeited room is an ordinary ended room with a champion, through columns that have
+    existed since the rooms shipped. Applied before the rebuild it would have counted nothing;
+    applied after, it counts what has happened. Neither half could fail on the other.</p>
+
+    <p><strong>The rest of the stack was checked afterwards</strong>, because container work
+    on this box has taken the accounts stack down before by wiping the docker bridge firewall
+    rules. All eight containers healthy, the gateway answering from outside, sign-in and the
+    referee both reachable, and the referee serving the same squads as the site.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/supabase/migrations/0024_pvp_walkover_records.sql" target="_blank" rel="noopener">supabase/migrations/0024_pvp_walkover_records.sql</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a></p>
+  </div>
+</details>
     <h3>Closed 2026-08-31</h3>
 <details class="item">
   <summary>
