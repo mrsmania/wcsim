@@ -22,6 +22,7 @@ import { handle, type ApiDeps } from './api';
 import { httpBroadcaster, silentBroadcaster, type Broadcaster } from './broadcast';
 import { readEnv } from './env';
 import { faultOf } from './fault';
+import { inviteLimiter } from './invites';
 import { pgStore } from './pgStore';
 import { recoverAtBoot, startSweeper } from './sweeper';
 
@@ -71,6 +72,22 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
+/**
+ * Who is asking, for metering the unauthenticated invitation read and for nothing else.
+ *
+ * The referee sits behind the account server's own gateway (P46), so the socket's address
+ * is the gateway's for every caller - the forwarded header is the only thing that tells two
+ * visitors apart, and it is set by that gateway. It is also trivially spoofable by anybody
+ * who wants their own bucket, which is why the global cap exists behind the per-key one:
+ * this decides how a limit is SHARED, never who somebody is. Truncated because it is a map
+ * key made of a header.
+ */
+function clientKeyOf(req: IncomingMessage): string {
+  const fwd = req.headers['x-forwarded-for'];
+  const first = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim();
+  return (first || req.socket.remoteAddress || 'unknown').slice(0, 64);
+}
+
 async function main(): Promise<void> {
   const env = readEnv(process.env);
   const pool = new pg.Pool({ connectionString: env.databaseUrl, max: 8 });
@@ -87,6 +104,12 @@ async function main(): Promise<void> {
     jwtSecret: env.jwtSecret,
     jwtAudience: env.jwtAudience,
     sweepMs: env.sweepMs,
+    // One limiter for the life of the process, in front of the one unauthenticated room
+    // read (`invites.ts`). In memory and per instance on purpose: it is a rate limit rather
+    // than a quota, so an instance restarting or a second one running costs a doubling of a
+    // figure that is already generous, and putting it in Postgres would mean a write on
+    // every visit to the cheapest read in the referee.
+    inviteLimiter: inviteLimiter(),
     newCode,
     newBotId: () => randomUUID(),
   };
@@ -116,6 +139,7 @@ async function main(): Promise<void> {
             path: url.pathname,
             body,
             authorization: req.headers.authorization ?? null,
+            clientKey: clientKeyOf(req),
           },
           deps,
         );

@@ -44,6 +44,9 @@ import {
   leaveKind,
   seatsOf,
   lobbyJoinable,
+  inviteNote,
+  inviteRules,
+  inviteState,
   lobbyLine,
   seatsLine,
   meIn,
@@ -60,7 +63,7 @@ import {
   xiFrom,
   xiStrengthFrom,
 } from '../../src/domain/pvpView';
-import type { DuelRow, LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
+import type { DuelRow, InviteRoom, LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
 import { readFileSync, readdirSync } from 'node:fs';
 import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
@@ -915,6 +918,103 @@ export function pvpViewChecks(): void {
         agoLine(1_000_000, 500_000) === 'just now',
       () => agoLine(1_000_000, 1_000_000 + 61_000),
     );
+  }
+
+  // --- WHAT AN INVITATION SAYS BEFORE ANYBODY SIGNS IN ----------------------
+  //
+  // A room is account-only (P17), so a link lands on a sign-in screen - and for as long as
+  // that screen could not read the room, the most motivated arrival in the product was
+  // shown a six-character code and a paragraph of general pitch. These are the two
+  // sentences it shows now, both built out of the ones the lists already write.
+  {
+    const live: InviteRoom = {
+      code: 'AB12CD',
+      pace: 'live',
+      status: 'lobby',
+      size: 4,
+      seated: 2,
+      method: 'budget',
+      budget: 110,
+      pickSeconds: 20,
+      rerolls: 3,
+      showRatings: true,
+      hostName: 'Ada',
+      openedAt: 1_000_000,
+    };
+    const duel: InviteRoom = { ...live, pace: 'async', size: 2, seated: 1, method: 'roll' };
+    check(
+      'pvpView: an invitation to a duel does not promise the pick clock a duel has not got',
+      () =>
+        // A live room gets the public list's own sentence.
+        inviteRules(live) === lobbyLine(live) &&
+        inviteRules(live).includes('20s a pick') &&
+        // A DUEL DOES NOT, and this is the trap the pace guards: a duel stores a
+        // `pickSeconds` it never reads (`tickDuel`), so `lobbyLine` would tell a stranger
+        // about a twenty-second window that does not exist in the mode they are joining.
+        inviteRules(duel) === 'Roll for your XI, one man from each squad' &&
+        !inviteRules(duel).includes('pick') &&
+        // Vacuity: the two really are different sentences for the same room settings.
+        inviteRules({ ...live, method: 'roll' }) !== inviteRules({ ...duel, method: 'roll' }),
+      () => `${inviteRules(live)} | ${inviteRules(duel)}`,
+    );
+    check(
+      'pvpView: an invitation says where the room has got to, and a duel and a room read differently at every state',
+      () =>
+        inviteState(live) === 'open' &&
+        inviteState({ ...live, seated: 4 }) === 'full' &&
+        inviteState({ ...live, status: 'drafting' }) === 'started' &&
+        inviteState({ ...live, status: 'ended' }) === 'over' &&
+        // An ENDED room is over however many seats it has free, which is the ordering the
+        // state function depends on: a finished room's members have not gone anywhere.
+        inviteState({ ...live, status: 'ended', seated: 0 }) === 'over' &&
+        // A duel's own reading. "1 of 2 seats left" is true and says nothing; whether
+        // anybody has taken the challenge up is the whole of what its sender is waiting on.
+        inviteNote(duel).includes('Nobody has taken this one up') &&
+        inviteNote({ ...duel, seated: 2 }).includes('already taken this one up') &&
+        inviteNote(live).startsWith('2 of 4 seats left') &&
+        inviteNote({ ...live, seated: 4 }) === 'Every seat is taken at the moment.' &&
+        // Vacuity, the direction that matters: the same state does NOT produce the same
+        // sentence for the two paces, or the branch would be decorative.
+        inviteNote(duel) !== inviteNote({ ...live, size: 2, seated: 1 }) &&
+        inviteNote({ ...duel, status: 'ended' }) === inviteNote({ ...live, status: 'ended' }),
+      () => `${inviteNote(live)} | ${inviteNote(duel)}`,
+    );
+
+    // THE READ IS UNAUTHENTICATED, WHICH IS THE ONE THING NO FIXTURE CAN SEE. Every other
+    // call in `state/pvp/referee.ts` fetches a session token first and throws `signed-out`
+    // when there is none - which is every visitor this screen exists for. A `readInvite`
+    // "tidied up" to go through `call` would type-check, pass everything above, and show
+    // the bare code to every person who ever followed a link.
+    {
+      const client = readFileSync('src/state/pvp/referee.ts', 'utf8');
+      const screen = readFileSync('src/components/versus/VersusScreen.tsx', 'utf8');
+      const body = client.slice(client.indexOf('export async function readInvite'));
+      const fn = body.slice(0, body.indexOf('\n}'));
+      check(
+        'pvpView: the invitation is read without a session, and the signed-out screen is what reads it',
+        () =>
+          // It fetches for itself, exactly as the version handshake does, and never
+          // through the helper that demands a token.
+          /fetch\(`\$\{REFEREE\.url\}\/v1\/rooms\//.test(fn) &&
+          // `call<T>(` as well as `call(`, since the tidy-up this guards against is a
+          // typed one: `call<InviteRoom>('GET', ...)` reads like every other line in that
+          // file and is exactly the edit that breaks this screen.
+          !/\bcall[<(]/.test(fn) &&
+          !fn.includes('bearer(') &&
+          // Every failure is one answer: the screen falls back to the code alone, which is
+          // also how this client behaves against a referee too old to have the route.
+          /return null/.test(fn) &&
+          // Vacuity, three ways: the scan found a real function, the helper it must not use
+          // does exist and does demand a token, and the screen wires the pair up.
+          fn.length > 120 &&
+          /async function call<T>/.test(client) &&
+          /const token = await bearer\(\)/.test(client) &&
+          screen.includes('readInvite') &&
+          screen.includes('inviteRules') &&
+          screen.includes('inviteNote'),
+        () => `${fn.length} chars; call ${/\bcall[<(]/.test(fn)}; screen ${screen.includes('readInvite')}`,
+      );
+    }
   }
 
   {

@@ -435,6 +435,31 @@ PYEOF" | tr -d '\r' | tail -1)
    is NOT verified, which is most of what a room does." ;;
         esac
 
+        say "6. AND THE ONE ROUTE THAT TAKES NO SESSION - the invitation read"
+        # An invitation is how a private room and a duel reach anybody, so the sign-in
+        # screen a link lands on reads the room WITHOUT a token. That is the only route
+        # here that does, which makes it the only one a proxy can break on its own: a
+        # gateway rule that requires an Authorization header, or a container older than the
+        # route, both leave the invited player looking at a bare code with no error
+        # anywhere. The room above is PRIVATE, so this also proves the read ignores
+        # visibility, which is the whole point of it.
+        local invited
+        invited=$(curl -s --ssl-no-revoke --max-time 20 \
+                    "$host/referee/v1/rooms/$made_code/invite" || true)
+        printf '   %s\n' "${invited:-<no answer>}"
+        case "$invited" in
+          *'"hostName"'*'"seated"'*) ok "an invitation answers with no session, for a private room" ;;
+          *no-such-route*)
+            warn "THE CONTAINER PREDATES THE INVITATION READ, so it is older than the client
+   this repository builds. Rebuild the image from HEAD; nothing else is wrong." ;;
+          *unauthorized*)
+            warn "something in front of the referee is demanding a token on a route that
+   takes none - the reverse proxy rule, not the referee. An invited player would see the
+   code and nothing else." ;;
+          *) warn "the invitation read is NOT verified. A link would land on a sign-in
+   screen that cannot say what it is an invitation to." ;;
+        esac
+
         on "$COMPOSE -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -qc \"delete from pvp_rooms where code = '$made_code'\"" >/dev/null 2>&1 \
           && ok "test room deleted" || warn "could not delete the test room $made_code - do it in Studio" ;;
       *no-display-name*)

@@ -91,6 +91,12 @@ const CODES: Record<string, { text: string; deployment?: boolean }> = {
         text: 'The draft is closed. Either the clock ran out or you have said you are done.',
     },
     'no-such-room': { text: 'No room with that code.' },
+    // The one refusal nothing in the app currently shows: it can only come from the
+    // unauthenticated invitation read (`referee/src/invites.ts`), and `readInvite` treats
+    // every failure alike - the screen falls back to the code and says so. The sentence is
+    // here anyway, because the mapping is checked against what the referee CAN say rather
+    // than against what a screen happens to ask for today.
+    'too-many': { text: 'Too many requests just now. Try again in a minute.' },
     'bad-room': { text: 'The versus server would not accept those room settings.' },
     'bad-formation': { text: 'The versus server would not accept that formation.' },
     'bad-size': { text: 'The versus server would not accept that room size.' },

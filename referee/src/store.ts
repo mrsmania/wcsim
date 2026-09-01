@@ -14,7 +14,7 @@
 // to forget; handing them `read` and `save` makes it impossible to see.
 
 import type { DraftSeconds, PvpRoom, RoomPace } from '../../src/domain/pvpRoom';
-import type { DuelRow, LobbyRoom } from '../../src/domain/pvpWire';
+import type { DuelRow, InviteRoom, LobbyRoom } from '../../src/domain/pvpWire';
 
 /** One line of the lobby list, as the store hands it over. The wire shape is shared with
  *  the client (`src/domain/pvpWire.ts`), so the two sides cannot describe it differently. */
@@ -22,6 +22,10 @@ export type LobbyRow = LobbyRoom;
 
 /** One line of the duels list, same arrangement and for the same reason. */
 export type DuelListRow = DuelRow;
+
+/** What an invitation says about a room to somebody with no account, same arrangement
+ *  again. See `InviteRoom` for what it deliberately leaves out. */
+export type InviteRow = InviteRoom;
 
 /** What a transition is told besides the room itself. */
 export interface MutateContext {
@@ -102,6 +106,19 @@ export interface RoomStore {
    *  the lobby listing it answers off the rooms and a count, never the whole room: what a
    *  list needs is the other person's name and whose move it is. */
   myDuels(userId: string, limit: number): Promise<DuelListRow[]>;
+
+  /**
+   * The room an invitation points at, as much of it as a stranger may be told (`InviteRow`).
+   *
+   * IT IGNORES VISIBILITY, WHICH IS THE POINT AND THE RISK. Every other read in this
+   * interface hides a private room from anybody without a seat, so a code cannot be
+   * confirmed by probing; this one answers for a private room and a duel, because a link is
+   * how both of them reach anybody at all and the code IS the credential. What keeps that
+   * honest is on either side of it rather than here: the row carries nothing from inside the
+   * room, and the route in front of it is rate limited, which is the only reason six
+   * characters are enough of a secret to hand a stranger a name.
+   */
+  invite(code: string): Promise<InviteRow | null>;
 
   /** The display name on the account, or null when they have not claimed one. A room
    *  cannot show strangers an email address, so this gates entry rather than defaulting. */

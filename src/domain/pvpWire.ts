@@ -101,6 +101,34 @@ export interface LobbyRoom {
 export type RoomPaceWire = 'live' | 'async';
 
 /**
+ * What an invitation points at, told to somebody who is not signed in.
+ *
+ * THE ONE UNAUTHENTICATED ROOM READ IN THE WHOLE DESIGN, and it exists because a link is
+ * the only way a private room or a duel ever reaches anybody. A room is account-only (P17),
+ * so a link lands on a sign-in screen - which until now could say nothing at all about what
+ * had been followed: not that the code was a real room, not who had opened it, not whether
+ * there was still a seat. The most motivated arrival in the product was told the least.
+ *
+ * IT IS A `LobbyRoom` PLUS THE TWO FACTS A PUBLIC LISTING NEVER NEEDS, which is the point of
+ * extending it rather than describing a fourth shape: a listing only ever holds open live
+ * lobbies, so `pace` and `status` are constants there and are the whole question here (is
+ * this a duel or a room, and has it started without you). Everything else a stranger needs -
+ * what it plays, how many seats, whose room it is - a lobby row already carries, and
+ * `lobbyLine` already turns into a sentence.
+ *
+ * WHAT IT DELIBERATELY DOES NOT CARRY is what `LobbyRoom` does not carry, for the same
+ * reason and one step harder: no members, no XIs, no picks, no formations (P19). A caller
+ * with no account gets what is printed on an invitation and nothing that is inside the room.
+ * The one thing it discloses beyond the fact that the room exists is the HOST'S DISPLAY
+ * NAME, which is the trade being made knowingly: a code is a secret its host hands out, and
+ * an invitation with nobody's name on it is most of what made the old screen useless.
+ */
+export interface InviteRoom extends LobbyRoom {
+  pace: RoomPaceWire;
+  status: RoomStatusWire;
+}
+
+/**
  * One duel on the caller's list (P51).
  *
  * IT IS NOT A `RoomView` AND NOT A `LobbyRoom`, for the reason both of those exist

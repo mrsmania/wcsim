@@ -24,7 +24,7 @@ import type { Formation } from './formations';
 import type { KoDecided } from './knockout';
 import { xiStrength } from './match';
 import type { MatchEvent, ShootoutResult, Strength } from './match';
-import type { DuelRow, LobbyRoom, MemberView, RoomView, TieView } from './pvpWire';
+import type { DuelRow, InviteRoom, LobbyRoom, MemberView, RoomView, TieView } from './pvpWire';
 
 /** How long after the server stamped a reveal a client will still start playing it from
  *  the beginning. Past that it has missed too much, and the settled card is the honest
@@ -834,6 +834,61 @@ export function seatsLine(room: LobbyRoom): string {
 
 /** Whether a row can still be joined. */
 export const lobbyJoinable = (room: LobbyRoom): boolean => room.seated < room.size;
+
+/**
+ * What an invitation is an invitation TO, for the screen a link lands on when nobody is
+ * signed in (`InviteRoom`).
+ *
+ * IT IS THE TWO SENTENCES THE OTHER LISTS ALREADY WRITE, chosen by the pace. A live room
+ * gets `lobbyLine`, which is the sentence somebody scanning the public list reads; a duel
+ * gets `duelRules`, which is the same sentence with the clock taken out - and taking it out
+ * is not a nicety, since a duel stores a `pickSeconds` it never reads (`tickDuel`), so
+ * `lobbyLine` would promise a stranger a twenty-second clock that does not exist.
+ */
+export function inviteRules(room: InviteRoom): string {
+    return room.pace === 'async' ? duelRules(room) : lobbyLine(room);
+}
+
+/** Where an invited room has got to, from outside it. */
+export type InviteState = 'open' | 'full' | 'started' | 'over';
+
+export function inviteState(room: InviteRoom): InviteState {
+    if (room.status === 'ended') return 'over';
+    if (room.status !== 'lobby') return 'started';
+    return lobbyJoinable(room) ? 'open' : 'full';
+}
+
+/**
+ * What that state means to the person holding the link.
+ *
+ * IT NEVER PROMISES THE SEAT WILL STILL BE THERE. What this screen shows is a snapshot read
+ * once, and the sign-in that follows it takes a minute and a mail client - so "the seat is
+ * yours" is written as what is true now rather than as a reservation, and every path through
+ * signing in still ends at `RoomScreen`, which takes the seat or says why it could not. A
+ * screen that guaranteed a seat would be lying about the one thing it cannot check.
+ *
+ * A DUEL AND A ROOM READ DIFFERENTLY at every state, which is why this is not `seatsLine`
+ * with a full stop: a duel has exactly two chairs and one of them is the person who sent the
+ * link, so "1 of 2 seats left" is a true sentence that says nothing, where "nobody has taken
+ * this up yet" is the whole of what a challenger is waiting to hear.
+ */
+export function inviteNote(room: InviteRoom): string {
+    const duel = room.pace === 'async';
+    switch (inviteState(room)) {
+        case 'open':
+            return duel
+                ? 'Nobody has taken this one up yet, so the seat is there for you.'
+                : `${seatsLine(room)}, as of now.`;
+        case 'full':
+            return duel
+                ? 'Somebody has already taken this one up.'
+                : 'Every seat is taken at the moment.';
+        case 'started':
+            return duel ? 'This one is already under way.' : 'It has already started.';
+        default:
+            return 'This one is over.';
+    }
+}
 
 /**
  * How long ago something happened, in the coarsest honest unit.

@@ -55,6 +55,7 @@ import {
   type PvpRoom,
   type RoomSize,
 } from '../../src/domain/pvpRoom';
+import type { InviteLimiter } from './invites';
 import { bearerOf, verifyToken } from './jwt';
 import { recoverIfNeeded } from './outage';
 import type { CreateInput, RoomStore } from './store';
@@ -66,6 +67,12 @@ export interface ApiRequest {
   body: Record<string, unknown>;
   /** The raw `Authorization` header. */
   authorization?: string | null;
+  /** Who is asking, as far as the socket can tell (`main.ts`): the forwarded address, or
+   *  the connection's. It is used for one thing only - metering the unauthenticated
+   *  invitation read - and it is never trusted for identity, which is what the token is
+   *  for. A spoofed header buys a caller their own bucket and nothing else; the global cap
+   *  behind it is what makes that not worth doing. */
+  clientKey?: string | null;
 }
 
 export interface ApiResponse {
@@ -86,6 +93,9 @@ export interface ApiDeps {
   sweepMs: number;
   /** Six characters. Injected so a check can make them predictable. */
   newCode: () => string;
+  /** How often a stranger may ask what an invitation points at (`invites.ts`). Injected
+   *  like the clock is, so a flood is a check rather than a deployment. */
+  inviteLimiter: InviteLimiter;
   /** A practice opponent's id. Injected for the same reason `newCode` is, and it is a UUID
    *  because `pvp_bots.bot_id` is one - a bot is addressed exactly like a member everywhere
    *  above the database, so its id has to be the same shape as a member's. */
@@ -188,6 +198,12 @@ function readCreate(
 
 const ROOM_PATH = /^\/referee\/v1\/rooms\/([A-Za-z0-9]{4,12})(?:\/([a-z]+))?$/;
 
+/** The invitation read, matched before anything is authenticated. It is spelled out
+ *  separately rather than reached through `ROOM_PATH`'s action group because it is the one
+ *  room route that runs without a session, and a route that skips the token check should be
+ *  impossible to reach by accident from the switch below. */
+const INVITE_PATH = /^\/referee\/v1\/rooms\/([A-Za-z0-9]{4,12})\/invite$/;
+
 /** How many public rooms a listing returns. A lobby is a thing you scan, not a thing you
  *  page through: past a screenful the answer is "make one" rather than "keep scrolling". */
 const LOBBY_LIMIT = 30;
@@ -208,6 +224,28 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
   }
   if (req.method === 'GET' && path === '/referee/v1/health') {
     return ok({ ok: true, at: now });
+  }
+
+  // THE THIRD UNAUTHENTICATED ROUTE, and the only one that reads a room (`InviteRoom`).
+  //
+  // A room is account-only (P17), so a link somebody was sent lands on a sign-in screen -
+  // and that screen could say nothing whatever about what had been followed, because every
+  // other read here needs a session and a private room answers 404 to anybody without a
+  // seat. So the most motivated arrival in the product was told the least. This answers
+  // what is printed on an invitation: who opened it, what it plays, whether there is still
+  // a seat. Nothing from inside the room, no member row, no formation (P19).
+  //
+  // THE CODE IS THE CREDENTIAL, which is only true while it cannot be guessed at speed,
+  // which is why the limiter is in front of it rather than beside it. A refusal is 429 and
+  // the client reads it exactly as it reads "no such room": there is nothing to say about
+  // this link, so the screen falls back to the code alone.
+  const invited = req.method === 'GET' ? INVITE_PATH.exec(path) : null;
+  if (invited) {
+    if (!deps.inviteLimiter.allow(req.clientKey || 'unknown', now)) {
+      return fail(429, 'too-many');
+    }
+    const room = await deps.store.invite(invited[1]!.toUpperCase());
+    return room ? ok(room) : fail(404, 'no-such-room');
   }
 
   const verdict = verifyToken(

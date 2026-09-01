@@ -2,11 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useMatch } from 'react-router-dom';
 import { NAME_MAX, NAME_MIN, validateName } from '../../domain/displayName';
 import type { PvpVersion, VersionMismatch } from '../../domain/pvpVersion';
+import { inviteNote, inviteRules, inviteState } from '../../domain/pvpView';
+import type { InviteRoom } from '../../domain/pvpWire';
 import {
     claimDisplayName,
     clientVersion,
     currentDisplayName,
     handshake,
+    readInvite,
 } from '../../state/pvp/referee';
 import { CARD, MONO_CAP, PRIMARY_BTN, StageCrumb, StageHeader } from '../matchUi';
 import RoomScreen from './RoomScreen';
@@ -152,13 +155,28 @@ export default function VersusScreen({
  * the memory, so there is no pending-invitation state to go stale or to seat somebody who
  * signed in an hour later for a different reason.
  *
- * WHAT IT CANNOT DO IS SAY ANYTHING ABOUT THE ROOM. Reading one needs a session, and a room
- * a viewer is not in answers "no such room" on purpose, so a code cannot be confirmed by
- * probing - which means this screen cannot promise the room is still open either. So the
- * code is all there is to show, and the copy says why rather than leaving the emptiness to
- * read as a page that failed to load.
+ * AND IT SAYS WHAT THE INVITATION IS TO, which took a route of its own (`readInvite`,
+ * `GET /v1/rooms/:code/invite`). It could not, for a day: every read of a room needs a
+ * session and a private room answers "no such room" to anybody without a seat, so the most
+ * motivated arrival in the product was shown a code and a paragraph of general pitch. What
+ * the referee now answers unauthenticated is what is printed on an invitation - who opened
+ * it, what it plays, whether a seat is still there - and nothing from inside the room: no
+ * member, no XI, no formation (P19). The code is the credential, which is only true while it
+ * cannot be guessed at speed, hence the rate limit in front of it (`referee/src/invites.ts`).
+ *
+ * IT STILL WORKS WITH NO ANSWER AT ALL, and that is not a fallback added afterwards. A
+ * referee older than the route, an unreachable one, a room that has closed and a read that
+ * was rate limited all come back as null, and null renders as this screen did before the
+ * route existed: the code, and a line saying why there is nothing else. That is also what
+ * makes shipping this client before the container harmless.
+ *
+ * NOTHING HERE IS A PROMISE. What it shows is a snapshot read once (nobody sits on a
+ * sign-in screen, so it is not polled), and signing in takes a mail client and a minute -
+ * so the seat can be gone by the time they land. `RoomScreen` is what actually takes it,
+ * and what says so if it cannot.
  */
 function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount: () => void }) {
+    const room = useInvite(code);
     // No code: somebody who came in through the Versus tab, so this is the pitch for the
     // mode. The button is the only change - "sign in from the button at the top of the page"
     // is an instruction where a button is an action, and it is the same dialog either way.
@@ -191,6 +209,11 @@ function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount
         );
     }
 
+    // What the button can honestly offer. A room that is full, under way or over is still
+    // worth signing in for - it is somebody's game and there may be a rematch - but the
+    // label must not promise a chair that is not there.
+    const seatWaiting = !room || inviteState(room) === 'open';
+
     return (
         <>
             <StageHeader eyebrow="Versus" title="You have been invited" />
@@ -199,6 +222,18 @@ function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount
                 <div className="mt-1.5">
                     <RoomCode code={code} />
                 </div>
+                {room && (
+                    <div className="mt-3 border-t border-hair pt-3">
+                        <div className="text-[13.5px] font-bold text-ink">
+                            {room.hostName || 'Somebody'}
+                            {room.pace === 'async'
+                                ? ' has challenged you'
+                                : ` opened a room for ${room.size}`}
+                        </div>
+                        <div className="mt-0.5 text-[12px] text-muted">{inviteRules(room)}</div>
+                        <div className="mt-0.5 text-[12px] text-muted">{inviteNote(room)}</div>
+                    </div>
+                )}
                 <div className="mt-3">
                     <RoomNote>
                         A team each, from the same money or the same dice, and a match to
@@ -209,24 +244,54 @@ function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount
                     <RoomNote>
                         <span className="mt-2 block">
                             An email address and a six-digit code, no password. Sign in and you
-                            come straight back here, and your seat is taken the moment you
-                            land.
+                            come straight back here
+                            {seatWaiting
+                                ? ', and your seat is taken the moment you land.'
+                                : // A room that is full, under way or over. Repeating the
+                                  // promise would be the one thing this screen must not do:
+                                  // the seat is the part it cannot check.
+                                  '. Whether there is still room for you is up to the room.'}
                         </span>
                     </RoomNote>
                 </div>
                 <div className="mt-4">
                     <button type="button" className={PRIMARY_BTN} onClick={onOpenAccount}>
-                        Sign in and take your seat
+                        {seatWaiting ? 'Sign in and take your seat' : 'Sign in'}
                     </button>
                 </div>
                 <p className="mt-3 text-[12px] leading-relaxed text-dim">
-                    A room shows nothing at all to somebody who is not in it, which is why
-                    there is only the code here. Whatever you have played as a guest - your XI,
-                    your run, your album - stays exactly as it is.
+                    {room
+                        ? 'That is everything an invitation says about a room: what is inside one is for the people in it. '
+                        : 'The room itself says nothing at all to somebody who is not in it, which is why there is only the code here. '}
+                    Whatever you have played as a guest - your XI, your run, your album - stays
+                    exactly as it is.
                 </p>
             </div>
         </>
     );
+}
+
+/**
+ * The invitation, read once.
+ *
+ * NOT POLLED, DELIBERATELY: nobody sits on a sign-in screen watching a room fill up, and
+ * the next thing that happens here is a reload (signing in rebuilds the store against the
+ * account), which asks again on the way past. A failure is not retried either - null is a
+ * complete answer for this screen, and the copy under it is written for exactly that.
+ */
+function useInvite(code: string | null): InviteRoom | null {
+    const [room, setRoom] = useState<InviteRoom | null>(null);
+    useEffect(() => {
+        if (!code) return;
+        let live = true;
+        void readInvite(code).then((r) => {
+            if (live) setRoom(r);
+        });
+        return () => {
+            live = false;
+        };
+    }, [code]);
+    return room;
 }
 
 /**

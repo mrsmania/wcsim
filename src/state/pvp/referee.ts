@@ -1,5 +1,5 @@
 import { REFEREE } from '../../config';
-import type { DuelRow, LobbyRoom, RoomView } from '../../domain/pvpWire';
+import type { DuelRow, InviteRoom, LobbyRoom, RoomView } from '../../domain/pvpWire';
 import { localVersion, versionMismatch, type PvpVersion, type VersionMismatch } from '../../domain/pvpVersion';
 import { nameKeyOf, normalizeName } from '../../domain/displayName';
 
@@ -135,6 +135,34 @@ export async function handshake(): Promise<Handshake> {
 
 /** What this build is, for the "versus is updating" screen to print beside theirs. */
 export const clientVersion = localVersion;
+
+/**
+ * What an invitation points at, asked WITHOUT a session (`InviteRoom`).
+ *
+ * IT IS THE ONE CALL IN THIS FILE THAT DOES NOT GO THROUGH `call`, and that is the whole
+ * point of it rather than an oversight: `call` fetches a bearer token first and throws
+ * `signed-out` when there is none, and the entire audience for this read is somebody with no
+ * account who has just followed a link. So it is shaped like `handshake` above, for the same
+ * reason - it is a question asked before there is anything to authenticate with.
+ *
+ * NULL IS EVERY WAY IT CAN FAIL, AND THEY ALL MEAN ONE THING to the screen that asks: no
+ * such room, a referee too old to have the route at all (`no-such-route`, and this is
+ * exactly the skew a client shipping before a rebuild has), the referee unreachable, or the
+ * read rate limited. All four leave the invitation screen with the code and nothing else,
+ * which is what it showed before this existed - so there is one fallback rather than four
+ * branches, and no probe is needed to choose between them.
+ */
+export async function readInvite(code: string): Promise<InviteRoom | null> {
+    try {
+        const res = await fetch(`${REFEREE.url}/v1/rooms/${encodeURIComponent(code)}/invite`, {
+            signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+        if (!res.ok) return null;
+        return (await res.json()) as InviteRoom;
+    } catch {
+        return null;
+    }
+}
 
 // --- The display name (P22) ------------------------------------------------
 

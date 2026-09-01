@@ -40,6 +40,7 @@ import {
 import type {
   CreateInput,
   DuelListRow,
+  InviteRow,
   LobbyRow,
   Mutation,
   MutateContext,
@@ -398,6 +399,58 @@ export function pgStore(pool: Pool): RoomStore {
         hostName: x.host_name ?? '',
         openedAt: msOf(x.created_at),
       }));
+    },
+
+    async invite(code: string): Promise<InviteRow | null> {
+      // THE SAME ROW THE LOBBY LIST ANSWERS WITH, by code and with no visibility filter,
+      // plus the pace and the status a public listing never has to say (`InviteRoom`). It
+      // reads `pvp_rooms` and counts two tables and touches nothing else: a caller with no
+      // account must not be able to reach a member row, and the cheapest way to guarantee
+      // that is not to select one.
+      //
+      // `SELECT_ROOM` at the top of this file carries the same `where`, and the column scan
+      // in `npm run checks` finds that one by its FIRST occurrence - which is why it stays at
+      // the top of the file rather than anywhere near here.
+      const res = await pool.query<{
+        code: string;
+        pace: 'live' | 'async' | null;
+        status: 'lobby' | 'drafting' | 'round' | 'ended';
+        size: number;
+        seated: string;
+        bots: string;
+        method: 'roll' | 'budget';
+        budget: number;
+        pick_seconds: number;
+        rerolls: number;
+        show_ratings: boolean;
+        host_name: string | null;
+        created_at: Date | string;
+      }>(
+        `select r.code, r.pace, r.status, r.size, r.method, r.budget, r.pick_seconds,
+                r.rerolls, r.show_ratings, r.created_at, p.display_name as host_name,
+                (select count(*) from pvp_members m where m.room_id = r.id) as seated,
+                (select count(*) from pvp_bots b where b.room_id = r.id) as bots
+           from pvp_rooms r join profiles p on p.id = r.host_id
+          where r.code = $1`,
+        [code],
+      );
+      const x = res.rows[0];
+      if (!x) return null;
+      return {
+        code: x.code,
+        pace: x.pace ?? 'live',
+        status: x.status,
+        size: x.size,
+        seated: Number(x.seated),
+        bots: Number(x.bots),
+        method: x.method,
+        budget: x.budget,
+        pickSeconds: x.pick_seconds,
+        rerolls: x.rerolls,
+        showRatings: x.show_ratings,
+        hostName: x.host_name ?? '',
+        openedAt: msOf(x.created_at),
+      };
     },
 
     async activeRoomOf(userId: string): Promise<string | null> {

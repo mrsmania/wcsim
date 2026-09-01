@@ -56,12 +56,14 @@ import {
 } from '../../src/domain/pvpRoom';
 import { handle, type ApiDeps, type ApiResponse } from '../../referee/src/api';
 import { readEnv } from '../../referee/src/env';
+import { INVITE_LIMITS, inviteLimiter } from '../../referee/src/invites';
 import { recoverIfNeeded, wasOutage } from '../../referee/src/outage';
 import { atOf, msOf, roomFromRows, rowsFromRoom, type RoomRows } from '../../referee/src/rows';
 import { recoverAtBoot, sweepOnce } from '../../referee/src/sweeper';
 import type {
   CreateInput,
   DuelListRow,
+  InviteRow as InviteListRow,
   LobbyRow,
   Mutation,
   MutateContext,
@@ -227,6 +229,28 @@ class MemStore implements RoomStore {
       });
   }
 
+  async invite(code: string): Promise<InviteListRow | null> {
+    const r = this.rows.get(code.toUpperCase());
+    if (!r) return null;
+    // Every visibility, exactly as `pgStore`'s query has no `where` for it: a link is how a
+    // private room and a duel reach anybody, which is the whole reason this read exists.
+    return {
+      code: r.room.code,
+      pace: r.room.pace ?? 'live',
+      status: r.room.status,
+      size: r.room.size,
+      seated: r.members.length,
+      bots: r.bots.length,
+      method: r.room.method,
+      budget: r.room.budget,
+      pickSeconds: r.room.pick_seconds,
+      rerolls: r.room.rerolls,
+      showRatings: r.room.show_ratings,
+      hostName: this.names[r.room.host_id] ?? '',
+      openedAt: msOf(r.room.touched_at),
+    };
+  }
+
   async displayName(userId: string): Promise<string | null> {
     return this.names[userId] ?? null;
   }
@@ -268,6 +292,9 @@ function depsFor(store: MemStore, clock: { now: number }): ApiDeps {
     now: () => clock.now,
     jwtSecret: SECRET,
     sweepMs: SWEEP_MS,
+    // A real one, at the shipped figures: the invitation read is metered rather than
+    // authenticated, so the limit is behaviour and belongs in the checks with the rest of it.
+    inviteLimiter: inviteLimiter(),
     newCode: () => `RM${String(++n).padStart(4, '0')}`,
     // Predictable, and a real uuid: `pvp_bots.bot_id` is one, and a bot is addressed
     // exactly like a member everywhere above the database.
@@ -612,6 +639,187 @@ export async function refereeChecks(): Promise<void> {
         (started.body as { rooms: { seated: number }[] }).rooms.length === 1 &&
         (started.body as { rooms: { seated: number }[] }).rooms[0]!.seated === 2,
       () => JSON.stringify(started.body),
+    );
+  }
+
+  // --- THE INVITATION READ, and the meter in front of it --------------------
+  //
+  // A link is how a private room and a duel reach anybody, and a room is account-only
+  // (P17), so a link lands on a sign-in screen that could say nothing at all about what
+  // had been followed: every other read here needs a session, and the room itself answers
+  // 404 to a stranger by design. `GET /v1/rooms/:code/invite` is what that screen asks -
+  // unauthenticated, metered, and carrying only what is printed on an invitation.
+  {
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno' };
+    const deps = depsFor(store, clock);
+    const made = await post(deps, '/referee/v1/rooms', session('u1'), {
+      visibility: 'private',
+      size: 4,
+      method: 'budget',
+      budget: 110,
+      pickSeconds: 20,
+      years: [],
+    });
+    const code = (made.body as RoomView).code;
+
+    const seen = await handle(
+      { method: 'GET', path: `/referee/v1/rooms/${code}/invite`, body: {}, authorization: null },
+      deps,
+    );
+    const row = seen.body as InviteListRow;
+    // The whole room read the ordinary way, by somebody with no seat and by somebody with
+    // no session at all: both are refused, and that is what makes the line above a new
+    // answer rather than a hole that was already there.
+    const stranger = await get(deps, `/referee/v1/rooms/${code}`, session('u2'));
+    const nobody = await get(deps, `/referee/v1/rooms/${code}`, null);
+    check(
+      'referee: an invitation to a PRIVATE room is readable with no account, where the room itself is not',
+      () =>
+        seen.status === 200 &&
+        row.code === code &&
+        row.hostName === 'Ada' &&
+        row.size === 4 &&
+        row.seated === 1 &&
+        row.status === 'lobby' &&
+        row.pace === 'live' &&
+        // Vacuity, and the reason this route exists: the same room, asked for the ordinary
+        // way, is invisible to both of these callers.
+        stranger.status === 404 &&
+        nobody.status === 401,
+      () => `${seen.status} ${JSON.stringify(seen.body)}; room ${stranger.status}/${nobody.status}`,
+    );
+
+    // WHAT IT MUST NOT CARRY. The row is asserted as a whole key set rather than by
+    // spot-checking absences: a field added to `InviteRoom` in a hurry - a member list, an
+    // XI, somebody's formation (P19) - fails here rather than shipping to every stranger
+    // holding a link.
+    const KEYS = [
+      'bots', 'budget', 'code', 'hostName', 'method', 'openedAt', 'pace', 'pickSeconds',
+      'rerolls', 'seated', 'showRatings', 'size', 'status',
+    ];
+    check(
+      `referee: an invitation carries exactly the ${KEYS.length} things printed on one, and nothing from inside the room`,
+      () => Object.keys(row).sort().join() === KEYS.join(),
+      () => Object.keys(row).sort().join(),
+    );
+
+    const missing = await handle(
+      { method: 'GET', path: '/referee/v1/rooms/ZZZZZZ/invite', body: {}, authorization: null },
+      deps,
+    );
+    check(
+      'referee: an invitation to a room that is not there answers no-such-room',
+      () => missing.status === 404 && (missing.body as { error: string }).error === 'no-such-room',
+      () => `${missing.status} ${JSON.stringify(missing.body)}`,
+    );
+
+    // A DUEL IS THE OTHER HALF OF WHY THIS EXISTS: it is private by construction and
+    // addressed by link and nothing else, so before this route a challenge could not say
+    // even who had sent it.
+    const duel = await post(deps, '/referee/v1/rooms', session('u2'), {
+      pace: 'async',
+      size: 2,
+      method: 'roll',
+      pickSeconds: 20,
+      years: [],
+    });
+    const duelCode = (duel.body as RoomView).code;
+    const duelSeen = await handle(
+      { method: 'GET', path: `/referee/v1/rooms/${duelCode}/invite`, body: {}, authorization: null },
+      deps,
+    );
+    const duelRow = duelSeen.body as InviteListRow;
+    check(
+      'referee: a duel answers an invitation too, saying who challenged and that the seat is open',
+      () =>
+        duelSeen.status === 200 &&
+        duelRow.pace === 'async' &&
+        duelRow.hostName === 'Bruno' &&
+        duelRow.seated === 1 &&
+        duelRow.size === 2,
+      () => `${duelSeen.status} ${JSON.stringify(duelSeen.body)}`,
+    );
+  }
+
+  // --- The meter (`referee/src/invites.ts`) ---------------------------------
+  //
+  // SIX CHARACTERS ARE ONLY A SECRET AT A LIMITED RATE. The route above hands a display
+  // name to anybody holding a code, and 31^6 is 887 million codes - which is minutes of
+  // scripting unmetered and years at these figures. So the limit is part of the feature
+  // rather than an operational nicety, and it is checked here with the rest of it.
+  {
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada' };
+    const deps = depsFor(store, clock);
+    const made = await post(deps, '/referee/v1/rooms', session('u1'), {
+      visibility: 'private',
+      size: 2,
+      method: 'roll',
+      pickSeconds: 20,
+      years: [],
+    });
+    const code = (made.body as RoomView).code;
+    const ask = (from: string): Promise<ApiResponse> =>
+      handle(
+        {
+          method: 'GET',
+          path: `/referee/v1/rooms/${code}/invite`,
+          body: {},
+          authorization: null,
+          clientKey: from,
+        },
+        deps,
+      );
+
+    const mine: number[] = [];
+    for (let i = 0; i < INVITE_LIMITS.perKey + 1; i++) mine.push((await ask('1.2.3.4')).status);
+    const other = await ask('5.6.7.8');
+    clock.now = T0 + INVITE_LIMITS.windowMs;
+    const later = await ask('1.2.3.4');
+    check(
+      `referee: one caller may read ${INVITE_LIMITS.perKey} invitations a window, and the ${INVITE_LIMITS.perKey + 1}th is refused`,
+      () =>
+        mine.slice(0, INVITE_LIMITS.perKey).every((x) => x === 200) &&
+        mine[INVITE_LIMITS.perKey] === 429 &&
+        // Somebody else is unaffected, and the window really does roll: a meter that
+        // refused everybody, or refused for ever, would pass the line above alone.
+        other.status === 200 &&
+        later.status === 200,
+      () => `${mine.join(',')} other ${other.status} later ${later.status}`,
+    );
+
+    // The global cap, driven on the limiter itself rather than through the route: it takes
+    // hundreds of calls to reach, and what it guards is the arithmetic rather than the
+    // handler. A REFUSAL IS FREE is the half worth pinning - without it one caller
+    // hammering their own limit would spend everybody else's budget too.
+    const meter = inviteLimiter(INVITE_LIMITS);
+    const keys = INVITE_LIMITS.total / INVITE_LIMITS.perKey;
+    let allowed = 0;
+    for (let k = 0; k < keys; k++) {
+      for (let i = 0; i < INVITE_LIMITS.perKey; i++) if (meter.allow(`k${k}`, T0)) allowed++;
+    }
+    const overGlobal = meter.allow('fresh', T0);
+    const free = inviteLimiter(INVITE_LIMITS);
+    // A whole global budget's worth of asking, from ONE key: 20 are served and the rest are
+    // refused, and the size is the point - anything smaller passes whether or not a refusal
+    // costs the shared budget, which is what the check is for.
+    for (let i = 0; i < INVITE_LIMITS.total; i++) free.allow('flood', T0);
+    const bystander = free.allow('quiet', T0);
+    check(
+      `referee: the invitation meter stops at ${INVITE_LIMITS.total} a window, and a refusal costs nobody else anything`,
+      () =>
+        Number.isInteger(keys) &&
+        allowed === INVITE_LIMITS.total &&
+        !overGlobal &&
+        // The flood asked for the whole global budget on its own; a bystander is still
+        // served, which is only true because the refusals did not touch the shared budget.
+        bystander &&
+        // Vacuity: the same meter one window later has forgotten all of it.
+        free.allow('flood', T0 + INVITE_LIMITS.windowMs),
+      () => `${allowed} allowed, over-global ${overGlobal}, bystander ${bystander}`,
     );
   }
 

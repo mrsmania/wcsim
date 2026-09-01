@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-09-01<br>
-    <strong>Open:</strong> 5 items<br>
+    <strong>Open:</strong> 7 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -347,6 +347,74 @@
 </div>
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
+
+
+<details class="item">
+  <summary>
+    <span class="num">53</span>
+    <span class="title">Rebuild the versus server, so an invitation says what it is an invitation to
+      <span class="sub"><b>Queued 2026-09-01, no migration.</b> A link followed by somebody
+      with no account now shows who opened the room, what it plays and whether a seat is
+      still there. The route that answers it (<code>GET /v1/rooms/:code/invite</code>) is in
+      this repository and not in the container, so until the rebuild the screen falls back to
+      the code alone, which is exactly what it showed before. <b>Rides on the same rebuild as
+      item 52</b>; both are safe in either order.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What it is fixing.</strong> A room needs an account, so a link somebody was
+    sent lands on a sign-in screen rather than in the room. That screen could say nothing at
+    all about what had been followed: not who sent it, not what the game was, not whether
+    the seat was still free. Every read of a room needs a session, and a private room answers
+    "no room with that code" to anybody without a seat, deliberately, so a code cannot be
+    confirmed by probing. So the most motivated arrival in the whole product was told the
+    least, and the answer was a route rather than better copy.</p>
+
+    <p><strong>What it answers.</strong> The host's name, what the room plays (the same
+    sentence the public list writes, minus the pick clock for a duel, which has none), how
+    many seats are left, and whether it has started. <b>Nothing from inside the room</b>: no
+    member row, no XI, no formation, which P19 keeps out of a lobby's reach for the same
+    reason. The checks assert the answer's key set as a whole, so a field added to it later
+    fails there rather than shipping to every stranger holding a link.</p>
+
+    <p><strong>The one thing being traded, knowingly.</strong> Anybody holding a code can now
+    learn a display name without an account. A code is a secret its host hands out, which is
+    only true at a limited rate, so the route is metered: 20 reads a caller and 240 in total a
+    minute. Six characters from a 31-letter alphabet is 887 million codes, which is minutes of
+    scripting unmetered and years at those figures. A refusal costs the shared budget nothing,
+    so one caller hammering their own limit cannot lock everybody else out.</p>
+
+    <p><strong>How to verify after rebuilding</strong> - do this, do not assume:</p>
+    <ol>
+      <li><code>scripts/deploy-referee.sh --verify</code>. Its new step 6 reads the
+      invitation for the private room it just created, with no token at all, and expects the
+      host name back. <code>no-such-route</code> there means the image is older than this
+      repository; <code>unauthorized</code> means something in front of the referee is
+      demanding a token on the one route that takes none, which is the reverse proxy rather
+      than the referee.</li>
+      <li>Open a private room on one account, copy the link, and open it in a browser that is
+      signed out. It should name the host, say what the room plays and count the seats left,
+      and the button should read "Sign in and take your seat".</li>
+      <li>Do the same with a duel: it should say who challenged you and that nobody has taken
+      it up yet.</li>
+      <li>Fill the room and open the link again: the seat count should say so and the button
+      should drop back to "Sign in".</li>
+      <li>Sign in from that screen. The dialog reloads the page, which lands back on the
+      room's own address, and the seat is taken on arrival.</li>
+      <li>Check the firewall afterwards. The docker bridge rules have been wiped by the
+      container operations of a deploy before, which takes the whole accounts stack with it
+      (<code>docs/nas-setup.md</code>).</li>
+    </ol>
+
+    <p><strong>Order does not matter, in either direction.</strong> Nothing the referee writes
+    changed and no column moved. The client is already live and treats a missing route, an
+    unreachable server, a closed room and a rate-limited read identically: no answer means the
+    screen shows the code and says why there is nothing else, which is what it did before this
+    existed.</p>
+  </div>
+</details>
 
 
 <details class="item">

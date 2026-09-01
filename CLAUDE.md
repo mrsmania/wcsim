@@ -2994,11 +2994,16 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**A REFEREE REBUILD IS QUEUED (roadmap item 52), and no migration is.** The versus schema
-is at 0024 and the container is a rebuild behind: the week that resolves an abandoned duel
-(below) is read by the SWEEPER, so it does nothing at all until the referee is rebuilt.
-Nothing else waits on it - the client half degrades to saying nothing, which is right,
-because until the container moves there is no window to warn anybody about. **The schema is
+**A REFEREE REBUILD IS QUEUED (roadmap items 52 and 53), and no migration is.** The versus
+schema is at 0024 and the container is a rebuild behind, and **two things are waiting on
+it**: the week that resolves an abandoned duel (below), which is read by the SWEEPER, and
+the **invitation read** a link's sign-in screen asks for (`GET /v1/rooms/:code/invite`, item
+53). Both client halves degrade to saying nothing, which is why they could ship first - an
+old container has no window to warn anybody about and answers `no-such-route` to the
+invitation, which the screen reads as "nothing to say about this link" and falls back to the
+code alone. Neither is verified until the container moves; `scripts/deploy-referee.sh
+--verify` now probes the invitation read as its step 6, since it is the one route a reverse
+proxy can break on its own by demanding a token. **The schema is
 at 0024 and the referee was rebuilt on
 2026-09-01** (roadmap item 51, closed), which is what put the duel lobby and the forfeit on
 the server. **0024 was applied the same day** and it is the one migration in this repo whose
@@ -3321,7 +3326,7 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
   sentence pointing at the account button in the masthead: it never said the link had worked,
   never said which room it was, and gave nothing to press. `SignedOut` (VersusScreen) branches
   on the code now - the invited half leads with the code and a sign-in button, and the pitch is
-  one line rather than the page. Two things about it:
+  one line rather than the page. Six things about it:
   - **SIGNING IN COMES BACK TO THE ROOM, and the whole of that is the RELOAD.** The dialog is
     an overlay over this page and `App` hands a sign-in over with `window.location.reload()`
     (the store has to be rebuilt against the account), so the reload lands on the URL the
@@ -3331,10 +3336,41 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
     invitation would go stale, and would seat somebody who signed in an hour later to sync
     their album. The address is the memory. `npm run checks` reads that handover, because
     turning it into a navigation breaks nothing except the promise this screen makes.
-  - **IT CANNOT SAY ANYTHING ABOUT THE ROOM, and says why.** Reading one needs a session, and
-    a room a viewer is not in answers "no such room" on purpose, so the code is all there is
-    to show and this screen cannot promise the room is still open either. The copy carries
-    that, rather than leaving the emptiness to read as a page that failed to load.
+  - **AND IT SAYS WHAT THE INVITATION IS TO**, which took a route of its own (2026-09-01,
+    the same day, and it is the point of the whole screen). It could not for a day: every
+    read of a room needs a session and a private room answers "no such room" to anybody
+    without a seat, so the most motivated arrival in the product was shown a code and a
+    paragraph of general pitch. **`GET /v1/rooms/:code/invite` is the one unauthenticated
+    room read in the design**, and it answers what is printed on an invitation - who opened
+    it, what it plays, whether a seat is still there - and nothing whatever from inside the
+    room: no member row, no XI, no formation (P19). `npm run checks` asserts the answer's
+    key set as a WHOLE, so a field added to `InviteRoom` in a hurry fails there rather than
+    shipping to every stranger holding a link.
+  - **THE CODE IS THE CREDENTIAL, WHICH IS ONLY TRUE AT A LIMITED RATE**, so the route is
+    metered (`referee/src/invites.ts`, 20 a caller and 240 in total a minute). Six characters
+    from a 31-letter alphabet is 887 million, which is minutes of scripting unmetered and
+    years at those figures - the numbers are that arithmetic rather than a feeling. Two
+    properties are load-bearing and both are checked: **a refusal is free**, so one caller
+    hammering their own limit cannot spend everybody else's budget through the global cap,
+    and the map is therefore bounded by that cap. The limiter is a pure function of an
+    injected clock, like everything else here (P32), so a flood is a check rather than a
+    deployment.
+  - **THE READ DOES NOT GO THROUGH `call`, AND THAT IS THE ONE THING NO FIXTURE CAN SEE.**
+    Every other call in `state/pvp/referee.ts` fetches a session token first and throws
+    `signed-out` when there is none - which is every visitor this screen exists for. So
+    `readInvite` is shaped like `handshake`: its own `fetch`, no bearer. A tidy-up to
+    `call<InviteRoom>('GET', ...)` would type-check, pass everything else, and show the bare
+    code to every person who ever followed a link, so the checks read that function's source.
+  - **NULL IS EVERY WAY IT CAN FAIL AND THEY ALL MEAN ONE THING.** No such room, a referee
+    too old to have the route, an unreachable one, a rate-limited read: all four render as
+    the screen did before the route existed - the code, and a line saying why there is
+    nothing else. One fallback rather than four branches, no probe needed to choose between
+    them, and it is what makes shipping this client before the container harmless.
+  - **NOTHING IT SHOWS IS A PROMISE.** It is a snapshot read once (nobody sits on a sign-in
+    screen, so it is not polled) and signing in takes a mail client and a minute, so the seat
+    can be gone by the time they land. `RoomScreen` is what actually takes it and what says
+    so when it cannot; the button only stops saying "take your seat" when the snapshot
+    already says there is none.
 - **THE ROOM STARTS ITSELF ONCE EVERYBODY IS READY, and counts three down to it**
   (2026-08-29). Two things arm the same countdown: everybody pressing Ready, and the host
   pressing Start on a room where somebody has not (P48 keeps that button, since Ready is a
