@@ -19,6 +19,7 @@ import {
     xiFrom,
 } from '../../domain/pvpView';
 import { roomClosed } from '../../domain/pvpRoom';
+import { useLiveMatch } from '../../nav/liveMatch';
 import { holdVersusRoom, useHeldVersusRoom } from '../../nav/versusRoom';
 import { duelsChanged } from '../../state/pvp/duels';
 import { markDuelWatched, watchedDuels } from '../../state/pvp/watched';
@@ -109,6 +110,13 @@ export default function RoomScreen({ code }: { code: string }) {
     const room = useVersusRoom(code, true);
     const view = room.view;
     const held = useHeldVersusRoom();
+    // "The navigation is busy" - your pick window is open, or a match is revealing. The
+    // tab bar goes inert on it and the crumb below has to as well, or the way out of the
+    // page would be a hole in a rule the rest of the chrome keeps. Giving up the seat is
+    // still there, at the foot of the page, which is what `useVersusRoom` means by nobody
+    // being trapped. A duel holds nothing, so its draft keeps a live crumb - walking away
+    // from one costs nothing, which is the whole mode.
+    const navBusy = useLiveMatch();
     const [leaving, setLeaving] = useState(false);
 
     /**
@@ -240,6 +248,10 @@ export default function RoomScreen({ code }: { code: string }) {
                 <StageHeader
                     eyebrow="Versus"
                     title={wasIn ? 'The room is gone' : failed ? 'Could not get in' : 'Taking your seat'}
+                    // The same crumb the room itself carries, and here it is the only way
+                    // out at all: "Taking your seat" has no buttons under it, so a join
+                    // that sat there was a screen with nothing on it but the tab bar.
+                    crumb={<StageCrumb dir="back" label="Back to versus" to="/versus" />}
                 />
                 <div className={`${CARD_FLAT} p-5`}>
                     {wasIn ? (
@@ -268,16 +280,15 @@ export default function RoomScreen({ code }: { code: string }) {
                     ) : (
                         <RoomNote>Room {code}. One moment.</RoomNote>
                     )}
+                    {/* Retrying is the only ACTION here - the way out went up to the
+                        crumb, where it is the same one every room screen carries. */}
                     {problem && (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3">
                             <button
                                 className={PRIMARY_BTN}
                                 onClick={() => void room.join().catch(() => undefined)}
                             >
                                 Try again
-                            </button>
-                            <button className={SECONDARY_BTN} onClick={() => navigate('/versus')}>
-                                Back to versus
                             </button>
                         </div>
                     )}
@@ -311,20 +322,42 @@ export default function RoomScreen({ code }: { code: string }) {
                           ? CLOSED_TITLE
                           : (HEADINGS[view.status] ?? 'The room')
                 }
-                // THE WAY OUT OF A FINISHED ROOM IS A CRUMB, NOT A BUTTON AT THE FOOT OF
-                // THE PAGE. A result screen carries the tree, the card and both XIs, so a
+                // THE WAY OUT OF A ROOM IS A CRUMB, NOT A BUTTON AT THE FOOT OF THE
+                // PAGE. A result screen carries the tree, the card and both XIs, so a
                 // green button under all of it was the length of the page away from
                 // somebody who had read the score and was done - and it was the only
                 // control there, which is what makes it navigation rather than an action.
                 // Same atom as the run screen's "Back to the build", above the eyebrow.
                 //
-                // It still calls `leave`: dropping the held pointer is what stops the
-                // chrome's strip offering a room that is over, so a plain link to /versus
-                // would look identical and leave that behind.
+                // THE TWO OF THEM DO DIFFERENT THINGS AND WEAR ONE LABEL ON PURPOSE, the
+                // way the run screen's does: a crumb goes somewhere, it does not abandon
+                // what you are in.
+                //
+                // An OPEN room is a plain link. The seat stays taken, the pointer stays
+                // held, and both the chrome's strip and the versus page's own "Back to
+                // it" carry you straight back in - which is what that pointer is for
+                // (P29). Giving the seat up is the button at the foot of the page, which
+                // says which of the four things it would be and asks first.
+                //
+                // An ENDED room calls `leave`, because there is nothing to come back to:
+                // it tells the referee, drops the pointer so the strip stops offering a
+                // room that is over, and re-reads the duels list.
                 crumb={
                     view.status === 'ended' ? (
-                        <StageCrumb dir="back" label="Back to versus" onClick={leave} />
-                    ) : undefined
+                        <StageCrumb
+                            dir="back"
+                            label="Back to versus"
+                            onClick={leave}
+                            disabled={navBusy}
+                        />
+                    ) : (
+                        <StageCrumb
+                            dir="back"
+                            label="Back to versus"
+                            to="/versus"
+                            disabled={navBusy}
+                        />
+                    )
                 }
             />
 

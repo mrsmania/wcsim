@@ -8,7 +8,7 @@ import {
     currentDisplayName,
     handshake,
 } from '../../state/pvp/referee';
-import { btn, CARD, MONO_CAP, PRIMARY_BTN, StageHeader } from '../matchUi';
+import { CARD, MONO_CAP, PRIMARY_BTN, StageCrumb, StageHeader } from '../matchUi';
 import RoomScreen from './RoomScreen';
 import VersusHome from './VersusHome';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
@@ -201,6 +201,15 @@ function NamePanel({
             <StageHeader
                 eyebrow="Versus"
                 title={current === null ? 'Pick a name' : 'Change your name'}
+                // The way back, as the crumb every versus screen carries - and it is what
+                // `onCancel` means, so it appears exactly when there IS somewhere to go.
+                // Picking a name for the first time has nowhere: versus does not open
+                // until there is one, so a crumb there would lead back to this same panel.
+                crumb={
+                    onCancel ? (
+                        <StageCrumb dir="back" label="Back to versus" onClick={onCancel} />
+                    ) : undefined
+                }
             />
             <form className={`${CARD} max-w-[460px] p-5`} onSubmit={submit}>
                 <RoomNote>
@@ -238,15 +247,13 @@ function NamePanel({
                     </p>
                 )}
                 {error && <RefereeProblem message={error} />}
-                <div className="mt-4 flex flex-wrap gap-2">
+                {/* Saving is the only action left: "Never mind" went up to the crumb,
+                    which goes to the same place and is where a way out lives on every
+                    other versus screen. */}
+                <div className="mt-4">
                     <button className={PRIMARY_BTN} disabled={!verdict.ok || busy || unchanged}>
                         {current === null ? "That's me" : 'Call me that'}
                     </button>
-                    {onCancel && (
-                        <button type="button" className={btn('quiet')} onClick={onCancel}>
-                            Never mind
-                        </button>
-                    )}
                 </div>
             </form>
         </>

@@ -363,15 +363,23 @@ export function StageCrumb({
   label,
   onClick,
   to,
+  disabled,
   className = 'mb-1.5',
 }: {
   dir: 'back' | 'fwd';
   label: string;
   onClick?: () => void;
   to?: string;
+  /** Inert, but still in its place - the treatment the tabs get while the navigation
+   *  is busy (`nav/liveMatch.ts`), and here for the same reason: in a versus room a
+   *  crumb out of the page would spend a pick clock somebody else is waiting on. It
+   *  stays visible and dimmed rather than disappearing, because a room's windows open
+   *  and close eleven times in a draft and a control that came and went with them
+   *  would read as a fault. */
+  disabled?: boolean;
   className?: string;
 }) {
-  const cls = `group inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch-ink ${className}`;
+  const cls = `group inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch-ink ${disabled ? 'pointer-events-none opacity-40' : ''} ${className}`;
   const inner = (
     <>
       {dir === 'back' && (
@@ -385,13 +393,18 @@ export function StageCrumb({
   );
   if (to) {
     return (
-      <Link to={to} className={cls}>
+      <Link
+        to={to}
+        className={cls}
+        aria-disabled={disabled || undefined}
+        tabIndex={disabled ? -1 : undefined}
+      >
         {inner}
       </Link>
     );
   }
   return (
-    <button type="button" onClick={onClick} className={cls}>
+    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
       {inner}
     </button>
   );
