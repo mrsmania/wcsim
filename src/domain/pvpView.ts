@@ -304,14 +304,34 @@ export function duelToOpen(
     return move ? { row: move, alert: 'your-move' } : null;
 }
 
-/** The strip's sentence for a duel that wants something. Short: it shares a line with the
- *  code and a "Go" on a phone. */
+/**
+ * The strip's sentence for a duel that wants something. Short: it shares a line with the
+ * code and a "Go" on a phone.
+ *
+ * IT CARRIES NO PICK COUNT, and that is a decision rather than an omission (reported from
+ * the game: the number sat still while the board underneath it filled up). The strip is fed
+ * by the chrome's own slow poll of the duels list - thirty seconds, because it is a
+ * background check on a game played over days - while the board you are picking on is
+ * answered by the referee on the tap itself. So the two disagree by up to half a minute.
+ *
+ * The fix is to drop the number rather than to chase it, because THE COUNT IS UNRELIABLE
+ * EXACTLY WHERE IT IS REDUNDANT: the only way it moves is you picking, and while you are
+ * picking the draft screen is printing the same figure live one line below. Everywhere the
+ * strip is genuinely useful - somewhere else in the app entirely - a count would be
+ * accurate and would be saying nothing that "your move" does not. Re-reading the list after
+ * every pick to keep it honest would buy a round trip per tap for a restated counter, which
+ * is what took the sub-lines off the tabs and the count off the route crumb.
+ *
+ * The two sentences still SPLIT on the count, which is a different thing from printing it:
+ * "built but not sent" is a different instruction from "not built", worth saying when it is
+ * fresh, and a stale reading falls back to the more conservative of the two.
+ */
 export const duelAlertLine = (row: DuelRow, alert: Exclude<DuelAlert, null>): string =>
     alert === 'watch'
         ? `the match against ${row.opponentName || 'your opponent'} has been played`
         : row.yourPicks >= XI_SLOTS
           ? 'your XI is ready to send'
-          : `your move, ${row.yourPicks} of ${XI_SLOTS} picked`;
+          : 'your move, pick your XI';
 
 /** What a duel PLAYS, for the row's second line and for the challenge screen. The same
  *  sentence a lobby row gets, minus the clock: a duel has none. */

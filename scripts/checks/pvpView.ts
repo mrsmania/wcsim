@@ -960,6 +960,28 @@ export function pvpViewChecks(): void {
       () => `${duelAlert(finished, none)} / ${duelAlert(mine, none)}`,
     );
 
+    // AND THE STRIP COUNTS NOTHING, which was reported from the game: it is fed by the
+    // chrome's thirty-second poll while the board is answered on the tap, so a figure there
+    // sits still while the XI fills up underneath it. The count is unreliable exactly where
+    // it is redundant - picking is the only thing that moves it, and the draft screen is
+    // printing it live one line below - so it goes rather than being chased.
+    //
+    // THE LIST ROW IS THE VACUITY GUARD, and it is not decoration: "the strip has no
+    // number" is trivially true of a build that dropped every count everywhere, which is
+    // the other way to be wrong about the same thing. The versus page is where the figure
+    // lives, and it is still there.
+    check(
+      'pvpView: the chrome strip says a duel wants you and does not count the picks',
+      () =>
+        duelAlertLine(mine, 'your-move') === 'your move, pick your XI' &&
+        !/[0-9]/.test(duelAlertLine(mine, 'your-move')) &&
+        // Built but not sent is a different instruction and is still said. It splits on the
+        // count without printing it, so a stale reading falls back to the safer sentence.
+        duelAlertLine(row({ yourPicks: 11 }), 'your-move') === 'your XI is ready to send' &&
+        duelLine(mine).includes('4 of 11'),
+      () => `${duelAlertLine(mine, 'your-move')} / ${duelLine(mine)}`,
+    );
+
     // A REFEREE OLDER THAN DUELS DOES NOT REFUSE ONE, and that is what makes this worth a
     // check rather than a comment: `pace` is a field it has never heard of, so it reads
     // past it and opens an ordinary live room of two - a 201, a code, and the wrong game.
