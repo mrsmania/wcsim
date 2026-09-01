@@ -2,7 +2,8 @@ import type { ReactNode, Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { MatchSpeed } from '../domain/clock';
-import type { PenKick } from '../domain/match';
+import type { PenKick, Strength } from '../domain/match';
+import { ratingBand } from '../domain/pvpView';
 import type { ResultKind } from './matchView';
 import { FEATURES } from '../config';
 import Flag from './Flag';
@@ -161,6 +162,69 @@ export function Meter({
       style={{ height }}
     >
       <div className={`h-full ${fill}`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+    </div>
+  );
+}
+
+/** The three-cell ratings strip: Ovr (the deep-green hero cell), Att and Def.
+ *
+ *  The groups are the SIMULATOR's - Att is MID+FWD, Def is GK+DEF - which is why there
+ *  are three cells and no Mid one (audit decision D7). Two screens draw it: the build
+ *  page's readout, over the XI being built, and the versus result, over the two XIs that
+ *  played the tie.
+ *
+ *  It takes the three FIGURES rather than an XI, because those two callers measure them
+ *  differently on purpose and each has to agree with the match it describes - see
+ *  `xiStrengthFrom` in domain/pvpView for the one that describes a room's.
+ *
+ *  With `ratings` false a cell prints a WORD instead of its figure (P5), so a
+ *  hidden-ratings room keeps the same shape rather than reading as a broken one. */
+export function RatingStrip({
+  strength,
+  ratings = true,
+}: {
+  strength: Strength;
+  ratings?: boolean;
+}) {
+  // Undefined keeps the figure; a word replaces it. One helper so the three cells
+  // cannot disagree about which room they are in.
+  const band = (v: number) => (ratings ? undefined : ratingBand(v));
+  return (
+    <div className="grid grid-cols-3 overflow-hidden rounded-md border border-line shadow-hard">
+      <StripCell label="Ovr" value={strength.overall} band={band(strength.overall)} ovr />
+      <StripCell label="Att" value={strength.attack} band={band(strength.attack)} />
+      <StripCell label="Def" value={strength.defense} band={band(strength.defense)} />
+    </div>
+  );
+}
+
+/** One cell of the strip above. The Ovr cell is the deep-green hero.
+ *
+ *  With `band` it prints a word rather than the figure, at a smaller size because
+ *  "Elite" at 30px does not fit the cell the way "86" does. */
+function StripCell({
+  label,
+  value,
+  band,
+  ovr = false,
+}: {
+  label: string;
+  value: number;
+  band?: string;
+  ovr?: boolean;
+}) {
+  return (
+    <div className={`border-r border-line px-3 py-3.5 last:border-r-0 ${ovr ? 'bg-pitch-dark' : 'bg-panel'}`}>
+      <div
+        className={`font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${ovr ? 'text-white/70' : 'text-muted'}`}
+      >
+        {label}
+      </div>
+      <div
+        className={`mt-1.5 font-mono font-bold leading-none ${band ? 'text-xl' : 'text-3xl'} ${value ? (ovr ? 'text-white' : 'text-ink') : 'text-line'}`}
+      >
+        {band ?? (value || '–')}
+      </div>
     </div>
   );
 }

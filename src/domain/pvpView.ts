@@ -22,7 +22,8 @@ import { roomClosed } from './pvpRoom';
 import type { Filled } from './draft';
 import type { Formation } from './formations';
 import type { KoDecided } from './knockout';
-import type { MatchEvent, ShootoutResult } from './match';
+import { xiStrength } from './match';
+import type { MatchEvent, ShootoutResult, Strength } from './match';
 import type { DuelRow, LobbyRoom, MemberView, RoomView, TieView } from './pvpWire';
 
 /** How long after the server stamped a reveal a client will still start playing it from
@@ -528,6 +529,22 @@ export function xiFrom(formation: Formation, ids: Record<string, string>): Fille
 /** The players of a slot map, in slot order. */
 export function playersOf(formation: Formation, filled: Filled): Player[] {
     return formation.slots.map((s) => filled[s.id]).filter((p): p is Player => !!p);
+}
+
+/** The three figures one member's XI was PLAYED on: Ovr, and the two group averages the
+ *  simulator reads (Att is MID+FWD, Def is GK+DEF). The result screen shows them for both
+ *  teams, which in a hidden-ratings room is the first time anybody sees either number.
+ *
+ *  It is deliberately NOT the build page's own reading, and the difference is not
+ *  cosmetic. There, `placedPlayers` promotes the filled slot to the front of a player's
+ *  positions, so a centre-back played at holding midfield counts towards the attack. A
+ *  room never promotes anything: every pick is resolved in the referee's own dataset (the
+ *  rule that nothing trusts a submitted player), so `pvpTeam` groups that same man by his
+ *  dataset role and the tie is decided with him in the defence. The screen has to agree
+ *  with the match it is reporting rather than with the other screen, so this is
+ *  `xiStrength` over the dataset players, exactly as `pvpTeam` reads them. */
+export function xiStrengthFrom(formation: Formation, ids: Record<string, string>): Strength {
+    return xiStrength(playersOf(formation, xiFrom(formation, ids)));
 }
 
 /** How a room reads in one line, for the chrome's strip. Written as a sentence about the

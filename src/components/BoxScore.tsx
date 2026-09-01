@@ -2,11 +2,10 @@ import { HelpCircle } from 'lucide-react';
 import type { Formation } from '../domain/formations';
 import { lineAverages } from '../domain/match';
 import { placedPlayers, type Filled } from '../domain/draft';
-import { ratingBand } from '../domain/pvpView';
 import { CHEM_TIERS, ERA_SPAN_YEARS, FIT_MIN, MAX_BONUS, teamChemistry } from '../domain/chemistry';
 import { FEATURES } from '../config';
 import Tooltip from './Tooltip';
-import { CARD, MONO_CAP } from './matchUi';
+import { CARD, MONO_CAP, RatingStrip } from './matchUi';
 
 /** Full rules shown when hovering the chemistry "?" help icon. Category names and
  *  point tiers match exactly what the breakdown below shows. */
@@ -70,37 +69,6 @@ interface Props {
     chemistry?: boolean;
 }
 
-/** One scoreboard cell in the ratings strip. The Ovr cell is the deep-green hero.
- *
- *  With `band` it prints a word rather than the figure, at a smaller size because
- *  "Elite" at 30px does not fit the cell the way "86" does. */
-function Cell({
-    label,
-    value,
-    band,
-    ovr = false,
-}: {
-    label: string;
-    value: number;
-    band?: string;
-    ovr?: boolean;
-}) {
-    return (
-        <div className={`border-r border-line px-3 py-3.5 last:border-r-0 ${ovr ? 'bg-pitch-dark' : 'bg-panel'}`}>
-            <div
-                className={`font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${ovr ? 'text-white/70' : 'text-muted'}`}
-            >
-                {label}
-            </div>
-            <div
-                className={`mt-1.5 font-mono font-bold leading-none ${band ? 'text-xl' : 'text-3xl'} ${value ? (ovr ? 'text-white' : 'text-ink') : 'text-line'}`}
-            >
-                {band ?? (value || '–')}
-            </div>
-        </div>
-    );
-}
-
 /** The right-column readout: a 3-cell ratings strip (Ovr/Att/Def) and, below it, the
  *  chemistry card (donut + effective overall + the per-category breakdown). Both render
  *  as siblings so the surrounding stack spaces them. */
@@ -110,22 +78,17 @@ export default function BoxScore({ formation, filled, ratings = true, chemistry 
     // numbers a run is played on - which is why there is no Mid cell to add: midfielders
     // are inside Att. `lineAverages` differs from `xiStrength` in one way only, the empty
     // line, and its docstring beside it says why (hygiene H144, audit decision D7).
-    const { overall, attack, defense } = lineAverages(placed);
-
-    // Undefined keeps the figure; a word replaces it. One helper so the three cells
-    // cannot disagree about which room they are in.
-    const band = (v: number) => (ratings ? undefined : ratingBand(v));
+    const strength = lineAverages(placed);
+    const { overall } = strength;
 
     const chem = FEATURES.chemistry && chemistry ? teamChemistry(formation, filled) : null;
     const donutPct = chem ? Math.round((chem.bonus / MAX_BONUS) * 100) : 0;
 
     return (
         <>
-            <div className="grid grid-cols-3 overflow-hidden rounded-md border border-line shadow-hard">
-                <Cell label="Ovr" value={overall} band={band(overall)} ovr />
-                <Cell label="Att" value={attack} band={band(attack)} />
-                <Cell label="Def" value={defense} band={band(defense)} />
-            </div>
+            {/* The strip itself is shared with the versus result screen, which shows the
+                same three cells over both XIs that played the tie. */}
+            <RatingStrip strength={strength} ratings={ratings} />
 
             {chem && (
                 <div className={`${CARD} p-4`}>

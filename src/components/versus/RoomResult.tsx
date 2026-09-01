@@ -5,10 +5,11 @@ import {
     roundsFor,
     viewerTie,
     xiFrom,
+    xiStrengthFrom,
     type ViewerTie,
 } from '../../domain/pvpView';
 import type { MemberView, RoomView } from '../../domain/pvpWire';
-import { Banner, CARD_FLAT, MONO_CAP } from '../matchUi';
+import { Banner, CARD_FLAT, MONO_CAP, RatingStrip } from '../matchUi';
 import XiTable from '../XiTable';
 import VersusMatch from './VersusMatch';
 import { RoomNote } from './versusUi';
@@ -50,6 +51,13 @@ function XiOf({
                 <span className="ml-2 font-mono text-[11px] font-medium text-muted">
                     {formation.name}
                 </span>
+            </div>
+            {/* The three figures the tie was decided by, read the way the simulator read
+                them (`xiStrengthFrom`, which is not the build page's own promoted
+                grouping). Both columns get one, so the two teams can be compared without
+                adding up eleven rows twice. */}
+            <div className="mb-3.5">
+                <RatingStrip strength={xiStrengthFrom(formation, ids)} ratings />
             </div>
             {/* Explicit rather than defaulted: at the whistle the numbers come back
                 whatever the room was played under (P38), and that is a decision worth

@@ -128,7 +128,9 @@ done and why. What that means for anyone working in this tree now:
   things that were typed out over and over, and the point is lost if the next component
   re-inlines them: `matchUi.tsx` has `CARD` / `CARD_SM` / `CARD_FLAT` (the flat card),
   `MONO_CAP` and `PAGE_EYEBROW` (the two mono captions), `CHIP_ON` / `CHIP_OFF`, `Meter`,
-  `CardDisclosure`, `GROUP_OUTCOME`; `components/stickerTheme.ts` owns the sticker tier
+  `CardDisclosure`, `GROUP_OUTCOME`, `RatingStrip` (the Ovr / Att / Def cells, which the
+  build page's readout and the versus result both draw - it takes the three FIGURES rather
+  than an XI, because those two measure them differently on purpose, see the versus note); `components/stickerTheme.ts` owns the sticker tier
   ramp (`TIER_META`, `TIER_ORDER`, the `GOLD_*` accents, `stickerArtSrc`) so nothing has to
   import `StickerCard` to get a hex; and `--color-grass` / `--color-grass-stripe` are the
   board's two greens.
@@ -3870,6 +3872,23 @@ to pass it would show everything and look fine. So `BuildSurface` and `VersusMat
 it, and `npm run checks` reads those two type lines and refuses a `RatingChip` anywhere under
 `components/versus/`. It is a **house rule** and the copy says so: `/squads` exists to show
 ratings, so a second tab defeats it.
+
+**AND THE RESULT PRINTS OVR / ATT / DEF FOR BOTH TEAMS, ON THE FIGURES THE TIE WAS PLAYED
+ON** (2026-09-01). The screen already showed both XIs row by row with the numbers back; the
+three team figures are what the reader was adding up by hand, and in a hidden-ratings room
+they are the first either player ever sees. It is the build page's own `RatingStrip`, so
+nothing new was styled (`dist/assets/*.css` is byte-identical across the change). **The trap
+is that this app has TWO readings of Att and Def and they disagree.** The build page promotes
+the filled slot to the front of a player's positions (`placedPlayers`), so a centre-back
+played at holding midfield counts towards the attack; a room never promotes anything, because
+every pick is resolved in the referee's own dataset (nothing trusts a submitted player), so
+`pvpTeam` groups that same man by his DATASET role and the tie is decided with him in the
+defence. Measured on one such XI: Att 79 / Def 79 as played, against 81 / 76 promoted. So
+`xiStrengthFrom` (domain/pvpView) is `xiStrength` over the dataset players, exactly as
+`pvpTeam` reads them - **a screen agrees with the match it is reporting, not with the other
+screen** - and `npm run checks` holds it against `pvpTeam`'s own answer with the promoted
+reading as the discrimination guard. Do not "unify" the two without changing the referee's
+sim, which is a rebuild and a balance change rather than a tidy-up.
 
 **The album needs THREE switches in a room, not two.** `collectibles` hides the stars and the
 Collectible filter; `swap` is its own entry because the two per-run swaps come from the

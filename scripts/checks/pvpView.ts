@@ -9,7 +9,11 @@
 // side is a parameter.
 
 import { check } from './harness';
-import { ALL_PLAYERS, SQUAD_BY_ID } from '../../src/data/squads';
+import { ALL_PLAYERS, SQUAD_BY_ID, datasetPlayer } from '../../src/data/squads';
+import { categoryOf } from '../../src/data/types';
+import { placedPlayers } from '../../src/domain/draft';
+import { lineAverages } from '../../src/domain/match';
+import { pvpTeam } from '../../src/domain/pvp';
 import { getFormation } from '../../src/domain/formations';
 import type { MatchEvent } from '../../src/domain/match';
 import {
@@ -54,6 +58,7 @@ import {
   viewerTie,
   walkover,
   xiFrom,
+  xiStrengthFrom,
 } from '../../src/domain/pvpView';
 import type { DuelRow, LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -443,6 +448,82 @@ export function pvpViewChecks(): void {
           : `XiTable gated=${gated}, BuildSurface wires it ` +
             `${inBuild.includes('collectibles={controls.collectibles}')}, ` +
             `RoomResult off=${inResult.includes('collectibles={false}')}`,
+    );
+  }
+
+  // --- THE RESULT PRINTS THE FIGURES THE TIE WAS PLAYED ON -------------------
+  // The result screen shows Ovr / Att / Def over both XIs, which in a hidden-ratings room
+  // is the first time either player sees a number at all. The trap is that the app has TWO
+  // readings of those three figures and they disagree: the build page promotes the filled
+  // slot to the front of a player's positions (`placedPlayers`), so a centre-back played at
+  // holding midfield counts towards the attack, while a room resolves every pick in the
+  // dataset and never promotes, so `pvpTeam` groups that man by his dataset role and the
+  // tie is decided with him in the DEFENCE. Reusing the build page's derivation here would
+  // print an Att the match was not played on, which is exactly the lie decision D7 fixed on
+  // the other screen.
+  {
+    const f = getFormation('4-3-3', 'def')!;
+    // Pinned by id: Piazza is a centre-back who can hold midfield, so the two readings of
+    // this XI cannot agree - which is what makes the claim below testable.
+    const swing = datasetPlayer('bra-1970-3')!;
+    const dm = f.slots.find((s) => s.position === 'DM')!;
+    const ids: Record<string, string> = {};
+    let i = 0;
+    for (const slot of f.slots) {
+      if (slot.id === dm.id) {
+        ids[slot.id] = swing.id;
+        continue;
+      }
+      while (ALL_PLAYERS[i]!.id === swing.id) i += 1;
+      ids[slot.id] = ALL_PLAYERS[i++]!.id;
+    }
+    const filled = xiFrom(f, ids);
+    const shown = xiStrengthFrom(f, ids);
+    // What the referee's own sim reads off the same slot map.
+    const played = pvpTeam({
+      id: HOME,
+      name: 'Alpha',
+      code: 'ALP',
+      players: playersOf(f, filled),
+    }).strength;
+    // And the build page's reading of it, which is the one this must NOT be.
+    const promoted = lineAverages(placedPlayers(f, filled));
+    check(
+      "pvpView: the result's three figures are the simulator's own, not the board's promoted ones",
+      () =>
+        // Vacuity: a full XI, and a swing player who really does cross the two groups.
+        Object.keys(filled).length === 11 &&
+        categoryOf(swing.positions[0]!) === 'DEF' &&
+        swing.positions.includes('DM') &&
+        shown.overall === played.overall &&
+        shown.attack === played.attack &&
+        shown.defense === played.defense &&
+        // Discrimination: the promoted reading moves both group averages on this XI, so a
+        // screen that reused it would be caught here rather than in a browser.
+        promoted.attack !== played.attack &&
+        promoted.defense !== played.defense &&
+        promoted.overall === played.overall,
+      () =>
+        `shown ${JSON.stringify(shown)} played ${JSON.stringify(played)} ` +
+        `promoted ${JSON.stringify(promoted)}`,
+    );
+
+    // And both teams get one. Source-level, because one component draws a team's column
+    // and the screen renders it twice: a strip inside `XiOf` is two strips on the page, and
+    // a strip moved out of it would be one - which no fixture can see.
+    const result = readFileSync('src/components/versus/RoomResult.tsx', 'utf8');
+    const strip = /<RatingStrip\b[\s\S]*?\/>/.exec(result)?.[0] ?? '';
+    const columns = (result.match(/<XiOf\b/g) ?? []).length;
+    check(
+      'pvpView: the result screen gives each team a ratings strip, on the figures its match used',
+      () =>
+        strip !== '' &&
+        strip.includes('xiStrengthFrom(') &&
+        // The switch is named at the call site, as it is for the sheet beside it.
+        /\bratings\b/.test(strip) &&
+        (result.match(/<RatingStrip\b/g) ?? []).length === 1 &&
+        columns === 2,
+      () => `strip=${strip.replace(/\s+/g, ' ')} columns=${columns}`,
     );
   }
 
