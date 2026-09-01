@@ -176,6 +176,11 @@ export default function BuildSurface({
                         }
                         onSelectSlot={isBudgetBuild ? market.shop : undefined}
                         targetSlotId={isBudgetBuild ? market.targetSlot?.id : undefined}
+                        // Amber for the natural role and white for the rest, or amber for
+                        // everything he can fill. A room takes the second: it pays nothing
+                        // for a natural role, so the two-colour pulse would be advice with
+                        // nothing behind it.
+                        naturalHint={controls.naturalHint}
                         // Moving a placed player. Offered even with a card in hand: a slot
                         // the held card can swap into keeps the swap, and anywhere else the
                         // tap picks the placed player up instead, dropping the card.

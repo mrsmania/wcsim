@@ -31,6 +31,13 @@ export interface BuildControls {
     movePlayer: boolean;
     /** The chemistry card. Off in a room (P25): the match is played without it. */
     chemistry: boolean;
+    /** The board's TWO-COLOUR pulse while a player is held: amber for the slot that is his
+     *  natural role, white for every other one he can fill. Off in a room, where nothing
+     *  pays for a natural role - the chemistry point is not awarded (P25) and no honour is
+     *  earned in a room at all - so the second colour would be a distinction with nothing
+     *  behind it, and reads as a recommendation the room does not make. With it off every
+     *  slot he can take pulses the same amber. */
+    naturalHint: boolean;
     /** The album's marks: the tier star on a market row and the Collectible filter. Off
      *  in a room, where the album has no business being at all (P3, P8). */
     collectibles: boolean;
@@ -49,6 +56,7 @@ export const SOLO_CONTROLS: BuildControls = {
     removePlayer: true,
     movePlayer: true,
     chemistry: true,
+    naturalHint: true,
     collectibles: true,
     swap: true,
 };
@@ -63,6 +71,7 @@ export const ROOM_CONTROLS: BuildControls = {
     removePlayer: false,
     movePlayer: false,
     chemistry: false,
+    naturalHint: false,
     collectibles: false,
     swap: false,
 };

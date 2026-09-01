@@ -128,13 +128,22 @@ interface Props {
     movingSlotId?: string | null;
     /** Commit the move to this slot (empty, or a team-mate to trade places with). */
     onMove?: (toSlotId: string) => void;
+    /** Whether a held player's NATURAL slot is picked out in amber, with every other slot
+     *  he can fill in white. Default true, which is the single-player board. A versus room
+     *  passes false and every eligible slot pulses amber alike: nothing in a room pays for
+     *  a natural role (no chemistry, P25; no honours), so the second colour would be
+     *  advice the room does not actually back. See `buildControls.ts`. */
+    naturalHint?: boolean;
 }
 
 /** The three looks an OPEN slot can have. Amber is "this is his natural position",
  *  white is every other invitation to tap (a move destination, a secondary position, the
  *  market's next slot to shop), and idle is the dashed circle. The white one was written
  *  out three times and the idle one twice, which made a six-arm ternary that said six
- *  things and meant three. */
+ *  things and meant three.
+ *
+ *  WITHOUT `naturalHint` THERE ARE TWO: white collapses into amber, so every slot the held
+ *  player can take pulses alike. A versus room is the caller - see `buildControls.ts`. */
 const SLOT_AMBER = 'animate-slot-pulse-primary cursor-pointer border-amber bg-amber/90 text-ink';
 const SLOT_WHITE = 'animate-slot-pulse-secondary cursor-pointer border-white bg-white/85 text-ink';
 const SLOT_IDLE = 'border-dashed border-white/55 bg-white/10 text-white';
@@ -150,6 +159,7 @@ function OverlayMarker({
     moveRole,
     movable,
     shifts,
+    naturalHint,
     left,
     top,
     scale,
@@ -177,6 +187,8 @@ function OverlayMarker({
     /** How many players taking this destination would shift: 1 into an empty slot, 2 for
      *  a straight trade, 3+ for a rotation. Only meaningful for a destination. */
     shifts: number;
+    /** Whether the natural position is picked out in amber against white for the rest. */
+    naturalHint: boolean;
     left: string;
     top: string;
     scale: number;
@@ -282,6 +294,10 @@ function OverlayMarker({
     // during a move: the slot is inert then unless it is a destination, and a pulsing
     // white "+" that ignores the click is just noise over the move it is competing with.
     const shopHere = isTarget && !moveRole;
+    // The second colour, or the first one again. Where nothing rewards a natural role the
+    // white pulse would be saying "this slot is the lesser one" about a choice the room
+    // scores identically, so the two collapse into one.
+    const SLOT_OTHER = naturalHint ? SLOT_WHITE : SLOT_AMBER;
     return (
         <button
             className="absolute flex flex-col items-center"
@@ -302,11 +318,11 @@ function OverlayMarker({
                     // look: a destination outranks a natural-position match, and a
                     // natural-position match outranks the market's shop-here slot.
                     moveHere
-                        ? SLOT_WHITE
+                        ? SLOT_OTHER
                         : target === 'primary'
                           ? SLOT_AMBER
                           : target === 'secondary' || shopHere
-                            ? SLOT_WHITE
+                            ? SLOT_OTHER
                             : onSelectSlot
                               ? `cursor-pointer ${SLOT_IDLE} hover:border-white`
                               : SLOT_IDLE,
@@ -333,6 +349,7 @@ export default function Pitch({
     onStartMove,
     movingSlotId = null,
     onMove,
+    naturalHint = true,
 }: Props) {
     // 11 persistent circles (keyed by index). On a formation change each circle
     // slides to its nearest new slot instead of mounting/unmounting.
@@ -502,6 +519,7 @@ export default function Pitch({
                                 isTarget={!player && slot.id === targetSlotId}
                                 shifts={destinations?.get(slot.id) ?? 0}
                                 movable={movableSlots.has(slot.id)}
+                                naturalHint={naturalHint}
                                 moveRole={
                                     !moving
                                         ? null

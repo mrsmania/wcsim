@@ -354,6 +354,39 @@ export function pvpViewChecks(): void {
     );
   }
 
+  // --- THE BOARD MAKES NO RECOMMENDATION A ROOM DOES NOT BACK ----------------
+  // The held player's natural slot pulses amber and every other slot he can fill pulses
+  // white, which is the single-player board telling you where the chemistry point and the
+  // Textbook honour are. A room awards neither (P25), so there the two collapse into one
+  // amber and every eligible slot pulses alike.
+  //
+  // Source-level for the same reason the ratings check above is: `Pitch` defaults the flag
+  // to true so the single-player caller reads unchanged, so a room that stopped passing it
+  // would paint the two colours again and look perfectly fine. Three lines carry it - the
+  // control, the wiring, and the one place the colour is decided.
+  {
+    const pitch = readFileSync('src/components/Pitch.tsx', 'utf8');
+    const surface = readFileSync('src/components/BuildSurface.tsx', 'utf8');
+    // White survives in exactly one place: the constant, and the ternary that may or may
+    // not reach for it. A third mention is an arm that paints white whatever the room says.
+    const whites = (pitch.match(/SLOT_WHITE/g) ?? []).length;
+    check(
+      'pvpView: a room pulses one colour, because it pays nothing for a natural position',
+      () =>
+        /const SLOT_OTHER = naturalHint \? SLOT_WHITE : SLOT_AMBER;/.test(pitch) &&
+        whites === 2 &&
+        /naturalHint=\{controls\.naturalHint\}/.test(surface) &&
+        // The two sets say which way round it goes, and the app is the vacuity guard: a
+        // control that was false in both would pass every line above.
+        SOLO_CONTROLS.naturalHint &&
+        !ROOM_CONTROLS.naturalHint &&
+        !roomControls(true).naturalHint,
+      () =>
+        `Pitch mentions SLOT_WHITE ${whites} time(s); BuildSurface wires it ` +
+        `${/naturalHint=\{controls\.naturalHint\}/.test(surface)}`,
+    );
+  }
+
   // --- A ROOM OF MORE THAN TWO: the tree, and who watches what (P47, P24) ----
   // Wave 7. The referee has taken four and eight players since wave 3 and its own checks
   // cover the barrier and the random draw; what is new here is entirely a READING of the

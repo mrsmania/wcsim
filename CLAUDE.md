@@ -1162,6 +1162,10 @@ display; opponents are real, intact squads with innate chemistry). Lives in
   needs adding to the rows. This was written up as roadmap item 40 with a mock and measured
   width costs, then found void on exactly this ground; the item's history entry has the
   detail. **The answer is not in `BudgetMarket`, it is in the board beside it.**
+  **The two colours are the single-player board only** (2026-09-01): a versus room passes
+  `naturalHint: false` and every slot the held player can fill pulses amber alike, because
+  nothing in a room pays for a natural role - no chemistry (P25) and no honours - so the
+  white pulse would have been advice the room does not back. See the versus section.
 - Entirely behind **`FEATURES.chemistry`** in `src/config.ts`. With it `false`, the
   bonus is 0 and all chemistry UI (box, "?" rules, breakdown, the underlined primary
   position in the draft chip, the per-player flag/year in the box) disappears.
@@ -3079,6 +3083,16 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
   tap, Start over navigates out of the room, and **moving a placed player is P42's
   intention but the referee takes picks and nothing else**, so a move would be reverted by
   the next answer. That one needs an instruction the referee does not have.
+- **It must not recommend a natural position, because it does not pay for one**
+  (`naturalHint`, 2026-09-01). The single-player board pulses the held player's natural slot
+  amber and every other slot he can fill white, which is the chemistry point and the
+  **Textbook** honour being pointed at; a room awards neither, so the second colour was
+  telling players one legal slot was the lesser one while the room scored the two
+  identically. In a room every slot he can take pulses the same amber, in a roll draft and a
+  transfer-market draft alike (the move destinations and the market's shop-here slot with
+  them - it is one colour for "you can tap this"). `Pitch` DEFAULTS the flag to the two
+  colours so the app reads unchanged, which is why `npm run checks` reads the wiring the way
+  it reads the ratings switch: a room that stopped passing it would look perfectly fine.
 - **It must not show chemistry.** `pvpTeam` takes no chemistry argument at all (P25), so a
   room's match is played on the plain eleven ratings; a card promising an effective overall
   four points higher describes a bonus the simulator never receives. `BoxScore` takes
