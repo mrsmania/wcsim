@@ -2502,11 +2502,13 @@ A second way to build the XI, alongside the random roll. Spec:
       the option there would leave a `<select>` whose value is none of its own children - which
       browsers render BLANK, so the control could not show its own state. Empty is a legitimate
       answer to a filter you set on purpose; a control that cannot say what it is set to is not.
-    - **One gesture drops the lot.** "Clear filters" is a chip in the filter row whenever
-      anything is filtering, and the same action again inside the empty state, which is where it
-      is actually needed. It is "Clear filters" and not "Clear" because the budget bar above has
-      a Clear that empties the XI. The SORT and the view are deliberately not touched: they say
-      how to read the answer, not which answer.
+    - **One gesture drops the lot.** "Clear filters" sits on its own row BELOW the rating band
+      whenever anything is filtering, and the same action again inside the empty state, which is
+      where it is actually needed. Below rather than in the chip row so it reads as sitting
+      under everything it clears rather than as one more filter, and so a row that wraps does
+      not shift under a control that comes and goes with the filter state. It is "Clear filters"
+      and not "Clear" because the budget bar above has a Clear that empties the XI. The SORT and
+      the view are deliberately not touched: they say how to read the answer, not which answer.
     `npm run checks` holds the facet rule over real empty cup-plus-country pairs, with the scan
     FINDING such pairs as its vacuity guard - with no empty pair the claim is moot.
   - **The two dropdowns narrow EACH OTHER, and nothing else narrows them.** `marketFacets` takes

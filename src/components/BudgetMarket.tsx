@@ -499,17 +499,6 @@ export default function BudgetMarket({
                 Collectible
               </button>
             )}
-            {/* "Clear filters", not "Clear": the budget bar above has a Clear that empties
-                the XI, and two buttons of that name on one panel is a trap. */}
-            {anyFilter && (
-              <button
-                onClick={clearFilters}
-                className="inline-flex items-center gap-1 rounded-[5px] border border-line bg-panel px-2 py-1 font-mono text-[11px] font-semibold text-muted transition hover:border-loss hover:text-loss"
-              >
-                <X size={11} strokeWidth={2.5} />
-                Clear filters
-              </button>
-            )}
           </div>
 
           {/* The rating band. The other filters shop by identity (who, from where, from
@@ -559,6 +548,24 @@ export default function BudgetMarket({
               >
                 {ratingLo}-{ratingHi}
               </span>
+            </div>
+          )}
+
+          {/* Below the band rather than inside the chip row above, so it sits under
+              EVERYTHING it clears rather than reading as one more filter in the row - and
+              so the row's wrapping does not move under a control that appears and
+              disappears with the filter state. "Clear filters" and not "Clear": the budget
+              bar has a Clear that empties the XI, and two buttons of that name on one panel
+              is a trap. */}
+          {anyFilter && (
+            <div className="mt-2 flex px-1">
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 rounded-[5px] border border-line bg-panel px-2 py-1 font-mono text-[11px] font-semibold text-muted transition hover:border-loss hover:text-loss"
+              >
+                <X size={11} strokeWidth={2.5} />
+                Clear filters
+              </button>
             </div>
           )}
 
