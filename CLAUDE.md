@@ -2409,7 +2409,8 @@ A second way to build the XI, alongside the random roll. Spec:
   panel): a budget bar + "Auto-fill & spend" + "Clear" + "Start over" on top, then the
   rating-sorted, searchable list for the targeted position (the WHOLE pool, windowed
   `MARKET_PAGE` = 60 rows at a time as you scroll - see "The list is the whole pool" below;
-  unaffordable/used rows disabled; collectible tier stars). You buy from all squads within a budget, each priced by
+  unaffordable/used rows disabled; collectible tier stars). Every filter on it SURVIVES a
+  purchase, and one "Clear filters" drops them all. You buy from all squads within a budget, each priced by
   rating via **`domain/pricing.ts`** (`priceOf` = `max(1, round((elo-58)^2/64))`, convex so
   the budget forces trade-offs). The budget is a `budget` prop (not a constant): it is the
   owned `transfer-budget` career perk's tier through `config.ts` `BUDGET_BY_TIER` ($70 base
@@ -2428,7 +2429,8 @@ A second way to build the XI, alongside the random roll. Spec:
   `autoFillBudget`, which takes the pricer as an argument because its per-slot reserve and
   upgrade passes must reserve against what will actually be charged. Keyed on **player
   id**, like the marker: owning Buffon 90 discounts that card, not Buffon 88.
-- **The filter row: cup, country, Affordable, Collectible** (roadmap 36, 2026-08-25). The
+- **The filter row: cup, country, a rating band, Affordable, Collectible** (roadmap 36,
+  2026-08-25; the band 2026-09-01). The
   region/confederation filter was **deleted** here; `data/confederations.ts` is still live for
   `domain/chemistry.ts` ("Same continent"), `domain/challenges.ts` and `domain/validateSquads.ts`,
   so do not follow the market's dropdown out of the codebase. Three rules worth keeping:
@@ -2468,6 +2470,45 @@ A second way to build the XI, alongside the random roll. Spec:
   - **The sort says which END it starts from.** "Price" and "Value" are ascending and descending
     respectively and the words said neither, which is the one thing you need from a sort when
     what you are after is a cheap player. They read **Cheapest** and **Best value**.
+  - **A RATING BAND, because the other filters cannot ask the question** (2026-09-01). Cup and
+    country shop by identity and Affordable shops by money; the band is the only control that
+    shops by STRENGTH, which is the direct way to ask for a squad of a given level rather than
+    inferring it from a price. Two handles on one track, inclusive at both ends, and a band is
+    sent as **null when it covers the whole scale** so an untouched control costs the filter
+    nothing and reads as "no opinion" everywhere downstream. Four things about it:
+    - **Its scale is the WHOLE POOL's, not the shopped position's.** A "70 to 80" that silently
+      became "70 to 78" on the next slot would be a filter nobody asked for. It moves only when
+      the year pool does, and then both handles widen back to the new scale - a band left
+      outside it would filter everything out with the handles apparently at the ends.
+    - **It does NOT narrow the two dropdowns**, exactly as the search box and the price ceiling
+      do not, and for the reason the player index gives: a country list that reshuffled under a
+      handle you are dragging is unpredictable.
+    - **Dragging a handle past its partner PUSHES it** rather than stopping, which is what the
+      player index's own range does. And the LOW handle is lifted above its partner in the upper
+      half of the track: with both thumbs near the right end the one painted last swallows every
+      drag, and the low one could then never be pulled back down.
+    - **It is real CSS in `index.css` (`.mkt-rng`), not utilities**, because a range input is
+      styled through `::-webkit-slider-thumb` / `::-moz-range-thumb`, which Tailwind cannot
+      reach. The track is inert (`pointer-events: none`) so only the two thumbs take a pointer
+      and neither input swallows the other's clicks.
+  - **A FILTER SURVIVES A PURCHASE** (2026-09-01, reported from the game: "after a player has
+    been set, the filter is currently set back"). Buying advances the shopped slot to the next
+    empty one, and the cup and country filters used to be cleared on that move - so a squad
+    built out of, say, Italy 1982 had to be re-filtered eleven times, once per purchase, and it
+    read as the panel forgetting what it had been told. Nothing resets on a position change now.
+    The reason the reset existed is real and is answered in two other places instead:
+    - **`marketFacets` keeps whatever is selected ON IT even when that selection matches
+      nobody.** A cup and country that had a left winger can have no keeper at all, and dropping
+      the option there would leave a `<select>` whose value is none of its own children - which
+      browsers render BLANK, so the control could not show its own state. Empty is a legitimate
+      answer to a filter you set on purpose; a control that cannot say what it is set to is not.
+    - **One gesture drops the lot.** "Clear filters" is a chip in the filter row whenever
+      anything is filtering, and the same action again inside the empty state, which is where it
+      is actually needed. It is "Clear filters" and not "Clear" because the budget bar above has
+      a Clear that empties the XI. The SORT and the view are deliberately not touched: they say
+      how to read the answer, not which answer.
+    `npm run checks` holds the facet rule over real empty cup-plus-country pairs, with the scan
+    FINDING such pairs as its vacuity guard - with no empty pair the claim is moot.
   - **The two dropdowns narrow EACH OTHER, and nothing else narrows them.** `marketFacets` takes
     the selection and derives each dropdown from the candidates passing *every filter except its
     own*: pick 1974 and the country list is the 16 nations that were there, pick Wales and the cup
