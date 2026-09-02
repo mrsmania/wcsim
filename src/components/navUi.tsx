@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { LayoutGrid, List, Play, Swords, Trophy, Users } from 'lucide-react';
+import { LayoutGrid, List, Play, Swords, TrendingUp, Trophy } from 'lucide-react';
 
 /**
  * The tabs navigation (roadmap item 27, concept 2) - shared atoms.
@@ -71,13 +71,17 @@ export interface TabItem {
 
 const ICONS: Record<TabKey, ReactNode> = {
     play: <Play size={17} strokeWidth={2.2} />,
-    career: <Swords size={17} strokeWidth={2.2} />,
+    // Progression, which is what the career IS: a level, a wallet and the perks they buy.
+    // `Swords` sat here first and has moved to Versus, where fighting somebody is the
+    // whole destination rather than a metaphor for levelling up; `Trophy` is Records'.
+    career: <TrendingUp size={17} strokeWidth={2.2} />,
     album: <LayoutGrid size={17} strokeWidth={2.2} />,
     records: <Trophy size={17} strokeWidth={2.2} />,
     squads: <List size={17} strokeWidth={2.2} />,
-    // Two people, which is what the destination is: `Swords` would read better and is
-    // the career's already, and two tabs sharing a glyph is worse than a plainer one.
-    versus: <Users size={17} strokeWidth={2.2} />,
+    // The crossed swords: playing somebody. It was `Users` (two people, which is true of
+    // a room and equally true of a lobby, a squad list and an album) while the career
+    // held this glyph, and one tab having it meant the other could not.
+    versus: <Swords size={17} strokeWidth={2.2} />,
 };
 
 /** The desktop row, rendered INSIDE the masthead's one line. Hidden below 700px, where
