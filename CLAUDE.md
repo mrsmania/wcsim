@@ -1568,10 +1568,19 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   2026-08-28 (**all 115 are drawn as of 2026-09-01**, so the fallback is dormant, which is
   not a reason to delete it) - before this each gap collapsed its image box, so the grid grew
   gaps and the cards around them reflowed. It is a **data URI rather than a component**,
-  so the three call sites (album grid, the lightbox hero, the home page's legends
-  showcase) each need one line and keep their own very different layouts; they share
+  so the two call sites left (`StickerCard`'s own art, and the lightbox hero) each need
+  one line and keep their own very different layouts; they share
   `onStickerArtError`, which swaps the src once and sets a `data-fallback` flag so a
-  failure cannot loop. **The background is transparent on purpose**: the card's own
+  failure cannot loop. **The front page's legends showcase was a THIRD, and it is
+  `StickerCard` now** (2026-09-02): it drew a card of its own - a different border, a
+  rating in the accent colour, a country code where the album has a flag - so the five
+  rarest cards were a promise about a shelf that looks like something else. It is the
+  album's card now, in a wrapper that carries the grayscale (`grid`, so the card
+  stretches to the row exactly as it does in the album's own grid, and a name that wraps
+  to two lines does not leave the four beside it short). The **grayscale is gated on
+  `[@media(hover:hover)]`** and always was: b/w until hovered is a desktop reading, and
+  on a touch screen there is nothing to hover, so the cards are in colour from the start
+  rather than permanently grey. **The background is transparent on purpose**: the card's own
   surface shows through, which is what lets one fixed silhouette work in both themes.
   `npm run checks` does not fail on a missing file - the silhouette is a correct rendering,
   not a hole - it reports the count and `npm run ratings:sync` names the new ones, which is

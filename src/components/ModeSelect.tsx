@@ -6,8 +6,7 @@ import type { Player } from '../data/types';
 import { WORLD_CUP_YEARS } from '../data/squads';
 import { FEATURES } from '../config';
 import { collectibleCards } from '../domain/album';
-import { SQUAD_BY_ID } from '../data/squads';
-import { onStickerArtError, stickerArtSrc, TIER_META } from './stickerTheme';
+import StickerCard from './StickerCard';
 
 /** The front page (route `/`): a marketing hero that sells the fantasy, then a 3-beat
  *  "how it works" and a "chase the legends" showcase.
@@ -264,48 +263,27 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
 
                     </div>
                     <div className="grid grid-cols-2 gap-3 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5">
-                        {legends.map(({ player: p, tier }) => {
-                            const meta = TIER_META[tier];
-                            const code = SQUAD_BY_ID[p.squadId]?.code ?? '';
-                            return (
-                                <div
-                                    key={p.id}
-                                    // Dim + grayscale (lit up on hover) only where hover exists; on
-                                    // touch there is no hover, so show full colour and no lift.
-                                    className="group overflow-hidden rounded-[10px] border border-line bg-panel shadow-[4px_4px_0_var(--color-line)] transition duration-300 [@media(hover:hover)]:opacity-90 [@media(hover:hover)]:grayscale hover:-translate-y-[3px] hover:opacity-100 hover:shadow-[6px_6px_0_#c99a2e] hover:grayscale-0"
-                                >
-                                    <div className="h-[6px]" style={{ background: meta.accent }} />
-                                    {FEATURES.stickerImages && (
-                                        <img
-                                            src={stickerArtSrc(p.id)}
-                                            alt={p.name}
-                                            decoding="async"
-                                            // Large centred avatar on phones (the card's main eye-catcher);
-                                            // full-width square hero from the 3-column breakpoint up.
-                                            className="mx-auto mt-3 block aspect-square w-4/5 rounded-lg bg-white object-cover object-top min-[460px]:mx-0 min-[460px]:mt-0 min-[460px]:w-full min-[460px]:rounded-none"
-                                            onError={onStickerArtError}
-                                        />
-                                    )}
-                                    <div className="px-3 pb-3 pt-2.5 text-center">
-                                        <span className="inline-block rounded bg-chalk px-[7px] py-[3px] font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-                                            {code}
-                                        </span>
-                                        <div className="mt-2 font-display text-[14px] font-extrabold leading-[1.15]">
-                                            {p.name}
-                                        </div>
-                                        <div className="mt-1.5 font-mono text-[22px] font-bold leading-none text-accent">
-                                            {p.elo}
-                                        </div>
-                                        <div
-                                            className="mt-1 font-mono text-[9px] font-bold uppercase tracking-[0.12em]"
-                                            style={{ color: meta.accent }}
-                                        >
-                                            {meta.name}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        {legends.map(({ player: p, tier }) => (
+                            // The album's OWN card, not a second design of one. This showcase is a
+                            // promise about the shelf those five end up on, and it used to keep a
+                            // card of its own - a different border, a different rating cell, a
+                            // country code where the album has a flag - so the thing being promised
+                            // did not look like the thing you get.
+                            //
+                            // Grayscale until hovered, and only where hover EXISTS: on touch there
+                            // is nothing to hover, so the cards are in colour from the start rather
+                            // than permanently grey.
+                            <div
+                                key={p.id}
+                                // `grid` rather than a plain block: the card is the one child, so it
+                                // stretches to the wrapper the way it stretches to the album's own
+                                // grid cell, and a name that wraps to two lines does not leave the
+                                // four beside it short.
+                                className="grid transition duration-300 [@media(hover:hover)]:grayscale hover:-translate-y-[3px] hover:grayscale-0"
+                            >
+                                <StickerCard player={p} tier={tier} collected />
+                            </div>
+                        ))}
                     </div>
                 </section>
             )}
