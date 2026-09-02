@@ -396,16 +396,22 @@ export function ShootoutFeed({ kicks, shown }: { kicks: PenKick[]; shown: number
     );
 }
 
-/** A labelled segmented control (the turf-flat `.ctl`): a mono caption followed by
- *  inline option buttons, the active one filled ink. Stacks full-width on mobile. */
+/** A segmented control (the turf-flat `.ctl`): inline option buttons, the active one
+ *  filled ink. Stacks full-width on mobile.
+ *
+ *  IT USED TO CARRY A MONO CAPTION INSIDE ITSELF, on the left of the first option -
+ *  "LEVEL" before Casual / Normal / Hard, "SPEED" before Slow / Normal / Fast - and it
+ *  was the only control in the app shaped that way (removed 2026-09-02, reported as
+ *  exactly that). In the settings sheet it restated the heading directly above it, and
+ *  next to the match reveal three words reading Slow / Normal / Fast do not need telling
+ *  what they are. `ariaLabel` is what names the group now, which is where a name belongs
+ *  for anybody who cannot see the heading. */
 export function SegControl<T extends string>({
-    label,
     value,
     options,
     onSelect,
     ariaLabel,
 }: {
-    label: string;
     value: T;
     options: { value: T; label: string }[];
     onSelect: (v: T) => void;
@@ -417,16 +423,13 @@ export function SegControl<T extends string>({
             aria-label={ariaLabel}
             className="flex items-center overflow-hidden rounded-[5px] border border-line bg-panel max-sm:w-full"
         >
-            <span className="shrink-0 pl-[11px] pr-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted">
-                {label}
-            </span>
             <div className="flex max-sm:flex-1">
                 {options.map((o) => (
                     <button
                         key={o.value}
                         onClick={() => onSelect(o.value)}
                         aria-pressed={o.value === value}
-                        className={`whitespace-nowrap border-l border-line px-[11px] py-[9px] text-xs font-semibold transition max-sm:flex-1 ${
+                        className={`whitespace-nowrap border-l border-line px-[11px] py-[9px] text-xs font-semibold transition first:border-l-0 max-sm:flex-1 ${
                             o.value === value
                                 ? 'bg-ink text-ground'
                                 : 'bg-panel text-muted hover:text-ink'
@@ -459,7 +462,6 @@ export function SpeedControl({
     return (
         <SegControl
             ariaLabel="Match speed"
-            label="Speed"
             value={speed}
             onSelect={onSetSpeed}
             options={SPEED_OPTIONS}

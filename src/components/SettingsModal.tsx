@@ -180,7 +180,6 @@ export default function SettingsModal({
                     <div className="mt-3 flex">
                         <SegControl
                             ariaLabel="Difficulty"
-                            label="Level"
                             value={s.difficulty}
                             onSelect={pickDifficulty}
                             options={DIFFICULTIES}

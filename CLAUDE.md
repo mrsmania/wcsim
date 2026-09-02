@@ -2964,7 +2964,11 @@ rendered where they have to go, and they are the two axes `btn` takes after the 
 re-invent: the front page's hero CTAs (an amber fill, a white fill and a translucent white
 outline, at a 14px label and an 8px radius used nowhere else); the settings sheet's
 `!rounded-full` pills; the drawn squad's three re-roll buttons (a 12px radius, a soft green
-glow, a stacked icon-over-label layout and two hand-rolled disabled states); the album's
+glow, a stacked icon-over-label layout and two hand-rolled disabled states - **and then the
+icon itself**, which is arithmetic rather than taste: three buttons share a third of a narrow
+column, about 66px inside the padding, and the circular arrow plus its gap took 23 of them,
+so "Another team" had 43px to sit in and came out as a cramped two-line label with a symbol
+wedged beside it); the album's
 Trade button, which built its look out of the TIER's accent colour with two mouse handlers
 to paint a hover an inline style cannot express; the market's `hover:!border-loss` red hover
 and its bespoke mono "Clear filters"; and the error boundary's own green. **`!` OVERRIDES
@@ -2980,6 +2984,17 @@ worth knowing is that the five segmented groups still disagree with each other (
 the active cell with `ink`, two with `pitch-dark`, and the type is mono in one, display in
 another and plain in a third), and the two year-pill designs disagree too - so if the next
 consistency pass is asked for, that is where it is.
+
+**ONE THING ABOUT THEM DID CHANGE: `SegControl` NO LONGER CARRIES A CAPTION INSIDE ITSELF**
+(2026-09-02, reported as "the only buttons with a label to the left of it", which is exactly
+what it was). It printed a mono word on the left of its first option - "LEVEL" before Casual
+/ Normal / Hard, "SPEED" before Slow / Normal / Fast - inside the group's own border, and
+nothing else in the app is shaped that way. In the settings sheet it restated the heading
+directly above it; on the run screen, three words reading Slow / Normal / Fast do not need
+telling what they are. `ariaLabel` names the group now, which is where the name belongs for
+anybody who cannot see the heading, and the first cell gained `first:border-l-0` because the
+divider after the caption became a stray rule against the group's own edge. The `label` prop
+is gone rather than defaulted, so a new caller cannot put one back by accident.
 
 **THE PRIMARY FILLS WITH `pitch-dark`, AND THAT IS A MEASUREMENT.** White on `pitch` is
 **4.00** in light and **3.25** on graphite, against the 4.5 a 13px bold label needs - so the

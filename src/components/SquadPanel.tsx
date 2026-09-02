@@ -3,7 +3,6 @@ import { CATEGORY_ORDER, primaryCategory } from '../data/types';
 import { formatPositions } from '../data/format';
 import { isSelectable, type RerollKind } from '../domain/draft';
 import { tierOf } from '../domain/album';
-import { RotateCcw } from 'lucide-react';
 import Flag from './Flag';
 import Tooltip from './Tooltip';
 import CollectibleStar from './CollectibleStar';
@@ -265,15 +264,20 @@ function RerollButton({
     // The two designs at row size, and nothing of their own. They used to carry a 12px
     // radius, a soft green glow and a stacked icon-over-label layout that appeared nowhere
     // else in the app, plus their own two disabled states - `btn` already dims a disabled
-    // button, which is what those were reproducing by hand. `leading-tight` stays because
-    // the labels are two words in a third of a narrow column and wrap on purpose.
+    // button, which is what those were reproducing by hand.
+    //
+    // AND NO ICON, which is arithmetic rather than taste: three buttons share a third of a
+    // narrow column each, about 66px inside the padding, and the circular-arrow glyph plus
+    // its gap took 23 of them - so "Another team" had 43px to sit in, overflowed its line
+    // and came out as a cramped two-line label with a symbol wedged beside it. Without it
+    // each label has the whole cell, wraps between its two words where it needs to, and
+    // centres. `leading-tight` is what keeps that second line close.
     return (
         <button
             disabled={disabled}
             onClick={onClick}
             className={`${btn(primary ? 'primary' : 'secondary', 'compact')} w-full leading-tight`}
         >
-            <RotateCcw size={15} strokeWidth={2.5} className="shrink-0" />
             {label}
         </button>
     );
