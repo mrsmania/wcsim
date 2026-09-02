@@ -1744,12 +1744,13 @@ export async function refereeChecks(): Promise<void> {
     // being played, and all three are silent - so they are worth asserting rather than
     // assuming.
     //
-    // WITHDRAWING IS LEAVING, which is why it needs no command of its own. What it COSTS is
-    // the part that changed on 2026-08-31: while nobody has taken the challenge up it is
-    // free, because nothing has been dealt and nobody else is in it; once somebody has, it
-    // is a FORFEIT at either end. That second half is what closes the exploit the lobby
-    // opens the door to - a challenger who could walk out after seeing their squad would be
-    // re-rolling for free, one challenge at a time.
+    // WITHDRAWING IS LEAVING, which is why it needs no command of its own. What it COSTS
+    // is the part that has moved twice: it was free only while nobody had taken the
+    // challenge up (2026-08-31), and since 2026-09-02 it is free for as long as the room is
+    // in its LOBBY, at either end. Nothing is dealt there, so the exploit the lobby opens
+    // the door to - a challenger who walks out after seeing their squad and re-rolls for
+    // free, one challenge at a time - needs the DRAFT to have started before it is worth
+    // anything, and that is exactly where the forfeit now begins.
     const clock = { now: T0 };
     const store = new MemStore();
     // Three people: the challenger, whoever takes the seat, and one who never gets in.
@@ -1766,14 +1767,41 @@ export async function refereeChecks(): Promise<void> {
         ).body as RoomView
       ).code;
 
+    /** Press Ready, which is the only thing that starts a duel's draft (`tickDuel`). */
+    const ready = async (code: string, who: string): Promise<void> => {
+      await post(deps, `/referee/v1/rooms/${code}/lineup`, longSession(who), {
+        formationName: '4-3-3',
+        style: 'bal',
+        ready: true,
+      });
+    };
+
     const withdrawn = await open();
     await post(deps, `/referee/v1/rooms/${withdrawn}/leave`, longSession('u1'));
     const after = (await store.read(withdrawn))!;
 
-    // THE CREATOR WALKS OUT OF ONE SOMEBODY HAS TAKEN UP. It ends there and then, and the
-    // player who stayed has won it.
+    // ONE SOMEBODY HAS TAKEN UP AND NOT YET STARTED: still free, at both ends, because a
+    // seat is not the commitment - the deal is.
+    const waiting = await open();
+    await post(deps, `/referee/v1/rooms/${waiting}/join`, longSession('u2'));
+    const waitingHost = leaveKind(
+      (await get(deps, `/referee/v1/rooms/${waiting}`, longSession('u1'))).body as RoomView,
+    );
+    const waitingGuest = leaveKind(
+      (await get(deps, `/referee/v1/rooms/${waiting}`, longSession('u2'))).body as RoomView,
+    );
+    await post(deps, `/referee/v1/rooms/${waiting}/leave`, longSession('u2'));
+    const seatBack = (await store.read(waiting))!;
+
+    // AND THE CREATOR WALKS OUT OF ONE THAT IS BEING DRAFTED. It ends there and then, and
+    // the player who stayed has won it. Both players ready is what got it there: nobody
+    // presses Start in a duel.
     const bailed = await open();
     await post(deps, `/referee/v1/rooms/${bailed}/join`, longSession('u2'));
+    await ready(bailed, 'u1');
+    await ready(bailed, 'u2');
+    await sweepOnce(store, clock.now, SWEEP_MS);
+    const drafting = (await store.read(bailed))!;
     // WHAT THE SCREEN WOULD SAY, off the same payloads, because a button promising to call
     // a duel off that the referee then treats as a defeat is worse than no button - it
     // looks like it worked. `leaveKind` is that rule read from the client's end, so it is
@@ -1789,10 +1817,13 @@ export async function refereeChecks(): Promise<void> {
     const bailedRow = ((await get(deps, '/referee/v1/duels', longSession('u2')))
       .body as { duels: DuelListRow[] }).duels.find((d) => d.code === bailed)!;
 
-    // AND THE OTHER WAY ROUND: whoever took the seat gives it up. Same answer, since
-    // accepting is the commitment - the person who stayed wins it.
+    // AND THE OTHER WAY ROUND: whoever took the seat walks out of the draft. Same answer,
+    // since the deal is the commitment - the person who stayed wins it.
     const handedBack = await open();
     await post(deps, `/referee/v1/rooms/${handedBack}/join`, longSession('u2'));
+    await ready(handedBack, 'u1');
+    await ready(handedBack, 'u2');
+    await sweepOnce(store, clock.now, SWEEP_MS);
     await post(deps, `/referee/v1/rooms/${handedBack}/leave`, longSession('u2'));
     const givenUp = (await store.read(handedBack))!;
     // Nobody can walk into a finished game and take the empty-looking chair.
@@ -1810,14 +1841,27 @@ export async function refereeChecks(): Promise<void> {
     const stale = (await store.read(ignored))!;
 
     check(
-      'duel: an unanswered one is called off for nothing, a taken-up one is forfeited at either end, and a week closes it',
+      'duel: a duel is free to leave until it is dealt, forfeited at either end afterwards, and closed by a week',
       () =>
         // An unanswered one, called off by the person who opened it: no result at all,
         // because nothing had been dealt and nobody else was in it.
         after.status === 'ended' &&
         roomClosed(after) &&
-        // The creator walking out of a taken-up one: ended, and LOST. `roomClosed` is
+        // ONE SITTING IN ITS LOBBY WITH BOTH SEATS TAKEN: free at both ends. The screen
+        // offers the creator a call-off and the other player their seat back, and the
+        // referee then does exactly that - the room waits for somebody else, with nobody
+        // having lost anything and the link working again.
+        waitingHost === 'calloff' &&
+        waitingGuest === 'seat' &&
+        seatBack.status === 'lobby' &&
+        seatBack.members.length === 1 &&
+        !seatBack.championId &&
+        // Vacuity for that half: the seat really had been taken, so "free" is a statement
+        // about the phase rather than about an empty room.
+        drafting.members.length === 2 &&
+        // The creator walking out of one being DRAFTED: ended, and LOST. `roomClosed` is
         // false, which is the whole encoding - a champion with no tie underneath.
+        drafting.status === 'drafting' &&
         forfeited.status === 'ended' &&
         !roomClosed(forfeited) &&
         forfeited.championId === 'u2' &&
@@ -1837,17 +1881,23 @@ export async function refereeChecks(): Promise<void> {
         givenUp.members.length === 2 &&
         retaken.status === 409 &&
         // The two screens offer the two different things, which is what the referee then
-        // does. Both halves matter: a duel nobody has taken up must not threaten a loss,
-        // and one somebody has must not promise a free withdrawal.
+        // does. Both halves matter: a duel nobody has been dealt anything in must not
+        // threaten a loss, and one being drafted must not promise a free withdrawal.
         asHost === 'forfeit' &&
         asGuest === 'forfeit' &&
+        // Those four values ARE the discrimination, on real payloads: the same two viewers
+        // of the same full room read one thing before the deal and another after it. It is
+        // spelt out as four literals rather than as a comparison between them because the
+        // compiler narrows these to their own values and would answer it for us.
         closedRead === 'away' &&
         stale.status === 'ended' &&
         roomClosed(stale) &&
         // Vacuity: a duel a day old is untouched by the same sweep.
         DUEL_IDLE_MS > ROOM_IDLE_MS,
       () =>
-        `withdrawn ${after.status}, forfeited ${forfeited.status}/${forfeited.championId}, ` +
+        `withdrawn ${after.status}, waiting ${waitingHost}/${waitingGuest}, ` +
+        `seat back ${seatBack.status}/${seatBack.members.length}, ` +
+        `drafting ${drafting.status}, forfeited ${forfeited.status}/${forfeited.championId}, ` +
         `host reads ${asHost}, guest reads ${asGuest}, ` +
         `given up ${givenUp.status}/${givenUp.championId}, retaken ${retaken.status}`,
     );

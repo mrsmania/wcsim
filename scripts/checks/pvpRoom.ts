@@ -975,16 +975,19 @@ export function pvpRoomChecks(): void {
 /**
  * Getting out of a duel, and what it costs.
  *
- * THERE ARE TWO ANSWERS AND THE SEAT COUNT DECIDES WHICH. While nobody has taken the
- * challenge up, calling it off is free: nothing has been dealt, nobody else is in it, and
- * the room simply stops existing. Once somebody has, leaving is a FORFEIT at either end -
- * the room ends there and then and the player who stayed has won it.
+ * THERE ARE TWO ANSWERS AND WHETHER ANYTHING HAS BEEN DEALT DECIDES WHICH. In the lobby it
+ * is free at both ends: no squad has been dealt and no player bought, so neither of them
+ * has seen a thing. Once the draft is under way, leaving is a FORFEIT at either end - the
+ * room ends there and then and the player who stayed has won it.
  *
  * THE FORFEIT IS WHAT MAKES THE LOBBY WORTH HAVING. A duel waits in a lobby so that nothing
  * is seen before both players are committed; if walking out afterwards were free, a
  * challenger could look at the squad they were dealt, leave, and open another until they
  * liked one - which is the free re-roll every counted allowance in this game exists to
- * prevent.
+ * prevent. THE LINE SITS AT THE DEAL rather than at the seat count (2026-09-02, asked for
+ * from the game): a seat is taken before anybody has been shown anything, so charging a
+ * loss for leaving a lobby charged for the wrong thing, and the exploit above needs a squad
+ * on the screen to be worth anything at all.
  *
  * The vacuity guard for the whole block is the LIVE room: every claim below is made against
  * the identical call on a live room of two, which must still be the no-op it has always
@@ -1080,9 +1083,9 @@ function duelLeaveChecks(): void {
   }
 
   {
-    // AN UNANSWERED CHALLENGE IS CALLED OFF FOR NOTHING, and one somebody has taken up is
-    // FORFEITED - by whichever of the two walks out. The two are the same button and the
-    // seat count is the whole of the difference.
+    // AN UNANSWERED CHALLENGE IS CALLED OFF FOR NOTHING, and one whose DRAFT is under way
+    // is FORFEITED - by whichever of the two walks out. The two are the same button, and
+    // whether a squad has been dealt is the whole of the difference.
     const off = leaveRoom(duelWith(0), 'u0', T0 + 5000);
     const started = startedDuel();
     const creatorLeft = leaveRoom(started, 'u0', T0 + 5000);
@@ -1093,7 +1096,7 @@ function duelLeaveChecks(): void {
     // started changes nothing at all, because an XI in a bracket cannot be withdrawn.
     const live = withSeed(31, () => startRoom(roomOf(2, BUDGET), 'u0', T0));
     check(
-      'duel: calling off an unanswered one costs nothing, and leaving a taken-up one loses it',
+      'duel: calling off an unanswered one costs nothing, and leaving one being drafted loses it',
       () =>
         // Closed, with no champion: nothing was played and nobody lost anything.
         roomClosed(off) &&
@@ -1117,6 +1120,43 @@ function duelLeaveChecks(): void {
       () =>
         `off ${off.status}, creator ${creatorLeft.status}/${creatorLeft.championId}, ` +
         `guest ${guestLeft.status}/${guestLeft.championId}, retaken ${retaken.outcome}`,
+    );
+  }
+
+  {
+    // AND LEAVING A TAKEN-UP LOBBY IS FREE, AT BOTH ENDS (2026-09-02, asked for from the
+    // game: taking the seat "is directly counted as a loss, that's too early"). It is, by a
+    // whole phase - nothing is dealt until both players are ready, so in the lobby neither
+    // of them has seen anything worth rejecting, and the two free endings are the ordinary
+    // ones rather than a special case: the person who opened it takes the challenge away
+    // with them, and anybody else hands the seat back.
+    const taken = duelWith(1);
+    const hostLeft = leaveRoom(taken, 'u0', T0 + 5000);
+    const guestGone = leaveRoom(taken, 'u1', T0 + 5000);
+    check(
+      'duel: leaving a taken-up lobby costs nothing, at either end',
+      () =>
+        // Vacuity: the seat really was taken, and nothing really had been dealt.
+        taken.status === 'lobby' &&
+        taken.members.length === taken.size &&
+        !taken.deals.u0 &&
+        !taken.deals.u1 &&
+        // The creator: closed, with no champion, so nobody has lost anything.
+        roomClosed(hostLeft) &&
+        // The other player: a seat handed back, so the challenge waits again and the link
+        // works for whoever opens it next - which is what every other lobby does.
+        guestGone.status === 'lobby' &&
+        guestGone.members.length === 1 &&
+        !guestGone.championId &&
+        joinRoom(guestGone, { userId: 'u4', name: 'Dina', budget: BUDGET.budget }, T0 + 6000)
+          .outcome === 'ok' &&
+        // THE DISCRIMINATION, which is the whole of the change: the identical call one
+        // phase later DOES cost the duel, so a build that went back to reading the seat
+        // count fails here rather than merely reading oddly.
+        leaveRoom(startedDuel(), 'u1', T0 + 5000).championId === 'u0',
+      () =>
+        `host ${hostLeft.status}/${hostLeft.championId}, ` +
+        `guest ${guestGone.status}/${guestGone.members.length}`,
     );
   }
 

@@ -385,8 +385,8 @@ function sendWindowLeft(ms: number): string {
  * What leaving THIS room, as THIS viewer, actually does.
  *
  * FOUR THINGS WEAR ONE BUTTON, and the screen has to say which before somebody presses it:
- * giving a seat up in a lobby, calling off a challenge nobody has taken up, FORFEITING a
- * duel somebody has, and walking away from a tournament your XI keeps playing in. They are
+ * giving a seat up in a lobby, calling off a challenge of your own, FORFEITING a duel whose
+ * draft is under way, and walking away from a tournament your XI keeps playing in. They are
  * as different as an answer can be, and the third one is the one that costs something: it
  * ends the game there and then and hands the other player the win.
  *
@@ -404,15 +404,25 @@ export type LeaveKind = 'seat' | 'calloff' | 'forfeit' | 'away';
 export function leaveKind(view: RoomView): LeaveKind {
     // Somebody who is not in the room cannot give anything up. A public lobby can be looked
     // at without joining, and `you` is null for exactly that viewer.
-    const mine = !!view.you;
-    if (isDuel(view) && mine && (view.status === 'lobby' || view.status === 'drafting')) {
-        // ONCE SOMEBODY HAS TAKEN IT UP, LEAVING IS LOSING IT, whichever end you are at:
-        // accepting is what sets both drafts going, so from then on walking out abandons a
-        // game rather than withdrawing an offer. Before that there is only the person who
-        // opened it, and calling it off costs nothing.
-        return view.members.length >= view.size ? 'forfeit' : 'calloff';
+    const you = view.you;
+    if (!you) return 'away';
+    if (isDuel(view) && (view.status === 'lobby' || view.status === 'drafting')) {
+        // THE THREE ANSWERS IN `leaveDuel`'S OWN ORDER, which is what keeps the button and
+        // the referee saying the same thing rather than merely agreeing today.
+        //
+        // Nobody opposite: there is nothing to forfeit to and nobody to hand the seat to,
+        // so the challenge simply stops existing. A DRAFT UNDER WAY IS THE COMMITMENT, NOT
+        // THE SEAT (2026-09-02): squads are dealt and the market opens the moment it
+        // starts, so from then on walking out abandons a game rather than withdrawing an
+        // offer, at either end. And in the lobby nothing has been shown to anybody yet, so
+        // leaving is free - which free thing it is depending on whose challenge it is: the
+        // person who opened it calls it off and the link dies with it, and anybody else is
+        // simply handing a seat back.
+        if (view.members.length < view.size) return 'calloff';
+        if (view.status === 'drafting') return 'forfeit';
+        return you.userId === view.hostId ? 'calloff' : 'seat';
     }
-    if (view.status === 'lobby' && mine) return 'seat';
+    if (view.status === 'lobby') return 'seat';
     return 'away';
 }
 

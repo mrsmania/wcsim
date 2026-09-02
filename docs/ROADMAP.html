@@ -349,6 +349,59 @@
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
 
+<details class="item">
+  <summary>
+    <span class="num">55</span>
+    <span class="title">Rebuild the referee, so leaving a duel's lobby really is free
+      <span class="sub"><b>QUEUED 2026-09-02.</b> The rule that a duel is free to walk out of
+      until its squads are dealt is written, checked and pushed, and it lives in
+      <code>domain/pvpRoom.ts</code> - which the REFEREE runs. Until the container is rebuilt
+      the deployed server still scores a lobby departure as a defeat, so the screen's "Call it
+      off" is currently a promise it cannot keep. No migration.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What changed and why it is queued.</strong> Taking a seat in a duel used to
+    commit you: from the moment somebody followed the link, walking out was a forfeit at
+    either end. That is a whole phase too early, reported from the game as <em>"when a player
+    enters a room via invitation and takes his seat, walking out of the room is directly
+    counted as a loss. That's too early."</em> The line now sits at the DEAL rather than at the
+    seat count, which is decision P57 in <code>docs/pvp-plan.md</code>: free in the lobby at
+    either end, a forfeit from the instant the draft starts. The rule is one function in
+    <code>domain/pvpRoom.ts</code>, and that module is bundled into the referee, so the change
+    is inert on the server until the image is rebuilt. This session could not do it: the NAS
+    was unreachable, no LAN and no VPN.</p>
+
+    <p><strong>THE ORDER IS THE USUAL ONE, and here it matters more than usual.</strong> The
+    client half shipped first, which is the direction that hurts: a browser telling somebody a
+    departure is free while the server charges them a defeat costs a real game, where the
+    reverse only over-warns. So until the rebuild, treat the lobby's <em>Call it off</em> and
+    <em>Leave</em> as still costing the duel, and do not test that button expecting it to be
+    free. Nothing else in Versus is affected, and a duel already being drafted behaves exactly
+    as it always has.</p>
+
+    <p><strong>How to do it.</strong> <code>bash scripts/deploy-referee.sh --build
+    user@192.168.1.115</code> then <code>--up</code> then <code>--verify</code>, from a
+    machine on the LAN or the VPN, off a checkout of <code>main</code> that carries this
+    change. No migration and no seed: the encoding of a walkover has not moved, and nothing
+    the referee writes is new.</p>
+
+    <p><strong>How to know it worked.</strong> Open a duel, follow the link from a second
+    account, and with both seats taken and neither player ready, leave from each end in turn.
+    The person who opened it should see the room close with nobody having won it; the other
+    should hand the seat back and leave the challenge waiting, with the link working again for
+    whoever opens it next. Then press Ready at both ends, let the draft start, and leave: that
+    one must still end the room with the player who stayed as the winner, and it must still
+    move both accounts' records. <code>npm run checks</code> already holds all of it against
+    the referee's own handlers, so what the rebuild is being verified for is the container,
+    not the rule.</p>
+  </div>
+</details>
+
+
+
 
 
 

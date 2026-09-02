@@ -3112,11 +3112,12 @@ things beyond that are settled and one of them was settled twice:
   everybody is ready - `startRoom` refuses a duel outright, because P48's "the host may start
   over somebody who has not pressed Ready" would deal a squad to a player who never agreed to
   play. **Before making a step free, ask what it is the undo of.**
-- **AND LEAVING AFTER SOMEBODY HAS TAKEN IT UP IS A FORFEIT**, which is the other half and
-  does not work without the first: a lobby that hides the squad is worthless if you can walk
-  out once you have seen it. Taking the challenge up is the commitment, so from then on
-  leaving ends the room for both with the player who stayed as the winner. Before that -
-  nobody opposite - calling it off costs nothing, because nothing has been dealt.
+- **AND LEAVING ONCE THE SQUADS ARE DEALT IS A FORFEIT**, which is the other half and does
+  not work without the first: a lobby that hides the squad is worthless if you can walk out
+  once you have seen it. The DEAL is the commitment, so from the moment the draft starts
+  leaving ends the room for both with the player who stayed as the winner. **In the lobby it
+  costs nothing, at either end** - taking a seat is not the commitment, which is the
+  correction of 2026-09-02, see "WITHDRAWING IS LEAVING" below.
 - **Finishing is DECLARED in every duel** rather than only in a budget one (the send button),
   and the challenge is **addressed by link and by nothing else** (`invited_id` dropped by
   0022).
@@ -3179,7 +3180,7 @@ to be OBSERVED rather than announced" is about a closing tab and does not extend
 press: **observing what cannot be announced is not a reason to ignore what can.**
 `leaveRoom` works in a LOBBY only for a LIVE room - past the start your XI is in a bracket
 other people are playing (P15, P24); a duel is the exception and is leavable until its match is
-played, at the price of losing it, see "WITHDRAWING IS LEAVING" below - and it shares `withoutMembers` with the sweep, because a lobby that
+played, at the price of losing it once its draft has started, see "WITHDRAWING IS LEAVING" below - and it shares `withoutMembers` with the sweep, because a lobby that
 promotes a host one way and closes the other is two rules wearing one name. The navigation
 does not wait for the answer: a player who pressed Leave is leaving, and a lost request costs
 no more than the liveness window, which is what it used to cost every time. The refusal also needed an ANSWER rather than
@@ -3712,17 +3713,28 @@ Eight things about it are decisions rather than details, and each one is checked
   which it did not until 2026-08-31 - so somebody sitting in a live room could not take up a
   duel, and a duel is the mode you play precisely because you are busy. None of the three
   implies the others.
-- **WITHDRAWING IS LEAVING, and what it COSTS is the seat count** (`leaveDuel`). Nobody
-  opposite: the person who opened it calls it off, it ends for both and the link stops
-  working, and nothing has been lost because nothing was dealt. Somebody opposite: it is a
-  **forfeit**, at either end - the room ends now and the player who stayed has won it. That
-  rule went through three shapes in two days and the middle one is the instructive part.
-  First, leaving only worked on an unanswered challenge, on the live room's reasoning (once
-  the second player is in, their draft is real work); that left a game neither player could
-  get out of, and was reported as exactly that. Then the second player could hand the seat
-  back and the challenge would wait for somebody else - which reads generously and is the
-  free escape the whole re-roll exploit needs. **The forfeit is what makes the lobby worth
-  having**, and the lobby is what makes the forfeit fair: you commit before you see anything.
+- **WITHDRAWING IS LEAVING, and what it COSTS is whether anything has been DEALT**
+  (`leaveDuel`). **In the lobby it is free at either end**: no squad has been dealt and no
+  player bought, so neither of them has seen a thing - the person who opened it calls it off
+  and the link stops working, and anybody else hands the seat back, so the challenge goes
+  right on waiting for somebody. **Once it is drafting it is a forfeit, at either end** - the
+  room ends now and the player who stayed has won it. That rule went through **four** shapes,
+  and the first three all read the SEAT COUNT. Leaving worked only on an unanswered challenge,
+  on the live room's reasoning (once the second player is in, their draft is real work); that
+  left a game neither player could get out of, and was reported as exactly that. Then the
+  second player could hand the seat back at any point - which reads generously and is the free
+  escape the whole re-roll exploit needs. Then the seat count itself turned out to be the
+  wrong field, reported from the game on 2026-09-02: **"when a player enters a room via
+  invitation and takes his seat, walking out of the room is directly counted as a loss.
+  That's too early."** It was, by a whole phase. **Moving the line to the deal does not
+  weaken the forfeit by a day**, which is the thing to be sure of before touching this: the
+  exploit needs a squad ON THE SCREEN to be worth anything, and a squad arrives when the
+  draft starts, so the free exit now ends exactly where the thing worth rejecting begins. It
+  also settles an inconsistency the seat count was carrying - the host could already get out
+  of a taken-up lobby for nothing in two taps, by throwing the challenger out (`removeMember`,
+  a lobby rule) and then calling the empty room off. **The forfeit is still what makes the
+  lobby worth having**, and the lobby is still what makes the forfeit fair: you commit before
+  you see anything.
   Both are refused once the match has been played, for the reason the rematch below gives.
   **NOBODY IS REMOVED BY A FORFEIT**, which is the difference between it and every other
   ending: a seat given up in a lobby takes its member row with it because the chair is being
@@ -3733,10 +3745,15 @@ Eight things about it are decisions rather than details, and each one is checked
   guarantee belongs to the helper rather than to the caller: "these members are gone" has one
   correct meaning whoever asks it.)
   **The screens read the same rule from the other end** (`leaveKind`, domain/pvpView): four
-  things wear one button - a seat given up in a lobby, an unanswered challenge called off, a
-  duel FORFEITED, and walking away from a tournament your XI plays on in - and a button
-  promising a free withdrawal that the referee then scores as a defeat is worse than no
-  button. The checks hold the pair together on the referee's real answers.
+  things wear one button - a seat given up in a lobby, a challenge of your own called off, a
+  duel FORFEITED once its draft is under way, and walking away from a tournament your XI
+  plays on in - and a button promising a free withdrawal that the referee then scores as a
+  defeat is worse than no button. It answers the three duel cases **in `leaveDuel`'s own
+  order**, which is what keeps the two agreeing rather than merely agreeing today, and the
+  checks hold the pair together on the referee's real answers. **The skew that matters points
+  one way**: a client that says "free" over a server that charges costs somebody a game,
+  where the reverse only over-warns, so this half must never be deployed ahead of the
+  referee.
 - **A REMATCH IS A NEW DUEL.** The old one has a result, and a result that can change is not a
   result, so `DuelRematch` opens a fresh room with the same rules and hands back a fresh link.
 

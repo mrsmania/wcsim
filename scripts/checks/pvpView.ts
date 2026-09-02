@@ -1462,18 +1462,28 @@ export function pvpViewChecks(): void {
     const theirs = { ...mine, userId: AWAY };
     const alone = [fixtureRoom().members[0]!];
     check(
-      'pvpView: the way out of a room is one of four things, and a taken-up duel is the one that costs something',
+      'pvpView: the way out of a room is one of four things, and a duel being drafted is the one that costs something',
       () =>
-        // A duel somebody has taken up: leaving is a FORFEIT at either end, because
-        // accepting is the commitment that sets both drafts going.
+        // A duel whose DRAFT is under way: leaving is a FORFEIT at either end, because the
+        // squads are dealt and the market is open, so there is a game to abandon.
         leaveKind(duel({ you: mine })) === 'forfeit' &&
         leaveKind(duel({ you: theirs })) === 'forfeit' &&
-        // And with the challenge unanswered it costs nothing, because nothing has been
-        // dealt: the seat count is what tells the two apart, at both statuses a duel can
-        // be waiting in.
-        leaveKind(duel({ you: mine, members: alone })) === 'calloff' &&
+        // AND IN THE LOBBY IT IS FREE AT BOTH ENDS (2026-09-02), whether or not somebody
+        // has taken the seat: nothing has been dealt there, so there is nothing anybody
+        // could gain by rejecting it. Which free thing it is depends on whose challenge it
+        // is - the person who opened it calls it off, and anybody else hands a seat back.
         leaveKind(duel({ status: 'lobby', you: mine, members: alone })) === 'calloff' &&
-        leaveKind(duel({ status: 'lobby', you: mine })) === 'forfeit' &&
+        leaveKind(duel({ status: 'lobby', you: mine })) === 'calloff' &&
+        leaveKind(duel({ status: 'lobby', you: theirs })) === 'seat' &&
+        // The discrimination that matters, stated as itself: the same viewer at the same
+        // full seat count reads one thing in the lobby and the other in the draft, so a
+        // build that went back to counting seats fails here rather than looking tidy.
+        duel({ status: 'lobby' }).members.length === duel({ status: 'lobby' }).size &&
+        leaveKind(duel({ status: 'lobby', you: mine })) !== leaveKind(duel({ you: mine })) &&
+        // And with nobody opposite there is nothing to forfeit to and no seat to hand
+        // back, at either status: the challenge stops existing, which is `leaveDuel`'s own
+        // first guard read from this end.
+        leaveKind(duel({ you: mine, members: alone })) === 'calloff' &&
         // A LIVE room is untouched: a lobby gives a seat up, and once it has started
         // leaving is only walking away.
         leaveKind(fixtureRoom({ status: 'lobby', you: mine })) === 'seat' &&

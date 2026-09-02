@@ -1265,8 +1265,8 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
  * P24). Leaving a running room is therefore a navigation and nothing more, and the screen
  * says so - "your team plays on without you".
  *
- * IN A DUEL IT ALWAYS WORKS, up to the moment the football is played, and past the point
- * where somebody accepted it COSTS THE DUEL. See `leaveDuel`.
+ * IN A DUEL IT ALWAYS WORKS, up to the moment the football is played, and once its DRAFT
+ * has started it COSTS THE DUEL. See `leaveDuel`.
  *
  * IN A LOBBY IT HAS TO BE REAL, though, and this was a reported bug: leaving used to be
  * purely local, so the seat stayed taken, and `activeRoomOf` then refused the player their
@@ -1275,7 +1275,7 @@ function withoutMembers(room: PvpRoom, keep: Set<string>, now: number): PvpRoom 
  * leaving has to tell the referee.
  */
 export function leaveRoom(room: PvpRoom, userId: string, now: number): PvpRoom {
-  if (room.pace === 'async' && !duelPlayed(room)) return leaveDuel(room, userId);
+  if (room.pace === 'async' && !duelPlayed(room)) return leaveDuel(room, userId, now);
   if (room.status !== 'lobby') return room;
   if (!room.members.some((m) => m.userId === userId)) return room;
   return withoutMembers(room, everyoneBut(room, userId), now);
@@ -1292,40 +1292,61 @@ const everyoneBut = (room: PvpRoom, userId: string): Set<string> =>
 
 /**
  * Walking out of a duel, which is TWO different things (2026-08-31, asked for from the
- * game).
+ * game; WHERE THE LINE BETWEEN THEM SITS moved on 2026-09-02, asked for from the game
+ * again).
  *
- * THE SEAT COUNT DECIDES WHICH, and this rule went through three shapes in two days. It
- * began as the unanswered case only - once somebody took the seat, both sides were stuck
- * until the match played or the week ran out - which is the live room's reasoning (their
- * draft is real work, and leaving is only looking away) and left a game neither player
- * could get out of. It was then widened so the second player could hand the seat back and
- * the challenge would wait for somebody else, which reads generously and is a free escape
- * from a squad you did not like. What it is now:
+ * WHAT DECIDES WHICH IS WHETHER ANYTHING HAS BEEN DEALT, and that is the correction. The
+ * rule went through three shapes in two days and all three read the SEAT COUNT. It began
+ * as the unanswered case only - once somebody took the seat, both sides were stuck until
+ * the match played or the week ran out - which is the live room's reasoning (their draft is
+ * real work, and leaving is only looking away) and left a game neither player could get out
+ * of. It was then widened so the second player could hand the seat back at any point, which
+ * reads generously and is a free escape from a squad you did not like. Then the seat count
+ * itself turned out to be the wrong field: "when a player enters a room via invitation and
+ * takes his seat, walking out of the room is directly counted as a loss, that's too early".
+ * It is, and by a whole phase - taking a seat commits you before you have been shown a
+ * thing. What it is now:
  *
- *   * NOBODY HAS TAKEN IT UP: THE CREATOR CALLS IT OFF, and it costs nothing. There is one
- *     person in the room, no squad has been dealt and no player bought, so the challenge
- *     simply stops existing and the link stops working.
- *   * SOMEBODY HAS: WALKING OUT IS A FORFEIT, whoever does it (2026-08-31, asked for from
- *     the game). Taking the challenge up is the commitment - it is what sets both drafts
- *     going - so from that moment leaving is not withdrawing an offer, it is abandoning a
- *     match somebody else is playing. The room ends there and then for both of them, with
- *     the player who stayed as the winner.
+ *   * IN THE LOBBY IT COSTS NOTHING, at either end. No squad has been dealt and no player
+ *     bought, because `tickDuel` starts the draft only once both players are in AND ready,
+ *     so neither of them has yet seen anything there could be any advantage in rejecting.
+ *     The person who opened it CALLS IT OFF and the room closes, the challenge being theirs
+ *     and the link with it; anybody else GIVES THE SEAT UP and the challenge goes back to
+ *     waiting for somebody, which is what `withoutMembers` already does for every lobby.
+ *   * ONCE IT IS DRAFTING, WALKING OUT IS A FORFEIT, whoever does it. The squads are dealt
+ *     and the market is open, so from here leaving is not withdrawing an offer, it is
+ *     abandoning a match somebody else is playing. The room ends there and then for both of
+ *     them, with the player who stayed as the winner.
  *
- * THE FORFEIT IS THE OTHER HALF OF GIVING A DUEL A LOBBY AGAIN, and without it the change
- * is worthless: if walking away were free, a challenger could look at the squad they were
- * dealt, leave, and open another challenge until they liked one. The lobby stops them
- * seeing anything before they are committed, and this stops them getting out afterwards.
+ * THE FORFEIT IS STILL THE OTHER HALF OF GIVING A DUEL A LOBBY, and moving the line does
+ * not weaken it by a day: the exploit it exists to shut off is a challenger looking at the
+ * squad they were DEALT, leaving, and opening another challenge until they like one - and a
+ * squad is dealt at the instant the draft starts. So the free exit now ends exactly where
+ * the thing worth rejecting begins, which is where it should have ended all along. Moving
+ * it also settles an inconsistency the seat count was carrying: the host could already get
+ * out of a taken-up lobby for nothing in two taps, by throwing the challenger out
+ * (`removeMember`, a lobby rule) and then calling the empty room off.
  *
  * Both are refused once the match has been played, because a result that can be deleted is
  * not a result - which is the same reason a rematch is a new duel rather than a reopened
  * one.
  */
-function leaveDuel(room: PvpRoom, userId: string): PvpRoom {
+function leaveDuel(room: PvpRoom, userId: string, now: number): PvpRoom {
   if (!room.members.some((m) => m.userId === userId)) return room;
-  // Nobody opposite, so there is nothing to forfeit - and the one member of a duel of two
-  // is always the person who opened it, which is why this needs no test for that: a host
-  // never leaves without ending the room, so nobody else can be the last one in it.
+  // NOBODY OPPOSITE, so there is nobody to forfeit to and nobody to hand the seat to: the
+  // room simply stops existing. The one member of a duel of two is always the person who
+  // opened it, which is why this needs no test for that: a host never leaves without ending
+  // the room, so nobody else can be the last one in it.
   if (room.members.length < room.size) return closeRoom(room);
+  if (room.status === 'lobby') {
+    // THE CHALLENGE BELONGS TO WHOEVER OPENED IT, so their leaving takes it with them
+    // rather than promoting the person who accepted into the host of a room holding a link
+    // they never sent. Everybody else is doing the ordinary lobby thing, and goes through
+    // the ordinary lobby path.
+    return userId === room.hostId
+      ? closeRoom(room)
+      : withoutMembers(room, everyoneBut(room, userId), now);
+  }
   return forfeitDuel(room, userId);
 }
 

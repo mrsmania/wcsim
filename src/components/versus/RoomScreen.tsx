@@ -94,7 +94,7 @@ const LEAVING: Record<ReturnType<typeof leaveKind>, { label: string; note: strin
     },
     calloff: {
         label: 'Call it off',
-        note: 'Nobody has taken it up, so it costs nothing. The link stops working.',
+        note: 'Nothing has been dealt yet, so it costs nothing. The link stops working.',
     },
     forfeit: {
         label: 'Give it up',
