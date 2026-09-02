@@ -1322,10 +1322,7 @@ const everyoneBut = (room: PvpRoom, userId: string): Set<string> =>
  * not weaken it by a day: the exploit it exists to shut off is a challenger looking at the
  * squad they were DEALT, leaving, and opening another challenge until they like one - and a
  * squad is dealt at the instant the draft starts. So the free exit now ends exactly where
- * the thing worth rejecting begins, which is where it should have ended all along. Moving
- * it also settles an inconsistency the seat count was carrying: the host could already get
- * out of a taken-up lobby for nothing in two taps, by throwing the challenger out
- * (`removeMember`, a lobby rule) and then calling the empty room off.
+ * the thing worth rejecting begins, which is where it should have ended all along.
  *
  * Both are refused once the match has been played, because a result that can be deleted is
  * not a result - which is the same reason a rematch is a new duel rather than a reopened

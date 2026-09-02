@@ -3729,10 +3729,8 @@ Eight things about it are decisions rather than details, and each one is checked
   That's too early."** It was, by a whole phase. **Moving the line to the deal does not
   weaken the forfeit by a day**, which is the thing to be sure of before touching this: the
   exploit needs a squad ON THE SCREEN to be worth anything, and a squad arrives when the
-  draft starts, so the free exit now ends exactly where the thing worth rejecting begins. It
-  also settles an inconsistency the seat count was carrying - the host could already get out
-  of a taken-up lobby for nothing in two taps, by throwing the challenger out (`removeMember`,
-  a lobby rule) and then calling the empty room off. **The forfeit is still what makes the
+  draft starts, so the free exit now ends exactly where the thing worth rejecting begins.
+  **The forfeit is still what makes the
   lobby worth having**, and the lobby is still what makes the forfeit fair: you commit before
   you see anything.
   Both are refused once the match has been played, for the reason the rematch below gives.
