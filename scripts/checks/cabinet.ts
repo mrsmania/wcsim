@@ -10,7 +10,7 @@ import { collectiblePlayers, collectiblesByTier, emptyAlbum, tierOf } from '../.
 import { ASCENSIONS } from '../../src/domain/ascension';
 import { BADGES, badgeRows, badgesEarned, perkTiersOwned } from '../../src/domain/badges';
 import { lockableBoons } from '../../src/domain/boons';
-import { bestCupStreakOf, cabinetView } from '../../src/domain/cabinet';
+import { bestCupStreakOf, cabinetView, finalsLostOf } from '../../src/domain/cabinet';
 import {
   HISTORY_LIMIT,
   INITIAL_CAREER,
@@ -448,6 +448,46 @@ export function cabinetChecks(): void {
       () => cupNoNames.stats.cups === 1 &&
         (cupNoNames.stats.cupsRecorded ?? 0) === 0 &&
         cupOnce.stats.cupsRecorded === 1,
+    );
+    // Finals lost is a COUNT, and it used to be a yes/no printed against the label "Finals
+    // lost". The counter is exact from the run it started at; the floor is what a career
+    // older than it can still prove. Both halves are asserted, and so is the vacuity
+    // guard - a career that has never lost one must read 0, or a function that simply
+    // returned the flag would pass everything above it.
+    const lostFinals = [asCup(run, 'final'), asCup(run, 'champion'), asCup(run, 'final')].reduce(
+      (c, r, i) => applyRunResult(c, r, undefined, i + 1).career,
+      INITIAL_CAREER,
+    );
+    const oldFlagOnly = {
+      ...INITIAL_CAREER,
+      stats: { ...INITIAL_CAREER.stats, everLostFinal: true },
+    };
+    const oldArchive = {
+      ...oldFlagOnly,
+      stats: {
+        ...oldFlagOnly.stats,
+        history: (['final', 'group', 'final', 'final'] as RunOutcome[]).map((outcome) => ({
+          outcome,
+          ascension: 0,
+          score: 0,
+          xp: 0,
+          prestige: 0,
+          roundsWon: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+        })),
+      },
+    };
+    check(
+      'records: finals lost is a count, floored by whatever an older career can prove',
+      () => lostFinals.stats.finalsLost === 2 &&
+        finalsLostOf(lostFinals) === 2 &&
+        // The flag alone proves one; the archive proves three; neither can lower a count.
+        finalsLostOf(oldFlagOnly) === 1 &&
+        finalsLostOf(oldArchive) === 3 &&
+        finalsLostOf({ ...oldArchive, stats: { ...oldArchive.stats, finalsLost: 7 } }) === 7 &&
+        finalsLostOf(INITIAL_CAREER) === 0 &&
+        cabinetView(lostFinals, emptyAlbum(), ALL_PLAYERS).records.finalsLost === 2,
     );
     // At the cap, a title-holder outranks a player with far more appearances and no cup.
     // A cup is the one fact no other column can imply, so it sorts ahead of the two it

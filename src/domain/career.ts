@@ -37,6 +37,12 @@ export interface CareerStats {
   prevOutcome: RunOutcome | null;
   /** A final has been lost at least once in this career. */
   everLostFinal: boolean;
+  /** How many finals this career has lost. NOT a replacement for the flag above, which
+   *  the challenge catalogue reads and which answers a different question: the flag is
+   *  what Nearly Man tests, the count is what the cabinet prints. A career older than
+   *  this counter reads 0, so the cabinet takes the flag and the run archive as a floor
+   *  rather than printing a zero it cannot stand behind (see `finalsLostOf`). */
+  finalsLost: number;
   /** Cups won per Ascension tier, indexed by tier (may be shorter than the ladder). */
   cupsByAscension: number[];
   /** Finished runs played at Ascension II or higher. */
@@ -171,6 +177,7 @@ export const INITIAL_CAREER: CareerState = {
     lastOutcome: null,
     prevOutcome: null,
     everLostFinal: false,
+    finalsLost: 0,
     cupsByAscension: [],
     runsAtHighAscension: 0,
     prestigeSpent: 0,
@@ -603,6 +610,7 @@ export function applyRunResult(
       lastOutcome: outcome,
       prevOutcome: career.stats.lastOutcome,
       everLostFinal: career.stats.everLostFinal || outcome === 'final',
+      finalsLost: (career.stats.finalsLost ?? 0) + (outcome === 'final' ? 1 : 0),
       cupsByAscension: wonCup
         ? bumpAt(career.stats.cupsByAscension, run.ascension)
         : career.stats.cupsByAscension,

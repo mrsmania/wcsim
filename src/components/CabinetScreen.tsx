@@ -488,7 +488,7 @@ export default function CabinetScreen({
                 v={String(r.semiStreak)}
                 dim={r.semiStreak === 0}
               />
-              <Rec k="Finals lost" v={r.everLostFinal ? 'yes' : 'no'} dim={!r.everLostFinal} />
+              <Rec k="Finals lost" v={String(r.finalsLost)} dim={r.finalsLost === 0} />
               <Rec k="Runs at Ascension II or higher" v={String(r.runsAtHighAscension)} dim={r.runsAtHighAscension === 0} />
               <Rec
                 k="Prestige spent, lifetime"

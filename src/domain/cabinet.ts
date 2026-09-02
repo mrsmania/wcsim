@@ -70,7 +70,9 @@ export interface CabinetRecords {
    *  Three-Peat is itself proof a three-cup streak happened. Cheaper than a new
    *  counter, and it works retroactively on a career that predates the cabinet. */
   bestCupStreak: number;
-  everLostFinal: boolean;
+  /** How many finals were lost, as the largest figure the career can PROVE. See
+   *  `finalsLostOf`: it used to be a yes/no, which is not an answer to "how many". */
+  finalsLost: number;
   runsAtHighAscension: number;
   prestigeSpent: number;
   perkTiersOwned: number;
@@ -140,6 +142,19 @@ export const LEADERBOARD_ROWS = 10;
 /** The tier whose full list the cabinet shows (the shortest, so it fits one row). */
 const STRIP_TIER: StickerTier = 'monumental';
 
+
+/** Finals lost, as the strongest figure the career can prove. `CareerStats.finalsLost`
+ *  is exact for every run played since it existed, and three sources say something about
+ *  the ones before it: the counter itself, the run archive (which records each finished
+ *  run's outcome), and `everLostFinal`, which is proof of one. All three are lower bounds
+ *  on the same lifetime number, so the largest of them is the honest answer - and on a
+ *  career that has only played since the counter, it IS the counter. Same reasoning as
+ *  `bestCupStreakOf` below: read the proof rather than adding a counter that starts at
+ *  zero and quietly under-reports for ever. */
+export function finalsLostOf(career: CareerState): number {
+  const archived = (career.stats.history ?? []).filter((h) => h.outcome === 'final').length;
+  return Math.max(career.stats.finalsLost ?? 0, archived, career.stats.everLostFinal ? 1 : 0);
+}
 
 /** The best cup streak this career ever managed. See `CabinetRecords.bestCupStreak`. */
 export function bestCupStreakOf(career: CareerState): number {
@@ -261,7 +276,7 @@ export function cabinetView(
       finalStreak: career.stats.finalStreak,
       semiStreak: career.stats.semiStreak,
       bestCupStreak: bestCupStreakOf(career),
-      everLostFinal: career.stats.everLostFinal,
+      finalsLost: finalsLostOf(career),
       runsAtHighAscension: career.stats.runsAtHighAscension,
       prestigeSpent: career.stats.prestigeSpent,
       perkTiersOwned: perkTiersOwned(career),
