@@ -4,7 +4,7 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
-import { FIXTURE, check } from './harness';
+import { FIXTURE, check, withSeed } from './harness';
 import { ALL_PLAYERS } from '../../src/data/squads';
 import {
   ELO_MAX,
@@ -94,6 +94,25 @@ export function scorersChecks(): void {
 
     // 5. End to end through the real sim: the per-player ordering holds, and no keeper
     //    ever appears in a goal feed.
+    //
+    // SEEDED, and it has to be (hygiene H95, the rule the boon-power table follows). The
+    // ordering below is a claim about five measured RATES over 6,000 random matches, and
+    // the last pair of it is tight: the fixture XI takes the highest-rated eligible player
+    // per slot, which puts a 91 at right-back against a 97 and a 96 in the middle, so the
+    // 25% the weights give a full-back over a centre-back (1.0 against 0.8) comes back as
+    // 15% once the rating tilt has closed most of it. That is about 2.8 standard deviations
+    // of the difference, so the assertion failed roughly one run in a few hundred on
+    // nothing but the draw - and an assertion that fails at random is worse than no
+    // assertion, which is exactly why the boon table is seeded. Fixed inputs, one
+    // reproducible answer; the generator is restored immediately after, in a finally.
+    //
+    // The seed is not lucky: it reads a 14.9% gap where the weights and the tilt predict
+    // 15.4%, so what the block measures is the middle of the distribution rather than a
+    // corner of it that happens to pass. Every guard is still live - the sample has to
+    // reach 5,000 goals, every scorer has to resolve to a player in the XI, and no keeper
+    // may appear at all - because a seeded sample that measured nothing would pass just as
+    // quietly as a random one.
+    withSeed(9, () => {
     const f = getFormation('4-2-3-1', 'off')!;
     const used = new Set<string>();
     const filled: Filled = {};
@@ -129,6 +148,7 @@ export function scorersChecks(): void {
       }
     }
     const rate = (pos: Position) => (perPos.get(pos) ?? 0) / (countPos.get(pos) ?? 1) / goals;
+    const ORDERED: Position[] = ['ST', 'AM', 'CM', 'RB', 'CB'];
     check(
       'scorers: over 6000 matches the measured order is ST > AM > CM > full-back > CB',
       () => goals > 5000 &&
@@ -138,7 +158,12 @@ export function scorersChecks(): void {
         rate('AM') > rate('CM') &&
         rate('CM') > rate('RB') &&
         rate('RB') > rate('CB'),
+      // Which pair flipped, and on what sample - a weight edit is what this exists to
+      // catch, and the name alone does not say which line moved (hygiene H93).
+      () => `${goals} goals, ${unknown} unresolved, GK ${perPos.has('GK') ? 'scored' : 'none'}; ` +
+        ORDERED.map((pos) => `${pos} ${(rate(pos) * 1000).toFixed(2)}`).join(' > '),
     );
+    });
   }
 
 }
