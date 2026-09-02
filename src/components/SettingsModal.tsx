@@ -12,7 +12,11 @@ const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
 const GH = 'font-display text-[14px] font-extrabold';
 const HINT = 'mt-0.5 text-[12px] leading-snug text-muted';
 
-const SHORTCUT_BTN = `!rounded-full ${btn('quiet', 'sm')}`;
+// The three pool shortcuts. They were `!rounded-full` over the button token, so the sheet
+// carried a pill nothing else in the app has - and the `!` was the tell: an override that
+// fights the design is a new design wearing its name. They are the plain row-sized
+// secondary button now. (The year grid below them is a SELECTOR and keeps its own look.)
+const SHORTCUT_BTN = btn('secondary', 'compact');
 
 const DIFFICULTIES: { value: Difficulty; label: string }[] = [
     { value: 'casual', label: 'Casual' },

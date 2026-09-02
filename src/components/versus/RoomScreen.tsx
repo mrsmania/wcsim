@@ -579,7 +579,7 @@ export default function RoomScreen({ code }: { code: string }) {
                                 onEnd={finishWatching}
                             />
                             <div>
-                                <button className={btn('quiet', 'sm')} onClick={finishWatching}>
+                                <button className={btn('secondary', 'compact')} onClick={finishWatching}>
                                     Skip to the result
                                 </button>
                             </div>

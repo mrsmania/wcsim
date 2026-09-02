@@ -166,7 +166,7 @@ export default function ChallengesScreen({
           <button
             type="button"
             onClick={() => onSetCollapsedFamilies(allFolded ? [] : FAMILIES)}
-            className={`ml-auto ${btn('quiet', 'sm')}`}
+            className={`ml-auto ${btn('secondary', 'compact')}`}
           >
             {allFolded ? 'Expand all' : 'Collapse all'}
           </button>

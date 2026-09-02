@@ -26,78 +26,115 @@ export function RatingChip({ value, className = '' }: { value: number; className
  *  framework-light: every piece is a pure function of its props. */
 
 /**
- * THE BUTTONS. Four tones, three sizes, one function.
+ * THE BUTTONS. THREE DESIGNS, two scales, one function.
  *
- * Reworked 2026-08-27, after the observation that the app had "about ten different looks of
- * buttons". It did: `PRIMARY_BTN` and `SECONDARY_BTN` here, plus a bespoke string in each of
- * `CompletePanel`, `SetupPanel`, `ModeSelect`, `SquadBrowser`, `UnreachableScreen`,
- * `SettingsModal`, `AlbumScreen` and `BudgetMarket`, and four different paddings appended to
- * the outline base. Every one of them was a near-copy differing by a pixel of padding or a
- * point of type, which is the shape of a token nobody could find.
+ * Reworked twice. The first pass (2026-08-27) followed the observation that the app had
+ * "about ten different looks of buttons" and folded them into `btn(tone, size)` - four
+ * tones by three sizes. The second (2026-09-02) followed the same observation made again,
+ * and it was still true: the helper had grown to twelve renderings, and eight more bespoke
+ * buttons had been written OUTSIDE it since - the front page's amber and white hero CTAs,
+ * the round pills in the settings sheet, the soft-shadowed re-roll buttons with their own
+ * 12px radius, the album's accent-bordered Trade, the two masthead controls, and two
+ * destructive triggers that were bare text in two different sizes.
  *
- * NOTHING NEW WAS INVENTED. The turf-flat identity is unchanged: `rounded-[5px]`, a 1px
- * border, the display face in extrabold uppercase, green for the action you came to take and
- * an ink outline for the one beside it. What is new is that there are now four TONES and
- * three SIZES and no fourth axis, so the answer to "which button is this" is a pair rather
- * than a fresh class string.
+ * So the count is now a HARD CEILING rather than a tidier drawer, and it is three:
  *
- * WHY A FUNCTION AND NOT TWELVE CONSTANTS: twelve names is the problem restated. Every class
- * it returns is a literal in this file, so Tailwind still sees the whole set.
+ *   * `primary` - THE MAIN one. The action you came to the screen to take.
+ *   * `secondary` - THE SECOND one. The action beside it, and everything quieter: Back,
+ *     Refresh, Cancel, Auto-fill, Clear, the masthead's two.
+ *   * `danger` - THE THIRD one. Destructive, and the only reason it survives the cut: the
+ *     three it guards (delete the account, reset the album, discard the XI in progress)
+ *     cannot be told apart from an ordinary button by their wording alone, and a fourth
+ *     emphasis level is worth less than that.
  *
- * THE TONES CARRY MEASURED CONTRAST, which is the other half of the rework - the primary
- * button did not meet AA and had not since it was written:
+ * WHAT WENT: `quiet` (line-bordered, muted label), which was the app's third emphasis and
+ * is now `secondary`. Every one of its eleven call sites was a toolbar or a row - which is
+ * what the compact SCALE is for, so the size was already carrying the distinction and the
+ * colour was saying it twice.
+ *
+ * A SCALE IS NOT A DESIGN, and neither is a SURFACE. Both are the same three designs
+ * rendered where they have to go:
+ *
+ *   * `normal` / `compact` - a page or card action, and one inside a row or a toolbar.
+ *     Same colours, same shape, same face; padding and type scale only. The old middle
+ *     size is gone: its ten call sites were all card actions, so they are `normal`.
+ *   * `light` / `dark` - the app's paper, and the ONE dark surface it has (the front
+ *     page's turf hero). On the turf the primary's `pitch-dark` fill measures about 1.1
+ *     against the scrimmed grass behind it, so the button would vanish; it inverts to a
+ *     white fill with the dark ink label, which is the strongest thing available on a
+ *     green ground and is exactly what that CTA already was. `danger` needs no dark
+ *     rendering and deliberately has none of its own - an opaque red reads on any ground.
+ *
+ * WHY A FUNCTION AND NOT A PILE OF CONSTANTS: a pile of names is the problem restated.
+ * Every class it returns is a literal in this file, so Tailwind still sees the whole set.
+ *
+ * THE TONES CARRY MEASURED CONTRAST, and `npm run checks` computes all of it from the real
+ * tokens in both themes, resting and hovered, and fails below 4.5:
  *
  *   * `primary` fills with **pitch-dark**, not pitch. White on pitch measures **4.00** in
  *     light and **3.25** on graphite against the 4.5 a 13px bold label needs; white on
- *     pitch-dark is 8.08 and 10.34. The hover lifts to `pitch-hover`, which is the one step
- *     between the two greens that still carries white (5.62) - the bright `pitch` does not,
- *     so hovering would have dropped the button back below AA. This is the single biggest
- *     thing the audit found.
+ *     pitch-dark is 8.08 and 10.34. The hover lifts to `pitch-hover`, the one step between
+ *     the two greens that still carries white (5.62) - the bright `pitch` does not, so
+ *     hovering would have dropped the button back below AA.
  *   * `secondary` is ink on panel: 16.66 and 14.36, and never in doubt.
- *   * `quiet` is muted on panel, 5.70 and 7.06. It exists because the app already had this
- *     third emphasis - Back, Refresh, Auto-fill, the masthead's two - expressed six
- *     different ways.
  *   * `danger` fills with **loss-deep**. Plain `loss` carries white at 4.80 in light but
  *     only **3.14** on graphite, so the destructive confirm failed AA in the dark theme.
  *
  * Hovers reach for `pitch-ink` rather than `pitch` for the same reason: green as TEXT is
  * 4.00 on white. See the token's own note in `index.css`.
  */
-export const BTN_TONES = ['primary', 'secondary', 'quiet', 'danger'] as const;
+export const BTN_TONES = ['primary', 'secondary', 'danger'] as const;
 export type BtnTone = (typeof BTN_TONES)[number];
 
-/** `lg` is a page action, `md` one inside a card, `sm` one in a row or a toolbar. Three,
- *  because the twelve strings this replaced used exactly three scales between them. */
-export const BTN_SIZES = ['lg', 'md', 'sm'] as const;
+/** `normal` is a page or card action, `compact` one inside a row or a toolbar. Two,
+ *  because those are the only two jobs the twelve strings this replaced were doing. */
+export const BTN_SIZES = ['normal', 'compact'] as const;
 export type BtnSize = (typeof BTN_SIZES)[number];
+
+/** The app's paper, and the front page's turf hero. See the note above: a surface is not
+ *  a design, it is the same design where it has to be legible. */
+export const BTN_SURFACES = ['light', 'dark'] as const;
+export type BtnSurface = (typeof BTN_SURFACES)[number];
 
 const BTN_SHAPE =
     'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50';
 
 const BTN_SIZE: Record<BtnSize, string> = {
-    lg: 'px-5 py-3 text-[13px]',
-    md: 'px-4 py-2.5 text-[12px]',
-    sm: 'px-2.5 py-1.5 text-[11px]',
+    normal: 'px-5 py-3 text-[13px]',
+    compact: 'px-2.5 py-1.5 text-[11px]',
 };
 
-const BTN_TONE: Record<BtnTone, string> = {
-    primary: 'border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]',
-    secondary: 'border-ink bg-panel text-ink hover:border-pitch hover:text-pitch-ink',
-    quiet: 'border-line bg-panel text-muted hover:border-pitch hover:text-pitch-ink',
-    danger: 'border-loss-deep bg-loss-deep text-white hover:opacity-90 active:scale-[0.99]',
+// The literal `text-[#13211a]` on the dark primary is the same deliberate choice
+// `ModeSelect`'s hero has always made: a white fill is light in BOTH themes, so the label
+// needs the dark ink in both, and `text-ink` is near-white in dark and would vanish.
+const BTN_TONE: Record<BtnSurface, Record<BtnTone, string>> = {
+    light: {
+        primary: 'border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]',
+        secondary: 'border-ink bg-panel text-ink hover:border-pitch hover:text-pitch-ink',
+        danger: 'border-loss-deep bg-loss-deep text-white hover:opacity-90 active:scale-[0.99]',
+    },
+    dark: {
+        primary: 'border-white bg-white text-[#13211a] hover:bg-white/90 active:scale-[0.99]',
+        secondary: 'border-white/40 bg-white/[0.08] text-white hover:border-white/70 hover:bg-white/[0.16]',
+        danger: 'border-loss-deep bg-loss-deep text-white hover:opacity-90 active:scale-[0.99]',
+    },
 };
 
-/** One button's classes. See the note above for what the tones mean and what they measure. */
-export function btn(tone: BtnTone = 'primary', size: BtnSize = 'lg'): string {
-    return `${BTN_SHAPE} ${BTN_SIZE[size]} ${BTN_TONE[tone]}`;
+/** One button's classes. See the note above for what the three tones mean, what they
+ *  measure, and why a scale and a surface are not a fourth and fifth design. */
+export function btn(
+    tone: BtnTone = 'primary',
+    size: BtnSize = 'normal',
+    surface: BtnSurface = 'light',
+): string {
+    return `${BTN_SHAPE} ${BTN_SIZE[size]} ${BTN_TONE[surface][tone]}`;
 }
 
-/** The two names most of the app already uses, kept so a call site that wants the ordinary
- *  page action does not have to say so twice. */
+/** The three designs by name, at page size, kept so the ordinary call site does not have
+ *  to say so twice. There is nothing else: a fourth name here would be a fourth look. */
 export const PRIMARY_BTN = btn('primary');
 export const SECONDARY_BTN = btn('secondary');
-/** The destructive confirm, at in-card size because that is where a confirm always is. */
-export const DANGER_BTN = btn('danger', 'md');
+export const DANGER_BTN = btn('danger');
 
 /** The turf-flat card: 6px corners, a 1px rule and the signature hard offset shadow.
  *  Class strings rather than a `<Card>` component, deliberately: the call sites need

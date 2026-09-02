@@ -12,7 +12,7 @@ export default function StartOverButton({ onReset }: { onReset: () => void }) {
       confirmLabel="Yes, start over"
       onConfirm={onReset}
       triggerLabel="Start over"
-      triggerClassName={`mt-3 w-full ${btn('secondary', 'md')}`}
+      triggerClassName={`mt-3 w-full ${btn('secondary')}`}
       rowClassName="mt-3 flex flex-wrap items-center justify-center gap-2"
     />
   );

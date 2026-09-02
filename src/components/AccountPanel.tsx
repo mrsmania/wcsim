@@ -144,13 +144,13 @@ export default function AccountPanel({
           Your album, career and settings follow this account on any device.
         </p>
         <div className="mt-2.5 flex flex-wrap gap-2">
-          <button type="button" onClick={() => void out('local')} className={btn('secondary', 'md')}>
+          <button type="button" onClick={() => void out('local')} className={btn('secondary')}>
             Sign out
           </button>
           <button
             type="button"
             onClick={() => void out('global')}
-            className={btn('secondary', 'md')}
+            className={btn('secondary')}
           >
             Sign out everywhere
           </button>
@@ -161,7 +161,7 @@ export default function AccountPanel({
         <div className="mt-3 border-t border-line pt-3">
           <ConfirmAction
             triggerLabel="Delete my account"
-            triggerClassName="text-[12px] text-muted underline hover:text-loss"
+            triggerClassName={btn('danger', 'compact')}
             confirmClassName="rounded-md border border-loss/40 bg-loss/[0.06] p-3"
             promptClassName="text-[12.5px] leading-snug"
             rowClassName="mt-2.5 flex flex-wrap gap-2"

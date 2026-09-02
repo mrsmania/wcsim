@@ -9,13 +9,13 @@
 // THE ONE PLACE THE BUTTON TOKENS ARE WRITTEN OUT BY HAND, and it has to be: this file has
 // no imports at all (see above) so that main.tsx can render it before the app exists, and
 // `matchUi` would drag lucide, react-router and Flag onto that path. So these two are copies
-// of `btn('primary')` and `btn('quiet')` and must be kept in step with them - which is what
+// of `btn('primary')` and `btn('secondary')` and must be kept in step with them - which is what
 // `npm run checks` asserts, because a screen nobody sees until something has gone wrong is
 // exactly the one that drifts.
 const PRIMARY =
   'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50 px-5 py-3 text-[13px] border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]';
 const SECONDARY =
-  'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50 px-5 py-3 text-[13px] border-line bg-panel text-muted hover:border-pitch hover:text-pitch-ink';
+  'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50 px-5 py-3 text-[13px] border-ink bg-panel text-ink hover:border-pitch hover:text-pitch-ink';
 // Not matchUi's CARD_FLAT either, for the same reason.
 
 export default function UnreachableScreen({

@@ -43,7 +43,7 @@ export default function CaptainPicker({
               key={p.id}
               type="button"
               onClick={() => onChoose(p.id)}
-              className={`w-full justify-start text-left ${btn('secondary', 'md')}`}
+              className={`w-full justify-start text-left ${btn('secondary')}`}
             >
               <span className="w-8 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
                 {primaryPosition(p)}

@@ -230,7 +230,7 @@ export default function CareerHub({
                                 ) : canBuy ? (
                                     <button
                                         onClick={() => onPurchase(perk.id)}
-                                        className={`mt-2 w-full ${btn('primary', 'sm')}`}
+                                        className={`mt-2 w-full ${btn('primary', 'compact')}`}
                                     >
                                         {reason === 'upgrade' ? 'Upgrade' : 'Unlock'}
                                     </button>
@@ -283,7 +283,7 @@ export default function CareerHub({
                             ) : affordable ? (
                                 <button
                                     onClick={() => onUnlockBoost(b.id)}
-                                    className={`mt-2 w-full ${btn('primary', 'sm')}`}
+                                    className={`mt-2 w-full ${btn('primary', 'compact')}`}
                                 >
                                     Unlock
                                 </button>

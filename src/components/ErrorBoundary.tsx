@@ -36,6 +36,27 @@ function reloadOnce(): boolean {
   return true;
 }
 
+/** THE MAIN BUTTON, in inline styles because this file has none of Tailwind's (see the
+ *  note at the top: it must render even if what it wraps took the app down with it). So it
+ *  is a copy of `btn('primary')`'s VALUES rather than of its classes - pitch-dark fill,
+ *  white label, a 5px radius, the 13px extrabold uppercase label and the 0.04em tracking -
+ *  and `npm run checks` holds it against the real tokens. It used to be its own green
+ *  (#1e5631 on #16391f), its own 6px radius and its own weight, which is to say a look
+ *  the app has nowhere else, on the one screen nobody proof-reads. */
+const reload: React.CSSProperties = {
+  marginTop: 16,
+  padding: '12px 20px',
+  border: '1px solid #0e5c34',
+  background: '#0e5c34',
+  color: '#fff',
+  borderRadius: 5,
+  fontWeight: 800,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  fontSize: 13,
+  cursor: 'pointer',
+};
+
 const box: React.CSSProperties = {
   maxWidth: 520,
   margin: '0 auto',
@@ -85,21 +106,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
         >
           {error.message}
         </pre>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          style={{
-            marginTop: 16,
-            padding: '10px 16px',
-            border: '1px solid #16391f',
-            background: '#1e5631',
-            color: '#fff',
-            borderRadius: 6,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            fontSize: 13,
-          }}
-        >
+        <button type="button" onClick={() => window.location.reload()} style={reload}>
           Reload
         </button>
       </div>

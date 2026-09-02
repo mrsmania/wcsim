@@ -257,7 +257,7 @@ function DuelLine({
             </div>
             <button
                 type="button"
-                className={`shrink-0 ${btn(alert ? 'primary' : 'secondary', 'sm')}`}
+                className={`shrink-0 ${btn(alert ? 'primary' : 'secondary', 'compact')}`}
                 onClick={() => go(`/versus/${row.code}`)}
             >
                 {alert === 'watch'
@@ -459,7 +459,7 @@ export default function VersusHome({
                             `, ${record.roomsWon} room${record.roomsWon === 1 ? '' : 's'} won outright`}
                     </span>
                 )}
-                <button className={`${btn('quiet', 'sm')} ml-auto`} onClick={onRename}>
+                <button className={`${btn('secondary', 'compact')} ml-auto`} onClick={onRename}>
                     Change name
                 </button>
             </div>
@@ -731,7 +731,7 @@ export default function VersusHome({
                                         <button
                                             type="button"
                                             disabled={!open}
-                                            className={`shrink-0 ${btn('secondary', 'sm')}`}
+                                            className={`shrink-0 ${btn('secondary', 'compact')}`}
                                             onClick={() => navigate(`/versus/${r.code}`)}
                                         >
                                             {open ? 'Take a seat' : 'Full'}

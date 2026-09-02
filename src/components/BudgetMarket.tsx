@@ -364,7 +364,7 @@ export default function BudgetMarket({
           {onAutoFill && emptySlots.length > 0 && (
             <button
               onClick={autoFill}
-              className={btn('quiet', 'sm')}
+              className={btn('secondary', 'compact')}
             >
               Auto-fill &amp; spend
             </button>
@@ -372,7 +372,7 @@ export default function BudgetMarket({
           {onClear && placed.length > 0 && (
             <button
               onClick={onClear}
-              className={`${btn('quiet', 'sm')} hover:!border-loss hover:!text-loss`}
+              className={btn('secondary', 'compact')}
             >
               Clear
             </button>
@@ -561,7 +561,7 @@ export default function BudgetMarket({
             <div className="mt-2 flex px-1">
               <button
                 onClick={clearFilters}
-                className="inline-flex items-center gap-1 rounded-[5px] border border-line bg-panel px-2 py-1 font-mono text-[11px] font-semibold text-muted transition hover:border-loss hover:text-loss"
+                className={btn('secondary', 'compact')}
               >
                 <X size={11} strokeWidth={2.5} />
                 Clear filters
@@ -603,7 +603,7 @@ export default function BudgetMarket({
                   a cup and country that had a left winger can have no keeper at all. That
                   is a fair answer to the question, and this is the way back out of it. */}
               {anyFilter && (
-                <button onClick={clearFilters} className={`${btn('quiet', 'sm')} mt-3`}>
+                <button onClick={clearFilters} className={`${btn('secondary', 'compact')} mt-3`}>
                   Clear filters
                 </button>
               )}

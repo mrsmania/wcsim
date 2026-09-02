@@ -336,7 +336,7 @@ export default function RoomDraft({
                         {whole && (
                             <button
                                 type="button"
-                                className={`ml-auto ${btn('quiet', 'sm')}`}
+                                className={`ml-auto ${btn('secondary', 'compact')}`}
                                 onClick={() => void room.setDone(false).catch(() => undefined)}
                             >
                                 Change my XI

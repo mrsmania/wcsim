@@ -24,7 +24,7 @@ import {
 import TradeModal from './TradeModal';
 import Overlay from './Overlay';
 import Flag from './Flag';
-import { CARD, Meter, MONO_CAP, PAGE_EYEBROW, StageHeader } from './matchUi';
+import { btn, CARD, Meter, MONO_CAP, PAGE_EYEBROW, StageHeader } from './matchUi';
 import ConfirmAction from './ConfirmAction';
 
 interface Props {
@@ -167,16 +167,16 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                             </span>
                             <span className="flex-1" />
                             {afford && anyUncollected ? (
+                                /* The secondary design, at row size. It used to build its
+                                   own look out of the TIER's accent colour - an inline
+                                   border and label, plus two mouse handlers to paint a
+                                   hover an inline style cannot express - which made one
+                                   button per tier, three looks for one action. The tier is
+                                   named in the label and dotted beside the heading, so the
+                                   colour was saying it a third time. */
                                 <button
                                     onClick={() => openTrade(tier)}
-                                    className="rounded-[5px] border px-3 py-2 font-display text-[11px] font-extrabold uppercase tracking-[0.04em] transition hover:text-white"
-                                    style={{ borderColor: meta.accent, color: meta.accent }}
-                                    onMouseEnter={(e) =>
-                                        (e.currentTarget.style.background = meta.accent)
-                                    }
-                                    onMouseLeave={(e) =>
-                                        (e.currentTarget.style.background = 'transparent')
-                                    }
+                                    className={btn('secondary', 'compact')}
                                 >
                                     Trade {cost} &rarr; {meta.name}
                                 </button>
@@ -230,7 +230,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                         confirmLabel="Yes, reset album"
                         onConfirm={onReset}
                         triggerLabel="Reset album"
-                        triggerClassName="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-loss"
+                        triggerClassName={btn('danger', 'compact')}
                         rowClassName="flex flex-wrap items-center justify-center gap-2.5 text-center"
                     />
                 </div>

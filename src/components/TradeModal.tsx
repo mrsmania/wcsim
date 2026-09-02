@@ -42,7 +42,7 @@ export default function TradeModal({ targetTier, costDuplicates, options, onPick
         ))}
       </div>
       <div className="mt-5 flex justify-end">
-        <button onClick={onCancel} className={btn('secondary', 'md')}>
+        <button onClick={onCancel} className={btn('secondary')}>
           Cancel
         </button>
       </div>

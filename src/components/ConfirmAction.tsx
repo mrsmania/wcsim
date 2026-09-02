@@ -73,7 +73,7 @@ export default function ConfirmAction({
         <button
           onClick={() => setConfirm(false)}
           disabled={busy}
-          className={btn('secondary', 'md')}
+          className={btn('secondary')}
         >
           Cancel
         </button>

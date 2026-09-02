@@ -437,12 +437,12 @@ export function InviteRoom({ code, url }: { code: string; url: string }) {
         <div>
             <div className="flex flex-wrap items-center gap-2">
                 <RoomCode code={code} />
-                <button type="button" className={btn('quiet', 'sm')} onClick={copy}>
+                <button type="button" className={btn('secondary', 'compact')} onClick={copy}>
                     <Link2 size={13} strokeWidth={2.5} className="mr-1.5 inline align-[-2px]" />
                     Copy link
                 </button>
                 {typeof navigator !== 'undefined' && !!navigator.share && (
-                    <button type="button" className={btn('quiet', 'sm')} onClick={share}>
+                    <button type="button" className={btn('secondary', 'compact')} onClick={share}>
                         <Share2 size={13} strokeWidth={2.5} className="mr-1.5 inline align-[-2px]" />
                         Share
                     </button>

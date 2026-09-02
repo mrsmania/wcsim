@@ -9,7 +9,7 @@ import Tooltip from './Tooltip';
 import CollectibleStar from './CollectibleStar';
 import StartOverButton from './StartOverButton';
 import { FEATURES } from '../config';
-import { CARD } from './matchUi';
+import { btn, CARD } from './matchUi';
 
 interface Props {
     squad: Squad | null;
@@ -262,22 +262,18 @@ function RerollButton({
     disabled: boolean;
     onClick: () => void;
 }) {
+    // The two designs at row size, and nothing of their own. They used to carry a 12px
+    // radius, a soft green glow and a stacked icon-over-label layout that appeared nowhere
+    // else in the app, plus their own two disabled states - `btn` already dims a disabled
+    // button, which is what those were reproducing by hand. `leading-tight` stays because
+    // the labels are two words in a third of a narrow column and wrap on purpose.
     return (
         <button
             disabled={disabled}
             onClick={onClick}
-            className={[
-                'flex flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2.5 text-center text-[11px] font-bold leading-tight transition',
-                disabled
-                    ? primary
-                        ? 'cursor-not-allowed bg-pitch/30 text-white'
-                        : 'cursor-not-allowed border border-line bg-panel text-muted/40'
-                    : primary
-                      ? 'bg-pitch text-white shadow-[0_6px_16px_rgba(19,146,76,0.25)] hover:bg-pitch-dark'
-                      : 'border border-line bg-panel hover:border-pitch hover:text-pitch-ink',
-            ].join(' ')}
+            className={`${btn(primary ? 'primary' : 'secondary', 'compact')} w-full leading-tight`}
         >
-            <RotateCcw size={15} strokeWidth={2.5} />
+            <RotateCcw size={15} strokeWidth={2.5} className="shrink-0" />
             {label}
         </button>
     );

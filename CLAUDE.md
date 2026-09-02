@@ -2917,23 +2917,69 @@ keep working.
   probably not alone in this tree"; like the `main` rule above it, it is stated twice on
   purpose.
 
-## Buttons and contrast
+## Buttons and contrast: THREE DESIGNS, AND THAT IS A CEILING
 
 Reworked 2026-08-27, on the observation that the app had "about ten different looks of
-buttons". It did, and the primary one had never met AA.
+buttons". It did, and the primary one had never met AA. **Reworked again 2026-09-02, on the
+same observation made again**, because it was still true: the helper had grown to twelve
+renderings and eight more bespoke buttons had been written outside it since. So the number
+is now a stated ceiling rather than a tidier drawer, and `npm run checks` asserts the number.
 
-**EVERY BUTTON IS `btn(tone, size)`** (`components/matchUi.tsx`). Four tones -
-`primary` (solid green), `secondary` (ink outline), `quiet` (line outline, the app's
-genuine third emphasis: Back, Refresh, Auto-fill, the masthead's two) and `danger` - by
-three sizes: `lg` a page action, `md` one inside a card, `sm` one in a row or a toolbar.
-`PRIMARY_BTN`, `SECONDARY_BTN` and `DANGER_BTN` are just the three common pairs, kept as
-names because most call sites want them. **Do not write a button class string.** What it
-replaced: those two tokens plus a bespoke one in each of `CompletePanel`, `SetupPanel`,
-`ModeSelect`, `SquadBrowser`, `UnreachableScreen`, `SettingsModal`, `AlbumScreen` and
-`BudgetMarket`, and four different paddings appended to the outline base - every one a
-near-copy differing by a pixel of padding or a point of type, which is the shape of a token
-nobody could find. **Nothing was invented**: the turf-flat identity (rounded-[5px], 1px
-border, display face in extrabold uppercase) is exactly as it was.
+**EVERY BUTTON IS `btn(tone, size)`** (`components/matchUi.tsx`), and there are **THREE
+TONES**, which are the three designs the app has:
+
+- **`primary`** - the main one. The action you came to the screen to take. Solid green.
+- **`secondary`** - the second one, and everything quieter with it: Back, Refresh, Cancel,
+  Auto-fill, Clear, the album's Trade, the settings sheet's pool shortcuts. Ink outline.
+- **`danger`** - the third one. Destructive, and the only reason it survives the cut to
+  three: delete the account, reset the album, discard the XI in progress. None of those can
+  be told from an ordinary button by its wording, and a fourth emphasis level is worth less
+  than that. Both destructive TRIGGERS were bare text links in two different sizes before
+  this, so the red is what they gained.
+
+`PRIMARY_BTN`, `SECONDARY_BTN` and `DANGER_BTN` are the three at page size, kept as names
+because most call sites want them. **Do not write a button class string, and do not add a
+fourth name here.**
+
+**`quiet` IS GONE.** It was the line-bordered muted tone, the app's third emphasis before
+danger took the slot, and all eleven of its call sites were a toolbar or a row - which is
+what the compact SCALE is for, so the size was already carrying the distinction and the
+colour was saying it twice.
+
+**A SCALE IS NOT A DESIGN, AND NEITHER IS A SURFACE.** Both are the same three designs
+rendered where they have to go, and they are the two axes `btn` takes after the tone:
+
+- **`normal` / `compact`** - a page or card action, and one inside a row or a toolbar. Same
+  colours, same shape, same face; padding and type scale only. The old middle size went:
+  its ten call sites were all card actions, so they are `normal`.
+- **`light` / `dark`** (`btn(tone, size, 'dark')`) - the app's paper, and the ONE dark
+  surface it has, the front page's turf hero. The primary's `pitch-dark` fill measures
+  **1.27** against the scrimmed grass, so on the turf the button would simply not be there;
+  it inverts to a white fill with the dark ink label, which is the strongest thing available
+  on a green ground. `danger` has no dark rendering of its own **and the checks assert it is
+  the identical string** - an opaque red reads on any ground, and asserting the sameness is
+  what stops the dark set drifting into three more looks.
+
+**WHAT THE 2026-09-02 PASS DELETED**, since each of these is a look somebody will otherwise
+re-invent: the front page's hero CTAs (an amber fill, a white fill and a translucent white
+outline, at a 14px label and an 8px radius used nowhere else); the settings sheet's
+`!rounded-full` pills; the drawn squad's three re-roll buttons (a 12px radius, a soft green
+glow, a stacked icon-over-label layout and two hand-rolled disabled states); the album's
+Trade button, which built its look out of the TIER's accent colour with two mouse handlers
+to paint a hover an inline style cannot express; the market's `hover:!border-loss` red hover
+and its bespoke mono "Clear filters"; and the error boundary's own green. **`!` OVERRIDES
+ARE THE TELL**: an override that fights the token is a new design wearing the token's name,
+and both of the ones that existed were exactly that.
+
+**SELECTORS ARE DELIBERATELY NOT BUTTONS AND KEEP THEIR OWN LOOKS** (decided 2026-09-02).
+The formation and Ascension chips, the two sets of year pills, the market's Affordable and
+Collectible toggles, and the five segmented groups are things you PICK, not things you
+press, and they were left alone on purpose. Folding them in is a separate job with a
+separate decision behind it; do not do it as a side effect of touching a button. What is
+worth knowing is that the five segmented groups still disagree with each other (two fill
+the active cell with `ink`, two with `pitch-dark`, and the type is mono in one, display in
+another and plain in a third), and the two year-pill designs disagree too - so if the next
+consistency pass is asked for, that is where it is.
 
 **THE PRIMARY FILLS WITH `pitch-dark`, AND THAT IS A MEASUREMENT.** White on `pitch` is
 **4.00** in light and **3.25** on graphite, against the 4.5 a 13px bold label needs - so the
@@ -2958,20 +3004,46 @@ lightness between the themes, so white on it is 2.49 / 2.13 and dark ink on it i
 album's and the sticker card's duplicate counts, the run XI's Boost tag) use the tinted
 idiom `CareerHub` already had: `border-amber/40 bg-amber/[0.16] text-amber-ink`, which is
 5.25 / 7.84. The one exception is a foreground that is dark in BOTH themes - the literal
-`text-[#13211a]` - which is what `ModeSelect`'s hero CTAs and `PlayerBadge`'s amber disc use
+`text-[#13211a]` - which is what the hero's primary CTA and `PlayerBadge`'s amber disc use
 and why those are correct rather than untidy.
 
 **THE HERO'S AMBER HEADLINE NEEDED A SCRIM, not a new colour.** Amber on the hero's turf
 measures **1.76**, under even the 3:1 large text is allowed, and no value of a mid amber
 reads on a mid green - reaching 3:1 by lightening takes it to lemon. So the hero carries a
-left-to-right `from-ink/55` gradient under the words only: 3.79 for the amber, 9.42 for the
-white, and the tactics board on the right stays exactly as bright.
+left-to-right gradient under the words only: 3.79 for the amber, 10.24 for the white, and
+the tactics board on the right stays exactly as bright.
 
-**`UnreachableScreen` IS THE ONE PLACE THE STRINGS ARE WRITTEN OUT BY HAND**, and it has to
-be: `main.tsx` renders it before the app exists, so importing `matchUi` would drag lucide,
-react-router and `Flag` onto that path. `npm run checks` asserts its two literals still equal
-`btn('primary')` and `btn('quiet')` - a screen nobody sees until something has gone wrong is
-exactly the one that drifts.
+**AND THAT SCRIM'S VALUE IS A LITERAL, BECAUSE `ink` INVERTS** (a real bug, found and fixed
+2026-09-02 while measuring the hero for the dark button rendering). It was `from-ink/55`,
+and `ink` is theme-swapped - so in the DARK theme the scrim painted a **near-white** wash
+over the turf, the ground came out `#8ebba4`, and the white headline and body copy measured
+**2.14** against a 4.5 requirement. The whole job of that layer is to DEEPEN the green, and
+"deepen" is not something a token that inverts can do. It is `from-[#13211a]/55` now, the
+same literal the CTA has always used and for the same reason, and `npm run checks` measures
+the composited ground in both themes so the token cannot come back. **The general lesson: a
+theme-swapped token laid over a surface that is NOT theme-swapped is a bug waiting for
+somebody to open the app in the other theme.**
+
+**TWO FILES WRITE THE MAIN BUTTON OUT BY HAND, and both say why in their own header.**
+`UnreachableScreen` is rendered by `main.tsx` before the app exists, so importing `matchUi`
+would drag lucide, react-router and `Flag` onto that path; `ErrorBoundary` has no imports
+beyond React so that it renders even when whatever it wraps took the app down. So one copies
+the class strings and the other copies the same design as inline style VALUES, and
+`npm run checks` holds both against the real tokens - a screen nobody sees until something
+has gone wrong is exactly the one that drifts, and both of these had.
+
+**THE CHECK THAT ACTUALLY HOLDS THE CEILING IS THE SWEEP**, not any of the above: everything
+else is about `matchUi.tsx` and says nothing about the other forty files, which is exactly
+how the count went from four looks to twenty twice over. Nobody adds a fourth tone; they
+write a `<button>` with its own class string three screens away. So `scripts/checks/ui.ts`
+reads every class-list string literal in `src/` - a `const` or a `className`, either - and
+fails on (A) the app's button voice (`font-display` + `uppercase`) in a box with its own
+padding, and (B) any `!` override on a class list. It was **mutation-tested against the
+commit before it** and reports exactly the four bespoke looks that were there. Two things
+about it worth keeping: it strips COMMENTS first, because this codebase quotes utilities in
+backticks in its prose and the first version failed on its own explanation; and it cannot
+catch a button composed from a shared constant plus extra utilities, which it does not
+pretend to.
 
 **NO DESCRIPTIONS INSIDE A BUTTON.** A button says what it is; the line under the row says
 what it does. `AscensionPicker` had already settled that shape - short labels, one sentence
@@ -2979,6 +3051,16 @@ beneath that follows the selection - and the versus room settings were rebuilt o
 which took four sentences off the screen per decision. The exception is a card you are
 choosing BETWEEN on its own merits, and the boost offer is the case: there the description
 is the choice.
+
+**THE ONE THING LEFT UNDONE, and it is a coordination problem rather than a decision**: the
+masthead's two chrome controls (the account button and the settings gear) are still the
+deleted `quiet` tone written out by hand at a 12px non-uppercase label, i.e. a fourth look.
+They were converted and the change was backed out, because another session was rewriting
+`Masthead.tsx` at the same time and its new `tabs` prop is coupled to `App.tsx` and
+`navUi.tsx` - so committing the conversion meant either breaking the build or publishing
+somebody else's in-flight work. It is two class strings: `btn('secondary', 'compact')` plus
+`h-[30px]` for row alignment, and `normal-case` on the label span only when it holds an
+email address, since MARIO.SMANIA is not an improvement on mario.smania.
 
 ## UI gotchas
 

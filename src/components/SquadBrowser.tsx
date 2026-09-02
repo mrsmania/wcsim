@@ -24,7 +24,7 @@ import TeamRoster from './TeamRoster';
  *  case and a router <Link> in the other, so it is a class string rather than a
  *  component - it was the same string typed twice. */
 /** Going back is the app's third emphasis, and `quiet` is what that is now called. */
-const BACK_BTN = btn('quiet', 'md');
+const BACK_BTN = btn('secondary', 'compact');
 
 /** How many search hits the page draws. The full count is printed beside them, so this
  *  cap stays HERE and not inside `searchArchive` - see that function. */
@@ -115,8 +115,8 @@ export default function SquadBrowser() {
                                 className={[
                                     'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
                                     mode === m
-                                        ? 'border-pitch-dark bg-pitch-dark text-white'
-                                        : 'border-line bg-panel text-muted hover:border-pitch hover:text-pitch-ink',
+                                        ? 'bg-ink text-ground'
+                                        : 'bg-panel text-muted hover:text-pitch-ink',
                                 ].join(' ')}
                             >
                                 {label}

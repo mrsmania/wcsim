@@ -67,7 +67,7 @@ export default function BoostOffer({
           <button
             type="button"
             onClick={onReroll}
-            className={btn('secondary', 'md')}
+            className={btn('secondary')}
           >
             <Dices className="h-4 w-4" aria-hidden="true" />
             Re-roll these boosts

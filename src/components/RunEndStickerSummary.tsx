@@ -48,7 +48,7 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
         ))}
       </div>
       <div className="mt-5 flex justify-end gap-2.5">
-        <button onClick={onClose} className={btn('secondary', 'md')}>
+        <button onClick={onClose} className={btn('secondary')}>
           Done
         </button>
         <button onClick={onViewAlbum} className={PRIMARY_BTN}>

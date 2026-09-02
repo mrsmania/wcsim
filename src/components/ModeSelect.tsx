@@ -7,6 +7,7 @@ import { WORLD_CUP_YEARS } from '../data/squads';
 import { FEATURES } from '../config';
 import { collectibleCards } from '../domain/album';
 import StickerCard from './StickerCard';
+import { btn } from './matchUi';
 
 /** The front page (route `/`): a marketing hero that sells the fantasy, then a 3-beat
  *  "how it works" and a "chase the legends" showcase.
@@ -62,12 +63,19 @@ const LINEUP: { n: number; name: string; x: number; y: number }[] = [
 const GRASS_BASE = 'var(--color-grass)';
 const GRASS_STRIPE = 'var(--color-grass-stripe)';
 
-// The two CTAs below pair this with a literal `text-[#13211a]` rather than `text-ink`,
-// deliberately: they sit on `bg-amber` / `bg-white`, which are light in BOTH themes, so the
-// label needs the dark ink in both. `text-ink` is near-white in dark and would vanish.
-// Not the same case as the Prestige figures, which correctly use the `amber-ink` token.
-const CTA =
-    'inline-flex items-center gap-2 rounded-lg px-[22px] py-[14px] font-display text-[14px] font-extrabold uppercase tracking-[0.04em] transition';
+// THE HERO'S CTAs ARE THE APP'S TWO BUTTONS, on the app's one dark surface (2026-09-02).
+// They used to be three looks of their own - an amber fill, a white fill and a translucent
+// white outline, all at a 14px label and an 8px radius nothing else in the app uses - which
+// made the front page the loudest argument against there being a button system at all.
+//
+// They take `btn(tone, size, 'dark')` now: the same shape, the same radius, the same face
+// and the same size as every other page action, rendered for a green ground. The amber went
+// with it, and that is the one visible loss: amber was doing the "this is the thing to press"
+// job that the primary tone does everywhere else, and it cannot be the primary here because
+// `pitch-dark` on the scrimmed grass measures about 1.1 and would disappear. White on green
+// is what replaces it, which is what the second CTA already was.
+//
+// See the note on `btn` in matchUi for why a surface is not a fourth design.
 
 function Beat({
     icon,
@@ -120,11 +128,20 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                     flourish: the amber headline on the bare stripes measures 1.76, under
                     even the 3:1 that large text is allowed, and no value of a mid amber
                     reads on a mid green. This deepens the turf where the text sits (3.79
-                    for the amber, 9.42 for the white) and fades out before the tactics
-                    board, which stays exactly as bright as it was. */}
+                    for the amber, 10.24 for the white) and fades out before the tactics
+                    board, which stays exactly as bright as it was.
+
+                    THE VALUE IS A LITERAL, AND IT USED TO BE `ink` (fixed 2026-09-02).
+                    `ink` is theme-swapped, so in the DARK theme the scrim was painted with
+                    a near-white (#eceef1) and washed the turf PALE - #8ebba4 by the time it
+                    reached the words - which took the white headline to **2.14** and the
+                    paragraph with it. The whole point of this layer is to DEEPEN the green,
+                    and "deepen" is not something a token that inverts can do. Same
+                    reasoning as the CTAs, which have always used the literal: the hero's
+                    board is green in both themes, so everything laid over it is too. */}
                 <div
                     aria-hidden
-                    className="absolute inset-0 bg-gradient-to-r from-ink/55 via-ink/25 to-transparent"
+                    className="absolute inset-0 bg-gradient-to-r from-[#13211a]/55 via-[#13211a]/25 to-transparent"
                 />
 
                 <div className="relative max-w-[620px] flex-1">
@@ -144,7 +161,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                             <>
                                 <Link
                                     to={continueAction.to}
-                                    className={`${CTA} bg-amber text-[#13211a] hover:bg-amber/90`}
+                                    className={btn('primary', 'normal', 'dark')}
                                 >
                                     {continueAction.label}
                                     <ArrowRight size={17} strokeWidth={2.5} />
@@ -152,7 +169,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                                 {onNewXi && (
                                     <ConfirmAction
                                         triggerLabel="Build a new XI"
-                                        triggerClassName={`${CTA} border border-white/35 bg-white/[0.08] text-white hover:bg-white/[0.16]`}
+                                        triggerClassName={btn('secondary', 'normal', 'dark')}
                                         prompt="This ends what you have in progress."
                                         confirmLabel="Start a new XI"
                                         onConfirm={onNewXi}
@@ -164,7 +181,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                         ) : (
                             <Link
                                 to={buildTo}
-                                className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
+                                className={btn('primary', 'normal', 'dark')}
                             >
                                 Build your XI now
                                 <ArrowRight size={17} strokeWidth={2.5} />
