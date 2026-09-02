@@ -402,6 +402,119 @@ export function cabinetChecks(): void {
       () => Object.keys(capped).length === PLAYER_RECORD_LIMIT && kept,
     );
 
+    // Titles: a cup credits every player who PLAYED in the run that won it, and a lesser
+    // finish credits nobody. The two runs are the same run with the outcome swapped, so
+    // nothing but the outcome can be doing the work, and the guard is that the fixture
+    // fielded a full XI: "no player gained a title" is trivially true of a run that
+    // recorded no players, which is the failure this is meant to catch. At least eleven
+    // rather than exactly eleven, because this run took its boosts and a roster boost
+    // brings a twelfth player in - who is credited too, which is the point.
+    const played = Object.keys(run.tally?.apps ?? {});
+    const asCup = (r: RunState, outcome: RunOutcome): RunState => ({ ...r, phase: 'ended', outcome });
+    const cupOnce = applyRunResult(INITIAL_CAREER, asCup(run, 'champion'), undefined, 1).career;
+    const exited = applyRunResult(INITIAL_CAREER, asCup(run, 'group'), undefined, 1).career;
+    check(
+      'titles: a cup credits every player who played in it, a group exit credits none',
+      () => played.length >= 11 &&
+        played.every((id) => (cupOnce.stats.players?.[id]?.cups ?? 0) === 1) &&
+        played.every((id) => (exited.stats.players?.[id]?.cups ?? 0) === 0),
+    );
+    // Two cups add up and the losing run between them adds nothing, which is the same
+    // additive rule appearances follow - a title board that counted runs would read 3.
+    const threeRuns = [
+      asCup(run, 'champion'),
+      asCup(run, 'sf'),
+      asCup(run, 'champion'),
+    ].reduce((c, r, i) => applyRunResult(c, r, undefined, i + 1).career, INITIAL_CAREER);
+    check(
+      'titles: cups add up across runs and a lesser finish in between adds none',
+      () => played.every((id) => threeRuns.stats.players?.[id]?.cups === 2) &&
+        played.every((id) => threeRuns.stats.players?.[id]?.runs === 3) &&
+        threeRuns.stats.cups === 2 &&
+        threeRuns.stats.cupsRecorded === 2,
+    );
+    // The coverage counter, which is the only thing the board cannot derive: a cup won by
+    // a run with no tally (any run persisted before the tally existed) counts as a cup and
+    // NOT as one the board holds names for, so the screen can say "0 of 1" rather than
+    // showing an empty board over a full shelf.
+    const cupNoNames = applyRunResult(
+      INITIAL_CAREER,
+      { ...asCup(run, 'champion'), tally: undefined },
+      undefined,
+      1,
+    ).career;
+    check(
+      'titles: a cup the records hold no line-up for counts as a cup and not as covered',
+      () => cupNoNames.stats.cups === 1 &&
+        (cupNoNames.stats.cupsRecorded ?? 0) === 0 &&
+        cupOnce.stats.cupsRecorded === 1,
+    );
+    // At the cap, a title-holder outranks a player with far more appearances and no cup.
+    // A cup is the one fact no other column can imply, so it sorts ahead of the two it
+    // used to sort behind; the filler is deliberately given 99 appearances, which is what
+    // used to decide this.
+    const withTitle = {
+      ...INITIAL_CAREER,
+      stats: {
+        ...INITIAL_CAREER.stats,
+        players: {
+          ...Object.fromEntries(
+            Array.from({ length: PLAYER_RECORD_LIMIT }, (_, i) => [
+              `filler-${i}`,
+              { apps: 99, goals: 0, runs: 1 },
+            ]),
+          ),
+          'old-champion': { apps: 1, goals: 0, runs: 1, cups: 1 },
+        },
+      },
+    };
+    const pruned = applyRunResult(withTitle, asCup(run, 'sf'), undefined, 1).career.stats.players ?? {};
+    check(
+      'titles: at the cap a title-holder is kept ahead of a player with more appearances',
+      () => Object.keys(pruned).length === PLAYER_RECORD_LIMIT &&
+        !!pruned['old-champion'] &&
+        Object.keys(pruned).filter((id) => id.startsWith('filler-')).length < PLAYER_RECORD_LIMIT,
+    );
+    // And the board itself: ranked by cups, holders only, capped at ten, with the
+    // coverage counter carried through to the screen.
+    const cupView = cabinetView(threeRuns, emptyAlbum(), ALL_PLAYERS);
+    const titlesOrdered = cupView.topTitles.every(
+      (r, i) =>
+        (r.record.cups ?? 0) > 0 &&
+        (i === 0 || (cupView.topTitles[i - 1].record.cups ?? 0) >= (r.record.cups ?? 0)),
+    );
+    // Holders ONLY, and this needs a fixture the run cannot give: every player of a
+    // one-run career has the same cups, so a board that had lost its filter would look
+    // identical. Three holders among a dozen tracked players is what tells them apart -
+    // the nine without a cup are on the Most used board, which is the guard that they
+    // were there to be wrongly listed.
+    const mixed = {
+      ...INITIAL_CAREER,
+      stats: {
+        ...INITIAL_CAREER.stats,
+        cups: 3,
+        cupsRecorded: 3,
+        players: Object.fromEntries(
+          ALL_PLAYERS.slice(0, 12).map((p, i) => [
+            p.id,
+            { apps: 20 - i, goals: 0, runs: 4, ...(i < 3 ? { cups: 3 - i } : {}) },
+          ]),
+        ),
+      },
+    };
+    const mixedView = cabinetView(mixed, emptyAlbum(), ALL_PLAYERS);
+    check(
+      'cabinet: the titles board is ranked by cups, holders only, and says what it covers',
+      () => cupView.topTitles.length === 10 &&
+        titlesOrdered &&
+        cupView.cupsRecorded === 2 &&
+        cupView.headline.cups === 2 &&
+        cabinetView(cupNoNames, emptyAlbum(), ALL_PLAYERS).topTitles.length === 0 &&
+        mixedView.topTitles.length === 3 &&
+        mixedView.topUsed.length === 10 &&
+        mixedView.topTitles.map((r) => r.record.cups).join() === '3,2,1',
+    );
+
     // And the cabinet's two leaderboards read them in order, top ten only.
     const view = cabinetView(twice, emptyAlbum(), ALL_PLAYERS);
     const usedOrdered = view.topUsed.every(

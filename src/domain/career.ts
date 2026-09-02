@@ -65,6 +65,11 @@ export interface CareerStats {
   /** Lifetime appearances and goals per PLAYER ID, capped at `PLAYER_RECORD_LIMIT`.
    *  Every player a career has ever fielded is kept, not just the ones on show. */
   players?: Record<string, PlayerRecord>;
+  /** How many of `cups` the player records above can account for. Lower than `cups` on a
+   *  career that won cups before titles were counted, which is what lets the titles board
+   *  say how much of the history it covers rather than leaving an unexplained hole.
+   *  Optional, so a career saved before this reads as covering none. */
+  cupsRecorded?: number;
 }
 
 /** One finished run, for the archive. Deliberately small: at `HISTORY_LIMIT` rows this
@@ -102,6 +107,13 @@ export interface PlayerRecord {
   goals: number;
   /** Runs this player was picked for. */
   runs: number;
+  /** Cup-winning runs this player played a match in. EVERY player who appeared counts,
+   *  not only the eleven that finished it: that is the same reading of "was there" the two
+   *  counters above already use, so the three boards can be read against each other, and
+   *  it credits a player a roster boost handed over for the final with the cup he actually
+   *  helped win. Optional, so a record written before titles were counted reads as none
+   *  rather than as arithmetic on undefined. */
+  cups?: number;
 }
 
 /** How many finished runs the archive keeps. A hundred rows is a long history to read
@@ -267,21 +279,34 @@ const withValue = (list: string[], value: string): string[] => {
   return next.includes(value) ? next : [...next, value];
 };
 
+/** Everyone the run's tally has anything to say about. Its own function because TWO
+ *  things key off it: the merge below, and whether a cup win can be credited to anybody
+ *  at all (`CareerStats.cupsRecorded`) - a run that recorded no player, which is any run
+ *  persisted before the tally existed, must not have its cup counted as covered by a
+ *  board that holds no line-up for it. */
+function touchedBy(tally: RunTally | undefined): string[] {
+  if (!tally) return [];
+  return [...new Set([...Object.keys(tally.apps ?? {}), ...Object.keys(tally.goals ?? {})])];
+}
+
 /** The run's tally merged into the career's player records: appearances and goals add
- *  up, and every player who appeared at all gains one run. Same defensiveness as the
- *  helpers above, since `stats` is a merged blob an old save can hand back anything.
+ *  up, every player who appeared at all gains one run, and on a cup win every one of them
+ *  gains a title (see `PlayerRecord.cups`). Same defensiveness as the helpers above,
+ *  since `stats` is a merged blob an old save can hand back anything.
  *
  *  When the merge would exceed `PLAYER_RECORD_LIMIT`, the least-used records are
- *  dropped - but never one this run touched, or a career at the cap would stop
- *  recording the players it is actually using. */
+ *  dropped - but never one this run touched, and never a title-holder ahead of somebody
+ *  who has won nothing: a cup is the rarest thing on a record and the one fact no other
+ *  column can imply, so it outranks the two it used to sort behind. */
 function mergePlayerRecords(
   held: Record<string, PlayerRecord> | undefined,
   tally: RunTally | undefined,
+  wonCup: boolean,
 ): Record<string, PlayerRecord> | undefined {
   const base: Record<string, PlayerRecord> =
     held && typeof held === 'object' && !Array.isArray(held) ? held : {};
   if (!tally) return held;
-  const touched = new Set([...Object.keys(tally.apps ?? {}), ...Object.keys(tally.goals ?? {})]);
+  const touched = new Set(touchedBy(tally));
   if (!touched.size) return held;
   const next: Record<string, PlayerRecord> = { ...base };
   for (const id of touched) {
@@ -292,6 +317,7 @@ function mergePlayerRecords(
       // A player with goals but no appearances cannot happen (goals are only counted
       // for the XI that played), but the run still counts once either way.
       runs: prev.runs + 1,
+      cups: (prev.cups ?? 0) + (wonCup ? 1 : 0),
     };
   }
   const ids = Object.keys(next);
@@ -301,7 +327,11 @@ function mergePlayerRecords(
       const ta = touched.has(a) ? 1 : 0;
       const tb = touched.has(b) ? 1 : 0;
       if (ta !== tb) return tb - ta; // this run's players are never dropped
-      return next[b].apps - next[a].apps || next[b].goals - next[a].goals;
+      return (
+        (next[b].cups ?? 0) - (next[a].cups ?? 0) ||
+        next[b].apps - next[a].apps ||
+        next[b].goals - next[a].goals
+      );
     })
     .slice(0, PLAYER_RECORD_LIMIT);
   return Object.fromEntries(keep.map((id) => [id, next[id]]));
@@ -588,7 +618,12 @@ export function applyRunResult(
         wonCup && run.shape
           ? withValue(career.stats.cupFormations, run.shape.formation)
           : career.stats.cupFormations,
-      players: mergePlayerRecords(career.stats.players, run.tally),
+      players: mergePlayerRecords(career.stats.players, run.tally, wonCup),
+      // A cup counts as covered only when the merge above could credit somebody for it,
+      // so the titles board can say "3 of your 5 cups" rather than leaving a run it holds
+      // no names for looking like a board that lost them.
+      cupsRecorded:
+        (career.stats.cupsRecorded ?? 0) + (wonCup && touchedBy(run.tally).length > 0 ? 1 : 0),
       // The archive row is appended below, once the challenge count is known.
       history: career.stats.history,
     },

@@ -464,7 +464,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **456 checks** as of 2026-09-02. It exercises the sim, penalty
+per concern in `scripts/checks/`, **461 checks** as of 2026-09-02. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -2414,7 +2414,7 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
   **ladder**, **Records**, the formations a cup has been won with, an **honours** summary
   (counter, tier bars, all 12 families, linking to `/challenges` for the full ledger),
   **badges**, album completion with the Monumental strip, the **run archive**, and two
-  leaderboards: **Most used** and **Top scorers**.
+  leaderboards: **Most used**, **Top scorers** and **Most titles**.
 - **Rank is one hue getting deeper, plus a numeral** - not six colours. Same rule the
   challenge ledger arrived at when 130 painted entries stopped reading (`TIER_COLOR` is
   gone). The top step needs its own token: `bg-ink` would make the **highest** tier the
@@ -2451,6 +2451,32 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
   run. Caps are `HISTORY_LIMIT` (100 runs) and `PLAYER_RECORD_LIMIT` (600 players), and
   **the screen prints both counts** rather than letting a truncated list read as "this is
   everything".
+- **"Most titles" is the third board, and it is the one figure that could NOT be worked
+  out afterwards** (added 2026-09-02, asked for in chat rather than off the roadmap). The
+  archive keeps a finished run's outcome and no line-up, on purpose, so nothing in a
+  career could say who was on the pitch when a cup was won: `PlayerRecord.cups` is
+  therefore a counter, incremented in the same merge that already adds up appearances and
+  goals, at the one moment that already knows the run won the cup. No SQL, for the reason
+  the block above gives. Four decisions in it:
+  - **Every player who played a MATCH in the winning run counts, not only the eleven that
+    finished it.** That is the same reading of "was there" the two boards beside it use,
+    which is what lets the three be read against each other, and it credits a player a
+    roster boost handed over for the final with the cup he actually helped win. The
+    alternative (the final XI alone) reads more like a medal and would have paid nothing
+    to a player who carried the run through the group and was swapped out.
+  - **It only ever covers cups won from here on**, exactly as the archive only covers runs
+    from 2026-08-20 on, and unlike `bestCupStreakOf` there is nothing in the honours to
+    reconstruct a line-up from. So `CareerStats.cupsRecorded` counts the cups the records
+    can account for and the board says "3 of your 4 cups have line-ups on record" while
+    the two disagree. **A cup is only covered when the merge could credit somebody**: a
+    run persisted before the tally existed banks its cup and no names, and without that
+    condition the board would claim a cup it holds no line-up for.
+  - **A title outranks appearances in the prune.** At `PLAYER_RECORD_LIMIT` the least-used
+    records are dropped, and a cup is the rarest thing on a record and the one fact no
+    other column can imply, so it now sorts ahead of the two it used to sort behind.
+  - **`cups` is optional and every read of it defaults**, because a record written before
+    this has no such field and an `undefined` in a comparator sorts nothing at all - which
+    would look like a board in a random order rather than like a bug.
 - **The tally is accumulated match by match, not derived at run end** (`RunTally` in
   `domain/run.ts`, added to `RunState`, merged by `applyRunResult`). Two reasons, both of
   which would be silent bugs the other way round: a **roster boost changes the XI**, so a

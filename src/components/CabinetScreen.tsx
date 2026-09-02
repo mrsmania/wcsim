@@ -130,6 +130,7 @@ const LEADER_COL = {
   flag: 'w-4 shrink-0',
   name: 'min-w-0 flex-1',
   goals: 'w-11 shrink-0 text-right',
+  cups: 'w-11 shrink-0 text-right',
   apps: 'w-12 shrink-0 text-right',
   runs: 'w-10 shrink-0 text-right max-[560px]:hidden',
 } as const;
@@ -233,8 +234,8 @@ function HistoryRow({ entry }: { entry: RunHistoryEntry }) {
   );
 }
 
-/** One leaderboard row: rank, flag, name, the year he was capped in, and the two
- *  numbers. `metric` is which of them this board is ranked by, so it is the bold one. */
+/** One leaderboard row: rank, flag, name, the year he was capped in, and the numbers.
+ *  `metric` is which of them this board is ranked by, so it is the bold one. */
 function PlayerLeaderRow({
   row,
   rank,
@@ -242,10 +243,11 @@ function PlayerLeaderRow({
 }: {
   row: PlayerRow;
   rank: number;
-  metric: 'apps' | 'goals';
+  metric: LeaderMetric;
 }) {
   const squad = SQUAD_BY_ID[row.player.squadId];
   const { apps, goals, runs } = row.record;
+  const cups = row.record.cups ?? 0;
   return (
     <li className="flex items-baseline gap-2.5 border-b border-hair py-[7px] last:border-0">
       <span className={`${LEADER_COL.rank} text-right font-mono text-[10.5px] tabular-nums text-dim`}>
@@ -264,10 +266,15 @@ function PlayerLeaderRow({
           {squad?.year}
         </span>
       </span>
-      {/* Goals only on the board they rank (see `LeaderHead`). */}
+      {/* Goals and cups only on the board they rank (see `LeaderHead`). */}
       {metric === 'goals' && (
         <span className={`${LEADER_COL.goals} font-mono text-[11px] font-bold tabular-nums text-ink`}>
           {goals}
+        </span>
+      )}
+      {metric === 'cups' && (
+        <span className={`${LEADER_COL.cups} font-mono text-[11px] font-bold tabular-nums text-ink`}>
+          {cups}
         </span>
       )}
       <span
@@ -284,19 +291,24 @@ function PlayerLeaderRow({
   );
 }
 
-/** The column heads of a leaderboard. Takes the board's metric because the two boards
+/** Which number a board is ranked by, and so which of the optional columns it carries
+ *  and which cell is the bold one. */
+type LeaderMetric = 'apps' | 'goals' | 'cups';
+
+/** The column heads of a leaderboard. Takes the board's metric because the three boards
  *  do not carry the same columns: goals are the point of Top scorers and beside the
  *  point on Most used, where they were a second number competing with the one the board
  *  is ranked by. Reads its widths from `LEADER_COL`, like the rows do: the cells are
  *  bare numbers rather than carrying a unit each ("96 mts" was the alternative), so a
  *  head that drifted off its column would leave the numbers unlabelled. */
-function LeaderHead({ metric }: { metric: 'apps' | 'goals' }) {
+function LeaderHead({ metric }: { metric: LeaderMetric }) {
   return (
     <div className="flex items-baseline gap-2.5 border-b border-line pb-1.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.12em] text-muted">
       <span className={LEADER_COL.rank} />
       <span className={LEADER_COL.flag} />
       <span className={LEADER_COL.name}>Player</span>
       {metric === 'goals' && <span className={LEADER_COL.goals}>Goals</span>}
+      {metric === 'cups' && <span className={LEADER_COL.cups}>Cups</span>}
       <span className={LEADER_COL.apps}>Matches</span>
       <span className={LEADER_COL.runs}>Runs</span>
     </div>
@@ -603,12 +615,15 @@ export default function CabinetScreen({
       </Card>
 
       {/* ---- who actually played ----
-          Both boards are the top ten of a record that goes far wider; the caption says
+          Every board is the top ten of a record that goes far wider; the caption says
           how much wider, because a leaderboard that silently truncates reads as "this is
           everyone". Ranked lists rather than cards: this is the same "130 entries cannot
-          each be painted" lesson at a smaller scale. */}
+          each be painted" lesson at a smaller scale.
+          Three of them, so the row takes a third column where there is width for it and
+          the last one spans the pair below that: a half-width board beside white space
+          reads as one that failed to load. */}
       {v.playersTracked > 0 && (
-        <div className="mb-3.5 grid grid-cols-1 items-start gap-3.5 min-[900px]:grid-cols-2">
+        <div className="mb-3.5 grid grid-cols-1 items-start gap-3.5 min-[900px]:grid-cols-2 min-[1320px]:grid-cols-3">
           <Card>
             <BlockHead
               title="Most used"
@@ -656,6 +671,47 @@ export default function CabinetScreen({
               ) : (
                 <p className="text-[13px] text-muted">
                   No goals recorded yet. They are counted from your next finished run.
+                </p>
+              )}
+            </div>
+          </Card>
+
+          {/* Most titles. Every player who played a match in a winning run, not just the
+              eleven that finished it, which is the same reading of "was there" the two
+              boards beside it use - three boards ranked on three different meanings of
+              the same run would invite exactly one wrong comparison.
+              The hint is the one thing this board cannot derive: line-ups are only kept
+              from the run that started keeping them, so a career with older cups is
+              missing them and says which rather than showing a hole. */}
+          <Card className="min-[900px]:col-span-2 min-[1320px]:col-span-1">
+            <BlockHead
+              title="Most titles"
+              count={`top ${Math.min(LEADERBOARD_ROWS, v.topTitles.length)}`}
+              hint={
+                v.cupsRecorded < v.headline.cups
+                  ? `${v.cupsRecorded} of your ${v.headline.cups} cups have line-ups on record.`
+                  : 'Everyone who played a match in a winning run.'
+              }
+            />
+            <div className="p-3.5">
+              {v.topTitles.length > 0 ? (
+                <>
+                  <LeaderHead metric="cups" />
+                  <ol className="grid grid-cols-1">
+                    {v.topTitles.map((row, i) => (
+                      <PlayerLeaderRow key={row.player.id} row={row} rank={i + 1} metric="cups" />
+                    ))}
+                  </ol>
+                  <p className="mt-2.5 text-[12px] text-muted">
+                    A cup counts for every player who played a match in the run that won
+                    it, so a substitute a boost brought in for the final is on it too.
+                  </p>
+                </>
+              ) : (
+                <p className="text-[13px] text-muted">
+                  {v.headline.cups > 0
+                    ? 'Your cups were won before line-ups were kept, so there is nobody to list yet. Counted from your next one.'
+                    : 'No cup won yet. Every player who plays a match in a winning run is listed here.'}
                 </p>
               )}
             </div>

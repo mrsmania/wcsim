@@ -110,9 +110,15 @@ export interface CabinetView {
    *  started dropping its oldest rows can say so rather than implying it is all of them. */
   historyHeld: number;
   historyLimit: number;
-  /** Most-used and top-scoring players, `LEADERBOARD_ROWS` each. */
+  /** Most-used, top-scoring and most-decorated players, `LEADERBOARD_ROWS` each. */
   topUsed: PlayerRow[];
   topScorers: PlayerRow[];
+  topTitles: PlayerRow[];
+  /** How many of the career's cups the titles board can account for. Lower than
+   *  `headline.cups` on a career that won cups before line-ups were recorded, which is
+   *  the one thing that board cannot derive and so the only way it can be honest about
+   *  what it is missing. */
+  cupsRecorded: number;
   /** How many players have a record at all, and the cap. The leaderboards show ten of
    *  these, and the gap between ten and this is the reason to print it. */
   playersTracked: number;
@@ -215,6 +221,21 @@ export function cabinetView(
         a.player.name.localeCompare(b.player.name),
     )
     .slice(0, LEADERBOARD_ROWS);
+  // Titles first, then the other two boards as tie-breaks: with a handful of cups most
+  // holders are level on one, and "who played the most of them" is the honest next
+  // question. Every read of `cups` defaults, because it is absent on a record written
+  // before titles were counted and an undefined in a comparator sorts nothing at all.
+  const topTitles = [...rows]
+    .filter((r) => (r.record.cups ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.record.cups ?? 0) - (a.record.cups ?? 0) ||
+        b.record.apps - a.record.apps ||
+        b.record.goals - a.record.goals ||
+        b.player.elo - a.player.elo ||
+        a.player.name.localeCompare(b.player.name),
+    )
+    .slice(0, LEADERBOARD_ROWS);
   const history = Array.isArray(career.stats.history) ? career.stats.history : [];
 
   return {
@@ -262,6 +283,8 @@ export function cabinetView(
     historyLimit: HISTORY_LIMIT,
     topUsed,
     topScorers,
+    topTitles,
+    cupsRecorded: career.stats.cupsRecorded ?? 0,
     playersTracked: Object.keys(records).length,
     playersLimit: PLAYER_RECORD_LIMIT,
     playerTotals: { apps: appsTotal, goals: goalsTotal },
