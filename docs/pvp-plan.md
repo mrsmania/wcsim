@@ -8,25 +8,30 @@ against the code and by measurement. That review changed real things: chemistry 
 room, the room gets its own build state, the referee holds no timers, and the build order is
 now a vertical slice. **Revised once more the same day**: a room of more than two waits for
 every draft and then draws the bracket at random (P47), and a player readies up in the lobby
-(P48). **Status: ALL NINE WAVES BUILT, and the roadmap item is closed** (2026-08-27). The server
-half is deployed through wave 8 and verified (roadmap items 41 and 43); every migration
-through **0021** is applied, confirmed against the live database on 2026-08-30. Two, four or eight people play
+(P48). **Status: ALL NINE WAVES BUILT, and the roadmap item is closed** (2026-08-27).
+**EVERYTHING IN THIS PLAN IS LIVE ON THE SERVER**: the referee was rebuilt on 2026-09-02
+and every migration through **0024** is applied, each confirmed against the live database
+(roadmap items 41, 43, 45, 46, 47, 49, 50, 51, 52 and 53, all closed). Two, four or eight people play
 a whole knockout - found on a public list or reached with a code - in either kind of room,
 with or without the numbers, at either clock length, and whoever goes out first stays and
 watches the rest. A room nobody is in closes itself. The one decision wave 3 reopened, the
 career budget in P2, was settled on 2026-08-27 by dropping the option. **Duels were added
 2026-08-30** (P51): a challenge to one person, answered in their own time, with a rematch on
 the result. They are the ninth wave's shape rather than a tenth wave - one field on a room,
-and four deadlines read past - and they are DARK until migration 0020 is applied and the
-server rebuilt (roadmap item 46), as the practice opponents are (0019, item 45). **The budget
-room's draft was rebuilt 2026-08-30** (P52): one clock over the whole draft instead of eleven
-pick windows, the board submitted as a map, and a player free to move and un-buy until he says
-he is done. It is dark on the same terms (0021, item 47) and degrades to the old per-pick
-draft on a server that has not got it.
+and four deadlines read past. They went live with 0020 on 2026-08-30 (roadmap item 46), as
+the practice opponents did with 0019 (item 45), and a duel waits in a lobby again since
+2026-08-31 (P54, item 51) because opening one and closing it was a free re-roll. **The
+budget room's draft was rebuilt 2026-08-30** (P52, item 47, live with 0021): one clock over
+the whole draft instead of eleven pick windows, the board submitted as a map, and a player
+free to move and un-buy until he says he is done. It still degrades to the old per-pick
+draft on a server that has not got it, which is how it shipped ahead of the deploy.
 
-**Two locked decisions are deliberately NOT built and have their own roadmap item:** P41's
-per-pick Skip and P42's move-a-placed-player. Both need an instruction the referee does not
-have, so both are a server change plus a deploy rather than a screen. Everything else the
+**One locked decision is deliberately NOT built, and half of a second:** P41's per-pick
+Skip, and P42's move-a-placed-player IN A ROLL ROOM. P42 is delivered in a budget room
+(P52 submits the whole board as a map, so moving and un-buying are the same instruction as
+buying), which is why roadmap item 44 shrank rather than closing. What is left of both
+needs an instruction the per-pick referee does not have, so it is a server change plus a
+deploy rather than a screen. Everything else the
 plan locks is live, and "every setting the referee accepts is reachable from the create form"
 is now enforced by the client's types rather than left to memory - see wave 9.
 
@@ -99,6 +104,8 @@ in rather than a missing feature.
 | P53 | Waiting to be accepted, and finding a score | **A duel drafts from the moment it is opened, is sent with a button, and is watched when you turn up** (2026-08-31, roadmap items 46 and 49). Three corrections to P51, all of them the same mistake in different places: it made one player wait on another for no reason. **The challenger drafted last** - the room sat in a lobby until somebody accepted, so the person who opened it could not touch the team they were challenging with, and the two drafts never interact anyway. A duel is created in `drafting` with one member now, and its second seat stays open through the draft (the one rule the state machine needed; a live room shuts because everybody is on one clock, and a duel has none). **Eleven picked ended the draft**, so in a roll duel the last pick kicked the match off under its owner with no last look at the team: finishing is DECLARED in every duel now (`declaresDone`), which is P52's rule reached from the other end. And **the match was revealed on the server's window** (P30), which is right when two people are watching the same match and wrong when the server plays it at three in the morning: a duel's reveal is a LOCAL fact now (`state/pvp/watched.ts`), so it plays the first time each viewer opens it, with a skip beside it. The invitation drops the addressed name with them - `invited_id`, a lookup, a refusal, a visibility exception and an accept screen, all to say what a private link already says - and the chrome grows a strip reading the most urgent row of your duels, because a duel is the one thing in this game somebody else can be waiting on. Versus is a **tab** for the same reason |
 | P54 | A challenger who does not like their squad | **Nothing is dealt until both players are ready, and leaving afterwards is a forfeit** (2026-08-31, reported from the game). P53 had a duel drafting from the moment it was created, and the reasoning - the two drafts never interact, so waiting buys nothing - missed the economics: opening a challenge is free and calling one off is free, so a squad you disliked cost nothing to reject and re-roll. *"I can just close the room again and re-open one until I have a banger team."* So a duel waits in a **lobby** again, where each player chooses a shape and presses Ready, and the SERVER starts the draft when both have (`startRoom` refuses a duel outright: P48's start-over-the-unready is right in a live room and here would deal a squad to somebody who never agreed to play). **And leaving after somebody has taken the challenge up is a FORFEIT** - the room ends now, the player who stayed wins it - because the lobby is worthless if you can walk out once you have seen the squad. Neither rule works without the other. A forfeit writes no match: a room WON with no match under it is the encoding (`walkover`), which a played room can never be, so it needed no column - only migration 0024, so `pvp_records` counts it. An ended duel with no outcome at all leaves the list entirely: a challenge nobody took up is not a game that was played |
 | P52 | The budget room's clock | **One clock over the whole draft, not eleven windows** (2026-08-30, roadmap item 47). The METHOD decides it rather than a setting, because the two are different games: a roll draft is eleven decisions about eleven dealt squads, so a window per squad is what it is; a budget draft is one decision about one pool of money, where the eleventh pick settles whether the first was affordable, so a clock that will not let you go back and sell is a trap rather than a clock. So a budget room runs one clock (three lengths, 3/5/8 minutes) and the board is submitted as a MAP - which makes buying, moving a player to another of his roles and taking one back out the same instruction, and so finally delivers P42 and the remove beside it. Finishing is **declared** and not inferred from a full XI: the last person to complete their team would otherwise end the room by completing it, making the two new gestures unusable by exactly the person who most wants them, so there is an "I'm done" and it is reversible while the draft is open. The room plays when everybody has declared, or the clock runs out and every empty slot is filled for its player, recorded as automatic exactly as an expired window's is. A duel is both clocks off at once (P51): no window and no whole-draft deadline, so only the declarations end it. Needs `pvp_rooms.draft_seconds` and `pvp_members.done` (migration 0021) and nothing else - `xi` has been a slot map since wave 1 and `pvp_picks` has been keyed on the slot since 0016, both put there for P42 |
+| P55 | A duel nobody comes back to | **The week that was already there resolves it against whoever never sent a team** (2026-09-01, roadmap item 52, reported from the game). P54's forfeit was true only of the BUTTON: leaving by the crest, the tab bar, Back or a closed tab sends nothing at all, and a duel has no pick clock, no liveness sweep and no lobby close ON PURPOSE, so the room simply stopped, went on telling both players it was somebody's turn, and `DUEL_IDLE_MS` eventually closed it with no result and no loss - which is the same free re-roll P54 exists to shut off, reachable by pressing nothing. Mid-draft the week now hands the duel to the player who sent a team, by the walkover encoding P54 already uses; both late closes it with nobody winning, since there is no player who stayed to hand it to. It is deliberately **the week rather than a clock of its own**: playing at your own pace over days is the mode, not a tolerance, and a two-day window would halve what a duel may take. Two things make it honest: a poll and a liveness ping are not writes, so a tab left open on a duel nobody is playing cannot hold it open and the WAITING player cannot reset their own win by checking on it; and `recoverFromOutage` had to stop cloning a drafting duel, or every sweeper restart would have stamped `touched_at` and handed the absentee another seven days, for ever |
+| P56 | What a link can say to somebody with no account | **A read that needs no session, metered** (2026-09-01, roadmap item 53). A room needs an account (P17) and a private room answers "no such room" to anybody without a seat (P18), so the most motivated arrival in the product was told nothing at all about what they had followed: not who sent it, not what the game was, not whether the seat was still free. `GET /v1/rooms/:code/invite` answers the host's name, what the room plays, the seats left and whether it has started, and **nothing from inside the room** - no member row, no XI, no formation - which is P19 reaching one step further out. The traded thing, knowingly: anybody holding a code can now learn a display name without an account, so the route allows 20 reads a caller and 240 in total a minute, and a refusal costs the shared budget nothing, so one caller cannot lock everybody out. Signing in from that screen reloads onto the room's own address and the seat is taken on arrival, so nothing has to remember a pending invitation |
 | P27 | Can two players pick the same man? | **Yes. The room pool is shared, not exclusive.** It is the only version compatible with eleven independent clocks (P12): under exclusivity two players claim the same man in overlapping windows and somebody has to be told no, which makes a fast connection an advantage. Named here as a decision rather than left as an assumption, because exclusivity is the largest single lever available if the mode ever plays flat |
 
 ### The draft
@@ -802,9 +809,11 @@ screen, which is why they did not fit inside a client wave, and both are one roa
 What their absence costs today. **Skip**: the clock is the only way a window ends early, so a
 player who has decided cannot hand the time back, and a room of eight waits out the slowest
 of eight people at every one of eleven windows (P47's accepted cost, now with no release
-valve). **Move**: `ROOM_CONTROLS` turns the gesture off, so a multi-position player placed in
-the wrong slot stays there - the honest alternative was leaving it on and having the next
-answer from the referee silently undo it, which is worse than not offering it.
+valve). **Move**: in a ROLL room `ROOM_CONTROLS` turns the gesture off, so a multi-position
+player picked into the wrong slot stays there - the honest alternative was leaving it on and
+having the next answer from the referee silently undo it, which is worse than not offering
+it. A BUDGET room has had the move and the un-buy since P52 (2026-08-30), through
+`roomControls(whole)`, because there the board is submitted rather than picked.
 
 Neither is load-bearing for anything shipped, and the seams they need are already in place:
 `pvp_picks` records the CURRENT state of an XI rather than an append-only log (P42's whole

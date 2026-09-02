@@ -2,7 +2,7 @@
 
 **Status:** Shipped 2026-08-15 and running on the NAS; kept as the design record. The what
 and why live in `docs/cloud-sync-requirements.md` (settled); the operational checklist is
-`docs/nas-setup.md`. Migrations have moved on since (through `0011`), so read
+`docs/nas-setup.md`. Migrations have moved on a long way since (through `0024`), so read
 `supabase/migrations/` for the current schema.
 **Date:** 2026-08-11.
 **Reads with:** requirement ids (FR-n, NFR-n) and decisions (D1 to D12) from that doc.

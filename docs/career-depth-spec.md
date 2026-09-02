@@ -16,8 +16,9 @@ the concrete, code-level plan; it supersedes that doc's section 6 where they dis
 level-gated perks), and **C** (Ascension tiers). Clusters **D/E/F** are kept as future
 work at the end, with **Challenges** (E) written up in most detail because it is the
 next thing after A/B/C.
-**Gated by:** `FEATURES.careerMode` (already exists). Everything here is off when the
-flag is off, exactly like today.
+**Gated by:** `FEATURES.careerMode` when this was written; **that flag was deleted on
+2026-08-21** (roadmap item 28) because a Cup Run became the only way the game is played, so
+nothing here is switchable any more.
 
 ---
 
@@ -350,7 +351,7 @@ All three levers are cheap because the plumbing exists:
    `ASCENSIONS[run.ascension].rewardMult`:
    `xpGained = Math.round(run.score * mult)`, `prestigeGained = Math.max(1, Math.round(run.score * mult / 5))`.
 3. **Opponent draw strength (enhancement):** pass `drawSlopeBonus` into `drawOpponent`
-   (**and, since roadmap item 28, into `buildBracket`** - a run in the five-tab chrome
+   (**and, since roadmap item 28, into `buildBracket`** - a run in the tab chrome
    draws a 16-team field once instead of an opponent per round, and `buildBracket` filled
    its 14 open seeds at the default weighting, so this lever silently did nothing there
    until it was threaded through. `npm run checks` now measures the field it produces.)
@@ -371,7 +372,7 @@ defaulting to the highest selectable, showing the handicap + reward-multiplier p
 
 Tie the budget-draft ("Transfer Market") budget to career progression: start smaller and
 earn your way up. **Shipped decisions:** budget ramps **$70 -> $150** over 8 tiers; it
-applies to **Career Mode builds only** (`mode === 'career'`; in the five-tab chrome every
+applies to **Career Mode builds only** (`mode === 'career'`; in the tab chrome every
 run is a career run, so it always applies); **Quick Run stays fixed at
 `$110`** (and career-off is unchanged). Reuses the cluster-B tiered-perk machinery. Paired
 with an XP slowdown (`XP_PER_LEVEL` 100 -> 200) so the level gates on the tiers bite.

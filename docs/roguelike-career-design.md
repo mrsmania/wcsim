@@ -1,10 +1,10 @@
 # Roguelike Cup Runs + Manager Career - Design
 
-**Status:** Shipped (behind `FEATURES.careerMode`), as the high-level vision behind what
+**Status:** Shipped, as the high-level vision behind what
 was built. `docs/career-depth-spec.md` is the code-level plan that followed and
 **supersedes this doc's section 6**; `CLAUDE.md` describes what actually shipped.
 
-**Updated 2026-08-21 (roadmap item 28):** in the five-tab chrome a run now plays as a
+**Updated 2026-08-21 (roadmap item 28):** in the tab chrome a run now plays as a
 **tournament** rather than as five ties in a row - the group opens with the draw and a
 table that fills in as the matchdays reveal, and the knockouts run on a real 16-team
 bracket (`domain/bracket.ts`, the same model the World Cup uses) collapsed to your own

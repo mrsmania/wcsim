@@ -1,7 +1,7 @@
 # Mondialino
 
-A single-page game: draft a team of 11 World Cup players from roughly the last
-three decades (position by position, each from a randomly rolled national team),
+A single-page game: draft a team of 11 World Cup players from every tournament since
+1970 (position by position, each from a randomly rolled national team),
 then take them through a simulated group stage and knockout rounds to try to win
 the World Cup.
 
@@ -38,7 +38,7 @@ configured nothing account-related renders and the auth code is never loaded.
 - State as a single `useReducer` game machine; pure game logic in `src/domain/`
 - **Routing** via `react-router-dom` (clean paths); the whole game is mirrored to
   `localStorage`, so browser Back/Forward work and an in-progress run survives a refresh
-- **Navigation:** five tabs (Play / Career / Album / Records / Squads), a row on a
+- **Navigation:** six tabs (Play / Career / Album / Records / Squads / Versus), a row on a
   desktop and a bottom bar on a phone
 - **Design:** the flat "turf-flat" look (top-down tactics-board pitch, hard-shadow
   cards) with Archivo / Schibsted Grotesk / Spline Sans Mono web fonts. Tokens live
@@ -121,8 +121,11 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Challenges: 130 permanent honours judged from a finished run, feature-flagged (their Prestige awards always pay: bronze 2, silver 5, gold 12)
 - [x] Optional accounts: sign in with an emailed code and your album, career, settings and in-progress run live on a server instead of the browser (absent unless the build is given one)
 - [x] Settings: match speed, a casual/normal/hard difficulty, a light/dark theme, and which World Cups the game draws from
-- [x] Five-tab navigation (Play / Career / Album / Records / Squads): a row on a desktop, a bottom bar at thumb height on a phone, and one build page
+- [x] Six-tab navigation (Play / Career / Album / Records / Squads / Versus): a row on a desktop, a bottom bar at thumb height on a phone, and one build page
 - [x] A Cup Run plays as a tournament: the group opens with the draw and a table that fills in as the matchdays play, and the knockouts run on a 16-team bracket, collapsed to your own path with the full draw one click away
+- [x] Trophy cabinet: a read-only account of what a career has to show for itself (the cup shelf, the Ascension ladder, records, badges, the run archive and the top-scorer boards), derived rather than stored, feature-flagged
+- [x] Versus: two, four or eight people play a whole knockout against each other, found on a public list or reached with a six-character link - roll a squad each or buy from a shared budget, with or without the ratings on show, and whoever goes out first stays and watches the rest. Needs accounts plus a referee server, so it is absent unless the build is given both
+- [x] Duels: a versus challenge sent by link and played in your own time - you each build whenever you get to it, the match plays itself the moment the second team is sent, and walking away from one loses it
 
 ## Hosting
 

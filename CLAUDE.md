@@ -99,8 +99,8 @@ done and why. What that means for anyone working in this tree now:
   `npm run checks` failed at random about one run in twelve, and that the `prime-years`
   check was **vacuous** - proved by reintroducing the sticker exploit it exists to catch
   and still getting 132 passed / 0 failed. Both are fixed (H106-H109), `npm run checks`
-  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite is **179
-  checks**. Five of them assert that a number and the sentence promising it agree
+  runs in `.github/workflows/deploy.yml` before the build (H91), and the suite stood at **179
+  checks** when the audit closed (**448** on 2026-09-02). Five of them assert that a number and the sentence promising it agree
   (H132 the chemistry thresholds, H138 the shop copy, H139 the boot palette, H65 the perk
   shop's advice, H146 the market's budget lookup), and one asserts a shape guard in both
   directions (H70/H73's `isRoundRecord`).
@@ -170,8 +170,9 @@ done and why. What that means for anyone working in this tree now:
   `hooks/useCupRun`, `hooks/useStackedScroll` (the mobile there-and-back), `hooks/usePool`,
   `state/routes.ts` (`screenOf(path)`), `state/resume.ts`, `state/storage/kv.ts`,
   `state/store/cache.ts`, `components/Masthead`, `components/BuildPage`, and
-  `components/cupRun/{PreRunPanel,GroupRevealPanel,RunPhasePanel}`. **App.tsx is 483 lines
-  and CupRunScreen 626**, from 1,129 and 907. The last 366 of App's went with wave 4 of
+  `components/cupRun/{PreRunPanel,GroupRevealPanel,RunPhasePanel}`. **App.tsx was 483 lines
+  and CupRunScreen 626**, from 1,129 and 907 (597 and 658 on 2026-09-02, the versus and
+  duel work since). The last 366 of App's went with wave 4 of
   roadmap item 18 - see "The build is an instantiable unit" below.
 - **The career is owned in ONE place; the RUN deliberately is not.** `useCareer` lives in
   App, so the build page prices the transfer market off the same value the run screen
@@ -463,7 +464,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **402 checks** as of 2026-08-31. It exercises the sim, penalty
+per concern in `scripts/checks/`, **448 checks** as of 2026-09-02. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -523,6 +524,9 @@ src/
                pvpAuth.ts    (who the referee takes an instruction from)
                pvpView.ts    (what the versus screens derive from a room; pure)
                pvpWire.ts    (the payload shape, imported by BOTH sides)
+               pvpBot.ts     (the practice opponents: botXi, botName, BOT_SPEND)
+               displayName.ts (the one rule for a versus name, shared with the referee)
+               pvpVersion.ts (PVP_PROTOCOL, the handshake both sides state)
                               -- roadmap item 18, see "Versus" below
                validateSquads.ts (dev-time dataset integrity checks)
   state/       gameReducer.ts (the phase machine + Action union; AUTOFILL loads a
@@ -540,7 +544,9 @@ src/
                report of a name - both straight to the account server, not the referee) and
                pvp/watched.ts (which duels this PLAYER has watched the result of, read and
                written through the store - see the duel reveal note under "Versus") over
-               pvp/watchedStorage.ts (that list's guest key)
+               pvp/watchedStorage.ts (that list's guest key), and pvp/duels.ts (the one
+               signal that says a held duels list is out of date, fired when the referee
+               has answered a leave - see the withdraw note under "Versus")
   hooks/       useBuild.ts (THE BUILD: the reducer, its effects, the three interaction
                machines and the handlers, as a unit that can be instantiated twice),
                useVersusRoom.ts (one room live: the answer, the poll, the broadcast, the
@@ -571,7 +577,9 @@ src/
                randomTeam, squadBrowser, stickerAlbum, stickersOnCupWinOnly,
                stickerImages, budgetDraft, challenges,
                trophyCabinet;
-               plus `accounts`, which is DERIVED from the build env, see below) +
+               plus `accounts` and `pvp`, both DERIVED from the build env - `pvp` also
+               needs VITE_REFEREE_URL, so accounts alone cannot put a Versus tab on a
+               site with no referee, see below) +
                STICKER_TIERS / STICKER_TRADE_COST / STICKER_DISCOUNT +
                BUDGET_BY_TIER (BUDGET_DRAFT is checks-only now) + BANK_CAP (how many
                stickers one run may bank; the server states it too, see below)
@@ -1356,12 +1364,12 @@ in-app, read-only browser; this is the whole dataset at once, for looking things
   any one of his rows shows all of them (year, nation, main role, rating) with the row you
   are on picked out - plus every other row of the same man currently on screen. That is
   the one thing the table cannot show in a row, since a row is one appearance.
-- **It stays fast by never holding the dataset as objects.** The 8,028 rows decode into
+- **It stays fast by never holding the dataset as objects.** The 9,625 rows decode into
   flat typed arrays (person, nation, year, number, position combo, rating, tier), so a
   filter is an integer scan and the name query is answered once per PERSON and read per
   row. The body is virtualised at a fixed row height, so only the visible window plus a
   small overscan is ever in the DOM. Measured in Chromium: a scroll frame repaints in
-  ~1 ms, a full re-filter and re-sort of all 8,028 rows in ~5 ms.
+  ~1 ms, a full re-filter and re-sort of every row in ~5 ms (measured at 8,028 rows).
 - **Two copies to keep in step by hand**, both deliberate and both cheap: the turf-flat
   colour tokens (copied out of `src/index.css`, light and dark) and the row/eyebrow/card
   styling, since the page ships no Tailwind. The FIFA-code-to-flag mapping is **not** a
@@ -1417,8 +1425,9 @@ there is only one artifact to keep in step.
   over the name or 1 over the surname, which is the transliteration pass
   (Rivelino/Rivellino, Mihaylov/Mikhailov, Haaland/Haland). Mutual uniqueness is what stops
   7a0's "Paulo Cesar Caju" and "Cesar Maluco" both landing on WCS's single "Cesar".
-  Measured: **5,017 players matched**, 99.5% of the 7a0 rows whose squad WCS also has;
-  894 are rated identically and WCS runs 0.60 lower on average. The column prints the
+  Measured 2026-09-02: **5,535 players matched**, 987 rated identically, WCS running 0.55
+  lower on average. `npm run gen:players` prints all three, so read them off a run rather
+  than off this line - they move with every rating pass. The column prints the
   OTHER dataset's rating with the gap in brackets after it, and **the bracket reads FROM
   this dataset TO the other** ("99 (+2)" is their 99 against our 97), so the sign belongs
   to the number it sits beside - which is why only the bracket is coloured and why
@@ -1482,7 +1491,7 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 
 - **What's collectible.** A player is collectible iff their `elo` falls in a
   `STICKER_TIERS` range (config.ts): **Legendary** 90-92, **Iconic** 93-96,
-  **Monumental** 97-99 (currently 83 / 24 / 8 = **115** across the dataset; it was 53 before
+  **Monumental** 97-99 (80 / 28 / 7 = **115** across the dataset on 2026-09-02; it was 53 before
   the 1990-2002 squads were researched, 81 before 1986, 84 before 1986's ratings were
   re-authored, 87 before 1982, 92 before 1982's hand-tuning put Platini over 90, 93 before
   1978, 95 before 1974, 100 before 1970 and 105 before 2026, so re-derive a count rather
@@ -1490,7 +1499,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   **2026 added ten**, the most of any single drop: Mbappe 97 (the eighth Monumental, and
   his second card at that rating), Haaland 94 and Messi 94, Lamine Yamal 93, Rodri 93,
   Bellingham 92, Vinicius Junior 92, Hakimi 90, Dembele 90 and Courtois 90. Norway had
-  never produced a collectible before. Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
+  never produced a collectible before. **Three of those ten have moved since**, in the
+  2026-08-28 rating pass: Mbappe is 96 in both his cards, so the Monumental tier is back
+  to seven, and Courtois and Hakimi fell out of the bands altogether. That is the note
+  above working as intended rather than a mistake, and the reason to re-derive. Collectibility is derived at runtime (`domain/album.ts` `tierOf`), so
   adding players/tournaments grows the album automatically - no lookup table.
 - **`domain/album.ts`** (pure): `tierOf`, `isCollectible`, `collectiblePlayers`,
   `applyRunStickers`, `totalDuplicates`, `canAffordTrade`, `tradeOptions` (random),
@@ -1552,8 +1564,9 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   placeholder card.
   **A card with no artwork gets a silhouette, not a hole** (`STICKER_PLACEHOLDER_SRC`,
   added 2026-08-25). The dataset can always run ahead of the art - a collectible appears
-  the moment a rating crosses a `STICKER_TIERS` boundary, and 29 of 117 have no file as of
-  2026-08-28 - and before this each of those collapsed its image box, so the album grid grew
+  the moment a rating crosses a `STICKER_TIERS` boundary, and 29 of 117 had no file on
+  2026-08-28 (**all 115 are drawn as of 2026-09-01**, so the fallback is dormant, which is
+  not a reason to delete it) - before this each gap collapsed its image box, so the grid grew
   gaps and the cards around them reflowed. It is a **data URI rather than a component**,
   so the three call sites (album grid, the lightbox hero, the home page's legends
   showcase) each need one line and keep their own very different layouts; they share
@@ -2515,12 +2528,12 @@ A second way to build the XI, alongside the random roll. Spec:
     the selection and derives each dropdown from the candidates passing *every filter except its
     own*: pick 1974 and the country list is the 16 nations that were there, pick Wales and the cup
     list is 2022 alone. That is what makes "a dropdown never offers an option that would empty the
-    list" true again - it held one facet at a time only, and with 352 squads over 13 years and 81
-    nations two thirds of the year-plus-country pairs are empty by construction. The search box and
+    list" true again - it held one facet at a time only, and with 416 squads over 15 years and 87
+    nations 68% of the year-plus-country pairs are empty by construction. The search box and
     the two toggles are deliberately excluded: what a run can afford changes with every purchase,
     and a country list that reshuffled as money was spent would be unpredictable.
   - **A control is shown when it has more than one option OR a selection is active on it.**
-    **24 of the 81 nations played exactly one World Cup**, so picking one collapses the cup facet
+    **22 of the 87 nations played exactly one World Cup**, so picking one collapses the cup facet
     to a single year; the old `length > 1` guard alone would then hide a filter that is still
     switched on, and the player could neither see nor clear it.
 - **A `ring` inside a scroll container is clipped on the cross axis, and it cannot be scrolled
@@ -4071,7 +4084,7 @@ rules in that module are load-bearing and each was mutation-tested:
   anyway. A window reopens with the time it had left. Restoring deadlines from the database
   is enough to have "not lost anybody's clock" and still lose everybody's draft.
 - **A ROLL ROOM CAN STALL, and it is not exotic.** The auto-pick fills from the last squad
-  dealt, and **345 of the (squad, position) pairs in the dataset are empty** - most 1970s
+  dealt, and **382 of the 4,992 (squad, position) pairs are empty** (2026-09-02) - most 1970s
   squads list no wide midfielder at all - so the dealt squad routinely has nobody for the
   slots still open. The sweeper guarantees progress, and whatever it reaches for is
   **recorded as dealt**, or it builds an XI the referee itself then refuses. A check asserts
