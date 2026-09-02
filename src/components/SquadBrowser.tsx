@@ -101,9 +101,6 @@ export default function SquadBrowser() {
             {/* Display toggle + search */}
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                        Display:
-                    </span>
                     <div className="flex overflow-hidden rounded-[5px] border border-line">
                         {(
                             [
@@ -118,8 +115,8 @@ export default function SquadBrowser() {
                                 className={[
                                     'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
                                     mode === m
-                                        ? 'bg-ink text-ground'
-                                        : 'bg-panel text-muted hover:text-pitch-ink',
+                                        ? 'border-pitch-dark bg-pitch-dark text-white'
+                                        : 'border-line bg-panel text-muted hover:border-pitch hover:text-pitch-ink',
                                 ].join(' ')}
                             >
                                 {label}
@@ -214,11 +211,9 @@ export default function SquadBrowser() {
                                 <div className="truncate font-display text-[15px] font-extrabold leading-tight">
                                     {t.nation}
                                 </div>
-                                <div className="font-mono text-[11px] text-muted">{t.code}</div>
                             </div>
                             <div className="mt-auto font-mono text-[11px] text-muted">
-                                <span className="font-bold text-ink">{t.squads.length}</span> World
-                                Cup{t.squads.length === 1 ? '' : 's'}
+                                {t.squads.length} World Cup{t.squads.length === 1 ? '' : 's'}
                             </div>
                         </Link>
                     ))}
@@ -303,7 +298,6 @@ function CupTable({ squads }: { squads: Squad[] }) {
                         <span className="truncate font-display text-[14.5px] font-extrabold leading-tight">
                             {sq.nation}
                         </span>
-                        <span className="shrink-0 font-mono text-[10.5px] text-muted">{sq.code}</span>
                     </span>
                     <StatCells squad={sq} />
                 </Link>
@@ -328,9 +322,6 @@ function TeamCups({ team }: { team: TeamGroup }) {
                     <span className="font-display text-lg font-extrabold uppercase leading-none tracking-[-0.01em]">
                         {team.nation}
                     </span>
-                    <span className="ml-auto font-mono text-[11px] font-semibold text-muted">
-                        {team.squads.length} World Cup{team.squads.length === 1 ? '' : 's'}
-                    </span>
                 </div>
                 <div
                     className={`${STAT_GRID} border-b border-line py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
@@ -344,7 +335,9 @@ function TeamCups({ team }: { team: TeamGroup }) {
                         to={squadHref(s.id)}
                         className={`${STAT_GRID} w-full border-b border-line py-2.5 text-left transition last:border-b-0 hover:bg-pitch/5`}
                     >
-                        <span className="font-mono text-[15px] font-bold tabular-nums">{s.year}</span>
+                        <span className="font-mono text-[15px] font-bold tabular-nums">
+                            {s.year}
+                        </span>
                         <StatCells squad={s} />
                     </Link>
                 ))}
@@ -356,9 +349,7 @@ function TeamCups({ team }: { team: TeamGroup }) {
                     <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
                         Best players
                     </span>
-                    <span className={MONO_CAP}>
-                        Best
-                    </span>
+                    <span className={MONO_CAP}>Best</span>
                 </div>
                 {legends.map((l, i) => (
                     <div

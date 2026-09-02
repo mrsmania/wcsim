@@ -139,12 +139,6 @@ export default function ChallengesScreen({
         )}
       </section>
 
-      <p className="mt-3.5 text-[13px] text-muted">
-        Every challenge is permanent: completable once, and it stays on the list until you get
-        it. Nothing expires, so nothing is missed by not playing. They are judged when a Cup Run
-        ends.
-      </p>
-
       {/* Filters */}
       <div className="mt-6 flex flex-wrap items-center gap-2 border-t-2 border-ink pt-4">
         <span className={`mr-1 ${MONO_CAP}`}>

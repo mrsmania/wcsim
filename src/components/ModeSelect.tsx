@@ -166,24 +166,16 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                                 to={buildTo}
                                 className={`${CTA} bg-white text-[#13211a] hover:bg-white/90`}
                             >
-                                Build your XI
+                                Build your XI now
                                 <ArrowRight size={17} strokeWidth={2.5} />
                             </Link>
                         )}
                     </div>
-                    <p className="mt-3.5 text-[12.5px] text-white/70">
-                        {continueAction ? (
-                            continueAction.sub
-                        ) : (
-                            <>
-                                Pick a formation, roll real squads or shop a transfer budget, then
-                                take your XI through a group and four knockout rounds - earning{' '}
-                                <b className="font-semibold text-white">XP</b>,{' '}
-                                <b className="font-semibold text-white">Prestige</b> and honours as
-                                you go.
-                            </>
-                        )}
-                    </p>
+                    {continueAction && (
+                        <p className="mt-3.5 text-[12.5px] text-white/70">
+                            {continueAction.sub}
+                        </p>
+                    )}
                 </div>
 
                 {/* All-time 4-3-3 on the tactics board (desktop only) */}

@@ -1,4 +1,4 @@
-import { Check, Plus, Trophy, User } from 'lucide-react';
+import { Check, Plus, Trophy } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FEATURES } from '../config';
@@ -13,13 +13,11 @@ import {
   type ShelfCup,
 } from '../domain/cabinet';
 import { FINISH_LABEL, type CareerState, type RunHistoryEntry } from '../domain/career';
-import { AWARD, AWARDS_ON, FAMILIES, FAMILY_NAME } from '../domain/challenges';
 import type { BadgeRow } from '../domain/badges';
 import type { RunOutcome } from '../domain/run';
-import { TierPips } from './challengeUi';
 import Flag from './Flag';
 import { SQUAD_BY_ID } from '../data/squads';
-import { CARD_SM, Meter } from './matchUi';
+import { CARD_SM } from './matchUi';
 
 /** A cup's plinth by the tier it was won at: ONE hue getting deeper, plus the numeral.
  *  Tier is deliberately not a colour of its own - the challenge ledger settled that
@@ -135,18 +133,6 @@ const LEADER_COL = {
   apps: 'w-12 shrink-0 text-right',
   runs: 'w-10 shrink-0 text-right max-[560px]:hidden',
 } as const;
-
-/** A completion bar: the shared Meter in the have/need shape all four call sites on this
- *  screen use, on hairline rules because everything around them is one. */
-function Bar({ have, need, thin }: { have: number; need: number; thin?: boolean }) {
-  return (
-    <Meter
-      pct={need > 0 ? Math.round((have / need) * 100) : 0}
-      height={thin ? 5 : 7}
-      track="border-hair"
-    />
-  );
-}
 
 /** Earned is the only ink, as on the challenge ledger: a done badge is panel + the
  *  tifo shadow + a tick, everything else is flat and dim with its fraction. */
@@ -382,11 +368,6 @@ export default function CabinetScreen({
   // alias that would have wanted its own was unreachable, and is now deleted.
   return (
     <>
-      <p className="mb-[18px] max-w-[72ch] text-[13px] text-muted">
-        Everything this career has to show for itself. Cups and honours are permanent; the
-        counters are read live from the career, so they change as you play.
-      </p>
-
       {/* Headline strip. The Prestige balance is here as a fact about the career,
         not as a prompt to go and spend it - the hub is where it is spent. */}
       <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line shadow-hard-sm min-[560px]:grid-cols-3 min-[860px]:grid-cols-6">
@@ -424,12 +405,16 @@ export default function CabinetScreen({
         ))}
       </div>
 
-      {/* ---- the shelf ---- */}
+      {/* ---- the shelf, which owns the tier ladder ----
+        The trophies and the per-tier counts answered one question twice, so the
+        ladder is a block in here rather than a card of its own. Its three-swatch
+        colour key went with the merge: every rung already prints "locked" or its
+        multiplier in words, so the key named a colour the cell had already named.
+        `LadderNote` stays - the two-gate sentence is a fact about the career. */}
       <Card className="mb-3.5">
         <BlockHead
           title="The shelf"
-          count={`${v.shelf.length} ${v.shelf.length === 1 ? 'cup' : 'cups'}`}
-          hint="One trophy per cup, ranked by the tier it was won at."
+          count={`${v.shelf.length} ${v.shelf.length === 1 ? 'cup' : 'cups'} won`}
         />
         <div className="p-3.5">
           {v.shelf.length > 0 ? (
@@ -444,43 +429,27 @@ export default function CabinetScreen({
           ) : (
             <p className="text-[13px] text-muted">
               Empty for now. Win a Cup Run and the first trophy lands here, with the
-              tier it was won at on the plinth.
+              tier it was won at.
             </p>
           )}
+
+          <div className="mt-4 font-mono text-[9.5px] font-bold uppercase tracking-[0.15em] text-muted">
+            By Ascension tier
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-[5px] border border-line bg-line min-[620px]:grid-cols-6">
+            {v.ladder.map((rung) => (
+              <LadderCell key={rung.tier} rung={rung} />
+            ))}
+          </div>
+          <LadderNote ladder={v.ladder} level={h.level} />
         </div>
       </Card>
 
-      {/* ---- ladder + records ----
-        `items-start` rather than the default stretch: the ladder is a fixed six
-        cells and the records are ten rows, so stretching left a card-sized hole
-        under the ladder. A ragged bottom edge reads better than dead space. */}
+      {/* ---- records + the run archive ----
+        `items-start` rather than the default stretch: the two are different
+        heights, so stretching left a card-sized hole under the shorter one. A
+        ragged bottom edge reads better than dead space. */}
       <div className="mb-3.5 grid grid-cols-1 items-start gap-3.5 min-[900px]:grid-cols-2">
-        <Card>
-          <BlockHead title="Cups by Ascension tier" count={String(h.cups)} />
-          <div className="p-3.5">
-            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[5px] border border-line bg-line min-[620px]:grid-cols-6">
-              {v.ladder.map((rung) => (
-                <LadderCell key={rung.tier} rung={rung} />
-              ))}
-            </div>
-            <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1.5 font-mono text-[10px] text-muted">
-              <span>
-                <i className="mr-1.5 inline-block h-[3px] w-3.5 rounded-[2px] bg-pitch align-middle" />
-                won here
-              </span>
-              <span>
-                <i className="mr-1.5 inline-block h-[3px] w-3.5 rounded-[2px] bg-amber align-middle" />
-                unlocked, not yet won
-              </span>
-              <span>
-                <i className="mr-1.5 inline-block h-[3px] w-3.5 rounded-[2px] bg-line align-middle" />
-                locked
-              </span>
-            </div>
-            <LadderNote ladder={v.ladder} level={h.level} />
-          </div>
-        </Card>
-
         <Card>
           <BlockHead title="Records" hint="read live from the career" />
           <div className="p-3.5">
@@ -552,83 +521,65 @@ export default function CabinetScreen({
             </ul>
           </div>
         </Card>
-      </div>
 
-      {/* ---- honours ---- */}
-      <Card className="mb-3.5">
-        <BlockHead
-          title="Honours"
-          count={`${v.honours.completed} / ${v.honours.total}`}
-          link={{ to: '/records', label: 'All challenges' }}
-        />
-        <div className="p-3.5">
-          <Bar have={v.honours.completed} need={v.honours.total} />
-          <div className="mt-3 grid gap-2">
-            {(['bronze', 'silver', 'gold'] as const).map((t) => (
-              <div key={t} className="flex items-center gap-2.5">
-                <span className="flex w-[88px] shrink-0 items-center gap-1.5 whitespace-nowrap font-display text-[12.5px] font-bold capitalize">
-                  {t} <TierPips tier={t} />
-                </span>
-                <span className="flex-1">
-                  <Bar
-                    have={v.honours.byTier[t].completed}
-                    need={v.honours.byTier[t].total}
-                  />
-                </span>
-                <span className="w-[52px] shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums text-muted">
-                  {v.honours.byTier[t].completed} / {v.honours.byTier[t].total}
-                </span>
+        <div className="grid content-start gap-3.5">
+          {/* The run archive. Unlike everything else on this screen it is RECORDED,
+              because nothing derivable can answer "when" - so a career that predates
+              the recording gets the explanation rather than a blank list. */}
+          {v.history.length > 0 ? (
+            <Card>
+              <BlockHead
+                title="Run history"
+                count={`${v.historyHeld}${v.historyHeld >= v.historyLimit ? ` (last ${v.historyLimit})` : ''}`}
+                hint="Newest first."
+              />
+              <div className="p-3.5">
+                <ol className="grid grid-cols-1">
+                  {v.history.slice(0, HISTORY_SHOWN).map((h, i) => (
+                    <HistoryRow key={`${h.at ?? 'x'}-${i}`} entry={h} />
+                  ))}
+                </ol>
+                {v.historyHeld > HISTORY_SHOWN && (
+                  <p className="mt-2.5 text-[12px] text-muted">
+                    Showing {HISTORY_SHOWN} of {v.historyHeld} runs held
+                    {v.historyHeld >= v.historyLimit
+                      ? `; the archive keeps the last ${v.historyLimit}, so the lifetime counters above reach further back than this list does.`
+                      : '.'}
+                  </p>
+                )}
               </div>
-            ))}
-          </div>
-
-          <div className="mb-1 mt-[18px] font-mono text-[9.5px] font-bold uppercase tracking-[0.15em] text-muted">
-            By family
-          </div>
-          <div className="grid grid-cols-1 gap-x-[22px] min-[620px]:grid-cols-2">
-            {FAMILIES.map((f) => {
-              const cell = v.honours.byFamily[f];
-              return (
-                <div
-                  key={f}
-                  className="flex items-center gap-2.5 border-b border-hair py-[5px]"
-                >
-                  <span
-                    className={`min-w-0 flex-1 truncate text-[12.5px] ${
-                      cell.completed > 0 ? 'text-ink' : 'text-dim'
-                    }`}
-                  >
-                    {FAMILY_NAME[f]}
-                  </span>
-                  <span className="w-[74px] shrink-0 max-[440px]:hidden">
-                    <Bar have={cell.completed} need={cell.total} thin />
-                  </span>
-                  <span className="w-10 shrink-0 text-right font-mono text-[10.5px] tabular-nums text-muted">
-                    {cell.completed}/{cell.total}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {AWARDS_ON && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-hair pt-2.5 text-[12.5px] text-muted">
-              <span>Paid out so far</span>
-              <b className="font-mono font-bold text-amber-ink">
-                {v.honours.prestige} Prestige
-              </b>
-              <span className="text-dim">
-                &middot; bronze {AWARD.bronze}, silver {AWARD.silver}, gold{' '}
-                {AWARD.gold}
+            </Card>
+          ) : (
+            <div className="rounded-md border border-dashed border-line bg-faint p-[16px_15px]">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-dim">
+                Nothing recorded yet
               </span>
+              <h3 className="mt-1 font-display text-[14px] font-extrabold text-dim">
+                Run history
+              </h3>
+              <p className="mt-1.5 max-w-[74ch] text-[12.5px] text-dim">
+                The one part of this screen that is recorded rather than worked out from
+                the career, because nothing derivable can answer "when". It starts filling
+                at your next finished run, and only ever covers runs from now on - the
+                ones already played left no date behind.
+              </p>
             </div>
           )}
-          <p className="mt-2.5 text-[12px] text-muted">
-            A summary, not a second catalogue. All {v.honours.total} stay on the
-            challenges page, where the ledger already holds them.
-          </p>
-        </div>
-      </Card>
+
+          {v.complete && (
+            <div className={`${CARD_SM} p-[16px_15px]`}>
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-accent">
+                Complete
+              </span>
+              <h3 className="mt-1 flex items-center gap-2 font-display text-[15px] font-extrabold">
+                <Cup size={18} /> Nothing left to win
+              </h3>
+              <p className="mt-1.5 text-[12.5px] text-muted">
+                Every honour, every badge and every sticker. The cabinet is full.
+              </p>
+            </div>
+          )}
+        </div>      </div>
 
       {/* ---- badges ---- */}
       <Card className="mb-3.5">
@@ -711,139 +662,6 @@ export default function CabinetScreen({
           </Card>
         </div>
       )}
-
-      {/* ---- album + the run archive ---- */}
-      <div className="grid grid-cols-1 items-start gap-3.5 min-[900px]:grid-cols-2">
-        <Card>
-          <BlockHead
-            title="Album"
-            count={`${v.album.collected} / ${v.album.total}`}
-            link={{ to: '/album', label: 'Open album' }}
-          />
-          <div className="p-3.5">
-            <div className="grid gap-2">
-              {(['legendary', 'iconic', 'monumental'] as const).map((t) => (
-                <div key={t} className="flex items-center gap-2.5">
-                  <span className="w-[88px] shrink-0 font-display text-[12.5px] font-bold capitalize">
-                    {t}
-                  </span>
-                  <span className="flex-1">
-                    <Bar
-                      have={v.album.byTier[t].collected}
-                      need={v.album.byTier[t].total}
-                    />
-                  </span>
-                  <span className="w-[52px] shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums text-muted">
-                    {v.album.byTier[t].collected} / {v.album.byTier[t].total}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 font-mono text-[9.5px] font-bold uppercase tracking-[0.15em] text-muted">
-              The {v.monumentals.length} Monumentals
-            </div>
-            <ul className="mt-3 flex flex-wrap gap-[7px]">
-              {v.monumentals.map(({ player, owned }) => {
-                const squad = SQUAD_BY_ID[player.squadId];
-                return (
-                  <li
-                    key={player.id}
-                    className={`w-[78px] shrink-0 rounded-[5px] border p-[6px_5px] text-center ${
-                      owned
-                        ? 'border-line bg-panel'
-                        : 'border-hair bg-faint'
-                    }`}
-                  >
-                    <div
-                      className={`grid h-[46px] place-items-center rounded-[3px] ${
-                        owned
-                          ? 'bg-chalk text-pitch-ink'
-                          : 'border border-dashed border-line text-dim'
-                      }`}
-                    >
-                      {owned ? (
-                        <User size={20} strokeWidth={1.8} aria-hidden="true" />
-                      ) : (
-                        <span className="font-mono text-[15px]">?</span>
-                      )}
-                    </div>
-                    <b
-                      className={`mt-1.5 block font-display text-[9.5px] font-extrabold leading-[1.15] ${
-                        owned ? '' : 'text-dim'
-                      }`}
-                    >
-                      {player.name}
-                    </b>
-                    <i className="mt-px flex items-center justify-center gap-1 font-mono text-[8.5px] not-italic tabular-nums text-dim">
-                      {squad && <Flag code={squad.code} className="h-2 w-3" />}
-                      {squad?.year} &middot; {player.elo}
-                    </i>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </Card>
-
-        <div className="grid content-start gap-3.5">
-          {/* The run archive. Unlike everything else on this screen it is RECORDED,
-              because nothing derivable can answer "when" - so a career that predates
-              the recording gets the explanation rather than a blank list. */}
-          {v.history.length > 0 ? (
-            <Card>
-              <BlockHead
-                title="Run history"
-                count={`${v.historyHeld}${v.historyHeld >= v.historyLimit ? ` (last ${v.historyLimit})` : ''}`}
-                hint="Newest first."
-              />
-              <div className="p-3.5">
-                <ol className="grid grid-cols-1">
-                  {v.history.slice(0, HISTORY_SHOWN).map((h, i) => (
-                    <HistoryRow key={`${h.at ?? 'x'}-${i}`} entry={h} />
-                  ))}
-                </ol>
-                {v.historyHeld > HISTORY_SHOWN && (
-                  <p className="mt-2.5 text-[12px] text-muted">
-                    Showing {HISTORY_SHOWN} of {v.historyHeld} runs held
-                    {v.historyHeld >= v.historyLimit
-                      ? `; the archive keeps the last ${v.historyLimit}, so the lifetime counters above reach further back than this list does.`
-                      : '.'}
-                  </p>
-                )}
-              </div>
-            </Card>
-          ) : (
-            <div className="rounded-md border border-dashed border-line bg-faint p-[16px_15px]">
-              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-dim">
-                Nothing recorded yet
-              </span>
-              <h3 className="mt-1 font-display text-[14px] font-extrabold text-dim">
-                Run history
-              </h3>
-              <p className="mt-1.5 max-w-[74ch] text-[12.5px] text-dim">
-                The one part of this screen that is recorded rather than worked out from
-                the career, because nothing derivable can answer "when". It starts filling
-                at your next finished run, and only ever covers runs from now on - the
-                ones already played left no date behind.
-              </p>
-            </div>
-          )}
-
-          {v.complete && (
-            <div className={`${CARD_SM} p-[16px_15px]`}>
-              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-accent">
-                Complete
-              </span>
-              <h3 className="mt-1 flex items-center gap-2 font-display text-[15px] font-extrabold">
-                <Cup size={18} /> Nothing left to win
-              </h3>
-              <p className="mt-1.5 text-[12.5px] text-muted">
-                Every honour, every badge and every sticker. The cabinet is full.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
 
       {FEATURES.challenges && (
         <p className="mt-5 text-[12.5px] text-muted">
