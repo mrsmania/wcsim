@@ -335,8 +335,8 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-09-01<br>
-    <strong>Open:</strong> 7 items<br>
+    <strong>Updated:</strong> 2026-09-02<br>
+    <strong>Open:</strong> 5 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -349,141 +349,8 @@
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
 
-<details class="item">
-  <summary>
-    <span class="num">53</span>
-    <span class="title">Rebuild the versus server, so an invitation says what it is an invitation to
-      <span class="sub"><b>Queued 2026-09-01, no migration.</b> A link followed by somebody
-      with no account now shows who opened the room, what it plays and whether a seat is
-      still there. The route that answers it (<code>GET /v1/rooms/:code/invite</code>) is in
-      this repository and not in the container, so until the rebuild the screen falls back to
-      the code alone, which is exactly what it showed before. <b>Rides on the same rebuild as
-      item 52</b>; both are safe in either order.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What it is fixing.</strong> A room needs an account, so a link somebody was
-    sent lands on a sign-in screen rather than in the room. That screen could say nothing at
-    all about what had been followed: not who sent it, not what the game was, not whether
-    the seat was still free. Every read of a room needs a session, and a private room answers
-    "no room with that code" to anybody without a seat, deliberately, so a code cannot be
-    confirmed by probing. So the most motivated arrival in the whole product was told the
-    least, and the answer was a route rather than better copy.</p>
-
-    <p><strong>What it answers.</strong> The host's name, what the room plays (the same
-    sentence the public list writes, minus the pick clock for a duel, which has none), how
-    many seats are left, and whether it has started. <b>Nothing from inside the room</b>: no
-    member row, no XI, no formation, which P19 keeps out of a lobby's reach for the same
-    reason. The checks assert the answer's key set as a whole, so a field added to it later
-    fails there rather than shipping to every stranger holding a link.</p>
-
-    <p><strong>The one thing being traded, knowingly.</strong> Anybody holding a code can now
-    learn a display name without an account. A code is a secret its host hands out, which is
-    only true at a limited rate, so the route is metered: 20 reads a caller and 240 in total a
-    minute. Six characters from a 31-letter alphabet is 887 million codes, which is minutes of
-    scripting unmetered and years at those figures. A refusal costs the shared budget nothing,
-    so one caller hammering their own limit cannot lock everybody else out.</p>
-
-    <p><strong>How to verify after rebuilding</strong> - do this, do not assume:</p>
-    <ol>
-      <li><code>scripts/deploy-referee.sh --verify</code>. Its new step 6 reads the
-      invitation for the private room it just created, with no token at all, and expects the
-      host name back. <code>no-such-route</code> there means the image is older than this
-      repository; <code>unauthorized</code> means something in front of the referee is
-      demanding a token on the one route that takes none, which is the reverse proxy rather
-      than the referee.</li>
-      <li>Open a private room on one account, copy the link, and open it in a browser that is
-      signed out. It should name the host, say what the room plays and count the seats left,
-      and the button should read "Sign in and take your seat".</li>
-      <li>Do the same with a duel: it should say who challenged you and that nobody has taken
-      it up yet.</li>
-      <li>Fill the room and open the link again: the seat count should say so and the button
-      should drop back to "Sign in".</li>
-      <li>Sign in from that screen. The dialog reloads the page, which lands back on the
-      room's own address, and the seat is taken on arrival.</li>
-      <li>Check the firewall afterwards. The docker bridge rules have been wiped by the
-      container operations of a deploy before, which takes the whole accounts stack with it
-      (<code>docs/nas-setup.md</code>).</li>
-    </ol>
-
-    <p><strong>Order does not matter, in either direction.</strong> Nothing the referee writes
-    changed and no column moved. The client is already live and treats a missing route, an
-    unreachable server, a closed room and a rate-limited read identically: no answer means the
-    screen shows the code and says why there is nothing else, which is what it did before this
-    existed.</p>
-  </div>
-</details>
 
 
-<details class="item">
-  <summary>
-    <span class="num">52</span>
-    <span class="title">Rebuild the versus server, so walking away from a duel costs it
-      <span class="sub"><b>Queued 2026-09-01, no migration.</b> A duel abandoned mid-draft
-      now resolves against whoever never sent a team, instead of closing a week later with
-      no result for anybody. The rule is read by the SWEEPER, so it does nothing at all
-      until the container is rebuilt. The client half is already live and degrades to
-      saying nothing, which is correct while there is no window to warn about.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What it is fixing.</strong> Reported from the game in one sentence:
-    "leaving a room during rolling does not cost a loss - I can leave the draw without
-    catching a loss." True, and only of the BUTTON. Giving a duel up is a forfeit and the
-    confirm line says so, but leaving the way you leave any other screen - the crest, the
-    Versus tab, Back, closing the tab - sends nothing at all. A duel has no pick clock, no
-    liveness sweep and no lobby close on purpose, so nothing was left to force the issue:
-    the room stopped dead, went on telling both players it was somebody's turn, and a week
-    later closed itself with no result for either side. Which is the free re-roll the lobby
-    and the forfeit were added to shut off, reachable by pressing nothing.</p>
-
-    <p><strong>What changed.</strong> The week that was already there
-    (<code>DUEL_IDLE_MS</code>) now resolves honestly. Mid-draft, whoever never sent a team
-    loses it, by the same encoding a walked-out duel uses - a champion with no match under
-    it, which <b>migration 0024 already counts</b>, so there is no SQL to apply. Both late
-    still closes it with nobody winning; both teams in still plays the football, however
-    late the sweep. Both draft panels and the wait after sending now name the window.</p>
-
-    <p><strong>Not a new deadline, deliberately.</strong> A shorter clock of its own was the
-    first shape and it was wrong: the checks draft a duel over nine days on purpose, because
-    playing at your own pace over a week is the mode rather than a tolerance. A two-day
-    window would have halved what a duel may take, which is a separate decision and one
-    constant away if it is wanted.</p>
-
-    <p><strong>A neighbouring bug went with it.</strong>
-    <code>recoverFromOutage</code> returned a clone for any drafting room even with no
-    windows to hand time back to, and a clone is what the sweeper reads as "this room
-    changed" - so it wrote the room and stamped <code>touched_at</code>. Every sweeper
-    restart would have handed the player who walked away another seven days, for ever. A
-    duel loses nothing to an outage, so it is now skipped outright.</p>
-
-    <p><strong>How to verify after rebuilding</strong> - do this, do not assume:</p>
-    <ol>
-      <li><code>scripts/deploy-referee.sh --verify</code>, which mints a session on the box
-      and creates, changes and deletes a real room. A version endpoint answering is not a
-      working referee.</li>
-      <li>Open a duel from two accounts, both ready, send ONE team, and leave the other
-      alone. Inside the week the row stays under "On now" and nothing moves.</li>
-      <li>The draft screen names the window: "N days left to send your team, or you lose the
-      duel." An older container sends no such field and the line is simply absent, which is
-      how to tell the two apart from the outside.</li>
-      <li>Past the week the room ends with the sender as champion and no match under it, and
-      both records move - the loser's row reads as a loss under "Played".</li>
-      <li>Check the firewall afterwards. The docker bridge rules have been wiped by the
-      container operations of a deploy before, which takes the whole accounts stack with it
-      (<code>docs/nas-setup.md</code>).</li>
-    </ol>
-
-    <p><strong>Order does not matter in either direction</strong>, unusually. Nothing the
-    referee writes changed and no column moved, so the client can ship first (it says
-    nothing without the field) and the container can ship first (the rule simply starts
-    working). There is no migration to sequence against.</p>
-  </div>
-</details>
 
 
 <details class="item">
@@ -1095,10 +962,109 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
-    <h3>Closed 2026-09-01</h3>
+    <h3>Closed 2026-09-02</h3>
 <details class="item">
   <summary>
     <span class="num">52</span>
+    <span class="title">Rebuild the versus server, so walking away from a duel costs it
+      <span class="sub"><b>CLOSED 2026-09-02.</b> The referee is rebuilt, so the week that
+      was already in the rules now resolves an abandoned duel instead of closing it with no
+      result for anybody: mid-draft, whoever never sent a team loses it. Driven on the live
+      server by backdating a real duel rather than by shortening the week. <b>No
+      migration</b>, and the client half had been live since the day before.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What it was fixing.</strong> Reported in one sentence: "leaving a room during
+    rolling does not cost a loss - I can leave the draw without catching a loss." Giving a
+    duel up with the button was already a forfeit; leaving the way you leave any other
+    screen - the crest, the tab bar, Back, closing the tab - sent nothing at all, and a duel
+    has no pick clock, no liveness sweep and no lobby close on purpose, so nothing forced the
+    issue. The room stopped dead, went on telling both players it was somebody's turn, and a
+    week later closed itself with no result and no loss for either side, which is the free
+    re-roll the lobby and the forfeit exist to shut off, reachable by pressing nothing.</p>
+
+    <p><strong>What the rebuild put on the server.</strong> Nothing but the reading of the
+    week that was already there. Mid-draft, whoever never sent a team loses it, by the same
+    encoding a walked-out duel uses - a champion with no match under the room, which
+    migration 0024 already counts. Both late still closes it with nobody winning, because
+    there is no player who stayed to hand it to. Both draft panels and the wait after sending
+    name the window, and an older container simply sent no such field.</p>
+
+    <p><strong>How it was driven, and the method is the part worth keeping.</strong> A
+    week-long rule cannot be waited out and must not be shortened for a test, since
+    <code>DUEL_IDLE_MS</code> is what a duel may take rather than a tolerance it happens to
+    allow. The rule is measured off <code>pvp_rooms.touched_at</code>, so the honest test is
+    to <b>backdate the room</b>: two real accounts opened a budget duel through the public
+    URL, both pressed ready, the sweeper started the draft, one sent a full XI and the other
+    sent nothing, and then <code>touched_at</code> was set eight days back and the sweeper
+    found it on its next pass. It crowned the sender, and <code>pvp_records</code> moved
+    <b>one win and one room won to the sender and one loss to the absentee</b> - which is
+    0024's walkover branch working on the real server rather than in a fixture. Deleting the
+    test room took both figures back out again, records being a view. Run twice, same result
+    both times.</p>
+
+    <p><strong>What the deploy touched.</strong> The image was built on the NAS from
+    <code>dcf6c15</code> and <b>only the referee container was recreated</b>
+    (<code>up -d --no-deps referee</code>), so nothing else in the stack was restarted, the
+    docker bridge rules survived it and the gateway answered throughout. Steps 1 to 5 of
+    <code>scripts/deploy-referee.sh --verify</code> passed on the first attempt: the dataset
+    hash matches the client, both refusals are refused, and a real room was created, read
+    back, changed and deleted.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/domain/pvpRoom.ts" target="_blank" rel="noopener">src/domain/pvpRoom.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
+  </div>
+</details>
+<details class="item">
+  <summary>
+    <span class="num">53</span>
+    <span class="title">Rebuild the versus server, so an invitation says what it is an invitation to
+      <span class="sub"><b>CLOSED 2026-09-02.</b> A link followed by somebody with no account
+      now names the host, says what the room plays and counts the seats left. Same rebuild as
+      item 52. It also turned up a fault in the verification itself: step 6 had been
+      reporting a working route as unverified.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What it was fixing.</strong> A room needs an account, so a link somebody was
+    sent lands on a sign-in screen rather than in the room, and that screen could say nothing
+    at all about what had been followed. Every read of a room needs a session, and a private
+    room answers "no room with that code" to anybody without a seat, deliberately. So the
+    most motivated arrival in the product was told the least, and the answer was a route
+    rather than better copy.</p>
+
+    <p><strong>What it answers, checked against the live server.</strong> Opened as a private
+    duel and read with <b>no token at all</b>, the route named the host, the pace, what the
+    room plays, the seat count and whether it had started; taking the second seat moved that
+    count from one to two on the next read. The room ITSELF still refuses a read without a
+    session, and a code nobody ever opened answers "no such room", so nothing else leaked.
+    Nothing from inside the room is in the answer: no member row, no XI, no formation.</p>
+
+    <p><strong>The traded thing stands, and it is metered.</strong> Anybody holding a code can
+    now learn a display name without an account. A code is a secret its host hands out, which
+    is only true at a limited rate, so the route allows 20 reads a caller and 240 in total a
+    minute. Six characters from a 31-letter alphabet is 887 million codes: minutes of
+    scripting unmetered, years at those figures.</p>
+
+    <p><strong>The verification was lying, and that is the lesson.</strong> Step 6 tested the
+    answer with one shell pattern naming two fields, which reads as "both are there" and
+    means "the first one BEFORE the second" - and the answer carries the seat count several
+    fields earlier than the host name. So a route that was working perfectly reported itself
+    unverified, on the one step that exists because <b>nothing else can see this route at
+    all</b>. Step 4 was carrying the same shape and passing by luck. Both ask for one field a
+    pattern now, with the faults tested first, and <code>npm run checks</code> refuses a
+    two-field pattern anywhere in that script, mutation-tested by putting the old shape back.
+    A verification that fails on a working system is worse than none.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/referee/src/api.ts" target="_blank" rel="noopener">referee/src/api.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/referee/src/invites.ts" target="_blank" rel="noopener">referee/src/invites.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/checks/referee.ts" target="_blank" rel="noopener">scripts/checks/referee.ts</a></p>
+  </div>
+</details>
+    <h3>Closed 2026-09-01</h3>
+<details class="item">
+  <summary>
+    <span class="num">54</span>
     <span class="title">A watched duel stays watched after a re-login
       <span class="sub"><b>CLOSED 2026-09-01.</b> The list of duel results you have sat
       through followed the BROWSER and now follows the ACCOUNT, so signing out and back in
@@ -1133,6 +1099,9 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     and three checks hold the rest - the round trip, both writes carrying both halves, and
     the list being read through the store rather than a browser key. All three were
     mutation-tested.</p>
+    <p><strong>It closed as item 52 and is numbered 54 here</strong>, because two later
+    items had been given 52 as well and nothing outside this file referred to this one by
+    number. The rebuild items keep 52 and 53, which is what every reference uses.</p>
     <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/pvp/watched.ts" target="_blank" rel="noopener">src/state/pvp/watched.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/pvp/watchedStorage.ts" target="_blank" rel="noopener">src/state/pvp/watchedStorage.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/settingsStorage.ts" target="_blank" rel="noopener">src/state/settingsStorage.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/store/remoteStore.ts" target="_blank" rel="noopener">src/state/store/remoteStore.ts</a></p>
   </div>
 </details>

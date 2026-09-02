@@ -405,8 +405,14 @@ PYEOF" | tr -d '\r' | tail -1)
              "$host/referee/v1/rooms" || true)
     printf '   %s\n' "${made:-<no answer>}"
     case "$made" in
-      *'"code"'*'"status":"lobby"'*)
+      # ONE FIELD A GLOB, for the reason step 6 carries in full: two in one pattern tests
+      # the ORDER they serialise in rather than that both are there. A refusal never says
+      # it is in a lobby, so this one field is the whole test, and the code is read out of
+      # the same answer below.
+      *'"status":"lobby"'*)
         local made_code; made_code=$(printf '%s' "$made" | sed -n 's/.*"code":"\([A-Z0-9]*\)".*/\1/p')
+        [ -n "$made_code" ] || warn "the room came back with no code in it, so steps 5 and 6
+   below will look for a room that cannot be found"
         ok "a room was created and read back: $made_code"
 
         say "5. NOW CHANGE IT - creating a room never READS one back"
@@ -447,8 +453,14 @@ PYEOF" | tr -d '\r' | tail -1)
         invited=$(curl -s --ssl-no-revoke --max-time 20 \
                     "$host/referee/v1/rooms/$made_code/invite" || true)
         printf '   %s\n' "${invited:-<no answer>}"
+        # TWO FIELD NAMES IN ONE GLOB TESTS THEIR ORDER, and it reads as testing that both
+        # are there (2026-09-02, the first deploy this step ever ran against): a pattern of
+        # hostName-then-seated needs hostName FIRST, and the answer carries the seat count
+        # several fields earlier - so a route that was working perfectly reported itself
+        # unverified, on the one step that exists because nothing else can see this route at
+        # all. Ask for each field on its own, and put the two faults first, where a payload
+        # containing one of those words cannot shadow them.
         case "$invited" in
-          *'"hostName"'*'"seated"'*) ok "an invitation answers with no session, for a private room" ;;
           *no-such-route*)
             warn "THE CONTAINER PREDATES THE INVITATION READ, so it is older than the client
    this repository builds. Rebuild the image from HEAD; nothing else is wrong." ;;
@@ -456,6 +468,12 @@ PYEOF" | tr -d '\r' | tail -1)
             warn "something in front of the referee is demanding a token on a route that
    takes none - the reverse proxy rule, not the referee. An invited player would see the
    code and nothing else." ;;
+          *'"hostName"'*)
+            case "$invited" in
+              *'"seated"'*) ok "an invitation answers with no session, for a private room" ;;
+              *) warn "the invitation named its host and did not count the seats, so a
+   sign-in screen cannot say whether there is a place left." ;;
+            esac ;;
           *) warn "the invitation read is NOT verified. A link would land on a sign-in
    screen that cannot say what it is an invitation to." ;;
         esac

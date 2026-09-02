@@ -2994,25 +2994,50 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**A REFEREE REBUILD IS QUEUED (roadmap items 52 and 53), and no migration is.** The versus
-schema is at 0024 and the container is a rebuild behind, and **two things are waiting on
-it**: the week that resolves an abandoned duel (below), which is read by the SWEEPER, and
-the **invitation read** a link's sign-in screen asks for (`GET /v1/rooms/:code/invite`, item
-53). Both client halves degrade to saying nothing, which is why they could ship first - an
-old container has no window to warn anybody about and answers `no-such-route` to the
-invitation, which the screen reads as "nothing to say about this link" and falls back to the
-code alone. Neither is verified until the container moves; `scripts/deploy-referee.sh
---verify` now probes the invitation read as its step 6, since it is the one route a reverse
-proxy can break on its own by demanding a token. **The schema is
-at 0024 and the referee was rebuilt on
-2026-09-01** (roadmap item 51, closed), which is what put the duel lobby and the forfeit on
-the server. **0024 was applied the same day** and it is the one migration in this repo whose
+**NOTHING IS QUEUED: the referee was rebuilt on 2026-09-02, and the schema is at 0024**
+(roadmap items 52 and 53, both closed). That rebuild carried two things whose client halves
+had already shipped: the week that resolves an abandoned duel (below), which is read by the
+SWEEPER, and the **invitation read** a link's sign-in screen asks for
+(`GET /v1/rooms/:code/invite`). Shipping the client first was safe because both degrade to
+saying nothing - an old container has no window to warn anybody about and answers
+`no-such-route` to the invitation, which the screen reads as "nothing to say about this
+link" and falls back to the code alone. Both were then DRIVEN on the real server rather
+than assumed, `scripts/deploy-referee.sh --verify` probing the invitation read as its step
+6, since it is the one route a reverse proxy can break on its own by demanding a token.
+**The referee was rebuilt on 2026-09-01 as well** (roadmap item 51, closed), which is what
+put the duel lobby and the forfeit on the server. **0024 was applied the same day** and it
+is the one migration in this repo whose
 order genuinely did not matter in either direction, because nothing the referee WRITES
 changed: a forfeited room is an ordinary `ended` room with a champion, through columns that
 have existed since 0016. `0023` is an ACCOUNTS migration (the email address as the
 identifier, roadmap item 50, applied 2026-08-31) and the referee needed no rebuild for it,
 since it reads three columns of `profiles` and `email` is deliberately not one of them. See
 "Accounts" for what it does.
+
+**A WEEK-LONG RULE IS VERIFIED IN FOUR SECONDS BY BACKDATING THE ROOM, not by shortening
+the clock** (2026-09-02, items 52 and 53). The abandoned-duel rule is measured off
+`pvp_rooms.touched_at`, so the honest live test is to play a duel up to the point where one
+team is in and the other is not, `update pvp_rooms set touched_at = now() - interval '8
+days'`, and let the sweeper find it on its next pass. Driven that way on the real server:
+the sender was crowned, and `pvp_records` moved **one win and one room won to him and one
+loss to the absentee** - 0024's walkover branch working on live data rather than in a
+fixture - and deleting the test room took both figures back out again. Nothing was mocked
+and `DUEL_IDLE_MS` was not touched, which is the point -
+shortening it for a test is the one edit that would quietly halve what a duel may take.
+The rest of the flow is ordinary curl against the public URL with a session minted on the
+box from `JWT_SECRET`, exactly as `--verify` step 4 does it, so the gateway is in the path
+too. **A room created for a test is deleted afterwards**, and the record it moved goes with
+it, because `pvp_records` is a VIEW.
+
+**AND TWO FIELD NAMES IN ONE SHELL GLOB TEST THEIR ORDER, not their presence** (2026-09-02).
+`--verify` step 6 read `*'"hostName"'*'"seated"'*`, which needs `hostName` FIRST, and the
+invitation answers with the seat count several fields earlier - so a route that was working
+perfectly reported itself unverified, on the one step that exists because nothing else can
+see that route at all. Step 4 was carrying the same shape and passing by luck. One field a
+pattern, the faults tested first so a payload carrying one of those words cannot shadow
+them, and `npm run checks` refuses a two-field glob anywhere in that script now. **A
+verification that fails on a working system is worse than none**, which is the same reading
+as the sweep that would not say why it had failed.
 
 **A REHEARSAL CAN CATCH A DOUBLE COUNT THAT NO FIXTURE WOULD, and 0024 is the worked
 example.** Its risky line is the `not exists` that stands the walkover branch down once a

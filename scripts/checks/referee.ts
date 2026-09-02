@@ -2197,6 +2197,27 @@ export async function refereeChecks(): Promise<void> {
               ? `${hardcoded} remote call(s) name docker directly instead of using $DOCKER/$COMPOSE`
               : `the scan found ${stages.length} stages and ${uses.length} using docker, so it is not reading them`,
       );
+
+      // --- AND A VERIFY GLOB ASKS FOR ONE FIELD, NEVER TWO -------------------------
+      // A shell pattern naming two payload fields reads as "both are there" and means
+      // "the first one BEFORE the second" - a test of the order the referee happens to
+      // serialise a payload in, which is part of no contract. It cost the 2026-09-02
+      // deploy a false negative on step 6, the one step that exists because nothing else
+      // can see the invitation route at all, and step 4 was carrying the same shape and
+      // passing by luck. One field a pattern; nest a second test where two are wanted.
+      const oneField = [...sh.matchAll(/[*]'[^']*"[^']*'[*]/g)].length;
+      const twoFields = [...sh.matchAll(/[*]'[^']*"[^']*'[*]'[^']*"[^']*'[*]/g)];
+      check(
+        'referee: no deploy check tests two payload fields in one glob, which tests their order',
+        () =>
+          twoFields.length === 0 &&
+          // Vacuity: the scan found the single-field patterns it is reading past.
+          oneField >= 3,
+        () =>
+          twoFields.length
+            ? `order-dependent: ${twoFields.map((m) => m[0]).join(' ')}`
+            : `the scan found ${oneField} single-field globs, so it is not reading the script`,
+      );
     }
 
     const setup = readFileSync('docs/nas-setup.md', 'utf8');
