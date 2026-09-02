@@ -20,8 +20,13 @@ import { LayoutGrid, List, Play, Swords, Trophy, Users } from 'lucide-react';
  *
  * Two renderings of the same labels in the same order, so muscle memory carries between
  * devices: a row under the masthead from 700px up, and a fixed bottom bar at thumb height
- * below it. The row carries the masthead's 2px ink rule, so the tabs read as part of the
- * identity block rather than as a strip below it.
+ * below it. Both stand on a `line` HAIRLINE, and that is a deliberate step down from the
+ * 2px ink rule they carried until 2026-09-02: a near-black bar across the full width was
+ * the heaviest thing on every screen in the app, and it was the chrome rather than the
+ * content. The line is still there because both renderings need one - the row is the foot
+ * of the identity block, and the phone bar is a floating panel that content scrolls under -
+ * but it is now the same hairline every card in the app is drawn with, so the FILLED tab is
+ * the only ink in the navigation and the accent is the only thing that says where you are.
  *
  * A tab is its label and nothing else. The row used to carry a mono sub-line per tab
  * (level and Prestige, album completion, challenges earned, cups in the pool), which put
@@ -61,7 +66,7 @@ export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }
         <nav
             aria-label="Main"
             // items-stretch so every tab is the same height as the filled one.
-            className="hidden items-stretch gap-[2px] border-b-2 border-ink min-[700px]:flex"
+            className="hidden items-stretch gap-[2px] border-b border-line min-[700px]:flex"
         >
             {items.map((t) => {
                 const inert = !!locked && !t.active;
@@ -100,7 +105,7 @@ export function TabBottomBar({ items, locked }: { items: TabItem[]; locked?: boo
     return (
         <nav
             aria-label="Main"
-            className="fixed inset-x-0 bottom-0 z-20 grid border-t-2 border-ink bg-panel pb-[env(safe-area-inset-bottom)] min-[700px]:hidden"
+            className="fixed inset-x-0 bottom-0 z-20 grid border-t border-line bg-panel pb-[env(safe-area-inset-bottom)] min-[700px]:hidden"
             // THE COLUMN COUNT FOLLOWS THE ITEMS, and it has to be an inline style rather
             // than a class: Tailwind emits utilities from the class strings it can SEE in
             // the source, so a computed `grid-cols-${n}` is a class that does not exist.
@@ -183,10 +188,10 @@ export function SubTabs({
  * as a reader is concerned. Two copies drifting by a pixel of padding is exactly the shape
  * of the button sprawl the `btn` tokens were written to end.
  *
- * IT NEEDS ITS OWN TOP MARGIN. The tab row above ends in the masthead's 2px ink rule, and
- * a bordered green panel butted straight against that rule reads as part of the navigation
- * rather than as a line the navigation is carrying. It sits clear of it now, by the same
- * gap it already left below itself.
+ * IT NEEDS ITS OWN TOP MARGIN. The tab row above ends in a rule, and a bordered green
+ * panel butted straight against that rule reads as part of the navigation rather than as a
+ * line the navigation is carrying. It sits clear of it now, by the same gap it already left
+ * below itself.
  */
 export const ROOM_STRIP =
     'my-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch-ink transition hover:bg-pitch/20';
