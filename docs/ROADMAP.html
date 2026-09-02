@@ -356,7 +356,8 @@
       <code>main</code>, and <b>migration 0025 is applied</b> - but the container is still the
       one built on 2026-09-02, which has no <code>/remove</code> route. Until it is rebuilt the
       host sees the button and pressing it says the two sides are on different versions.
-      Needs the LAN or the VPN, which this session did not have.</span>
+      <b>It needs the home machine</b>: retried 2026-09-02 and the work machine cannot reach
+      the NAS at all, corporate VPN or not.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>
@@ -376,6 +377,15 @@
     read back as an empty array with no nulls. <b>The order is the standing one</b> and it
     holds here - nothing is dropped, so the running container is unaffected (it never selects
     the column, and the default fills it on insert). Only the rebuild is outstanding.</p>
+
+    <p><strong>Which machine can do it.</strong> The home one. Retried on 2026-09-02 from the
+    work machine with its VPN up: it lands on a corporate network (192.168.110.x plus a
+    10.119.240.x tunnel, DNS through <code>pistor.local</code>), and 192.168.1.115 answers
+    neither ssh nor ping while <code>https://wcsim-api.mariosmania.ch</code> serves normally -
+    the public IP does not take ssh either, so there is no fallback route. That asymmetry is
+    the thing to remember: <code>push:sql</code> goes over HTTPS to the public name and works
+    from anywhere, which is why <b>0025 could be applied from a machine that cannot deploy the
+    container</b>.</p>
 
     <p><strong>What a rebuild is.</strong> The same one item 52 and item 53 shared:
     <code>bash scripts/deploy-referee.sh --build mario@192.168.1.115</code>, then
