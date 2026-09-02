@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
   AWARD,
@@ -11,6 +12,7 @@ import {
 } from '../domain/challenges';
 import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
 import {
+  btn,
   CARD,
   CHIP_OFF,
   CHIP_ON,
@@ -36,9 +38,18 @@ const stateOf = (c: Challenge, done: Set<string>): Filter => (done.has(c.id) ? '
  *  challenge grouped by family. Read-only - a challenge is completed by playing. */
 export default function ChallengesScreen({
   completed,
+  collapsedFamilies,
+  onSetCollapsedFamilies,
 }: {
   /** Ids the career has completed. */
   completed: string[];
+  /** Families folded shut. Controlled, and persisted as a preference (see
+   *  `Settings.collapsedFamilies`) rather than held here: the two halves of `/records`
+   *  are sub-tabs, so this screen remounts every time you read the cabinet and come
+   *  back, and a fold that undid itself then would be something you re-collapsed rather
+   *  than something you had set. */
+  collapsedFamilies: readonly ChallengeFamily[];
+  onSetCollapsedFamilies: (families: readonly ChallengeFamily[]) => void;
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const done = useMemo(() => new Set(completed), [completed]);
@@ -54,6 +65,21 @@ export default function ChallengesScreen({
     for (const c of shown) groups.set(c.family, [...(groups.get(c.family) ?? []), c]);
     return groups;
   }, [shown]);
+
+  const collapsed = useMemo(() => new Set(collapsedFamilies), [collapsedFamilies]);
+  const toggleFamily = (family: ChallengeFamily) =>
+    onSetCollapsedFamilies(
+      collapsed.has(family)
+        ? collapsedFamilies.filter((f) => f !== family)
+        : [...collapsedFamilies, family],
+    );
+
+  // The families with something to show under the current filter, in catalogue order.
+  // The fold-everything control reads THIS rather than `FAMILIES`, so its label always
+  // describes what is actually on the page: under Completed, on a career that has won
+  // three honours, "Collapse all" means the three sections you can see.
+  const shownFamilies = useMemo(() => FAMILIES.filter((f) => byFamily.has(f)), [byFamily]);
+  const allFolded = shownFamilies.length > 0 && shownFamilies.every((f) => collapsed.has(f));
 
   const FILTERS: { key: Filter; label: string; n: number }[] = [
     { key: 'all', label: 'All', n: progress.total },
@@ -138,6 +164,19 @@ export default function ChallengesScreen({
             <span className="ml-1.5 font-mono text-[10px] font-bold opacity-60">{f.n}</span>
           </button>
         ))}
+        {/* Quiet rather than a pill on purpose: a chip in this row would read as a
+            fourth filter, and this says how to READ the answer rather than which
+            answer to show - the market's Clear filters makes the same distinction.
+            Twelve families is enough that opening one would otherwise be eleven taps. */}
+        {shownFamilies.length > 1 && (
+          <button
+            type="button"
+            onClick={() => onSetCollapsedFamilies(allFolded ? [] : FAMILIES)}
+            className={`ml-auto ${btn('quiet', 'sm')}`}
+          >
+            {allFolded ? 'Expand all' : 'Collapse all'}
+          </button>
+        )}
       </div>
 
       {/* The catalogue, by family */}
@@ -150,30 +189,46 @@ export default function ChallengesScreen({
         // CHALLENGES, so the header counts the catalogue rather than the filtered view,
         // which is what makes "3 / 16" still say 16 under the Completed filter.
         const { total, completed: got } = progress.byFamily[family];
+        const folded = collapsed.has(family);
         return (
           <section key={family} className="mt-[22px]">
             {/* The family accent is spent here and nowhere else: twelve rules on the
-                page instead of a 3px edge on all 130 entries. */}
-            <div
-              className="flex flex-wrap items-center gap-2.5 border-b-2 pb-1.5"
-              style={{ borderBottomColor: FAMILY_COLOR[family] }}
-            >
-              <h3 className="font-display text-[15px] font-extrabold tracking-[-0.01em]">
-                {FAMILY_NAME[family]}
-              </h3>
-              <span className="ml-auto font-mono text-[11.5px] font-semibold text-muted">
-                {got} / {total}
-              </span>
-            </div>
+                page instead of a 3px edge on all 130 entries.
+                The whole heading is the fold control, and the "got / total" count stays
+                on it either way - that count is what makes a folded family worth
+                reading, since a shut section still says how much of it you hold. The
+                chevron is the app's own disclosure glyph (`CardDisclosure`), which this
+                cannot reuse: that atom is a card FOOTER, centred on chalk with a rule
+                above, where this is a section heading carrying the family accent. */}
+            <h3 className="border-b-2" style={{ borderBottomColor: FAMILY_COLOR[family] }}>
+              <button
+                type="button"
+                onClick={() => toggleFamily(family)}
+                aria-expanded={!folded}
+                className="group flex w-full flex-wrap items-center gap-2.5 pb-1.5 text-left"
+              >
+                <span className="font-display text-[15px] font-extrabold tracking-[-0.01em]">
+                  {FAMILY_NAME[family]}
+                </span>
+                <span className="ml-auto font-mono text-[11.5px] font-semibold text-muted">
+                  {got} / {total}
+                </span>
+                <span className="shrink-0 text-muted transition group-hover:text-pitch-ink">
+                  {folded ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                </span>
+              </button>
+            </h3>
             {/* Two entries to a row, so a 16-entry family is 8 rows deep. Grid rather
                 than columns because a grid row levels both cells' heights, which keeps
                 the two hairlines in line when one description wraps and the other
                 does not. */}
-            <div className="grid grid-cols-1 gap-x-[30px] min-[700px]:grid-cols-2">
-              {list.map((c) => (
-                <ChallengeLedgerRow key={c.id} challenge={c} done={done.has(c.id)} />
-              ))}
-            </div>
+            {!folded && (
+              <div className="grid grid-cols-1 gap-x-[30px] min-[700px]:grid-cols-2">
+                {list.map((c) => (
+                  <ChallengeLedgerRow key={c.id} challenge={c} done={done.has(c.id)} />
+                ))}
+              </div>
+            )}
           </section>
         );
       })}

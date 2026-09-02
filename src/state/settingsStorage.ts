@@ -1,4 +1,5 @@
 import { WORLD_CUP_YEARS } from '../data/squads';
+import { FAMILIES, type ChallengeFamily } from '../domain/challenges';
 import type { Difficulty } from '../domain/difficulty';
 import { reviveWatched } from './pvp/watchedStorage';
 import { readJson, writeJson } from './storage/kv';
@@ -20,6 +21,16 @@ export interface Settings {
      *  not by the settings sheet: it is a viewing preference, and holding it here is
      *  what stops it re-collapsing every time you navigate back into the run. */
     showFullDraw: boolean;
+    /** Challenge families whose rows are folded away on the honours ledger (`/records`).
+     *  Set by the family headings themselves rather than by the settings sheet - a
+     *  viewing preference, exactly like `showFullDraw` above, and it is held here for the
+     *  same reason: the two halves of `/records` are sub-tabs, so reading the cabinet and
+     *  coming back remounts the ledger, and a fold that undid itself every time would be
+     *  something you re-collapsed rather than something you had set.
+     *
+     *  Stored COLLAPSED rather than open, so a family added to the catalogue later arrives
+     *  showing its rows instead of folded shut. */
+    collapsedFamilies: readonly ChallengeFamily[];
 }
 
 export const SETTINGS_KEY = 'wcsim_settings_v1';
@@ -41,6 +52,7 @@ export interface StoredSettings {
     difficulty: Difficulty;
     poolYears: readonly number[] | null;
     showFullDraw: boolean;
+    collapsedFamilies: readonly ChallengeFamily[];
     /** The duels whose result this player has already watched (`state/pvp/watched.ts`).
      *
      *  NOT a preference, and not part of `Settings`: nothing in the settings sheet edits
@@ -59,6 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
     difficulty: 'normal',
     poolYears: WORLD_CUP_YEARS,
     showFullDraw: false,
+    collapsedFamilies: [],
 };
 
 /** True when `years` already names every tournament in the dataset. */
@@ -95,6 +108,14 @@ export function normalizeSettings(raw: unknown): Settings {
                 : 'normal',
         poolYears,
         showFullDraw: stored.showFullDraw === true,
+        // Rebuilt against the catalogue rather than read as typed, like every other field
+        // here: the blob need not be an array at all, and a name matching no family would
+        // otherwise sit in it for ever, folding nothing.
+        collapsedFamilies: Array.isArray(stored.collapsedFamilies)
+            ? stored.collapsedFamilies.filter((f): f is ChallengeFamily =>
+                  FAMILIES.includes(f as ChallengeFamily),
+              )
+            : [],
     };
 }
 
@@ -113,6 +134,7 @@ export function toStored(s: Settings, watchedDuels: readonly string[]): StoredSe
         difficulty: s.difficulty,
         poolYears: coversEveryYear(s.poolYears) ? null : s.poolYears,
         showFullDraw: s.showFullDraw,
+        collapsedFamilies: s.collapsedFamilies,
         watchedDuels,
     };
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { ChallengeFamily } from '../domain/challenges';
 import type { Difficulty } from '../domain/difficulty';
 import { store, type Settings, type Theme } from '../state/store';
 
@@ -8,6 +9,7 @@ export interface SettingsApi {
     setDifficulty: (d: Difficulty) => void;
     setPoolYears: (years: readonly number[]) => void;
     setShowFullDraw: (open: boolean) => void;
+    setCollapsedFamilies: (families: readonly ChallengeFamily[]) => void;
 }
 
 /** Owns the persisted user preferences and applies the theme to the document.
@@ -40,6 +42,18 @@ export function useSettings(initial: Settings): SettingsApi {
         (showFullDraw: boolean) => setSettings((s) => ({ ...s, showFullDraw })),
         [],
     );
+    const setCollapsedFamilies = useCallback(
+        (collapsedFamilies: readonly ChallengeFamily[]) =>
+            setSettings((s) => ({ ...s, collapsedFamilies })),
+        [],
+    );
 
-    return { settings, setTheme, setDifficulty, setPoolYears, setShowFullDraw };
+    return {
+        settings,
+        setTheme,
+        setDifficulty,
+        setPoolYears,
+        setShowFullDraw,
+        setCollapsedFamilies,
+    };
 }

@@ -464,7 +464,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **455 checks** as of 2026-09-02. It exercises the sim, penalty
+per concern in `scripts/checks/`, **456 checks** as of 2026-09-02. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -728,9 +728,12 @@ the reducer's `auto` field and `SET_AUTO`.)
   same award). So the album now spans difficulties, a casual run can fill it, and the
   settings sheet has no danger dialog. Do not reinstate it for one of the three without
   the other two.
-- **One preference has no control in the sheet:** `showFullDraw`, whether a Cup Run's
-  bracket shows the full 16-team draw or just your own path. Its control is the accordion's
-  own chevron (see "Runs as tournaments" below); it lives here so it survives navigation.
+- **Two preferences have no control in the sheet:** `showFullDraw`, whether a Cup Run's
+  bracket shows the full 16-team draw or just your own path, and `collapsedFamilies`, which
+  challenge families are folded shut on the honours ledger. Each one's control is its own
+  chevron (the bracket accordion, see "Runs as tournaments" below; the family headings, see
+  "Challenges"), and both live here so they survive navigation - `/records` is two sub-tabs,
+  so reading the cabinet and coming back remounts the ledger.
 - **Match `speed`** is reducer state (`SET_SPEED`, default `fast`), not a preference,
   because it belongs to playback of the run in progress. The modal just receives it.
 
@@ -2328,6 +2331,20 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   columns are a **grid, not CSS columns**, because a grid row levels both cells' heights and
   so keeps the pair of hairlines in line when one description wraps and the other does not;
   one column below 700px. The row shows its `+N` where the card used to.
+- **A FAMILY FOLDS** (2026-09-02). Twelve headings over 130 rows is a page you scroll past
+  rather than read, so each heading is the disclosure for its own section: the name, the
+  `got / total` count and a chevron. **The count stays on a folded family**, which is what
+  makes the folded overview worth having - a shut section still says how much of it you
+  hold, and folding therefore costs no information, only the rows. One **Collapse all**
+  sits at the end of the filter row, because reaching one family would otherwise be eleven
+  taps; it is a quiet button rather than a pill, since a chip in that row would read as a
+  fourth filter (the same distinction the market's "Clear filters" makes), and its label
+  follows the families actually on screen rather than all twelve, so under a filter it
+  describes what you can see. The folds are a persisted **preference**
+  (`Settings.collapsedFamilies`, see "Settings"), stored COLLAPSED rather than open so a
+  family added to the catalogue later arrives showing its rows, and rebuilt against
+  `FAMILIES` on load so a name matching nothing cannot ride along in the blob for ever
+  folding nothing. `npm run checks` holds both directions of that round trip.
 - **Accounts:** `completed_challenges` is one column on `career`, added by
   `supabase/migrations/0011_career_challenges.sql` (applied to the NAS 2026-08-19), which
   also teaches `save_career` and `import_guest_progress` to carry it.

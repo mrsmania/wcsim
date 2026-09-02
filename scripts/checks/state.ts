@@ -8,6 +8,7 @@ import { check } from './harness';
 import { readFileSync, readdirSync } from 'node:fs';
 import { BANK_CAP, FEATURES } from '../../src/config';
 import { ALL_PLAYERS, WORLD_CUP_YEARS } from '../../src/data/squads';
+import { FAMILIES } from '../../src/domain/challenges';
 import { type Filled } from '../../src/domain/draft';
 import { getFormation } from '../../src/domain/formations';
 import { KO_ROUNDS } from '../../src/domain/knockout';
@@ -62,6 +63,34 @@ export function stateChecks(): void {
       'settings: an all-tournaments pool survives a new tournament, a narrowing survives a round trip',
       () => ok,
     );
+  }
+
+  // --- Settings: a folded challenge family survives, an unknown name does not --
+  // The honours ledger's folds are a preference rather than screen state, so they go
+  // through this same blob (and so reach an account with no migration, as the watched
+  // duels did). Two directions to hold: a real family comes back folded, and anything
+  // that is not one is DROPPED rather than carried - the list is written whole on every
+  // settings save, so a name matching no family would ride along for ever folding
+  // nothing. Stored collapsed rather than open, which is what makes a family added to
+  // the catalogue later arrive showing its rows.
+  {
+    const [first, second] = FAMILIES;
+    const stored = toStored({ ...DEFAULT_SETTINGS, collapsedFamilies: [first, second] }, []);
+    const folded = (s: unknown) => normalizeSettings(s).collapsedFamilies;
+    const ok =
+      // The sample is real, or every claim below is about an empty list.
+      FAMILIES.length >= 2 &&
+      stored.collapsedFamilies.join() === `${first},${second}` &&
+      folded(stored).join() === `${first},${second}` &&
+      // Junk, a non-array and a name that is not a family all read as nothing folded.
+      folded(null).length === 0 &&
+      folded({ v: 2 }).length === 0 &&
+      folded({ v: 2, collapsedFamilies: 'silverware' }).length === 0 &&
+      folded({ v: 2, collapsedFamilies: ['silverware', 'not-a-family'] }).join() ===
+        'silverware' &&
+      // The default is nothing folded: arriving at the ledger shows the catalogue.
+      DEFAULT_SETTINGS.collapsedFamilies.length === 0;
+    check('settings: a folded challenge family survives a round trip, an unknown name does not', () => ok);
   }
 
   // --- Routes: the URL-to-screen table, and that everything else redirects -----

@@ -466,7 +466,11 @@ export default function App({
                                     allPlayers={poolPlayers}
                                 />
                             ) : (
-                                <ChallengesScreen completed={career.completedChallenges} />
+                                <ChallengesScreen
+                                    completed={career.completedChallenges}
+                                    collapsedFamilies={settings.settings.collapsedFamilies}
+                                    onSetCollapsedFamilies={settings.setCollapsedFamilies}
+                                />
                             )}
                         </>
                     ) : isLauncher ? (
